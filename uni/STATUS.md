@@ -66,9 +66,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   (90 min Vorlesung ~2,5 h). Keine Datei, die nicht vor 7 Uhr fertig wird. Modell in data/modelle/.
   Ton liest av selbst (faster-whisper 1.2.1 passt nicht zu av 19). Qualität: gut lesbar, Hörfehler
   bei Fachbegriffen (Schweizer Färbung). Speicher ~1 GB pro 42 min Aufnahme.
-  Dienst/Timer in uni/systemd/ (1 Uhr). Einrichten durfte Claude nicht selbst (Sicherheitsprüfung),
-  Jan: `cp ~/agenten/uni/systemd/uni-transkript.* ~/.config/systemd/user/ && systemctl --user daemon-reload
-  && systemctl --user enable --now uni-transkript.timer`. Ob das erledigt ist: `systemctl --user list-timers`.
+  Dienst/Timer uni-transkript (1 Uhr), Vorlage in uni/systemd/, von Jan am 17.10. eingerichtet
+  (Claude darf keine Dienste anlegen und keine Pakete installieren: Sicherheitsprüfung, Jan per `!`-Befehl).
+  Erster Lauf 17.10. 1 Uhr noch nicht geprüft: `journalctl --user -u uni-transkript -n 30`.
+- Offen (Schritt 3): Jans eigene Transkripte per Telegram übernehmen. Format bei Jan erfragt, Antwort offen.
 - Jans Idee (16.10.): eigene Vorlesungs-Transkripte an den Agenten geben, als Wissen für Aufträge und
   Lernmodus, Hinweise (Prüfung, Fristen) melden. Ablage-Vorschlag data/kurse/<Kurs>/transkripte/. Noch nicht gebaut.
   Achtung: 5 HNEE-Kurse verbieten eigene Aufzeichnungen der Online-Vorlesung (steht in deren uebersicht.md).
