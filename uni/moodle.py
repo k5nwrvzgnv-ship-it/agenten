@@ -85,7 +85,8 @@ class Moodle:
     def fristen(self, ab: int) -> list[dict]:
         """Aufgaben und Tests, deren Frist oder Nachfrist nach `ab` (Unix-Zeit) liegt.
 
-        Jeder Eintrag: id, art, kurs, name, faellig, letzte_abgabe (0 = keine), erledigt, url.
+        Jeder Eintrag: id, art, kurs, name, faellig, letzte_abgabe (0 = keine), erledigt, url,
+        bei Aufgaben zusätzlich ohne_gruppe (Teamabgabe, Jan in keiner Gruppe des Kurses).
         """
         ergebnis = []
         for kurs in self.aufruf("mod_assign_get_assignments")["courses"]:
@@ -93,6 +94,7 @@ class Moodle:
                 if max(a["duedate"], a["cutoffdate"]) <= ab:
                     continue
                 ergebnis.append({
+                    "ohne_gruppe": bool(a.get("teamsubmission")) and not self._gruppen(kurs["id"]),
                     "id": f"{self.praefix}assign-{a['id']}", "art": "Aufgabe", "kurs": kurs["fullname"], "name": a["name"],
                     "faellig": a["duedate"], "letzte_abgabe": a["cutoffdate"],
                     "erledigt": self._aufgabe_abgegeben(a["id"]),
@@ -114,6 +116,14 @@ class Moodle:
         versuch = s.get("lastattempt") or {}
         abgabe = versuch.get("teamsubmission") or versuch.get("submission") or {}
         return abgabe.get("status") == "submitted"
+
+    def _gruppen(self, kursid: int) -> list:
+        if not hasattr(self, "_gruppen_cache"):
+            self._gruppen_cache = {}
+        if kursid not in self._gruppen_cache:
+            self._gruppen_cache[kursid] = self.aufruf("core_group_get_course_user_groups", courseid=kursid,
+                                                      userid=self.userid())["groups"]
+        return self._gruppen_cache[kursid]
 
     def _kursname(self, kursid: int) -> str:
         if not hasattr(self, "_kursnamen"):

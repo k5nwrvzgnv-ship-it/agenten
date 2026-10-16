@@ -70,3 +70,13 @@ class TestFristen(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestText(unittest.TestCase):
+    def test_ohne_gruppe(self):
+        f = frist(ts("19.10.2026 22:00"))
+        self.assertNotIn("keiner Gruppe", fristen.als_text(f, 2, False, f["faellig"]))
+        f["ohne_gruppe"] = True
+        text = fristen.als_text(f, 2, False, f["faellig"])
+        self.assertTrue(text.startswith("Aufgabe fällig in 2 Tagen (19.10. 22:00): N"))
+        self.assertIn("Teamabgabe, aber du bist in keiner Gruppe", text)

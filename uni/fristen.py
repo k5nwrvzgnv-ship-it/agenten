@@ -59,4 +59,7 @@ def als_text(frist: dict, tage: int, nachfrist: bool, zeitpunkt: int) -> str:
     wann = datetime.fromtimestamp(zeitpunkt).strftime("%d.%m. %H:%M")
     bis = "heute" if tage == 0 else "morgen" if tage == 1 else f"in {tage} Tagen"
     art = "Nachfrist endet" if nachfrist else "fällig"
-    return f"{frist['art']} {art} {bis} ({wann}): {frist['name']}\nKurs: {frist['kurs']}\n{frist['url']}"
+    text = f"{frist['art']} {art} {bis} ({wann}): {frist['name']}\nKurs: {frist['kurs']}\n{frist['url']}"
+    if frist.get("ohne_gruppe"):
+        text += "\nAchtung: Teamabgabe, aber du bist in keiner Gruppe. Erst eintragen (Belegung in uebersicht.md)."
+    return text
