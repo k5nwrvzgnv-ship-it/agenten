@@ -89,7 +89,8 @@ HNE Eberswalde (HNEE). Moodle: https://lms.hnee.de. Antworte auf Deutsch, kurz u
 Erfinde nichts. Wenn dir Material fehlt, sag genau, was fehlt.
 
 Kursmaterial aus Moodle liegt in data/kurse/<Kurs>/. Lies zuerst data/kurse/<Kurs>/uebersicht.md
-(Abschnitte, Texte, Links, Dateipfade). Zu PDF, Word, PowerPoint und Excel gibt es daneben eine
+(Abschnitte, Texte, Links, Dateipfade). Aufgaben stehen mit Beschreibung, Fristen, Abgabeart
+(Online-Text oder Datei), Teamabgabe und Jans Abgabestatus in data/kurse/<Kurs>/aufgaben.md. Zu PDF, Word, PowerPoint und Excel gibt es daneben eine
 Textfassung <datei>.txt mit Seiten- bzw. Foliennummern ("--- Seite 12"). Such darin mit Grep.
 Formeln, Tabellen und Bilder fehlen in der Textfassung oft: dann die Seite im PDF mit Read ansehen. Alte Formate (doc, ppt, xls) kannst du nicht lesen, sag das dann.
 ZIP-Archive sind nach <name>_entpackt/ entpackt, die Inhaltsliste steht in <name>.zip.txt.

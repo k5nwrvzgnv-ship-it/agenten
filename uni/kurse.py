@@ -10,6 +10,8 @@ PDF, Word, PowerPoint und Excel bekommen daneben eine Textfassung <datei>.txt (m
 Seiten- bzw. Foliennummern), damit Claude mit Grep gezielt suchen kann, statt ganze
 Dateien zu lesen. Alte Formate (doc, ppt, xls) nicht.
 In Moodle gelöschte Dateien bleiben liegen.
+Aufgaben (Beschreibung, Fristen, Abgabeart, Status, Anhänge) stehen in
+data/kurse/<Kurs>/aufgaben.md, Anhänge in data/kurse/<Kurs>/Aufgaben/<Aufgabe>/.
 """
 
 import json
@@ -18,6 +20,7 @@ import re
 import shutil
 import urllib.request
 import zipfile
+from datetime import datetime
 from html import unescape
 from pathlib import Path
 
@@ -130,6 +133,65 @@ def entpacken(pfad: Path) -> list[str]:
     return liste
 
 
+ABGABEARTEN = {"onlinetext": "Online-Text (direkt in Moodle eintippen)", "file": "Datei-Upload"}
+
+
+def _zeit(ts: int) -> str:
+    return datetime.fromtimestamp(ts).strftime("%d.%m.%Y %H:%M") if ts else "keine"
+
+
+def aufgabe_als_text(a: dict, status: str, anhaenge: list[str]) -> list[str]:
+    """Abschnitt für aufgaben.md aus einem Eintrag von mod_assign_get_assignments."""
+    cfg = {(c["plugin"], c["name"]): c["value"] for c in a.get("configs", []) if c["subtype"] == "assignsubmission"}
+    arten = [text for plugin, text in ABGABEARTEN.items() if cfg.get((plugin, "enabled")) == "1"]
+    if cfg.get(("file", "enabled")) == "1":
+        anzahl, typen = cfg.get(("file", "maxfilesubmissions")), cfg.get(("file", "filetypeslist"))
+        arten[-1] += f", höchstens {anzahl} Datei(en)" if anzahl else ""
+        arten[-1] += f", erlaubte Typen: {typen}" if typen else ""
+    zeilen = [
+        f"## {a['name']}", "",
+        f"- Moodle: {{url}}/mod/assign/view.php?id={a['cmid']}",
+        f"- Fällig: {_zeit(a['duedate'])}",
+        f"- Letzte Abgabe (Nachfrist): {_zeit(a['cutoffdate'])}",
+        f"- Abgabe ab: {_zeit(a['allowsubmissionsfromdate'])}",
+        f"- Abgabeart: {'; '.join(arten) or 'keine Abgabe in Moodle'}",
+        f"- Teamabgabe: {'ja' if a['teamsubmission'] else 'nein'}",
+        f"- Eigenständigkeitserklärung nötig: {'ja' if a.get('requiresubmissionstatement') else 'nein'}",
+        f"- Jans Abgabestatus: {status}",
+    ]
+    zeilen += [f"- Anhang: {x}" for x in anhaenge]
+    zeilen += ["", "Beschreibung:", html_zu_text(a.get("intro", "")) or "(keine)", ""]
+    if anweisung := html_zu_text(a.get("activity", "")):
+        zeilen += ["Arbeitsanweisungen:", anweisung, ""]
+    return zeilen
+
+
+STATUS_TEXT = {"submitted": "abgegeben", "draft": "Entwurf (noch nicht abgegeben)", "new": "nichts abgegeben"}
+
+
+def _aufgaben(m, kurse_ordner: dict[int, tuple[str, Path]], stand: dict, neu: list[str]) -> None:
+    for kurs in m.aufruf("mod_assign_get_assignments")["courses"]:
+        if kurs["id"] not in kurse_ordner or not kurs["assignments"]:
+            continue
+        kursname, ordner = kurse_ordner[kurs["id"]]
+        zeilen = [f"# Aufgaben: {kurs['fullname']}", ""]
+        for a in kurs["assignments"]:
+            s = m.aufruf("mod_assign_get_submission_status", assignid=a["id"]).get("lastattempt") or {}
+            abgabe = s.get("teamsubmission") or s.get("submission") or {}
+            status = STATUS_TEXT.get(abgabe.get("status"), abgabe.get("status") or "unbekannt")
+            anhaenge = []
+            for datei in a.get("introattachments", []):
+                rel = Path(sicherer_name(kursname), "Aufgaben", sicherer_name(a["name"]), sicherer_name(datei["filename"]))
+                if stand.get(datei["fileurl"]) != datei.get("timemodified") or not (ZIEL / rel).exists():
+                    _laden(datei["fileurl"], m.token(), ZIEL / rel)
+                    stand[datei["fileurl"]] = datei.get("timemodified")
+                    neu.append(str(rel))
+                _textfassung(ZIEL / rel, erneuern=False)
+                anhaenge.append(str(rel.relative_to(sicherer_name(kursname))))
+            zeilen += [z.replace("{url}", m.url) for z in aufgabe_als_text(a, status, anhaenge)]
+        (ordner / "aufgaben.md").write_text("\n".join(zeilen), encoding="utf-8")
+
+
 def _laden(url: str, token: str, ziel: Path) -> None:
     trenner = "&" if "?" in url else "?"
     ziel.parent.mkdir(parents=True, exist_ok=True)
@@ -151,10 +213,13 @@ def spiegeln(m) -> list[str]:
     vergeben = set()
     kurse = m.kurse()
     namen = [k["fullname"] for k in kurse]
+    kurse_ordner = {}
     for k in kurse:
         kursname = k["fullname"] if namen.count(k["fullname"]) == 1 else f"{k['fullname']} ({k['id']})"
         kursordner = ZIEL / sicherer_name(kursname)
-        zeilen = [f"# {k['fullname']}", "", f"Moodle: {m.url}/course/view.php?id={k['id']}", ""]
+        kurse_ordner[k["id"]] = (kursname, kursordner)
+        zeilen = [f"# {k['fullname']}", "", f"Moodle: {m.url}/course/view.php?id={k['id']}",
+                  "Aufgaben mit Beschreibung, Fristen, Abgabeart und Status: aufgaben.md (falls vorhanden)", ""]
         for nr, abschnitt in enumerate(m.aufruf("core_course_get_contents", courseid=k["id"])):
             titel = abschnitt.get("name") or f"Abschnitt {nr}"
             abschnitt_ordner = f"{nr:02d} {sicherer_name(titel)}"
@@ -195,6 +260,7 @@ def spiegeln(m) -> list[str]:
             zeilen.append("")
         kursordner.mkdir(parents=True, exist_ok=True)
         (kursordner / "uebersicht.md").write_text("\n".join(zeilen), encoding="utf-8")
+    _aufgaben(m, kurse_ordner, stand, neu)
     _speichern(stand)
     return [] if erster else neu
 

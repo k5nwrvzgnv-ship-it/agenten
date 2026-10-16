@@ -43,6 +43,18 @@ class TestKurse(unittest.TestCase):
         (ordner / "x.png").write_bytes(b"png")
         self.assertFalse(kurse._textfassung(ordner / "x.png", erneuern=False))
 
+    def test_aufgabe_als_text(self):
+        a = {"name": "GEG", "cmid": 5, "duedate": 0, "cutoffdate": 0, "allowsubmissionsfromdate": 0,
+             "teamsubmission": 1, "intro": "<p>Hüllfläche finalisieren</p>",
+             "configs": [{"plugin": "onlinetext", "subtype": "assignsubmission", "name": "enabled", "value": "1"},
+                         {"plugin": "file", "subtype": "assignsubmission", "name": "enabled", "value": "1"},
+                         {"plugin": "file", "subtype": "assignsubmission", "name": "maxfilesubmissions", "value": "2"},
+                         {"plugin": "comments", "subtype": "assignfeedback", "name": "enabled", "value": "1"}]}
+        text = "\n".join(kurse.aufgabe_als_text(a, "nichts abgegeben", []))
+        self.assertIn("Abgabeart: Online-Text (direkt in Moodle eintippen); Datei-Upload, höchstens 2 Datei(en)", text)
+        self.assertIn("Teamabgabe: ja", text)
+        self.assertIn("Hüllfläche finalisieren", text)
+
     def test_pdf_ohne_text(self):
         import pypdf
         ordner = Path(tempfile.mkdtemp())
