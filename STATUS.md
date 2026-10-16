@@ -39,18 +39,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Rollen für Entwicklungs-Chats nicht eigens gebaut: Plan-Modus und /code-review reichen (16.10.).
 
 ## Offene Punkte
-1. Im uni-Chat: agent.py muss Antworten fortsetzen. Dafür `claude_lauf.laufen(...,
-   sitzung_fortsetzen=a["sitzung"])` wenn der Auftrag eine Sitzung hat, und
-   `auftraege.abschliessen(..., sitzung=e.sitzung)` bei jedem Auftrag (nicht nur lernen).
-   Der Hinweis "Weiter am PC: ..." in agent.py kann dann entfallen (die Zentrale liefert ihn bei /pc).
-   Noch nicht getestet: interaktives `claude --resume <id>` am PC (Jan einmal selbst).
+1. Erledigt im uni-Chat 17.10.: agent.py setzt Antworten in der Sitzung fort, jeder Auftrag speichert
+   seine Sitzung. Noch nicht getestet: echte Antwort über Telegram, interaktives `claude --resume <id>`
+   am PC (Jan einmal selbst).
 2. Danach: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
    dokumente muss Word, PowerPoint und Excel erstellen und formatieren können (Jan, 16.10.).
 3. Dateien aus Telegram: gebaut 16.10. (Zentrale nimmt Dokumente und Fotos bis 20 MB an, Ablage
    <agent>/data/eingang/<auftrag-id>/, Pfade im Feld dateien und am Ende des Auftragstexts).
    Noch offen: Handtest durch Jan (Datei mit "/uni ..." als Bildunterschrift, Album, Datei ohne Befehl).
-   Für den uni-Chat: Claude liest PDF, Bilder und Text direkt, aber nicht docx/pptx/xlsx. agent.py sollte
-   für a["dateien"] vor dem Lauf kurse.als_text() nutzen und <datei>.txt daneben legen.
+   uni (17.10.): legt für a["dateien"] vorab <datei>.txt an (kurse.textfassung) und übernimmt
+   "Transkript <Kurs>"-Aufträge als Vorlesungstranskript.
 4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 
 ## Gelernte Regeln

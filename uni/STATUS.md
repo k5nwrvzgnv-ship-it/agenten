@@ -69,12 +69,17 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Dienst/Timer uni-transkript (1 Uhr), Vorlage in uni/systemd/, von Jan am 17.10. eingerichtet
   (Claude darf keine Dienste anlegen und keine Pakete installieren: Sicherheitsprüfung, Jan per `!`-Befehl).
   Erster Lauf 17.10. 1 Uhr noch nicht geprüft: `journalctl --user -u uni-transkript -n 30`.
-- Offen (Schritt 3): Jans eigene Transkripte per Telegram übernehmen. Format bei Jan erfragt, Antwort offen.
-- Jans Idee (16.10.): eigene Vorlesungs-Transkripte an den Agenten geben, als Wissen für Aufträge und
-  Lernmodus, Hinweise (Prüfung, Fristen) melden. Ablage-Vorschlag data/kurse/<Kurs>/transkripte/. Noch nicht gebaut.
-  Achtung: 5 HNEE-Kurse verbieten eigene Aufzeichnungen der Online-Vorlesung (steht in deren uebersicht.md).
-- BFH-Postfach (jan.kleinke@students.bfh.ch) wird vermutlich nicht ins HNEE-Postfach umgeleitet
-  (seit 17.09. keine BFH-Mail mehr dort). Jan prüft.
+- Jans eigene Transkripte (transkripte.py, 17.10.): Auftrag "Transkript <Kurs> [TT.MM.]" mit .txt-Datei
+  (Jans Format) oder Text darunter. Python legt nach data/kurse/<Kurs>/transkripte/<datum>_transkript.txt
+  ab (Kurs per Namensteil, bei Mehrdeutigkeit Rückfrage mit Kandidaten), Claude (routine) meldet
+  Prüfungshinweise, Fristen, Organisatorisches. KONTEXT verweist auf Transkripte. Noch nicht echt
+  über Telegram getestet. Achtung: 5 HNEE-Kurse verbieten eigene Aufzeichnungen der Online-Vorlesung.
+- Gruppen (17.10.): uebersicht.md zeigt Belegung jeder Gruppenwahl (mod_choicegroup_get_choicegroup_options,
+  nur choicegroupid+userid, sonst "Ungültiger Parameterwert"), aufgaben.md Jans Gruppe bei Teamabgaben,
+  Fristen-Erinnerung warnt bei Teamabgabe ohne Gruppe. Mitglieder anderer zeigt Moodle nicht.
+- Angehängte Dateien eines Auftrags bekommen vorab eine Textfassung (kurse.textfassung).
+- BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
+  eingerichtet, Ankunft noch nicht geprüft (Testmail an die BFH-Adresse, dann im HNEE-Postfach suchen).
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
@@ -127,8 +132,11 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 
 ## Offene Punkte
 1. Erledigt 16.10.: uni.service und uni.timer eingerichtet (Jan hat es ausdrücklich angewiesen), Timer 8/13/19 Uhr, Handstart erfolgreich.
-2. Gesprächskanal: Zentrale und auftraege sind fertig (Antwort auf Meldung = Auftrag mit Feld sitzung,
-   /pc, /weiter). NÄCHSTER SCHRITT HIER: agent.py setzt die Sitzung fort, siehe ../STATUS.md Punkt 1.
+2. Gesprächskanal: agent.py setzt seit 17.10. die Sitzung fort (Auftrag mit Feld sitzung): Modus und
+   Protokoll-ID vom Ursprung der Antwortkette (ursprung()), Antwort-Prompts kurz, jeder Auftrag
+   speichert seine Sitzung. Nur Unit-Tests: echter Test über Telegram steht aus (auf eine neue
+   Antwort des Agenten antworten; Aufträge von vor dem 17.10. haben keine Sitzung).
+3. Zu prüfen: erster Lauf uni-transkript (17.10. 1 Uhr), Weiterleitung BFH-Postfach.
 
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.
