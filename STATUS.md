@@ -26,6 +26,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - agentkit/claude_lauf.py: laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id). Sperre pro Agent, Plätze (gleichzeitige Läufe je Stufe), Zeitlimit, Modellwahl, Regeln im System-Prompt, Verbrauchsprotokoll. Ausnahmen: LaeuftSchon, KeinPlatz, Pausiert, LimitErreicht, Zeitueberschreitung. Grundlast pro Lauf ca. 6.300 Tokens.
 - Verbrauch: jeder Lauf meldet die echte Auslastung (5-Stunden- und 7-Tage-Fenster). Protokoll shared/verbrauch/laeufe.jsonl (nicht im Repo). Stufen normal/sparen/nur_auftraege/limit, Grenzen und alle anderen Werte in shared/einstellungen.toml (dynamisch änderbar).
 - Telegram: /verbrauch zeigt Stufe, Auslastung, Läufe heute. Bei Stufenwechsel kommt eine Nachricht.
+- 16.10.: Vorlagen in shared/vorlagen/ (STATUS-agent.md, agent.service, agent.timer, agent_beispiel.py). Zentrale startet <agent>.service nach Auftrag, Änderungswunsch und Freigabe (falls der Dienst existiert).
 - Einschränkung: Die Auslastung wird nur bei einem Agenten-Lauf aktualisiert, Jans eigene Chats dazwischen sieht sie erst beim nächsten Lauf.
 
 ## Entscheidungen (16.10.2026)
@@ -51,12 +52,10 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - telegram/: Telegram-Zentrale als eigener User-Dienst mit eigener .venv
 
 ## Offene Punkte (nächste Schritte)
-1. (erledigt, siehe Entscheidung agentkit-Einbindung)
-2. Je Agent eine STATUS.md-Vorlage.
-2a. (erledigt: Der Agent führt nach Freigabe selbst aus, siehe freigabe.py.) Die Telegram-Zentrale muss beim Freigeben den Fingerabdruck des angezeigten Entwurfs mitgeben und unklare() regelmäßig melden.
-3. Zentrale: Agenten-Dienst nach neuem Auftrag sofort starten (sobald es Agenten gibt).
-4. (erledigt, siehe Entscheidungen claude-Läufe und Verbrauch)
-5. Danach: Agent uni im eigenen Chat im Ordner uni/.
+1. Agent uni im eigenen Chat im Ordner uni/ (Übergabe steht in uni/STATUS.md).
+2. Sobald uni so weit ist, hier in der Zentrale: Gesprächskanal Agent <-> Jan für den Lernmodus, /pc und /weiter.
+3. Später: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
+4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 
 ## Gelernte Regeln
 - (noch keine)

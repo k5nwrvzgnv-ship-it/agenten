@@ -8,7 +8,23 @@ Persönliches Agenten-System von Jan. Regeln: siehe CLAUDE.md. Aktueller Stand: 
 | dokumente/ | dokumente | Anträge, Berichte, PowerPoints, Tabellen erstellen |
 | posteingang/ | posteingang | E-Mails lesen, sortieren, Antwortentwürfe |
 | einkauf/ | einkauf | Geschenke und Bedarf recherchieren, Vorschläge mit Preisen |
-| shared/ | – | Logging, Config, Freigabe-Warteschlange, gelernte Regeln |
+| shared/ | – | agentkit (gemeinsamer Code), Telegram-Zentrale, Warteschlangen, Regeln, Einstellungen, Vorlagen |
+
+## Bedienung über Telegram (@Agentenzentralebot)
+- `/uni <Auftrag>` erledigen, `/unilern <Auftrag>` gemeinsam lernen (ebenso dokumente, posteingang, einkauf)
+- `/status` Überblick, `/verbrauch` Auslastung des Claude-Kontingents, `/hilfe`
+- Entwürfe kommen mit Knöpfen Freigeben / Ablehnen / Ändern. Nach Freigabe handelt der Agent selbst.
+
+## Wichtige Dateien
+- `CLAUDE.md`: Regeln für alle Chats. `STATUS.md`: Stand des Gesamtsystems.
+- `shared/einstellungen.toml`: änderbare Werte (Limits, Stufen, Modelle, Werkzeuge).
+- `shared/.env`: Bot-Token, Chat-ID, Kauflimit (chmod 600, nicht im Repo).
+- `shared/vorlagen/`: Vorlagen für neue Agenten.
+
+## Dienste
+- `systemctl --user status agentenzentrale`, Logs: `journalctl --user -u agentenzentrale` oder shared/telegram/logs/
+- Tests: `cd shared && python3 -m unittest discover -s agentkit/tests -t .` und
+  `cd shared/telegram && .venv/bin/python -m unittest discover -s tests -t .`
 
 ## Arbeiten mit Claude Code
 - Pro Agent ein VS-Code-Fenster im Agent-Ordner öffnen und dort den Chat führen (`/rename <agent>`).

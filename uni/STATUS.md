@@ -6,6 +6,29 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 ## Stand (16.10.2026)
 - Noch nicht begonnen. Umsetzung im eigenen Chat im Ordner uni/.
 
+## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
+Fertig und getestet in shared/ (nicht hier ändern, Änderungen an shared/ im Chat im Hauptordner):
+- agentkit: config, log, freigabe (inkl. Ausführung nach Freigabe), auftraege (inkl. modus), regeln,
+  einstellungen, verbrauch, claude_lauf. Doku steht jeweils oben im Modul.
+- Telegram-Zentrale läuft als Dienst agentenzentrale. Sie legt bei /uni bzw. /unilern Aufträge an und
+  startet danach uni.service (falls vorhanden). Ebenso nach Freigabe eines uni-Entwurfs.
+- Vorlagen in shared/vorlagen/: STATUS-agent.md, agent.service, agent.timer, agent_beispiel.py (Gerüst).
+- Werkzeuge für Claude beim Agenten uni (einstellungen.toml): Read, Write, Edit, Glob, Grep, WebSearch.
+
+Erste Schritte (jeweils mit Jans Okay, siehe CLAUDE.md):
+1. Mit Jan klären: Welche Uni, Moodle-Adresse, Login-Art (eigenes Konto oder Single Sign-on)?
+   Gibt es Moodle-Webservice-Tokens (/login/token.php, wie die Moodle-App), dann ohne Browser.
+   Unipostfach: IMAP/SMTP oder Exchange? Welche Kurse, welche Fristen sind wichtig?
+2. .venv anlegen und agentkit einbinden:
+   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
+3. .env.example und .env (chmod 600) mit Uni-Zugangsdaten.
+4. agent.py nach shared/vorlagen/agent_beispiel.py: Aufträge abarbeiten (erledigen mit Protokoll, lernen
+   mit Sitzung), Fristen-Prüfung zeitgesteuert.
+5. Lernmodus über Telegram: Rückfragen und Antworten laufen über die Zentrale. Dafür braucht die Zentrale
+   noch einen Gesprächskanal Agent <-> Jan sowie /pc und /weiter. Das wird im Hauptordner-Chat gebaut,
+   wenn uni so weit ist.
+6. uni.service und uni.timer aus den Vorlagen, erst nach Jans Okay einrichten.
+
 ## Anforderungen (von Jan, 16.10.2026)
 Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 - Modus erledigen: Der Agent arbeitet allein und liefert danach ein verständliches Protokoll:
@@ -32,7 +55,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 - Test 16.10. (Claude Code 2.1.301): Sitzung mit `claude -p --output-format json` gestartet (liefert `session_id`), mit `claude -p --resume <id>` fortgesetzt: Sie erinnerte sich korrekt. Klappte sogar aus einem anderen Ordner. Die Sitzung liegt als .jsonl unter ~/.claude/projects/<ordner>/. Noch nicht getestet: interaktives `claude --resume <id>` am PC (muss Jan einmal selbst ausprobieren).
 
 ## Offene Punkte
-1. (noch keine)
+1. Zugänge Moodle und Unipostfach (siehe Erste Schritte 1).
+2. Gesprächskanal für den Lernmodus in der Zentrale (Hauptordner).
 
 ## Gelernte Regeln
 - (noch keine)
