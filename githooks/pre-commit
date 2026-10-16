@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Git führt das vor jedem Commit aus. Ist pruefen.sh nicht grün, wird der Commit abgebrochen.
+# Eingerichtet mit: git config core.hooksPath githooks
+# Nur im Notfall umgehen: git commit --no-verify (und danach sofort reparieren).
+"$(git rev-parse --show-toplevel)/pruefen.sh" >&2 || {
+  echo "Commit abgebrochen: pruefen.sh ist nicht grün." >&2
+  exit 1
+}

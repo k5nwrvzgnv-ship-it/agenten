@@ -51,6 +51,7 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - Nur ändern, was zum Auftrag gehört. Aufräumen nebenbei vorher vorschlagen.
 
 ## Fertig heißt
-- `./pruefen.sh` zeigt ALLES GRÜN (Tests aller Ordner, Linter). Erst dann committen.
+- `./pruefen.sh` zeigt ALLES GRÜN (Tests aller Ordner, Linter). Der Git-Hook githooks/pre-commit
+  bricht sonst jeden Commit ab. `--no-verify` nur mit Jans Okay.
 - Neue Logik hat Tests. Neue Testordner werden in pruefen.sh eingetragen.
 - STATUS.md beschreibt den aktuellen Stand, keinen Verlauf (der steht in Git).

@@ -23,8 +23,9 @@ Persönliches Agenten-System von Jan. Regeln: siehe CLAUDE.md. Aktueller Stand: 
 
 ## Dienste
 - `systemctl --user status agentenzentrale`, Logs: `journalctl --user -u agentenzentrale` oder shared/telegram/logs/
-- Tests: `cd shared && python3 -m unittest discover -s agentkit/tests -t .` und
-  `cd shared/telegram && .venv/bin/python -m unittest discover -s tests -t .`
+- Prüfen: `./pruefen.sh` (alle Tests und Linter ruff). Läuft vor jedem Commit automatisch
+  (githooks/pre-commit). Nach neuem Klonen einmal: `git config core.hooksPath githooks` und
+  `python3 -m venv .venv && .venv/bin/pip install -r requirements-werkzeuge.txt`.
 
 ## Arbeiten mit Claude Code
 - Pro Agent ein VS-Code-Fenster im Agent-Ordner öffnen und dort den Chat führen (`/rename <agent>`).
