@@ -12,6 +12,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - 16.10.: agentkit/config.py (lade_config: shared/.env, dann Agent-.env, Agent gewinnt; bricht ab, wenn eine .env nicht chmod 600 ist) und agentkit/log.py (hole_logger: <agent>/logs/<name>.log, 1 MB x 5 Dateien, plus stderr). Nur Python-Bordmittel. Tests: `cd shared && python3 -m unittest discover -s agentkit/tests -t .`
 - 16.10.: agentkit/freigabe.py (neuer_entwurf, offene, erledigte, entscheide: freigegeben/abgelehnt/aendern; bei aendern Kommentar Pflicht, neuer Entwurf verweist per `vorgaenger` auf den alten) und agentkit/auftraege.py (neuer_auftrag, neue, erledigte, abschliessen: erledigt/fehlgeschlagen; `bezug` für Korrekturen zu einem Entwurf). Gemeinsame Ablage in _ablage.py: ein JSON pro Eintrag, ID-Format `JJJJMMTT-HHMMSS-agent-xxxxxx` (wird streng geprüft, da IDs später aus Telegram-Knöpfen kommen), atomares Schreiben, Abschließen geht nur einmal. 12 Tests grün.
 - 16.10.: Feld `modus` in auftraege.py (erledigen/lernen, Standard erledigen). uni/STATUS.md angelegt mit den Anforderungen zu den zwei Modi. 13 Tests grün.
+- 16.10.: agentkit/regeln.py: allgemeine_regeln(), agent_regeln(), regeln_als_text() (Block für den Prompt), regel_vorschlagen() (legt Entwurf Typ "regel" in die Freigabe), regel_eintragen() (nur bei Status freigegeben, kein doppelter Eintrag). 19 Tests grün.
 
 ## Entscheidungen (16.10.2026)
 - Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
@@ -31,7 +32,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - telegram/: Telegram-Zentrale als eigener User-Dienst mit eigener .venv
 
 ## Offene Punkte (nächste Schritte)
-1. agentkit: regeln.py (liest shared/regeln.md und die Regeln aus der STATUS.md des Agenten). Noch offen: Wie kommt agentkit in die Agent-.venv? `pip install -e` braucht eine pyproject.toml; Alternative ohne Installation ist eine .pth-Datei in der .venv, die auf shared/ zeigt.
+1. Klären: Wie kommt agentkit in die Agent-.venv? `pip install -e` braucht eine pyproject.toml und lädt Hilfspakete; Alternative ohne Installation: eine .pth-Datei in der .venv, die auf shared/ zeigt (Empfehlung).
 2. Je Agent eine STATUS.md-Vorlage.
 2a. Klären: Wer führt einen freigegebenen Entwurf aus (z. B. Mail senden), und wie wird "ausgeführt" vermerkt, damit nichts doppelt passiert?
 3. Telegram-Zentrale: Jan legt bei BotFather einen neuen Bot an und trägt den Token in shared/.env ein (chmod 600). Installation und Dienst nur nach Jans Okay.
