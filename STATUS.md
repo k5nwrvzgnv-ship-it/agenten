@@ -15,7 +15,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - 16.10.: agentkit/regeln.py: allgemeine_regeln(), agent_regeln(), regeln_als_text() (Block für den Prompt), regel_vorschlagen() (legt Entwurf Typ "regel" in die Freigabe), regel_eintragen() (nur bei Status freigegeben, kein doppelter Eintrag). 19 Tests grün.
 - 16.10.: Harte Regel in CLAUDE.md geändert (Jans Entscheidung): Agenten handeln nach Freigabe selbst, genau einmal, und melden das Ergebnis. Käufe nur bis KAUF_LIMIT_EURO (shared/.env, leer = kein Kauf).
 - 16.10.: freigabe.py erweitert: Fingerabdruck (sha256 über agent, typ, titel, inhalt, daten) wird beim Anlegen gespeichert. entscheide(..., "freigegeben", gesehen=<fingerabdruck>) gibt nur frei, wenn der Abdruck zur Telegram-Anzeige passt. Ausführung: zur_ausfuehrung(), ausfuehrung_beginnen() (prüft Abdruck und Kauflimit, Sperrdatei mit O_EXCL, also nur einmal), ausfuehrung_abschliessen(), unklare() (begonnen, nie abgeschlossen: wird nicht automatisch wiederholt, Jan prüft). 25 Tests grün.
-- 16.10.: shared/.env angelegt (chmod 600, von Git ignoriert): Token des neuen Bots @Agentenzentralebot (per getMe geprüft), KAUF_LIMIT_EURO=1000. TELEGRAM_CHAT_ID fehlt noch.
+- 16.10.: shared/.env angelegt (chmod 600, von Git ignoriert): Token des neuen Bots @Agentenzentralebot (per getMe geprüft), KAUF_LIMIT_EURO=1000, TELEGRAM_CHAT_ID (Jan, @jkl298) per getUpdates ermittelt und eingetragen.
 
 ## Entscheidungen (16.10.2026)
 - Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
@@ -43,7 +43,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 1. (erledigt, siehe Entscheidung agentkit-Einbindung)
 2. Je Agent eine STATUS.md-Vorlage.
 2a. (erledigt: Der Agent führt nach Freigabe selbst aus, siehe freigabe.py.) Die Telegram-Zentrale muss beim Freigeben den Fingerabdruck des angezeigten Entwurfs mitgeben und unklare() regelmäßig melden.
-3. Telegram-Zentrale: Bot @Agentenzentralebot ist angelegt, Token steht in shared/.env. Fehlt: Jans Chat-ID (Jan schreibt dem Bot, dann per getUpdates auslesen). Installation und Dienst nur nach Jans Okay.
+3. Telegram-Zentrale: Bot @Agentenzentralebot ist angelegt, Token steht in shared/.env. Chat-ID ist eingetragen. Nächster Schritt: Plan für den Bot-Dienst. Installation und Dienst nur nach Jans Okay.
 4. Klären: Wie laufen mehrere `claude -p`-Aufrufe parallel (Nutzungslimits, Sperre gegen gleichzeitige Läufe), und welche Werkzeuge darf jeder Agent nutzen?
 5. Danach: Agent uni im eigenen Chat im Ordner uni/.
 
