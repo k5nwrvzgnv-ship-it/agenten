@@ -31,7 +31,9 @@ class TestLogik(unittest.TestCase):
         self.assertEqual(text.count("Hallo"), 2000)
 
     def test_verbrauch_text(self):
-        zt = lambda ts: "ZEIT" if ts else "?"
+        def zt(ts):
+            return "ZEIT" if ts else "?"
+
         self.assertIn("unbekannt", verbrauch_text(None, "normal", {}, zt))
         stand = {"5h": 0.11, "7d": 0.39, "reset_5h": 1, "reset_7d": 2, "zeit": 3}
         heute = {"uni": {"laeufe": 2, "tokens": 12000, "minuten": 1.5, "usd": 0.1, "fehler": 1}}
