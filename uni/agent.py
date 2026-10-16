@@ -3,7 +3,9 @@
 Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
 1. freigegebene Entwürfe ausführen (bisher nur Typ "regel"),
    Kursmaterial aus Moodle nach data/kurse/ spiegeln (neues Material wird gemeldet),
-2. Aufträge abarbeiten (Modus erledigen: Protokoll in protokolle/; Modus lernen: Sitzung),
+2. Aufträge abarbeiten (Modus erledigen: Protokoll in protokolle/; Modus lernen: Sitzung).
+   Antwortet Jan auf eine Meldung, trägt der Auftrag die alte Sitzung (Feld sitzung) und
+   der Agent setzt sie fort, im Modus und mit dem Protokoll des ursprünglichen Auftrags,
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -153,14 +155,45 @@ wo es hakte, nächster Schritt.
 Deine Antwort jetzt ist deine erste Nachricht an Jan."""
 
 
+PROMPT_ANTWORT_ERLEDIGEN = """Jan antwortet auf deine letzte Nachricht:
+{text}
+
+Mach im selben Auftrag weiter. Ändert sich am Ergebnis etwas, ergänze protokolle/{id}.md um einen
+Abschnitt "Nachtrag" (was neu ist, Quellen, wie Jan es prüft). Deine letzte Antwort ist wieder die
+Kurzfassung für Telegram (höchstens 10 Zeilen)."""
+
+PROMPT_ANTWORT_LERNEN = """Jans Antwort:
+{text}
+
+Gib ehrliche Rückmeldung und mach den nächsten kleinen Schritt (höchstens 12 Zeilen, eine Frage am Ende).
+Aktualisiere protokolle/{id}-lernstand.md."""
+
+
+def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
+    """Der erste Auftrag einer Antwortkette (bezug -> bezug -> ...). Fehlt ein Glied, der letzte gefundene."""
+    gesehen = {a["id"]}
+    while a.get("bezug") and a["bezug"] not in gesehen:
+        try:
+            a = holen(a["bezug"])
+        except Exception:  # noqa: BLE001 – Kette unvollständig, dann ab hier
+            break
+        gesehen.add(a["id"])
+    return a
+
+
 def auftraege_abarbeiten() -> None:
     for a in auftraege.neue(AGENT):
-        lernen = a["modus"] == "lernen"
-        vorlage = PROMPT_LERNEN if lernen else PROMPT_ERLEDIGEN
+        start = ursprung(a) if a.get("sitzung") else a
+        lernen = start["modus"] == "lernen"
+        if a.get("sitzung"):
+            vorlage = PROMPT_ANTWORT_LERNEN if lernen else PROMPT_ANTWORT_ERLEDIGEN
+        else:
+            vorlage = PROMPT_LERNEN if lernen else PROMPT_ERLEDIGEN
         (HIER / "protokolle").mkdir(exist_ok=True)
         try:
-            e = claude_lauf.laufen(AGENT, HIER, vorlage.format(text=a["text"], id=a["id"]),
-                                   art="anspruchsvoll", auftrag_id=a["id"], lernsitzung=lernen)
+            e = claude_lauf.laufen(AGENT, HIER, vorlage.format(text=a["text"], id=start["id"]),
+                                   art="anspruchsvoll", auftrag_id=a["id"],
+                                   lernsitzung=lernen and not a.get("sitzung"), sitzung_fortsetzen=a.get("sitzung"))
         except WARTEN as f:
             logger.info("Auftrag %s wartet: %s", a["id"], f)  # bleibt in neu/, nächster Lauf
             return
@@ -169,10 +202,8 @@ def auftraege_abarbeiten() -> None:
             continue
         text = e.text if e.ok else f"Fehler: {e.text}"
         if lernen and e.ok and e.sitzung:
-            _schreibe_json(DATA / "sitzungen" / f"{a['id']}.json", {"sitzung": e.sitzung, "auftrag": a["id"]})
-            # Bis die Zentrale Antworten weiterleitet, geht es am PC weiter.
-            text += f"\n\nWeiter am PC: cd ~/agenten/uni && claude --resume {e.sitzung}"
-        auftraege.abschliessen(a["id"], text, status="erledigt" if e.ok else "fehlgeschlagen")
+            _schreibe_json(DATA / "sitzungen" / f"{start['id']}.json", {"sitzung": e.sitzung, "auftrag": start["id"]})
+        auftraege.abschliessen(a["id"], text, status="erledigt" if e.ok else "fehlgeschlagen", sitzung=e.sitzung)
 
 
 # 3. Fristen -------------------------------------------------------------------
