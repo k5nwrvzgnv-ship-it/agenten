@@ -11,6 +11,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - 16.10.: shared/ angelegt mit regeln.md, .env.example und den Ordnern freigabe/, auftraege/, agentkit/, telegram/ (Warteschlangen-Ordner sind per .gitignore ausgeschlossen).
 - 16.10.: agentkit/config.py (lade_config: shared/.env, dann Agent-.env, Agent gewinnt; bricht ab, wenn eine .env nicht chmod 600 ist) und agentkit/log.py (hole_logger: <agent>/logs/<name>.log, 1 MB x 5 Dateien, plus stderr). Nur Python-Bordmittel. Tests: `cd shared && python3 -m unittest discover -s agentkit/tests -t .`
 - 16.10.: agentkit/freigabe.py (neuer_entwurf, offene, erledigte, entscheide: freigegeben/abgelehnt/aendern; bei aendern Kommentar Pflicht, neuer Entwurf verweist per `vorgaenger` auf den alten) und agentkit/auftraege.py (neuer_auftrag, neue, erledigte, abschliessen: erledigt/fehlgeschlagen; `bezug` für Korrekturen zu einem Entwurf). Gemeinsame Ablage in _ablage.py: ein JSON pro Eintrag, ID-Format `JJJJMMTT-HHMMSS-agent-xxxxxx` (wird streng geprüft, da IDs später aus Telegram-Knöpfen kommen), atomares Schreiben, Abschließen geht nur einmal. 12 Tests grün.
+- 16.10.: Feld `modus` in auftraege.py (erledigen/lernen, Standard erledigen). uni/STATUS.md angelegt mit den Anforderungen zu den zwei Modi. 13 Tests grün.
 
 ## Entscheidungen (16.10.2026)
 - Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
@@ -20,6 +21,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - Die Agenten "denken" mit Claude Code im Headless-Modus (`claude -p`, installiert: /home/agent/.local/bin/claude, Version 2.1.301).
 - Sprache: Jan diktiert über die Handy-Tastatur, der Bot verarbeitet nur Text. Echte Sprachnachrichten (lokales faster-whisper) eventuell später, nur nach Okay.
 - Routing zu den Agenten anfangs per Befehl (`/uni …`, `/einkauf …`). Ohne Befehl fragt der Bot mit Knöpfen nach.
+- Modus pro Auftrag (allgemein, für alle Agenten): `erledigen` (Standard; allein arbeiten, danach Protokoll mit Prüfanleitung) oder `lernen` (gemeinsam Schritt für Schritt, per Telegram und im PC-Chat). Telegram: `/uni …` = erledigen, `/unilern …` = lernen (Befehlsnamen vorläufig). Details: uni/STATUS.md.
 - Aufträge: Warteschlange shared/auftraege/ (neu/, erledigt/), ein JSON pro Auftrag. Der Bot startet danach den passenden Agenten-Dienst sofort.
 
 ## Geplante Struktur shared/

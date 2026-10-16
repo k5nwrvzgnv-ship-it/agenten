@@ -4,6 +4,13 @@ Die Telegram-Zentrale legt hier Jans Aufträge und Korrekturen ab und startet
 danach den Dienst des Agenten. Der Agent holt seine Aufträge, bearbeitet sie
 und schließt sie ab. Stürzt er vorher ab, bleibt der Auftrag in neu/ und wird
 beim nächsten Lauf wieder geholt.
+
+Modus (gilt für alle Agenten, Standard ist "erledigen"):
+- erledigen: Der Agent arbeitet allein und liefert danach ein verständliches
+  Protokoll (was er getan hat, Quellen, Unsicherheiten, wie Jan es prüfen kann).
+- lernen: Der Agent geht den Auftrag Schritt für Schritt gemeinsam mit Jan
+  durch (erklären, Fragen stellen, Rückmeldung geben), per Telegram oder im
+  Claude-Code-Chat am PC.
 """
 
 from pathlib import Path
@@ -14,12 +21,14 @@ from .config import SHARED_DIR
 
 BASIS = SHARED_DIR / "auftraege"
 ABSCHLUESSE = ("erledigt", "fehlgeschlagen")
+MODI = ("erledigen", "lernen")
 
 
 def neuer_auftrag(
     agent: str,
     text: str,
     quelle: str = "telegram",
+    modus: str = "erledigen",
     bezug: str | None = None,
     basis: Path | None = None,
 ) -> str:
@@ -27,6 +36,8 @@ def neuer_auftrag(
 
     bezug: ID eines Entwurfs, wenn der Auftrag eine Korrektur dazu ist.
     """
+    if modus not in MODI:
+        raise AuftragFehler(f"Unbekannter Modus: {modus!r}")
     basis = basis or BASIS
     if bezug is not None:
         _ablage.pruefe_id(bezug)
@@ -36,6 +47,7 @@ def neuer_auftrag(
         "agent": agent,
         "text": text,
         "quelle": quelle,
+        "modus": modus,
         "bezug": bezug,
         "erstellt": _ablage.jetzt(),
         "status": "neu",

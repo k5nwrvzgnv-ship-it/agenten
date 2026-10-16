@@ -66,6 +66,14 @@ class TestAuftraege(unittest.TestCase):
         with self.assertRaises(auftraege.AuftragFehler):
             auftraege.abschliessen(a1, basis=self.basis)
 
+    def test_modus(self):
+        a1 = auftraege.neuer_auftrag("uni", "Kapitel 3", basis=self.basis)
+        a2 = auftraege.neuer_auftrag("uni", "Kapitel 4", modus="lernen", basis=self.basis)
+        modi = {a["id"]: a["modus"] for a in auftraege.neue(basis=self.basis)}
+        self.assertEqual(modi, {a1: "erledigen", a2: "lernen"})
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.neuer_auftrag("uni", "x", modus="halbautomatisch", basis=self.basis)
+
     def test_fehlgeschlagen_und_bezug(self):
         eid = freigabe.neuer_entwurf("uni", "t", "i", basis=self.basis / "f")
         aid = auftraege.neuer_auftrag("uni", "anders formulieren", bezug=eid, basis=self.basis)
