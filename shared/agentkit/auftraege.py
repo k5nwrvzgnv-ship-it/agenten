@@ -11,6 +11,11 @@ Modus (gilt für alle Agenten, Standard ist "erledigen"):
 - lernen: Der Agent geht den Auftrag Schritt für Schritt gemeinsam mit Jan
   durch (erklären, Fragen stellen, Rückmeldung geben), per Telegram oder im
   Claude-Code-Chat am PC.
+
+Gespräch: Ein abgeschlossener Auftrag trägt die Claude-Sitzung seines Laufs
+(Feld sitzung). Antwortet Jan in Telegram auf die Meldung, legt die Zentrale
+einen neuen Auftrag mit bezug=<alter Auftrag> und derselben sitzung an, und der
+Agent setzt diese Sitzung fort statt neu anzufangen.
 """
 
 from pathlib import Path
@@ -30,11 +35,13 @@ def neuer_auftrag(
     quelle: str = "telegram",
     modus: str = "erledigen",
     bezug: str | None = None,
+    sitzung: str | None = None,
     basis: Path | None = None,
 ) -> str:
     """Legt einen Auftrag an und gibt seine ID zurück.
 
-    bezug: ID eines Entwurfs, wenn der Auftrag eine Korrektur dazu ist.
+    bezug: ID eines Entwurfs (Korrektur) oder Auftrags (Antwort darauf).
+    sitzung: Claude-Sitzung, die der Agent fortsetzen soll.
     """
     if modus not in MODI:
         raise AuftragFehler(f"Unbekannter Modus: {modus!r}")
@@ -49,6 +56,7 @@ def neuer_auftrag(
         "quelle": quelle,
         "modus": modus,
         "bezug": bezug,
+        "sitzung": sitzung,
         "erstellt": _ablage.jetzt(),
         "status": "neu",
         "abgeschlossen": None,
@@ -67,13 +75,26 @@ def erledigte(agent: str | None = None, basis: Path | None = None) -> list[dict]
     return _ablage.liste(_ablage.ordner(basis or BASIS, "erledigt"), agent)
 
 
+def erledigter(eintrag_id: str, basis: Path | None = None) -> dict:
+    """Ein abgeschlossener Auftrag per ID (z. B. der, auf den Jan antwortet)."""
+    _ablage.pruefe_id(eintrag_id)
+    pfad = _ablage.ordner(basis or BASIS, "erledigt") / f"{eintrag_id}.json"
+    if not pfad.exists():
+        raise AuftragFehler(f"{eintrag_id} ist nicht abgeschlossen")
+    return _ablage.lies(pfad)
+
+
 def abschliessen(
     eintrag_id: str,
     ergebnis: str = "",
     status: str = "erledigt",
+    sitzung: str | None = None,
     basis: Path | None = None,
 ) -> dict:
-    """Verschiebt den Auftrag nach erledigt/ (status erledigt oder fehlgeschlagen)."""
+    """Verschiebt den Auftrag nach erledigt/ (status erledigt oder fehlgeschlagen).
+
+    sitzung: Claude-Sitzung des Laufs, damit Jan per Antwort darin weitermachen kann.
+    """
     if status not in ABSCHLUESSE:
         raise AuftragFehler(f"Unbekannter Abschluss: {status!r}")
     basis = basis or BASIS
@@ -81,5 +102,5 @@ def abschliessen(
         _ablage.ordner(basis, "neu"),
         _ablage.ordner(basis, "erledigt"),
         eintrag_id,
-        {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis},
+        {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis, "sitzung": sitzung},
     )

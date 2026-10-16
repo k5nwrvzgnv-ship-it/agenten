@@ -156,6 +156,18 @@ class TestAuftraege(unittest.TestCase):
         with self.assertRaises(auftraege.AuftragFehler):
             auftraege.neuer_auftrag("uni", "x", modus="halbautomatisch", basis=self.basis)
 
+    def test_antwort_setzt_sitzung_fort(self):
+        a1 = auftraege.neuer_auftrag("uni", "Kapitel 3", modus="lernen", basis=self.basis)
+        auftraege.abschliessen(a1, "Erste Frage an Jan", sitzung="s-1", basis=self.basis)
+        alt = auftraege.erledigter(a1, basis=self.basis)
+        self.assertEqual(alt["sitzung"], "s-1")
+        a2 = auftraege.neuer_auftrag("uni", "Meine Antwort", modus=alt["modus"], bezug=a1,
+                                     sitzung=alt["sitzung"], basis=self.basis)
+        neu = auftraege.neue(basis=self.basis)[0]
+        self.assertEqual((neu["id"], neu["bezug"], neu["sitzung"]), (a2, a1, "s-1"))
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.erledigter(a2, basis=self.basis)  # noch offen
+
     def test_fehlgeschlagen_und_bezug(self):
         eid = freigabe.neuer_entwurf("uni", "t", "i", basis=self.basis / "f")
         aid = auftraege.neuer_auftrag("uni", "anders formulieren", bezug=eid, basis=self.basis)
