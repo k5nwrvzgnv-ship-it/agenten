@@ -17,7 +17,8 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - 16.10.: freigabe.py erweitert: Fingerabdruck (sha256 über agent, typ, titel, inhalt, daten) wird beim Anlegen gespeichert. entscheide(..., "freigegeben", gesehen=<fingerabdruck>) gibt nur frei, wenn der Abdruck zur Telegram-Anzeige passt. Ausführung: zur_ausfuehrung(), ausfuehrung_beginnen() (prüft Abdruck und Kauflimit, Sperrdatei mit O_EXCL, also nur einmal), ausfuehrung_abschliessen(), unklare() (begonnen, nie abgeschlossen: wird nicht automatisch wiederholt, Jan prüft). 25 Tests grün.
 - 16.10.: shared/.env angelegt (chmod 600, von Git ignoriert): Token des neuen Bots @Agentenzentralebot (per getMe geprüft), KAUF_LIMIT_EURO=1000, TELEGRAM_CHAT_ID (Jan, @jkl298) per getUpdates ermittelt und eingetragen.
 - 16.10.: Telegram-Zentrale in shared/telegram/: .venv mit python-telegram-bot[job-queue] 22.8 (requirements.txt), agentkit per .pth. zentrale.py (Handler), logik.py (testbar, 4 Tests). Kann: nur Jans Chat-ID, /<agent> und /<agent>lern -> Auftrag, Text ohne Befehl -> Agent per Knopf wählen, /status, alle 30 s neue Entwürfe mit Freigeben/Ablehnen/Ändern (lange Texte aufgeteilt, nichts abgeschnitten), Meldungen zu Ausführung, unklaren Fällen und erledigten Aufträgen. Bereits Gezeigtes in data/gemeldet.json. httpx-Log auf WARNING (sonst steht der Token im Log).
-- 16.10.: Handtest mit Jan bestanden: Entwurf kam an, Freigeben, /status und /uni Test funktionierten. Testdaten gelöscht. Noch kein Dienst eingerichtet.
+- 16.10.: Handtest mit Jan bestanden: Entwurf kam an, Freigeben, /status und /uni Test funktionierten. Testdaten gelöscht.
+- 16.10.: Dienst agentenzentrale.service läuft (systemd-User, enabled, Restart=on-failure, MemoryMax=300M, ca. 31 MB belegt). Vorlage im Repo: shared/telegram/agentenzentrale.service, installiert als Kopie in ~/.config/systemd/user/. Nach Änderung der Vorlage: neu kopieren, `systemctl --user daemon-reload`, `systemctl --user restart agentenzentrale`. Logs: shared/telegram/logs/zentrale.log und `journalctl --user -u agentenzentrale`.
 
 ## Entscheidungen (16.10.2026)
 - Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
@@ -45,7 +46,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 1. (erledigt, siehe Entscheidung agentkit-Einbindung)
 2. Je Agent eine STATUS.md-Vorlage.
 2a. (erledigt: Der Agent führt nach Freigabe selbst aus, siehe freigabe.py.) Die Telegram-Zentrale muss beim Freigeben den Fingerabdruck des angezeigten Entwurfs mitgeben und unklare() regelmäßig melden.
-3. Telegram-Zentrale als systemd-User-Dienst agentenzentrale.service einrichten (nach Jans Okay). Später: Agenten-Dienst nach neuem Auftrag sofort starten.
+3. Zentrale: Agenten-Dienst nach neuem Auftrag sofort starten (sobald es Agenten gibt).
 4. Klären: Wie laufen mehrere `claude -p`-Aufrufe parallel (Nutzungslimits, Sperre gegen gleichzeitige Läufe), und welche Werkzeuge darf jeder Agent nutzen?
 5. Danach: Agent uni im eigenen Chat im Ordner uni/.
 

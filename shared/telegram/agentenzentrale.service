@@ -1,0 +1,15 @@
+[Unit]
+Description=Agentenzentrale (Telegram-Bot für Jans Agenten-System)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/agent/agenten/shared/telegram
+ExecStart=/home/agent/agenten/shared/telegram/.venv/bin/python zentrale.py
+Restart=on-failure
+RestartSec=10
+MemoryMax=300M
+
+[Install]
+WantedBy=default.target
