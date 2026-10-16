@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from logik import Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text
+from logik import Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text, verbrauch_text
 
 
 class TestLogik(unittest.TestCase):
@@ -30,15 +30,26 @@ class TestLogik(unittest.TestCase):
         self.assertIn("prof@example.org", text)
         self.assertEqual(text.count("Hallo"), 2000)
 
+    def test_verbrauch_text(self):
+        zt = lambda ts: "ZEIT" if ts else "?"
+        self.assertIn("unbekannt", verbrauch_text(None, "normal", {}, zt))
+        stand = {"5h": 0.11, "7d": 0.39, "reset_5h": 1, "reset_7d": 2, "zeit": 3}
+        heute = {"uni": {"laeufe": 2, "tokens": 12000, "minuten": 1.5, "usd": 0.1, "fehler": 1}}
+        text = verbrauch_text(stand, "sparen", heute, zt)
+        for teil in ("5 Stunden: 11 %", "7 Tage: 39 %", "sparen", "uni: 2 Läufe, 12k Tokens", "1 mit Fehler"):
+            self.assertIn(teil, text)
+
     def test_gemeldet_speichern_laden(self):
         pfad = Path(tempfile.mkdtemp()) / "data" / "gemeldet.json"
         g = Gemeldet(pfad)
         g.angezeigt["x"] = "abc"
         g.listen["auftraege"].add("a1")
+        g.stufe = "sparen"
         g.speichern()
         g2 = Gemeldet(pfad)
         self.assertEqual(g2.angezeigt, {"x": "abc"})
         self.assertEqual(g2.listen["auftraege"], {"a1"})
+        self.assertEqual(g2.stufe, "sparen")
 
 
 if __name__ == "__main__":

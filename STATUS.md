@@ -20,6 +20,14 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - 16.10.: Handtest mit Jan bestanden: Entwurf kam an, Freigeben, /status und /uni Test funktionierten. Testdaten gelöscht.
 - 16.10.: Dienst agentenzentrale.service läuft (systemd-User, enabled, Restart=on-failure, MemoryMax=300M, ca. 31 MB belegt). Vorlage im Repo: shared/telegram/agentenzentrale.service, installiert als Kopie in ~/.config/systemd/user/. Nach Änderung der Vorlage: neu kopieren, `systemctl --user daemon-reload`, `systemctl --user restart agentenzentrale`. Logs: shared/telegram/logs/zentrale.log und `journalctl --user -u agentenzentrale`.
 
+## Entscheidungen claude-Läufe und Verbrauch (16.10.2026)
+- Jan hat ein Pro-Abo. Agenten teilen sich das Kontingent mit Jans eigenen Chats.
+- "Claude denkt, Python handelt": Claude bekommt nie Bash und keine MCP-Dienste, schreibt nur im Agent-Ordner, darf keine .env lesen. Nach außen handelt nur der Python-Code des Agenten, nach Freigabe. Alles am 16.10. mit echten Läufen getestet (Bash fehlt, Schreiben außerhalb verweigert, .env-Lesen verweigert).
+- agentkit/claude_lauf.py: laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id). Sperre pro Agent, Plätze (gleichzeitige Läufe je Stufe), Zeitlimit, Modellwahl, Regeln im System-Prompt, Verbrauchsprotokoll. Ausnahmen: LaeuftSchon, KeinPlatz, Pausiert, LimitErreicht, Zeitueberschreitung. Grundlast pro Lauf ca. 6.300 Tokens.
+- Verbrauch: jeder Lauf meldet die echte Auslastung (5-Stunden- und 7-Tage-Fenster). Protokoll shared/verbrauch/laeufe.jsonl (nicht im Repo). Stufen normal/sparen/nur_auftraege/limit, Grenzen und alle anderen Werte in shared/einstellungen.toml (dynamisch änderbar).
+- Telegram: /verbrauch zeigt Stufe, Auslastung, Läufe heute. Bei Stufenwechsel kommt eine Nachricht.
+- Einschränkung: Die Auslastung wird nur bei einem Agenten-Lauf aktualisiert, Jans eigene Chats dazwischen sieht sie erst beim nächsten Lauf.
+
 ## Entscheidungen (16.10.2026)
 - Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
   - Raus: Entwürfe mit Knöpfen Freigeben/Ablehnen/Ändern, Rückfragen, Meldungen.
@@ -47,7 +55,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 2. Je Agent eine STATUS.md-Vorlage.
 2a. (erledigt: Der Agent führt nach Freigabe selbst aus, siehe freigabe.py.) Die Telegram-Zentrale muss beim Freigeben den Fingerabdruck des angezeigten Entwurfs mitgeben und unklare() regelmäßig melden.
 3. Zentrale: Agenten-Dienst nach neuem Auftrag sofort starten (sobald es Agenten gibt).
-4. Klären: Wie laufen mehrere `claude -p`-Aufrufe parallel (Nutzungslimits, Sperre gegen gleichzeitige Läufe), und welche Werkzeuge darf jeder Agent nutzen?
+4. (erledigt, siehe Entscheidungen claude-Läufe und Verbrauch)
 5. Danach: Agent uni im eigenen Chat im Ordner uni/.
 
 ## Gelernte Regeln

@@ -49,6 +49,7 @@ def letzter_stand(datei: Path | None = None, jetzt: float | None = None) -> dict
         if not a:
             continue
         stand = dict(a)
+        stand["zeit"] = e.get("zeit")
         for fenster in ("5h", "7d"):
             reset = stand.get(f"reset_{fenster}")
             if reset and reset <= jetzt:

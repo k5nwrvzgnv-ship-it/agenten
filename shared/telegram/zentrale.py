@@ -21,8 +21,8 @@ from telegram.ext import (
     filters,
 )
 
-from agentkit import auftraege, config, freigabe, log
-from logik import AGENTEN, Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text
+from agentkit import auftraege, config, einstellungen, freigabe, log, verbrauch
+from logik import AGENTEN, STUFEN_TEXT, Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text, verbrauch_text
 
 HIER = Path(__file__).resolve().parent
 PRUEF_INTERVALL = 30  # Sekunden
@@ -37,7 +37,7 @@ gemeldet = Gemeldet(HIER / "data" / "gemeldet.json")
 HILFE = (
     "Befehle:\n"
     + "\n".join(f"/{a} <Auftrag>  (erledigen)\n/{a}lern <Auftrag>  (gemeinsam lernen)" for a in AGENTEN)
-    + "\n/status  Überblick\n"
+    + "\n/status  Überblick\n/verbrauch  Auslastung des Claude-Kontingents\n"
     "Text ohne Befehl: Ich frage, an welchen Agenten er geht."
 )
 
@@ -69,6 +69,16 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"Offene Aufträge: {len(auftraege.neue())}",
     ]
     await update.message.reply_text("\n".join(zeilen))
+
+
+def aktuelle_stufe() -> tuple[dict | None, str]:
+    stand = verbrauch.letzter_stand()
+    return stand, verbrauch.stufe(stand, einstellungen.lade())
+
+
+async def verbrauch_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    stand, stufe = aktuelle_stufe()
+    await update.message.reply_text(verbrauch_text(stand, stufe, verbrauch.heute(), verbrauch.zeit_text))
 
 
 async def auftrag_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -203,6 +213,13 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
             gemeldet.listen["auftraege"].add(a["id"])
             geaendert = True
 
+    stand, stufe = aktuelle_stufe()
+    if stufe != gemeldet.stufe:
+        await senden(context, f"Neue Stufe: {STUFEN_TEXT[stufe]}\n(vorher: {gemeldet.stufe})")
+        logger.info("Stufe %s -> %s", gemeldet.stufe, stufe)
+        gemeldet.stufe = stufe
+        geaendert = True
+
     if geaendert:
         gemeldet.speichern()
 
@@ -217,6 +234,7 @@ def main() -> None:
     app.add_handler(MessageHandler(~jan, fremd))
     app.add_handler(CommandHandler(["start", "hilfe"], start, filters=jan))
     app.add_handler(CommandHandler("status", status, filters=jan))
+    app.add_handler(CommandHandler("verbrauch", verbrauch_befehl, filters=jan))
     app.add_handler(MessageHandler(jan & filters.COMMAND, auftrag_befehl))
     app.add_handler(MessageHandler(jan & filters.TEXT, text_ohne_befehl))
     app.add_handler(CallbackQueryHandler(knopf))
