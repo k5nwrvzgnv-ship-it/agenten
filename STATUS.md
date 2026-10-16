@@ -9,11 +9,29 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - Entscheidung: Freigabe per Telegram, über einen neuen, eigenen Bot.
 - Angelegt: Ordner, Git-Repo, .gitignore, CLAUDE.md, README.md, diese Datei.
 
+## Entscheidungen (16.10.2026)
+- Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
+  - Raus: Entwürfe mit Knöpfen Freigeben/Ablehnen/Ändern, Rückfragen, Meldungen.
+  - Rein: Aufträge und Korrekturen von Jan als Text oder Sprache.
+  - Der Bot reagiert nur auf Jans Chat-ID.
+- Die Agenten "denken" mit Claude Code im Headless-Modus (`claude -p`, installiert: /home/agent/.local/bin/claude, Version 2.1.301).
+- Routing zu den Agenten anfangs per Befehl (`/uni …`, `/einkauf …`). Ohne Befehl fragt der Bot mit Knöpfen nach.
+- Aufträge: Warteschlange shared/auftraege/ (neu/, erledigt/), ein JSON pro Auftrag. Der Bot startet danach den passenden Agenten-Dienst sofort.
+
+## Geplante Struktur shared/
+- regeln.md, .env.example (im Repo), .env (chmod 600, nicht im Repo)
+- agentkit/ (Python-Paket, per `pip install -e` in jede Agent-.venv): config.py, log.py, freigabe.py, auftraege.py, regeln.py
+- freigabe/ (offen/, erledigt/), auftraege/ (neu/, erledigt/)
+- telegram/: Telegram-Zentrale als eigener User-Dienst mit eigener .venv
+
 ## Offene Punkte (nächste Schritte)
-1. shared/ anlegen: Logging, Config laden (.env), Freigabe-Warteschlange (Datei-basiert, ein JSON pro Entwurf, Zustände offen/freigegeben/abgelehnt), shared/regeln.md.
-2. Telegram-Freigabe-Bot: Jan legt bei BotFather einen neuen Bot an und trägt den Token in shared/.env ein (chmod 600).
-3. Je Agent eine STATUS.md-Vorlage.
-4. Danach: Agent uni im eigenen Chat im Ordner uni/.
+1. Sprache: Wie kommen Sprachnachrichten zu Text? (Diktierfunktion der Handy-Tastatur, lokales faster-whisper oder Cloud-API; Entscheidung steht noch aus)
+2. shared/ anlegen: Ordner, regeln.md, .env.example.
+3. agentkit: config.py und log.py, danach freigabe.py und auftraege.py mit Tests.
+4. Je Agent eine STATUS.md-Vorlage.
+5. Telegram-Zentrale: Jan legt bei BotFather einen neuen Bot an und trägt den Token in shared/.env ein (chmod 600). Installation und Dienst nur nach Jans Okay.
+6. Klären: Wie laufen mehrere `claude -p`-Aufrufe parallel (Nutzungslimits, Sperre gegen gleichzeitige Läufe), und welche Werkzeuge darf jeder Agent nutzen?
+7. Danach: Agent uni im eigenen Chat im Ordner uni/.
 
 ## Gelernte Regeln
 - (noch keine)
