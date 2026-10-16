@@ -1,0 +1,12 @@
+# Agent dokumente: arbeitet offene Aufträge ab. Kein Timer, die Zentrale startet den Dienst
+# nach jedem neuen Auftrag. Einrichten (erst wenn agent.py läuft):
+#   cp systemd/dokumente.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+[Unit]
+Description=Agent dokumente
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/dokumente
+ExecStart=/home/agent/agenten/dokumente/.venv/bin/python agent.py
+TimeoutStartSec=45min
+MemoryMax=1G

@@ -26,9 +26,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Verbrauch: Jan hat ein Pro-Abo, Agenten teilen es mit seinen Chats. Stufen normal/sparen/
   nur_auftraege/limit nach 5h- und 7d-Auslastung, Werte in shared/einstellungen.toml.
   Einschränkung: Auslastung wird nur bei Agenten-Läufen aktualisiert.
-- Qualität: `./pruefen.sh` (62 Tests, Linter ruff aus .venv im Hauptordner, Regeln in ruff.toml).
+- Qualität: `./pruefen.sh` (Tests aller Ordner, Linter ruff aus .venv im Hauptordner, Regeln in ruff.toml).
   Git-Hook githooks/pre-commit bricht Commits ab, wenn nicht grün (core.hooksPath = githooks).
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
+- Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
 
 ## Entscheidungen
 - Telegram ist die Zentrale in beide Richtungen. Jan diktiert per Handy-Tastatur, nur Text.
@@ -42,8 +43,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 1. Erledigt im uni-Chat 17.10.: agent.py setzt Antworten in der Sitzung fort, jeder Auftrag speichert
    seine Sitzung. Noch nicht getestet: echte Antwort über Telegram, interaktives `claude --resume <id>`
    am PC (Jan einmal selbst).
-2. Danach: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
-   dokumente muss Word, PowerPoint und Excel erstellen und formatieren können (Jan, 16.10.).
+2. dokumente: Gerüst steht (17.10.), weiter im dokumente-Chat (dokumente/STATUS.md). Danach
+   posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
+   Ergebnisdateien an Jan: auftraege.abschliessen(..., dateien=) und meldungen.melden(..., dateien=).
+5. Vorschlag (noch nicht mit Jan besprochen): uni/kurse.als_text() (Textfassung von docx/pptx/xlsx/pdf)
+   nach agentkit verschieben, damit dokumente sie ohne Kopie nutzen kann. Import der Office-Bibliotheken
+   dann erst in der Funktion, da agentkit selbst ohne Pakete auskommt.
 3. Dateien aus Telegram: gebaut 16.10. (Zentrale nimmt Dokumente und Fotos bis 20 MB an, Ablage
    <agent>/data/eingang/<auftrag-id>/, Pfade im Feld dateien und am Ende des Auftragstexts).
    Noch offen: Handtest durch Jan (Datei mit "/uni ..." als Bildunterschrift, Album, Datei ohne Befehl).

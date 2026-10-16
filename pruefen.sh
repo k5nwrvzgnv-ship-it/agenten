@@ -13,13 +13,14 @@ TESTS=(
   "shared|python3|agentkit/tests"
   "shared/telegram|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
+  "dokumente|.venv/bin/python|tests"
 )
 
 for eintrag in "${TESTS[@]}"; do
   IFS="|" read -r ordner python testordner <<< "$eintrag"
   ausgabe=$(cd "$WURZEL/$ordner" && "$python" -m unittest discover -s "$testordner" -t . 2>&1)
   if [ $? -eq 0 ]; then
-    echo "ok      Tests $ordner ($(grep -o 'Ran [0-9]* tests' <<< "$ausgabe"))"
+    echo "ok      Tests $ordner ($(grep -o 'Ran [0-9]* tests\?' <<< "$ausgabe"))"
   else
     echo "FEHLER  Tests $ordner"
     echo "$ausgabe" | tail -30
