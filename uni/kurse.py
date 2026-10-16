@@ -10,6 +10,8 @@ PDF, Word, PowerPoint und Excel bekommen daneben eine Textfassung <datei>.txt (m
 Seiten- bzw. Foliennummern), damit Claude mit Grep gezielt suchen kann, statt ganze
 Dateien zu lesen. Alte Formate (doc, ppt, xls) nicht.
 In Moodle gelöschte Dateien bleiben liegen.
+Ein Kurs, der zum ersten Mal gespiegelt wird (noch keine uebersicht.md), meldet sein
+Material nicht als neu. Mehrere Moodles (HNEE, BFH) teilen sich ZIEL und den Stand.
 Aufgaben (Beschreibung, Fristen, Abgabeart, Status, Anhänge) stehen in
 data/kurse/<Kurs>/aufgaben.md, Anhänge in data/kurse/<Kurs>/Aufgaben/<Aufgabe>/.
 """
@@ -208,6 +210,7 @@ def spiegeln(m) -> list[str]:
     nicht der ganze Bestand als "neu" gemeldet wird.
     """
     erster = not STAND_DATEI.exists()
+    neue_kurse = set()
     stand = json.loads(STAND_DATEI.read_text()) if not erster else {}
     neu = []
     vergeben = set()
@@ -218,6 +221,8 @@ def spiegeln(m) -> list[str]:
         kursname = k["fullname"] if namen.count(k["fullname"]) == 1 else f"{k['fullname']} ({k['id']})"
         kursordner = ZIEL / sicherer_name(kursname)
         kurse_ordner[k["id"]] = (kursname, kursordner)
+        if not (kursordner / "uebersicht.md").exists():
+            neue_kurse.add(sicherer_name(kursname))
         zeilen = [f"# {k['fullname']}", "", f"Moodle: {m.url}/course/view.php?id={k['id']}",
                   "Aufgaben mit Beschreibung, Fristen, Abgabeart und Status: aufgaben.md (falls vorhanden)", ""]
         for nr, abschnitt in enumerate(m.aufruf("core_course_get_contents", courseid=k["id"])):
@@ -262,7 +267,7 @@ def spiegeln(m) -> list[str]:
         (kursordner / "uebersicht.md").write_text("\n".join(zeilen), encoding="utf-8")
     _aufgaben(m, kurse_ordner, stand, neu)
     _speichern(stand)
-    return [] if erster else neu
+    return [] if erster else [r for r in neu if r.split("/")[0] not in neue_kurse]
 
 
 def _speichern(stand: dict) -> None:

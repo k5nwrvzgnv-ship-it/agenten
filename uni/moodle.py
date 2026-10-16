@@ -1,4 +1,4 @@
-"""Moodle der HNEE lesen, wie die Moodle-App (nur lesend).
+"""Moodle der HNEE (und der BFH Biel) lesen, wie die Moodle-App (nur lesend).
 
 Anmeldung über login/token.php (Dienst moodle_mobile_app) mit HNEE_NUTZER und
 HNEE_KENNWORT. Der Schlüssel liegt in data/moodle_token.json (chmod 600) und wird
@@ -7,6 +7,10 @@ neu geholt, wenn Moodle ihn ablehnt. Jan kann ihn im Moodle-Profil unter
 
 Fristen: Der Moodle-Kalender (action events) zeigte am 16.10.2026 eine fällige
 Aufgabe nicht an. Deshalb werden Aufgaben und Tests direkt abgefragt.
+
+BFH Biel (MoodleMitToken): Anmeldung nur per SSO (SWITCH edu-ID), login/token.php geht
+nicht. Der App-Schlüssel wird einmal von Jan im Browser geholt (siehe STATUS.md) und
+steht als BFH_MOODLE_TOKEN in .env. Läuft er ab, kommt MoodleFehler mit Hinweis.
 """
 
 import json
@@ -30,6 +34,8 @@ def _post(url: str, daten: dict) -> object:
 
 
 class Moodle:
+    praefix = ""  # vor Fristen-IDs, damit sich IDs verschiedener Moodles nicht mischen
+
     def __init__(self, cfg: dict):
         self.url = cfg["MOODLE_URL"].rstrip("/")
         self.nutzer = cfg["HNEE_NUTZER"]
@@ -87,7 +93,7 @@ class Moodle:
                 if max(a["duedate"], a["cutoffdate"]) <= ab:
                     continue
                 ergebnis.append({
-                    "id": f"assign-{a['id']}", "art": "Aufgabe", "kurs": kurs["fullname"], "name": a["name"],
+                    "id": f"{self.praefix}assign-{a['id']}", "art": "Aufgabe", "kurs": kurs["fullname"], "name": a["name"],
                     "faellig": a["duedate"], "letzte_abgabe": a["cutoffdate"],
                     "erledigt": self._aufgabe_abgegeben(a["id"]),
                     "url": f"{self.url}/mod/assign/view.php?id={a['cmid']}",
@@ -97,7 +103,7 @@ class Moodle:
                 continue
             versuche = self.aufruf("mod_quiz_get_user_attempts", quizid=q["id"], status="finished")
             ergebnis.append({
-                "id": f"quiz-{q['id']}", "art": "Test", "kurs": self._kursname(q["course"]), "name": q["name"],
+                "id": f"{self.praefix}quiz-{q['id']}", "art": "Test", "kurs": self._kursname(q["course"]), "name": q["name"],
                 "faellig": q["timeclose"], "letzte_abgabe": 0, "erledigt": bool(versuche["attempts"]),
                 "url": f"{self.url}/mod/quiz/view.php?id={q['coursemodule']}",
             })
@@ -113,3 +119,17 @@ class Moodle:
         if not hasattr(self, "_kursnamen"):
             self._kursnamen = {k["id"]: k["fullname"] for k in self.kurse()}
         return self._kursnamen.get(kursid, f"Kurs {kursid}")
+
+
+class MoodleMitToken(Moodle):
+    """Moodle mit festem App-Schlüssel (Hochschulen mit SSO). Neu holen kann nur Jan im Browser."""
+
+    def __init__(self, url: str, token: str, praefix: str):
+        self.url = url.rstrip("/")
+        self._token = token
+        self._userid = None
+        self.praefix = praefix
+
+    def _neuer_token(self) -> str:
+        raise MoodleFehler(f"Schlüssel für {self.url} abgelaufen oder widerrufen. "
+                           "Jan muss ihn im Browser neu holen (siehe uni/STATUS.md).")

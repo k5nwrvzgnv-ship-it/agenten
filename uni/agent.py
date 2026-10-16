@@ -1,4 +1,4 @@
-"""Agent uni: Moodle und Unipostfach der HNEE, Fristen, Aufträge.
+"""Agent uni: Moodle und Unipostfach der HNEE, Moodle der BFH Biel, Fristen, Aufträge.
 
 Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
 1. freigegebene Entwürfe ausführen (bisher nur Typ "regel"),
@@ -72,8 +72,31 @@ def freigegebene_ausfuehren() -> None:
             freigabe.ausfuehrung_abschliessen(e["id"], f"Fehler: {f}", erfolgreich=False)
 
 
+def moodles() -> list:
+    """HNEE immer, BFH Biel nur mit BFH_MOODLE_TOKEN in .env."""
+    liste = [moodle.Moodle(cfg)]
+    if cfg.get("BFH_MOODLE_TOKEN"):
+        liste.append(moodle.MoodleMitToken(cfg.get("BFH_MOODLE_URL") or "https://moodle.bfh.ch",
+                                           cfg["BFH_MOODLE_TOKEN"], praefix="bfh-"))
+    return liste
+
+
+def _je_moodle(arbeit) -> list:
+    """Führt arbeit(m) für jedes Moodle aus. Fällt eines aus, laufen die anderen weiter."""
+    ergebnisse = []
+    for m in moodles():
+        try:
+            ergebnisse += arbeit(m)
+        except moodle.MoodleFehler as f:
+            logger.warning("%s: %s", m.url, f)
+            melden(f"Moodle {m.url}: {f}")
+        except Exception:  # noqa: BLE001 – geloggt, die anderen Moodles laufen weiter
+            logger.exception("%s fehlgeschlagen für %s", arbeit.__name__, m.url)
+    return ergebnisse
+
+
 def kurse_spiegeln() -> None:
-    neu = kurse.spiegeln(moodle.Moodle(cfg))
+    neu = _je_moodle(kurse.spiegeln)
     pro_kurs: dict[str, list[str]] = {}
     for rel in neu:
         kurs, _, rest = rel.partition("/")
@@ -85,7 +108,8 @@ def kurse_spiegeln() -> None:
 # 2. Aufträge ------------------------------------------------------------------
 
 KONTEXT = """Du bist der Uni-Agent von Jan. Er studiert Holzingenieurwesen (M.Sc.) an der
-HNE Eberswalde (HNEE). Moodle: https://lms.hnee.de. Antworte auf Deutsch, kurz und klar.
+HNE Eberswalde (HNEE). Moodle: https://lms.hnee.de. Das HNEE-Modul "Computerbasierte Planung"
+läuft an der BFH Biel als "Fertigung im Holzbau 1 (BBHbf01)" (Moodle: https://moodle.bfh.ch). Antworte auf Deutsch, kurz und klar.
 Erfinde nichts. Wenn dir Material fehlt, sag genau, was fehlt.
 
 Kursmaterial aus Moodle liegt in data/kurse/<Kurs>/. Lies zuerst data/kurse/<Kurs>/uebersicht.md
@@ -156,7 +180,7 @@ def auftraege_abarbeiten() -> None:
 def fristen_pruefen() -> None:
     jetzt = int(time.time())
     erinnert = set(_lies_json(ERINNERT_DATEI, []))
-    for schluessel, f, tage, nachfrist in fristen.faellige_erinnerungen(moodle.Moodle(cfg).fristen(jetzt),
+    for schluessel, f, tage, nachfrist in fristen.faellige_erinnerungen(_je_moodle(lambda m: m.fristen(jetzt)),
                                                                       erinnert, jetzt):
         melden(fristen.als_text(f, tage, nachfrist, fristen.termin(f, jetzt)[0]))
         erinnert.add(schluessel)

@@ -82,3 +82,42 @@ class TestKurse(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FakeMoodle:
+    """Zwei Kurse mit je einer Datei, ohne Netz."""
+    url = "https://moodle.test"
+
+    def token(self):
+        return "t"
+
+    def kurse(self):
+        return [{"id": 1, "fullname": "Alt"}, {"id": 2, "fullname": "Neu"}]
+
+    def aufruf(self, funktion, **p):
+        if funktion == "mod_assign_get_assignments":
+            return {"courses": []}
+        datei = {"type": "file", "filename": f"k{p['courseid']}.pdf", "fileurl": f"u{p['courseid']}",
+                 "timemodified": 2, "filesize": 10}
+        return [{"name": "A", "modules": [{"id": 9, "modname": "resource", "name": "R", "contents": [datei]}]}]
+
+
+class TestSpiegeln(unittest.TestCase):
+    def test_neuer_kurs_meldet_nichts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            alt = (kurse.ZIEL, kurse.STAND_DATEI, kurse._laden, kurse._textfassung)
+            kurse.ZIEL = Path(tmp)
+            kurse.STAND_DATEI = Path(tmp) / ".stand.json"
+            kurse._laden = lambda url, token, ziel: (ziel.parent.mkdir(parents=True, exist_ok=True),
+                                                     ziel.write_bytes(b"x"))
+            kurse._textfassung = lambda pfad, erneuern: False
+            try:
+                kurse.STAND_DATEI.write_text("{}")
+                (Path(tmp) / "Alt").mkdir()
+                (Path(tmp) / "Alt" / "uebersicht.md").write_text("")
+                neu = kurse.spiegeln(FakeMoodle())
+                self.assertEqual(neu, ["Alt/00 A/k1.pdf"])
+                self.assertTrue((Path(tmp) / "Neu" / "00 A" / "k2.pdf").exists())
+                self.assertEqual(kurse.spiegeln(FakeMoodle()), [])
+            finally:
+                kurse.ZIEL, kurse.STAND_DATEI, kurse._laden, kurse._textfassung = alt
