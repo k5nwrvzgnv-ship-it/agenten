@@ -9,6 +9,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - Entscheidung: Freigabe per Telegram, über einen neuen, eigenen Bot.
 - Angelegt: Ordner, Git-Repo, .gitignore, CLAUDE.md, README.md, diese Datei.
 - 16.10.: shared/ angelegt mit regeln.md, .env.example und den Ordnern freigabe/, auftraege/, agentkit/, telegram/ (Warteschlangen-Ordner sind per .gitignore ausgeschlossen).
+- 16.10.: agentkit/config.py (lade_config: shared/.env, dann Agent-.env, Agent gewinnt; bricht ab, wenn eine .env nicht chmod 600 ist) und agentkit/log.py (hole_logger: <agent>/logs/<name>.log, 1 MB x 5 Dateien, plus stderr). Nur Python-Bordmittel. Tests: `cd shared && python3 -m unittest discover -s agentkit/tests -t .`
 
 ## Entscheidungen (16.10.2026)
 - Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
@@ -27,7 +28,7 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - telegram/: Telegram-Zentrale als eigener User-Dienst mit eigener .venv
 
 ## Offene Punkte (nächste Schritte)
-1. agentkit: config.py und log.py, danach freigabe.py und auftraege.py mit Tests.
+1. agentkit: freigabe.py und auftraege.py mit Tests. Noch offen: Wie kommt agentkit in die Agent-.venv? `pip install -e` braucht eine pyproject.toml; Alternative ohne Installation ist eine .pth-Datei in der .venv, die auf shared/ zeigt.
 2. Je Agent eine STATUS.md-Vorlage.
 3. Telegram-Zentrale: Jan legt bei BotFather einen neuen Bot an und trägt den Token in shared/.env ein (chmod 600). Installation und Dienst nur nach Jans Okay.
 4. Klären: Wie laufen mehrere `claude -p`-Aufrufe parallel (Nutzungslimits, Sperre gegen gleichzeitige Läufe), und welche Werkzeuge darf jeder Agent nutzen?
