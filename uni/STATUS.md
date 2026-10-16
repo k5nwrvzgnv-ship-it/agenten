@@ -104,8 +104,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 
 ## Offene Punkte
 1. Erledigt 16.10.: uni.service und uni.timer eingerichtet (Jan hat es ausdrücklich angewiesen), Timer 8/13/19 Uhr, Handstart erfolgreich.
-2. Gesprächskanal (Rückfragen und Lernmodus): wird im Hauptordner-Chat gebaut, Übergabe in ../STATUS.md
-   Punkt 2. Danach hier: agent.py holt Antworten ab und setzt die Sitzung fort.
+2. Gesprächskanal: Zentrale und auftraege sind fertig (Antwort auf Meldung = Auftrag mit Feld sitzung,
+   /pc, /weiter). NÄCHSTER SCHRITT HIER: agent.py setzt die Sitzung fort, siehe ../STATUS.md Punkt 1.
 
 ## Gelernte Regeln
 - (noch keine)

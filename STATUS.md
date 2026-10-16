@@ -1,91 +1,51 @@
 # Status: Gesamtsystem (Architekt)
 
-## Zweck
-Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
+Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konventionen: CLAUDE.md.
 
-## Stand (14.10.2026)
-- Serverprüfung erledigt: 7,8 GB RAM (6,3 GB frei), 4 Kerne, Last nahe 0, 90 GB frei. Git 2.43, Python 3.12.3, Node 22.23. Kein Docker, kein sudo.
-- Entscheidung: Weg A, also alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units, kein eigener Linux-User.
-- Entscheidung: Freigabe per Telegram, über einen neuen, eigenen Bot.
-- Angelegt: Ordner, Git-Repo, .gitignore, CLAUDE.md, README.md, diese Datei.
-- 16.10.: shared/ angelegt mit regeln.md, .env.example und den Ordnern freigabe/, auftraege/, agentkit/, telegram/ (Warteschlangen-Ordner sind per .gitignore ausgeschlossen).
-- 16.10.: agentkit/config.py (lade_config: shared/.env, dann Agent-.env, Agent gewinnt; bricht ab, wenn eine .env nicht chmod 600 ist) und agentkit/log.py (hole_logger: <agent>/logs/<name>.log, 1 MB x 5 Dateien, plus stderr). Nur Python-Bordmittel. Tests: `cd shared && python3 -m unittest discover -s agentkit/tests -t .`
-- 16.10.: agentkit/freigabe.py (neuer_entwurf, offene, erledigte, entscheide: freigegeben/abgelehnt/aendern; bei aendern Kommentar Pflicht, neuer Entwurf verweist per `vorgaenger` auf den alten) und agentkit/auftraege.py (neuer_auftrag, neue, erledigte, abschliessen: erledigt/fehlgeschlagen; `bezug` für Korrekturen zu einem Entwurf). Gemeinsame Ablage in _ablage.py: ein JSON pro Eintrag, ID-Format `JJJJMMTT-HHMMSS-agent-xxxxxx` (wird streng geprüft, da IDs später aus Telegram-Knöpfen kommen), atomares Schreiben, Abschließen geht nur einmal. 12 Tests grün.
-- 16.10.: Feld `modus` in auftraege.py (erledigen/lernen, Standard erledigen). uni/STATUS.md angelegt mit den Anforderungen zu den zwei Modi. 13 Tests grün.
-- 16.10.: agentkit/regeln.py: allgemeine_regeln(), agent_regeln(), regeln_als_text() (Block für den Prompt), regel_vorschlagen() (legt Entwurf Typ "regel" in die Freigabe), regel_eintragen() (nur bei Status freigegeben, kein doppelter Eintrag). 19 Tests grün.
-- 16.10.: Harte Regel in CLAUDE.md geändert (Jans Entscheidung): Agenten handeln nach Freigabe selbst, genau einmal, und melden das Ergebnis. Käufe nur bis KAUF_LIMIT_EURO (shared/.env, leer = kein Kauf).
-- 16.10.: freigabe.py erweitert: Fingerabdruck (sha256 über agent, typ, titel, inhalt, daten) wird beim Anlegen gespeichert. entscheide(..., "freigegeben", gesehen=<fingerabdruck>) gibt nur frei, wenn der Abdruck zur Telegram-Anzeige passt. Ausführung: zur_ausfuehrung(), ausfuehrung_beginnen() (prüft Abdruck und Kauflimit, Sperrdatei mit O_EXCL, also nur einmal), ausfuehrung_abschliessen(), unklare() (begonnen, nie abgeschlossen: wird nicht automatisch wiederholt, Jan prüft). 25 Tests grün.
-- 16.10.: shared/.env angelegt (chmod 600, von Git ignoriert): Token des neuen Bots @Agentenzentralebot (per getMe geprüft), KAUF_LIMIT_EURO=1000, TELEGRAM_CHAT_ID (Jan, @jkl298) per getUpdates ermittelt und eingetragen.
-- 16.10.: Telegram-Zentrale in shared/telegram/: .venv mit python-telegram-bot[job-queue] 22.8 (requirements.txt), agentkit per .pth. zentrale.py (Handler), logik.py (testbar, 4 Tests). Kann: nur Jans Chat-ID, /<agent> und /<agent>lern -> Auftrag, Text ohne Befehl -> Agent per Knopf wählen, /status, alle 30 s neue Entwürfe mit Freigeben/Ablehnen/Ändern (lange Texte aufgeteilt, nichts abgeschnitten), Meldungen zu Ausführung, unklaren Fällen und erledigten Aufträgen. Bereits Gezeigtes in data/gemeldet.json. httpx-Log auf WARNING (sonst steht der Token im Log).
-- 16.10.: Handtest mit Jan bestanden: Entwurf kam an, Freigeben, /status und /uni Test funktionierten. Testdaten gelöscht.
-- 16.10.: Dienst agentenzentrale.service läuft (systemd-User, enabled, Restart=on-failure, MemoryMax=300M, ca. 31 MB belegt). Vorlage im Repo: shared/telegram/agentenzentrale.service, installiert als Kopie in ~/.config/systemd/user/. Nach Änderung der Vorlage: neu kopieren, `systemctl --user daemon-reload`, `systemctl --user restart agentenzentrale`. Logs: shared/telegram/logs/zentrale.log und `journalctl --user -u agentenzentrale`.
-
-## Entscheidungen claude-Läufe und Verbrauch (16.10.2026)
-- Jan hat ein Pro-Abo. Agenten teilen sich das Kontingent mit Jans eigenen Chats.
-- "Claude denkt, Python handelt": Claude bekommt nie Bash und keine MCP-Dienste, schreibt nur im Agent-Ordner, darf keine .env lesen. Nach außen handelt nur der Python-Code des Agenten, nach Freigabe. Alles am 16.10. mit echten Läufen getestet (Bash fehlt, Schreiben außerhalb verweigert, .env-Lesen verweigert).
-- agentkit/claude_lauf.py: laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id). Sperre pro Agent, Plätze (gleichzeitige Läufe je Stufe), Zeitlimit, Modellwahl, Regeln im System-Prompt, Verbrauchsprotokoll. Ausnahmen: LaeuftSchon, KeinPlatz, Pausiert, LimitErreicht, Zeitueberschreitung. Grundlast pro Lauf ca. 6.300 Tokens.
-- Verbrauch: jeder Lauf meldet die echte Auslastung (5-Stunden- und 7-Tage-Fenster). Protokoll shared/verbrauch/laeufe.jsonl (nicht im Repo). Stufen normal/sparen/nur_auftraege/limit, Grenzen und alle anderen Werte in shared/einstellungen.toml (dynamisch änderbar).
-- Telegram: /verbrauch zeigt Stufe, Auslastung, Läufe heute. Bei Stufenwechsel kommt eine Nachricht.
-- 16.10.: Vorlagen in shared/vorlagen/ (STATUS-agent.md, agent.service, agent.timer, agent_beispiel.py). Zentrale startet <agent>.service nach Auftrag, Änderungswunsch und Freigabe (falls der Dienst existiert).
-- Einschränkung: Die Auslastung wird nur bei einem Agenten-Lauf aktualisiert, Jans eigene Chats dazwischen sieht sie erst beim nächsten Lauf.
-
-## Entscheidungen (16.10.2026)
-- Telegram ist die Zentrale in beide Richtungen, nicht nur für Freigaben:
-  - Raus: Entwürfe mit Knöpfen Freigeben/Ablehnen/Ändern, Rückfragen, Meldungen.
-  - Rein: Aufträge und Korrekturen von Jan als Text (auf dem Handy diktiert oder getippt).
-  - Der Bot reagiert nur auf Jans Chat-ID.
-- Die Agenten "denken" mit Claude Code im Headless-Modus (`claude -p`, installiert: /home/agent/.local/bin/claude, Version 2.1.301).
-- Sprache: Jan diktiert über die Handy-Tastatur, der Bot verarbeitet nur Text. Echte Sprachnachrichten (lokales faster-whisper) eventuell später, nur nach Okay.
-- Routing zu den Agenten anfangs per Befehl (`/uni …`, `/einkauf …`). Ohne Befehl fragt der Bot mit Knöpfen nach.
-- Modus pro Auftrag (allgemein, für alle Agenten): `erledigen` (Standard; allein arbeiten, danach Protokoll mit Prüfanleitung) oder `lernen` (gemeinsam Schritt für Schritt, per Telegram und im PC-Chat). Telegram: `/uni …` = erledigen, `/unilern …` = lernen (Befehlsnamen vorläufig). Details: uni/STATUS.md.
-- Aufträge: Warteschlange shared/auftraege/ (neu/, erledigt/), ein JSON pro Auftrag. Der Bot startet danach den passenden Agenten-Dienst sofort.
-
-## Entscheidung agentkit-Einbindung (16.10.2026)
-- agentkit wird nicht installiert, sondern per .pth-Datei in jede Agent-.venv eingebunden:
+## Stand (16.10.2026)
+- Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
+  Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
+- agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
+  meldungen, regeln, verbrauch, claude_lauf. Doku steht jeweils oben im Modul.
+  Einbindung per .pth in jede Agent-.venv:
   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
-  Danach funktioniert `from agentkit import config, log, freigabe, auftraege, regeln` in der .venv.
+- Freigabe: Fingerabdruck des Entwurfs muss zur Telegram-Anzeige passen, Ausführung genau einmal
+  (Sperrdatei), Kauflimit KAUF_LIMIT_EURO=1000 in shared/.env. Unklare Ausführungen werden nie
+  automatisch wiederholt, Jan prüft.
+- Telegram-Zentrale (Bot @Agentenzentralebot, eigener Token in shared/.env, reagiert nur auf Jans
+  Chat-ID) läuft als Dienst agentenzentrale. Kann: Aufträge (/<agent>, /<agent>lern, Text mit
+  Agent-Auswahl), Entwürfe mit Freigeben/Ablehnen/Ändern, Meldungen, /status, /verbrauch,
+  Antwort auf eine Auftragsmeldung = neuer Auftrag in derselben Claude-Sitzung, /pc und /weiter.
+  Startet nach Auftrag oder Freigabe sofort <agent>.service.
+  Nach Änderung an zentrale.py oder der Dienstvorlage: Vorlage nach ~/.config/systemd/user/ kopieren
+  (falls geändert), `systemctl --user daemon-reload`, `systemctl --user restart agentenzentrale`.
+- claude-Läufe ("Claude denkt, Python handelt"): ohne Bash und MCP, Schreiben nur im Agent-Ordner,
+  Schreibschutz auf Code/STATUS.md/Regeln/Einrichtung, kein Zugriff auf .env. Alles mit echten
+  Läufen getestet. Grundlast ca. 6.300 Tokens pro Lauf.
+- Verbrauch: Jan hat ein Pro-Abo, Agenten teilen es mit seinen Chats. Stufen normal/sparen/
+  nur_auftraege/limit nach 5h- und 7d-Auslastung, Werte in shared/einstellungen.toml.
+  Einschränkung: Auslastung wird nur bei Agenten-Läufen aktualisiert.
+- Qualität: `./pruefen.sh` (62 Tests, Linter ruff aus .venv im Hauptordner, Regeln in ruff.toml).
+  Git-Hook githooks/pre-commit bricht Commits ab, wenn nicht grün (core.hooksPath = githooks).
+- Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 
-## Meldungen (16.10.2026, im uni-Chat gebaut auf Jans Wunsch)
-- agentkit/meldungen.py: melden(agent, text), neue(), als_gesendet(id). Ablage shared/meldungen/neu/ und
-  gesendet/ (nicht im Repo). Für Hinweise ohne Freigabe (Fristen, wichtige Mails). 3 Tests, 39 grün.
-- Zentrale verschickt sie bei jeder Prüfung mit Präfix [agent] und verschiebt sie danach nach gesendet/.
+## Entscheidungen
+- Telegram ist die Zentrale in beide Richtungen. Jan diktiert per Handy-Tastatur, nur Text.
+  Sprachnachrichten (faster-whisper) eventuell später, nur nach Okay.
+- Modus pro Auftrag: `erledigen` (Standard, Protokoll mit Prüfanleitung) oder `lernen` (gemeinsam,
+  Telegram und PC-Chat führen dieselbe Sitzung fort). Kein automatischer Vorschlag von lernen.
+- Agenten denken mit `claude -p` (~/.local/bin/claude). Laufzeit-Agenten ändern nie Code.
+- Rollen für Entwicklungs-Chats nicht eigens gebaut: Plan-Modus und /code-review reichen (16.10.).
 
-## Schreibschutz und Websuche in claude_lauf (16.10.2026, im uni-Chat)
-- WebSearch/WebFetch werden ausdrücklich erlaubt, wenn in einstellungen.toml eingetragen (wurden in -p abgelehnt).
-- GESCHUETZT: Claude darf *.py, STATUS.md, CLAUDE.md, regeln.md, *.toml, Dienstdateien, .venv, .git, .claude
-  nicht ändern. Anlass: ein uni-Auftrag hatte seinen eigenen Code und STATUS.md umgebaut. Getestet.
-- Dringend für den Gesprächskanal: Antworten von Jan auf Rückfragen eines Agenten kommen bisher als neuer
-  Auftrag ohne Zusammenhang an.
-
-## Geplante Struktur shared/
-- regeln.md, .env.example (im Repo), .env (chmod 600, nicht im Repo)
-- agentkit/ (Python-Paket, per .pth-Datei in jede Agent-.venv): config.py, log.py, freigabe.py, auftraege.py, regeln.py
-- freigabe/ (offen/, erledigt/), auftraege/ (neu/, erledigt/)
-- telegram/: Telegram-Zentrale als eigener User-Dienst mit eigener .venv
-
-## Offene Punkte (nächste Schritte)
-1. Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Stand und Details: uni/STATUS.md.
-2. NÄCHSTER SCHRITT HIER: Gesprächskanal Agent <-> Jan (für Rückfragen und Lernmodus), /pc und /weiter.
-   Übergabe aus dem uni-Chat (16.10.2026), aus echten Aufträgen gelernt:
-   - Problem: Rückfragen der Agenten kann Jan nicht beantworten. Seine Antwort ("Ja mitladen") wurde ein
-     neuer Auftrag ohne Zusammenhang; der Agent riet, was gemeint war (und baute seinen Code um, siehe
-     Schreibschutz oben). Rückfragen kommen auch im Modus erledigen vor, nicht nur beim Lernen.
-   - Zuordnung: Jan antwortet in Telegram mit "Antworten" auf die Nachricht des Agenten. Die Zentrale merkt
-     sich pro gesendeter Nachricht (message_id) Agent + Auftrag-ID und ordnet die Antwort zu. Text ohne
-     Antwort-Bezug bleibt wie bisher ein neuer Auftrag.
-   - Fortsetzen: Die Antwort setzt dieselbe Claude-Sitzung fort (claude_lauf.laufen(..., sitzung_fortsetzen=)),
-     statt neu zu starten. Ergebnis.sitzung kommt bei jedem Lauf aus session_id, auch ohne lernsitzung.
-     Bisher speichert uni die Sitzung nur im Modus lernen (uni/data/sitzungen/<auftrag-id>.json); das muss
-     für alle Aufträge gelten, die mit einer Rückfrage enden.
-   - Kennzeichnung: Der Agent braucht einen Weg, ein Ergebnis als Rückfrage zu markieren (Auftrag bleibt
-     offen und wartet auf Antwort), statt es als "erledigt" abzuschließen. Vorschlag: Status "wartet" in
-     auftraege.py bzw. eigene Ablage für Rückfragen/Antworten in agentkit.
-   - Sperre wie in uni/STATUS.md beschrieben: Sitzung liegt am PC -> Bot schreibt nicht hinein (/pc, /weiter).
-   - Danach im uni-Chat: agent.py holt Antworten ab und setzt die Sitzung fort (kleiner Teil).
-3. Später: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
-   Anforderung dokumente (Jan, 16.10.): muss Word, PowerPoint und Excel nicht nur lesen, sondern auch
-   erstellen und formatieren können. uni liest Office-Dateien nur (Textfassungen, siehe uni/STATUS.md).
-4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
+## Offene Punkte
+1. Im uni-Chat: agent.py muss Antworten fortsetzen. Dafür `claude_lauf.laufen(...,
+   sitzung_fortsetzen=a["sitzung"])` wenn der Auftrag eine Sitzung hat, und
+   `auftraege.abschliessen(..., sitzung=e.sitzung)` bei jedem Auftrag (nicht nur lernen).
+   Der Hinweis "Weiter am PC: ..." in agent.py kann dann entfallen (die Zentrale liefert ihn bei /pc).
+   Noch nicht getestet: interaktives `claude --resume <id>` am PC (Jan einmal selbst).
+2. Danach: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
+   dokumente muss Word, PowerPoint und Excel erstellen und formatieren können (Jan, 16.10.).
+3. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 
 ## Gelernte Regeln
 - (noch keine)
