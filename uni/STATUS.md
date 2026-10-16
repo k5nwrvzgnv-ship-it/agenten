@@ -21,8 +21,17 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 - Entscheidung 16.10.: Kein automatischer Vorschlag von Modus lernen bei benoteten Abgaben. Jan wählt selbst.
 - Der Modus steht im Auftrag (Feld `modus` in agentkit/auftraege.py, Werte `erledigen`/`lernen`).
 
+## Übergabe Telegram <-> PC (Entscheidung 16.10.2026)
+- Telegram und PC führen dieselbe Claude-Sitzung fort.
+- Pro Lern-Auftrag eine Sitzung; Sitzungs-ID in uni/data/sitzungen/<auftrag-id>.json (nicht im Repo).
+- Telegram -> PC: Jan schreibt `/pc`, Bot schickt den Befehl `cd ~/agenten/uni && claude --resume <sitzungs-id>`.
+- PC -> Telegram: Jan beendet den PC-Chat und schreibt `/weiter`.
+- Sperre: Solange die Sitzung am PC liegt, schreibt der Bot nicht hinein und meldet das.
+- Absicherung: Nach jeder Runde schreibt der Agent uni/protokolle/<auftrag-id>-lernstand.md (durchgenommen, gut gekonnt, wo es hakte, nächster Schritt). Lässt sich eine Sitzung nicht fortsetzen, startet er neu mit diesem Lernstand.
+- Beide Seiten müssen im Ordner uni/ laufen, sonst findet Claude die Sitzung nicht.
+
 ## Offene Punkte
-1. Wie wird eine Lern-Sitzung von Telegram an den PC-Chat übergeben und umgekehrt?
+1. (noch keine)
 
 ## Gelernte Regeln
 - (noch keine)
