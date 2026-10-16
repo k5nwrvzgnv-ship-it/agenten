@@ -11,6 +11,8 @@ class TestKurse(unittest.TestCase):
         self.assertEqual(kurse.sicherer_name(".."), "_")
         self.assertEqual(kurse.sicherer_name("Folie 3: Holz/Beton?.pdf"), "Folie 3_ Holz_Beton_.pdf")
         self.assertEqual(kurse.sicherer_name(""), "_")
+        self.assertEqual(kurse.sicherer_name("Aufgaben &amp; Einreichungen"), "Aufgaben & Einreichungen")
+        self.assertEqual(kurse.sicherer_name("&#47;etc"), "_etc")
 
     def test_html_zu_text(self):
         self.assertEqual(kurse.html_zu_text("<p>Klausur am <b>12.02.</b></p><p>Raum&nbsp;5</p>"),

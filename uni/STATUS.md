@@ -43,8 +43,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     (nur WebSearch/WebFetch, nie Write/Edit pauschal). Getestet: geht.
   - ZIPs bis 50 MB werden geladen und sicher nach <name>_entpackt/ entpackt (Inhaltsliste <name>.zip.txt).
   - Prompt: sparsam arbeiten (uebersicht.md, Grep in .txt, PDFs seitenweise, Websuche zuletzt).
-  - Vorschlag offen: pypdf in .venv für PDF-Textfassungen (pdftotext fehlt), damit Grep auch PDFs
-    durchsucht. Braucht Jans Okay.
+  - PDF-Textfassungen mit "--- Seite N" per pypdf (Jans Okay 16.10.). 167 PDFs, 3 Scans ohne Text,
+    erste Umwandlung ca. 13 min, danach nur neue. Formelreiche PDFs: Textfassung lückenhaft.
+  - Namen aus Moodle werden HTML-dekodiert (&amp; -> &).
+  - Ob der Verbrauch pro Auftrag damit sinkt, ist noch nicht gemessen (nächster Auftrag).
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)

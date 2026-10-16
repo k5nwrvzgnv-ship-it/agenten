@@ -30,8 +30,8 @@ ENTPACKT_MAX_MB = 300
 
 
 def sicherer_name(name: str) -> str:
-    """Ein Pfadteil ohne Schrägstriche, Steuerzeichen und führende Punkte."""
-    name = re.sub(r'[\x00-\x1f/\\:*?"<>|]', "_", name).strip().lstrip(".")
+    """Ein Pfadteil ohne HTML-Zeichen (&amp;), Schrägstriche, Steuerzeichen und führende Punkte."""
+    name = re.sub(r'[\x00-\x1f/\\:*?"<>|]', "_", unescape(name)).strip().lstrip(".")
     return name[:120] or "_"
 
 
