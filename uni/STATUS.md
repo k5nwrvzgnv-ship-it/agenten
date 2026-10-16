@@ -4,7 +4,18 @@
 Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 
 ## Stand (16.10.2026)
-- Noch nicht begonnen. Umsetzung im eigenen Chat im Ordner uni/.
+- Uni: HNE Eberswalde (HNEE). Studiengang laut Moodle: Holzingenieurwesen M.Sc.
+- Moodle: https://lms.hnee.de (Moodle 4.5). App-Login direkt mit HNEE-Nutzername/Kennwort (typeoflogin=1),
+  kein SSO. Zugriff über login/token.php (service moodle_mobile_app) + webservice/rest/server.php. Getestet: geht.
+  Token liegt in data/moodle_token.json (600). Jan kann ihn im Moodle-Profil unter Sicherheitsschlüssel widerrufen.
+- Fristen: core_calendar_get_action_events_by_timesort lieferte 0 Einträge, obwohl eine Aufgabe fällig war.
+  Fristen daher über mod_assign_get_assignments (+ mod_assign_get_submission_status) und Tests prüfen.
+- Unipostfach: Exchange der HNEE, IMAP mail.hnee.de:993, Login mit Nutzername. Getestet: geht.
+  Posteingang ca. 6000 Mails, über 5000 ungelesen: "ungelesen" taugt nicht als Filter.
+- Zugangsdaten in uni/.env (600), Vorlage uni/.env.example. .venv angelegt, agentkit eingebunden.
+- lesetest.py: liest Kurse, Termine, ungelesene Mails. Verändert nichts.
+- Alle 26 Kurse gelten als wichtig (Jan).
+- Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
 Fertig und getestet in shared/ (nicht hier ändern, Änderungen an shared/ im Chat im Hauptordner):
@@ -55,7 +66,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 - Test 16.10. (Claude Code 2.1.301): Sitzung mit `claude -p --output-format json` gestartet (liefert `session_id`), mit `claude -p --resume <id>` fortgesetzt: Sie erinnerte sich korrekt. Klappte sogar aus einem anderen Ordner. Die Sitzung liegt als .jsonl unter ~/.claude/projects/<ordner>/. Noch nicht getestet: interaktives `claude --resume <id>` am PC (muss Jan einmal selbst ausprobieren).
 
 ## Offene Punkte
-1. Zugänge Moodle und Unipostfach (siehe Erste Schritte 1).
+1. Erledigt: Zugänge Moodle und Unipostfach. Nächster Schritt: agent.py (Erste Schritte 4).
+3. myCampus: herausfinden, woher Stundenplan/Noten/Prüfungen kommen.
 2. Gesprächskanal für den Lernmodus in der Zentrale (Hauptordner).
 
 ## Gelernte Regeln
