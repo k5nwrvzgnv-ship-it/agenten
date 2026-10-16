@@ -32,7 +32,7 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - Warteschlangen sind Ordner mit einer JSON-Datei pro Eintrag: `shared/auftraege/` (Jan -> Agent),
   `shared/freigabe/` (Entwurf -> Jan), `shared/meldungen/` (Agent -> Jan).
 - `shared/agentkit/`: config (.env laden), log, einstellungen (einstellungen.toml), auftraege, freigabe,
-  meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf.
+  meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf, textfassung (Text aus pdf/docx/pptx/xlsx).
 - `shared/telegram/`: Zentrale (Dienst agentenzentrale), einziger Kontakt zu Jan. zentrale.py = Telegram,
   logik.py = reine, getestete Logik.
 - `shared/vorlagen/`: Gerüst für neue Agenten (agent_beispiel.py, Service, Timer, STATUS.md).

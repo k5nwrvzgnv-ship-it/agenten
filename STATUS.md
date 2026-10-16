@@ -6,7 +6,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
   Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
 - agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
-  meldungen, regeln, verbrauch, claude_lauf. Doku steht jeweils oben im Modul.
+  meldungen, regeln, verbrauch, claude_lauf, textfassung. Doku steht jeweils oben im Modul.
   Einbindung per .pth in jede Agent-.venv:
   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
 - Freigabe: Fingerabdruck des Entwurfs muss zur Telegram-Anzeige passen, Ausführung genau einmal
@@ -46,9 +46,6 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 2. dokumente: Gerüst steht (17.10.), weiter im dokumente-Chat (dokumente/STATUS.md). Danach
    posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
    Ergebnisdateien an Jan: auftraege.abschliessen(..., dateien=) und meldungen.melden(..., dateien=).
-5. Vorschlag (noch nicht mit Jan besprochen): uni/kurse.als_text() (Textfassung von docx/pptx/xlsx/pdf)
-   nach agentkit verschieben, damit dokumente sie ohne Kopie nutzen kann. Import der Office-Bibliotheken
-   dann erst in der Funktion, da agentkit selbst ohne Pakete auskommt.
 3. Dateien aus Telegram: gebaut 16.10. (Zentrale nimmt Dokumente und Fotos bis 20 MB an, Ablage
    <agent>/data/eingang/<auftrag-id>/, Pfade im Feld dateien und am Ende des Auftragstexts).
    Noch offen: Handtest durch Jan (Datei mit "/uni ..." als Bildunterschrift, Album, Datei ohne Befehl).

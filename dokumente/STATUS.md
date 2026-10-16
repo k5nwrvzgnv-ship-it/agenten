@@ -47,8 +47,8 @@ Präsentationen, Tabellen. Sauber formatiert, auf Wunsch auf Jans Vorlagen.
 2. Vorlagen annehmen und verwenden, bestehende Dateien bearbeiten.
 3. Wenn agent.py läuft: Dienst einrichten (Befehl oben in systemd/dokumente.service).
 4. Dateien von Jan lesen: Claude liest PDF, Bilder und Text direkt, aber nicht docx/pptx/xlsx.
-   uni hat dafür kurse.als_text(). Nicht kopieren: im Hauptordner-Chat nach agentkit verschieben lassen
-   (Bedarf in ../STATUS.md eingetragen).
+   Dafür vor dem Lauf `agentkit.textfassung.als_text(pfad)` nutzen und <datei>.txt daneben legen
+   (wie uni). Test dazu in tests/test_textfassung.py.
 
 ## Gelernte Regeln
 - (noch keine)
