@@ -15,6 +15,19 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - Zugangsdaten in uni/.env (600), Vorlage uni/.env.example. .venv angelegt, agentkit eingebunden.
 - lesetest.py: liest Kurse, Termine, ungelesene Mails. Verändert nichts.
 - Alle 26 Kurse gelten als wichtig (Jan).
+- Gebaut und von Hand getestet (16.10.):
+  - moodle.py: Anmeldung wie die App, Kurse, Fristen (Aufgaben inkl. Nachfrist und Abgabestatus, Tests).
+  - fristen.py: Erinnerung 7 Tage, 2 Tage, am Tag selbst; je Frist und Stufe einmal (data/erinnert.json).
+  - postfach.py: nur neue Mails seit Marke (data/postfach.json), readonly + BODY.PEEK, max. 50 pro Lauf.
+  - agent.py: Freigaben (nur Typ regel), Aufträge (erledigen: protokolle/<id>.md; lernen: Sitzung in
+    data/sitzungen/, Ergebnis enthält `claude --resume`), Fristen (ohne Claude), Post (Claude routine,
+    nur bei neuen Mails, Antwort KEINE = nichts melden; ca. 11.000 Tokens pro Lauf).
+  - Tests: `.venv/bin/python -m unittest discover -s tests -t .` (10 grün).
+- Meldungen an Jan landen vorerst in data/meldungen/*.json (agent, zeit, text). Die Zentrale holt sie
+  noch NICHT ab. Dafür im Hauptordner: Meldungs-Warteschlange in agentkit + Zentrale verschickt sie.
+- protokolle/ ist per uni/.gitignore vom Repo ausgeschlossen (persönliche Inhalte).
+- Noch kein Kursmaterial für Aufträge: Claude kann Moodle-Dateien nicht selbst holen. Nächster Schritt:
+  Kursinhalte (core_course_get_contents) nach data/kurse/ spiegeln, damit Claude sie lesen kann.
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
@@ -66,7 +79,9 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 - Test 16.10. (Claude Code 2.1.301): Sitzung mit `claude -p --output-format json` gestartet (liefert `session_id`), mit `claude -p --resume <id>` fortgesetzt: Sie erinnerte sich korrekt. Klappte sogar aus einem anderen Ordner. Die Sitzung liegt als .jsonl unter ~/.claude/projects/<ordner>/. Noch nicht getestet: interaktives `claude --resume <id>` am PC (muss Jan einmal selbst ausprobieren).
 
 ## Offene Punkte
-1. Erledigt: Zugänge Moodle und Unipostfach. Nächster Schritt: agent.py (Erste Schritte 4).
+1. Erledigt: Zugänge, agent.py. Offen: uni.service und uni.timer (nach Jans Okay).
+4. Meldungen per Telegram (Hauptordner-Chat, siehe Stand).
+5. Kursmaterial nach data/kurse/ spiegeln.
 3. myCampus: herausfinden, woher Stundenplan/Noten/Prüfungen kommen.
 2. Gesprächskanal für den Lernmodus in der Zentrale (Hauptordner).
 
