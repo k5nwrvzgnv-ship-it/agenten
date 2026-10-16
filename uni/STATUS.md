@@ -104,7 +104,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 
 ## Offene Punkte
 1. Erledigt 16.10.: uni.service und uni.timer eingerichtet (Jan hat es ausdrücklich angewiesen), Timer 8/13/19 Uhr, Handstart erfolgreich.
-2. Gesprächskanal für den Lernmodus in der Zentrale (Hauptordner).
+2. Gesprächskanal (Rückfragen und Lernmodus): wird im Hauptordner-Chat gebaut, Übergabe in ../STATUS.md
+   Punkt 2. Danach hier: agent.py holt Antworten ab und setzt die Sitzung fort.
 
 ## Gelernte Regeln
 - (noch keine)

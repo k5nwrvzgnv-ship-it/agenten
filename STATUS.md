@@ -64,8 +64,24 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - telegram/: Telegram-Zentrale als eigener User-Dienst mit eigener .venv
 
 ## Offene Punkte (nächste Schritte)
-1. Agent uni im eigenen Chat im Ordner uni/ (Übergabe steht in uni/STATUS.md).
-2. Sobald uni so weit ist, hier in der Zentrale: Gesprächskanal Agent <-> Jan für den Lernmodus, /pc und /weiter.
+1. Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Stand und Details: uni/STATUS.md.
+2. NÄCHSTER SCHRITT HIER: Gesprächskanal Agent <-> Jan (für Rückfragen und Lernmodus), /pc und /weiter.
+   Übergabe aus dem uni-Chat (16.10.2026), aus echten Aufträgen gelernt:
+   - Problem: Rückfragen der Agenten kann Jan nicht beantworten. Seine Antwort ("Ja mitladen") wurde ein
+     neuer Auftrag ohne Zusammenhang; der Agent riet, was gemeint war (und baute seinen Code um, siehe
+     Schreibschutz oben). Rückfragen kommen auch im Modus erledigen vor, nicht nur beim Lernen.
+   - Zuordnung: Jan antwortet in Telegram mit "Antworten" auf die Nachricht des Agenten. Die Zentrale merkt
+     sich pro gesendeter Nachricht (message_id) Agent + Auftrag-ID und ordnet die Antwort zu. Text ohne
+     Antwort-Bezug bleibt wie bisher ein neuer Auftrag.
+   - Fortsetzen: Die Antwort setzt dieselbe Claude-Sitzung fort (claude_lauf.laufen(..., sitzung_fortsetzen=)),
+     statt neu zu starten. Ergebnis.sitzung kommt bei jedem Lauf aus session_id, auch ohne lernsitzung.
+     Bisher speichert uni die Sitzung nur im Modus lernen (uni/data/sitzungen/<auftrag-id>.json); das muss
+     für alle Aufträge gelten, die mit einer Rückfrage enden.
+   - Kennzeichnung: Der Agent braucht einen Weg, ein Ergebnis als Rückfrage zu markieren (Auftrag bleibt
+     offen und wartet auf Antwort), statt es als "erledigt" abzuschließen. Vorschlag: Status "wartet" in
+     auftraege.py bzw. eigene Ablage für Rückfragen/Antworten in agentkit.
+   - Sperre wie in uni/STATUS.md beschrieben: Sitzung liegt am PC -> Bot schreibt nicht hinein (/pc, /weiter).
+   - Danach im uni-Chat: agent.py holt Antworten ab und setzt die Sitzung fort (kleiner Teil).
 3. Später: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
    Anforderung dokumente (Jan, 16.10.): muss Word, PowerPoint und Excel nicht nur lesen, sondern auch
    erstellen und formatieren können. uni liest Office-Dateien nur (Textfassungen, siehe uni/STATUS.md).
