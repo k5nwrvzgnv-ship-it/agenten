@@ -15,6 +15,8 @@ Ein Kurs, der zum ersten Mal gespiegelt wird (noch keine uebersicht.md), meldet 
 Material nicht als neu. Mehrere Moodles (HNEE, BFH) teilen sich ZIEL und den Stand.
 Aufgaben (Beschreibung, Fristen, Abgabeart, Status, Anhänge) stehen in
 data/kurse/<Kurs>/aufgaben.md, Anhänge in data/kurse/<Kurs>/Aufgaben/<Aufgabe>/.
+Bei Teamabgaben steht dort auch Jans Gruppe im Kurs, bei Gruppenwahlen (choicegroup) die
+Belegung in der uebersicht.md. Eingetragen wird nie (nur lesend).
 """
 
 import json
@@ -150,7 +152,7 @@ def _zeit(ts: int) -> str:
     return datetime.fromtimestamp(ts).strftime("%d.%m.%Y %H:%M") if ts else "keine"
 
 
-def aufgabe_als_text(a: dict, status: str, anhaenge: list[str]) -> list[str]:
+def aufgabe_als_text(a: dict, status: str, anhaenge: list[str], gruppen: list[str] | None = None) -> list[str]:
     """Abschnitt für aufgaben.md aus einem Eintrag von mod_assign_get_assignments."""
     cfg = {(c["plugin"], c["name"]): c["value"] for c in a.get("configs", []) if c["subtype"] == "assignsubmission"}
     arten = [text for plugin, text in ABGABEARTEN.items() if cfg.get((plugin, "enabled")) == "1"]
@@ -166,6 +168,8 @@ def aufgabe_als_text(a: dict, status: str, anhaenge: list[str]) -> list[str]:
         f"- Abgabe ab: {_zeit(a['allowsubmissionsfromdate'])}",
         f"- Abgabeart: {'; '.join(arten) or 'keine Abgabe in Moodle'}",
         f"- Teamabgabe: {'ja' if a['teamsubmission'] else 'nein'}",
+        *([f"- Jans Gruppe im Kurs: {', '.join(gruppen) or 'KEINE (erst eintragen, Gruppenwahl in uebersicht.md)'}"]
+          if a["teamsubmission"] and gruppen is not None else []),
         f"- Eigenständigkeitserklärung nötig: {'ja' if a.get('requiresubmissionstatement') else 'nein'}",
         f"- Jans Abgabestatus: {status}",
     ]
@@ -174,6 +178,36 @@ def aufgabe_als_text(a: dict, status: str, anhaenge: list[str]) -> list[str]:
     if anweisung := html_zu_text(a.get("activity", "")):
         zeilen += ["Arbeitsanweisungen:", anweisung, ""]
     return zeilen
+
+
+def gruppenwahl_als_text(optionen: list[dict]) -> list[str]:
+    """Belegung einer Gruppenwahl aus mod_choicegroup_get_choicegroup_options."""
+    zeilen = ["  Belegung (Stand des letzten Abgleichs):"]
+    for o in optionen:
+        if o.get("maxanswers"):
+            frei = max(o["maxanswers"] - o["countanswers"], 0)
+            belegung = f"{o['countanswers']} von {o['maxanswers']}, {frei} frei"
+        else:
+            belegung = f"{o['countanswers']} (ohne Grenze)"
+        zeilen.append(f"  - {o['name'].strip()}: {belegung}" + (" <- Jans Wahl" if o.get("checked") else ""))
+    return zeilen if optionen else ["  Belegung: (noch keine Gruppen angelegt)"]
+
+
+def _gruppenwahl(m, instanz: int) -> list[str]:
+    try:
+        antwort = m.aufruf("mod_choicegroup_get_choicegroup_options", choicegroupid=instanz, userid=m.userid())
+    except Exception as f:  # noqa: BLE001 – nicht jedes Moodle bietet das an, steht dann in der Übersicht
+        return [f"  (Belegung nicht abrufbar: {f})"]
+    return gruppenwahl_als_text(antwort["options"])
+
+
+def _jans_gruppen(m, kursid: int) -> list[str] | None:
+    try:
+        return [g["name"].strip() for g in
+                m.aufruf("core_group_get_course_user_groups", courseid=kursid, userid=m.userid())["groups"]]
+    except Exception:  # noqa: BLE001 – dann fehlt die Zeile in aufgaben.md, geloggt
+        logging.getLogger("uni").exception("Gruppen für Kurs %s nicht abrufbar", kursid)
+        return None
 
 
 STATUS_TEXT = {"submitted": "abgegeben", "draft": "Entwurf (noch nicht abgegeben)", "new": "nichts abgegeben"}
@@ -185,6 +219,7 @@ def _aufgaben(m, kurse_ordner: dict[int, tuple[str, Path]], stand: dict, neu: li
             continue
         kursname, ordner = kurse_ordner[kurs["id"]]
         zeilen = [f"# Aufgaben: {kurs['fullname']}", ""]
+        gruppen = _jans_gruppen(m, kurs["id"]) if any(a["teamsubmission"] for a in kurs["assignments"]) else None
         for a in kurs["assignments"]:
             s = m.aufruf("mod_assign_get_submission_status", assignid=a["id"]).get("lastattempt") or {}
             abgabe = s.get("teamsubmission") or s.get("submission") or {}
@@ -198,7 +233,7 @@ def _aufgaben(m, kurse_ordner: dict[int, tuple[str, Path]], stand: dict, neu: li
                     neu.append(str(rel))
                 _textfassung(ZIEL / rel, erneuern=False)
                 anhaenge.append(str(rel.relative_to(sicherer_name(kursname))))
-            zeilen += [z.replace("{url}", m.url) for z in aufgabe_als_text(a, status, anhaenge)]
+            zeilen += [z.replace("{url}", m.url) for z in aufgabe_als_text(a, status, anhaenge, gruppen)]
         (ordner / "aufgaben.md").write_text("\n".join(zeilen), encoding="utf-8")
 
 
@@ -245,6 +280,8 @@ def spiegeln(m) -> list[str]:
                     zeilen += [f"  Link: {c['fileurl']}" for c in mod.get("contents") or [] if c.get("fileurl")]
                 if text := html_zu_text(mod.get("description", "")):
                     zeilen += [f"  {z}" for z in text.splitlines()]
+                if mod["modname"] == "choicegroup":
+                    zeilen += _gruppenwahl(m, mod["instance"])
                 for c in mod.get("contents") or []:
                     if c.get("type") != "file":
                         continue

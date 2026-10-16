@@ -54,6 +54,23 @@ class TestKurse(unittest.TestCase):
         self.assertIn("Abgabeart: Online-Text (direkt in Moodle eintippen); Datei-Upload, höchstens 2 Datei(en)", text)
         self.assertIn("Teamabgabe: ja", text)
         self.assertIn("Hüllfläche finalisieren", text)
+        self.assertNotIn("Jans Gruppe", text)  # Gruppen unbekannt: keine Zeile
+        mit = "\n".join(kurse.aufgabe_als_text(a, "nichts abgegeben", [], gruppen=[]))
+        self.assertIn("Jans Gruppe im Kurs: KEINE", mit)
+        mit = "\n".join(kurse.aufgabe_als_text(a, "nichts abgegeben", [], gruppen=["Gr.2 gelb"]))
+        self.assertIn("Jans Gruppe im Kurs: Gr.2 gelb", mit)
+        a["teamsubmission"] = 0
+        self.assertNotIn("Jans Gruppe", "\n".join(kurse.aufgabe_als_text(a, "x", [], gruppen=[])))
+
+    def test_gruppenwahl_als_text(self):
+        zeilen = kurse.gruppenwahl_als_text([
+            {"name": "Gr.2 gelb", "maxanswers": 7, "countanswers": 0, "checked": False},
+            {"name": "Gr. 7  weiss (Voll belegt) ", "maxanswers": 6, "countanswers": 6, "checked": True},
+            {"name": "offen", "maxanswers": 0, "countanswers": 3, "checked": False}])
+        self.assertEqual(zeilen[1:], ["  - Gr.2 gelb: 0 von 7, 7 frei",
+                                      "  - Gr. 7  weiss (Voll belegt): 6 von 6, 0 frei <- Jans Wahl",
+                                      "  - offen: 3 (ohne Grenze)"])
+        self.assertEqual(kurse.gruppenwahl_als_text([]), ["  Belegung: (noch keine Gruppen angelegt)"])
 
     def test_pdf_ohne_text(self):
         import pypdf
