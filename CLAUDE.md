@@ -26,8 +26,31 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   - Vinted-Bot: User-Dienst `vinted-bot.service`, /home/agent/agents/vinted, Port 9222 (lokal)
 - Jeder Agent bekommt eigene Zugangsdaten, auch einen eigenen Telegram-Bot-Token. Die Tokens der bestehenden Bots werden nicht wiederverwendet.
 
-## Struktur
-- `shared/`: gemeinsamer Code (Logging, Config laden, Freigabe-Warteschlange) und `regeln.md`.
-- `uni/`, `dokumente/`, `posteingang/`, `einkauf/`: je ein Agent mit eigener STATUS.md.
+## Architektur
+- Grundsatz: Claude denkt, Python handelt. Agenten rufen Claude nur über `agentkit.claude_lauf` auf
+  (`claude -p`, ohne Bash, Schreibschutz auf Code und Regeln). Nach außen handelt nur Python-Code.
+- Warteschlangen sind Ordner mit einer JSON-Datei pro Eintrag: `shared/auftraege/` (Jan -> Agent),
+  `shared/freigabe/` (Entwurf -> Jan), `shared/meldungen/` (Agent -> Jan).
+- `shared/agentkit/`: config (.env laden), log, einstellungen (einstellungen.toml), auftraege, freigabe,
+  meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf.
+- `shared/telegram/`: Zentrale (Dienst agentenzentrale), einziger Kontakt zu Jan. zentrale.py = Telegram,
+  logik.py = reine, getestete Logik.
+- `shared/vorlagen/`: Gerüst für neue Agenten (agent_beispiel.py, Service, Timer, STATUS.md).
+- `uni/`, `dokumente/`, `posteingang/`, `einkauf/`: je ein Agent mit agent.py als Einstieg, eigener
+  .venv, .env, STATUS.md, tests/. Laufzeitdaten in data/, logs/ (nicht im Repo).
 - Reihenfolge der Umsetzung: uni, dokumente, posteingang, einkauf.
-- Pro Agent ein eigener Chat, gestartet im Agent-Ordner. Struktur und shared/ werden im Chat im Hauptordner bearbeitet.
+- Pro Agent ein eigener Chat, gestartet im Agent-Ordner. Struktur und shared/ werden im Chat im
+  Hauptordner bearbeitet. Ein Agent-Chat ändert shared/ nicht, er schreibt den Bedarf in ../STATUS.md.
+
+## Konventionen
+- Namen und Kommentare deutsch, ohne Umlaute in Bezeichnern (`pruefen`, nicht `prüfen`).
+- Erst agentkit nutzen, nichts davon nachbauen. Fehlt dort etwas, im Hauptordner-Chat ergänzen.
+- Möglichst Python-Bordmittel. Neue Pakete nur nach Jans Okay, dann in requirements.txt.
+- Logik ohne Netz in eigene, getestete Funktionen (wie fristen.py, logik.py). Netz und Telegram dünn halten.
+- Fehler nie still verschlucken: loggen, und wenn Jan es wissen muss, eine Meldung.
+- Nur ändern, was zum Auftrag gehört. Aufräumen nebenbei vorher vorschlagen.
+
+## Fertig heißt
+- `./pruefen.sh` zeigt ALLES GRÜN (Tests aller Ordner, Linter). Erst dann committen.
+- Neue Logik hat Tests. Neue Testordner werden in pruefen.sh eingetragen.
+- STATUS.md beschreibt den aktuellen Stand, keinen Verlauf (der steht in Git).
