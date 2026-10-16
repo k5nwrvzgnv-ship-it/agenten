@@ -4,6 +4,7 @@
 - Zeigt neue Entwürfe aus shared/freigabe/offen/ mit Knöpfen an.
 - /uni ..., /unilern ... usw. werden zu Aufträgen in shared/auftraege/neu/.
 - Meldet ausgeführte Entwürfe, unklare Fälle und erledigte Aufträge.
+- Verschickt Meldungen der Agenten aus shared/meldungen/neu/ (Fristen, wichtige Mails ...).
 
 Start: .venv/bin/python zentrale.py
 """
@@ -22,7 +23,7 @@ from telegram.ext import (
     filters,
 )
 
-from agentkit import auftraege, config, einstellungen, freigabe, log, verbrauch
+from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen, verbrauch
 from logik import AGENTEN, STUFEN_TEXT, Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text, verbrauch_text
 
 HIER = Path(__file__).resolve().parent
@@ -234,6 +235,10 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
             await senden(context, f"{wort} ({a['agent']}): {a['text'][:200]}\n\n{a.get('ergebnis', '')}")
             gemeldet.listen["auftraege"].add(a["id"])
             geaendert = True
+
+    for m in meldungen.neue():
+        await senden(context, f"[{m['agent']}] {m['text']}")
+        meldungen.als_gesendet(m["id"])  # erst nach erfolgreichem Senden, sonst nächster Versuch
 
     stand, stufe = aktuelle_stufe()
     if stufe != gemeldet.stufe:

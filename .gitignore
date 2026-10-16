@@ -39,3 +39,6 @@ shared/auftraege/erledigt/
 
 # Verbrauchsprotokoll der claude-Läufe
 shared/verbrauch/
+
+# Meldungen an Jan: können persönliche Inhalte enthalten
+shared/meldungen/
