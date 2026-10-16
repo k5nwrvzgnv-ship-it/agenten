@@ -25,14 +25,19 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 - Modus pro Auftrag (allgemein, für alle Agenten): `erledigen` (Standard; allein arbeiten, danach Protokoll mit Prüfanleitung) oder `lernen` (gemeinsam Schritt für Schritt, per Telegram und im PC-Chat). Telegram: `/uni …` = erledigen, `/unilern …` = lernen (Befehlsnamen vorläufig). Details: uni/STATUS.md.
 - Aufträge: Warteschlange shared/auftraege/ (neu/, erledigt/), ein JSON pro Auftrag. Der Bot startet danach den passenden Agenten-Dienst sofort.
 
+## Entscheidung agentkit-Einbindung (16.10.2026)
+- agentkit wird nicht installiert, sondern per .pth-Datei in jede Agent-.venv eingebunden:
+  `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
+  Danach funktioniert `from agentkit import config, log, freigabe, auftraege, regeln` in der .venv.
+
 ## Geplante Struktur shared/
 - regeln.md, .env.example (im Repo), .env (chmod 600, nicht im Repo)
-- agentkit/ (Python-Paket, per `pip install -e` in jede Agent-.venv): config.py, log.py, freigabe.py, auftraege.py, regeln.py
+- agentkit/ (Python-Paket, per .pth-Datei in jede Agent-.venv): config.py, log.py, freigabe.py, auftraege.py, regeln.py
 - freigabe/ (offen/, erledigt/), auftraege/ (neu/, erledigt/)
 - telegram/: Telegram-Zentrale als eigener User-Dienst mit eigener .venv
 
 ## Offene Punkte (nächste Schritte)
-1. Klären: Wie kommt agentkit in die Agent-.venv? `pip install -e` braucht eine pyproject.toml und lädt Hilfspakete; Alternative ohne Installation: eine .pth-Datei in der .venv, die auf shared/ zeigt (Empfehlung).
+1. (erledigt, siehe Entscheidung agentkit-Einbindung)
 2. Je Agent eine STATUS.md-Vorlage.
 2a. Klären: Wer führt einen freigegebenen Entwurf aus (z. B. Mail senden), und wie wird "ausgeführt" vermerkt, damit nichts doppelt passiert?
 3. Telegram-Zentrale: Jan legt bei BotFather einen neuen Bot an und trägt den Token in shared/.env ein (chmod 600). Installation und Dienst nur nach Jans Okay.
