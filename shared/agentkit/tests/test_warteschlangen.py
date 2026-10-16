@@ -211,6 +211,29 @@ class TestAuftraege(unittest.TestCase):
         self.assertTrue(datei.exists())
         self.assertEqual(auftraege.neue(basis=self.basis), [])
 
+    def test_ergebnis_dateien(self):
+        agenten = self.basis / "agenten"
+        (agenten / "dokumente" / "data" / "ausgang").mkdir(parents=True)
+        datei = agenten / "dokumente" / "data" / "ausgang" / "Bericht.docx"
+        datei.write_text("x")
+        aid = auftraege.neuer_auftrag("dokumente", "Bericht", basis=self.basis)
+        a = auftraege.abschliessen(aid, "fertig", dateien=[datei], basis=self.basis, agenten_dir=agenten)
+        self.assertEqual(a["ergebnis_dateien"], ["data/ausgang/Bericht.docx"])
+        aid = auftraege.neuer_auftrag("dokumente", "ohne", basis=self.basis)
+        self.assertEqual(auftraege.abschliessen(aid, basis=self.basis)["ergebnis_dateien"], [])
+
+    def test_ergebnis_dateien_unzulaessig(self):
+        agenten = self.basis / "agenten"
+        (agenten / "dokumente").mkdir(parents=True)
+        (agenten / "dokumente" / ".env").write_text("GEHEIM=1")
+        (agenten / "uni").mkdir()
+        (agenten / "uni" / "x.txt").write_text("x")
+        aid = auftraege.neuer_auftrag("dokumente", "t", basis=self.basis)
+        for datei in [".env", "../uni/x.txt", agenten / "uni" / "x.txt", "fehlt.docx", "/etc/passwd"]:
+            with self.subTest(datei=datei), self.assertRaises(auftraege.AuftragFehler):
+                auftraege.abschliessen(aid, dateien=[datei], basis=self.basis, agenten_dir=agenten)
+        self.assertEqual([a["id"] for a in auftraege.neue(basis=self.basis)], [aid])  # bleibt offen
+
 
 if __name__ == "__main__":
     unittest.main()

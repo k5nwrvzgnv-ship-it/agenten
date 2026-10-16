@@ -21,6 +21,8 @@ Dateien: Schickt Jan Dateien mit, verschiebt neuer_auftrag(..., dateien=) sie na
 <agent>/data/eingang/<auftrag-id>/ (dort darf Claude lesen, nicht im Repo). Die Pfade
 stehen im Feld dateien und zusätzlich am Ende des Auftragstexts, damit jeder Agent
 sie ohne eigenen Code im Prompt hat.
+Umgekehrt gibt abschliessen(..., dateien=) Ergebnisdateien aus dem Agent-Ordner mit,
+die Zentrale schickt sie Jan nach dem Ergebnistext.
 """
 
 import shutil
@@ -122,18 +124,25 @@ def abschliessen(
     ergebnis: str = "",
     status: str = "erledigt",
     sitzung: str | None = None,
+    dateien: list[Path] | None = None,
     basis: Path | None = None,
+    agenten_dir: Path | None = None,
 ) -> dict:
     """Verschiebt den Auftrag nach erledigt/ (status erledigt oder fehlgeschlagen).
 
     sitzung: Claude-Sitzung des Laufs, damit Jan per Antwort darin weitermachen kann.
+    dateien: Ergebnisdateien im Agent-Ordner (absolut oder relativ dazu), gehen an Jan.
     """
     if status not in ABSCHLUESSE:
         raise AuftragFehler(f"Unbekannter Abschluss: {status!r}")
+    _ablage.pruefe_id(eintrag_id)
+    agent = eintrag_id.split("-")[2]  # vor dem Verschieben prüfen, sonst bliebe der Auftrag halb abgeschlossen
+    ergebnis_dateien = _ablage.anhaenge_pruefen((agenten_dir or AGENTEN_DIR) / agent, dateien or [])
     basis = basis or BASIS
     return _ablage.abschliessen(
         _ablage.ordner(basis, "neu"),
         _ablage.ordner(basis, "erledigt"),
         eintrag_id,
-        {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis, "sitzung": sitzung},
+        {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis, "sitzung": sitzung,
+         "ergebnis_dateien": ergebnis_dateien},
     )

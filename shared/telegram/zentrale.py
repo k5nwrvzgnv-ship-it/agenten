@@ -7,6 +7,7 @@
 - Antwortet Jan auf die Meldung eines Auftrags, wird daraus ein neuer Auftrag in
   derselben Claude-Sitzung. /pc (als Antwort) gibt die Sitzung an den PC, /weiter holt sie zurück.
 - Verschickt Meldungen der Agenten aus shared/meldungen/neu/ (Fristen, wichtige Mails ...).
+  Ergebnisdateien von Aufträgen und Meldungen (bis 50 MB) kommen als Dokument hinterher.
 - Nimmt Dateien und Fotos an (bis 20 MB). Mit /agent in der Bildunterschrift oder als Antwort auf
   eine Meldung gehen sie sofort an den Auftrag, sonst warten sie in data/eingang/ auf den nächsten
   Auftrag. agentkit.auftraege legt sie dann in <agent>/data/eingang/<auftrag-id>/ ab.
@@ -20,6 +21,7 @@ from datetime import datetime
 from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import TelegramError
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -30,6 +32,7 @@ from telegram.ext import (
 )
 
 from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen, verbrauch
+from agentkit._ablage import AblageFehler, anhaenge_pruefen
 from logik import (
     AGENTEN,
     MAX_DATEI_BYTES,
@@ -44,6 +47,7 @@ from logik import (
 
 HIER = Path(__file__).resolve().parent
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
+AGENTEN_DIR = auftraege.AGENTEN_DIR
 PRUEF_INTERVALL = 30  # Sekunden
 ALBUM_WARTEN = 3  # Sekunden nach der letzten Datei eines Albums, dann wird zugeordnet
 
@@ -73,6 +77,21 @@ async def senden(context: ContextTypes.DEFAULT_TYPE, text: str, knoepfe=None) ->
     for i, stueck in enumerate(stuecke):
         letzte = i == len(stuecke) - 1
         gesendet.append(await context.bot.send_message(JAN, stueck, reply_markup=knoepfe if letzte else None))
+    return gesendet
+
+
+async def dateien_senden(context: ContextTypes.DEFAULT_TYPE, agent: str, dateien: list[str]) -> list:
+    """Schickt Ergebnisdateien eines Agenten. Ein Fehler betrifft nur die eine Datei, Jan erfährt davon."""
+    gesendet = []
+    for datei in dateien:
+        try:
+            # noch einmal prüfen: zwischen Ablage und Senden kann sich die Datei geändert haben
+            pfad = AGENTEN_DIR / agent / anhaenge_pruefen(AGENTEN_DIR / agent, [datei])[0]
+            with open(pfad, "rb") as f:
+                gesendet.append(await context.bot.send_document(JAN, f, filename=pfad.name, write_timeout=120))
+        except (AblageFehler, OSError, TelegramError) as f:
+            logger.error("Datei %s von %s nicht gesendet: %s", datei, agent, f)
+            await context.bot.send_message(JAN, f"Datei nicht gesendet ({agent}): {datei}\nGrund: {f}")
     return gesendet
 
 
@@ -399,13 +418,16 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
     for a in auftraege.erledigte():
         if a["id"] not in gemeldet.listen["auftraege"]:
             wort = "Auftrag erledigt" if a["status"] == "erledigt" else "Auftrag fehlgeschlagen"
-            for n in await senden(context, f"{wort} ({a['agent']}): {a['text'][:200]}\n\n{a.get('ergebnis', '')}"):
+            nachrichten = await senden(context, f"{wort} ({a['agent']}): {a['text'][:200]}\n\n{a.get('ergebnis', '')}")
+            nachrichten += await dateien_senden(context, a["agent"], a.get("ergebnis_dateien", []))
+            for n in nachrichten:  # auch eine Antwort auf die Datei setzt die Sitzung fort
                 gemeldet.nachricht_merken(n.message_id, a["id"])
             gemeldet.listen["auftraege"].add(a["id"])
             geaendert = True
 
     for m in meldungen.neue():
         await senden(context, f"[{m['agent']}] {m['text']}")
+        await dateien_senden(context, m["agent"], m.get("dateien", []))
         meldungen.als_gesendet(m["id"])  # erst nach erfolgreichem Senden, sonst nächster Versuch
 
     stand, stufe = aktuelle_stufe()

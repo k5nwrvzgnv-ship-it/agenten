@@ -15,6 +15,7 @@ from pathlib import Path
 
 ID_MUSTER = re.compile(r"^\d{8}-\d{6}-[a-z]+-[0-9a-f]{6}$")
 AGENT_MUSTER = re.compile(r"^[a-z]+$")
+MAX_ANHANG_BYTES = 50 * 1024 * 1024  # mehr nimmt die Bot-Schnittstelle von Telegram nicht an
 
 
 class AblageFehler(Exception):
@@ -85,3 +86,26 @@ def abschliessen(von: Path, nach: Path, eintrag_id: str, aenderungen: dict) -> d
     schreibe(nach / f"{eintrag_id}.json", daten)
     zwischen.unlink()
     return daten
+
+
+def anhaenge_pruefen(agent_dir: Path, dateien) -> list[str]:
+    """Dateien, die ein Agent Jan schicken will: Pfade relativ zum Agent-Ordner.
+
+    Nur echte Dateien im eigenen Agent-Ordner, nichts Verstecktes (.env, .venv/),
+    höchstens MAX_ANHANG_BYTES. Die Zentrale prüft vor dem Senden noch einmal.
+    """
+    wurzel = agent_dir.resolve()
+    pfade = []
+    for datei in map(Path, dateien):
+        pfad = (agent_dir / datei).resolve()  # absolute Pfade bleiben absolut
+        if not pfad.is_relative_to(wurzel):
+            raise AblageFehler(f"Datei liegt nicht im Agent-Ordner: {datei}")
+        relativ = pfad.relative_to(wurzel)
+        if any(teil.startswith(".") for teil in relativ.parts):
+            raise AblageFehler(f"Versteckte Datei: {datei}")
+        if not pfad.is_file():
+            raise AblageFehler(f"Datei fehlt: {datei}")
+        if pfad.stat().st_size > MAX_ANHANG_BYTES:
+            raise AblageFehler(f"Datei größer als {MAX_ANHANG_BYTES // 2**20} MB: {datei}")
+        pfade.append(relativ.as_posix())
+    return pfade

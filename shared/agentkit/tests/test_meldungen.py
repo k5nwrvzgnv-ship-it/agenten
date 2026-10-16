@@ -33,6 +33,18 @@ class TestMeldungen(unittest.TestCase):
         with self.assertRaises(meldungen.MeldungFehler):
             meldungen.als_gesendet("../../etc/passwd", basis=self.basis)
 
+    def test_dateien(self):
+        agenten = self.basis / "agenten"
+        (agenten / "dokumente").mkdir(parents=True)
+        (agenten / "dokumente" / "Folien.pptx").write_text("x")
+        mid = meldungen.melden("dokumente", "Fertig", dateien=["Folien.pptx"], basis=self.basis,
+                               agenten_dir=agenten)
+        self.assertEqual(meldungen.neue(basis=self.basis)[0]["dateien"], ["Folien.pptx"])
+        self.assertTrue(mid)
+        with self.assertRaises(meldungen.MeldungFehler):
+            meldungen.melden("dokumente", "x", dateien=["../../etc/passwd"], basis=self.basis,
+                             agenten_dir=agenten)
+
 
 if __name__ == "__main__":
     unittest.main()
