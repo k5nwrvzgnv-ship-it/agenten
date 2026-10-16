@@ -45,7 +45,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Noch nicht getestet: interaktives `claude --resume <id>` am PC (Jan einmal selbst).
 2. Danach: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
    dokumente muss Word, PowerPoint und Excel erstellen und formatieren können (Jan, 16.10.).
-3. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
+3. Zentrale muss Dateien annehmen (Jan, 16.10., "auf jeden Fall"): Dokumente und Fotos aus Telegram
+   speichern und an den Auftrag hängen (Pfad im Auftrag), damit Agenten sie lesen können.
+   Anlass: Jan war unterwegs und konnte Projektdateien für uni nicht übergeben.
+4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 
 ## Gelernte Regeln
 - (noch keine)
