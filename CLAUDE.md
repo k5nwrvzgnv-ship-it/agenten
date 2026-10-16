@@ -11,7 +11,8 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - Am Ende einer Arbeitssitzung die STATUS.md des Agenten aktualisieren und committen. Sie ist die Übergabe an den nächsten Chat.
 
 ## Harte Regeln
-- Agenten senden niemals selbst Mails oder Nachrichten und bezahlen nie selbst. Alles geht als Entwurf oder Vorschlag in die Freigabe-Warteschlange (shared/freigabe/) und wartet auf Jans Bestätigung.
+- Agenten handeln nach außen (Mails, Nachrichten, Abgaben, Käufe usw.) nur nach Jans Freigabe des konkreten Entwurfs über die Freigabe-Warteschlange (shared/freigabe/). Nach der Freigabe führt der Agent genau diesen Entwurf einmal aus und meldet das Ergebnis.
+- Käufe zusätzlich nur bis zur Obergrenze KAUF_LIMIT_EURO aus shared/.env. Ist kein Wert eingetragen, wird nicht gekauft.
 - Zugangsdaten nur in .env-Dateien mit chmod 600, nie im Repo. Neue Geheimnisse vorher gegen .gitignore prüfen.
 - Jeder Agent läuft isoliert: eigener Ordner, eigene virtuelle Umgebung (.venv im Agent-Ordner), eigener systemd-User-Dienst oder -Timer.
 - Keine dauerhaft laufende Browser-Automation. Browser nur zeitgesteuert und kurz.
