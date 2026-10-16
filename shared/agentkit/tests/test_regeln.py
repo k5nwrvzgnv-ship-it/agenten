@@ -38,7 +38,8 @@ class TestRegeln(unittest.TestCase):
 
     def freigeben(self, regel, allgemein):
         eid = regeln.regel_vorschlagen("uni", regel, "Jan hat korrigiert", allgemein, basis=self.basis)
-        return freigabe.entscheide(eid, "freigegeben", basis=self.basis)
+        abdruck = freigabe.offene(basis=self.basis)[-1]["fingerabdruck"]
+        return freigabe.entscheide(eid, "freigegeben", gesehen=abdruck, basis=self.basis)
 
     def test_leer(self):
         self.assertEqual(regeln.allgemeine_regeln(), [])
