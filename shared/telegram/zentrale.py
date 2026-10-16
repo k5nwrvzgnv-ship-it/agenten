@@ -8,6 +8,7 @@
 Start: .venv/bin/python zentrale.py
 """
 
+import asyncio
 import logging
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from agentkit import auftraege, config, einstellungen, freigabe, log, verbrauch
 from logik import AGENTEN, STUFEN_TEXT, Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text, verbrauch_text
 
 HIER = Path(__file__).resolve().parent
+UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 PRUEF_INTERVALL = 30  # Sekunden
 
 cfg = config.lade_config(HIER, pflicht=("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"))
@@ -47,6 +49,22 @@ async def senden(context: ContextTypes.DEFAULT_TYPE, text: str, knoepfe=None) ->
     for i, stueck in enumerate(stuecke):
         letzte = i == len(stuecke) - 1
         await context.bot.send_message(JAN, stueck, reply_markup=knoepfe if letzte else None)
+
+
+async def agent_starten(agent: str) -> None:
+    """Startet <agent>.service, falls es ihn gibt (--no-block: nicht auf das Ende warten)."""
+    if agent not in AGENTEN or not (UNIT_DIR / f"{agent}.service").exists():
+        logger.info("Kein Dienst %s.service, Auftrag wartet auf den nächsten Lauf", agent)
+        return
+    proc = await asyncio.create_subprocess_exec(
+        "systemctl", "--user", "start", "--no-block", f"{agent}.service",
+        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+    )
+    _, err = await proc.communicate()
+    if proc.returncode != 0:
+        logger.error("Start von %s.service fehlgeschlagen: %s", agent, err.decode().strip())
+    else:
+        logger.info("%s.service gestartet", agent)
 
 
 # ---------- Eingang: Nachrichten von Jan ----------
@@ -97,6 +115,7 @@ async def auftrag_anlegen(update: Update, agent: str, modus: str, text: str, bez
     aid = auftraege.neuer_auftrag(agent, text, modus=modus, bezug=bezug)
     logger.info("Auftrag %s angelegt (%s, %s)", aid, agent, modus)
     await update.effective_message.reply_text(f"Auftrag an {agent} ({modus}) angelegt.")
+    await agent_starten(agent)
 
 
 async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -123,6 +142,7 @@ async def aenderung_eintragen(update: Update, eid: str, kommentar: str) -> None:
     auftraege.neuer_auftrag(entwurf["agent"], kommentar, quelle="telegram-aendern", bezug=eid)
     logger.info("Entwurf %s: Änderung gewünscht", eid)
     await update.message.reply_text(f"Änderungswunsch an {entwurf['agent']} weitergegeben.")
+    await agent_starten(entwurf["agent"])
 
 
 # ---------- Knöpfe ----------
@@ -149,7 +169,7 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         if art == "f":
             gesehen = gemeldet.angezeigt.get(eid)
-            freigabe.entscheide(eid, "freigegeben", gesehen=gesehen)
+            entwurf = freigabe.entscheide(eid, "freigegeben", gesehen=gesehen)
             antwort = "Freigegeben. Der Agent führt es jetzt aus."
         elif art == "a":
             freigabe.entscheide(eid, "abgelehnt")
@@ -172,6 +192,8 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await q.answer()
     await q.edit_message_reply_markup(None)
     await q.message.reply_text(antwort)
+    if art == "f":
+        await agent_starten(entwurf["agent"])
 
 
 # ---------- Ausgang: regelmäßige Prüfung ----------

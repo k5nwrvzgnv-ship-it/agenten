@@ -1,0 +1,11 @@
+# Vorlage: nach ~/.config/systemd/user/<name>.timer kopieren, Zeiten anpassen.
+# Aktivieren: systemctl --user enable --now <name>.timer
+[Unit]
+Description=Zeitgesteuerte Läufe für Agent <name>
+
+[Timer]
+OnCalendar=*-*-* 08,13,19:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

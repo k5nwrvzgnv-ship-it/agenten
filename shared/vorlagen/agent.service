@@ -1,0 +1,12 @@
+# Vorlage: nach ~/.config/systemd/user/<name>.service kopieren, <name> ersetzen.
+# Startet einen Lauf: offene Aufträge abarbeiten, freigegebene Entwürfe ausführen,
+# zeitgesteuerte Aufgaben. Die Zentrale startet den Dienst nach jedem neuen Auftrag.
+[Unit]
+Description=Agent <name>
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/<name>
+ExecStart=/home/agent/agenten/<name>/.venv/bin/python agent.py
+TimeoutStartSec=45min
+MemoryMax=1G
