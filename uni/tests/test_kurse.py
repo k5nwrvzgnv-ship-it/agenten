@@ -38,10 +38,10 @@ class TestKurse(unittest.TestCase):
         self.assertEqual(kurse.als_text(ordner / "a.docx"), "Hausarbeit Holzschutz")
         self.assertEqual(kurse.als_text(ordner / "b.pptx"), "--- Folie 1\nEinleitung\n--- Folie 2\nBrettsperrholz")
         self.assertEqual(kurse.als_text(ordner / "c.xlsx"), "--- Blatt Messwerte\nFeuchte | 12.5")
-        self.assertTrue(kurse._textfassung(ordner / "b.pptx", erneuern=False))
+        self.assertTrue(kurse.textfassung(ordner / "b.pptx", erneuern=False))
         self.assertTrue((ordner / "b.pptx.txt").exists())
         (ordner / "x.png").write_bytes(b"png")
-        self.assertFalse(kurse._textfassung(ordner / "x.png", erneuern=False))
+        self.assertFalse(kurse.textfassung(ordner / "x.png", erneuern=False))
 
     def test_aufgabe_als_text(self):
         a = {"name": "GEG", "cmid": 5, "duedate": 0, "cutoffdate": 0, "allowsubmissionsfromdate": 0,
@@ -87,7 +87,7 @@ class TestKurse(unittest.TestCase):
             z.writestr("../../boese.txt", "x")
             z.writestr("unter/ordner/daten.csv", "1;2")
             z.writestr("/absolut.txt", "y")
-        self.assertTrue(kurse._textfassung(ordner / "a.zip", erneuern=True))
+        self.assertTrue(kurse.textfassung(ordner / "a.zip", erneuern=True))
         dateien = sorted(str(p.relative_to(ordner)) for p in ordner.rglob("*") if p.is_file())
         self.assertEqual(dateien, ["a.zip", "a.zip.txt", "a_entpackt/_/_/boese.txt", "a_entpackt/absolut.txt",
                                    "a_entpackt/unter/ordner/daten.csv"])
@@ -122,12 +122,12 @@ class FakeMoodle:
 class TestSpiegeln(unittest.TestCase):
     def test_neuer_kurs_meldet_nichts(self):
         with tempfile.TemporaryDirectory() as tmp:
-            alt = (kurse.ZIEL, kurse.STAND_DATEI, kurse._laden, kurse._textfassung)
+            alt = (kurse.ZIEL, kurse.STAND_DATEI, kurse._laden, kurse.textfassung)
             kurse.ZIEL = Path(tmp)
             kurse.STAND_DATEI = Path(tmp) / ".stand.json"
             kurse._laden = lambda url, token, ziel: (ziel.parent.mkdir(parents=True, exist_ok=True),
                                                      ziel.write_bytes(b"x"))
-            kurse._textfassung = lambda pfad, erneuern: False
+            kurse.textfassung = lambda pfad, erneuern: False
             try:
                 kurse.STAND_DATEI.write_text("{}")
                 (Path(tmp) / "Alt").mkdir()
@@ -137,4 +137,4 @@ class TestSpiegeln(unittest.TestCase):
                 self.assertTrue((Path(tmp) / "Neu" / "00 A" / "k2.pdf").exists())
                 self.assertEqual(kurse.spiegeln(FakeMoodle()), [])
             finally:
-                kurse.ZIEL, kurse.STAND_DATEI, kurse._laden, kurse._textfassung = alt
+                kurse.ZIEL, kurse.STAND_DATEI, kurse._laden, kurse.textfassung = alt

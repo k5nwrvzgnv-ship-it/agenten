@@ -5,7 +5,9 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
    Kursmaterial aus Moodle nach data/kurse/ spiegeln (neues Material wird gemeldet),
 2. Aufträge abarbeiten (Modus erledigen: Protokoll in protokolle/; Modus lernen: Sitzung).
    Antwortet Jan auf eine Meldung, trägt der Auftrag die alte Sitzung (Feld sitzung) und
-   der Agent setzt sie fort, im Modus und mit dem Protokoll des ursprünglichen Auftrags,
+   der Agent setzt sie fort, im Modus und mit dem Protokoll des ursprünglichen Auftrags.
+   Aufträge "Transkript <Kurs> [Datum]" legt Python als Vorlesungstranskript ab (transkripte.py),
+   Claude meldet daraus Prüfungshinweise, Fristen und Organisatorisches,
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -14,6 +16,7 @@ Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Te
 
 import json
 import time
+from datetime import date
 from pathlib import Path
 
 from agentkit import auftraege, claude_lauf, config, freigabe, log, meldungen, regeln
@@ -22,6 +25,7 @@ import fristen
 import kurse
 import moodle
 import postfach
+import transkripte
 
 AGENT = "uni"
 HIER = Path(__file__).resolve().parent
@@ -120,6 +124,9 @@ Kursmaterial aus Moodle liegt in data/kurse/<Kurs>/. Lies zuerst data/kurse/<Kur
 Textfassung <datei>.txt mit Seiten- bzw. Foliennummern ("--- Seite 12"). Such darin mit Grep.
 Formeln, Tabellen und Bilder fehlen in der Textfassung oft: dann die Seite im PDF mit Read ansehen. Alte Formate (doc, ppt, xls) kannst du nicht lesen, sag das dann.
 ZIP-Archive sind nach <name>_entpackt/ entpackt, die Inhaltsliste steht in <name>.zip.txt.
+Vorlesungstranskripte: Jans eigene in data/kurse/<Kurs>/transkripte/, automatische aus
+Aufzeichnungen als <video>.txt neben dem Video (Zeitmarken [mm:ss], Hörfehler möglich).
+Such darin mit Grep und nenne Datum bzw. Zeitmarke als Quelle.
 
 Arbeite sparsam, jeder Schritt kostet Jans Kontingent:
 1. Erst die passende uebersicht.md lesen und daraus die Dateien wählen, die wirklich in Frage kommen.
@@ -169,6 +176,33 @@ Gib ehrliche Rückmeldung und mach den nächsten kleinen Schritt (höchstens 12 
 Aktualisiere protokolle/{id}-lernstand.md."""
 
 
+PROMPT_TRANSKRIPT = KONTEXT + """
+
+Jan hat ein eigenes Vorlesungstranskript abgelegt (Kurs {kurs}):
+{pfade}
+
+Lies es und melde kurz (höchstens 12 Zeilen, ohne Markdown-Tabellen), jeweils mit Fundstelle:
+- Hinweise auf Prüfung oder Prüfungsrelevantes,
+- Fristen, Abgaben, Aufgaben bis zur nächsten Sitzung,
+- organisatorische Änderungen (Termine, Räume, Gruppen),
+- in 2-3 Zeilen: welche Themen dran waren.
+Gibt es keine Hinweise der ersten drei Arten, schreibe das in einem Satz. Ändere keine Dateien."""
+
+
+def transkript_uebernehmen(a: dict) -> None:
+    try:
+        kurs, pfade = transkripte.ablegen(a, HIER, kurse.ZIEL, date.today())
+    except transkripte.TranskriptFehler as f:
+        auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
+        return
+    liste = "\n".join(f"- {p.relative_to(HIER)}" for p in pfade)
+    logger.info("Transkript abgelegt: %s", liste)
+    e = claude_lauf.laufen(AGENT, HIER, PROMPT_TRANSKRIPT.format(kurs=kurs, pfade=liste),
+                           art="routine", auftrag_id=a["id"])
+    text = f"Transkript abgelegt ({kurs}):\n{liste}\n\n" + (e.text if e.ok else f"Auswertung fehlgeschlagen: {e.text}")
+    auftraege.abschliessen(a["id"], text, status="erledigt", sitzung=e.sitzung)
+
+
 def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
     """Der erste Auftrag einer Antwortkette (bezug -> bezug -> ...). Fehlt ein Glied, der letzte gefundene."""
     gesehen = {a["id"]}
@@ -183,6 +217,18 @@ def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
 
 def auftraege_abarbeiten() -> None:
     for a in auftraege.neue(AGENT):
+        for datei in a.get("dateien") or []:  # Word, PowerPoint, Excel kann Claude nur als Textfassung lesen
+            kurse.textfassung(HIER / datei, erneuern=False)
+        if transkripte.ist_transkript(a["text"]) and not a.get("sitzung"):
+            try:
+                transkript_uebernehmen(a)
+            except WARTEN as f:
+                logger.info("Auftrag %s wartet: %s", a["id"], f)
+                return
+            except claude_lauf.LaufFehler as f:
+                auftraege.abschliessen(a["id"], f"Transkript abgelegt, Auswertung fehlgeschlagen: {f}",
+                                       status="fehlgeschlagen")
+            continue
         start = ursprung(a) if a.get("sitzung") else a
         lernen = start["modus"] == "lernen"
         if a.get("sitzung"):

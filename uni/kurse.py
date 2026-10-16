@@ -102,7 +102,7 @@ def als_text(pfad: Path) -> str | None:
     return None
 
 
-def _textfassung(pfad: Path, erneuern: bool) -> bool:
+def textfassung(pfad: Path, erneuern: bool) -> bool:
     """Schreibt <pfad>.txt, falls das Format unterstützt wird. True, wenn es eine Textfassung gibt."""
     if pfad.suffix.lower() not in (".pdf", ".docx", ".pptx", ".xlsx", ".zip"):
         return False
@@ -140,7 +140,7 @@ def entpacken(pfad: Path) -> list[str]:
             (ziel / rel).parent.mkdir(parents=True, exist_ok=True)
             with z.open(info) as quelle, open(ziel / rel, "wb") as f:
                 shutil.copyfileobj(quelle, f)
-            _textfassung(ziel / rel, erneuern=True)
+            textfassung(ziel / rel, erneuern=True)
             liste.append(f"{rel} ({info.file_size / 1e6:.1f} MB)")
     return liste
 
@@ -231,7 +231,7 @@ def _aufgaben(m, kurse_ordner: dict[int, tuple[str, Path]], stand: dict, neu: li
                     _laden(datei["fileurl"], m.token(), ZIEL / rel)
                     stand[datei["fileurl"]] = datei.get("timemodified")
                     neu.append(str(rel))
-                _textfassung(ZIEL / rel, erneuern=False)
+                textfassung(ZIEL / rel, erneuern=False)
                 anhaenge.append(str(rel.relative_to(sicherer_name(kursname))))
             zeilen += [z.replace("{url}", m.url) for z in aufgabe_als_text(a, status, anhaenge, gruppen)]
         (ordner / "aufgaben.md").write_text("\n".join(zeilen), encoding="utf-8")
@@ -306,7 +306,7 @@ def spiegeln(m) -> list[str]:
                         _speichern(stand)
                     if rel.suffix.lower() in MEDIEN_ENDUNGEN:
                         zeilen.append(f"  Transkript (wird nachts erstellt): {rel.relative_to(sicherer_name(kursname))}.txt")
-                    if _textfassung(ZIEL / rel, erneuern=geladen):
+                    if textfassung(ZIEL / rel, erneuern=geladen):
                         art = "Inhaltsliste" if rel.suffix.lower() == ".zip" else "Textfassung"
                         zeilen.append(f"  {art}: {rel.relative_to(sicherer_name(kursname))}.txt")
             zeilen.append("")
