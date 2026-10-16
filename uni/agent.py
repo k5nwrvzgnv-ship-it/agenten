@@ -6,17 +6,14 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
-Meldungen an Jan landen vorerst in data/meldungen/ (siehe melden()), bis die
-Zentrale sie per Telegram verschicken kann.
+Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Telegram.
 """
 
 import json
-import os
 import time
-from datetime import datetime
 from pathlib import Path
 
-from agentkit import auftraege, claude_lauf, config, freigabe, log, regeln
+from agentkit import auftraege, claude_lauf, config, freigabe, log, meldungen, regeln
 
 import fristen
 import moodle
@@ -45,12 +42,8 @@ def _schreibe_json(pfad: Path, daten) -> None:
 
 
 def melden(text: str) -> None:
-    """Hinweis an Jan. Vorläufig als Datei, bis die Zentrale Meldungen abholt."""
-    ordner = DATA / "meldungen"
-    ordner.mkdir(parents=True, exist_ok=True)
-    name = f"{datetime.now():%Y%m%d-%H%M%S}-{os.urandom(3).hex()}.json"
-    _schreibe_json(ordner / name, {"agent": AGENT, "zeit": datetime.now().isoformat(timespec="seconds"),
-                                   "text": text})
+    """Hinweis an Jan per Telegram (über die Zentrale)."""
+    meldungen.melden(AGENT, text)
     logger.info("Meldung: %s", text.splitlines()[0])
 
 
