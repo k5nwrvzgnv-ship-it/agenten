@@ -4,6 +4,8 @@
 - Zeigt neue Entwürfe aus shared/freigabe/offen/ mit Knöpfen an.
 - /uni ..., /unilern ... usw. werden zu Aufträgen in shared/auftraege/neu/.
 - Meldet ausgeführte Entwürfe, unklare Fälle und erledigte Aufträge.
+- Antwortet Jan auf die Meldung eines Auftrags, wird daraus ein neuer Auftrag in
+  derselben Claude-Sitzung. /pc (als Antwort) gibt die Sitzung an den PC, /weiter holt sie zurück.
 - Verschickt Meldungen der Agenten aus shared/meldungen/neu/ (Fristen, wichtige Mails ...).
 
 Start: .venv/bin/python zentrale.py
@@ -40,16 +42,20 @@ gemeldet = Gemeldet(HIER / "data" / "gemeldet.json")
 HILFE = (
     "Befehle:\n"
     + "\n".join(f"/{a} <Auftrag>  (erledigen)\n/{a}lern <Auftrag>  (gemeinsam lernen)" for a in AGENTEN)
+    + "\nAuf eine Meldung antworten: Der Agent macht in derselben Sitzung weiter.\n"
+    "/pc  (als Antwort auf eine Meldung) Sitzung am PC fortsetzen\n/weiter  Sitzung vom PC zurückholen"
     + "\n/status  Überblick\n/verbrauch  Auslastung des Claude-Kontingents\n"
     "Text ohne Befehl: Ich frage, an welchen Agenten er geht."
 )
 
 
-async def senden(context: ContextTypes.DEFAULT_TYPE, text: str, knoepfe=None) -> None:
+async def senden(context: ContextTypes.DEFAULT_TYPE, text: str, knoepfe=None) -> list:
     stuecke = aufteilen(text)
+    gesendet = []
     for i, stueck in enumerate(stuecke):
         letzte = i == len(stuecke) - 1
-        await context.bot.send_message(JAN, stueck, reply_markup=knoepfe if letzte else None)
+        gesendet.append(await context.bot.send_message(JAN, stueck, reply_markup=knoepfe if letzte else None))
+    return gesendet
 
 
 async def agent_starten(agent: str) -> None:
@@ -86,6 +92,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"Warten auf Ausführung: {len(freigabe.zur_ausfuehrung())}",
         f"Unklare Ausführungen: {len(freigabe.unklare())}",
         f"Offene Aufträge: {len(auftraege.neue())}",
+        f"Sitzungen am PC: {len(gemeldet.listen['am_pc'])}",
     ]
     await update.message.reply_text("\n".join(zeilen))
 
@@ -112,15 +119,72 @@ async def auftrag_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await auftrag_anlegen(update, agent, modus, text)
 
 
-async def auftrag_anlegen(update: Update, agent: str, modus: str, text: str, bezug: str | None = None) -> None:
-    aid = auftraege.neuer_auftrag(agent, text, modus=modus, bezug=bezug)
-    logger.info("Auftrag %s angelegt (%s, %s)", aid, agent, modus)
-    await update.effective_message.reply_text(f"Auftrag an {agent} ({modus}) angelegt.")
+async def auftrag_anlegen(update: Update, agent: str, modus: str, text: str,
+                          bezug: str | None = None, sitzung: str | None = None) -> None:
+    aid = auftraege.neuer_auftrag(agent, text, modus=modus, bezug=bezug, sitzung=sitzung)
+    logger.info("Auftrag %s angelegt (%s, %s, Sitzung %s)", aid, agent, modus, sitzung)
+    wort = "Antwort" if sitzung else "Auftrag"
+    await update.effective_message.reply_text(f"{wort} an {agent} ({modus}) weitergegeben.")
     await agent_starten(agent)
+
+
+def beantworteter_auftrag(update: Update) -> dict | None:
+    """Der abgeschlossene Auftrag, auf dessen Meldung Jan geantwortet hat, sonst None."""
+    bezug = update.message.reply_to_message
+    aid = bezug and gemeldet.nachrichten.get(str(bezug.message_id))
+    if not aid:
+        return None
+    try:
+        return auftraege.erledigter(aid)
+    except auftraege.AuftragFehler:
+        return None
+
+
+async def antwort_weitergeben(update: Update, alt: dict, text: str) -> None:
+    if not alt.get("sitzung"):
+        await update.message.reply_text("Zu diesem Auftrag ist keine Sitzung gespeichert. "
+                                        "Schick es bitte als neuen Auftrag.")
+        return
+    if alt["sitzung"] in gemeldet.listen["am_pc"]:
+        await update.message.reply_text("Diese Sitzung liegt am PC. Erst dort beenden, dann /weiter schicken.")
+        return
+    await auftrag_anlegen(update, alt["agent"], alt["modus"], text, bezug=alt["id"], sitzung=alt["sitzung"])
+
+
+async def pc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    alt = beantworteter_auftrag(update)
+    if alt is None or not alt.get("sitzung"):
+        await update.message.reply_text("Bitte /pc als Antwort auf die Meldung eines Auftrags schicken.")
+        return
+    sitzung = alt["sitzung"]
+    if any(a.get("sitzung") == sitzung for a in auftraege.neue()):
+        await update.message.reply_text("Der Agent arbeitet gerade in dieser Sitzung. Bitte erst seine Antwort abwarten.")
+        return
+    gemeldet.listen["am_pc"].add(sitzung)
+    gemeldet.speichern()
+    logger.info("Sitzung %s liegt am PC", sitzung)
+    await update.message.reply_text(
+        f"Die Sitzung liegt jetzt am PC. Dort eingeben:\n\ncd ~/agenten/{alt['agent']} && claude --resume {sitzung}"
+        "\n\nDanach den PC-Chat beenden und hier /weiter schicken.")
+
+
+async def weiter(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not gemeldet.listen["am_pc"]:
+        await update.message.reply_text("Keine Sitzung liegt am PC.")
+        return
+    logger.info("Sitzungen zurück vom PC: %s", sorted(gemeldet.listen["am_pc"]))
+    gemeldet.listen["am_pc"].clear()
+    gemeldet.speichern()
+    await update.message.reply_text("Zurück in Telegram. Antworte auf die letzte Meldung des Agenten, "
+                                    "dann macht er in derselben Sitzung weiter.")
 
 
 async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text
+    alt = beantworteter_auftrag(update)
+    if alt is not None:
+        await antwort_weitergeben(update, alt, text)
+        return
     # Wartet ein "Ändern" auf Jans Kommentar?
     aendern_id = context.chat_data.pop("aendern", None)
     if aendern_id:
@@ -232,7 +296,8 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
     for a in auftraege.erledigte():
         if a["id"] not in gemeldet.listen["auftraege"]:
             wort = "Auftrag erledigt" if a["status"] == "erledigt" else "Auftrag fehlgeschlagen"
-            await senden(context, f"{wort} ({a['agent']}): {a['text'][:200]}\n\n{a.get('ergebnis', '')}")
+            for n in await senden(context, f"{wort} ({a['agent']}): {a['text'][:200]}\n\n{a.get('ergebnis', '')}"):
+                gemeldet.nachricht_merken(n.message_id, a["id"])
             gemeldet.listen["auftraege"].add(a["id"])
             geaendert = True
 
@@ -262,6 +327,8 @@ def main() -> None:
     app.add_handler(CommandHandler(["start", "hilfe"], start, filters=jan))
     app.add_handler(CommandHandler("status", status, filters=jan))
     app.add_handler(CommandHandler("verbrauch", verbrauch_befehl, filters=jan))
+    app.add_handler(CommandHandler("pc", pc, filters=jan))
+    app.add_handler(CommandHandler("weiter", weiter, filters=jan))
     app.add_handler(MessageHandler(jan & filters.COMMAND, auftrag_befehl))
     app.add_handler(MessageHandler(jan & filters.TEXT, text_ohne_befehl))
     app.add_handler(CallbackQueryHandler(knopf))

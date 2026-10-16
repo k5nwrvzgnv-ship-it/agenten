@@ -83,20 +83,29 @@ class Gemeldet:
     """Merkt sich, was Jan schon gezeigt wurde (data/gemeldet.json), damit nichts doppelt kommt.
 
     angezeigt: Entwurfs-ID -> Fingerabdruck zum Zeitpunkt der Anzeige.
+    nachrichten: Telegram-Nachrichten-ID -> Auftrags-ID, damit Jans Antwort zugeordnet werden kann.
+    listen["am_pc"]: Sitzungen, die gerade am PC liegen (Bot schreibt nicht hinein).
     """
 
-    LISTEN = ("ausgefuehrt", "unklar", "auftraege")
+    LISTEN = ("ausgefuehrt", "unklar", "auftraege", "am_pc")
+    MAX_NACHRICHTEN = 500  # ältere Meldungen kann Jan nicht mehr per Antwort fortsetzen
 
     def __init__(self, pfad: Path):
         self.pfad = pfad
         daten = json.loads(pfad.read_text(encoding="utf-8")) if pfad.exists() else {}
         self.angezeigt: dict[str, str] = daten.get("angezeigt", {})
+        self.nachrichten: dict[str, str] = daten.get("nachrichten", {})
         self.listen: dict[str, set[str]] = {n: set(daten.get(n, [])) for n in self.LISTEN}
         self.stufe: str = daten.get("stufe", "normal")
 
+    def nachricht_merken(self, nachricht_id: int, auftrag_id: str) -> None:
+        self.nachrichten[str(nachricht_id)] = auftrag_id
+        for alt in list(self.nachrichten)[: -self.MAX_NACHRICHTEN]:
+            del self.nachrichten[alt]
+
     def speichern(self) -> None:
         self.pfad.parent.mkdir(parents=True, exist_ok=True)
-        daten = {"angezeigt": self.angezeigt, "stufe": self.stufe,
+        daten = {"angezeigt": self.angezeigt, "nachrichten": self.nachrichten, "stufe": self.stufe,
                  **{n: sorted(v) for n, v in self.listen.items()}}
         tmp = self.pfad.with_suffix(".tmp")
         tmp.write_text(json.dumps(daten, indent=2), encoding="utf-8")

@@ -51,6 +51,18 @@ class TestLogik(unittest.TestCase):
         self.assertEqual(g2.listen["auftraege"], {"a1"})
         self.assertEqual(g2.stufe, "sparen")
 
+    def test_nachrichten_zuordnung(self):
+        pfad = Path(tempfile.mkdtemp()) / "gemeldet.json"
+        g = Gemeldet(pfad)
+        g.MAX_NACHRICHTEN = 2
+        for mid, aid in ((1, "a1"), (2, "a2"), (3, "a2")):
+            g.nachricht_merken(mid, aid)
+        g.listen["am_pc"].add("s-1")
+        g.speichern()
+        g2 = Gemeldet(pfad)
+        self.assertEqual(g2.nachrichten, {"2": "a2", "3": "a2"})  # älteste fällt weg
+        self.assertEqual(g2.listen["am_pc"], {"s-1"})
+
 
 if __name__ == "__main__":
     unittest.main()
