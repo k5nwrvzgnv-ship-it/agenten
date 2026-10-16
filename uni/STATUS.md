@@ -28,8 +28,14 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - uni.service/uni.timer laufen (Kopie der Vorlagen in ~/.config/systemd/user/, Timer 8, 13, 19 Uhr).
   Logs: `journalctl --user -u uni.service` und uni/logs/.
 - protokolle/ ist per uni/.gitignore vom Repo ausgeschlossen (persönliche Inhalte).
-- Noch kein Kursmaterial für Aufträge: Claude kann Moodle-Dateien nicht selbst holen. Nächster Schritt:
-  Kursinhalte (core_course_get_contents) nach data/kurse/ spiegeln, damit Claude sie lesen kann.
+- kurse.py: spiegelt Kursmaterial nach data/kurse/<Kurs>/ (uebersicht.md + Dateien je Abschnitt), nur
+  neue/geänderte Dateien (data/kurse/.stand.json). Nicht geladen: ZIP und Dateien > 100 MB.
+  Stand 16.10.: 191 Dateien, 731 MB, erster Abgleich 6,5 min, danach Sekunden. Läuft in jedem agent.py-Lauf
+  vor den Aufträgen; neues Material wird pro Kurs gemeldet. Gleichnamige Dateien eines Abschnitts
+  bekommen die Moodle-Modul-ID angehängt.
+- Claude kann PDFs lesen, aber nicht docx/pptx/xlsx/doc/ppt (22 Dateien). Vorschlag offen: Umwandlung
+  in Text (z. B. python-docx/python-pptx/openpyxl in .venv), braucht Jans Okay.
+- Aufträge über Telegram noch nicht mit echtem Auftrag getestet.
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
