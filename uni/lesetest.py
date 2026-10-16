@@ -1,72 +1,36 @@
 """Lesetest für Moodle und Unipostfach. Liest nur, verändert und verschickt nichts.
 
 Aufruf: .venv/bin/python lesetest.py
-- Moodle: Anmeldung wie die Moodle-App (login/token.php), dann Kurse und anstehende Termine.
-  Der Schlüssel wird in data/moodle_token.json (chmod 600) gespeichert und wiederverwendet.
+- Moodle: Anmeldung wie die Moodle-App (siehe moodle.py), dann Kurse und offene Fristen.
 - Mail: IMAP-Anmeldung, Posteingang nur lesend öffnen, ungelesene Mails zählen.
 """
 
 import imaplib
-import json
-import os
 import time
-import urllib.parse
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 
 from agentkit import config
 
+import moodle
+
 HIER = Path(__file__).resolve().parent
-TOKEN_DATEI = HIER / "data" / "moodle_token.json"
 cfg = config.lade_config(HIER, pflicht=("HNEE_NUTZER", "HNEE_KENNWORT", "MOODLE_URL", "IMAP_HOST"))
 
 
-def _post(url: str, daten: dict) -> object:
-    anfrage = urllib.request.Request(url, data=urllib.parse.urlencode(daten).encode())
-    with urllib.request.urlopen(anfrage, timeout=30) as antwort:
-        return json.load(antwort)
-
-
-def moodle_token() -> str:
-    if TOKEN_DATEI.exists():
-        return json.loads(TOKEN_DATEI.read_text())["token"]
-    antwort = _post(f"{cfg['MOODLE_URL']}/login/token.php", {
-        "username": cfg["HNEE_NUTZER"], "password": cfg["HNEE_KENNWORT"], "service": "moodle_mobile_app"})
-    if "token" not in antwort:
-        raise RuntimeError(f"Moodle-Anmeldung fehlgeschlagen: {antwort.get('error', antwort)}")
-    TOKEN_DATEI.parent.mkdir(exist_ok=True)
-    fd = os.open(TOKEN_DATEI, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        json.dump({"token": antwort["token"]}, f)
-    return antwort["token"]
-
-
-def moodle(token: str, funktion: str, **parameter) -> object:
-    antwort = _post(f"{cfg['MOODLE_URL']}/webservice/rest/server.php",
-                    {"wstoken": token, "wsfunction": funktion, "moodlewsrestformat": "json", **parameter})
-    if isinstance(antwort, dict) and "exception" in antwort:
-        raise RuntimeError(f"{funktion}: {antwort.get('message')}")
-    return antwort
-
-
 def moodle_test() -> None:
-    token = moodle_token()
-    info = moodle(token, "core_webservice_get_site_info")
+    m = moodle.Moodle(cfg)
+    info = m.aufruf("core_webservice_get_site_info")
     print(f"Moodle: angemeldet als {info['fullname']} (Moodle {info.get('release', '?')})")
-
-    kurse = moodle(token, "core_enrol_get_users_courses", userid=info["userid"])
+    kurse = m.kurse()
     print(f"\n{len(kurse)} Kurse:")
     for k in kurse:
         print(f"  - {k['fullname']}")
-
-    jetzt = int(time.time())
-    termine = moodle(token, "core_calendar_get_action_events_by_timesort",
-                     timesortfrom=jetzt, timesortto=jetzt + 60 * 86400, limitnum=50)["events"]
-    print(f"\n{len(termine)} anstehende Termine/Abgaben (60 Tage):")
-    for t in termine:
-        wann = datetime.fromtimestamp(t["timesort"]).strftime("%a %d.%m. %H:%M")
-        print(f"  - {wann}  {t.get('course', {}).get('shortname', '')}: {t['name']}")
+    fristen = m.fristen(int(time.time()))
+    print(f"\n{len(fristen)} offene Fristen (Aufgaben und Tests):")
+    for f in fristen:
+        wann = datetime.fromtimestamp(f["faellig"]).strftime("%d.%m.%Y %H:%M")
+        print(f"  - {wann}  {f['kurs']}: {f['name']} ({'abgegeben' if f['erledigt'] else 'offen'})")
 
 
 def mail_test() -> None:
