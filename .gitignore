@@ -32,3 +32,7 @@ shared/freigabe/erledigt/
 # Editor
 .vscode/
 .DS_Store
+
+# Auftrags-Warteschlange: Aufträge können persönliche Inhalte enthalten
+shared/auftraege/neu/
+shared/auftraege/erledigt/
