@@ -1,10 +1,15 @@
 """Reine Logik der Telegram-Zentrale (ohne Telegram), damit sie testbar ist."""
 
 import json
+import re
+import secrets
+import shutil
+from datetime import datetime
 from pathlib import Path
 
 AGENTEN = ("uni", "dokumente", "posteingang", "einkauf")
 MAX_LAENGE = 3800  # Telegram erlaubt 4096 Zeichen pro Nachricht, etwas Puffer
+MAX_DATEI_BYTES = 20 * 1024 * 1024  # mehr lädt die Bot-Schnittstelle von Telegram nicht herunter
 
 
 def befehl_auswerten(text: str) -> tuple[str, str, str] | None:
@@ -110,3 +115,46 @@ class Gemeldet:
         tmp = self.pfad.with_suffix(".tmp")
         tmp.write_text(json.dumps(daten, indent=2), encoding="utf-8")
         tmp.replace(self.pfad)
+
+
+def dateiname_bereinigen(name: str | None, ersatz: str = "datei") -> str:
+    """Dateiname aus Telegram sicher machen: kein Pfad, nicht versteckt (.env), nur harmlose Zeichen."""
+    name = Path((name or "").replace("\\", "/")).name
+    name = re.sub(r"[^\w.\- ]", "_", name).strip(" .")
+    stamm, punkt, endung = name.rpartition(".")
+    if punkt and len(name) > 100:
+        name = stamm[: 99 - len(endung)] + "." + endung
+    return name[:100] or ersatz
+
+
+class Eingang:
+    """Dateien von Jan, die noch keinem Auftrag gehören (je Datei ein Unterordner, älteste zuerst).
+
+    Liegt auf der Platte statt im Speicher, damit nach einem Neustart nichts verloren geht.
+    """
+
+    def __init__(self, pfad: Path):
+        self.pfad = pfad
+
+    def neuer_platz(self, name: str) -> Path:
+        ordner = self.pfad / f"{datetime.now():%Y%m%d-%H%M%S-%f}-{secrets.token_hex(2)}"
+        ordner.mkdir(parents=True)
+        return ordner / dateiname_bereinigen(name)
+
+    def wartende(self) -> list[Path]:
+        if not self.pfad.exists():
+            return []
+        return [d for o in sorted(self.pfad.iterdir()) if o.is_dir() for d in sorted(o.iterdir()) if d.is_file()]
+
+    def aufraeumen(self) -> None:
+        """Leere Unterordner entfernen (nachdem die Dateien in einen Auftrag verschoben wurden)."""
+        if self.pfad.exists():
+            for o in self.pfad.iterdir():
+                if o.is_dir() and not any(o.iterdir()):
+                    o.rmdir()
+
+    def verwerfen(self) -> int:
+        anzahl = len(self.wartende())
+        if self.pfad.exists():
+            shutil.rmtree(self.pfad)
+        return anzahl

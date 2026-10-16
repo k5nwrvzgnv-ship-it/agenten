@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from logik import Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text, verbrauch_text
+from logik import Eingang, Gemeldet, aufteilen, befehl_auswerten, dateiname_bereinigen, entwurf_als_text, verbrauch_text
 
 
 class TestLogik(unittest.TestCase):
@@ -64,6 +64,35 @@ class TestLogik(unittest.TestCase):
         g2 = Gemeldet(pfad)
         self.assertEqual(g2.nachrichten, {"2": "a2", "3": "a2"})  # älteste fällt weg
         self.assertEqual(g2.listen["am_pc"], {"s-1"})
+
+
+    def test_dateiname_bereinigen(self):
+        self.assertEqual(dateiname_bereinigen("Skript Kapitel 3.pdf"), "Skript Kapitel 3.pdf")
+        self.assertEqual(dateiname_bereinigen("../../.env"), "env")
+        self.assertEqual(dateiname_bereinigen(".env"), "env")
+        self.assertEqual(dateiname_bereinigen("C:\\Users\\jan\\a.docx"), "a.docx")
+        self.assertEqual(dateiname_bereinigen("a/b;rm -rf.txt"), "b_rm -rf.txt")
+        self.assertEqual(dateiname_bereinigen(None, "foto.jpg"), "foto.jpg")
+        self.assertEqual(dateiname_bereinigen("..."), "datei")
+        lang = dateiname_bereinigen("x" * 300 + ".pdf")
+        self.assertEqual(len(lang), 100)
+        self.assertTrue(lang.endswith(".pdf"))
+
+    def test_eingang(self):
+        eingang = Eingang(Path(tempfile.mkdtemp()) / "eingang")
+        self.assertEqual(eingang.wartende(), [])
+        a = eingang.neuer_platz("a.pdf")
+        a.write_text("1")
+        b = eingang.neuer_platz("a.pdf")  # gleicher Name: eigener Ordner, nichts wird überschrieben
+        b.write_text("2")
+        self.assertEqual(eingang.wartende(), [a, b])
+        eingang.neuer_platz("leer.txt")  # Download fehlgeschlagen: zählt nicht als wartend
+        self.assertEqual(len(eingang.wartende()), 2)
+        a.unlink()
+        eingang.aufraeumen()
+        self.assertEqual(eingang.wartende(), [b])
+        self.assertEqual(eingang.verwerfen(), 1)
+        self.assertEqual(eingang.wartende(), [])
 
 
 if __name__ == "__main__":

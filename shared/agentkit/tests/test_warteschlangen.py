@@ -177,6 +177,40 @@ class TestAuftraege(unittest.TestCase):
         self.assertEqual(auftraege.abschliessen(aid, "Timeout", "fehlgeschlagen", basis=self.basis)["status"],
                          "fehlgeschlagen")
 
+    def test_dateien_kommen_in_den_agent_ordner(self):
+        agenten = self.basis / "agenten"
+        (agenten / "uni").mkdir(parents=True)
+        eingang = self.basis / "eingang"
+        (eingang / "1").mkdir(parents=True)
+        (eingang / "2").mkdir()
+        a = eingang / "1" / "Skript.pdf"
+        b = eingang / "2" / "Skript.pdf"  # gleicher Name
+        a.write_text("A")
+        b.write_text("B")
+        aid = auftraege.neuer_auftrag("uni", "Fasse zusammen", dateien=[a, b], basis=self.basis,
+                                      agenten_dir=agenten)
+        auftrag = auftraege.neue(basis=self.basis)[0]
+        erwartet = [f"data/eingang/{aid}/Skript.pdf", f"data/eingang/{aid}/Skript-2.pdf"]
+        self.assertEqual(auftrag["dateien"], erwartet)
+        self.assertEqual([(agenten / "uni" / p).read_text() for p in erwartet], ["A", "B"])
+        self.assertFalse(a.exists() or b.exists())
+        self.assertTrue(auftrag["text"].startswith("Fasse zusammen\n\nAngehängte Dateien"))
+        self.assertIn(f"- data/eingang/{aid}/Skript-2.pdf", auftrag["text"])
+
+    def test_ohne_dateien_bleibt_text_gleich(self):
+        auftraege.neuer_auftrag("uni", "Fristen", basis=self.basis, agenten_dir=self.basis / "fehlt")
+        auftrag = auftraege.neue(basis=self.basis)[0]
+        self.assertEqual((auftrag["text"], auftrag["dateien"]), ("Fristen", []))
+
+    def test_dateien_ohne_agent_ordner(self):
+        datei = self.basis / "x.pdf"
+        datei.write_text("x")
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.neuer_auftrag("uni", "x", dateien=[datei], basis=self.basis,
+                                    agenten_dir=self.basis / "fehlt")
+        self.assertTrue(datei.exists())
+        self.assertEqual(auftraege.neue(basis=self.basis), [])
+
 
 if __name__ == "__main__":
     unittest.main()
