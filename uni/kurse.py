@@ -6,12 +6,14 @@ werden geladen (data/kurse/.stand.json: Datei-URL -> timemodified).
 Nicht geladen: Dateien über MAX_MB und ZIP-Archive über ZIP_MAX_MB (stehen nur in der Übersicht).
 Kleinere ZIPs werden nach <name>_entpackt/ entpackt (Namen bereinigt, höchstens
 ENTPACKT_MAX_MB), dazu eine Inhaltsliste <name>.zip.txt.
-Word, PowerPoint und Excel (docx, pptx, xlsx) bekommen daneben eine Textfassung
-<datei>.txt, weil Claude sie sonst nicht lesen kann. Alte Formate (doc, ppt, xls) nicht.
+PDF, Word, PowerPoint und Excel bekommen daneben eine Textfassung <datei>.txt (mit
+Seiten- bzw. Foliennummern), damit Claude mit Grep gezielt suchen kann, statt ganze
+Dateien zu lesen. Alte Formate (doc, ppt, xls) nicht.
 In Moodle gelöschte Dateien bleiben liegen.
 """
 
 import json
+import logging
 import re
 import shutil
 import urllib.request
@@ -40,8 +42,19 @@ def html_zu_text(html: str) -> str:
 
 
 def als_text(pfad: Path) -> str | None:
-    """Text aus docx, pptx oder xlsx (mit Folien- bzw. Blattangabe). Andere Formate: None."""
+    """Text aus pdf, docx, pptx oder xlsx (mit Seiten-, Folien- bzw. Blattangabe). Andere Formate: None."""
     endung = pfad.suffix.lower()
+    if endung == ".pdf":
+        import pypdf
+        logging.getLogger("pypdf").setLevel(logging.ERROR)  # kaputte PDFs sonst sehr gesprächig
+        teile, mit_text = [], 0
+        for nr, seite in enumerate(pypdf.PdfReader(pfad).pages, 1):
+            text = (seite.extract_text() or "").strip()
+            mit_text += bool(text)
+            teile += [f"--- Seite {nr}", text]
+        if not mit_text:
+            return "(Kein Text gefunden, vermutlich ein Scan. Das PDF selbst mit Read öffnen.)"
+        return "\n".join(teile)
     if endung == ".docx":
         import docx
         d = docx.Document(pfad)
@@ -76,7 +89,7 @@ def als_text(pfad: Path) -> str | None:
 
 def _textfassung(pfad: Path, erneuern: bool) -> bool:
     """Schreibt <pfad>.txt, falls das Format unterstützt wird. True, wenn es eine Textfassung gibt."""
-    if pfad.suffix.lower() not in (".docx", ".pptx", ".xlsx", ".zip"):
+    if pfad.suffix.lower() not in (".pdf", ".docx", ".pptx", ".xlsx", ".zip"):
         return False
     txt = pfad.with_name(pfad.name + ".txt")
     if erneuern or not txt.exists():

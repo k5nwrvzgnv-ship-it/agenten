@@ -38,8 +38,16 @@ class TestKurse(unittest.TestCase):
         self.assertEqual(kurse.als_text(ordner / "c.xlsx"), "--- Blatt Messwerte\nFeuchte | 12.5")
         self.assertTrue(kurse._textfassung(ordner / "b.pptx", erneuern=False))
         self.assertTrue((ordner / "b.pptx.txt").exists())
-        (ordner / "x.pdf").write_bytes(b"%PDF")
-        self.assertFalse(kurse._textfassung(ordner / "x.pdf", erneuern=False))
+        (ordner / "x.png").write_bytes(b"png")
+        self.assertFalse(kurse._textfassung(ordner / "x.png", erneuern=False))
+
+    def test_pdf_ohne_text(self):
+        import pypdf
+        ordner = Path(tempfile.mkdtemp())
+        w = pypdf.PdfWriter()
+        w.add_blank_page(100, 100)
+        w.write(ordner / "scan.pdf")
+        self.assertIn("vermutlich ein Scan", kurse.als_text(ordner / "scan.pdf"))
 
     def test_entpacken_bleibt_im_ordner(self):
         import zipfile
