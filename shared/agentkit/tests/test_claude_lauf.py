@@ -62,7 +62,9 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertNotIn("Bash", tools)
         self.assertEqual(a[a.index("--model") + 1], "sonnet")
         self.assertEqual(a[a.index("--permission-mode") + 1], "acceptEdits")
-        self.assertIn("Read(**/.env)", a[a.index("--settings") + 1])
+        rechte = json.loads(a[a.index("--settings") + 1])["permissions"]
+        self.assertIn("Read(**/.env)", rechte["deny"])
+        self.assertEqual(rechte["allow"], ["WebSearch"])  # uni hat WebSearch; Write/Edit nie pauschal erlaubt
         system = a[a.index("--append-system-prompt") + 1]
         self.assertIn("nie selbst nach außen", system)
         self.assertIn("Quellen mit Seite", system)

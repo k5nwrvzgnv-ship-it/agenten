@@ -26,11 +26,15 @@ from .config import SHARED_DIR
 CLAUDE_BIN = os.environ.get("AGENTKIT_CLAUDE_BIN", str(Path.home() / ".local" / "bin" / "claude"))
 SLOT_DIR = SHARED_DIR / "verbrauch" / "plaetze"
 
-VERBOTEN = {
-    "permissions": {
-        "deny": [f"{w}(**/{m})" for w in ("Read", "Grep", "Edit", "Write") for m in (".env", ".env.*")]
-    }
-}
+VERBOTEN = [f"{w}(**/{m})" for w in ("Read", "Grep", "Edit", "Write") for m in (".env", ".env.*")]
+# Werkzeuge ohne Dateizugriff, die acceptEdits nicht von selbst erlaubt. Sie werden ausdrücklich
+# erlaubt, wenn sie in einstellungen.toml für den Agenten stehen (sonst lehnt claude -p sie ab).
+# Write/Edit hier nie eintragen: Dann dürfte Claude überall schreiben, nicht nur im Agent-Ordner.
+OHNE_DATEIZUGRIFF = ("WebSearch", "WebFetch")
+
+
+def rechte(werkzeuge: list[str]) -> dict:
+    return {"permissions": {"deny": VERBOTEN, "allow": [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]}}
 
 GRUNDREGEL = (
     "Du arbeitest für einen Agenten in Jans Agenten-System. Du handelst nie selbst nach außen: "
@@ -137,15 +141,16 @@ def befehl(
     sitzung_neu: str | None = None,
     sitzung_fortsetzen: str | None = None,
 ) -> list[str]:
+    werkzeuge = einstellungen.werkzeuge(cfg, agent)
     cmd = [
         CLAUDE_BIN, "-p", prompt,
         "--output-format", "stream-json", "--verbose",
         "--max-turns", str(cfg["lauf"]["max_schritte"]),
         "--model", modell,
-        "--tools", *einstellungen.werkzeuge(cfg, agent),
+        "--tools", *werkzeuge,
         "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
         "--permission-mode", "acceptEdits",
-        "--settings", json.dumps(VERBOTEN),
+        "--settings", json.dumps(rechte(werkzeuge)),
         "--append-system-prompt", GRUNDREGEL + "\n\n" + regeln.regeln_als_text(agent_dir),
     ]
     if sitzung_fortsetzen:
