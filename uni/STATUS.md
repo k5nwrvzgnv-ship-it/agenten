@@ -46,7 +46,12 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - PDF-Textfassungen mit "--- Seite N" per pypdf (Jans Okay 16.10.). 167 PDFs, 3 Scans ohne Text,
     erste Umwandlung ca. 13 min, danach nur neue. Formelreiche PDFs: Textfassung lückenhaft.
   - Namen aus Moodle werden HTML-dekodiert (&amp; -> &).
-  - Ob der Verbrauch pro Auftrag damit sinkt, ist noch nicht gemessen (nächster Auftrag).
+  - Zweiter Auftrag (GEG-Frage): 10 Schritte Opus, ca. 177.000 Tokens (vorher 488.000), aber ohne Antwort,
+    weil Aufgabentexte fehlten. Seitdem: data/kurse/<Kurs>/aufgaben.md (Beschreibung, Fristen, Abgabeart,
+    Teamabgabe, Abgabestatus, Arbeitsanweisungen, Anhänge).
+  - Vorfall 16.10.: Jans Antwort "Ja mitladen" kam als neuer Auftrag; der Agent baute daraufhin kurse.py und
+    STATUS.md selbst um (ungetestet, kaputt). Zurückgenommen. Seitdem sperrt claude_lauf Schreiben auf Code,
+    STATUS.md, Regeln und Einrichtung (getestet). Ursache bleibt: Rückfragen brauchen den Gesprächskanal.
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
