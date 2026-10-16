@@ -8,6 +8,7 @@
 Start: .venv/bin/python zentrale.py
 """
 
+import logging
 from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -29,6 +30,8 @@ PRUEF_INTERVALL = 30  # Sekunden
 cfg = config.lade_config(HIER, pflicht=("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"))
 JAN = int(cfg["TELEGRAM_CHAT_ID"])
 logger = log.hole_logger(HIER, "zentrale")
+# httpx loggt Anfrage-Adressen, und die enthalten den Bot-Token: nur Warnungen zulassen.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 gemeldet = Gemeldet(HIER / "data" / "gemeldet.json")
 
 HILFE = (
