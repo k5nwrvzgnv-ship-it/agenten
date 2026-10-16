@@ -3,6 +3,7 @@
 Claude denkt, der Python-Code des Agenten handelt. Deshalb bekommt Claude:
 - nur die Werkzeuge aus einstellungen.toml (nie Bash), keine MCP-Dienste,
 - Schreibrechte nur im Agent-Ordner (permission-mode acceptEdits, getestet 16.10.),
+- keine Schreibrechte auf Code, STATUS.md, Regeln und Einrichtung (GESCHUETZT),
 - keinen Zugriff auf .env-Dateien (deny-Regeln, getestet 16.10.),
 - die Regeln aus shared/regeln.md und der STATUS.md des Agenten.
 
@@ -27,6 +28,12 @@ CLAUDE_BIN = os.environ.get("AGENTKIT_CLAUDE_BIN", str(Path.home() / ".local" / 
 SLOT_DIR = SHARED_DIR / "verbrauch" / "plaetze"
 
 VERBOTEN = [f"{w}(**/{m})" for w in ("Read", "Grep", "Edit", "Write") for m in (".env", ".env.*")]
+# Claude darf im Agent-Ordner Protokolle und Notizen schreiben, aber nie Code, Regeln oder
+# Einrichtung ändern (16.10.: ein uni-Auftrag hatte sonst kurse.py und STATUS.md selbst umgebaut).
+# STATUS.md enthält die gelernten Regeln, die nur nach Jans Freigabe entstehen dürfen.
+GESCHUETZT = ("*.py", "*.pth", "*.sh", "*.toml", "*.service", "*.timer", "STATUS.md", "CLAUDE.md",
+              "regeln.md", ".gitignore", "requirements*.txt", ".claude/**", ".venv/**", ".git/**")
+VERBOTEN += [f"{w}(**/{m})" for w in ("Edit", "Write") for m in GESCHUETZT]
 # Werkzeuge ohne Dateizugriff, die acceptEdits nicht von selbst erlaubt. Sie werden ausdrücklich
 # erlaubt, wenn sie in einstellungen.toml für den Agenten stehen (sonst lehnt claude -p sie ab).
 # Write/Edit hier nie eintragen: Dann dürfte Claude überall schreiben, nicht nur im Agent-Ordner.

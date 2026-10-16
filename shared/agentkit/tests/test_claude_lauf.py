@@ -64,6 +64,8 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertEqual(a[a.index("--permission-mode") + 1], "acceptEdits")
         rechte = json.loads(a[a.index("--settings") + 1])["permissions"]
         self.assertIn("Read(**/.env)", rechte["deny"])
+        for geschuetzt in ("Edit(**/*.py)", "Write(**/*.py)", "Edit(**/STATUS.md)", "Write(**/.venv/**)"):
+            self.assertIn(geschuetzt, rechte["deny"])
         self.assertEqual(rechte["allow"], ["WebSearch"])  # uni hat WebSearch; Write/Edit nie pauschal erlaubt
         system = a[a.index("--append-system-prompt") + 1]
         self.assertIn("nie selbst nach außen", system)
