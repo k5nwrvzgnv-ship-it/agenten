@@ -23,8 +23,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     data/sitzungen/, Ergebnis enthält `claude --resume`), Fristen (ohne Claude), Post (Claude routine,
     nur bei neuen Mails, Antwort KEINE = nichts melden; ca. 11.000 Tokens pro Lauf).
   - Tests: `.venv/bin/python -m unittest discover -s tests -t .` (10 grün).
-- Meldungen an Jan landen vorerst in data/meldungen/*.json (agent, zeit, text). Die Zentrale holt sie
-  noch NICHT ab. Dafür im Hauptordner: Meldungs-Warteschlange in agentkit + Zentrale verschickt sie.
+- Meldungen an Jan: agentkit.meldungen (shared/meldungen/), die Zentrale verschickt sie alle 30 s per
+  Telegram mit Präfix [uni]. Am 16.10. auf Jans Wunsch ("alles erledigen") in diesem Chat gebaut.
+- uni.service/uni.timer: Einrichten durch Claude wurde vom Auto-Modus blockiert ("Unauthorized
+  Persistence"). Jan richtet sie selbst ein (Befehl siehe Offene Punkte).
 - protokolle/ ist per uni/.gitignore vom Repo ausgeschlossen (persönliche Inhalte).
 - Noch kein Kursmaterial für Aufträge: Claude kann Moodle-Dateien nicht selbst holen. Nächster Schritt:
   Kursinhalte (core_course_get_contents) nach data/kurse/ spiegeln, damit Claude sie lesen kann.
@@ -79,8 +81,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 - Test 16.10. (Claude Code 2.1.301): Sitzung mit `claude -p --output-format json` gestartet (liefert `session_id`), mit `claude -p --resume <id>` fortgesetzt: Sie erinnerte sich korrekt. Klappte sogar aus einem anderen Ordner. Die Sitzung liegt als .jsonl unter ~/.claude/projects/<ordner>/. Noch nicht getestet: interaktives `claude --resume <id>` am PC (muss Jan einmal selbst ausprobieren).
 
 ## Offene Punkte
-1. Erledigt: Zugänge, agent.py. Offen: uni.service und uni.timer (nach Jans Okay).
-4. Meldungen per Telegram (Hauptordner-Chat, siehe Stand).
+1. uni.service und uni.timer: Jan führt selbst aus (Timer 8, 13, 19 Uhr):
+   `cd ~/agenten && sed 's/<name>/uni/g' shared/vorlagen/agent.service > ~/.config/systemd/user/uni.service && sed 's/<name>/uni/g' shared/vorlagen/agent.timer > ~/.config/systemd/user/uni.timer && systemctl --user daemon-reload && systemctl --user enable --now uni.timer`
 5. Kursmaterial nach data/kurse/ spiegeln.
 3. myCampus: herausfinden, woher Stundenplan/Noten/Prüfungen kommen.
 2. Gesprächskanal für den Lernmodus in der Zentrale (Hauptordner).

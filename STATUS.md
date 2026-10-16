@@ -45,6 +45,11 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
   Danach funktioniert `from agentkit import config, log, freigabe, auftraege, regeln` in der .venv.
 
+## Meldungen (16.10.2026, im uni-Chat gebaut auf Jans Wunsch)
+- agentkit/meldungen.py: melden(agent, text), neue(), als_gesendet(id). Ablage shared/meldungen/neu/ und
+  gesendet/ (nicht im Repo). Für Hinweise ohne Freigabe (Fristen, wichtige Mails). 3 Tests, 39 grün.
+- Zentrale verschickt sie bei jeder Prüfung mit Präfix [agent] und verschiebt sie danach nach gesendet/.
+
 ## Geplante Struktur shared/
 - regeln.md, .env.example (im Repo), .env (chmod 600, nicht im Repo)
 - agentkit/ (Python-Paket, per .pth-Datei in jede Agent-.venv): config.py, log.py, freigabe.py, auftraege.py, regeln.py
