@@ -52,6 +52,20 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Vorfall 16.10.: Jans Antwort "Ja mitladen" kam als neuer Auftrag; der Agent baute daraufhin kurse.py und
     STATUS.md selbst um (ungetestet, kaputt). Zurückgenommen. Seitdem sperrt claude_lauf Schreiben auf Code,
     STATUS.md, Regeln und Einrichtung (getestet). Ursache bleibt: Rückfragen brauchen den Gesprächskanal.
+- BFH Biel (16.10.): Modul "Computerbasierte Planung" der HNEE läuft an der BFH als "Fertigung im Holzbau 1"
+  [BBHbf01], Prof. Stefan Jack, online per Teams. BFH-Moodle https://moodle.bfh.ch (Moodle 5.2), Kurs-ID 45291.
+  Login nur per Shibboleth/SWITCH edu-ID, login/token.php geht nicht. Token einmal im Browser geholt:
+  angemeldet launch.php?service=moodle_mobile_app&passport=<zahl>&urlscheme=moodlemobile aufrufen, in
+  Chrome-DevTools (Network, Keep log) die Adresse moodlemobile://token=<base64> kopieren; base64 =
+  md5(wwwroot+passport):::token. Liegt als BFH_MOODLE_TOKEN in uni/.env. Lesend getestet: Kursinhalt geht.
+  Laufzeit des Tokens unbekannt. Noch NICHT in kurse.py eingebunden.
+- Aufzeichnungen BFH: Abschnitt "Video-Aufzeichnungen", MP4 je 116-226 MB (über der 100-MB-Grenze von kurse.py).
+  Transkription bräuchte ffmpeg (nicht installiert, kein sudo) und z. B. Whisper: Plan mit Jan offen.
+- Jans Idee (16.10.): eigene Vorlesungs-Transkripte an den Agenten geben, als Wissen für Aufträge und
+  Lernmodus, Hinweise (Prüfung, Fristen) melden. Ablage-Vorschlag data/kurse/<Kurs>/transkripte/. Noch nicht gebaut.
+  Achtung: 5 HNEE-Kurse verbieten eigene Aufzeichnungen der Online-Vorlesung (steht in deren uebersicht.md).
+- BFH-Postfach (jan.kleinke@students.bfh.ch) wird vermutlich nicht ins HNEE-Postfach umgeleitet
+  (seit 17.09. keine BFH-Mail mehr dort). Jan prüft.
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
