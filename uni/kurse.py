@@ -3,7 +3,9 @@
 Pro Kurs: data/kurse/<Kurs>/uebersicht.md (Abschnitte, Texte, Links, Dateipfade)
 und die Dateien in Unterordnern je Abschnitt. Nur neue oder geänderte Dateien
 werden geladen (data/kurse/.stand.json: Datei-URL -> timemodified).
-Nicht geladen: ZIP-Archive und Dateien über MAX_MB (stehen nur in der Übersicht).
+Nicht geladen: Dateien über MAX_MB und ZIP-Archive über ZIP_MAX_MB (stehen nur in der Übersicht).
+Kleinere ZIPs werden nach <name>_entpackt/ entpackt (Namen bereinigt, höchstens
+ENTPACKT_MAX_MB), dazu eine Inhaltsliste <name>.zip.txt.
 Word, PowerPoint und Excel (docx, pptx, xlsx) bekommen daneben eine Textfassung
 <datei>.txt, weil Claude sie sonst nicht lesen kann. Alte Formate (doc, ppt, xls) nicht.
 In Moodle gelöschte Dateien bleiben liegen.
@@ -13,6 +15,7 @@ import json
 import re
 import shutil
 import urllib.request
+import zipfile
 from html import unescape
 from pathlib import Path
 
@@ -20,7 +23,8 @@ HIER = Path(__file__).resolve().parent
 ZIEL = HIER / "data" / "kurse"
 STAND_DATEI = ZIEL / ".stand.json"
 MAX_MB = 100
-NICHT_LADEN = (".zip",)
+ZIP_MAX_MB = 50
+ENTPACKT_MAX_MB = 300
 
 
 def sicherer_name(name: str) -> str:
@@ -72,15 +76,45 @@ def als_text(pfad: Path) -> str | None:
 
 def _textfassung(pfad: Path, erneuern: bool) -> bool:
     """Schreibt <pfad>.txt, falls das Format unterstützt wird. True, wenn es eine Textfassung gibt."""
-    if pfad.suffix.lower() not in (".docx", ".pptx", ".xlsx"):
+    if pfad.suffix.lower() not in (".docx", ".pptx", ".xlsx", ".zip"):
         return False
     txt = pfad.with_name(pfad.name + ".txt")
     if erneuern or not txt.exists():
         try:
-            txt.write_text(als_text(pfad) or "", encoding="utf-8")
+            if pfad.suffix.lower() == ".zip":
+                inhalt = f"Entpackt nach: {pfad.stem}_entpackt/\n" + "\n".join(entpacken(pfad))
+            else:
+                inhalt = als_text(pfad) or ""
+            txt.write_text(inhalt, encoding="utf-8")
         except Exception as f:  # noqa: BLE001 – kaputte Datei soll den Abgleich nicht stoppen
             txt.write_text(f"(Textfassung fehlgeschlagen: {f})", encoding="utf-8")
     return True
+
+
+def entpacken(pfad: Path) -> list[str]:
+    """Entpackt ein ZIP nach <name>_entpackt/ (alter Inhalt wird ersetzt). Gibt die Inhaltsliste zurück.
+
+    Jeder Pfadteil wird mit sicherer_name bereinigt, damit nichts außerhalb landet.
+    Ab ENTPACKT_MAX_MB wird abgebrochen, der Rest steht nur in der Liste.
+    """
+    ziel = pfad.with_name(pfad.stem + "_entpackt")
+    shutil.rmtree(ziel, ignore_errors=True)
+    liste, summe = [], 0
+    with zipfile.ZipFile(pfad) as z:
+        for info in z.infolist():
+            if info.is_dir():
+                continue
+            rel = Path(*[sicherer_name(t) for t in info.filename.replace("\\", "/").split("/") if t])
+            summe += info.file_size
+            if summe > ENTPACKT_MAX_MB * 1e6:
+                liste.append(f"{rel} ({info.file_size / 1e6:.1f} MB, nicht entpackt: Grenze erreicht)")
+                continue
+            (ziel / rel).parent.mkdir(parents=True, exist_ok=True)
+            with z.open(info) as quelle, open(ziel / rel, "wb") as f:
+                shutil.copyfileobj(quelle, f)
+            _textfassung(ziel / rel, erneuern=True)
+            liste.append(f"{rel} ({info.file_size / 1e6:.1f} MB)")
+    return liste
 
 
 def _laden(url: str, token: str, ziel: Path) -> None:
@@ -131,7 +165,7 @@ def spiegeln(m) -> list[str]:
                         rel = rel.with_name(f"{rel.stem} ({mod['id']}){rel.suffix}")
                     vergeben.add(rel)
                     mb = c.get("filesize", 0) / 1e6
-                    if c["filename"].lower().endswith(NICHT_LADEN) or mb > MAX_MB:
+                    if mb > (ZIP_MAX_MB if c["filename"].lower().endswith(".zip") else MAX_MB):
                         zeilen.append(f"  Datei (nicht geladen, {mb:.0f} MB): {c['filename']}")
                         continue
                     zeilen.append(f"  Datei: {rel.relative_to(sicherer_name(kursname))}")
@@ -143,7 +177,8 @@ def spiegeln(m) -> list[str]:
                         neu.append(str(rel))
                         _speichern(stand)
                     if _textfassung(ZIEL / rel, erneuern=geladen):
-                        zeilen.append(f"  Textfassung: {rel.relative_to(sicherer_name(kursname))}.txt")
+                        art = "Inhaltsliste" if rel.suffix.lower() == ".zip" else "Textfassung"
+                        zeilen.append(f"  {art}: {rel.relative_to(sicherer_name(kursname))}.txt")
             zeilen.append("")
         kursordner.mkdir(parents=True, exist_ok=True)
         (kursordner / "uebersicht.md").write_text("\n".join(zeilen), encoding="utf-8")

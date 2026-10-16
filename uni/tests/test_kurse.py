@@ -41,6 +41,22 @@ class TestKurse(unittest.TestCase):
         (ordner / "x.pdf").write_bytes(b"%PDF")
         self.assertFalse(kurse._textfassung(ordner / "x.pdf", erneuern=False))
 
+    def test_entpacken_bleibt_im_ordner(self):
+        import zipfile
+        ordner = Path(tempfile.mkdtemp())
+        with zipfile.ZipFile(ordner / "a.zip", "w") as z:
+            z.writestr("../../boese.txt", "x")
+            z.writestr("unter/ordner/daten.csv", "1;2")
+            z.writestr("/absolut.txt", "y")
+        self.assertTrue(kurse._textfassung(ordner / "a.zip", erneuern=True))
+        dateien = sorted(str(p.relative_to(ordner)) for p in ordner.rglob("*") if p.is_file())
+        self.assertEqual(dateien, ["a.zip", "a.zip.txt", "a_entpackt/_/_/boese.txt", "a_entpackt/absolut.txt",
+                                   "a_entpackt/unter/ordner/daten.csv"])
+        for p in ordner.rglob("*"):
+            self.assertTrue(p.resolve().is_relative_to(ordner.resolve()))
+        self.assertTrue((ordner / "a_entpackt" / "unter" / "ordner" / "daten.csv").exists())
+        self.assertIn("unter/ordner/daten.csv", (ordner / "a.zip.txt").read_text())
+
 
 if __name__ == "__main__":
     unittest.main()
