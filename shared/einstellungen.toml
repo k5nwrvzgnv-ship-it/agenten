@@ -1,0 +1,35 @@
+# Einstellungen für alle Agenten. Keine Geheimnisse hier (die stehen in .env).
+# Änderungen wirken beim nächsten Lauf, die Zentrale liest sie bei jeder Prüfung neu.
+
+[lauf]
+max_schritte = 30        # Arbeitsschritte pro claude-Lauf (--max-turns)
+max_minuten = 15         # danach wird der Lauf abgebrochen
+warten_minuten = 30      # so lange wartet ein Lauf höchstens auf einen freien Platz
+
+# Stufen nach Auslastung des Pro-Kontingents (Prozent, von Anthropic gemeldet).
+# Es gilt die höchste Stufe, deren Grenze im 5-Stunden- ODER 7-Tage-Fenster erreicht ist.
+[stufen]
+sparen_5h = 50
+sparen_7d = 70
+nur_auftraege_5h = 80
+nur_auftraege_7d = 90
+
+# Höchstzahl gleichzeitiger claude-Läufe über alle Agenten
+[parallel]
+normal = 2
+sparen = 1
+nur_auftraege = 1
+
+# Modelle: "routine" für einfache Aufgaben, "anspruchsvoll" für Zusammenfassungen, Lernen usw.
+[modelle]
+routine = "sonnet"
+anspruchsvoll = "opus"
+routine_sparen = "haiku"
+
+# Werkzeuge, die Claude pro Agent bekommt. Kein Bash: Claude handelt nie selbst nach außen.
+[werkzeuge]
+standard = ["Read", "Write", "Edit", "Glob", "Grep"]
+uni = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch"]
+dokumente = ["Read", "Write", "Edit", "Glob", "Grep"]
+posteingang = ["Read", "Write", "Edit", "Glob", "Grep"]
+einkauf = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]

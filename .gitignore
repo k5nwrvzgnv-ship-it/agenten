@@ -36,3 +36,6 @@ shared/freigabe/erledigt/
 # Auftrags-Warteschlange: Aufträge können persönliche Inhalte enthalten
 shared/auftraege/neu/
 shared/auftraege/erledigt/
+
+# Verbrauchsprotokoll der claude-Läufe
+shared/verbrauch/
