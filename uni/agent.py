@@ -90,7 +90,8 @@ Erfinde nichts. Wenn dir Material fehlt, sag genau, was fehlt.
 
 Kursmaterial aus Moodle liegt in data/kurse/<Kurs>/. Lies zuerst data/kurse/<Kurs>/uebersicht.md
 (Abschnitte, Texte, Links, Dateipfade). PDFs kannst du mit Read lesen (Seitenbereich angeben).
-Word- und PowerPoint-Dateien kannst du nicht lesen, sag das dann."""
+Zu Word, PowerPoint und Excel (docx, pptx, xlsx) gibt es daneben eine Textfassung <datei>.txt
+(PowerPoint mit Foliennummern). Alte Formate (doc, ppt, xls) kannst du nicht lesen, sag das dann."""
 
 PROMPT_ERLEDIGEN = KONTEXT + """
 

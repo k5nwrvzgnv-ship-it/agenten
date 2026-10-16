@@ -60,6 +60,8 @@ Struktur, Regeln und gemeinsamer Code (shared/) für alle Agenten.
 1. Agent uni im eigenen Chat im Ordner uni/ (Übergabe steht in uni/STATUS.md).
 2. Sobald uni so weit ist, hier in der Zentrale: Gesprächskanal Agent <-> Jan für den Lernmodus, /pc und /weiter.
 3. Später: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
+   Anforderung dokumente (Jan, 16.10.): muss Word, PowerPoint und Excel nicht nur lesen, sondern auch
+   erstellen und formatieren können. uni liest Office-Dateien nur (Textfassungen, siehe uni/STATUS.md).
 4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 
 ## Gelernte Regeln
