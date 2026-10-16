@@ -2,6 +2,7 @@
 
 Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
 1. freigegebene Entwürfe ausführen (bisher nur Typ "regel"),
+   Kursmaterial aus Moodle nach data/kurse/ spiegeln (neues Material wird gemeldet),
 2. Aufträge abarbeiten (Modus erledigen: Protokoll in protokolle/; Modus lernen: Sitzung),
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
@@ -16,6 +17,7 @@ from pathlib import Path
 from agentkit import auftraege, claude_lauf, config, freigabe, log, meldungen, regeln
 
 import fristen
+import kurse
 import moodle
 import postfach
 
@@ -70,11 +72,25 @@ def freigegebene_ausfuehren() -> None:
             freigabe.ausfuehrung_abschliessen(e["id"], f"Fehler: {f}", erfolgreich=False)
 
 
+def kurse_spiegeln() -> None:
+    neu = kurse.spiegeln(moodle.Moodle(cfg))
+    pro_kurs: dict[str, list[str]] = {}
+    for rel in neu:
+        kurs, _, rest = rel.partition("/")
+        pro_kurs.setdefault(kurs, []).append(rest)
+    for kurs, dateien in pro_kurs.items():
+        melden(f"Neues Material in {kurs}:\n" + "\n".join(f"- {d}" for d in dateien))
+
+
 # 2. Aufträge ------------------------------------------------------------------
 
 KONTEXT = """Du bist der Uni-Agent von Jan. Er studiert Holzingenieurwesen (M.Sc.) an der
 HNE Eberswalde (HNEE). Moodle: https://lms.hnee.de. Antworte auf Deutsch, kurz und klar.
-Erfinde nichts. Wenn dir Material fehlt, sag genau, was fehlt."""
+Erfinde nichts. Wenn dir Material fehlt, sag genau, was fehlt.
+
+Kursmaterial aus Moodle liegt in data/kurse/<Kurs>/. Lies zuerst data/kurse/<Kurs>/uebersicht.md
+(Abschnitte, Texte, Links, Dateipfade). PDFs kannst du mit Read lesen (Seitenbereich angeben).
+Word- und PowerPoint-Dateien kannst du nicht lesen, sag das dann."""
 
 PROMPT_ERLEDIGEN = KONTEXT + """
 
@@ -183,7 +199,7 @@ def post_pruefen() -> None:
 
 
 if __name__ == "__main__":
-    for schritt in (freigegebene_ausfuehren, auftraege_abarbeiten, fristen_pruefen, post_pruefen):
+    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, auftraege_abarbeiten, fristen_pruefen, post_pruefen):
         try:
             schritt()
         except Exception:  # noqa: BLE001 – ein Fehler soll die anderen Schritte nicht blockieren
