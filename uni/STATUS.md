@@ -18,11 +18,11 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
   (erklären, Fragen stellen, auf Antwort warten, Rückmeldung geben). Nicht alles vorlösen.
   Läuft sowohl über Telegram (unterwegs, kurze Nachrichten) als auch im Claude-Code-Chat am PC.
   Technisch: mehrere Runden, Sitzung fortsetzen mit `claude -p --resume`; der Agent merkt sich die Sitzung pro Auftrag.
+- Entscheidung 16.10.: Kein automatischer Vorschlag von Modus lernen bei benoteten Abgaben. Jan wählt selbst.
 - Der Modus steht im Auftrag (Feld `modus` in agentkit/auftraege.py, Werte `erledigen`/`lernen`).
 
 ## Offene Punkte
-1. Bei benoteten Abgaben: Soll der Agent automatisch Modus lernen vorschlagen? (Prüfungsordnung beachten, Jan entscheidet.)
-2. Wie wird eine Lern-Sitzung von Telegram an den PC-Chat übergeben und umgekehrt?
+1. Wie wird eine Lern-Sitzung von Telegram an den PC-Chat übergeben und umgekehrt?
 
 ## Gelernte Regeln
 - (noch keine)
