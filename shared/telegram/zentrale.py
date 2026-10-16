@@ -7,12 +7,16 @@
 - Antwortet Jan auf die Meldung eines Auftrags, wird daraus ein neuer Auftrag in
   derselben Claude-Sitzung. /pc (als Antwort) gibt die Sitzung an den PC, /weiter holt sie zurück.
 - Verschickt Meldungen der Agenten aus shared/meldungen/neu/ (Fristen, wichtige Mails ...).
+- Nimmt Dateien und Fotos an (bis 20 MB). Mit /agent in der Bildunterschrift oder als Antwort auf
+  eine Meldung gehen sie sofort an den Auftrag, sonst warten sie in data/eingang/ auf den nächsten
+  Auftrag. agentkit.auftraege legt sie dann in <agent>/data/eingang/<auftrag-id>/ ab.
 
 Start: .venv/bin/python zentrale.py
 """
 
 import asyncio
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -26,11 +30,22 @@ from telegram.ext import (
 )
 
 from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen, verbrauch
-from logik import AGENTEN, STUFEN_TEXT, Gemeldet, aufteilen, befehl_auswerten, entwurf_als_text, verbrauch_text
+from logik import (
+    AGENTEN,
+    MAX_DATEI_BYTES,
+    STUFEN_TEXT,
+    Eingang,
+    Gemeldet,
+    aufteilen,
+    befehl_auswerten,
+    entwurf_als_text,
+    verbrauch_text,
+)
 
 HIER = Path(__file__).resolve().parent
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 PRUEF_INTERVALL = 30  # Sekunden
+ALBUM_WARTEN = 3  # Sekunden nach der letzten Datei eines Albums, dann wird zugeordnet
 
 cfg = config.lade_config(HIER, pflicht=("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"))
 JAN = int(cfg["TELEGRAM_CHAT_ID"])
@@ -38,6 +53,7 @@ logger = log.hole_logger(HIER, "zentrale")
 # httpx loggt Anfrage-Adressen, und die enthalten den Bot-Token: nur Warnungen zulassen.
 logging.getLogger("httpx").setLevel(logging.WARNING)
 gemeldet = Gemeldet(HIER / "data" / "gemeldet.json")
+eingang = Eingang(HIER / "data" / "eingang")
 
 HILFE = (
     "Befehle:\n"
@@ -45,7 +61,9 @@ HILFE = (
     + "\nAuf eine Meldung antworten: Der Agent macht in derselben Sitzung weiter.\n"
     "/pc  (als Antwort auf eine Meldung) Sitzung am PC fortsetzen\n/weiter  Sitzung vom PC zurückholen"
     + "\n/status  Überblick\n/verbrauch  Auslastung des Claude-Kontingents\n"
-    "Text ohne Befehl: Ich frage, an welchen Agenten er geht."
+    "Text ohne Befehl: Ich frage, an welchen Agenten er geht.\n"
+    "Dateien und Fotos (bis 20 MB): mit /uni ... als Bildunterschrift gehen sie sofort an den Auftrag. "
+    "Ohne Befehl warten sie und hängen am nächsten Auftrag.\n/verwerfen  wartende Dateien löschen"
 )
 
 
@@ -93,6 +111,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"Unklare Ausführungen: {len(freigabe.unklare())}",
         f"Offene Aufträge: {len(auftraege.neue())}",
         f"Sitzungen am PC: {len(gemeldet.listen['am_pc'])}",
+        f"Wartende Dateien: {len(eingang.wartende())}",
     ]
     await update.message.reply_text("\n".join(zeilen))
 
@@ -116,15 +135,24 @@ async def auftrag_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not text:
         await update.message.reply_text(f"Bitte den Auftrag dazuschreiben, z. B. /{agent} Fristen prüfen")
         return
-    await auftrag_anlegen(update, agent, modus, text)
+    await auftrag_anlegen(context.bot, agent, modus, text)
 
 
-async def auftrag_anlegen(update: Update, agent: str, modus: str, text: str,
+async def auftrag_anlegen(bot, agent: str, modus: str, text: str,
                           bezug: str | None = None, sitzung: str | None = None) -> None:
-    aid = auftraege.neuer_auftrag(agent, text, modus=modus, bezug=bezug, sitzung=sitzung)
-    logger.info("Auftrag %s angelegt (%s, %s, Sitzung %s)", aid, agent, modus, sitzung)
+    """Legt den Auftrag an, hängt alle wartenden Dateien an und startet den Agenten."""
+    dateien = eingang.wartende()
+    try:
+        aid = auftraege.neuer_auftrag(agent, text, modus=modus, bezug=bezug, sitzung=sitzung, dateien=dateien)
+    except auftraege.AuftragFehler as e:
+        logger.error("Auftrag an %s nicht angelegt: %s", agent, e)
+        await bot.send_message(JAN, f"Auftrag nicht angelegt: {e}")
+        return
+    eingang.aufraeumen()
+    logger.info("Auftrag %s angelegt (%s, %s, Sitzung %s, %d Dateien)", aid, agent, modus, sitzung, len(dateien))
     wort = "Antwort" if sitzung else "Auftrag"
-    await update.effective_message.reply_text(f"{wort} an {agent} ({modus}) weitergegeben.")
+    mit = f" mit {len(dateien)} Datei(en): " + ", ".join(d.name for d in dateien) if dateien else ""
+    await bot.send_message(JAN, f"{wort} an {agent} ({modus}) weitergegeben{mit}.")
     await agent_starten(agent)
 
 
@@ -140,15 +168,15 @@ def beantworteter_auftrag(update: Update) -> dict | None:
         return None
 
 
-async def antwort_weitergeben(update: Update, alt: dict, text: str) -> None:
+async def antwort_weitergeben(bot, alt: dict, text: str) -> None:
     if not alt.get("sitzung"):
-        await update.message.reply_text("Zu diesem Auftrag ist keine Sitzung gespeichert. "
-                                        "Schick es bitte als neuen Auftrag.")
+        await bot.send_message(JAN, "Zu diesem Auftrag ist keine Sitzung gespeichert. "
+                                    "Schick es bitte als neuen Auftrag.")
         return
     if alt["sitzung"] in gemeldet.listen["am_pc"]:
-        await update.message.reply_text("Diese Sitzung liegt am PC. Erst dort beenden, dann /weiter schicken.")
+        await bot.send_message(JAN, "Diese Sitzung liegt am PC. Erst dort beenden, dann /weiter schicken.")
         return
-    await auftrag_anlegen(update, alt["agent"], alt["modus"], text, bezug=alt["id"], sitzung=alt["sitzung"])
+    await auftrag_anlegen(bot, alt["agent"], alt["modus"], text, bezug=alt["id"], sitzung=alt["sitzung"])
 
 
 async def pc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -183,19 +211,23 @@ async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     text = update.message.text
     alt = beantworteter_auftrag(update)
     if alt is not None:
-        await antwort_weitergeben(update, alt, text)
+        await antwort_weitergeben(context.bot, alt, text)
         return
     # Wartet ein "Ändern" auf Jans Kommentar?
     aendern_id = context.chat_data.pop("aendern", None)
     if aendern_id:
         await aenderung_eintragen(update, aendern_id, text)
         return
-    context.chat_data["wartender_text"] = text
+    await agent_fragen(context.bot, context.chat_data, text)
+
+
+async def agent_fragen(bot, chat_data: dict, text: str) -> None:
+    chat_data["wartender_text"] = text
     knoepfe = InlineKeyboardMarkup(
         [[InlineKeyboardButton(a, callback_data=f"z:{a}")] for a in AGENTEN]
         + [[InlineKeyboardButton("Verwerfen", callback_data="z:-")]]
     )
-    await update.message.reply_text("An welchen Agenten geht das? (Modus: erledigen)", reply_markup=knoepfe)
+    await bot.send_message(JAN, "An welchen Agenten geht das? (Modus: erledigen)", reply_markup=knoepfe)
 
 
 async def aenderung_eintragen(update: Update, eid: str, kommentar: str) -> None:
@@ -204,10 +236,81 @@ async def aenderung_eintragen(update: Update, eid: str, kommentar: str) -> None:
     except freigabe.FreigabeFehler as e:
         await update.message.reply_text(f"Geht nicht: {e}")
         return
-    auftraege.neuer_auftrag(entwurf["agent"], kommentar, quelle="telegram-aendern", bezug=eid)
-    logger.info("Entwurf %s: Änderung gewünscht", eid)
-    await update.message.reply_text(f"Änderungswunsch an {entwurf['agent']} weitergegeben.")
+    dateien = eingang.wartende()
+    auftraege.neuer_auftrag(entwurf["agent"], kommentar, quelle="telegram-aendern", bezug=eid, dateien=dateien)
+    eingang.aufraeumen()
+    logger.info("Entwurf %s: Änderung gewünscht (%d Dateien)", eid, len(dateien))
+    mit = f" mit {len(dateien)} Datei(en)" if dateien else ""
+    await update.message.reply_text(f"Änderungswunsch an {entwurf['agent']} weitergegeben{mit}.")
     await agent_starten(entwurf["agent"])
+
+
+# ---------- Dateien ----------
+
+async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    m = update.message
+    if m.document:
+        datei, name = m.document, m.document.file_name
+    else:  # Foto: größte Fassung nehmen
+        datei, name = m.photo[-1], f"foto-{datetime.now():%Y%m%d-%H%M%S}.jpg"
+    if datei.file_size and datei.file_size > MAX_DATEI_BYTES:
+        await m.reply_text(f"{name} ist größer als 20 MB, das lässt Telegram für Bots nicht zu. "
+                           "Bitte am PC in den Agent-Ordner legen.")
+        return
+    pfad = eingang.neuer_platz(name or "datei")
+    try:
+        await (await datei.get_file()).download_to_drive(pfad)
+    except Exception as e:  # Netz oder Telegram: Jan soll es wissen und neu schicken können
+        logger.error("Download von %s fehlgeschlagen: %s", name, e)
+        pfad.unlink(missing_ok=True)
+        eingang.aufraeumen()
+        await m.reply_text(f"{name} konnte nicht geladen werden ({e}). Bitte noch einmal schicken.")
+        return
+    logger.info("Datei empfangen: %s (%d Bytes)", pfad.name, pfad.stat().st_size)
+    if m.media_group_id is None:
+        await dateien_zuordnen(context.bot, context.chat_data, m.caption, beantworteter_auftrag(update))
+        return
+    # Album: Telegram schickt jede Datei als eigene Nachricht, die Bildunterschrift nur bei einer.
+    # Erst ALBUM_WARTEN Sekunden nach der letzten Datei zuordnen, damit alle am Auftrag hängen.
+    alben = context.chat_data.setdefault("alben", {})
+    album = alben.setdefault(m.media_group_id, {"caption": None, "alt": None, "job": None})
+    album["caption"] = album["caption"] or m.caption
+    album["alt"] = album["alt"] or beantworteter_auftrag(update)
+    if album["job"]:
+        album["job"].schedule_removal()
+    album["job"] = context.job_queue.run_once(album_fertig, ALBUM_WARTEN, data=m.media_group_id, chat_id=JAN)
+
+
+async def album_fertig(context: ContextTypes.DEFAULT_TYPE) -> None:
+    album = context.chat_data.get("alben", {}).pop(context.job.data, None)
+    if album:
+        await dateien_zuordnen(context.bot, context.chat_data, album["caption"], album["alt"])
+
+
+async def dateien_zuordnen(bot, chat_data: dict, caption: str | None, alt: dict | None) -> None:
+    """Wartende Dateien weitergeben: Antwort auf eine Meldung, /agent ... als Bildunterschrift,
+    Text ohne Befehl (Agent per Knopf wählen), sonst bis zum nächsten Auftrag warten."""
+    text = (caption or "").strip()
+    if alt is not None:
+        await antwort_weitergeben(bot, alt, text or "Siehe angehängte Dateien.")
+        return
+    if text and not text.startswith("/"):
+        await agent_fragen(bot, chat_data, text)
+        return
+    ergebnis = befehl_auswerten(text) if text else None
+    if ergebnis and ergebnis[2]:
+        await auftrag_anlegen(bot, *ergebnis)
+        return
+    beispiel = f"/{ergebnis[0]} ..." if ergebnis else "/uni Fasse das zusammen"
+    hinweis = "Unbekannter Befehl in der Bildunterschrift. " if text and not ergebnis else ""
+    await bot.send_message(JAN, f"{hinweis}{len(eingang.wartende())} Datei(en) liegen bereit. Schick jetzt den "
+                                f"Auftrag, z. B. {beispiel}. Die Dateien hängen dann daran. /verwerfen löscht sie.")
+
+
+async def verwerfen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    anzahl = eingang.verwerfen()
+    logger.info("%d wartende Dateien verworfen", anzahl)
+    await update.message.reply_text(f"{anzahl} wartende Datei(en) gelöscht." if anzahl else "Keine wartenden Dateien.")
 
 
 # ---------- Knöpfe ----------
@@ -227,7 +330,7 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await q.edit_message_text("Verworfen." if text else "Text nicht mehr vorhanden, bitte neu senden.")
             return
         await q.edit_message_reply_markup(None)
-        await auftrag_anlegen(update, wert, "erledigen", text)
+        await auftrag_anlegen(context.bot, wert, "erledigen", text)
         return
 
     eid = wert
@@ -329,6 +432,8 @@ def main() -> None:
     app.add_handler(CommandHandler("verbrauch", verbrauch_befehl, filters=jan))
     app.add_handler(CommandHandler("pc", pc, filters=jan))
     app.add_handler(CommandHandler("weiter", weiter, filters=jan))
+    app.add_handler(CommandHandler("verwerfen", verwerfen, filters=jan))
+    app.add_handler(MessageHandler(jan & (filters.Document.ALL | filters.PHOTO), datei_empfangen))
     app.add_handler(MessageHandler(jan & filters.COMMAND, auftrag_befehl))
     app.add_handler(MessageHandler(jan & filters.TEXT, text_ohne_befehl))
     app.add_handler(CallbackQueryHandler(knopf))

@@ -16,6 +16,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Chat-ID) läuft als Dienst agentenzentrale. Kann: Aufträge (/<agent>, /<agent>lern, Text mit
   Agent-Auswahl), Entwürfe mit Freigeben/Ablehnen/Ändern, Meldungen, /status, /verbrauch,
   Antwort auf eine Auftragsmeldung = neuer Auftrag in derselben Claude-Sitzung, /pc und /weiter.
+  Dateien und Fotos (bis 20 MB), wartende Dateien hängen am nächsten Auftrag, /verwerfen.
   Startet nach Auftrag oder Freigabe sofort <agent>.service.
   Nach Änderung an zentrale.py oder der Dienstvorlage: Vorlage nach ~/.config/systemd/user/ kopieren
   (falls geändert), `systemctl --user daemon-reload`, `systemctl --user restart agentenzentrale`.
@@ -45,9 +46,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Noch nicht getestet: interaktives `claude --resume <id>` am PC (Jan einmal selbst).
 2. Danach: dokumente, posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
    dokumente muss Word, PowerPoint und Excel erstellen und formatieren können (Jan, 16.10.).
-3. Zentrale muss Dateien annehmen (Jan, 16.10., "auf jeden Fall"): Dokumente und Fotos aus Telegram
-   speichern und an den Auftrag hängen (Pfad im Auftrag), damit Agenten sie lesen können.
-   Anlass: Jan war unterwegs und konnte Projektdateien für uni nicht übergeben.
+3. Dateien aus Telegram: gebaut 16.10. (Zentrale nimmt Dokumente und Fotos bis 20 MB an, Ablage
+   <agent>/data/eingang/<auftrag-id>/, Pfade im Feld dateien und am Ende des Auftragstexts).
+   Noch offen: Handtest durch Jan (Datei mit "/uni ..." als Bildunterschrift, Album, Datei ohne Befehl).
+   Für den uni-Chat: Claude liest PDF, Bilder und Text direkt, aber nicht docx/pptx/xlsx. agent.py sollte
+   für a["dateien"] vor dem Lauf kurse.als_text() nutzen und <datei>.txt daneben legen.
 4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 
 ## Gelernte Regeln

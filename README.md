@@ -14,6 +14,8 @@ Persönliches Agenten-System von Jan. Regeln: siehe CLAUDE.md. Aktueller Stand: 
 - `/uni <Auftrag>` erledigen, `/unilern <Auftrag>` gemeinsam lernen (ebenso dokumente, posteingang, einkauf)
 - `/status` Überblick, `/verbrauch` Auslastung des Claude-Kontingents, `/hilfe`
 - Entwürfe kommen mit Knöpfen Freigeben / Ablehnen / Ändern. Nach Freigabe handelt der Agent selbst.
+- Dateien und Fotos (bis 20 MB) schicken: mit `/uni <Auftrag>` als Bildunterschrift gehen sie sofort an
+  den Auftrag, ohne Befehl warten sie und hängen am nächsten Auftrag. `/verwerfen` löscht wartende Dateien.
 
 ## Wichtige Dateien
 - `CLAUDE.md`: Regeln für alle Chats. `STATUS.md`: Stand des Gesamtsystems.
