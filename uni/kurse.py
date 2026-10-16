@@ -3,7 +3,8 @@
 Pro Kurs: data/kurse/<Kurs>/uebersicht.md (Abschnitte, Texte, Links, Dateipfade)
 und die Dateien in Unterordnern je Abschnitt. Nur neue oder geänderte Dateien
 werden geladen (data/kurse/.stand.json: Datei-URL -> timemodified).
-Nicht geladen: Dateien über MAX_MB und ZIP-Archive über ZIP_MAX_MB (stehen nur in der Übersicht).
+Nicht geladen: Dateien über MAX_MB, Ton/Video über MEDIEN_MAX_MB und ZIP-Archive über ZIP_MAX_MB
+(stehen nur in der Übersicht). Ton und Video transkribiert transkription.py nachts.
 Kleinere ZIPs werden nach <name>_entpackt/ entpackt (Namen bereinigt, höchstens
 ENTPACKT_MAX_MB), dazu eine Inhaltsliste <name>.zip.txt.
 PDF, Word, PowerPoint und Excel bekommen daneben eine Textfassung <datei>.txt (mit
@@ -30,6 +31,8 @@ HIER = Path(__file__).resolve().parent
 ZIEL = HIER / "data" / "kurse"
 STAND_DATEI = ZIEL / ".stand.json"
 MAX_MB = 100
+MEDIEN_MAX_MB = 300
+MEDIEN_ENDUNGEN = {".mp4", ".m4a", ".mp3", ".webm", ".mkv", ".mov", ".wav", ".ogg"}
 ZIP_MAX_MB = 50
 ENTPACKT_MAX_MB = 300
 
@@ -38,6 +41,11 @@ def sicherer_name(name: str) -> str:
     """Ein Pfadteil ohne HTML-Zeichen (&amp;), Schrägstriche, Steuerzeichen und führende Punkte."""
     name = re.sub(r'[\x00-\x1f/\\:*?"<>|]', "_", unescape(name)).strip().lstrip(".")
     return name[:120] or "_"
+
+
+def grenze_mb(dateiname: str) -> int:
+    endung = Path(dateiname).suffix.lower()
+    return ZIP_MAX_MB if endung == ".zip" else MEDIEN_MAX_MB if endung in MEDIEN_ENDUNGEN else MAX_MB
 
 
 def html_zu_text(html: str) -> str:
@@ -248,7 +256,7 @@ def spiegeln(m) -> list[str]:
                         rel = rel.with_name(f"{rel.stem} ({mod['id']}){rel.suffix}")
                     vergeben.add(rel)
                     mb = c.get("filesize", 0) / 1e6
-                    if mb > (ZIP_MAX_MB if c["filename"].lower().endswith(".zip") else MAX_MB):
+                    if mb > grenze_mb(c["filename"]):
                         zeilen.append(f"  Datei (nicht geladen, {mb:.0f} MB): {c['filename']}")
                         continue
                     zeilen.append(f"  Datei: {rel.relative_to(sicherer_name(kursname))}")
@@ -259,6 +267,8 @@ def spiegeln(m) -> list[str]:
                         stand[schluessel] = c.get("timemodified")
                         neu.append(str(rel))
                         _speichern(stand)
+                    if rel.suffix.lower() in MEDIEN_ENDUNGEN:
+                        zeilen.append(f"  Transkript (wird nachts erstellt): {rel.relative_to(sicherer_name(kursname))}.txt")
                     if _textfassung(ZIEL / rel, erneuern=geladen):
                         art = "Inhaltsliste" if rel.suffix.lower() == ".zip" else "Textfassung"
                         zeilen.append(f"  {art}: {rel.relative_to(sicherer_name(kursname))}.txt")

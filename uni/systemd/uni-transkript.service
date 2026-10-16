@@ -1,0 +1,13 @@
+# Agent uni: Vorlesungsaufzeichnungen nachts transkribieren (transkription.py).
+# Hört selbst vor 7 Uhr auf (startet keine Datei, die nicht mehr rechtzeitig fertig wird).
+# Einrichten: nach ~/.config/systemd/user/ kopieren (siehe STATUS.md).
+[Unit]
+Description=Agent uni: Aufzeichnungen transkribieren
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/uni
+ExecStart=/home/agent/agenten/uni/.venv/bin/python transkription.py
+Nice=10
+TimeoutStartSec=7h
+MemoryMax=3G

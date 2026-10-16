@@ -58,9 +58,17 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   angemeldet launch.php?service=moodle_mobile_app&passport=<zahl>&urlscheme=moodlemobile aufrufen, in
   Chrome-DevTools (Network, Keep log) die Adresse moodlemobile://token=<base64> kopieren; base64 =
   md5(wwwroot+passport):::token. Liegt als BFH_MOODLE_TOKEN in uni/.env. Lesend getestet: Kursinhalt geht.
-  Laufzeit des Tokens unbekannt. Noch NICHT in kurse.py eingebunden.
-- Aufzeichnungen BFH: Abschnitt "Video-Aufzeichnungen", MP4 je 116-226 MB (über der 100-MB-Grenze von kurse.py).
-  Transkription bräuchte ffmpeg (nicht installiert, kein sudo) und z. B. Whisper: Plan mit Jan offen.
+  Laufzeit des Tokens unbekannt. Eingebunden (agent.py: moodles(), _je_moodle): Kursmaterial, aufgaben.md,
+  Fristen (IDs mit Präfix bfh-). Abgelaufener Schlüssel -> Meldung, HNEE läuft weiter.
+  Neuer Kurs meldet beim ersten Abgleich kein Material als neu (kurse.py).
+- Transkription (transkription.py, faster-whisper 1.2.1, Modell small int8, Jans Okay 16.10.):
+  Ton/Video bis 300 MB lädt kurse.py, nachts entsteht <datei>.txt mit Zeitmarken. Faktor ~1,7
+  (90 min Vorlesung ~2,5 h). Keine Datei, die nicht vor 7 Uhr fertig wird. Modell in data/modelle/.
+  Ton liest av selbst (faster-whisper 1.2.1 passt nicht zu av 19). Qualität: gut lesbar, Hörfehler
+  bei Fachbegriffen (Schweizer Färbung). Speicher ~1 GB pro 42 min Aufnahme.
+  Dienst/Timer in uni/systemd/ (1 Uhr). Einrichten durfte Claude nicht selbst (Sicherheitsprüfung),
+  Jan: `cp ~/agenten/uni/systemd/uni-transkript.* ~/.config/systemd/user/ && systemctl --user daemon-reload
+  && systemctl --user enable --now uni-transkript.timer`. Ob das erledigt ist: `systemctl --user list-timers`.
 - Jans Idee (16.10.): eigene Vorlesungs-Transkripte an den Agenten geben, als Wissen für Aufträge und
   Lernmodus, Hinweise (Prüfung, Fristen) melden. Ablage-Vorschlag data/kurse/<Kurs>/transkripte/. Noch nicht gebaut.
   Achtung: 5 HNEE-Kurse verbieten eigene Aufzeichnungen der Online-Vorlesung (steht in deren uebersicht.md).

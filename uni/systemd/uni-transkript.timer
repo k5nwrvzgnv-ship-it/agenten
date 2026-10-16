@@ -1,0 +1,9 @@
+# Aktivieren: systemctl --user enable --now uni-transkript.timer
+[Unit]
+Description=Nächtliche Transkription für Agent uni
+
+[Timer]
+OnCalendar=*-*-* 01:00:00
+
+[Install]
+WantedBy=timers.target
