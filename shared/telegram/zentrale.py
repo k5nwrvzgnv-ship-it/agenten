@@ -7,6 +7,8 @@
 - Antwortet Jan auf die Meldung eines Auftrags, wird daraus ein neuer Auftrag in
   derselben Claude-Sitzung. /pc (als Antwort) gibt die Sitzung an den PC, /weiter holt sie zurück.
 - Verschickt Meldungen der Agenten aus shared/meldungen/neu/ (Fristen, wichtige Mails ...).
+  Hat eine Meldung Knöpfe, wird ein Klick (einmal je Meldung) oder Jans Antwort darauf ein
+  Auftrag an den Agenten, danach startet <dienst>.service der Meldung (siehe agentkit.meldungen).
   Ergebnisdateien von Aufträgen und Meldungen (bis 50 MB) kommen als Dokument hinterher.
 - Nimmt Dateien und Fotos an (bis 20 MB). Mit /agent in der Bildunterschrift oder als Antwort auf
   eine Meldung gehen sie sofort an den Auftrag, sonst warten sie in data/eingang/ auf den nächsten
@@ -32,7 +34,7 @@ from telegram.ext import (
 )
 
 from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen, verbrauch
-from agentkit._ablage import AblageFehler, anhaenge_pruefen
+from agentkit._ablage import AblageFehler, anhaenge_pruefen, pruefe_dienst
 from logik import (
     AGENTEN,
     MAX_DATEI_BYTES,
@@ -42,6 +44,9 @@ from logik import (
     aufteilen,
     befehl_auswerten,
     entwurf_als_text,
+    knopf_auswerten,
+    knopf_beschriftung,
+    meldung_knoepfe,
     verbrauch_text,
 )
 
@@ -62,7 +67,8 @@ eingang = Eingang(HIER / "data" / "eingang")
 HILFE = (
     "Befehle:\n"
     + "\n".join(f"/{a} <Auftrag>  (erledigen)\n/{a}lern <Auftrag>  (gemeinsam lernen)" for a in AGENTEN)
-    + "\nAuf eine Meldung antworten: Der Agent macht in derselben Sitzung weiter.\n"
+    + "\nAuf eine Meldung antworten: Der Agent macht in derselben Sitzung weiter "
+    "(bei Meldungen mit Knöpfen geht die Antwort statt eines Klicks an den Agenten).\n"
     "/pc  (als Antwort auf eine Meldung) Sitzung am PC fortsetzen\n/weiter  Sitzung vom PC zurückholen"
     + "\n/status  Überblick\n/verbrauch  Auslastung des Claude-Kontingents\n"
     "Text ohne Befehl: Ich frage, an welchen Agenten er geht.\n"
@@ -95,20 +101,29 @@ async def dateien_senden(context: ContextTypes.DEFAULT_TYPE, agent: str, dateien
     return gesendet
 
 
-async def agent_starten(agent: str) -> None:
-    """Startet <agent>.service, falls es ihn gibt (--no-block: nicht auf das Ende warten)."""
-    if agent not in AGENTEN or not (UNIT_DIR / f"{agent}.service").exists():
-        logger.info("Kein Dienst %s.service, Auftrag wartet auf den nächsten Lauf", agent)
+async def agent_starten(agent: str, dienst: str | None = None) -> None:
+    """Startet <dienst>.service (ohne dienst: <agent>.service), falls es ihn gibt.
+
+    --no-block: nicht auf das Ende warten.
+    """
+    dienst = dienst or agent
+    try:
+        pruefe_dienst(agent, dienst)
+    except AblageFehler as f:
+        logger.error("Dienst nicht gestartet: %s", f)
+        return
+    if agent not in AGENTEN or not (UNIT_DIR / f"{dienst}.service").exists():
+        logger.info("Kein Dienst %s.service, Auftrag wartet auf den nächsten Lauf", dienst)
         return
     proc = await asyncio.create_subprocess_exec(
-        "systemctl", "--user", "start", "--no-block", f"{agent}.service",
+        "systemctl", "--user", "start", "--no-block", f"{dienst}.service",
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
     )
     _, err = await proc.communicate()
     if proc.returncode != 0:
-        logger.error("Start von %s.service fehlgeschlagen: %s", agent, err.decode().strip())
+        logger.error("Start von %s.service fehlgeschlagen: %s", dienst, err.decode().strip())
     else:
-        logger.info("%s.service gestartet", agent)
+        logger.info("%s.service gestartet", dienst)
 
 
 # ---------- Eingang: Nachrichten von Jan ----------
@@ -157,22 +172,27 @@ async def auftrag_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await auftrag_anlegen(context.bot, agent, modus, text)
 
 
-async def auftrag_anlegen(bot, agent: str, modus: str, text: str,
-                          bezug: str | None = None, sitzung: str | None = None) -> None:
-    """Legt den Auftrag an, hängt alle wartenden Dateien an und startet den Agenten."""
+async def auftrag_anlegen(bot, agent: str, modus: str, text: str, bezug: str | None = None,
+                          sitzung: str | None = None, quelle: str = "telegram", meldung: str | None = None,
+                          dienst: str | None = None, bestaetigen: bool = True) -> bool:
+    """Legt den Auftrag an, hängt alle wartenden Dateien an und startet den Agenten (bzw. dienst)."""
     dateien = eingang.wartende()
     try:
-        aid = auftraege.neuer_auftrag(agent, text, modus=modus, bezug=bezug, sitzung=sitzung, dateien=dateien)
+        aid = auftraege.neuer_auftrag(agent, text, quelle=quelle, modus=modus, bezug=bezug, sitzung=sitzung,
+                                      dateien=dateien, meldung=meldung, dienst=dienst)
     except auftraege.AuftragFehler as e:
         logger.error("Auftrag an %s nicht angelegt: %s", agent, e)
         await bot.send_message(JAN, f"Auftrag nicht angelegt: {e}")
-        return
+        return False
     eingang.aufraeumen()
-    logger.info("Auftrag %s angelegt (%s, %s, Sitzung %s, %d Dateien)", aid, agent, modus, sitzung, len(dateien))
-    wort = "Antwort" if sitzung else "Auftrag"
-    mit = f" mit {len(dateien)} Datei(en): " + ", ".join(d.name for d in dateien) if dateien else ""
-    await bot.send_message(JAN, f"{wort} an {agent} ({modus}) weitergegeben{mit}.")
-    await agent_starten(agent)
+    logger.info("Auftrag %s angelegt (%s, %s, Quelle %s, Sitzung %s, Meldung %s, Dienst %s, %d Dateien)",
+                aid, agent, modus, quelle, sitzung, meldung, dienst, len(dateien))
+    if bestaetigen or dateien:
+        wort = "Antwort" if sitzung or meldung else "Auftrag"
+        mit = f" mit {len(dateien)} Datei(en): " + ", ".join(d.name for d in dateien) if dateien else ""
+        await bot.send_message(JAN, f"{wort} an {agent} ({modus}) weitergegeben{mit}.")
+    await agent_starten(agent, dienst)
+    return True
 
 
 def beantworteter_auftrag(update: Update) -> dict | None:
@@ -185,6 +205,24 @@ def beantworteter_auftrag(update: Update) -> dict | None:
         return auftraege.erledigter(aid)
     except auftraege.AuftragFehler:
         return None
+
+
+def beantwortete_meldung(update: Update) -> dict | None:
+    """Die Meldung mit Rückfrage (Knöpfe oder Dienst), auf die Jan geantwortet hat, sonst None."""
+    bezug = update.message.reply_to_message
+    mid = bezug and gemeldet.meldung_zu(bezug.message_id)
+    if not mid:
+        return None
+    try:
+        m = meldungen.gesendete(mid)
+    except meldungen.MeldungFehler:
+        return None
+    return m if meldungen.nimmt_antwort(m) else None
+
+
+async def meldung_beantworten(bot, m: dict, text: str, quelle: str, bestaetigen: bool = True) -> bool:
+    return await auftrag_anlegen(bot, m["agent"], "erledigen", text, quelle=quelle, meldung=m["id"],
+                                 dienst=m.get("dienst"), bestaetigen=bestaetigen)
 
 
 async def antwort_weitergeben(bot, alt: dict, text: str) -> None:
@@ -231,6 +269,10 @@ async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     alt = beantworteter_auftrag(update)
     if alt is not None:
         await antwort_weitergeben(context.bot, alt, text)
+        return
+    m = beantwortete_meldung(update)
+    if m is not None:
+        await meldung_beantworten(context.bot, m, text, "antwort")
         return
     # Wartet ein "Ändern" auf Jans Kommentar?
     aendern_id = context.chat_data.pop("aendern", None)
@@ -342,6 +384,10 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     art, _, wert = q.data.partition(":")
 
+    if art == "m":  # Knopf unter einer Meldung
+        await meldung_knopf(q, context)
+        return
+
     if art == "z":  # Agent für Text ohne Befehl gewählt
         text = context.chat_data.pop("wartender_text", None)
         await q.answer()
@@ -381,6 +427,42 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await q.message.reply_text(antwort)
     if art == "f":
         await agent_starten(entwurf["agent"])
+
+
+async def meldung_knopf(q, context: ContextTypes.DEFAULT_TYPE) -> None:
+    ausgewertet = knopf_auswerten(q.data)
+    m, beschriftung = None, None
+    if ausgewertet:
+        mid, zeile, spalte = ausgewertet
+        try:
+            m = meldungen.gesendete(mid)
+            beschriftung = knopf_beschriftung(m, zeile, spalte)
+        except meldungen.MeldungFehler as f:
+            logger.warning("Knopf %s: %s", q.data, f)
+    if m is None or beschriftung is None:
+        await q.answer("Unbekannter Knopf")
+        return
+    if m["id"] in gemeldet.listen["geklickt"]:
+        await q.answer("Schon beantwortet")
+        await q.edit_message_reply_markup(None)
+        return
+    gemeldet.geklickt(m["id"])  # vor dem Anlegen merken: ein schneller Doppelklick zählt nur einmal
+    gemeldet.speichern()
+    await q.answer()
+    await q.edit_message_reply_markup(None)
+    if await meldung_beantworten(context.bot, m, beschriftung, "knopf", bestaetigen=False):
+        await q.message.reply_text(f"Gewählt: {beschriftung}")
+    else:  # Klick ist nicht angekommen: wieder freigeben, Jan kann es noch einmal versuchen
+        gemeldet.listen["geklickt"].discard(m["id"])
+        gemeldet.speichern()
+        await q.edit_message_reply_markup(knopf_leiste(m))
+
+
+def knopf_leiste(m: dict) -> InlineKeyboardMarkup | None:
+    knoepfe = meldung_knoepfe(m)
+    if not knoepfe:
+        return None
+    return InlineKeyboardMarkup([[InlineKeyboardButton(t, callback_data=d) for t, d in zeile] for zeile in knoepfe])
 
 
 # ---------- Ausgang: regelmäßige Prüfung ----------
@@ -426,9 +508,13 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
             geaendert = True
 
     for m in meldungen.neue():
-        await senden(context, f"[{m['agent']}] {m['text']}")
+        nachrichten = await senden(context, f"[{m['agent']}] {m['text']}", knopf_leiste(m))
         await dateien_senden(context, m["agent"], m.get("dateien", []))
         meldungen.als_gesendet(m["id"])  # erst nach erfolgreichem Senden, sonst nächster Versuch
+        if meldungen.nimmt_antwort(m):
+            for n in nachrichten:
+                gemeldet.meldung_merken(n.message_id, m["id"])
+            geaendert = True
 
     stand, stufe = aktuelle_stufe()
     if stufe != gemeldet.stufe:

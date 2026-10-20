@@ -23,6 +23,11 @@ stehen im Feld dateien und zusätzlich am Ende des Auftragstexts, damit jeder Ag
 sie ohne eigenen Code im Prompt hat.
 Umgekehrt gibt abschliessen(..., dateien=) Ergebnisdateien aus dem Agent-Ordner mit,
 die Zentrale schickt sie Jan nach dem Ergebnistext.
+
+Rückfragen per Meldung (siehe meldungen): Klick oder Antwort auf eine Meldung wird ein
+Auftrag mit meldung=<Meldungs-ID> und dienst=<Dienst der Meldung>. Jeder Dienst holt
+nur seine Aufträge: neue(agent, dienst=None) die ohne Dienst (<agent>.service),
+neue(agent, dienst="uni-lernen") nur die für uni-lernen. Ohne Angabe kommen alle.
 """
 
 import shutil
@@ -37,6 +42,7 @@ AGENTEN_DIR = SHARED_DIR.parent
 EINGANG = Path("data") / "eingang"
 ABSCHLUESSE = ("erledigt", "fehlgeschlagen")
 MODI = ("erledigen", "lernen")
+ALLE = "*"  # neue(..., dienst=ALLE): Aufträge aller Dienste
 
 
 def neuer_auftrag(
@@ -47,6 +53,8 @@ def neuer_auftrag(
     bezug: str | None = None,
     sitzung: str | None = None,
     dateien: list[Path] | None = None,
+    meldung: str | None = None,
+    dienst: str | None = None,
     basis: Path | None = None,
     agenten_dir: Path | None = None,
 ) -> str:
@@ -55,12 +63,16 @@ def neuer_auftrag(
     bezug: ID eines Entwurfs (Korrektur) oder Auftrags (Antwort darauf).
     sitzung: Claude-Sitzung, die der Agent fortsetzen soll.
     dateien: werden in den Agent-Ordner verschoben (siehe oben).
+    meldung, dienst: Antwort auf eine Meldung (siehe oben).
     """
     if modus not in MODI:
         raise AuftragFehler(f"Unbekannter Modus: {modus!r}")
     basis = basis or BASIS
     if bezug is not None:
         _ablage.pruefe_id(bezug)
+    if meldung is not None:
+        _ablage.pruefe_id(meldung)
+    _ablage.pruefe_dienst(agent, dienst)
     eintrag_id = _ablage.neue_id(agent)
     anhaenge = _dateien_ablegen((agenten_dir or AGENTEN_DIR) / agent, eintrag_id, dateien or [])
     if anhaenge:
@@ -73,6 +85,8 @@ def neuer_auftrag(
         "modus": modus,
         "bezug": bezug,
         "sitzung": sitzung,
+        "meldung": meldung,
+        "dienst": dienst,
         "dateien": anhaenge,
         "erstellt": _ablage.jetzt(),
         "status": "neu",
@@ -101,9 +115,12 @@ def _dateien_ablegen(agent_dir: Path, eintrag_id: str, dateien: list[Path]) -> l
     return pfade
 
 
-def neue(agent: str | None = None, basis: Path | None = None) -> list[dict]:
-    """Offene Aufträge, älteste zuerst."""
-    return _ablage.liste(_ablage.ordner(basis or BASIS, "neu"), agent)
+def neue(agent: str | None = None, basis: Path | None = None, dienst: str | None = ALLE) -> list[dict]:
+    """Offene Aufträge, älteste zuerst. dienst: siehe oben."""
+    eintraege = _ablage.liste(_ablage.ordner(basis or BASIS, "neu"), agent)
+    if dienst == ALLE:
+        return eintraege
+    return [a for a in eintraege if a.get("dienst") == dienst]
 
 
 def erledigte(agent: str | None = None, basis: Path | None = None) -> list[dict]:

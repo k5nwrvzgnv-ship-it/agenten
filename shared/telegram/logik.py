@@ -84,15 +84,41 @@ def verbrauch_text(stand: dict | None, stufe: str, heute: dict[str, dict], zeit_
     return "\n".join(zeilen)
 
 
+MELDUNG = "m:"  # Vorsatz für Meldungen in Gemeldet.nachrichten und in Knopf-Daten
+
+
+def meldung_knoepfe(meldung: dict) -> list[list[tuple[str, str]]]:
+    """Knöpfe einer Meldung als (Beschriftung, Knopf-Daten). Daten: m:<id>:<zeile>:<spalte>
+    (Telegram erlaubt höchstens 64 Bytes, die Beschriftung selbst wäre zu lang)."""
+    return [[(text, f"{MELDUNG}{meldung['id']}:{z}:{s}") for s, text in enumerate(zeile)]
+            for z, zeile in enumerate(meldung.get("knoepfe") or [])]
+
+
+def knopf_auswerten(daten: str) -> tuple[str, int, int] | None:
+    """'m:<id>:1:0' -> (id, 1, 0), sonst None."""
+    m = re.fullmatch(rf"{MELDUNG}([\w-]+):(\d+):(\d+)", daten)
+    return (m.group(1), int(m.group(2)), int(m.group(3))) if m else None
+
+
+def knopf_beschriftung(meldung: dict, zeile: int, spalte: int) -> str | None:
+    knoepfe = meldung.get("knoepfe") or []
+    if zeile < len(knoepfe) and spalte < len(knoepfe[zeile]):
+        return knoepfe[zeile][spalte]
+    return None
+
+
 class Gemeldet:
     """Merkt sich, was Jan schon gezeigt wurde (data/gemeldet.json), damit nichts doppelt kommt.
 
     angezeigt: Entwurfs-ID -> Fingerabdruck zum Zeitpunkt der Anzeige.
     nachrichten: Telegram-Nachrichten-ID -> Auftrags-ID, damit Jans Antwort zugeordnet werden kann.
+    Meldungen mit Rückfrage stehen dort als "m:<Meldungs-ID>" (siehe meldung_zu).
     listen["am_pc"]: Sitzungen, die gerade am PC liegen (Bot schreibt nicht hinein).
+    listen["geklickt"]: Meldungen, deren Knopf schon gedrückt wurde (nur ein Klick je Meldung).
     """
 
-    LISTEN = ("ausgefuehrt", "unklar", "auftraege", "am_pc")
+    LISTEN = ("ausgefuehrt", "unklar", "auftraege", "am_pc", "geklickt")
+    MAX_GEKLICKT = 500
     MAX_NACHRICHTEN = 500  # ältere Meldungen kann Jan nicht mehr per Antwort fortsetzen
 
     def __init__(self, pfad: Path):
@@ -107,6 +133,19 @@ class Gemeldet:
         self.nachrichten[str(nachricht_id)] = auftrag_id
         for alt in list(self.nachrichten)[: -self.MAX_NACHRICHTEN]:
             del self.nachrichten[alt]
+
+    def meldung_merken(self, nachricht_id: int, meldung_id: str) -> None:
+        self.nachricht_merken(nachricht_id, MELDUNG + meldung_id)
+
+    def meldung_zu(self, nachricht_id: int) -> str | None:
+        """ID der Meldung, zu der die Telegram-Nachricht gehört, sonst None (auch bei Aufträgen)."""
+        wert = self.nachrichten.get(str(nachricht_id), "")
+        return wert[len(MELDUNG):] if wert.startswith(MELDUNG) else None
+
+    def geklickt(self, meldung_id: str) -> None:
+        self.listen["geklickt"].add(meldung_id)
+        for alt in sorted(self.listen["geklickt"])[: -self.MAX_GEKLICKT]:  # IDs beginnen mit Datum
+            self.listen["geklickt"].discard(alt)
 
     def speichern(self) -> None:
         self.pfad.parent.mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,18 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from logik import Eingang, Gemeldet, aufteilen, befehl_auswerten, dateiname_bereinigen, entwurf_als_text, verbrauch_text
+from logik import (
+    Eingang,
+    Gemeldet,
+    aufteilen,
+    befehl_auswerten,
+    dateiname_bereinigen,
+    entwurf_als_text,
+    knopf_auswerten,
+    knopf_beschriftung,
+    meldung_knoepfe,
+    verbrauch_text,
+)
 
 
 class TestLogik(unittest.TestCase):
@@ -65,6 +76,38 @@ class TestLogik(unittest.TestCase):
         self.assertEqual(g2.nachrichten, {"2": "a2", "3": "a2"})  # älteste fällt weg
         self.assertEqual(g2.listen["am_pc"], {"s-1"})
 
+
+    def test_meldung_knoepfe(self):
+        mid = "20261020-120000-uni-abcdef"
+        m = {"id": mid, "knoepfe": [["Nochmal", "Schwer", "Gut", "Leicht"], ["Antwort zeigen"]]}
+        knoepfe = meldung_knoepfe(m)
+        self.assertEqual(knoepfe[0][2], ("Gut", f"m:{mid}:0:2"))
+        self.assertEqual(knoepfe[1], [("Antwort zeigen", f"m:{mid}:1:0")])
+        self.assertTrue(all(len(d.encode()) <= 64 for zeile in knoepfe for _, d in zeile))
+        self.assertEqual(meldung_knoepfe({"id": mid, "knoepfe": []}), [])
+        self.assertEqual(knopf_auswerten(f"m:{mid}:0:2"), (mid, 0, 2))
+        self.assertIsNone(knopf_auswerten("f:20261020-120000-uni-abcdef"))
+        self.assertIsNone(knopf_auswerten("m:../x:0:0"))
+        self.assertEqual(knopf_beschriftung(m, 0, 2), "Gut")
+        self.assertIsNone(knopf_beschriftung(m, 1, 1))
+        self.assertIsNone(knopf_beschriftung(m, 5, 0))
+
+    def test_meldung_zuordnung_und_geklickt(self):
+        pfad = Path(tempfile.mkdtemp()) / "gemeldet.json"
+        g = Gemeldet(pfad)
+        g.meldung_merken(7, "20261020-120000-uni-abcdef")
+        g.nachricht_merken(8, "20261020-120000-uni-123456")
+        g.geklickt("20261020-120000-uni-abcdef")
+        g.speichern()
+        g = Gemeldet(pfad)
+        self.assertEqual(g.meldung_zu(7), "20261020-120000-uni-abcdef")
+        self.assertIsNone(g.meldung_zu(8))  # Auftrag, keine Meldung
+        self.assertIsNone(g.meldung_zu(9))
+        self.assertIn("20261020-120000-uni-abcdef", g.listen["geklickt"])
+        for i in range(Gemeldet.MAX_GEKLICKT + 5):
+            g.geklickt(f"20261021-{i:06d}-uni-abcdef")
+        self.assertEqual(len(g.listen["geklickt"]), Gemeldet.MAX_GEKLICKT)
+        self.assertNotIn("20261020-120000-uni-abcdef", g.listen["geklickt"])
 
     def test_dateiname_bereinigen(self):
         self.assertEqual(dateiname_bereinigen("Skript Kapitel 3.pdf"), "Skript Kapitel 3.pdf")

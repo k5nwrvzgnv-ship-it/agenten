@@ -43,6 +43,12 @@ def pruefe_id(eintrag_id: str) -> None:
         raise AblageFehler(f"Ungültige ID: {eintrag_id!r}")
 
 
+def pruefe_dienst(agent: str, dienst: str | None) -> None:
+    """Dienst eines Agenten: <agent> oder <agent>-<wort> (z. B. uni-lernen), die Zentrale startet ihn."""
+    if dienst is not None and not re.fullmatch(rf"{re.escape(agent)}(-[a-z]+)?", dienst):
+        raise AblageFehler(f"Ungültiger Dienst für {agent}: {dienst!r}")
+
+
 def ordner(basis: Path, name: str) -> Path:
     pfad = basis / name
     pfad.mkdir(parents=True, exist_ok=True)

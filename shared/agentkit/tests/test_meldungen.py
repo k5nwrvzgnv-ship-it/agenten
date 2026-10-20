@@ -45,6 +45,32 @@ class TestMeldungen(unittest.TestCase):
             meldungen.melden("dokumente", "x", dateien=["../../etc/passwd"], basis=self.basis,
                              agenten_dir=agenten)
 
+    def test_knoepfe_und_dienst(self):
+        mid = meldungen.melden("uni", "Heute 12:30 Holzschutz", knoepfe=[["Hingehen", "Nicht"]],
+                               dienst="uni-lernen", basis=self.basis)
+        m = meldungen.neue(basis=self.basis)[0]
+        self.assertEqual((m["knoepfe"], m["dienst"]), ([["Hingehen", "Nicht"]], "uni-lernen"))
+        self.assertTrue(meldungen.nimmt_antwort(m))
+        with self.assertRaises(meldungen.MeldungFehler):
+            meldungen.gesendete(mid, basis=self.basis)
+        meldungen.als_gesendet(mid, basis=self.basis)
+        self.assertEqual(meldungen.gesendete(mid, basis=self.basis)["knoepfe"], [["Hingehen", "Nicht"]])
+
+    def test_ohne_knoepfe_keine_antwort(self):
+        meldungen.melden("uni", "Frist morgen", basis=self.basis)
+        m = meldungen.neue(basis=self.basis)[0]
+        self.assertEqual((m["knoepfe"], m["dienst"]), ([], None))
+        self.assertFalse(meldungen.nimmt_antwort(m))
+
+    def test_knoepfe_ungueltig(self):
+        for knoepfe in ([["x"]] * 11, [["x"] * 9], [[]], [[""]], [["x" * 41]], [["ok", 5]], ["Hingehen"]):
+            with self.subTest(knoepfe=knoepfe), self.assertRaises(meldungen.MeldungFehler):
+                meldungen.melden("uni", "t", knoepfe=knoepfe, basis=self.basis)
+        for dienst in ("dokumente", "uni-", "uni-lernen.service", "uni-../x", "uni lernen"):
+            with self.subTest(dienst=dienst), self.assertRaises(meldungen.MeldungFehler):
+                meldungen.melden("uni", "t", dienst=dienst, basis=self.basis)
+        self.assertEqual(meldungen.neue(basis=self.basis), [])
+
 
 if __name__ == "__main__":
     unittest.main()

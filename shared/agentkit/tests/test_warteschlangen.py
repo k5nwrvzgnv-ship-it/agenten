@@ -156,6 +156,20 @@ class TestAuftraege(unittest.TestCase):
         with self.assertRaises(auftraege.AuftragFehler):
             auftraege.neuer_auftrag("uni", "x", modus="halbautomatisch", basis=self.basis)
 
+    def test_antwort_auf_meldung_mit_dienst(self):
+        mid = "20261020-120000-uni-abcdef"
+        a1 = auftraege.neuer_auftrag("uni", "Kapitel 3", basis=self.basis)
+        a2 = auftraege.neuer_auftrag("uni", "Hingehen", quelle="knopf", meldung=mid, dienst="uni-lernen",
+                                     basis=self.basis)
+        self.assertEqual({a["id"] for a in auftraege.neue("uni", basis=self.basis)}, {a1, a2})
+        self.assertEqual([a["id"] for a in auftraege.neue("uni", basis=self.basis, dienst=None)], [a1])
+        lern = auftraege.neue("uni", basis=self.basis, dienst="uni-lernen")
+        self.assertEqual([(a["id"], a["meldung"], a["quelle"]) for a in lern], [(a2, mid, "knopf")])
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.neuer_auftrag("uni", "x", meldung="../x", basis=self.basis)
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.neuer_auftrag("uni", "x", dienst="einkauf", basis=self.basis)
+
     def test_antwort_setzt_sitzung_fort(self):
         a1 = auftraege.neuer_auftrag("uni", "Kapitel 3", modus="lernen", basis=self.basis)
         auftraege.abschliessen(a1, "Erste Frage an Jan", sitzung="s-1", basis=self.basis)
