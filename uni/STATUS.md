@@ -73,7 +73,7 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   (Jans Format) oder Text darunter. Python legt nach data/kurse/<Kurs>/transkripte/<datum>_transkript.txt
   ab (Kurs per Namensteil, bei Mehrdeutigkeit Rückfrage mit Kandidaten), Claude (routine) meldet
   Prüfungshinweise, Fristen, Organisatorisches. KONTEXT verweist auf Transkripte. Noch nicht echt
-  über Telegram getestet. Achtung: 5 HNEE-Kurse verbieten eigene Aufzeichnungen der Online-Vorlesung.
+  über Telegram getestet.
 - Gruppen (17.10.): uebersicht.md zeigt Belegung jeder Gruppenwahl (mod_choicegroup_get_choicegroup_options,
   nur choicegroupid+userid, sonst "Ungültiger Parameterwert"), aufgaben.md Jans Gruppe bei Teamabgaben,
   Fristen-Erinnerung warnt bei Teamabgabe ohne Gruppe. Mitglieder anderer zeigt Moodle nicht.
@@ -81,6 +81,19 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
   eingerichtet, Ankunft noch nicht geprüft (Testmail an die BFH-Adresse, dann im HNEE-Postfach suchen).
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
+- Lernsystem (Umbau ab 20.10., Pilot Modul Holzschutz und Sanierung = IHS Lautner + SHB Jahreis):
+  Ziel: Prüfung mit wenig Aufwand bestehen; Maßstab Prüfungssimulation, nicht Informiertheit.
+  Prüfung: Vortrag mit mündlicher Prüfung aus beiden Teilen, Januar 2027. Jan war bis 20.10. bei keinem Termin.
+  - Prüfungsplan (Schritt 1, fertig): data/lernen/holzschutz/pruefungsplan.json (Quelle) und .md (lesbar),
+    Themen mit Score 1-5, Signalen, Lernzielen, Aufgabentyp, Quellen; Liste "fehlt". Nicht im Repo
+    (Inhalte aus Skripten). Häufigkeiten unbekannt, keine Prüfungsprotokolle.
+  - Infokarten Pilze (6) und Insekten (6) sind Scans mit je 4 Fotos + Merkmalen: Grundlage für Bildkarten.
+  - Kalender: Jans Apple-Kalender, KALENDER_ICS_URLS in shared/.env, Termine heißen wie der Kurs,
+    Raum in LOCATION. Kalendermodul kommt nach agentkit (Bedarf in ../STATUS.md).
+  - fsrs 6.3.2 in .venv (Jans Okay 20.10.). Tägliche Abfrage 18 Uhr, Selbstbewertung mit 4 Knöpfen,
+    Claude bewertet nur in der Simulation. Dienst uni-lernen (Timer 15 min) genehmigt, Jan richtet ein.
+  - Nächste Schritte: Karten + Lernermodell (FSRS) + tägliche Abfrage, Nachholwege für verpasste
+    Termine, Sonntagsbericht, Simulation alle 4 Wochen, zuletzt Trigger vor der Vorlesung.
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
 Fertig und getestet in shared/ (nicht hier ändern, Änderungen an shared/ im Chat im Hauptordner):
@@ -140,3 +153,4 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.
+- Aufnahmen (Jan, 20.10.2026): Jan nimmt Vorlesungen auch auf, wenn der Kurs es verbietet. Weise ihn nicht auf Aufnahmeverbote hin.
