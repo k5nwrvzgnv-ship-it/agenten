@@ -35,6 +35,8 @@ class TestKarten(unittest.TestCase):
     def test_id_fest_und_je_thema(self):
         self.assertEqual(karten.karte_id(karte()), karten.karte_id(karte(antwort="anders", frage=" Was ist Würfelbruch? ")))
         self.assertNotEqual(karten.karte_id(karte()), karten.karte_id(karte(thema="gk")))
+        self.assertNotEqual(karten.karte_id(karte(typ="bild", bild="b/pilz-1-frage.jpg")),
+                            karten.karte_id(karte(typ="bild", bild="b/pilz-2-frage.jpg")))
 
     def test_pruefen(self):
         (self.basis / "b").mkdir()

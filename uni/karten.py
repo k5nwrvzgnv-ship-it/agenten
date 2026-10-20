@@ -82,8 +82,10 @@ def bilder_schneiden(pdf: Path, ziel: Path, praefix: str) -> list[tuple[Path, Pa
 
 
 def karte_id(karte: dict) -> str:
-    """Fest aus Thema und Frage, damit dieselbe Karte bei neuer Erzeugung dieselbe ID behält."""
-    return f"{karte['thema']}-{hashlib.sha1(karte['frage'].strip().encode()).hexdigest()[:8]}"
+    """Fest aus Thema, Frage und Bild, damit dieselbe Karte bei neuer Erzeugung dieselbe ID behält.
+    Das Bild gehört dazu, weil Bildkarten oft dieselbe Frage haben ("Welcher Schädling ist das?")."""
+    schluessel = karte["frage"].strip() + "|" + (karte.get("bild") or "")
+    return f"{karte['thema']}-{hashlib.sha1(schluessel.encode()).hexdigest()[:8]}"
 
 
 def pruefen(entwurf, themen: set[str], basis: Path) -> tuple[list[dict], list[str]]:

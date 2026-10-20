@@ -92,8 +92,21 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Raum in LOCATION. Kalendermodul kommt nach agentkit (Bedarf in ../STATUS.md).
   - fsrs 6.3.2 in .venv (Jans Okay 20.10.). Tägliche Abfrage 18 Uhr, Selbstbewertung mit 4 Knöpfen,
     Claude bewertet nur in der Simulation. Dienst uni-lernen (Timer 15 min) genehmigt, Jan richtet ein.
-  - Nächste Schritte: Karten + Lernermodell (FSRS) + tägliche Abfrage, Nachholwege für verpasste
-    Termine, Sonntagsbericht, Simulation alle 4 Wochen, zuletzt Trigger vor der Vorlesung.
+  - lernmodell.py: Karten (karten.json), FSRS-Stand (zustand.json), Verlauf (verlauf.jsonl) je Modul;
+    Planung in Tagen, Auswahl höchstens 13 Karten (~10 min), höchstens 8 neue pro Tag, fällige zuerst,
+    reihum über Themen, neue nach Score und schwacher Trefferquote; Status nicht gesehen/wackelig/sitzt.
+  - karten.py <modul> [min_score]: schneidet Bildkarten aus den Infokarten (Fotos ohne Beschriftung),
+    Claude schreibt karten_entwurf.json, Python prüft und übernimmt (ID aus Thema, Frage und Bild).
+    Erster Lauf 20.10.: 61 Karten (Score 4-5, davon 12 Bildkarten), Opus, 29 von 30 Schritten,
+    ca. 820.000 Tokens, 7 min; 7-Tage-Auslastung danach 71 % (Stufe sparen). Weitere Läufe kleiner
+    halten (ein Thema oder wenige Themen pro Lauf).
+  - lernen.py (Dienst uni-lernen, Vorlage systemd/uni-lernen.*, Timer alle 15 min): ab 18 Uhr, wenn kein
+    Kalendertermin läuft, Frage mit [Antwort zeigen] [Später], dann Antwort + Quelle mit
+    [Nochmal] [Schwer] [Gut] [Leicht]; Nochmal kommt am Ende einmal neu; Später = 1 h, bis 22 Uhr.
+    Zustand data/lernen/sitzung.json. Noch NICHT eingerichtet: wartet auf Punkt 6 in ../STATUS.md
+    (Zentrale soll Klick-Aufträge still abschließen), dann richtet Jan den Dienst ein.
+  - Nächste Schritte: Dienst einrichten und über Telegram testen, Nachholwege für verpasste Termine,
+    Sonntagsbericht, Simulation alle 4 Wochen, zuletzt Trigger vor der Vorlesung.
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
