@@ -36,13 +36,13 @@ class LernFehler(Exception):
     pass
 
 
-def _lies_json(pfad: Path, leer):
+def lies_json(pfad: Path, leer):
     if not pfad.exists():
         return leer
     return json.loads(pfad.read_text(encoding="utf-8"))
 
 
-def _schreibe_json(pfad: Path, daten) -> None:
+def schreibe_json(pfad: Path, daten) -> None:
     tmp = pfad.with_suffix(pfad.suffix + ".tmp")
     tmp.write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
     os.replace(tmp, pfad)
@@ -51,9 +51,9 @@ def _schreibe_json(pfad: Path, daten) -> None:
 class Modul:
     def __init__(self, ordner: Path):
         self.ordner = Path(ordner)
-        self.karten = {k["id"]: k for k in _lies_json(self.ordner / "karten.json", [])}
-        self.zustand = {i: fsrs.Card.from_dict(c) for i, c in _lies_json(self.ordner / "zustand.json", {}).items()}
-        plan = _lies_json(self.ordner / "pruefungsplan.json", {"themen": []})
+        self.karten = {k["id"]: k for k in lies_json(self.ordner / "karten.json", [])}
+        self.zustand = {i: fsrs.Card.from_dict(c) for i, c in lies_json(self.ordner / "zustand.json", {}).items()}
+        plan = lies_json(self.ordner / "pruefungsplan.json", {"themen": []})
         self.themen = {t["id"]: t for t in plan["themen"]}
         verlauf = self.ordner / "verlauf.jsonl"
         self.verlauf = [json.loads(z) for z in verlauf.read_text(encoding="utf-8").splitlines() if z.strip()] \
@@ -76,7 +76,7 @@ class Modul:
         eintrag = {"zeit": jetzt.isoformat(), "karte": karte_id, "thema": self.karten[karte_id]["thema"],
                    "bewertung": bewertung}
         self.verlauf.append(eintrag)
-        _schreibe_json(self.ordner / "zustand.json", {i: c.to_dict() for i, c in self.zustand.items()})
+        schreibe_json(self.ordner / "zustand.json", {i: c.to_dict() for i, c in self.zustand.items()})
         with open(self.ordner / "verlauf.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(eintrag, ensure_ascii=False) + "\n")
         return karte.due
