@@ -52,6 +52,15 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    uni (17.10.): legt für a["dateien"] vorab <datei>.txt an (kurse.textfassung) und übernimmt
    "Transkript <Kurs>"-Aufträge als Vorlesungstranskript.
 4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
+5. Bedarf aus uni (20.10., Umbau zum Lernsystem, Pilot Holzschutz/Sanierung):
+   - agentkit.kalender: Jans Apple-Kalender lesend über öffentliche iCloud-Links, KALENDER_ICS_URLS in
+     shared/.env (Komma-getrennt; eingetragen und abrufbar, HTTP 200, 311 Termine, 22 mit RRULE).
+     Gebraucht: Termine in einem Zeitraum, mit Wiederholungen und Zeitzone, ohne Netz testbar.
+     Uni-Termine stehen als Einzeltermine, Kursname in SUMMARY, Raum in LOCATION.
+   - Zentrale: Meldungen mit Knöpfen (z. B. [Hingehen] [Nicht], [0] [5] [15 min], [Antwort zeigen],
+     [Nochmal] [Schwer] [Gut] [Leicht]); ein Klick geht als Antwort an den Agenten zurück.
+   - Zentrale: nach Klick bzw. Antwort auf eine Lern-Meldung uni-lernen.service starten (neuer
+     User-Dienst des Agenten uni, schnell, ohne Moodle-Abgleich), nicht uni.service.
 
 ## Gelernte Regeln
 - (noch keine)
