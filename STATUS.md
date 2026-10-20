@@ -2,11 +2,11 @@
 
 Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konventionen: CLAUDE.md.
 
-## Stand (16.10.2026)
+## Stand (20.10.2026)
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
   Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
 - agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
-  meldungen, regeln, verbrauch, claude_lauf, textfassung. Doku steht jeweils oben im Modul.
+  meldungen, regeln, verbrauch, claude_lauf, textfassung, kalender. Doku steht jeweils oben im Modul.
   Einbindung per .pth in jede Agent-.venv:
   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
 - Freigabe: Fingerabdruck des Entwurfs muss zur Telegram-Anzeige passen, Ausführung genau einmal
@@ -18,6 +18,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Antwort auf eine Auftragsmeldung = neuer Auftrag in derselben Claude-Sitzung, /pc und /weiter.
   Dateien und Fotos (bis 20 MB), wartende Dateien hängen am nächsten Auftrag, /verwerfen.
   Startet nach Auftrag oder Freigabe sofort <agent>.service.
+  Meldungen mit Knöpfen (meldungen.melden(..., knoepfe=[["Gut", "Schwer"]], dienst="uni-lernen")):
+  Klick (einmal je Meldung) oder Text-Antwort wird ein Auftrag mit quelle knopf/antwort, Feld meldung
+  und dienst; danach startet <dienst>.service. auftraege.neue(agent, dienst=None) = nur Aufträge ohne
+  Dienst, dienst="uni-lernen" = nur diese, ohne Angabe alle. Noch nicht über Telegram von Hand getestet.
   Nach Änderung an zentrale.py oder der Dienstvorlage: Vorlage nach ~/.config/systemd/user/ kopieren
   (falls geändert), `systemctl --user daemon-reload`, `systemctl --user restart agentenzentrale`.
 - claude-Läufe ("Claude denkt, Python handelt"): ohne Bash und MCP, Schreiben nur im Agent-Ordner,
@@ -28,6 +32,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Einschränkung: Auslastung wird nur bei Agenten-Läufen aktualisiert.
 - Qualität: `./pruefen.sh` (Tests aller Ordner, Linter ruff aus .venv im Hauptordner, Regeln in ruff.toml).
   Git-Hook githooks/pre-commit bricht Commits ab, wenn nicht grün (core.hooksPath = githooks).
+- agentkit.kalender (20.10.): termine(von, bis) aus KALENDER_ICS_URLS, nur Bordmittel (zoneinfo,
+  DAILY/WEEKLY/MONTHLY/YEARLY, EXDATE, RECURRENCE-ID). Mit Jans Kalender getestet: 395 Termine,
+  keine Warnung, Woche ab 19.10. stimmt. Umlaute fehlen teils schon in den iCloud-Daten ("Link ber").
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 - Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
 
@@ -52,15 +59,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    uni (17.10.): legt für a["dateien"] vorab <datei>.txt an (kurse.textfassung) und übernimmt
    "Transkript <Kurs>"-Aufträge als Vorlesungstranskript.
 4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
-5. Bedarf aus uni (20.10., Umbau zum Lernsystem, Pilot Holzschutz/Sanierung):
-   - agentkit.kalender: Jans Apple-Kalender lesend über öffentliche iCloud-Links, KALENDER_ICS_URLS in
-     shared/.env (Komma-getrennt; eingetragen und abrufbar, HTTP 200, 311 Termine, 22 mit RRULE).
-     Gebraucht: Termine in einem Zeitraum, mit Wiederholungen und Zeitzone, ohne Netz testbar.
-     Uni-Termine stehen als Einzeltermine, Kursname in SUMMARY, Raum in LOCATION.
-   - Zentrale: Meldungen mit Knöpfen (z. B. [Hingehen] [Nicht], [0] [5] [15 min], [Antwort zeigen],
-     [Nochmal] [Schwer] [Gut] [Leicht]); ein Klick geht als Antwort an den Agenten zurück.
-   - Zentrale: nach Klick bzw. Antwort auf eine Lern-Meldung uni-lernen.service starten (neuer
-     User-Dienst des Agenten uni, schnell, ohne Moodle-Abgleich), nicht uni.service.
+5. Bedarf aus uni (Lernsystem): erledigt 20.10. (kalender, Knöpfe, Start von <dienst>.service).
+   Übergabe in uni/STATUS.md. Offen: Handtest der Knöpfe über Telegram, sobald uni die erste
+   Meldung mit Knöpfen schickt.
 
 ## Gelernte Regeln
 - (noch keine)

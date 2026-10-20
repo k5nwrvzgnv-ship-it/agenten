@@ -95,6 +95,17 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Nächste Schritte: Karten + Lernermodell (FSRS) + tägliche Abfrage, Nachholwege für verpasste
     Termine, Sonntagsbericht, Simulation alle 4 Wochen, zuletzt Trigger vor der Vorlesung.
 
+## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
+- agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
+  Zone Europe/Berlin, nach Beginn sortiert. Fehler beim Abruf: KalenderFehler (nennt nur "Kalender N").
+- meldungen.melden(AGENT, text, knoepfe=[["Gut", "Schwer"]], dienst="uni-lernen"): Klick oder Text-Antwort
+  wird Auftrag (quelle "knopf"/"antwort", text = Beschriftung bzw. Antwort, Felder meldung und dienst),
+  die Zentrale startet danach uni-lernen.service. Pro Meldung zählt nur ein Klick.
+- WICHTIG vor der ersten Meldung mit dienst: agent.py muss auftraege.neue(AGENT, dienst=None) holen,
+  sonst bearbeitet uni.service auch die Aufträge für uni-lernen. uni-lernen holt
+  auftraege.neue(AGENT, dienst="uni-lernen").
+- Ohne uni-lernen.service warten die Klick-Aufträge in shared/auftraege/neu/ (Zentrale loggt das).
+
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)
 Fertig und getestet in shared/ (nicht hier ändern, Änderungen an shared/ im Chat im Hauptordner):
 - agentkit: config, log, freigabe (inkl. Ausführung nach Freigabe), auftraege (inkl. modus), regeln,
