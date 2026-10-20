@@ -62,6 +62,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 5. Bedarf aus uni (Lernsystem): erledigt 20.10. (kalender, Knöpfe, Start von <dienst>.service).
    Übergabe in uni/STATUS.md. Offen: Handtest der Knöpfe über Telegram, sobald uni die erste
    Meldung mit Knöpfen schickt.
+6. Bedarf aus uni (20.10., vor dem Start von uni-lernen nötig): Die Zentrale meldet jeden erledigten
+   Auftrag ("Auftrag erledigt (uni): ..."). Aufträge aus Klick oder Antwort auf eine Meldung (Feld
+   meldung gesetzt) bitte still abschließen, sonst kommt nach jedem Knopfdruck der Lernabfrage eine
+   zusätzliche Nachricht; der Agent antwortet dort selbst mit einer neuen Meldung.
+   Fehlgeschlagene solche Aufträge weiter melden. uni-lernen schließt sie mit status "erledigt" ab.
 
 ## Gelernte Regeln
 - (noch keine)
