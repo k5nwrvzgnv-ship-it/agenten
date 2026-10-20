@@ -1,0 +1,12 @@
+# Agent uni: tägliche Abfrage fälliger Karten über Telegram (lernen.py), ohne Claude.
+# Startet per Timer alle 15 Minuten und nach jedem Klick (die Zentrale startet den Dienst).
+# Einrichten: nach ~/.config/systemd/user/ kopieren (siehe STATUS.md).
+[Unit]
+Description=Agent uni: Lernabfrage
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/uni
+ExecStart=/home/agent/agenten/uni/.venv/bin/python lernen.py
+TimeoutStartSec=5min
+MemoryMax=500M

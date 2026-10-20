@@ -1,0 +1,10 @@
+# Aktivieren: systemctl --user enable --now uni-lernen.timer
+[Unit]
+Description=Lernabfrage für Agent uni alle 15 Minuten
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=false
+
+[Install]
+WantedBy=timers.target
