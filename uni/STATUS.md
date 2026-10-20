@@ -101,9 +101,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - meldungen.melden(AGENT, text, knoepfe=[["Gut", "Schwer"]], dienst="uni-lernen"): Klick oder Text-Antwort
   wird Auftrag (quelle "knopf"/"antwort", text = Beschriftung bzw. Antwort, Felder meldung und dienst),
   die Zentrale startet danach uni-lernen.service. Pro Meldung zählt nur ein Klick.
-- WICHTIG vor der ersten Meldung mit dienst: agent.py muss auftraege.neue(AGENT, dienst=None) holen,
-  sonst bearbeitet uni.service auch die Aufträge für uni-lernen. uni-lernen holt
-  auftraege.neue(AGENT, dienst="uni-lernen").
+- Erledigt 20.10.: agent.py holt auftraege.neue(AGENT, dienst=None) (Test in tests/test_agent.py).
+  uni-lernen muss auftraege.neue(AGENT, dienst="uni-lernen") holen.
 - Ohne uni-lernen.service warten die Klick-Aufträge in shared/auftraege/neu/ (Zentrale loggt das).
 
 ## Start im neuen Chat (Übergabe aus dem Hauptordner, 16.10.2026)

@@ -216,7 +216,7 @@ def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
 
 
 def auftraege_abarbeiten() -> None:
-    for a in auftraege.neue(AGENT):
+    for a in auftraege.neue(AGENT, dienst=None):  # Aufträge mit Dienst (uni-lernen) holt der andere Dienst
         for datei in a.get("dateien") or []:  # Word, PowerPoint, Excel kann Claude nur als Textfassung lesen
             kurse.textfassung(HIER / datei, erneuern=False)
         if transkripte.ist_transkript(a["text"]) and not a.get("sitzung"):

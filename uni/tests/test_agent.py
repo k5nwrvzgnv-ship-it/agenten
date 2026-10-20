@@ -1,6 +1,14 @@
 import unittest
+from unittest import mock
 
 import agent
+
+
+class TestAuftraege(unittest.TestCase):
+    def test_nur_auftraege_ohne_dienst(self):
+        with mock.patch.object(agent.auftraege, "neue", return_value=[]) as neue:
+            agent.auftraege_abarbeiten()
+        neue.assert_called_once_with(agent.AGENT, dienst=None)
 
 
 class TestUrsprung(unittest.TestCase):
