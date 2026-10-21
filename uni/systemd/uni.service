@@ -1,0 +1,14 @@
+# Vorlage: nach ~/.config/systemd/user/uni.service kopieren, uni ersetzen.
+# Startet einen Lauf: offene Aufträge abarbeiten, freigegebene Entwürfe ausführen,
+# zeitgesteuerte Aufgaben. Die Zentrale startet den Dienst nach jedem neuen Auftrag.
+[Unit]
+Description=Agent uni
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/uni
+ExecStart=/home/agent/agenten/uni/.venv/bin/python agent.py
+TimeoutStartSec=45min
+MemoryMax=1G
