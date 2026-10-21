@@ -33,6 +33,13 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
     material D9F2D0.
   - Bewusst anders als bei Lia: Hilfen stehen nach den Aufgaben ihrer Gruppe, nicht fest am Seitenende;
     Ankreuz-Optionen eingerückt; erste Spalte der Ausfülltabelle so breit wie die anderen.
+- Schritt C (Icons) fertig: `icons.py` (`zeichnen(name, ziel, farbe, gefuellt, px)` -> PNG, transparent, mittig;
+  `NAMEN`, `ICONS`). 55 deutsche Namen (achtung bis zitat, ohne Umlaute), je Tabler-Name und Zeichencode für Umriss
+  und, falls vorhanden, gefüllt. Schriften Tabler Icons 3.49.0 (MIT) in `icons/` mit `LICENSE-tabler-icons.txt`,
+  zusammen etwa 2 MB, aus npm @tabler/icons-webfont über jsDelivr, Prüfsummen verglichen. Pillow mit einfachem
+  Textsatz (`Layout.BASIC`), raqm scheitert an Zeichen aus dem Unicode-Privatbereich. Übersicht in
+  `data/icons/uebersicht.png` (nicht im Repo). Abweichungen zu Lias Folien: kein reiner Handschlag (Tabler hat nur
+  heart-handshake), Zeigefinger und Paket nur als Umriss. Neue Icons: Anleitung oben in icons.py.
 - Schritt A (Vorschau) fertig: `vorschau.py` (`vorschau(datei, ordner)` -> PNG je Seite, `als_pdf`, `als_bilder`,
   `VorschauFehler`). LibreOffice 24.2 aus apt (`libreoffice-writer-nogui`, `libreoffice-impress-nogui`,
   `fonts-crosextra-carlito`, von Jan als root installiert, 21.10.), `/usr/bin/soffice`, etwa 5 s je Umwandlung.
@@ -129,7 +136,7 @@ Vorbilder liegen in `data/lia-vorbilder/` (nicht im Repo): `arbeitsblatt-5.2.pdf
    - B. (erledigt) Arbeitsblatt in Lias Stil: Kopf-Tabelle, Merksatz, Material, Arbeitsanweisung, Aufgaben mit Antwortarten
      linien/kasten/ankreuzen/satzanfaenge/keine und Hilfen am Seitenende, Querformat-Seite mit Ausfülltabelle.
      Format darf umgebaut werden. Prüfen: Lias AB 5.2 nachbauen, Vorschau mit dem Original vergleichen.
-   - C. Icons: Tabler Icons (MIT) als Schrift, Pillow zeichnet PNG in jeder Farbe, feste deutsche Namensliste.
+   - C. (erledigt) Icons: Tabler Icons (MIT) als Schrift, Pillow zeichnet PNG in jeder Farbe, feste deutsche Namensliste.
    - D. Folien in Lias Stil (siehe „Lias Design“), Lias Präsentation 5 nachbauen und vergleichen.
    - E. Vorlagen, Textfassung, Beispiele, Doku (alte Schritte 5 und 6).
    - Design-Profil (Farben, Schriften, Fach, Lehrkraft) gibt der Agent mit, der Renderer enthält keine Daten von Lia.
