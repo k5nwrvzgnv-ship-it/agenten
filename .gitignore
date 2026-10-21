@@ -45,3 +45,10 @@ shared/meldungen/
 
 # Stand der Ausfallmeldungen (agentkit.ausfall)
 shared/ausfall/
+
+# Lias Instanz (AGENTKIT_INSTANZ=lia/shared): Warteschlangen, Verbrauch, Ausfallstand
+lia/shared/freigabe/
+lia/shared/auftraege/
+lia/shared/meldungen/
+lia/shared/verbrauch/
+lia/shared/ausfall/
