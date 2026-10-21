@@ -1,36 +1,83 @@
 # Agenten
 
-Persönliches Agenten-System von Jan. Regeln: siehe CLAUDE.md. Aktueller Stand: siehe STATUS.md.
+Persönliches Agenten-System von Jan, dazu eine eigene Instanz für Lia.
+Regeln: CLAUDE.md. Aktueller Stand: STATUS.md.
 
-| Ordner | Agent | Aufgabe |
+## Wo liegt was
+
+```
+/home/agent/
+├── agenten/                 dieses Repo, das Agenten-System
+│   ├── CLAUDE.md            Regeln für alle Chats
+│   ├── STATUS.md            Stand des Gesamtsystems
+│   ├── pruefen.sh           alle Tests und Linter (läuft vor jedem Commit)
+│   ├── docs/                Architektur (lia-architektur.md) und Übergaben
+│   │
+│   ├── shared/              gemeinsamer Code UND Jans Daten
+│   │   ├── agentkit/        Code: Bibliothek für alle Agenten (Warteschlangen, claude-Läufe, Verbrauch …)
+│   │   ├── telegram/        Code: Jans Zentrale (zentrale.py) und Lias Zentrale (portal.py)
+│   │   ├── renderer/        Code: Dateien aus JSON bauen (docx, pptx), noch im Aufbau
+│   │   ├── vorlagen/        Gerüst für neue Agenten
+│   │   ├── systemd/         Dienst ausfall@ (meldet Ausfälle an Jan)
+│   │   ├── auftraege/ freigabe/ meldungen/ ausfall/   Jans Warteschlangen (nicht im Repo)
+│   │   ├── verbrauch/       Verbrauch und Plätze, gemeinsam für Jan und Lia (ein Claude-Konto)
+│   │   ├── einstellungen.toml   Limits, Stufen, Modelle, Werkzeuge (gilt für beide)
+│   │   ├── regeln.md        Jans allgemeine Regeln
+│   │   └── .env             Jans Bot-Token, Chat-ID, Kauflimit (nicht im Repo)
+│   │
+│   ├── uni/                 Jans Agent uni (läuft)
+│   ├── dokumente/           Jans Agent dokumente (Gerüst, noch kein agent.py)
+│   │
+│   └── lia/                 Lias Instanz
+│       ├── instanz/         Lias Daten: .env, Warteschlangen, Regeln, Daten ihrer Zentrale
+│       └── unterricht/      Lias Agent unterricht (Platzhalter, antwortet „kommt bald“)
+│
+├── agents/vinted/           alter Vinted-Bot, gehört NICHT zum System (nicht anfassen)
+└── .config/systemd/user/    die laufenden Dienste (Kopien der Vorlagen aus dem Repo)
+```
+
+Geplant, noch ohne Ordner: posteingang (Mails) und einkauf (Recherche mit Preisen).
+Der Ordner entsteht mit dem Agenten.
+
+## Jeder Agent-Ordner hat denselben Aufbau
+| Teil | Inhalt |
+|---|---|
+| `agent.py` | Einstieg |
+| `STATUS.md` | Stand des Agenten, Übergabe an den nächsten Chat |
+| `systemd/` | Vorlagen der Dienste. Zum Einrichten nach `~/.config/systemd/user/` kopieren |
+| `tests/` | Tests, in `pruefen.sh` eingetragen |
+| `.venv/` | eigene Python-Umgebung, agentkit per .pth eingebunden |
+| `.env` | Zugangsdaten (chmod 600, nicht im Repo) |
+| `data/`, `logs/` | Laufzeitdaten und Logs (nicht im Repo) |
+
+## Dienste (`systemctl --user …`)
+| Dienst | Was | Vorlage |
 |---|---|---|
-| uni/ | uni | Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions |
-| dokumente/ | dokumente | Anträge, Berichte, PowerPoints, Tabellen erstellen |
-| posteingang/ | posteingang | E-Mails lesen, sortieren, Antwortentwürfe |
-| einkauf/ | einkauf | Geschenke und Bedarf recherchieren, Vorschläge mit Preisen |
-| shared/ | – | agentkit (gemeinsamer Code), Telegram-Zentrale, Warteschlangen, Regeln, Einstellungen, Vorlagen |
+| `agentenzentrale` | Jans Telegram-Bot @Agentenzentralebot | `shared/telegram/systemd/` |
+| `lia-zentrale` | Lias Telegram-Bot @zentraleliabot | `shared/telegram/systemd/` |
+| `uni` + `uni.timer` | Agent uni, 8/13/19 Uhr und nach Aufträgen | `uni/systemd/` |
+| `uni-transkript` + Timer | Vorlesungen transkribieren | `uni/systemd/` |
+| `lia-unterricht` | Lias Platzhalter, startet nach Aufträgen | `lia/unterricht/systemd/` |
+| `ausfall@` | Meldung an Jan, wenn ein Dienst ausfällt | `shared/systemd/` |
+| `vinted-bot` | alter Vinted-Bot, nicht Teil des Systems | – |
 
-## Bedienung über Telegram (@Agentenzentralebot)
-- `/uni <Auftrag>` erledigen, `/unilern <Auftrag>` gemeinsam lernen (ebenso dokumente, posteingang, einkauf)
-- `/status` Überblick, `/verbrauch` Auslastung des Claude-Kontingents, `/hilfe`
-- Entwürfe kommen mit Knöpfen Freigeben / Ablehnen / Ändern. Nach Freigabe handelt der Agent selbst.
-- Dateien und Fotos (bis 20 MB) schicken: mit `/uni <Auftrag>` als Bildunterschrift gehen sie sofort an
-  den Auftrag, ohne Befehl warten sie und hängen am nächsten Auftrag. `/verwerfen` löscht wartende Dateien.
+Status: `systemctl --user status <dienst>`. Logs: `journalctl --user -u <dienst>` oder `<ordner>/logs/`.
+Nach Änderung einer Vorlage: Vorlage kopieren, dann `systemctl --user daemon-reload`, dann `systemctl --user restart <dienst>`.
 
-## Wichtige Dateien
-- `CLAUDE.md`: Regeln für alle Chats. `STATUS.md`: Stand des Gesamtsystems.
-- `shared/einstellungen.toml`: änderbare Werte (Limits, Stufen, Modelle, Werkzeuge).
-- `shared/.env`: Bot-Token, Chat-ID, Kauflimit (chmod 600, nicht im Repo).
-- `shared/vorlagen/`: Vorlagen für neue Agenten.
-
-## Dienste
-- `systemctl --user status agentenzentrale`, Logs: `journalctl --user -u agentenzentrale` oder shared/telegram/logs/
-- Prüfen: `./pruefen.sh` (alle Tests und Linter ruff). Läuft vor jedem Commit automatisch
-  (githooks/pre-commit). Nach neuem Klonen einmal: `git config core.hooksPath githooks` und
-  `python3 -m venv .venv && .venv/bin/pip install -r requirements-werkzeuge.txt`.
+## Bedienung über Telegram
+- **Jan (@Agentenzentralebot):**
+  - `/start` oder `/menue` öffnet das Menü mit Knöpfen.
+  - Befehle gehen weiterhin: `/uni <Auftrag>`, `/unilern <Auftrag>`, `/status`, `/verbrauch`, `/hilfe`.
+  - Entwürfe kommen mit Freigeben / Ablehnen / Ändern.
+- **Lia (@zentraleliabot):** nur Knöpfe (Neues Material, Meine Woche, Frage stellen, Meine Anfragen, Hilfe).
 
 ## Arbeiten mit Claude Code
-- Pro Agent ein VS-Code-Fenster im Agent-Ordner öffnen und dort den Chat führen (`/rename <agent>`).
-- Struktur und shared/ im Hauptordner bearbeiten.
-- Am Ende jeder Sitzung STATUS.md aktualisieren und committen lassen.
-- Alte Chats: `/resume`. Neu anfangen: `/clear`. Das Wissen steht in den Dateien, nicht im Chat.
+- **Ein Chat pro Ordner**, gestartet im Ordner auf dem Server (SSH-Verbindung `agents-user`, User agent):
+  - `~/agenten` für Struktur und shared/
+  - `~/agenten/shared/renderer` für den Renderer
+  - `~/agenten/<agent>` bzw. `~/agenten/lia/<agent>` je Agent
+- Ein Chat ändert nur seinen Ordner. Bedarf anderswo schreibt er in die STATUS.md des Hauptordners.
+- Das Wissen steht in den STATUS.md-Dateien, nicht im Chat. Für jede neue Aufgabe darf ein frischer Chat starten.
+
+## Nach neuem Klonen einmal
+`git config core.hooksPath githooks` und `python3 -m venv .venv && .venv/bin/pip install -r requirements-werkzeuge.txt`
