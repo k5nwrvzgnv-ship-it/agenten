@@ -40,9 +40,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Lias Instanz (21.10.): eigener Ordner lia/ unter User agent, kein eigener Linux-User.
   agentkit wählt die Instanz über AGENTKIT_INSTANZ=<instanz>/shared (ohne Variable unverändert Jans).
   lia/shared/: .env (Token @zentraleliabot, Lias Chat-ID), Warteschlangen, regeln.md.
-  Dienst lia-zentrale (shared/telegram/portal.py, eigene Logik portal_logik.py): Menü-Nachricht mit
-  Knöpfen Neues Material / Meine Woche / Frage stellen, Bestätigen vor dem Abschicken, keine Befehle,
-  keine Dateien, Linkvorschau aus, Log ohne Inhalte. Daten und Log in lia/shared/zentrale/.
+  Dienst lia-zentrale (shared/telegram/portal.py, Ansichten in portal_logik.py): eine Menü-Nachricht
+  (Panel), die beim Tippen bearbeitet wird: Neues Material, Meine Woche, Frage stellen, Meine Anfragen,
+  Hilfe, Aktualisieren, Zurück. Freitext wird eingeordnet (Material/Frage), Grüße zeigen das Menü.
+  Ergebnisse mit Bezug zur Anfrage und Knopf "Menü". Keine Befehle, keine Dateien, Linkvorschau aus,
+  Log ohne Inhalte. Daten und Log in lia/shared/zentrale/.
+- Menü-Nachricht auch in Jans Zentrale (21.10.): /start oder /menue zeigt das Panel (shared/telegram/
+  panel.py, Ansichten in logik.py): Agent antippen (Modus umschaltbar), nächste Nachricht = Auftrag;
+  Entwürfe (erneut anzeigen), Verbrauch, Status, Hilfe. /hilfe zeigt die Befehle, alle Befehle wie bisher.
+  Agent-Auswahl (Panel und Text ohne Befehl) nur für Agenten mit <agent>.service, heute nur uni.
+  Panel-ID liegt nur im Speicher: nach Neustart erst wieder nach /start.
   Platzhalter lia/unterricht (Dienst lia-unterricht) antwortet "kommt bald", ohne Claude.
   Ausfälle beider Dienste melden sich bei Jan (ausfall@). zentrale.py und logik.py unverändert.
 - Ausfallmeldung (21.10.): Jede Unit trägt OnFailure=ausfall@%n.service (Vorlage
@@ -90,8 +97,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Konto, siehe Abschnitt 0); agentkit als Paket erst beim Umzug zu einem User lia.
    Gebaut: Lias Zentrale und Platzhalter unterricht (siehe Stand).
    Offen:
-   - Handtest: Lia tippt alle drei Knöpfe, schickt einmal Freitext, bekommt "kommt bald".
-     Jan prüft /status in seiner Zentrale (Code dort unverändert).
+   - Handtest: Lia tippt alle Knöpfe, schickt Freitext und einen Gruß, bekommt "kommt bald".
+     Jan: /start, Agent uni antippen, Auftrag schreiben, Verbrauch/Status/Entwürfe ansehen.
    - Nächster Schritt: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
      Verbrauch und Plätze gemeinsam mit Jans Instanz (gleiches Konto), "Jan" in
      claude_lauf.GRUNDREGEL und in auftraege ("Angehängte Dateien von Jan") je Instanz.
