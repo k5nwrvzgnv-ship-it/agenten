@@ -1,5 +1,8 @@
 """Telegram-Zentrale: einziger Kontakt zwischen Jan und den Agenten.
 
+- /start oder /menue: Menü-Nachricht mit Knöpfen (Agenten, Entwürfe, Verbrauch, Status, Hilfe),
+  die sich beim Tippen ändert (panel.py, Ansichten in logik.py). Agent antippen, dann ist die
+  nächste Nachricht der Auftrag. Alle Befehle bleiben nutzbar.
 - Reagiert nur auf Jans Chat-ID (TELEGRAM_CHAT_ID).
 - Zeigt neue Entwürfe aus shared/freigabe/offen/ mit Knöpfen an.
 - /uni ..., /unilern ... usw. werden zu Aufträgen in shared/auftraege/neu/.
@@ -41,14 +44,20 @@ from logik import (
     STUFEN_TEXT,
     Eingang,
     Gemeldet,
+    ansicht_agent,
+    ansicht_entwuerfe,
+    ansicht_home,
+    ansicht_text,
     aufteilen,
     befehl_auswerten,
     entwurf_als_text,
     knopf_auswerten,
     knopf_beschriftung,
     meldung_knoepfe,
+    panel_auswerten,
     verbrauch_text,
 )
+import panel
 
 HIER = Path(__file__).resolve().parent
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
@@ -65,7 +74,7 @@ gemeldet = Gemeldet(HIER / "data" / "gemeldet.json")
 eingang = Eingang(HIER / "data" / "eingang")
 
 HILFE = (
-    "Befehle:\n"
+    "Menü mit Knöpfen: /start oder /menue\n\nBefehle:\n"
     + "\n".join(f"/{a} <Auftrag>  (erledigen)\n/{a}lern <Auftrag>  (gemeinsam lernen)" for a in AGENTEN)
     + "\nAuf eine Meldung antworten: Der Agent macht in derselben Sitzung weiter "
     "(bei Meldungen mit Knöpfen geht die Antwort statt eines Klicks an den Agenten).\n"
@@ -126,6 +135,72 @@ async def agent_starten(agent: str, dienst: str | None = None) -> None:
         logger.info("%s.service gestartet", dienst)
 
 
+def agenten_mit_dienst() -> list[str]:
+    """Nur Agenten, die einen Dienst haben, bekommen Knöpfe (sonst bliebe der Auftrag still liegen)."""
+    return [a for a in AGENTEN if (UNIT_DIR / f"{a}.service").exists()] or list(AGENTEN)
+
+
+# ---------- Menü-Nachricht (Panel) ----------
+
+def status_zeilen() -> list[str]:
+    return [
+        f"Offene Entwürfe: {len(freigabe.offene())}",
+        f"Warten auf Ausführung: {len(freigabe.zur_ausfuehrung())}",
+        f"Unklare Ausführungen: {len(freigabe.unklare())}",
+        f"Offene Aufträge: {len(auftraege.neue())}",
+        f"Sitzungen am PC: {len(gemeldet.listen['am_pc'])}",
+        f"Wartende Dateien: {len(eingang.wartende())}",
+    ]
+
+
+def home(hinweis: str = "") -> tuple[str, list]:
+    stand, stufe = aktuelle_stufe()
+    auslastung = f"  |  5h {stand.get('5h', 0) * 100:.0f} %  7d {stand.get('7d', 0) * 100:.0f} %" if stand else ""
+    entwuerfe = len(freigabe.offene())
+    zeilen = [f"Stufe: {stufe}{auslastung}", f"Entwürfe: {entwuerfe}  |  Aufträge offen: {len(auftraege.neue())}"]
+    if wartend := len(eingang.wartende()):
+        zeilen.append(f"Wartende Dateien: {wartend}")
+    return ansicht_home(zeilen, agenten_mit_dienst(), entwuerfe, hinweis)
+
+
+async def panel_zeigen(bot, chat_data: dict, ansicht: tuple[str, list], neu: bool = False) -> None:
+    await panel.zeigen(bot, JAN, chat_data, *ansicht, neu=neu)
+
+
+async def panel_knopf(q, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await q.answer()
+    z = context.chat_data
+    z["panel"] = q.message.message_id  # die angetippte Nachricht ist das Panel
+    ausgewertet = panel_auswerten(q.data)
+    neu = False
+    if ausgewertet is None:
+        z.pop("panel_agent", None)
+        await panel_zeigen(context.bot, z, home("Dieser Knopf ist nicht mehr aktuell."))
+        return
+    aktion, agent, modus = ausgewertet
+    z.pop("panel_agent", None)
+    if aktion == "agent":
+        z["panel_agent"] = (agent, modus)  # die nächste Nachricht ist der Auftrag
+        ansicht = ansicht_agent(agent, modus)
+    elif aktion == "entwuerfe":
+        ansicht = ansicht_entwuerfe(freigabe.offene())
+    elif aktion == "zeigen":
+        for e in freigabe.offene():
+            await entwurf_zeigen(context.bot, e)
+        gemeldet.speichern()
+        ansicht, neu = home("Die offenen Entwürfe stehen oben."), True
+    elif aktion == "verbrauch":
+        stand, stufe = aktuelle_stufe()
+        ansicht = ansicht_text("Verbrauch", verbrauch_text(stand, stufe, verbrauch.heute(), verbrauch.zeit_text))
+    elif aktion == "status":
+        ansicht = ansicht_text("Status", "\n".join(status_zeilen()))
+    elif aktion == "hilfe":
+        ansicht = ansicht_text("Hilfe", HILFE)
+    else:  # home, neu
+        ansicht = home()
+    await panel_zeigen(context.bot, z, ansicht, neu=neu)
+
+
 # ---------- Eingang: Nachrichten von Jan ----------
 
 async def fremd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -135,19 +210,17 @@ async def fremd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/start, /menue: Menü-Nachricht unten im Chat."""
+    context.chat_data.pop("panel_agent", None)
+    await panel_zeigen(context.bot, context.chat_data, home(), neu=True)
+
+
+async def hilfe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Agentenzentrale läuft.\n\n" + HILFE)
 
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    zeilen = [
-        f"Offene Entwürfe: {len(freigabe.offene())}",
-        f"Warten auf Ausführung: {len(freigabe.zur_ausfuehrung())}",
-        f"Unklare Ausführungen: {len(freigabe.unklare())}",
-        f"Offene Aufträge: {len(auftraege.neue())}",
-        f"Sitzungen am PC: {len(gemeldet.listen['am_pc'])}",
-        f"Wartende Dateien: {len(eingang.wartende())}",
-    ]
-    await update.message.reply_text("\n".join(zeilen))
+    await update.message.reply_text("\n".join(status_zeilen()))
 
 
 def aktuelle_stufe() -> tuple[dict | None, str]:
@@ -279,13 +352,21 @@ async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if aendern_id:
         await aenderung_eintragen(update, aendern_id, text)
         return
+    # Im Menü einen Agenten gewählt? Dann ist dieser Text der Auftrag.
+    ziel = context.chat_data.pop("panel_agent", None)
+    if ziel:
+        agent, modus = ziel
+        if await auftrag_anlegen(context.bot, agent, modus, text, bestaetigen=False):
+            await panel_zeigen(context.bot, context.chat_data,
+                               home(f"Auftrag an {agent} ({modus}) weitergegeben."), neu=True)
+        return
     await agent_fragen(context.bot, context.chat_data, text)
 
 
 async def agent_fragen(bot, chat_data: dict, text: str) -> None:
     chat_data["wartender_text"] = text
     knoepfe = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(a, callback_data=f"z:{a}")] for a in AGENTEN]
+        [[InlineKeyboardButton(a, callback_data=f"z:{a}")] for a in agenten_mit_dienst()]
         + [[InlineKeyboardButton("Verwerfen", callback_data="z:-")]]
     )
     await bot.send_message(JAN, "An welchen Agenten geht das? (Modus: erledigen)", reply_markup=knoepfe)
@@ -384,6 +465,10 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     art, _, wert = q.data.partition(":")
 
+    if art == "u":  # Menü-Nachricht
+        await panel_knopf(q, context)
+        return
+
     if art == "m":  # Knopf unter einer Meldung
         await meldung_knopf(q, context)
         return
@@ -467,20 +552,25 @@ def knopf_leiste(m: dict) -> InlineKeyboardMarkup | None:
 
 # ---------- Ausgang: regelmäßige Prüfung ----------
 
+async def entwurf_zeigen(bot, e: dict) -> None:
+    """Entwurf mit Knöpfen senden und merken, welcher Stand gezeigt wurde (Fingerabdruck)."""
+    knoepfe = InlineKeyboardMarkup([[
+        InlineKeyboardButton("Freigeben", callback_data=f"f:{e['id']}"),
+        InlineKeyboardButton("Ablehnen", callback_data=f"a:{e['id']}"),
+        InlineKeyboardButton("Ändern", callback_data=f"c:{e['id']}"),
+    ]])
+    for i, stueck in enumerate(stuecke := entwurf_als_text(e)):
+        await bot.send_message(JAN, stueck, reply_markup=knoepfe if i == len(stuecke) - 1 else None)
+    gemeldet.angezeigt[e["id"]] = e["fingerabdruck"]
+
+
 async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
     geaendert = False
 
     for e in freigabe.offene():
         if e["id"] in gemeldet.angezeigt:
             continue
-        knoepfe = InlineKeyboardMarkup([[
-            InlineKeyboardButton("Freigeben", callback_data=f"f:{e['id']}"),
-            InlineKeyboardButton("Ablehnen", callback_data=f"a:{e['id']}"),
-            InlineKeyboardButton("Ändern", callback_data=f"c:{e['id']}"),
-        ]])
-        for i, stueck in enumerate(stuecke := entwurf_als_text(e)):
-            await context.bot.send_message(JAN, stueck, reply_markup=knoepfe if i == len(stuecke) - 1 else None)
-        gemeldet.angezeigt[e["id"]] = e["fingerabdruck"]
+        await entwurf_zeigen(context.bot, e)
         geaendert = True
 
     for e in freigabe.erledigte():
@@ -535,7 +625,8 @@ def main() -> None:
     app = Application.builder().token(cfg["TELEGRAM_BOT_TOKEN"]).build()
     jan = filters.Chat(chat_id=JAN)
     app.add_handler(MessageHandler(~jan, fremd))
-    app.add_handler(CommandHandler(["start", "hilfe"], start, filters=jan))
+    app.add_handler(CommandHandler(["start", "menue", "menu"], start, filters=jan))
+    app.add_handler(CommandHandler("hilfe", hilfe, filters=jan))
     app.add_handler(CommandHandler("status", status, filters=jan))
     app.add_handler(CommandHandler("verbrauch", verbrauch_befehl, filters=jan))
     app.add_handler(CommandHandler("pc", pc, filters=jan))

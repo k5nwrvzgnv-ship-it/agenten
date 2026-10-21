@@ -197,3 +197,54 @@ class Eingang:
         if self.pfad.exists():
             shutil.rmtree(self.pfad)
         return anzahl
+
+
+# ---------- Menü-Nachricht (Panel) der Zentrale ----------
+# Knopf-Daten: u:<aktion> oder u:a:<agent>:<modus> (Agent gewählt, Modus umschalten).
+
+PANEL = "u:"
+PANEL_AKTIONEN = ("home", "neu", "entwuerfe", "zeigen", "verbrauch", "status", "hilfe")
+ZURUECK = [[("« Zurück", PANEL + "home")]]
+
+
+def panel_auswerten(daten: str) -> tuple[str, str | None, str | None] | None:
+    """'u:status' -> ('status', None, None), 'u:a:uni:lernen' -> ('agent', 'uni', 'lernen'), sonst None."""
+    if not daten.startswith(PANEL):
+        return None
+    wert = daten[len(PANEL):]
+    if wert in PANEL_AKTIONEN:
+        return wert, None, None
+    m = re.fullmatch(r"a:([a-z]+):(erledigen|lernen)", wert)
+    if m and m.group(1) in AGENTEN:
+        return "agent", m.group(1), m.group(2)
+    return None
+
+
+def ansicht_home(zeilen: list[str], agenten: list[str], entwuerfe: int, hinweis: str = "") -> tuple[str, list]:
+    """Startansicht: Kurzstand (zeilen), je Agent mit Dienst ein Knopf, darunter Werkzeuge."""
+    text = "\n".join(["Agentenzentrale", "", *zeilen] + (["", hinweis] if hinweis else []))
+    knoepfe = [[(a, f"{PANEL}a:{a}:erledigen") for a in agenten[i:i + 2]] for i in range(0, len(agenten), 2)]
+    knoepfe += [
+        [(f"Entwürfe ({entwuerfe})", PANEL + "entwuerfe"), ("Verbrauch", PANEL + "verbrauch")],
+        [("Status", PANEL + "status"), ("Hilfe", PANEL + "hilfe")],
+        [("↻ Aktualisieren", PANEL + "neu")],
+    ]
+    return text, knoepfe
+
+
+def ansicht_agent(agent: str, modus: str) -> tuple[str, list]:
+    anders = "lernen" if modus == "erledigen" else "erledigen"
+    text = (f"Auftrag an {agent}\nModus: {modus}\n\n"
+            "Schreib den Auftrag als nächste Nachricht. Wartende Dateien hängen daran.")
+    return text, [[(f"Modus wechseln: {anders}", f"{PANEL}a:{agent}:{anders}")], *ZURUECK]
+
+
+def ansicht_entwuerfe(offene: list[dict]) -> tuple[str, list]:
+    if not offene:
+        return "Entwürfe\n\nKeine offenen Entwürfe.", ZURUECK
+    zeilen = ["Entwürfe", ""] + [f"• {e['titel']} ({e['agent']})" for e in offene]
+    return "\n".join(zeilen), [[("Alle mit Knöpfen anzeigen", PANEL + "zeigen")], *ZURUECK]
+
+
+def ansicht_text(titel: str, text: str) -> tuple[str, list]:
+    return aufteilen(f"{titel}\n\n{text}")[0], ZURUECK

@@ -20,8 +20,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
-from telegram.error import BadRequest, TelegramError
+from telegram import LinkPreviewOptions, Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -33,6 +32,7 @@ from telegram.ext import (
 
 from agentkit import auftraege, config, log
 from logik import Gemeldet, aufteilen
+import panel as panel_
 import portal_logik as p
 
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
@@ -49,33 +49,13 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 gemeldet = Gemeldet(DATEN_DIR / "data" / "gemeldet.json")
 
 
-def markup(knoepfe: p.Knoepfe) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[InlineKeyboardButton(t, callback_data=d) for t, d in z] for z in knoepfe])
-
-
 def home(hinweis: str = "") -> tuple[str, p.Knoepfe]:
     return p.ansicht_home(len(auftraege.neue()), len(auftraege.erledigte()), hinweis)
 
 
 async def panel(bot, chat_data: dict, ansicht: tuple[str, p.Knoepfe], neu: bool = False) -> None:
     """Zeigt die Ansicht im Panel. neu=True: altes Panel löschen, neues unten anlegen."""
-    text, knoepfe = ansicht
-    mid = chat_data.get("panel")
-    if mid and not neu:
-        try:
-            await bot.edit_message_text(text, LIA, mid, reply_markup=markup(knoepfe))
-            return
-        except BadRequest as e:
-            if "not modified" in str(e):
-                return
-            logger.info("Panel nicht bearbeitbar (%s), lege neues an", e)
-    if mid:
-        try:
-            await bot.delete_message(LIA, mid)
-        except TelegramError:
-            pass  # zu alt oder schon weg: dann bleibt es eben stehen
-    nachricht = await bot.send_message(LIA, text, reply_markup=markup(knoepfe))
-    chat_data["panel"] = nachricht.message_id
+    await panel_.zeigen(bot, LIA, chat_data, *ansicht, neu=neu)
 
 
 async def agent_starten(agent: str) -> None:
@@ -190,7 +170,7 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
         stuecke = aufteilen(p.ergebnis_text(a))
         for i, stueck in enumerate(stuecke):
             letzte = i == len(stuecke) - 1
-            await context.bot.send_message(LIA, stueck, reply_markup=markup(p.MENUE_KNOPF) if letzte else None)
+            await context.bot.send_message(LIA, stueck, reply_markup=panel_.markup(p.MENUE_KNOPF) if letzte else None)
         gemeldet.listen["auftraege"].add(a["id"])
         logger.info("Ergebnis zu %s gesendet (%s)", a["id"], a["status"])
     if neu:

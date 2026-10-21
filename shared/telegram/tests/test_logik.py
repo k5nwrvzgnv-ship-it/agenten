@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import logik
 from logik import (
     Eingang,
     Gemeldet,
@@ -136,6 +137,44 @@ class TestLogik(unittest.TestCase):
         self.assertEqual(eingang.wartende(), [b])
         self.assertEqual(eingang.verwerfen(), 1)
         self.assertEqual(eingang.wartende(), [])
+
+
+class PanelTest(unittest.TestCase):
+    def test_auswerten(self):
+        self.assertEqual(logik.panel_auswerten("u:status"), ("status", None, None))
+        self.assertEqual(logik.panel_auswerten("u:a:uni:lernen"), ("agent", "uni", "lernen"))
+        self.assertIsNone(logik.panel_auswerten("u:a:fremd:lernen"))
+        self.assertIsNone(logik.panel_auswerten("u:a:uni:quatsch"))
+        self.assertIsNone(logik.panel_auswerten("f:123"))
+
+    def test_alle_knoepfe_gueltig(self):
+        ansichten = [
+            logik.ansicht_home(["Stand"], ["uni", "dokumente", "einkauf"], 2, "Hinweis"),
+            logik.ansicht_agent("uni", "erledigen"), logik.ansicht_agent("uni", "lernen"),
+            logik.ansicht_entwuerfe([{"titel": "Mail", "agent": "uni"}]), logik.ansicht_entwuerfe([]),
+            logik.ansicht_text("Status", "x"),
+        ]
+        for _, knoepfe in ansichten:
+            for zeile in knoepfe:
+                for _, daten in zeile:
+                    self.assertLessEqual(len(daten.encode()), 64)
+                    self.assertIsNotNone(logik.panel_auswerten(daten), daten)
+
+    def test_home(self):
+        text, knoepfe = logik.ansicht_home(["Offene Entwürfe: 2"], ["uni"], 2, "Auftrag weitergegeben.")
+        self.assertIn("Offene Entwürfe: 2", text)
+        self.assertIn("Auftrag weitergegeben.", text)
+        self.assertEqual(knoepfe[0], [("uni", "u:a:uni:erledigen")])
+        self.assertIn(("Entwürfe (2)", "u:entwuerfe"), knoepfe[1])
+
+    def test_agent_modus_wechseln(self):
+        text, knoepfe = logik.ansicht_agent("uni", "erledigen")
+        self.assertIn("Modus: erledigen", text)
+        self.assertEqual(knoepfe[0][0][1], "u:a:uni:lernen")
+
+    def test_text_wird_gekuerzt(self):
+        text, _ = logik.ansicht_text("Hilfe", "x" * 5000)
+        self.assertLessEqual(len(text), logik.MAX_LAENGE)
 
 
 if __name__ == "__main__":
