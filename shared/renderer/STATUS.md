@@ -15,13 +15,24 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
   die Bau-Module verlassen sich darauf. Grenzen stehen oben in `pruefung.py` und in `FORMAT.md`: bei Änderung
   beide anpassen. `tests/test_format.py` prüft, dass die JSON-Beispiele in FORMAT.md gültig bleiben.
   Doppelte Felder, NaN und Steuerzeichen (die in docx/pptx nicht erlaubt sind) sind Fehler.
-- Schritt 3 fertig: `arbeitsblatt.py` (`bauen(beschreibung, ziel)`, Beschreibung aus `pruefung.lesen`).
-  A4, Ränder 2 cm, Stile der python-docx-Standardvorlage, Sprache de-DE, kein Autor. Was python-docx nicht kann,
-  steht als kleines XML (`_xml_*`): Rahmen, Schreiblinien (unterer Rahmen plus `between`, sonst zeichnet Word nur
-  eine Linie unter der Gruppe), Neustart nummerierter Listen, Wiederholung der Tabellenkopfzeile. Neue
-  XML-Elemente werden an der Stelle eingefügt, die das Schema verlangt (sonst meldet Word „unlesbarer Inhalt“).
-  Nach jeder Tabelle steht ein leerer Absatz (zwei Tabellen hintereinander verschmelzen in Word).
-  Aufgaben heißen „Aufgabe 1: ...“ (fett) und bleiben mit ihrem Antwortplatz zusammen.
+- Schritt B fertig (Arbeitsblatt in Lias Stil, ersetzt Schritt 3): `arbeitsblatt.bauen(beschreibung, ziel, profil)`,
+  `design.py` (`profil_lesen`, `ProfilUngueltig`, `STANDARD`: Schrift, Größe, Zeilenabstand, Fach, Lehrkraft,
+  Nummer-Text, Linienabstand, Farben thema/merksatz/material/akzent; schlichte Grautöne als Standard). Format
+  in `FORMAT.md`: titel (= Thema im Kopf), nummer, Blöcke merksatz, anweisung, material, aufgaben (Antwortarten
+  linien, kasten, ankreuzen, satzanfaenge; hilfe je Aufgabe), ueberschrift, absatz, liste, tabelle (zeilenhoehe_cm,
+  erste_spalte_fett), neue_seite (querformat). Die alte `kopfzeile` und der Block `aufgabe` sind entfallen.
+  - Technik: Theme-Schriften entfernt (sonst Vorrang vor Calibri), Überschriften schwarz. Was python-docx nicht
+    kann, steht als kleines XML (`_xml_*`), eingefügt an der Stelle, die das Schema verlangt (sonst meldet Word
+    „unlesbarer Inhalt“). Spaltenbreiten in Raster und Zellen (LibreOffice liest das Raster, Word die Zellen).
+    Schreiblinien als unterer Rahmen plus `between`. Nach jeder Tabelle ein leerer Absatz (zwei Tabellen
+    hintereinander verschmelzen in Word). Ankreuz-Kästchen als `w:sym` Wingdings F070 wie bei Lia.
+  - Merksatz und Material: je Zeile ein Absatz, kein Zeilenumbruch im Absatz (Blocksatz zieht sonst die Zeile davor
+    auseinander). Gleiche Rahmen fassen die Absätze zu einem Kasten zusammen.
+  - Geprüft per Vorschau: Lias AB 5.2 nachgebaut (`data/nachbau/`, nicht im Repo), nah am Original. Für Lias
+    Profil passt `linienabstand_cm = 0.6` (sonst Hilfen auf Seite 2), Farben thema FFD873, merksatz F2CEED,
+    material D9F2D0.
+  - Bewusst anders als bei Lia: Hilfen stehen nach den Aufgaben ihrer Gruppe, nicht fest am Seitenende;
+    Ankreuz-Optionen eingerückt; erste Spalte der Ausfülltabelle so breit wie die anderen.
 - Schritt A (Vorschau) fertig: `vorschau.py` (`vorschau(datei, ordner)` -> PNG je Seite, `als_pdf`, `als_bilder`,
   `VorschauFehler`). LibreOffice 24.2 aus apt (`libreoffice-writer-nogui`, `libreoffice-impress-nogui`,
   `fonts-crosextra-carlito`, von Jan als root installiert, 21.10.), `/usr/bin/soffice`, etwa 5 s je Umwandlung.
@@ -46,7 +57,7 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 - **Umfang des Kerns:** alle vier Bausteine:
   - Titel, Überschriften, Absätze, Listen, Tabellen
   - Aufgaben mit Platz für Antworten (Linien oder Kästen)
-  - Kopfzeile (Name, Klasse, Datum)
+  - Kopfzeile (Name, Klasse, Datum), seit Schritt B Teil der Kopf-Tabelle
   - Folien mit Titel und Stichpunkten
 - **Formate:** zuerst nur docx und pptx (python-docx, python-pptx). PDF später, wenn Bedarf da ist. Typst oder
   LibreOffice nur nach erneutem Okay von Jan.
@@ -115,7 +126,7 @@ Vorbilder liegen in `data/lia-vorbilder/` (nicht im Repo): `arbeitsblatt-5.2.pdf
 ## Offene Punkte
 0. Neuer Plan für Lias Stil, von Jan freigegeben (21.10.). Er ersetzt die Schritte 4 bis 6 unten:
    - A. (erledigt) Vorschau: LibreOffice, Carlito, pypdfium2, vorschau.py
-   - B. Arbeitsblatt in Lias Stil: Kopf-Tabelle, Merksatz, Material, Arbeitsanweisung, Aufgaben mit Antwortarten
+   - B. (erledigt) Arbeitsblatt in Lias Stil: Kopf-Tabelle, Merksatz, Material, Arbeitsanweisung, Aufgaben mit Antwortarten
      linien/kasten/ankreuzen/satzanfaenge/keine und Hilfen am Seitenende, Querformat-Seite mit Ausfülltabelle.
      Format darf umgebaut werden. Prüfen: Lias AB 5.2 nachbauen, Vorschau mit dem Original vergleichen.
    - C. Icons: Tabler Icons (MIT) als Schrift, Pillow zeichnet PNG in jeder Farbe, feste deutsche Namensliste.

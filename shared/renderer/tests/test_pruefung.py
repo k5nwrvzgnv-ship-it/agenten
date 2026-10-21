@@ -9,16 +9,26 @@ from renderer.pruefung import lesen
 
 BLATT = {
     "art": "arbeitsblatt",
-    "titel": "Der kategorische Imperativ",
-    "kopfzeile": ["Name", "Klasse", "Datum"],
+    "titel": "Muss ich Fremden in Not genauso helfen wie Nahestehenden?",
+    "nummer": "5",
     "bloecke": [
-        {"typ": "ueberschrift", "text": "Einstieg"},
-        {"typ": "absatz", "text": "Kant formuliert ...\nzweite Zeile"},
-        {"typ": "liste", "punkte": ["Maxime", "Gesetz"]},
-        {"typ": "tabelle", "kopf": ["Begriff", "Erklärung"], "zeilen": [["Maxime", ""]]},
-        {"typ": "aufgabe", "text": "Erkläre ...", "antwort": {"art": "linien", "anzahl": 5}},
-        {"typ": "aufgabe", "text": "Skizziere ...", "antwort": {"art": "kasten", "hoehe_cm": 6.5}},
-        {"typ": "aufgabe", "text": "Lies den Text."},
+        {"typ": "merksatz", "titel": "Merksatz zu Peter Singer:", "text": "Ist die Not groß ..."},
+        {"typ": "anweisung", "text": "Lies das Beispiel und bearbeite die Aufgaben!"},
+        {"typ": "material", "titel": "Beispiel", "text": "Yasmins großer Bruder ...\nzweite Zeile"},
+        {"typ": "aufgaben", "aufgaben": [
+            {"text": "Unterstreiche im Text!", "hilfe": "Zeilen 1-2"},
+            {"text": "Kreuze an!", "antwort": {"art": "ankreuzen", "optionen": ["Bruder", "Obdachlose"]}},
+            {"text": "Begründe!", "antwort": {"art": "satzanfaenge", "saetze": [
+                {"anfang": "Nach Peter Singer sollte Yasmin", "linien": 2}, {"anfang": "Zum Beispiel", "linien": 3}]}},
+            {"text": "Erkläre.", "antwort": {"art": "linien", "anzahl": 5}},
+            {"text": "Zeichne.", "antwort": {"art": "kasten", "hoehe_cm": 6.5}},
+        ]},
+        {"typ": "neue_seite", "querformat": True},
+        {"typ": "ueberschrift", "text": "Wem sollte Yasmin helfen?"},
+        {"typ": "tabelle", "kopf": ["", "Singer"], "zeilen": [["Behauptung", ""]], "zeilenhoehe_cm": 4,
+         "erste_spalte_fett": True},
+        {"typ": "absatz", "text": "Text"},
+        {"typ": "liste", "punkte": ["a", "b"]},
     ],
 }
 
@@ -33,30 +43,49 @@ def blatt_mit(**aenderungen):
     """Kopie von BLATT, Blöcke per Index ersetzbar: blatt_mit(b2={...})."""
     d = copy.deepcopy(BLATT)
     for name, wert in aenderungen.items():
-        if name.startswith("b"):
+        if name.startswith("b") and name[1:].isdigit():
             d["bloecke"][int(name[1:])] = wert
         else:
             d[name] = wert
     return d
 
 
+def aufgaben(*liste, **mehr):
+    return {"typ": "aufgaben", "aufgaben": list(liste), **mehr}
+
+
 class TestGueltig(unittest.TestCase):
     def test_arbeitsblatt_mit_standardwerten(self):
         e = lesen(BLATT)
-        self.assertEqual(e["kopfzeile"], ["Name", "Klasse", "Datum"])
+        self.assertEqual(e["nummer"], "5")
         b = e["bloecke"]
-        self.assertEqual(b[0], {"typ": "ueberschrift", "text": "Einstieg", "ebene": 1})
-        self.assertEqual(b[2]["nummeriert"], False)
-        self.assertEqual(b[4]["antwort"], {"art": "linien", "anzahl": 5})
-        self.assertEqual(b[5]["antwort"], {"art": "kasten", "hoehe_cm": 6.5})
-        self.assertIsNone(b[6]["antwort"])
+        self.assertEqual(b[0], {"typ": "merksatz", "titel": "Merksatz zu Peter Singer:", "text": "Ist die Not groß ..."})
+        self.assertEqual(b[1], {"typ": "anweisung", "text": "Lies das Beispiel und bearbeite die Aufgaben!"})
+        a = b[3]
+        self.assertEqual(a["titel"], "Aufgaben:")
+        self.assertEqual(a["aufgaben"][0], {"text": "Unterstreiche im Text!", "antwort": None, "hilfe": "Zeilen 1-2"})
+        self.assertEqual(a["aufgaben"][1]["antwort"], {"art": "ankreuzen", "optionen": ["Bruder", "Obdachlose"]})
+        self.assertEqual(a["aufgaben"][2]["antwort"]["saetze"][1], {"anfang": "Zum Beispiel", "linien": 3})
+        self.assertEqual(a["aufgaben"][3]["hilfe"], "")
+        self.assertEqual(b[4], {"typ": "neue_seite", "querformat": True})
+        self.assertEqual(b[5]["ebene"], 1)
+        self.assertEqual((b[6]["zeilenhoehe_cm"], b[6]["erste_spalte_fett"]), (4, True))
+        self.assertEqual(b[8]["nummeriert"], False)
 
-    def test_ohne_kopfzeile_und_tabelle_ohne_kopf(self):
-        d = blatt_mit(b3={"typ": "tabelle", "zeilen": [["a", "b"], ["c", "d"]]})
-        del d["kopfzeile"]
+    def test_ohne_optionale_felder(self):
+        d = blatt_mit(b0={"typ": "merksatz", "text": "x"}, b4={"typ": "neue_seite"},
+                      b6={"typ": "tabelle", "zeilen": [["a", "b"], ["c", "d"]]})
+        del d["nummer"]
         e = lesen(d)
-        self.assertEqual(e["kopfzeile"], [])
-        self.assertIsNone(e["bloecke"][3]["kopf"])
+        self.assertEqual(e["nummer"], "")
+        self.assertEqual(e["bloecke"][0]["titel"], "")
+        self.assertEqual(e["bloecke"][4]["querformat"], False)
+        self.assertEqual(e["bloecke"][6], {"typ": "tabelle", "kopf": None, "zeilen": [["a", "b"], ["c", "d"]],
+                                           "zeilenhoehe_cm": None, "erste_spalte_fett": False})
+
+    def test_aufgaben_ohne_ueberschrift(self):
+        e = lesen(blatt_mit(b3=aufgaben({"text": "x"}, titel="")))
+        self.assertEqual(e["bloecke"][3]["titel"], "")
 
     def test_folien_mit_standardwerten(self):
         e = lesen(FOLIEN)
@@ -68,9 +97,9 @@ class TestGueltig(unittest.TestCase):
         self.assertEqual(pruefen(json.dumps(FOLIEN)), [])
 
     def test_eingabe_bleibt_unveraendert(self):
-        d = copy.deepcopy(FOLIEN)
+        d = copy.deepcopy(BLATT)
         lesen(d)
-        self.assertEqual(d, FOLIEN)
+        self.assertEqual(d, BLATT)
 
 
 class TestFehler(unittest.TestCase):
@@ -97,23 +126,24 @@ class TestFehler(unittest.TestCase):
                          ['art: muss "arbeitsblatt" oder "folien" sein, ist "brief"'])
 
     def test_unbekanntes_feld_mit_tippfehler_hinweis(self):
-        f = self.fehler(blatt_mit(b2={"typ": "liste", "punkt": ["a"]}))
-        self.assertIn('bloecke[2].punkt: unbekanntes Feld (gemeint: "punkte"?), erlaubt sind: typ, punkte, nummeriert',
+        f = self.fehler(blatt_mit(b8={"typ": "liste", "punkt": ["a"]}))
+        self.assertIn('bloecke[8].punkt: unbekanntes Feld (gemeint: "punkte"?), erlaubt sind: typ, punkte, nummeriert',
                       f)
-        self.assertIn("bloecke[2].punkte: fehlt", f)
+        self.assertIn("bloecke[8].punkte: fehlt", f)
 
-    def test_unbekannter_blocktyp(self):
-        self.assertEqual(self.fehler(blatt_mit(b0={"typ": "Ueberschrift", "text": "x"})),
-                         ['bloecke[0].typ: muss einer von "ueberschrift", "absatz", "liste", "tabelle", "aufgabe" '
-                          'sein, ist "Ueberschrift" (gemeint: "ueberschrift"?)'])
+    def test_alte_felder_sind_fehler(self):
+        f = self.fehler(blatt_mit(kopfzeile=["Name"], b5={"typ": "aufgabe", "text": "x"}))
+        self.assertIn("kopfzeile: unbekanntes Feld, erlaubt sind: art, titel, bloecke, nummer", f)
+        self.assertIn('bloecke[5].typ: muss einer von "ueberschrift", "absatz", "liste", "tabelle", "merksatz", '
+                      '"anweisung", "material", "aufgaben", "neue_seite" sein, ist "aufgabe" (gemeint: "aufgaben"?)', f)
 
     def test_alle_fehler_auf_einmal(self):
-        d = blatt_mit(titel="", b0={"typ": "ueberschrift", "text": "x", "ebene": 4},
-                      b4={"typ": "aufgabe", "text": "x", "antwort": {"art": "linien", "anzahl": "fünf"}})
+        d = blatt_mit(titel="", b5={"typ": "ueberschrift", "text": "x", "ebene": 4},
+                      b3=aufgaben({"text": "x", "antwort": {"art": "linien", "anzahl": "fünf"}}))
         self.assertEqual(self.fehler(d), [
             "titel: darf nicht leer sein",
-            "bloecke[0].ebene: muss eine ganze Zahl von 1 bis 3 sein, ist 4",
-            'bloecke[4].antwort.anzahl: muss eine ganze Zahl von 1 bis 30 sein, ist "fünf"',
+            'bloecke[3].aufgaben[0].antwort.anzahl: muss eine ganze Zahl von 1 bis 30 sein, ist "fünf"',
+            "bloecke[5].ebene: muss eine ganze Zahl von 1 bis 3 sein, ist 4",
         ])
 
     def test_exception_nennt_alle_fehler(self):
@@ -125,40 +155,68 @@ class TestFehler(unittest.TestCase):
                          "- folien: muss 1 bis 50 Einträge haben, hat 0")
 
     def test_falsche_typen(self):
-        f = self.fehler(blatt_mit(kopfzeile="Name", b1={"typ": "absatz", "text": 5},
-                                  b2={"typ": "liste", "punkte": ["a"], "nummeriert": "ja"}, b3="Tabelle"))
-        self.assertIn('kopfzeile: muss eine Liste [...] sein, ist "Name"', f)
+        f = self.fehler(blatt_mit(nummer=5, b1={"typ": "anweisung", "text": 5},
+                                  b8={"typ": "liste", "punkte": ["a"], "nummeriert": "ja"}, b4={"typ": "neue_seite",
+                                                                                                "querformat": 1},
+                                  b6="Tabelle"))
+        self.assertIn("nummer: muss ein Text sein, ist 5", f)
         self.assertIn("bloecke[1].text: muss ein Text sein, ist 5", f)
-        self.assertIn('bloecke[2].nummeriert: muss true oder false sein, ist "ja"', f)
-        self.assertIn('bloecke[3]: muss ein Objekt {...} sein, ist "Tabelle"', f)
+        self.assertIn('bloecke[8].nummeriert: muss true oder false sein, ist "ja"', f)
+        self.assertIn("bloecke[4].querformat: muss true oder false sein, ist 1", f)
+        self.assertIn('bloecke[6]: muss ein Objekt {...} sein, ist "Tabelle"', f)
+
+    def test_aufgaben_fehler(self):
+        f = self.fehler(blatt_mit(b3=aufgaben("x", {"txt": "y"}, {"text": "z", "hilfe": ""})))
+        self.assertEqual(f, [
+            'bloecke[3].aufgaben[0]: muss ein Objekt {...} sein, ist "x"',
+            'bloecke[3].aufgaben[1].txt: unbekanntes Feld (gemeint: "text"?), erlaubt sind: text, antwort, hilfe',
+            "bloecke[3].aufgaben[1].text: fehlt",
+            "bloecke[3].aufgaben[2].hilfe: darf nicht leer sein",
+        ])
+        self.assertEqual(self.fehler(blatt_mit(b3=aufgaben())),
+                         ["bloecke[3].aufgaben: muss 1 bis 20 Einträge haben, hat 0"])
 
     def test_wahrheitswert_ist_keine_zahl(self):
-        self.assertEqual(self.fehler(blatt_mit(b4={"typ": "aufgabe", "text": "x",
-                                                   "antwort": {"art": "kasten", "hoehe_cm": True}})),
-                         ["bloecke[4].antwort.hoehe_cm: muss eine Zahl von 1 bis 25 sein, ist true"])
+        self.assertEqual(self.fehler(blatt_mit(b3=aufgaben({"text": "x",
+                                                            "antwort": {"art": "kasten", "hoehe_cm": True}}))),
+                         ["bloecke[3].aufgaben[0].antwort.hoehe_cm: muss eine Zahl von 1 bis 25 sein, ist true"])
 
     def test_nan_ist_keine_zahl(self):
         text = json.dumps(BLATT).replace('"hoehe_cm": 6.5', '"hoehe_cm": NaN')
-        self.assertEqual(self.fehler(text), ["bloecke[5].antwort.hoehe_cm: muss eine Zahl von 1 bis 25 sein, ist NaN"])
+        self.assertEqual(self.fehler(text),
+                         ["bloecke[3].aufgaben[4].antwort.hoehe_cm: muss eine Zahl von 1 bis 25 sein, ist NaN"])
 
-    def test_antwortart(self):
-        self.assertEqual(self.fehler(blatt_mit(b4={"typ": "aufgabe", "text": "x", "antwort": {"art": "punkte"}})),
-                         ['bloecke[4].antwort.art: muss "linien" oder "kasten" sein, ist "punkte"'])
-        self.assertEqual(self.fehler(blatt_mit(b4={"typ": "aufgabe", "text": "x",
-                                                   "antwort": {"art": "kasten", "anzahl": 3}})),
-                         ["bloecke[4].antwort.anzahl: unbekanntes Feld, erlaubt sind: art, hoehe_cm",
-                          "bloecke[4].antwort.hoehe_cm: fehlt"])
+    def test_antwortarten(self):
+        def antwort_fehler(antwort):
+            return self.fehler(blatt_mit(b3=aufgaben({"text": "x", "antwort": antwort})))
 
-    def test_tabelle_spaltenzahl(self):
-        f = self.fehler(blatt_mit(b3={"typ": "tabelle", "kopf": ["a", "b"], "zeilen": [["1", "2"], ["3"]]}))
-        self.assertEqual(f, ["bloecke[3].zeilen[1]: hat 1 Zellen, erwartet 2 (wie kopf)"])
-        f = self.fehler(blatt_mit(b3={"typ": "tabelle", "zeilen": [["1", "2"], ["3", "4", "5"]]}))
-        self.assertEqual(f, ["bloecke[3].zeilen[1]: hat 3 Zellen, erwartet 2 (wie zeilen[0])"])
+        p = "bloecke[3].aufgaben[0].antwort"
+        self.assertEqual(antwort_fehler({"art": "punkte"}),
+                         [f'{p}.art: muss einer von "linien", "kasten", "ankreuzen", "satzanfaenge" sein, '
+                          'ist "punkte"'])
+        self.assertEqual(antwort_fehler({"art": "kasten", "anzahl": 3}),
+                         [f"{p}.anzahl: unbekanntes Feld, erlaubt sind: art, hoehe_cm", f"{p}.hoehe_cm: fehlt"])
+        self.assertEqual(antwort_fehler({"art": "ankreuzen", "optionen": ["nur eine"]}),
+                         [f"{p}.optionen: muss 2 bis 6 Einträge haben, hat 1"])
+        self.assertEqual(antwort_fehler({"art": "satzanfaenge", "saetze": [{"anfang": "Ich", "linien": 0}, "x"]}),
+                         [f"{p}.saetze[0].linien: muss eine ganze Zahl von 1 bis 10 sein, ist 0",
+                          f'{p}.saetze[1]: muss ein Objekt {{...}} sein, ist "x"'])
+        self.assertEqual(antwort_fehler({"art": "satzanfang", "saetze": []}),
+                         [f'{p}.art: muss einer von "linien", "kasten", "ankreuzen", "satzanfaenge" sein, '
+                          'ist "satzanfang" (gemeint: "satzanfaenge"?)'])
+
+    def test_tabelle(self):
+        f = self.fehler(blatt_mit(b6={"typ": "tabelle", "kopf": ["a", "b"], "zeilen": [["1", "2"], ["3"]]}))
+        self.assertEqual(f, ["bloecke[6].zeilen[1]: hat 1 Zellen, erwartet 2 (wie kopf)"])
+        f = self.fehler(blatt_mit(b6={"typ": "tabelle", "zeilen": [["1", "2"], ["3", "4", "5"]]}))
+        self.assertEqual(f, ["bloecke[6].zeilen[1]: hat 3 Zellen, erwartet 2 (wie zeilen[0])"])
+        f = self.fehler(blatt_mit(b6={"typ": "tabelle", "zeilen": [["1"]], "zeilenhoehe_cm": 20}))
+        self.assertEqual(f, ["bloecke[6].zeilenhoehe_cm: muss eine Zahl von 0.5 bis 15 sein, ist 20"])
 
     def test_laenge_und_steuerzeichen(self):
-        f = self.fehler(blatt_mit(titel="x" * 201, b1={"typ": "absatz", "text": "a\x07b"}))
+        f = self.fehler(blatt_mit(titel="x" * 201, b8={"typ": "absatz", "text": "a\x07b"}))
         self.assertIn("titel: zu lang (201 Zeichen, höchstens 200)", f)
-        self.assertIn("bloecke[1].text: enthält Steuerzeichen (erlaubt sind nur Zeilenumbruch und Tab)", f)
+        self.assertIn("bloecke[8].text: enthält Steuerzeichen (erlaubt sind nur Zeilenumbruch und Tab)", f)
 
     def test_folien_fehler(self):
         f = self.fehler({"art": "folien", "titel": "x", "untertitel": 3,
