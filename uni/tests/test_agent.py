@@ -1,4 +1,6 @@
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import agent
@@ -31,3 +33,16 @@ class TestUrsprung(unittest.TestCase):
     def test_schleife(self):
         ablage = {"a1": {"id": "a1", "bezug": "a2"}, "a2": {"id": "a2", "bezug": "a1"}}
         self.assertIn(agent.ursprung({"id": "a3", "bezug": "a1"}, ablage.__getitem__)["id"], ("a1", "a2"))
+
+
+class TestSchrittFehler(unittest.TestCase):
+    def test_einmal_am_tag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            datei = Path(tmp) / "f.json"
+            with mock.patch.object(agent, "melden") as melden:
+                self.assertTrue(agent.schritt_fehler_melden("post_pruefen", OSError("IMAP weg"), "2026-10-21", datei))
+                self.assertFalse(agent.schritt_fehler_melden("post_pruefen", OSError("IMAP weg"), "2026-10-21", datei))
+                self.assertTrue(agent.schritt_fehler_melden("kurse_spiegeln", ValueError("x"), "2026-10-21", datei))
+                self.assertTrue(agent.schritt_fehler_melden("post_pruefen", OSError("IMAP weg"), "2026-10-22", datei))
+            self.assertEqual(melden.call_count, 3)
+            self.assertIn("post_pruefen fehlgeschlagen: OSError: IMAP weg", melden.call_args_list[0].args[0])

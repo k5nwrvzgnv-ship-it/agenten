@@ -32,6 +32,7 @@ HIER = Path(__file__).resolve().parent
 DATA = HIER / "data"
 ERINNERT_DATEI = DATA / "erinnert.json"
 MAILS_OFFEN = DATA / "mails_offen.json"
+FEHLER_DATEI = DATA / "schritt_fehler.json"
 logger = log.hole_logger(HIER, AGENT)
 cfg = config.lade_config(HIER, pflicht=("HNEE_NUTZER", "HNEE_KENNWORT", "MOODLE_URL", "IMAP_HOST"))
 
@@ -309,9 +310,31 @@ def post_pruefen() -> None:
     MAILS_OFFEN.unlink()
 
 
+# Fehler einzelner Schritte -------------------------------------------------------
+
+def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, datei: Path = FEHLER_DATEI) -> bool:
+    """Meldet einen fehlgeschlagenen Schritt, höchstens einmal am Tag je Schritt.
+
+    Der Dienst selbst endet trotzdem erfolgreich, die Ausfallmeldung (agentkit.ausfall) greift hier nicht.
+    """
+    heute = heute or date.today().isoformat()
+    stand = _lies_json(datei, {})
+    if stand.get(schritt) == heute:
+        return False
+    melden(f"Schritt {schritt} fehlgeschlagen: {type(f).__name__}: {f}\n"
+           f"Weitere Fehler dieses Schritts heute nur im Log: uni/logs/uni.log")
+    stand[schritt] = heute
+    _schreibe_json(datei, stand)
+    return True
+
+
 if __name__ == "__main__":
     for schritt in (freigegebene_ausfuehren, kurse_spiegeln, auftraege_abarbeiten, fristen_pruefen, post_pruefen):
         try:
             schritt()
-        except Exception:  # noqa: BLE001 – ein Fehler soll die anderen Schritte nicht blockieren
+        except Exception as f:  # noqa: BLE001 – ein Fehler soll die anderen Schritte nicht blockieren
             logger.exception("Schritt %s fehlgeschlagen", schritt.__name__)
+            try:
+                schritt_fehler_melden(schritt.__name__, f)
+            except Exception:  # noqa: BLE001 – Melden darf den Lauf nicht abbrechen
+                logger.exception("Fehler von %s nicht gemeldet", schritt.__name__)
