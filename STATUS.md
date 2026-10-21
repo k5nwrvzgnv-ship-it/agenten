@@ -99,7 +99,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Offen:
    - Handtest: Lia tippt alle Knöpfe, schickt Freitext und einen Gruß, bekommt "kommt bald".
      Jan: /start, Agent uni antippen, Auftrag schreiben, Verbrauch/Status/Entwürfe ansehen.
-   - Nächster Schritt: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
+   - Nächster Schritt: Lias Dokument-Agent, Übergabe in docs/uebergabe-lia-dokumente.md (neuer Chat).
+     Bisherige Notiz: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
      Verbrauch und Plätze gemeinsam mit Jans Instanz (gleiches Konto), "Jan" in
      claude_lauf.GRUNDREGEL und in auftraege ("Angehängte Dateien von Jan") je Instanz.
    - Dateien in Lias Zentrale annehmen (heute: Hinweis "kommt bald").
