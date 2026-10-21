@@ -7,7 +7,11 @@ Material-Agent (zuerst) und Jans dokumente-Agent (später). Grundlage: docs/lia-
 Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 
 ## Stand (21.10.2026)
-- Ordner angelegt, noch kein Code. Die Entscheidungen vor dem Bauen sind geklärt (siehe unten).
+- Entscheidungen geklärt (siehe unten), Plan von Jan freigegeben (6 Schritte, siehe Offene Punkte).
+- Schritt 1 fertig: `.venv` (Versionen wie in `dokumente/`, Pillow bewusst auf 12.3.0), `agentkit.pth`,
+  `requirements.txt`, leeres Paket, `tests/test_umgebung.py`, Eintrag in `pruefen.sh`.
+- Neu aufsetzen: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann
+  `echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`.
 
 ## Zuerst lesen
 1. `../../CLAUDE.md`: Regeln. Dieser Chat ändert nur shared/renderer/, Bedarf anderswo steht in
@@ -52,8 +56,18 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 - Es gibt Tests, `./pruefen.sh` ist grün, die Schritte sind committet, und diese STATUS.md beschreibt das Format.
 
 ## Offene Punkte
-1. Plan für den Kern zeigen (Format der Beschreibung, Module, .venv anlegen) und auf Jans Okay warten.
-2. Kern bauen wie unter „Fertig heißt“, inklusive Vorlagenfeld und Umwandlung .dotx/.potx.
+Freigegebener Plan (21.10.), je Schritt ein Commit. Schnittstelle: `pruefen(beschreibung)` -> Fehlerliste,
+`bauen(beschreibung, ziel, vorlage=None)` -> Ergebnis(pfad, textfassung), `vorlage_umwandeln(quelle, ziel)`,
+`BeschreibungUngueltig`. Vorlage ist ein Parameter des Agenten, nicht Teil von Claudes JSON.
+Module: pruefung.py, arbeitsblatt.py, folien.py, vorlagen.py, FORMAT.md, beispiele/.
+1. (erledigt) .venv, requirements.txt, pruefen.sh, leeres Paket mit Test
+2. pruefung.py mit Tests, FORMAT.md (art arbeitsblatt: titel, kopfzeile, bloecke ueberschrift/absatz/liste/
+   tabelle/aufgabe mit antwort linien|kasten; art folien: titel, untertitel, folien mit titel/punkte).
+   Streng: unbekannte Felder sind Fehler, alle Fehler auf einmal mit Pfad (`bloecke[4].antwort.anzahl: ...`).
+3. Arbeitsblatt als docx mit Tests (Linien/Kästen per XML, Kopfzeile auf jeder Seite, A4)
+4. Folien als pptx mit Tests (Layouts nach Platzhaltertyp suchen, nicht nach Namen)
+5. Vorlagen: Umwandlung .dotx/.potx und Parameter `vorlage`, mit Tests
+6. Beispiele, Textfassung über agentkit.textfassung im Ergebnis, Format hier in STATUS.md
 
 ## Gelernte Regeln
 - (noch keine)

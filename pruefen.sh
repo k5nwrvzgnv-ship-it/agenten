@@ -12,6 +12,7 @@ FEHLER=0
 TESTS=(
   "shared|python3|agentkit/tests"
   "shared/telegram|.venv/bin/python|tests"
+  "shared/renderer|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
   "dokumente|.venv/bin/python|tests"
   "lia/unterricht|.venv/bin/python|tests"
