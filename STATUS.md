@@ -111,7 +111,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Bisherige Notiz: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
      Verbrauch und Plätze gemeinsam mit Jans Instanz (gleiches Konto), "Jan" in
      claude_lauf.GRUNDREGEL und in auftraege ("Angehängte Dateien von Jan") je Instanz.
-   - Dateien in Lias Zentrale annehmen (heute: Hinweis "kommt bald").
+   - Dateien in Lias Zentrale annehmen (heute: Hinweis "kommt bald"). Bedarf aus dem Renderer-Chat
+     (21.10.): Lia soll so ihre Vorlagen (docx/pptx/dotx/potx) schicken können, der Agent legt sie
+     unter data/vorlagen/ ab.
    Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
 
 ## Gelernte Regeln

@@ -7,7 +7,7 @@ Material-Agent (zuerst) und Jans dokumente-Agent (später). Grundlage: docs/lia-
 Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 
 ## Stand (21.10.2026)
-- Ordner angelegt, noch kein Code. Diese Datei ist die Übergabe an den ersten Renderer-Chat.
+- Ordner angelegt, noch kein Code. Die Entscheidungen vor dem Bauen sind geklärt (siehe unten).
 
 ## Zuerst lesen
 1. `../../CLAUDE.md`: Regeln. Dieser Chat ändert nur shared/renderer/, Bedarf anderswo steht in
@@ -16,20 +16,26 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 3. `../../dokumente/STATUS.md`, Abschnitt Anforderungen: Jans Wünsche (Vorlagen, Bearbeiten, Excel,
    Textfassung zur Selbstkontrolle, Fehler zurück an Claude). Gilt später, nicht für den ersten Schritt.
 
-## Mit Jan klären, vor dem Bauen
-- **Umfang des Kerns:** Vorschlag, was Lia für Arbeitsblätter und Folien braucht:
+## Entscheidungen (Jan, 21.10.)
+- **Umfang des Kerns:** alle vier Bausteine:
   - Titel, Überschriften, Absätze, Listen, Tabellen
   - Aufgaben mit Platz für Antworten (Linien oder Kästen)
   - Kopfzeile (Name, Klasse, Datum)
   - Folien mit Titel und Stichpunkten
-- **Formate:** docx und pptx sind mit python-docx und python-pptx möglich, beide schon in `dokumente/.venv`.
-  Für PDF gibt es zwei Wege, beide nur mit Jans Okay, denn es ist neue Software ohne sudo:
-  - Typst als einzelne Datei in `~/.local/bin`
-  - LibreOffice
-- **Vorlagen:** ob es eine Schulvorlage von Lia gibt. Vorlagen liegen beim Agenten (`<agent>/data/vorlagen/`),
-  nicht im Renderer.
-- **Tests:** Welche .venv führt die Tests aus? Der Renderer hat als Bibliothek keine eigene. Vorschlag:
-  eigene `shared/renderer/.venv` nur mit den Bibliotheken, eingetragen in `pruefen.sh`.
+- **Formate:** zuerst nur docx und pptx (python-docx, python-pptx). PDF später, wenn Bedarf da ist. Typst oder
+  LibreOffice nur nach erneutem Okay von Jan.
+- **Vorlagen:** sollen über die Bedienoberfläche (Telegram) vorgegeben werden können. Aufteilung:
+  - Renderer: optionales Feld für eine Vorlage (docx/pptx). Mit Vorlage baut er auf deren Stilen bzw.
+    Folienmastern auf, ohne Vorlage auf schlichten Standardstilen. Dazu eine Hilfsfunktion, die .dotx/.potx in
+    .docx/.pptx umwandelt.
+  - Agent: legt die Vorlagen unter `<agent>/data/vorlagen/` ab, nicht im Renderer.
+  - Zentrale: Lias `portal.py` muss Dateien annehmen. Das macht der Hauptordner-Chat (steht in `../../STATUS.md`,
+    Punkt 8).
+  - Ob Lia eine Schulvorlage hat, ist noch offen. Für den Kern ist das egal.
+- **Tests:** eigene `shared/renderer/.venv` mit python-docx 1.2.0 und python-pptx 1.0.2 (gleiche Versionen wie
+  in `dokumente/`). Dazu kommt ein Eintrag in `pruefen.sh`.
+- **Laufzeit:** Die Agenten importieren den Renderer über agentkit.pth in ihrer eigenen .venv. Darum brauchen
+  sie dort python-docx bzw. python-pptx. Die .venv des Renderers ist nur für die Tests da.
 
 ## Vorgaben
 - Schnittstelle stabil halten: Beide Instanzen nutzen den Renderer sofort, es gibt kein versioniertes Paket.
@@ -46,7 +52,8 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 - Es gibt Tests, `./pruefen.sh` ist grün, die Schritte sind committet, und diese STATUS.md beschreibt das Format.
 
 ## Offene Punkte
-1. Die Entscheidungen oben mit Jan klären.
+1. Plan für den Kern zeigen (Format der Beschreibung, Module, .venv anlegen) und auf Jans Okay warten.
+2. Kern bauen wie unter „Fertig heißt“, inklusive Vorlagenfeld und Umwandlung .dotx/.potx.
 
 ## Gelernte Regeln
 - (noch keine)
