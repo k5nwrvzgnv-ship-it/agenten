@@ -35,12 +35,16 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf, textfassung (Text aus pdf/docx/pptx/xlsx).
 - `shared/telegram/`: Zentrale (Dienst agentenzentrale), einziger Kontakt zu Jan. zentrale.py = Telegram,
   logik.py = reine, getestete Logik.
+- `shared/renderer/`: gemeinsamer Renderer für Jan und Lia (JSON-Beschreibung rein, docx/pptx/PDF raus),
+  reine Bibliothek ohne Inhalte, import per agentkit.pth. Eigene STATUS.md, eigener Chat (siehe unten).
 - `shared/vorlagen/`: Gerüst für neue Agenten (agent_beispiel.py, Service, Timer, STATUS.md).
 - `uni/`, `dokumente/`, `posteingang/`, `einkauf/`: je ein Agent mit agent.py als Einstieg, eigener
   .venv, .env, STATUS.md, tests/. Laufzeitdaten in data/, logs/ (nicht im Repo).
 - Reihenfolge der Umsetzung: uni, dokumente, posteingang, einkauf.
-- Pro Agent ein eigener Chat, gestartet im Agent-Ordner. Struktur und shared/ werden im Chat im
-  Hauptordner bearbeitet. Ein Agent-Chat ändert shared/ nicht, er schreibt den Bedarf in ../STATUS.md.
+- Ein Chat pro Ordner, gestartet in diesem Ordner: je Agent einer (auch lia/<agent>), einer für
+  shared/renderer/, einer im Hauptordner für Struktur und das übrige shared/. Ein Chat ändert nur seinen
+  Ordner, Bedarf anderswo schreibt er in die STATUS.md des Hauptordners. Gedächtnis ist die STATUS.md,
+  nicht der Chat: für jede neue Aufgabe darf ein frischer Chat im selben Ordner starten.
 
 ## Konventionen
 - Namen und Kommentare deutsch, ohne Umlaute in Bezeichnern (`pruefen`, nicht `prüfen`).

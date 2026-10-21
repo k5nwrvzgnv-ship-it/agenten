@@ -1,6 +1,8 @@
 # Übergabe: Lias Dokument-Agent (21.10.2026)
 
-Für einen neuen Chat. Start: `claude` im Hauptordner `~/agenten`, Arbeit auf dem Server als User agent.
+Für einen neuen Chat im Ordner des Agenten (`~/agenten/lia/<agent>`, Name mit Jan klären), auf dem Server
+als User agent. **Reihenfolge:** Zuerst baut der Renderer-Chat in `shared/renderer/` den Kern
+(Übergabe: `shared/renderer/STATUS.md`). Dieser Chat baut danach nur den Agenten, der ihn nutzt.
 Kurzauftrag: Lia fordert in ihrer Zentrale über „Neues Material“ etwas an (z. B. „Arbeitsblatt
 kategorischer Imperativ, Klasse 10, 45 min“) und bekommt eine fertige Datei zurück.
 
@@ -49,8 +51,7 @@ kategorischer Imperativ, Klasse 10, 45 min“) und bekommt eine fertige Datei zu
   und der Name im Aufruf.
 
 ## Noch Arbeit in shared/ (nur im Hauptordner-Chat oder mit Jans ausdrücklichem Okay)
-- **Renderer:** Kommt er nach `shared/`, als gemeinsame Bibliothek für Jan und Lia, ist das Arbeit im Hauptordner.
-  Ein Agent-Chat ändert `shared/` laut CLAUDE.md nicht.
+- **Renderer:** Entschieden am 21.10., er kommt als gemeinsame Bibliothek nach `shared/renderer/`, mit eigenem Chat.
 - **Eingehende Dateien:** Lias Zentrale lehnt sie bisher ab. Für Vorlagen müsste `portal.py` sie annehmen
   (Vorbild: `zentrale.py`, `datei_empfangen`).
 
