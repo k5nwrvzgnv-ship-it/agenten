@@ -60,5 +60,21 @@ class TestLog(unittest.TestCase):
         self.assertIn("hallo", (agent / "logs" / "testagent.log").read_text())
 
 
+class InstanzTest(unittest.TestCase):
+    def test_ohne_variable_bleibt_shared(self):
+        erwartet = Path(config.__file__).resolve().parent.parent
+        self.assertEqual(config.instanz_dir({}), erwartet)
+        self.assertEqual(config.instanz_dir({"AGENTKIT_INSTANZ": "  "}), erwartet)
+
+    def test_mit_variable(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(config.instanz_dir({"AGENTKIT_INSTANZ": d}), Path(d).resolve())
+
+    def test_relativ_oder_fehlend_bricht_ab(self):
+        for wert in ("lia/shared", "/gibt/es/nicht"):
+            with self.assertRaises(config.ConfigFehler):
+                config.instanz_dir({"AGENTKIT_INSTANZ": wert})
+
+
 if __name__ == "__main__":
     unittest.main()

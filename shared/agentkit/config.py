@@ -3,16 +3,33 @@
 Reihenfolge: zuerst shared/.env, dann <agent>/.env. Bei gleichen Schlüsseln
 gewinnt der Wert des Agenten. Jede vorhandene .env muss chmod 600 haben
 (keine Rechte für Gruppe oder andere), sonst wird abgebrochen.
+
+Instanzen: Ohne Umgebungsvariable AGENTKIT_INSTANZ ist SHARED_DIR dieser shared-Ordner
+(Jans System). Mit AGENTKIT_INSTANZ=/pfad/zu/<instanz>/shared liegen .env, Warteschlangen,
+Regeln usw. dort, die Agenten der Instanz daneben (SHARED_DIR.parent). Der Code bleibt derselbe.
 """
 
+import os
 import stat
 from pathlib import Path
-
-SHARED_DIR = Path(__file__).resolve().parent.parent
 
 
 class ConfigFehler(Exception):
     pass
+
+
+def instanz_dir(umgebung=os.environ) -> Path:
+    """shared-Ordner der Instanz: AGENTKIT_INSTANZ (absolut, muss existieren) oder dieser Ordner."""
+    wert = umgebung.get("AGENTKIT_INSTANZ", "").strip()
+    if not wert:
+        return Path(__file__).resolve().parent.parent
+    pfad = Path(wert)
+    if not pfad.is_absolute() or not pfad.is_dir():
+        raise ConfigFehler(f"AGENTKIT_INSTANZ={wert} ist kein absoluter, vorhandener Ordner")
+    return pfad.resolve()
+
+
+SHARED_DIR = instanz_dir()
 
 
 def _pruefe_rechte(pfad: Path) -> None:
