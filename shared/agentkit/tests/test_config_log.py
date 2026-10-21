@@ -76,5 +76,17 @@ class InstanzTest(unittest.TestCase):
                 config.instanz_dir({"AGENTKIT_INSTANZ": wert})
 
 
+class PersonTest(unittest.TestCase):
+    def test_person_aus_env_sonst_jan(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(config.person(Path(d)), "Jan")
+            env = Path(d) / ".env"
+            env.write_text("PERSON=Lia\n")
+            env.chmod(0o600)
+            self.assertEqual(config.person(Path(d)), "Lia")
+
+    def test_jans_instanz_teilt_kontingent_mit_sich(self):
+        self.assertEqual(config.KONTINGENT_DIR, config.instanz_dir({}))
+
 if __name__ == "__main__":
     unittest.main()

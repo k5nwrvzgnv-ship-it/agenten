@@ -7,6 +7,9 @@ gewinnt der Wert des Agenten. Jede vorhandene .env muss chmod 600 haben
 Instanzen: Ohne Umgebungsvariable AGENTKIT_INSTANZ ist SHARED_DIR dieser shared-Ordner
 (Jans System). Mit AGENTKIT_INSTANZ=/pfad/zu/<instanz>/shared liegen .env, Warteschlangen,
 Regeln usw. dort, die Agenten der Instanz daneben (SHARED_DIR.parent). Der Code bleibt derselbe.
+Alle Instanzen nutzen dasselbe Claude-Konto. Darum liegen Einstellungen, Verbrauchsprotokoll und
+Plätze für Läufe für alle gemeinsam in KONTINGENT_DIR (Jans shared-Ordner).
+Name der Person: PERSON in <instanz>/.env, ohne Eintrag "Jan" (person()).
 """
 
 import os
@@ -30,6 +33,9 @@ def instanz_dir(umgebung=os.environ) -> Path:
 
 
 SHARED_DIR = instanz_dir()
+KONTINGENT_DIR = instanz_dir({})
+# Name der Instanz für Protokolle: None für Jans Instanz, sonst der Ordner über shared (z. B. "lia")
+INSTANZ_NAME = None if SHARED_DIR == KONTINGENT_DIR else SHARED_DIR.parent.name
 
 
 def _pruefe_rechte(pfad: Path) -> None:
@@ -71,3 +77,8 @@ def lade_config(agent_dir: Path, pflicht: tuple[str, ...] = ()) -> dict[str, str
     if fehlend:
         raise ConfigFehler(f"Fehlende Werte in .env: {', '.join(fehlend)}")
     return config
+
+
+def person(shared_dir: Path | None = None) -> str:
+    """Name der Person, für die die Instanz arbeitet (PERSON in shared/.env, Standard "Jan")."""
+    return lies_env((shared_dir or SHARED_DIR) / ".env").get("PERSON") or "Jan"

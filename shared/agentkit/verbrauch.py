@@ -13,9 +13,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from .config import SHARED_DIR
+from .config import KONTINGENT_DIR
 
-DATEI = SHARED_DIR / "verbrauch" / "laeufe.jsonl"
+DATEI = KONTINGENT_DIR / "verbrauch" / "laeufe.jsonl"  # gemeinsam für alle Instanzen (ein Konto)
 STUFEN = ("normal", "sparen", "nur_auftraege", "limit")
 
 
@@ -88,13 +88,17 @@ def auslastung_aus_event(info: dict) -> dict:
 
 
 def heute(datei: Path | None = None) -> dict[str, dict]:
-    """Läufe von heute pro Agent: Anzahl, Tokens, Minuten, Kosten-Vergleichswert."""
+    """Läufe von heute pro Agent: Anzahl, Tokens, Minuten, Kosten-Vergleichswert.
+
+    Läufe anderer Instanzen stehen als <instanz>/<agent> (z. B. lia/unterricht).
+    """
     beginn = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
     summe: dict[str, dict] = {}
     for e in _eintraege(datei):
         if e.get("zeit", 0) < beginn:
             continue
-        s = summe.setdefault(e.get("agent", "?"), {"laeufe": 0, "tokens": 0, "minuten": 0.0, "usd": 0.0, "fehler": 0})
+        name = f"{e['instanz']}/{e.get('agent', '?')}" if e.get("instanz") else e.get("agent", "?")
+        s = summe.setdefault(name, {"laeufe": 0, "tokens": 0, "minuten": 0.0, "usd": 0.0, "fehler": 0})
         s["laeufe"] += 1
         s["tokens"] += e.get("tokens", 0)
         s["minuten"] += e.get("dauer_s", 0) / 60

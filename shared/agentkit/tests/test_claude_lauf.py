@@ -131,5 +131,11 @@ class TestClaudeLauf(unittest.TestCase):
             self.lauf(cfg=cfg)  # ein Platz wieder frei
 
 
+class GrundregelTest(unittest.TestCase):
+    def test_jan_unveraendert_lia_mit_namen(self):
+        self.assertIn("in Jans Agenten-System", claude_lauf.GRUNDREGEL)
+        self.assertEqual(claude_lauf.grundregel(), claude_lauf.GRUNDREGEL)
+        self.assertIn("in Lias Agenten-System", claude_lauf.grundregel("Lia"))
+
 if __name__ == "__main__":
     unittest.main()

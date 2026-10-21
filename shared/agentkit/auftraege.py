@@ -35,7 +35,7 @@ from pathlib import Path
 
 from . import _ablage
 from ._ablage import AblageFehler as AuftragFehler  # noqa: F401
-from .config import SHARED_DIR
+from .config import SHARED_DIR, person
 
 BASIS = SHARED_DIR / "auftraege"
 AGENTEN_DIR = SHARED_DIR.parent
@@ -76,7 +76,7 @@ def neuer_auftrag(
     eintrag_id = _ablage.neue_id(agent)
     anhaenge = _dateien_ablegen((agenten_dir or AGENTEN_DIR) / agent, eintrag_id, dateien or [])
     if anhaenge:
-        text += "\n\nAngehängte Dateien von Jan (im Agent-Ordner):\n" + "\n".join(f"- {p}" for p in anhaenge)
+        text += f"\n\nAngehängte Dateien von {person()} (im Agent-Ordner):\n" + "\n".join(f"- {p}" for p in anhaenge)
     eintrag = {
         "id": eintrag_id,
         "agent": agent,

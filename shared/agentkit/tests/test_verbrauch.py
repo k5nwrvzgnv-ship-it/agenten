@@ -61,5 +61,32 @@ class TestEinstellungen(unittest.TestCase):
         self.assertEqual(einstellungen.werkzeuge(cfg, "unbekannt"), ["Read"])
 
 
+class InstanzVerbrauchTest(unittest.TestCase):
+    def test_heute_trennt_instanzen(self):
+        with tempfile.TemporaryDirectory() as d:
+            datei = Path(d) / "laeufe.jsonl"
+            verbrauch.protokollieren({"agent": "uni", "instanz": None, "ok": True, "tokens": 10}, datei)
+            verbrauch.protokollieren({"agent": "unterricht", "instanz": "lia", "ok": True, "tokens": 5}, datei)
+            verbrauch.protokollieren({"agent": "uni", "ok": False, "tokens": 1}, datei)  # alter Eintrag ohne Feld
+            heute = verbrauch.heute(datei)
+            self.assertEqual(set(heute), {"uni", "lia/unterricht"})
+            self.assertEqual(heute["uni"]["laeufe"], 2)
+
+
+class EinstellungenInstanzTest(unittest.TestCase):
+    def test_instanz_ergaenzt_nur_werkzeuge(self):
+        with tempfile.TemporaryDirectory() as d:
+            basis, eigen = Path(d) / "basis.toml", Path(d) / "eigen.toml"
+            basis.write_text('[parallel]\nnormal = 2\n[werkzeuge]\nstandard = ["Read"]\n')
+            cfg = einstellungen.lade(basis, eigen)  # ohne eigene Datei
+            self.assertEqual(cfg["werkzeuge"], {"standard": ["Read"]})
+            eigen.write_text('[werkzeuge]\nunterricht = ["Read", "WebSearch"]\n')
+            cfg = einstellungen.lade(basis, eigen)
+            self.assertEqual(cfg["werkzeuge"]["unterricht"], ["Read", "WebSearch"])
+            self.assertEqual(cfg["parallel"]["normal"], 2)
+            eigen.write_text("[parallel]\nnormal = 9\n")
+            with self.assertRaises(ValueError):
+                einstellungen.lade(basis, eigen)
+
 if __name__ == "__main__":
     unittest.main()
