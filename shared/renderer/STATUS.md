@@ -55,6 +55,41 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 - **Laufzeit:** Die Agenten importieren den Renderer über agentkit.pth in ihrer eigenen .venv. Darum brauchen
   sie dort python-docx bzw. python-pptx. Die .venv des Renderers ist nur für die Tests da.
 
+## Lias Design (Vorbilder von Jan, 21.10.)
+Vorbilder liegen in `data/lia-vorbilder/` (nicht im Repo): `arbeitsblatt-5.2.pdf` (Word), `praesentation-5.pdf`
+(Lias Unterrichtspräsentation). Der Kern aus Schritt 2/3 ist dafür zu schlicht. Was die Vorbilder zeigen:
+- **Arbeitsblatt** (A4, Calibri 11):
+  - Kopf als Tabelle im Text, nicht als Kopfzeile: links Fach („Ethik“) und Lehrkraft („Frau Pohlmann“), Mitte
+    das Thema als Leitfrage (gelb-orange hinterlegt) und „Arbeitsblatt 5“, rechts Datum und Name zum Ausfüllen.
+  - Merksatz-Kasten: doppelter Rahmen, rosa-lila hinterlegt, Titel fett („Merksatz zu Peter Singer:“).
+  - Arbeitsanweisung fett, darunter Material („Beispiel“) grün hinterlegt.
+  - „Aufgaben:“ fett, nummeriert 1., 2., ..., der Aufgabentext fett. Antwortarten: im Text unterstreichen
+    (kein Platz), Ankreuzen mit Kästchen nebeneinander, Satzanfänge mit Schreiblinien („Nach Peter Singer sollte
+    Yasmin ____“).
+  - Hilfen zu einzelnen Aufgaben klein am Seitenende („**Aufgabe 1:** Du findest Hinweise in den Zeilen 1-2“).
+  - Seite 2 im Querformat: leere Tabelle zum Ausfüllen mit gedrehter Schrift.
+- **Folien** (16:9, Aptos, Akzentfarbe Rot um #C00000):
+  - Titelfolie: roter Balken links mit weißem Icon, rechts Titel rot fett, darunter „Ethik · Klasse 8“ grau.
+  - Jede Folie: Titel rot fett, roter Strich darunter, optional Icons rechts oben, Fußzeile klein grau
+    „Fach · Klasse · Thema“ und Foliennummer.
+  - Bausteine: grauer Textkasten mit rotem Balken links (Material, letzter Satz fett), Leitfrage weiß auf roter
+    Fläche, zentrierter großer fetter Text (Ziel, Arbeitsauftrag), Zeitangabe mit Wecker-Icon, zwei Spalten
+    (Merksätze mit roter Überschrift auf Grau), Auswahl (zwei Kästen mit rotem Rand), Satzanfang grün mit
+    Zeigefinger-Icon, Feedback (Smileys mit Satzanfängen), farbige Unterstreichung von Textteilen mit Legende
+    (Behauptung blau, Begründung orange, Beispiel grün).
+- Calibri und Aptos sind Microsoft-Schriften. Auf dem Server gibt es keine Schriften. Für die Vorschau ersetzt
+  Carlito Calibri mit gleichen Maßen, für Aptos gibt es keinen genauen Ersatz (Vorschau nur ungefähr).
+
+## Entscheidungen (Jan, 21.10., nach den Vorbildern)
+- Der Renderer baut Arbeitsblätter und Folien in Lias Stil (siehe oben).
+- **Vorschau:** LibreOffice (ohne sudo, in ~/.local) wandelt docx/pptx in PDF um, pypdfium2 macht daraus Bilder.
+  So prüfen Claude und dieser Chat das Aussehen. Installation erst nach Jans Okay zum konkreten Plan.
+- **PDF lesen** (Lia schickt PDFs als Vorlage): kommt in agentkit (Seiten als Bilder mit pypdfium2), Bedarf steht in
+  `../../STATUS.md`. Der Renderer liest nichts.
+- **Icons:** freies Icon-Set (z. B. Tabler Icons, MIT-Lizenz). Python zeichnet sie als PNG in der gewünschten Farbe.
+- Das Format darf jetzt noch umgebaut werden, denn noch nutzt es kein Agent. Ab der ersten Nutzung gilt: nur
+  erweitern.
+
 ## Vorgaben
 - Schnittstelle stabil halten: Beide Instanzen nutzen den Renderer sofort, es gibt kein versioniertes Paket.
   Das Format nur erweitern, nicht umbauen, und jede Erweiterung mit Tests.
@@ -70,7 +105,9 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 - Es gibt Tests, `./pruefen.sh` ist grün, die Schritte sind committet, und diese STATUS.md beschreibt das Format.
 
 ## Offene Punkte
-Freigegebener Plan (21.10.), je Schritt ein Commit. Schnittstelle: `pruefen(beschreibung)` -> Fehlerliste,
+0. Neuer Plan für Lias Stil (Vorschau, Format, Icons) steht zur Freigabe bei Jan. Bis dahin ruhen Schritte 4 bis 6.
+
+Erster Plan (21.10.), je Schritt ein Commit. Schnittstelle: `pruefen(beschreibung)` -> Fehlerliste,
 `bauen(beschreibung, ziel, vorlage=None)` -> Ergebnis(pfad, textfassung), `vorlage_umwandeln(quelle, ziel)`,
 `BeschreibungUngueltig`. Vorlage ist ein Parameter des Agenten, nicht Teil von Claudes JSON.
 Module: pruefung.py, arbeitsblatt.py, folien.py, vorlagen.py, FORMAT.md, beispiele/.

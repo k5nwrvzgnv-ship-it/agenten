@@ -114,6 +114,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Dateien in Lias Zentrale annehmen (heute: Hinweis "kommt bald"). Bedarf aus dem Renderer-Chat
      (21.10.): Lia soll so ihre Vorlagen (docx/pptx/dotx/potx) schicken können, der Agent legt sie
      unter data/vorlagen/ ab.
+   - Bedarf aus dem Renderer-Chat (21.10., Jan hat zugestimmt): PDFs als Bilder für Claude. Claudes Read
+     öffnet PDFs nur mit poppler (pdftoppm), das fehlt auf dem Server und braucht sudo. Darum läuft der
+     Hinweis in agentkit.textfassung („Das PDF selbst mit Read öffnen“) bei Scans ins Leere. Vorschlag:
+     agentkit wandelt PDF-Seiten mit pypdfium2 (pip, ohne sudo) in PNG-Bilder um, Claude öffnet die
+     PNGs mit Read. Lia schickt PDFs als Vorlage, der Agent muss Text und Gestaltung sehen.
    Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
 
 ## Gelernte Regeln
