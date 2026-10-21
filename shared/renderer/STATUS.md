@@ -10,6 +10,11 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
 - Entscheidungen geklärt (siehe unten), Plan von Jan freigegeben (6 Schritte, siehe Offene Punkte).
 - Schritt 1 fertig: `.venv` (Versionen wie in `dokumente/`, Pillow bewusst auf 12.3.0), `agentkit.pth`,
   `requirements.txt`, leeres Paket, `tests/test_umgebung.py`, Eintrag in `pruefen.sh`.
+- Schritt 2 fertig: `pruefung.py` (`pruefen`, `lesen`, `BeschreibungUngueltig`), `FORMAT.md` (Format für
+  Claude, die Agenten nehmen es in ihren Skill auf). `lesen()` gibt die Beschreibung mit Standardwerten zurück,
+  die Bau-Module verlassen sich darauf. Grenzen stehen oben in `pruefung.py` und in `FORMAT.md`: bei Änderung
+  beide anpassen. `tests/test_format.py` prüft, dass die JSON-Beispiele in FORMAT.md gültig bleiben.
+  Doppelte Felder, NaN und Steuerzeichen (die in docx/pptx nicht erlaubt sind) sind Fehler.
 - Neu aufsetzen: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann
   `echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`.
 
@@ -61,7 +66,7 @@ Freigegebener Plan (21.10.), je Schritt ein Commit. Schnittstelle: `pruefen(besc
 `BeschreibungUngueltig`. Vorlage ist ein Parameter des Agenten, nicht Teil von Claudes JSON.
 Module: pruefung.py, arbeitsblatt.py, folien.py, vorlagen.py, FORMAT.md, beispiele/.
 1. (erledigt) .venv, requirements.txt, pruefen.sh, leeres Paket mit Test
-2. pruefung.py mit Tests, FORMAT.md (art arbeitsblatt: titel, kopfzeile, bloecke ueberschrift/absatz/liste/
+2. (erledigt) pruefung.py mit Tests, FORMAT.md (art arbeitsblatt: titel, kopfzeile, bloecke ueberschrift/absatz/liste/
    tabelle/aufgabe mit antwort linien|kasten; art folien: titel, untertitel, folien mit titel/punkte).
    Streng: unbekannte Felder sind Fehler, alle Fehler auf einmal mit Pfad (`bloecke[4].antwort.anzahl: ...`).
 3. Arbeitsblatt als docx mit Tests (Linien/Kästen per XML, Kopfzeile auf jeder Seite, A4)
