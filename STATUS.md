@@ -2,7 +2,7 @@
 
 Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konventionen: CLAUDE.md.
 
-## Stand (20.10.2026)
+## Stand (21.10.2026)
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
   Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
 - agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
@@ -37,6 +37,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   keine Warnung, Woche ab 19.10. stimmt. Umlaute fehlen teils schon in den iCloud-Daten ("Link ber").
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 - Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
+- Ausfallmeldung (21.10.): Jede Unit trägt OnFailure=ausfall@%n.service (Vorlage
+  shared/systemd/ausfall@.service, eingerichtet). agentkit.ausfall schickt Grund (z. B. oom-kill) und
+  letzte Journal-Zeilen direkt per Telegram ([ausfall], ohne Linkvorschau, Token entfernt), sonst über
+  shared/meldungen/. Höchstens eine Meldung je Unit in 6 h (shared/ausfall/stand.json). Mit
+  Test-Unit geprüft: kam an. Eingerichtet für uni, uni-transkript, agentenzentrale; uni-lernen und
+  dokumente haben es in der Vorlage. Grenze: agentenzentrale hat Restart=on-failure und gilt nie als
+  fehlgeschlagen, solange der Neustart klappt. Nicht erkannt: Timer, die gar nicht mehr starten.
 
 ## Entscheidungen
 - Telegram ist die Zentrale in beide Richtungen. Jan diktiert per Handy-Tastatur, nur Text.
@@ -67,6 +74,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    meldung gesetzt) bitte still abschließen, sonst kommt nach jedem Knopfdruck der Lernabfrage eine
    zusätzliche Nachricht; der Agent antwortet dort selbst mit einer neuen Meldung.
    Fehlgeschlagene solche Aufträge weiter melden. uni-lernen schließt sie mit status "erledigt" ab.
+7. Server hat keinen Swap (braucht root). Nicht die Ursache des OOM bei uni-transkript, aber jeder
+   Speicherengpass endet sofort im OOM-Killer. Vorschlag: 2-4 GB Swapdatei, nur nach Jans Okay.
 
 ## Gelernte Regeln
 - (noch keine)

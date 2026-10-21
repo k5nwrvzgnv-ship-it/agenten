@@ -68,7 +68,12 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   bei Fachbegriffen (Schweizer Färbung). Speicher ~1 GB pro 42 min Aufnahme.
   Dienst/Timer uni-transkript (1 Uhr), Vorlage in uni/systemd/, von Jan am 17.10. eingerichtet
   (Claude darf keine Dienste anlegen und keine Pakete installieren: Sicherheitsprüfung, Jan per `!`-Befehl).
-  Erster Lauf 17.10. 1 Uhr noch nicht geprüft: `journalctl --user -u uni-transkript -n 30`.
+  21.10.: Seit 17.10. jede Nacht OOM-Kill an derselben 69-min-Aufnahme (DL 260914), die als älteste
+  alle weiteren blockierte. Ursache gemessen: faster-whisper berechnet die Merkmale für den ganzen
+  Ton auf einmal (~50 MB/min, 20 min = 1,45 GB). Seitdem Stücke von 10 min, Schnitt an der leisesten
+  Stelle ±15 s, Zeitmarken mit Versatz (Kontext zwischen Stücken geht verloren, an den Schnitten
+  evtl. ein Hörfehler mehr). data/transkript_versuche.json zählt Starts, nach 2 Abbrüchen ohne
+  Ergebnis: Fehler-.txt und Meldung. agent.py meldet fehlgeschlagene Schritte einmal am Tag.
 - Jans eigene Transkripte (transkripte.py, 17.10.): Auftrag "Transkript <Kurs> [TT.MM.]" mit .txt-Datei
   (Jans Format) oder Text darunter. Python legt nach data/kurse/<Kurs>/transkripte/<datum>_transkript.txt
   ab (Kurs per Namensteil, bei Mehrdeutigkeit Rückfrage mit Kandidaten), Claude (routine) meldet
@@ -172,7 +177,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    Protokoll-ID vom Ursprung der Antwortkette (ursprung()), Antwort-Prompts kurz, jeder Auftrag
    speichert seine Sitzung. Nur Unit-Tests: echter Test über Telegram steht aus (auf eine neue
    Antwort des Agenten antworten; Aufträge von vor dem 17.10. haben keine Sitzung).
-3. Zu prüfen: erster Lauf uni-transkript (17.10. 1 Uhr), Weiterleitung BFH-Postfach.
+3. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
+   übrigen Aufnahmen), Weiterleitung BFH-Postfach.
 
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.
