@@ -9,7 +9,8 @@ bleibt davon unberührt.
   (Ansichten in portal_logik). Schreibt Lia etwas, wird das alte Panel gelöscht und ein neues
   unter ihre Nachricht gesetzt. Die Nachrichten-ID steht in chat_data["panel"].
 - Bestätigte Aufträge gehen nach <instanz>/shared/auftraege/neu/, danach startet
-  lia-<agent>.service. Ergebnisse kommen als eigene Nachricht mit Knopf "Menü" zurück.
+  lia-<agent>.service. Ergebnisse kommen als eigene Nachricht zurück, Ergebnisdateien (Feld
+  ergebnis_dateien, nur aus dem Agent-Ordner) als Dokumente dahinter, zuletzt der Knopf "Menü".
 - Dateien nimmt er noch nicht an.
 - Ins Log kommen nur IDs und Arten, keine Inhalte von Lia.
 
@@ -21,6 +22,7 @@ import logging
 from pathlib import Path
 
 from telegram import LinkPreviewOptions, Update
+from telegram.error import TelegramError
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -31,11 +33,13 @@ from telegram.ext import (
 )
 
 from agentkit import auftraege, config, log
+from agentkit._ablage import AblageFehler, anhaenge_pruefen
 from logik import Gemeldet, aufteilen
 import panel as panel_
 import portal_logik as p
 
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
+AGENTEN_DIR = auftraege.AGENTEN_DIR
 PRUEF_INTERVALL = 30  # Sekunden
 
 if config.SHARED_DIR == config.instanz_dir({}):
@@ -164,13 +168,33 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # ---------- Ausgang: regelmäßige Prüfung ----------
 
+async def dateien_senden(bot, agent: str, dateien: list[str]) -> bool:
+    """Schickt Ergebnisdateien eines Agenten (nur Dateien im Agent-Ordner). True, wenn alle ankamen."""
+    alle = True
+    for datei in dateien:
+        try:
+            # noch einmal prüfen: zwischen Ablage und Senden kann sich die Datei geändert haben
+            pfad = AGENTEN_DIR / agent / anhaenge_pruefen(AGENTEN_DIR / agent, [datei])[0]
+            with open(pfad, "rb") as f:
+                await bot.send_document(LIA, f, filename=pfad.name, write_timeout=120)
+        except (AblageFehler, OSError, TelegramError) as e:
+            logger.error("Datei %s von %s nicht gesendet: %s", datei, agent, e)
+            alle = False
+    return alle
+
+
 async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
     neu = [a for a in auftraege.erledigte() if a["id"] not in gemeldet.listen["auftraege"]]
     for a in neu:
+        dateien = a.get("ergebnis_dateien") or []
         stuecke = aufteilen(p.ergebnis_text(a))
         for i, stueck in enumerate(stuecke):
-            letzte = i == len(stuecke) - 1
+            letzte = i == len(stuecke) - 1 and not dateien
             await context.bot.send_message(LIA, stueck, reply_markup=panel_.markup(p.MENUE_KNOPF) if letzte else None)
+        if dateien:
+            ok = await dateien_senden(context.bot, a["agent"], dateien)
+            await context.bot.send_message(LIA, p.dateien_text(len(dateien), ok),
+                                           reply_markup=panel_.markup(p.MENUE_KNOPF))
         gemeldet.listen["auftraege"].add(a["id"])
         logger.info("Ergebnis zu %s gesendet (%s)", a["id"], a["status"])
     if neu:

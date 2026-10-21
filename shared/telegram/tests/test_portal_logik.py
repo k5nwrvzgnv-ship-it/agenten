@@ -84,6 +84,11 @@ class AblaufTest(unittest.TestCase):
         p.abbrechen(z)
         self.assertEqual(z, {})
 
+    def test_dateien_text(self):
+        self.assertEqual(p.dateien_text(1, True), "Das ist die Datei.")
+        self.assertIn("2 Dateien", p.dateien_text(2, True))
+        self.assertIn("Jan", p.dateien_text(2, False))
+
     def test_ergebnis_mit_bezug(self):
         text = p.ergebnis_text({"status": "erledigt", "ergebnis": "Kommt bald.", "text": "Arbeitsblatt Kant"})
         self.assertIn("Arbeitsblatt Kant", text)

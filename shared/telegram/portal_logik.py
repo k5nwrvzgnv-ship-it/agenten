@@ -175,6 +175,13 @@ def abbrechen(zustand: dict) -> None:
     zustand.pop("wartet_auf", None)
 
 
+def dateien_text(anzahl: int, alle_angekommen: bool) -> str:
+    """Abschluss nach den Ergebnisdateien."""
+    if not alle_angekommen:
+        return "Eine Datei konnte ich leider nicht schicken. Sag Jan bitte Bescheid."
+    return "Das ist die Datei." if anzahl == 1 else f"Das sind die {anzahl} Dateien."
+
+
 def ergebnis_text(auftrag: dict) -> str:
     """Antwort an Lia, mit Bezug auf ihre Anfrage, ohne Technik (keine IDs, keine Agentennamen)."""
     kopf = f"Zu deiner Anfrage „{kurz(auftrag.get('text', ''))}“:\n\n"
