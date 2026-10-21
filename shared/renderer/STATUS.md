@@ -33,6 +33,24 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
     material D9F2D0.
   - Bewusst anders als bei Lia: Hilfen stehen nach den Aufgaben ihrer Gruppe, nicht fest am Seitenende;
     Ankreuz-Optionen eingerückt; erste Spalte der Ausfülltabelle so breit wie die anderen.
+- Schritt D (Folien in Lias Stil) fertig: `folien.bauen(beschreibung, ziel, profil)`. Format in `FORMAT.md`:
+  titel, untertitel, icon (Titelfolie), folien mit titel, icons (bis 2) und inhalt (1 bis 4 Elemente: kasten, text,
+  punkte, zentriert, leitfrage, zeit, spalten, auswahl, satzanfang, feedback, legende). Texte in Kästen, Punkten usw.
+  dürfen Textteile sein (fett, farbe blau/orange/gruen/rot/grau, unterstrichen). Das alte Format (punkte je Folie)
+  ist entfallen. Profil neu: `folien_schrift` (Aptos), `folien_titelschrift` (Aptos Display), Farben `kasten`,
+  `satzanfang`; für Lia akzent C00000, kasten F5F5F5, satzanfang 196B24.
+  - Raster nach Lias Vorbild vermessen: 33,87 x 19,05 cm, Titel 1,2 bis 4,6 cm, Strich bei 4,72 cm von 2,37 bis
+    31,5 cm, Inhalt 5,5 bis 17,6 cm, Fußzeile bei 18 cm, Titelfolie mit 10,16 cm breitem Balken.
+  - Größen: Titel 44 pt einzeilig, 38/32 pt zweizeilig, sonst Fehler an Claude. Inhalt: Höhe je Element aus
+    geschätzter Zeilenzahl (`zeilen()`, vorsichtige Zeichenbreiten), Maßstab je Folie von 1,35 bis 0,6; wachsen dürfen
+    nur kasten, text, punkte. Passt es auch bei 0,6 nicht: BeschreibungUngueltig mit `folien[i].inhalt: zu viel ...`.
+  - Titel steht im Titel-Platzhalter (Layout „nur Titel“), damit er in PowerPoints Gliederung erscheint.
+  - Formen ohne `p:style`: Der Effektstil des Designs zeichnet sonst in LibreOffice einen Schatten.
+  - Vorschau: Aptos fehlt auf dem Server. `~/.config/fontconfig/fonts.conf` ersetzt Aptos in der Vorschau durch
+    Liberation Sans (Maße wie Arial, eher breiter), damit Überläufe eher zu früh als zu spät auffallen.
+  - Geprüft per Vorschau: Lias Präsentation 5 nachgebaut (`data/nachbau/folien/`, nicht im Repo), nah am Original.
+    Bewusst anders: Handschlag-Icon in Herzform, Zeigefinger und Paket nur als Umriss. Offen: Aufzählungspunkte
+    stehen in LibreOffice etwas hoch, in PowerPoint noch nicht geprüft.
 - Schritt C (Icons) fertig: `icons.py` (`zeichnen(name, ziel, farbe, gefuellt, px)` -> PNG, transparent, mittig;
   `NAMEN`, `ICONS`). 55 deutsche Namen (achtung bis zitat, ohne Umlaute), je Tabler-Name und Zeichencode für Umriss
   und, falls vorhanden, gefüllt. Schriften Tabler Icons 3.49.0 (MIT) in `icons/` mit `LICENSE-tabler-icons.txt`,
@@ -137,7 +155,7 @@ Vorbilder liegen in `data/lia-vorbilder/` (nicht im Repo): `arbeitsblatt-5.2.pdf
      linien/kasten/ankreuzen/satzanfaenge/keine und Hilfen am Seitenende, Querformat-Seite mit Ausfülltabelle.
      Format darf umgebaut werden. Prüfen: Lias AB 5.2 nachbauen, Vorschau mit dem Original vergleichen.
    - C. (erledigt) Icons: Tabler Icons (MIT) als Schrift, Pillow zeichnet PNG in jeder Farbe, feste deutsche Namensliste.
-   - D. Folien in Lias Stil (siehe „Lias Design“), Lias Präsentation 5 nachbauen und vergleichen.
+   - D. (erledigt) Folien in Lias Stil (siehe „Lias Design“), Lias Präsentation 5 nachbauen und vergleichen.
    - E. Vorlagen, Textfassung, Beispiele, Doku (alte Schritte 5 und 6).
    - Design-Profil (Farben, Schriften, Fach, Lehrkraft) gibt der Agent mit, der Renderer enthält keine Daten von Lia.
 

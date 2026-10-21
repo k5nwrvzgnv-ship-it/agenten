@@ -11,7 +11,7 @@ Korrigiere alle genannten Stellen und gib die vollständige Beschreibung neu aus
 - Unbekannte Felder sind Fehler. Schreibe nur die Felder, die hier stehen.
 - Texte sind reiner Text. Markdown wie `**fett**` oder `# Titel` erscheint wörtlich, also weglassen.
   Ein Zeilenumbruch `\n` ist erlaubt.
-- Pflichttexte dürfen nicht leer sein. Tabellenzellen und `untertitel` dürfen leer sein.
+- Pflichttexte dürfen nicht leer sein. Tabellenzellen dürfen leer sein.
 
 ## Arbeitsblatt (wird eine docx-Datei)
 
@@ -76,16 +76,47 @@ erscheinen klein nach den Aufgaben ihrer Gruppe als „Aufgabe 3: ...“.
 - `{"art": "satzanfaenge", "saetze": [{"anfang": "Ich finde, dass", "linien": 2}]}`: 1 bis 5 Satzanfänge (je höchstens
   200 Zeichen) mit je 1 bis 10 Linien
 
-## Folien (wird eine pptx-Datei)
+## Folien (wird eine pptx-Datei, 16:9)
+
+Die erste Folie ist immer die Titelfolie (farbiger Balken mit Icon, Titel, Untertitel). Danach folgen die Folien aus
+`folien`. Jede hat einen Titel, darunter einen Strich, optional Icons rechts oben, und unten eine Fußzeile aus
+Untertitel, Titel und Foliennummer. Der Inhalt einer Folie besteht aus 1 bis 4 Elementen, die untereinander stehen.
+Die Schriftgröße wählt der Renderer: wenig Text wird größer, viel Text kleiner. Passt eine Folie auch verkleinert
+nicht, bekommst du einen Fehler. Dann kürzen oder auf zwei Folien verteilen.
 
 ```json
 {
   "art": "folien",
-  "titel": "Der kategorische Imperativ",
-  "untertitel": "Ethik, Klasse 10",
+  "titel": "Muss ich Fremden in Not genauso helfen wie Nahestehenden?",
+  "untertitel": "Ethik · Klasse 8",
+  "icon": "handschlag",
   "folien": [
-    {"titel": "Was ist eine Maxime?", "punkte": ["subjektive Regel des Handelns", "Beispiel: Ich lüge, wenn es mir nützt."]},
-    {"titel": "Fragen?"}
+    {"titel": "Ziel für heute", "icons": ["ziel"], "inhalt": [
+      {"typ": "zentriert", "absaetze": ["Wir wenden Singers und Aristoteles’ Positionen auf ein Beispiel an."]}]},
+    {"titel": "Was ist Behauptung, Begründung, Beispiel?", "inhalt": [
+      {"typ": "kasten", "titel": "Ein Argument:", "absaetze": [[
+        {"text": "Ich finde, dass man nicht lügen sollte.", "farbe": "blau", "unterstrichen": true},
+        {"text": " "},
+        {"text": "Der Grund dafür ist, dass andere einem dann nicht mehr vertrauen.", "farbe": "orange", "unterstrichen": true}]]},
+      {"typ": "legende", "eintraege": [{"text": "Behauptung", "farbe": "blau"}, {"text": "Begründung", "farbe": "orange"}]}]},
+    {"titel": "Yasmins Entscheidung", "icons": ["paket", "schale"], "inhalt": [
+      {"typ": "kasten", "absaetze": ["Yasmins großer Bruder zieht heute um ...", [{"text": "Yasmin muss sich entscheiden.", "fett": true}]]},
+      {"typ": "satzanfang", "text": "Yasmin steht vor dem Problem, dass …"}]},
+    {"titel": "Unsere Leitfrage", "inhalt": [{"typ": "leitfrage", "text": "Muss ich Fremden in Not genauso helfen wie Nahestehenden?"}]},
+    {"titel": "Zwei Positionen", "inhalt": [{"typ": "spalten", "spalten": [
+      {"titel": "Merksatz Singer", "text": "Ist die Not groß und sind meine Kosten klein, muss ich helfen."},
+      {"titel": "Merksatz Aristoteles", "text": "Nahestehenden schulde ich mehr als Fremden."}]}]},
+    {"titel": "Arbeitsauftrag", "inhalt": [
+      {"typ": "zentriert", "absaetze": ["Bearbeitet die Aufgaben 1–4 auf euren Arbeitsblättern!"]},
+      {"typ": "zeit", "minuten": 10}]},
+    {"titel": "Wer überzeugt dich?", "inhalt": [
+      {"typ": "auswahl", "optionen": ["Aristoteles", "Peter Singer"]},
+      {"typ": "satzanfang", "text": "Mich überzeugt … am meisten, weil …"}]},
+    {"titel": "Feedback", "inhalt": [{"typ": "feedback",
+      "gut": ["Etwas, das ich heute gelernt habe, ist …"], "schlecht": ["Was ich heute nicht verstanden habe, ist …"]}]},
+    {"titel": "Zusammenfassung", "inhalt": [
+      {"typ": "text", "text": "Drei Dinge zum Merken:"},
+      {"typ": "punkte", "punkte": ["Not und Kosten abwägen", "Nähe kann Pflichten begründen"]}]}
   ]
 }
 ```
@@ -93,9 +124,35 @@ erscheinen klein nach den Aufgaben ihrer Gruppe als „Aufgabe 3: ...“.
 | Feld | Pflicht | Bedeutung |
 |---|---|---|
 | `art` | ja | `"folien"` |
-| `titel` | ja | Titel der Titelfolie, höchstens 200 Zeichen |
-| `untertitel` | nein | Untertitel der Titelfolie, höchstens 200 Zeichen, darf leer sein |
+| `titel` | ja | Titel der Titelfolie und der Fußzeile, höchstens 200 Zeichen |
+| `untertitel` | nein | z. B. `"Ethik · Klasse 8"`, höchstens 100 Zeichen, steht auch in der Fußzeile |
+| `icon` | nein | Icon auf der Titelfolie (Namen siehe unten) |
 | `folien` | ja | 1 bis 50 Folien nach der Titelfolie |
 
-Jede Folie hat `titel` (Pflicht, höchstens 200 Zeichen) und `punkte` (optional, 0 bis 10 Stichpunkte, je höchstens
-300 Zeichen). Stichpunkte kurz halten: eine Zeile, kein ganzer Absatz.
+Jede Folie hat `titel` (Pflicht, höchstens zwei Zeilen, also etwa 90 Zeichen), `inhalt` (Pflicht, 1 bis 4 Elemente)
+und `icons` (optional, 1 bis 2 Namen, stehen rechts neben dem Titel).
+
+Elemente, unterschieden durch `typ`:
+
+| typ | Felder | Aussehen |
+|---|---|---|
+| `kasten` | `absaetze`: 1 bis 6, `titel` (optional, fett) | grauer Kasten mit Balken links, z. B. für Material, Beispiele, Argumente |
+| `text` | `text` | normaler Text |
+| `punkte` | `punkte`: 1 bis 8 | Aufzählung mit • |
+| `zentriert` | `absaetze`: 1 bis 4 | großer fetter Text in der Mitte, z. B. Ziel, Arbeitsauftrag, Frage |
+| `leitfrage` | `text` (höchstens 200 Zeichen, reiner Text) | weiß auf farbiger Fläche |
+| `zeit` | `minuten`: 1 bis 180 | Wecker und „Zeit: 10 Minuten“ |
+| `spalten` | `spalten`: 2 bis 3, je `titel` (höchstens 100 Zeichen) und `text` (höchstens 600) | graue Kästen nebeneinander, z. B. Merksätze |
+| `auswahl` | `optionen`: 2 bis 4 (je höchstens 100 Zeichen, reiner Text) | umrandete Kästen nebeneinander, z. B. Positionen zur Wahl |
+| `satzanfang` | `text` (höchstens 200 Zeichen, reiner Text) | grün mit Zeigefinger, Anführungszeichen „…“ kommen automatisch |
+| `feedback` | `gut` und `schlecht`: je 1 bis 4 Satzanfänge (reiner Text) | zwei Spalten mit Smiley und traurigem Gesicht |
+| `legende` | `eintraege`: 2 bis 4, je `text` und `farbe` | farbige, unterstrichene Begriffe nebeneinander (zu Markierungen im Text) |
+
+**Textteile:** Wo oben `text` oder ein Eintrag in `absaetze`/`punkte` steht (außer „reiner Text“), darf statt eines
+Texts eine Liste von Teilen stehen, um einzelne Stellen hervorzuheben:
+`[{"text": "Ich finde, ...", "farbe": "blau", "unterstrichen": true}, {"text": " "}, {"text": "wichtig", "fett": true}]`.
+Jeder Teil hat `text` und optional `fett`, `farbe` (`"blau"`, `"orange"`, `"gruen"`, `"rot"`, `"grau"`) und
+`unterstrichen`. Leerzeichen zwischen den Teilen als eigener Teil `{"text": " "}`. Texte in Kästen höchstens 1500,
+Punkte und zentrierte Absätze höchstens 300 Zeichen.
+
+**Icons:** `achtung`, `aufgabe`, `auge`, `bild`, `buch`, `buecher`, `checkliste`, `daumen_hoch`, `daumen_runter`, `flagge`, `frage`, `gehirn`, `gesetz`, `gespraech`, `gluehbirne`, `gruppe`, `haken`, `handschlag`, `haus`, `herz`, `kalender`, `karte`, `kreuz`, `lupe`, `megafon`, `mikrofon`, `musik`, `neutral`, `notizen`, `ohr`, `paket`, `partner`, `person`, `pfeil`, `puzzle`, `rakete`, `sanduhr`, `schale`, `schreiben`, `schule`, `smiley`, `sprechblase`, `stern`, `stift`, `tafel`, `text`, `traurig`, `uhr`, `video`, `waage`, `wecker`, `welt`, `zeigefinger`, `ziel`, `zitat`.

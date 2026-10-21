@@ -9,8 +9,6 @@ npm-Pakets @tabler/icons-webfont@3.49.0 in ICONS eintragen.
 import re
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
-
 ORDNER = Path(__file__).resolve().parent / "icons"
 SCHRIFT_UMRISS = ORDNER / "tabler-icons.ttf"
 SCHRIFT_GEFUELLT = ORDNER / "tabler-icons-filled.ttf"
@@ -86,6 +84,8 @@ def zeichnen(name: str, ziel: Path, farbe: str = "000000", gefuellt: bool = Fals
         raise ValueError(f"Icon {name!r} gibt es nicht, erlaubt sind: {', '.join(NAMEN)}")
     if not _FARBE.match(farbe.lstrip("#")):
         raise ValueError(f"Farbe {farbe!r} ist keine Farbe wie \"C00000\"")
+    from PIL import Image, ImageDraw, ImageFont  # erst hier: pruefung.py braucht nur NAMEN
+
     _, umriss, voll = ICONS[name]
     schrift, zeichen = (SCHRIFT_GEFUELLT, voll) if gefuellt and voll else (SCHRIFT_UMRISS, umriss)
     bild = Image.new("RGBA", (px, px), (0, 0, 0, 0))

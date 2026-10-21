@@ -11,6 +11,8 @@ import json
 import math
 import re
 
+from renderer.icons import NAMEN
+
 # Grenzen (in FORMAT.md genannt; bei Änderung dort nachziehen)
 MAX_JSON_ZEICHEN = 1_000_000
 MAX_TITEL = 200
@@ -36,13 +38,31 @@ MAX_SATZANFAENGE = 5
 MAX_SATZANFANG = 200
 MAX_SATZANFANG_LINIEN = 10
 MAX_FOLIEN = 50
-MAX_FOLIE_PUNKTE = 10
+MAX_UNTERTITEL = 100
+MAX_FOLIE_ICONS = 2
+MAX_FOLIE_INHALT = 4
+MAX_ELEMENT_TEXT = 1500
+MAX_FOLIE_PUNKTE = 8
 MAX_FOLIE_PUNKT = 300
+MAX_KASTEN_ABSAETZE = 6
+MAX_ZENTRIERT_ABSAETZE = 4
+MAX_KURZTEXT = 100
+MAX_MINUTEN = 180
+SPALTEN = (2, 3)
+MAX_SPALTE_TEXT = 600
+AUSWAHL_OPTIONEN = (2, 4)
+MAX_FEEDBACK = 4
+LEGENDE = (2, 4)
+MAX_TEXTTEILE = 30
 
 ARTEN = ("arbeitsblatt", "folien")
 BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "merksatz", "anweisung", "material", "aufgaben",
               "neue_seite")
 ANTWORTARTEN = ("linien", "kasten", "ankreuzen", "satzanfaenge")
+ELEMENTTYPEN = ("text", "punkte", "kasten", "leitfrage", "zentriert", "zeit", "spalten", "auswahl", "satzanfang",
+                "feedback", "legende")
+TEXTFARBEN = ("blau", "orange", "gruen", "rot", "grau")
+ICON_NAMEN = NAMEN
 
 # Zeichen, die in docx/pptx (XML) nicht vorkommen dürfen. Zeilenumbruch und Tab sind erlaubt.
 _STEUERZEICHEN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
@@ -271,31 +291,146 @@ def _antwort(p: "_Pruefer", a, pfad: str) -> dict | None:
 
 
 def _folien(p: "_Pruefer", d: dict) -> dict:
-    p.felder(d, "", pflicht=("art", "titel", "folien"), optional=("untertitel",))
+    p.felder(d, "", pflicht=("art", "titel", "folien"), optional=("untertitel", "icon"))
     titel = p.text(d.get("titel", _FEHLT), "titel", MAX_TITEL)
-    untertitel = ""
-    if "untertitel" in d:
-        untertitel = p.text(d["untertitel"], "untertitel", MAX_TITEL, leer_erlaubt=True)
+    untertitel = p.text(d["untertitel"], "untertitel", MAX_UNTERTITEL) if "untertitel" in d else ""
+    icon = _icon(p, d["icon"], "icon") if "icon" in d else None
     folien = []
     for i, f in enumerate(p.liste(d.get("folien", _FEHLT), "folien", 1, MAX_FOLIEN) or []):
         pfad = f"folien[{i}]"
         if not isinstance(f, dict):
             p.melden(pfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(f)}")
             continue
-        p.felder(f, pfad, pflicht=("titel",), optional=("punkte",))
-        punkte = []
-        if "punkte" in f:
-            punkte = p.liste(f["punkte"], f"{pfad}.punkte", 0, MAX_FOLIE_PUNKTE) or []
+        p.felder(f, pfad, pflicht=("titel", "inhalt"), optional=("icons",))
+        bilder = []
+        if "icons" in f:
+            namen = p.liste(f["icons"], f"{pfad}.icons", 1, MAX_FOLIE_ICONS) or []
+            bilder = [_icon(p, n, f"{pfad}.icons[{j}]") for j, n in enumerate(namen)]
+        inhalt = p.liste(f.get("inhalt", _FEHLT), f"{pfad}.inhalt", 1, MAX_FOLIE_INHALT) or []
         folien.append({
             "titel": p.text(f.get("titel", _FEHLT), f"{pfad}.titel", MAX_TITEL),
-            "punkte": [p.text(x, f"{pfad}.punkte[{j}]", MAX_FOLIE_PUNKT) for j, x in enumerate(punkte)],
+            "icons": bilder,
+            "inhalt": [_element(p, e, f"{pfad}.inhalt[{j}]") for j, e in enumerate(inhalt)],
         })
-    return {
-        "art": "folien",
-        "titel": titel,
-        "untertitel": untertitel,
-        "folien": folien,
-    }
+    return {"art": "folien", "titel": titel, "untertitel": untertitel, "icon": icon, "folien": folien}
+
+
+def _element(p: "_Pruefer", e, pfad: str) -> dict | None:
+    if not isinstance(e, dict):
+        p.melden(pfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(e)}")
+        return None
+    typ = e.get("typ", _FEHLT)
+    if typ not in ELEMENTTYPEN:
+        erlaubt = ", ".join(_zeigen(t) for t in ELEMENTTYPEN)
+        if typ is _FEHLT:
+            p.melden(f"{pfad}.typ", f"fehlt, erlaubt sind {erlaubt}")
+        else:
+            p.melden(f"{pfad}.typ", f"muss einer von {erlaubt} sein, ist {_zeigen(typ)}{_aehnlich(typ, ELEMENTTYPEN)}")
+        return None
+
+    def texte(feld: str, minimum: int, maximum: int, laenge: int, teile: bool = True) -> list:
+        werte = p.liste(e.get(feld, _FEHLT), f"{pfad}.{feld}", minimum, maximum) or []
+        pruef = _textteile if teile else (lambda p_, w, pf, n: p_.text(w, pf, n))
+        return [pruef(p, w, f"{pfad}.{feld}[{i}]", laenge) for i, w in enumerate(werte)]
+
+    if typ == "text":
+        p.felder(e, pfad, pflicht=("typ", "text"))
+        return {"typ": typ, "text": _textteile(p, e.get("text", _FEHLT), f"{pfad}.text", MAX_ELEMENT_TEXT)}
+    if typ == "punkte":
+        p.felder(e, pfad, pflicht=("typ", "punkte"))
+        return {"typ": typ, "punkte": texte("punkte", 1, MAX_FOLIE_PUNKTE, MAX_FOLIE_PUNKT)}
+    if typ == "kasten":
+        p.felder(e, pfad, pflicht=("typ", "absaetze"), optional=("titel",))
+        titel = p.text(e["titel"], f"{pfad}.titel", MAX_KURZTEXT) if "titel" in e else ""
+        return {"typ": typ, "titel": titel, "absaetze": texte("absaetze", 1, MAX_KASTEN_ABSAETZE, MAX_ELEMENT_TEXT)}
+    if typ in ("leitfrage", "satzanfang"):
+        p.felder(e, pfad, pflicht=("typ", "text"))
+        return {"typ": typ, "text": p.text(e.get("text", _FEHLT), f"{pfad}.text", MAX_TITEL)}
+    if typ == "zentriert":
+        p.felder(e, pfad, pflicht=("typ", "absaetze"))
+        return {"typ": typ, "absaetze": texte("absaetze", 1, MAX_ZENTRIERT_ABSAETZE, MAX_FOLIE_PUNKT)}
+    if typ == "zeit":
+        p.felder(e, pfad, pflicht=("typ", "minuten"))
+        return {"typ": typ, "minuten": p.ganzzahl(e.get("minuten", _FEHLT), f"{pfad}.minuten", 1, MAX_MINUTEN)}
+    if typ == "spalten":
+        p.felder(e, pfad, pflicht=("typ", "spalten"))
+        spalten = []
+        for i, s in enumerate(p.liste(e.get("spalten", _FEHLT), f"{pfad}.spalten", *SPALTEN) or []):
+            spfad = f"{pfad}.spalten[{i}]"
+            if not isinstance(s, dict):
+                p.melden(spfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(s)}")
+                continue
+            p.felder(s, spfad, pflicht=("titel", "text"))
+            spalten.append({"titel": p.text(s.get("titel", _FEHLT), f"{spfad}.titel", MAX_KURZTEXT),
+                            "text": _textteile(p, s.get("text", _FEHLT), f"{spfad}.text", MAX_SPALTE_TEXT)})
+        return {"typ": typ, "spalten": spalten}
+    if typ == "auswahl":
+        p.felder(e, pfad, pflicht=("typ", "optionen"))
+        return {"typ": typ, "optionen": texte("optionen", *AUSWAHL_OPTIONEN, MAX_KURZTEXT, teile=False)}
+    if typ == "feedback":
+        p.felder(e, pfad, pflicht=("typ", "gut", "schlecht"))
+        return {"typ": typ, "gut": texte("gut", 1, MAX_FEEDBACK, MAX_FOLIE_PUNKT, teile=False),
+                "schlecht": texte("schlecht", 1, MAX_FEEDBACK, MAX_FOLIE_PUNKT, teile=False)}
+    # legende
+    p.felder(e, pfad, pflicht=("typ", "eintraege"))
+    eintraege = []
+    for i, x in enumerate(p.liste(e.get("eintraege", _FEHLT), f"{pfad}.eintraege", *LEGENDE) or []):
+        xpfad = f"{pfad}.eintraege[{i}]"
+        if not isinstance(x, dict):
+            p.melden(xpfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(x)}")
+            continue
+        p.felder(x, xpfad, pflicht=("text", "farbe"))
+        eintraege.append({"text": p.text(x.get("text", _FEHLT), f"{xpfad}.text", MAX_KURZTEXT),
+                          "farbe": _farbe(p, x.get("farbe", _FEHLT), f"{xpfad}.farbe")})
+    return {"typ": typ, "eintraege": eintraege}
+
+
+def _textteile(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> list | None:
+    """Ein Text oder eine Liste von Teilen {text, fett, farbe, unterstrichen}. Ergebnis: immer die Liste."""
+    if isinstance(wert, str):
+        text = p.text(wert, pfad, max_laenge)
+        return [{"text": text, "fett": False, "farbe": None, "unterstrichen": False}] if text is not None else None
+    if wert is _FEHLT:
+        return None
+    if not isinstance(wert, list):
+        p.melden(pfad, f"muss ein Text oder eine Liste von Textteilen sein, ist {_zeigen(wert)}")
+        return None
+    teile = []
+    for i, t in enumerate(p.liste(wert, pfad, 1, MAX_TEXTTEILE) or []):
+        tpfad = f"{pfad}[{i}]"
+        if not isinstance(t, dict):
+            p.melden(tpfad, f"muss ein Objekt {{\"text\": ...}} sein, ist {_zeigen(t)}")
+            continue
+        p.felder(t, tpfad, pflicht=("text",), optional=("fett", "farbe", "unterstrichen"))
+        teile.append({
+            "text": p.text(t.get("text", _FEHLT), f"{tpfad}.text", max_laenge, leer_erlaubt=True),
+            "fett": p.wahrheitswert(t["fett"], f"{tpfad}.fett") if "fett" in t else False,
+            "farbe": _farbe(p, t["farbe"], f"{tpfad}.farbe") if "farbe" in t else None,
+            "unterstrichen": p.wahrheitswert(t["unterstrichen"], f"{tpfad}.unterstrichen") if "unterstrichen" in t
+            else False,
+        })
+    if sum(len(t["text"] or "") for t in teile) > max_laenge:
+        p.melden(pfad, f"zu lang (zusammen höchstens {max_laenge} Zeichen)")
+    elif teile and all(t["text"] is not None and not t["text"].strip() for t in teile):
+        p.melden(pfad, "darf nicht leer sein (einzelne Teile wie \" \" sind als Trenner erlaubt)")
+    return teile
+
+
+def _farbe(p: "_Pruefer", wert, pfad: str) -> str | None:
+    if wert is _FEHLT:
+        return None
+    if wert not in TEXTFARBEN:
+        p.melden(pfad, f"muss einer von {', '.join(_zeigen(f) for f in TEXTFARBEN)} sein, ist {_zeigen(wert)}")
+        return None
+    return wert
+
+
+def _icon(p: "_Pruefer", wert, pfad: str) -> str | None:
+    if wert not in ICON_NAMEN:
+        p.melden(pfad, f"kein Icon dieses Namens: {_zeigen(wert)}{_aehnlich(wert, ICON_NAMEN)}, "
+                       f"erlaubt sind: {', '.join(ICON_NAMEN)}")
+        return None
+    return wert
 
 
 class _Pruefer:

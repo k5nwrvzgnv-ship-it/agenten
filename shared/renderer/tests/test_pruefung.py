@@ -35,7 +35,8 @@ BLATT = {
 FOLIEN = {
     "art": "folien",
     "titel": "Der kategorische Imperativ",
-    "folien": [{"titel": "Was ist eine Maxime?", "punkte": ["Regel", "subjektiv"]}, {"titel": "Fragen?"}],
+    "folien": [{"titel": "Was ist eine Maxime?", "inhalt": [{"typ": "punkte", "punkte": ["Regel", "subjektiv"]}]},
+               {"titel": "Fragen?", "icons": ["frage"], "inhalt": [{"typ": "zentriert", "absaetze": ["Fragen?"]}]}],
 }
 
 
@@ -89,8 +90,10 @@ class TestGueltig(unittest.TestCase):
 
     def test_folien_mit_standardwerten(self):
         e = lesen(FOLIEN)
-        self.assertEqual(e["untertitel"], "")
-        self.assertEqual(e["folien"][1], {"titel": "Fragen?", "punkte": []})
+        self.assertEqual((e["untertitel"], e["icon"]), ("", None))
+        self.assertEqual(e["folien"][0]["icons"], [])
+        self.assertEqual(e["folien"][1]["inhalt"][0]["absaetze"],
+                         [[{"text": "Fragen?", "fett": False, "farbe": None, "unterstrichen": False}]])
 
     def test_json_text_und_dict_gleich(self):
         self.assertEqual(lesen(json.dumps(BLATT)), lesen(BLATT))
@@ -219,14 +222,64 @@ class TestFehler(unittest.TestCase):
         self.assertIn("bloecke[8].text: enthält Steuerzeichen (erlaubt sind nur Zeilenumbruch und Tab)", f)
 
     def test_folien_fehler(self):
-        f = self.fehler({"art": "folien", "titel": "x", "untertitel": 3,
-                         "folien": [{"titel": "a", "punkte": ["p"] * 11}, {"punkte": []}, "b"]})
-        self.assertEqual(f, [
-            "untertitel: muss ein Text sein, ist 3",
-            "folien[0].punkte: muss 0 bis 10 Einträge haben, hat 11",
+        f = self.fehler({"art": "folien", "titel": "x", "untertitel": 3, "icon": "hand",
+                         "folien": [{"titel": "a", "inhalt": []}, {"inhalt": [{"typ": "text", "text": "y"}]}, "b",
+                                    {"titel": "c", "icons": ["ziel", "uhr", "stern"], "inhalt": [{"typ": "bild"}]}]})
+        self.assertEqual(f[0], "untertitel: muss ein Text sein, ist 3")
+        self.assertTrue(f[1].startswith('icon: kein Icon dieses Namens: "hand" (gemeint: "haken"?), erlaubt sind: '
+                                        "achtung, aufgabe"))
+        self.assertEqual(f[2:], [
+            "folien[0].inhalt: muss 1 bis 4 Einträge haben, hat 0",
             "folien[1].titel: fehlt",
             'folien[2]: muss ein Objekt {...} sein, ist "b"',
+            "folien[3].icons: muss 1 bis 2 Einträge haben, hat 3",
+            'folien[3].inhalt[0].typ: muss einer von "text", "punkte", "kasten", "leitfrage", "zentriert", "zeit", '
+            '"spalten", "auswahl", "satzanfang", "feedback", "legende" sein, ist "bild"',
         ])
+
+    def test_folien_elemente(self):
+        def fehler(*inhalt):
+            return self.fehler({"art": "folien", "titel": "x", "folien": [{"titel": "a", "inhalt": list(inhalt)}]})
+
+        p = "folien[0].inhalt[0]"
+        self.assertEqual(fehler({"typ": "zeit", "minuten": 0}),
+                         [f"{p}.minuten: muss eine ganze Zahl von 1 bis 180 sein, ist 0"])
+        self.assertEqual(fehler({"typ": "auswahl", "optionen": ["nur eine"]}),
+                         [f"{p}.optionen: muss 2 bis 4 Einträge haben, hat 1"])
+        self.assertEqual(fehler({"typ": "spalten", "spalten": [{"titel": "a", "text": "b"}, {"titel": "c"}]}),
+                         [f"{p}.spalten[1].text: fehlt"])
+        self.assertEqual(fehler({"typ": "legende", "eintraege": [{"text": "a", "farbe": "lila"},
+                                                                 {"text": "b", "farbe": "blau"}]}),
+                         [f'{p}.eintraege[0].farbe: muss einer von "blau", "orange", "gruen", "rot", "grau" sein, '
+                          'ist "lila"'])
+        self.assertEqual(fehler({"typ": "feedback", "gut": ["a"]}), [f"{p}.schlecht: fehlt"])
+        self.assertEqual(fehler({"typ": "kasten", "absaetze": ["a"], "farbe": "rot"}),
+                         [f"{p}.farbe: unbekanntes Feld, erlaubt sind: typ, absaetze, titel"])
+
+    def test_textteile(self):
+        def lese(text):
+            d = lesen({"art": "folien", "titel": "x", "folien": [{"titel": "a", "inhalt": [{"typ": "text",
+                                                                                           "text": text}]}]})
+            return d["folien"][0]["inhalt"][0]["text"]
+
+        self.assertEqual(lese([{"text": "Ich", "farbe": "blau", "unterstrichen": True}, {"text": " "},
+                               {"text": "du", "fett": True}]),
+                         [{"text": "Ich", "fett": False, "farbe": "blau", "unterstrichen": True},
+                          {"text": " ", "fett": False, "farbe": None, "unterstrichen": False},
+                          {"text": "du", "fett": True, "farbe": None, "unterstrichen": False}])
+
+        def fehler(text):
+            return self.fehler({"art": "folien", "titel": "x", "folien": [{"titel": "a", "inhalt": [
+                {"typ": "text", "text": text}]}]})
+
+        p = "folien[0].inhalt[0].text"
+        self.assertEqual(fehler([{"text": " "}]),
+                         [f'{p}: darf nicht leer sein (einzelne Teile wie " " sind als Trenner erlaubt)'])
+        self.assertEqual(fehler(["a"]), [f'{p}[0]: muss ein Objekt {{"text": ...}} sein, ist "a"'])
+        self.assertEqual(fehler(5), [f"{p}: muss ein Text oder eine Liste von Textteilen sein, ist 5"])
+        self.assertEqual(fehler([{"text": "a" * 1000}, {"text": "b" * 600}]),
+                         [f"{p}: zu lang (zusammen höchstens 1500 Zeichen)"])
+        self.assertEqual(fehler([{"text": "a", "fett": "ja"}]), [f'{p}[0].fett: muss true oder false sein, ist "ja"'])
 
     def test_lange_werte_gekuerzt(self):
         f = self.fehler({"art": "x" * 100})

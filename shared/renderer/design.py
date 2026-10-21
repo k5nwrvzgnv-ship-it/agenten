@@ -15,11 +15,15 @@ STANDARD = {
     "lehrkraft": "",
     "nummer_text": "Arbeitsblatt",  # vor der Nummer im Kopf: "Arbeitsblatt 5"
     "linienabstand_cm": 0.8,  # Abstand der Schreiblinien
+    "folien_schrift": "Aptos",
+    "folien_titelschrift": "Aptos Display",
     "farben": {
         "thema": "E7E6E6",  # Thema-Zelle im Kopf
         "merksatz": "EDEDED",
         "material": "F2F2F2",
-        "akzent": "404040",  # Folien: Titel, Striche, Balken
+        "akzent": "404040",  # Folien: Titel, Striche, Balken, Leitfrage
+        "kasten": "F2F2F2",  # Folien: Textkästen, Spalten, Auswahl
+        "satzanfang": "196B24",  # Folien: Satzanfänge mit Zeigefinger, Smiley im Feedback
     },
 }
 
@@ -50,7 +54,7 @@ def profil_lesen(profil: dict | None) -> dict:
             fehler.append(f"farben.{name}: muss eine Farbe wie \"FFD873\" sein, ist {wert!r}")
     ergebnis["farben"] = {**STANDARD["farben"], **{k: v.lstrip("#").upper() for k, v in farben.items()
                                                     if k in STANDARD["farben"] and isinstance(v, str)}}
-    for name in ("schrift", "fach", "lehrkraft", "nummer_text"):
+    for name in ("schrift", "fach", "lehrkraft", "nummer_text", "folien_schrift", "folien_titelschrift"):
         if not isinstance(ergebnis[name], str) or len(ergebnis[name]) > 60:
             fehler.append(f"{name}: muss ein Text mit höchstens 60 Zeichen sein")
     for name, (unten, oben) in _GRENZEN.items():
