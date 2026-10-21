@@ -3,6 +3,8 @@
 Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konventionen: CLAUDE.md.
 
 ## Stand (21.10.2026)
+- Übersicht, wo was liegt, welche Dienste laufen und welcher Chat wohin gehört: README.md
+  (aufgeräumt 21.10.: lia/instanz statt lia/shared, Dienst-Vorlagen je Ordner in systemd/).
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
   Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
 - agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
