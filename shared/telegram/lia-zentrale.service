@@ -1,0 +1,18 @@
+[Unit]
+Description=Lias Zentrale (Telegram-Bot für Lias Instanz)
+# Bei Ausfall Meldung an Jan (ausfall@ läuft ohne AGENTKIT_INSTANZ, also in Jans Instanz)
+OnFailure=ausfall@%n.service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/shared
+WorkingDirectory=/home/agent/agenten/shared/telegram
+ExecStart=/home/agent/agenten/shared/telegram/.venv/bin/python portal.py
+Restart=on-failure
+RestartSec=10
+MemoryMax=200M
+
+[Install]
+WantedBy=default.target
