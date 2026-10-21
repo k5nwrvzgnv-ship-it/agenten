@@ -37,6 +37,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   keine Warnung, Woche ab 19.10. stimmt. Umlaute fehlen teils schon in den iCloud-Daten ("Link ber").
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 - Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
+- Lias Instanz (21.10.): eigener Ordner lia/ unter User agent, kein eigener Linux-User.
+  agentkit wählt die Instanz über AGENTKIT_INSTANZ=<instanz>/shared (ohne Variable unverändert Jans).
+  lia/shared/: .env (Token @zentraleliabot, Lias Chat-ID), Warteschlangen, regeln.md.
+  Dienst lia-zentrale (shared/telegram/portal.py, eigene Logik portal_logik.py): Menü-Nachricht mit
+  Knöpfen Neues Material / Meine Woche / Frage stellen, Bestätigen vor dem Abschicken, keine Befehle,
+  keine Dateien, Linkvorschau aus, Log ohne Inhalte. Daten und Log in lia/shared/zentrale/.
+  Platzhalter lia/unterricht (Dienst lia-unterricht) antwortet "kommt bald", ohne Claude.
+  Ausfälle beider Dienste melden sich bei Jan (ausfall@). zentrale.py und logik.py unverändert.
 - Ausfallmeldung (21.10.): Jede Unit trägt OnFailure=ausfall@%n.service (Vorlage
   shared/systemd/ausfall@.service, eingerichtet). agentkit.ausfall schickt Grund (z. B. oom-kill) und
   letzte Journal-Zeilen direkt per Telegram ([ausfall], ohne Linkvorschau, Token entfernt), sonst über
@@ -76,28 +84,18 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Fehlgeschlagene solche Aufträge weiter melden. uni-lernen schließt sie mit status "erledigt" ab.
 7. Server hat keinen Swap (braucht root). Nicht die Ursache des OOM bei uni-transkript, aber jeder
    Speicherengpass endet sofort im OOM-Killer. Vorschlag: 2-4 GB Swapdatei, nur nach Jans Okay.
-8. Lias Agenten-Netzwerk (Übergabe 21.10., für einen neuen Chat im Hauptordner):
-   Architektur steht in docs/lia-architektur.md (Ist-Analyse mit Codestellen, Rollen buero/unterricht/
-   material, Anbindungen IServ per IMAP/CalDAV/WebDAV, Gedächtnis, Skills, Freigabe-Matrix, Schutz gegen
-   Prompt-Injection, Kanal, Ausbaureihenfolge). Erst lesen, Abschnitt 3 und 7 sind der Fahrplan.
-   Nächster Schritt: Lias Telegram-Portal (Schritt 0 und Teil von Schritt 1 in docs/lia-architektur.md).
-   Vorgeschlagener Plan (noch NICHT von Jan freigegeben):
-   - Zentrale mandantenfähig: Name, Chat-ID, Agentenliste, Pfade aus der Instanz-Konfiguration statt
-     JAN (zentrale.py:60), AGENTEN (logik.py:10), SHARED_DIR (config.py:11), "Jan" in claude_lauf.GRUNDREGEL.
-     Jans Instanz muss sich exakt wie bisher verhalten (bestehende Tests, danach Handtest /status).
-   - Lias Zentrale als eigener Dienst mit eigenem Bot und eigenen Warteschlangen, Linkvorschau aus,
-     OnFailure=ausfall@%n.service (meldet an Jan, ohne Inhalte).
-   - Bedienung ohne Schrägstrich-Befehle: festes Knopf-Menü (Neues Material, Meine Woche, Frage stellen),
-     Freitext mit Bestätigungsknopf an den passenden Agenten.
-   - Platzhalter-Agent unterricht, der Aufträge bestätigt und "kommt bald" sagt, bis Lias Claude-Konto da ist.
-   Offene Entscheidungen von Jan, vor dem Bauen klären:
-   a) Eigener Linux-User lia (empfohlen, braucht root, Benutzer anlegen nur nach Jans Okay) oder eigener
-      Ordner unter User agent (schneller, schwächere Trennung).
-   b) Bot-Token: Lia/Jan legt den Bot bei @BotFather an und trägt den Token selbst in die .env ein (nicht in
-      den Chat). Chat-ID: Lia schreibt dem Bot /start, der Chat liest sie per getUpdates aus.
-   c) Claude-Konto für Lia (empfohlen: eigener API-Schlüssel mit Budgetgrenze), erst für den ersten Agenten nötig.
-   d) agentkit als versioniertes Paket statt .pth auf den Arbeitsordner (siehe S2 in der Architektur)
-      jetzt oder später.
+8. Lias Agenten-Netzwerk: Architektur in docs/lia-architektur.md (Abschnitt 3 und 7 = Fahrplan).
+   Entschieden 21.10.: Ordner unter agent statt User lia; vorhandener Token bleibt (stand im Chat,
+   /revoke optional); Lia nutzt Jans Pro-Abo (teilt das Kontingent, Schuldaten liefen über Jans
+   Konto, siehe Abschnitt 0); agentkit als Paket erst beim Umzug zu einem User lia.
+   Gebaut: Lias Zentrale und Platzhalter unterricht (siehe Stand).
+   Offen:
+   - Handtest: Lia tippt alle drei Knöpfe, schickt einmal Freitext, bekommt "kommt bald".
+     Jan prüft /status in seiner Zentrale (Code dort unverändert).
+   - Nächster Schritt: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
+     Verbrauch und Plätze gemeinsam mit Jans Instanz (gleiches Konto), "Jan" in
+     claude_lauf.GRUNDREGEL und in auftraege ("Angehängte Dateien von Jan") je Instanz.
+   - Dateien in Lias Zentrale annehmen (heute: Hinweis "kommt bald").
    Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
 
 ## Gelernte Regeln
