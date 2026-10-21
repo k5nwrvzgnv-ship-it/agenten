@@ -7,7 +7,7 @@ OnFailure=ausfall@%n.service
 
 [Service]
 Type=oneshot
-Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/shared
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
 WorkingDirectory=/home/agent/agenten/lia/unterricht
 ExecStart=/home/agent/agenten/lia/unterricht/.venv/bin/python agent.py
 TimeoutStartSec=5min

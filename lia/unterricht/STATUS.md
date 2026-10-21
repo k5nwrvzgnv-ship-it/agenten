@@ -8,7 +8,7 @@ Heute Platzhalter: bestätigt jeden Auftrag mit "kommt bald", ruft Claude nicht 
 - agent.py schließt alle neuen Aufträge mit einer Antwort je Art (Feld quelle) ab. Tests in tests/.
 
 ## Aufbau
-- Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/shared (Warteschlangen, Regeln, .env dort)
+- Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz (Warteschlangen, Regeln, .env dort)
 - Code: lia/unterricht/agent.py
 - .venv: lia/unterricht/.venv, agentkit per .pth eingebunden
 - Dienst: lia-unterricht.service (oneshot, Vorlage systemd/), gestartet von Lias Zentrale

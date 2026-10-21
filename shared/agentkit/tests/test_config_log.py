@@ -71,7 +71,7 @@ class InstanzTest(unittest.TestCase):
             self.assertEqual(config.instanz_dir({"AGENTKIT_INSTANZ": d}), Path(d).resolve())
 
     def test_relativ_oder_fehlend_bricht_ab(self):
-        for wert in ("lia/shared", "/gibt/es/nicht"):
+        for wert in ("lia/instanz", "/gibt/es/nicht"):
             with self.assertRaises(config.ConfigFehler):
                 config.instanz_dir({"AGENTKIT_INSTANZ": wert})
 

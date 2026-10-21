@@ -5,11 +5,11 @@ gewinnt der Wert des Agenten. Jede vorhandene .env muss chmod 600 haben
 (keine Rechte für Gruppe oder andere), sonst wird abgebrochen.
 
 Instanzen: Ohne Umgebungsvariable AGENTKIT_INSTANZ ist SHARED_DIR dieser shared-Ordner
-(Jans System). Mit AGENTKIT_INSTANZ=/pfad/zu/<instanz>/shared liegen .env, Warteschlangen,
+(Jans System). Mit AGENTKIT_INSTANZ=/pfad/zu/<instanz-ordner> liegen .env, Warteschlangen,
 Regeln usw. dort, die Agenten der Instanz daneben (SHARED_DIR.parent). Der Code bleibt derselbe.
 Alle Instanzen nutzen dasselbe Claude-Konto. Darum liegen Einstellungen, Verbrauchsprotokoll und
 Plätze für Läufe für alle gemeinsam in KONTINGENT_DIR (Jans shared-Ordner).
-Name der Person: PERSON in <instanz>/.env, ohne Eintrag "Jan" (person()).
+Name der Person: PERSON in <instanz-ordner>/.env, ohne Eintrag "Jan" (person()).
 """
 
 import os

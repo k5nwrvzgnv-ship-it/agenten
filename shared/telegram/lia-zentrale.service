@@ -7,7 +7,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/shared
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
 WorkingDirectory=/home/agent/agenten/shared/telegram
 ExecStart=/home/agent/agenten/shared/telegram/.venv/bin/python portal.py
 Restart=on-failure

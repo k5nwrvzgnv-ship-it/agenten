@@ -22,7 +22,7 @@ kategorischer Imperativ, Klasse 10, 45 min“) und bekommt eine fertige Datei zu
    - `shared/agentkit/claude_lauf.py`, `auftraege.py` und `config.py`
 
 ## Stand
-- Lias Instanz: `lia/` unter User agent, `AGENTKIT_INSTANZ=/home/agent/agenten/lia/shared`.
+- Lias Instanz: `lia/` unter User agent, `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz`.
   Ohne die Variable verhält sich agentkit wie Jans Instanz.
 - Lia nutzt Jans Pro-Abo. agentkit ist per .pth eingebunden, ein Paket kommt erst beim Umzug zu einem User lia.
 - Dienst `lia-zentrale` (@zentraleliabot): Menü-Nachricht mit Knöpfen. Die Art des Auftrags steht im Feld
@@ -42,9 +42,9 @@ kategorischer Imperativ, Klasse 10, 45 min“) und bekommt eine fertige Datei zu
 - **Ein Kontingent:** Einstellungen, Verbrauchsprotokoll und Plätze liegen für alle Instanzen in Jans
   `shared/` (`config.KONTINGENT_DIR`). Lias Läufe zählen für Jans Stufe mit, `/verbrauch` zeigt sie als
   `lia/<agent>`.
-- **Werkzeuge:** Lias Agenten bekommen Werkzeuge über `lia/shared/einstellungen.toml`. Dort ist nur
+- **Werkzeuge:** Lias Agenten bekommen Werkzeuge über `lia/instanz/einstellungen.toml`. Dort ist nur
   `[werkzeuge]` erlaubt, ohne Eintrag gilt `standard`. Die Datei gibt es noch nicht.
-- **Name der Person:** `PERSON=Lia` in `lia/shared/.env`. Damit heißt es in `claude_lauf` „Lias Agenten-System“
+- **Name der Person:** `PERSON=Lia` in `lia/instanz/.env`. Damit heißt es in `claude_lauf` „Lias Agenten-System“
   und in den Aufträgen „Angehängte Dateien von Lia“. Für Jan bleibt alles wie bisher.
 - **Ergebnisdateien:** `portal.py` schickt `auftraege.abschliessen(..., dateien=[...])` als Dokumente an Lia.
 - Ein echter Claude-Lauf in Lias Instanz wurde noch nicht gemacht. Geprüft sind nur die Pfade, die Einstellungen

@@ -1,4 +1,4 @@
-"""Platzhalter-Agent unterricht in Lias Instanz (AGENTKIT_INSTANZ=lia/shared).
+"""Platzhalter-Agent unterricht in Lias Instanz (AGENTKIT_INSTANZ=lia/instanz).
 
 Bestätigt jeden Auftrag und sagt, dass die Funktion bald kommt. Ruft Claude nicht auf.
 Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal-frage, portal-text).

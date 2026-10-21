@@ -38,13 +38,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 - Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
 - Lias Instanz (21.10.): eigener Ordner lia/ unter User agent, kein eigener Linux-User.
-  agentkit wählt die Instanz über AGENTKIT_INSTANZ=<instanz>/shared (ohne Variable unverändert Jans).
-  lia/shared/: .env (Token @zentraleliabot, Lias Chat-ID), Warteschlangen, regeln.md.
+  agentkit wählt die Instanz über AGENTKIT_INSTANZ=<instanz-ordner> (ohne Variable unverändert Jans).
+  lia/instanz/: .env (Token @zentraleliabot, Lias Chat-ID), Warteschlangen, regeln.md.
   Dienst lia-zentrale (shared/telegram/portal.py, Ansichten in portal_logik.py): eine Menü-Nachricht
   (Panel), die beim Tippen bearbeitet wird: Neues Material, Meine Woche, Frage stellen, Meine Anfragen,
   Hilfe, Aktualisieren, Zurück. Freitext wird eingeordnet (Material/Frage), Grüße zeigen das Menü.
   Ergebnisse mit Bezug zur Anfrage und Knopf "Menü". Keine Befehle, keine Dateien, Linkvorschau aus,
-  Log ohne Inhalte. Daten und Log in lia/shared/zentrale/.
+  Log ohne Inhalte. Daten und Log in lia/instanz/zentrale/.
 - Menü-Nachricht auch in Jans Zentrale (21.10.): /start oder /menue zeigt das Panel (shared/telegram/
   panel.py, Ansichten in logik.py): Agent antippen (Modus umschaltbar), nächste Nachricht = Auftrag;
   Entwürfe (erneut anzeigen), Verbrauch, Status, Hilfe. /hilfe zeigt die Befehle, alle Befehle wie bisher.
@@ -104,8 +104,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Chat-Aufteilung ein Chat pro Ordner, siehe CLAUDE.md (21.10.).
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt
-     lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/shared/einstellungen.toml, PERSON=Lia
-     in lia/shared/.env (Grundregel und Auftragstext), portal.py schickt Ergebnisdateien.
+     lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/instanz/einstellungen.toml, PERSON=Lia
+     in lia/instanz/.env (Grundregel und Auftragstext), portal.py schickt Ergebnisdateien.
      Bisherige Notiz: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
      Verbrauch und Plätze gemeinsam mit Jans Instanz (gleiches Konto), "Jan" in
      claude_lauf.GRUNDREGEL und in auftraege ("Angehängte Dateien von Jan") je Instanz.

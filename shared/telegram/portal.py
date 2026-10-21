@@ -1,14 +1,14 @@
 """Lias Zentrale: Telegram-Bot für Lias Instanz, Bedienung nur über Knöpfe.
 
-Läuft mit AGENTKIT_INSTANZ=<instanz>/shared (Dienst lia-zentrale). Ohne die Variable startet
+Läuft mit AGENTKIT_INSTANZ=<instanz-ordner> (Dienst lia-zentrale). Ohne die Variable startet
 er nicht, damit er nie Jans Warteschlangen oder Jans Token benutzt. Jans Zentrale (zentrale.py)
 bleibt davon unberührt.
 
-- Reagiert nur auf Lias Chat-ID (TELEGRAM_CHAT_ID in <instanz>/shared/.env).
+- Reagiert nur auf Lias Chat-ID (TELEGRAM_CHAT_ID in <instanz-ordner>/.env).
 - Oberfläche: eine einzige Menü-Nachricht (Panel), die beim Tippen bearbeitet wird
   (Ansichten in portal_logik). Schreibt Lia etwas, wird das alte Panel gelöscht und ein neues
   unter ihre Nachricht gesetzt. Die Nachrichten-ID steht in chat_data["panel"].
-- Bestätigte Aufträge gehen nach <instanz>/shared/auftraege/neu/, danach startet
+- Bestätigte Aufträge gehen nach <instanz-ordner>/auftraege/neu/, danach startet
   lia-<agent>.service. Ergebnisse kommen als eigene Nachricht zurück, Ergebnisdateien (Feld
   ergebnis_dateien, nur aus dem Agent-Ordner) als Dokumente dahinter, zuletzt der Knopf "Menü".
 - Dateien nimmt er noch nicht an.
