@@ -36,16 +36,23 @@ kategorischer Imperativ, Klasse 10, 45 min“) und bekommt eine fertige Datei zu
 - **Renderer:** gemeinsam mit Jans dokumente-Agent bauen (Empfehlung der Architektur) oder vorerst nur für Lia?
 - **Vorlage:** Gibt es eine Schulvorlage von Lia?
 
-## Bekannte Lücken für einen echten Lauf
-- **Einstellungen:** `lia/shared/einstellungen.toml` fehlt. `claude_lauf` liest Modelle, Plätze und Stufen
-  aus `SHARED_DIR/einstellungen.toml` und würde in Lias Instanz scheitern.
-- **Verbrauch:** Das Protokoll und die Plätze liegen je Instanz unter `SHARED_DIR`, obwohl beide dasselbe
-  Konto nutzen. Jans Stufenberechnung sieht Lias Läufe nicht. Vorschlag: gemeinsames Protokoll und
-  gemeinsame Plätze.
-- **„Jan“ in den Texten:** In `claude_lauf.GRUNDREGEL` steht „Jans Agenten-System“, in `auftraege.neuer_auftrag`
-  „Angehängte Dateien von Jan“. Beides sollte je Instanz kommen, für Jan unverändert.
-- **Dateien:** `portal.py` schickt noch keine Ergebnisdateien (`ergebnis_dateien`), das ist Pflicht. Eingehende
-  Dateien lehnt es ab, sie anzunehmen wäre gut für Vorlagen.
+## Schon erledigt in shared/ (Hauptordner-Chat, 21.10.)
+- **Ein Kontingent:** Einstellungen, Verbrauchsprotokoll und Plätze liegen für alle Instanzen in Jans
+  `shared/` (`config.KONTINGENT_DIR`). Lias Läufe zählen für Jans Stufe mit, `/verbrauch` zeigt sie als
+  `lia/<agent>`.
+- **Werkzeuge:** Lias Agenten bekommen Werkzeuge über `lia/shared/einstellungen.toml`. Dort ist nur
+  `[werkzeuge]` erlaubt, ohne Eintrag gilt `standard`. Die Datei gibt es noch nicht.
+- **Name der Person:** `PERSON=Lia` in `lia/shared/.env`. Damit heißt es in `claude_lauf` „Lias Agenten-System“
+  und in den Aufträgen „Angehängte Dateien von Lia“. Für Jan bleibt alles wie bisher.
+- **Ergebnisdateien:** `portal.py` schickt `auftraege.abschliessen(..., dateien=[...])` als Dokumente an Lia.
+- Ein echter Claude-Lauf in Lias Instanz wurde noch nicht gemacht. Geprüft sind nur die Pfade, die Einstellungen
+  und der Name im Aufruf.
+
+## Noch Arbeit in shared/ (nur im Hauptordner-Chat oder mit Jans ausdrücklichem Okay)
+- **Renderer:** Kommt er nach `shared/`, als gemeinsame Bibliothek für Jan und Lia, ist das Arbeit im Hauptordner.
+  Ein Agent-Chat ändert `shared/` laut CLAUDE.md nicht.
+- **Eingehende Dateien:** Lias Zentrale lehnt sie bisher ab. Für Vorlagen müsste `portal.py` sie annehmen
+  (Vorbild: `zentrale.py`, `datei_empfangen`).
 
 ## Fertig heißt
 - Lia tippt „Neues Material“, beschreibt ihren Wunsch und bekommt die vereinbarte Datei mit kurzem

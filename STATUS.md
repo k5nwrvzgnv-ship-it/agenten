@@ -100,6 +100,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Handtest: Lia tippt alle Knöpfe, schickt Freitext und einen Gruß, bekommt "kommt bald".
      Jan: /start, Agent uni antippen, Auftrag schreiben, Verbrauch/Status/Entwürfe ansehen.
    - Nächster Schritt: Lias Dokument-Agent, Übergabe in docs/uebergabe-lia-dokumente.md (neuer Chat).
+   - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
+     (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt
+     lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/shared/einstellungen.toml, PERSON=Lia
+     in lia/shared/.env (Grundregel und Auftragstext), portal.py schickt Ergebnisdateien.
      Bisherige Notiz: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
      Verbrauch und Plätze gemeinsam mit Jans Instanz (gleiches Konto), "Jan" in
      claude_lauf.GRUNDREGEL und in auftraege ("Angehängte Dateien von Jan") je Instanz.
