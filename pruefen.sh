@@ -14,6 +14,7 @@ TESTS=(
   "shared/telegram|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
   "dokumente|.venv/bin/python|tests"
+  "lia/unterricht|.venv/bin/python|tests"
 )
 
 for eintrag in "${TESTS[@]}"; do
