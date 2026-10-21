@@ -1,13 +1,15 @@
 """FORMAT.md bleibt richtig: Jedes JSON-Beispiel darin besteht die Prüfung."""
 
 import re
+import tomllib
 import unittest
 from pathlib import Path
 
-from renderer import pruefen
+from renderer import design, pruefen
 from renderer.icons import NAMEN
 
 FORMAT = Path(__file__).resolve().parent.parent / "FORMAT.md"
+PROFIL = Path(__file__).resolve().parent.parent / "beispiele" / "profil-lia-stil.toml"
 
 
 class TestFormat(unittest.TestCase):
@@ -20,6 +22,13 @@ class TestFormat(unittest.TestCase):
     def test_alle_icons_genannt(self):
         text = FORMAT.read_text(encoding="utf-8")
         self.assertEqual([n for n in NAMEN if f"`{n}`" not in text], [])
+
+
+    def test_beispiel_profil(self):
+        with open(PROFIL, "rb") as f:
+            profil = design.profil_lesen(tomllib.load(f))
+        self.assertEqual(profil["farben"]["akzent"], "C00000")
+        self.assertEqual(profil["lehrkraft"], "")  # keine Daten einer Person im Renderer
 
 
 if __name__ == "__main__":

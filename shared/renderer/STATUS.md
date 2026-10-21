@@ -1,179 +1,95 @@
 # Status: Renderer (shared/renderer)
 
 ## Zweck
-Gemeinsame Bibliothek für Jan und Lia: Eine JSON-Beschreibung geht rein (von Claude geschrieben), eine
-Datei kommt raus (docx, pptx, später PDF). Claude führt nie Code aus, Python baut. Nutzer sind Lias
-Material-Agent (zuerst) und Jans dokumente-Agent (später). Grundlage: docs/lia-architektur.md,
-Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
+Gemeinsame Bibliothek für Jan und Lia: Claude schreibt eine JSON-Beschreibung, Python baut daraus ein Arbeitsblatt
+(docx) oder Folien (pptx) im Stil von Lias Material, mit Kontrolltext und Vorschaubildern für Claude. Claude führt
+nie Code aus. Nutzer: Lias Material-Agent (zuerst, Übergabe `../../docs/uebergabe-lia-dokumente.md`), später Jans
+dokumente-Agent. Grundlage: `../../docs/lia-architektur.md`, Abschnitt 2.1 (Rolle material).
 
-## Stand (21.10.2026)
-- Entscheidungen geklärt (siehe unten), Plan von Jan freigegeben (6 Schritte, siehe Offene Punkte).
-- Schritt 1 fertig: `.venv` (Versionen wie in `dokumente/`, Pillow bewusst auf 12.3.0), `agentkit.pth`,
-  `requirements.txt`, leeres Paket, `tests/test_umgebung.py`, Eintrag in `pruefen.sh`.
-- Schritt 2 fertig: `pruefung.py` (`pruefen`, `lesen`, `BeschreibungUngueltig`), `FORMAT.md` (Format für
-  Claude, die Agenten nehmen es in ihren Skill auf). `lesen()` gibt die Beschreibung mit Standardwerten zurück,
-  die Bau-Module verlassen sich darauf. Grenzen stehen oben in `pruefung.py` und in `FORMAT.md`: bei Änderung
-  beide anpassen. `tests/test_format.py` prüft, dass die JSON-Beispiele in FORMAT.md gültig bleiben.
-  Doppelte Felder, NaN und Steuerzeichen (die in docx/pptx nicht erlaubt sind) sind Fehler.
-- Schritt B fertig (Arbeitsblatt in Lias Stil, ersetzt Schritt 3): `arbeitsblatt.bauen(beschreibung, ziel, profil)`,
-  `design.py` (`profil_lesen`, `ProfilUngueltig`, `STANDARD`: Schrift, Größe, Zeilenabstand, Fach, Lehrkraft,
-  Nummer-Text, Linienabstand, Farben thema/merksatz/material/akzent; schlichte Grautöne als Standard). Format
-  in `FORMAT.md`: titel (= Thema im Kopf), nummer, Blöcke merksatz, anweisung, material, aufgaben (Antwortarten
-  linien, kasten, ankreuzen, satzanfaenge; hilfe je Aufgabe), ueberschrift, absatz, liste, tabelle (zeilenhoehe_cm,
-  erste_spalte_fett), neue_seite (querformat). Die alte `kopfzeile` und der Block `aufgabe` sind entfallen.
-  - Technik: Theme-Schriften entfernt (sonst Vorrang vor Calibri), Überschriften schwarz. Was python-docx nicht
-    kann, steht als kleines XML (`_xml_*`), eingefügt an der Stelle, die das Schema verlangt (sonst meldet Word
-    „unlesbarer Inhalt“). Spaltenbreiten in Raster und Zellen (LibreOffice liest das Raster, Word die Zellen).
-    Schreiblinien als unterer Rahmen plus `between`. Nach jeder Tabelle ein leerer Absatz (zwei Tabellen
-    hintereinander verschmelzen in Word). Ankreuz-Kästchen als `w:sym` Wingdings F070 wie bei Lia.
-  - Merksatz und Material: je Zeile ein Absatz, kein Zeilenumbruch im Absatz (Blocksatz zieht sonst die Zeile davor
-    auseinander). Gleiche Rahmen fassen die Absätze zu einem Kasten zusammen.
-  - Geprüft per Vorschau: Lias AB 5.2 nachgebaut (`data/nachbau/`, nicht im Repo), nah am Original. Für Lias
-    Profil passt `linienabstand_cm = 0.6` (sonst Hilfen auf Seite 2), Farben thema FFD873, merksatz F2CEED,
-    material D9F2D0.
-  - Bewusst anders als bei Lia: Hilfen stehen nach den Aufgaben ihrer Gruppe, nicht fest am Seitenende;
-    Ankreuz-Optionen eingerückt; erste Spalte der Ausfülltabelle so breit wie die anderen.
-- Schritt D (Folien in Lias Stil) fertig: `folien.bauen(beschreibung, ziel, profil)`. Format in `FORMAT.md`:
-  titel, untertitel, icon (Titelfolie), folien mit titel, icons (bis 2) und inhalt (1 bis 4 Elemente: kasten, text,
-  punkte, zentriert, leitfrage, zeit, spalten, auswahl, satzanfang, feedback, legende). Texte in Kästen, Punkten usw.
-  dürfen Textteile sein (fett, farbe blau/orange/gruen/rot/grau, unterstrichen). Das alte Format (punkte je Folie)
-  ist entfallen. Profil neu: `folien_schrift` (Aptos), `folien_titelschrift` (Aptos Display), Farben `kasten`,
-  `satzanfang`; für Lia akzent C00000, kasten F5F5F5, satzanfang 196B24.
-  - Raster nach Lias Vorbild vermessen: 33,87 x 19,05 cm, Titel 1,2 bis 4,6 cm, Strich bei 4,72 cm von 2,37 bis
-    31,5 cm, Inhalt 5,5 bis 17,6 cm, Fußzeile bei 18 cm, Titelfolie mit 10,16 cm breitem Balken.
-  - Größen: Titel 44 pt einzeilig, 38/32 pt zweizeilig, sonst Fehler an Claude. Inhalt: Höhe je Element aus
-    geschätzter Zeilenzahl (`zeilen()`, vorsichtige Zeichenbreiten), Maßstab je Folie von 1,35 bis 0,6; wachsen dürfen
-    nur kasten, text, punkte. Passt es auch bei 0,6 nicht: BeschreibungUngueltig mit `folien[i].inhalt: zu viel ...`.
-  - Titel steht im Titel-Platzhalter (Layout „nur Titel“), damit er in PowerPoints Gliederung erscheint.
-  - Formen ohne `p:style`: Der Effektstil des Designs zeichnet sonst in LibreOffice einen Schatten.
-  - Vorschau: Aptos fehlt auf dem Server. `~/.config/fontconfig/fonts.conf` ersetzt Aptos in der Vorschau durch
-    Liberation Sans (Maße wie Arial, eher breiter), damit Überläufe eher zu früh als zu spät auffallen.
-  - Geprüft per Vorschau: Lias Präsentation 5 nachgebaut (`data/nachbau/folien/`, nicht im Repo), nah am Original.
-    Bewusst anders: Handschlag-Icon in Herzform, Zeigefinger und Paket nur als Umriss. Offen: Aufzählungspunkte
-    stehen in LibreOffice etwas hoch, in PowerPoint noch nicht geprüft.
-- Schritt C (Icons) fertig: `icons.py` (`zeichnen(name, ziel, farbe, gefuellt, px)` -> PNG, transparent, mittig;
-  `NAMEN`, `ICONS`). 55 deutsche Namen (achtung bis zitat, ohne Umlaute), je Tabler-Name und Zeichencode für Umriss
-  und, falls vorhanden, gefüllt. Schriften Tabler Icons 3.49.0 (MIT) in `icons/` mit `LICENSE-tabler-icons.txt`,
-  zusammen etwa 2 MB, aus npm @tabler/icons-webfont über jsDelivr, Prüfsummen verglichen. Pillow mit einfachem
-  Textsatz (`Layout.BASIC`), raqm scheitert an Zeichen aus dem Unicode-Privatbereich. Übersicht in
-  `data/icons/uebersicht.png` (nicht im Repo). Abweichungen zu Lias Folien: kein reiner Handschlag (Tabler hat nur
-  heart-handshake), Zeigefinger und Paket nur als Umriss. Neue Icons: Anleitung oben in icons.py.
-- Schritt A (Vorschau) fertig: `vorschau.py` (`vorschau(datei, ordner)` -> PNG je Seite, `als_pdf`, `als_bilder`,
-  `VorschauFehler`). LibreOffice 24.2 aus apt (`libreoffice-writer-nogui`, `libreoffice-impress-nogui`,
-  `fonts-crosextra-carlito`, von Jan als root installiert, 21.10.), `/usr/bin/soffice`, etwa 5 s je Umwandlung.
-  pypdfium2 5.14.0 in der .venv. Agenten, die die Vorschau nutzen, brauchen pypdfium2 in ihrer .venv. Der Test mit
-  LibreOffice wird übersprungen, wenn soffice fehlt. Das AppImage (fehlende Systembibliotheken) ist wieder gelöscht.
-- Befund aus der ersten Vorschau des Arbeitsblatts (`data/vorschau/`, nicht im Repo):
-  - Fließtext erscheint in einer Serifenschrift: Die python-docx-Vorlage legt keine Schrift für Normal fest.
-    In Schritt B Calibri 11 fest setzen.
-  - Unterstrichene Tabs (Linien in der Kopfzeile) zeigt LibreOffice nicht. Für Ausfüll-Linien Rahmen nehmen.
-  - Schreiblinien, Kasten und Tabelle sehen aus wie gedacht.
-- Neu aufsetzen: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann
+## Stand (22.10.2026)
+Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 89 Tests). Noch nutzt ihn kein Agent.
+Lias Arbeitsblatt 5.2 und Präsentation 5 sind nachgebaut und nah am Original (Jan hat beide in Word und
+PowerPoint angesehen). Vorlagen sind nur mit selbst gebauten Testvorlagen geprüft, eine echte gibt es noch nicht.
+
+## Nutzung (für den Agenten)
+```python
+from renderer import bauen, BeschreibungUngueltig
+ergebnis = bauen(beschreibung, ausgang / "blatt.docx", profil=profil, vorlage=None, vorschau=True)
+# BeschreibungUngueltig: str(e) an Claude zurück (alle Fehler mit Pfad), Claude korrigiert und schickt neu.
+# ValueError / design.ProfilUngueltig: Fehler des Agenten (Endung, Profil, Vorlage), an Jan melden.
+ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hinweise
+```
+- Format für Claude: `FORMAT.md` (gehört in den Skill des Agenten). Art `arbeitsblatt` -> .docx, `folien` -> .pptx.
+- Profil: dict, z. B. aus TOML. Vorlage mit Lias Stil: `beispiele/profil-lia-stil.toml` (ohne Namen, Fach und
+  Lehrkraft trägt ihr Agent ein). Felder und Standardwerte: `design.py`.
+- Vorlage: .docx/.pptx des Agenten (`<agent>/data/vorlagen/`); .dotx/.potx vorher mit `vorlage_umwandeln()`.
+- Vorschau: `<ziel ohne Endung>-vorschau/` mit PNG je Seite und PDF. Scheitert sie, steht der Grund in `hinweise`
+  (und im Log `renderer`), die Datei gibt es trotzdem. Die PDF nutzt die Ersatzschriften des Servers.
+- Die .venv des Agenten braucht python-docx, python-pptx, Pillow und pypdfium2 (Versionen: `requirements.txt`),
+  LibreOffice kommt aus dem System (`/usr/bin/soffice`).
+
+## Aufbau
+- `__init__.py`: `bauen`, `Ergebnis`, `pruefen`, `vorlage_umwandeln`, `BeschreibungUngueltig`.
+- `pruefung.py`: strenge Prüfung (reine Logik), `lesen()` liefert die Beschreibung mit allen Standardwerten. Grenzen
+  stehen oben im Modul und in `FORMAT.md`, bei Änderung beide anpassen (`tests/test_format.py` prüft die Beispiele).
+- `arbeitsblatt.py`, `folien.py`: bauen aus der gelesenen Beschreibung. `design.py`: Profil. `icons.py`: 55 Icons
+  (Tabler Icons 3.49.0, MIT, Schriften in `icons/`). `vorlagen.py`. `kontrolle.py`: Kontrolltext aus der gebauten
+  Datei in Lesereihenfolge. `vorschau.py`: LibreOffice -> PDF, pypdfium2 -> PNG.
+- `data/` (nicht im Repo): `lia-vorbilder/` (Lias PDFs), `nachbau/` (Nachbauten mit Vergleichsbildern),
+  `icons/uebersicht.png`, Testausgaben.
+- .venv neu aufsetzen: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann
   `echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`.
 
-## Zuerst lesen
-1. `../../CLAUDE.md`: Regeln. Dieser Chat ändert nur shared/renderer/, Bedarf anderswo steht in
-   `../../STATUS.md`.
-2. `../../STATUS.md` (Punkt 8) und `../../docs/uebergabe-lia-dokumente.md` (Lias Agent, der den Renderer nutzt)
-3. `../../dokumente/STATUS.md`, Abschnitt Anforderungen: Jans Wünsche (Vorlagen, Bearbeiten, Excel,
-   Textfassung zur Selbstkontrolle, Fehler zurück an Claude). Gilt später, nicht für den ersten Schritt.
+## Lias Stil (vermessen an den Vorbildern)
+- **Arbeitsblatt:** A4, Ränder 2 cm, Calibri 11, Zeilenabstand 1,15. Kopf-Tabelle 3,75 / 8 / 4,25 cm (Fach und
+  Lehrkraft | Thema gelb FFD873 und „Arbeitsblatt n“ | Datum, Name). Merksatz im Doppelrahmen (außen dick) rosa
+  F2CEED, Material grün D9F2D0 im Blocksatz, Anweisung fett, Aufgaben „1.“ fett mit hängendem Einzug, Ankreuz-Kästchen
+  Wingdings F070, Hilfen 9 pt, Schreiblinien 0,6 cm.
+- **Folien:** 16:9 (12192000 x 6858000 EMU), Aptos / Aptos Display, Akzent C00000, Kästen F5F5F5, Satzanfänge
+  196B24, Markierungen blau 156082, orange A8480C, grün 196B24. Titel 1,2 bis 4,6 cm (44 pt einzeilig, 38/32 pt
+  zweizeilig), Strich bei 4,72 cm von 2,37 bis 31,5 cm, Inhalt 5,5 bis 17,6 cm, Fußzeile bei 18 cm,
+  Titelfolie mit 10,16 cm breitem Balken.
+- Bewusst anders als bei Lia: Hilfen nach den Aufgaben statt fest am Seitenende, Ankreuz-Optionen eingerückt,
+  erste Spalte der Ausfülltabelle gleich breit, Handschlag-Icon in Herzform, Zeigefinger und Paket nur als Umriss,
+  Icons im Folieninhalt etwas kleiner.
 
-## Entscheidungen (Jan, 21.10.)
-- **Umfang des Kerns:** alle vier Bausteine:
-  - Titel, Überschriften, Absätze, Listen, Tabellen
-  - Aufgaben mit Platz für Antworten (Linien oder Kästen)
-  - Kopfzeile (Name, Klasse, Datum), seit Schritt B Teil der Kopf-Tabelle
-  - Folien mit Titel und Stichpunkten
-- **Formate:** zuerst nur docx und pptx (python-docx, python-pptx). PDF später, wenn Bedarf da ist. Typst oder
-  LibreOffice nur nach erneutem Okay von Jan.
-- **Vorlagen:** sollen über die Bedienoberfläche (Telegram) vorgegeben werden können. Aufteilung:
-  - Renderer: optionales Feld für eine Vorlage (docx/pptx). Mit Vorlage baut er auf deren Stilen bzw.
-    Folienmastern auf, ohne Vorlage auf schlichten Standardstilen. Dazu eine Hilfsfunktion, die .dotx/.potx in
-    .docx/.pptx umwandelt.
-  - Agent: legt die Vorlagen unter `<agent>/data/vorlagen/` ab, nicht im Renderer.
-  - Zentrale: Lias `portal.py` muss Dateien annehmen. Das macht der Hauptordner-Chat (steht in `../../STATUS.md`,
-    Punkt 8).
-  - Ob Lia eine Schulvorlage hat, ist noch offen. Für den Kern ist das egal.
-- **Tests:** eigene `shared/renderer/.venv` mit python-docx 1.2.0 und python-pptx 1.0.2 (gleiche Versionen wie
-  in `dokumente/`). Dazu kommt ein Eintrag in `pruefen.sh`.
-- **Laufzeit:** Die Agenten importieren den Renderer über agentkit.pth in ihrer eigenen .venv. Darum brauchen
-  sie dort python-docx bzw. python-pptx. Die .venv des Renderers ist nur für die Tests da.
+## Technik, die man kennen muss
+- Word: Neue XML-Elemente an der Stelle einfügen, die das Schema verlangt (sonst „unlesbarer Inhalt“). Theme-
+  Schriften entfernen (sie hätten Vorrang). Spaltenbreiten in Raster und Zellen setzen (LibreOffice liest das Raster,
+  Word die Zellen). Schreiblinien: unterer Rahmen plus `between`. Nach jeder Tabelle ein leerer Absatz (zwei Tabellen
+  hintereinander verschmelzen). Je Zeile ein Absatz statt Zeilenumbruch (Blocksatz). Nummerierte Listen neu starten.
+- PowerPoint: Formen ohne `p:style` (der Effektstil zeichnet sonst Schatten). Textgröße je Folie aus geschätzter
+  Zeilenzahl (`folien.zeilen()`), Maßstab 1,35 bis 0,6, sonst Fehler an Claude. Titel im Titel-Platzhalter
+  (Gliederung). Layouts nach Platzhalterart suchen (`vorlagen.layout`), nicht nach Namen.
+- Icons: Pillow mit `Layout.BASIC` (raqm scheitert an Zeichen aus dem Unicode-Privatbereich).
+- Kontrolltext: lxml-Elemente festhalten statt `id()` merken (Adressen werden wiederverwendet).
+- Vorschau-Schriften: Carlito ersetzt Calibri maßgleich. Aptos ersetzt `~/.config/fontconfig/fonts.conf` durch
+  Liberation Sans (eher breiter, Überläufe fallen also früher auf). LibreOffice aus apt (`libreoffice-writer-nogui`,
+  `libreoffice-impress-nogui`, `fonts-crosextra-carlito`), etwa 5 s je Datei.
 
-## Lias Design (Vorbilder von Jan, 21.10.)
-Vorbilder liegen in `data/lia-vorbilder/` (nicht im Repo): `arbeitsblatt-5.2.pdf` (Word), `praesentation-5.pdf`
-(Lias Unterrichtspräsentation). Der Kern aus Schritt 2/3 ist dafür zu schlicht. Was die Vorbilder zeigen:
-- **Arbeitsblatt** (A4, Calibri 11):
-  - Kopf als Tabelle im Text, nicht als Kopfzeile: links Fach („Ethik“) und Lehrkraft („Frau Pohlmann“), Mitte
-    das Thema als Leitfrage (gelb-orange hinterlegt) und „Arbeitsblatt 5“, rechts Datum und Name zum Ausfüllen.
-  - Merksatz-Kasten: doppelter Rahmen, rosa-lila hinterlegt, Titel fett („Merksatz zu Peter Singer:“).
-  - Arbeitsanweisung fett, darunter Material („Beispiel“) grün hinterlegt.
-  - „Aufgaben:“ fett, nummeriert 1., 2., ..., der Aufgabentext fett. Antwortarten: im Text unterstreichen
-    (kein Platz), Ankreuzen mit Kästchen nebeneinander, Satzanfänge mit Schreiblinien („Nach Peter Singer sollte
-    Yasmin ____“).
-  - Hilfen zu einzelnen Aufgaben klein am Seitenende („**Aufgabe 1:** Du findest Hinweise in den Zeilen 1-2“).
-  - Seite 2 im Querformat: leere Tabelle zum Ausfüllen mit gedrehter Schrift.
-- **Folien** (16:9, Aptos, Akzentfarbe Rot um #C00000):
-  - Titelfolie: roter Balken links mit weißem Icon, rechts Titel rot fett, darunter „Ethik · Klasse 8“ grau.
-  - Jede Folie: Titel rot fett, roter Strich darunter, optional Icons rechts oben, Fußzeile klein grau
-    „Fach · Klasse · Thema“ und Foliennummer.
-  - Bausteine: grauer Textkasten mit rotem Balken links (Material, letzter Satz fett), Leitfrage weiß auf roter
-    Fläche, zentrierter großer fetter Text (Ziel, Arbeitsauftrag), Zeitangabe mit Wecker-Icon, zwei Spalten
-    (Merksätze mit roter Überschrift auf Grau), Auswahl (zwei Kästen mit rotem Rand), Satzanfang grün mit
-    Zeigefinger-Icon, Feedback (Smileys mit Satzanfängen), farbige Unterstreichung von Textteilen mit Legende
-    (Behauptung blau, Begründung orange, Beispiel grün).
-- Calibri und Aptos sind Microsoft-Schriften. Auf dem Server gibt es keine Schriften. Für die Vorschau ersetzt
-  Carlito Calibri mit gleichen Maßen, für Aptos gibt es keinen genauen Ersatz (Vorschau nur ungefähr).
-
-## Entscheidungen (Jan, 21.10., nach den Vorbildern)
-- Der Renderer baut Arbeitsblätter und Folien in Lias Stil (siehe oben).
-- **Vorschau:** LibreOffice (ohne sudo, in ~/.local) wandelt docx/pptx in PDF um, pypdfium2 macht daraus Bilder.
-  So prüfen Claude und dieser Chat das Aussehen. Installation erst nach Jans Okay zum konkreten Plan.
-- **PDF lesen** (Lia schickt PDFs als Vorlage): kommt in agentkit (Seiten als Bilder mit pypdfium2), Bedarf steht in
-  `../../STATUS.md`. Der Renderer liest nichts.
-- **Icons:** freies Icon-Set (z. B. Tabler Icons, MIT-Lizenz). Python zeichnet sie als PNG in der gewünschten Farbe.
-- Das Format darf jetzt noch umgebaut werden, denn noch nutzt es kein Agent. Ab der ersten Nutzung gilt: nur
-  erweitern.
+## Entscheidungen (Jan, 21./22.10.)
+- Lias Stil ist der Maßstab. Das Profil gibt der Agent mit, der Renderer enthält keine Daten einer Person.
+- Formate docx und pptx. PDF entsteht nur als Teil der Vorschau, als Ausgabe für Lia ist es nicht vereinbart.
+- Kontrolle durch Claude: Vorschaubilder und Kontrolltext.
+- Vorlagen schlank: Kopf-/Fußzeilen, Logo, Ränder bzw. Master und Hintergrund aus der Vorlage, Inhalte im Stil des
+  Profils. Fehlen der Word-Vorlage Listen- oder Überschriftenstile, setzt der Renderer Zeichen von Hand bzw. legt
+  die Stile an. PowerPoint-Vorlagen nur in 16:9.
+- PDFs lesen (Lia schickt PDFs) gehört in agentkit, Bedarf steht in `../../STATUS.md`.
+- Ab der ersten Nutzung durch einen Agenten: Format nur erweitern, nicht umbauen, jede Erweiterung mit Tests.
 
 ## Vorgaben
-- Schnittstelle stabil halten: Beide Instanzen nutzen den Renderer sofort, es gibt kein versioniertes Paket.
-  Das Format nur erweitern, nicht umbauen, und jede Erweiterung mit Tests.
-- Eingabe streng prüfen, bevor gebaut wird (Schema). Fehlermeldungen so schreiben, dass Claude sie in derselben
-  Sitzung beheben kann.
-- Ausgabe zur Selbstkontrolle: eine Textfassung des fertigen Dokuments, die Claude lesen kann.
+- Eingabe streng prüfen, Fehlermeldungen so, dass Claude sie in derselben Sitzung beheben kann.
 - Keine Inhalte, Zugangsdaten oder Netzzugriffe im Renderer.
-
-## Fertig heißt (erster Schritt)
-- `from renderer import ...` baut aus einer Beispielbeschreibung ein Arbeitsblatt als docx und eine kleine
-  Folienreihe als pptx.
-- Ungültige Beschreibungen ergeben klare Fehler.
-- Es gibt Tests, `./pruefen.sh` ist grün, die Schritte sind committet, und diese STATUS.md beschreibt das Format.
+- Erst die Vorschau ansehen, dann „fertig“ sagen.
 
 ## Offene Punkte
-0. Neuer Plan für Lias Stil, von Jan freigegeben (21.10.). Er ersetzt die Schritte 4 bis 6 unten:
-   - A. (erledigt) Vorschau: LibreOffice, Carlito, pypdfium2, vorschau.py
-   - B. (erledigt) Arbeitsblatt in Lias Stil: Kopf-Tabelle, Merksatz, Material, Arbeitsanweisung, Aufgaben mit Antwortarten
-     linien/kasten/ankreuzen/satzanfaenge/keine und Hilfen am Seitenende, Querformat-Seite mit Ausfülltabelle.
-     Format darf umgebaut werden. Prüfen: Lias AB 5.2 nachbauen, Vorschau mit dem Original vergleichen.
-   - C. (erledigt) Icons: Tabler Icons (MIT) als Schrift, Pillow zeichnet PNG in jeder Farbe, feste deutsche Namensliste.
-   - D. (erledigt) Folien in Lias Stil (siehe „Lias Design“), Lias Präsentation 5 nachbauen und vergleichen.
-   - E. Vorlagen, Textfassung, Beispiele, Doku (alte Schritte 5 und 6).
-   - Design-Profil (Farben, Schriften, Fach, Lehrkraft) gibt der Agent mit, der Renderer enthält keine Daten von Lia.
-
-Erster Plan (21.10.), je Schritt ein Commit. Schnittstelle: `pruefen(beschreibung)` -> Fehlerliste,
-`bauen(beschreibung, ziel, vorlage=None)` -> Ergebnis(pfad, textfassung), `vorlage_umwandeln(quelle, ziel)`,
-`BeschreibungUngueltig`. Vorlage ist ein Parameter des Agenten, nicht Teil von Claudes JSON.
-Module: pruefung.py, arbeitsblatt.py, folien.py, vorlagen.py, FORMAT.md, beispiele/.
-1. (erledigt) .venv, requirements.txt, pruefen.sh, leeres Paket mit Test
-2. (erledigt) pruefung.py mit Tests, FORMAT.md (art arbeitsblatt: titel, kopfzeile, bloecke ueberschrift/absatz/liste/
-   tabelle/aufgabe mit antwort linien|kasten; art folien: titel, untertitel, folien mit titel/punkte).
-   Streng: unbekannte Felder sind Fehler, alle Fehler auf einmal mit Pfad (`bloecke[4].antwort.anzahl: ...`).
-3. (erledigt) Arbeitsblatt als docx mit Tests (Linien/Kästen per XML, Kopfzeile auf jeder Seite, A4)
-4. Folien als pptx mit Tests (Layouts nach Platzhaltertyp suchen, nicht nach Namen)
-5. Vorlagen: Umwandlung .dotx/.potx und Parameter `vorlage`, mit Tests
-6. Beispiele, Textfassung über agentkit.textfassung im Ergebnis, Format hier in STATUS.md.
-   Vorher mit Jan klären: agentkit.textfassung setzt Tabellen ans Ende, zeigt keine Listenzeichen, keine
-   Kopfzeile und keine Antwortlinien. Für die Selbstkontrolle reicht das evtl. nicht (Änderung wäre im
-   Hauptordner-Chat).
+1. Lias Material-Agent baut auf dem Renderer auf (eigener Chat in `lia/<agent>`). Sein Skill nimmt `FORMAT.md`
+   auf, sein Profil `beispiele/profil-lia-stil.toml` mit Fach und Lehrkraft.
+2. Echte Vorlage von Lia oder Jan testen, sobald es eine gibt (Zentrale muss Dateien annehmen, Hauptordner-Chat).
+3. Kleinigkeiten nach Bedarf: Aufzählungspunkte stehen in LibreOffice etwas hoch (in PowerPoint unauffällig),
+   Icons im Folieninhalt etwas größer, Zeilennummern im Material (Lias Hilfen verweisen auf Zeilen).
+4. Später für Jans dokumente-Agent: weitere Arten (Brief, Bericht, Tabelle/Excel), Bearbeiten bestehender
+   Dateien (Anforderungen in `../../dokumente/STATUS.md`).
 
 ## Gelernte Regeln
 - Erst die Vorschau ansehen, dann „fertig“ sagen: Tests prüfen das XML, nicht das Aussehen. (Jan, 21.10.)

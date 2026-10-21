@@ -101,8 +101,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Offen:
    - Handtest: Lia tippt alle Knöpfe, schickt Freitext und einen Gruß, bekommt "kommt bald".
      Jan: /start, Agent uni antippen, Auftrag schreiben, Verbrauch/Status/Entwürfe ansehen.
-   - Nächste Schritte: 1. Renderer (Chat in shared/renderer/, Übergabe dort in STATUS.md).
-     2. Lias Dokument-Agent (Chat in lia/<agent>, Übergabe docs/uebergabe-lia-dokumente.md).
+   - Nächste Schritte: 1. Renderer: fertig (22.10.), Arbeitsblätter und Folien in Lias Stil, Nutzung und
+     Stand in shared/renderer/STATUS.md.
+     2. Lias Dokument-Agent (Chat in lia/<agent>, Übergabe docs/uebergabe-lia-dokumente.md). Deren Fragen zu
+     Formaten, Renderer und Vorlage sind im Renderer-Chat beantwortet (siehe shared/renderer/STATUS.md,
+     Entscheidungen); die Übergabe sollte darauf verweisen (Hauptordner-Chat).
      Chat-Aufteilung ein Chat pro Ordner, siehe CLAUDE.md (21.10.).
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt

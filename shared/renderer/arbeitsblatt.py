@@ -10,13 +10,14 @@ from pathlib import Path
 
 import docx
 from docx.enum.section import WD_ORIENT, WD_SECTION
+from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from renderer import design
+from renderer import design, vorlagen
 
 SEITE_CM = (21.0, 29.7)
 RAND_CM = 2.0
@@ -41,9 +42,10 @@ _NACH_TCSHD = ("w:noWrap", "w:tcMar", "w:textDirection", "w:tcFitText", "w:vAlig
                "w:cellIns", "w:cellDel", "w:cellMerge", "w:tcPrChange")
 
 
-def bauen(beschreibung: dict, ziel: Path, profil: dict | None = None) -> Path:
-    """Baut das Arbeitsblatt nach `ziel` (.docx). `beschreibung` aus pruefung.lesen(), `profil` siehe design.py."""
-    b = _Bau(design.profil_lesen(profil))
+def bauen(beschreibung: dict, ziel: Path, profil: dict | None = None, vorlage: Path | None = None) -> Path:
+    """Baut das Arbeitsblatt nach `ziel` (.docx). `beschreibung` aus pruefung.lesen(), `profil` siehe design.py,
+    `vorlage` eine .docx (Kopf-/Fußzeilen, Logo, Ränder; die Schriften kommen weiter aus dem Profil)."""
+    b = _Bau(design.profil_lesen(profil), vorlage)
     b.kopf(beschreibung["titel"], beschreibung["nummer"])
     for block in beschreibung["bloecke"]:
         getattr(b, block["typ"])(block)
@@ -54,11 +56,14 @@ def bauen(beschreibung: dict, ziel: Path, profil: dict | None = None) -> Path:
 class _Bau:
     """Baut ein Dokument Block für Block. Merkt sich die laufende Aufgabennummer und die Textbreite."""
 
-    def __init__(self, profil: dict):
-        self.profil = profil
+    def __init__(self, profil: dict, vorlage: Path | None):
+        self.profil, self.vorlage = profil, vorlage
         self.aufgabe_nr = 0
-        self.d = docx.Document()
-        self._seite(self.d.sections[0], querformat=False)
+        if vorlage:
+            self.d = vorlagen.word_grundlage(vorlage)  # Seite und Ränder wie in der Vorlage
+        else:
+            self.d = docx.Document()
+            self._seite(self.d.sections[0], querformat=False)
         self._stile()
 
     @property
@@ -69,6 +74,11 @@ class _Bau:
     # Seite und Stile
 
     def _seite(self, s, querformat: bool):
+        if self.vorlage:  # Maße der Vorlage behalten, nur drehen
+            if (s.page_width > s.page_height) != querformat:
+                s.page_width, s.page_height = s.page_height, s.page_width
+            s.orientation = WD_ORIENT.LANDSCAPE if querformat else WD_ORIENT.PORTRAIT
+            return
         breite, hoehe = SEITE_CM if not querformat else SEITE_CM[::-1]
         s.orientation = WD_ORIENT.LANDSCAPE if querformat else WD_ORIENT.PORTRAIT
         s.page_width, s.page_height = Cm(breite), Cm(hoehe)
@@ -87,11 +97,19 @@ class _Bau:
         f.line_spacing, f.space_before, f.space_after = p["zeilenabstand"], Pt(0), Pt(0)
         _xml_sprache(normal)
         for ebene, groesse in UEBERSCHRIFT_PT.items():
-            stil = self.d.styles[f"Heading {ebene}"]
+            stil = self._stil(f"Heading {ebene}") or self.d.styles.add_style(f"Heading {ebene}",
+                                                                              WD_STYLE_TYPE.PARAGRAPH)
             _xml_schrift(stil, p["schrift"])
             stil.font.size, stil.font.bold, stil.font.italic = Pt(groesse), True, False
             stil.font.color.rgb = RGBColor(0, 0, 0)
             stil.paragraph_format.space_before, stil.paragraph_format.space_after = Pt(12), Pt(3)
+
+    def _stil(self, name: str):
+        """Stil der Vorlage oder None, wenn es ihn dort nicht gibt."""
+        try:
+            return self.d.styles[name]
+        except KeyError:
+            return None
 
     # Kopf
 
@@ -101,7 +119,8 @@ class _Bau:
         self.d.core_properties.title = titel
         t = self.d.add_table(rows=3, cols=3)
         _xml_rahmen(t)
-        _breiten(t, KOPF_SPALTEN_CM)
+        faktor = min(1.0, self.textbreite_cm / sum(KOPF_SPALTEN_CM))  # schmalere Ränder einer Vorlage
+        _breiten(t, [b * faktor for b in KOPF_SPALTEN_CM])
         for reihe, hoehe in zip(t.rows, (0.75, 0.75, 0.5), strict=True):
             reihe.height, reihe.height_rule = Cm(hoehe), WD_ROW_HEIGHT_RULE.AT_LEAST
         fach = t.cell(0, 0).merge(t.cell(1, 0))
@@ -148,10 +167,18 @@ class _Bau:
             _xml_absatz_farbe(p, self.profil["farben"]["material"])
 
     def liste(self, block: dict):
-        stil = "List Number" if block["nummeriert"] else "List Bullet"
-        absaetze = [self.d.add_paragraph(punkt, style=stil) for punkt in block["punkte"]]
+        name = "List Number" if block["nummeriert"] else "List Bullet"
+        stil = self._stil(name)
+        if stil is None or stil.element.pPr is None or stil.element.pPr.numPr is None:
+            # Vorlage ohne Listenstil: Zeichen von Hand, mit hängendem Einzug
+            for i, punkt in enumerate(block["punkte"], 1):
+                p = self.d.add_paragraph(f"{i}.\t{punkt}" if block["nummeriert"] else f"•\t{punkt}")
+                p.paragraph_format.left_indent, p.paragraph_format.first_line_indent = Cm(0.63), Cm(-0.63)
+                p.paragraph_format.tab_stops.add_tab_stop(Cm(0.63))
+            return
+        absaetze = [self.d.add_paragraph(punkt, style=name) for punkt in block["punkte"]]
         if block["nummeriert"]:
-            _xml_nummerierung_neu(self.d, stil, absaetze)
+            _xml_nummerierung_neu(self.d, name, absaetze)
 
     def tabelle(self, block: dict):
         zeilen = ([block["kopf"]] if block["kopf"] else []) + block["zeilen"]

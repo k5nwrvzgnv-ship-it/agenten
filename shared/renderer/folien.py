@@ -18,9 +18,9 @@ from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.oxml.ns import qn
-from pptx.util import Cm, Pt
+from pptx.util import Cm, Emu, Pt
 
-from renderer import design, icons
+from renderer import design, icons, vorlagen
 from renderer.pruefung import BeschreibungUngueltig
 
 FOLIE_CM = (33.867, 19.05)
@@ -43,11 +43,12 @@ ZEILE = 1.2  # Zeilenhöhe in Vielfachen der Schriftgröße
 MITTIG = {"zentriert", "zeit"}  # Folien nur aus diesen Elementen stehen senkrecht mittig
 
 
-def bauen(beschreibung: dict, ziel: Path, profil: dict | None = None) -> Path:
-    """Baut die Folien nach `ziel` (.pptx). `beschreibung` aus pruefung.lesen(), `profil` siehe design.py.
-    Wirft BeschreibungUngueltig, wenn der Inhalt einer Folie auch verkleinert nicht passt."""
+def bauen(beschreibung: dict, ziel: Path, profil: dict | None = None, vorlage: Path | None = None) -> Path:
+    """Baut die Folien nach `ziel` (.pptx). `beschreibung` aus pruefung.lesen(), `profil` siehe design.py,
+    `vorlage` eine .pptx in 16:9 (Master und Hintergrund). Wirft BeschreibungUngueltig, wenn der Inhalt einer
+    Folie auch verkleinert nicht passt."""
     with tempfile.TemporaryDirectory(prefix="renderer-icons-") as tmp:
-        bau = _Bau(beschreibung, design.profil_lesen(profil), Path(tmp))
+        bau = _Bau(beschreibung, design.profil_lesen(profil), Path(tmp), vorlage)
         bau.titelfolie()
         fehler = []
         for nr, folie in enumerate(beschreibung["folien"]):
@@ -115,11 +116,16 @@ def _texthoehe(absaetze: list, breite: float, groesse: float, fett=False, abstan
 
 
 class _Bau:
-    def __init__(self, beschreibung: dict, profil: dict, tmp: Path):
+    def __init__(self, beschreibung: dict, profil: dict, tmp: Path, vorlage: Path | None):
         self.b, self.profil, self.tmp = beschreibung, profil, tmp
         self.farben = profil["farben"]
-        self.prs = Presentation()
-        self.prs.slide_width, self.prs.slide_height = Cm(FOLIE_CM[0]), Cm(FOLIE_CM[1])
+        if vorlage:
+            self.prs = vorlagen.powerpoint_grundlage(vorlage)
+        else:
+            self.prs = Presentation()
+            self.prs.slide_width, self.prs.slide_height = (Emu(x) for x in vorlagen.FOLIE_16_9)
+        self.layout_leer = vorlagen.layout(self.prs, nur_titel=False)
+        self.layout_titel = vorlagen.layout(self.prs, nur_titel=True)
         self.prs.core_properties.title = beschreibung["titel"]
         self.prs.core_properties.author = ""  # sonst "python-pptx"
         self.prs.core_properties.last_modified_by = ""
@@ -169,12 +175,13 @@ class _Bau:
     def _icon(self, folie, name, x, y, groesse, farbe, gefuellt=False):
         self.icon_nr += 1
         pfad = icons.zeichnen(name, self.tmp / f"icon-{self.icon_nr}.png", farbe=farbe, gefuellt=gefuellt)
-        folie.shapes.add_picture(str(pfad), Cm(x), Cm(y), Cm(groesse), Cm(groesse))
+        bild = folie.shapes.add_picture(str(pfad), Cm(x), Cm(y), Cm(groesse), Cm(groesse))
+        bild.name = f"Icon {name}"  # für den Kontrolltext und für Lia beim Bearbeiten
 
     # Folien
 
     def titelfolie(self):
-        f = self.prs.slides.add_slide(self.prs.slide_layouts[6])  # leer
+        f = self.prs.slides.add_slide(self.layout_leer)
         self._flaeche(f, 0, 0, 10.16, FOLIE_CM[1], self.farben["akzent"])
         if self.b["icon"]:
             self._icon(f, self.b["icon"], (10.16 - 5.2) / 2, (FOLIE_CM[1] - 5.2) / 2, 5.2, WEISS)
@@ -188,7 +195,7 @@ class _Bau:
 
     def inhaltsfolie(self, nr: int, folie: dict) -> list[str]:
         """Baut eine Inhaltsfolie. Gibt Fehler zurück (Inhalt oder Titel passt nicht), sonst []."""
-        f = self.prs.slides.add_slide(self.prs.slide_layouts[5])  # nur Titel: Titel bleibt in der Gliederung
+        f = self.prs.slides.add_slide(self.layout_titel)  # Titel im Platzhalter: steht in der Gliederung
         fehler = self._titel(f, nr, folie)
         self._flaeche(f, X0, STRICH["y"], BREITE, STRICH["hoehe"], self.farben["akzent"])
         anzahl = len(folie["icons"])
@@ -222,7 +229,7 @@ class _Bau:
         if groesse is None:
             groesse = TITEL["groessen"][-1][0]
             fehler.append(f"folien[{nr}].titel: zu lang für die Titelzeile (höchstens zwei Zeilen, etwa 90 Zeichen)")
-        form = f.shapes.title
+        form = f.shapes.title or f.shapes.add_textbox(0, 0, 0, 0)  # Vorlage ohne Titel-Layout
         form.left, form.top, form.width, form.height = Cm(X0), Cm(TITEL["y"]), Cm(breite), Cm(TITEL["hoehe"])
         self._textfeld(f, 0, 0, 0, 0, [_teile(folie["titel"])], groesse, fett=True, farbe=self.farben["akzent"],
                        anker=MSO_ANCHOR.MIDDLE, schrift=self.profil["folien_titelschrift"], form=form)
