@@ -140,4 +140,4 @@ Module: pruefung.py, arbeitsblatt.py, folien.py, vorlagen.py, FORMAT.md, beispie
    Hauptordner-Chat).
 
 ## Gelernte Regeln
-- (noch keine)
+- Erst die Vorschau ansehen, dann „fertig“ sagen: Tests prüfen das XML, nicht das Aussehen. (Jan, 21.10.)
