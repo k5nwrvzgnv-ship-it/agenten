@@ -74,6 +74,9 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Stelle ±15 s, Zeitmarken mit Versatz (Kontext zwischen Stücken geht verloren, an den Schnitten
   evtl. ein Hörfehler mehr). data/transkript_versuche.json zählt Starts, nach 2 Abbrüchen ohne
   Ergebnis: Fehler-.txt und Meldung. agent.py meldet fehlgeschlagene Schritte einmal am Tag.
+  Echttest 21.10. (12 min aus DL 260914, voller Ton im Speicher, MemoryMax=3G): 2 Stücke, Schnitt
+  bei 9:51, Spitze 1,2 GB, 30 min Rechenzeit (Faktor 2,5 statt 1,7, lief mit nice parallel zu anderem).
+  Liegt Faktor nachts auch über 2,0, FAKTOR in transkription.py anheben.
 - Jans eigene Transkripte (transkripte.py, 17.10.): Auftrag "Transkript <Kurs> [TT.MM.]" mit .txt-Datei
   (Jans Format) oder Text darunter. Python legt nach data/kurse/<Kurs>/transkripte/<datum>_transkript.txt
   ab (Kurs per Namensteil, bei Mehrdeutigkeit Rückfrage mit Kandidaten), Claude (routine) meldet

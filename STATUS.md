@@ -76,6 +76,29 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Fehlgeschlagene solche Aufträge weiter melden. uni-lernen schließt sie mit status "erledigt" ab.
 7. Server hat keinen Swap (braucht root). Nicht die Ursache des OOM bei uni-transkript, aber jeder
    Speicherengpass endet sofort im OOM-Killer. Vorschlag: 2-4 GB Swapdatei, nur nach Jans Okay.
+8. Lias Agenten-Netzwerk (Übergabe 21.10., für einen neuen Chat im Hauptordner):
+   Architektur steht in docs/lia-architektur.md (Ist-Analyse mit Codestellen, Rollen buero/unterricht/
+   material, Anbindungen IServ per IMAP/CalDAV/WebDAV, Gedächtnis, Skills, Freigabe-Matrix, Schutz gegen
+   Prompt-Injection, Kanal, Ausbaureihenfolge). Erst lesen, Abschnitt 3 und 7 sind der Fahrplan.
+   Nächster Schritt: Lias Telegram-Portal (Schritt 0 und Teil von Schritt 1 in docs/lia-architektur.md).
+   Vorgeschlagener Plan (noch NICHT von Jan freigegeben):
+   - Zentrale mandantenfähig: Name, Chat-ID, Agentenliste, Pfade aus der Instanz-Konfiguration statt
+     JAN (zentrale.py:60), AGENTEN (logik.py:10), SHARED_DIR (config.py:11), "Jan" in claude_lauf.GRUNDREGEL.
+     Jans Instanz muss sich exakt wie bisher verhalten (bestehende Tests, danach Handtest /status).
+   - Lias Zentrale als eigener Dienst mit eigenem Bot und eigenen Warteschlangen, Linkvorschau aus,
+     OnFailure=ausfall@%n.service (meldet an Jan, ohne Inhalte).
+   - Bedienung ohne Schrägstrich-Befehle: festes Knopf-Menü (Neues Material, Meine Woche, Frage stellen),
+     Freitext mit Bestätigungsknopf an den passenden Agenten.
+   - Platzhalter-Agent unterricht, der Aufträge bestätigt und "kommt bald" sagt, bis Lias Claude-Konto da ist.
+   Offene Entscheidungen von Jan, vor dem Bauen klären:
+   a) Eigener Linux-User lia (empfohlen, braucht root, Benutzer anlegen nur nach Jans Okay) oder eigener
+      Ordner unter User agent (schneller, schwächere Trennung).
+   b) Bot-Token: Lia/Jan legt den Bot bei @BotFather an und trägt den Token selbst in die .env ein (nicht in
+      den Chat). Chat-ID: Lia schreibt dem Bot /start, der Chat liest sie per getUpdates aus.
+   c) Claude-Konto für Lia (empfohlen: eigener API-Schlüssel mit Budgetgrenze), erst für den ersten Agenten nötig.
+   d) agentkit als versioniertes Paket statt .pth auf den Arbeitsordner (siehe S2 in der Architektur)
+      jetzt oder später.
+   Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
 
 ## Gelernte Regeln
 - (noch keine)
