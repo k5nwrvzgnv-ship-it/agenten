@@ -15,6 +15,15 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
   die Bau-Module verlassen sich darauf. Grenzen stehen oben in `pruefung.py` und in `FORMAT.md`: bei Änderung
   beide anpassen. `tests/test_format.py` prüft, dass die JSON-Beispiele in FORMAT.md gültig bleiben.
   Doppelte Felder, NaN und Steuerzeichen (die in docx/pptx nicht erlaubt sind) sind Fehler.
+- Schritt 3 fertig: `arbeitsblatt.py` (`bauen(beschreibung, ziel)`, Beschreibung aus `pruefung.lesen`).
+  A4, Ränder 2 cm, Stile der python-docx-Standardvorlage, Sprache de-DE, kein Autor. Was python-docx nicht kann,
+  steht als kleines XML (`_xml_*`): Rahmen, Schreiblinien (unterer Rahmen plus `between`, sonst zeichnet Word nur
+  eine Linie unter der Gruppe), Neustart nummerierter Listen, Wiederholung der Tabellenkopfzeile. Neue
+  XML-Elemente werden an der Stelle eingefügt, die das Schema verlangt (sonst meldet Word „unlesbarer Inhalt“).
+  Nach jeder Tabelle steht ein leerer Absatz (zwei Tabellen hintereinander verschmelzen in Word).
+  Aufgaben heißen „Aufgabe 1: ...“ (fett) und bleiben mit ihrem Antwortplatz zusammen.
+- Nicht optisch geprüft: Es gibt keine Vorschau ohne LibreOffice. Beispiel liegt in `data/beispiel-arbeitsblatt.docx`
+  (nicht im Repo), Jan sieht es sich in Word an.
 - Neu aufsetzen: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann
   `echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`.
 
@@ -69,10 +78,13 @@ Module: pruefung.py, arbeitsblatt.py, folien.py, vorlagen.py, FORMAT.md, beispie
 2. (erledigt) pruefung.py mit Tests, FORMAT.md (art arbeitsblatt: titel, kopfzeile, bloecke ueberschrift/absatz/liste/
    tabelle/aufgabe mit antwort linien|kasten; art folien: titel, untertitel, folien mit titel/punkte).
    Streng: unbekannte Felder sind Fehler, alle Fehler auf einmal mit Pfad (`bloecke[4].antwort.anzahl: ...`).
-3. Arbeitsblatt als docx mit Tests (Linien/Kästen per XML, Kopfzeile auf jeder Seite, A4)
+3. (erledigt) Arbeitsblatt als docx mit Tests (Linien/Kästen per XML, Kopfzeile auf jeder Seite, A4)
 4. Folien als pptx mit Tests (Layouts nach Platzhaltertyp suchen, nicht nach Namen)
 5. Vorlagen: Umwandlung .dotx/.potx und Parameter `vorlage`, mit Tests
-6. Beispiele, Textfassung über agentkit.textfassung im Ergebnis, Format hier in STATUS.md
+6. Beispiele, Textfassung über agentkit.textfassung im Ergebnis, Format hier in STATUS.md.
+   Vorher mit Jan klären: agentkit.textfassung setzt Tabellen ans Ende, zeigt keine Listenzeichen, keine
+   Kopfzeile und keine Antwortlinien. Für die Selbstkontrolle reicht das evtl. nicht (Änderung wäre im
+   Hauptordner-Chat).
 
 ## Gelernte Regeln
 - (noch keine)
