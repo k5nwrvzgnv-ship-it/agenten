@@ -3,6 +3,8 @@
 # zeitgesteuerte Aufgaben. Die Zentrale startet den Dienst nach jedem neuen Auftrag.
 [Unit]
 Description=Agent <name>
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
 
 [Service]
 Type=oneshot

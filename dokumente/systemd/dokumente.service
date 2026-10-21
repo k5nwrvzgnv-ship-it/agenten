@@ -3,6 +3,8 @@
 #   cp systemd/dokumente.service ~/.config/systemd/user/ && systemctl --user daemon-reload
 [Unit]
 Description=Agent dokumente
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
 
 [Service]
 Type=oneshot

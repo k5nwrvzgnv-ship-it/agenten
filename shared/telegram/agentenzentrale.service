@@ -1,5 +1,7 @@
 [Unit]
 Description=Agentenzentrale (Telegram-Bot für Jans Agenten-System)
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
 After=network-online.target
 Wants=network-online.target
 

@@ -42,3 +42,6 @@ shared/verbrauch/
 
 # Meldungen an Jan: können persönliche Inhalte enthalten
 shared/meldungen/
+
+# Stand der Ausfallmeldungen (agentkit.ausfall)
+shared/ausfall/

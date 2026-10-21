@@ -3,6 +3,8 @@
 # Einrichten: nach ~/.config/systemd/user/ kopieren (siehe STATUS.md).
 [Unit]
 Description=Agent uni: Aufzeichnungen transkribieren
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
 
 [Service]
 Type=oneshot

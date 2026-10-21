@@ -1,0 +1,13 @@
+# Meldet Jan den Ausfall einer Unit (agentkit.ausfall). Wird nicht von Hand gestartet:
+# Jede Unit trägt in [Unit] die Zeile  OnFailure=ausfall@%n.service
+# Einrichten: cp shared/systemd/ausfall@.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+# Selbst ohne OnFailure, damit ein Fehler hier keine Schleife auslöst.
+[Unit]
+Description=Ausfall melden: %i
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/shared
+ExecStart=/usr/bin/python3 -m agentkit.ausfall %i
+TimeoutStartSec=2min
+MemoryMax=200M
