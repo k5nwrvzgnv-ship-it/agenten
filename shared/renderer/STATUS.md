@@ -22,8 +22,16 @@ Abschnitt 2.1 (Rolle material) und 7 (Schritt 1).
   XML-Elemente werden an der Stelle eingefügt, die das Schema verlangt (sonst meldet Word „unlesbarer Inhalt“).
   Nach jeder Tabelle steht ein leerer Absatz (zwei Tabellen hintereinander verschmelzen in Word).
   Aufgaben heißen „Aufgabe 1: ...“ (fett) und bleiben mit ihrem Antwortplatz zusammen.
-- Nicht optisch geprüft: Es gibt keine Vorschau ohne LibreOffice. Beispiel liegt in `data/beispiel-arbeitsblatt.docx`
-  (nicht im Repo), Jan sieht es sich in Word an.
+- Schritt A (Vorschau) fertig: `vorschau.py` (`vorschau(datei, ordner)` -> PNG je Seite, `als_pdf`, `als_bilder`,
+  `VorschauFehler`). LibreOffice 24.2 aus apt (`libreoffice-writer-nogui`, `libreoffice-impress-nogui`,
+  `fonts-crosextra-carlito`, von Jan als root installiert, 21.10.), `/usr/bin/soffice`, etwa 5 s je Umwandlung.
+  pypdfium2 5.14.0 in der .venv. Agenten, die die Vorschau nutzen, brauchen pypdfium2 in ihrer .venv. Der Test mit
+  LibreOffice wird übersprungen, wenn soffice fehlt. Das AppImage (fehlende Systembibliotheken) ist wieder gelöscht.
+- Befund aus der ersten Vorschau des Arbeitsblatts (`data/vorschau/`, nicht im Repo):
+  - Fließtext erscheint in einer Serifenschrift: Die python-docx-Vorlage legt keine Schrift für Normal fest.
+    In Schritt B Calibri 11 fest setzen.
+  - Unterstrichene Tabs (Linien in der Kopfzeile) zeigt LibreOffice nicht. Für Ausfüll-Linien Rahmen nehmen.
+  - Schreiblinien, Kasten und Tabelle sehen aus wie gedacht.
 - Neu aufsetzen: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann
   `echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`.
 
@@ -105,7 +113,15 @@ Vorbilder liegen in `data/lia-vorbilder/` (nicht im Repo): `arbeitsblatt-5.2.pdf
 - Es gibt Tests, `./pruefen.sh` ist grün, die Schritte sind committet, und diese STATUS.md beschreibt das Format.
 
 ## Offene Punkte
-0. Neuer Plan für Lias Stil (Vorschau, Format, Icons) steht zur Freigabe bei Jan. Bis dahin ruhen Schritte 4 bis 6.
+0. Neuer Plan für Lias Stil, von Jan freigegeben (21.10.). Er ersetzt die Schritte 4 bis 6 unten:
+   - A. (erledigt) Vorschau: LibreOffice, Carlito, pypdfium2, vorschau.py
+   - B. Arbeitsblatt in Lias Stil: Kopf-Tabelle, Merksatz, Material, Arbeitsanweisung, Aufgaben mit Antwortarten
+     linien/kasten/ankreuzen/satzanfaenge/keine und Hilfen am Seitenende, Querformat-Seite mit Ausfülltabelle.
+     Format darf umgebaut werden. Prüfen: Lias AB 5.2 nachbauen, Vorschau mit dem Original vergleichen.
+   - C. Icons: Tabler Icons (MIT) als Schrift, Pillow zeichnet PNG in jeder Farbe, feste deutsche Namensliste.
+   - D. Folien in Lias Stil (siehe „Lias Design“), Lias Präsentation 5 nachbauen und vergleichen.
+   - E. Vorlagen, Textfassung, Beispiele, Doku (alte Schritte 5 und 6).
+   - Design-Profil (Farben, Schriften, Fach, Lehrkraft) gibt der Agent mit, der Renderer enthält keine Daten von Lia.
 
 Erster Plan (21.10.), je Schritt ein Commit. Schnittstelle: `pruefen(beschreibung)` -> Fehlerliste,
 `bauen(beschreibung, ziel, vorlage=None)` -> Ergebnis(pfad, textfassung), `vorlage_umwandeln(quelle, ziel)`,

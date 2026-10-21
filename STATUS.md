@@ -119,6 +119,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Hinweis in agentkit.textfassung („Das PDF selbst mit Read öffnen“) bei Scans ins Leere. Vorschlag:
      agentkit wandelt PDF-Seiten mit pypdfium2 (pip, ohne sudo) in PNG-Bilder um, Claude öffnet die
      PNGs mit Read. Lia schickt PDFs als Vorlage, der Agent muss Text und Gestaltung sehen.
+   - Server (21.10.): LibreOffice 24.2 ohne Oberfläche und die Schrift Carlito sind systemweit aus apt
+     installiert (/usr/bin/soffice, für die Vorschau des Renderers). Jan kommt jetzt per SSH-Schlüssel
+     contabo_agents auch als root auf den Server (über Contabo „Zugangsdaten zurücksetzen“, das löste einen
+     Neustart aus; alle Dienste kamen von selbst wieder). Offen: 15 normale Updates, Ubuntu 26.04 nicht
+     nebenbei einspielen.
    Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
 
 ## Gelernte Regeln
