@@ -29,7 +29,8 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 ## Architektur
 - Grundsatz: Claude denkt, Python handelt. Agenten rufen Claude nur über `agentkit.claude_lauf` auf
   (`claude -p`, ohne Bash, Schreibschutz auf Code und Regeln). Nach außen handelt nur Python-Code.
-- Warteschlangen sind Ordner mit einer JSON-Datei pro Eintrag: `shared/auftraege/` (Jan -> Agent),
+- Warteschlangen sind Ordner mit einer JSON-Datei pro Eintrag: `shared/auftraege/` (Jan -> Agent,
+  Agent -> Agent nur per `auftraege.weitergeben` und nur Paare aus [weitergabe] in einstellungen.toml),
   `shared/freigabe/` (Entwurf -> Jan), `shared/meldungen/` (Agent -> Jan).
 - `shared/agentkit/`: config (.env laden), log, einstellungen (einstellungen.toml), auftraege, freigabe,
   meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf, textfassung (Text aus pdf/docx/pptx/xlsx).

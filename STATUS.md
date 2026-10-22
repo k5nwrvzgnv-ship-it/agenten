@@ -2,7 +2,7 @@
 
 Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konventionen: CLAUDE.md.
 
-## Stand (21.10.2026)
+## Stand (22.10.2026)
 - Übersicht, wo was liegt, welche Dienste laufen und welcher Chat wohin gehört: README.md
   (aufgeräumt 21.10.: lia/instanz statt lia/shared, Dienst-Vorlagen je Ordner in systemd/).
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
@@ -37,6 +37,15 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - agentkit.kalender (20.10.): termine(von, bis) aus KALENDER_ICS_URLS, nur Bordmittel (zoneinfo,
   DAILY/WEEKLY/MONTHLY/YEARLY, EXDATE, RECURRENCE-ID). Mit Jans Kalender getestet: 395 Termine,
   keine Warnung, Woche ab 19.10. stimmt. Umlaute fehlen teils schon in den iCloud-Daten ("Link ber").
+- Aufträge von Agent an Agent (22.10.): `auftraege.weitergeben(von, an, text, aus_auftrag, dateien=)`.
+  Nur Paare aus [weitergabe] in shared/einstellungen.toml (heute uni -> dokumente), andere Instanzen
+  erben das nicht. Dateien aus dem Ordner des Absenders werden kopiert (wie Ergebnisdateien geprüft:
+  nichts Verstecktes, höchstens 50 MB). Kettenschutz: Ein Auftrag mit Feld von darf nicht weitergegeben
+  werden (aus_auftrag muss dafür angegeben sein). Keine Freigabe (intern, Jan 22.10.): Die Zentrale
+  meldet Jan jede Weitergabe einmal ("[uni -> dokumente] Neuer Auftrag: ...") und startet
+  <empfänger>.service; fehlt der Dienst, steht das in der Meldung, und der Auftrag wartet. Das Ergebnis
+  geht wie jedes direkt an Jan ("Auftrag erledigt (dokumente, von uni)"), nicht zurück an den Absender.
+  Noch nicht echt getestet (dokumente hat noch kein agent.py).
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 - Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
 - Lias Instanz (21.10.): eigener Ordner lia/ unter User agent, kein eigener Linux-User.
@@ -82,6 +91,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Noch offen: Handtest durch Jan (Datei mit "/uni ..." als Bildunterschrift, Album, Datei ohne Befehl).
    uni (17.10.): legt für a["dateien"] vorab <datei>.txt an (kurse.textfassung) und übernimmt
    "Transkript <Kurs>"-Aufträge als Vorlesungstranskript.
+3a. Übungsaufgabe Holzschutz-Zusammenfassung (Jan, 22.10.): uni bereitet das Transkript vom 20.10. mit
+   Belegen auf und gibt es per weitergeben an dokumente, das daraus ein PDF baut. Teil A (Weitergabe)
+   erledigt. Offen, je im eigenen Chat:
+   - B shared/renderer: Dokumenttyp für Zusammenfassungen in Jans Stil (heute nur arbeitsblatt/folien in Lias Stil).
+   - C dokumente: agent.py, nimmt Aufträge an (auch mit Feld von), baut über den Renderer, PDF aus der Vorschau.
+   - D uni: Behauptungsliste mit Quellen (Transkriptseite, Folie, Norm), Python ruft weitergeben auf.
+     Claude kann das nicht selbst, also z. B. Claude schreibt eine Übergabedatei, Python gibt sie weiter.
 4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 5. Bedarf aus uni (Lernsystem): erledigt 20.10. (kalender, Knöpfe, Start von <dienst>.service).
    Übergabe in uni/STATUS.md. Offen: Handtest der Knöpfe über Telegram, sobald uni die erste
