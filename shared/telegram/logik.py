@@ -107,6 +107,22 @@ def knopf_beschriftung(meldung: dict, zeile: int, spalte: int) -> str | None:
     return None
 
 
+def weitergabe_text(auftrag: dict, dienst_da: bool) -> str:
+    """Info an Jan: Ein Agent hat einem anderen einen Auftrag gegeben (agentkit.auftraege.weitergeben)."""
+    zeilen = [f"[{auftrag['von']} -> {auftrag['agent']}] Neuer Auftrag: {auftrag['text'][:300]}"]
+    if not dienst_da:
+        zeilen.append(f"{auftrag['agent']} hat noch keinen Dienst, der Auftrag wartet in shared/auftraege/neu/.")
+    zeilen.append(f"ID: {auftrag['id']}")
+    return "\n".join(zeilen)
+
+
+def auftrag_kopf(auftrag: dict) -> str:
+    """'Auftrag erledigt (dokumente, von uni)': Kopf der Meldung über einen abgeschlossenen Auftrag."""
+    wort = "Auftrag erledigt" if auftrag["status"] == "erledigt" else "Auftrag fehlgeschlagen"
+    von = f", von {auftrag['von']}" if auftrag.get("von") else ""
+    return f"{wort} ({auftrag['agent']}{von})"
+
+
 class Gemeldet:
     """Merkt sich, was Jan schon gezeigt wurde (data/gemeldet.json), damit nichts doppelt kommt.
 
@@ -115,9 +131,10 @@ class Gemeldet:
     Meldungen mit Rückfrage stehen dort als "m:<Meldungs-ID>" (siehe meldung_zu).
     listen["am_pc"]: Sitzungen, die gerade am PC liegen (Bot schreibt nicht hinein).
     listen["geklickt"]: Meldungen, deren Knopf schon gedrückt wurde (nur ein Klick je Meldung).
+    listen["weitergaben"]: Aufträge von Agent an Agent, die Jan schon gemeldet wurden.
     """
 
-    LISTEN = ("ausgefuehrt", "unklar", "auftraege", "am_pc", "geklickt")
+    LISTEN = ("ausgefuehrt", "unklar", "auftraege", "am_pc", "geklickt", "weitergaben")
     MAX_GEKLICKT = 500
     MAX_NACHRICHTEN = 500  # ältere Meldungen kann Jan nicht mehr per Antwort fortsetzen
 

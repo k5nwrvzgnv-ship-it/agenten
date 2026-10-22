@@ -48,6 +48,7 @@ from logik import (
     ansicht_entwuerfe,
     ansicht_home,
     ansicht_text,
+    auftrag_kopf,
     aufteilen,
     befehl_auswerten,
     entwurf_als_text,
@@ -56,6 +57,7 @@ from logik import (
     meldung_knoepfe,
     panel_auswerten,
     verbrauch_text,
+    weitergabe_text,
 )
 import panel
 
@@ -587,10 +589,17 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
             gemeldet.listen["unklar"].add(e["id"])
             geaendert = True
 
+    for a in auftraege.neue():  # Aufträge von Agent an Agent: Jan Bescheid geben, Empfänger starten
+        if a.get("von") and a["id"] not in gemeldet.listen["weitergaben"]:
+            dienst_da = a["agent"] in AGENTEN and (UNIT_DIR / f"{a['agent']}.service").exists()
+            await senden(context, weitergabe_text(a, dienst_da))
+            await agent_starten(a["agent"])
+            gemeldet.listen["weitergaben"].add(a["id"])
+            geaendert = True
+
     for a in auftraege.erledigte():
         if a["id"] not in gemeldet.listen["auftraege"]:
-            wort = "Auftrag erledigt" if a["status"] == "erledigt" else "Auftrag fehlgeschlagen"
-            nachrichten = await senden(context, f"{wort} ({a['agent']}): {a['text'][:200]}\n\n{a.get('ergebnis', '')}")
+            nachrichten = await senden(context, f"{auftrag_kopf(a)}: {a['text'][:200]}\n\n{a.get('ergebnis', '')}")
             nachrichten += await dateien_senden(context, a["agent"], a.get("ergebnis_dateien", []))
             for n in nachrichten:  # auch eine Antwort auf die Datei setzt die Sitzung fort
                 gemeldet.nachricht_merken(n.message_id, a["id"])

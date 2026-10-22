@@ -6,6 +6,7 @@ import logik
 from logik import (
     Eingang,
     Gemeldet,
+    auftrag_kopf,
     aufteilen,
     befehl_auswerten,
     dateiname_bereinigen,
@@ -14,6 +15,7 @@ from logik import (
     knopf_beschriftung,
     meldung_knoepfe,
     verbrauch_text,
+    weitergabe_text,
 )
 
 
@@ -175,6 +177,37 @@ class PanelTest(unittest.TestCase):
     def test_text_wird_gekuerzt(self):
         text, _ = logik.ansicht_text("Hilfe", "x" * 5000)
         self.assertLessEqual(len(text), logik.MAX_LAENGE)
+
+
+
+class TestWeitergabe(unittest.TestCase):
+    A = {"id": "20261022-120000-dokumente-abcdef", "agent": "dokumente", "von": "uni", "status": "erledigt",
+         "text": "Zusammenfassung Holzschutz als PDF"}
+
+    def test_info_an_jan(self):
+        text = weitergabe_text(self.A, dienst_da=True)
+        self.assertTrue(text.startswith("[uni -> dokumente] Neuer Auftrag: Zusammenfassung Holzschutz"))
+        self.assertIn(self.A["id"], text)
+        self.assertNotIn("keinen Dienst", text)
+        self.assertIn("dokumente hat noch keinen Dienst", weitergabe_text(self.A, dienst_da=False))
+        lang = weitergabe_text({**self.A, "text": "x" * 5000}, dienst_da=True)
+        self.assertLess(len(lang), 500)
+
+    def test_kopf_nennt_absender(self):
+        self.assertEqual(auftrag_kopf(self.A), "Auftrag erledigt (dokumente, von uni)")
+        self.assertEqual(auftrag_kopf({**self.A, "status": "fehlgeschlagen", "von": None}),
+                         "Auftrag fehlgeschlagen (dokumente)")
+        self.assertEqual(auftrag_kopf({"agent": "uni", "status": "erledigt"}), "Auftrag erledigt (uni)")  # alter Eintrag
+
+    def test_weitergaben_werden_gemerkt(self):
+        with tempfile.TemporaryDirectory() as d:
+            pfad = Path(d) / "gemeldet.json"
+            pfad.write_text('{"auftraege": ["a"]}')  # alte Datei ohne Liste
+            g = Gemeldet(pfad)
+            self.assertEqual(g.listen["weitergaben"], set())
+            g.listen["weitergaben"].add(self.A["id"])
+            g.speichern()
+            self.assertEqual(Gemeldet(pfad).listen["weitergaben"], {self.A["id"]})
 
 
 if __name__ == "__main__":
