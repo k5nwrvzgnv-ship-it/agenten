@@ -145,8 +145,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      129.430 Tokens, umgerechnet 0,61 USD. Details lia/unterricht/STATUS.md. Offen: Handtest durch Lia.
      docs/uebergabe-lia-dokumente.md ist damit erledigt.
      Bedarf aus lia/unterricht (22.10., Hauptordner- bzw. Renderer-Chat):
-     - portal_logik.py: IM_AUFBAU („richtige Antworten kommen bald“) und HILFE („ich gebe es weiter“) passen für
-       Material nicht mehr. Bei fehlgeschlagen zeigt ergebnis_text nur FEHLGESCHLAGEN, das Ergebnis des Agenten
+     - portal_logik.ergebnis_text zeigt bei fehlgeschlagen nur FEHLGESCHLAGEN, das Ergebnis des Agenten
        (z. B. „Kontingent aufgebraucht, ab 14:00 noch einmal“) kommt bei Lia nicht an.
      - claude_lauf.GESCHUETZT schützt skills/**/SKILL.md nicht: Claude könnte den Skill eines Agenten mit Write
        ändern. Vorschlag: "skills/**" ergänzen.
@@ -161,9 +160,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Bisherige Notiz: echter Agent unterricht (Schritt 1, Material auf Zuruf). Vorher klären:
      Verbrauch und Plätze gemeinsam mit Jans Instanz (gleiches Konto), "Jan" in
      claude_lauf.GRUNDREGEL und in auftraege ("Angehängte Dateien von Jan") je Instanz.
-   - Dateien in Lias Zentrale annehmen (heute: Hinweis "kommt bald"). Bedarf aus dem Renderer-Chat
-     (21.10.): Lia soll so ihre Vorlagen (docx/pptx/dotx/potx) schicken können, der Agent legt sie
-     unter data/vorlagen/ ab.
+   - Dateien in Lias Zentrale: gebaut 22.10. im Chat lia/unterricht mit Jans Okay (portal.py, portal_logik.py;
+     Menü- und Hilfetexte für Material angepasst). Dateien und Fotos bis 20 MB warten in
+     lia/instanz/zentrale/data/eingang/, bis Lia schreibt, was damit passieren soll (Bildunterschrift oder
+     nächste Nachricht), und hängen dann am Material- oder Frage-Auftrag; Abbrechen/Verwerfen löscht sie.
+     Sie sind Vorlage für genau diesen Auftrag (Jan, 22.10.). Dauerhafte Schulvorlagen (dotx/potx nach
+     data/vorlagen/) noch offen. Handtest über Telegram offen. Hinweis: Die Änderung an portal_logik.py steckt
+     versehentlich im Commit f848330 des Hauptordner-Chats (gleichzeitig committet), portal.py in 5e8d66b.
    - Bedarf aus dem Renderer-Chat (21.10., Jan hat zugestimmt): PDFs als Bilder für Claude. Claudes Read
      öffnet PDFs nur mit poppler (pdftoppm), das fehlt auf dem Server und braucht sudo. Darum läuft der
      Hinweis in agentkit.textfassung („Das PDF selbst mit Read öffnen“) bei Scans ins Leere. Vorschlag:

@@ -129,5 +129,77 @@ class MaterialTest(unittest.TestCase):
         self.assertIn("- data/x-vorschau/seite-1.png", text)
 
 
+class AnhaengeTest(unittest.TestCase):
+    def setUp(self):
+        self.hier = Path(tempfile.mkdtemp())
+        self.eingang = self.hier / "data" / "eingang" / "a1"
+        self.eingang.mkdir(parents=True)
+        self.vorschau_aufrufe = []
+
+    def vorschau(self, quelle, ordner, anzahl=2):
+        self.vorschau_aufrufe.append(quelle.name)
+        ordner.mkdir(parents=True, exist_ok=True)
+        return [ordner / f"seite-{i:02d}.png" for i in range(1, anzahl + 1)]
+
+    def datei(self, name, inhalt=b"x") -> str:
+        (self.eingang / name).write_bytes(inhalt)
+        return f"data/eingang/a1/{name}"
+
+    def test_bild_und_unbekanntes(self):
+        zeilen = material.anhaenge_vorbereiten(self.hier, [self.datei("foto.jpg"), self.datei("alt.odt")],
+                                               self.vorschau)
+        self.assertEqual(zeilen, ["- data/eingang/a1/foto.jpg: Bild, mit Read öffnen",
+                                  "- data/eingang/a1/alt.odt: Format ohne Aufbereitung, versuche Read"])
+        self.assertEqual(self.vorschau_aufrufe, [])
+
+    def test_docx_mit_textfassung_und_hoechstens_8_bildern(self):
+        import docx
+        d = docx.Document()
+        d.add_paragraph("Der Ring des Gyges")
+        d.save(self.eingang / "text.docx")
+        zeilen = material.anhaenge_vorbereiten(self.hier, ["data/eingang/a1/text.docx"],
+                                               lambda q, o: self.vorschau(q, o, anzahl=10))
+        txt = self.eingang / "text.docx.txt"
+        self.assertIn("Ring des Gyges", txt.read_text(encoding="utf-8"))
+        self.assertIn("  Textfassung: data/eingang/a1/text.docx.txt", zeilen)
+        bilder = [z for z in zeilen if "Seitenbilder" in z][0]
+        self.assertIn("nur die ersten 8 von 10", bilder)
+        self.assertIn("data/eingang/a1/text.docx-seiten/seite-08.png", bilder)
+        self.assertNotIn("seite-09", bilder)
+
+    def test_scan_ohne_text(self):
+        import io
+
+        import pypdf
+        w = pypdf.PdfWriter()
+        w.add_blank_page(595, 842)
+        puffer = io.BytesIO()
+        w.write(puffer)
+        rel = self.datei("scan.pdf", puffer.getvalue())
+        zeilen = material.anhaenge_vorbereiten(self.hier, [rel], self.vorschau)
+        self.assertTrue(any("vermutlich ein Scan" in z for z in zeilen))
+        self.assertTrue(any("Seitenbilder: data/eingang/a1/scan.pdf-seiten/seite-01.png" in z for z in zeilen))
+        self.assertFalse((self.eingang / "scan.pdf.txt").exists())
+
+    def test_kaputte_pdf_und_vorschau_fehler(self):
+        def kaputt(quelle, ordner):
+            raise renderer.vorschau.VorschauFehler("PDF lässt sich nicht öffnen")
+        zeilen = material.anhaenge_vorbereiten(self.hier, [self.datei("kaputt.pdf", b"kein pdf")], kaputt)
+        self.assertTrue(any("Text nicht lesbar" in z for z in zeilen))
+        self.assertTrue(any("Keine Seitenbilder (PDF lässt sich nicht öffnen)" in z for z in zeilen))
+
+    def test_prompt(self):
+        self.assertEqual(material.prompt_anhaenge([]), "")
+        self.assertIn("Angehängte Dateien von Lia", material.prompt_anhaenge(["- a.jpg: Bild"]))
+
+    def test_bearbeiten_mit_anhang(self):
+        auftrag = {"id": "20261022-120000-unterricht-abcdef", "text": "Mach daraus ein Arbeitsblatt",
+                   "dateien": [self.datei("foto.jpg")]}
+        claude = FalscherClaude(self.hier / "data" / "arbeit" / auftrag["id"], [(BLATT, "a"), (None, "b")])
+        material.bearbeiten(auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN, vorschau=self.vorschau)
+        self.assertIn("- data/eingang/a1/foto.jpg: Bild, mit Read öffnen", claude.prompts[0])
+        self.assertIn("Angehängte Dateien von Lia", claude.prompts[0])
+
+
 if __name__ == "__main__":
     unittest.main()

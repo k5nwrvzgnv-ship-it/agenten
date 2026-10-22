@@ -14,6 +14,8 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Satzanfängen und Hilfen, Tabelle quer). Inhalt fachlich ordentlich, Jan hat die Datei noch nicht angesehen:
   data/arbeit/20261022-231000-unterricht-a1b2c3/.
 - Folien sind nur mit Tests geprüft, noch nicht im echten Lauf.
+- Angehängte Dateien (22.10.): Lias Zentrale nimmt Dateien und Fotos an, sie kommen im Feld dateien mit.
+  Aufbereitung mit echtem LibreOffice geprüft, ein echter Claude-Lauf mit Anhang fehlt noch.
 
 ## Ablauf (material.py)
 1. Prompt = Lias Wunsch + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien aus
@@ -24,6 +26,10 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 3. Kontrolle: Claude sieht Kontrolltext und Vorschau-PNGs. Ändert Claude die Beschreibung, baut Python neu
    (eine Kontrollrunde, die neue Vorschau sieht Claude nicht mehr).
 4. Claudes letzte Antwort ist der Begleittext, die Datei geht über auftraege.abschliessen(..., dateien=).
+- Anhänge (Vorlage für genau diesen Auftrag, Jan 22.10.): anhaenge_vorbereiten legt für pdf/docx/pptx neben die
+  Datei eine Textfassung (<datei>.txt, agentkit.textfassung, pypdf) und Seitenbilder (<datei>-seiten/, über
+  renderer.vorschau, auch für Scans; höchstens 8 je Datei im Prompt). Grund: Claudes Read öffnet PDFs auf dem
+  Server nicht (kein poppler). Bilder öffnet Claude direkt, andere Formate versucht Claude mit Read.
 - Opus (art="anspruchsvoll"), Zeitbudget 18 min für neue Läufe, Dienst-Timeout 25 min.
 - Fehler: Lia bekommt „nicht erstellen, Jan ist informiert“ (ihre Zentrale zeigt bei fehlgeschlagen
   ohnehin ihren eigenen Text), Jan eine Meldung in seiner Zentrale (jan_melden, Jans shared/meldungen).
@@ -50,9 +56,12 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 1. Handtest: Lia tippt „Neues Material“ und schickt einen Wunsch, einmal Arbeitsblatt, einmal Folien.
 2. Wünsche nach Änderung („mach Aufgabe 3 leichter“): Lias Zentrale kennt noch keine Antwort auf ein Ergebnis.
    Dann Sitzung fortsetzen (Feld sitzung ist gespeichert) und Beschreibung überarbeiten lassen.
-3. Lias Vorlage nutzen (data/vorlagen/, renderer vorlage=), sobald die Zentrale Dateien annimmt.
-4. Ausbau des Skills nach Architektur 2.5 (beispiele/, evals/), sobald Lia Ergebnisse abgenommen hat.
-5. Woche und Frage: noch Platzhalter.
+3. Dauerhafte Schulvorlage (dotx/potx nach data/vorlagen/, renderer vorlage=): Die Zentrale nimmt Dateien jetzt an,
+   heute gelten sie nur für den einen Auftrag. Erst klären, wie Lia eine Vorlage als dauerhaft kennzeichnet.
+4. Handtest Anhang: Lia schickt einen Text oder ein altes Arbeitsblatt mit „Mach daraus ein Arbeitsblatt“.
+   Die Datei von 23:15 (22.10.) wurde noch abgelehnt und muss neu geschickt werden.
+5. Ausbau des Skills nach Architektur 2.5 (beispiele/, evals/), sobald Lia Ergebnisse abgenommen hat.
+6. Woche und Frage: noch Platzhalter. Dateien an einer Frage werden bisher nur bestätigt.
 
 ## Gelernte Regeln
 - (noch keine)
