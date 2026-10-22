@@ -60,7 +60,7 @@ Präsentationen, Tabellen. Sauber formatiert, auf Wunsch auf Jans Vorlagen.
 1. Testauftrag 22.10. lief durch (uni -> dokumente, Gebrauchsklassen, 10 Behauptungen aus dem Transkript
    vom 20.10., Testdateien in uni/data/test-3a/): 3 Seiten, Beschreibung im 1. Versuch gültig, Kontrolle
    fand in Runde 1 einen Fehler (Deckenbalken) und korrigierte ihn, Runde 2 ok. 3 Claude-Läufe Opus,
-   ca. 280.000 Tokens, 75 s. Zentrale hat PDF und docx verschickt; Ankunft in Telegram bestätigt Jan.
+   ca. 280.000 Tokens, 75 s. PDF kam in Telegram an, Jan: passt (22.10.).
    Schönheitsfehler: Claude hängt dieselbe Quelle an jeden Listenpunkt (Hinweis im Prompt, falls es stört).
 2. Word-Vorlage mit HNEE-Logo in der Kopfzeile (data/vorlagen/zusammenfassung.docx), sobald es das Logo
    in Grün gibt (Renderer-STATUS, Offene Punkte 1).
