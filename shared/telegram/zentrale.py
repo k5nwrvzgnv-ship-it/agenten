@@ -12,7 +12,11 @@
 - Verschickt Meldungen der Agenten aus shared/meldungen/neu/ (Fristen, wichtige Mails ...).
   Hat eine Meldung Knöpfe, wird ein Klick (einmal je Meldung) oder Jans Antwort darauf ein
   Auftrag an den Agenten, danach startet <dienst>.service der Meldung (siehe agentkit.meldungen).
-  Ergebnisdateien von Aufträgen und Meldungen (bis 50 MB) kommen als Dokument hinterher.
+  Ergebnisdateien von Aufträgen und Meldungen (bis 50 MB) kommen als Dokument, der Text steht
+  möglichst als Beschriftung darunter (eine Nachricht statt zwei). Gibt es eine gleichnamige PDF,
+  kommt nur sie (docx bleibt auf dem Server).
+- Nachrichten an Jan bleiben kurz: Absender fett, Ergebnis, nichts Technisches (IDs, Pfade,
+  Stufen). Stufenwechsel nur bei Limit und danach, Weitergaben nur, wenn der Auftrag liegen bleibt.
 - Nimmt Dateien und Fotos an (bis 20 MB). Mit /agent in der Bildunterschrift oder als Antwort auf
   eine Meldung gehen sie sofort an den Auftrag, sonst warten sie in data/eingang/ auf den nächsten
   Auftrag. agentkit.auftraege legt sie dann in <agent>/data/eingang/<auftrag-id>/ ab.
@@ -26,6 +30,7 @@ from datetime import datetime
 from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.constants import ParseMode
 from telegram.error import TelegramError
 from telegram.ext import (
     Application,
@@ -41,21 +46,26 @@ from agentkit._ablage import AblageFehler, anhaenge_pruefen, pruefe_dienst
 from logik import (
     AGENTEN,
     MAX_DATEI_BYTES,
-    STUFEN_TEXT,
     Eingang,
     Gemeldet,
     ansicht_agent,
     ansicht_entwuerfe,
     ansicht_home,
     ansicht_text,
-    auftrag_kopf,
+    anzeigename,
+    auftrag_nachricht,
     aufteilen,
     befehl_auswerten,
+    bestaetigung,
+    dateien_auswaehlen,
     entwurf_als_text,
     knopf_auswerten,
     knopf_beschriftung,
     meldung_knoepfe,
+    mit_absender,
     panel_auswerten,
+    passt_als_beschriftung,
+    stufe_text,
     verbrauch_text,
     weitergabe_text,
 )
@@ -88,28 +98,49 @@ HILFE = (
 )
 
 
-async def senden(context: ContextTypes.DEFAULT_TYPE, text: str, knoepfe=None) -> list:
-    stuecke = aufteilen(text)
+async def senden(context: ContextTypes.DEFAULT_TYPE, text: str | list[str], knoepfe=None) -> list:
+    """Klartext (wird aufgeteilt) oder fertige HTML-Stücke aus mit_absender (Liste)."""
+    stuecke, modus = (text, ParseMode.HTML) if isinstance(text, list) else (aufteilen(text), None)
     gesendet = []
     for i, stueck in enumerate(stuecke):
         letzte = i == len(stuecke) - 1
-        gesendet.append(await context.bot.send_message(JAN, stueck, reply_markup=knoepfe if letzte else None))
+        gesendet.append(await context.bot.send_message(JAN, stueck, parse_mode=modus,
+                                                       reply_markup=knoepfe if letzte else None))
     return gesendet
 
 
-async def dateien_senden(context: ContextTypes.DEFAULT_TYPE, agent: str, dateien: list[str]) -> list:
-    """Schickt Ergebnisdateien eines Agenten. Ein Fehler betrifft nur die eine Datei, Jan erfährt davon."""
+async def dateien_senden(context: ContextTypes.DEFAULT_TYPE, agent: str, dateien: list[str],
+                         beschriftung: str | None = None) -> list:
+    """Schickt Ergebnisdateien eines Agenten, beschriftung (HTML) unter der letzten.
+
+    Ein Fehler betrifft nur die eine Datei, Jan erfährt davon. Scheitert die beschriftete Datei,
+    kommt die Beschriftung als eigene Nachricht, damit der Text nicht verloren geht.
+    """
     gesendet = []
-    for datei in dateien:
+    for i, datei in enumerate(dateien):
+        text = beschriftung if i == len(dateien) - 1 else None
         try:
             # noch einmal prüfen: zwischen Ablage und Senden kann sich die Datei geändert haben
             pfad = AGENTEN_DIR / agent / anhaenge_pruefen(AGENTEN_DIR / agent, [datei])[0]
             with open(pfad, "rb") as f:
-                gesendet.append(await context.bot.send_document(JAN, f, filename=pfad.name, write_timeout=120))
+                gesendet.append(await context.bot.send_document(JAN, f, filename=pfad.name, write_timeout=120,
+                                                                caption=text, parse_mode=ParseMode.HTML))
         except (AblageFehler, OSError, TelegramError) as f:
             logger.error("Datei %s von %s nicht gesendet: %s", datei, agent, f)
-            await context.bot.send_message(JAN, f"Datei nicht gesendet ({agent}): {datei}\nGrund: {f}")
+            if text:
+                gesendet += await senden(context, [text])
+            await context.bot.send_message(JAN, f"{anzeigename(agent)}: Datei {Path(datei).name} kam nicht durch ({f}).")
     return gesendet
+
+
+async def mit_dateien(context: ContextTypes.DEFAULT_TYPE, agent: str, stuecke: list[str], dateien: list[str],
+                      knoepfe=None) -> list:
+    """Text (HTML-Stücke aus mit_absender) und Dateien so knapp wie möglich: kurzer Text ohne Knöpfe
+    steht unter der Datei, sonst kommt er vorher als eigene Nachricht."""
+    dateien = dateien_auswaehlen(dateien)
+    if dateien and not knoepfe and passt_als_beschriftung(stuecke):
+        return await dateien_senden(context, agent, dateien, stuecke[0])
+    return await senden(context, stuecke, knoepfe) + await dateien_senden(context, agent, dateien)
 
 
 async def agent_starten(agent: str, dienst: str | None = None) -> None:
@@ -263,9 +294,7 @@ async def auftrag_anlegen(bot, agent: str, modus: str, text: str, bezug: str | N
     logger.info("Auftrag %s angelegt (%s, %s, Quelle %s, Sitzung %s, Meldung %s, Dienst %s, %d Dateien)",
                 aid, agent, modus, quelle, sitzung, meldung, dienst, len(dateien))
     if bestaetigen or dateien:
-        wort = "Antwort" if sitzung or meldung else "Auftrag"
-        mit = f" mit {len(dateien)} Datei(en): " + ", ".join(d.name for d in dateien) if dateien else ""
-        await bot.send_message(JAN, f"{wort} an {agent} ({modus}) weitergegeben{mit}.")
+        await bot.send_message(JAN, bestaetigung(agent, modus, [d.name for d in dateien]))
     await agent_starten(agent, dienst)
     return True
 
@@ -360,7 +389,7 @@ async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         agent, modus = ziel
         if await auftrag_anlegen(context.bot, agent, modus, text, bestaetigen=False):
             await panel_zeigen(context.bot, context.chat_data,
-                               home(f"Auftrag an {agent} ({modus}) weitergegeben."), neu=True)
+                               home(bestaetigung(agent, modus, [])), neu=True)
         return
     await agent_fragen(context.bot, context.chat_data, text)
 
@@ -577,38 +606,40 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
 
     for e in freigabe.erledigte():
         if e.get("ausgefuehrt") and e["id"] not in gemeldet.listen["ausgefuehrt"]:
-            wort = "Ausgeführt" if e.get("erfolgreich") else "Fehlgeschlagen"
-            await senden(context, f"{wort}: {e['titel']} ({e['agent']})\n{e.get('ausfuehrung', '')}")
+            wort = "Ausgeführt" if e.get("erfolgreich") else "Hat nicht geklappt"
+            await senden(context, mit_absender(e["agent"], f"{wort}: {e['titel']}\n{e.get('ausfuehrung', '')}"))
             gemeldet.listen["ausgefuehrt"].add(e["id"])
             geaendert = True
 
     for e in freigabe.unklare():
         if e["id"] not in gemeldet.listen["unklar"]:
-            await senden(context, f"Unklar, ob ausgeführt: {e['titel']} ({e['agent']}).\n"
-                                  f"Der Agent hat begonnen, aber nie fertig gemeldet. Bitte selbst prüfen.\nID: {e['id']}")
+            logger.warning("Unklare Ausführung %s (%s)", e["id"], e["agent"])
+            await senden(context, mit_absender(e["agent"], f"Unklar, ob das erledigt wurde: {e['titel']}\n"
+                                                           "Begonnen, aber nie fertig gemeldet. Bitte selbst prüfen."))
             gemeldet.listen["unklar"].add(e["id"])
             geaendert = True
 
     for a in auftraege.neue():  # Aufträge von Agent an Agent: Jan Bescheid geben, Empfänger starten
         if a.get("von") and a["id"] not in gemeldet.listen["weitergaben"]:
             dienst_da = a["agent"] in AGENTEN and (UNIT_DIR / f"{a['agent']}.service").exists()
-            await senden(context, weitergabe_text(a, dienst_da))
+            logger.info("Weitergabe %s: %s -> %s (Dienst da: %s)", a["id"], a["von"], a["agent"], dienst_da)
+            if text := weitergabe_text(a, dienst_da):
+                await senden(context, text)
             await agent_starten(a["agent"])
             gemeldet.listen["weitergaben"].add(a["id"])
             geaendert = True
 
     for a in auftraege.erledigte():
         if a["id"] not in gemeldet.listen["auftraege"]:
-            nachrichten = await senden(context, f"{auftrag_kopf(a)}: {a['text'][:200]}\n\n{a.get('ergebnis', '')}")
-            nachrichten += await dateien_senden(context, a["agent"], a.get("ergebnis_dateien", []))
+            nachrichten = await mit_dateien(context, a["agent"], auftrag_nachricht(a), a.get("ergebnis_dateien", []))
             for n in nachrichten:  # auch eine Antwort auf die Datei setzt die Sitzung fort
                 gemeldet.nachricht_merken(n.message_id, a["id"])
             gemeldet.listen["auftraege"].add(a["id"])
             geaendert = True
 
     for m in meldungen.neue():
-        nachrichten = await senden(context, f"[{m['agent']}] {m['text']}", knopf_leiste(m))
-        await dateien_senden(context, m["agent"], m.get("dateien", []))
+        nachrichten = await mit_dateien(context, m["agent"], mit_absender(m["agent"], m["text"]),
+                                        m.get("dateien", []), knopf_leiste(m))
         meldungen.als_gesendet(m["id"])  # erst nach erfolgreichem Senden, sonst nächster Versuch
         if meldungen.nimmt_antwort(m):
             for n in nachrichten:
@@ -617,7 +648,8 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
 
     stand, stufe = aktuelle_stufe()
     if stufe != gemeldet.stufe:
-        await senden(context, f"Neue Stufe: {STUFEN_TEXT[stufe]}\n(vorher: {gemeldet.stufe})")
+        if text := stufe_text(gemeldet.stufe, stufe, stand, verbrauch.zeit_text):
+            await senden(context, text)
         logger.info("Stufe %s -> %s", gemeldet.stufe, stufe)
         gemeldet.stufe = stufe
         geaendert = True

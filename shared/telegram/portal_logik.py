@@ -6,6 +6,8 @@ Tippen verändert (Ansichten). Schreibt Lia etwas, kommt das Panel neu unter ihr
 - Woche: geht sofort als Auftrag los.
 - Text ohne Menü: Lia wählt, was damit passieren soll. Kurze Grüße zeigen nur das Menü.
 - Meine Anfragen: die letzten Aufträge mit Stand. Hilfe: kurze Erklärung.
+- Dateien: warten in der Zentrale, bis Lia schreibt, was damit passieren soll (Bildunterschrift oder nächste
+  Nachricht), und hängen dann am Material- oder Frage-Auftrag. Abbrechen oder Verwerfen löscht sie.
 
 Zustand je Chat (chat_data): "wartet_auf" = Art, deren Inhalt als nächste Nachricht kommt,
 "entwurf" = {"art", "text"}, der auf Bestätigung wartet.
@@ -39,17 +41,19 @@ ARTEN = {
 VORSATZ = "p:"
 # Aktionen, die ein Knopf auslösen kann (alles andere ist ein alter oder fremder Knopf)
 AKTIONEN = ("home", "neu", "material", "woche", "frage", "anfragen", "hilfe",
-            "ja", "nein", "alsmaterial", "alsfrage", "menue")
+            "ja", "nein", "alsmaterial", "alsfrage", "menue", "verwerfen")
 
 TITEL = "Zentrale"
-IM_AUFBAU = "Im Aufbau: Ich sammle deine Wünsche, richtige Antworten kommen bald."
+IM_AUFBAU = "Material erstelle ich schon. Wochenüberblick und Antworten auf Fragen kommen bald."
 HILFE = (
     "So funktioniert's\n\n"
-    "Neues Material: Du beschreibst, was du brauchst, ich gebe es weiter.\n"
+    "Neues Material: Du beschreibst, was du brauchst, und bekommst ein Arbeitsblatt oder Folien.\n"
     "Meine Woche: Überblick über deine Woche.\n"
     "Frage stellen: Du schreibst eine Frage, die Antwort kommt hierher.\n"
     "Meine Anfragen: Was unterwegs ist und was fertig ist.\n\n"
     "Du kannst mir auch einfach schreiben, dann frage ich, was ich damit tun soll. "
+    "Dateien und Fotos (z. B. einen Text oder ein altes Arbeitsblatt als Vorlage) schickst du einfach mit, "
+    "am besten mit einer Bildunterschrift, was ich damit machen soll. "
     "Antworten kommen als eigene Nachricht mit einem Knopf zurück ins Menü."
 )
 FEHLGESCHLAGEN = "Das hat leider nicht geklappt. Sag Jan bitte Bescheid."
@@ -99,9 +103,14 @@ def ansicht_anleitung(art: str) -> tuple[str, Knoepfe]:
     return f"{a.knopf}\n\n{a.anleitung}", ZURUECK
 
 
-def ansicht_bestaetigen(entwurf: dict) -> tuple[str, Knoepfe]:
+def dateien_anzahl(anzahl: int) -> str:
+    return "1 Datei" if anzahl == 1 else f"{anzahl} Dateien"
+
+
+def ansicht_bestaetigen(entwurf: dict, dateien: int = 0) -> tuple[str, Knoepfe]:
     a = ARTEN[entwurf["art"]]
-    text = f"{a.knopf}\n\n{kurz(entwurf['text'], 3500)}\n\nSo abschicken?"  # Telegram: max. 4096 Zeichen
+    mit = f"\n\nMit {dateien_anzahl(dateien)}." if dateien else ""
+    text = f"{a.knopf}\n\n{kurz(entwurf['text'], 3500)}{mit}\n\nSo abschicken?"  # Telegram: max. 4096 Zeichen
     return text, [[k("✓ Abschicken", "ja"), k("✕ Abbrechen", "nein")]]
 
 
@@ -111,6 +120,22 @@ def ansicht_einordnen(text: str) -> tuple[str, Knoepfe]:
         [k("Als Materialwunsch", "alsmaterial"), k("Als Frage", "alsfrage")],
         [k("✕ Verwerfen", "nein")],
     ]
+
+
+def ansicht_dateien(anzahl: int) -> tuple[str, Knoepfe]:
+    """Dateien ohne Text: Lia soll schreiben, was damit passieren soll."""
+    liegt = "liegt" if anzahl == 1 else "liegen"
+    return (f"{dateien_anzahl(anzahl)} {liegt} bereit.\n\nSchreib mir jetzt, was ich damit machen soll, "
+            "z. B. „Mach daraus ein Arbeitsblatt für Klasse 8“."), [
+        [k("✕ Verwerfen", "verwerfen")], *ZURUECK]
+
+
+def hinweis_dateien(anzahl: int) -> str:
+    """Hinweis im Menü, solange Dateien warten."""
+    if not anzahl:
+        return ""
+    liegt, kommt = ("liegt", "kommt") if anzahl == 1 else ("liegen", "kommen")
+    return f"{dateien_anzahl(anzahl)} {liegt} bereit und {kommt} mit deiner nächsten Nachricht mit."
 
 
 def ansicht_anfragen(auftraege: list[dict], anzahl: int = 5) -> tuple[str, Knoepfe]:

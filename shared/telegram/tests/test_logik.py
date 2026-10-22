@@ -6,14 +6,19 @@ import logik
 from logik import (
     Eingang,
     Gemeldet,
-    auftrag_kopf,
     aufteilen,
+    auftrag_nachricht,
     befehl_auswerten,
+    bestaetigung,
+    dateien_auswaehlen,
     dateiname_bereinigen,
     entwurf_als_text,
     knopf_auswerten,
     knopf_beschriftung,
     meldung_knoepfe,
+    mit_absender,
+    passt_als_beschriftung,
+    stufe_text,
     verbrauch_text,
     weitergabe_text,
 )
@@ -184,20 +189,45 @@ class TestWeitergabe(unittest.TestCase):
     A = {"id": "20261022-120000-dokumente-abcdef", "agent": "dokumente", "von": "uni", "status": "erledigt",
          "text": "Zusammenfassung Holzschutz als PDF"}
 
-    def test_info_an_jan(self):
-        text = weitergabe_text(self.A, dienst_da=True)
-        self.assertTrue(text.startswith("[uni -> dokumente] Neuer Auftrag: Zusammenfassung Holzschutz"))
-        self.assertIn(self.A["id"], text)
-        self.assertNotIn("keinen Dienst", text)
-        self.assertIn("dokumente hat noch keinen Dienst", weitergabe_text(self.A, dienst_da=False))
-        lang = weitergabe_text({**self.A, "text": "x" * 5000}, dienst_da=True)
-        self.assertLess(len(lang), 500)
+    def test_weitergabe_nur_wenn_sie_liegen_bleibt(self):
+        self.assertIsNone(weitergabe_text(self.A, dienst_da=True))
+        text = weitergabe_text(self.A, dienst_da=False)
+        self.assertIn("Dokumente läuft noch nicht", text)
+        self.assertNotIn(self.A["id"], text)
 
-    def test_kopf_nennt_absender(self):
-        self.assertEqual(auftrag_kopf(self.A), "Auftrag erledigt (dokumente, von uni)")
-        self.assertEqual(auftrag_kopf({**self.A, "status": "fehlgeschlagen", "von": None}),
-                         "Auftrag fehlgeschlagen (dokumente)")
-        self.assertEqual(auftrag_kopf({"agent": "uni", "status": "erledigt"}), "Auftrag erledigt (uni)")  # alter Eintrag
+    def test_ergebnis_ohne_technik(self):
+        a = {**self.A, "ergebnis": "Zusammenfassung fertig. Bitte GK 4 prüfen."}
+        self.assertEqual(auftrag_nachricht(a), ["<b>Dokumente</b>\nZusammenfassung fertig. Bitte GK 4 prüfen."])
+        fehl = auftrag_nachricht({**a, "status": "fehlgeschlagen", "ergebnis": ""})
+        self.assertTrue(fehl[0].startswith("<b>Dokumente</b> · hat nicht geklappt\n"))
+        self.assertEqual(auftrag_nachricht({"agent": "uni", "status": "erledigt"}), ["<b>Uni</b>\nErledigt."])
+
+    def test_absender_escaped_und_aufgeteilt(self):
+        self.assertEqual(mit_absender("uni", "a < b & <i>"), ["<b>Uni</b>\na &lt; b &amp; &lt;i&gt;"])
+        lang = mit_absender("uni", ("x" * 100 + "\n") * 80)
+        self.assertGreater(len(lang), 1)
+        self.assertTrue(lang[0].startswith("<b>Uni</b>") and not lang[1].startswith("<b>"))
+
+    def test_beschriftung(self):
+        self.assertTrue(passt_als_beschriftung(mit_absender("uni", "&" * 1000)))  # zählt ohne &amp; und <b>
+        self.assertFalse(passt_als_beschriftung(mit_absender("uni", "x" * 1100)))
+        self.assertFalse(passt_als_beschriftung(["a", "b"]))
+
+    def test_nur_pdf_wenn_vorhanden(self):
+        self.assertEqual(dateien_auswaehlen(["data/a.docx", "data/a.pdf", "data/b.docx", "data/c.PDF"]),
+                         ["data/a.pdf", "data/b.docx", "data/c.PDF"])
+
+    def test_stufe_nur_bei_limit(self):
+        zeit = lambda ts: "18:00"  # noqa: E731
+        self.assertIsNone(stufe_text("normal", "sparen", None, zeit))
+        self.assertIsNone(stufe_text("sparen", "nur_auftraege", None, zeit))
+        self.assertIn("warten bis 18:00", stufe_text("sparen", "limit", {"reset_status": 1}, zeit))
+        self.assertIn("bis es wieder frei ist", stufe_text("normal", "limit", {}, zeit))
+        self.assertIn("wieder frei", stufe_text("limit", "nur_auftraege", None, zeit))
+
+    def test_bestaetigung(self):
+        self.assertEqual(bestaetigung("uni", "erledigen", []), "Uni ist dran.")
+        self.assertEqual(bestaetigung("uni", "lernen", ["a.pdf"]), "Uni ist dran (lernen), mit 1 Datei: a.pdf.")
 
     def test_weitergaben_werden_gemerkt(self):
         with tempfile.TemporaryDirectory() as d:

@@ -5,6 +5,7 @@ import re
 import secrets
 import shutil
 from datetime import datetime
+from html import escape, unescape
 from pathlib import Path
 
 AGENTEN = ("uni", "dokumente", "posteingang", "einkauf")
@@ -107,20 +108,67 @@ def knopf_beschriftung(meldung: dict, zeile: int, spalte: int) -> str | None:
     return None
 
 
-def weitergabe_text(auftrag: dict, dienst_da: bool) -> str:
-    """Info an Jan: Ein Agent hat einem anderen einen Auftrag gegeben (agentkit.auftraege.weitergeben)."""
-    zeilen = [f"[{auftrag['von']} -> {auftrag['agent']}] Neuer Auftrag: {auftrag['text'][:300]}"]
-    if not dienst_da:
-        zeilen.append(f"{auftrag['agent']} hat noch keinen Dienst, der Auftrag wartet in shared/auftraege/neu/.")
-    zeilen.append(f"ID: {auftrag['id']}")
-    return "\n".join(zeilen)
+def anzeigename(agent: str) -> str:
+    """'dokumente' -> 'Dokumente' (so steht der Absender über der Nachricht)."""
+    return agent[:1].upper() + agent[1:]
 
 
-def auftrag_kopf(auftrag: dict) -> str:
-    """'Auftrag erledigt (dokumente, von uni)': Kopf der Meldung über einen abgeschlossenen Auftrag."""
-    wort = "Auftrag erledigt" if auftrag["status"] == "erledigt" else "Auftrag fehlgeschlagen"
-    von = f", von {auftrag['von']}" if auftrag.get("von") else ""
-    return f"{wort} ({auftrag['agent']}{von})"
+def mit_absender(agent: str, text: str, zusatz: str = "") -> list[str]:
+    """Nachricht(en) im HTML-Format: Agent fett in der ersten Zeile, darunter der Text (escaped).
+
+    Technisches (IDs, Pfade, Auftragstext) gehört nicht hierher, sondern ins Log.
+    """
+    kopf = f"<b>{escape(anzeigename(agent), False)}</b>" + (f" · {escape(zusatz, False)}" if zusatz else "")
+    stuecke = aufteilen(text.strip(), MAX_LAENGE - 100)
+    return [f"{kopf}\n{escape(stuecke[0], False)}".rstrip(), *(escape(s, False) for s in stuecke[1:])]
+
+
+def auftrag_nachricht(auftrag: dict) -> list[str]:
+    """Ergebnis eines abgeschlossenen Auftrags für Jan: nur Absender und Ergebnis des Agenten."""
+    if auftrag["status"] == "erledigt":
+        return mit_absender(auftrag["agent"], auftrag.get("ergebnis") or "Erledigt.")
+    return mit_absender(auftrag["agent"], auftrag.get("ergebnis") or "Kein Grund angegeben, Details im Log.",
+                        "hat nicht geklappt")
+
+
+def weitergabe_text(auftrag: dict, dienst_da: bool) -> str | None:
+    """Info an Jan zu einem Auftrag von Agent an Agent: nur wenn er liegen bleibt, sonst None."""
+    if dienst_da:
+        return None
+    return (f"{anzeigename(auftrag['von'])} hat {anzeigename(auftrag['agent'])} einen Auftrag gegeben, "
+            f"aber {anzeigename(auftrag['agent'])} läuft noch nicht. Der Auftrag wartet.")
+
+
+def stufe_text(alt: str, neu: str, stand: dict | None, zeit_text) -> str | None:
+    """Stufenwechsel nur melden, wenn Jan es merkt: Kontingent aufgebraucht und wieder frei."""
+    if neu == "limit" and alt != "limit":
+        bis = (stand or {}).get("reset_status")
+        return ("Das Claude-Kontingent ist aufgebraucht. Deine Aufträge warten"
+                + (f" bis {zeit_text(bis)}." if bis else ", bis es wieder frei ist."))
+    if alt == "limit" and neu != "limit":
+        return "Das Claude-Kontingent ist wieder frei, die Agenten arbeiten weiter."
+    return None
+
+
+def bestaetigung(agent: str, modus: str, dateinamen: list[str]) -> str:
+    """Kurze Rückmeldung nach einem Auftrag: 'Uni ist dran.'"""
+    text = f"{anzeigename(agent)} ist dran" + (" (lernen)" if modus == "lernen" else "")
+    if dateinamen:
+        text += f", mit {len(dateinamen)} {'Datei' if len(dateinamen) == 1 else 'Dateien'}: " + ", ".join(dateinamen)
+    return text + "."
+
+
+BESCHRIFTUNG_MAX = 1024  # Telegram: Text unter einer Datei, gezählt ohne Formatierung
+
+
+def passt_als_beschriftung(stuecke: list[str]) -> bool:
+    return len(stuecke) == 1 and len(unescape(re.sub(r"<[^>]+>", "", stuecke[0]))) <= BESCHRIFTUNG_MAX
+
+
+def dateien_auswaehlen(dateien: list[str]) -> list[str]:
+    """Gibt es zu einer Datei eine gleichnamige PDF, bekommt Jan nur die PDF (docx bleibt auf dem Server)."""
+    pdfs = {str(Path(d).with_suffix("")) for d in dateien if Path(d).suffix.lower() == ".pdf"}
+    return [d for d in dateien if Path(d).suffix.lower() == ".pdf" or str(Path(d).with_suffix("")) not in pdfs]
 
 
 class Gemeldet:
