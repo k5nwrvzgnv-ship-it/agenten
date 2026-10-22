@@ -45,9 +45,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   meldet Jan jede Weitergabe einmal ("[uni -> dokumente] Neuer Auftrag: ...") und startet
   <empfänger>.service; fehlt der Dienst, steht das in der Meldung, und der Auftrag wartet. Das Ergebnis
   geht wie jedes direkt an Jan ("Auftrag erledigt (dokumente, von uni)"), nicht zurück an den Absender.
-  Meldungen über Telegram getestet (22.10., Testauftrag). Noch nicht mit echtem Lauf von dokumente (kein agent.py).
+  Meldungen über Telegram getestet (22.10., Testauftrag). Mit echtem Lauf von dokumente getestet (22.10.).
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
-- Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
+- Agent dokumente läuft (Dienst dokumente, ohne Timer, eingerichtet 22.10.): Zusammenfassungen als PDF und docx
+  über den Renderer, mit Selbstkontrolle gegen eine Behauptungsliste. Details: dokumente/STATUS.md.
 - Lias Instanz (21.10.): eigener Ordner lia/ unter User agent, kein eigener Linux-User.
   agentkit wählt die Instanz über AGENTKIT_INSTANZ=<instanz-ordner> (ohne Variable unverändert Jans).
   lia/instanz/: .env (Token @zentraleliabot, Lias Chat-ID), Warteschlangen, regeln.md.
@@ -83,7 +84,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 1. Erledigt im uni-Chat 17.10.: agent.py setzt Antworten in der Sitzung fort, jeder Auftrag speichert
    seine Sitzung. Noch nicht getestet: echte Antwort über Telegram, interaktives `claude --resume <id>`
    am PC (Jan einmal selbst).
-2. dokumente: Gerüst steht (17.10.), weiter im dokumente-Chat (dokumente/STATUS.md). Danach
+2. dokumente: kann Zusammenfassungen (22.10.), weitere Arten im dokumente-Chat (dokumente/STATUS.md). Danach
    posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
    Ergebnisdateien an Jan: auftraege.abschliessen(..., dateien=) und meldungen.melden(..., dateien=).
 3. Dateien aus Telegram: gebaut 16.10. (Zentrale nimmt Dokumente und Fotos bis 20 MB an, Ablage
@@ -99,9 +100,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Quellen je Aussage als {"art": "transkript"|"folie"|"norm", "stelle": ...}, Kennzeichen "unsicher"/"muendlich".
    HNEE-Farben stehen im Profil. Noch offen: Logo in Grün (bisher nur weißes SVG), siehe Renderer-STATUS.
    Offen, je im eigenen Chat:
-   - C dokumente: agent.py, nimmt Aufträge an (auch mit Feld von), baut über den Renderer, PDF aus der Vorschau.
-     Nach Plan D bekommt dokumente eine schon geprüfte zusammenfassung.json (Renderer-Format) und muss
-     nur bauen, ohne eigenen Claude-Lauf.
+   - C dokumente: erledigt 22.10. Nimmt Aufträge an (auch von uni), Claude schreibt die Beschreibung selbst
+     (eine mitgeschickte Renderer-Beschreibung ist nur Vorlage), Kontrolle gegen behauptungen.json, die Python
+     nachprüft. Testauftrag uni -> dokumente lief durch, PDF und docx an Jan. Format: dokumente/STATUS.md.
    - D uni: Plan (Hauptordner-Chat 22.10., noch nicht von Jan freigegeben, im uni-Chat vorlegen und umsetzen):
      Quellen: Transkript data/eingang/20261022-082205-uni-f0e6f1/Transkribt_20-10-26.pdf(.txt), 40 Seiten,
      ca. 124 KB (einmal ganz lesen); Folien und Infokarten in data/kurse/Integrierter Holzschutz/ nur per
