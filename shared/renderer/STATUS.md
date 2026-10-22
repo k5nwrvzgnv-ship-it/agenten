@@ -8,8 +8,8 @@ und Vorschaubildern für Claude. Claude führt nie Code aus. Nutzer: Lias Materi
 
 ## Stand (22.10.2026)
 Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 110 Tests). Noch nutzt ihn kein Agent.
-Art `zusammenfassung` fertig (Vorschau angesehen, Beispiel `beispiele/zusammenfassung-beispiel.json`); es fehlen
-nur noch HNEE-Grün und Logo (Offene Punkte 1).
+Art `zusammenfassung` fertig, mit HNEE-Farben im Profil (Vorschau angesehen, Jan hat die Farben am 22.10. freigegeben,
+Beispiel `beispiele/zusammenfassung-beispiel.json`). Es fehlt nur das Logo (Offene Punkte 1).
 Lias Arbeitsblatt 5.2 und Präsentation 5 sind nachgebaut und nah am Original (Jan hat beide in Word und
 PowerPoint angesehen). Vorlagen sind nur mit selbst gebauten Testvorlagen geprüft, eine echte gibt es noch nicht.
 
@@ -65,7 +65,10 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
   Quellen und Kennzeichen klein und grau in eckigen Klammern am Absatzende. Tabellenkopf hinterlegt.
 - Am Ende Selbsttest, offene Fragen, Lösungen auf eigener Seite. Fußzeile: Kurs · Titel, rechts „Seite x von y“
   (nur ohne Fußzeile der Vorlage).
-- Farben der HNEE (Hochschule für nachhaltige Entwicklung Eberswalde), Logo über eine Word-Vorlage.
+- Farben der HNEE (Hochschule für nachhaltige Entwicklung Eberswalde): Burnham 00261E für Überschriften, Kurs,
+  Linie und Balken; Sycamore 949547 aufgehellt für Prüfungsrelevant (30 %, DFDFC8) und Tabellenkopf (20 %, EAEADA);
+  Organisatorisches, Rechenbeispiel, Quellen grau. Quelle der Farbcodes: Markenfarben-Übersicht von Jan, nicht das
+  Design-Handbuch der HNEE (bei Gelegenheit abgleichen). Logo über eine Word-Vorlage.
 
 ## Technik, die man kennen muss
 - Word: Neue XML-Elemente an der Stelle einfügen, die das Schema verlangt (sonst „unlesbarer Inhalt“). Theme-
@@ -104,9 +107,9 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 - Erst die Vorschau ansehen, dann „fertig“ sagen.
 
 ## Offene Punkte
-1. HNEE-Stil fertigstellen: Jan nennt den Grünton (Farbcode) bzw. schickt das Logo in Grün. Dann Farben in
-   `beispiele/profil-jan-zusammenfassung.toml` eintragen (Stellen mit „HNEE“). Das Logo liegt bisher nur weiß als SVG
-   vor (für dunklen Grund); LibreOffice wandelt SVG in PNG um (`soffice --headless --convert-to png`), getestet.
+1. Logo der HNEE: liegt bisher nur weiß als SVG vor (für dunklen Grund). Besser eine offizielle grüne Logo-Datei
+   als das weiße SVG umzufärben (das Grün im Logo wirkt heller als Burnham). LibreOffice wandelt SVG in PNG um
+   (`soffice --headless --convert-to png`), getestet.
    Die Word-Vorlage mit Logo in der Kopfzeile baut der dokumente-Chat (C) in `dokumente/data/vorlagen/`.
 2. Lias Material-Agent baut auf dem Renderer auf (eigener Chat in `lia/<agent>`). Sein Skill nimmt `FORMAT.md`
    auf, sein Profil `beispiele/profil-lia-stil.toml` mit Fach und Lehrkraft.

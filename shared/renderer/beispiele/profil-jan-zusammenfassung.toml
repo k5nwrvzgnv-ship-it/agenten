@@ -2,7 +2,7 @@
 # Calibri 11 (in der PDF maßgleich durch Carlito), Farben der HNEE, Logo über eine Word-Vorlage mit Logo in der
 # Kopfzeile (liegt beim dokumente-Agenten unter data/vorlagen/, nicht im Renderer).
 # Vorlage für den dokumente-Agenten: Datei dorthin kopieren und erstellt_von eintragen. Werte: design.py.
-# OFFEN: Grünton der HNEE fehlt noch. Bis dahin neutrale Grautöne; die Zeilen mit "HNEE" bekommen das Grün.
+# HNEE-Farben: Burnham 00261E (dunkelgrün), Sycamore 949547 (oliv); Flächen sind Aufhellungen von Sycamore.
 
 erstellt_von = ""    # z. B. Jans Name, steht im Kopf als "erstellt von ..."
 schrift = "Calibri"
@@ -10,9 +10,9 @@ schriftgroesse_pt = 11
 zeilenabstand = 1.15
 
 [farben]
-ueberschrift = "262626"       # HNEE: Überschriften, Kurs im Kopf, Balken der Kästen (dunkles Grün)
-pruefungsrelevant = "E7E6E6"  # HNEE: Hinweis prüfungsrelevant (helles Grün)
+ueberschrift = "00261E"       # HNEE Burnham: Überschriften, Kurs im Kopf, Linie, Balken der Kästen
+pruefungsrelevant = "DFDFC8"  # HNEE Sycamore, 30 %: Hinweis prüfungsrelevant
 organisatorisch = "F2F2F2"    # Hinweis Organisatorisches (hellgrau)
 rechenbeispiel = "F2F2F2"     # Rechenbeispiel (hellgrau)
-tabellenkopf = "E7E6E6"       # Kopfzeile der Tabellen
+tabellenkopf = "EAEADA"       # HNEE Sycamore, 20 %: Kopfzeile der Tabellen
 kennzeichnung = "7F7F7F"      # [unsicher], [nur mündlich], Quellen (grau)

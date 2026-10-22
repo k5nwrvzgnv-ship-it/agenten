@@ -97,7 +97,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    (ergebnis.pdf). Format in shared/renderer/FORMAT.md, Profil beispiele/profil-jan-zusammenfassung.toml
    (erstellt_von trägt dokumente ein), Logo über eine Word-Vorlage mit Logo in der Kopfzeile.
    Quellen je Aussage als {"art": "transkript"|"folie"|"norm", "stelle": ...}, Kennzeichen "unsicher"/"muendlich".
-   Noch offen bei B: HNEE-Grün (Farbcode von Jan) und Logo in Grün (bisher nur weißes SVG), siehe Renderer-STATUS.
+   HNEE-Farben stehen im Profil. Noch offen: Logo in Grün (bisher nur weißes SVG), siehe Renderer-STATUS.
    Offen, je im eigenen Chat:
    - C dokumente: agent.py, nimmt Aufträge an (auch mit Feld von), baut über den Renderer, PDF aus der Vorschau.
    - D uni: Behauptungsliste mit Quellen (Transkriptseite, Folie, Norm), Python ruft weitergeben auf.
