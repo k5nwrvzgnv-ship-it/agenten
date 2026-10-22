@@ -23,6 +23,18 @@ class TestAusloeser(unittest.TestCase):
         self.assertFalse(weitergabe.ist_dokumentauftrag("Mach ein Dokument daraus"))
         self.assertFalse(weitergabe.ist_dokumentauftrag("Dokumente: ohne Doppelpunkt nach Dokument"))
 
+    def test_format_abschnitt(self):
+        md = "# Format\n## Arbeitsblatt\na\n## Zusammenfassung (docx)\nb\n### Unter\nc\n## Folien\nd"
+        self.assertEqual(weitergabe.format_abschnitt(md), "## Zusammenfassung (docx)\nb\n### Unter\nc")
+        self.assertEqual(weitergabe.format_abschnitt("## Zusammenfassung\nx"), "## Zusammenfassung\nx")
+        with self.assertRaises(ValueError):
+            weitergabe.format_abschnitt("# leer")
+
+    def test_echtes_format(self):
+        text = weitergabe.format_abschnitt(Path(weitergabe.pruefung.__file__).with_name("FORMAT.md").read_text())
+        self.assertIn('"art": "zusammenfassung"', text)
+        self.assertNotIn("## Folien", text)
+
 
 class TestUebergabe(unittest.TestCase):
     def setUp(self):
@@ -109,9 +121,6 @@ class TestUebergabe(unittest.TestCase):
         self.assertEqual(f, ["keine Renderer-Beschreibung (.json) dabei"])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
     def test_ohne_behauptungsliste(self):
         f = self.fehler({"text": "t", "dateien": [f"data/weitergabe/{ID}/zusammenfassung.json"]})
         self.assertEqual(f, ["behauptungen.json fehlt"])
@@ -140,3 +149,7 @@ class TestBehauptungen(unittest.TestCase):
         self.assertTrue(f[0].startswith("[0].quellen"), f)
         self.assertTrue(any(x.startswith("[1].kennzeichnung") for x in f), f)
         self.assertIn("[2]: unbekannte Felder ['seite']", f)
+
+
+if __name__ == "__main__":
+    unittest.main()

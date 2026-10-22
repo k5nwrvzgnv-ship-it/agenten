@@ -33,6 +33,15 @@ def ist_dokumentauftrag(text: str) -> bool:
     return text.lstrip().lower().startswith(AUSLOESER)
 
 
+def format_abschnitt(format_md: str, titel: str = "## Zusammenfassung") -> str:
+    """Der Abschnitt aus shared/renderer/FORMAT.md, den Claude braucht (bis zur nächsten Überschrift ##)."""
+    anfang = format_md.find(titel)
+    if anfang < 0:
+        raise ValueError(f"{titel} fehlt in FORMAT.md")
+    ende = format_md.find("\n## ", anfang + len(titel))
+    return format_md[anfang:ende if ende >= 0 else None].strip()
+
+
 def uebergabe_datei(hier: Path, auftrag_id: str) -> Path:
     return hier / ORDNER / f"{auftrag_id}.json"
 

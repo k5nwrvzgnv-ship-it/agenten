@@ -7,7 +7,9 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
    Antwortet Jan auf eine Meldung, trägt der Auftrag die alte Sitzung (Feld sitzung) und
    der Agent setzt sie fort, im Modus und mit dem Protokoll des ursprünglichen Auftrags.
    Aufträge "Transkript <Kurs> [Datum]" legt Python als Vorlesungstranskript ab (transkripte.py),
-   Claude meldet daraus Prüfungshinweise, Fristen und Organisatorisches,
+   Claude meldet daraus Prüfungshinweise, Fristen und Organisatorisches.
+   Aufträge "Dokument: ..." bereitet Claude mit Belegen auf (Protokoll, Behauptungsliste, Beschreibung),
+   Python prüft die Übergabe (weitergabe.py) und gibt sie an den Agenten dokumente weiter,
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -26,6 +28,7 @@ import kurse
 import moodle
 import postfach
 import transkripte
+import weitergabe
 
 AGENT = "uni"
 HIER = Path(__file__).resolve().parent
@@ -33,6 +36,7 @@ DATA = HIER / "data"
 ERINNERT_DATEI = DATA / "erinnert.json"
 MAILS_OFFEN = DATA / "mails_offen.json"
 FEHLER_DATEI = DATA / "schritt_fehler.json"
+FORMAT_MD = HIER.parent / "shared" / "renderer" / "FORMAT.md"
 logger = log.hole_logger(HIER, AGENT)
 cfg = config.lade_config(HIER, pflicht=("HNEE_NUTZER", "HNEE_KENNWORT", "MOODLE_URL", "IMAP_HOST"))
 
@@ -190,6 +194,108 @@ Lies es und melde kurz (höchstens 12 Zeilen, ohne Markdown-Tabellen), jeweils m
 Gibt es keine Hinweise der ersten drei Arten, schreibe das in einem Satz. Ändere keine Dateien."""
 
 
+PROMPT_DOKUMENT = KONTEXT + """
+
+Auftrag von Jan (Dokument, du arbeitest allein):
+{text}
+
+Du bereitest Vorlesungsinhalte mit Belegen auf. Der Agent dokumente baut daraus später ein PDF, das Jan an
+Kommilitonen weitergibt. Es muss stimmen.
+
+Quellen:
+- Das Transkript (Rohdaten) liest du einmal ganz, über die Textfassung <datei>.txt mit "--- Seite N".
+  Es enthält Hörfehler bei Fachbegriffen und private Gespräche.
+- Folien und Infokarten des Kurses nur per Grep in den .txt, dann gezielt einzelne Seiten.
+- Normen nur, wenn sie als Datei vorliegen (Kursmaterial oder data/lernen/<modul>/quellen/). Fehlt eine Norm,
+  schreib ausdrücklich, dass sie fehlt, und gib Normabschnitte nicht aus dem Gedächtnis an.
+- Vorhandene Zusammenfassungen sind nur Hilfsmittel, keine Quelle.
+
+Regeln für alles, was an dokumente geht:
+- Keine Normtabellen abschreiben (eigene, knappe Übersichten mit Quelle sind erlaubt).
+- Keine privaten Gespräche, keine Personennamen (auch nicht des Dozenten).
+- Eigene Beispiele (z. B. eine durchgespielte Übung) als solche kennzeichnen, nicht als Vorlesungsinhalt.
+- Offene Fragen an den Dozenten nur ins Protokoll und ins Dokument, nichts posten oder senden.
+
+Vorgehen und Dateien (id = {id}):
+1. Glossar der Fachbegriffe aus Folien und Infokarten, damit korrigierst du Hörfehler im Transkript.
+2. Behauptungsliste: jede inhaltliche Aussage mit Transkriptseite, Folie, Normabschnitt und Status
+   belegt (Folie oder Norm) / nur mündlich (nur Transkript) / unsicher (Transkript nicht eindeutig).
+   Weicht der Dozent von Folie oder Norm ab, markiere das.
+3. data/weitergabe/{id}/behauptungen.json: dieselbe Liste als JSON,
+   [{{"nr": 1, "aussage": "...", "quellen": [{{"art": "transkript", "stelle": "4"}}], "kennzeichnung": "muendlich"}}]
+   Status belegt: ohne kennzeichnung; nur mündlich: "muendlich"; unsicher: "unsicher". quellen wie im Format unten.
+4. data/weitergabe/{id}/zusammenfassung.json: Beschreibung im Format unten. Gliederung, wenn Jan nichts anderes
+   vorgibt: Organisatorisches, Prüfungsrelevantes, Tabellen, Übung als rechenbeispiel, Hintergrund mit Glossar,
+   selbsttest (5 bis 10 Fragen), offene_fragen. quellen und kennzeichnung aus der Behauptungsliste.
+5. data/weitergabe/{id}.json: {{"text": "<Auftrag an dokumente, 2-5 Sätze>", "dateien":
+   ["data/weitergabe/{id}/behauptungen.json", "data/weitergabe/{id}/zusammenfassung.json"]}}
+   Nur Dateien aus data/weitergabe/{id}/, kopiere kein Transkript dorthin.
+6. protokolle/{id}.md: Ergebnis, Vorgehen, Quellen mit genauer Stelle, fehlende Quellen (Normen),
+   Glossar, Behauptungsliste als Tabelle (Nr, Aussage, Transkript, Folie, Norm, Status), Abweichungen von der
+   Norm, offene Fragen an den Dozenten, wo du unsicher bist, so prüft Jan es nach.
+
+Python prüft die Dateien aus 3 bis 5 und gibt sie danach an dokumente weiter.
+
+Format der Beschreibung:
+{format}
+
+Deine letzte Antwort ist die Kurzfassung für Telegram: höchstens 10 Zeilen, ohne Markdown-Tabellen,
+mit fehlenden Quellen und der Zahl der Behauptungen je Status, am Ende der Hinweis auf protokolle/{id}.md."""
+
+PROMPT_NACHBESSERN = """Python hat die Übergabe geprüft und nicht weitergegeben:
+{fehler}
+
+Korrigiere alle genannten Stellen in den Dateien unter data/weitergabe/{id}/ und in data/weitergabe/{id}.json.
+Antworte danach wieder mit der Kurzfassung für Telegram (höchstens 10 Zeilen)."""
+
+
+def dokument_auftrag(a: dict, laufen=claude_lauf.laufen, weitergeben=auftraege.weitergeben) -> None:
+    """Claude bereitet auf, Python prüft die Übergabe und gibt an dokumente weiter (höchstens eine Nachbesserung).
+
+    Wirft WARTEN weiter (Auftrag bleibt in neu/). Liegt schon eine gültige Übergabe vor (Abbruch nach dem
+    Claude-Lauf), gibt Python sie ohne neuen Lauf weiter. Die Merkdatei verhindert eine zweite Weitergabe.
+    """
+    merk = weitergabe.merkdatei(HIER, a["id"])
+    if merk.exists():
+        auftraege.abschliessen(a["id"], f"Schon an dokumente weitergegeben (Auftrag {merk.read_text().strip()}).")
+        return
+    try:
+        text, dateien = weitergabe.uebergabe_pruefen(HIER, a["id"])
+        antwort, sitzung = "Übergabe aus einem früheren Lauf weitergegeben.", None
+    except weitergabe.UebergabeFehler:
+        (HIER / "protokolle").mkdir(exist_ok=True)
+        weitergabe.dateien_ordner(HIER, a["id"]).mkdir(parents=True, exist_ok=True)
+        prompt = PROMPT_DOKUMENT.format(text=a["text"], id=a["id"],
+                                        format=weitergabe.format_abschnitt(FORMAT_MD.read_text()))
+        e = laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"])
+        if not e.ok:
+            auftraege.abschliessen(a["id"], f"Fehler: {e.text}", status="fehlgeschlagen", sitzung=e.sitzung)
+            return
+        try:
+            text, dateien = weitergabe.uebergabe_pruefen(HIER, a["id"])
+        except weitergabe.UebergabeFehler as f:
+            logger.warning("Übergabe %s ungültig, Nachbesserung: %s", a["id"], f.fehler)
+            if e.sitzung:
+                e = laufen(AGENT, HIER, PROMPT_NACHBESSERN.format(fehler=f, id=a["id"]), art="anspruchsvoll",
+                           auftrag_id=a["id"], sitzung_fortsetzen=e.sitzung)
+            try:
+                text, dateien = weitergabe.uebergabe_pruefen(HIER, a["id"])
+            except weitergabe.UebergabeFehler as f2:
+                auftraege.abschliessen(a["id"], f"{e.text}\n\nNicht an dokumente weitergegeben. {f2}",
+                                       status="fehlgeschlagen", sitzung=e.sitzung)
+                return
+        antwort, sitzung = e.text, e.sitzung
+    try:
+        neu = weitergeben(AGENT, "dokumente", text, aus_auftrag=a["id"], dateien=dateien)
+    except auftraege.AuftragFehler as f:
+        auftraege.abschliessen(a["id"], f"{antwort}\n\nWeitergabe an dokumente fehlgeschlagen: {f}",
+                               status="fehlgeschlagen", sitzung=sitzung)
+        return
+    merk.write_text(neu)
+    logger.info("Auftrag %s an dokumente weitergegeben: %s", a["id"], neu)
+    auftraege.abschliessen(a["id"], f"{antwort}\n\nAn dokumente weitergegeben (Auftrag {neu}).", sitzung=sitzung)
+
+
 def transkript_uebernehmen(a: dict) -> None:
     try:
         kurs, pfade = transkripte.ablegen(a, HIER, kurse.ZIEL, date.today())
@@ -229,6 +335,15 @@ def auftraege_abarbeiten() -> None:
             except claude_lauf.LaufFehler as f:
                 auftraege.abschliessen(a["id"], f"Transkript abgelegt, Auswertung fehlgeschlagen: {f}",
                                        status="fehlgeschlagen")
+            continue
+        if weitergabe.ist_dokumentauftrag(a["text"]) and not a.get("sitzung"):
+            try:
+                dokument_auftrag(a)
+            except WARTEN as f:
+                logger.info("Auftrag %s wartet: %s", a["id"], f)
+                return
+            except claude_lauf.LaufFehler as f:
+                auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
             continue
         start = ursprung(a) if a.get("sitzung") else a
         lernen = start["modus"] == "lernen"

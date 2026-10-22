@@ -1,9 +1,39 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 import agent
+from agentkit.claude_lauf import Ergebnis
+
+ID = "20261022-120000-uni-abc123"
+BESCHREIBUNG = {"art": "zusammenfassung", "titel": "IHS", "kurs": "Integrierter Holzschutz", "datum": "20.10.2026",
+                "bloecke": [{"typ": "absatz", "text": "Holz kann abgebaut werden."}]}
+BEHAUPTUNGEN = [{"nr": 1, "aussage": "Holz kann abgebaut werden.", "quellen": [{"art": "folie", "stelle": "4"}]}]
+
+
+def uebergabe_schreiben(hier: Path, gueltig: bool = True) -> None:
+    ordner = hier / "data" / "weitergabe" / ID
+    ordner.mkdir(parents=True, exist_ok=True)
+    (ordner / "behauptungen.json").write_text(json.dumps(BEHAUPTUNGEN))
+    (ordner / "zusammenfassung.json").write_text(json.dumps(BESCHREIBUNG if gueltig else {**BESCHREIBUNG, "datum": "x"}))
+    (hier / "data" / "weitergabe" / f"{ID}.json").write_text(json.dumps(
+        {"text": "Bitte als PDF bauen.", "dateien": [f"data/weitergabe/{ID}/behauptungen.json",
+                                                     f"data/weitergabe/{ID}/zusammenfassung.json"]}))
+
+
+class FalschesClaude:
+    """Spielt Claude: schreibt je Lauf eine gültige oder ungültige Übergabe, merkt sich die Aufrufe."""
+
+    def __init__(self, hier: Path, gueltig: list[bool], ok: bool = True):
+        self.hier, self.gueltig, self.ok, self.aufrufe = hier, list(gueltig), ok, []
+
+    def __call__(self, agent_name, hier, prompt, **kw):
+        self.aufrufe.append((prompt, kw))
+        if self.gueltig:
+            uebergabe_schreiben(self.hier, self.gueltig.pop(0))
+        return Ergebnis(text="Kurzfassung", sitzung="s1", ok=self.ok)
 
 
 class TestAuftraege(unittest.TestCase):
@@ -11,6 +41,93 @@ class TestAuftraege(unittest.TestCase):
         with mock.patch.object(agent.auftraege, "neue", return_value=[]) as neue:
             agent.auftraege_abarbeiten()
         neue.assert_called_once_with(agent.AGENT, dienst=None)
+
+
+class TestDokumentAuftrag(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.hier = Path(self._tmp.name)
+        self.a = {"id": ID, "text": "Dokument: Zusammenfassung IHS 20.10.", "modus": "erledigen"}
+        patcher = [mock.patch.object(agent, "HIER", self.hier),
+                   mock.patch.object(agent.auftraege, "abschliessen")]
+        self.abschliessen = [p.start() for p in patcher][1]
+        for p in patcher:
+            self.addCleanup(p.stop)
+        self.addCleanup(self._tmp.cleanup)
+        self.weitergeben = mock.Mock(return_value="20261022-120100-dokumente-def456")
+
+    def ausfuehren(self, claude):
+        agent.dokument_auftrag(self.a, laufen=claude, weitergeben=self.weitergeben)
+        return self.abschliessen.call_args
+
+    def test_gueltig_wird_weitergegeben(self):
+        claude = FalschesClaude(self.hier, [True])
+        aufruf = self.ausfuehren(claude)
+        self.assertEqual(len(claude.aufrufe), 1)
+        prompt, kw = claude.aufrufe[0]
+        self.assertIn('"art": "zusammenfassung"', prompt)  # Format aus FORMAT.md eingesetzt
+        self.assertIn(f"data/weitergabe/{ID}/behauptungen.json", prompt)
+        self.assertEqual(kw["auftrag_id"], ID)
+        args, kw = self.weitergeben.call_args
+        self.assertEqual(args[:3], ("uni", "dokumente", "Bitte als PDF bauen."))
+        self.assertEqual(kw["aus_auftrag"], ID)  # nie None, sonst greift der Kettenschutz nicht
+        self.assertEqual([p.name for p in kw["dateien"]], ["behauptungen.json", "zusammenfassung.json"])
+        self.assertIn("An dokumente weitergegeben (Auftrag 20261022-120100-dokumente-def456)", aufruf.args[1])
+        self.assertEqual(aufruf.kwargs, {"sitzung": "s1"})
+        self.assertEqual((self.hier / "data" / "weitergabe" / f"{ID}.erledigt").read_text(),
+                         "20261022-120100-dokumente-def456")
+
+    def test_eine_nachbesserung(self):
+        claude = FalschesClaude(self.hier, [False, True])
+        self.ausfuehren(claude)
+        self.assertEqual(len(claude.aufrufe), 2)
+        self.assertIn("datum", claude.aufrufe[1][0])  # Prüffehler gehen an Claude zurück
+        self.assertEqual(claude.aufrufe[1][1]["sitzung_fortsetzen"], "s1")
+        self.weitergeben.assert_called_once()
+
+    def test_zweimal_ungueltig_keine_weitergabe(self):
+        claude = FalschesClaude(self.hier, [False, False])
+        aufruf = self.ausfuehren(claude)
+        self.assertEqual(len(claude.aufrufe), 2)
+        self.weitergeben.assert_not_called()
+        self.assertEqual(aufruf.kwargs["status"], "fehlgeschlagen")
+        self.assertIn("Nicht an dokumente weitergegeben", aufruf.args[1])
+        self.assertIn("datum", aufruf.args[1])
+
+    def test_claude_fehlgeschlagen(self):
+        aufruf = self.ausfuehren(FalschesClaude(self.hier, [], ok=False))
+        self.weitergeben.assert_not_called()
+        self.assertEqual(aufruf.kwargs["status"], "fehlgeschlagen")
+
+    def test_weitergabe_abgelehnt(self):
+        self.weitergeben.side_effect = agent.auftraege.AuftragFehler("nicht erlaubt")
+        aufruf = self.ausfuehren(FalschesClaude(self.hier, [True]))
+        self.assertEqual(aufruf.kwargs["status"], "fehlgeschlagen")
+        self.assertIn("nicht erlaubt", aufruf.args[1])
+        self.assertFalse((self.hier / "data" / "weitergabe" / f"{ID}.erledigt").exists())
+
+    def test_vorhandene_uebergabe_ohne_neuen_lauf(self):
+        uebergabe_schreiben(self.hier)
+        claude = FalschesClaude(self.hier, [])
+        self.ausfuehren(claude)
+        self.assertEqual(claude.aufrufe, [])
+        self.weitergeben.assert_called_once()
+
+    def test_nie_doppelt_weitergeben(self):
+        claude = FalschesClaude(self.hier, [True])
+        self.ausfuehren(claude)
+        self.ausfuehren(claude)
+        self.weitergeben.assert_called_once()
+        self.assertIn("Schon an dokumente weitergegeben", self.abschliessen.call_args.args[1])
+
+    def test_nur_erster_lauf_und_nur_mit_ausloeser(self):
+        auftraege_liste = [{**self.a, "id": "a1"}, {**self.a, "id": "a2", "sitzung": "s", "bezug": None},
+                           {**self.a, "id": "a3", "text": "Fass das Transkript zusammen"}]
+        with mock.patch.object(agent.auftraege, "neue", return_value=auftraege_liste), \
+             mock.patch.object(agent, "dokument_auftrag") as dok, \
+             mock.patch.object(agent.claude_lauf, "laufen", return_value=Ergebnis("x", "s", True)):
+            agent.auftraege_abarbeiten()
+        self.assertEqual([c.args[0]["id"] for c in dok.call_args_list], ["a1"])
 
 
 class TestUrsprung(unittest.TestCase):
