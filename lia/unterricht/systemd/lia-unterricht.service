@@ -1,7 +1,7 @@
-# Vorlage: nach ~/.config/systemd/user/lia-unterricht.service kopieren.
-# Platzhalter-Agent für Lia. Lias Zentrale startet den Dienst nach jedem neuen Auftrag.
+# Vorlage: nach ~/.config/systemd/user/lia-unterricht.service kopieren, dann systemctl --user daemon-reload.
+# Agent unterricht für Lia (Material auf Zuruf). Lias Zentrale startet den Dienst nach jedem neuen Auftrag.
 [Unit]
-Description=Lias Agent unterricht (Platzhalter)
+Description=Lias Agent unterricht
 # Bei Ausfall Meldung an Jan (ausfall@ läuft ohne AGENTKIT_INSTANZ, also in Jans Instanz)
 OnFailure=ausfall@%n.service
 
@@ -10,5 +10,6 @@ Type=oneshot
 Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
 WorkingDirectory=/home/agent/agenten/lia/unterricht
 ExecStart=/home/agent/agenten/lia/unterricht/.venv/bin/python agent.py
-TimeoutStartSec=5min
-MemoryMax=200M
+# Ein Auftrag: mehrere Claude-Läufe (Zeitbudget 18 min in material.py) plus Bauen und Vorschau (LibreOffice)
+TimeoutStartSec=25min
+MemoryMax=1500M
