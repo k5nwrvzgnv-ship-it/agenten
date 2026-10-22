@@ -88,5 +88,18 @@ class EinstellungenInstanzTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 einstellungen.lade(basis, eigen)
 
+    def test_weitergabe_nur_aus_der_eigenen_instanz(self):
+        with tempfile.TemporaryDirectory() as d:
+            basis, eigen = Path(d) / "basis.toml", Path(d) / "eigen.toml"
+            basis.write_text('[werkzeuge]\nstandard = ["Read"]\n[weitergabe]\nuni = ["dokumente"]\n')
+            self.assertTrue(einstellungen.weitergabe_erlaubt(einstellungen.lade(basis, basis), "uni", "dokumente"))
+            self.assertFalse(einstellungen.weitergabe_erlaubt(einstellungen.lade(basis, basis), "dokumente", "uni"))
+            cfg = einstellungen.lade(basis, eigen)  # andere Instanz ohne eigene Datei: keine Weitergabe
+            self.assertFalse(einstellungen.weitergabe_erlaubt(cfg, "uni", "dokumente"))
+            eigen.write_text('[weitergabe]\nunterricht = ["material"]\n')
+            cfg = einstellungen.lade(basis, eigen)
+            self.assertTrue(einstellungen.weitergabe_erlaubt(cfg, "unterricht", "material"))
+            self.assertFalse(einstellungen.weitergabe_erlaubt(cfg, "uni", "dokumente"))
+
 if __name__ == "__main__":
     unittest.main()

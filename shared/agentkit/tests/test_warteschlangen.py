@@ -249,5 +249,68 @@ class TestAuftraege(unittest.TestCase):
         self.assertEqual([a["id"] for a in auftraege.neue(basis=self.basis)], [aid])  # bleibt offen
 
 
+class TestWeitergabe(unittest.TestCase):
+    CFG = {"weitergabe": {"uni": ["dokumente"]}}
+
+    def setUp(self):
+        self.basis = Path(tempfile.mkdtemp())
+        self.agenten = self.basis / "agenten"
+        for a in ("uni", "dokumente", "einkauf"):
+            (self.agenten / a).mkdir(parents=True)
+
+    def weitergeben(self, von="uni", an="dokumente", aus_auftrag=None, dateien=None):
+        return auftraege.weitergeben(von, an, "Zusammenfassung als PDF", aus_auftrag, dateien=dateien,
+                                     cfg=self.CFG, basis=self.basis, agenten_dir=self.agenten)
+
+    def test_ablauf(self):
+        jan = auftraege.neuer_auftrag("uni", "Transkript aufbereiten", basis=self.basis)
+        aid = self.weitergeben(aus_auftrag=jan)
+        a = auftraege.neue("dokumente", basis=self.basis)[0]
+        self.assertEqual((a["id"], a["von"], a["aus_auftrag"], a["quelle"], a["modus"], a["dienst"]),
+                         (aid, "uni", jan, "agent:uni", "erledigen", None))
+        self.assertIsNone(auftraege.neue("uni", basis=self.basis)[0]["von"])  # Jans Auftrag
+
+    def test_nur_erlaubte_paare(self):
+        for von, an in [("dokumente", "uni"), ("uni", "einkauf"), ("uni", "uni"), ("Uni", "dokumente")]:
+            with self.subTest(von=von, an=an), self.assertRaises(auftraege.AuftragFehler):
+                self.weitergeben(von, an)
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.weitergeben("uni", "dokumente", "x", None, cfg={}, basis=self.basis, agenten_dir=self.agenten)
+        self.assertEqual(auftraege.neue(basis=self.basis), [])
+
+    def test_keine_kette(self):
+        aid = self.weitergeben()
+        cfg = {"weitergabe": {"dokumente": ["uni"]}}
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.weitergeben("dokumente", "uni", "zurück", aid, cfg=cfg, basis=self.basis,
+                                  agenten_dir=self.agenten)
+        auftraege.abschliessen(aid, basis=self.basis)  # auch abgeschlossen nicht
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.weitergeben("dokumente", "uni", "zurück", aid, cfg=cfg, basis=self.basis,
+                                  agenten_dir=self.agenten)
+        for falsch in ["20261022-120000-uni-abcdef", "../x"]:  # unbekannt, ungültig
+            with self.subTest(aus_auftrag=falsch), self.assertRaises(auftraege.AuftragFehler):
+                self.weitergeben(aus_auftrag=falsch)
+
+    def test_dateien_werden_kopiert(self):
+        quelle = self.agenten / "uni" / "data" / "kurse" / "notizen.md"
+        quelle.parent.mkdir(parents=True)
+        quelle.write_text("Inhalt")
+        aid = self.weitergeben(dateien=["data/kurse/notizen.md"])
+        a = auftraege.neue(basis=self.basis)[0]
+        self.assertEqual(a["dateien"], [f"data/eingang/{aid}/notizen.md"])
+        self.assertEqual((self.agenten / "dokumente" / a["dateien"][0]).read_text(), "Inhalt")
+        self.assertTrue(quelle.exists())  # uni behält seine Datei
+        self.assertIn("Angehängte Dateien von uni", a["text"])
+
+    def test_dateien_nur_aus_dem_eigenen_ordner(self):
+        (self.agenten / "uni" / ".env").write_text("GEHEIM=1")
+        (self.agenten / "einkauf" / "x.txt").write_text("x")
+        for datei in [".env", "../einkauf/x.txt", self.agenten / "einkauf" / "x.txt", "fehlt.md"]:
+            with self.subTest(datei=datei), self.assertRaises(auftraege.AuftragFehler):
+                self.weitergeben(dateien=[datei])
+        self.assertEqual(auftraege.neue(basis=self.basis), [])
+
+
 if __name__ == "__main__":
     unittest.main()

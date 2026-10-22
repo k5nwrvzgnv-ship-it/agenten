@@ -33,3 +33,8 @@ uni = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch"]
 dokumente = ["Read", "Write", "Edit", "Glob", "Grep"]
 posteingang = ["Read", "Write", "Edit", "Glob", "Grep"]
 einkauf = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
+
+# Aufträge von Agent an Agent (agentkit.auftraege.weitergeben): Absender = [Empfänger].
+# Was hier nicht steht, wird abgelehnt. Das Ergebnis geht an Jan, nicht zurück an den Absender.
+[weitergabe]
+uni = ["dokumente"]
