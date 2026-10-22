@@ -35,6 +35,12 @@ class TestFormat(unittest.TestCase):
         self.assertEqual(profil["farben"]["akzent"], "C00000")
         self.assertEqual(profil["lehrkraft"], "")  # keine Daten einer Person im Renderer
 
+    def test_beispiel_profil_zusammenfassung(self):
+        with open(BEISPIELE / "profil-jan-zusammenfassung.toml", "rb") as f:
+            profil = design.profil_lesen(tomllib.load(f))
+        self.assertEqual((profil["schrift"], profil["schriftgroesse_pt"]), ("Calibri", 11))
+        self.assertEqual(profil["erstellt_von"], "")  # trägt der Agent ein
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -93,8 +93,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    "Transkript <Kurs>"-Aufträge als Vorlesungstranskript.
 3a. Übungsaufgabe Holzschutz-Zusammenfassung (Jan, 22.10.): uni bereitet das Transkript vom 20.10. mit
    Belegen auf und gibt es per weitergeben an dokumente, das daraus ein PDF baut. Teil A (Weitergabe)
-   erledigt. Offen, je im eigenen Chat:
-   - B shared/renderer: Dokumenttyp für Zusammenfassungen in Jans Stil (heute nur arbeitsblatt/folien in Lias Stil).
+   erledigt. B (Renderer) erledigt 22.10.: Art "zusammenfassung" -> .docx, PDF aus der Vorschau
+   (ergebnis.pdf). Format in shared/renderer/FORMAT.md, Profil beispiele/profil-jan-zusammenfassung.toml
+   (erstellt_von trägt dokumente ein), Logo über eine Word-Vorlage mit Logo in der Kopfzeile.
+   Quellen je Aussage als {"art": "transkript"|"folie"|"norm", "stelle": ...}, Kennzeichen "unsicher"/"muendlich".
+   Noch offen bei B: HNEE-Grün (Farbcode von Jan) und Logo in Grün (bisher nur weißes SVG), siehe Renderer-STATUS.
+   Offen, je im eigenen Chat:
    - C dokumente: agent.py, nimmt Aufträge an (auch mit Feld von), baut über den Renderer, PDF aus der Vorschau.
    - D uni: Behauptungsliste mit Quellen (Transkriptseite, Folie, Norm), Python ruft weitergeben auf.
      Claude kann das nicht selbst, also z. B. Claude schreibt eine Übergabedatei, Python gibt sie weiter.

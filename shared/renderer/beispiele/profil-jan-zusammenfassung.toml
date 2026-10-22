@@ -1,0 +1,18 @@
+# Design-Profil für Jans Zusammenfassungen (Art "zusammenfassung"). Abgestimmt mit Jan am 22.10.2026:
+# Calibri 11 (in der PDF maßgleich durch Carlito), Farben der HNEE, Logo über eine Word-Vorlage mit Logo in der
+# Kopfzeile (liegt beim dokumente-Agenten unter data/vorlagen/, nicht im Renderer).
+# Vorlage für den dokumente-Agenten: Datei dorthin kopieren und erstellt_von eintragen. Werte: design.py.
+# OFFEN: Grünton der HNEE fehlt noch. Bis dahin neutrale Grautöne; die Zeilen mit "HNEE" bekommen das Grün.
+
+erstellt_von = ""    # z. B. Jans Name, steht im Kopf als "erstellt von ..."
+schrift = "Calibri"
+schriftgroesse_pt = 11
+zeilenabstand = 1.15
+
+[farben]
+ueberschrift = "262626"       # HNEE: Überschriften, Kurs im Kopf, Balken der Kästen (dunkles Grün)
+pruefungsrelevant = "E7E6E6"  # HNEE: Hinweis prüfungsrelevant (helles Grün)
+organisatorisch = "F2F2F2"    # Hinweis Organisatorisches (hellgrau)
+rechenbeispiel = "F2F2F2"     # Rechenbeispiel (hellgrau)
+tabellenkopf = "E7E6E6"       # Kopfzeile der Tabellen
+kennzeichnung = "7F7F7F"      # [unsicher], [nur mündlich], Quellen (grau)
