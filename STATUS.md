@@ -45,7 +45,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   meldet Jan jede Weitergabe einmal ("[uni -> dokumente] Neuer Auftrag: ...") und startet
   <empfänger>.service; fehlt der Dienst, steht das in der Meldung, und der Auftrag wartet. Das Ergebnis
   geht wie jedes direkt an Jan ("Auftrag erledigt (dokumente, von uni)"), nicht zurück an den Absender.
-  Noch nicht echt getestet (dokumente hat noch kein agent.py).
+  Meldungen über Telegram getestet (22.10., Testauftrag). Noch nicht mit echtem Lauf von dokumente (kein agent.py).
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 - Agent dokumente: Gerüst (.venv mit Office-Bibliotheken, Umgebungstest), noch kein agent.py.
 - Lias Instanz (21.10.): eigener Ordner lia/ unter User agent, kein eigener Linux-User.
