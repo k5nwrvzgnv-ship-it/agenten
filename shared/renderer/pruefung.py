@@ -6,6 +6,7 @@ mit allen Fehlern auf einmal, jeweils mit Pfad (`bloecke[4].antwort.anzahl: ...`
 sie in einem Durchgang beheben kann. Das Format steht in FORMAT.md, die Grenzen hier oben.
 """
 
+import datetime
 import difflib
 import json
 import math
@@ -54,18 +55,38 @@ AUSWAHL_OPTIONEN = (2, 4)
 MAX_FEEDBACK = 4
 LEGENDE = (2, 4)
 MAX_TEXTTEILE = 30
+# Zusammenfassung
+MAX_KURS = 100
+MAX_Z_EBENE = 2
+MAX_QUELLEN = 10
+MAX_QUELLE_STELLE = 100
+MAX_GEGEBEN = 15
+MAX_SCHRITTE = 15
+MAX_RECHNUNG = 300
+MAX_SELBSTTEST = 30
+MAX_FRAGE = 1000
+MAX_LOESUNG = 3000
+MAX_OFFENE_FRAGEN = 30
 
-ARTEN = ("arbeitsblatt", "folien")
+ARTEN = ("arbeitsblatt", "folien", "zusammenfassung")
 BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "merksatz", "anweisung", "material", "aufgaben",
               "neue_seite")
 ANTWORTARTEN = ("linien", "kasten", "ankreuzen", "satzanfaenge")
 ELEMENTTYPEN = ("text", "punkte", "kasten", "leitfrage", "zentriert", "zeit", "spalten", "auswahl", "satzanfang",
                 "feedback", "legende")
 TEXTFARBEN = ("blau", "orange", "gruen", "rot", "grau")
+Z_BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "hinweis", "rechenbeispiel")
+HINWEISARTEN = ("pruefungsrelevant", "organisatorisch")
+KENNZEICHNUNGEN = ("unsicher", "muendlich")
+QUELLENARTEN = ("transkript", "folie", "norm")
 ICON_NAMEN = NAMEN
 
 # Zeichen, die in docx/pptx (XML) nicht vorkommen dürfen. Zeilenumbruch und Tab sind erlaubt.
 _STEUERZEICHEN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+_DATUM = re.compile(r"^(\d{2})\.(\d{2})\.(\d{4})$")
+_SEITEN = re.compile(r"^\d{1,4}( ?[-–] ?\d{1,4})?(, ?\d{1,4}( ?[-–] ?\d{1,4})?)*$")  # 4 | 4-5 | 4, 7
+_NUMMER_VORN = re.compile(r"^\d+(\.\d+)+\.?\s|^\d+\.\s")  # "1. ", "1.2 ", nicht "3 Säulen"
+_QUELLE_IM_TEXT = re.compile(r"[\[(](Transkript|Folie)\b")
 _FEHLT = object()
 
 
@@ -128,7 +149,9 @@ def _beschreibung(p: "_Pruefer", daten) -> dict | None:
         return _arbeitsblatt(p, daten)
     if art == "folien":
         return _folien(p, daten)
-    erlaubt = " oder ".join(_zeigen(a) for a in ARTEN)
+    if art == "zusammenfassung":
+        return _zusammenfassung(p, daten)
+    erlaubt = ", ".join(_zeigen(a) for a in ARTEN[:-1]) + f" oder {_zeigen(ARTEN[-1])}"
     if art is _FEHLT:
         p.melden("art", f"fehlt, erlaubt sind {erlaubt}")
     else:
@@ -383,6 +406,192 @@ def _element(p: "_Pruefer", e, pfad: str) -> dict | None:
         eintraege.append({"text": p.text(x.get("text", _FEHLT), f"{xpfad}.text", MAX_KURZTEXT),
                           "farbe": _farbe(p, x.get("farbe", _FEHLT), f"{xpfad}.farbe")})
     return {"typ": typ, "eintraege": eintraege}
+
+
+def _zusammenfassung(p: "_Pruefer", d: dict) -> dict:
+    p.felder(d, "", pflicht=("art", "titel", "kurs", "datum", "bloecke"),
+             optional=("untertitel", "selbsttest", "offene_fragen"))
+    titel = p.text(d.get("titel", _FEHLT), "titel", MAX_TITEL)
+    untertitel = p.text(d["untertitel"], "untertitel", MAX_TITEL) if "untertitel" in d else ""
+    kurs = p.text(d.get("kurs", _FEHLT), "kurs", MAX_KURS)
+    datum = _datum(p, d.get("datum", _FEHLT), "datum")
+    bloecke = p.liste(d.get("bloecke", _FEHLT), "bloecke", 1, MAX_BLOECKE) or []
+    gelesen = [_z_block(p, b, f"bloecke[{i}]") for i, b in enumerate(bloecke)]
+    ebene1 = False
+    for i, b in enumerate(gelesen):
+        if b is None or (b["typ"] == "ueberschrift" and b["ebene"] is None):
+            break  # Block schon als Fehler gemeldet, keine Folgefehler
+        if b["typ"] == "ueberschrift":
+            if b["ebene"] == 2 and not ebene1:
+                p.melden(f"bloecke[{i}].ebene", "Ebene 2 vor der ersten Überschrift der Ebene 1, "
+                                                 "erst eine Überschrift mit ebene 1 setzen")
+            ebene1 = ebene1 or b["ebene"] == 1
+    selbsttest = []
+    if "selbsttest" in d:
+        for i, f in enumerate(p.liste(d["selbsttest"], "selbsttest", 1, MAX_SELBSTTEST) or []):
+            fpfad = f"selbsttest[{i}]"
+            if not isinstance(f, dict):
+                p.melden(fpfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(f)}")
+                continue
+            p.felder(f, fpfad, pflicht=("frage", "loesung"), optional=("quellen",))
+            selbsttest.append({"frage": _z_text(p, f.get("frage", _FEHLT), f"{fpfad}.frage", MAX_FRAGE),
+                               "loesung": _z_text(p, f.get("loesung", _FEHLT), f"{fpfad}.loesung", MAX_LOESUNG),
+                               "quellen": _quellen(p, f, fpfad)})
+    offene = []
+    if "offene_fragen" in d:
+        fragen = p.liste(d["offene_fragen"], "offene_fragen", 1, MAX_OFFENE_FRAGEN) or []
+        offene = [_punkt(p, f, f"offene_fragen[{i}]", MAX_FRAGE) for i, f in enumerate(fragen)]
+    return {"art": "zusammenfassung", "titel": titel, "untertitel": untertitel, "kurs": kurs, "datum": datum,
+            "bloecke": gelesen, "selbsttest": selbsttest, "offene_fragen": offene}
+
+
+def _z_block(p: "_Pruefer", b, pfad: str) -> dict | None:
+    """Block einer Zusammenfassung. Fast alle Blöcke tragen `quellen` und `kennzeichnung`."""
+    if not isinstance(b, dict):
+        p.melden(pfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(b)}")
+        return None
+    typ = b.get("typ", _FEHLT)
+    if typ not in Z_BLOCKTYPEN:
+        erlaubt = ", ".join(_zeigen(t) for t in Z_BLOCKTYPEN)
+        if typ is _FEHLT:
+            p.melden(f"{pfad}.typ", f"fehlt, erlaubt sind {erlaubt}")
+        else:
+            p.melden(f"{pfad}.typ", f"muss einer von {erlaubt} sein, ist {_zeigen(typ)}{_aehnlich(typ, Z_BLOCKTYPEN)}")
+        return None
+    beleg = ("quellen", "kennzeichnung")
+
+    if typ == "ueberschrift":
+        p.felder(b, pfad, pflicht=("typ", "text"), optional=("ebene",))
+        ebene = p.ganzzahl(b["ebene"], f"{pfad}.ebene", 1, MAX_Z_EBENE) if "ebene" in b else 1
+        text = p.text(b.get("text", _FEHLT), f"{pfad}.text", MAX_TITEL)
+        if text and _NUMMER_VORN.match(text):
+            p.melden(f"{pfad}.text", "ohne Nummer schreiben, die Nummer setzt der Renderer")
+        return {"typ": typ, "text": text, "ebene": ebene}
+
+    if typ == "absatz":
+        p.felder(b, pfad, pflicht=("typ", "text"), optional=beleg)
+        return {"typ": typ, "text": _z_text(p, b.get("text", _FEHLT), f"{pfad}.text", MAX_ABSATZ),
+                **_beleg(p, b, pfad)}
+
+    if typ == "liste":
+        p.felder(b, pfad, pflicht=("typ", "punkte"), optional=("nummeriert",))
+        punkte = p.liste(b.get("punkte", _FEHLT), f"{pfad}.punkte", 1, MAX_LISTE_PUNKTE) or []
+        nummeriert = p.wahrheitswert(b["nummeriert"], f"{pfad}.nummeriert") if "nummeriert" in b else False
+        return {"typ": typ, "nummeriert": nummeriert,
+                "punkte": [_punkt(p, x, f"{pfad}.punkte[{i}]", MAX_LISTE_PUNKT) for i, x in enumerate(punkte)]}
+
+    if typ == "tabelle":
+        p.felder(b, pfad, pflicht=("typ", "zeilen"), optional=("titel", "kopf", "erste_spalte_fett") + beleg)
+        titel = p.text(b["titel"], f"{pfad}.titel", MAX_TITEL) if "titel" in b else ""
+        # Prüfung der Zellen wie beim Arbeitsblatt, ohne zeilenhoehe_cm (keine Ausfülltabellen)
+        tabelle = _tabelle(p, {k: v for k, v in b.items() if k not in ("titel",) + beleg}, pfad)
+        del tabelle["zeilenhoehe_cm"]
+        return {**tabelle, "titel": titel, **_beleg(p, b, pfad)}
+
+    if typ == "hinweis":
+        p.felder(b, pfad, pflicht=("typ", "art", "text"), optional=("titel",) + beleg)
+        art = b.get("art", _FEHLT)
+        if art is not _FEHLT and art not in HINWEISARTEN:
+            p.melden(f"{pfad}.art", f"muss {' oder '.join(_zeigen(a) for a in HINWEISARTEN)} sein, ist {_zeigen(art)}"
+                                    f"{_aehnlich(art, HINWEISARTEN)}")
+            art = None
+        titel = p.text(b["titel"], f"{pfad}.titel", MAX_TITEL) if "titel" in b else ""
+        return {"typ": typ, "art": None if art is _FEHLT else art, "titel": titel,
+                "text": _z_text(p, b.get("text", _FEHLT), f"{pfad}.text", MAX_ABSATZ), **_beleg(p, b, pfad)}
+
+    # rechenbeispiel
+    p.felder(b, pfad, pflicht=("typ", "aufgabe", "schritte", "ergebnis"), optional=("titel", "gegeben") + beleg)
+    titel = p.text(b["titel"], f"{pfad}.titel", MAX_TITEL) if "titel" in b else ""
+    gegeben = []
+    if "gegeben" in b:
+        werte = p.liste(b["gegeben"], f"{pfad}.gegeben", 1, MAX_GEGEBEN) or []
+        gegeben = [p.text(w, f"{pfad}.gegeben[{i}]", MAX_RECHNUNG) for i, w in enumerate(werte)]
+    schritte = []
+    for i, s in enumerate(p.liste(b.get("schritte", _FEHLT), f"{pfad}.schritte", 1, MAX_SCHRITTE) or []):
+        spfad = f"{pfad}.schritte[{i}]"
+        if not isinstance(s, dict):
+            p.melden(spfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(s)}")
+            continue
+        p.felder(s, spfad, pflicht=("text",), optional=("rechnung",))
+        schritte.append({"text": p.text(s.get("text", _FEHLT), f"{spfad}.text", MAX_LISTE_PUNKT),
+                         "rechnung": p.text(s["rechnung"], f"{spfad}.rechnung", MAX_RECHNUNG)
+                         if "rechnung" in s else ""})
+    return {"typ": typ, "titel": titel,
+            "aufgabe": p.text(b.get("aufgabe", _FEHLT), f"{pfad}.aufgabe", MAX_AUFGABE), "gegeben": gegeben,
+            "schritte": schritte, "ergebnis": p.text(b.get("ergebnis", _FEHLT), f"{pfad}.ergebnis", MAX_RECHNUNG),
+            **_beleg(p, b, pfad)}
+
+
+def _punkt(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> dict | None:
+    """Listenpunkt oder offene Frage: Text oder {text, quellen, kennzeichnung}. Ergebnis: immer das Objekt."""
+    if isinstance(wert, dict):
+        p.felder(wert, pfad, pflicht=("text",), optional=("quellen", "kennzeichnung"))
+        return {"text": _z_text(p, wert.get("text", _FEHLT), f"{pfad}.text", max_laenge), **_beleg(p, wert, pfad)}
+    if not isinstance(wert, str):
+        p.melden(pfad, f"muss ein Text oder ein Objekt {{\"text\": ...}} sein, ist {_zeigen(wert)}")
+        return None
+    return {"text": _z_text(p, wert, pfad, max_laenge), "quellen": [], "kennzeichnung": None}
+
+
+def _z_text(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> str | None:
+    """Text einer Zusammenfassung. Quellen gehören ins Feld quellen, nicht in den Text."""
+    text = p.text(wert, pfad, max_laenge)
+    if text and _QUELLE_IM_TEXT.search(text):
+        p.melden(pfad, "Quellenangabe im Text, bitte ins Feld quellen verschieben "
+                       "(z. B. [{\"art\": \"transkript\", \"stelle\": \"4\"}])")
+    return text
+
+
+def _beleg(p: "_Pruefer", d: dict, pfad: str) -> dict:
+    kennzeichnung = d.get("kennzeichnung", _FEHLT)
+    if kennzeichnung is _FEHLT:
+        kennzeichnung = None
+    elif kennzeichnung not in KENNZEICHNUNGEN:
+        p.melden(f"{pfad}.kennzeichnung", f"muss {' oder '.join(_zeigen(k) for k in KENNZEICHNUNGEN)} sein, "
+                                          f"ist {_zeigen(kennzeichnung)}{_aehnlich(kennzeichnung, KENNZEICHNUNGEN)}")
+        kennzeichnung = None
+    return {"quellen": _quellen(p, d, pfad), "kennzeichnung": kennzeichnung}
+
+
+def _quellen(p: "_Pruefer", d: dict, pfad: str) -> list:
+    if "quellen" not in d:
+        return []
+    quellen = []
+    for i, q in enumerate(p.liste(d["quellen"], f"{pfad}.quellen", 1, MAX_QUELLEN) or []):
+        qpfad = f"{pfad}.quellen[{i}]"
+        if not isinstance(q, dict):
+            p.melden(qpfad, f"muss ein Objekt {{\"art\": ..., \"stelle\": ...}} sein, ist {_zeigen(q)}")
+            continue
+        p.felder(q, qpfad, pflicht=("art", "stelle"))
+        art = q.get("art", _FEHLT)
+        if art is not _FEHLT and art not in QUELLENARTEN:
+            p.melden(f"{qpfad}.art", f"muss einer von {', '.join(_zeigen(a) for a in QUELLENARTEN)} sein, "
+                                     f"ist {_zeigen(art)}{_aehnlich(art, QUELLENARTEN)}")
+            continue
+        stelle = p.text(q.get("stelle", _FEHLT), f"{qpfad}.stelle", MAX_QUELLE_STELLE)
+        if stelle and art in ("transkript", "folie") and not _SEITEN.match(stelle):
+            wort = "Seiten" if art == "transkript" else "Foliennummern"
+            p.melden(f"{qpfad}.stelle", f"nur {wort} wie \"4\", \"4-5\" oder \"4, 7\", ist {_zeigen(stelle)}")
+            continue
+        if art is not _FEHLT and stelle:
+            quellen.append({"art": art, "stelle": stelle})
+    return quellen
+
+
+def _datum(p: "_Pruefer", wert, pfad: str) -> str | None:
+    text = p.text(wert, pfad, 10)
+    if text is None:
+        return None
+    treffer = _DATUM.match(text)
+    if treffer:
+        tag, monat, jahr = (int(x) for x in treffer.groups())
+        try:
+            datetime.date(jahr, monat, tag)
+            return text
+        except ValueError:
+            pass
+    p.melden(pfad, f"muss ein Datum wie \"20.10.2026\" sein (TT.MM.JJJJ), ist {_zeigen(text)}")
+    return None
 
 
 def _textteile(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> list | None:

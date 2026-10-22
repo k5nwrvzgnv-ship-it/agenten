@@ -9,15 +9,20 @@ from renderer import design, pruefen
 from renderer.icons import NAMEN
 
 FORMAT = Path(__file__).resolve().parent.parent / "FORMAT.md"
-PROFIL = Path(__file__).resolve().parent.parent / "beispiele" / "profil-lia-stil.toml"
+BEISPIELE = Path(__file__).resolve().parent.parent / "beispiele"
+PROFIL = BEISPIELE / "profil-lia-stil.toml"
 
 
 class TestFormat(unittest.TestCase):
     def test_beispiele_sind_gueltig(self):
         beispiele = re.findall(r"```json\n(.*?)```", FORMAT.read_text(encoding="utf-8"), re.S)
-        self.assertEqual(len(beispiele), 2)
+        self.assertEqual(len(beispiele), 3)
         for text in beispiele:
             self.assertEqual(pruefen(text), [], text[:60])
+
+    def test_beispieldateien_sind_gueltig(self):
+        for datei in BEISPIELE.glob("*.json"):
+            self.assertEqual(pruefen(datei.read_text(encoding="utf-8")), [], datei.name)
 
     def test_alle_icons_genannt(self):
         text = FORMAT.read_text(encoding="utf-8")

@@ -1,7 +1,8 @@
 # Format der Beschreibung (für Claude)
 
-Du beschreibst ein Dokument als JSON. Python prüft es und baut daraus die Datei. Du schreibst nur Inhalt:
-keine Dateinamen, keine Pfade, keine Schriftarten oder Farben. Die Gestaltung kommt aus dem Profil des Agenten.
+Du beschreibst ein Dokument als JSON (Arbeitsblatt, Zusammenfassung oder Folien). Python prüft es und baut daraus
+die Datei. Du schreibst nur Inhalt: keine Dateinamen, keine Pfade, keine Schriftarten oder Farben. Die Gestaltung
+kommt aus dem Profil des Agenten.
 
 Ist die Beschreibung ungültig, bekommst du alle Fehler auf einmal, jeweils mit der Stelle, zum Beispiel
 `bloecke[4].antwort.anzahl: muss eine ganze Zahl von 1 bis 30 sein, ist "fünf"`. Die Zählung beginnt bei 0.
@@ -75,6 +76,73 @@ erscheinen klein nach den Aufgaben ihrer Gruppe als „Aufgabe 3: ...“.
 - `{"art": "ankreuzen", "optionen": ["...", "..."]}`: 2 bis 6 Optionen mit Kästchen nebeneinander, je höchstens 100 Zeichen
 - `{"art": "satzanfaenge", "saetze": [{"anfang": "Ich finde, dass", "linien": 2}]}`: 1 bis 5 Satzanfänge (je höchstens
   200 Zeichen) mit je 1 bis 10 Linien
+
+## Zusammenfassung (wird eine docx-Datei, A4)
+
+Für Zusammenfassungen von Vorlesungen. Oben steht ein Kopf mit Kurs, Titel, „Vorlesung vom …“, Stand (heutiges
+Datum, setzt der Renderer) und „erstellt von“ (aus dem Profil). Unten auf jeder Seite stehen Kurs, Titel und die
+Seitenzahl. Überschriften werden automatisch nummeriert (1, 1.1), schreibe keine Nummer in den Text.
+
+**Belege:** Absätze, Listenpunkte, Tabellen, Hinweise, Rechenbeispiele, Lösungen und offene Fragen dürfen `quellen`
+haben, eine Liste aus 1 bis 10 Angaben `{"art": ..., "stelle": ...}`:
+- `"transkript"`: Seite im Transkript, nur Zahlen wie `"4"`, `"4-5"` oder `"4, 7"`. Erscheint als „Transkript S. 4“.
+- `"folie"`: Foliennummer, ebenso nur Zahlen. Erscheint als „Folie 12“.
+- `"norm"`: Bezeichnung der Norm, z. B. `"DIN 68800-1"` (höchstens 100 Zeichen).
+
+Die Quellen stehen klein in eckigen Klammern am Ende. Schreibe sie nicht in den Text, sonst kommt ein Fehler.
+Dieselben Stellen (außer Lösungen) dürfen `kennzeichnung` haben: `"unsicher"` (Aussage im Transkript nicht
+eindeutig) oder `"muendlich"` (nur in der Vorlesung gesagt, nicht auf den Folien). Die Legende dazu steht im Kopf.
+
+```json
+{
+  "art": "zusammenfassung",
+  "titel": "Integrierter Holzschutz: Grundlagen",
+  "kurs": "Integrierter Holzschutz",
+  "datum": "20.10.2026",
+  "bloecke": [
+    {"typ": "hinweis", "art": "organisatorisch", "text": "Die Übung beginnt erst in der nächsten Woche.", "kennzeichnung": "muendlich", "quellen": [{"art": "transkript", "stelle": "1"}]},
+    {"typ": "ueberschrift", "text": "Warum Holzschutz?"},
+    {"typ": "absatz", "text": "Holz kann von Pilzen und Insekten abgebaut werden.", "quellen": [{"art": "transkript", "stelle": "2-3"}, {"art": "folie", "stelle": "4"}]},
+    {"typ": "ueberschrift", "text": "Maßnahmen", "ebene": 2},
+    {"typ": "liste", "punkte": [
+      {"text": "Baulicher Holzschutz hält Holz trocken.", "quellen": [{"art": "folie", "stelle": "6"}]},
+      {"text": "Chemischer Holzschutz erst, wenn baulicher nicht reicht.", "kennzeichnung": "unsicher"},
+      "Die Wahl der Holzart gehört ebenfalls dazu."]},
+    {"typ": "hinweis", "art": "pruefungsrelevant", "text": "Die Rangfolge der Maßnahmen kommt in der Klausur.", "kennzeichnung": "muendlich"},
+    {"typ": "tabelle", "titel": "Gebrauchsklassen (Auszug)", "kopf": ["Gebrauchsklasse", "Situation"], "zeilen": [["GK 1", "innen, trocken"], ["GK 4", "Erdkontakt"]], "erste_spalte_fett": true, "quellen": [{"art": "norm", "stelle": "DIN 68800-1"}]},
+    {"typ": "rechenbeispiel", "titel": "Holzfeuchte", "aufgabe": "Eine Probe wiegt feucht 560 g, darrtrocken 480 g. Wie hoch ist die Holzfeuchte?", "gegeben": ["m_u = 560 g", "m_0 = 480 g"], "schritte": [
+      {"text": "Formel", "rechnung": "u = (m_u − m_0) / m_0 · 100 %"},
+      {"text": "Einsetzen und ausrechnen", "rechnung": "u = 80 g / 480 g · 100 % ≈ 16,7 %"}], "ergebnis": "u ≈ 16,7 %", "quellen": [{"art": "folie", "stelle": "12"}]}
+  ],
+  "selbsttest": [{"frage": "Welche Art des Holzschutzes hat Vorrang?", "loesung": "Der bauliche Holzschutz.", "quellen": [{"art": "transkript", "stelle": "5"}]}],
+  "offene_fragen": ["Gibt es eine Altklausur zum Üben?"]
+}
+```
+
+| Feld | Pflicht | Bedeutung |
+|---|---|---|
+| `art` | ja | `"zusammenfassung"` |
+| `titel` | ja | Titel, höchstens 200 Zeichen |
+| `untertitel` | nein | steht klein unter dem Titel, höchstens 200 Zeichen |
+| `kurs` | ja | Name der Lehrveranstaltung, höchstens 100 Zeichen, steht im Kopf und in der Fußzeile |
+| `datum` | ja | Datum der Vorlesung als `"TT.MM.JJJJ"`, z. B. `"20.10.2026"` |
+| `bloecke` | ja | 1 bis 200 Blöcke in Lesereihenfolge |
+| `selbsttest` | nein | 1 bis 30 Fragen `{"frage", "loesung", "quellen" (optional)}`, Frage höchstens 1000, Lösung höchstens 3000 Zeichen. Die Fragen stehen nach den Blöcken, die Lösungen auf einer eigenen letzten Seite. |
+| `offene_fragen` | nein | 1 bis 30 Fragen, die die Vorlesung nicht geklärt hat, je Text (höchstens 1000 Zeichen) oder `{"text", "quellen", "kennzeichnung"}` |
+
+Blöcke, unterschieden durch `typ` (`quellen` und `kennzeichnung` sind bei allen außer `ueberschrift` und `liste`
+optional; bei `liste` stehen sie an den einzelnen Punkten):
+
+| typ | Felder | Aussehen |
+|---|---|---|
+| `ueberschrift` | `text` (höchstens 200 Zeichen, ohne Nummer), `ebene` 1 oder 2 (optional, Standard 1). Vor der ersten Ebene 2 muss eine Ebene 1 stehen. | nummeriert, farbig |
+| `absatz` | `text` (höchstens 5000 Zeichen) | normaler Text |
+| `liste` | `punkte`: 1 bis 50, je Text (höchstens 1000 Zeichen) oder `{"text", "quellen", "kennzeichnung"}`; `nummeriert` true/false (optional) | Aufzählung |
+| `tabelle` | `zeilen`: 1 bis 100, `kopf` (optional), `titel` (optional, steht fett darüber), `erste_spalte_fett` (optional) | höchstens 8 Spalten, Zellen höchstens 500 Zeichen, jede Zeile gleich viele Zellen. Quellen stehen unter der Tabelle. |
+| `hinweis` | `art`: `"pruefungsrelevant"` oder `"organisatorisch"`, `text` (höchstens 5000 Zeichen), `titel` (optional, Standard „Prüfungsrelevant“ bzw. „Organisatorisches“) | farbiger Kasten mit Balken links |
+| `rechenbeispiel` | `aufgabe` (höchstens 2000 Zeichen), `schritte`: 1 bis 15, je `text` (höchstens 1000) und `rechnung` (optional, höchstens 300); `ergebnis` (höchstens 300); `titel` (optional), `gegeben` (optional, 1 bis 15 Texte, je höchstens 300) | Kasten: Aufgabe, Gegeben, Schritt 1, 2, …, Ergebnis fett |
+
+Formeln schreibst du als reinen Text, z. B. `u = (m_u − m_0) / m_0 · 100 %`.
 
 ## Folien (wird eine pptx-Datei, 16:9)
 

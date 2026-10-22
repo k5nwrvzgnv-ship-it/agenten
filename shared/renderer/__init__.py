@@ -1,4 +1,5 @@
-"""Renderer: aus einer JSON-Beschreibung (von Claude) eine docx- oder pptx-Datei bauen.
+"""Renderer: aus einer JSON-Beschreibung (von Claude) eine docx- oder pptx-Datei bauen
+(Arbeitsblatt, Folien, Zusammenfassung).
 
 Gemeinsame Bibliothek für Jan und Lia, ohne Inhalte, Zugangsdaten oder Netz.
 Eingebunden per agentkit.pth (`import renderer`). Format für Claude: FORMAT.md, Stand: STATUS.md.
@@ -19,7 +20,7 @@ from renderer.pruefung import BeschreibungUngueltig, lesen, pruefen
 
 __all__ = ["BeschreibungUngueltig", "Ergebnis", "bauen", "pruefen", "vorlage_umwandeln"]
 
-ENDUNGEN = {"arbeitsblatt": ".docx", "folien": ".pptx"}
+ENDUNGEN = {"arbeitsblatt": ".docx", "folien": ".pptx", "zusammenfassung": ".docx"}
 log = logging.getLogger("renderer")
 
 
@@ -40,14 +41,14 @@ def bauen(beschreibung: dict | str, ziel: Path, profil: dict | None = None, vorl
     design.ProfilUngueltig: Fehler des Agenten (falsche Endung, Profil, Vorlage). Die Vorschau landet in
     `<ziel ohne Endung>-vorschau/`; scheitert sie, steht der Grund in `hinweise`, die Datei gibt es trotzdem.
     """
-    from renderer import arbeitsblatt, folien, kontrolle
+    from renderer import arbeitsblatt, folien, kontrolle, zusammenfassung
     from renderer import vorschau as vorschau_modul
 
     b = lesen(beschreibung)
     ziel = Path(ziel)
     if ziel.suffix.lower() != ENDUNGEN[b["art"]]:
         raise ValueError(f"{ziel.name}: Für art {b['art']!r} muss das Ziel auf {ENDUNGEN[b['art']]} enden")
-    modul = arbeitsblatt if b["art"] == "arbeitsblatt" else folien
+    modul = {"arbeitsblatt": arbeitsblatt, "folien": folien, "zusammenfassung": zusammenfassung}[b["art"]]
     modul.bauen(b, ziel, profil, vorlage)
     ergebnis = Ergebnis(ziel, kontrolle.kontrolltext(ziel))
     if vorschau:

@@ -124,9 +124,9 @@ class TestFehler(unittest.TestCase):
         self.assertEqual(self.fehler("[1, 2]"), ["Beschreibung: muss ein Objekt {...} sein, ist [1, 2]"])
 
     def test_art_fehlt_oder_falsch(self):
-        self.assertEqual(self.fehler({"titel": "x"}), ['art: fehlt, erlaubt sind "arbeitsblatt" oder "folien"'])
+        self.assertEqual(self.fehler({"titel": "x"}), ['art: fehlt, erlaubt sind "arbeitsblatt", "folien" oder "zusammenfassung"'])
         self.assertEqual(self.fehler({"art": "brief"}),
-                         ['art: muss "arbeitsblatt" oder "folien" sein, ist "brief"'])
+                         ['art: muss "arbeitsblatt", "folien" oder "zusammenfassung" sein, ist "brief"'])
 
     def test_unbekanntes_feld_mit_tippfehler_hinweis(self):
         f = self.fehler(blatt_mit(b8={"typ": "liste", "punkt": ["a"]}))

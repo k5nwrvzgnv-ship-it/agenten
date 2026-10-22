@@ -1,0 +1,39 @@
+{
+  "art": "zusammenfassung",
+  "titel": "Integrierter Holzschutz: Grundlagen",
+  "untertitel": "Beispiel für das Format, Inhalt nicht fachlich geprüft",
+  "kurs": "Integrierter Holzschutz",
+  "datum": "20.10.2026",
+  "bloecke": [
+    {"typ": "hinweis", "art": "organisatorisch", "text": "Die Folien stehen im Lernportal.\nDie Übung beginnt erst in der nächsten Woche.", "kennzeichnung": "muendlich", "quellen": [{"art": "transkript", "stelle": "1"}]},
+    {"typ": "ueberschrift", "text": "Warum Holzschutz?"},
+    {"typ": "absatz", "text": "Holz ist ein natürlicher Werkstoff und kann von Pilzen und Insekten abgebaut werden. Holzschutz soll die Gebrauchsdauer von Bauteilen sichern.", "quellen": [{"art": "transkript", "stelle": "2-3"}, {"art": "folie", "stelle": "4"}]},
+    {"typ": "ueberschrift", "text": "Baulicher und chemischer Holzschutz", "ebene": 2},
+    {"typ": "liste", "punkte": [
+      {"text": "Baulicher Holzschutz hält Holz trocken, z. B. durch Dachüberstände.", "quellen": [{"art": "folie", "stelle": "6"}]},
+      {"text": "Chemischer Holzschutz kommt erst in Frage, wenn baulicher nicht reicht.", "quellen": [{"art": "transkript", "stelle": "5"}], "kennzeichnung": "unsicher"},
+      "Die Wahl der Holzart gehört ebenfalls zum Holzschutz."
+    ]},
+    {"typ": "hinweis", "art": "pruefungsrelevant", "text": "Die Rangfolge der Maßnahmen wurde ausdrücklich als Klausurthema genannt.", "kennzeichnung": "muendlich", "quellen": [{"art": "transkript", "stelle": "6"}]},
+    {"typ": "ueberschrift", "text": "Gebrauchsklassen"},
+    {"typ": "tabelle", "titel": "Gebrauchsklassen (Auszug)", "kopf": ["Gebrauchsklasse", "Situation", "Beispiel"], "zeilen": [
+      ["GK 1", "innen, trocken", "Dachstuhl"],
+      ["GK 3.2", "außen, ohne Erdkontakt, ungeschützt", "Zaunlatte"],
+      ["GK 4", "Erdkontakt", "Zaunpfahl"]
+    ], "erste_spalte_fett": true, "quellen": [{"art": "norm", "stelle": "DIN 68800-1"}, {"art": "folie", "stelle": "9"}]},
+    {"typ": "ueberschrift", "text": "Holzfeuchte"},
+    {"typ": "rechenbeispiel", "titel": "Holzfeuchte nach Darrmethode", "aufgabe": "Eine Probe wiegt feucht 560 g und nach dem Darren 480 g. Wie hoch ist die Holzfeuchte?", "gegeben": ["m_u = 560 g (feucht)", "m_0 = 480 g (darrtrocken)"], "schritte": [
+      {"text": "Formel aufschreiben", "rechnung": "u = (m_u − m_0) / m_0 · 100 %"},
+      {"text": "Werte einsetzen", "rechnung": "u = (560 g − 480 g) / 480 g · 100 %"},
+      {"text": "Ausrechnen", "rechnung": "u = 80 g / 480 g · 100 % ≈ 16,7 %"}
+    ], "ergebnis": "u ≈ 16,7 %", "quellen": [{"art": "folie", "stelle": "12"}]}
+  ],
+  "selbsttest": [
+    {"frage": "Welche Art des Holzschutzes hat Vorrang?", "loesung": "Der bauliche Holzschutz.", "quellen": [{"art": "transkript", "stelle": "5"}]},
+    {"frage": "Worauf bezieht sich die Holzfeuchte bei der Darrmethode?", "loesung": "Auf die Masse des darrtrockenen Holzes.", "quellen": [{"art": "folie", "stelle": "12"}]}
+  ],
+  "offene_fragen": [
+    {"text": "Welche Norm gilt für die Dauerhaftigkeitsklassen? Im Transkript unverständlich.", "quellen": [{"art": "transkript", "stelle": "8"}]},
+    "Gibt es eine Altklausur zum Üben?"
+  ]
+}

@@ -55,6 +55,9 @@ def _docx(pfad: Path) -> str:
                 continue
             linien_ausgeben()
             text = _absatztext(p)
+            umbruch = ppr.find(qn("w:pageBreakBefore")) if ppr is not None else None
+            if umbruch is not None and umbruch.get(qn("w:val")) not in ("0", "false"):
+                zeilen.append("--- neue Seite")
             if text.strip():
                 zeilen.append(_markiert(p, text, rahmen, ppr, zaehler))
             if ppr is not None and ppr.find(qn("w:sectPr")) is not None:  # Abschnittswechsel
