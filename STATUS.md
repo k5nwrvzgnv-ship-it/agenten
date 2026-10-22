@@ -99,36 +99,15 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    (erstellt_von trägt dokumente ein), Logo über eine Word-Vorlage mit Logo in der Kopfzeile.
    Quellen je Aussage als {"art": "transkript"|"folie"|"norm", "stelle": ...}, Kennzeichen "unsicher"/"muendlich".
    HNEE-Farben stehen im Profil. Noch offen: Logo in Grün (bisher nur weißes SVG), siehe Renderer-STATUS.
-   Offen, je im eigenen Chat:
    - C dokumente: erledigt 22.10. Nimmt Aufträge an (auch von uni), Claude schreibt die Beschreibung selbst
      (eine mitgeschickte Renderer-Beschreibung ist nur Vorlage), Kontrolle gegen behauptungen.json, die Python
      nachprüft. Testauftrag uni -> dokumente lief durch, PDF und docx an Jan. Format: dokumente/STATUS.md.
-   - D uni: Plan (Hauptordner-Chat 22.10., noch nicht von Jan freigegeben, im uni-Chat vorlegen und umsetzen):
-     Quellen: Transkript data/eingang/20261022-082205-uni-f0e6f1/Transkribt_20-10-26.pdf(.txt), 40 Seiten,
-     ca. 124 KB (einmal ganz lesen); Folien und Infokarten in data/kurse/Integrierter Holzschutz/ nur per
-     Grep, dann gezielt Seiten (u. a. Folie 65, 81). Normen: DIN 68800-1 und EN 350 fehlen, von DIN 68800-4
-     nur ein Bild von Abschnitt 4.6 (data/lernen/holzschutz/quellen/). Fehlen ausdrücklich nennen.
-     transkripte/2026-10-20_Transkript_Nr1_Zusammenfassung.md nur als Hilfsmittel.
-     1. uni/weitergabe.py (reine Logik, Tests):
-        - ist_dokumentauftrag(text): Auslöser = Auftrag beginnt mit "Dokument:" (Vorschlag; "PDF" als
-          Suchwort wäre zu weit, das Transkript ist selbst ein PDF). Ohne Auslöser keine Weitergabe.
-        - uebergabe_pruefen: liest data/weitergabe/<auftrag-id>.json {"text", "dateien"}; Text nicht leer,
-          begrenzt; Dateien nur aus data/weitergabe/<auftrag-id>/ (so kann das Transkript mit privaten
-          Gesprächen nicht mit), existierend, wenige; .json-Dateien müssen renderer.pruefung.pruefen bestehen.
-     2. agent.py: eigener Prompt für Dokument-Aufträge (Quellen, keine Normtabellen, keine privaten
-        Gespräche, keine Personennamen, sparsam). Protokoll protokolle/<id>.md: Glossar, Behauptungsliste
-        (Transkriptseite, Folie, Normabschnitt, Status belegt/nur mündlich/unsicher), Abweichungen von der
-        Norm, offene Fragen an den Dozenten. Dokument: data/weitergabe/<id>/zusammenfassung.json, Gliederung
-        Organisatorisches mit Exkursion 27.10., Prüfungsrelevantes (Abstände, Rückschnitte), Tabelle
-        Gebrauchsklasse -> Dauerhaftigkeitsklasse, Übung Folie 81 als rechenbeispiel, Hintergrund mit
-        Glossar, 5-10 selbsttest, offene_fragen; quellen/kennzeichnung aus der Behauptungsliste.
-        Danach prüft Python und ruft auftraege.weitergeben("uni", "dokumente", text, aus_auftrag=a["id"],
-        dateien=...) auf, nie None. Bei Prüffehlern höchstens ein Nachbesserungslauf in derselben Sitzung,
-        sonst keine Weitergabe und Meldung an Jan mit den Fehlern. Merkdatei data/weitergabe/<id>.erledigt
-        gegen doppelte Weitergabe. Nur im ersten Lauf des Auftrags, nicht bei Antworten darauf.
-     3. Offene Fragen nur in Protokoll und Dokument, kein Forumsbeitrag (wäre Handeln nach außen, Freigabe).
-     4. Tests (test_weitergabe.py, test_agent.py), ./pruefen.sh grün, uni/STATUS.md. Echter Lauf erst nach C.
-        Grobe Schätzung 100.000-200.000 Tokens, erst nach dem Lauf messbar.
+   - D uni: erledigt 22.10. (nur Unit-Tests). Auftrag beginnt mit "Dokument:" -> Claude schreibt Protokoll
+     (Glossar, Behauptungsliste, Abweichungen, fehlende Normen, offene Fragen), behauptungen.json und
+     zusammenfassung.json in uni/data/weitergabe/<id>/; Python prüft (uni/weitergabe.py, nur Dateien aus diesem
+     Ordner, kein Transkript) und gibt mit aus_auftrag=<id> an dokumente weiter, höchstens eine Nachbesserung.
+     Offene Fragen nur in Protokoll und Dokument, kein Forumsbeitrag. Details und Auftragstext: uni/STATUS.md.
+   Noch offen: echter Lauf IHS 20.10. (/uni Dokument: ...), dabei Verbrauch von uni und dokumente messen.
 4. Optional: Token des Bots bei BotFather erneuern (/revoke), da er im Chatverlauf stand.
 5. Bedarf aus uni (Lernsystem): erledigt 20.10. (kalender, Knöpfe, Start von <dienst>.service).
    Übergabe in uni/STATUS.md. Offen: Handtest der Knöpfe über Telegram, sobald uni die erste
