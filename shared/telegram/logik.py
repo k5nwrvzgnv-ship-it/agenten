@@ -28,19 +28,21 @@ def befehl_auswerten(text: str) -> tuple[str, str, str] | None:
     return befehl, modus, rest.strip()
 
 
+TYP_NAMEN = {"mail": "Mail-Entwurf", "nachricht": "Nachrichten-Entwurf", "kauf": "Kauf-Entwurf"}
+
+
 def entwurf_als_text(entwurf: dict) -> list[str]:
-    """Entwurf so darstellen, dass Jan alles sieht, was ausgeführt wird.
+    """Entwurf so darstellen, dass Jan alles sieht, was ausgeführt wird (HTML wie mit_absender).
 
     Lange Inhalte werden auf mehrere Nachrichten verteilt (nichts abschneiden,
     denn freigegeben wird genau das, was angezeigt wurde).
     """
-    kopf = f"Entwurf von {entwurf['agent']} ({entwurf['typ']})\n{entwurf['titel']}"
-    if entwurf.get("vorgaenger"):
-        kopf += "\n(überarbeitete Fassung)"
-    teile = [kopf, entwurf["inhalt"]]
+    zusatz = TYP_NAMEN.get(entwurf["typ"], "Entwurf") + (", überarbeitet" if entwurf.get("vorgaenger") else "")
+    teile = [entwurf["titel"], entwurf["inhalt"]]
     if entwurf.get("daten"):
-        teile.append("Details:\n" + json.dumps(entwurf["daten"], ensure_ascii=False, indent=2))
-    return aufteilen("\n\n".join(teile))
+        teile.append("Details:\n" + "\n".join(
+            f"{k}: {v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)}" for k, v in entwurf["daten"].items()))
+    return mit_absender(entwurf["agent"], "\n\n".join(teile), zusatz)
 
 
 def aufteilen(text: str, max_laenge: int = MAX_LAENGE) -> list[str]:

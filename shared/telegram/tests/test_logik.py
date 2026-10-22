@@ -48,6 +48,12 @@ class TestLogik(unittest.TestCase):
         text = "".join(entwurf_als_text(e))
         self.assertIn("prof@example.org", text)
         self.assertEqual(text.count("Hallo"), 2000)
+        self.assertTrue(text.startswith("<b>Posteingang</b> · Mail-Entwurf\nAntwort"))
+        self.assertIn("Details:\nan: prof@example.org", text)
+        kauf = entwurf_als_text({"agent": "einkauf", "typ": "kauf", "titel": "Kabel <USB>", "inhalt": "x",
+                                 "daten": {"preis": 12.5, "menge": [1, 2]}, "vorgaenger": "alt"})
+        self.assertIn("Kauf-Entwurf, überarbeitet\nKabel &lt;USB&gt;", kauf[0])
+        self.assertIn("preis: 12.5\nmenge: [1, 2]", kauf[0])
 
     def test_verbrauch_text(self):
         def zt(ts):

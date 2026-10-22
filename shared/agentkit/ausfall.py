@@ -8,7 +8,8 @@ Jede Unit trägt `OnFailure=ausfall@%n.service`. systemd startet dann
 - Klappt das nicht, landet die Meldung in shared/meldungen/, die Zentrale schickt sie später.
 - Pro Unit höchstens eine Meldung in SPERRE_S (Stand in shared/ausfall/stand.json), damit ein
   Dienst mit Timer alle 15 Minuten nicht jedes Mal meldet.
-- Der Bot-Token wird aus dem Text entfernt, falls er im Journal auftaucht.
+- Kurz und ohne Technik (Jan 22.10.): "Störung" fett, welcher Dienst, Grund in Worten. Journal-Zeilen
+  stehen nicht in der Meldung, die liest ein Chat am Server (journalctl --user -u <unit>).
 
 Grenze: Dienste mit Restart=on-failure (agentenzentrale) gelten erst als fehlgeschlagen, wenn
 systemd das Neustarten aufgibt. Einzelne Abstürze mit erfolgreichem Neustart meldet das nicht.
@@ -20,6 +21,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from html import escape
 from pathlib import Path
 
 from . import _ablage, meldungen
@@ -27,8 +29,16 @@ from .config import SHARED_DIR, lies_env
 
 STAND = SHARED_DIR / "ausfall" / "stand.json"
 SPERRE_S = 6 * 3600
-JOURNAL_ZEILEN = 8
-MAX_LAENGE = 3800
+GRUENDE = {
+    "oom-kill": "zu wenig Arbeitsspeicher",
+    "timeout": "hat zu lange gebraucht",
+    "exit-code": "mit einem Fehler beendet",
+    "signal": "abgebrochen",
+    "core-dump": "abgestürzt",
+    "watchdog": "reagiert nicht mehr",
+    "start-limit-hit": "startet immer wieder neu und wurde angehalten",
+    "resources": "konnte nicht starten",
+}
 
 
 def agent_aus_unit(unit: str) -> str:
@@ -41,14 +51,12 @@ def darf_melden(stand: dict, unit: str, jetzt: float, sperre_s: float = SPERRE_S
     return unit not in stand or jetzt - stand[unit] >= sperre_s
 
 
-def text(unit: str, ergebnis: str, zeilen: list[str], token: str = "") -> str:
-    t = (f"Dienst fehlgeschlagen: {unit}\nGrund: {ergebnis or 'unbekannt'}\n"
-         f"Nächste Meldung zu diesem Dienst frühestens in {SPERRE_S // 3600} h.\n\n"
-         + ("Letzte Zeilen im Journal:\n" + "\n".join(zeilen) if zeilen else "Keine Zeilen im Journal.")
-         + f"\n\nMehr: journalctl --user -u {unit} -n 50")
-    if token:
-        t = t.replace(token, "<token>")
-    return t[:MAX_LAENGE]
+def text(unit: str, ergebnis: str) -> str:
+    """'uni-transkript.service', 'oom-kill' -> 'Uni-transkript ist ausgefallen: zu wenig Arbeitsspeicher. ...'"""
+    name = unit.split(".", 1)[0]
+    grund = GRUENDE.get(ergebnis, f"Grund unbekannt ({ergebnis})" if ergebnis else "Grund unbekannt")
+    return (f"{name[:1].upper()}{name[1:]} ist ausgefallen: {grund}.\n"
+            f"Ich melde mich dazu frühestens in {SPERRE_S // 3600} Stunden wieder.")
 
 
 def _befehl(*args: str) -> str:
@@ -66,7 +74,7 @@ def _lies_stand(datei: Path) -> dict:
 
 
 def telegram_senden(token: str, chat_id: str, nachricht: str) -> None:
-    daten = urllib.parse.urlencode({"chat_id": chat_id, "text": nachricht,
+    daten = urllib.parse.urlencode({"chat_id": chat_id, "text": nachricht, "parse_mode": "HTML",
                                     "disable_web_page_preview": "true"}).encode()
     with urllib.request.urlopen(f"https://api.telegram.org/bot{token}/sendMessage", daten, timeout=20) as r:
         if not json.loads(r.read()).get("ok"):
@@ -84,14 +92,14 @@ def melden(unit: str, jetzt: float | None = None, stand_datei: Path | None = Non
     env = lies_env(SHARED_DIR / ".env") if env is None else env
     token = env.get("TELEGRAM_BOT_TOKEN", "")
     ergebnis = _befehl("systemctl", "--user", "show", "-p", "Result", "--value", unit)
-    zeilen = _befehl("journalctl", "--user", "-u", unit, "-n", str(JOURNAL_ZEILEN), "--no-pager",
-                     "-o", "short").splitlines()
-    nachricht = text(unit, ergebnis, zeilen, token)
+    nachricht = text(unit, ergebnis)
     try:
-        senden(token, env.get("TELEGRAM_CHAT_ID", ""), "[ausfall] " + nachricht)
+        senden(token, env.get("TELEGRAM_CHAT_ID", ""), "<b>Störung</b>\n" + escape(nachricht, False))
         weg = "telegram"
     except Exception as f:  # noqa: BLE001 – dann eben über die Zentrale
-        meldungen.melden(agent_aus_unit(unit), f"{nachricht}\n\n(Direktversand fehlgeschlagen: {type(f).__name__})")
+        grund = str(f).replace(token, "<token>") if token else str(f)
+        print(f"Direktversand fehlgeschlagen: {type(f).__name__}: {grund}", file=sys.stderr)  # landet im Journal
+        meldungen.melden(agent_aus_unit(unit), nachricht)
         weg = "warteschlange"
     stand[unit] = jetzt
     stand_datei.parent.mkdir(parents=True, exist_ok=True)

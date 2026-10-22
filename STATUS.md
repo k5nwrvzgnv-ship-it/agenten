@@ -69,10 +69,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Gibt es eine gleichnamige PDF, kommt nur sie (docx bleibt auf dem Server). Stufenwechsel nur bei
   Limit ("Kontingent aufgebraucht, Aufträge warten bis ...") und wenn es wieder frei ist; Stufe sonst
   nur unter /verbrauch. Bestätigung eines Auftrags: "Uni ist dran." Technisches ins Log.
-  Noch offen: Entwürfe (Freigabe) und die Ausfallmeldung ([ausfall]) haben noch das alte Format.
+  Entwürfe ebenso: "<b>Uni</b> · Mail-Entwurf", Titel, Inhalt, Details als Zeilen (nichts gekürzt).
 - Ausfallmeldung (21.10.): Jede Unit trägt OnFailure=ausfall@%n.service (Vorlage
-  shared/systemd/ausfall@.service, eingerichtet). agentkit.ausfall schickt Grund (z. B. oom-kill) und
-  letzte Journal-Zeilen direkt per Telegram ([ausfall], ohne Linkvorschau, Token entfernt), sonst über
+  shared/systemd/ausfall@.service, eingerichtet). agentkit.ausfall schickt "Störung" fett, Dienst und Grund in
+  Worten (oom-kill = zu wenig Arbeitsspeicher), ohne Journal-Zeilen, direkt per Telegram, sonst über
   shared/meldungen/. Höchstens eine Meldung je Unit in 6 h (shared/ausfall/stand.json). Mit
   Test-Unit geprüft: kam an. Eingerichtet für uni, uni-transkript, agentenzentrale; uni-lernen und
   dokumente haben es in der Vorlage. Grenze: agentenzentrale hat Restart=on-failure und gilt nie als

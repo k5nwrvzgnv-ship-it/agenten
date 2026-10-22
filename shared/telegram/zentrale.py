@@ -591,7 +591,8 @@ async def entwurf_zeigen(bot, e: dict) -> None:
         InlineKeyboardButton("Ändern", callback_data=f"c:{e['id']}"),
     ]])
     for i, stueck in enumerate(stuecke := entwurf_als_text(e)):
-        await bot.send_message(JAN, stueck, reply_markup=knoepfe if i == len(stuecke) - 1 else None)
+        await bot.send_message(JAN, stueck, parse_mode=ParseMode.HTML,
+                               reply_markup=knoepfe if i == len(stuecke) - 1 else None)
     gemeldet.angezeigt[e["id"]] = e["fingerabdruck"]
 
 
