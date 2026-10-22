@@ -116,6 +116,34 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Nächste Schritte: Dienst einrichten und über Telegram testen, Nachholwege für verpasste Termine,
     Sonntagsbericht, Simulation alle 4 Wochen, zuletzt Trigger vor der Vorlesung.
 
+- Dokument-Aufträge an dokumente (Teil D von Punkt 3a im Hauptordner, gebaut 22.10., nur Unit-Tests):
+  - Auslöser: Auftrag beginnt mit "Dokument:" (weitergabe.ist_dokumentauftrag), nur im ersten Lauf, nicht bei
+    Antworten darauf. Ohne Auslöser nie Weitergabe.
+  - agent.dokument_auftrag: Claude (PROMPT_DOKUMENT, Format-Abschnitt aus shared/renderer/FORMAT.md im Prompt)
+    schreibt protokolle/<id>.md (Glossar, Behauptungsliste mit Transkript/Folie/Norm/Status, Abweichungen,
+    fehlende Normen, offene Fragen), data/weitergabe/<id>/behauptungen.json (Format von dokumente),
+    data/weitergabe/<id>/zusammenfassung.json (Renderer-Beschreibung) und data/weitergabe/<id>.json
+    {"text", "dateien"}. Python prüft (weitergabe.uebergabe_pruefen: nur Dateien aus data/weitergabe/<id>/,
+    höchstens 5, behauptungen.json und eine Beschreibung Pflicht, beide mit den Renderer-Regeln), bei Fehlern
+    eine Nachbesserung in derselben Sitzung, sonst fehlgeschlagen mit den Fehlern. Dann
+    auftraege.weitergeben("uni", "dokumente", ..., aus_auftrag=<id>), Merkdatei data/weitergabe/<id>.erledigt.
+    Liegt schon eine gültige Übergabe vor (Abbruch nach dem Lauf), wird ohne neuen Claude-Lauf weitergegeben.
+  - dokumente (Teil C) schreibt die Zusammenfassung mit eigenem Claude-Lauf neu und prüft sie gegen
+    behauptungen.json; zusammenfassung.json dient dort als aufbereitete Fassung. Der ursprüngliche Plan
+    (dokumente baut nur) gilt damit nicht. Folien gehen nicht mit, dokumente kann Folienangaben also nicht
+    selbst nachprüfen.
+  - Offene Fragen an den Dozenten nur in Protokoll und Dokument, kein Forumsbeitrag (bräuchte Freigabe).
+  - Quellenlage IHS 20.10.: DIN 68800-1 und EN 350 fehlen, von DIN 68800-4 nur Bild von 4.6
+    (data/lernen/holzschutz/quellen/). Folie 81 ist ein Reflexionsauftrag ohne Zahlen: das Beispiel ist
+    ein eigenes und wird so gekennzeichnet.
+  - Echter Lauf steht aus. Vorschlag für den Auftrag (per /uni):
+    "Dokument: Zusammenfassung Integrierter Holzschutz 20.10. für Kommilitonen, Vorbereitung Exkursion 27.10.
+    und Prüfung. Quelle: data/eingang/20261022-082205-uni-f0e6f1/Transkribt_20-10-26.pdf (.txt), Folien und
+    Infokarten in data/kurse/Integrierter Holzschutz/ (u. a. Folie 65 und 81). Gliederung: Organisatorisches
+    mit Exkursion, Prüfungsrelevantes (Abstände, Rückschnitte), Tabelle Gebrauchsklasse -> Dauerhaftigkeitsklasse,
+    Übung Folie 81 durchgespielt, Hintergrund, 5-10 Selbsttest-Fragen, offene Fragen an den Dozenten."
+    Danach Tokens messen (Schätzung 100.000-200.000 für uni, dazu der Lauf von dokumente).
+
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
   Zone Europe/Berlin, nach Beginn sortiert. Fehler beim Abruf: KalenderFehler (nennt nur "Kalender N").
@@ -180,7 +208,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    Protokoll-ID vom Ursprung der Antwortkette (ursprung()), Antwort-Prompts kurz, jeder Auftrag
    speichert seine Sitzung. Nur Unit-Tests: echter Test über Telegram steht aus (auf eine neue
    Antwort des Agenten antworten; Aufträge von vor dem 17.10. haben keine Sitzung).
-3. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
+3. Echter Lauf Dokument-Auftrag IHS 20.10. (siehe Stand), dabei Verbrauch messen.
+4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
 
 ## Gelernte Regeln
