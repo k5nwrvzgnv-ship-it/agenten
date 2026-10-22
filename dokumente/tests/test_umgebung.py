@@ -1,4 +1,4 @@
-"""Prüft, dass die .venv vollständig ist: agentkit und die drei Office-Bibliotheken."""
+"""Prüft, dass die .venv vollständig ist: agentkit, Renderer und die Office-Bibliotheken."""
 
 import tempfile
 import unittest
@@ -7,8 +7,11 @@ from pathlib import Path
 import docx
 import openpyxl
 import pptx
+import pypdfium2  # noqa: F401 – Vorschau des Renderers
+from PIL import Image  # noqa: F401
 
 from agentkit import auftraege  # noqa: F401 – Einbindung per .pth
+import renderer  # noqa: F401 – ebenfalls per .pth
 
 
 class TestUmgebung(unittest.TestCase):
