@@ -12,7 +12,7 @@ class AnsichtenTest(unittest.TestCase):
         ansichten = [
             p.ansicht_home(1, 2, "Hinweis"), p.ansicht_anleitung("material"), p.ansicht_anleitung("frage"),
             p.ansicht_bestaetigen({"art": "material", "text": "x"}), p.ansicht_einordnen("x"),
-            p.ansicht_anfragen([]), p.ansicht_hilfe(), ("", p.MENUE_KNOPF),
+            p.ansicht_anfragen([]), p.ansicht_hilfe(), ("", p.MENUE_KNOPF), p.ansicht_dateien(2),
         ]
         for _, knoepfe in ansichten:
             for daten in alle_daten(knoepfe):
@@ -94,6 +94,17 @@ class AblaufTest(unittest.TestCase):
         self.assertIn("Arbeitsblatt Kant", text)
         self.assertTrue(text.endswith("Kommt bald."))
         self.assertIn(p.FEHLGESCHLAGEN, p.ergebnis_text({"status": "fehlgeschlagen", "text": "x"}))
+
+    def test_dateien(self):
+        text, _ = p.ansicht_bestaetigen({"art": "material", "text": "Mach daraus ein Arbeitsblatt"}, 2)
+        self.assertIn("Mit 2 Dateien.", text)
+        self.assertNotIn("Mit", p.ansicht_bestaetigen({"art": "material", "text": "x"})[0])
+        text, knoepfe = p.ansicht_dateien(1)
+        self.assertIn("1 Datei liegt bereit", text)
+        self.assertIn("verwerfen", p.knopf_auswerten(knoepfe[0][0][1]))
+        self.assertEqual(p.hinweis_dateien(0), "")
+        self.assertIn("2 Dateien liegen bereit und kommen", p.hinweis_dateien(2))
+        self.assertIn("Dateien", p.HILFE)
 
 
 if __name__ == "__main__":

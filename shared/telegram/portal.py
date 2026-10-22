@@ -11,7 +11,10 @@ bleibt davon unberührt.
 - Bestätigte Aufträge gehen nach <instanz-ordner>/auftraege/neu/, danach startet
   lia-<agent>.service. Ergebnisse kommen als eigene Nachricht zurück, Ergebnisdateien (Feld
   ergebnis_dateien, nur aus dem Agent-Ordner) als Dokumente dahinter, zuletzt der Knopf "Menü".
-- Dateien nimmt er noch nicht an.
+- Dateien und Fotos (bis 20 MB) warten in <instanz-ordner>/zentrale/data/eingang/, bis Lia schreibt, was damit
+  passieren soll (Bildunterschrift oder nächste Nachricht). Beim Abschicken eines Material- oder
+  Frage-Auftrags verschiebt agentkit.auftraege sie nach <agent>/data/eingang/<auftrag-id>/.
+  Alben werden ALBUM_WARTEN Sekunden nach der letzten Datei zugeordnet. Sprachnachrichten nicht.
 - Ins Log kommen nur IDs und Arten, keine Inhalte von Lia.
 
 Start: AGENTKIT_INSTANZ=... .venv/bin/python portal.py
@@ -19,6 +22,7 @@ Start: AGENTKIT_INSTANZ=... .venv/bin/python portal.py
 
 import asyncio
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from telegram import LinkPreviewOptions, Update
@@ -34,13 +38,14 @@ from telegram.ext import (
 
 from agentkit import auftraege, config, log
 from agentkit._ablage import AblageFehler, anhaenge_pruefen
-from logik import Gemeldet, aufteilen
+from logik import MAX_DATEI_BYTES, Eingang, Gemeldet, aufteilen
 import panel as panel_
 import portal_logik as p
 
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 AGENTEN_DIR = auftraege.AGENTEN_DIR
 PRUEF_INTERVALL = 30  # Sekunden
+ALBUM_WARTEN = 3  # Sekunden nach der letzten Datei eines Albums, dann wird zugeordnet
 
 if config.SHARED_DIR == config.instanz_dir({}):
     raise SystemExit("portal.py braucht AGENTKIT_INSTANZ (sonst liefe er in Jans Instanz)")
@@ -51,10 +56,21 @@ logger = log.hole_logger(DATEN_DIR, "zentrale")
 # httpx loggt Anfrage-Adressen, und die enthalten den Bot-Token: nur Warnungen zulassen.
 logging.getLogger("httpx").setLevel(logging.WARNING)
 gemeldet = Gemeldet(DATEN_DIR / "data" / "gemeldet.json")
+eingang = Eingang(DATEN_DIR / "data" / "eingang")
 
 
 def home(hinweis: str = "") -> tuple[str, p.Knoepfe]:
+    hinweis = "\n".join(h for h in (hinweis, p.hinweis_dateien(len(eingang.wartende()))) if h)
     return p.ansicht_home(len(auftraege.neue()), len(auftraege.erledigte()), hinweis)
+
+
+def nach_text(chat_data: dict, folge: str, text: str) -> tuple[str, p.Knoepfe]:
+    """Ansicht nach Lias Text (Nachricht oder Bildunterschrift), siehe portal_logik.text_eingang."""
+    if folge == "home":
+        return home()
+    if folge == "bestaetigen":
+        return p.ansicht_bestaetigen(chat_data["entwurf"], len(eingang.wartende()))
+    return p.ansicht_einordnen(text)
 
 
 async def panel(bot, chat_data: dict, ansicht: tuple[str, p.Knoepfe], neu: bool = False) -> None:
@@ -80,14 +96,18 @@ async def agent_starten(agent: str) -> None:
 async def abschicken(entwurf: dict) -> str:
     """Legt den Auftrag an und startet den Agenten. Gibt den Hinweis fürs Panel zurück."""
     art = p.ARTEN[entwurf["art"]]
+    dateien = eingang.wartende() if entwurf["art"] != "woche" else []  # Woche ist ein fester Knopf
     try:
-        aid = auftraege.neuer_auftrag(art.agent, entwurf["text"], quelle=art.quelle)
+        aid = auftraege.neuer_auftrag(art.agent, entwurf["text"], quelle=art.quelle, dateien=dateien)
     except auftraege.AuftragFehler as e:
         logger.error("Auftrag an %s nicht angelegt: %s", art.agent, e)
         return p.FEHLGESCHLAGEN
-    logger.info("Auftrag %s angelegt (%s)", aid, entwurf["art"])
+    finally:
+        eingang.aufraeumen()
+    logger.info("Auftrag %s angelegt (%s, %d Dateien)", aid, entwurf["art"], len(dateien))
     await agent_starten(art.agent)
-    return f"Ist unterwegs: „{p.kurz(entwurf['text'])}“\nIch melde mich mit der Antwort."
+    mit = f" (mit {p.dateien_anzahl(len(dateien))})" if dateien else ""
+    return f"Ist unterwegs: „{p.kurz(entwurf['text'])}“{mit}\nIch melde mich mit der Antwort."
 
 
 # ---------- Eingang: Nachrichten von Lia ----------
@@ -107,18 +127,67 @@ async def text_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     text = update.message.text
     folge = p.text_eingang(context.chat_data, text)
     logger.info("Text empfangen -> %s", folge)
-    if folge == "home":
-        ansicht = home()
-    elif folge == "bestaetigen":
-        ansicht = p.ansicht_bestaetigen(context.chat_data["entwurf"])
+    await panel(context.bot, context.chat_data, nach_text(context.chat_data, folge, text), neu=True)
+
+
+async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Dokument oder Foto laden und warten lassen, bis klar ist, was damit passieren soll."""
+    m = update.message
+    if m.document:
+        datei, name = m.document, m.document.file_name
+    else:  # Foto: größte Fassung nehmen
+        datei, name = m.photo[-1], f"foto-{datetime.now():%Y%m%d-%H%M%S}.jpg"
+    if datei.file_size and datei.file_size > MAX_DATEI_BYTES:
+        logger.info("Datei über 20 MB abgelehnt")
+        hinweis = "Die Datei ist größer als 20 MB, das lässt Telegram nicht zu. Schick sie Jan bitte anders."
+        await panel(context.bot, context.chat_data, home(hinweis), neu=True)
+        return
+    pfad = eingang.neuer_platz(name or "datei")
+    try:
+        await (await datei.get_file()).download_to_drive(pfad)
+    except Exception as e:  # Netz oder Telegram: Lia soll sie noch einmal schicken können
+        logger.error("Download fehlgeschlagen: %s", e)
+        pfad.unlink(missing_ok=True)
+        eingang.aufraeumen()
+        await panel(context.bot, context.chat_data,
+                    home("Die Datei konnte ich nicht laden. Schick sie bitte noch einmal."), neu=True)
+        return
+    logger.info("Datei empfangen (%d Bytes)", pfad.stat().st_size)
+    if m.media_group_id is None:
+        await dateien_zuordnen(context.bot, context.chat_data, m.caption)
+        return
+    # Album: Telegram schickt jede Datei als eigene Nachricht, die Bildunterschrift nur bei einer.
+    alben = context.chat_data.setdefault("alben", {})
+    album = alben.setdefault(m.media_group_id, {"caption": None, "job": None})
+    album["caption"] = album["caption"] or m.caption
+    if album["job"]:
+        album["job"].schedule_removal()
+    album["job"] = context.job_queue.run_once(album_fertig, ALBUM_WARTEN, data=m.media_group_id, chat_id=LIA)
+
+
+async def album_fertig(context: ContextTypes.DEFAULT_TYPE) -> None:
+    album = context.chat_data.get("alben", {}).pop(context.job.data, None)
+    if album:
+        await dateien_zuordnen(context.bot, context.chat_data, album["caption"])
+
+
+async def dateien_zuordnen(bot, chat_data: dict, caption: str | None) -> None:
+    """Bildunterschrift wie eine Nachricht behandeln; ohne sie auf Lias nächste Nachricht warten."""
+    text = (caption or "").strip()
+    if text:
+        folge = p.text_eingang(chat_data, text)
+        logger.info("Bildunterschrift -> %s", folge)
+        ansicht = nach_text(chat_data, folge, text)
+    elif chat_data.get("entwurf"):  # schon beim Bestätigen: Dateien kommen mit
+        ansicht = p.ansicht_bestaetigen(chat_data["entwurf"], len(eingang.wartende()))
     else:
-        ansicht = p.ansicht_einordnen(text)
-    await panel(context.bot, context.chat_data, ansicht, neu=True)
+        ansicht = p.ansicht_dateien(len(eingang.wartende()))
+    await panel(bot, chat_data, ansicht, neu=True)
 
 
 async def sonstiges_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.info("Kein Text empfangen (Datei, Sprachnachricht o. Ä.)")
-    hinweis = "Dateien, Fotos und Sprachnachrichten kann ich noch nicht annehmen. Schreib mir bitte als Text."
+    logger.info("Weder Text noch Datei empfangen (Sprachnachricht o. Ä.)")
+    hinweis = "Sprachnachrichten kann ich noch nicht annehmen. Schreib mir bitte als Text."
     await panel(context.bot, context.chat_data, home(hinweis), neu=True)
 
 
@@ -154,14 +223,17 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         ansicht = p.ansicht_hilfe()
     elif wert in ("alsmaterial", "alsfrage"):
         if p.einordnen(z, wert[len("als"):]):
-            ansicht = p.ansicht_bestaetigen(z["entwurf"])
+            ansicht = p.ansicht_bestaetigen(z["entwurf"], len(eingang.wartende()))
         else:
             ansicht = home("Das ist nicht mehr aktuell.")
     elif wert == "ja":
         entwurf = p.entwurf_nehmen(z)
         ansicht = home(await abschicken(entwurf) if entwurf else "Das ist nicht mehr aktuell.")
-    else:  # nein
+    elif wert == "verwerfen":
+        ansicht = home(f"{p.dateien_anzahl(eingang.verwerfen())} verworfen.")
+    else:  # nein: Abbrechen bzw. Verwerfen, mitgeschickte Dateien auch
         p.abbrechen(z)
+        eingang.verwerfen()
         ansicht = home("Abgebrochen.")
     await panel(context.bot, z, ansicht)
 
@@ -215,6 +287,7 @@ def main() -> None:
     app.add_handler(MessageHandler(~lia, fremd))
     app.add_handler(MessageHandler(lia & filters.COMMAND, begruessen))
     app.add_handler(MessageHandler(lia & filters.TEXT, text_empfangen))
+    app.add_handler(MessageHandler(lia & (filters.Document.ALL | filters.PHOTO), datei_empfangen))
     app.add_handler(MessageHandler(lia, sonstiges_empfangen))
     app.add_handler(CallbackQueryHandler(knopf))
     app.add_error_handler(fehler)

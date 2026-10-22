@@ -42,9 +42,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   erben das nicht. Dateien aus dem Ordner des Absenders werden kopiert (wie Ergebnisdateien geprüft:
   nichts Verstecktes, höchstens 50 MB). Kettenschutz: Ein Auftrag mit Feld von darf nicht weitergegeben
   werden (aus_auftrag muss dafür angegeben sein). Keine Freigabe (intern, Jan 22.10.): Die Zentrale
-  meldet Jan jede Weitergabe einmal ("[uni -> dokumente] Neuer Auftrag: ...") und startet
-  <empfänger>.service; fehlt der Dienst, steht das in der Meldung, und der Auftrag wartet. Das Ergebnis
-  geht wie jedes direkt an Jan ("Auftrag erledigt (dokumente, von uni)"), nicht zurück an den Absender.
+  startet <empfänger>.service und meldet die Weitergabe nur, wenn der Empfänger keinen Dienst hat
+  (Auftrag wartet). Das Ergebnis geht wie jedes direkt an Jan, nicht zurück an den Absender.
   Meldungen über Telegram getestet (22.10., Testauftrag). Mit echtem Lauf von dokumente getestet (22.10.).
 - Agent uni läuft (Dienst + Timer 8/13/19 Uhr). Details: uni/STATUS.md.
 - Agent dokumente läuft (Dienst dokumente, ohne Timer, eingerichtet 22.10.): Zusammenfassungen als PDF und docx
@@ -64,6 +63,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Panel-ID liegt nur im Speicher: nach Neustart erst wieder nach /start.
   Platzhalter lia/unterricht (Dienst lia-unterricht) antwortet "kommt bald", ohne Claude.
   Ausfälle beider Dienste melden sich bei Jan (ausfall@). zentrale.py und logik.py unverändert.
+- Bedienung der Zentrale (Jan 22.10.: "Backend bleibt Backend"): Nachrichten an Jan sind kurz.
+  Absender fett in der ersten Zeile (keine [klammern]), danach nur das Ergebnis des Agenten (kein
+  Auftragstext, keine IDs, Pfade, Kontrollrunden). Kurzer Text steht als Beschriftung unter der Datei.
+  Gibt es eine gleichnamige PDF, kommt nur sie (docx bleibt auf dem Server). Stufenwechsel nur bei
+  Limit ("Kontingent aufgebraucht, Aufträge warten bis ...") und wenn es wieder frei ist; Stufe sonst
+  nur unter /verbrauch. Bestätigung eines Auftrags: "Uni ist dran." Technisches ins Log.
+  Noch offen: Entwürfe (Freigabe) und die Ausfallmeldung ([ausfall]) haben noch das alte Format.
 - Ausfallmeldung (21.10.): Jede Unit trägt OnFailure=ausfall@%n.service (Vorlage
   shared/systemd/ausfall@.service, eingerichtet). agentkit.ausfall schickt Grund (z. B. oom-kill) und
   letzte Journal-Zeilen direkt per Telegram ([ausfall], ohne Linkvorschau, Token entfernt), sonst über
@@ -117,6 +123,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    meldung gesetzt) bitte still abschließen, sonst kommt nach jedem Knopfdruck der Lernabfrage eine
    zusätzliche Nachricht; der Agent antwortet dort selbst mit einer neuen Meldung.
    Fehlgeschlagene solche Aufträge weiter melden. uni-lernen schließt sie mit status "erledigt" ab.
+6a. Bedarf an dokumente (und jeden Agenten, Jan 22.10.): Der Ergebnistext (auftraege.abschliessen) ist das,
+   was Jan in Telegram liest. Höchstens 2-3 Sätze: was fertig ist, und was Jan prüfen muss. Keine Kontrollrunden,
+   keine Aufzählung des Inhalts, kein "Offene Fragen: keine", keine Begründung der Seitenzahl.
+   Heute in dokumente/zusammenfassen.py ergebnistext() und Claudes freie Antwort. Ein docx bekommt Jan nur
+   auf Nachfrage (Antwort auf die Nachricht); der Agent muss es dann als Ergebnisdatei ohne PDF daneben schicken.
 7. Server hat keinen Swap (braucht root). Nicht die Ursache des OOM bei uni-transkript, aber jeder
    Speicherengpass endet sofort im OOM-Killer. Vorschlag: 2-4 GB Swapdatei, nur nach Jans Okay.
 8. Lias Agenten-Netzwerk: Architektur in docs/lia-architektur.md (Abschnitt 3 und 7 = Fahrplan).
