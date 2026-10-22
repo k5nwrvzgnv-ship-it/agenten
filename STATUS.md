@@ -129,9 +129,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Jan: /start, Agent uni antippen, Auftrag schreiben, Verbrauch/Status/Entwürfe ansehen.
    - Nächste Schritte: 1. Renderer: fertig (22.10.), Arbeitsblätter und Folien in Lias Stil, Nutzung und
      Stand in shared/renderer/STATUS.md.
-     2. Lias Dokument-Agent (Chat in lia/<agent>, Übergabe docs/uebergabe-lia-dokumente.md). Deren Fragen zu
-     Formaten, Renderer und Vorlage sind im Renderer-Chat beantwortet (siehe shared/renderer/STATUS.md,
-     Entscheidungen); die Übergabe sollte darauf verweisen (Hauptordner-Chat).
+     2. Lias Material-Agent: gebaut 22.10. in lia/unterricht (löst den Platzhalter für quelle portal-material ab,
+     Woche/Frage weiter „kommt bald“), Opus, Ethik/Frau Pohlmann. Echter Lauf: Arbeitsblatt in 90 s, 2 Läufe,
+     129.430 Tokens, umgerechnet 0,61 USD. Details lia/unterricht/STATUS.md. Offen: Handtest durch Lia.
+     docs/uebergabe-lia-dokumente.md ist damit erledigt.
+     Bedarf aus lia/unterricht (22.10., Hauptordner- bzw. Renderer-Chat):
+     - portal_logik.py: IM_AUFBAU („richtige Antworten kommen bald“) und HILFE („ich gebe es weiter“) passen für
+       Material nicht mehr. Bei fehlgeschlagen zeigt ergebnis_text nur FEHLGESCHLAGEN, das Ergebnis des Agenten
+       (z. B. „Kontingent aufgebraucht, ab 14:00 noch einmal“) kommt bei Lia nicht an.
+     - claude_lauf.GESCHUETZT schützt skills/**/SKILL.md nicht: Claude könnte den Skill eines Agenten mit Write
+       ändern. Vorschlag: "skills/**" ergänzen.
+     - Renderer: Der Vorschau-Ordner behält Bilder eines früheren Baus (4. Seite blieb nach Neubau mit 3 Seiten
+       liegen). ergebnis.bilder stimmt, nur der Ordner verwirrt.
+     - Antwort auf ein Ergebnis in Lias Zentrale (Änderungswunsch in derselben Sitzung) fehlt noch.
      Chat-Aufteilung ein Chat pro Ordner, siehe CLAUDE.md (21.10.).
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt

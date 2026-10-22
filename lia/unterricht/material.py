@@ -68,7 +68,9 @@ def dateiname(beschreibung: dict) -> str:
     """z. B. 'Arbeitsblatt Kategorischer Imperativ.docx' (Titel gekürzt, ohne Sonderzeichen)."""
     art = beschreibung["art"]
     titel = re.sub(r"[^\w\s-]", "", beschreibung.get("titel", ""))
-    titel = re.sub(r"\s+", " ", titel).strip()[:60].strip()
+    titel = re.sub(r"\s+", " ", titel).strip()
+    if len(titel) > 60:  # am Wortende kürzen
+        titel = titel[:61].rsplit(" ", 1)[0] if " " in titel[:61] else titel[:60]
     return f"{art.capitalize()} {titel}".strip() + ARTEN[art]
 
 

@@ -63,6 +63,9 @@ class MaterialTest(unittest.TestCase):
                          "Arbeitsblatt Muss ich helfen JaNein.docx")
         self.assertEqual(material.dateiname(FOLIEN), "Folien Kant für Einsteiger.pptx")
         self.assertTrue(material.dateiname({"art": "folien", "titel": "x" * 300}).endswith("x.pptx"))
+        lang = "Kann ich wollen, dass alle so handeln wie ich? – Kants kategorischer Imperativ"
+        self.assertEqual(material.dateiname({"art": "arbeitsblatt", "titel": lang}),
+                         "Arbeitsblatt Kann ich wollen dass alle so handeln wie ich Kants.docx")
 
     def test_gelingt_beim_ersten_mal(self):
         f, claude = self.bearbeiten([(BLATT, "Entwurf"), (None, "Ein Blatt mit Merksatz und einer Aufgabe.")])
