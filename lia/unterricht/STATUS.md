@@ -10,6 +10,9 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   mitgegeben. Eingetragen nach Lias Angaben (23.10.): Ethik Klasse 8, Lerngruppe, frühere Reihen aus Kl. 7/8,
   behandelte Philosoph*innen, nächste Reihe Straftheorien (Reihenfrage noch offen). Merksätze fehlen noch.
   Noch kein echter Lauf mit Reihen.
+- Lias Material als Nachschlagewerk (23.10., Stufe A): wissen.py legt Textfassungen in data/wissen/text/ an und
+  schreibt data/wissen/katalog.md (211 Dateien, ca. 11k Tokens). Jeder Material-Lauf bekommt den Katalog und liest
+  höchstens drei passende Beispiele mit Read. Mehrkosten geschätzt ca. 0,10–0,15 USD je Auftrag. Noch kein echter Lauf.
 - Material läuft (Code fertig, Tests grün, Dienst eingerichtet). Noch kein Auftrag von Lia über Telegram.
 - Echter Lauf 22.10. (direkt mit material.bearbeiten, ohne Warteschlange, damit Lia nichts bekam):
   „Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min“ mit Opus: 2 Claude-Läufe, 90 s, 129.430 Tokens,
@@ -22,7 +25,7 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Aufbereitung mit echtem LibreOffice geprüft, ein echter Claude-Lauf mit Anhang fehlt noch.
 
 ## Ablauf (material.py)
-1. Prompt = Lias Wunsch + laufende Reihen (reihen.toml) + Anhänge + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien aus
+1. Prompt = Lias Wunsch + laufende Reihen (reihen.toml) + Anhänge + Katalog (data/wissen/katalog.md) + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien aus
    shared/renderer/FORMAT.md (zur Laufzeit gelesen, bleibt aktuell). Claude schreibt mit Write
    data/arbeit/<auftrag>/beschreibung.json.
 2. Python baut mit renderer.bauen (Profil profil.toml). Fehler (Datei fehlt, kein JSON, falsche art,
@@ -49,7 +52,10 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz (Warteschlangen, Regeln, .env dort)
 - Code: agent.py (Verteilung nach quelle, Fehler, Meldung an Jan), material.py (Ablauf, ohne Netz testbar),
-  reihen.py (Reihenkontext laden und prüfen, Prompt-Abschnitt)
+  reihen.py (Reihenkontext laden und prüfen, Prompt-Abschnitt), wissen.py (Textfassungen, Katalog, Prompt-Abschnitt)
+- Wissen: data/wissen/eingang/ (Lias Dateien), text/ (Textfassungen), katalog.md, alles nicht im Repo.
+  Nach neuen Dateien von Hand: .venv/bin/python wissen.py (liest nur Neues, entfernt Textfassungen gelöschter
+  Quellen; ca. 2 min beim ersten Mal). Neue Dateien vorher auf Schülerdaten prüfen.
 - Skill: skills/einzelmaterial/SKILL.md (Version 1, Art wählen, Qualitätskriterien). Version steht in material.py.
 - Profil: profil.toml (Kopie von shared/renderer/beispiele/profil-lia-stil.toml, Ethik, Frau Pohlmann)
 - .venv: Pakete aus requirements.txt (Versionen wie shared/renderer), agentkit und renderer per agentkit.pth
@@ -65,6 +71,13 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
 ## Umsetzung der Auswertung (lia/auswertung, 23.10.2026, Rangliste UNGEPRÜFT)
 Reihenfolge mit Jan abgestimmt, je Schritt erst nach seinem Okay:
+Wissen aus Lias Dokumenten (Jan 23.10., Budget einmalig ca. 10–15 USD Kontingent):
+A. Katalog und Nachschlagen: gebaut 23.10. Offen: ein echter Lauf, ob Claude passende Beispiele liest.
+B. Leitfaden „So unterrichtet Lia“ aus Seminarnotizen, Kriterien, Entwürfen und Reihenplanungen (ein Opus-Lauf,
+   ca. 1–2 USD), Jan liest gegen, dann in jeden Lauf.
+C. Feste Beispielsammlung je Materialtyp im Skill (Architektur 2.5 beispiele/), Lia oder Jan wählt mit aus.
+D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
+   ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
 1. Reihenkontext: gebaut und gefüllt 23.10. Offen: Merksätze und die Reihenfrage zu Straftheorien von Lia.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
    „nicht wieder vorschlagen“). Pausiert (Jan 23.10.): 3–11 werden nachgeholt, wenn Lia Zeit hat
@@ -81,11 +94,12 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
   21.04.2026: Reihenplanung, Problemfragen, Entwürfe, Methoden; aus der Pages-Datei grob entpackt, Tabellen und
   Bilder fehlen) und Kriterien_gute_Unterrichtseinheit.txt (aus Jans Screenshot). Dazu per scp (23.10.):
   Ethik/ (7. Klasse: Reihen Lügen, Gerechtigkeit, Freundschaft + Operatoren, Glück, Tierethik; 8. Klasse:
-  Helfen Fremde/Familie, Anfang Reihe Strafe; Operatorentraining Jg. 7; Einzelnes) und UBs+Feedback/ (UB 5 nur als
-  anonymisierte Textfassung UB_5_Pohlmann.anonym.txt; nikomachischeeth00arisuoft.pdf, ein Scan, den pypdf nicht
-  liest). Aufgeräumt nach Jans Auftrag: Schülerdaten gelöscht (Einzelbewertungen, Noten-, Mitarbeits-, Material-
-  listen, Sitzplan, Gruppenlisten, UB-PDF), dazu die Zip-Kopie, Sperrdateien und PDFs, deren Text zu mind. 85 %
-  einer docx/pptx gleichen Namens entspricht (docx/pptx behalten). Stand: 201 Dateien, 180 MB. Vornamen in
+  Helfen Fremde/Familie, Anfang Reihe Strafe; Operatorentraining Jg. 7; Einzelnes) und UBs+Feedback/
+  (Feedbacks der Seminarleitungen, Aristoteles Nikomachische Ethik als PDF mit Text, Entwürfe UE 1–3, UB 4, UB 5
+  und Kurzentwurf 7.15 nur als anonymisierte Textfassungen *.anonym.txt). Aufgeräumt nach Jans Auftrag:
+  Schülerdaten gelöscht (Einzelbewertungen, Noten-, Mitarbeits-, Materiallisten, Sitzpläne, Gruppenlisten,
+  Original-Entwürfe mit Lerngruppenanalyse), dazu die Zip-Kopie, Vorfassungen, Sperrdateien und PDFs, deren Text zu
+  mind. 85 % einer docx/pptx gleichen Namens entspricht (docx/pptx behalten). Stand: 211 lesbare Dateien. Vornamen in
   Fallbeispielen (z. B. Yagmur, Berat) sind geblieben. Noch offen und erst nach Jans Okay: Wie der Agent das
   Wissen nutzt (auswählen, kürzen, in den Prompt oder als Dateien zum Lesen). Schülerdaten gehören nicht hierher.
 - Quellen: Lia möchte Dokumente als Quellen hinzufügen. Bei der Wahl zweier gegensätzlicher Positionen soll die

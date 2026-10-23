@@ -4,6 +4,7 @@ Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal
 - portal-material: Material auf Zuruf (material.py, Skill einzelmaterial). Lia bekommt die docx- oder
   pptx-Datei mit Begleittext. Scheitert es, erfährt Jan die Ursache als Meldung in seiner Zentrale.
   Lias laufende Reihen (reihen.toml) gehen mit; ist die Datei fehlerhaft, läuft er ohne sie und Jan erfährt es.
+  Ebenso der Katalog von Lias früherem Material (data/wissen/katalog.md, wissen.py), falls vorhanden.
 - alles andere: Platzhalter, bestätigt mit "kommt bald", ohne Claude.
 """
 
@@ -13,6 +14,7 @@ from pathlib import Path
 import material
 import reihen
 import renderer
+import wissen
 from agentkit import auftraege, claude_lauf, config, log, meldungen, verbrauch
 
 AGENT = "unterricht"
@@ -63,7 +65,7 @@ def claude_laufen(auftrag_id: str):
 def material_auftrag(a: dict, bearbeiten=material.bearbeiten) -> None:
     try:
         f = bearbeiten(a, HIER, profil_laden(), laufen=claude_laufen(a["id"]), bauen=renderer.bauen,
-                       reihen=reihen_laden())
+                       reihen=reihen_laden(), katalog=wissen.katalog_laden(HIER / "data" / "wissen" / "katalog.md"))
     except claude_lauf.LimitErreicht as e:
         logger.warning("Auftrag %s: %s", a["id"], e)
         auftraege.abschliessen(a["id"], LIMIT.format(zeit=verbrauch.zeit_text(e.reset)),

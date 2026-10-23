@@ -101,6 +101,14 @@ class AgentTest(unittest.TestCase):
         with mock.patch.object(agent.material_auftrag, "__defaults__", (bearbeiten,)):
             agent.auftraege_abarbeiten()
         self.assertEqual(bearbeiten.call_args.kwargs["reihen"], [{"klasse": 8, "reihenfrage": "Helfen?"}])
+        self.assertEqual(bearbeiten.call_args.kwargs["katalog"], "")  # kein Katalog in self.hier
+        k = self.hier / "data" / "wissen" / "katalog.md"
+        k.parent.mkdir(parents=True)
+        k.write_text("### Ethik 7\n", encoding="utf-8")
+        auftraege.neuer_auftrag("unterricht", "Blatt 2", quelle="portal-material")
+        with mock.patch.object(agent.material_auftrag, "__defaults__", (bearbeiten,)):
+            agent.auftraege_abarbeiten()
+        self.assertEqual(bearbeiten.call_args.kwargs["katalog"], "### Ethik 7\n")
 
     def test_profil(self):
         profil = agent.profil_laden()
