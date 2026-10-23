@@ -98,9 +98,10 @@ B2. Entwicklungsverlauf (verlauf.py, Jan 23.10., Lia einverstanden): data/wissen
    Kriterien): 1,82 USD, 664.918 Tokens. Inhalt: Zeitleiste, 12 Kriterien x 6 Entwürfe (–/o/+ mit Beleg), Kritik
    und was daraus wurde, Richtung je Kriterium, Vermutung (ausdrücklich keine Prognose), Folgen für den Agenten,
    Grenzen. Unsicher: Datum UB 5 (Kopf 18.05.2026, vermutlich Sept. 2026), Kurzentwurf ohne Datum, einige
-   Rückmeldungen nur über den Dateinamen zugeordnet. Geht noch NICHT in die Läufe: erst Lia zeigen; einzelne
-   „Folgen für den Agenten“ danach mit Jans Okay in leitfaden.md übernehmen. Achtung: dort steht als laufende
-   Reihe noch Helfen (Stand der Quellen), aktuell ist Strafe (reihen.toml).
+   Rückmeldungen nur über den Dateinamen zugeordnet. Die Datei selbst geht nicht in die Läufe. Ihre „Folgen für
+   den Agenten“ 2–5 hat Jan am 23.10. als Abschnitt 7 in leitfaden.md übernommen; Punkt 1 nicht (nannte noch
+   Helfen als laufende Reihe). Offen mit Lia: Belege mit Werk und Stelle aufs Blatt oder in den Begleittext
+   (Regelvorschlag 3 sagt Begleittext, noch nicht freigegeben).
 C. Feste Beispielsammlung je Materialtyp im Skill (Architektur 2.5 beispiele/), Lia oder Jan wählt mit aus.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.

@@ -1,6 +1,7 @@
 # So unterrichtet Lia
 
-Freigegeben von Jan am 23.10.2026 (Entwurf aus leitfaden.py, Quellen in data/wissen/). Änderungen nur mit Jans Okay.
+Freigegeben von Jan am 23.10.2026 (Entwurf aus leitfaden.py, Quellen in data/wissen/; Abschnitt 7 aus dem
+Entwicklungsverlauf verlauf.py, ebenfalls 23.10.). Änderungen nur mit Jans Okay.
 
 Quellen sind Dateinamen ohne Personennamen. Die heutige 8. Klasse ist die frühere 7.15 (UB_5).
 
@@ -69,3 +70,10 @@ Quellen sind Dateinamen ohne Personennamen. Die heutige 8. Klasse ist die frühe
 - Unlesbare Sicherung, zu viel Tafelanschrieb (Feedback_UB5, Feedback_Mentor_Freundschaft).
 - Einstieg nicht kontrovers genug, Arbeitsblatt lenkt zu stark (Feedback_Mentor_Freundschaft).
 - Ziele zu groß, Niveau zu hoch (Fachseminar_Ethik_Notizen, Feedback_1.UB).
+
+## 7. Lias heutiger Stand (aus dem Entwicklungsverlauf, neuester Entwurf UB_5)
+
+- Aufbau einer Stunde: Fall → Merksatz → schrittweise Fragen mit Operatoren → BBB-Argument → vorstrukturierte Tabelle. Kein Lückentext als Erarbeitung. Merksätze als eigene Vereinfachung kennzeichnen, Aussagen über Philosoph*innen mit Werk und Stelle belegen (entwicklung).
+- Differenzierung über die Schwierigkeit des Falls bzw. die Zuteilung der Position, Hilfen zum Umknicken, Satzanfänge, die man später weglassen kann. Für Stärkere eine fordernde Aufgabe, etwa ein kurzes Streitgespräch mit beiden Positionen (entwicklung).
+- Impulse für das Plenum mitliefern (Murmelrunde, Gegenposition einnehmen, „Hat sich euer Blick auf den Fall verändert?“). Grenzen der Position als eigene Aufgabe einplanen, nicht nur als Reserve (entwicklung).
+- Immer dazu: Rubrik Sprachbildung (Begriff, Definition, Beispielsatz), Erwartungshorizont und eine Sicherung durch die Klasse mit Beobachtungsaufträgen (entwicklung).
