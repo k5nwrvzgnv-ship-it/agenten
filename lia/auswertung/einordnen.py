@@ -68,6 +68,7 @@ Ein Ausschnitt kann mitten in einem Chat beginnen oder enden; das steht in seine
 
 Teile jeden Ausschnitt lückenlos in Aufgaben ein (jede Runde gehört zu genau einer Aufgabe) und fülle
 für jede Aufgabe die Felder aus dem Schema. Zusätzlich das Feld "chat" (die 8 Zeichen aus der Überschrift).
+Korrekturen stehen nur in LIA-Zeilen. Wenn Claude sich selbst korrigiert, ist das keine Korrektur.
 
 Antworte NUR mit einem JSON-Array von Objekten, ohne Text davor oder danach, ohne Codeblock.
 

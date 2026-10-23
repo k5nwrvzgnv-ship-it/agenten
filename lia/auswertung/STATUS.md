@@ -56,9 +56,31 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   Haiku ca. 0,05–0,10 USD, Sonnet ca. 1–1,50 USD, Opus ca. 2–3 USD (Pro-Abo: nur Kontingent, kein Geld).
   Kontrolle: 30 Aufgaben zusätzlich mit Sonnet einordnen und vergleichen, ca. 0,20 USD.
   Jan 23.10.: Sonnet (art routine), kein Warten auf Haiku.
-  Schema: schema.md (aus 9 Chats, ca. 230 Runden, in diesem Chat abgeleitet), wartet auf Jans Okay.
+  Schema: schema.md (aus 9 Chats, ca. 230 Runden, in diesem Chat abgeleitet), von Jan bestätigt.
   9 Kategorien, Felder je Aufgabe, 9 Arten von Korrekturen. Geht wörtlich in den Prompt.
   Hindernis: claude_lauf wählt Haiku nur in der Stufe sparen (art routine = Sonnet). Bedarf in Haupt-STATUS.
+
+- Schritt 6 erledigt (23.10.): 11 Pakete mit Sonnet eingeordnet (12 Läufe, eine Nachbesserung, 2,54 USD,
+  ca. 557.000 Tokens, 5h-Auslastung 32 % -> 42 %). Schätzung war 1–1,50 USD: je Lauf fielen ~2x so viele Tokens an
+  (Grundlast und Ausgabe). 245 Aufgaben nach Zusammenführen, alle Antworten gültig. Ergebnisse in data/ergebnis/:
+  aufgaben.json, kategorien.json (Kennzahlen), korrekturen.json (284 Korrekturen von Lia mit Zitat).
+
+  | Kategorie | Aufg. | Runden | Median | Korr. | automatisierbar hoch/mittel/gering |
+  |---|---|---|---|---|---|
+  | material | 80 | 395 | 3 | 148 | 33/36/11 |
+  | planung | 47 | 239 | 4 | 46 | 2/15/30 |
+  | fachklaerung | 37 | 150 | 3 | 11 | 19/15/3 |
+  | eigener_text | 28 | 89 | 2 | 25 | 8/20/0 |
+  | auswahl | 24 | 134 | 4,5 | 34 | 13/3/8 |
+  | bewertung | 13 | 87 | 5 | 17 | 7/4/2 |
+  | verwaltung | 9 | 25 | 2 | 0 | 5/3/1 |
+  | sonstiges | 5 | 19 | 3 | 2 | 2/3/0 |
+  | kommunikation | 2 | 4 | 2 | 1 | 2/0/0 |
+
+  Häufigste Korrekturen bei material: form 38, fachlich 20, umfang 19, niveau 17, missverstanden 15,
+  anwendbarkeit 14, stil 12. Bei planung: fachlich 14, missverstanden 13, anwendbarkeit 9.
+  Fächer: Ethik deutlich vor DS. Belastung (Frust, Zeitdruck) in 31 Aufgaben, am häufigsten bei planung (9).
+  Stichprobe der Korrekturen plausibel, Zuordnung der Art teils strittig (wird in Schritt 8 mit Lia geprüft).
 
 ## Aufbau
 - Einstieg: auswertung.py (`.venv/bin/python auswertung.py <befehl>`, Befehle im Kopf der Datei).
@@ -66,6 +88,7 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
 - export.py: ZIP sicher entpacken (keine Pfade nach oben, keine Symlinks, höchstens 2 GB), Strukturbericht
   ohne Inhalte, Verzweigungen über parent_message_uuid.
 - schema.md: Kategorien und Felder für die Einordnung (keine personenbezogenen Daten).
+- einordnen.py: Pakete, Prompt, Prüfung, Zusammenführen. statistik.py: Kennzahlen, Korrekturliste.
 - verlauf.py: hauptpfad(), runden(), kompakt(), tokens_geschaetzt().
 - anonym.py: aufbereiten() und Ersetzer (Namensliste + Muster), reste() für die Restsuche.
 - auswahl.py: Chatliste data/chatliste.tsv mit Spalte wer (Lia/Jan/privat/leer/unklar), bestaetigte_lia()
@@ -101,5 +124,8 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Schritt 6: Jan bestätigt schema.md, dann Einordnung mit Sonnet (Prompt, Läufe, Prüfung der Antworten).
+1. Schritt 7 (Rangliste, Beispiele, Prüfsatz, Regelvorschläge) nach Jans Okay.
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
+
+## Gelernte Regeln
+- (noch keine)

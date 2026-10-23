@@ -8,6 +8,7 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
   filtern <projekt-uuid>…  bestätigte Chats und diese Projekte nach data/lia/, übrige Chats und Projekte löschen
   anonymisieren    data/lia/chats.json aufbereiten, Namen aus data/namen.json ersetzen -> data/lia/anonym.json
   einordnen [n]    Aufgaben einteilen und einordnen lassen (Sonnet), nur die ersten n Pakete -> data/einordnung/
+  statistik        Pakete zusammenführen, Kennzahlen je Kategorie und Korrekturen -> data/ergebnis/
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -22,6 +23,7 @@ import anonym
 import auswahl
 import einordnen
 import export
+import statistik
 
 HIER = ablage.HIER
 EXPORT = ablage.DATEN / "export"
@@ -76,6 +78,8 @@ def main(argumente: list[str]) -> int:
     if befehl == "einordnen":
         nur = int(argumente[1]) if len(argumente) > 1 else None
         return einordnen_befehl(nur)
+    if befehl == "statistik":
+        return statistik_befehl()
     if befehl == "filtern":
         return filtern_befehl(argumente[1:])
     if befehl:
@@ -156,6 +160,30 @@ def einordnen_befehl(nur: int | None) -> int:
         print(f"Paket {i}/{len(pakete)}: {len(aufgaben)} Aufgaben, {len(fehler)} Fehler, {usd:.2f} USD")
     print(f"Fertig, {gesamt_usd:.2f} USD in diesem Aufruf.")
     return 0
+
+
+def statistik_befehl() -> int:
+    """Pakete zusammenführen, Kennzahlen je Kategorie und Korrekturen nach data/ergebnis/."""
+    aufgaben, grenzen, offen = [], {}, []
+    for datei in sorted((ablage.DATEN / "einordnung").glob("paket-*.json")):
+        p = json.loads(datei.read_text(encoding="utf-8"))
+        if p["fehler"]:
+            offen.append(datei.name)
+        aufgaben += p["aufgaben"]
+        for t in p["ausschnitte"]:
+            if t["bis"] < t["runden"]:
+                grenzen.setdefault(t["chat"], set()).add(t["bis"])
+    aufgaben = einordnen.zusammenfuehren(aufgaben, grenzen)
+    ziel = ablage.datenordner(ablage.DATEN / "ergebnis")
+    kennzahlen = statistik.je_kategorie(aufgaben)
+    for name, inhalt in (("aufgaben", aufgaben), ("kategorien", kennzahlen),
+                         ("korrekturen", statistik.korrekturen(aufgaben))):
+        ablage.schreiben(ziel / f"{name}.json", json.dumps(inhalt, ensure_ascii=False, indent=1))
+    print(f"{len(aufgaben)} Aufgaben, Pakete mit Fehlern: {offen or 'keine'}")
+    for kat, k in kennzahlen.items():
+        print(f"{kat:14} {k['aufgaben']:3} Aufgaben, {k['runden_summe']:4} Runden, Median {k['runden_median']}, "
+              f"{k['korrekturen_summe']:3} Korrekturen, auto {k['automatisierbar']}")
+    return 1 if offen else 0
 
 
 if __name__ == "__main__":
