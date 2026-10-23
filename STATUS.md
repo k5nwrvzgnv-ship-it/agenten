@@ -152,6 +152,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      - Renderer: Der Vorschau-Ordner behält Bilder eines früheren Baus (4. Seite blieb nach Neubau mit 3 Seiten
        liegen). ergebnis.bilder stimmt, nur der Ordner verwirrt.
      - Antwort auf ein Ergebnis in Lias Zentrale (Änderungswunsch in derselben Sitzung) fehlt noch.
+     - (23.10.) Reihenkontext: lia/unterricht liest lia/unterricht/reihen.toml (Lias laufende Reihen) bei
+       jedem Lauf. Heute pflegt Jan sie von Hand. Später ein Knopf „Meine Reihen“ in Lias Zentrale
+       (ansehen, Reihe anlegen, Behandeltes nachtragen); erst bauen, wenn sich der Kontext bewährt.
      Chat-Aufteilung ein Chat pro Ordner, siehe CLAUDE.md (21.10.).
    - Werkzeug lia/auswertung (23.10., Chat in lia/): Auswertung von Lias claude.ai-Chats, von Hand gestartet,
      kein Dienst. Gerüst fertig, Plan und Stand in lia/auswertung/STATUS.md. Vorschlag an den Hauptordner-Chat:
