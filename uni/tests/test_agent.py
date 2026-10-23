@@ -232,3 +232,77 @@ class TestMaterialMeldung(unittest.TestCase):
             text = agent.material_meldung("Kurs A", ["a.pdf"], laufen=laufen)
             self.assertIn("Keine Einordnung", text)
             self.assertTrue(text.endswith("Dateien:\n- a.pdf"))
+
+
+class TestMailEntwuerfe(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.hier = Path(self._tmp.name)
+        self.patch = mock.patch.object(agent, "HIER", self.hier)
+        self.patch.start()
+        self.angelegt = []
+
+    def tearDown(self):
+        self.patch.stop()
+        self._tmp.cleanup()
+
+    def neuer_entwurf(self, agent_name, **kw):
+        self.angelegt.append(kw)
+        return f"e{len(self.angelegt)}"
+
+    def schreiben(self, schluessel, name, inhalt):
+        ordner = agent.entwurf_ordner(schluessel)
+        ordner.mkdir(parents=True, exist_ok=True)
+        (ordner / name).write_text(inhalt if isinstance(inhalt, str) else json.dumps(inhalt))
+        return ordner
+
+    def test_einreichen_einmal_und_ungueltige(self):
+        ordner = self.schreiben("a1", "mail_1.json", {"an": ["a@hnee.de"], "betreff": "B", "text": "T"})
+        self.schreiben("a1", "mail_2.json", {"an": ["kaputt"], "betreff": "B", "text": "T"})
+        self.schreiben("a1", "mail_3.json", "{kein json")
+        zeilen = agent.entwuerfe_einreichen("a1", neuer_entwurf=self.neuer_entwurf)
+        self.assertEqual(len(self.angelegt), 1)
+        self.assertEqual(self.angelegt[0]["typ"], "mail")
+        self.assertIn("An: a@hnee.de", self.angelegt[0]["inhalt"])
+        self.assertEqual(zeilen[0], "Mail-Entwurf an a@hnee.de liegt zur Freigabe: B")
+        self.assertEqual(sum("nicht vorgelegt" in z for z in zeilen), 2)
+        self.assertEqual(agent.entwuerfe_einreichen("a1", neuer_entwurf=self.neuer_entwurf), [])
+        self.assertTrue((ordner / "mail_1.eingereicht").exists())
+
+    def test_hinweis_nennt_ordner(self):
+        self.assertIn("data/entwuerfe/post-1/mail_1.json", agent.entwurf_hinweis("post-1"))
+
+    def test_aendern_mit_regel(self):
+        alt = {"id": "20261024-000000-uni-aaaaaa", "typ": "mail",
+               "daten": {"an": ["a@hnee.de"], "cc": [], "betreff": "B", "text": "Hi", "in_reply_to": "<x@y>",
+                         "references": "<x@y>", "antwort_auf": "A: B"}}
+        auftrag = {"id": "20261024-000100-uni-bbbbbb", "text": "förmlicher, mit Sie", "bezug": alt["id"],
+                   "quelle": "telegram-aendern"}
+        prompts = []
+
+        def claude(agent_name, hier, prompt, **kw):
+            prompts.append(prompt)
+            self.schreiben(auftrag["id"], "mail_1.json", {"an": ["a@hnee.de"], "betreff": "B", "text": "Guten Tag"})
+            self.schreiben(auftrag["id"], "regel.json", {"regel": "Lehrende siezen", "anlass": "Kommentar"})
+            return Ergebnis("Förmlicher formuliert.", "s", True)
+
+        with mock.patch.object(agent.freigabe, "neuer_entwurf", self.neuer_entwurf), \
+             mock.patch.object(agent.regeln, "regel_vorschlagen") as regel, \
+             mock.patch.object(agent.auftraege, "abschliessen") as abschliessen:
+            agent.aenderung_bearbeiten(auftrag, laufen=claude, holen={alt["id"]: alt}.get)
+        self.assertIn("förmlicher, mit Sie", prompts[0])
+        self.assertIn('"text": "Hi"', prompts[0])
+        self.assertEqual(self.angelegt[0]["vorgaenger"], alt["id"])
+        self.assertEqual(self.angelegt[0]["daten"]["in_reply_to"], "<x@y>")
+        regel.assert_called_once_with(agent.AGENT, "Lehrende siezen", "Kommentar")
+        self.assertIn("Regelvorschlag zur Freigabe", abschliessen.call_args.args[1])
+
+    def test_aendern_nur_bei_mail(self):
+        with mock.patch.object(agent.auftraege, "abschliessen") as abschliessen:
+            agent.aenderung_bearbeiten({"id": "x", "text": "k", "bezug": "e"}, holen=lambda e: None)
+        self.assertEqual(abschliessen.call_args.kwargs["status"], "fehlgeschlagen")
+
+    def test_ausfuehren_sendet_freigegebene_daten(self):
+        with mock.patch.object(agent.mail, "senden", return_value="gesendet") as senden:
+            self.assertEqual(agent.ausfuehren({"typ": "mail", "daten": {"an": ["a@hnee.de"]}}), "gesendet")
+        senden.assert_called_once_with(agent.cfg, {"an": ["a@hnee.de"]})

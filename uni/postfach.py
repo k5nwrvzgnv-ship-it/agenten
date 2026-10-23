@@ -1,4 +1,4 @@
-"""Unipostfach (Exchange der HNEE) per IMAP lesen. Nur lesend.
+"""Unipostfach (Exchange der HNEE) per IMAP lesen. Nur lesend (Senden: mail.py, nur nach Freigabe).
 
 Der Posteingang wird mit readonly geöffnet und Mails werden mit BODY.PEEK geholt,
 damit nichts als gelesen markiert wird.
@@ -50,6 +50,9 @@ def zerlege(uid: int, roh: bytes) -> dict:
     return {
         "uid": uid,
         "von": _dekodiere(n["From"]),
+        "antwort_an": email.utils.parseaddr(_dekodiere(n["Reply-To"] or n["From"]))[1],
+        "message_id": (n["Message-ID"] or "").strip(),
+        "references": " ".join((n["References"] or "").split()),
         "betreff": _dekodiere(n["Subject"]),
         "datum": datum.isoformat() if datum else "",
         "text": _text(n),
