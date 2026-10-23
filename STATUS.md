@@ -169,6 +169,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      - Änderungswünsche zu einem Ergebnis (unterricht offener Punkt 2) sind der Normalfall (Median 3 Runden).
      - Profil für Darstellendes Spiel ergänzen (Theatermaterial, Stücke zusammenfassen).
      - Prüfsatz für Schritt 8: lia/auswertung/data/ergebnis/pruefsatz.json (22 Aufträge, anonymisiert, nur lesen).
+       Auftrag an den unterricht-Chat (Schritt 8, Blindvergleich): P01–P17 mit material.bearbeiten laufen lassen
+       (ohne Warteschlange, Lia bekommt nichts), Auftrag aus auftrag + kontext ausformulieren, Textfassung je Ergebnis
+       nach lia/unterricht/data/pruefung/P01.txt usw. Kosten vorher schätzen (Material ~0,60 USD je Auftrag mit Opus,
+       17 Aufträge also ~10 USD Kontingent). Danach in lia/auswertung: auswertung.py vergleichsbogen <ordner>.
      - 11 Regelvorschläge in lia/auswertung/STATUS.md, warten auf Freigabe.
      - Bewertung (Bögen, Noten, Mitarbeit) wäre ein eigener Agent, erst nach Klärung Schülerdaten (lia-architektur Abschnitt 0).
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen

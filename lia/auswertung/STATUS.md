@@ -127,6 +127,33 @@ Theater, P18–P20 Fachfragen, P21–P22 Bewertung. Je Eintrag: auftrag, kontext
 anhaenge (nur Namen, Inhalte sind nicht im Export), kriterien (Lias Korrekturen), altes_ergebnis.
 Grenze: Aufträge mitten im Chat brauchen den Kontext; vor dem Lauf zu einem vollständigen Auftrag umschreiben.
 
+## Schritt 8: Prüfung durch Lia (vorbereitet 23.10.2026)
+pruefung.py, Befehle in auswertung.py. Bögen sind einzelne HTML-Dateien ohne Netz: Lia öffnet sie im Browser
+(Handy oder Rechner), tippt die Antworten an, „Antworten speichern“ lädt eine CSV herunter, die sie Jan schickt.
+Geprüft: Skript mit node --check und Attrappe, Ablauf mit Platzhaltertexten durchgespielt (danach gelöscht).
+
+A. Kodierung (fertig zum Versand): data/pruefung/kodierbogen.html, 25 Aufgaben (jede Kategorie mindestens
+   einmal, höchstens 12 Runden, fester Seed), Stichprobe in data/pruefung/kodier_stichprobe.json. Lia sieht nur den
+   Chatausschnitt (Claudes Antworten auf 700 Zeichen gekürzt), nicht Claudes Einordnung. Sie wählt Kategorie,
+   Ergebnis, Automatisierbarkeit, Zahl und Art der Korrekturen. Dauer geschätzt 45–60 Minuten.
+   Die Aufgabengrenzen sind vorgegeben, die Zerlegung selbst wird nicht geprüft.
+   Auswertung: `auswertung.py kodierung <csv>` -> Anteil gleich und Cohens Kappa je Feld, Korrekturzahl
+   (gleich, höchstens 1 daneben), Überlappung der Korrekturarten, Liste der abweichenden Kategorien.
+   Faustregel: Kappa ab 0,6 brauchbar; darunter Schema schärfen, bevor die Rangliste gilt.
+B. Blindvergleich (wartet auf den unterricht-Chat):
+   1. Der unterricht-Chat lässt lia/unterricht die Prüfsatz-Aufträge P01–P17 (Material) bearbeiten, je als eigener
+      Auftrag mit dem Kontext ausformuliert, ohne Lia etwas zu schicken. P18–P20 (Fachfragen) erst, wenn es „Frage
+      stellen“ gibt; P21–P22 (Bewertung) entfallen, dafür gibt es keinen Agenten.
+   2. Er legt die Textfassung jedes Ergebnisses ab als lia/unterricht/data/pruefung/P01.txt usw. (agentkit.textfassung).
+   3. `auswertung.py vergleichsbogen /home/agent/agenten/lia/unterricht/data/pruefung` baut den Bogen: je Auftrag
+      A und B in zufälliger Reihenfolge, beide als Text ohne Markdown und ohne claude.ai-Reste angeglichen. Schlüssel
+      in data/pruefung/vergleich_schluessel.json (Lia bekommt ihn nicht).
+   4. Lia bewertet je Paar: besser (A/B/gleich), so verwendbar (ja/mit Änderungen/nein) je Fassung, welche ihrer
+      früheren Wünsche (Kriterien aus den Korrekturen) jede Fassung erfüllt.
+   5. `auswertung.py vergleich <csv>` -> wie oft neu besser, Verwendbarkeit, Anteil erfüllter Kriterien alt/neu.
+   Grenze: Das alte Ergebnis ist Lias Endstand nach ihren Korrekturen, das neue ein erster Versuch. Ziel ist,
+   dass neu mindestens gleichauf liegt; ein Rückstand zeigt, wo Regeln und Reihenkontext fehlen.
+
 ## Regelvorschläge (aus 284 Korrekturen, noch nicht freigegeben)
 Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterricht/STATUS.md eintragen.
 1. Was einem Philosophen zugeschrieben wird, braucht einen Beleg (Werk, Stelle). Eigene didaktische Vereinfachung
@@ -155,6 +182,7 @@ Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterri
 - export.py: ZIP sicher entpacken (keine Pfade nach oben, keine Symlinks, höchstens 2 GB), Strukturbericht
   ohne Inhalte, Verzweigungen über parent_message_uuid.
 - schema.md: Kategorien und Felder für die Einordnung (keine personenbezogenen Daten).
+- pruefung.py: Stichprobe, HTML-Bögen, Übereinstimmung (Kappa), Blindvergleich.
 - rangliste.py: Aufgabentypen und Rangliste. pruefsatz.py: Prüfsatz.
 - einordnen.py: Pakete, Prompt, Prüfung, Zusammenführen. statistik.py: Kennzahlen, Korrekturliste.
 - verlauf.py: hauptpfad(), runden(), kompakt(), tokens_geschaetzt().
@@ -193,7 +221,10 @@ Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterri
 
 ## Offene Punkte
 1. Jan/Lia entscheiden über die Regelvorschläge (einzeln).
-2. Schritt 8 (Prüfung durch Lia) nach Jans Okay.
+2. Schritt 8: Jan schickt Lia data/pruefung/kodierbogen.html; ihre CSV mit `kodierung` auswerten.
+3. Blindvergleich: wartet auf die Läufe des unterricht-Chats (Bedarf in Haupt-STATUS).
+4. Löschung der Rohdaten nach Schritt 8, spätestens 31.12.2026: data/lia/chats.json, data/namen.json,
+   data/lia/zuordnung.json, data/export/ (users.json), data/chatliste.tsv. Danach nur Anonymisiertes.
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
 
 ## Gelernte Regeln

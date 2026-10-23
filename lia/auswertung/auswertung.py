@@ -10,6 +10,10 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
   einordnen [n]    Aufgaben einteilen und einordnen lassen (Sonnet), nur die ersten n Pakete -> data/einordnung/
   statistik        Pakete zusammenführen, Kennzahlen je Kategorie und Korrekturen -> data/ergebnis/
   ergebnisse       Rangliste, Beispiele je Typ, Prüfsatz -> data/ergebnis/
+  kodierbogen [n]  Bogen für Lia mit n Aufgaben (Standard 25) -> data/pruefung/kodierbogen.html
+  kodierung <csv>  Lias Antworten mit Claudes Einordnung vergleichen
+  vergleichsbogen <ordner>  Blindvergleich aus <ordner>/P01.txt … (neue Ergebnisse von lia/unterricht)
+  vergleich <csv>  Lias Blindvergleich auswerten
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -25,6 +29,7 @@ import auswahl
 import einordnen
 import export
 import pruefsatz
+import pruefung
 import rangliste
 import statistik
 
@@ -85,6 +90,8 @@ def main(argumente: list[str]) -> int:
         return statistik_befehl()
     if befehl == "ergebnisse":
         return ergebnisse_befehl()
+    if befehl in ("kodierbogen", "kodierung", "vergleichsbogen", "vergleich"):
+        return pruefung_befehl(befehl, argumente[1:])
     if befehl == "filtern":
         return filtern_befehl(argumente[1:])
     if befehl:
@@ -217,6 +224,59 @@ def ergebnisse_befehl() -> int:
     ablage.schreiben(ziel / "pruefsatz.json", json.dumps(satz, ensure_ascii=False, indent=1))
     print(f"Rangliste ({len(liste)} Typen), Beispiele, Prüfsatz ({len(satz)} Aufträge) in {ziel}")
     return 0
+
+
+KODIER_EINLEITUNG = ("Hier stehen Ausschnitte aus deinen Chats mit Claude, Namen sind ersetzt. Lies jeden Ausschnitt "
+                     "und beantworte die Fragen so, wie du die Aufgabe selbst siehst. Es gibt kein Richtig oder Falsch. "
+                     "Am Ende auf „Antworten speichern“ tippen und die Datei an Jan schicken.")
+VERGLEICH_EINLEITUNG = ("Zu jedem deiner früheren Aufträge gibt es zwei Fassungen, A und B. Eine ist dein damaliges "
+                        "Ergebnis, die andere hat dein Agent neu erstellt. Welche welche ist, verrät der Bogen nicht. "
+                        "Bewerte sie so, als würdest du sie morgen im Unterricht einsetzen. Am Ende „Antworten "
+                        "speichern“ und die Datei an Jan schicken.")
+
+
+def pruefung_befehl(befehl: str, argumente: list[str]) -> int:
+    """Schritt 8: Kodierbogen und Blindvergleich erzeugen und auswerten (alles in data/pruefung/)."""
+    ziel = ablage.datenordner(ablage.DATEN / "pruefung")
+    ergebnis = ablage.DATEN / "ergebnis"
+    if befehl == "kodierbogen":
+        aufgaben = json.loads((ergebnis / "aufgaben.json").read_text(encoding="utf-8"))
+        chats = {c["uuid"][:8]: c for c in json.loads((LIA / "anonym.json").read_text(encoding="utf-8"))}
+        auswahl = pruefung.stichprobe(aufgaben, anzahl=int(argumente[0]) if argumente else 25)
+        ablage.schreiben(ziel / "kodier_stichprobe.json", json.dumps(auswahl, ensure_ascii=False, indent=1))
+        bogen = pruefung.formular_html("Deine Aufgaben einordnen", KODIER_EINLEITUNG,
+                                       pruefung.kodier_eintraege(chats, auswahl), "kodierung-lia.csv")
+        ablage.schreiben(ziel / "kodierbogen.html", bogen)
+        print(f"{ziel / 'kodierbogen.html'}: {len(auswahl)} Aufgaben, Kategorien "
+              f"{dict(Counter(a['kategorie'] for a in auswahl))}")
+        return 0
+    if befehl == "kodierung" and argumente:
+        auswahl = json.loads((ziel / "kodier_stichprobe.json").read_text(encoding="utf-8"))
+        antworten = pruefung.lies_antworten(Path(argumente[0]).read_text(encoding="utf-8"))
+        u = pruefung.uebereinstimmung(auswahl, antworten)
+        ablage.schreiben(ziel / "uebereinstimmung.json", json.dumps(u, ensure_ascii=False, indent=1))
+        print(json.dumps(u, ensure_ascii=False, indent=1))
+        return 0
+    if befehl == "vergleichsbogen" and argumente:
+        satz = json.loads((ergebnis / "pruefsatz.json").read_text(encoding="utf-8"))
+        neu = {p.stem: p.read_text(encoding="utf-8") for p in Path(argumente[0]).glob("P*.txt")}
+        eintraege, schluessel = pruefung.paare(satz, neu)
+        ablage.schreiben(ziel / "vergleich_schluessel.json", json.dumps(schluessel, indent=1))
+        ablage.schreiben(ziel / "vergleichsbogen.html", pruefung.formular_html(
+            "Alt oder neu?", VERGLEICH_EINLEITUNG, eintraege, "vergleich-lia.csv"))
+        print(f"{ziel / 'vergleichsbogen.html'}: {len(eintraege)} Paare, fehlend: "
+              f"{[e['id'] for e in satz if e['id'] not in neu]}")
+        return 0
+    if befehl == "vergleich" and argumente:
+        satz = json.loads((ergebnis / "pruefsatz.json").read_text(encoding="utf-8"))
+        schluessel = json.loads((ziel / "vergleich_schluessel.json").read_text(encoding="utf-8"))
+        antworten = pruefung.lies_antworten(Path(argumente[0]).read_text(encoding="utf-8"))
+        v = pruefung.vergleich_auswerten(antworten, schluessel, satz)
+        ablage.schreiben(ziel / "vergleich.json", json.dumps(v, ensure_ascii=False, indent=1))
+        print(json.dumps(v, ensure_ascii=False, indent=1))
+        return 0
+    print(__doc__)
+    return 1
 
 
 if __name__ == "__main__":
