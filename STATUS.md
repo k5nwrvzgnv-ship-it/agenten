@@ -148,7 +148,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      - portal_logik.ergebnis_text zeigt bei fehlgeschlagen nur FEHLGESCHLAGEN, das Ergebnis des Agenten
        (z. B. „Kontingent aufgebraucht, ab 14:00 noch einmal“) kommt bei Lia nicht an.
      - claude_lauf.GESCHUETZT schützt skills/**/SKILL.md nicht: Claude könnte den Skill eines Agenten mit Write
-       ändern. Vorschlag: "skills/**" ergänzen.
+       ändern. Vorschlag: "skills/**" ergänzen. (23.10.) Ebenso lia/unterricht/leitfaden.md (von Jan freigegeben,
+       geht in jeden Lauf): Vorschlag "leitfaden.md" ergänzen.
      - Renderer: Der Vorschau-Ordner behält Bilder eines früheren Baus (4. Seite blieb nach Neubau mit 3 Seiten
        liegen). ergebnis.bilder stimmt, nur der Ordner verwirrt.
      - Antwort auf ein Ergebnis in Lias Zentrale (Änderungswunsch in derselben Sitzung) fehlt noch.

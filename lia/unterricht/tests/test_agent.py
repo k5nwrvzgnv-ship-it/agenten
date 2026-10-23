@@ -109,6 +109,12 @@ class AgentTest(unittest.TestCase):
         with mock.patch.object(agent.material_auftrag, "__defaults__", (bearbeiten,)):
             agent.auftraege_abarbeiten()
         self.assertEqual(bearbeiten.call_args.kwargs["katalog"], "### Ethik 7\n")
+        self.assertEqual(bearbeiten.call_args.kwargs["leitfaden"], "")  # kein leitfaden.md in self.hier
+        (self.hier / "leitfaden.md").write_text("# L\n", encoding="utf-8")
+        auftraege.neuer_auftrag("unterricht", "Blatt 3", quelle="portal-material")
+        with mock.patch.object(agent.material_auftrag, "__defaults__", (bearbeiten,)):
+            agent.auftraege_abarbeiten()
+        self.assertEqual(bearbeiten.call_args.kwargs["leitfaden"], "# L\n")
 
     def test_profil(self):
         profil = agent.profil_laden()

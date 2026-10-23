@@ -3,12 +3,14 @@
 Claude liest Seminarnotizen, Kriterien, Reihen- und Stundenplanungen, die anonymisierten Entwürfe und die
 Rückmeldungen von Mentor und Seminarleitung (alles Textfassungen aus wissen.py) und schreibt einen kurzen
 Leitfaden nach data/wissen/leitfaden-entwurf.md. Jan liest ihn gegen; erst nach seinem Okay wird er nach
-leitfaden.md übernommen und geht in jeden Material-Lauf.
+leitfaden.md übernommen (laden, prompt_leitfaden)
+und geht in jeden Material-Lauf.
 
 Von Hand starten (kostet Kontingent, ca. 2–3 USD mit Opus): .venv/bin/python leitfaden.py
 Claude wird übergeben (laufen), damit die Logik ohne Netz testbar ist.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -76,6 +78,25 @@ keine Namen von Lehrkräften oder Seminarleitung (sag „Mentor“, „Seminarle
 ## Abgabe
 Schreibe den Leitfaden als Markdown mit Write nach {ziel_rel}. Schreibe keine anderen Dateien.
 Antworte danach in zwei bis drei Sätzen: was dir beim Lesen unklar blieb oder wo die Quellen dünn sind."""
+
+
+FREIGEGEBEN = HIER / "leitfaden.md"
+
+
+def laden(pfad: Path = FREIGEGEBEN) -> str:
+    """Freigegebener Leitfaden (im Repo), leer wenn es keinen gibt."""
+    return pfad.read_text(encoding="utf-8") if pfad.exists() else ""
+
+
+def prompt_leitfaden(text: str) -> str:
+    """Abschnitt für den Material-Prompt: Titel weg, Überschriften eine Ebene tiefer (der Prompt nutzt ##)."""
+    if not text.strip():
+        return ""
+    rumpf = re.sub(r"\A# .*\n", "", text.lstrip())
+    rumpf = re.sub(r"^(#{2,5}) ", lambda m: "#" + m.group(1) + " ", rumpf, flags=re.M)
+    return ("## So unterrichtet Lia (Leitfaden, von Jan freigegeben)\n"
+            "Richte Material danach aus. Lias Wunsch im Auftrag geht vor; die Quellen in Klammern musst du nicht "
+            "lesen.\n\n" + rumpf.strip() + "\n\n")
 
 
 def erstellen(laufen: Callable, eintraege: list[wissen.Eintrag], hier: Path = HIER, ziel: Path = ENTWURF) -> Fertig:

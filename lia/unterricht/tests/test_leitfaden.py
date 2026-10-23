@@ -80,5 +80,27 @@ class LeitfadenTest(unittest.TestCase):
             leitfaden.erstellen(FalscherClaude(None), EINTRAEGE, self.hier, self.ziel)
 
 
+class FreigegebenTest(unittest.TestCase):
+    def test_laden(self):
+        d = Path(tempfile.mkdtemp())
+        self.assertEqual(leitfaden.laden(d / "fehlt.md"), "")
+        (d / "l.md").write_text("# T\n", encoding="utf-8")
+        self.assertEqual(leitfaden.laden(d / "l.md"), "# T\n")
+
+    def test_mitgelieferter_leitfaden(self):
+        text = leitfaden.laden()
+        self.assertIn("## 3. Arbeitsblätter", text)
+        self.assertIn("Freigegeben von Jan", text)
+
+    def test_prompt_leitfaden(self):
+        self.assertEqual(leitfaden.prompt_leitfaden(""), "")
+        p = leitfaden.prompt_leitfaden("# So unterrichtet Lia\n\nVorwort\n\n## 1. Reihe\n- Regel (Quelle)\n### Unter\n")
+        self.assertTrue(p.startswith("## So unterrichtet Lia (Leitfaden, von Jan freigegeben)\n"))
+        self.assertIn("Lias Wunsch im Auftrag geht vor", p)
+        self.assertIn("Vorwort\n\n### 1. Reihe\n- Regel (Quelle)\n#### Unter", p)
+        self.assertNotIn("# So unterrichtet Lia\n", p)
+        self.assertTrue(p.endswith("\n\n"))
+
+
 if __name__ == "__main__":
     unittest.main()

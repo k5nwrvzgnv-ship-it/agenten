@@ -80,6 +80,7 @@ class MaterialTest(unittest.TestCase):
         self.assertIn("Kontrolltext", claude.prompts[1])
         self.assertNotIn("laufende Reihen", claude.prompts[0])
         self.assertNotIn("früheren Reihen", claude.prompts[0])
+        self.assertNotIn("So unterrichtet Lia", claude.prompts[0])
         self.assertIn("Handle nur nach derjenigen Maxime", claude.prompts[1])
         self.assertEqual(claude.sitzungen, [None, "s1"])
 
@@ -104,6 +105,18 @@ class MaterialTest(unittest.TestCase):
         self.assertIn("- data/wissen/text/AB_6_Kant.docx.txt | Arbeitsblatt | Kant", start)
         self.assertLess(start.index("## Lias laufende Reihen"), start.index("## Lias Material aus früheren Reihen"))
         self.assertLess(start.index("## Lias Material aus früheren Reihen"), start.index("Skill einzelmaterial"))
+
+    def test_leitfaden_im_startprompt(self):
+        claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
+        material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN,
+                            katalog="### Ethik 7\n- a.txt | Arbeitsblatt | x\n",
+                            leitfaden="# So unterrichtet Lia\n\n## 3. Arbeitsblätter\n- Kein Lückentext (Feedback_1.UB)\n")
+        start = claude.prompts[0]
+        self.assertIn("## So unterrichtet Lia (Leitfaden, von Jan freigegeben)", start)
+        self.assertIn("### 3. Arbeitsblätter\n- Kein Lückentext", start)
+        self.assertLess(start.index("## Lias Material aus früheren Reihen"), start.index("## So unterrichtet Lia"))
+        self.assertLess(start.index("## So unterrichtet Lia"), start.index("Skill einzelmaterial"))
+        self.assertNotIn("So unterrichtet Lia", claude.prompts[1])
 
     def test_fehler_gehen_an_claude_zurueck(self):
         falsch = dict(BLATT, farbe="rot")

@@ -36,7 +36,8 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Aufbereitung mit echtem LibreOffice geprüft, ein echter Claude-Lauf mit Anhang fehlt noch.
 
 ## Ablauf (material.py)
-1. Prompt = Lias Wunsch + laufende Reihen (reihen.toml) + Anhänge + Katalog (data/wissen/katalog.md) + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien aus
+1. Prompt = Lias Wunsch + laufende Reihen (reihen.toml) + Anhänge + Katalog (data/wissen/katalog.md) +
+   Leitfaden (leitfaden.md) + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien aus
    shared/renderer/FORMAT.md (zur Laufzeit gelesen, bleibt aktuell). Claude schreibt mit Write
    data/arbeit/<auftrag>/beschreibung.json.
 2. Python baut mit renderer.bauen (Profil profil.toml). Fehler (Datei fehlt, kein JSON, falsche art,
@@ -63,7 +64,9 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz (Warteschlangen, Regeln, .env dort)
 - Code: agent.py (Verteilung nach quelle, Fehler, Meldung an Jan), material.py (Ablauf, ohne Netz testbar),
-  reihen.py (Reihenkontext laden und prüfen, Prompt-Abschnitt), wissen.py (Textfassungen, Katalog, Prompt-Abschnitt)
+  reihen.py (Reihenkontext laden und prüfen, Prompt-Abschnitt), wissen.py (Textfassungen, Katalog, Prompt-Abschnitt),
+  leitfaden.py (Leitfaden-Entwurf per Claude, freigegebenen Leitfaden laden, Prompt-Abschnitt). leitfaden.md ist
+  für Claude noch nicht schreibgeschützt (Bedarf in Haupt-STATUS)
 - Wissen: data/wissen/eingang/ (Lias Dateien), text/ (Textfassungen), katalog.md, alles nicht im Repo.
   Nach neuen Dateien von Hand: .venv/bin/python wissen.py (liest nur Neues, entfernt Textfassungen gelöschter
   Quellen; ca. 2 min beim ersten Mal). Neue Dateien vorher auf Schülerdaten prüfen.
@@ -87,8 +90,9 @@ A. Katalog und Nachschlagen: gebaut und im echten Lauf geprüft 23.10. (Claude l
 B. Leitfaden „So unterrichtet Lia“ (leitfaden.py): Entwurf erzeugt 23.10. in data/wissen/leitfaden-entwurf.md
    (780 Wörter, 6 Abschnitte, jede Regel mit Quelle) aus 28 Quellen, ein Opus-Lauf: 3,16 USD, 2,73 Mio. Tokens
    (meist Cache-Lesen). Claude meldete: Quellen dünn zu Klasse 8 und zu Methoden, die nicht funktionieren; offen,
-   ob bei Strafe Kant oder von Liszt zuerst (Planung vs. Examens-Tipps). Wartet auf Jans Okay; danach nach
-   leitfaden.md (Repo) übernehmen und in jeden Material-Lauf einbauen. Verbraucht für A+B bisher ca. 4,20 USD.
+   ob bei Strafe Kant oder von Liszt zuerst (Planung vs. Examens-Tipps). Von Jan freigegeben 23.10., liegt als
+   leitfaden.md im Repo und geht in jeden Material-Lauf (nach dem Katalog, vor dem Skill). Noch kein echter Lauf
+   damit. Verbraucht für A+B bisher ca. 4,20 USD.
 C. Feste Beispielsammlung je Materialtyp im Skill (Architektur 2.5 beispiele/), Lia oder Jan wählt mit aus.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.

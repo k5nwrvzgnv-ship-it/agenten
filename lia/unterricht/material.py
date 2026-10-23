@@ -14,7 +14,7 @@ nicht öffnen kann. Bilder öffnet Claude direkt.
 
 Lias laufende Reihen (reihen.toml, reihen.py) stehen nach dem Wunsch im Prompt, damit Claude Klasse,
 Reihenfrage und schon Behandeltes kennt. Danach der Katalog von Lias früherem Material (wissen.py), aus dem
-Claude passende Beispiele mit Read liest.
+Claude passende Beispiele mit Read liest, und der von Jan freigegebene Leitfaden „So unterrichtet Lia“ (leitfaden.md).
 
 Claude und der Renderer werden übergeben (laufen, bauen), damit die Logik ohne Netz testbar ist.
 """
@@ -26,6 +26,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+import leitfaden as leitfaden_modul
 import reihen as reihen_modul
 import wissen as wissen_modul
 from agentkit import textfassung
@@ -149,13 +150,13 @@ def prompt_anhaenge(zeilen: list[str]) -> str:
 
 
 def prompt_start(wunsch: str, fach: str, rel: str, skill: str, format_text: str, anhaenge: str = "",
-                 reihen: str = "", wissen: str = "") -> str:
+                 reihen: str = "", wissen: str = "", leitfaden: str = "") -> str:
     return f"""Lia unterrichtet {fach} und wünscht sich Material. Ihr Wunsch:
 ---
 {wunsch}
 ---
 
-{reihen}{anhaenge}{wissen}{skill}
+{reihen}{anhaenge}{wissen}{leitfaden}{skill}
 
 ## So lieferst du das Material
 - Schreibe die Beschreibung als JSON mit dem Werkzeug Write in die Datei {rel}. Schreibe keine anderen Dateien.
@@ -204,9 +205,11 @@ def bearbeiten(
     vorschau: Callable = renderer_vorschau.vorschau,
     reihen: list[dict] | None = None,
     katalog: str = "",
+    leitfaden: str = "",
 ) -> Fertig:
     """Erstellt das Material zu einem Auftrag. laufen(prompt, sitzung) -> claude_lauf.Ergebnis,
-    bauen(beschreibung, ziel, profil=...) -> renderer.Ergebnis, reihen aus reihen.laden(), katalog aus wissen.katalog_laden(). MaterialFehler, wenn nichts entsteht;
+    bauen(beschreibung, ziel, profil=...) -> renderer.Ergebnis, reihen aus reihen.laden(), katalog aus wissen.katalog_laden(), leitfaden aus leitfaden.laden().
+    MaterialFehler, wenn nichts entsteht;
     Fehler von claude_lauf (z. B. LimitErreicht) gehen unverändert weiter."""
     ordner = hier / "data" / "arbeit" / auftrag["id"]
     ordner.mkdir(parents=True, exist_ok=True)
@@ -243,7 +246,8 @@ def bearbeiten(
     anhaenge = prompt_anhaenge(anhaenge_vorbereiten(hier, auftrag.get("dateien") or [], vorschau))
     fach = profil.get("fach") or "an einer Schule"
     e = claude(prompt_start(auftrag["text"], fach, rel, skill, format_text, anhaenge,
-                            reihen_modul.prompt_reihen(reihen or [], fach), wissen_modul.prompt_wissen(katalog)))
+                            reihen_modul.prompt_reihen(reihen or [], fach), wissen_modul.prompt_wissen(katalog),
+                            leitfaden_modul.prompt_leitfaden(leitfaden)))
     ergebnis, e = bauen_mit_korrektur(e)
 
     stand = json_pfad.read_bytes()
