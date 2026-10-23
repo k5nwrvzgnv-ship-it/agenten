@@ -35,4 +35,5 @@ Zeigt nur Feldnamen, Datentypen und Anzahlen, keine Inhalte. Auch, ob es Verzwei
 
 ## 4. Danach
 - Die ZIP-Datei in deinem Download-Ordner löschen (so mit Lia vereinbart).
-- Mir Bescheid geben. Ich lese `data/struktur.txt` und schlage in Schritt 4 die Liste von Lias Chats vor.
+- Mir Bescheid geben. Ich lese `data/struktur.txt`, prüfe meine Annahmen über die Felder und
+  erzeuge mit `auswertung.py chatliste` die Vorschlagsliste von Lias Chats (Schritt 4).
