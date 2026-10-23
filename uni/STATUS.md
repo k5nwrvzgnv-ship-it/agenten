@@ -107,7 +107,16 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   unlesbare PDFs als KEIN TEXT) und meldet neue Normen. KONTEXT, PROMPT_DOKUMENT und karten.py verweisen
   darauf. Nautos-PDFs sind ungeschützt und gut lesbar (getestet 23.10. mit DIN 68800-1:2019-06, 34 Seiten;
   nur das Deckblatt hat Tabs statt Leerzeichen; jede Seite trägt einen Ausdruckvermerk mit Datum).
-  Liegt vor: DIN 68800-1 (data/normen/holzschutz/). Im Holzschutz-Prüfungsplan als Quelle eingetragen.
+  Kennung und Ausgabe kommen aus dem Nautos-Dateinamen (<Kennung>_<JJJJ-MM>-00_DE_<Nr>.pdf, -NA/-A2 werden
+  /NA, /A2), das Deckblatt nur als Ersatz. Doppelte Downloads haben dieselbe Nautos-Nr. (Endung " (1)").
+  Liegen vor (24.10., 30 Dateien, Text aus allen): holzschutz/ (DIN 68800-1 bis -4, DIN EN 335, 350 mit
+  Berichtigung 1, 351-1/-2, 460, 599-1), eurocode5/ (DIN EN 1995-1-1 2010-12 + A2 2014-07 + NA 2013-08 und
+  2026-09; DIN EN 1995-1-2 2010-12 + NA 2010-12 und 2026-10), bauphysik_lca/ (DIN 4108-2, 4108-3, 276, 277,
+  DIN EN 15804, 15978 2012 und 2026, DIN EN ISO 14040, 14044), fertigung_bfh/ (DIN 199-1, 6763, 66025-1).
+  Eurocode 5: Die Kurse (SHB 02) nutzen die 1. Generation (2010-12, 8.2 = Abscheren). In 2026-09 ist 8.2 der
+  Knicknachweis, Verbindungen in Kap. 11; alte Fassung wird bis April 2028 zurückgezogen, NA zu 2026 fehlt.
+  KONTEXT: bei mehreren Ausgaben die nehmen, auf die das Kursmaterial verweist. Skript SHB 01 S. 5
+  "DIN EN 399-1" ist ein Tippfehler für DIN EN 599-1. Holzschutz-Prüfungsplan: Fundstellen eingetragen.
   Liste der Normen für dieses Semester an Jan gegeben (aus Kurs-Textfassungen gezählt und Normen.xlsx in
   Lifecycle-orientierte Bilanzierung/09 Normen).
 - BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
@@ -234,11 +243,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    Antwort des Agenten antworten; Aufträge von vor dem 17.10. haben keine Sitzung).
 3. Echter Lauf Dokument-Auftrag IHS 20.10. (siehe Stand), dabei Verbrauch messen.
 5. Weitere Normen von Jan: je Lieferung Verzeichnis prüfen und im Holzschutz-Prüfungsplan (json und md)
-   "fehlt" und Quellen nachziehen. Offen für Holzschutz und Sanierung (23.10. gegen
-   beide Teilmodule geprüft, IHS-Folien, SHB 01/02, Transkript 20.10.): DIN 68800-2, -3, -4, DIN EN 350,
-   DIN EN 335, DIN EN 1995-1-1 mit NA; optional DIN EN 1995-1-2 mit NA (SHB 01 S. 17-18, Restquerschnitt),
-   DIN EN 351-1/-2, DIN EN 399-1, DIN EN 460 (SHB 01 S. 5, nur Liste). WTA-Merkblätter (Transkript 20.10.
-   S. 22, Regelsanierung) gibt es nicht in Nautos.
+   "fehlt" und Quellen nachziehen. Kernliste des Semesters liegt vollständig vor (24.10.). Nicht in Nautos:
+   WTA-Merkblätter (Transkript IHS 20.10. S. 22, Regelsanierung).
 6. Tests schreiben über den echten Logger in logs/uni.log (Einträge mit abc123). Aufräumen vorschlagen.
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.

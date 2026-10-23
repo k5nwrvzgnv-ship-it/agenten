@@ -144,7 +144,8 @@ Aufzeichnungen als <video>.txt neben dem Video (Zeitmarken [mm:ss], Hörfehler m
 Such darin mit Grep und nenne Datum bzw. Zeitmarke als Quelle.
 Normen (aus Nautos) liegen in data/normen/, Verzeichnis data/normen/uebersicht.md (Kennung, Ausgabe, Datei),
 Textfassung daneben als .txt mit "--- Seite N". Nenne Norm, Abschnitt und Seite als Quelle. Fehlt eine Norm
-dort, sag das und gib keine Normabschnitte aus dem Gedächtnis an. Normtext nie in längeren wörtlichen Auszügen
+dort, sag das und gib keine Normabschnitte aus dem Gedächtnis an. Gibt es mehrere Ausgaben, nimm die,
+auf die das Kursmaterial verweist (Abschnittsnummern vergleichen), und nenne die Ausgabe. Normtext nie in längeren wörtlichen Auszügen
 wiedergeben, Normen nicht an andere weitergeben.
 
 Arbeite sparsam, jeder Schritt kostet Jans Kontingent:
