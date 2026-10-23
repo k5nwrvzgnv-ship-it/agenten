@@ -7,6 +7,7 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
   chatliste        Vorschlag, welche Chats Lias sind, nach data/chatliste.tsv (nur Titel)
   filtern <projekt-uuid>…  bestätigte Chats und diese Projekte nach data/lia/, übrige Chats und Projekte löschen
   anonymisieren    data/lia/chats.json aufbereiten, Namen aus data/namen.json ersetzen -> data/lia/anonym.json
+  einordnen [n]    Aufgaben einteilen und einordnen lassen (Sonnet), nur die ersten n Pakete -> data/einordnung/
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -19,8 +20,10 @@ from pathlib import Path
 import ablage
 import anonym
 import auswahl
+import einordnen
 import export
 
+HIER = ablage.HIER
 EXPORT = ablage.DATEN / "export"
 LIA = ablage.DATEN / "lia"
 
@@ -70,6 +73,9 @@ def main(argumente: list[str]) -> int:
         print(f"{len(ergebnis)} Chats nach {LIA / 'anonym.json'}, {sum(ersetzer.treffer.values())} Namen ersetzt.")
         print("Reste aus der Namensliste:", reste or "keine")
         return 1 if reste else 0
+    if befehl == "einordnen":
+        nur = int(argumente[1]) if len(argumente) > 1 else None
+        return einordnen_befehl(nur)
     if befehl == "filtern":
         return filtern_befehl(argumente[1:])
     if befehl:
@@ -101,6 +107,54 @@ def filtern_befehl(projekt_uuids: list[str]) -> int:
     quelle.unlink()
     shutil.rmtree(projekte_dir)
     print(f"{len(chats)} Chats und {len(projekte)} Projekte nach {ziel}. Übrige Chats und Projekte gelöscht.")
+    return 0
+
+
+def einordnen_befehl(nur: int | None) -> int:
+    """Pakete nacheinander über claude_lauf (Sonnet, art routine) einordnen. Fertige Pakete werden übersprungen.
+
+    Aufruf mit AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz, damit der Verbrauch bei Lia zählt.
+    """
+    from agentkit import claude_lauf, log  # erst hier: braucht die Instanz aus der Umgebung
+
+    logger = log.hole_logger(HIER, "auswertung")
+    chats = json.loads((LIA / "anonym.json").read_text(encoding="utf-8"))
+    schema = (HIER / "schema.md").read_text(encoding="utf-8")
+    pakete = einordnen.pakete(chats)
+    ziel = ablage.datenordner(ablage.DATEN / "einordnung")
+    gesamt_usd = 0.0
+    for i, paket in enumerate(pakete[:nur] if nur else pakete, 1):
+        datei = ziel / f"paket-{i:02d}.json"
+        if datei.exists():
+            continue
+        try:
+            e = claude_lauf.laufen("auswertung", HIER, einordnen.prompt(paket, schema), art="routine",
+                                   auftrag_id=f"einordnung-{i:02d}")
+            usd, tokens = e.usd, e.tokens
+            try:
+                aufgaben = einordnen.lesen(e.text)
+                fehler = einordnen.pruefen(aufgaben, paket)
+            except ValueError as f:
+                aufgaben, fehler = [], [str(f)]
+            if fehler:
+                logger.warning("Paket %s: %d Fehler, eine Nachbesserung", i, len(fehler))
+                e = claude_lauf.laufen("auswertung", HIER, "Deine Antwort hat diese Fehler:\n- " + "\n- ".join(fehler)
+                                       + "\nAntworte noch einmal mit dem vollständigen, korrigierten JSON-Array.",
+                                       art="routine", auftrag_id=f"einordnung-{i:02d}", sitzung_fortsetzen=e.sitzung)
+                usd, tokens = usd + e.usd, tokens + e.tokens
+                aufgaben = einordnen.lesen(e.text)
+                fehler = einordnen.pruefen(aufgaben, paket)
+        except claude_lauf.LimitErreicht as f:
+            print(f"Paket {i}: {f}. Später erneut aufrufen, fertige Pakete bleiben.")
+            return 1
+        gesamt_usd += usd
+        ergebnis = {"paket": i, "ausschnitte": [{k: t[k] for k in ("chat", "von", "bis", "runden")} for t in paket],
+                    "aufgaben": aufgaben, "fehler": fehler, "usd": usd, "tokens": tokens}
+        ablage.schreiben(datei, json.dumps(ergebnis, ensure_ascii=False, indent=1))
+        logger.info("Paket %s/%s: %d Aufgaben, %d Fehler, %.2f USD, %d Tokens", i, len(pakete), len(aufgaben),
+                    len(fehler), usd, tokens)
+        print(f"Paket {i}/{len(pakete)}: {len(aufgaben)} Aufgaben, {len(fehler)} Fehler, {usd:.2f} USD")
+    print(f"Fertig, {gesamt_usd:.2f} USD in diesem Aufruf.")
     return 0
 
 
