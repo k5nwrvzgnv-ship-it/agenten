@@ -92,7 +92,15 @@ B. Leitfaden „So unterrichtet Lia“ (leitfaden.py): Entwurf erzeugt 23.10. in
    (meist Cache-Lesen). Claude meldete: Quellen dünn zu Klasse 8 und zu Methoden, die nicht funktionieren; offen,
    ob bei Strafe Kant oder von Liszt zuerst (Planung vs. Examens-Tipps). Von Jan freigegeben 23.10., liegt als
    leitfaden.md im Repo und geht in jeden Material-Lauf (nach dem Katalog, vor dem Skill). Noch kein echter Lauf
-   damit. Verbraucht für A+B bisher ca. 4,20 USD.
+   damit. Verbraucht für A, B und B2 bisher ca. 6 USD.
+B2. Entwicklungsverlauf (verlauf.py, Jan 23.10., Lia einverstanden): data/wissen/entwicklung.md (nicht im Repo, eine
+   Auswertung über Lia, gehört zuerst ihr). Ein Opus-Lauf aus 16 Quellen (6 Entwürfe, 7 Rückmeldungen, Notizen,
+   Kriterien): 1,82 USD, 664.918 Tokens. Inhalt: Zeitleiste, 12 Kriterien x 6 Entwürfe (–/o/+ mit Beleg), Kritik
+   und was daraus wurde, Richtung je Kriterium, Vermutung (ausdrücklich keine Prognose), Folgen für den Agenten,
+   Grenzen. Unsicher: Datum UB 5 (Kopf 18.05.2026, vermutlich Sept. 2026), Kurzentwurf ohne Datum, einige
+   Rückmeldungen nur über den Dateinamen zugeordnet. Geht noch NICHT in die Läufe: erst Lia zeigen; einzelne
+   „Folgen für den Agenten“ danach mit Jans Okay in leitfaden.md übernehmen. Achtung: dort steht als laufende
+   Reihe noch Helfen (Stand der Quellen), aktuell ist Strafe (reihen.toml).
 C. Feste Beispielsammlung je Materialtyp im Skill (Architektur 2.5 beispiele/), Lia oder Jan wählt mit aus.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
