@@ -105,7 +105,9 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   nicht im Repo). Jeder agent.py-Lauf (Schritt normen_aufbereiten nach kurse_spiegeln) schreibt zu neuen
   Dateien die Textfassung und data/normen/uebersicht.md (Kennung und Ausgabe von Seite 1, Seiten, Datei;
   unlesbare PDFs als KEIN TEXT) und meldet neue Normen. KONTEXT, PROMPT_DOKUMENT und karten.py verweisen
-  darauf. Nur Unit-Tests, noch keine echte Nautos-Datei: offen, ob Nautos-PDFs geschützt sind (dann kein Text).
+  darauf. Nautos-PDFs sind ungeschützt und gut lesbar (getestet 23.10. mit DIN 68800-1:2019-06, 34 Seiten;
+  nur das Deckblatt hat Tabs statt Leerzeichen; jede Seite trägt einen Ausdruckvermerk mit Datum).
+  Liegt vor: DIN 68800-1 (data/normen/holzschutz/). Im Holzschutz-Prüfungsplan als Quelle eingetragen.
   Liste der Normen für dieses Semester an Jan gegeben (aus Kurs-Textfassungen gezählt und Normen.xlsx in
   Lifecycle-orientierte Bilanzierung/09 Normen).
 - BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
@@ -231,8 +233,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    speichert seine Sitzung. Nur Unit-Tests: echter Test über Telegram steht aus (auf eine neue
    Antwort des Agenten antworten; Aufträge von vor dem 17.10. haben keine Sitzung).
 3. Echter Lauf Dokument-Auftrag IHS 20.10. (siehe Stand), dabei Verbrauch messen.
-5. Erste echte Normen prüfen (Text lesbar? Kennung/Ausgabe richtig?), danach im Holzschutz-Prüfungsplan
-   "fehlt" aktualisieren.
+5. Weitere Normen von Jan: je Lieferung Verzeichnis prüfen und im Holzschutz-Prüfungsplan (json und md)
+   "fehlt" und Quellen nachziehen. Offen für Holzschutz: DIN 68800-2, -3, -4, DIN EN 350, DIN EN 335.
 6. Tests schreiben über den echten Logger in logs/uni.log (Einträge mit abc123). Aufräumen vorschlagen.
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
