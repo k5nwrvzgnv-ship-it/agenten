@@ -21,7 +21,7 @@ KENNUNG = re.compile(
     r"(\d{1,5}(?:\s\d{3})?(?:-\d{1,3}){0,2})")
 MONATE = ("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober",
           "November", "Dezember")
-AUSGABE_WORT = re.compile(r"\b(" + "|".join(MONATE) + r")\s+((?:19|20)\d{2})\b")
+AUSGABE_WORT = re.compile(r"\b(" + "|".join(MONATE) + r")\s+((?:19|20)\d{2})(?!\d)")  # Nautos: "Juni\t2019DEUTSCHE"
 AUSGABE = re.compile(r"\b((?:19|20)\d{2}-(?:0[1-9]|1[0-2]))\b(?!-\d)")  # nicht JJJJ-MM-TT (Lizenzvermerk)
 SEITE = re.compile(r"^--- Seite (\d+)$", re.M)
 UNLESBAR = ("(Kein Text gefunden", "(Textfassung fehlgeschlagen")

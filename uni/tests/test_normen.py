@@ -29,6 +29,8 @@ class TestErkennen(unittest.TestCase):
         self.assertEqual(normen.ausgabe("--- Seite 1\nDIN 68 800-1:2019-06"), "2019-06")
         self.assertEqual(normen.kennung("--- Seite 1\nDIN EN ISO 14044:2021-02"), "DIN EN ISO 14044")
         self.assertEqual(normen.ausgabe("--- Seite 1\nLizenz 2026-10-23"), None)
+        nautos = "--- Seite 1\nJuni\t2019DEUTSCHE\tNORM\nDIN\t68800-1\nErsatz\tfür\nDIN\t68800-1:2011-10"
+        self.assertEqual((normen.kennung(nautos), normen.ausgabe(nautos)), ("DIN 68800-1", "2019-06"))
         self.assertIsNone(normen.kennung("--- Seite 1\nkeine Norm\n--- Seite 2\nDIN 4108-3"))
 
     def test_unlesbar(self):
