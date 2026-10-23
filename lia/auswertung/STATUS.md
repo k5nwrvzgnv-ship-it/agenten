@@ -28,8 +28,9 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
     prompt_template, docs[].content), eindeutig Lias nur „Lia Schule“.
   - light_metadata: users.json, login_history.json (IP-Adressen, nicht nötig, Löschung vorgeschlagen).
 - Schritt 4 läuft: data/chatliste.tsv mit Claudes Vorschlag (Titel, bei unklaren der Anfang des ersten
-  Prompts): Lia 26 (1.129 Prompts, 16 mit Dateien), unklar 14, Jan 94, privat 88, leer 25.
+  Prompts): Lia 26 (1.129 Prompts, 16 mit Dateien), unklar 10, Jan 94, privat 92, leer 25.
   privat = Haushalt, Familie, Gesundheit, egal von wem, wird nicht ausgewertet (auch Lias Verbeamtung/Amtsarzt).
+  Jan 23.10.: alles zu Psychotherapie und Beihilfe ist privat.
   Wartet auf Bestätigung durch Jan oder Lia.
 
 ## Aufbau
@@ -71,7 +72,7 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Jan oder Lia bestätigen data/chatliste.tsv (vor allem die 14 unklaren und die Lucy-Frage:
+1. Jan oder Lia bestätigen data/chatliste.tsv (vor allem die 10 unklaren und die Lucy-Frage:
    ist Lucy eine dritte Person, sind deren Chats nicht von Lias Einwilligung gedeckt).
 2. Nach Bestätigung der Chatliste: Befehl zum Filtern bauen (nur Lias Chats nach data/lia/, Jans Chats
    und das Original conversations.json löschen). Noch nicht gebaut, weil er löscht.
