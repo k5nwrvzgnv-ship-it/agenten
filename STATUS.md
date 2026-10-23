@@ -205,6 +205,20 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Neustart aus; alle Dienste kamen von selbst wieder). Offen: 15 normale Updates, Ubuntu 26.04 nicht
      nebenbei einspielen.
    Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
+9. Bedarf aus uni (24.10., Plan von Jan freigegeben): Termine in Jans Kalender SCHREIBEN, in agentkit.kalender.
+   - Ziel: Jans iCloud-Hauptkalender (Jans Wahl, kein eigener Agenten-Kalender). Nur neue Termine anlegen,
+     nicht ändern oder löschen. Jeder Termin nur nach Freigabe (Entwurfstyp "termin" in uni, Ausführung in
+     uni/agent.py ausfuehren(), wie typ "mail").
+   - Weg: CalDAV (caldav.icloud.com:443, erreichbar), nur Python-Bordmittel (urllib, xml.etree), kein Paket.
+     Ablauf: principal -> calendar-home-set -> Kalender per Anzeigename wählen -> PUT <uid>.ics mit
+     If-None-Match: * (kein Überschreiben). Zugang: Apple-ID + App-spezifisches Passwort (Jan erzeugt es unter
+     appleid.apple.com, trägt es selbst in shared/.env ein, chmod 600), Kalendername ebenfalls in shared/.env.
+   - Gewünschte Schnittstelle: kalender.eintragen(titel, beginn, ende, ort="", notiz="", uid=None) -> uid,
+     Fehler als KalenderFehler. Notiz bekommt "angelegt vom Uni-Agenten", UID fest aus Titel+Beginn, damit
+     derselbe Termin nicht doppelt entsteht. Kalender ohne Namen/Zugang: klare Fehlermeldung, nichts raten.
+   - .ics-Text gibt es schon in uni/termine.py (ics(), RFC-5545-Faltung, getestet); bei Bedarf nach agentkit
+     verschieben statt nachbauen. Bis das fertig ist, schickt uni Termine als .ics-Anhang zum Antippen.
+   - Danach im uni-Chat: Entwurfstyp "termin" (Claude schlägt vor, Python prüft, Freigabe, eintragen).
 
 ## Gelernte Regeln
 - (noch keine)
