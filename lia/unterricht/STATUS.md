@@ -79,9 +79,15 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - Lias Dokumente aus dem Referendariat (23.10.): Sammelstelle data/wissen/eingang/ (nicht im Repo, nur für agent
   lesbar). Dort bisher: Fachseminar_Ethik_Notizen.pages mit Textfassung (.pages.txt, Sitzungen 09.09.2025 bis
   21.04.2026: Reihenplanung, Problemfragen, Entwürfe, Methoden; aus der Pages-Datei grob entpackt, Tabellen und
-  Bilder fehlen) und Kriterien_gute_Unterrichtseinheit.txt (aus Jans Screenshot). Der Rest (über 30 MB) kommt
-  per scp. Noch offen und erst nach Jans Okay: Wie der Agent das Wissen nutzt (auswählen, kürzen, in den
-  Prompt oder als Dateien zum Lesen). Dokumente mit Schülerdaten gehören nicht hierher.
+  Bilder fehlen) und Kriterien_gute_Unterrichtseinheit.txt (aus Jans Screenshot). Dazu per scp (23.10.):
+  Ethik/ (7. Klasse: Reihen Lügen, Gerechtigkeit, Freundschaft + Operatoren, Glück, Tierethik; 8. Klasse:
+  Helfen Fremde/Familie, Anfang Reihe Strafe; Operatorentraining Jg. 7; Einzelnes) und UBs+Feedback/ (UB 5 nur als
+  anonymisierte Textfassung UB_5_Pohlmann.anonym.txt; nikomachischeeth00arisuoft.pdf, ein Scan, den pypdf nicht
+  liest). Aufgeräumt nach Jans Auftrag: Schülerdaten gelöscht (Einzelbewertungen, Noten-, Mitarbeits-, Material-
+  listen, Sitzplan, Gruppenlisten, UB-PDF), dazu die Zip-Kopie, Sperrdateien und PDFs, deren Text zu mind. 85 %
+  einer docx/pptx gleichen Namens entspricht (docx/pptx behalten). Stand: 201 Dateien, 180 MB. Vornamen in
+  Fallbeispielen (z. B. Yagmur, Berat) sind geblieben. Noch offen und erst nach Jans Okay: Wie der Agent das
+  Wissen nutzt (auswählen, kürzen, in den Prompt oder als Dateien zum Lesen). Schülerdaten gehören nicht hierher.
 - Quellen: Lia möchte Dokumente als Quellen hinzufügen. Bei der Wahl zweier gegensätzlicher Positionen soll die
   Quellenlage zählen: als Gelernte Regel eingetragen (23.10.). Offen: wie Lia Quellen dauerhaft ablegt.
 6. Optional: Blindvergleich mit lia/auswertung/data/ergebnis/pruefsatz.json (P01–P17, ~10 USD Kontingent).
