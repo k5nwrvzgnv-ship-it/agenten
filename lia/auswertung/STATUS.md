@@ -55,7 +55,9 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   ca. 9 Läufe mit je ~20.000 Tokens Daten + ~8.000 Grundlast/Anleitung, Ausgabe ~30.000 Tokens gesamt.
   Haiku ca. 0,05–0,10 USD, Sonnet ca. 1–1,50 USD, Opus ca. 2–3 USD (Pro-Abo: nur Kontingent, kein Geld).
   Kontrolle: 30 Aufgaben zusätzlich mit Sonnet einordnen und vergleichen, ca. 0,20 USD.
-  Schema: aus 6 Chats in diesem Chat ableiten (kein eigener Lauf), Jan bestätigt.
+  Jan 23.10.: Sonnet (art routine), kein Warten auf Haiku.
+  Schema: schema.md (aus 9 Chats, ca. 230 Runden, in diesem Chat abgeleitet), wartet auf Jans Okay.
+  9 Kategorien, Felder je Aufgabe, 9 Arten von Korrekturen. Geht wörtlich in den Prompt.
   Hindernis: claude_lauf wählt Haiku nur in der Stufe sparen (art routine = Sonnet). Bedarf in Haupt-STATUS.
 
 ## Aufbau
@@ -63,6 +65,7 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
 - ablage.py: data/ mit chmod 700, Dateien mit chmod 600 (atomar), lehnt ungeschützte Ordner ab.
 - export.py: ZIP sicher entpacken (keine Pfade nach oben, keine Symlinks, höchstens 2 GB), Strukturbericht
   ohne Inhalte, Verzweigungen über parent_message_uuid.
+- schema.md: Kategorien und Felder für die Einordnung (keine personenbezogenen Daten).
 - verlauf.py: hauptpfad(), runden(), kompakt(), tokens_geschaetzt().
 - anonym.py: aufbereiten() und Ersetzer (Namensliste + Muster), reste() für die Restsuche.
 - auswahl.py: Chatliste data/chatliste.tsv mit Spalte wer (Lia/Jan/privat/leer/unklar), bestaetigte_lia()
@@ -98,5 +101,5 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Schritt 6: Jan entscheidet über Modell und Kosten, dann Schema aus der Stichprobe, dann Einordnung.
+1. Schritt 6: Jan bestätigt schema.md, dann Einordnung mit Sonnet (Prompt, Läufe, Prüfung der Antworten).
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
