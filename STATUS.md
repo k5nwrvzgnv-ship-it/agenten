@@ -161,7 +161,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Einordnen von rund 1.100 Runden reicht Haiku (ca. 0,10 USD statt 1–1,50 USD mit Sonnet).
      Außerdem wünschenswert: [werkzeuge] auswertung = ["Read"] in lia/instanz/einstellungen.toml (Claude soll dort
      nichts schreiben, die Antwort kommt als Text).
-     Ergebnis lia/auswertung (23.10., Details lia/auswertung/STATUS.md), Vorschläge an lia/unterricht:
+     Ergebnis lia/auswertung (23.10., Details lia/auswertung/STATUS.md, UNGEPRÜFT: Lias Prüfung auf Jans Wunsch
+     ausgesetzt, der unterricht-Chat legt direkt los), Vorschläge an lia/unterricht:
      - Etwa drei Viertel von Lias Aufgaben gehören zu unterricht. Größter Hebel: Fachfragen mit Belegpflicht
        (Platzhalter „Frage stellen“ ablösen) und Material mit weniger Korrekturen.
      - Reihenkontext speichern (Reihenfrage, Klasse, behandelte Positionen, Merksätze) und jedem Lauf mitgeben:
@@ -169,7 +170,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      - Änderungswünsche zu einem Ergebnis (unterricht offener Punkt 2) sind der Normalfall (Median 3 Runden).
      - Profil für Darstellendes Spiel ergänzen (Theatermaterial, Stücke zusammenfassen).
      - Prüfsatz für Schritt 8: lia/auswertung/data/ergebnis/pruefsatz.json (22 Aufträge, anonymisiert, nur lesen).
-       Auftrag an den unterricht-Chat (Schritt 8, Blindvergleich): P01–P17 mit material.bearbeiten laufen lassen
+       Optional, später (Schritt 8, Blindvergleich): P01–P17 mit material.bearbeiten laufen lassen
        (ohne Warteschlange, Lia bekommt nichts), Auftrag aus auftrag + kontext ausformulieren, Textfassung je Ergebnis
        nach lia/unterricht/data/pruefung/P01.txt usw. Kosten vorher schätzen (Material ~0,60 USD je Auftrag mit Opus,
        17 Aufträge also ~10 USD Kontingent). Danach in lia/auswertung: auswertung.py vergleichsbogen <ordner>.

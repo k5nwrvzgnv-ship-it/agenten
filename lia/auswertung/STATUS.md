@@ -86,7 +86,9 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   Auftrag und Korrekturen), pruefsatz.json (22 echte Aufträge mit Kontext, Kriterien aus Lias Korrekturen und
   ihrem alten Ergebnis). Alles anonymisiert. Zusammenfassung unten.
 
-## Ergebnis: Rangliste und Empfehlung (Stand 23.10.2026)
+## Ergebnis: Rangliste und Empfehlung (Stand 23.10.2026, UNGEPRÜFT)
+Jan 23.10.: Lias Prüfung (Schritt 8) vorerst ausgesetzt. Die Einordnung stammt allein von Claude (Sonnet) und
+ist nicht mit Lias Sicht abgeglichen. Rangliste und Zahlen als Orientierung nutzen, nicht als Messung.
 Wert = Runden x Automatisierbarkeit (hoch 1, mittel 0,6, gering 0,2), also etwa die Runden, die ein Agent
 Lia abnehmen könnte. Typen per Stichwort aus Titel/Ausgabe (rangliste.py), Zuordnung teils grob.
 
@@ -127,7 +129,8 @@ Theater, P18–P20 Fachfragen, P21–P22 Bewertung. Je Eintrag: auftrag, kontext
 anhaenge (nur Namen, Inhalte sind nicht im Export), kriterien (Lias Korrekturen), altes_ergebnis.
 Grenze: Aufträge mitten im Chat brauchen den Kontext; vor dem Lauf zu einem vollständigen Auftrag umschreiben.
 
-## Schritt 8: Prüfung durch Lia (vorbereitet 23.10.2026)
+## Schritt 8: Prüfung durch Lia (vorbereitet 23.10.2026, ausgesetzt)
+Jan 23.10.: vorerst ausgesetzt, der unterricht-Chat legt ohne sie los. Bogen und Befehle bleiben für später.
 pruefung.py, Befehle in auswertung.py. Bögen sind einzelne HTML-Dateien ohne Netz: Lia öffnet sie im Browser
 (Handy oder Rechner), tippt die Antworten an, „Antworten speichern“ lädt eine CSV herunter, die sie Jan schickt.
 Geprüft: Skript mit node --check und Attrappe, Ablauf mit Platzhaltertexten durchgespielt (danach gelöscht).
@@ -221,9 +224,9 @@ Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterri
 
 ## Offene Punkte
 1. Jan/Lia entscheiden über die Regelvorschläge (einzeln).
-2. Schritt 8: Jan schickt Lia data/pruefung/kodierbogen.html; ihre CSV mit `kodierung` auswerten.
-3. Blindvergleich: wartet auf die Läufe des unterricht-Chats (Bedarf in Haupt-STATUS).
-4. Löschung der Rohdaten nach Schritt 8, spätestens 31.12.2026: data/lia/chats.json, data/namen.json,
+2. Schritt 8 ausgesetzt (Jan 23.10.). Wieder aufnehmen: Lia bekommt data/pruefung/kodierbogen.html, ihre CSV mit
+   `kodierung` auswerten; Blindvergleich, sobald der unterricht-Chat P01–P17 abgelegt hat.
+4. Löschung der Rohdaten spätestens 31.12.2026 (auch wenn Schritt 8 ausfällt): data/lia/chats.json, data/namen.json,
    data/lia/zuordnung.json, data/export/ (users.json), data/chatliste.tsv. Danach nur Anonymisiertes.
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
 
