@@ -20,7 +20,9 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   ohne Inhalte, Verzweigungen (Annahme: Feld parent_message_uuid).
 - auswahl.py: Chatliste data/chatliste.tsv mit Spalte wer (Lia/Jan/unklar), bestaetigte_lia() liest sie
   zurück und bricht ab, solange etwas unklar ist. Stichwortlisten LIA/JAN oben in der Datei.
-- Annahme bis zum echten Export: conversations.json mit uuid, name, created_at, chat_messages[].sender/.text.
+- Export (23.10.2026 angefordert): 6 ZIPs laut Manifest, geladen werden nur conversations, projects,
+  light_metadata (anleitung-export.md). Inhalt der ZIPs noch unbekannt. Annahme in auswahl.py bis dahin:
+  conversations.json mit uuid, name, created_at, chat_messages[].sender/.text; Pfad in chatliste anpassen.
 - .venv: auswertung/.venv, keine Pakete (requirements.txt leer), agentkit per agentkit.pth.
 - Kein Dienst, kein Timer, keine .env.
 - Rohdaten und Ergebnisse nur in data/ (nicht im Repo, .gitignore `data/`), Logs in logs/.
