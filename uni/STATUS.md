@@ -104,7 +104,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   schreibt neuen Entwurf (vorgaenger, alter Gesprächsbezug bleibt) und optional regel.json ->
   regeln.regel_vorschlagen. Ablehnen ohne Kommentar: kein Regelvorschlag (Zentrale fragt keinen Grund ab).
   post_pruefen legt jede gelesene Mail in data/mails/<uid>.json ab. Lernmodus bekommt keinen Mail-Hinweis.
-  Echttest 24.10.: Entwurf an jkl298@hnee.de liegt zur Freigabe (20261024-003432-uni-e88e8a).
+  Echttest 24.10. erfolgreich: Entwurf an jkl298@hnee.de per Telegram freigegeben, 5 s später gesendet,
+  genau einmal im Posteingang und in Gesendete Elemente (gleiche Message-ID). Ändern noch nicht echt getestet.
 - Kalender schreiben: Bedarf im Hauptordner (../STATUS.md Punkt 9), danach hier Entwurfstyp "termin".
 - Aufträge während eines Laufs (23.10.): systemctl start auf einen laufenden uni.service startet keinen zweiten
   Lauf. auftraege_abarbeiten holt deshalb so lange nach, bis nichts Neues kommt, und läuft am Ende des Laufs
