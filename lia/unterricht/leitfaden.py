@@ -99,22 +99,29 @@ def prompt_leitfaden(text: str) -> str:
             "lesen.\n\n" + rumpf.strip() + "\n\n")
 
 
-def erstellen(laufen: Callable, eintraege: list[wissen.Eintrag], hier: Path = HIER, ziel: Path = ENTWURF) -> Fertig:
-    """Ein Claude-Lauf schreibt den Entwurf. laufen(prompt, sitzung) -> claude_lauf.Ergebnis."""
-    quellen = quellen_waehlen(eintraege)
+def datei_schreiben_lassen(laufen: Callable, text: str, quellen: int, ziel: Path,
+                          min_zeichen: int = MIN_ZEICHEN) -> Fertig:
+    """Ein Claude-Lauf, der genau eine Datei (ziel) schreiben soll; auch für verlauf.py.
+    laufen(prompt, sitzung) -> claude_lauf.Ergebnis. LeitfadenFehler, wenn keine brauchbare Datei entsteht."""
     if not quellen:
         raise LeitfadenFehler("Keine Quellen: erst wissen.py laufen lassen")
     ziel.parent.mkdir(parents=True, exist_ok=True)
     ziel.unlink(missing_ok=True)
-    e = laufen(prompt(quellen, str(ziel.relative_to(hier))), None)
+    e = laufen(text, None)
     if not e.ok:
         raise LeitfadenFehler(f"Claude-Lauf fehlgeschlagen: {e.text[:500]}")
     if not ziel.exists():
         raise LeitfadenFehler(f"Claude hat {ziel.name} nicht geschrieben. Antwort: {e.text[:500]}")
-    text = ziel.read_text(encoding="utf-8")
-    if len(text) < MIN_ZEICHEN:
-        raise LeitfadenFehler(f"{ziel.name} ist zu kurz ({len(text)} Zeichen)")
-    return Fertig(ziel, len(text), len(quellen), 1, e.usd, e.tokens, e.text.strip())
+    inhalt = ziel.read_text(encoding="utf-8")
+    if len(inhalt) < min_zeichen:
+        raise LeitfadenFehler(f"{ziel.name} ist zu kurz ({len(inhalt)} Zeichen)")
+    return Fertig(ziel, len(inhalt), quellen, 1, e.usd, e.tokens, e.text.strip())
+
+
+def erstellen(laufen: Callable, eintraege: list[wissen.Eintrag], hier: Path = HIER, ziel: Path = ENTWURF) -> Fertig:
+    """Ein Claude-Lauf schreibt den Entwurf. laufen(prompt, sitzung) -> claude_lauf.Ergebnis."""
+    quellen = quellen_waehlen(eintraege)
+    return datei_schreiben_lassen(laufen, prompt(quellen, str(ziel.relative_to(hier))), len(quellen), ziel)
 
 
 if __name__ == "__main__":
