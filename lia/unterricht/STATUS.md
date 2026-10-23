@@ -76,8 +76,7 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - Vorgaben ihrer Seminarleitung, was eine gute Reihenfrage ausmacht, und Schulvorgaben (schulinternes
   Curriculum/RLP): Lia schickt sie, sie sollen dem Agenten beigegeben werden (Fragen, Auswahl).
 - Quellen: Lia möchte Dokumente als Quellen hinzufügen. Bei der Wahl zweier gegensätzlicher Positionen soll die
-  Quellenlage zählen: Texte möglichst digital verfügbar, kostengünstig, nicht zu nischig. Als Regel erst nach
-  Jans Okay eintragen (verwandt mit Regelvorschlag 7); gehört zu Schritt 3.
+  Quellenlage zählen: als Gelernte Regel eingetragen (23.10.). Offen: wie Lia Quellen dauerhaft ablegt.
 6. Optional: Blindvergleich mit lia/auswertung/data/ergebnis/pruefsatz.json (P01–P17, ~10 USD Kontingent).
 
 ## Offene Punkte
@@ -92,4 +91,4 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 6. Woche und Frage: noch Platzhalter. Dateien an einer Frage werden bisher nur bestätigt.
 
 ## Gelernte Regeln
-- (noch keine)
+- 23.10.2026: Bei der Wahl zweier gegensätzlicher Positionen zählt die Quellenlage: Es muss Texte dazu geben, möglichst digital verfügbar, kostengünstig und nicht zu nischig. (Anlass: Lias Wunsch, von Jan freigegeben)
