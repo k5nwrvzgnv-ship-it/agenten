@@ -11,7 +11,13 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   zugestimmt (mündlich an Jan, Jan hat es im Chat weitergegeben).
 - Schritt 3 vorbereitet: anleitung-export.md (für Jan), Befehle entpacken und struktur. Export fehlt noch.
 - Schritt 4 vorbereitet: Befehl chatliste (Vorschlag Lia/Jan/unklar nach Stichwörtern, nur Titel).
-  Mit einem Kunst-Export durchgespielt. Noch keine echten Daten auf dem Server.
+  Mit einem Kunst-Export durchgespielt.
+- Export auf dem Server (23.10.): light_metadata und projects entpackt in data/export/. conversations fehlt noch.
+  projects: 25 Projekte, je Datei name, description, prompt_template (Projektanweisung), docs[].content,
+  creator, Zeitstempel. Keine Chats und keine Zuordnung Chat -> Projekt in diesen Dateien. Alle vom selben
+  Konto, Ersteller sagt also nichts über Lia/Jan. Eindeutig Lias: „Lia Schule“ (2 Dokumente). Unklar:
+  Projekte mit „Lucy“ im Namen und „Betreuungsbüro“ (Jan fragen). light_metadata: users.json (Konto),
+  login_history.json (IP-Adressen, für die Auswertung nicht nötig, Löschung vorgeschlagen).
 
 ## Aufbau
 - Einstieg: auswertung.py (`.venv/bin/python auswertung.py <befehl>`, Befehle im Kopf der Datei).
