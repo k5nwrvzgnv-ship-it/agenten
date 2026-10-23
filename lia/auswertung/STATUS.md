@@ -12,12 +12,25 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
 - Schritt 3 vorbereitet: anleitung-export.md (für Jan), Befehle entpacken und struktur. Export fehlt noch.
 - Schritt 4 vorbereitet: Befehl chatliste (Vorschlag Lia/Jan/unklar nach Stichwörtern, nur Titel).
   Mit einem Kunst-Export durchgespielt.
-- Export auf dem Server (23.10.): light_metadata und projects entpackt in data/export/. conversations fehlt noch.
-  projects: 25 Projekte, je Datei name, description, prompt_template (Projektanweisung), docs[].content,
-  creator, Zeitstempel. Keine Chats und keine Zuordnung Chat -> Projekt in diesen Dateien. Alle vom selben
-  Konto, Ersteller sagt also nichts über Lia/Jan. Eindeutig Lias: „Lia Schule“ (2 Dokumente). Unklar:
-  Projekte mit „Lucy“ im Namen und „Betreuungsbüro“ (Jan fragen). light_metadata: users.json (Konto),
-  login_history.json (IP-Adressen, für die Auswertung nicht nötig, Löschung vorgeschlagen).
+- Schritt 3 erledigt (23.10.): Export in data/export/ (conversations, projects, light_metadata; memories-ZIP
+  liegt ungeöffnet im Upload-Ordner der App). Befund conversations.json:
+  - 247 Chats, 5.687 Nachrichten, nur 26.07.–23.10.2026 (Projekte reichen bis April zurück: ältere Chats
+    fehlen im Export oder wurden gelöscht, ungeklärt).
+  - Felder je Chat: uuid, name, summary, created_at, updated_at, account, chat_messages. Je Nachricht: uuid,
+    sender (human/assistant), text, content[] (Typen text, thinking, tool_use, tool_result, document, image,
+    injected_prompt_block), files[] (nur Name und uuid, kein Inhalt), attachments[] (mit extracted_content),
+    parent_message_uuid (Wurzel 00000000-0000-4000-8000-000000000000).
+  - Text steht in .text, bei 912 Nachrichten nur in content[] (auswahl.nachricht_text).
+  - Bearbeitete Prompts: enthalten, 7 Stellen in 6 Chats, alle Äste mit Antwort.
+    Verworfene (neu erzeugte) Antworten: keine Geschwister unter Assistent-Antworten, also nicht enthalten.
+  - 25 Chats ohne Titel sind komplett leer (760 Nachrichten ohne Text): wer = leer.
+  - Kein Feld, das einen Chat einem Projekt zuordnet. projects: 25 Projekte (name, description,
+    prompt_template, docs[].content), eindeutig Lias nur „Lia Schule“.
+  - light_metadata: users.json, login_history.json (IP-Adressen, nicht nötig, Löschung vorgeschlagen).
+- Schritt 4 läuft: data/chatliste.tsv mit Claudes Vorschlag (Titel, bei unklaren der Anfang des ersten
+  Prompts): Lia 26 (1.129 Prompts, 16 mit Dateien), unklar 14, Jan 94, privat 88, leer 25.
+  privat = Haushalt, Familie, Gesundheit, egal von wem, wird nicht ausgewertet (auch Lias Verbeamtung/Amtsarzt).
+  Wartet auf Bestätigung durch Jan oder Lia.
 
 ## Aufbau
 - Einstieg: auswertung.py (`.venv/bin/python auswertung.py <befehl>`, Befehle im Kopf der Datei).
@@ -58,8 +71,8 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Jan fordert den Export an und lädt ihn hoch (anleitung-export.md), dann entpacken, struktur.
-   Danach: Feldannahmen in export.py/auswahl.py prüfen, Verzweigungen bewerten, chatliste erzeugen.
+1. Jan oder Lia bestätigen data/chatliste.tsv (vor allem die 14 unklaren und die Lucy-Frage:
+   ist Lucy eine dritte Person, sind deren Chats nicht von Lias Einwilligung gedeckt).
 2. Nach Bestätigung der Chatliste: Befehl zum Filtern bauen (nur Lias Chats nach data/lia/, Jans Chats
    und das Original conversations.json löschen). Noch nicht gebaut, weil er löscht.
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).

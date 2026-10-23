@@ -23,6 +23,21 @@ class Vorschlag(unittest.TestCase):
         self.assertEqual(auswahl.vorschlag({"name": None, "chat_messages": None}), "unklar")
 
 
+class NachrichtText(unittest.TestCase):
+    def test_text_feld(self):
+        self.assertEqual(auswahl.nachricht_text({"text": "hallo", "content": []}), "hallo")
+
+    def test_aus_content(self):
+        n = {"text": " ", "content": [{"type": "thinking", "thinking": "nein"}, {"type": "text", "text": "Klasse 7"},
+                                      {"type": "text", "text": "Ethik"}]}
+        self.assertEqual(auswahl.nachricht_text(n), "Klasse 7\nEthik")
+
+    def test_vorschlag_nutzt_content(self):
+        g = {"name": "", "chat_messages": [{"sender": "human", "text": "",
+                                            "content": [{"type": "text", "text": "Arbeitsblatt Klasse 8"}]}]}
+        self.assertEqual(auswahl.vorschlag(g), "Lia")
+
+
 class Chatliste(unittest.TestCase):
     def test_sortiert_ohne_prompts(self):
         tsv = auswahl.chatliste([chat("b", "Elternbrief\tWandertag", "geheimer Inhalt", "2026-06-01"),
@@ -40,6 +55,10 @@ class Bestaetigen(unittest.TestCase):
     def test_nur_lia(self):
         tsv = f"{self.KOPF}\n1\ta\td\tt\t1\tLia\n2\tb\td\tt\t1\tjan\n"
         self.assertEqual(auswahl.bestaetigte_lia(tsv), {"a"})
+
+    def test_privat_und_leer_ausgeschlossen(self):
+        tsv = f"{self.KOPF}\n1\ta\td\tt\t1\tprivat\n2\tb\td\tt\t0\tleer\n3\tc\td\tt\t1\tLia\n"
+        self.assertEqual(auswahl.bestaetigte_lia(tsv), {"c"})
 
     def test_unklar_bricht_ab(self):
         tsv = f"{self.KOPF}\n1\ta\td\tt\t1\tLia\n2\tb\td\tt\t1\tunklar\n"

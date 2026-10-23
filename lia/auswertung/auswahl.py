@@ -2,8 +2,10 @@
 
 chatliste: eine Zeile je Chat (Nummer, Datum, Titel, Zahl der Prompts, Vorschlag Lia/Jan/unklar).
   Der Vorschlag zählt Stichwörter in Titel und erstem Prompt. Jan oder Lia korrigieren die Spalte wer in
-  data/chatliste.tsv, erst dann wird gefiltert. Ausgegeben werden nur Titel, keine Prompts (Einwilligung).
-Annahme bis zum echten Export: Felder uuid, name, created_at, chat_messages[].sender/.text.
+  data/chatliste.tsv, erst dann wird gefiltert. Werte: Lia (wird ausgewertet), Jan, privat (Haushalt,
+  Familie, Gesundheit, egal von wem: nicht ausgewertet), leer (Chat ohne Text im Export), unklar. Ausgegeben werden nur Titel, keine Prompts (Einwilligung).
+Felder laut Export vom 23.10.2026: uuid, name, created_at, chat_messages[].sender (human/assistant).
+Der Text steht in .text, bei 912 von 5687 Nachrichten nur in .content[] (Blöcke mit type "text").
 Ohne Netz, getestet in tests/test_auswahl.py.
 """
 
@@ -16,6 +18,7 @@ LIA = ["unterricht", "klasse", "schüler", "schueler", "arbeitsblatt", "ethik", 
 JAN = ["hnee", "holzschutz", "vorlesung", "moodle", "studium", "python", "server", "linux", "git ",
        "telegram", "agent", "skript", "code", "vinted", "kcal", "systemd", "claude code"]
 SPALTEN = ["nr", "uuid", "datum", "titel", "prompts", "wer"]
+AUSGESCHLOSSEN = {"jan", "privat", "leer"}
 
 
 def _treffer(text: str, woerter: list[str]) -> int:
@@ -23,9 +26,17 @@ def _treffer(text: str, woerter: list[str]) -> int:
     return sum(1 for w in woerter if w in text)
 
 
+def nachricht_text(nachricht: dict) -> str:
+    """Text einer Nachricht: .text, sonst die text-Blöcke aus .content."""
+    if (nachricht.get("text") or "").strip():
+        return nachricht["text"]
+    bloecke = [b.get("text") or "" for b in nachricht.get("content") or [] if b.get("type") == "text"]
+    return "\n".join(b for b in bloecke if b)
+
+
 def vorschlag(gespraech: dict) -> str:
     """Lia, Jan oder unklar, nach Stichwörtern in Titel und erstem Prompt."""
-    prompts = [n.get("text") or "" for n in gespraech.get("chat_messages") or [] if n.get("sender") == "human"]
+    prompts = [nachricht_text(n) for n in gespraech.get("chat_messages") or [] if n.get("sender") == "human"]
     text = f"{gespraech.get('name') or ''} {prompts[0] if prompts else ''}"
     lia, jan = _treffer(text, LIA), _treffer(text, JAN)
     if lia > jan:
@@ -62,7 +73,7 @@ def bestaetigte_lia(tsv: str) -> set[str]:
         wer = felder[5].strip().lower()
         if wer == "lia":
             lia.add(felder[1])
-        elif wer != "jan":
+        elif wer not in AUSGESCHLOSSEN:
             unklar.append(felder[0])
     if unklar:
         raise ValueError(f"Noch nicht entschieden (Nr.): {', '.join(unklar)}")
