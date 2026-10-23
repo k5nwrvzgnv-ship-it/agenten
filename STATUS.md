@@ -153,6 +153,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        liegen). ergebnis.bilder stimmt, nur der Ordner verwirrt.
      - Antwort auf ein Ergebnis in Lias Zentrale (Änderungswunsch in derselben Sitzung) fehlt noch.
      Chat-Aufteilung ein Chat pro Ordner, siehe CLAUDE.md (21.10.).
+   - Werkzeug lia/auswertung (23.10., Chat in lia/): Auswertung von Lias claude.ai-Chats, von Hand gestartet,
+     kein Dienst. Gerüst fertig, Plan und Stand in lia/auswertung/STATUS.md. Vorschlag an den Hauptordner-Chat:
+     Ordner und Chat in README.md eintragen.
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt
      lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/instanz/einstellungen.toml, PERSON=Lia
