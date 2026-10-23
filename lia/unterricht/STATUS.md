@@ -12,7 +12,17 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Noch kein echter Lauf mit Reihen.
 - Lias Material als Nachschlagewerk (23.10., Stufe A): wissen.py legt Textfassungen in data/wissen/text/ an und
   schreibt data/wissen/katalog.md (211 Dateien, ca. 11k Tokens). Jeder Material-Lauf bekommt den Katalog und liest
-  höchstens drei passende Beispiele mit Read. Mehrkosten geschätzt ca. 0,10–0,15 USD je Auftrag. Noch kein echter Lauf.
+  höchstens drei passende Beispiele mit Read.
+- Echter Lauf mit Reihen und Katalog (23.10., direkt mit material.bearbeiten, Lia bekam nichts):
+  „Arbeitsblatt 8. Klasse, Einstieg Reihe Strafe, Vergeltung oder Besserung, Fallbeispiel, 45 min“, Opus:
+  2 Läufe, 89 s, 304.176 Tokens, umgerechnet 1,06 USD (erster Lauf ohne Katalog: 0,61 USD). Claude las
+  Reihe_Strafe (Lias Planung), AB_1 Strafe (nur Kopf) und AB_1 Helfen als Vorbild. Ergebnis 2 Seiten: BBB-Merksatz,
+  Fall Tim, zwei Meinungen, Zuordnungstabelle, Aufgaben mit Satzanfängen und Hilfen, Zusatzaufgabe; kurze Sätze,
+  Partnerarbeit, Medienwechsel-Tipp und „Reihenfrage noch offen“ aus dem Reihenkontext übernommen; Belege
+  (Kant, von Liszt) im Begleittext. Schwächen: Begleittext zu lang (7 Sätze statt 2–4). Ordner:
+  data/arbeit/20261023-195619-unterricht-test02/. Jan und Lia haben das Blatt noch nicht angesehen.
+  Mehrkosten real eher 0,30–0,45 USD je Auftrag. Hebel, falls zu teuer: Katalog kürzen (Varianten Türkisch,
+  Feedback und Bewertung nur bei Bedarf, kürzerer Anfang).
 - Material läuft (Code fertig, Tests grün, Dienst eingerichtet). Noch kein Auftrag von Lia über Telegram.
 - Echter Lauf 22.10. (direkt mit material.bearbeiten, ohne Warteschlange, damit Lia nichts bekam):
   „Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min“ mit Opus: 2 Claude-Läufe, 90 s, 129.430 Tokens,
@@ -72,13 +82,15 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 ## Umsetzung der Auswertung (lia/auswertung, 23.10.2026, Rangliste UNGEPRÜFT)
 Reihenfolge mit Jan abgestimmt, je Schritt erst nach seinem Okay:
 Wissen aus Lias Dokumenten (Jan 23.10., Budget einmalig ca. 10–15 USD Kontingent):
-A. Katalog und Nachschlagen: gebaut 23.10. Offen: ein echter Lauf, ob Claude passende Beispiele liest.
+A. Katalog und Nachschlagen: gebaut und im echten Lauf geprüft 23.10. (Claude las drei passende Dateien).
 B. Leitfaden „So unterrichtet Lia“ aus Seminarnotizen, Kriterien, Entwürfen und Reihenplanungen (ein Opus-Lauf,
    ca. 1–2 USD), Jan liest gegen, dann in jeden Lauf.
 C. Feste Beispielsammlung je Materialtyp im Skill (Architektur 2.5 beispiele/), Lia oder Jan wählt mit aus.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
 1. Reihenkontext: gebaut und gefüllt 23.10. Offen: Merksätze und die Reihenfrage zu Straftheorien von Lia.
+   Lias Planung Reihe_Strafe.docx enthält Kandidaten („Sollen Gefängnisse Täter:innen bestrafen oder bessern?“,
+   Kant vs. von Liszt); erst nach Lias Bestätigung in reihen.toml.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
    „nicht wieder vorschlagen“). Pausiert (Jan 23.10.): 3–11 werden nachgeholt, wenn Lia Zeit hat
    (3 und 4 vorgelegt ohne Wahl, 5–8 vorgelegt ohne Antwort, 9–11 noch nicht vorgelegt). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
