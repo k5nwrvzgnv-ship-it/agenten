@@ -35,14 +35,25 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   Einwilligung): ihre Projekte und alle Chats, die zu ihr passen könnten, sind draußen. Die letzten
   10 unklaren hat Claude entschieden (Jan 23.10.), im Zweifel gegen Lia: aufgenommen nur der
   Teilzeitantrag (Formular im Referendariat).
-- Noch vorhanden und nicht gebraucht: data/export/light_metadata-000/ (Konto, Anmeldungen mit IP) und
-  memories-000.zip im Upload-Ordner der App. Löschung vorgeschlagen, Jans Antwort fehlt.
+- Gelöscht (Jan 23.10.): login_history.json, memories-ZIP. Noch da, nicht gebraucht: data/export/light_metadata-000/users.json.
+- Schritt 5 (23.10.): anonymisiert nach data/lia/anonym.json (aufbereitet: nur Titel, Datum, Zusammenfassung,
+  Nachrichten mit Text, Anhängen, Dateinamen; ohne Werkzeugaufrufe und Suchergebnisse). 1.031 Ersetzungen,
+  77 Platzhalter: Lehrkraft, Partner, Person 1–3, Schule A–C, Schüler 1–67, dazu E-Mail, Telefon, Adresse,
+  PLZ Ort, Nummer (5+ Ziffern außer ISBN), Schulnummer. Namensliste data/namen.json (97 Einträge, nicht im
+  Repo), Zuordnung data/lia/zuordnung.json. Liste gebaut aus: Großwörtern ohne Artikel, Lias kleingeschriebener
+  Anwesenheitsliste, Aufzählungen und Tabellenspalten mit bekannten Namen. Restsuche: keine Namen der Liste mehr,
+  keine Mails/Telefon/Adressen. Absichtlich nicht ersetzt: Autoren, öffentliche Personen, Figuren aus Stücken und
+  Romanen, von Claude erfundene Namen in Beispielaufgaben (Elif, Lukas, Mara ...). Bezirke bleiben.
+  Stichprobe (12 Ausschnitte) in data/stichprobe.md, wartet auf Jans Kontrolle.
+  Grenze: Namen, die nur einmal im Fließtext stehen und in keiner Liste, können fehlen. Original data/lia/chats.json
+  bleibt bis zum Löschtermin (für Nachbesserungen).
 
 ## Aufbau
 - Einstieg: auswertung.py (`.venv/bin/python auswertung.py <befehl>`, Befehle im Kopf der Datei).
 - ablage.py: data/ mit chmod 700, Dateien mit chmod 600 (atomar), lehnt ungeschützte Ordner ab.
 - export.py: ZIP sicher entpacken (keine Pfade nach oben, keine Symlinks, höchstens 2 GB), Strukturbericht
   ohne Inhalte, Verzweigungen über parent_message_uuid.
+- anonym.py: aufbereiten() und Ersetzer (Namensliste + Muster), reste() für die Restsuche.
 - auswahl.py: Chatliste data/chatliste.tsv mit Spalte wer (Lia/Jan/privat/leer/unklar), bestaetigte_lia()
   liest sie zurück und bricht ab, solange etwas unklar ist; filtern() behält nur Lias Chats. Stichwortlisten LIA/JAN oben in der Datei.
 - Arbeitsdaten: data/lia/chats.json (Lias 27 Chats im Exportformat), data/lia/projekte/, data/chatliste.tsv,
@@ -76,6 +87,5 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Schritt 5: Anonymisieren (nach Jans Okay).
-2. Löschen von light_metadata und memories-ZIP (Jans Okay fehlt).
+1. Jan prüft data/stichprobe.md (Schritt 5). Danach Schritt 6 (Analyse) nach Jans Okay.
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).

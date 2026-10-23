@@ -6,6 +6,7 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
   struktur         Feldnamen, Typen, Anzahlen des Exports (ohne Inhalte), auch nach data/struktur.txt
   chatliste        Vorschlag, welche Chats Lias sind, nach data/chatliste.tsv (nur Titel)
   filtern <projekt-uuid>…  bestätigte Chats und diese Projekte nach data/lia/, übrige Chats und Projekte löschen
+  anonymisieren    data/lia/chats.json aufbereiten, Namen aus data/namen.json ersetzen -> data/lia/anonym.json
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -16,6 +17,7 @@ from collections import Counter
 from pathlib import Path
 
 import ablage
+import anonym
 import auswahl
 import export
 
@@ -57,6 +59,17 @@ def main(argumente: list[str]) -> int:
         anzahl = Counter(z.rsplit("\t", 1)[1] for z in tsv.splitlines()[1:])
         print(f"{ziel}: {sum(anzahl.values())} Chats, Vorschlag {dict(anzahl)}. Spalte wer korrigieren.")
         return 0
+    if befehl == "anonymisieren":
+        namen = json.loads((ablage.DATEN / "namen.json").read_text(encoding="utf-8"))
+        ersetzer = anonym.Ersetzer(namen)
+        chats = anonym.aufbereiten(json.loads((LIA / "chats.json").read_text(encoding="utf-8")))
+        ergebnis = ersetzer.alles(chats)
+        ablage.schreiben(LIA / "anonym.json", json.dumps(ergebnis, ensure_ascii=False, indent=1))
+        ablage.schreiben(LIA / "zuordnung.json", json.dumps(ersetzer.zuordnung, ensure_ascii=False, indent=1))
+        reste = anonym.reste(ergebnis, namen)
+        print(f"{len(ergebnis)} Chats nach {LIA / 'anonym.json'}, {sum(ersetzer.treffer.values())} Namen ersetzt.")
+        print("Reste aus der Namensliste:", reste or "keine")
+        return 1 if reste else 0
     if befehl == "filtern":
         return filtern_befehl(argumente[1:])
     if befehl:
