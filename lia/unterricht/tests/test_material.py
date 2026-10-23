@@ -78,8 +78,20 @@ class MaterialTest(unittest.TestCase):
         self.assertIn("data/arbeit/20261022-120000-unterricht-abcdef/beschreibung.json", claude.prompts[0])
         self.assertIn("Skill einzelmaterial", claude.prompts[0])
         self.assertIn("Kontrolltext", claude.prompts[1])
+        self.assertNotIn("laufende Reihen", claude.prompts[0])
         self.assertIn("Handle nur nach derjenigen Maxime", claude.prompts[1])
         self.assertEqual(claude.sitzungen, [None, "s1"])
+
+    def test_reihen_im_startprompt(self):
+        claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
+        reihe = {"klasse": 10, "reihenfrage": "Was soll ich tun?", "behandelt": ["Kant"]}
+        material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN, reihen=[reihe])
+        start = claude.prompts[0]
+        self.assertIn("## Lias laufende Reihen", start)
+        self.assertIn("### Ethik, Klasse 10\n- Reihenfrage: Was soll ich tun?\n- Schon behandelt: Kant", start)
+        self.assertLess(start.index("kategorischer Imperativ, Kl. 10"), start.index("## Lias laufende Reihen"))
+        self.assertLess(start.index("## Lias laufende Reihen"), start.index("Skill einzelmaterial"))
+        self.assertNotIn("laufende Reihen", claude.prompts[1])
 
     def test_fehler_gehen_an_claude_zurueck(self):
         falsch = dict(BLATT, farbe="rot")

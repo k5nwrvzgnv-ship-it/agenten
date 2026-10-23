@@ -82,6 +82,26 @@ class AgentTest(unittest.TestCase):
             JAN_MELDEN("Test")
         self.assertEqual(melden.call_args.kwargs["basis"], config.KONTINGENT_DIR / "meldungen")
 
+    def test_reihen_laden(self):
+        self.assertEqual(agent.reihen_laden(), [])  # keine Datei
+        self.hier.mkdir(parents=True)
+        (self.hier / "reihen.toml").write_text("[[reihe]]\nklasse = 8\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
+        self.assertEqual(agent.reihen_laden(), [{"klasse": 8, "reihenfrage": "Helfen?"}])
+        self.assertEqual(self.gemeldet, [])
+        (self.hier / "reihen.toml").write_text("[[reihe]]\nklasse = 8\n", encoding="utf-8")
+        self.assertEqual(agent.reihen_laden(), [])
+        self.assertEqual(len(self.gemeldet), 1)
+        self.assertIn("reihenfrage fehlt", self.gemeldet[0])
+
+    def test_material_bekommt_reihen(self):
+        self.hier.mkdir(parents=True)
+        (self.hier / "reihen.toml").write_text("[[reihe]]\nklasse = 8\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
+        bearbeiten = mock.Mock(side_effect=material.MaterialFehler("egal"))
+        auftraege.neuer_auftrag("unterricht", "Blatt", quelle="portal-material")
+        with mock.patch.object(agent.material_auftrag, "__defaults__", (bearbeiten,)):
+            agent.auftraege_abarbeiten()
+        self.assertEqual(bearbeiten.call_args.kwargs["reihen"], [{"klasse": 8, "reihenfrage": "Helfen?"}])
+
     def test_profil(self):
         profil = agent.profil_laden()
         self.assertEqual((profil["fach"], profil["lehrkraft"]), ("Ethik", "Frau Pohlmann"))

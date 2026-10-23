@@ -1,0 +1,14 @@
+# Lias laufende Unterrichtsreihen. Jeder Lauf von unterricht bekommt sie mit (reihen.py),
+# Claude nimmt die Reihe, die zum Wunsch passt. Von Jan von Hand gepflegt; abgeschlossene Reihen löschen.
+#
+# Je Reihe ein Block [[reihe]]. Pflicht: klasse, reihenfrage. Alles andere ist freiwillig.
+#
+# [[reihe]]
+# fach = "Ethik"                    # ohne Angabe: Fach aus profil.toml
+# klasse = "8"
+# titel = "Helfen"                  # kurzer Name, nur zur Übersicht
+# reihenfrage = "Muss ich Fremden genauso helfen wie meiner Familie?"
+# lerngruppe = "lernschwach, viele mehrsprachig, kurze Sätze"
+# behandelt = ["Singer: Nähe ist moralisch egal", "Aristoteles: Freundschaft"]
+# merksaetze = ["Singer: Wenn ich etwas Schlimmes verhindern kann, ohne etwas ähnlich Wichtiges zu opfern, muss ich es tun."]
+# notizen = "Nächste Stunde: Fallbeispiel"

@@ -12,6 +12,9 @@ Angehängte Dateien (Feld dateien, Vorlage für genau diesen Auftrag): anhaenge_
 Textfassung (pdf, docx, pptx) und Seitenbilder (auch für Scans) an, weil Claudes Read PDFs auf dem Server
 nicht öffnen kann. Bilder öffnet Claude direkt.
 
+Lias laufende Reihen (reihen.toml, reihen.py) stehen nach dem Wunsch im Prompt, damit Claude Klasse,
+Reihenfrage und schon Behandeltes kennt.
+
 Claude und der Renderer werden übergeben (laufen, bauen), damit die Logik ohne Netz testbar ist.
 """
 
@@ -22,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+import reihen as reihen_modul
 from agentkit import textfassung
 from renderer import BeschreibungUngueltig
 from renderer import vorschau as renderer_vorschau
@@ -142,13 +146,14 @@ def prompt_anhaenge(zeilen: list[str]) -> str:
             + "\n".join(zeilen) + "\n\n")
 
 
-def prompt_start(wunsch: str, fach: str, rel: str, skill: str, format_text: str, anhaenge: str = "") -> str:
+def prompt_start(wunsch: str, fach: str, rel: str, skill: str, format_text: str, anhaenge: str = "",
+                 reihen: str = "") -> str:
     return f"""Lia unterrichtet {fach} und wünscht sich Material. Ihr Wunsch:
 ---
 {wunsch}
 ---
 
-{anhaenge}{skill}
+{reihen}{anhaenge}{skill}
 
 ## So lieferst du das Material
 - Schreibe die Beschreibung als JSON mit dem Werkzeug Write in die Datei {rel}. Schreibe keine anderen Dateien.
@@ -195,9 +200,10 @@ def bearbeiten(
     bauen: Callable,
     uhr: Callable[[], float] = time.monotonic,
     vorschau: Callable = renderer_vorschau.vorschau,
+    reihen: list[dict] | None = None,
 ) -> Fertig:
     """Erstellt das Material zu einem Auftrag. laufen(prompt, sitzung) -> claude_lauf.Ergebnis,
-    bauen(beschreibung, ziel, profil=...) -> renderer.Ergebnis. MaterialFehler, wenn nichts entsteht;
+    bauen(beschreibung, ziel, profil=...) -> renderer.Ergebnis, reihen aus reihen.laden(). MaterialFehler, wenn nichts entsteht;
     Fehler von claude_lauf (z. B. LimitErreicht) gehen unverändert weiter."""
     ordner = hier / "data" / "arbeit" / auftrag["id"]
     ordner.mkdir(parents=True, exist_ok=True)
@@ -232,8 +238,9 @@ def bearbeiten(
     skill = SKILL_DATEI.read_text(encoding="utf-8")
     format_text = format_abschnitte(FORMAT_DATEI.read_text(encoding="utf-8"))
     anhaenge = prompt_anhaenge(anhaenge_vorbereiten(hier, auftrag.get("dateien") or [], vorschau))
-    e = claude(prompt_start(auftrag["text"], profil.get("fach") or "an einer Schule", rel, skill, format_text,
-                            anhaenge))
+    fach = profil.get("fach") or "an einer Schule"
+    e = claude(prompt_start(auftrag["text"], fach, rel, skill, format_text, anhaenge,
+                            reihen_modul.prompt_reihen(reihen or [], fach)))
     ergebnis, e = bauen_mit_korrektur(e)
 
     stand = json_pfad.read_bytes()

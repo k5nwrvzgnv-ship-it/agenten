@@ -3,6 +3,7 @@
 Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal-frage, portal-text).
 - portal-material: Material auf Zuruf (material.py, Skill einzelmaterial). Lia bekommt die docx- oder
   pptx-Datei mit Begleittext. Scheitert es, erfährt Jan die Ursache als Meldung in seiner Zentrale.
+  Lias laufende Reihen (reihen.toml) gehen mit; ist die Datei fehlerhaft, läuft er ohne sie und Jan erfährt es.
 - alles andere: Platzhalter, bestätigt mit "kommt bald", ohne Claude.
 """
 
@@ -10,6 +11,7 @@ import tomllib
 from pathlib import Path
 
 import material
+import reihen
 import renderer
 from agentkit import auftraege, claude_lauf, config, log, meldungen, verbrauch
 
@@ -41,6 +43,16 @@ def profil_laden() -> dict:
         return tomllib.load(f)
 
 
+def reihen_laden() -> list[dict]:
+    """Reihenkontext; ist reihen.toml fehlerhaft, ohne ihn weiter (Lia soll trotzdem Material bekommen)."""
+    try:
+        return reihen.laden(HIER / "reihen.toml")
+    except reihen.ReihenFehler as e:
+        logger.error("Reihenkontext fehlt: %s", e)
+        jan_melden(f"reihen.toml fehlerhaft, Material ohne Reihenkontext: {e}")
+        return []
+
+
 def claude_laufen(auftrag_id: str):
     def laufen(prompt: str, sitzung: str | None = None):
         return claude_lauf.laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=auftrag_id,
@@ -50,7 +62,8 @@ def claude_laufen(auftrag_id: str):
 
 def material_auftrag(a: dict, bearbeiten=material.bearbeiten) -> None:
     try:
-        f = bearbeiten(a, HIER, profil_laden(), laufen=claude_laufen(a["id"]), bauen=renderer.bauen)
+        f = bearbeiten(a, HIER, profil_laden(), laufen=claude_laufen(a["id"]), bauen=renderer.bauen,
+                       reihen=reihen_laden())
     except claude_lauf.LimitErreicht as e:
         logger.warning("Auftrag %s: %s", a["id"], e)
         auftraege.abschliessen(a["id"], LIMIT.format(zeit=verbrauch.zeit_text(e.reset)),
