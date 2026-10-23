@@ -156,6 +156,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Werkzeug lia/auswertung (23.10., Chat in lia/): Auswertung von Lias claude.ai-Chats, von Hand gestartet,
      kein Dienst. Gerüst fertig, Plan und Stand in lia/auswertung/STATUS.md. Vorschlag an den Hauptordner-Chat:
      Ordner und Chat in README.md eintragen.
+     Bedarf aus lia/auswertung (23.10.) an agentkit.claude_lauf: eine Art "guenstig" (Modell aus
+     [modelle] guenstig = "haiku"), unabhängig von der Stufe. Heute gibt es Haiku nur in der Stufe sparen; für das
+     Einordnen von rund 1.100 Runden reicht Haiku (ca. 0,10 USD statt 1–1,50 USD mit Sonnet).
+     Außerdem wünschenswert: [werkzeuge] auswertung = ["Read"] in lia/instanz/einstellungen.toml (Claude soll dort
+     nichts schreiben, die Antwort kommt als Text).
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt
      lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/instanz/einstellungen.toml, PERSON=Lia

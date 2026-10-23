@@ -48,11 +48,22 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   Grenze: Namen, die nur einmal im Fließtext stehen und in keiner Liste, können fehlen. Original data/lia/chats.json
   bleibt bis zum Löschtermin (für Nachbesserungen).
 
+- Schritt 6 vorbereitet (23.10.): verlauf.py zerlegt Chats in Runden (Hauptpfad, Bearbeitungen gezählt) und
+  baut eine kompakte Fassung (Lias Prompts ganz, Claudes Antworten auf 300 Zeichen). 1.142 Runden, ca. 165.000
+  Tokens (geschätzt: Zeichen/3,5). Zwei Chats machen die Hälfte aus (308 und 255 Runden).
+  Kostenschätzung (Preise je 1 Mio. Tokens Ein/Aus: Haiku 5.5 0,10/0,50 USD, Sonnet 5.5 2/10, Opus 5.5 4/20):
+  ca. 9 Läufe mit je ~20.000 Tokens Daten + ~8.000 Grundlast/Anleitung, Ausgabe ~30.000 Tokens gesamt.
+  Haiku ca. 0,05–0,10 USD, Sonnet ca. 1–1,50 USD, Opus ca. 2–3 USD (Pro-Abo: nur Kontingent, kein Geld).
+  Kontrolle: 30 Aufgaben zusätzlich mit Sonnet einordnen und vergleichen, ca. 0,20 USD.
+  Schema: aus 6 Chats in diesem Chat ableiten (kein eigener Lauf), Jan bestätigt.
+  Hindernis: claude_lauf wählt Haiku nur in der Stufe sparen (art routine = Sonnet). Bedarf in Haupt-STATUS.
+
 ## Aufbau
 - Einstieg: auswertung.py (`.venv/bin/python auswertung.py <befehl>`, Befehle im Kopf der Datei).
 - ablage.py: data/ mit chmod 700, Dateien mit chmod 600 (atomar), lehnt ungeschützte Ordner ab.
 - export.py: ZIP sicher entpacken (keine Pfade nach oben, keine Symlinks, höchstens 2 GB), Strukturbericht
   ohne Inhalte, Verzweigungen über parent_message_uuid.
+- verlauf.py: hauptpfad(), runden(), kompakt(), tokens_geschaetzt().
 - anonym.py: aufbereiten() und Ersetzer (Namensliste + Muster), reste() für die Restsuche.
 - auswahl.py: Chatliste data/chatliste.tsv mit Spalte wer (Lia/Jan/privat/leer/unklar), bestaetigte_lia()
   liest sie zurück und bricht ab, solange etwas unklar ist; filtern() behält nur Lias Chats. Stichwortlisten LIA/JAN oben in der Datei.
@@ -87,5 +98,5 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Jan prüft data/stichprobe.md (Schritt 5). Danach Schritt 6 (Analyse) nach Jans Okay.
+1. Schritt 6: Jan entscheidet über Modell und Kosten, dann Schema aus der Stichprobe, dann Einordnung.
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
