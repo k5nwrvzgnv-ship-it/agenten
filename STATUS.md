@@ -161,6 +161,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Einordnen von rund 1.100 Runden reicht Haiku (ca. 0,10 USD statt 1–1,50 USD mit Sonnet).
      Außerdem wünschenswert: [werkzeuge] auswertung = ["Read"] in lia/instanz/einstellungen.toml (Claude soll dort
      nichts schreiben, die Antwort kommt als Text).
+     Ergebnis lia/auswertung (23.10., Details lia/auswertung/STATUS.md), Vorschläge an lia/unterricht:
+     - Etwa drei Viertel von Lias Aufgaben gehören zu unterricht. Größter Hebel: Fachfragen mit Belegpflicht
+       (Platzhalter „Frage stellen“ ablösen) und Material mit weniger Korrekturen.
+     - Reihenkontext speichern (Reihenfrage, Klasse, behandelte Positionen, Merksätze) und jedem Lauf mitgeben:
+       Ursache für 57 von 284 Korrekturen.
+     - Änderungswünsche zu einem Ergebnis (unterricht offener Punkt 2) sind der Normalfall (Median 3 Runden).
+     - Profil für Darstellendes Spiel ergänzen (Theatermaterial, Stücke zusammenfassen).
+     - Prüfsatz für Schritt 8: lia/auswertung/data/ergebnis/pruefsatz.json (22 Aufträge, anonymisiert, nur lesen).
+     - 11 Regelvorschläge in lia/auswertung/STATUS.md, warten auf Freigabe.
+     - Bewertung (Bögen, Noten, Mitarbeit) wäre ein eigener Agent, erst nach Klärung Schülerdaten (lia-architektur Abschnitt 0).
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt
      lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/instanz/einstellungen.toml, PERSON=Lia

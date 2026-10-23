@@ -9,6 +9,7 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
   anonymisieren    data/lia/chats.json aufbereiten, Namen aus data/namen.json ersetzen -> data/lia/anonym.json
   einordnen [n]    Aufgaben einteilen und einordnen lassen (Sonnet), nur die ersten n Pakete -> data/einordnung/
   statistik        Pakete zusammenführen, Kennzahlen je Kategorie und Korrekturen -> data/ergebnis/
+  ergebnisse       Rangliste, Beispiele je Typ, Prüfsatz -> data/ergebnis/
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -23,6 +24,8 @@ import anonym
 import auswahl
 import einordnen
 import export
+import pruefsatz
+import rangliste
 import statistik
 
 HIER = ablage.HIER
@@ -80,6 +83,8 @@ def main(argumente: list[str]) -> int:
         return einordnen_befehl(nur)
     if befehl == "statistik":
         return statistik_befehl()
+    if befehl == "ergebnisse":
+        return ergebnisse_befehl()
     if befehl == "filtern":
         return filtern_befehl(argumente[1:])
     if befehl:
@@ -184,6 +189,34 @@ def statistik_befehl() -> int:
         print(f"{kat:14} {k['aufgaben']:3} Aufgaben, {k['runden_summe']:4} Runden, Median {k['runden_median']}, "
               f"{k['korrekturen_summe']:3} Korrekturen, auto {k['automatisierbar']}")
     return 1 if offen else 0
+
+
+PRUEFSATZ_JE_TYP = {"ab_text_position": 4, "argumentieren_ueben": 3, "fallbeispiel": 3, "ab_bausteine": 3,
+                    "zusammenfassung_stueck": 2, "theater_material": 2, "philosophie_und_quellen": 3,
+                    "bewertungsbogen_und_noten": 2}
+
+
+def ergebnisse_befehl() -> int:
+    """Rangliste, Beispiele je Top-Typ und Prüfsatz nach data/ergebnis/ (alles anonymisiert)."""
+    ziel = ablage.DATEN / "ergebnis"
+    aufgaben = json.loads((ziel / "aufgaben.json").read_text(encoding="utf-8"))
+    chats = {c["uuid"][:8]: c for c in json.loads((LIA / "anonym.json").read_text(encoding="utf-8"))}
+    liste = rangliste.rangliste(aufgaben)
+    ablage.schreiben(ziel / "rangliste.json", json.dumps(liste, ensure_ascii=False, indent=1))
+    zeilen = ["# Beispiele je Aufgabentyp (anonymisiert)", ""]
+    for z in liste[:10]:
+        zeilen += [f"## {z['typ']} ({z['kategorie']}): {z['aufgaben']} Aufgaben, Wert {z['wert']}", ""]
+        beispiele = sorted((a for a in aufgaben if rangliste.typ(a) == z["typ"]), key=lambda a: -len(a["korrekturen"]))
+        for a in beispiele[:2]:
+            runden = pruefsatz.runden_der_aufgabe(chats[a["chat"]], a)
+            zeilen += [f"### {a['titel']} (Runden {a['von']}-{a['bis']}, {a['ergebnis']}, {a['automatisierbar']})",
+                       "", "Auftrag: " + " ".join(runden[0]["prompt"].split())[:500] if runden else "", ""]
+            zeilen += [f"- R{k['runde']} {k['art']}: {k.get('zitat', '')}" for k in a["korrekturen"]] + [""]
+    ablage.schreiben(ziel / "beispiele.md", "\n".join(zeilen))
+    satz = pruefsatz.auswaehlen(chats, aufgaben, PRUEFSATZ_JE_TYP)
+    ablage.schreiben(ziel / "pruefsatz.json", json.dumps(satz, ensure_ascii=False, indent=1))
+    print(f"Rangliste ({len(liste)} Typen), Beispiele, Prüfsatz ({len(satz)} Aufträge) in {ziel}")
+    return 0
 
 
 if __name__ == "__main__":
