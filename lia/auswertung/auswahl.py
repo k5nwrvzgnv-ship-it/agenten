@@ -78,3 +78,12 @@ def bestaetigte_lia(tsv: str) -> set[str]:
     if unklar:
         raise ValueError(f"Noch nicht entschieden (Nr.): {', '.join(unklar)}")
     return lia
+
+
+def filtern(gespraeche: list[dict], lia: set[str]) -> list[dict]:
+    """Nur Lias Chats. Bricht ab, wenn eine bestätigte UUID im Export fehlt (falsche Liste)."""
+    behalten = [g for g in gespraeche if g.get("uuid") in lia]
+    fehlen = lia - {g["uuid"] for g in behalten}
+    if fehlen:
+        raise ValueError(f"{len(fehlen)} bestätigte Chats fehlen im Export")
+    return behalten

@@ -27,22 +27,26 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
   - Kein Feld, das einen Chat einem Projekt zuordnet. projects: 25 Projekte (name, description,
     prompt_template, docs[].content), eindeutig Lias nur „Lia Schule“.
   - light_metadata: users.json, login_history.json (IP-Adressen, nicht nötig, Löschung vorgeschlagen).
-- Schritt 4 läuft: data/chatliste.tsv mit Claudes Vorschlag (Titel, bei unklaren der Anfang des ersten
-  Prompts): Lia 26 (1.129 Prompts, 16 mit Dateien), unklar 10, Jan 94, privat 92, leer 25.
-  privat = Haushalt, Familie, Gesundheit, egal von wem, wird nicht ausgewertet (auch Lias Verbeamtung/Amtsarzt).
-  Jan 23.10.: alles zu Psychotherapie und Beihilfe ist privat.
-  Wartet auf Bestätigung durch Jan oder Lia.
+- Schritt 4 erledigt (23.10.): 27 Chats von Lia nach data/lia/chats.json, dazu Projekt „Lia Schule“
+  (Unterrichtsbesuch DS, 2 Dokumente) nach data/lia/projekte/. Alle übrigen Chats und Projekte gelöscht,
+  data/chatliste.tsv enthält nur noch Lias 27 Zeilen.
+  Entscheidungen: privat = Haushalt, Familie, Gesundheit (auch Lias Verbeamtung/Amtsarzt), Psychotherapie,
+  Beihilfe (Jan) – egal von wem, nicht ausgewertet. Lucy ist die Mitbewohnerin (dritte Person, keine
+  Einwilligung): ihre Projekte und alle Chats, die zu ihr passen könnten, sind draußen. Die letzten
+  10 unklaren hat Claude entschieden (Jan 23.10.), im Zweifel gegen Lia: aufgenommen nur der
+  Teilzeitantrag (Formular im Referendariat).
+- Noch vorhanden und nicht gebraucht: data/export/light_metadata-000/ (Konto, Anmeldungen mit IP) und
+  memories-000.zip im Upload-Ordner der App. Löschung vorgeschlagen, Jans Antwort fehlt.
 
 ## Aufbau
 - Einstieg: auswertung.py (`.venv/bin/python auswertung.py <befehl>`, Befehle im Kopf der Datei).
 - ablage.py: data/ mit chmod 700, Dateien mit chmod 600 (atomar), lehnt ungeschützte Ordner ab.
 - export.py: ZIP sicher entpacken (keine Pfade nach oben, keine Symlinks, höchstens 2 GB), Strukturbericht
-  ohne Inhalte, Verzweigungen (Annahme: Feld parent_message_uuid).
-- auswahl.py: Chatliste data/chatliste.tsv mit Spalte wer (Lia/Jan/unklar), bestaetigte_lia() liest sie
-  zurück und bricht ab, solange etwas unklar ist. Stichwortlisten LIA/JAN oben in der Datei.
-- Export (23.10.2026 angefordert): 6 ZIPs laut Manifest, geladen werden nur conversations, projects,
-  light_metadata (anleitung-export.md). Inhalt der ZIPs noch unbekannt. Annahme in auswahl.py bis dahin:
-  conversations.json mit uuid, name, created_at, chat_messages[].sender/.text; Pfad in chatliste anpassen.
+  ohne Inhalte, Verzweigungen über parent_message_uuid.
+- auswahl.py: Chatliste data/chatliste.tsv mit Spalte wer (Lia/Jan/privat/leer/unklar), bestaetigte_lia()
+  liest sie zurück und bricht ab, solange etwas unklar ist; filtern() behält nur Lias Chats. Stichwortlisten LIA/JAN oben in der Datei.
+- Arbeitsdaten: data/lia/chats.json (Lias 27 Chats im Exportformat), data/lia/projekte/, data/chatliste.tsv,
+  data/struktur.txt (nur Feldnamen). Der Export kam als 6 ZIPs, geladen nur conversations, projects, light_metadata.
 - .venv: auswertung/.venv, keine Pakete (requirements.txt leer), agentkit per agentkit.pth.
 - Kein Dienst, kein Timer, keine .env.
 - Rohdaten und Ergebnisse nur in data/ (nicht im Repo, .gitignore `data/`), Logs in logs/.
@@ -72,8 +76,6 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Jan oder Lia bestätigen data/chatliste.tsv (vor allem die 10 unklaren und die Lucy-Frage:
-   ist Lucy eine dritte Person, sind deren Chats nicht von Lias Einwilligung gedeckt).
-2. Nach Bestätigung der Chatliste: Befehl zum Filtern bauen (nur Lias Chats nach data/lia/, Jans Chats
-   und das Original conversations.json löschen). Noch nicht gebaut, weil er löscht.
+1. Schritt 5: Anonymisieren (nach Jans Okay).
+2. Löschen von light_metadata und memories-ZIP (Jans Okay fehlt).
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).

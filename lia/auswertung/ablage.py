@@ -18,8 +18,10 @@ class AblageFehler(Exception):
 
 
 def datenordner(pfad: Path = DATEN) -> Path:
-    """Legt den Ordner an (auch Elternordner) und setzt chmod 700. Gibt den Pfad zurück."""
-    pfad.mkdir(parents=True, exist_ok=True)
+    """Legt den Ordner an (auch Elternordner, ebenfalls chmod 700) und setzt chmod 700. Gibt den Pfad zurück."""
+    if not pfad.parent.exists():
+        datenordner(pfad.parent)
+    pfad.mkdir(exist_ok=True)
     os.chmod(pfad, 0o700)
     return pfad
 

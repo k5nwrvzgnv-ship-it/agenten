@@ -16,6 +16,7 @@ class Datenordner(unittest.TestCase):
             pfad = ablage.datenordner(Path(t) / "data" / "export")
             self.assertTrue(pfad.is_dir())
             self.assertEqual(rechte(pfad), 0o700)
+            self.assertEqual(rechte(pfad.parent), 0o700)
 
     def test_vorhandener_ordner_wird_verschaerft(self):
         with tempfile.TemporaryDirectory() as t:

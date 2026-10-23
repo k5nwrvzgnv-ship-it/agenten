@@ -68,3 +68,13 @@ class Bestaetigen(unittest.TestCase):
     def test_falscher_kopf(self):
         with self.assertRaises(ValueError):
             auswahl.bestaetigte_lia("nr\twer\n")
+
+
+class Filtern(unittest.TestCase):
+    def test_nur_lia(self):
+        g = [chat("a", "x", "y"), chat("b", "x", "y"), chat("c", "x", "y")]
+        self.assertEqual([c["uuid"] for c in auswahl.filtern(g, {"a", "c"})], ["a", "c"])
+
+    def test_fehlende_uuid_bricht_ab(self):
+        with self.assertRaises(ValueError):
+            auswahl.filtern([chat("a", "x", "y")], {"a", "z"})
