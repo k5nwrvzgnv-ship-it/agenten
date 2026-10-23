@@ -182,7 +182,7 @@ def ics(v: Veranstaltung, uid: str, link: str = "", jetzt: datetime | None = Non
 
 
 def dateiname(v: Veranstaltung) -> str:
-    kurz = re.sub(r"[^A-Za-z0-9]+", "_", v.titel).strip("_")[:40] or "termin"
+    kurz = re.sub(r"[^A-Za-z0-9]+", "_", v.titel)[:40].strip("_") or "termin"
     return f"{v.beginn.astimezone(ZONE).strftime('%Y-%m-%d')}_{kurz}.ics"
 
 

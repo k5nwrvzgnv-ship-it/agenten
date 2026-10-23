@@ -115,7 +115,7 @@ def kurse_spiegeln() -> None:
         kurs, _, rest = rel.partition("/")
         pro_kurs.setdefault(kurs, []).append(rest)
     for kurs, dateien in pro_kurs.items():
-        melden(f"Neues Material in {kurs}:\n" + "\n".join(f"- {d}" for d in dateien))
+        melden(material_meldung(kurs, dateien))
 
 
 # 2. Aufträge ------------------------------------------------------------------
@@ -196,6 +196,27 @@ Lies es und melde kurz (höchstens 12 Zeilen, ohne Markdown-Tabellen), jeweils m
 Gibt es keine Hinweise der ersten drei Arten, schreibe das in einem Satz. Ändere keine Dateien."""
 
 
+PROMPT_MATERIAL = KONTEXT + """
+
+Im Kurs "{kurs}" ist neues Material angekommen (Pfade relativ zu data/kurse/{kurs}/):
+{dateien}
+
+Ordne es für Jan ein. Lies dafür nur: den Teil von data/kurse/{kurs}/uebersicht.md um diese Dateien
+(Abschnitt, Texte, Hinweise wie Remote-Zugang oder Lizenzen), data/kurse/{kurs}/aufgaben.md, den Terminplan
+des Kurses (per Grep nach "Termine" suchen) und von den neuen Dateien höchstens die ersten Seiten der Textfassung.
+Jan nimmt am BFH-Kurs online aus Eberswalde teil. Was für HNEE-Studierende anders ist (Prüfungsteile, Übungen,
+Präsenz), steht oft im Terminplan und in den Intro-Folien (Grep nach "hnee", "Eberswalde", "Biel"). Steht dazu
+nichts, sag das statt zu raten.
+
+Antworte nur mit der Meldung: die Einstufung und je Punkt ein kurzer Satz mit knapper Fundstelle (Datei, Seite),
+ohne Markdown-Tabellen. Nur was zu diesem Material gehört, andere offene Punkte des Kurses nur bei Frist in 7 Tagen:
+Einstufung: HANDELN, LESEN oder NUR ABLEGEN (eine Zeile, mit einem Halbsatz Begründung)
+- Was ist das, zu welchem Termin bzw. Thema gehört es?
+- Muss Jan etwas tun (Abgabe, Vorbereitung, Anmeldung), bis wann?
+- Braucht er etwas dafür (Software, Lizenz, Remote-Zugang, Daten)?
+- Gilt es für ihn als HNEE-Student, soll er an der Übung bzw. dem Termin teilnehmen? Klare Empfehlung.
+Ändere keine Dateien."""
+
 PROMPT_DOKUMENT = KONTEXT + """
 
 Auftrag von Jan (Dokument, du arbeitest allein):
@@ -249,6 +270,25 @@ PROMPT_NACHBESSERN = """Python hat die Übergabe geprüft und nicht weitergegebe
 
 Korrigiere alle genannten Stellen in den Dateien unter data/weitergabe/{id}/ und in data/weitergabe/{id}.json.
 Antworte danach wieder mit der Kurzfassung für Telegram (höchstens 10 Zeilen)."""
+
+
+def material_meldung(kurs: str, dateien: list[str], laufen=claude_lauf.laufen) -> str:
+    """Meldung zu neuem Material: Claude (routine) ordnet ein, darunter die Dateiliste.
+
+    Fällt die Einordnung aus (Kontingent, Fehler), kommt die Dateiliste allein mit Hinweis.
+    """
+    liste = "\n".join(f"- {d}" for d in dateien)
+    try:
+        e = laufen(AGENT, HIER, PROMPT_MATERIAL.format(kurs=kurs, dateien=liste), art="routine", zeitgesteuert=True)
+        einordnung = e.text.strip() if e.ok else None
+        if not e.ok:
+            logger.warning("Einordnung %s fehlgeschlagen: %s", kurs, e.text)
+    except (*WARTEN, claude_lauf.LaufFehler) as f:
+        logger.info("Einordnung %s ausgelassen: %s", kurs, f)
+        einordnung = None
+    if not einordnung:
+        einordnung = "(Keine Einordnung: Claude war gerade nicht verfügbar.)"
+    return f"Neues Material in {kurs}:\n{einordnung}\n\nDateien:\n{liste}"
 
 
 def dokument_auftrag(a: dict, laufen=claude_lauf.laufen, weitergeben=auftraege.weitergeben) -> None:

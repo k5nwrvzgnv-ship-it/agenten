@@ -206,3 +206,29 @@ class TestLinksAuswerten(unittest.TestCase):
         self.assertIn("Konnte die Seite nicht laden (TimeoutError)", zusatz)
         self.assertEqual(dateien, [])
         self.assertEqual(agent.links_auswerten({"id": "x3", "text": "ohne Link"}), ("", []))
+
+
+class TestMaterialMeldung(unittest.TestCase):
+    def test_einordnung_und_liste(self):
+        aufrufe = []
+
+        def claude(agent_name, hier, prompt, **kw):
+            aufrufe.append((prompt, kw))
+            return Ergebnis("Einstufung: NUR ABLEGEN, Übung nur für Biel", "s", True)
+
+        text = agent.material_meldung("Kurs A", ["06/a.pdf", "06/b.zip"], laufen=claude)
+        self.assertEqual(text, "Neues Material in Kurs A:\nEinstufung: NUR ABLEGEN, Übung nur für Biel"
+                               "\n\nDateien:\n- 06/a.pdf\n- 06/b.zip")
+        prompt, kw = aufrufe[0]
+        self.assertIn("- 06/a.pdf", prompt)
+        self.assertIn("data/kurse/Kurs A/aufgaben.md", prompt)
+        self.assertEqual(kw, {"art": "routine", "zeitgesteuert": True})
+
+    def test_ohne_claude_trotzdem_liste(self):
+        def pausiert(*a, **kw):
+            raise agent.claude_lauf.Pausiert("Stufe nur_auftraege")
+
+        for laufen in (pausiert, lambda *a, **kw: Ergebnis("kaputt", None, False)):
+            text = agent.material_meldung("Kurs A", ["a.pdf"], laufen=laufen)
+            self.assertIn("Keine Einordnung", text)
+            self.assertTrue(text.endswith("Dateien:\n- a.pdf"))
