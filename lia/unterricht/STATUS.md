@@ -84,8 +84,11 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 Reihenfolge mit Jan abgestimmt, je Schritt erst nach seinem Okay:
 Wissen aus Lias Dokumenten (Jan 23.10., Budget einmalig ca. 10–15 USD Kontingent):
 A. Katalog und Nachschlagen: gebaut und im echten Lauf geprüft 23.10. (Claude las drei passende Dateien).
-B. Leitfaden „So unterrichtet Lia“ aus Seminarnotizen, Kriterien, Entwürfen und Reihenplanungen (ein Opus-Lauf,
-   ca. 1–2 USD), Jan liest gegen, dann in jeden Lauf.
+B. Leitfaden „So unterrichtet Lia“ (leitfaden.py): Entwurf erzeugt 23.10. in data/wissen/leitfaden-entwurf.md
+   (780 Wörter, 6 Abschnitte, jede Regel mit Quelle) aus 28 Quellen, ein Opus-Lauf: 3,16 USD, 2,73 Mio. Tokens
+   (meist Cache-Lesen). Claude meldete: Quellen dünn zu Klasse 8 und zu Methoden, die nicht funktionieren; offen,
+   ob bei Strafe Kant oder von Liszt zuerst (Planung vs. Examens-Tipps). Wartet auf Jans Okay; danach nach
+   leitfaden.md (Repo) übernehmen und in jeden Material-Lauf einbauen. Verbraucht für A+B bisher ca. 4,20 USD.
 C. Feste Beispielsammlung je Materialtyp im Skill (Architektur 2.5 beispiele/), Lia oder Jan wählt mit aus.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
@@ -109,7 +112,10 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
   Ethik/ (7. Klasse: Reihen Lügen, Gerechtigkeit, Freundschaft + Operatoren, Glück, Tierethik; 8. Klasse:
   Helfen Fremde/Familie, Anfang Reihe Strafe; Operatorentraining Jg. 7; Einzelnes) und UBs+Feedback/
   (Feedbacks der Seminarleitungen, Aristoteles Nikomachische Ethik als PDF mit Text, Entwürfe UE 1–3, UB 4, UB 5
-  und Kurzentwurf 7.15 nur als anonymisierte Textfassungen *.anonym.txt). Aufgeräumt nach Jans Auftrag:
+  und Kurzentwurf 7.15 nur als anonymisierte Textfassungen *.anonym.txt; nachgeschärft 23.10., nachdem der
+  Leitfaden-Lauf Reste meldete: von der PDF-Umwandlung zerlegte Vornamen (Fa0ma, FaDma, Motomaj, Zenep),
+  Seminarleitung und Schule ersetzt). Lehrkräfte und Schulname stehen weiter in Lias Material und Notizen
+  (z. B. Folienkopf, LEK-Kopf); Schülerdaten wurden bei der letzten Suche keine mehr gefunden. Aufgeräumt nach Jans Auftrag:
   Schülerdaten gelöscht (Einzelbewertungen, Noten-, Mitarbeits-, Materiallisten, Sitzpläne, Gruppenlisten,
   Original-Entwürfe mit Lerngruppenanalyse), dazu die Zip-Kopie, Vorfassungen, Sperrdateien und PDFs, deren Text zu
   mind. 85 % einer docx/pptx gleichen Namens entspricht (docx/pptx behalten). Stand: 211 lesbare Dateien. Vornamen in
