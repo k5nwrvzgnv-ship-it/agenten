@@ -101,9 +101,13 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   kommt die Dateiliste mit Hinweis. Echttest LIGNOCAM-Material: 9 Schritte, ca. 83.000 Tokens, 0,13 USD, 26 s.
 - BFH: Abgabe "Vortrag (Eberswalde)" steht in Moodle mit Frist 03.02.2026 (vergangen), vermutlich 2027 gemeint.
   Prüfung laut Intro-Folie 15: Vortrag (Eberswalde) 20 %, Vorbereitungsübung CAD 10 % und Bericht ImW5.2 nur Biel.
-- Normen (23.10.): Jan lädt sie aus Nautos (HNEE-VPN). Liste der Normen für dieses Semester an Jan gegeben
-  (aus Kurs-Textfassungen gezählt und Normen.xlsx in Lifecycle-orientierte Bilanzierung/09 Normen).
-  Ablage und Einbindung noch nicht gebaut (siehe Offene Punkte).
+- Normen (normen.py, 23.10.): Jan legt PDFs aus Nautos (HNEE-VPN) nach data/normen/ (Unterordner erlaubt,
+  nicht im Repo). Jeder agent.py-Lauf (Schritt normen_aufbereiten nach kurse_spiegeln) schreibt zu neuen
+  Dateien die Textfassung und data/normen/uebersicht.md (Kennung und Ausgabe von Seite 1, Seiten, Datei;
+  unlesbare PDFs als KEIN TEXT) und meldet neue Normen. KONTEXT, PROMPT_DOKUMENT und karten.py verweisen
+  darauf. Nur Unit-Tests, noch keine echte Nautos-Datei: offen, ob Nautos-PDFs geschützt sind (dann kein Text).
+  Liste der Normen für dieses Semester an Jan gegeben (aus Kurs-Textfassungen gezählt und Normen.xlsx in
+  Lifecycle-orientierte Bilanzierung/09 Normen).
 - BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
   eingerichtet, Ankunft noch nicht geprüft (Testmail an die BFH-Adresse, dann im HNEE-Postfach suchen).
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
@@ -227,9 +231,8 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    speichert seine Sitzung. Nur Unit-Tests: echter Test über Telegram steht aus (auf eine neue
    Antwort des Agenten antworten; Aufträge von vor dem 17.10. haben keine Sitzung).
 3. Echter Lauf Dokument-Auftrag IHS 20.10. (siehe Stand), dabei Verbrauch messen.
-5. Normen einbinden, sobald Jan die PDFs liefert: Vorschlag Ablage data/normen/ (nicht im Repo), Textfassung
-   mit Seiten, KONTEXT und PROMPT_DOKUMENT verweisen darauf (heute nur Kursmaterial und
-   data/lernen/<modul>/quellen/). Holzschutz-Prüfungsplan: "fehlt" danach aktualisieren.
+5. Erste echte Normen prüfen (Text lesbar? Kennung/Ausgabe richtig?), danach im Holzschutz-Prüfungsplan
+   "fehlt" aktualisieren.
 6. Tests schreiben über den echten Logger in logs/uni.log (Einträge mit abc123). Aufräumen vorschlagen.
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.

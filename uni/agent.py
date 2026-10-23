@@ -27,6 +27,7 @@ from agentkit import auftraege, claude_lauf, config, freigabe, log, meldungen, r
 import fristen
 import kurse
 import moodle
+import normen
 import postfach
 import termine
 import transkripte
@@ -118,6 +119,13 @@ def kurse_spiegeln() -> None:
         melden(material_meldung(kurs, dateien))
 
 
+def normen_aufbereiten() -> None:
+    """Neue Normen in data/normen/ bekommen eine Textfassung, das Verzeichnis wird neu geschrieben."""
+    neu = normen.aufbereiten()
+    if neu:
+        melden(f"Normen aufbereitet ({len(neu)} neu):\n" + "\n".join(normen.beschreiben(e) for e in neu))
+
+
 # 2. Aufträge ------------------------------------------------------------------
 
 KONTEXT = """Du bist der Uni-Agent von Jan. Er studiert Holzingenieurwesen (M.Sc.) an der
@@ -134,6 +142,10 @@ ZIP-Archive sind nach <name>_entpackt/ entpackt, die Inhaltsliste steht in <name
 Vorlesungstranskripte: Jans eigene in data/kurse/<Kurs>/transkripte/, automatische aus
 Aufzeichnungen als <video>.txt neben dem Video (Zeitmarken [mm:ss], Hörfehler möglich).
 Such darin mit Grep und nenne Datum bzw. Zeitmarke als Quelle.
+Normen (aus Nautos) liegen in data/normen/, Verzeichnis data/normen/uebersicht.md (Kennung, Ausgabe, Datei),
+Textfassung daneben als .txt mit "--- Seite N". Nenne Norm, Abschnitt und Seite als Quelle. Fehlt eine Norm
+dort, sag das und gib keine Normabschnitte aus dem Gedächtnis an. Normtext nie in längeren wörtlichen Auszügen
+wiedergeben, Normen nicht an andere weitergeben.
 
 Arbeite sparsam, jeder Schritt kostet Jans Kontingent:
 1. Erst die passende uebersicht.md lesen und daraus die Dateien wählen, die wirklich in Frage kommen.
@@ -229,7 +241,7 @@ Quellen:
 - Das Transkript (Rohdaten) liest du einmal ganz, über die Textfassung <datei>.txt mit "--- Seite N".
   Es enthält Hörfehler bei Fachbegriffen und private Gespräche.
 - Folien und Infokarten des Kurses nur per Grep in den .txt, dann gezielt einzelne Seiten.
-- Normen nur, wenn sie als Datei vorliegen (Kursmaterial oder data/lernen/<modul>/quellen/). Fehlt eine Norm,
+- Normen nur, wenn sie als Datei vorliegen (data/normen/, Kursmaterial oder data/lernen/<modul>/quellen/). Fehlt eine Norm,
   schreib ausdrücklich, dass sie fehlt, und gib Normabschnitte nicht aus dem Gedächtnis an.
 - Vorhandene Zusammenfassungen sind nur Hilfsmittel, keine Quelle.
 
@@ -538,7 +550,7 @@ def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, 
 
 if __name__ == "__main__":
     # auftraege_abarbeiten am Ende noch einmal: Aufträge, die während Fristen/Post ankamen
-    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, auftraege_abarbeiten, fristen_pruefen, post_pruefen,
+    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, normen_aufbereiten, auftraege_abarbeiten, fristen_pruefen, post_pruefen,
                     auftraege_abarbeiten):
         try:
             schritt()
