@@ -24,6 +24,7 @@ MONATE = ("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August"
 AUSGABE_WORT = re.compile(r"\b(" + "|".join(MONATE) + r")\s+((?:19|20)\d{2})(?!\d)")  # Nautos: "Juni\t2019DEUTSCHE"
 AUSGABE = re.compile(r"\b((?:19|20)\d{2}-(?:0[1-9]|1[0-2]))\b(?!-\d)")  # nicht JJJJ-MM-TT (Lizenzvermerk)
 SEITE = re.compile(r"^--- Seite (\d+)$", re.M)
+NAUTOS_NAME = re.compile(r"^(.+?)_((?:19|20)\d{2}-\d{2})-\d{2}_[A-Z]{2}_\d+$")  # DIN EN 350_2016-12-00_DE_2414889
 UNLESBAR = ("(Kein Text gefunden", "(Textfassung fehlgeschlagen")
 
 
@@ -49,11 +50,27 @@ def ausgabe(text: str) -> str | None:
     return m.group(1) if m else None
 
 
+def aus_dateiname(datei: str) -> tuple[str, str] | None:
+    """Kennung und Ausgabe aus dem Nautos-Dateinamen, z. B. "DIN EN 1995-1-1-NA_2013-08-00_DE_2025142.pdf"
+    -> ("DIN EN 1995-1-1/NA", "2013-08"). Verlässlicher als das Deckblatt (NA, Änderungen, Berichtigungen)."""
+    m = NAUTOS_NAME.match(Path(datei).stem)
+    if not m:
+        return None
+    name = re.sub(r"-(NA|A\d+)$", r"/\1", " ".join(m.group(1).replace("_", " ").split()))
+    return name, m.group(2)
+
+
 def eintrag(datei: str, text: str | None) -> dict:
-    if text is None or text.startswith(UNLESBAR):
-        return {"datei": datei, "kennung": None, "ausgabe": None, "seiten": 0, "lesbar": False}
-    return {"datei": datei, "kennung": kennung(text), "ausgabe": ausgabe(text),
-            "seiten": len(SEITE.findall(text)), "lesbar": True}
+    lesbar = text is not None and not text.startswith(UNLESBAR)
+    name = aus_dateiname(datei)
+    if name:
+        kenn, ausg = name
+    elif lesbar:
+        kenn, ausg = kennung(text), ausgabe(text)
+    else:
+        kenn, ausg = None, None
+    return {"datei": datei, "kennung": kenn, "ausgabe": ausg,
+            "seiten": len(SEITE.findall(text)) if lesbar else 0, "lesbar": lesbar}
 
 
 def verzeichnis(eintraege: list[dict]) -> str:
@@ -62,7 +79,8 @@ def verzeichnis(eintraege: list[dict]) -> str:
               "Kennung und Ausgabe sind von der ersten Seite gelesen, im Zweifel dort prüfen.", ""]
     for e in sorted(eintraege, key=lambda e: (e["kennung"] or "~", e["datei"])):
         if not e["lesbar"]:
-            zeilen.append(f"- {e['datei']}: KEIN TEXT (Scan oder geschützt), PDF mit Read ansehen")
+            zeilen.append(f"- {e['kennung'] or e['datei']}: KEIN TEXT (Scan oder geschützt), PDF mit Read ansehen: "
+                          f"{e['datei']}")
             continue
         teile = [e["kennung"] or "Kennung unbekannt", f"Ausgabe {e['ausgabe']}" if e["ausgabe"] else None,
                  f"{e['seiten']} Seiten" if e["seiten"] else None]
@@ -93,6 +111,6 @@ def aufbereiten(ordner: Path = ORDNER, textfassung=kurse.textfassung) -> list[di
 
 def beschreiben(e: dict) -> str:
     if not e["lesbar"]:
-        return f"- {e['datei']}: kein Text lesbar (Scan oder geschützt)"
+        return f"- {e['kennung'] or e['datei']}: kein Text lesbar (Scan oder geschützt)"
     return f"- {e['kennung'] or 'Kennung unbekannt'}" + (f" ({e['ausgabe']})" if e["ausgabe"] else "") + \
         f", {e['seiten']} Seiten: {e['datei']}"

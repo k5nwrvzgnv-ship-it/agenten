@@ -33,6 +33,20 @@ class TestErkennen(unittest.TestCase):
         self.assertEqual((normen.kennung(nautos), normen.ausgabe(nautos)), ("DIN 68800-1", "2019-06"))
         self.assertIsNone(normen.kennung("--- Seite 1\nkeine Norm\n--- Seite 2\nDIN 4108-3"))
 
+    def test_nautos_dateiname(self):
+        self.assertEqual(normen.aus_dateiname("eurocode5/DIN EN 1995-1-1-NA_2013-08-00_DE_2025142.pdf"),
+                         ("DIN EN 1995-1-1/NA", "2013-08"))
+        self.assertEqual(normen.aus_dateiname("DIN EN 1995-1-1-A2_2014-07-00_DE_2151247.pdf"),
+                         ("DIN EN 1995-1-1/A2", "2014-07"))
+        self.assertEqual(normen.aus_dateiname("DIN EN 350 Berichtigung 1_2017-05-00_DE_2646996.pdf"),
+                         ("DIN EN 350 Berichtigung 1", "2017-05"))
+        self.assertEqual(normen.aus_dateiname("DIN_68800-1_2019-06-00_DE_3045931.pdf"), ("DIN 68800-1", "2019-06"))
+        self.assertIsNone(normen.aus_dateiname("en350.pdf"))
+        e = normen.eintrag("DIN EN 335_2013-06-00_DE_1919741.pdf", "--- Seite 1\nErsatz für DIN EN 335-1")
+        self.assertEqual((e["kennung"], e["ausgabe"]), ("DIN EN 335", "2013-06"))
+        e = normen.eintrag("DIN EN 335_2013-06-00_DE_1919741.pdf", None)
+        self.assertEqual((e["kennung"], e["lesbar"]), ("DIN EN 335", False))
+
     def test_unlesbar(self):
         for text in (None, "(Kein Text gefunden, vermutlich ein Scan.)", "(Textfassung fehlgeschlagen: x)"):
             self.assertFalse(normen.eintrag("b.pdf", text)["lesbar"])
@@ -47,7 +61,7 @@ class TestVerzeichnis(unittest.TestCase):
         zeilen = [z for z in text.splitlines() if z.startswith("- ")]
         self.assertEqual(zeilen, ["- DIN 68800-1, 40 Seiten: a.pdf (Textfassung a.pdf.txt)",
                                   "- DIN EN 350, Ausgabe 2016-12, 3 Seiten: b.pdf (Textfassung b.pdf.txt)",
-                                  "- z.pdf: KEIN TEXT (Scan oder geschützt), PDF mit Read ansehen"])
+                                  "- z.pdf: KEIN TEXT (Scan oder geschützt), PDF mit Read ansehen: z.pdf"])
 
     def test_leer(self):
         self.assertIn("noch keine Normen", normen.verzeichnis([]))
