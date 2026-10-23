@@ -234,7 +234,11 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    Antwort des Agenten antworten; Aufträge von vor dem 17.10. haben keine Sitzung).
 3. Echter Lauf Dokument-Auftrag IHS 20.10. (siehe Stand), dabei Verbrauch messen.
 5. Weitere Normen von Jan: je Lieferung Verzeichnis prüfen und im Holzschutz-Prüfungsplan (json und md)
-   "fehlt" und Quellen nachziehen. Offen für Holzschutz: DIN 68800-2, -3, -4, DIN EN 350, DIN EN 335.
+   "fehlt" und Quellen nachziehen. Offen für Holzschutz und Sanierung (23.10. gegen
+   beide Teilmodule geprüft, IHS-Folien, SHB 01/02, Transkript 20.10.): DIN 68800-2, -3, -4, DIN EN 350,
+   DIN EN 335, DIN EN 1995-1-1 mit NA; optional DIN EN 1995-1-2 mit NA (SHB 01 S. 17-18, Restquerschnitt),
+   DIN EN 351-1/-2, DIN EN 399-1, DIN EN 460 (SHB 01 S. 5, nur Liste). WTA-Merkblätter (Transkript 20.10.
+   S. 22, Regelsanierung) gibt es nicht in Nautos.
 6. Tests schreiben über den echten Logger in logs/uni.log (Einträge mit abc123). Aufräumen vorschlagen.
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
