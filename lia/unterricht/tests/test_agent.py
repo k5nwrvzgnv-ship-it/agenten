@@ -88,10 +88,10 @@ class AgentTest(unittest.TestCase):
         (self.hier / "reihen.toml").write_text("[[reihe]]\nklasse = 8\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
         self.assertEqual(agent.reihen_laden(), [{"klasse": 8, "reihenfrage": "Helfen?"}])
         self.assertEqual(self.gemeldet, [])
-        (self.hier / "reihen.toml").write_text("[[reihe]]\nklasse = 8\n", encoding="utf-8")
+        (self.hier / "reihen.toml").write_text("[[reihe]]\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
         self.assertEqual(agent.reihen_laden(), [])
         self.assertEqual(len(self.gemeldet), 1)
-        self.assertIn("reihenfrage fehlt", self.gemeldet[0])
+        self.assertIn("klasse fehlt", self.gemeldet[0])
 
     def test_material_bekommt_reihen(self):
         self.hier.mkdir(parents=True)

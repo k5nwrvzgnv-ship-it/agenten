@@ -8,9 +8,9 @@ macht daraus einen Prompt-Abschnitt.
 import tomllib
 from pathlib import Path
 
-PFLICHT = ("klasse", "reihenfrage")
+PFLICHT = ("klasse",)  # Reihenfrage fehlt, solange eine Reihe noch geplant wird
 TEXTE = ("fach", "klasse", "titel", "reihenfrage", "lerngruppe", "notizen")
-LISTEN = ("behandelt", "merksaetze")
+LISTEN = ("behandelt", "merksaetze", "bisherige_reihen")
 
 
 class ReihenFehler(Exception):
@@ -50,9 +50,13 @@ def prompt_reihen(reihen: list[dict], fach: str) -> str:
     bloecke = []
     for r in reihen:
         kopf = f"### {r.get('fach') or fach}, Klasse {r['klasse']}" + (f": {r['titel']}" if r.get("titel") else "")
-        zeilen = [kopf, f"- Reihenfrage: {r['reihenfrage']}"]
+        zeilen = [kopf]
+        if r.get("reihenfrage"):
+            zeilen.append(f"- Reihenfrage: {r['reihenfrage']}")
         if r.get("lerngruppe"):
             zeilen.append(f"- Lerngruppe: {r['lerngruppe']}")
+        if r.get("bisherige_reihen"):
+            zeilen.append("- Frühere Reihen der Klasse:\n" + "\n".join(f"  - {x}" for x in r["bisherige_reihen"]))
         if r.get("behandelt"):
             zeilen.append("- Schon behandelt: " + "; ".join(r["behandelt"]))
         if r.get("merksaetze"):
@@ -63,5 +67,6 @@ def prompt_reihen(reihen: list[dict], fach: str) -> str:
     return ("## Lias laufende Reihen\n"
             "Nimm die Reihe, die zu Klasse und Thema des Wunsches passt. Halte dich an ihre Reihenfrage und ihre "
             "Lerngruppe und baue auf dem auf, was schon behandelt ist; Merksätze der Reihe übernimmst du im "
-            "Wortlaut. Passt keine Reihe oder mehrere, nenne deine Annahme im Begleittext.\n\n"
+            "Wortlaut. Frühere Reihen zeigen, was die Klasse schon kennt. Passt keine Reihe oder mehrere, nenne "
+            "deine Annahme im Begleittext.\n\n"
             + "\n\n".join(bloecke) + "\n\n")

@@ -1,14 +1,27 @@
 # Lias laufende Unterrichtsreihen. Jeder Lauf von unterricht bekommt sie mit (reihen.py),
-# Claude nimmt die Reihe, die zum Wunsch passt. Von Jan von Hand gepflegt; abgeschlossene Reihen löschen.
+# Claude nimmt die Reihe, die zum Wunsch passt. Von Jan von Hand gepflegt; abgeschlossene Reihen nach
+# bisherige_reihen verschieben.
 #
-# Je Reihe ein Block [[reihe]]. Pflicht: klasse, reihenfrage. Alles andere ist freiwillig.
-#
-# [[reihe]]
-# fach = "Ethik"                    # ohne Angabe: Fach aus profil.toml
-# klasse = "8"
-# titel = "Helfen"                  # kurzer Name, nur zur Übersicht
-# reihenfrage = "Muss ich Fremden genauso helfen wie meiner Familie?"
-# lerngruppe = "lernschwach, viele mehrsprachig, kurze Sätze"
-# behandelt = ["Singer: Nähe ist moralisch egal", "Aristoteles: Freundschaft"]
-# merksaetze = ["Singer: Wenn ich etwas Schlimmes verhindern kann, ohne etwas ähnlich Wichtiges zu opfern, muss ich es tun."]
-# notizen = "Nächste Stunde: Fallbeispiel"
+# Je Reihe ein Block [[reihe]]. Pflicht: klasse. Alles andere ist freiwillig:
+# fach (ohne Angabe: Fach aus profil.toml), titel, reihenfrage (fehlt, solange die Reihe geplant wird),
+# lerngruppe, notizen (Texte); behandelt, merksaetze, bisherige_reihen (Listen von Texten).
+
+# Angaben von Lia, 23.10.2026. Merksätze hatte sie gerade nicht parat.
+[[reihe]]
+fach = "Ethik"
+klasse = "8"
+titel = "Straftheorien (in Planung)"
+lerngruppe = """eher lernschwach und heterogen: viele Schüler*innen mit sprachlichen oder Lernschwierigkeiten. \
+Eher unruhig: Partnerarbeit oder Arbeit zu dritt funktioniert gut, sehr aktive Methoden führen zu Chaos. \
+Die Klasse liebt Medienwechsel (Videos, Audios)."""
+notizen = """Nächste Reihe: Straftheorien (Vergeltung, Besserung, Prävention), stark vereinfacht, am liebsten am \
+Thema Gefängnisstrafe. Die Reihenfrage steht noch nicht fest."""
+behandelt = ["Peter Singer", "Aristoteles", "Kant", "Jeremy Bentham", "John Rawls", "John Stuart Mill"]
+bisherige_reihen = [
+    "Klasse 7, Lüge und Wahrheit: Sollte ich lügen, um einen Freund zu schützen?",
+    "Klasse 7, Gerechtes Verteilen: Wie verteilt man gerecht, wenn nicht genug für alle da ist?",
+    "Klasse 7, Freundschaft: Wie erkenne ich einen guten Freund?",
+    "Klasse 7, Tiere töten: Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?",
+    "Klasse 7, Glückliches Leben: Wie führe ich ein glückliches Leben?",
+    "Klasse 8, Helfen: Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?",
+]

@@ -20,6 +20,11 @@ notizen = "Nächste Stunde Fallbeispiel"
 fach = "Darstellendes Spiel"
 klasse = "11"
 reihenfrage = "Wie entsteht eine Figur?"
+
+[[reihe]]
+klasse = 8
+titel = "Strafe (in Planung)"
+bisherige_reihen = ["Klasse 7: Lüge", "Klasse 8: Helfen"]
 """
 
 
@@ -30,7 +35,8 @@ class ReihenTest(unittest.TestCase):
         return pfad
 
     def test_mitgelieferte_datei_ist_gueltig(self):
-        reihen.laden(HIER / "reihen.toml")
+        r = reihen.laden(HIER / "reihen.toml")
+        self.assertIn("Klasse 8", reihen.prompt_reihen(r, "Ethik"))
 
     def test_ohne_datei_und_leer(self):
         self.assertEqual(reihen.laden(Path(tempfile.mkdtemp()) / "fehlt.toml"), [])
@@ -39,7 +45,7 @@ class ReihenTest(unittest.TestCase):
 
     def test_laden_und_prompt(self):
         r = reihen.laden(self.datei(GUT))
-        self.assertEqual(len(r), 2)
+        self.assertEqual(len(r), 3)
         text = reihen.prompt_reihen(r, "Ethik")
         self.assertTrue(text.startswith("## Lias laufende Reihen\n"))
         self.assertIn("### Ethik, Klasse 8: Helfen\n- Reihenfrage: Muss ich Fremden", text)
@@ -49,15 +55,17 @@ class ReihenTest(unittest.TestCase):
         self.assertIn("- Notizen: Nächste Stunde Fallbeispiel", text)
         self.assertIn("### Darstellendes Spiel, Klasse 11\n- Reihenfrage: Wie entsteht eine Figur?\n\n", text)
         self.assertNotIn("Lerngruppe", text.split("### Darstellendes Spiel")[1])
+        self.assertTrue(text.endswith("### Ethik, Klasse 8: Strafe (in Planung)\n"
+                                      "- Frühere Reihen der Klasse:\n  - Klasse 7: Lüge\n  - Klasse 8: Helfen\n\n"))
 
     def test_fehler(self):
         faelle = {
             "[[reihe]\nklasse = 8": "kein gültiges TOML",
             "[reihe]\nklasse = 8\nreihenfrage = 'x'": "[[reihe]]",
             "klasse = 8": "unbekannte Einträge",
-            "[[reihe]]\nklasse = 8": "reihenfrage fehlt",
-            "[[reihe]]\nklasse = 8\nreihenfrage = '  '": "reihenfrage fehlt",
             "[[reihe]]\nreihenfrage = 'x'": "klasse fehlt",
+            "[[reihe]]\nklasse = ' '": "klasse fehlt",
+            "[[reihe]]\nklasse = 8\nbisherige_reihen = 'Lüge'": "bisherige_reihen muss eine Liste",
             "[[reihe]]\nklasse = 8\nreihenfrage = 'x'\nthema = 'y'": "unbekannte Felder ['thema']",
             "[[reihe]]\nklasse = 8\nreihenfrage = 'x'\nbehandelt = 'Singer'": "behandelt muss eine Liste",
             "[[reihe]]\nklasse = 8\nreihenfrage = 'x'\nmerksaetze = [1]": "merksaetze muss eine Liste",

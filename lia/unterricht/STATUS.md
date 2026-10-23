@@ -7,7 +7,8 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
 ## Stand (23.10.2026)
 - Reihenkontext (23.10., Schritt 1 aus der Auswertung): reihen.toml wird gelesen und jedem Material-Lauf
-  mitgegeben. Die Datei ist noch leer (nur Kommentare), Jan trägt Lias laufende Reihen nach.
+  mitgegeben. Eingetragen nach Lias Angaben (23.10.): Ethik Klasse 8, Lerngruppe, frühere Reihen aus Kl. 7/8,
+  behandelte Philosoph*innen, nächste Reihe Straftheorien (Reihenfrage noch offen). Merksätze fehlen noch.
   Noch kein echter Lauf mit Reihen.
 - Material läuft (Code fertig, Tests grün, Dienst eingerichtet). Noch kein Auftrag von Lia über Telegram.
 - Echter Lauf 22.10. (direkt mit material.bearbeiten, ohne Warteschlange, damit Lia nichts bekam):
@@ -33,8 +34,9 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Datei eine Textfassung (<datei>.txt, agentkit.textfassung, pypdf) und Seitenbilder (<datei>-seiten/, über
   renderer.vorschau, auch für Scans; höchstens 8 je Datei im Prompt). Grund: Claudes Read öffnet PDFs auf dem
   Server nicht (kein poppler). Bilder öffnet Claude direkt, andere Formate versucht Claude mit Read.
-- Reihenkontext (reihen.py, reihen.toml): je Reihe [[reihe]] mit klasse und reihenfrage (Pflicht), dazu fach,
-  titel, lerngruppe, behandelt, merksaetze, notizen. Alle Reihen gehen in den Startprompt, Claude nimmt die
+- Reihenkontext (reihen.py, reihen.toml): je Reihe [[reihe]] mit klasse (Pflicht), dazu fach, titel,
+  reihenfrage (fehlt, solange eine Reihe geplant wird), lerngruppe, notizen, behandelt, merksaetze,
+  bisherige_reihen. Alle Reihen gehen in den Startprompt, Claude nimmt die
   passende und nennt sonst seine Annahme im Begleittext. reihen.toml ist im Repo (keine Schülerdaten) und für
   Claude schreibgeschützt (*.toml in claude_lauf.GESCHUETZT). Ist die Datei fehlerhaft, läuft das Material ohne
   Reihen und Jan bekommt eine Meldung. Pflege heute von Hand durch Jan; später ggf. über Lias Zentrale.
@@ -63,13 +65,19 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
 ## Umsetzung der Auswertung (lia/auswertung, 23.10.2026, Rangliste UNGEPRÜFT)
 Reihenfolge mit Jan abgestimmt, je Schritt erst nach seinem Okay:
-1. Reihenkontext: gebaut 23.10. Offen: Jan trägt die Reihen in reihen.toml ein.
+1. Reihenkontext: gebaut und gefüllt 23.10. Offen: Merksätze und die Reihenfrage zu Straftheorien von Lia.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): Jan einzeln vorlegen, freigegebene in
    „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
    Fragen: 1, 2, 7, 8; 11 (Bewertung) gehört nicht hierher.
 3. „Frage stellen“ als Fachfragen mit Belegpflicht (eigener Ablauf und Skill, Reihenkontext mit).
 4. Änderungswünsche (offener Punkt 2): Sitzung fortsetzen; Bedarf an Lias Zentrale in die Haupt-STATUS.
 5. Profil für Darstellendes Spiel (zweites Profil, Wahl über die Reihe).
+Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
+- Vorgaben ihrer Seminarleitung, was eine gute Reihenfrage ausmacht, und Schulvorgaben (schulinternes
+  Curriculum/RLP): Lia schickt sie, sie sollen dem Agenten beigegeben werden (Fragen, Auswahl).
+- Quellen: Lia möchte Dokumente als Quellen hinzufügen. Bei der Wahl zweier gegensätzlicher Positionen soll die
+  Quellenlage zählen: Texte möglichst digital verfügbar, kostengünstig, nicht zu nischig. Als Regel erst nach
+  Jans Okay eintragen (verwandt mit Regelvorschlag 7); gehört zu Schritt 3.
 6. Optional: Blindvergleich mit lia/auswertung/data/ergebnis/pruefsatz.json (P01–P17, ~10 USD Kontingent).
 
 ## Offene Punkte
