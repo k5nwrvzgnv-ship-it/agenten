@@ -92,7 +92,7 @@ B. Leitfaden „So unterrichtet Lia“ (leitfaden.py): Entwurf erzeugt 23.10. in
    (meist Cache-Lesen). Claude meldete: Quellen dünn zu Klasse 8 und zu Methoden, die nicht funktionieren; offen,
    ob bei Strafe Kant oder von Liszt zuerst (Planung vs. Examens-Tipps). Von Jan freigegeben 23.10., liegt als
    leitfaden.md im Repo und geht in jeden Material-Lauf (nach dem Katalog, vor dem Skill). Noch kein echter Lauf
-   damit. Verbraucht für A, B und B2 bisher ca. 6 USD.
+   damit. Verbraucht für A, B, B2 und C1 bisher ca. 7 USD.
 B2. Entwicklungsverlauf (verlauf.py, Jan 23.10., Lia einverstanden): data/wissen/entwicklung.md (nicht im Repo, eine
    Auswertung über Lia, gehört zuerst ihr). Ein Opus-Lauf aus 16 Quellen (6 Entwürfe, 7 Rückmeldungen, Notizen,
    Kriterien): 1,82 USD, 664.918 Tokens. Inhalt: Zeitleiste, 12 Kriterien x 6 Entwürfe (–/o/+ mit Beleg), Kritik
@@ -102,7 +102,13 @@ B2. Entwicklungsverlauf (verlauf.py, Jan 23.10., Lia einverstanden): data/wissen
    den Agenten“ 2–5 hat Jan am 23.10. als Abschnitt 7 in leitfaden.md übernommen; Punkt 1 nicht (nannte noch
    Helfen als laufende Reihe). Offen mit Lia: Belege mit Werk und Stelle aufs Blatt oder in den Begleittext
    (Regelvorschlag 3 sagt Begleittext, noch nicht freigegeben).
-C. Feste Beispielsammlung je Materialtyp im Skill (Architektur 2.5 beispiele/), Lia oder Jan wählt mit aus.
+C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wissen/beispiele-vorschlag.md (ein
+   Opus-Lauf, 24 Blätter gelesen, 0,86 USD): je Materialtyp 1–2 Musterblätter mit Warum gut / Nachahmen / Schwäche,
+   Schwerpunkt Klasse 8 Helfen (AB_4, BBB_AB, AB_5.1/5.2, Sicherungszettel A/B, Erörterung leicht/mittel/schwer,
+   Präsentation_5, EH der LEK Lügen). Fehlt ganz: DS, Reihe Strafe, Sprachbildungs-Rubrik, Aufgabe zu Grenzen einer
+   Position, EH zur Erörterungs-LEK, Belege auf Blättern. Stellenangaben im Vorschlag sind Claudes eigene Kenntnis,
+   ungeprüft. Wartet auf Auswahl durch Jan/Lia. Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
+   das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
 1. Reihenkontext: gebaut und gefüllt 23.10. Offen: Merksätze und die Reihenfrage zu Straftheorien von Lia.
