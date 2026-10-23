@@ -66,8 +66,9 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 ## Umsetzung der Auswertung (lia/auswertung, 23.10.2026, Rangliste UNGEPRÜFT)
 Reihenfolge mit Jan abgestimmt, je Schritt erst nach seinem Okay:
 1. Reihenkontext: gebaut und gefüllt 23.10. Offen: Merksätze und die Reihenfrage zu Straftheorien von Lia.
-2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): Jan einzeln vorlegen, freigegebene in
-   „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
+2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
+   „nicht wieder vorschlagen“). Ohne Entscheidung: 3 und 4 (Jan wählte nichts), 5–8 (Antwort steht aus);
+   9–11 noch nicht vorgelegt. Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
    Fragen: 1, 2, 7, 8; 11 (Bewertung) gehört nicht hierher.
 3. „Frage stellen“ als Fachfragen mit Belegpflicht (eigener Ablauf und Skill, Reihenkontext mit).
 4. Änderungswünsche (offener Punkt 2): Sitzung fortsetzen; Bedarf an Lias Zentrale in die Haupt-STATUS.
@@ -92,3 +93,5 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 
 ## Gelernte Regeln
 - 23.10.2026: Bei der Wahl zweier gegensätzlicher Positionen zählt die Quellenlage: Es muss Texte dazu geben, möglichst digital verfügbar, kostengünstig und nicht zu nischig. (Anlass: Lias Wunsch, von Jan freigegeben)
+- 23.10.2026: Was einem Philosophen zugeschrieben wird, braucht einen Beleg (Werk, Stelle). Eigene didaktische Vereinfachung als solche kennzeichnen. Nichts erfinden, Unsicherheit sagen. (Anlass: Auswertung von Lias Chats, Regelvorschlag 1, fachlich: 52 Korrekturen; von Jan freigegeben)
+- 23.10.2026: Vor jeder Antwort Reihenfrage, Klasse und gewählte Positionen der laufenden Reihe beachten, nicht stillschweigend wechseln. (Anlass: Auswertung, Regelvorschlag 2 ohne „behandelte Positionen nicht wieder vorschlagen“, missverstanden: 43, einseitig: 14; von Jan freigegeben)
