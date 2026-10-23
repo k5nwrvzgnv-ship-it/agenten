@@ -67,8 +67,8 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 Reihenfolge mit Jan abgestimmt, je Schritt erst nach seinem Okay:
 1. Reihenkontext: gebaut und gefüllt 23.10. Offen: Merksätze und die Reihenfrage zu Straftheorien von Lia.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
-   „nicht wieder vorschlagen“). Ohne Entscheidung: 3 und 4 (Jan wählte nichts), 5–8 (Antwort steht aus);
-   9–11 noch nicht vorgelegt. Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
+   „nicht wieder vorschlagen“). Pausiert (Jan 23.10.): 3–11 werden nachgeholt, wenn Lia Zeit hat
+   (3 und 4 vorgelegt ohne Wahl, 5–8 vorgelegt ohne Antwort, 9–11 noch nicht vorgelegt). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
    Fragen: 1, 2, 7, 8; 11 (Bewertung) gehört nicht hierher.
 3. „Frage stellen“ als Fachfragen mit Belegpflicht (eigener Ablauf und Skill, Reihenkontext mit).
 4. Änderungswünsche (offener Punkt 2): Sitzung fortsetzen; Bedarf an Lias Zentrale in die Haupt-STATUS.
@@ -76,6 +76,12 @@ Reihenfolge mit Jan abgestimmt, je Schritt erst nach seinem Okay:
 Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - Vorgaben ihrer Seminarleitung, was eine gute Reihenfrage ausmacht, und Schulvorgaben (schulinternes
   Curriculum/RLP): Lia schickt sie, sie sollen dem Agenten beigegeben werden (Fragen, Auswahl).
+- Lias Dokumente aus dem Referendariat (23.10.): Sammelstelle data/wissen/eingang/ (nicht im Repo, nur für agent
+  lesbar). Dort bisher: Fachseminar_Ethik_Notizen.pages mit Textfassung (.pages.txt, Sitzungen 09.09.2025 bis
+  21.04.2026: Reihenplanung, Problemfragen, Entwürfe, Methoden; aus der Pages-Datei grob entpackt, Tabellen und
+  Bilder fehlen) und Kriterien_gute_Unterrichtseinheit.txt (aus Jans Screenshot). Der Rest (über 30 MB) kommt
+  per scp. Noch offen und erst nach Jans Okay: Wie der Agent das Wissen nutzt (auswählen, kürzen, in den
+  Prompt oder als Dateien zum Lesen). Dokumente mit Schülerdaten gehören nicht hierher.
 - Quellen: Lia möchte Dokumente als Quellen hinzufügen. Bei der Wahl zweier gegensätzlicher Positionen soll die
   Quellenlage zählen: als Gelernte Regel eingetragen (23.10.). Offen: wie Lia Quellen dauerhaft ablegt.
 6. Optional: Blindvergleich mit lia/auswertung/data/ergebnis/pruefsatz.json (P01–P17, ~10 USD Kontingent).
