@@ -92,6 +92,20 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   In Jans Kalender schreibt der Agent nicht selbst (iCloud nur lesend). Echt getestet mit webinargeek
   (Pollmeier-Webinar 17.11.2026 10:00, Termin danach in Jans Kalender). Seiten, die Termine nur per
   JavaScript nachladen und kein JSON-LD haben, liefern keinen Termin.
+- Mails senden (mail.py, 24.10., Plan von Jan freigegeben): Claude schreibt Entwürfe nach
+  data/entwuerfe/<schluessel>/mail_<n>.json (an, cc, betreff, text, antwort_auf_uid, begruendung): in
+  erledigen-Aufträgen (Schlüssel = Auftrags-ID), in post_pruefen (post-<zeit>, nur wenn Jan offensichtlich
+  antworten muss) und bei neuem Material (material-<zeit>-<kurs>). Python prüft (Adressen, höchstens 5
+  Empfänger, Betreff/Text), Gesprächsbezug (In-Reply-To/References) kommt aus data/mails/<uid>.json, nie von
+  Claude. Dann freigabe.neuer_entwurf(typ "mail"), Datei wird .eingereicht bzw. .ungueltig. Nach Freigabe:
+  ausfuehren() -> mail.senden: SMTP mail.hnee.de:587 STARTTLS mit HNEE-Login (AUTH LOGIN), Absender
+  MAIL_ABSENDER=jkl298@hnee.de, MAIL_NAME in uni/.env, Kopie per IMAP APPEND nach "Gesendete Elemente".
+  Ändern in Telegram -> Auftrag quelle "telegram-aendern", bezug = Entwurf: aenderung_bearbeiten (routine)
+  schreibt neuen Entwurf (vorgaenger, alter Gesprächsbezug bleibt) und optional regel.json ->
+  regeln.regel_vorschlagen. Ablehnen ohne Kommentar: kein Regelvorschlag (Zentrale fragt keinen Grund ab).
+  post_pruefen legt jede gelesene Mail in data/mails/<uid>.json ab. Lernmodus bekommt keinen Mail-Hinweis.
+  Echttest 24.10.: Entwurf an jkl298@hnee.de liegt zur Freigabe (20261024-003432-uni-e88e8a).
+- Kalender schreiben: Bedarf im Hauptordner (../STATUS.md Punkt 9), danach hier Entwurfstyp "termin".
 - Aufträge während eines Laufs (23.10.): systemctl start auf einen laufenden uni.service startet keinen zweiten
   Lauf. auftraege_abarbeiten holt deshalb so lange nach, bis nichts Neues kommt, und läuft am Ende des Laufs
   noch einmal. Kommt ein Auftrag erst in den letzten Millisekunden, wartet er bis zum nächsten Timer.
