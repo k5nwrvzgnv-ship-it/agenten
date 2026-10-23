@@ -45,7 +45,7 @@ class ErkennenTest(unittest.TestCase):
             "Ethik/7. Klasse/Reihe Lügen/ABS/Collage pdf.pdf": "Arbeitsblatt",
             "Ethik/8. Klasse/X/ABs/Schnipsel_Singer_Stunde2.docx": "Arbeitsblatt",
             "Ethik/Operatorentraining im Jahrgang 7 (1)/Heft Operatoren_ausführlich.pdf":
-                "Operatoren (Material und Methoden)",
+                "Operatoren",
             "Ethik/7. Klasse/Reihe Freundschaft + Operatoren/ABs/OperatorenAB_1.docx": "Arbeitsblatt",
             "Fachseminar_Ethik_Notizen.pages.txt": "Seminar und Notizen",
             "Ethik/Social_Media_Verbot.docx": "Sonstiges",
@@ -92,8 +92,12 @@ class AufbereitenTest(unittest.TestCase):
         self.datei("Ethik/kaputt.pdf", "kaputt")
         self.datei("Ethik/~$AB1.docx", "Sperrdatei")
         self.datei("Ethik/Bild.jpeg", "jpg")
+        self.datei("Ethik/7. Klasse/Reihe Glück /ABs/AB1_Türkisch.docx", "Epikur türkçe")
+        self.datei("Ethik/7. Klasse/Reihe Glück /Feedback_Ethik.docx", "Feedback zum Unterricht")
         e = {x.quelle: x for x in self.aufbereiten()}
         self.assertEqual(sorted(e), ["Ethik/7. Klasse/Reihe Glück /ABs/AB1.docx",
+                                     "Ethik/7. Klasse/Reihe Glück /ABs/AB1_Türkisch.docx",
+                                     "Ethik/7. Klasse/Reihe Glück /Feedback_Ethik.docx",
                                      "Ethik/7. Klasse/Reihe Glück /Powerpoints/Stunde1.pptx",
                                      "Ethik/kaputt.pdf", "Ethik/scan.pdf", "Notizen.txt"])
         ab = e["Ethik/7. Klasse/Reihe Glück /ABs/AB1.docx"]
@@ -106,10 +110,14 @@ class AufbereitenTest(unittest.TestCase):
         self.assertIn("ValueError: defekt", e["Ethik/kaputt.pdf"].anfang)
 
         k = wissen.katalog(list(e.values()))
-        self.assertIn("### Ethik 7: Glück\n- data/wissen/text/Ethik/7. Klasse/Reihe Glück /ABs/AB1.docx.txt | "
-                      "Arbeitsblatt | Epikur und das Glück\n- data/wissen/text/Ethik/7. Klasse/Reihe Glück /Powerpoints/"
-                      "Stunde1.pptx.txt | Folien | Ziele für heute\n", k)
-        self.assertIn("- Ethik/scan.pdf (ohne Text) | Sonstiges | (Kein Text gefunden", k)
+        self.assertIn("### Ethik 7: Glück (data/wissen/text/Ethik/7. Klasse/Reihe Glück /)\n"
+                      "- ABs/AB1.docx.txt | Arbeitsblatt | Epikur und das Glück\n"
+                      "- Powerpoints/Stunde1.pptx.txt | Folien | Ziele für heute\n"
+                      "- Außerdem, nur Dateinamen (Türkisch, Feedback, Bewertung, ohne Text): "
+                      "ABs/AB1_Türkisch.docx.txt, Feedback_Ethik.docx.txt\n", k)
+        self.assertIn("### Ethik\n- Außerdem, nur Dateinamen (Türkisch, Feedback, Bewertung, ohne Text): "
+                      "Ethik/kaputt.pdf (ohne Text), Ethik/scan.pdf (ohne Text)\n", k)
+        self.assertIn("### Allgemein (data/wissen/text/)\n- Notizen.txt | Sonstiges | Problemfrage", k)
         self.assertLess(k.index("### Allgemein"), k.index("### Ethik\n"))
 
     def test_nur_neue_lesen_und_geloeschte_entfernen(self):

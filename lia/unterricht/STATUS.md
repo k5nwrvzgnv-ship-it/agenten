@@ -11,7 +11,8 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   behandelte Philosoph*innen, nächste Reihe Straftheorien (Reihenfrage noch offen). Merksätze fehlen noch.
   Noch kein echter Lauf mit Reihen.
 - Lias Material als Nachschlagewerk (23.10., Stufe A): wissen.py legt Textfassungen in data/wissen/text/ an und
-  schreibt data/wissen/katalog.md (211 Dateien, ca. 11k Tokens). Jeder Material-Lauf bekommt den Katalog und liest
+  schreibt data/wissen/katalog.md (211 Dateien, 21.760 Zeichen, ca. 6k Tokens; gekürzt 23.10. von 40.400: Ordner
+  einmal je Reihe, Anfang 60 Zeichen, Türkisch/Feedback/Bewertung nur als Dateinamen). Jeder Material-Lauf bekommt den Katalog und liest
   höchstens drei passende Beispiele mit Read.
 - Echter Lauf mit Reihen und Katalog (23.10., direkt mit material.bearbeiten, Lia bekam nichts):
   „Arbeitsblatt 8. Klasse, Einstieg Reihe Strafe, Vergeltung oder Besserung, Fallbeispiel, 45 min“, Opus:
@@ -21,8 +22,8 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Partnerarbeit, Medienwechsel-Tipp und „Reihenfrage noch offen“ aus dem Reihenkontext übernommen; Belege
   (Kant, von Liszt) im Begleittext. Schwächen: Begleittext zu lang (7 Sätze statt 2–4). Ordner:
   data/arbeit/20261023-195619-unterricht-test02/. Jan und Lia haben das Blatt noch nicht angesehen.
-  Mehrkosten real eher 0,30–0,45 USD je Auftrag. Hebel, falls zu teuer: Katalog kürzen (Varianten Türkisch,
-  Feedback und Bewertung nur bei Bedarf, kürzerer Anfang).
+  Mehrkosten real eher 0,30–0,45 USD je Auftrag (mit dem langen Katalog). Katalog danach gekürzt (siehe oben);
+  die Wirkung auf die Kosten ist noch nicht in einem echten Lauf gemessen.
 - Material läuft (Code fertig, Tests grün, Dienst eingerichtet). Noch kein Auftrag von Lia über Telegram.
 - Echter Lauf 22.10. (direkt mit material.bearbeiten, ohne Warteschlange, damit Lia nichts bekam):
   „Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min“ mit Opus: 2 Claude-Läufe, 90 s, 129.430 Tokens,
