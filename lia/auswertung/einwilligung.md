@@ -1,6 +1,6 @@
 # Auswertung deiner Claude-Chats – kurze Erklärung für Lia
 
-Entwurf vom 23.10.2026. Jan gibt dir diesen Text. Ohne dein Okay passiert nichts davon.
+Fassung vom 23.10.2026. Lia hat am 23.10.2026 ohne Einschränkungen zugestimmt.
 
 ## Worum es geht
 Du hast über Jans claude.ai-Konto viele Chats für die Schule geführt. Jan möchte daraus lernen, welche

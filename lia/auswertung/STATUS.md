@@ -7,7 +7,8 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
 
 ## Stand (23.10.2026)
 - Schritt 1 erledigt: Gerüst (.venv ohne Pakete, agentkit per .pth, ablage.py mit Tests, Eintrag in pruefen.sh).
-- Schritt 2: Erklärung für Lia in einwilligung.md (Entwurf 23.10.). Lias Okay steht noch aus.
+- Schritt 2 erledigt: Lia hat am 23.10.2026 der Erklärung in einwilligung.md ohne Einschränkungen
+  zugestimmt (mündlich an Jan, Jan hat es im Chat weitergegeben).
 - Noch keine Daten auf dem Server.
 
 ## Aufbau
@@ -21,7 +22,7 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
 - Weiter geht es erst mit Lias Einwilligung (einwilligung.md). Lias Chats können Schülerdaten enthalten.
   Ihr Okay wird hier mit Datum und Einschränkungen vermerkt. Widerruft sie, wird alles gelöscht, auch Ergebnisse.
 - Jans eigene Chats im Export werden nach der Auswahl (Schritt 4) nicht weiter verarbeitet.
-- Löschtermine (Entwurf, gilt erst mit Lias Okay): Jans Chats nach Schritt 4; Lias Originalchats nach
+- Löschtermine (mit Lias Okay vom 23.10.2026 verbindlich): Jans Chats nach Schritt 4; Lias Originalchats nach
   Schritt 8, spätestens 31.12.2026; die ZIP-Datei auf Jans Rechner nach dem Hochladen. Es bleiben nur
   anonymisierte Ergebnisse, die Beispiele erst nach Lias Durchsicht.
 
@@ -42,5 +43,4 @@ Regelvorschläge für lia/unterricht bzw. neue Agenten. Kein Agent: Jan startet 
    Bewertung von lia/unterricht gegen ihre alten Ergebnisse (Läufe macht der unterricht-Chat).
 
 ## Offene Punkte
-1. Schritt 2: Jan prüft einwilligung.md, gibt sie Lia, vermerkt ihr Okay hier.
-2. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
+1. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
