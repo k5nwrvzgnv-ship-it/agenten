@@ -163,3 +163,46 @@ class TestSchrittFehler(unittest.TestCase):
                 self.assertTrue(agent.schritt_fehler_melden("post_pruefen", OSError("IMAP weg"), "2026-10-22", datei))
             self.assertEqual(melden.call_count, 3)
             self.assertIn("post_pruefen fehlgeschlagen: OSError: IMAP weg", melden.call_args_list[0].args[0])
+
+
+class TestAuftraegeNachholen(unittest.TestCase):
+    def test_auftrag_waehrend_des_laufs(self):
+        runden = [[{"id": "a1"}], [{"id": "a1"}, {"id": "a2"}], [{"id": "a1"}, {"id": "a2"}]]
+        bearbeitet = []
+        agent.auftraege_abarbeiten(neue=lambda: runden.pop(0), bearbeiten=lambda a: bearbeitet.append(a["id"]) or True)
+        self.assertEqual(bearbeitet, ["a1", "a2"])
+
+    def test_warten_bricht_ab(self):
+        bearbeitet = []
+        agent.auftraege_abarbeiten(neue=lambda: [{"id": "a1"}, {"id": "a2"}],
+                                   bearbeiten=lambda a: bearbeitet.append(a["id"]) and False)
+        self.assertEqual(bearbeitet, ["a1"])
+
+
+class TestLinksAuswerten(unittest.TestCase):
+    SEITE = ('<script type="application/ld+json">{"@type":"Event","name":"Webinar","startDate":'
+             '"2026-11-17T10:00:00+01:00","duration":"PT1H"}</script><p>Anmeldung bestätigt</p>')
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.data = mock.patch.object(agent, "DATA", Path(self._tmp.name))
+        self.data.start()
+
+    def tearDown(self):
+        self.data.stop()
+        self._tmp.cleanup()
+
+    def test_termin_wird_ics(self):
+        zusatz, dateien = agent.links_auswerten({"id": "x1", "text": "https://a.de/w?k=1"}, holen=lambda u: self.SEITE)
+        self.assertIn("Webinar: Di 17.11.2026 10:00-11:00 Uhr", zusatz)
+        self.assertIn("Anmeldung bestätigt", zusatz)
+        (pfad,) = dateien
+        self.assertIn("DTSTART:20261117T090000Z", pfad.read_text())
+
+    def test_fehler_und_ohne_link(self):
+        def kaputt(url):
+            raise TimeoutError("weg")
+        zusatz, dateien = agent.links_auswerten({"id": "x2", "text": "siehe https://a.de"}, holen=kaputt)
+        self.assertIn("Konnte die Seite nicht laden (TimeoutError)", zusatz)
+        self.assertEqual(dateien, [])
+        self.assertEqual(agent.links_auswerten({"id": "x3", "text": "ohne Link"}), ("", []))

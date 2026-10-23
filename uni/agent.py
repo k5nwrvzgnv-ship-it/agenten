@@ -16,6 +16,7 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
 Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Telegram.
 """
 
+import hashlib
 import json
 import time
 from datetime import date
@@ -27,6 +28,7 @@ import fristen
 import kurse
 import moodle
 import postfach
+import termine
 import transkripte
 import weitergabe
 
@@ -322,50 +324,101 @@ def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
     return a
 
 
-def auftraege_abarbeiten() -> None:
-    for a in auftraege.neue(AGENT, dienst=None):  # Aufträge mit Dienst (uni-lernen) holt der andere Dienst
-        for datei in a.get("dateien") or []:  # Word, PowerPoint, Excel kann Claude nur als Textfassung lesen
-            kurse.textfassung(HIER / datei, erneuern=False)
-        if transkripte.ist_transkript(a["text"]) and not a.get("sitzung"):
-            try:
-                transkript_uebernehmen(a)
-            except WARTEN as f:
-                logger.info("Auftrag %s wartet: %s", a["id"], f)
-                return
-            except claude_lauf.LaufFehler as f:
-                auftraege.abschliessen(a["id"], f"Transkript abgelegt, Auswertung fehlgeschlagen: {f}",
-                                       status="fehlgeschlagen")
-            continue
-        if weitergabe.ist_dokumentauftrag(a["text"]) and not a.get("sitzung"):
-            try:
-                dokument_auftrag(a)
-            except WARTEN as f:
-                logger.info("Auftrag %s wartet: %s", a["id"], f)
-                return
-            except claude_lauf.LaufFehler as f:
-                auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
-            continue
-        start = ursprung(a) if a.get("sitzung") else a
-        lernen = start["modus"] == "lernen"
-        if a.get("sitzung"):
-            vorlage = PROMPT_ANTWORT_LERNEN if lernen else PROMPT_ANTWORT_ERLEDIGEN
-        else:
-            vorlage = PROMPT_LERNEN if lernen else PROMPT_ERLEDIGEN
-        (HIER / "protokolle").mkdir(exist_ok=True)
+MAX_LINKS = 3
+
+
+def links_auswerten(a: dict, holen=termine.seite_holen) -> tuple[str, list[Path]]:
+    """Links im Auftrag lädt Python selbst (Claude hat keinen Seitenabruf).
+
+    Gefundene Termine werden zu .ics-Dateien in data/termine/<id>/, die an der Antwort hängen.
+    Liefert den Zusatz für den Prompt und die Dateien.
+    """
+    zeilen, dateien = [], []
+    for url in termine.links(a["text"])[:MAX_LINKS]:
         try:
-            e = claude_lauf.laufen(AGENT, HIER, vorlage.format(text=a["text"], id=start["id"]),
-                                   art="anspruchsvoll", auftrag_id=a["id"],
-                                   lernsitzung=lernen and not a.get("sitzung"), sitzung_fortsetzen=a.get("sitzung"))
+            html = holen(url)
+        except Exception as f:  # noqa: BLE001 – Seite nicht ladbar: Claude soll es sagen, Lauf geht weiter
+            logger.warning("Link aus Auftrag %s nicht ladbar: %s", a["id"], f)
+            zeilen.append(f"- {url}\n  Konnte die Seite nicht laden ({type(f).__name__}).")
+            continue
+        gefunden = termine.veranstaltungen(html)
+        for v in gefunden:
+            uid = hashlib.sha1(f"{v.titel}|{v.beginn.isoformat()}".encode()).hexdigest()[:16] + "@uni.agenten"
+            pfad = DATA / "termine" / a["id"] / termine.dateiname(v)
+            pfad.parent.mkdir(parents=True, exist_ok=True)
+            pfad.write_text(termine.ics(v, uid, link=url), newline="")
+            dateien.append(pfad)
+        termin = "; ".join(termine.beschreiben(v) for v in gefunden) or "keine Termindaten auf der Seite"
+        zeilen.append(f"- {url}\n  Termin laut Seite: {termin}\n  Seitentext:\n{termine.seitentext(html)}")
+    if not zeilen:
+        return "", []
+    zusatz = ("\n\nPython hat die Links im Auftrag geladen. Datum und Uhrzeit hier sind verlässlich, such sie nicht "
+              "im Web. Zu jedem Termin hängt eine Kalenderdatei (.ics) an deiner Antwort, die Jan antippt und in "
+              "seinen Kalender übernimmt. Du trägst selbst nichts ein; sag in der Kurzfassung, dass die Datei anhängt.\n"
+              + "\n".join(zeilen))
+    return zusatz, dateien
+
+
+def _warten(a: dict, f: Exception) -> bool:
+    logger.info("Auftrag %s wartet: %s", a["id"], f)  # bleibt in neu/, nächster Lauf
+    return False
+
+
+def auftrag_bearbeiten(a: dict) -> bool:
+    """Ein Auftrag. False: Claude ist gerade nicht verfügbar, der Auftrag bleibt in neu/."""
+    for datei in a.get("dateien") or []:  # Word, PowerPoint, Excel kann Claude nur als Textfassung lesen
+        kurse.textfassung(HIER / datei, erneuern=False)
+    if transkripte.ist_transkript(a["text"]) and not a.get("sitzung"):
+        try:
+            transkript_uebernehmen(a)
         except WARTEN as f:
-            logger.info("Auftrag %s wartet: %s", a["id"], f)  # bleibt in neu/, nächster Lauf
-            return
+            return _warten(a, f)
+        except claude_lauf.LaufFehler as f:
+            auftraege.abschliessen(a["id"], f"Transkript abgelegt, Auswertung fehlgeschlagen: {f}",
+                                   status="fehlgeschlagen")
+        return True
+    if weitergabe.ist_dokumentauftrag(a["text"]) and not a.get("sitzung"):
+        try:
+            dokument_auftrag(a)
+        except WARTEN as f:
+            return _warten(a, f)
         except claude_lauf.LaufFehler as f:
             auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
-            continue
-        text = e.text if e.ok else f"Fehler: {e.text}"
-        if lernen and e.ok and e.sitzung:
-            _schreibe_json(DATA / "sitzungen" / f"{start['id']}.json", {"sitzung": e.sitzung, "auftrag": start["id"]})
-        auftraege.abschliessen(a["id"], text, status="erledigt" if e.ok else "fehlgeschlagen", sitzung=e.sitzung)
+        return True
+    start = ursprung(a) if a.get("sitzung") else a
+    lernen = start["modus"] == "lernen"
+    if a.get("sitzung"):
+        vorlage = PROMPT_ANTWORT_LERNEN if lernen else PROMPT_ANTWORT_ERLEDIGEN
+    else:
+        vorlage = PROMPT_LERNEN if lernen else PROMPT_ERLEDIGEN
+    zusatz, ics_dateien = links_auswerten(a)
+    (HIER / "protokolle").mkdir(exist_ok=True)
+    try:
+        e = claude_lauf.laufen(AGENT, HIER, vorlage.format(text=a["text"] + zusatz, id=start["id"]),
+                               art="anspruchsvoll", auftrag_id=a["id"],
+                               lernsitzung=lernen and not a.get("sitzung"), sitzung_fortsetzen=a.get("sitzung"))
+    except WARTEN as f:
+        return _warten(a, f)
+    except claude_lauf.LaufFehler as f:
+        auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen", dateien=ics_dateien)
+        return True
+    text = e.text if e.ok else f"Fehler: {e.text}"
+    if lernen and e.ok and e.sitzung:
+        _schreibe_json(DATA / "sitzungen" / f"{start['id']}.json", {"sitzung": e.sitzung, "auftrag": start["id"]})
+    auftraege.abschliessen(a["id"], text, status="erledigt" if e.ok else "fehlgeschlagen", sitzung=e.sitzung,
+                           dateien=ics_dateien)
+    return True
+
+
+def auftraege_abarbeiten(neue=lambda: auftraege.neue(AGENT, dienst=None), bearbeiten=auftrag_bearbeiten) -> None:
+    """Arbeitet ab, bis keine neuen mehr da sind: Ein Auftrag, der während eines Laufs ankommt, startet
+    keinen zweiten Lauf (systemctl start auf einen laufenden Dienst), er muss in diesem drankommen."""
+    gesehen = set()
+    while offen := [a for a in neue() if a["id"] not in gesehen]:  # Aufträge mit Dienst holt uni-lernen
+        for a in offen:
+            gesehen.add(a["id"])
+            if not bearbeiten(a):
+                return
 
 
 # 3. Fristen -------------------------------------------------------------------
@@ -444,7 +497,9 @@ def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, 
 
 
 if __name__ == "__main__":
-    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, auftraege_abarbeiten, fristen_pruefen, post_pruefen):
+    # auftraege_abarbeiten am Ende noch einmal: Aufträge, die während Fristen/Post ankamen
+    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, auftraege_abarbeiten, fristen_pruefen, post_pruefen,
+                    auftraege_abarbeiten):
         try:
             schritt()
         except Exception as f:  # noqa: BLE001 – ein Fehler soll die anderen Schritte nicht blockieren
