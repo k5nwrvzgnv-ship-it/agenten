@@ -114,6 +114,7 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    Sicherungszettel A/B (bausteine; Lia: gut sind Farben, Satzanfänge, klare Operatoren, möglichst kurz).
    Erwartungshorizont UB_5 kein Muster (Lia: unwichtig; Erwartungshorizont nur für UBs, im Leitfaden geändert).
    AB_5.1 vs. 5.2 auch als Muster für differenzierung (Zuteilung der Position nach Schwierigkeit).
+   Erörterung leicht/mittel/schwer (differenzierung; Abbau der Hilfen, nicht die mittlere Stufe nachahmen).
    Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
