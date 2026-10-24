@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 import agent
-from agentkit import abruf, wortlaut
+from agentkit import abruf, claude_lauf, wortlaut
 from tests.test_auslesen import GESETZ, KORPORA
 
 QUELLEN = '''[abruf]
@@ -56,16 +56,45 @@ SEITEN = {
 }
 
 
+class Claude:
+    """Ersetzt claude_lauf: schreibt je Aufruf die nächste Antwort in data/kernstellen/kant.json."""
+
+    def __init__(self, hier, antworten, usd=0.5):
+        self.hier, self.antworten, self.usd, self.prompts = hier, list(antworten), usd, []
+
+    def __call__(self, prompt, sitzung=None):
+        self.prompts.append((prompt, sitzung))
+        antwort = self.antworten.pop(0)
+        if antwort is not None:
+            pfad = self.hier / "data" / "kernstellen" / "kant.json"
+            pfad.write_text(json.dumps({"stellen": antwort}), encoding="utf-8")
+        return claude_lauf.Ergebnis(text="fertig", sitzung="s1", ok=True, usd=self.usd)
+
+
+def st(seite, zitat):
+    return {"seite": seite, "zitat": zitat, "position": "Vergeltung", "zweck": "Für den Einstieg."}
+
+
+GUT = [st(331, "Vom Straf= und Begnadigungsrecht."), st(331, "heißt Verbrechen schlechthin (crimen)"),
+       st(331, "vor die Civil=, das andere")]
+FREI = QUELLEN.replace('herausgeber = ""', 'herausgeber = "H"\nherausgeber_todesjahr = 1924')
+
+
 class LaufTest(unittest.TestCase):
     def setUp(self):
         self.hier = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.hier)
         (self.hier / "quellen.toml").write_text(QUELLEN, encoding="utf-8")
         self.meldungen = []
+        self.claude = Claude(self.hier, [])
+        self.reihen = self.hier / "reihen.toml"
+        self.reihen.write_text('[[reihe]]\nklasse = "8"\ntitel = "Straftheorien"\nnotizen = "erst Kant"\n',
+                               encoding="utf-8")
 
-    def lauf(self, seiten=SEITEN, laden=None):
+    def lauf(self, seiten=SEITEN, laden=None, kosten=None):
         self.laden = laden or Laden(seiten)
-        return agent.lauf(self.hier, laden=self.laden, melden=self.meldungen.append, jahr=2026)
+        return agent.lauf(self.hier, laden=self.laden, melden=self.meldungen.append, jahr=2026,
+                          claude=self.claude, reihen=self.reihen, kosten=kosten)
 
     def register(self):
         return {e["id"]: e for e in json.loads((self.hier / "data/register.json").read_text())["quellen"]}
@@ -89,11 +118,59 @@ class LaufTest(unittest.TestCase):
         self.assertNotIn("herausgeber", k)  # leer = nicht eingetragen
 
     def test_herausgeber_im_register(self):
-        (self.hier / "quellen.toml").write_text(
-            QUELLEN.replace('herausgeber = ""', 'herausgeber = "H"\nherausgeber_todesjahr = 1924'), encoding="utf-8")
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        self.claude.antworten = [GUT]
         self.assertEqual(self.lauf(), [])
         k = self.register()["kant"]
         self.assertEqual((k["herausgeber"], k["gemeinfreiheit"]["status"]), ("H", "frei"))
+
+    def test_kernstellen(self):
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        self.claude.antworten = [GUT + [st(331, "Das ist erfunden.")], [st(331, "heißt Verbrechen schlechthin")]]
+        self.assertEqual(self.lauf(), [])
+        k = self.register()["kant"]
+        self.assertEqual([s["zitat"] for s in k["stellen"]], [s["zitat"] for s in GUT])
+        self.assertTrue(all(s["geprueft"] for s in k["stellen"]))
+        self.assertNotIn("am_scan_pruefen", k["stellen"][0])
+        self.assertEqual(k["kernstellen"]["usd"], 1.0)
+        self.assertEqual(len(k["kernstellen"]["gestrichen"]), 1)  # erfunden, Ersatz war doppelt
+        erster, zweiter = self.claude.prompts
+        self.assertIn("erst Kant", erster[0])
+        self.assertIn("data/text/kant.txt", erster[0])
+        self.assertEqual(zweiter[1], "s1")  # Nachbesserung in derselben Sitzung
+        self.assertIn("Das ist erfunden.", zweiter[0])
+        meldung = self.meldungen[-1]
+        self.assertIn("kant: 3 Stellen geprüft (S. 331 Vergeltung", meldung)
+        self.assertIn("1 gestrichen", meldung)
+        self.assertIn("Kosten: 1.00 USD in 2 Claude-Läufen", meldung)
+        # Zweiter Lauf: kein neuer Claude-Lauf
+        self.claude.antworten = []
+        self.assertEqual(self.lauf(), [])
+        self.assertEqual(len(self.claude.prompts), 2)
+
+    def test_zu_wenige_stellen_kein_neuer_versuch(self):
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        self.claude.antworten = [GUT[:1]]
+        self.lauf()
+        self.assertIn("nur 1 Stellen", self.meldungen[-1])
+        self.lauf()
+        self.assertEqual(len(self.claude.prompts), 1)
+
+    def test_kostengrenze(self):
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        kosten = agent.Kosten(grenze=1.0)
+        kosten.summe = 1.0
+        fehler = self.lauf(kosten=kosten)
+        self.assertIn("Kostengrenze", fehler[0])
+        self.assertEqual(self.claude.prompts, [])
+        self.assertIn("Kostengrenze", self.meldungen[-1])
+
+    def test_claude_schreibt_nichts(self):
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        self.claude.antworten = [None]
+        fehler = self.lauf()
+        self.assertIn("Antwortdatei", fehler[0])
+        self.assertEqual(self.register()["kant"]["stellen"], [])
 
     def test_zweiter_lauf_still_und_stellen_bleiben(self):
         self.lauf()

@@ -55,5 +55,12 @@ urls = [
   "https://korpora.org/kant/aa06/337.html",
 ]
 
-# Teil C: Franz von Liszt, Der Zweckgedanke im Strafrecht, ZStW 3 (1883), OCR der Google-Scans
-# auf archive.org. Eintrag folgt, sobald URL und Seiten feststehen.
+# Liszt, Der Zweckgedanke im Strafrecht, ZStW Bd. 3 (1883), S. 1–47 (DOI 10.1515/zstw.1883.3.1.1):
+# NICHT eingetragen (geprüft 25.10.2026). Bd. 3 liegt zweimal auf archive.org, Titelblatt „Dritter Band“,
+# Berlin 1883, Inhaltsverzeichnis „1. Der Zweckgedanke im Strafrecht. Von Professor v. Liszt in Marburg 1“:
+#   https://archive.org/details/zeitschriftgesa00berluoft (Toronto)
+#   https://archive.org/details/bub_gb_7TQwAQAAMAAJ (Google, Univ. of Michigan)
+# Die OCR beider Scans ist für Wortlaut unbrauchbar: Die Fraktur wurde als Antiqua gelesen
+# („unb“ statt „und“, „fonbern“, „3wectgebanfe“; im Aufsatz 0-mal „und“, 250-mal „unb“).
+# Keine Abschrift auf de.wikisource.org gefunden. Wenn ein Eintrag kommt (andere Textquelle):
+#   autor = "Franz von Liszt", todesjahr_autor = 1919, herausgeber_entfaellt = "Zeitschriftenaufsatz"

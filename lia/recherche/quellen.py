@@ -49,6 +49,9 @@ def pruefen(q: dict, allowlist) -> None:
         raise QuellenFehler(f"Quelle {qid}: art {q['art']!r} unbekannt, erlaubt {', '.join(ARTEN)}")
     if q["art"] == "primaertext" and "autor" not in q:
         raise QuellenFehler(f"Quelle {qid}: autor fehlt")
+    for feld in PERSONEN:
+        if feld in q and f"{feld}_entfaellt" in q:
+            raise QuellenFehler(f"Quelle {qid}: {feld} und {feld}_entfaellt zugleich")
     urls = q.get("urls")
     if not isinstance(urls, list) or not urls:
         raise QuellenFehler(f"Quelle {qid}: urls fehlt oder ist leer")

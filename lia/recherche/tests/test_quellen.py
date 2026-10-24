@@ -60,6 +60,9 @@ class QuellenTest(unittest.TestCase):
     def test_ohne_autor(self):
         self.fehler(KOPF + KANT.replace('autor = "Kant"\n', ""), "autor fehlt")
 
+    def test_herausgeber_und_entfaellt(self):
+        self.fehler(KOPF + KANT + 'herausgeber = "H"\nherausgeber_entfaellt = "Aufsatz"\n', "zugleich")
+
     def test_kaputt(self):
         self.fehler("[[quelle", "nicht lesbar")
 

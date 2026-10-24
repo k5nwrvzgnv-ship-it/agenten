@@ -7,6 +7,9 @@ Regel (Plan Examensreihe, Jan 25.10.2026):
 - Fehlt ein Name oder ein Todesjahr, ist das Ergebnis "ungeklaert". Die Quelle darf dann nicht
   verwendet werden. Ist eine Person sicher noch geschützt, ist es "nicht_frei" (auch wenn eine
   andere zusätzlich ungeklärt ist).
+- Gibt es ausdrücklich keine solche Person, steht statt des Namens <rolle>_entfaellt mit Grund
+  (z. B. herausgeber_entfaellt = "Zeitschriftenaufsatz": bei einem Aufsatz zählt der Autor).
+  Ein leerer Name bleibt ungeklärt.
 """
 
 FRIST = 70
@@ -19,6 +22,10 @@ def pruefen(quelle: dict, jahr: int) -> dict:
         return _ergebnis("frei", ["Gesetz, amtliches Werk nach § 5 Abs. 1 UrhG"])
     frei, geschuetzt, offen = [], [], []
     for feld, rolle in ROLLEN:
+        grund = quelle.get(f"{feld}_entfaellt")
+        if grund and feld not in quelle:
+            frei.append(f"kein {rolle} ({grund})")
+            continue
         if feld not in quelle:
             continue
         name = (quelle.get(feld) or "").strip()
@@ -31,7 +38,7 @@ def pruefen(quelle: dict, jahr: int) -> dict:
             frei.append(f"{rolle} {name} gest. {tod}, frei seit {tod + FRIST + 1}")
         else:
             geschuetzt.append(f"{rolle} {name} gest. {tod}, geschützt bis Ende {tod + FRIST}")
-    if not (frei or geschuetzt or offen):
+    if not (geschuetzt or offen) and not any(" gest. " in f for f in frei):
         return _ergebnis("ungeklaert", ["Keine beteiligte Person angegeben"])
     if geschuetzt:
         return _ergebnis("nicht_frei", geschuetzt + offen + frei)

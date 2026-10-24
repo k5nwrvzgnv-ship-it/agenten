@@ -48,6 +48,19 @@ class GemeinfreiTest(unittest.TestCase):
         e = gemeinfrei.pruefen(text(todesjahr_autor=2000, herausgeber=""), 2026)
         self.assertEqual(e["status"], "nicht_frei")
 
+    def test_zeitschriftenaufsatz_ohne_herausgeber(self):
+        e = gemeinfrei.pruefen(text(todesjahr_autor=1919, herausgeber_entfaellt="Zeitschriftenaufsatz"), 2026)
+        self.assertEqual((e["status"], e["verwendbar"]), ("frei", True))
+        self.assertIn("kein Herausgeber (Zeitschriftenaufsatz)", e["begruendung"])
+
+    def test_nur_entfaellt_ohne_autor_ist_ungeklaert(self):
+        e = gemeinfrei.pruefen({"art": "primaertext", "herausgeber_entfaellt": "Zeitschriftenaufsatz"}, 2026)
+        self.assertEqual(e["status"], "ungeklaert")
+
+    def test_entfaellt_schuetzt_nicht_vor_geschuetztem_autor(self):
+        e = gemeinfrei.pruefen(text(todesjahr_autor=1990, herausgeber_entfaellt="Aufsatz"), 2026)
+        self.assertEqual(e["status"], "nicht_frei")
+
     def test_ohne_personen(self):
         self.assertEqual(gemeinfrei.pruefen({"art": "primaertext"}, 2026)["status"], "ungeklaert")
 
