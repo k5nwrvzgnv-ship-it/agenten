@@ -28,6 +28,7 @@ import fristen
 import kurse
 import mail
 import moodle
+import literatur
 import normen
 import postfach
 import termine
@@ -129,6 +130,13 @@ def normen_aufbereiten() -> None:
         melden(f"Normen aufbereitet ({len(neu)} neu):\n" + "\n".join(normen.beschreiben(e) for e in neu))
 
 
+def literatur_aufbereiten() -> None:
+    """Neue Literatur in data/literatur/ bekommt eine Textfassung, das Verzeichnis wird neu geschrieben."""
+    neu = literatur.aufbereiten()
+    if neu:
+        melden(f"Literatur aufbereitet ({len(neu)} neu):\n" + "\n".join(literatur.beschreiben(e) for e in neu))
+
+
 # 2. Aufträge ------------------------------------------------------------------
 
 KONTEXT = """Du bist der Uni-Agent von Jan. Er studiert Holzingenieurwesen (M.Sc.) an der
@@ -150,6 +158,9 @@ Textfassung daneben als .txt mit "--- Seite N". Nenne Norm, Abschnitt und Seite 
 dort, sag das und gib keine Normabschnitte aus dem Gedächtnis an. Gibt es mehrere Ausgaben, nimm die,
 auf die das Kursmaterial verweist (Abschnittsnummern vergleichen), und nenne die Ausgabe. Normtext nie in längeren wörtlichen Auszügen
 wiedergeben, Normen nicht an andere weitergeben.
+Literatur (Fachbücher, holzbau handbuch, Merkblätter) liegt in data/literatur/, Verzeichnis
+data/literatur/uebersicht.md, Textfassung ebenfalls als .txt mit "--- Seite N". Nenne Werk und Seite als Quelle.
+Kursmaterial und Normen gehen vor, Literatur ergänzt und erklärt.
 
 Arbeite sparsam, jeder Schritt kostet Jans Kontingent:
 1. Erst die passende uebersicht.md lesen und daraus die Dateien wählen, die wirklich in Frage kommen.
@@ -308,6 +319,7 @@ Quellen:
 - Das Transkript (Rohdaten) liest du einmal ganz, über die Textfassung <datei>.txt mit "--- Seite N".
   Es enthält Hörfehler bei Fachbegriffen und private Gespräche.
 - Folien und Infokarten des Kurses nur per Grep in den .txt, dann gezielt einzelne Seiten.
+- Literatur aus data/literatur/ (Verzeichnis uebersicht.md) nur ergänzend, mit Werk und Seite.
 - Normen nur, wenn sie als Datei vorliegen (data/normen/, Kursmaterial oder data/lernen/<modul>/quellen/). Fehlt eine Norm,
   schreib ausdrücklich, dass sie fehlt, und gib Normabschnitte nicht aus dem Gedächtnis an.
 - Vorhandene Zusammenfassungen sind nur Hilfsmittel, keine Quelle.
@@ -669,7 +681,7 @@ def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, 
 
 if __name__ == "__main__":
     # auftraege_abarbeiten am Ende noch einmal: Aufträge, die während Fristen/Post ankamen
-    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, normen_aufbereiten, auftraege_abarbeiten, fristen_pruefen, post_pruefen,
+    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, normen_aufbereiten, literatur_aufbereiten, auftraege_abarbeiten, fristen_pruefen, post_pruefen,
                     auftraege_abarbeiten):
         try:
             schritt()

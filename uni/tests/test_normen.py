@@ -38,6 +38,10 @@ class TestErkennen(unittest.TestCase):
                          ("DIN EN 1995-1-1/NA", "2013-08"))
         self.assertEqual(normen.aus_dateiname("DIN EN 1995-1-1-A2_2014-07-00_DE_2151247.pdf"),
                          ("DIN EN 1995-1-1/A2", "2014-07"))
+        self.assertEqual(normen.aus_dateiname("DIN EN 1990-NA-A1_2024-05-00_DE_3494566.pdf"),
+                         ("DIN EN 1990/NA/A1", "2024-05"))
+        self.assertEqual(normen.aus_dateiname("DIN EN 1991-1-3-A1_2015-12-00_DE_2306172.pdf"),
+                         ("DIN EN 1991-1-3/A1", "2015-12"))
         self.assertEqual(normen.aus_dateiname("DIN EN 350 Berichtigung 1_2017-05-00_DE_2646996.pdf"),
                          ("DIN EN 350 Berichtigung 1", "2017-05"))
         self.assertEqual(normen.aus_dateiname("DIN_68800-1_2019-06-00_DE_3045931.pdf"), ("DIN 68800-1", "2019-06"))

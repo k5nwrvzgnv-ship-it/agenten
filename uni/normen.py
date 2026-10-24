@@ -56,7 +56,9 @@ def aus_dateiname(datei: str) -> tuple[str, str] | None:
     m = NAUTOS_NAME.match(Path(datei).stem)
     if not m:
         return None
-    name = re.sub(r"-(NA|A\d+)$", r"/\1", " ".join(m.group(1).replace("_", " ").split()))
+    name = " ".join(m.group(1).replace("_", " ").split())
+    while (z := re.sub(r"-(NA|A\d+)((?:/(?:NA|A\d+))*)$", r"/\1\2", name)) != name:  # -NA-A1 -> /NA/A1
+        name = z
     return name, m.group(2)
 
 
@@ -92,6 +94,11 @@ def verzeichnis(eintraege: list[dict]) -> str:
 
 def aufbereiten(ordner: Path = ORDNER, textfassung=kurse.textfassung) -> list[dict]:
     """Textfassungen für neue Dateien, Verzeichnis neu. Gibt die Einträge der neu aufbereiteten Dateien zurück."""
+    return ablage_aufbereiten(ordner, eintrag, verzeichnis, textfassung)
+
+
+def ablage_aufbereiten(ordner: Path, eintrag, verzeichnis, textfassung=kurse.textfassung) -> list[dict]:
+    """Gemeinsam für Normen und Literatur: eintrag(datei, text) -> dict, verzeichnis(eintraege) -> str."""
     if not ordner.exists():
         return []
     eintraege, neu = [], []

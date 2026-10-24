@@ -124,25 +124,30 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   nur das Deckblatt hat Tabs statt Leerzeichen; jede Seite trägt einen Ausdruckvermerk mit Datum).
   Kennung und Ausgabe kommen aus dem Nautos-Dateinamen (<Kennung>_<JJJJ-MM>-00_DE_<Nr>.pdf, -NA/-A2 werden
   /NA, /A2), das Deckblatt nur als Ersatz. Doppelte Downloads haben dieselbe Nautos-Nr. (Endung " (1)").
-  Liegen vor (24.10., 30 Dateien, Text aus allen): holzschutz/ (DIN 68800-1 bis -4, DIN EN 335, 350 mit
+  Liegen vor (24.10., 48 Dateien, Text aus allen, Doppel gelöscht): holzschutz/ (DIN 68800-1 bis -4, DIN EN 335, 350 mit
   Berichtigung 1, 351-1/-2, 460, 599-1), eurocode5/ (DIN EN 1995-1-1 2010-12 + A2 2014-07 + NA 2013-08 und
   2026-09; DIN EN 1995-1-2 2010-12 + NA 2010-12 und 2026-10), bauphysik_lca/ (DIN 4108-2, 4108-3, 276, 277,
-  DIN EN 15804, 15978 2012 und 2026, DIN EN ISO 14040, 14044), fertigung_bfh/ (DIN 199-1, 6763, 66025-1).
+  DIN EN 15804, 15978 2012 und 2026, DIN EN ISO 14040, 14044), fertigung_bfh/ (DIN 199-1, 6763, 66025-1),
+  eurocode_grundlagen/ (DIN EN 1990/NA + NA/A1 – Grundnorm DIN EN 1990 selbst FEHLT; DIN EN 1991-1-1 bis -4
+  2010-12 mit NA, Änderungen, Berichtigung), eurocode5/ zusätzlich DIN EN 1995-2 + NA, material/ (DIN EN 338
+  2016-07, DIN 4074-1 2026-05, DIN 4074-5 2026-11). Noch FEHLT: DIN EN 17121 (Modulhandbuch SHB).
+  Jan lädt aus Nautos in den Hauptordner data/normen/, dabei entstehen Doppel (gleiche Nautos-Nr., Endung
+  " (1)"). aus_dateiname macht aus -NA-A1 "/NA/A1".
   Eurocode 5: Die Kurse (SHB 02) nutzen die 1. Generation (2010-12, 8.2 = Abscheren). In 2026-09 ist 8.2 der
   Knicknachweis, Verbindungen in Kap. 11; alte Fassung wird bis April 2028 zurückgezogen, NA zu 2026 fehlt.
   KONTEXT: bei mehreren Ausgaben die nehmen, auf die das Kursmaterial verweist. Skript SHB 01 S. 5
   "DIN EN 399-1" ist ein Tippfehler für DIN EN 599-1. Holzschutz-Prüfungsplan: Fundstellen eingetragen.
   Liste der Normen für dieses Semester an Jan gegeben (aus Kurs-Textfassungen gezählt und Normen.xlsx in
   Lifecycle-orientierte Bilanzierung/09 Normen).
-- Literatur (24.10., von Hand, nicht im Repo): data/literatur/informationsdienst_holz/ (holzbau handbuch
-  R05 T01 F01, R05 T02 F01, R05 T02 F02 Holzschutz bauliche Maßnahmen, IDH spezial serielles Sanieren,
-  StGHlb Merkblatt und Muster-Ausschreibung Sanierung BSH) und data/literatur/kit/ (Blaß/Sandhaas,
-  Ingenieurholzbau, 658 S., frei bei KIT). Textfassungen <datei>.pdf.txt mit "--- Seite N" einmalig per pypdf
-  erzeugt. Blaß/Sandhaas: Text oft ohne Leerzeichen (Grep nach Einzelwörtern geht, nach Wortfolgen schlecht).
-  Noch kein Verweis in KONTEXT/Prompts und keine automatische Aufbereitung (Vorschlag: wie normen.py).
-  Gewünscht, nur als E-Book-PDF sinnvoll: Scheiding u. a. Holzschutz (Hanser), Huckfeldt/Schmidt
-  Hausfäule- und Bauholzpilze, Werner/Zimmer Holzbau 1+2. Bei Nautos noch zu holen (Prompt an Jan gegeben):
-  DIN EN 17121, DIN EN 1990, 1991-1-1 bis -4, 1995-2 (je 1. Generation + NA), DIN EN 338, DIN 4074-1/-5.
+- Literatur (literatur.py, 24.10.): PDFs in data/literatur/<herkunft>/ (nicht im Repo). Jeder agent.py-Lauf
+  (Schritt literatur_aufbereiten nach normen_aufbereiten) schreibt Textfassungen und data/literatur/uebersicht.md
+  (Herkunft, Titel aus Dateiname, Seiten) und meldet Neues. Gemeinsame Schleife mit Normen:
+  normen.ablage_aufbereiten. KONTEXT, PROMPT_DOKUMENT und karten.py verweisen darauf (ergänzend zu Kurs und Normen).
+  Liegen vor: informationsdienst_holz/ (holzbau handbuch R05 T01 F01, R05 T02 F01, R05 T02 F02 Holzschutz bauliche
+  Maßnahmen, IDH spezial serielles Sanieren, StGHlb Merkblatt und Muster-Ausschreibung Sanierung BSH),
+  kit/ (Blaß/Sandhaas, Ingenieurholzbau, 658 S.; Textfassung oft ohne Leerzeichen, Grep nach Einzelwörtern).
+  Gewünscht, nur als E-Book-PDF sinnvoll (Scans ohne Textebene nützen nichts, kein OCR): Scheiding u. a.
+  Holzschutz (Hanser), Huckfeldt/Schmidt Hausfäule- und Bauholzpilze, Werner/Zimmer Holzbau 1+2.
 - BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
   eingerichtet, Ankunft noch nicht geprüft (Testmail an die BFH-Adresse, dann im HNEE-Postfach suchen).
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.

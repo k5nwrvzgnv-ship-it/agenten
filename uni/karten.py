@@ -58,6 +58,7 @@ Regeln:
 - Nur aus dem Material, nichts erfinden. quelle = Datei und Seite (z. B. "SHB_01 S. 22").
   Normen liegen in data/normen/ (Verzeichnis uebersicht.md, Textfassung .txt mit Seiten), quelle dann
   z. B. "DIN 68800-4 4.6 S. 12". Steht etwas nur in einer Norm, die dort nicht liegt, lass die Karte weg.
+  Literatur in data/literatur/ (Verzeichnis uebersicht.md) nur ergänzend, quelle dann Werk und Seite.
 - Bildkarten: je Infokarte genau eine Karte, Frage "Welcher Schädling ist das, woran erkennst du
   ihn, und was folgt daraus?", bild = die -frage.jpg, Antwort: Name, 2 bis 3 Merkmale aus der
   ganzen Seite und die Folge (Fäuletyp bzw. Trocken-/Frischholz, Sanierung) aus dem Material.
