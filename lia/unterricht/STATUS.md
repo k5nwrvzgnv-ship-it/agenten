@@ -107,7 +107,7 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    Schwerpunkt Klasse 8 Helfen (AB_4, BBB_AB, AB_5.1/5.2, Sicherungszettel A/B, Erörterung leicht/mittel/schwer,
    Präsentation_5, EH der LEK Lügen). Fehlt ganz: DS, Reihe Strafe, Sprachbildungs-Rubrik, Aufgabe zu Grenzen einer
    Position, EH zur Erörterungs-LEK, Belege auf Blättern. Stellenangaben im Vorschlag sind Claudes eigene Kenntnis,
-   ungeprüft. Auswahl durch Lia läuft seit 24.10. (Blatt für Blatt), bisher übernommen: AB_4 (ab_text_position),
+   ungeprüft. Auswahl durch Lia 24./25.10. (Blatt für Blatt), übernommen: AB_4 (ab_text_position),
    AB_2 (ab_text_position, Muster für den Aufbau: erst Alltagsfall, dann die Regel daraus ableiten),
    BBB_AB mit Lösungen und AB_6_Erörterung (argumentieren),
    AB_5.1/5.2 und AB_3.1 (fallbeispiel; AB_3.2 nicht, Ergebnis nach Singer nicht eindeutig),
@@ -115,7 +115,8 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    Erwartungshorizont UB_5 kein Muster (Lia: unwichtig; Erwartungshorizont nur für UBs, im Leitfaden geändert).
    AB_5.1 vs. 5.2 auch als Muster für differenzierung (Zuteilung der Position nach Schwierigkeit).
    Erörterung leicht/mittel/schwer (differenzierung; Abbau der Hilfen, nicht die mittlere Stufe nachahmen).
-   Präsentation_5 und Präsentation_6 (folien).
+   Präsentation_5 und Präsentation_6 (folien). LEK Klasse 8 Erörterung vom 13.10. (lek). LEK Lügen mit
+   Erwartungshorizont kein Muster (Lia: auch bei LEKs kein Erwartungshorizont). Auswahl abgeschlossen 25.10.
    Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
