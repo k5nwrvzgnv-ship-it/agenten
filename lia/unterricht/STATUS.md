@@ -154,8 +154,10 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
   Quellenlage zählen: als Gelernte Regel eingetragen (23.10.). Ablage bis auf Weiteres über Jan (Chat lädt hoch):
   Vorgaben nach data/wissen/eingang/Vorgaben/ (Katalog-Art „Vorgabe (RLP/Curriculum)“), Quellen nach
   eingang/Quellen/ (Art „Quelle“), danach `.venv/bin/python wissen.py`. Liegt dort: RLP_Ethik_Sek_I.pdf
-  (Teil C Ethik 7–10, 25.10.). Angekündigt: zwei Buchausschnitte als Scans (Bilder sind nicht lesbar, Text muss
-  erst abgeschrieben werden), Seminarvorgaben zur Reihenfrage, schulinternes Curriculum.
+  (Teil C Ethik 7–10, 25.10.); Quellen/Strafe/: Schulbuch Leben leben 2 (Klett), S. 160 Schuld und
+  S. 161 Strafzwecke, Fall Freibad (von Claude aus Lias Fotos abgeschrieben, 25.10.; Erscheinungsjahr fehlt).
+  Bilder liest der Agent nicht: Scans hier im Chat abschreiben lassen. Noch erwartet: Seminarvorgaben zur
+  Reihenfrage, schulinternes Curriculum.
 6. Optional: Blindvergleich mit lia/auswertung/data/ergebnis/pruefsatz.json (P01–P17, ~10 USD Kontingent).
 
 ## Offene Punkte
