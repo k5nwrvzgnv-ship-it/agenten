@@ -134,6 +134,15 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   "DIN EN 399-1" ist ein Tippfehler für DIN EN 599-1. Holzschutz-Prüfungsplan: Fundstellen eingetragen.
   Liste der Normen für dieses Semester an Jan gegeben (aus Kurs-Textfassungen gezählt und Normen.xlsx in
   Lifecycle-orientierte Bilanzierung/09 Normen).
+- Literatur (24.10., von Hand, nicht im Repo): data/literatur/informationsdienst_holz/ (holzbau handbuch
+  R05 T01 F01, R05 T02 F01, R05 T02 F02 Holzschutz bauliche Maßnahmen, IDH spezial serielles Sanieren,
+  StGHlb Merkblatt und Muster-Ausschreibung Sanierung BSH) und data/literatur/kit/ (Blaß/Sandhaas,
+  Ingenieurholzbau, 658 S., frei bei KIT). Textfassungen <datei>.pdf.txt mit "--- Seite N" einmalig per pypdf
+  erzeugt. Blaß/Sandhaas: Text oft ohne Leerzeichen (Grep nach Einzelwörtern geht, nach Wortfolgen schlecht).
+  Noch kein Verweis in KONTEXT/Prompts und keine automatische Aufbereitung (Vorschlag: wie normen.py).
+  Gewünscht, nur als E-Book-PDF sinnvoll: Scheiding u. a. Holzschutz (Hanser), Huckfeldt/Schmidt
+  Hausfäule- und Bauholzpilze, Werner/Zimmer Holzbau 1+2. Bei Nautos noch zu holen (Prompt an Jan gegeben):
+  DIN EN 17121, DIN EN 1990, 1991-1-1 bis -4, 1995-2 (je 1. Generation + NA), DIN EN 338, DIN 4074-1/-5.
 - BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
   eingerichtet, Ankunft noch nicht geprüft (Testmail an die BFH-Adresse, dann im HNEE-Postfach suchen).
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
