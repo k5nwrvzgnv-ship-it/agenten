@@ -89,8 +89,8 @@ Wissen aus Lias Dokumenten (Jan 23.10., Budget einmalig ca. 10–15 USD Kontinge
 A. Katalog und Nachschlagen: gebaut und im echten Lauf geprüft 23.10. (Claude las drei passende Dateien).
 B. Leitfaden „So unterrichtet Lia“ (leitfaden.py): Entwurf erzeugt 23.10. in data/wissen/leitfaden-entwurf.md
    (780 Wörter, 6 Abschnitte, jede Regel mit Quelle) aus 28 Quellen, ein Opus-Lauf: 3,16 USD, 2,73 Mio. Tokens
-   (meist Cache-Lesen). Claude meldete: Quellen dünn zu Klasse 8 und zu Methoden, die nicht funktionieren; offen,
-   ob bei Strafe Kant oder von Liszt zuerst (Planung vs. Examens-Tipps). Von Jan freigegeben 23.10., liegt als
+   (meist Cache-Lesen). Claude meldete: Quellen dünn zu Klasse 8 und zu Methoden, die nicht funktionieren; bei Strafe
+   kommt erst Kant, dann von Liszt (Lia 24.10., in reihen.toml). Von Jan freigegeben 23.10., liegt als
    leitfaden.md im Repo und geht in jeden Material-Lauf (nach dem Katalog, vor dem Skill). Noch kein echter Lauf
    damit. Verbraucht für A, B, B2 und C1 bisher ca. 7 USD.
 B2. Entwicklungsverlauf (verlauf.py, Jan 23.10., Lia einverstanden): data/wissen/entwicklung.md (nicht im Repo, eine
@@ -111,7 +111,8 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
-1. Reihenkontext: gebaut und gefüllt 23.10. Offen: Merksätze und die Reihenfrage zu Straftheorien von Lia.
+1. Reihenkontext: gebaut und gefüllt 23.10. Strafe: erst Kant, dann von Liszt (Lia 24.10.). Offen: Merksätze und
+   die Reihenfrage zu Straftheorien (Lia sucht noch, 24.10.).
    Lias Planung Reihe_Strafe.docx enthält Kandidaten („Sollen Gefängnisse Täter:innen bestrafen oder bessern?“,
    Kant vs. von Liszt); erst nach Lias Bestätigung in reihen.toml.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne

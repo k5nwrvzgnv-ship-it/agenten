@@ -15,7 +15,8 @@ lerngruppe = """eher lernschwach und heterogen: viele Schüler*innen mit sprachl
 Eher unruhig: Partnerarbeit oder Arbeit zu dritt funktioniert gut, sehr aktive Methoden führen zu Chaos. \
 Die Klasse liebt Medienwechsel (Videos, Audios)."""
 notizen = """Nächste Reihe: Straftheorien (Vergeltung, Besserung, Prävention), stark vereinfacht, am liebsten am \
-Thema Gefängnisstrafe. Die Reihenfrage steht noch nicht fest."""
+Thema Gefängnisstrafe. Positionen (Lia, 24.10.2026): erst Kant (Vergeltung), dann von Liszt \
+(Besserung und Abschreckung). Die Reihenfrage steht noch nicht fest, Lia sucht noch nach einer guten."""
 behandelt = ["Peter Singer", "Aristoteles", "Kant", "Jeremy Bentham", "John Rawls", "John Stuart Mill"]
 bisherige_reihen = [
     "Klasse 7, Lüge und Wahrheit: Sollte ich lügen, um einen Freund zu schützen?",
