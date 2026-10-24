@@ -107,7 +107,8 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    Schwerpunkt Klasse 8 Helfen (AB_4, BBB_AB, AB_5.1/5.2, Sicherungszettel A/B, Erörterung leicht/mittel/schwer,
    Präsentation_5, EH der LEK Lügen). Fehlt ganz: DS, Reihe Strafe, Sprachbildungs-Rubrik, Aufgabe zu Grenzen einer
    Position, EH zur Erörterungs-LEK, Belege auf Blättern. Stellenangaben im Vorschlag sind Claudes eigene Kenntnis,
-   ungeprüft. Auswahl durch Lia läuft seit 24.10. (Blatt für Blatt), bisher übernommen: AB_4 (ab_text_position).
+   ungeprüft. Auswahl durch Lia läuft seit 24.10. (Blatt für Blatt), bisher übernommen: AB_4 (ab_text_position),
+   AB_2 (ab_text_position, Muster für den Aufbau: erst Alltagsfall, dann die Regel daraus ableiten).
    Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
