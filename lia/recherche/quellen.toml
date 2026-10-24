@@ -62,5 +62,9 @@ urls = [
 #   https://archive.org/details/bub_gb_7TQwAQAAMAAJ (Google, Univ. of Michigan)
 # Die OCR beider Scans ist für Wortlaut unbrauchbar: Die Fraktur wurde als Antiqua gelesen
 # („unb“ statt „und“, „fonbern“, „3wectgebanfe“; im Aufsatz 0-mal „und“, 250-mal „unb“).
-# Keine Abschrift auf de.wikisource.org gefunden. Wenn ein Eintrag kommt (andere Textquelle):
+# Keine Abschrift auf de.wikisource.org gefunden. Andere Textquelle gesucht (25.10.2026), ohne Erfolg:
+# Nachdruck „Strafrechtliche Aufsätze und Vorträge“ (1905) weder über die Metadaten- noch über die
+# Volltextsuche von archive.org zu finden; perma_cc_SJ9A-44A4 (Kopie der De-Gruyter-Seite) enthält nur
+# die erste Seite; die Volltexttreffer für typische Sätze des Aufsatzes sind Zitate in anderen Werken.
+# Wenn ein Eintrag kommt (andere Textquelle):
 #   autor = "Franz von Liszt", todesjahr_autor = 1919, herausgeber_entfaellt = "Zeitschriftenaufsatz"

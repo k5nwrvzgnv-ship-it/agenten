@@ -77,9 +77,13 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
 ## Offene Punkte
 1. Nebenbei gesehen: korpora.org schreibt, das Korpus werde fortlaufend korrigiert (Textkorrekturen,
    Lesarten). Ob das für die Zitierfähigkeit „nach AA“ eine Rolle spielt, bei Gelegenheit mit Jan klären.
-2. Liszt: Jan entscheidet den Weg. Möglich: Lia schreibt 3 bis 5 Stellen am Scan ab (Python prüft
-   dann nur Seite und Länge, Scan-Link je Seite: https://archive.org/details/<id>/page/n<N>), oder eine
-   andere Textquelle. Eintrag dann mit autor = "Franz von Liszt", todesjahr_autor = 1919,
+2. Liszt: Jan entscheidet den Weg. Andere Textquelle innerhalb der Allowlist gesucht (25.10.), keine
+   gefunden: Nachdruck 1905 nicht auf archive.org (Metadaten- und Volltextsuche über
+   be-api.us.archive.org), Wikisource und perma.cc-Kopie ohne Text. Möglich: (a) Allowlist um eine
+   Bibliothek mit Fraktur-OCR erweitern (Jans Freigabe nötig; Kandidaten ungeprüft, z. B.
+   digitale-sammlungen.de der BSB oder deutschestextarchiv.de), (b) Lia schreibt 3 bis 5 Stellen am Scan
+   ab (Python prüft dann nur Seite und Länge, Scan-Link je Seite:
+   https://archive.org/details/<id>/page/n<N>). Eintrag dann mit autor = "Franz von Liszt", todesjahr_autor = 1919,
    herausgeber_entfaellt = "Zeitschriftenaufsatz" (Kommentar in quellen.toml).
 3. Kant S. 333, Inselbeispiel: korpora.org hat „im Gefängni befindliche“ (ohne ß am Zeilenende). Das
    Zitat ist wortgetreu zur Textfassung, Lia sollte es am Druck prüfen.
