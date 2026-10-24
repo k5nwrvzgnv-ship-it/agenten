@@ -86,6 +86,14 @@ class LaufTest(unittest.TestCase):
         self.assertEqual(k["roh"][0]["sha256"], hashlib.sha256(SEITEN[k["urls"][0]][0]).hexdigest())
         self.assertEqual(len(self.meldungen), 1)  # erster Lauf: Gemeinfreiheit beider Quellen
         self.assertIn("kant: Gemeinfreiheit ungeklaert (Herausgeber nicht geklärt", self.meldungen[0])
+        self.assertNotIn("herausgeber", k)  # leer = nicht eingetragen
+
+    def test_herausgeber_im_register(self):
+        (self.hier / "quellen.toml").write_text(
+            QUELLEN.replace('herausgeber = ""', 'herausgeber = "H"\nherausgeber_todesjahr = 1924'), encoding="utf-8")
+        self.assertEqual(self.lauf(), [])
+        k = self.register()["kant"]
+        self.assertEqual((k["herausgeber"], k["gemeinfreiheit"]["status"]), ("H", "frei"))
 
     def test_zweiter_lauf_still_und_stellen_bleiben(self):
         self.lauf()

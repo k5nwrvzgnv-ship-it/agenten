@@ -35,10 +35,15 @@ art = "primaertext"
 autor = "Immanuel Kant"
 todesjahr_autor = 1804
 werk = "Die Metaphysik der Sitten (1797), Metaphysische Anfangsgründe der Rechtslehre, Allgemeine Anmerkung E: Vom Straf- und Begnadigungsrecht"
-ausgabe = "Kant's gesammelte Schriften (Akademie-Ausgabe), Bd. 6, S. 331–337, nach dem Bonner Kant-Korpus (korpora.org)"
-# Der Herausgeber des Bandes ist auf korpora.org nicht genannt (geprüft 25.10.2026:
-# Startseite, Inhaltsverzeichnis Bd. 6, Gesamtverzeichnis). Darum leer = ungeklärt. Nicht raten.
-herausgeber = ""
+ausgabe = "Akademie-Ausgabe Bd. VI, Berlin 1914, S. 331–337 (Text nach korpora.org)"
+# Herausgeber (geprüft 25.10.2026): Auf korpora.org nicht genannt. Im Band selbst steht vor der
+# Metaphysik der Sitten wörtlich „Herausgeber: Paul Natorp.“ (Bd. VI, Berlin: Georg Reimer 1914),
+# OCR des Scans https://archive.org/details/kantsgesammeltes06imma, Datei
+# kantsgesammeltes06imma_djvu.txt, Zeile 23216; zweiter Scan kantsgesammeltes06kant mit derselben Angabe.
+# Lebensdaten 24.01.1854–17.08.1924: Deutsche Biographie https://www.deutsche-biographie.de/sfz68065.html
+# und DLA Marbach https://www.dla-marbach.de/en/catalogue/find/opac/id/PE00046406/
+herausgeber = "Paul Natorp"
+herausgeber_todesjahr = 1924
 seiten = [331, 332, 333, 334, 335, 336, 337]
 urls = [
   "https://korpora.org/kant/aa06/331.html",

@@ -1,7 +1,7 @@
 """Quellenregister data/register.json (ohne Netz). lia/examen liest es später.
 
 Aufbau: {"aktualisiert": ..., "quellen": [eintrag, ...]}, je Eintrag:
-  id, art, werk, ausgabe, autor (falls vorhanden), urls, abgerufen (frühester Abruf),
+  id, art, werk, ausgabe, autor/herausgeber/uebersetzer (falls angegeben), urls, abgerufen (frühester Abruf),
   roh (je URL: url, abgerufen, sha256 des geladenen Inhalts), textfassung (Pfad relativ zum
   Agent-Ordner), sha256 (der Textfassung), gemeinfreiheit {status, verwendbar, begruendung},
   stellen [{seite, zitat, geprueft}].
@@ -29,8 +29,9 @@ def gesetz_stelle(normtext: str, text: str) -> dict:
 def eintrag(quelle: dict, metas: list[dict], textpfad: str, text: str, gemeinfreiheit: dict,
             stellen: list[dict]) -> dict:
     e = {"id": quelle["id"], "art": quelle["art"], "werk": quelle["werk"], "ausgabe": quelle["ausgabe"]}
-    if quelle.get("autor"):
-        e["autor"] = quelle["autor"]
+    for feld in ("autor", "herausgeber", "uebersetzer"):
+        if quelle.get(feld):
+            e[feld] = quelle[feld]
     e.update({
         "urls": [m["url"] for m in metas],
         "abgerufen": min(m["abgerufen"] for m in metas),
