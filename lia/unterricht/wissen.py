@@ -38,6 +38,7 @@ ARTEN = (
     (r"entwurf|^u[be]_\d", "Unterrichtsentwurf (anonymisiert)"),
     (r"unterrichtsstunde|stunde_\d+\.docx", "Stundenplanung"),
     (r"nikomach", "Quelle (Primärtext)"),
+    (r"rlp|rahmenlehrplan|curriculum", "Vorgabe (RLP/Curriculum)"),
     (r"praekonzepte", "Schülerantworten (anonym)"),
     (r"drehbuch", "Material"),
     (r"fachseminar|kriterien_gute|tipps|ideen", "Seminar und Notizen"),
@@ -85,6 +86,8 @@ def art_erkennen(rel: str) -> str:
     ordner = _einfach(str(Path(rel).parent))
     if "operatorentraining" in ordner or name.startswith("operatoren ethik"):
         return "Operatoren"
+    if ordner.split("/")[0] == "quellen":  # Texte, die Lia als Quellen abgelegt hat (Buchausschnitte usw.)
+        return "Quelle"
     for muster, art in ARTEN:
         if re.search(muster, name):
             return art

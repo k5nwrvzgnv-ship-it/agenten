@@ -49,6 +49,10 @@ class ErkennenTest(unittest.TestCase):
             "Ethik/7. Klasse/Reihe Freundschaft + Operatoren/ABs/OperatorenAB_1.docx": "Arbeitsblatt",
             "Fachseminar_Ethik_Notizen.pages.txt": "Seminar und Notizen",
             "Ethik/Social_Media_Verbot.docx": "Sonstiges",
+            "Vorgaben/RLP_Ethik_Sek_I.pdf": "Vorgabe (RLP/Curriculum)",
+            "Vorgaben/Schulinternes_Curriculum_Ethik.docx": "Vorgabe (RLP/Curriculum)",
+            "Quellen/Kant_Metaphysik_der_Sitten_Ausschnitt.txt": "Quelle",
+            "Quellen/Strafe/von_Liszt_Seite_1.txt": "Quelle",
         }
         for rel, art in faelle.items():
             with self.subTest(rel=rel):

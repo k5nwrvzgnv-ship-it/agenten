@@ -151,15 +151,19 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
   Fallbeispielen (z. B. Yagmur, Berat) sind geblieben. Noch offen und erst nach Jans Okay: Wie der Agent das
   Wissen nutzt (auswählen, kürzen, in den Prompt oder als Dateien zum Lesen). Schülerdaten gehören nicht hierher.
 - Quellen: Lia möchte Dokumente als Quellen hinzufügen. Bei der Wahl zweier gegensätzlicher Positionen soll die
-  Quellenlage zählen: als Gelernte Regel eingetragen (23.10.). Offen: wie Lia Quellen dauerhaft ablegt.
+  Quellenlage zählen: als Gelernte Regel eingetragen (23.10.). Ablage bis auf Weiteres über Jan (Chat lädt hoch):
+  Vorgaben nach data/wissen/eingang/Vorgaben/ (Katalog-Art „Vorgabe (RLP/Curriculum)“), Quellen nach
+  eingang/Quellen/ (Art „Quelle“), danach `.venv/bin/python wissen.py`. Liegt dort: RLP_Ethik_Sek_I.pdf
+  (Teil C Ethik 7–10, 25.10.). Angekündigt: zwei Buchausschnitte als Scans (Bilder sind nicht lesbar, Text muss
+  erst abgeschrieben werden), Seminarvorgaben zur Reihenfrage, schulinternes Curriculum.
 6. Optional: Blindvergleich mit lia/auswertung/data/ergebnis/pruefsatz.json (P01–P17, ~10 USD Kontingent).
 
 ## Offene Punkte
 1. Handtest: Lia tippt „Neues Material“ und schickt einen Wunsch, einmal Arbeitsblatt, einmal Folien.
 2. Wünsche nach Änderung („mach Aufgabe 3 leichter“): Lias Zentrale kennt noch keine Antwort auf ein Ergebnis.
    Dann Sitzung fortsetzen (Feld sitzung ist gespeichert) und Beschreibung überarbeiten lassen.
-3. Dauerhafte Schulvorlage (dotx/potx nach data/vorlagen/, renderer vorlage=): Die Zentrale nimmt Dateien jetzt an,
-   heute gelten sie nur für den einen Auftrag. Erst klären, wie Lia eine Vorlage als dauerhaft kennzeichnet.
+3. Dauerhafte Schulvorlage: zurückgestellt (Lia 25.10.: die bisherigen Vorlagen für ABs und Folien passen,
+   Schulbranding erst mal egal).
 4. Handtest Anhang: Lia schickt einen Text oder ein altes Arbeitsblatt mit „Mach daraus ein Arbeitsblatt“.
    Die Datei von 23:15 (22.10.) wurde noch abgelehnt und muss neu geschickt werden.
 5. Ausbau des Skills nach Architektur 2.5 (beispiele/, evals/), sobald Lia Ergebnisse abgenommen hat.
