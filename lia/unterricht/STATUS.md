@@ -115,8 +115,7 @@ D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, bli
    Lias Planung Reihe_Strafe.docx enthält Kandidaten („Sollen Gefängnisse Täter:innen bestrafen oder bessern?“,
    Kant vs. von Liszt); erst nach Lias Bestätigung in reihen.toml.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
-   „nicht wieder vorschlagen“). Eingetragen 24.10.: 3–9 (Lia). Offen: 10–11, Lia geht sie seit 24.10.
-   einzeln durch (10–11 noch nicht vorgelegt). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
+   „nicht wieder vorschlagen“). Eingetragen 24.10.: 3–10 (Lia). Offen: 11 (Bewertung, gehört nicht zu unterricht). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
    Fragen: 1, 2, 7, 8; 11 (Bewertung) gehört nicht hierher.
 3. „Frage stellen“ als Fachfragen mit Belegpflicht (eigener Ablauf und Skill, Reihenkontext mit).
 4. Änderungswünsche (offener Punkt 2): Sitzung fortsetzen; Bedarf an Lias Zentrale in die Haupt-STATUS.
@@ -166,3 +165,4 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - 24.10.2026: Zwei Positionen für eine Reihe müssen sich klar widersprechen; nah beieinander liegende Positionen benennen. (Anlass: Auswertung, Regelvorschlag 7, fachlich; von Lia freigegeben, über Jan)
 - 24.10.2026: Auswahllisten (Philosoph*innen, Stücke, Filme, Themen) breit streuen, nicht nur eine Richtung oder nur Klassiker. (Anlass: Auswertung, Regelvorschlag 8, einseitig; von Lia freigegeben, über Jan)
 - 24.10.2026: Lieber kurz, auf Wunsch länger. Ein Arbeitsblatt passt auf eine Seite, wenn nicht anders gesagt. (Anlass: Auswertung, Regelvorschlag 9, umfang: 31; von Lia freigegeben, über Jan)
+- 24.10.2026: Geschlechtergerecht schreiben, nicht männlich geprägt. In Entwürfen (Unterrichtsentwürfe, die Lia abgibt) die Paarform „Schülerinnen und Schüler“, sonst mit Sternchen (Schüler*innen). Texte, die Lia selbst abgibt, in ihrem Ton, ohne Umgangssprache und nicht geschwollen. (Anlass: Auswertung, Regelvorschlag 10, stil: 18; von Lia freigegeben mit Ergänzung, über Jan)
