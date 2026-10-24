@@ -100,8 +100,8 @@ B2. Entwicklungsverlauf (verlauf.py, Jan 23.10., Lia einverstanden): data/wissen
    Grenzen. Unsicher: Datum UB 5 (Kopf 18.05.2026, vermutlich Sept. 2026), Kurzentwurf ohne Datum, einige
    Rückmeldungen nur über den Dateinamen zugeordnet. Die Datei selbst geht nicht in die Läufe. Ihre „Folgen für
    den Agenten“ 2–5 hat Jan am 23.10. als Abschnitt 7 in leitfaden.md übernommen; Punkt 1 nicht (nannte noch
-   Helfen als laufende Reihe). Offen mit Lia: Belege mit Werk und Stelle aufs Blatt oder in den Begleittext
-   (Regelvorschlag 3 sagt Begleittext, noch nicht freigegeben).
+   Helfen als laufende Reihe). Belege mit Werk und Stelle gehören in den Begleittext, nicht aufs Blatt
+   (Regelvorschlag 3, von Lia freigegeben 24.10.).
 C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wissen/beispiele-vorschlag.md (ein
    Opus-Lauf, 24 Blätter gelesen, 0,86 USD): je Materialtyp 1–2 Musterblätter mit Warum gut / Nachahmen / Schwäche,
    Schwerpunkt Klasse 8 Helfen (AB_4, BBB_AB, AB_5.1/5.2, Sicherungszettel A/B, Erörterung leicht/mittel/schwer,
@@ -115,8 +115,8 @@ D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, bli
    Lias Planung Reihe_Strafe.docx enthält Kandidaten („Sollen Gefängnisse Täter:innen bestrafen oder bessern?“,
    Kant vs. von Liszt); erst nach Lias Bestätigung in reihen.toml.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
-   „nicht wieder vorschlagen“). Pausiert (Jan 23.10.): 3–11 werden nachgeholt, wenn Lia Zeit hat
-   (3 und 4 vorgelegt ohne Wahl, 5–8 vorgelegt ohne Antwort, 9–11 noch nicht vorgelegt). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
+   „nicht wieder vorschlagen“). Eingetragen 24.10.: 3 (Lia). Offen: 4–11, Lia geht sie seit 24.10.
+   einzeln durch (4 vorgelegt ohne Wahl, 5–8 vorgelegt ohne Antwort, 9–11 noch nicht vorgelegt). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
    Fragen: 1, 2, 7, 8; 11 (Bewertung) gehört nicht hierher.
 3. „Frage stellen“ als Fachfragen mit Belegpflicht (eigener Ablauf und Skill, Reihenkontext mit).
 4. Änderungswünsche (offener Punkt 2): Sitzung fortsetzen; Bedarf an Lias Zentrale in die Haupt-STATUS.
@@ -159,3 +159,4 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - 23.10.2026: Bei der Wahl zweier gegensätzlicher Positionen zählt die Quellenlage: Es muss Texte dazu geben, möglichst digital verfügbar, kostengünstig und nicht zu nischig. (Anlass: Lias Wunsch, von Jan freigegeben)
 - 23.10.2026: Was einem Philosophen zugeschrieben wird, braucht einen Beleg (Werk, Stelle). Eigene didaktische Vereinfachung als solche kennzeichnen. Nichts erfinden, Unsicherheit sagen. (Anlass: Auswertung von Lias Chats, Regelvorschlag 1, fachlich: 52 Korrekturen; von Jan freigegeben)
 - 23.10.2026: Vor jeder Antwort Reihenfrage, Klasse und gewählte Positionen der laufenden Reihe beachten, nicht stillschweigend wechseln. (Anlass: Auswertung, Regelvorschlag 2 ohne „behandelte Positionen nicht wieder vorschlagen“, missverstanden: 43, einseitig: 14; von Jan freigegeben)
+- 24.10.2026: Texte für Schülerinnen und Schüler: Fließtext in ganzen Sätzen, ohne Zwischenüberschriften und ohne Stellenangaben. Belege (Werk, Stelle) gehören in den Begleittext für Lia. BBB: je Teil genau ein vollständiger Satz. (Anlass: Auswertung, Regelvorschlag 3, form: 48; von Lia freigegeben, über Jan)
