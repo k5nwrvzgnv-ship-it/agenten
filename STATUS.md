@@ -8,7 +8,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
   Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
 - agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
-  meldungen, regeln, verbrauch, claude_lauf, textfassung, kalender. Doku steht jeweils oben im Modul.
+  meldungen, regeln, verbrauch, claude_lauf, textfassung, kalender, abruf, wortlaut. Doku steht jeweils oben im Modul.
   Einbindung per .pth in jede Agent-.venv:
   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
 - Freigabe: Fingerabdruck des Entwurfs muss zur Telegram-Anzeige passen, Ausführung genau einmal
@@ -222,10 +222,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 10. Bedarf aus lia/examen (25.10., Plan Examensreihe von Jan freigegeben, Punkte 1–6, Prüfung in ca. 4 Wochen):
    - Lias Zentrale: kurzer Bewertungsbogen je Runde (je Skizze Note 1–5, „was stört“, „was übernehmen“, Wahl).
      Benötigt ab Runde 1 (Ende Woche 1); bis dahin trägt Jan Lias Antworten von Hand ein.
-   - agentkit: Abruf nur über eine Domain-Allowlist (urllib, kein Paket) für lia/recherche. Allowlist von Jan
-     freigegeben: gesetze-im-internet.de, de.wikisource.org, zeno.org, korpora.org, archive.org.
-   - agentkit: wörtliche Zitatprüfung liegt vorerst in lia/examen/wortlaut.py (getestet). lia/recherche braucht
-     sie auch; dann nach agentkit verschieben statt kopieren.
+   - Erledigt 25.10. (Teil A lia/recherche): agentkit.abruf, nur Bordmittel (urllib). Allowlist von Jan
+     freigegeben: gesetze-im-internet.de, de.wikisource.org, zeno.org, korpora.org, archive.org (gibt der Aufrufer an).
+     `abruf.laden(url, allowlist, cache_dir, neu=False, zeitlimit=60, max_bytes=30 MB)` -> Ergebnis mit
+     inhalt (bytes), meta (url, endgueltige_url, abgerufen, status, content_type, sha256, groesse), aus_cache,
+     text(). Erlaubt: Host gleich Domain oder endet auf ".domain"; nur https; jede Weiterleitung geprüft;
+     2 s Pause je Host (im Prozess). Cache <sha256 der URL>.bin/.json, Treffer ohne Netz, neu=True lädt neu.
+     Zeichensatz aus Content-Type (auch "charset=Charset=ISO-8859-1"), sonst UTF-8: abruf.als_text(bytes, ct).
+     Fehler: AbrufFehler (Domain nicht erlaubt, Weiterleitung abgelehnt, nur https, HTTP-Fehler, zu groß,
+     Zeitüberschreitung, Netzfehler, Zeichensatz, Cache beschädigt). Nur Unit-Tests, noch kein echter Abruf.
+   - Erledigt 25.10.: agentkit.wortlaut (normalisieren, steht_in, seiten), inhaltsgleich mit lia/examen/wortlaut.py.
+     Offen im lia-Chat: lia/examen auf agentkit.wortlaut umstellen, dann lia/examen/wortlaut.py löschen.
    - Freigabe-Einträge ohne Ausführung durch einen Agenten (Typ "entwurf", Lia setzt selbst ein): Nach der
      Freigabe bleiben sie in „Warten auf Ausführung“. Vorschlag: Typ "entwurf" in der Zentrale nach Freigabe
      direkt als ausgeführt vermerken („setzt Lia selbst ein“). Bis dahin schließt der examen-Chat sie von Hand ab.
