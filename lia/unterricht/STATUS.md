@@ -110,7 +110,9 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    ungeprüft. Auswahl durch Lia läuft seit 24.10. (Blatt für Blatt), bisher übernommen: AB_4 (ab_text_position),
    AB_2 (ab_text_position, Muster für den Aufbau: erst Alltagsfall, dann die Regel daraus ableiten),
    BBB_AB mit Lösungen und AB_6_Erörterung (argumentieren),
-   AB_5.1/5.2 und AB_3.1 (fallbeispiel; AB_3.2 nicht, Ergebnis nach Singer nicht eindeutig).
+   AB_5.1/5.2 und AB_3.1 (fallbeispiel; AB_3.2 nicht, Ergebnis nach Singer nicht eindeutig),
+   Sicherungszettel A/B (bausteine; Lia: gut sind Farben, Satzanfänge, klare Operatoren, möglichst kurz).
+   Erwartungshorizont UB_5 kein Muster (Lia: unwichtig).
    Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
