@@ -151,6 +151,22 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - BFH-Postfach (jan.kleinke@students.bfh.ch): Weiterleitung ins HNEE-Postfach am 17.10. von Jan
   eingerichtet, Ankunft noch nicht geprüft (Testmail an die BFH-Adresse, dann im HNEE-Postfach suchen).
 - Zurückgestellt: myCampus-App HNEE (Stundenplan, Noten, Prüfungen). Datenquelle dahinter noch unbekannt.
+- emma (HNEE-Campusportal, CampusNet von Datenlotsen, 24.10. einmal von Hand gelesen, nicht im Agenten):
+  Anmeldung nur über SSO dsf.hnee.de (IdentityServer, Formular Username/Password + __RequestVerificationToken),
+  geht mit HNEE_NUTZER/HNEE_KENNWORT aus uni/.env; CampusNet leitet danach per Refresh-Header weiter.
+  Menü: MYEXAMS, EXAMREGISTRATION (Prüfungen mit Termin und Anmeldestatus), MYREGISTRATIONS, MYMODULES, EXAMRESULTS.
+- Prüfungen WS 26/27 (emma + Modulhandbuch-Msc_aktualisiert.pdf, 24.10.), Lernstrategie für alle geplant:
+  - Fachplanung im Hochbau 2 / HSS (M.03.R.2515.W, IHS + SHB): Vortrag mit mündlicher Prüfung. Pilot Lernsystem.
+  - Computerbasierte Planung (M.03.R.2513.W): Teile BFH "Fertigung im Holzbau 1" und CAM (keine eigene Prüfung).
+    Widerspruch offen: HNEE-Modulhandbuch/emma Vortrag mit mündlicher Prüfung 100 %, BFH-Intro Folie 15
+    Modulprüfung 75 min 80 % + Vortrag Eberswalde 20 %.
+  - Nachhaltigkeit im Holzingenieurwesen (emma: Sustainability in wood engineering, M.03.R.2505.P): LCA +
+    Eilbacher, Vortrag mit mündlicher Prüfung, beide Teilleistungen nötig. Offen: ob die LCA-Teamabgabe GEG
+    (fällig 16.10., nicht abgegeben) eine Teilleistung ist.
+  - Research project 2, Practical module: Prüfungsform laut emma, Zuordnung der Kurse noch nicht geklärt.
+  - Bio-based materials (mündlich 12.11.2026): Jan lässt es wegen Workload aus (24.10.).
+  - Für keine Prüfung außer Research project 1 ist Jan in emma angemeldet, Termine meist offen.
+  - Mails an Dozenten zu den offenen Punkten: Jan will vorerst keine (24.10.).
 - Lernsystem (Umbau ab 20.10., Pilot Modul Holzschutz und Sanierung = IHS Lautner + SHB Jahreis):
   Ziel: Prüfung mit wenig Aufwand bestehen; Maßstab Prüfungssimulation, nicht Informiertheit.
   Prüfung: Vortrag mit mündlicher Prüfung aus beiden Teilen, Januar 2027. Jan war bis 20.10. bei keinem Termin.
