@@ -53,6 +53,12 @@ Kolloquiumsfragen) und arbeitet mit Quellen aus lia/recherche. Lia entscheidet u
 - 25.10.2026 (Jan): Freigegeben: zwei Agenten mit Timern (lia-recherche, lia-examen), Allowlist, 8 USD je Nacht,
   Zentrale-Bogen und agentkit-Abruf (Hauptordner-Chat), Impuls über die Freigabe, eigenes lokales Repo der Reihe.
 
+- 25.10.2026 (Jan): Plan lia/recherche freigegeben, Teile A–D: A agentkit.abruf (Allowlist, Cache) und
+  wortlaut nach agentkit (Hauptordner-Chat); B quellen.toml, Parser, Register, Gemeinfreiheit für StGB § 46,
+  JGG § 2, Kant AA 6:331–337 ohne Claude; C Liszt „Zweckgedanke“ (ZStW 3, 1883; Band unter den Google-Scans auf
+  archive.org per Textsuche finden) und Kernstellen per Claude; D Timer 02:30. Auswahl der Kernstellen mit Opus,
+  Meldungen nach jedem Lauf an Jan (nicht Lia), Lia prüft jedes verwendete Liszt-Zitat am Scan (OCR).
+
 ## Offene Punkte
 1. Lia: offene Angaben in examen.toml liefern, Rubrik-Entwurf durchsehen, Bewertungsbogen schicken.
 2. Impuls freigeben (Lias Zentrale) und einsetzen, Ergebnis in examen.toml [impuls].
