@@ -1,0 +1,54 @@
+# Quellen für Lias Examensreihe (Straftheorien, Ethik Klasse 8). Von Hand gepflegt.
+# Der Agent lädt jede URL über agentkit.abruf (nur Domains aus [abruf] allowlist, nur https),
+# baut daraus data/text/<id>.txt und trägt die Quelle in data/register.json ein.
+#
+# Felder je [[quelle]]:
+#   id, art (gesetz | primaertext), werk, ausgabe, urls (Liste)
+#   autor, todesjahr_autor            bei primaertext Pflicht
+#   herausgeber, herausgeber_todesjahr  falls es einen gibt; leerer Name = ungeklärt
+#   uebersetzer, uebersetzer_todesjahr  ebenso
+#   seiten                            Seitenzahlen der Vorlage, eine je URL (korpora.org)
+# Gemeinfreiheit: gemeinfrei.py. Fehlt ein Name oder Todesjahr, ist die Quelle ungeklärt und
+# darf nicht verwendet werden.
+
+[abruf]
+# Von Jan freigegeben am 25.10.2026
+allowlist = ["gesetze-im-internet.de", "de.wikisource.org", "zeno.org", "korpora.org", "archive.org"]
+
+[[quelle]]
+id = "stgb-46"
+art = "gesetz"
+werk = "Strafgesetzbuch (StGB), § 46 Grundsätze der Strafzumessung"
+ausgabe = "gesetze-im-internet.de (Bundesamt für Justiz), Fassung am Abrufdatum"
+urls = ["https://www.gesetze-im-internet.de/stgb/__46.html"]
+
+[[quelle]]
+id = "jgg-2"
+art = "gesetz"
+werk = "Jugendgerichtsgesetz (JGG), § 2 Ziel des Jugendstrafrechts; Anwendung des allgemeinen Strafrechts"
+ausgabe = "gesetze-im-internet.de (Bundesamt für Justiz), Fassung am Abrufdatum"
+urls = ["https://www.gesetze-im-internet.de/jgg/__2.html"]
+
+[[quelle]]
+id = "kant-mds-strafrecht"
+art = "primaertext"
+autor = "Immanuel Kant"
+todesjahr_autor = 1804
+werk = "Die Metaphysik der Sitten (1797), Metaphysische Anfangsgründe der Rechtslehre, Allgemeine Anmerkung E: Vom Straf- und Begnadigungsrecht"
+ausgabe = "Kant's gesammelte Schriften (Akademie-Ausgabe), Bd. 6, S. 331–337, nach dem Bonner Kant-Korpus (korpora.org)"
+# Der Herausgeber des Bandes ist auf korpora.org nicht genannt (geprüft 25.10.2026:
+# Startseite, Inhaltsverzeichnis Bd. 6, Gesamtverzeichnis). Darum leer = ungeklärt. Nicht raten.
+herausgeber = ""
+seiten = [331, 332, 333, 334, 335, 336, 337]
+urls = [
+  "https://korpora.org/kant/aa06/331.html",
+  "https://korpora.org/kant/aa06/332.html",
+  "https://korpora.org/kant/aa06/333.html",
+  "https://korpora.org/kant/aa06/334.html",
+  "https://korpora.org/kant/aa06/335.html",
+  "https://korpora.org/kant/aa06/336.html",
+  "https://korpora.org/kant/aa06/337.html",
+]
+
+# Teil C: Franz von Liszt, Der Zweckgedanke im Strafrecht, ZStW 3 (1883), OCR der Google-Scans
+# auf archive.org. Eintrag folgt, sobald URL und Seiten feststehen.

@@ -1,0 +1,1 @@
+# Keine Pakete: nur Python-Bordmittel (html.parser, tomllib), agentkit per agentkit.pth.
