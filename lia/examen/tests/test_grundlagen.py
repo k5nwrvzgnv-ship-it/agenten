@@ -3,7 +3,6 @@ import unittest
 from pathlib import Path
 
 import grundlagen
-import wortlaut
 
 TEXTFASSUNG = """--- Seite 1
 Inhalt
@@ -18,29 +17,13 @@ rechtstheorien) etc.
 """
 
 
-class WortlautTest(unittest.TestCase):
-    def test_trennung_und_umbruch_zaehlen_nicht(self):
-        self.assertTrue(wortlaut.steht_in("Um diese Fragen beantworten zu können", TEXTFASSUNG))
-        self.assertTrue(wortlaut.steht_in("Faustrecht, Gewaltmonopol (Straf- und Strafrechtstheorien)", TEXTFASSUNG))
-
-    def test_ein_anderes_wort_faellt_auf(self):
-        self.assertFalse(wortlaut.steht_in("Doch was ist eine gerechte Rache?", TEXTFASSUNG))
-        self.assertFalse(wortlaut.steht_in("Um diese Frage beantworten", TEXTFASSUNG))
-
-    def test_typografische_zeichen_gleich(self):
-        self.assertTrue(wortlaut.steht_in("„Strafe“ – ja", 'Die "Strafe" - ja'))
-        self.assertTrue(wortlaut.steht_in("Aufzählung", "­ Aufzählung"))
-
-    def test_leeres_zitat_nie(self):
-        self.assertFalse(wortlaut.steht_in("  \n", TEXTFASSUNG))
-
-    def test_seiten(self):
-        seiten = wortlaut.seiten(TEXTFASSUNG)
-        self.assertEqual(sorted(seiten), [1, 2, 3])
-        self.assertIn("Faust-", seiten[3])
-
-
 class AuszugTest(unittest.TestCase):
+    # Den Vergleich selbst testet agentkit (tests/test_wortlaut.py); hier nur Seiten und Fehlertexte.
+
+    def test_trennung_ueber_zeilen(self):
+        stelle = self.stelle("Faustrecht, Gewaltmonopol (Straf- und Strafrechtstheorien)", 3)
+        self.assertEqual(grundlagen.auszug_pruefen([stelle], TEXTFASSUNG), [])
+
     def stelle(self, text, seite):
         return {"id": "x", "seite": seite, "abschnitt": "a", "text": text}
 

@@ -35,12 +35,12 @@ Kolloquiumsfragen) und arbeitet mit Quellen aus lia/recherche. Lia entscheidet u
 - Vorab-Impuls: impuls.md (5 Fragen, anonym, Papier, ca. 5 min, mit Hinweisen für Lia). Liegt in Lias
   Freigabe-Warteschlange: 20261025-003745-examen-0c44bf. Nach Lias Freigabe von Hand als ausgeführt vermerken
   (freigabe.ausfuehrung_beginnen/abschliessen, „Lia setzt selbst ein“), bis die Zentrale das kann.
-- Tests: 14, grün. Noch kein Claude-Lauf, kein Dienst, keine Kosten.
+- Tests: 10, grün (Wortlaut-Tests liegen jetzt in agentkit). Noch kein Claude-Lauf, kein Dienst, keine Kosten.
 
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
-- Code: grundlagen.py (Rubrik, RLP-Auszug, examen.toml laden und prüfen; `.venv/bin/python grundlagen.py`),
-  wortlaut.py (wörtlicher Vergleich ohne Leerraum und Silbentrennung, Seiten aus der Textfassung).
+- Code: grundlagen.py (Rubrik, RLP-Auszug, examen.toml laden und prüfen; `.venv/bin/python grundlagen.py`).
+  Wörtlicher Vergleich über agentkit.wortlaut (seit 25.10. dort, vorher lia/examen/wortlaut.py).
 - Daten im Repo (keine Schülerdaten): rubrik.toml, rlp_auszug.toml, examen.toml, impuls.md.
 - data/vorgaben/RLP_Ethik_Sek_I.pdf: Kopie aus lia/unterricht/data/wissen/eingang/Vorgaben/ (nicht im Repo).
 - .venv: pypdf (Version wie lia/unterricht), agentkit per agentkit.pth.

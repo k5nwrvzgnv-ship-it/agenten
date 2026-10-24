@@ -9,7 +9,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-import wortlaut
+from agentkit import wortlaut
 
 HIER = Path(__file__).resolve().parent
 RUBRIK = HIER / "rubrik.toml"
