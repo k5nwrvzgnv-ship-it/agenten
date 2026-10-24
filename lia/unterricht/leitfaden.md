@@ -39,7 +39,7 @@ Quellen sind Dateinamen ohne Personennamen. Die heutige 8. Klasse ist die frühe
 - Kein Lückentext, er ist sprachlich lösbar und lenkt von der Theorie ab (Feedback_1.UB). Lias spätere Blätter arbeiten mit Unterstreichen, Ankreuzen und BBB (UB_5).
 - Auch leichte Blätter verlangen ein selbst formuliertes Argument (Feedback_Mentor_Tierethik).
 - Fälle: aus der Lebenswelt, mit Namen, wenige, und jeder zielt auf die Stundenfrage (Feedback_Mentor_Lügen). Pro Position ein eindeutiges Ergebnis (UB_5).
-- Erwartungshorizont beilegen (UB_5).
+- Erwartungshorizont nur für Unterrichtsbesuche (UB) oder auf Wunsch beilegen (UB_5; Lia 25.10.2026).
 
 ## 4. Sprache, Niveau und Differenzierung
 
@@ -76,4 +76,4 @@ Quellen sind Dateinamen ohne Personennamen. Die heutige 8. Klasse ist die frühe
 - Aufbau einer Stunde: Fall → Merksatz → schrittweise Fragen mit Operatoren → BBB-Argument → vorstrukturierte Tabelle. Kein Lückentext als Erarbeitung. Merksätze als eigene Vereinfachung kennzeichnen, Aussagen über Philosoph*innen mit Werk und Stelle belegen (entwicklung).
 - Differenzierung über die Schwierigkeit des Falls bzw. die Zuteilung der Position, Hilfen zum Umknicken, Satzanfänge, die man später weglassen kann. Für Stärkere eine fordernde Aufgabe, etwa ein kurzes Streitgespräch mit beiden Positionen (entwicklung).
 - Impulse für das Plenum mitliefern (Murmelrunde, Gegenposition einnehmen, „Hat sich euer Blick auf den Fall verändert?“). Grenzen der Position als eigene Aufgabe einplanen, nicht nur als Reserve (entwicklung).
-- Immer dazu: Rubrik Sprachbildung (Begriff, Definition, Beispielsatz), Erwartungshorizont und eine Sicherung durch die Klasse mit Beobachtungsaufträgen (entwicklung).
+- Immer dazu: Rubrik Sprachbildung (Begriff, Definition, Beispielsatz) und eine Sicherung durch die Klasse mit Beobachtungsaufträgen (entwicklung).
