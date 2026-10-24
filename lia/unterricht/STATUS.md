@@ -111,8 +111,8 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
-1. Reihenkontext: gebaut und gefüllt 23.10. Strafe: erst Kant, dann von Liszt (Lia 24.10.). Offen: Merksätze und
-   die Reihenfrage zu Straftheorien (Lia sucht noch, 24.10.).
+1. Reihenkontext: gebaut und gefüllt 23.10. Strafe: erst Kant, dann von Liszt (Lia 24.10.). Merksätze der Reihe Helfen
+   eingetragen (24.10.). Offen: Reihenfrage und Merksätze zu Straftheorien (Lia sucht noch, 24.10.).
    Lias Planung Reihe_Strafe.docx enthält Kandidaten („Sollen Gefängnisse Täter:innen bestrafen oder bessern?“,
    Kant vs. von Liszt); erst nach Lias Bestätigung in reihen.toml.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
