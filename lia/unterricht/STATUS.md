@@ -115,8 +115,8 @@ D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, bli
    Lias Planung Reihe_Strafe.docx enthält Kandidaten („Sollen Gefängnisse Täter:innen bestrafen oder bessern?“,
    Kant vs. von Liszt); erst nach Lias Bestätigung in reihen.toml.
 2. Regelvorschläge (lia/auswertung/STATUS.md, „Regelvorschläge“): 23.10. Jan vorgelegt. Eingetragen: 1, 2 (ohne
-   „nicht wieder vorschlagen“). Eingetragen 24.10.: 3, 4, 5 (Lia). Offen: 6–11, Lia geht sie seit 24.10.
-   einzeln durch (6–8 vorgelegt ohne Antwort, 9–11 noch nicht vorgelegt). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
+   „nicht wieder vorschlagen“). Eingetragen 24.10.: 3, 4, 5, 6 (Lia). Offen: 7–11, Lia geht sie seit 24.10.
+   einzeln durch (7–8 vorgelegt ohne Antwort, 9–11 noch nicht vorgelegt). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
    Fragen: 1, 2, 7, 8; 11 (Bewertung) gehört nicht hierher.
 3. „Frage stellen“ als Fachfragen mit Belegpflicht (eigener Ablauf und Skill, Reihenkontext mit).
 4. Änderungswünsche (offener Punkt 2): Sitzung fortsetzen; Bedarf an Lias Zentrale in die Haupt-STATUS.
@@ -162,3 +162,4 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - 24.10.2026: Texte für Schülerinnen und Schüler: Fließtext in ganzen Sätzen, ohne Zwischenüberschriften und ohne Stellenangaben. Belege (Werk, Stelle) gehören in den Begleittext für Lia. BBB: je Teil genau ein vollständiger Satz. (Anlass: Auswertung, Regelvorschlag 3, form: 48; von Lia freigegeben, über Jan)
 - 24.10.2026: Sprache in der 8. Klasse (lernschwach, mehrsprachig), nur dort: kurze Sätze, keine Redewendungen, abstrakte Wörter (schulden, Pflicht, zustehen, Kosten tragen) vermeiden oder erklären, nichts voraussetzen, was nicht behandelt wurde, nicht eloquent. Ausnahme Sprachbildung: zwei bis drei etwas schwierigere Wörter je Text sind gewollt. (Anlass: Auswertung, Regelvorschlag 4, niveau: 26; von Lia freigegeben mit Ergänzung, über Jan)
 - 24.10.2026: Ein Merksatz muss zuerst fachlich korrekt sein: Er darf für die Lerngruppe vereinfacht sein, aber die Position nicht verfälschen (Beleg im Begleittext). Außerdem muss er sich auf einen Fall anwenden lassen und ihn eindeutig entscheiden. Vor dem Abschicken beides an einem Beispielfall prüfen; den Testfall mit kurzer Begründung in den Begleittext schreiben. (Anlass: Auswertung, Regelvorschlag 5, anwendbarkeit: 30; von Lia freigegeben mit Ergänzung, über Jan)
+- 24.10.2026: Fallbeispiele (vorerst für alle Klassen): alltagsnah, logisch stimmig, eindeutige Entscheidung (entweder/oder), keine Tötung, kein Femizid, keine Gewalt, die man rechtfertigen müsste; Strafen realistisch. (Anlass: Auswertung, Regelvorschlag 6; von Lia freigegeben, über Jan)
