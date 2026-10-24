@@ -225,7 +225,7 @@ Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterri
 ## Offene Punkte
 1. Jan/Lia entscheiden über die Regelvorschläge (einzeln). Eingetragen in lia/unterricht/STATUS.md: 1, 2 (gekürzt),
    3, 4 (Lia, 24.10.; 4 nur für Klasse 8, mit zwei bis drei schwierigeren Wörtern je Text;
-   5 mit fachlicher Korrektheit zuerst und Testfall im Begleittext; 6 vorerst für alle Klassen; 7). Offen: 8–11.
+   5 mit fachlicher Korrektheit zuerst und Testfall im Begleittext; 6 vorerst für alle Klassen; 7; 8). Offen: 9–11.
 2. Schritt 8 ausgesetzt (Jan 23.10.). Wieder aufnehmen: Lia bekommt data/pruefung/kodierbogen.html, ihre CSV mit
    `kodierung` auswerten; Blindvergleich, sobald der unterricht-Chat P01–P17 abgelegt hat.
 4. Löschung der Rohdaten spätestens 31.12.2026 (auch wenn Schritt 8 ausfällt): data/lia/chats.json, data/namen.json,
