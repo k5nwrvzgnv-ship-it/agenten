@@ -107,7 +107,8 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    Schwerpunkt Klasse 8 Helfen (AB_4, BBB_AB, AB_5.1/5.2, Sicherungszettel A/B, Erörterung leicht/mittel/schwer,
    Präsentation_5, EH der LEK Lügen). Fehlt ganz: DS, Reihe Strafe, Sprachbildungs-Rubrik, Aufgabe zu Grenzen einer
    Position, EH zur Erörterungs-LEK, Belege auf Blättern. Stellenangaben im Vorschlag sind Claudes eigene Kenntnis,
-   ungeprüft. Wartet auf Auswahl durch Jan/Lia. Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
+   ungeprüft. Auswahl durch Lia läuft seit 24.10. (Blatt für Blatt), bisher übernommen: AB_4 (ab_text_position).
+   Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
    ca. 0,60 USD je Aufgabe; misst, ob A–C helfen.
@@ -167,3 +168,4 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - 24.10.2026: Auswahllisten (Philosoph*innen, Stücke, Filme, Themen) breit streuen, nicht nur eine Richtung oder nur Klassiker. (Anlass: Auswertung, Regelvorschlag 8, einseitig; von Lia freigegeben, über Jan)
 - 24.10.2026: Lieber kurz, auf Wunsch länger. Ein Arbeitsblatt passt auf eine Seite, wenn nicht anders gesagt. (Anlass: Auswertung, Regelvorschlag 9, umfang: 31; von Lia freigegeben, über Jan)
 - 24.10.2026: Geschlechtergerecht schreiben, nicht männlich geprägt. In Entwürfen (Unterrichtsentwürfe, die Lia abgibt) die Paarform „Schülerinnen und Schüler“, sonst mit Sternchen (Schüler*innen). Texte, die Lia selbst abgibt, in ihrem Ton, ohne Umgangssprache und nicht geschwollen. (Anlass: Auswertung, Regelvorschlag 10, stil: 18; von Lia freigegeben mit Ergänzung, über Jan)
+- 24.10.2026: Musterblätter sind Anregung für ihren Materialtyp, keine Vorlage für jedes Blatt. Form und Aufgaben richten sich nach der Phase der Reihe (z. B. Einstieg, Erarbeitung, Anwendung, Urteil). Passt kein Muster zur Phase, wird das Blatt frei gestaltet, nach den übrigen Regeln. (Anlass: Lia bei der Auswahl der Beispielsammlung; von Lia freigegeben, über Jan)
