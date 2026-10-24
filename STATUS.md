@@ -219,6 +219,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - .ics-Text gibt es schon in uni/termine.py (ics(), RFC-5545-Faltung, getestet); bei Bedarf nach agentkit
      verschieben statt nachbauen. Bis das fertig ist, schickt uni Termine als .ics-Anhang zum Antippen.
    - Danach im uni-Chat: Entwurfstyp "termin" (Claude schlägt vor, Python prüft, Freigabe, eintragen).
+10. Bedarf aus lia/examen (25.10., Plan Examensreihe von Jan freigegeben, Punkte 1–6, Prüfung in ca. 4 Wochen):
+   - Lias Zentrale: kurzer Bewertungsbogen je Runde (je Skizze Note 1–5, „was stört“, „was übernehmen“, Wahl).
+     Benötigt ab Runde 1 (Ende Woche 1); bis dahin trägt Jan Lias Antworten von Hand ein.
+   - agentkit: Abruf nur über eine Domain-Allowlist (urllib, kein Paket) für lia/recherche. Allowlist von Jan
+     freigegeben: gesetze-im-internet.de, de.wikisource.org, zeno.org, korpora.org, archive.org.
+   - agentkit: wörtliche Zitatprüfung liegt vorerst in lia/examen/wortlaut.py (getestet). lia/recherche braucht
+     sie auch; dann nach agentkit verschieben statt kopieren.
+   - Freigabe-Einträge ohne Ausführung durch einen Agenten (Typ "entwurf", Lia setzt selbst ein): Nach der
+     Freigabe bleiben sie in „Warten auf Ausführung“. Vorschlag: Typ "entwurf" in der Zentrale nach Freigabe
+     direkt als ausgeführt vermerken („setzt Lia selbst ein“). Bis dahin schließt der examen-Chat sie von Hand ab.
 
 ## Gelernte Regeln
 - (noch keine)

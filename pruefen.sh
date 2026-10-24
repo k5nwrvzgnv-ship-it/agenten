@@ -17,6 +17,7 @@ TESTS=(
   "dokumente|.venv/bin/python|tests"
   "lia/unterricht|.venv/bin/python|tests"
   "lia/auswertung|.venv/bin/python|tests"
+  "lia/examen|.venv/bin/python|tests"
 )
 
 for eintrag in "${TESTS[@]}"; do

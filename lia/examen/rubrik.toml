@@ -1,0 +1,123 @@
+# Rubrik für die Examensreihe (Prüfer-Lauf bewertet jede Skizze und jede Runde dagegen).
+#
+# STAND: ENTWURF (25.10.2026), noch nicht von Lia bestätigt. Lias offizieller Bewertungsbogen für die
+# unterrichtspraktische Prüfung liegt nicht vor. Sobald sie ihn schickt, wird diese Datei danach umgebaut.
+# Grundlage bis dahin:
+# - Kriterien 1–12: „Kriterien für eine gute Unterrichtseinheit“ aus Lias Fachseminar Ethik (Lernraum,
+#   abgeschrieben 23.10.2026; lia/unterricht/data/wissen/eingang/Kriterien_gute_Unterrichtseinheit.txt).
+#   Die Namen sind wörtlich, frage und gut sind Claudes Auslegung (von Lia zu prüfen).
+# - Kriterien 13–15: Ergänzungen mit eigener Quelle (siehe quelle).
+# Rechtsrahmen (für Lia vermutlich VSLVO vom 23.06.2014, weil vor dem 02.02.2026 begonnen): zwei Prüfungsstunden
+# mit Reflexionsgespräch. Planung, Durchführung und Reflexion werden bewertet; hier geht es nur um die Planung und
+# um das, was Lia im Gespräch begründen muss. Die Durchführung kann kein Agent prüfen.
+#
+# Felder je Kriterium: id, name, frage (Prüffrage an die Skizze), gut (woran man „gut“ erkennt), quelle.
+
+[stufen]
+liste = ["nicht erkennbar", "ansatzweise", "gut", "sehr gut"]
+mindestens = "gut"  # Abbruchkriterium: jedes Kriterium mindestens auf dieser Stufe
+
+[[kriterium]]
+id = "rlp"
+name = "RLP-Konformität"
+frage = "Ist die Reihe einem Themenfeld zugeordnet und mit wörtlich belegten Standards der passenden Niveaustufe verbunden?"
+gut = "Themenfeld 3.3 genannt, zwei bis vier Standards aus rlp_auszug.toml mit id, Niveaustufe passt zur Schulform."
+quelle = "Seminarkriterien Ethik; RLP Ethik Sek I S. 18 (verbindliche Vorgaben)"
+
+[[kriterium]]
+id = "problemorientierung"
+name = "Problemorientierung"
+frage = "Trägt eine echte ethische Problemfrage die Reihe, die offen ist und die Klasse betrifft?"
+gut = "Reihenfrage ist offen (mehr als eine vertretbare Antwort), für Klasse 8 verständlich und wird in jeder Stunde wieder aufgegriffen."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "reduktion"
+name = "angemessene Reduktion"
+frage = "Sind Positionen und Begriffe so vereinfacht, dass die Lerngruppe sie versteht, ohne sie zu verfälschen?"
+gut = "Je Position ein Kerngedanke in einem Satz, fachlich vertretbar und belegt; Vereinfachung als solche benannt."
+quelle = "Seminarkriterien Ethik; Lias Gelernte Regeln (Merksatz fachlich korrekt, 24.10.2026)"
+
+[[kriterium]]
+id = "exemplaritaet"
+name = "Exemplarität"
+frage = "Steht der gewählte Fall bzw. das Beispiel für etwas Allgemeines, das über die Reihe hinaus trägt?"
+gut = "Das Beispiel (z. B. Gefängnisstrafe) zeigt die Grundfrage „Wozu strafen?“ und lässt sich auf andere Strafen übertragen."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "kompetenzen"
+name = "Kompetenzorientierung"
+frage = "Ist klar, was die Schülerinnen und Schüler am Ende können, nicht nur, was sie gehört haben?"
+gut = "Ziele als beobachtbare Fähigkeiten mit Operatoren formuliert und an RLP-Standards gebunden; Abschlussaufgabe prüft genau das."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "perspektiven"
+name = "Berücksichtigung individueller, gesellschaftlicher und ideengeschichtlicher Perspektiven"
+frage = "Kommen alle drei Perspektiven vor, und ist die Gewichtung begründet?"
+gut = "Jede Perspektive mindestens einer Stunde zugeordnet; die Gewichtung ist mit der Lerngruppe begründet."
+quelle = "Seminarkriterien Ethik; RLP Ethik Sek I S. 18 (drei_perspektiven)"
+
+[[kriterium]]
+id = "fachmethoden"
+name = "Verwendung von Fachmethoden"
+frage = "Werden Fachmethoden des Ethikunterrichts gezielt eingesetzt (z. B. Gedankenexperiment, Dilemma, Textarbeit, Begriffsklärung)?"
+gut = "Mindestens zwei Fachmethoden, jede mit Zweck in der Reihe, passend zu einer unruhigen, lernschwachen Gruppe."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "aktivierung"
+name = "kognitive Aktivierung"
+frage = "Müssen die Schülerinnen und Schüler selbst denken (abwägen, begründen, anwenden), statt nur wiederzugeben?"
+gut = "In jeder Stunde eine Aufgabe über Wiedergabe hinaus (Anwenden auf Fall, Urteil, Gegenargument)."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "progression"
+name = "Progression"
+frage = "Baut jede Stunde erkennbar auf der vorigen auf und führt auf die Abschlussaufgabe zu?"
+gut = "Rückwärts geplant: jede Stunde liefert ein Teilprodukt, das die Abschlussaufgabe braucht; Anforderungen steigen."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "lernprodukt"
+name = "passende Lernprodukt- und Handlungsorientierung"
+frage = "Gibt es sichtbare Lernprodukte, die zum Ziel passen, und eine Abschlussaufgabe mit Handlungsbezug?"
+gut = "Lernprodukte je Stunde benannt; Abschlussaufgabe ist ein begründetes Urteil zu einem Fall."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "vorwissen"
+name = "Anknüpfen an Vorwissen"
+frage = "Knüpft die Reihe an das an, was die Klasse schon kann und kennt (Kant, Bentham, Merksatz-Arbeit, Erörterung)?"
+gut = "Bezug auf frühere Reihen und Vorwissen konkret benannt; Ergebnisse des Vorab-Impulses fließen ein."
+quelle = "Seminarkriterien Ethik; Handbuch Vorbereitungsdienst Berlin, Anhang C (Vorwissen)"
+
+[[kriterium]]
+id = "leistung"
+name = "mögliche Leistungsmessung und -bewertung"
+frage = "Ist klar, woran Lia am Ende sieht und bewertet, ob das Ziel erreicht ist?"
+gut = "Abschlussaufgabe mit Kriterien (z. B. Rubrik zum Urteil), passend zu den gewählten Standards."
+quelle = "Seminarkriterien Ethik"
+
+[[kriterium]]
+id = "differenzierung"
+name = "Differenzierung"
+frage = "Können alle am selben Inhalt arbeiten, auf verschiedenen Niveaus?"
+gut = "Zentrale Aufgaben in drei Niveaus über Hilfen, Fallschwere oder Zuteilung der Position; Sprachhilfen für die mehrsprachige Gruppe."
+quelle = "Handbuch Vorbereitungsdienst Berlin, Anhang C (Individuelle Förderung); Lias Gelernte Regel 25.10.2026"
+
+[[kriterium]]
+id = "fachlich"
+name = "fachliche Richtigkeit und Belege"
+frage = "Ist jede Zuschreibung an eine Position belegt (Werk, Stelle) und fachlich haltbar?"
+gut = "Jede Position mit Quelle aus dem Quellenregister; keine falschen Zuschreibungen; Vereinfachungen gekennzeichnet."
+quelle = "Lias Gelernte Regeln (Beleg mit Werk und Stelle, 23.10.2026)"
+
+[[kriterium]]
+id = "begruendbarkeit"
+name = "Begründbarkeit im Reflexionsgespräch"
+frage = "Kann jede didaktische Entscheidung mit Lerngruppe, Ziel und RLP begründet werden, und sind Alternativen bedacht?"
+gut = "Zu jeder größeren Entscheidung eine Begründung und eine verworfene Alternative mit Grund."
+quelle = "Reflexionsgespräch nach den Prüfungsstunden (Bildungsserver Berlin-Brandenburg, Prüfungen)"

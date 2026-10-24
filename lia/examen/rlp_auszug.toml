@@ -1,0 +1,182 @@
+# Wortlaut aus dem Berliner Rahmenlehrplan Ethik Sek I (Teil C), für die Examensreihe Straftheorien, Klasse 8.
+# Quelle: data/vorgaben/RLP_Ethik_Sek_I.pdf (Kopie aus Lias Vorgaben, 25.10.2026). Seiten = PDF-Seiten.
+# `.venv/bin/python grundlagen.py` prüft jede Stelle wörtlich gegen das PDF, auf der angegebenen Seite.
+# Nur Wortlaut, keine Deutung. Unsichere Zuordnung (Tabellenspalten in der Textfassung) steht in hinweis.
+
+[[stelle]]
+id = "strafe_einleitung"
+seite = 24
+abschnitt = "3.3 Was ist gerecht? – Recht und Gerechtigkeit"
+text = """Wer Regeln und Gesetze nicht einhält oder verletzt, dem droht eine Strafe. Doch was ist eine gerechte \
+Strafe? Und welche Strafen sind angemessen? Um diese Fragen beantworten zu können, muss eine Auseinandersetzung \
+mit Kriterien für gerechte Strafen stattfinden."""
+
+[[stelle]]
+id = "strafe_problemfragen"
+seite = 25
+abschnitt = "3.3, Tabelle Inhalte, Zeile „Gerechtigkeit und Strafe“"
+text = """Welche Strafen kenne ich aus eigener Erfahrung? Welche Strafe habe ich als gerecht, welche als ungerecht \
+empfunden? Sind Strafen notwendig? Wie sollen Regelverletzungen sanktioniert werden? Wie lassen sich staatliche \
+Strafen rechtfertigen? Begriffe: Rache, Vergeltung, Strafe als Abschreckung, Faustrecht, Gewaltmonopol (Straf- und \
+Strafrechtstheorien) etc. Begriff des Gesetzes, der Sünde und Strafe in den Religionen"""
+hinweis = """Spalten individuelle, gesellschaftliche, ideengeschichtliche Perspektive; die Textfassung zeigt die Zeile \
+fortlaufend. Welche Frage in welcher Spalte steht, im PDF nachsehen."""
+
+[[stelle]]
+id = "themenfeld_zuordnen"
+seite = 18
+abschnitt = "3 Themen und Inhalte, verbindliche Vorgaben"
+text = "Die konkreten Unterrichtsthemen sind schwerpunktmäßig einem Themenfeld zuzuordnen."
+
+[[stelle]]
+id = "drei_perspektiven"
+seite = 18
+abschnitt = "3 Themen und Inhalte, verbindliche Vorgaben"
+text = """Jedes Unterrichtsthema muss unter Berücksichtigung aller drei didaktischen Perspektiven behandelt werden. \
+Dabei wird von den Lehrkräften erwartet, dass sie je nach Lerngruppe und Unterrichtsintention die didaktischen \
+Perspektiven unterschiedlich gewichten."""
+
+[[stelle]]
+id = "ideengeschichtliche_perspektive"
+seite = 18
+abschnitt = "3 Themen und Inhalte, didaktische Perspektiven"
+text = """Bei der Betrachtung aus der ideengeschichtlichen Perspektive kommen Stimmen aus den Wissenschaften zu Wort, \
+die für das Thema relevant sind. Das sind insbesondere die Stimmen aus der Referenzwissenschaft des Faches Ethik, \
+der Philosophie."""
+
+[[stelle]]
+id = "niveau_iss"
+seite = 8
+abschnitt = "2 Kompetenzen und Standards, Niveaustufen"
+text = """Für die Integrierte Sekundarschule gilt: grundlegendes Niveau: Jahrgangsstufen 7 – 8 Niveaustufen D – E, \
+in Teilen F Jahrgangsstufen 9 – 10 Niveaustufe F, in Teilen G erweitertes Niveau: Jahrgangsstufen 7 – 8 \
+Niveaustufe E, in Teilen F"""
+
+[[stelle]]
+id = "niveau_gymnasium"
+seite = 9
+abschnitt = "2 Kompetenzen und Standards, Niveaustufen"
+text = "Für das Gymnasium gilt: Jahrgangsstufe 7 Niveaustufe E Jahrgangsstufe 8 Niveaustufe F"
+
+[[stelle]]
+id = "niveau_lernen"
+seite = 8
+abschnitt = "2 Kompetenzen und Standards, Niveaustufen"
+text = """Schülerinnen und Schüler mit dem sonderpädagogischen Förderbedarf Lernen werden auf folgenden \
+Niveaustufen unterrichtet:"""
+hinweis = "Danach in der Liste: Jahrgangsstufen 7 – 8 Niveaustufe D."
+
+# 2.3 Argumentieren und urteilen, Standards D bis F (Stufe laut Zeile der Tabelle)
+
+[[stelle]]
+id = "begruenden_d"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Begründen"
+stufe = "D"
+text = "ihre Behauptungen durch konkrete Beispiele begründen"
+
+[[stelle]]
+id = "begruenden_e"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Begründen"
+stufe = "E"
+text = "ihre Behauptungen durch Verweise auf Regeln und Gesetze begründen"
+
+[[stelle]]
+id = "begruenden_f"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Begründen"
+stufe = "F"
+text = "ihre Behauptungen durch Verweise auf Werte oder Normen begründen"
+
+[[stelle]]
+id = "argumentieren_d"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Argumentieren"
+stufe = "D"
+text = "zu aktuellen Konflikten aus ihrer Lebenswelt Pro- und Kontraargumente benennen"
+
+[[stelle]]
+id = "argumentieren_e"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Argumentieren"
+stufe = "E"
+text = "zu vorgegebenen Problemfällen aus ihrer Lebenswelt Pro- und Kontraargumente erläutern"
+
+[[stelle]]
+id = "argumentieren_f"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Argumentieren"
+stufe = "F"
+text = "Pro- und Kontraargumente zu ethischen Fragestellungen ihrer Lebenswelt im Zusammenhang erläutern"
+
+[[stelle]]
+id = "analysieren_d"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Argumentationen analysieren und beurteilen"
+stufe = "D"
+text = "Behauptung und Tatsache voneinander unterscheiden"
+
+[[stelle]]
+id = "analysieren_e"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Argumentationen analysieren und beurteilen"
+stufe = "E"
+text = "in einfachen Argumentationen Behauptung, Beleg, These und Gegenthese voneinander unterscheiden"
+
+[[stelle]]
+id = "analysieren_f"
+seite = 14
+abschnitt = "2.3 Argumentieren und urteilen, Argumentationen analysieren und beurteilen"
+stufe = "F"
+text = """die formale Struktur vorliegender Argumentationen in Diskussionen, Texten und anderen medialen \
+Darstellungen zu ethischen Sachverhalten rekonstruieren"""
+
+[[stelle]]
+id = "urteilen_d"
+seite = 15
+abschnitt = "2.3 Argumentieren und urteilen, Urteilen"
+stufe = "D"
+text = "ein begründetes Urteil zu dem zur Diskussion stehenden ethischen Problem vertreten"
+
+[[stelle]]
+id = "urteilen_e"
+seite = 15
+abschnitt = "2.3 Argumentieren und urteilen, Urteilen"
+stufe = "E"
+text = """ein begründetes Urteil zu dem zur Diskussion stehenden ethischen Problem unter Berücksichtigung von \
+Gegenargumenten vertreten"""
+
+[[stelle]]
+id = "urteilen_f"
+seite = 15
+abschnitt = "2.3 Argumentieren und urteilen, Urteilen"
+stufe = "F"
+text = """ein begründetes Urteil zu ethischen Fragen des eigenen Lebensbereiches unter Berücksichtigung erworbener \
+Kenntnisse vertreten"""
+
+# Weitere passende Standards, Stufe in der Textfassung nicht eindeutig (Zellen über D und E)
+
+[[stelle]]
+id = "regelverletzungen"
+seite = 11
+abschnitt = "2.1 Wahrnehmen und deuten, Vereinbarungen kennen, anwenden und problematisieren"
+stufe = "D–E"
+text = "Lösungsvorschläge für den Umgang mit Regelverletzungen nennen"
+hinweis = "Stufe im PDF nachsehen."
+
+[[stelle]]
+id = "perspektiven_urteil"
+seite = 13
+abschnitt = "2.2 Perspektiven einnehmen, Multiperspektivisch urteilen"
+stufe = "D–E"
+text = "bei ihrem Urteil die Perspektiven anderer mit einbeziehen"
+hinweis = "Stufe im PDF nachsehen."
+
+[[stelle]]
+id = "perspektiven_urteil_f"
+seite = 13
+abschnitt = "2.2 Perspektiven einnehmen, Multiperspektivisch urteilen"
+stufe = "F"
+text = "bei ihrem Urteil ihre zugrundeliegenden eigenen Wertmaßstäbe mit denen anderer vergleichen"
+hinweis = "Stufe im PDF nachsehen."

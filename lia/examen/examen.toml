@@ -1,0 +1,41 @@
+# Angaben zur Examensreihe Straftheorien, Klasse 8. Ergänzt lia/unterricht/reihen.toml (Lerngruppe,
+# Vorwissen, Positionen Kant und von Liszt stehen dort und werden nicht doppelt gepflegt).
+# Leere Werte ("") sind offen: `.venv/bin/python grundlagen.py` listet sie. Pflege von Hand durch Jan nach
+# Lias Angaben. Keine Schülerdaten.
+
+[pruefung]
+bundesland = "Berlin"
+verordnung = "vermutlich VSLVO vom 23.06.2014 (Vorbereitungsdienst vor dem 02.02.2026 begonnen); von Lia zu bestätigen"
+termin = ""                     # Datum der Prüfungsstunde (Jan 25.10.2026: in etwa einem Monat)
+abgabe_entwurf = ""             # Bis wann der schriftliche Entwurf abgegeben werden muss
+stundenzahl = ""                # Stunden der Reihe insgesamt (Plan rechnet bis dahin mit 8 bis 10)
+pruefungsstunde_in_reihe = ""   # Die wievielte Stunde der Reihe die Prüfungsstunde ist
+stundenlaenge = ""              # 45 oder 90 Minuten
+schulform = ""                  # ISS (grundlegend/erweitert) oder Gymnasium, bestimmt die Niveaustufe im RLP
+bewertungsbogen = ""            # Dateiname, sobald Lia ihren offiziellen Bogen schickt (ersetzt rubrik.toml-Entwurf)
+fachseminarleitung_gesehen = "" # Datum, an dem die Fachseminarleitung die Grobskizze gesehen hat
+
+[reihe]
+reihenfrage = ""                # Noch offen; Kandidaten unten, Entscheidung Lias
+reihenfrage_kandidaten = [
+    "Sollen Gefängnisse Täter:innen bestrafen oder bessern? (aus Lias Planung Reihe_Strafe)",
+    "Warum sollte Täter:in xy bestraft werden? (aus den Tipps zur Examensreihe)",
+]
+seminarvorgaben_reihenfrage = "" # Vorgaben der Seminarleitung zur guten Reihenfrage (Lia schickt sie noch)
+
+# Hinweise aus Lias Material „Tipps Max Examens.docx“ (Tipps zu einer Examensreihe Strafe), sinngemäß.
+# Anregungen für die Skizzen, keine Vorgaben.
+anregungen = [
+    "Reales Beispiel als Anker (in den Tipps: fanatischer bzw. terroristischer Hintergrund).",
+    "Doku früh in der Reihe; Kant, von Liszt, dann Gefängnisumstände anwenden, als neue Perspektive zwischen Debatte und Urteil.",
+    "Variante: von Liszt zuerst, um das intuitive Urteil aufzubrechen und eine andere Perspektive zu provozieren.",
+    "Ferdinand von Schirach als mögliche Quelle (in den Tipps „Schirrach“ geschrieben).",
+    "„Sollen Gefängnisse Täter:innen bestrafen oder bessern?“ gilt in den Tipps als zu weit für Sek I.",
+    "Statistiken zum norwegischen Strafvollzug.",
+    "Textarbeit: lesen, These und Schlüsselbegriffe markieren, Argumente; Text in vier Teile für ein Gruppenpuzzle; Tabellen.",
+]
+
+[impuls]
+# Anonymer Vorab-Impuls an die Klasse (Entwurf liegt in Lias Freigabe-Warteschlange).
+eingesetzt_am = ""
+ergebnis = ""                   # Nur zusammengefasst (Anzahl je Antwort, typische Begründungen), ohne Namen
