@@ -5,7 +5,8 @@ from pathlib import Path
 
 import traegt
 
-REGISTER = {"liszt": {"stellen": [{"seite": 41, "seiten": [41, 42], "zitat": "Die dritte Gruppe"}]}}
+REGISTER = {"liszt": {"stellen": [{"seite": 41, "seiten": [41, 42], "zitat": "Die dritte Gruppe"},
+                                  {"seite": 42, "zitat": "Hier soll die Strafe"}, {"seite": 39, "zitat": "anders"}]}}
 
 
 def daten():
@@ -26,7 +27,7 @@ class FaelleTest(unittest.TestCase):
         f = traegt.faelle(daten(), REGISTER)
         self.assertEqual([x["id"] for x in f], ["a0-0", "a1-0"])
         self.assertEqual(f[0]["belege"], [{"quelle": "https://x.de", "zitat": "zwei Studentinnen"}])
-        self.assertEqual(f[1]["belege"], [{"quelle": "Quellenregister liszt:42", "zitat": "Die dritte Gruppe"}])
+        self.assertEqual(f[1]["belege"], [{"quelle": "Quellenregister liszt:42", "zitat": "Die dritte Gruppe […] Hier soll die Strafe"}])
 
     def test_prompt(self):
         p = traegt.prompt(traegt.faelle(daten(), REGISTER), "data/web/x/traegt.json")

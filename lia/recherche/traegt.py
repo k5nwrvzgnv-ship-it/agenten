@@ -40,11 +40,10 @@ def faelle(daten: dict, register: dict[str, dict]) -> list[dict]:
 
 
 def _register_wortlaut(verweis: str, register: dict[str, dict]) -> str:
+    """Wortlaut aller Registerstellen auf dieser Seite (ein Verweis nennt nur die Seite, nicht die Stelle)."""
     qid, _, seite = verweis.partition(":")
-    for s in register.get(qid, {}).get("stellen", []):
-        if str(seite) in [str(x) for x in (s.get("seiten") or [s.get("seite")])]:
-            return s["zitat"]
-    return ""
+    return " […] ".join(s["zitat"] for s in register.get(qid, {}).get("stellen", [])
+                        if str(seite) in [str(x) for x in (s.get("seiten") or [s.get("seite")])])
 
 
 def prompt(liste: list[dict], ausgabe: str) -> str:

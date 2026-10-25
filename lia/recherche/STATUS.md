@@ -41,8 +41,18 @@ Stellen. lia/examen liest das Register für die Skizzen.
     Register-Belege prüfen nur, dass die Stelle existiert, nicht, dass sie die Aussage stützt. YouTube-Titel
     ließen sich auf den Videoseiten nicht prüfen (Videos landeten unter „Nicht belegt“ bzw. Lücken). Claude
     konnte lia/examen/seminar_vorbild.md nicht lesen (außerhalb des Agent-Ordners).
+- Prüflauf „trägt das Zitat die Aussage?“ (traegt.py, Jan 25.10.2026) auf V2 angewendet (--nur-traegt, ohne neue
+  Recherche): haiku (Stufe nur_auftraege -> routine_sparen), 0,012 USD. 23 Tatsachenaussagen: 7 ja, 15 teilweise,
+  1 nein (Hegel: Name steht nicht im bpb-Zitat). Containern/„Olching“ erkannt (teilweise, Olching genannt).
+  Drei „ja“ selbst nachgeprüft (Liszt Gelegenheitsverbrecher, Unverbesserliche, Kant „vorher strafbar“): stimmen.
+  Erster Durchgang (0,015 USD) hatte einen Fehler im Code: Bei mehreren Registerstellen auf einer Seite ging nur
+  die erste mit (Kant 333 Insel -> fälschlich „nein“). Behoben, Ergebnis des ersten Durchgangs in
+  traegt_erster_lauf.json. Haiku ist brauchbar als Vorsortierung, urteilt aber nicht stabil (eine Aussage
+  wechselte zwischen den Läufen von teilweise zu ja) und meldet auch Rahmenangaben (Jahr, Heftnummer) als fehlend.
+- Anhänge zum Webauftrag (anhaenge.py): ANHANG:-Zeilen und --anhang, Kopie nach data/web/<id>/anhaenge/, pdf/docx
+  mit Textfassung (pypdf 6.21.0 am 25.10. mit Jans Okay installiert). Noch nicht mit echtem Auftrag gelaufen.
 - Kein Dienst, kein Timer (Teil D).
-- 108 Tests (tests/), in pruefen.sh eingetragen.
+- 125 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -100,6 +110,12 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Auftrag und die geprüften Registerstellen, schreibt Aussagen mit Belegen ({url, zitat} oder {register}),
   luecken, rueckfragen. Durchgefallene Belege einmal zurück (dieselbe Sitzung). Kostengrenze 8 USD je Auftrag.
   docx über shared/renderer (Art arbeitsblatt, profil.toml = Kopie von lia/examen), Meldung an Jan mit Zahlen.
+- traegt.py (rein, getestet): je belegter Tatsachenaussage (nicht „Einschätzung: …“) id, Text, bestandene Belege
+  (Register: Wortlaut aller Stellen der Seite). Claude (art routine, neue Sitzung, nur Write nötig) schreibt
+  traegt.json {urteile: [{id, traegt: ja|teilweise|nein, fehlt}]}; Python prüft ids und Werte, eine Nachbesserung,
+  danach fehlende = „nicht geprüft“. nein -> unbelegt („Nicht belegt“ mit Grund), teilweise -> Vermerk im docx.
+- anhaenge.py (rein, getestet): nur unter /home/agent/agenten/lia, nicht lia/instanz, .venv, .git, .env*; nur
+  .md .txt .pdf .docx bis 5 MB; Symlinks aufgelöst; Abgelehntes in Log und Meldung.
 - webpruefung.py (rein, getestet): Zitat wörtlich auf der Seite (abruf.laden mit Jans Domains als Allowlist,
   html_zu_text, wortlaut.steht_in); Videoseiten nur Titel; fremde Domain: ungeprüft, nicht geladen; Register-
   Verweis muss als Stelle existieren. Belegt = mindestens ein bestandener Beleg, sonst „Nicht belegt“.
@@ -146,9 +162,7 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
 4. Claude kann im Agent-Ordner mehr lesen als die Textfassung (claude_lauf beschränkt nur das
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
 5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
-6. Webauftrag: Lias Zentrale als Eingang (Teil C des Plans „Webrecherche“). Offen auch: Wie bekommt Claude
-   Dateien außerhalb des Agent-Ordners (z. B. seminar_vorbild.md)? Vorschlag: der Auftrag nennt sie, Python
-   kopiert sie nach data/web/<id>/ (Jans Entscheidung). Zitatprüfung je Detail ist nicht automatisch möglich.
+6. Webauftrag: Lias Zentrale als Eingang (Teil C des Plans „Webrecherche“).
 
 ## Gelernte Regeln
 - (noch keine)
