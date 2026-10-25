@@ -24,9 +24,15 @@ Stellen. lia/examen liest das Register für die Skizzen.
     Erster Durchgang verwarf S. 36 und S. 40/41 wegen zweier Fehler im Code (dritte Abschrift neu
     nummeriert; Seitengrenze mit Fußnoten); behoben, die bezahlten Abschriften wurden ohne neuen Lauf
     neu bewertet (Merkdateien von Hand angelegt, gleiche Textfassung und Stellen).
+    Dazu 7 Stellen von Hand zu Liszts drei Tätertypen (Jan 25.10., für Runde 2 von lia/examen; Liste aus
+    dem lia-Chat, Anfang/Ende von mir am Bild bestimmt, in quellen.toml als stelle_von_hand): S. 39
+    Gewohnheitsverbrechen (Aufzählung endet nach „Sachbeschädigung“, die zwei Sexualdelikte bewusst
+    weggelassen), S. 39 Einschließung auf unbestimmte Zeit, S. 40 zweite Gruppe, S. 41 Minimum ein Jahr und
+    kurzzeitige Freiheitsstrafen, S. 41/42 dritte Gruppe, S. 42 Denkzettel, S. 42 Kurzformel. Alle 2 von 2,
+    OCR 0,805–0,927, Feld auswahl = "von Hand", 0,41 USD. Liszt jetzt 12 Stellen, Kosten Liszt gesamt 1,69 USD.
 - Meldungen mit diesen Ergebnissen sind an Jan gegangen.
 - Kein Dienst, kein Timer (Teil D).
-- 87 Tests (tests/), in pruefen.sh eingetragen.
+- 90 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -56,6 +62,10 @@ Stellen. lia/examen liest das Register für die Skizzen.
      pruefung {abschriften_gleich, ocr_aehnlichkeit, schwelle}. Über eine Seitengrenze: Abschrift an der
      besten Wortgrenze geteilt, Teile gegen je ihre Seite (Fußnoten und Seitenkopf liegen dazwischen).
      Bezahlte Abschriften werden je Textfassung und Stellen wiederverwendet (*_merk.json).
+  5. Stellen von Hand (stelle_von_hand: seiten, anfang, ende, hinweis, position, zweck): ohne Auswahl-Lauf,
+     Abschrift GENAU von Anfang bis einschließlich Ende, sonst gleiche Prüfung, dazu keine Überschneidung
+     (40 gemeinsame Zeichen, normalisiert) mit vorhandenen Stellen. Je Stelle ein Versuch, Ergebnis in
+     kernstellen.von_hand {seite:anfang: aufgenommen | verworfen: grund}, Kosten in von_hand_usd.
 - quellen.toml: von Hand gepflegt, [abruf] allowlist (die einzige Stelle dafür) und je [[quelle]] id,
   art, werk, ausgabe, autor/todesjahr_autor, herausgeber/_todesjahr, uebersetzer/_todesjahr, urls, seiten.
 - quellen.py: liest und prüft quellen.toml ohne Netz (Pflichtfelder, URLs gegen die Allowlist).
