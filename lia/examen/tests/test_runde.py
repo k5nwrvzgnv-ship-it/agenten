@@ -34,7 +34,9 @@ def stunden(n=8, ps=5):
 def skizze(k):
     return {"kennung": k, "titel": f"Variante {k}", "grundentscheidung": "Fall zuerst", "reihenfrage": "Warum strafen?",
             "abschlussaufgabe": "Urteil zu einem Fall", "rlp": ["strafe_problemfragen", "urteilen_e"],
-            "stunden": stunden(), "differenzierung": "drei Niveaus", "risiken": "zu viel Text"}
+            "stunden": stunden(), "differenzierung": "drei Niveaus", "risiken": "zu viel Text",
+            "fall": "Tim stiehlt zum dritten Mal. Soll er ins Gefängnis?", "abschlussfall": "Ana fährt schwarz.",
+            "material_fehlt": ["Stunde 1: Fall als Audio"]}
 
 
 GUT = {"annahmen": ["8 Stunden"], "skizzen": [skizze(k) for k in "ABC"]}
@@ -76,6 +78,11 @@ class SkizzenTest(unittest.TestCase):
             "reihenfrage fehlt": lambda d: d["skizzen"][0].update(reihenfrage=" "),
             "annahmen fehlt": lambda d: d.update(annahmen=[]),
             "eine Seite": lambda d: d["skizzen"][0].update(risiken="x" * 3000),
+            "fall fehlt": lambda d: d["skizzen"][0].pop("fall"),
+            "abschlussfall hat 601 Zeichen": lambda d: d["skizzen"][0].update(abschlussfall="x" * 601),
+            "material_fehlt muss eine Liste": lambda d: d["skizzen"][0].update(material_fehlt="Audio"),
+            "Abkürzungen ausschreiben oder nur erlaubte verwenden: AB": lambda d: d["skizzen"][0]["stunden"][0].update(
+                thema="AB für SuS", ziel="erläutern (AFB II)"),
         }
         for erwartet, aendern in faelle.items():
             daten = copy.deepcopy(GUT)
@@ -101,6 +108,11 @@ class SkizzenTest(unittest.TestCase):
         self.assertIn("**5 (Prüfung)**", md)
         self.assertIn("urteilen_e (E)", md)
         self.assertIn("„Selbst wenn sich die bürgerliche Gesellschaft …“", md)
+        self.assertIn("**Fall:** Tim stiehlt", md)
+        self.assertIn("- Stunde 1: Fall als Audio", md)
+
+    def test_fremde_kuerzel(self):
+        self.assertEqual(skizzen.fremde_kuerzel(["BBB nach AFB III, StGB, AB und UB", "SuS"]), ["AB"])
 
     def test_kontext_und_prompt(self):
         k = skizzen.kontext(rubrik(), grundlagen.auszug_laden(), {"pruefung": {"bundesland": "Berlin", "termin": ""}},

@@ -48,8 +48,17 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   „Runde 1 - drei Grobskizzen.docx“ (4 Seiten: Annahmen je erster Satz, je Skizze eine Seite mit Prüfer-Kernsatz
   oben) und „Runde 1 - Bewertungsbogen.docx“ (je Skizze Note 1–5, was stört, was übernehmen; Wahl A/B/C/Mischung;
   Annahmen; Regelwunsch; Tabelle der offenen Angaben aus examen.toml). Vorschau als PNG/PDF daneben, von Claude
-  angesehen. Version ed060d3. Jan schickt beides an Lia; ihre Antworten trägt Jan hier ein.
-- Tests: 32, grün. Kein Dienst, kein Timer.
+  angesehen. Jan schickt beides an Lia; ihre Antworten trägt Jan hier ein.
+- Lesehilfe (25.10., Jan verstand die Skizzen nicht: „Wer ist Jonas? Was ist Audio?“): Runde 1 erklärte ihre
+  Fälle nur in den Annahmen und schrieb fehlendes Material (Audio, Video, Doku, vereinfachte Texte) so, als gäbe
+  es es. Nachtrag data/reihe/runde-1/lesehilfe.json (im Chat aus skizzen.json zusammengestellt, ohne Claude-Lauf):
+  Fälle Jonas und Selin, fehlendes Material je Skizze. Kurzfassung jetzt 5 Seiten: Seite 1 Fälle und Abkürzungen,
+  je Skizze eine Seite mit Kasten „Gibt es noch nicht“, Annahmen am Ende. Version 9e9e121.
+- Ab Runde 2 (skizzen.py): Pflichtfelder fall und abschlussfall (je höchstens 600 Zeichen, jede Person dort
+  eingeführt), material_fehlt (Liste mit Stunde), Abkürzungen nur aus GLOSSAR (AFB, BBB, LEK, RLP, StGB, JGG,
+  ISS, UB, OCR, Doku), andere Großbuchstaben-Kürzel lehnt die Prüfung ab. annahmen im Prompt auf je ein bis
+  zwei Sätze begrenzt (noch nicht von Python geprüft).
+- Tests: 35, grün. Kein Dienst, kein Timer.
 
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
@@ -91,9 +100,8 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
 3. Schritt 5: Lia bewertet Runde 1 mit dem Bogen (docx, über Jan). Danach: Antworten eintragen, offene Angaben
    nach examen.toml, Regelvorschläge aus „was stört“ und dem Regelwunsch (erst nach Lias Okay eintragen).
    Der Bogen in ihrer Zentrale fehlt weiter (Haupt-STATUS Punkt 10).
-4. Verbesserungen am Ablauf vor Runde 2: annahmen sind nicht begrenzt (Runde 1: ca. 5000 Zeichen, mehr als
-   eine Skizze), Grenze und Pflichtfelder einführen; impuls.md in den Kontext (Claude kannte den echten Impuls
-   nicht und nahm einen anderen an).
+4. Verbesserungen am Ablauf vor Runde 2: Länge der annahmen in Python begrenzen (Runde 1: ca. 5000 Zeichen);
+   impuls.md in den Kontext (Claude kannte den echten Impuls nicht und nahm einen anderen an).
 5. Danach Folgerunden (Schritt 6) nur für die gewählte Richtung.
 
 ## Gelernte Regeln

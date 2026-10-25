@@ -22,6 +22,30 @@ class KurzfassungTest(unittest.TestCase):
         self.assertIn("5 (Prüfung): Thema 5", texte)
         self.assertIn("0 von 15 Kriterien unter „gut“. Zuerst verbessern: Einstieg", texte)
 
+    def test_fall_material_und_abkuerzungen_aus_der_skizze(self):
+        b = kurzfassung.kurzfassung(GUT, PR, grundlagen.rubrik_laden(), 1, "R")
+        texte = json.dumps(b, ensure_ascii=False)
+        self.assertIn('"titel": "Fall", "text": "Tim stiehlt', texte)
+        self.assertIn("Fall der Abschlussaufgabe: Ana fährt schwarz.", texte)
+        self.assertIn("\"text\": \"Stunde 1: Fall als Audio\"", texte)
+        self.assertFalse(any(x["typ"] == "liste" for x in b["bloecke"]))  # keine Abkürzung, keine Liste
+
+    def test_lesehilfe_als_nachtrag(self):
+        alt = {"annahmen": ["x"], "skizzen": [{k: v for k, v in s.items() if k not in ("fall", "abschlussfall",
+                                                                                      "material_fehlt")}
+                                              for s in GUT["skizzen"]]}
+        alt["skizzen"][0]["abschlussaufgabe"] = "Urteil im BBB-Schema (AFB III)"
+        hilfe = {"faelle": [{"name": "Jonas", "text": "Jonas bricht ein."}], "material_alle": ["vereinfachte Texte"],
+                 "material_fehlt": {"A": ["Audio"]}}
+        b = kurzfassung.kurzfassung(alt, PR, grundlagen.rubrik_laden(), 1, "R", hilfe)
+        renderer.pruefen(b)
+        texte = json.dumps(b, ensure_ascii=False)
+        self.assertIn('"titel": "Jonas", "text": "Jonas bricht ein."', texte)
+        self.assertIn("vereinfachte Texte; Audio", texte)  # Skizze A
+        self.assertIn("BBB: Behauptung, Begründung, Beispiel", texte)
+        self.assertIn("AFB: Anforderungsbereich", texte)
+        self.assertNotIn("LEK:", texte)
+
     def test_annahmen_gekuerzt(self):
         sk = dict(GUT, annahmen=["Wort " * 100, "Stundenzahl: 8. Der Rest steht im Bericht."])
         b = kurzfassung.kurzfassung(sk, PR, grundlagen.rubrik_laden(), 1, "R")

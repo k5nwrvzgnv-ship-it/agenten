@@ -8,9 +8,27 @@ Allgemein gehalten: Die Reihe kommt aus examen.toml und reihen.toml, nichts ist 
 """
 
 import json
+import re
 from pathlib import Path
 
 KENNUNGEN = ("A", "B", "C")
+# Erlaubte Abkürzungen (Jan 25.10.2026: Skizzen müssen ohne Vorwissen lesbar sein). Andere Großbuchstaben-Kürzel
+# lehnt die Prüfung ab; die Kurzfassung erklärt die verwendeten.
+GLOSSAR = {
+    "AFB": "Anforderungsbereich: I wiedergeben, II anwenden, III beurteilen",
+    "BBB": "Behauptung, Begründung, Beispiel (Lias Schema für ein Argument)",
+    "LEK": "Lernerfolgskontrolle (benotete Überprüfung)",
+    "RLP": "Rahmenlehrplan",
+    "StGB": "Strafgesetzbuch",
+    "JGG": "Jugendgerichtsgesetz",
+    "ISS": "Integrierte Sekundarschule",
+    "UB": "Unterrichtsbesuch",
+    "OCR": "Texterkennung aus einem Scan",
+    "Doku": "Dokumentarfilm",
+}
+_KUERZEL = re.compile(r"\b[A-ZÄÖÜ]{2,}\b")
+_ROEMISCH = {"II", "III", "IV"}
+FALL_MAX = 600  # Zeichen für fall und abschlussfall (zwei bis drei Sätze)
 PERSPEKTIVEN = ("individuell", "gesellschaftlich", "ideengeschichtlich")
 STUNDEN_ANNAHME = (8, 10)  # solange Lia die Stundenzahl nicht genannt hat
 MAX_ZEICHEN = 3000  # Text je Skizze (ohne Darstellung), entspricht etwa einer Seite
@@ -105,16 +123,24 @@ Varianten zur Auswahl: Lia wählt eine Richtung, die dann vertieft wird. Jede Sk
    {ps_text}
 5. differenzierung: wie alle am selben Inhalt arbeiten (Lias Regel: drei Niveaus). risiken: was an dieser
    Variante schiefgehen kann, ehrlich.
-6. Keine Zitate schreiben, nur Verweise. Nichts erfinden: Was du über eine Position sagst, muss zu den Quellen
-   passen; was du annimmst, steht unter annahmen.
+6. Jede Skizze muss ohne Vorwissen verständlich sein, auch für jemanden außerhalb der Schule:
+   - fall: der Fall, mit dem die Reihe arbeitet, in zwei bis drei ganzen Sätzen (wer, was passiert ist, welche
+     Entscheidung offen ist). Jede Person, die in der Skizze vorkommt, wird hier eingeführt.
+   - abschlussfall: ebenso der Fall der Abschlussaufgabe.
+   - material_fehlt: alles, was Lia noch erstellen oder suchen muss (Audio, Video, Film, vereinfachte Texte,
+     Rollenkarten, Statistiken …), je Eintrag mit Stunde. Nichts so schreiben, als gäbe es es schon.
+   - Abkürzungen nur diese: {", ".join(GLOSSAR)}. Alles andere ausschreiben.
+7. Keine Zitate schreiben, nur Verweise. Nichts erfinden: Was du über eine Position sagst, muss zu den Quellen
+   passen; was du annimmst, steht unter annahmen. annahmen kurz: je Annahme ein bis zwei Sätze.
 
 # Ausgabe
 Schreibe mit Write genau diese Datei: {ausgabe}
 Nur JSON, kein weiterer Text:
 {{"annahmen": ["..."], "skizzen": [{{"kennung": "A", "titel": "...", "grundentscheidung": "...",
-"reihenfrage": "...", "abschlussaufgabe": "...", "rlp": ["id", "..."], "stunden": [{{"nr": 1, "thema": "...",
-"ziel": "...", "perspektive": "individuell", "quellen": [], "pruefungsstunde": false}}],
-"differenzierung": "...", "risiken": "..."}}]}}
+"fall": "...", "reihenfrage": "...", "abschlussaufgabe": "...", "abschlussfall": "...", "rlp": ["id", "..."],
+"stunden": [{{"nr": 1, "thema": "...", "ziel": "...", "perspektive": "individuell", "quellen": [],
+"pruefungsstunde": false}}], "differenzierung": "...", "risiken": "...",
+"material_fehlt": ["Stunde 1: ..."]}}]}}
 Deine letzte Antwort ist ein Satz: welche drei Grundentscheidungen du gewählt hast."""
 
 
@@ -172,6 +198,41 @@ def _stunden_pruefen(k: str, stunden, n: int | None, ps: int | None, refs: set[s
     return fehler
 
 
+def _alle_texte(wert) -> list[str]:
+    if isinstance(wert, str):
+        return [wert]
+    if isinstance(wert, dict):
+        return [t for v in wert.values() for t in _alle_texte(v)]
+    if isinstance(wert, list):
+        return [t for v in wert for t in _alle_texte(v)]
+    return []
+
+
+def fremde_kuerzel(texte: list[str]) -> list[str]:
+    """Großbuchstaben-Kürzel, die nicht im GLOSSAR stehen (römische Zahlen erlaubt)."""
+    return sorted({k for t in texte for k in _KUERZEL.findall(t)} - set(GLOSSAR) - _ROEMISCH)
+
+
+def _erklaerung_pruefen(k: str, sk: dict) -> list[str]:
+    """Fall, Abschlussfall und fehlendes Material müssen da sein, Abkürzungen nur aus dem GLOSSAR."""
+    fehler = []
+    for feld in ("fall", "abschlussfall"):
+        text = str(sk.get(feld, "")).strip()
+        if not text:
+            fehler.append(f"Skizze {k}: {feld} fehlt (zwei bis drei Sätze, die den Fall erklären)")
+        elif len(text) > FALL_MAX:
+            fehler.append(f"Skizze {k}: {feld} hat {len(text)} Zeichen, höchstens {FALL_MAX}")
+    mf = sk.get("material_fehlt")
+    if not isinstance(mf, list) or not all(isinstance(m, str) and m.strip() for m in mf):
+        fehler.append(f"Skizze {k}: material_fehlt muss eine Liste von Texten sein (leer, wenn nichts fehlt)")
+    fremd = fremde_kuerzel(_alle_texte({f: v for f, v in sk.items() if f not in ("kennung", "rlp", "stunden")})
+                           + _alle_texte([{f: v for f, v in st.items() if f != "quellen"}
+                                          for st in sk.get("stunden") or [] if isinstance(st, dict)]))
+    if fremd:
+        fehler.append(f"Skizze {k}: Abkürzungen ausschreiben oder nur erlaubte verwenden: {', '.join(fremd)}")
+    return fehler
+
+
 def pruefen(daten: dict, rlp_ids: set[str], refs: set[str], examen: dict) -> list[str]:
     """Fehlerliste (leer = in Ordnung). Prüft nur, was Python sicher prüfen kann, nicht die Didaktik."""
     fehler = []
@@ -194,6 +255,7 @@ def pruefen(daten: dict, rlp_ids: set[str], refs: set[str], examen: dict) -> lis
         else:
             fehler += [f"Skizze {k}: RLP-id {r!r} gibt es nicht" for r in rlp if r not in rlp_ids]
         fehler += _stunden_pruefen(k, sk.get("stunden"), n, ps, refs)
+        fehler += _erklaerung_pruefen(k, sk)
         laenge = _textlaenge(sk)
         if laenge > MAX_ZEICHEN:
             fehler.append(f"Skizze {k}: {laenge} Zeichen, höchstens {MAX_ZEICHEN} (eine Seite), bitte kürzen")
@@ -203,9 +265,14 @@ def pruefen(daten: dict, rlp_ids: set[str], refs: set[str], examen: dict) -> lis
 def darstellen(sk: dict, rlp: dict[str, dict], quellen: dict[str, list[dict]]) -> str:
     """Eine Skizze als Markdown (für Lia lesbar, eine Seite plus Quellenanhang)."""
     zeilen = [f"## Skizze {sk['kennung']}: {sk['titel']}", "",
-              f"**Grundentscheidung:** {sk['grundentscheidung']}", "",
-              f"**Reihenfrage:** {sk['reihenfrage']}", "",
-              f"**Abschlussaufgabe:** {sk['abschlussaufgabe']}", "",
+              f"**Grundentscheidung:** {sk['grundentscheidung']}", ""]
+    if sk.get("fall"):
+        zeilen += [f"**Fall:** {sk['fall']}", ""]
+    zeilen += [f"**Reihenfrage:** {sk['reihenfrage']}", "",
+               f"**Abschlussaufgabe:** {sk['abschlussaufgabe']}", ""]
+    if sk.get("abschlussfall"):
+        zeilen += [f"**Fall der Abschlussaufgabe:** {sk['abschlussfall']}", ""]
+    zeilen += [
               "**RLP:** " + "; ".join(
                   f"{r} ({rlp[r].get('stufe') or rlp[r]['abschnitt']})" for r in sk["rlp"] if r in rlp), "",
               "| Nr. | Thema | Ziel | Perspektive | Quellen |", "|---|---|---|---|---|"]
@@ -214,6 +281,8 @@ def darstellen(sk: dict, rlp: dict[str, dict], quellen: dict[str, list[dict]]) -
         zeilen.append(f"| {nr} | {st['thema']} | {st['ziel']} | {st['perspektive']} | "
                       f"{', '.join(st.get('quellen') or []) or '–'} |")
     zeilen += ["", f"**Differenzierung:** {sk['differenzierung']}", "", f"**Risiken:** {sk['risiken']}"]
+    if sk.get("material_fehlt"):
+        zeilen += ["", "**Gibt es noch nicht (erstellen oder suchen):**", *(f"- {m}" for m in sk["material_fehlt"])]
     refs = sorted({r for st in sk["stunden"] for r in st.get("quellen") or []})
     if refs:
         zeilen += ["", "**Quellen (wörtlich aus dem Register):**"]

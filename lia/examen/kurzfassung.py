@@ -15,6 +15,7 @@ from pathlib import Path
 
 import grundlagen
 import pruefer
+import skizzen
 import versionen
 
 HIER = Path(__file__).resolve().parent
@@ -48,8 +49,26 @@ def _kurz(text: str, n: int = MAX_ANNAHME) -> str:
     return satz if len(satz) <= n else satz[: n - 1].rsplit(" ", 1)[0] + " …"
 
 
-def kurzfassung(sk: dict, pr: dict, rubrik: dict, runde: int, reihe: str) -> dict:
-    """Renderer-Beschreibung (art arbeitsblatt) der Kurzfassung."""
+def abkuerzungen(sk: dict) -> list[str]:
+    """Erklärungen der GLOSSAR-Abkürzungen, die in den Skizzen vorkommen."""
+    text = json.dumps(sk, ensure_ascii=False)
+    return [f"{k}: {v}" for k, v in skizzen.GLOSSAR.items() if re.search(rf"\b{re.escape(k)}\b", text)]
+
+
+def _fehlt(s: dict, lesehilfe: dict | None) -> list[str]:
+    """Material, das es noch nicht gibt: aus der Skizze (ab Runde 2) oder aus dem Nachtrag lesehilfe.json."""
+    if "material_fehlt" in s:
+        return s["material_fehlt"]
+    if lesehilfe:
+        return lesehilfe.get("material_alle", []) + lesehilfe.get("material_fehlt", {}).get(s["kennung"], [])
+    return []
+
+
+def kurzfassung(sk: dict, pr: dict, rubrik: dict, runde: int, reihe: str, lesehilfe: dict | None = None) -> dict:
+    """Renderer-Beschreibung (art arbeitsblatt) der Kurzfassung.
+
+    lesehilfe: Nachtrag für Runden, deren Skizzen Fall und fehlendes Material noch nicht selbst erklären (Runde 1).
+    """
     bewertung = {b["kennung"]: b for b in pr["skizzen"]}
     n = len(rubrik["kriterium"])
     bloecke = [
@@ -58,9 +77,13 @@ def kurzfassung(sk: dict, pr: dict, rubrik: dict, runde: int, reihe: str) -> dic
                                   f"{n} Kriterien (Seminarkriterien und Ergänzungen). Quellen mit Zitaten und je fünf "
                                   "mögliche Fragen für das Reflexionsgespräch stehen im ausführlichen Bericht."},
     ]
-    if sk.get("annahmen"):
-        bloecke.append({"typ": "material", "titel": "Annahmen (bitte im Bogen bestätigen oder ändern)",
-                        "text": "\n".join(f"– {_kurz(a)}" for a in sk["annahmen"])})
+    if lesehilfe and lesehilfe.get("faelle"):
+        bloecke.append({"typ": "ueberschrift", "text": "Die Fälle in den Skizzen", "ebene": 2})
+        for f in lesehilfe["faelle"]:
+            bloecke.append({"typ": "material", "titel": f["name"], "text": f["text"]})
+    erklaert = abkuerzungen(sk)
+    if erklaert:
+        bloecke += [{"typ": "ueberschrift", "text": "Abkürzungen", "ebene": 2}, {"typ": "liste", "punkte": erklaert}]
     for s in sk["skizzen"]:
         b = bewertung[s["kennung"]]
         unter = len(pruefer.unter_schwelle(b, rubrik))
@@ -71,8 +94,16 @@ def kurzfassung(sk: dict, pr: dict, rubrik: dict, runde: int, reihe: str) -> dic
              "text": f"{unter} von {n} Kriterien unter „{rubrik['stufen']['mindestens']}“. "
                      f"Zuerst verbessern: {b['staerkste_schwaeche']}"},
             {"typ": "absatz", "text": f"Grundentscheidung: {s['grundentscheidung']}"},
+        ]
+        if s.get("fall"):
+            bloecke.append({"typ": "material", "titel": "Fall", "text": s["fall"]})
+        bloecke += [
             {"typ": "merksatz", "titel": "Reihenfrage:", "text": s["reihenfrage"]},
             {"typ": "absatz", "text": f"Abschlussaufgabe: {s['abschlussaufgabe']}"},
+        ]
+        if s.get("abschlussfall"):
+            bloecke.append({"typ": "absatz", "text": f"Fall der Abschlussaufgabe: {s['abschlussfall']}"})
+        bloecke += [
             # Nr. und Thema in einer Spalte: Der Renderer macht alle Spalten gleich breit.
             {"typ": "tabelle", "kopf": ["Stunde", "Ziel", "Perspektive"],
              "zeilen": [[f"{st['nr']}{' (Prüfung)' if st.get('pruefungsstunde') else ''}: {st['thema']}",
@@ -80,6 +111,15 @@ def kurzfassung(sk: dict, pr: dict, rubrik: dict, runde: int, reihe: str) -> dic
             {"typ": "absatz", "text": f"Differenzierung: {s['differenzierung']}"},
             {"typ": "absatz", "text": f"Risiken: {s['risiken']}"},
         ]
+        fehlt = _fehlt(s, lesehilfe)
+        if fehlt:
+            # In einer Zeile, damit die Skizze auf ihrer Seite bleibt
+            bloecke.append({"typ": "material", "titel": "Gibt es noch nicht (müsstest du erstellen oder suchen)",
+                            "text": "; ".join(fehlt)})
+    if sk.get("annahmen"):
+        bloecke += [{"typ": "neue_seite"},
+                    {"typ": "material", "titel": "Annahmen (bitte im Bogen bestätigen oder ändern)",
+                     "text": "\n".join(f"– {_kurz(a)}" for a in sk["annahmen"])}]
     return {"art": "arbeitsblatt", "titel": f"{reihe}: drei Grobskizzen (Runde {runde})", "nummer": f"R{runde}",
             "bloecke": bloecke}
 
@@ -126,7 +166,10 @@ def bauen(ordner: Path, examen: dict, reihe: str, runde: int = 1, renderer_bauen
     ziel = ordner / "fuer-lia"
     ziel.mkdir(exist_ok=True)
     dateien = [ziel / f"Runde {runde} - drei Grobskizzen.docx", ziel / f"Runde {runde} - Bewertungsbogen.docx"]
-    beschreibungen = [kurzfassung(sk, pr, grundlagen.rubrik_laden(), runde, reihe), bogen(sk, examen, runde, reihe)]
+    nachtrag = ordner / "lesehilfe.json"
+    lesehilfe = json.loads(nachtrag.read_text(encoding="utf-8")) if nachtrag.exists() else None
+    beschreibungen = [kurzfassung(sk, pr, grundlagen.rubrik_laden(), runde, reihe, lesehilfe),
+                      bogen(sk, examen, runde, reihe)]
     for datei, b in zip(dateien, beschreibungen, strict=True):
         renderer_bauen(b, datei, profil=profil)
     return dateien
@@ -136,7 +179,7 @@ def main() -> int:
     examen = grundlagen._toml(grundlagen.EXAMEN)
     reihe = "Examensreihe " + examen.get("reihe", {}).get("titel_in_reihen_toml", "")
     dateien = bauen(HIER / "data" / "reihe" / "runde-1", examen, reihe)
-    commit = versionen.sichern(HIER / "data" / "reihe", "Runde 1: Kurzfassung und Bewertungsbogen für Lia")
+    commit = versionen.sichern(HIER / "data" / "reihe", "Runde 1: Kurzfassung und Bewertungsbogen für Lia (mit Lesehilfe)")
     for d in dateien:
         print(d)
     print(f"Version {commit}")
