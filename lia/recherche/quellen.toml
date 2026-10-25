@@ -55,16 +55,28 @@ urls = [
   "https://korpora.org/kant/aa06/337.html",
 ]
 
-# Liszt, Der Zweckgedanke im Strafrecht, ZStW Bd. 3 (1883), S. 1–47 (DOI 10.1515/zstw.1883.3.1.1):
-# NICHT eingetragen (geprüft 25.10.2026). Bd. 3 liegt zweimal auf archive.org, Titelblatt „Dritter Band“,
-# Berlin 1883, Inhaltsverzeichnis „1. Der Zweckgedanke im Strafrecht. Von Professor v. Liszt in Marburg 1“:
-#   https://archive.org/details/zeitschriftgesa00berluoft (Toronto)
-#   https://archive.org/details/bub_gb_7TQwAQAAMAAJ (Google, Univ. of Michigan)
-# Die OCR beider Scans ist für Wortlaut unbrauchbar: Die Fraktur wurde als Antiqua gelesen
-# („unb“ statt „und“, „fonbern“, „3wectgebanfe“; im Aufsatz 0-mal „und“, 250-mal „unb“).
-# Keine Abschrift auf de.wikisource.org gefunden. Andere Textquelle gesucht (25.10.2026), ohne Erfolg:
-# Nachdruck „Strafrechtliche Aufsätze und Vorträge“ (1905) weder über die Metadaten- noch über die
-# Volltextsuche von archive.org zu finden; perma_cc_SJ9A-44A4 (Kopie der De-Gruyter-Seite) enthält nur
-# die erste Seite; die Volltexttreffer für typische Sätze des Aufsatzes sind Zitate in anderen Werken.
-# Wenn ein Eintrag kommt (andere Textquelle):
-#   autor = "Franz von Liszt", todesjahr_autor = 1919, herausgeber_entfaellt = "Zeitschriftenaufsatz"
+[[quelle]]
+id = "liszt-zweckgedanke"
+art = "primaertext"
+autor = "Franz von Liszt"
+todesjahr_autor = 1919
+herausgeber_entfaellt = "Zeitschriftenaufsatz"
+werk = "Der Zweckgedanke im Strafrecht"
+ausgabe = "Zeitschrift für die gesamte Strafrechtswissenschaft, Bd. 3 (1883), S. 1–47 (Scan Univ. Toronto auf archive.org)"
+# Die OCR dieses Scans ist für Wortlaut unbrauchbar (Fraktur als Antiqua gelesen: „unb“ statt „und“).
+# Darum Kernstellen vom Seitenbild (seitenbild.py); Lia prüft jede am Scan. Gesucht und nicht brauchbar
+# (25.10.2026): Google-Scan bub_gb_7TQwAQAAMAAJ (gleiche OCR, Unterstreichungen, Bildzählung passt nicht
+# zu page_numbers.json), Nachdruck 1905 nicht auf archive.org, perma_cc_SJ9A-44A4 nur erste Seite,
+# kein Text auf Wikisource, im Deutschen Textarchiv oder (soweit prüfbar) bei digitale-sammlungen.de.
+scan_id = "zeitschriftgesa00berluoft"
+druckseiten = [1, 47]
+# n = Blatt - 1. Am Bild geprüft (25.10.2026): n22 = S. 1 (Titel „Der Zweckgedanke im Strafrecht“),
+# n23 = S. 2, n68 = S. 47 (Aufsatzende). page_numbers.json belegt ab S. 3 (Blatt 25, confidence 100),
+# S. 1 und 2 fehlen dort und stehen darum hier von Hand.
+scan_versatz = -1
+scan_von_hand = { "1" = 22, "2" = 23 }
+urls = [
+  "https://archive.org/download/zeitschriftgesa00berluoft/zeitschriftgesa00berluoft_page_numbers.json",
+  "https://archive.org/download/zeitschriftgesa00berluoft/zeitschriftgesa00berluoft_hocr_searchtext.txt.gz",
+  "https://archive.org/download/zeitschriftgesa00berluoft/zeitschriftgesa00berluoft_hocr_pageindex.json.gz",
+]

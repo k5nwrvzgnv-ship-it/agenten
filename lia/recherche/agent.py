@@ -10,20 +10,27 @@ Ein Lauf (Teil B, ohne Claude und ohne Timer):
    (dieselbe Sitzung), danach wird es gestrichen. Je Textfassung (sha256) nur ein Versuch, auch wenn
    weniger als 3 Stellen bestehen: Ein nächtlicher Lauf soll nicht jede Nacht neu bezahlen.
    Kosten je Claude-Lauf werden geloggt; über GRENZE_USD je agent.py-Lauf startet kein weiterer.
+6. Scan-Quellen (scan_id, Liszt): Textfassung = OCR je Druckseite (scan.py), nur zur Orientierung.
+   Kernstellen vom Seitenbild (seitenbild.py): Auswahl, Bilder laden, zwei unabhängige Abschriften,
+   bei Abweichung eine dritte, Prüfung gegen die OCR. Lia prüft jede Stelle am Scan.
 Fehler bei einer Quelle: loggen, alter Registereintrag bleibt, am Ende eine Meldung an Jan (nicht an Lia).
 Ebenso, wenn sich die Gemeinfreiheit einer Quelle ändert, Stellen verworfen werden oder Claude gelaufen ist.
 """
 
+import json
 import tomllib
 from datetime import date
 from pathlib import Path
 
+import abschrift
 import auslesen
 import gemeinfrei
 import kernstellen
 import quellen
 import register
-from agentkit import abruf, claude_lauf, config, log, meldungen
+import scan
+import seitenbild
+from agentkit import abruf, claude_lauf, config, log, meldungen, wortlaut
 
 AGENT = "recherche"
 HIER = Path(__file__).resolve().parent
@@ -87,7 +94,7 @@ def kernstellen_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten:
     kosten.dazu(erg, f"{q['id']} Auswahl")
     if not erg.ok:
         raise kernstellen.KernstellenFehler(f"Claude-Lauf fehlgeschlagen: {erg.text[:300]}")
-    gut, schlecht = kernstellen.pruefen(kernstellen.antwort_lesen(hier / ausgabe), text, scan=e.get("scan"))
+    gut, schlecht = kernstellen.pruefen(kernstellen.antwort_lesen(hier / ausgabe), text)
     if schlecht and len(gut) < kernstellen.MAX_STELLEN:
         logger.info("%s: %d Stellen durchgefallen, eine Nachbesserung", q["id"], len(schlecht))
         (hier / ausgabe).unlink(missing_ok=True)
@@ -95,7 +102,7 @@ def kernstellen_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten:
         erg = laufen(kernstellen.nachbesserung_prompt(schlecht, e["textfassung"], str(ausgabe)), erg.sitzung)
         kosten.dazu(erg, f"{q['id']} Nachbesserung")
         neu = kernstellen.antwort_lesen(hier / ausgabe) if erg.ok else []
-        gut2, schlecht = kernstellen.pruefen(neu, text, schon=gut, scan=e.get("scan"))
+        gut2, schlecht = kernstellen.pruefen(neu, text, schon=gut)
         gut += gut2
     gut = gut[:kernstellen.MAX_STELLEN]
     e["stellen"] = gut
@@ -116,6 +123,99 @@ def kernstellen_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten:
     return hinweise
 
 
+def _kernstellen_merken(e: dict, kosten: Kosten, usd_vorher: float, gestrichen: list[dict]) -> None:
+    e["kernstellen"] = {"sha256": e["sha256"], "datum": date.today().isoformat(),
+                        "usd": round(kosten.summe - usd_vorher, 4), "gestrichen": gestrichen}
+
+
+def seitenbild_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten: Kosten, laden, allowlist) -> list[str]:
+    """Kernstellen vom Seitenbild (seitenbild.py). Füllt e["stellen"], gibt Hinweise für Jan zurück."""
+    ocr = wortlaut.seiten((hier / e["textfassung"]).read_text(encoding="utf-8"))
+    von, bis = q["druckseiten"]
+    ordner = Path("data") / "kernstellen"
+    (hier / ordner).mkdir(parents=True, exist_ok=True)
+    usd_vorher = kosten.summe
+
+    ausgabe = ordner / f"{q['id']}_auswahl.json"
+    (hier / ausgabe).unlink(missing_ok=True)
+    kosten.vorher()
+    erg = laufen(seitenbild.auswahl_prompt(q, e["textfassung"], str(ausgabe), reihe, von, bis))
+    kosten.dazu(erg, f"{q['id']} Auswahl")
+    if not erg.ok:
+        raise seitenbild.SeitenbildFehler(f"Auswahl-Lauf fehlgeschlagen: {erg.text[:300]}")
+    auswahl, verworfen = seitenbild.auswahl_pruefen(hier / ausgabe, von, bis)
+    gestrichen = [{"seite": None, "grund": f"Auswahl: {g}"} for g in verworfen]
+
+    bilder = {}
+    for s in sorted({x for a in auswahl for x in a["seiten"]}):
+        erg_bild = laden(scan.bild_url(e["scan_id"], e["scan_n"][str(s)]), allowlist, hier / "data" / "roh")
+        pfad = Path("data") / "bilder" / q["id"] / f"s{s}.jpg"
+        (hier / pfad).parent.mkdir(parents=True, exist_ok=True)
+        (hier / pfad).write_bytes(erg_bild.inhalt)
+        bilder[s] = str(pfad)
+
+    def abschreiben(stellen: list[dict], name: str) -> dict[int, str]:
+        datei = ordner / f"{q['id']}_abschrift_{name}.json"
+        (hier / datei).unlink(missing_ok=True)
+        kosten.vorher()
+        erg = laufen(seitenbild.abschrift_prompt(stellen, bilder, str(datei)))  # neue Sitzung, kein Kontext
+        kosten.dazu(erg, f"{q['id']} Abschrift {name}")
+        if not erg.ok:
+            logger.error("%s: Abschrift %s fehlgeschlagen: %s", q["id"], name, erg.text[:300])
+            return {}
+        try:
+            return seitenbild.abschriften_lesen(hier / datei)
+        except seitenbild.SeitenbildFehler as f:
+            logger.error("%s: %s", q["id"], f)
+            return {}
+
+    a = abschreiben(auswahl, "a") if auswahl else {}
+    b = abschreiben(auswahl, "b") if auswahl else {}
+    strittig = [s for s in auswahl if a.get(s["nr"]) and b.get(s["nr"])
+                and abschrift.vergleichen([a[s["nr"]], b[s["nr"]]])[0] is None
+                and "[?]" not in a[s["nr"]] + b[s["nr"]]]
+    c = abschreiben(strittig, "c") if strittig else {}
+
+    gut = []
+    for s in auswahl:
+        fassungen = [a.get(s["nr"]), b.get(s["nr"])] + ([c[s["nr"]]] if s["nr"] in c else [])
+        if None in fassungen[:2]:
+            gestrichen.append({"seite": s["seiten"][0], "grund": "Abschrift fehlt"})
+            continue
+        stelle, grund = seitenbild.stelle_pruefen(s, fassungen, ocr, e["scan"])
+        if stelle:
+            gut.append(stelle)
+        else:
+            gestrichen.append({"seite": s["seiten"][0], "grund": grund})
+            logger.warning("%s: Stelle S. %s verworfen: %s", q["id"], s["seiten"], grund)
+    e["stellen"] = gut
+    _kernstellen_merken(e, kosten, usd_vorher, gestrichen)
+    liste = ", ".join(f"S. {s['seite']} {s['position']} ({s['pruefung']['abschriften_gleich']}, "
+                      f"OCR {s['pruefung']['ocr_aehnlichkeit']:.2f})" for s in gut)
+    hinweise = [f"{q['id']}: {len(gut)} Stellen vom Scan ({liste}), {e['kernstellen']['usd']:.2f} USD. "
+                "Lia prüft jede am Scan."]
+    if gestrichen:
+        hinweise.append(f"{q['id']}: {len(gestrichen)} verworfen: "
+                        + "; ".join(f"S. {g['seite']}: {g['grund']}" for g in gestrichen))
+    if len(gut) < seitenbild.MIN_STELLEN:
+        hinweise.append(f"{q['id']}: nur {len(gut)} Stellen, erwartet {seitenbild.MIN_STELLEN} bis "
+                        f"{seitenbild.MAX_STELLEN}. Kein neuer Versuch, solange die Textfassung gleich bleibt.")
+    return hinweise
+
+
+def scan_verarbeiten(q: dict, allowlist, hier: Path, laden) -> tuple[list[dict], dict, dict[int, int]]:
+    """Scan-Quelle: (Metas, OCR je Druckseite, Zuordnung Druckseite -> n)."""
+    d = scan.dateien(q["scan_id"])
+    erg = {k: laden(u, allowlist, hier / "data" / "roh") for k, u in d.items()}
+    try:
+        zahlen = json.loads(erg["seitenzahlen"].inhalt)
+    except json.JSONDecodeError as f:
+        raise QuelleFehler(f"page_numbers.json von {q['scan_id']} ist kein JSON: {f}") from None
+    zuord = scan.zuordnung(zahlen, *q["druckseiten"], q["scan_versatz"], q.get("scan_von_hand"))
+    ocr = scan.ocr_seiten(erg["text"].inhalt, erg["index"].inhalt, zuord)
+    return [erg[k].meta for k in d], ocr, zuord
+
+
 def braucht_kernstellen(e: dict) -> bool:
     return (e["art"] == "primaertext" and e["gemeinfreiheit"]["verwendbar"] and not e["stellen"]
             and e.get("kernstellen", {}).get("sha256") != e["sha256"])
@@ -124,8 +224,10 @@ def braucht_kernstellen(e: dict) -> bool:
 def quelle_verarbeiten(q: dict, allowlist, hier: Path, alt: dict | None, jahr: int,
                        laden=abruf.laden) -> tuple[dict, list[str], int]:
     """Lädt, liest aus, schreibt die Textfassung. Gibt (Eintrag, Hinweise für Jan, neu geladen) zurück."""
-    metas, seiten, normtext, neu = [], {}, None, 0
-    for i, url in enumerate(q["urls"]):
+    metas, seiten, normtext, neu, zuord = [], {}, None, 0, None
+    if "scan_id" in q:
+        metas, seiten, zuord = scan_verarbeiten(q, allowlist, hier, laden)
+    for i, url in enumerate([] if zuord else q["urls"]):
         erg = laden(url, allowlist, hier / "data" / "roh")
         neu += not erg.aus_cache
         metas.append(erg.meta)
@@ -164,7 +266,12 @@ def quelle_verarbeiten(q: dict, allowlist, hier: Path, alt: dict | None, jahr: i
     frei = gemeinfrei.pruefen(q, jahr)
     if not alt or alt.get("gemeinfreiheit", {}).get("status") != frei["status"]:
         hinweise.append(f"{q['id']}: Gemeinfreiheit {frei['status']} ({frei['begruendung']})")
-    return register.eintrag(q, metas, str(textpfad), text, frei, stellen), hinweise, neu
+    e = register.eintrag(q, metas, str(textpfad), text, frei, stellen)
+    if zuord:
+        e["scan_id"] = q["scan_id"]
+        e["scan_n"] = {str(s): n for s, n in zuord.items()}
+        e["scan"] = {str(s): scan.link(q["scan_id"], n) for s, n in zuord.items()}
+    return e, hinweise, neu
 
 
 def lauf(hier: Path = HIER, laden=abruf.laden, melden=jan_melden, jahr: int | None = None,
@@ -183,7 +290,7 @@ def lauf(hier: Path = HIER, laden=abruf.laden, melden=jan_melden, jahr: int | No
     for q in alle:
         try:
             e, h, neu = quelle_verarbeiten(q, allowlist, hier, alt.get(q["id"]), jahr, laden)
-        except (abruf.AbrufFehler, auslesen.ParserFehler, QuelleFehler, OSError) as f:
+        except (abruf.AbrufFehler, auslesen.ParserFehler, scan.ScanFehler, QuelleFehler, OSError) as f:
             logger.error("Quelle %s: %s", q["id"], f)
             fehler.append(f"{q['id']}: {f}")
             if q["id"] in alt:
@@ -204,12 +311,16 @@ def lauf(hier: Path = HIER, laden=abruf.laden, melden=jan_melden, jahr: int | No
         q = next(q for q in alle if q["id"] == e["id"])
         reihe = reihe_laden(reihen) if reihe is None else reihe
         try:
-            hinweise += kernstellen_finden(e, q, hier, reihe, claude, kosten)
+            if "scan_id" in e:
+                hinweise += seitenbild_finden(e, q, hier, reihe, claude, kosten, laden, allowlist)
+            else:
+                hinweise += kernstellen_finden(e, q, hier, reihe, claude, kosten)
         except KostenGrenze as f:
             logger.error("%s", f)
             fehler.append(f"{e['id']}: {f}")
             break
-        except (kernstellen.KernstellenFehler, claude_lauf.LaufFehler, OSError) as f:
+        except (kernstellen.KernstellenFehler, seitenbild.SeitenbildFehler, claude_lauf.LaufFehler,
+                abruf.AbrufFehler, OSError) as f:
             logger.error("Kernstellen %s: %s", e["id"], f)
             fehler.append(f"{e['id']}: Kernstellen: {f}")
         register.speichern(reg_pfad, eintraege)  # nach jedem bezahlten Lauf sichern

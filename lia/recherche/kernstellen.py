@@ -103,11 +103,9 @@ def _grund(stelle, seiten: dict[int, str], schon: list[dict]) -> str | None:
     return None
 
 
-def pruefen(stellen: list, textfassung: str, schon: list[dict] | None = None,
-            scan: dict | None = None) -> tuple[list[dict], list[dict]]:
+def pruefen(stellen: list, textfassung: str, schon: list[dict] | None = None) -> tuple[list[dict], list[dict]]:
     """(bestanden, durchgefallen). bestanden: Registerform {seite, zitat, position, zweck, geprueft}.
-    schon: bereits bestandene Stellen (gegen Doppelte). scan: {seite: Link} macht daraus OCR-Stellen
-    mit am_scan_pruefen = true und dem Link zur Scanseite. durchgefallen: [{stelle, grund}]."""
+    schon: bereits bestandene Stellen (gegen Doppelte). durchgefallen: [{stelle, grund}]."""
     seiten = wortlaut.seiten(textfassung)
     gut, schlecht = [], []
     for s in stellen:
@@ -117,8 +115,5 @@ def pruefen(stellen: list, textfassung: str, schon: list[dict] | None = None,
             continue
         e = {"seite": s["seite"], "zitat": s["zitat"].strip(), "position": s["position"].strip(),
              "zweck": s["zweck"].strip(), "geprueft": True}
-        if scan is not None:
-            e["am_scan_pruefen"] = True
-            e["scan"] = scan.get(s["seite"]) or scan.get(str(s["seite"]))
         gut.append(e)
     return gut, schlecht

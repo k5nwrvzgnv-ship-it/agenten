@@ -61,10 +61,6 @@ class PruefenTest(unittest.TestCase):
         _, schlecht = kernstellen.pruefen([stelle(331, "Richterliche Strafe", position=" ")], TEXT)
         self.assertIn("position", schlecht[0]["grund"])
 
-    def test_scan_markiert_ocr_stellen(self):
-        gut, _ = kernstellen.pruefen([stelle(331, "Richterliche Strafe")], TEXT, scan={"331": "https://archive.org/x/n5"})
-        self.assertEqual((gut[0]["am_scan_pruefen"], gut[0]["scan"]), (True, "https://archive.org/x/n5"))
-
 
 class AntwortTest(unittest.TestCase):
     def lesen(self, inhalt):

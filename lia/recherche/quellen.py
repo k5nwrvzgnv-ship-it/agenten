@@ -8,6 +8,7 @@ nicht erst beim Laden auffällt.
 import tomllib
 from pathlib import Path
 
+import scan
 from agentkit import abruf
 
 ARTEN = ("gesetz", "primaertext")
@@ -60,5 +61,21 @@ def pruefen(q: dict, allowlist) -> None:
             abruf.pruefen(url, allowlist)
         except abruf.AbrufFehler as e:
             raise QuellenFehler(f"Quelle {qid}: {e}") from None
+    if "scan_id" in q:
+        _scan_pruefen(q)
     if "seiten" in q and len(q["seiten"]) != len(urls):
         raise QuellenFehler(f"Quelle {qid}: {len(q['seiten'])} Seiten, aber {len(urls)} URLs")
+
+
+def _scan_pruefen(q: dict) -> None:
+    """Scan-Quelle: druckseiten = [von, bis], scan_versatz, urls = genau die drei Dateien des Scans."""
+    qid = q["id"]
+    seiten = q.get("druckseiten")
+    if not (isinstance(seiten, list) and len(seiten) == 2 and all(isinstance(s, int) for s in seiten)
+            and 1 <= seiten[0] <= seiten[1]):
+        raise QuellenFehler(f"Quelle {qid}: druckseiten = [von, bis] fehlt")
+    if not isinstance(q.get("scan_versatz"), int):
+        raise QuellenFehler(f"Quelle {qid}: scan_versatz fehlt")
+    if sorted(q["urls"]) != sorted(scan.dateien(q["scan_id"]).values()):
+        raise QuellenFehler(f"Quelle {qid}: urls müssen die drei Dateien des Scans sein: "
+                            + ", ".join(scan.dateien(q["scan_id"]).values()))

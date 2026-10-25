@@ -33,7 +33,7 @@ class QuellenTest(unittest.TestCase):
     def test_echte_datei(self):
         allowlist, alle = quellen.laden(HIER / "quellen.toml")
         self.assertIn("archive.org", allowlist)
-        self.assertEqual([q["id"] for q in alle], ["stgb-46", "jgg-2", "kant-mds-strafrecht"])
+        self.assertEqual([q["id"] for q in alle], ["stgb-46", "jgg-2", "kant-mds-strafrecht", "liszt-zweckgedanke"])
 
     def test_gut(self):
         allowlist, alle = self.laden(KOPF + KANT)
