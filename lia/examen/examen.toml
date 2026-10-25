@@ -16,6 +16,7 @@ bewertungsbogen = ""            # Dateiname, sobald Lia ihren offiziellen Bogen 
 fachseminarleitung_gesehen = "" # Datum, an dem die Fachseminarleitung die Grobskizze gesehen hat
 
 [reihe]
+titel_in_reihen_toml = "Straftheorien"  # Anfang des Titels der Reihe in lia/unterricht/reihen.toml
 reihenfrage = ""                # Noch offen; Kandidaten unten, Entscheidung Lias
 reihenfrage_kandidaten = [
     "Sollen Gefängnisse Täter:innen bestrafen oder bessern? (aus Lias Planung Reihe_Strafe)",
