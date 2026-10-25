@@ -136,14 +136,24 @@ def seitenbild_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten: 
     (hier / ordner).mkdir(parents=True, exist_ok=True)
     usd_vorher = kosten.summe
 
-    ausgabe = ordner / f"{q['id']}_auswahl.json"
-    (hier / ausgabe).unlink(missing_ok=True)
-    kosten.vorher()
-    erg = laufen(seitenbild.auswahl_prompt(q, e["textfassung"], str(ausgabe), reihe, von, bis))
-    kosten.dazu(erg, f"{q['id']} Auswahl")
-    if not erg.ok:
-        raise seitenbild.SeitenbildFehler(f"Auswahl-Lauf fehlgeschlagen: {erg.text[:300]}")
-    auswahl, verworfen = seitenbild.auswahl_pruefen(hier / ausgabe, von, bis)
+    # Eine geprüfte Auswahl zur selben Textfassung wird wiederverwendet (z. B. nach Abbruch der Abschriften
+    # wegen Kontingent), damit sie nicht zweimal bezahlt wird.
+    gemerkt = hier / ordner / f"{q['id']}_auswahl_geprueft.json"
+    alt = json.loads(gemerkt.read_text(encoding="utf-8")) if gemerkt.exists() else {}
+    if alt.get("sha256") == e["sha256"]:
+        auswahl, verworfen = alt["stellen"], alt["verworfen"]
+        logger.info("%s: gespeicherte Auswahl (%d Stellen) wiederverwendet", q["id"], len(auswahl))
+    else:
+        ausgabe = ordner / f"{q['id']}_auswahl.json"
+        (hier / ausgabe).unlink(missing_ok=True)
+        kosten.vorher()
+        erg = laufen(seitenbild.auswahl_prompt(q, e["textfassung"], str(ausgabe), reihe, von, bis))
+        kosten.dazu(erg, f"{q['id']} Auswahl")
+        if not erg.ok:
+            raise seitenbild.SeitenbildFehler(f"Auswahl-Lauf fehlgeschlagen: {erg.text[:300]}")
+        auswahl, verworfen = seitenbild.auswahl_pruefen(hier / ausgabe, von, bis)
+        gemerkt.write_text(json.dumps({"sha256": e["sha256"], "stellen": auswahl, "verworfen": verworfen},
+                                      ensure_ascii=False, indent=1), encoding="utf-8")
     gestrichen = [{"seite": None, "grund": f"Auswahl: {g}"} for g in verworfen]
 
     bilder = {}

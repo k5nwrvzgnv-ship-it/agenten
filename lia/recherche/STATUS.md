@@ -15,10 +15,17 @@ Stellen. lia/examen liest das Register für die Skizzen.
     (Opus), alle wörtlich geprüft, keine gestrichen, 0,23 USD in 1 Lauf: S. 331 „niemals bloß als
     Mittel“, S. 331 „Er muß vorher strafbar befunden sein“, S. 332 Wiedervergeltung („Beschimpfst du
     ihn“), S. 333 Dieb und Zwangsarbeit, S. 333 Inselbeispiel.
-- Liszt (ZStW Bd. 3, 1883) nicht eingetragen: OCR unbrauchbar (siehe Offene Punkte). Jan ist informiert.
+  - liszt-zweckgedanke (ZStW Bd. 3, 1883, S. 1–47, Toronto-Scan zeitschriftgesa00berluoft): frei (Liszt gest.
+    1919, kein Herausgeber, Zeitschriftenaufsatz). Textfassung = OCR (unbrauchbar für Wortlaut, nur
+    Orientierung). Kernstellen vom Seitenbild: Auswahl gelaufen (5 Stellen: S. 31 notwendige Strafe,
+    S. 36 Dreiteilung Besserung/Abschreckung/Unschädlichmachung, S. 39 Unverbesserliche, S. 40/41 Anfänger
+    der Verbrecherlaufbahn, S. 44 „weil“/„damit“), 0,68 USD. Abschriften STEHEN AUS: Danach meldete
+    Anthropic "allowed_warning", agentkit wertet das als Limit (Punkt 11 der Haupt-STATUS.md), seitdem
+    verweigert claude_lauf jeden Lauf bis 27.10. 17:00. Nächster Lauf übernimmt die gespeicherte Auswahl
+    (data/kernstellen/liszt-zweckgedanke_auswahl_geprueft.json) und macht nur die Abschriften.
 - Meldungen mit diesen Ergebnissen sind an Jan gegangen.
 - Kein Dienst, kein Timer (Teil D).
-- 58 Tests (tests/), in pruefen.sh eingetragen.
+- 84 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -33,7 +40,19 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Seite (wortlaut.steht_in), höchstens 700 Zeichen, keine Überschneidung. Durchgefallenes einmal zurück
   (dieselbe Sitzung), danach gestrichen. 3 bis 6 Stellen; je Textfassung (sha256) nur ein Versuch.
   Kosten je Lauf im Log, Summe je agent.py-Lauf höchstens GRENZE_USD = 8, sonst kein weiterer Lauf.
-  Mit scan={seite: link} bekommen Stellen am_scan_pruefen = true und den Scan-Link (für OCR-Quellen).
+- Scan-Quellen (scan_id in quellen.toml, Liszt): scan.py ordnet Druckseite -> Scan-Seite n zu
+  (page_numbers.json, nur confidence 100, Lücken nur bei lückenloser Folge, sonst scan_von_hand; nichts
+  geraten), holt die OCR je Druckseite (hocr_searchtext + hocr_pageindex) und baut Links
+  https://archive.org/details/<id>/page/n<N>. Kernstellen vom Seitenbild (seitenbild.py, abschrift.py):
+  1. Auswahl (Opus, OCR nur zur Orientierung): 3–5 Stellen mit seiten, anfang, ende, position, zweck;
+     geprüfte Auswahl wird je Textfassung gespeichert und wiederverwendet.
+  2. Bilder über agentkit.abruf nach data/bilder/<id>/s<seite>.jpg.
+  3. Zwei Abschriften in getrennten Sitzungen, nur Bilder (buchstabengetreu, ſ als s, Trennung auflösen,
+     alte Schreibung, [?] für Unleserliches). Bei Abweichung eine dritte nur für die strittigen Stellen.
+  4. Prüfung: gleich nach wortlaut.normalisieren (2 von 2 oder 2 von 3), 50–900 Zeichen, unscharf zur
+     OCR der Seite(n) mindestens SCHWELLE 0,75. Registerstelle: seite, seiten, zitat, position, zweck,
+     geprueft = false (kein sicherer Text), am_scan_pruefen = true, scan_link {seite: link},
+     pruefung {abschriften_gleich, ocr_aehnlichkeit, schwelle}.
 - quellen.toml: von Hand gepflegt, [abruf] allowlist (die einzige Stelle dafür) und je [[quelle]] id,
   art, werk, ausgabe, autor/todesjahr_autor, herausgeber/_todesjahr, uebersetzer/_todesjahr, urls, seiten.
 - quellen.py: liest und prüft quellen.toml ohne Netz (Pflichtfelder, URLs gegen die Allowlist).
@@ -67,29 +86,33 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
   korpora.org nicht genannt; belegt durch den Band selbst (OCR archive.org kantsgesammeltes06imma,
   „Herausgeber: Paul Natorp.“, selbst nachgeprüft). Lebensdaten vom lia-Chat geprüft (Deutsche Biographie,
   DLA Marbach). Belege als Kommentar in quellen.toml.
-- 25.10.2026: Liszt nicht eingetragen, kein djvu-Parser gebaut. ZStW Bd. 3 liegt zweimal auf archive.org
-  (zeitschriftgesa00berluoft, bub_gb_7TQwAQAAMAAJ, beide Titelblatt „Dritter Band“, 1883, Aufsatz S. 1–47),
-  aber beide OCRs lesen die Fraktur als Antiqua („unb“ statt „und“). Alle Fraktur-Bände der Zeitschrift
-  auf archive.org sind so; nur spätere Bände in Antiqua sind sauber. Keine Abschrift auf Wikisource.
+- 25.10.2026: Liszt: Die OCR beider Scans von ZStW Bd. 3 auf archive.org liest die Fraktur als Antiqua
+  („unb“ statt „und“). Keine andere Textquelle (Nachdruck 1905 nicht auf archive.org, Wikisource, DTA,
+  soweit prüfbar digitale-sammlungen.de). Jan: Kernstellen vom Seitenbild, zwei Abschriften, Lia prüft am Scan.
+- 25.10.2026: Toronto-Scan statt Google-Scan: 500 ppi, keine Unterstreichungen; beim Google-Scan ist
+  n17 nicht S. 1 (Bildzählung passt nicht zu page_numbers.json). Zuordnung n = Blatt - 1, am Bild geprüft:
+  n22 = S. 1, n23 = S. 2, n68 = S. 47; S. 1 und 2 von Hand (fehlen in page_numbers.json).
+- 25.10.2026: Schwelle für den OCR-Abgleich 0,75. Bestimmt an drei selbst vom Bild gelesenen Passagen
+  (S. 1, 664 Zeichen; S. 2, 390; S. 47, 227) und zwei einzelnen Sätzen (96 und 57 Zeichen): richtige Seite
+  0,866–0,934, beste falsche Seite 0,366–0,592. Darum auch Mindestlänge 50 Zeichen. Grenze: Der Abgleich
+  findet die Stelle, erkennt aber keine einzelnen falschen Wörter (zwei vertauschte Wörter: noch 0,87–0,90).
+  Dagegen schützen nur die zwei Abschriften und Lias Prüfung am Scan.
 - 25.10.2026: Zitatlänge nur über Zeichen (700) begrenzt, nicht über Sätze: Satzzählen ist bei
   „d. i.“, „u. dergl.“ und Kants Semikolons nicht sicher.
 
 ## Offene Punkte
 1. Nebenbei gesehen: korpora.org schreibt, das Korpus werde fortlaufend korrigiert (Textkorrekturen,
    Lesarten). Ob das für die Zitierfähigkeit „nach AA“ eine Rolle spielt, bei Gelegenheit mit Jan klären.
-2. Liszt: Jan entscheidet den Weg. Andere Textquelle innerhalb der Allowlist gesucht (25.10.), keine
-   gefunden: Nachdruck 1905 nicht auf archive.org (Metadaten- und Volltextsuche über
-   be-api.us.archive.org), Wikisource und perma.cc-Kopie ohne Text. Möglich: (a) Allowlist um eine
-   Bibliothek mit Fraktur-OCR erweitern (Jans Freigabe nötig; Kandidaten ungeprüft, z. B.
-   digitale-sammlungen.de der BSB oder deutschestextarchiv.de), (b) Lia schreibt 3 bis 5 Stellen am Scan
-   ab (Python prüft dann nur Seite und Länge, Scan-Link je Seite:
-   https://archive.org/details/<id>/page/n<N>). Eintrag dann mit autor = "Franz von Liszt", todesjahr_autor = 1919,
-   herausgeber_entfaellt = "Zeitschriftenaufsatz" (Kommentar in quellen.toml).
-3. Kant S. 333, Inselbeispiel: korpora.org hat „im Gefängni befindliche“ (ohne ß am Zeilenende). Das
+2. Liszt-Abschriften nachholen, sobald claude_lauf wieder läuft (Haupt-STATUS Punkt 11 oder 27.10.
+   17:00): `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`. Erwartet 2–3
+   Läufe mit Bildern, etwa 1 USD. Danach Meldung an Jan mit Stellen, Kosten, Verworfenem.
+3. Tests schreiben ins echte logs/recherche.log (logger an HIER), z. B. „liszt Auswahl 0.30 USD“ aus der
+   Claude-Attrappe. Beim Lesen des Logs beachten; Aufräumen bei Gelegenheit.
+4. Kant S. 333, Inselbeispiel: korpora.org hat „im Gefängni befindliche“ (ohne ß am Zeilenende). Das
    Zitat ist wortgetreu zur Textfassung, Lia sollte es am Druck prüfen.
-4. Claude kann im Agent-Ordner mehr lesen als die Textfassung (claude_lauf beschränkt nur das
+5. Claude kann im Agent-Ordner mehr lesen als die Textfassung (claude_lauf beschränkt nur das
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
-5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
+6. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
 
 ## Gelernte Regeln
 - (noch keine)

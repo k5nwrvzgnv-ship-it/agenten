@@ -236,6 +236,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Freigabe-Einträge ohne Ausführung durch einen Agenten (Typ "entwurf", Lia setzt selbst ein): Nach der
      Freigabe bleiben sie in „Warten auf Ausführung“. Vorschlag: Typ "entwurf" in der Zentrale nach Freigabe
      direkt als ausgeführt vermerken („setzt Lia selbst ein“). Bis dahin schließt der examen-Chat sie von Hand ab.
+11. DRINGEND, Bedarf aus lia/recherche (25.10., 03:50) an agentkit.verbrauch/claude_lauf: Ein Lauf meldete
+   status "allowed_warning" (7d 76 %, 5h 21 %, resetsAt 27.10. 17:00). verbrauch.stufe() wertet jeden Status
+   außer "allowed" als "limit", claude_lauf wirft danach LimitErreicht ("Kontingent erschöpft, wieder frei ab
+   27.10. 17:00"). Folge: Bis 27.10. 17:00 verweigert claude_lauf ALLEN Agenten jeden Lauf, obwohl das
+   Kontingent nicht erschöpft ist. Vorschlag: "allowed_warning" wie "allowed" behandeln (die Stufen sparen/
+   nur_auftraege greifen ohnehin über 5h/7d), nur "rejected" o. ä. als limit; mit Test.
 
 ## Gelernte Regeln
 - (noch keine)

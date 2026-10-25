@@ -137,6 +137,21 @@ class AblaufTest(unittest.TestCase):
         self.assertEqual(len(self.claude.prompts), 3)
         self.assertEqual(reg["stellen"], [])
 
+    def test_auswahl_wird_nach_abbruch_wiederverwendet(self):
+        class Abbruch(Claude):
+            def __call__(self, prompt, sitzung=None):
+                if "Noch KEIN Zitat" not in prompt:
+                    raise claude_lauf.LimitErreicht(None)
+                return super().__call__(prompt, sitzung)
+
+        self.claude = Abbruch(self.hier, AUSWAHL, [])
+        fehler = agent.lauf(self.hier, laden=laden, melden=self.meldungen.append, jahr=2026,
+                            claude=self.claude, reihen=self.hier / "fehlt.toml")
+        self.assertIn("Kontingent", fehler[0])
+        _, reg = self.lauf([LESUNG, LESUNG])
+        self.assertEqual(len(self.claude.prompts), 2)  # nur die zwei Abschriften, keine neue Auswahl
+        self.assertEqual(len(reg["stellen"]), 1)
+
     def test_kein_zweiter_versuch(self):
         self.lauf([LESUNG, LESUNG])
         _, reg = self.lauf([])
