@@ -30,10 +30,13 @@ _KUERZEL = re.compile(r"\b[A-ZÄÖÜ]{2,}\b")
 _ROEMISCH = {"II", "III", "IV"}
 FALL_MAX = 600  # Zeichen für fall und abschlussfall (zwei bis drei Sätze)
 PERSPEKTIVEN = ("individuell", "gesellschaftlich", "ideengeschichtlich")
+# Kompetenzbereiche des RLP; je Stunde einer, wie in der Beispielreihe des Fachseminars (25.10.2026)
+KOMPETENZEN = ("Wahrnehmen und deuten", "Perspektiven einnehmen", "Argumentieren und urteilen",
+               "Sich im Dialog verständigen")
 STUNDEN_ANNAHME = (8, 10)  # solange Lia die Stundenzahl nicht genannt hat
 MAX_ZEICHEN = 3000  # Text je Skizze (ohne Darstellung), entspricht etwa einer Seite
 TEXTFELDER = ("titel", "grundentscheidung", "reihenfrage", "abschlussaufgabe", "differenzierung", "risiken")
-STUNDENFELDER = ("thema", "ziel", "perspektive")
+STUNDENFELDER = ("thema", "ziel", "perspektive", "kompetenz")
 
 
 class SkizzenFehler(Exception):
@@ -73,7 +76,7 @@ def _stundenvorgabe(examen: dict) -> str:
 
 
 def kontext(rubrik: dict, rlp: list[dict], examen: dict, reihe: str, quellen: dict[str, list[dict]],
-            regeln: str, leitfaden: str) -> str:
+            regeln: str, leitfaden: str, vorbild: str = "") -> str:
     """Alles, was Skizzen- und Prüfer-Lauf über die Reihe wissen müssen, als Textblock."""
     teile = ["# Reihe (aus Lias Reihenkontext)", reihe.strip()]
     pr = examen.get("pruefung", {})
@@ -96,6 +99,8 @@ def kontext(rubrik: dict, rlp: list[dict], examen: dict, reihe: str, quellen: di
             teile.append(f"- {ref} | {s['werk']} | {s['position']}{scan} | {s['zitat']}")
     teile += ["", "# Lias Regeln (von ihr freigegeben)", regeln.strip() or "(keine)"]
     teile += ["", "# So unterrichtet Lia (Leitfaden)", leitfaden.strip() or "(keiner)"]
+    if vorbild.strip():
+        teile += ["", "# Vorbild: wie das Fachseminar Reihen plant (Beobachtungen aus zwei Beispielen)", vorbild.strip()]
     return "\n".join(teile)
 
 
@@ -118,8 +123,11 @@ Varianten zur Auswahl: Lia wählt eine Richtung, die dann vertieft wird. Jede Sk
 3. Je Skizze eine Reihenfrage (offene ethische Problemfrage, für die Lerngruppe verständlich) und 2 bis 4
    RLP-ids aus der Liste oben, die zur Abschlussaufgabe passen.
 4. {_stundenvorgabe(examen)} je Skizze. Je Stunde: nr, thema, ziel (mit Operator), perspektive
-   (individuell, gesellschaftlich oder ideengeschichtlich), quellen (Liste von Verweisen <quelle>:<seite>
-   aus der Liste oben, darf leer sein), pruefungsstunde (true/false). Alle drei Perspektiven müssen vorkommen.
+   (individuell, gesellschaftlich oder ideengeschichtlich), kompetenz (genau einer der Kompetenzbereiche:
+   {", ".join(KOMPETENZEN)}), quellen (Liste von Verweisen <quelle>:<seite>
+   aus der Liste oben, darf leer sein), pruefungsstunde (true/false). Alle drei Perspektiven und alle vier Kompetenzbereiche müssen vorkommen.
+   Orientiere dich am Vorbild des Fachseminars oben (eine Problemfrage für die ganze Reihe, erst eigenes
+   Urteil, dann Klärung, Fall und Positionen, am Ende wieder das eigene Urteil).
    {ps_text}
 5. differenzierung: wie alle am selben Inhalt arbeiten (Lias Regel: drei Niveaus). risiken: was an dieser
    Variante schiefgehen kann, ehrlich.
@@ -138,7 +146,7 @@ Schreibe mit Write genau diese Datei: {ausgabe}
 Nur JSON, kein weiterer Text:
 {{"annahmen": ["..."], "skizzen": [{{"kennung": "A", "titel": "...", "grundentscheidung": "...",
 "fall": "...", "reihenfrage": "...", "abschlussaufgabe": "...", "abschlussfall": "...", "rlp": ["id", "..."],
-"stunden": [{{"nr": 1, "thema": "...", "ziel": "...", "perspektive": "individuell", "quellen": [],
+"stunden": [{{"nr": 1, "thema": "...", "ziel": "...", "perspektive": "individuell", "kompetenz": "Argumentieren und urteilen", "quellen": [],
 "pruefungsstunde": false}}], "differenzierung": "...", "risiken": "...",
 "material_fehlt": ["Stunde 1: ..."]}}]}}
 Deine letzte Antwort ist ein Satz: welche drei Grundentscheidungen du gewählt hast."""
@@ -184,12 +192,17 @@ def _stunden_pruefen(k: str, stunden, n: int | None, ps: int | None, refs: set[s
                 fehler.append(f"Skizze {k}, Stunde {nr}: {feld} fehlt")
         if st.get("perspektive") and st["perspektive"] not in PERSPEKTIVEN:
             fehler.append(f"Skizze {k}, Stunde {nr}: perspektive {st['perspektive']!r} unbekannt")
+        if st.get("kompetenz") and st["kompetenz"] not in KOMPETENZEN:
+            fehler.append(f"Skizze {k}, Stunde {nr}: kompetenz {st['kompetenz']!r} unbekannt")
         for ref in st.get("quellen", []) or []:
             if ref not in refs:
                 fehler.append(f"Skizze {k}, Stunde {nr}: Quellenverweis {ref!r} steht nicht im Register")
     fehlend = [p for p in PERSPEKTIVEN if p not in {st.get("perspektive") for st in stunden}]
     if fehlend:
         fehler.append(f"Skizze {k}: Perspektive fehlt ({', '.join(fehlend)}), der RLP verlangt alle drei")
+    fehlend = [b for b in KOMPETENZEN if b not in {st.get("kompetenz") for st in stunden}]
+    if fehlend:
+        fehler.append(f"Skizze {k}: Kompetenzbereich fehlt ({', '.join(fehlend)})")
     markiert = [st.get("nr") for st in stunden if st.get("pruefungsstunde") is True]
     if ps and markiert != [ps]:
         fehler.append(f"Skizze {k}: Prüfungsstunde muss Stunde {ps} sein, markiert: {markiert}")
@@ -275,10 +288,10 @@ def darstellen(sk: dict, rlp: dict[str, dict], quellen: dict[str, list[dict]]) -
     zeilen += [
               "**RLP:** " + "; ".join(
                   f"{r} ({rlp[r].get('stufe') or rlp[r]['abschnitt']})" for r in sk["rlp"] if r in rlp), "",
-              "| Nr. | Thema | Ziel | Perspektive | Quellen |", "|---|---|---|---|---|"]
+              "| Nr. | Thema | Ziel | Perspektive | Kompetenz | Quellen |", "|---|---|---|---|---|---|"]
     for st in sk["stunden"]:
         nr = f"**{st['nr']} (Prüfung)**" if st.get("pruefungsstunde") else str(st["nr"])
-        zeilen.append(f"| {nr} | {st['thema']} | {st['ziel']} | {st['perspektive']} | "
+        zeilen.append(f"| {nr} | {st['thema']} | {st['ziel']} | {st['perspektive']} | {st.get('kompetenz', '–')} | "
                       f"{', '.join(st.get('quellen') or []) or '–'} |")
     zeilen += ["", f"**Differenzierung:** {sk['differenzierung']}", "", f"**Risiken:** {sk['risiken']}"]
     if sk.get("material_fehlt"):

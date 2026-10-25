@@ -37,6 +37,7 @@ class Pfade:
     regeln: Path = HIER.parent / "unterricht" / "STATUS.md"  # Abschnitt „Gelernte Regeln“
     leitfaden: Path = HIER.parent / "unterricht" / "leitfaden.md"
     register: Path = HIER.parent / "recherche" / "data" / "register.json"  # gehört lia/recherche
+    vorbild: Path = HIER / "seminar_vorbild.md"  # Beobachtungen aus Beispielen des Fachseminars
 
 
 class RundenFehler(Exception):
@@ -121,7 +122,8 @@ def runde_eins(pfade: Pfade | None = None, laufen=claude_laufen, sichern=version
     if not quellen:
         raise RundenFehler(f"Keine verwendbaren Quellen im Register {pfade.register}")
     kontext = skizzen.kontext(rubrik, rlp, examen, reihe_text(pfade.reihen, titel), quellen,
-                              abschnitt(pfade.regeln, "Gelernte Regeln"), pfade.leitfaden.read_text(encoding="utf-8"))
+                              abschnitt(pfade.regeln, "Gelernte Regeln"), pfade.leitfaden.read_text(encoding="utf-8"),
+                              pfade.vorbild.read_text(encoding="utf-8") if pfade.vorbild.exists() else "")
 
     ordner = pfade.repo / "runde-1"
     ordner.mkdir(parents=True, exist_ok=True)

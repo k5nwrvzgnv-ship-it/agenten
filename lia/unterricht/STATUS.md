@@ -156,8 +156,10 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
   eingang/Quellen/ (Art „Quelle“), danach `.venv/bin/python wissen.py`. Liegt dort: RLP_Ethik_Sek_I.pdf
   (Teil C Ethik 7–10, 25.10.); Quellen/Strafe/: Schulbuch Leben leben 2 (Klett), S. 160 Schuld und
   S. 161 Strafzwecke, Fall Freibad (von Claude aus Lias Fotos abgeschrieben, 25.10.; Erscheinungsjahr fehlt).
-  Bilder liest der Agent nicht: Scans hier im Chat abschreiben lassen. Noch erwartet: Seminarvorgaben zur
-  Reihenfrage, schulinternes Curriculum.
+  Bilder liest der Agent nicht: Scans hier im Chat abschreiben lassen. Seit 25.10. in eingang/Seminar/: zwei Beispiele des
+  Fachseminars (Reihenplanung Klasse 8 „Geschlecht – angeboren oder anerzogen?“, Material „Dürfen wir Tiere
+  essen?“), von Claude aus Scans abgeschrieben (.txt), Originale in lia/examen/data/vorgaben/seminar/.
+  Noch erwartet: ausdrückliche Kriterien des Seminars zur Reihenfrage, schulinternes Curriculum.
 6. Optional: Blindvergleich mit lia/auswertung/data/ergebnis/pruefsatz.json (P01–P17, ~10 USD Kontingent).
 
 ## Offene Punkte

@@ -24,6 +24,7 @@ reihenfrage_kandidaten = [
     "Warum sollte Täter:in xy bestraft werden? (aus den Tipps zur Examensreihe)",
 ]
 seminarvorgaben_reihenfrage = "" # Vorgaben der Seminarleitung zur guten Reihenfrage (Lia schickt sie noch)
+seminar_beispiele = "seminar_vorbild.md: zwei Beispielreihen des Fachseminars (Jan, 25.10.2026)"
 
 # Hinweise aus Lias Material „Tipps Max Examens.docx“ (Tipps zu einer Examensreihe Strafe), sinngemäß.
 # Anregungen für die Skizzen, keine Vorgaben.

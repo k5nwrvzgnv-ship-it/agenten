@@ -105,9 +105,10 @@ def kurzfassung(sk: dict, pr: dict, rubrik: dict, runde: int, reihe: str, lesehi
             bloecke.append({"typ": "absatz", "text": f"Fall der Abschlussaufgabe: {s['abschlussfall']}"})
         bloecke += [
             # Nr. und Thema in einer Spalte: Der Renderer macht alle Spalten gleich breit.
-            {"typ": "tabelle", "kopf": ["Stunde", "Ziel", "Perspektive"],
+            {"typ": "tabelle", "kopf": ["Stunde", "Ziel", "Perspektive / Kompetenz"],
              "zeilen": [[f"{st['nr']}{' (Prüfung)' if st.get('pruefungsstunde') else ''}: {st['thema']}",
-                         st["ziel"], st["perspektive"]] for st in s["stunden"]]},
+                         st["ziel"], " / ".join(filter(None, (st["perspektive"], st.get("kompetenz"))))]
+                        for st in s["stunden"]]},
             {"typ": "absatz", "text": f"Differenzierung: {s['differenzierung']}"},
             {"typ": "absatz", "text": f"Risiken: {s['risiken']}"},
         ]

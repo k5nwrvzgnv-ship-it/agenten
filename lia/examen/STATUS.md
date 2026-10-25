@@ -69,6 +69,13 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   (3) Empfehlung Struktur: ein Fall, neue Täterinfos in der Examensstunde. (4) Norwegen: kein frei abrufbares
   Video verifiziert, nur Spuren (arte „Kathedralen der Kultur“ Halden, 26 Min., 2016). Nussbaum nicht empfohlen.
   examen.toml: Schulform Gemeinschaftsschule Neukölln (Niveau offen), Prüfungsstunde = Anwendungsstunde zu Liszt.
+- Beispiele des Fachseminars (25.10., Jan per scp, zwei Scans, Originale data/vorgaben/seminar/, keine
+  Schülerdaten): Reihenplanung Klasse 8 „Geschlecht – angeboren oder anerzogen?“ und Material „Dürfen wir Tiere
+  essen?“. Abschriften in lia/unterricht/data/wissen/eingang/Seminar/ (Katalog aktualisiert). Daraus
+  seminar_vorbild.md (Beobachtungen, keine Regeln; Lia bestätigt): eine Problemfrage mit zwei Polen, Tabelle
+  Problemfrage/Inhalt/Perspektive/Kompetenz/Material, Verlauf eigenes Urteil → Klärung → realer Fall →
+  Positionen → Debatte → schriftliches Urteil mit Checkliste. Geht in Skizzen- und Prüfer-Lauf (runde.py
+  Pfade.vorbild). Skizzen brauchen ab Runde 2 je Stunde einen RLP-Kompetenzbereich; alle vier müssen vorkommen.
 - Tests: 35, grün. Kein Dienst, kein Timer.
 
 ## Aufbau

@@ -28,6 +28,7 @@ runde.logger.disabled = True  # Tests sollen nicht ins echte logs/ schreiben
 def stunden(n=8, ps=5):
     persp = ["individuell", "gesellschaftlich", "ideengeschichtlich"]
     return [{"nr": i, "thema": f"Thema {i}", "ziel": "erläutern", "perspektive": persp[i % 3],
+             "kompetenz": skizzen.KOMPETENZEN[i % 4],
              "quellen": ["kant:333"] if i == 2 else [], "pruefungsstunde": i == ps} for i in range(1, n + 1)]
 
 
@@ -79,6 +80,10 @@ class SkizzenTest(unittest.TestCase):
             "annahmen fehlt": lambda d: d.update(annahmen=[]),
             "eine Seite": lambda d: d["skizzen"][0].update(risiken="x" * 3000),
             "fall fehlt": lambda d: d["skizzen"][0].pop("fall"),
+            "kompetenz 'Urteilen' unbekannt": lambda d: d["skizzen"][0]["stunden"][0].update(kompetenz="Urteilen"),
+            "Kompetenzbereich fehlt (Sich im Dialog verständigen)": lambda d: [
+                st.update(kompetenz="Wahrnehmen und deuten") for st in d["skizzen"][1]["stunden"]
+                if st["kompetenz"] == "Sich im Dialog verständigen"],
             "abschlussfall hat 601 Zeichen": lambda d: d["skizzen"][0].update(abschlussfall="x" * 601),
             "material_fehlt muss eine Liste": lambda d: d["skizzen"][0].update(material_fehlt="Audio"),
             "Abkürzungen ausschreiben oder nur erlaubte verwenden: AB": lambda d: d["skizzen"][0]["stunden"][0].update(
@@ -116,10 +121,13 @@ class SkizzenTest(unittest.TestCase):
 
     def test_kontext_und_prompt(self):
         k = skizzen.kontext(rubrik(), grundlagen.auszug_laden(), {"pruefung": {"bundesland": "Berlin", "termin": ""}},
-                            "- titel: Strafe", skizzen.quellen_aus_register(REGISTER), "- Regel", "Leitfaden")
+                            "- titel: Strafe", skizzen.quellen_aus_register(REGISTER), "- Regel", "Leitfaden",
+                            "Eine Problemfrage für die ganze Reihe.")
         self.assertIn("- bundesland: Berlin", k)
         self.assertNotIn("termin", k)
         self.assertIn("(OCR-Quelle, Lia prüft am Scan)", k)
+        self.assertIn("# Vorbild: wie das Fachseminar Reihen plant", k)
+        self.assertIn("Eine Problemfrage für die ganze Reihe.", k)
         p = skizzen.prompt(k, "/x/skizzen.json", EXAMEN_OFFEN)
         self.assertIn("/x/skizzen.json", p)
         self.assertIn("8 bis 10 Stunden", p)
@@ -194,7 +202,8 @@ class RundeTest(unittest.TestCase):
         (basis / "leitfaden.md").write_text("Leitfaden", encoding="utf-8")
         self.pfade = runde.Pfade(hier=basis, repo=basis / "reihe", reihen=basis / "reihen.toml",
                                  regeln=basis / "STATUS.md", leitfaden=basis / "leitfaden.md",
-                                 register=basis / "register.json")
+                                 register=basis / "register.json", vorbild=basis / "vorbild.md")
+        (basis / "vorbild.md").write_text("Vorbild-Text", encoding="utf-8")
         self.prompts = []
 
     def attrappe(self, skizzen_daten, pruefung_daten, usd=0.5):
@@ -215,6 +224,8 @@ class RundeTest(unittest.TestCase):
         z = runde.runde_eins(self.pfade, self.attrappe(GUT, pr))
         self.assertEqual(len(self.prompts), 2)
         self.assertIn("Variante A", self.prompts[1][0])  # Prüfer sieht die Skizzen
+        self.assertIn("Vorbild-Text", self.prompts[0][0])
+        self.assertIn("Vorbild-Text", self.prompts[1][0])
         self.assertIsNone(self.prompts[1][1])  # Prüfer in neuer Sitzung
         self.assertEqual(z["skizzen"][0], ("A", "Variante A", 1))
         self.assertAlmostEqual(z["usd"], 1.0)
