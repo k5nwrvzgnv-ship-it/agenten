@@ -18,7 +18,7 @@ json.dump(sys.argv[1:], open("args.json", "w"))
 modus = os.environ.get("FAKE_MODUS", "ok")
 if modus == "langsam":
     time.sleep(5)
-status = "rejected" if modus == "limit" else "allowed"
+status = {"limit": "rejected", "warnung": "allowed_warning"}.get(modus, "allowed")
 print(json.dumps({"type": "rate_limit_event", "rate_limit_info": {"status": status, "resetsAt": 4102444800,
     "unifiedWindows": {"five_hour": {"utilization": 0.2, "resetsAt": 4102444800},
                        "seven_day": {"utilization": 0.4, "resetsAt": 4102444800}}}}))
@@ -94,6 +94,12 @@ class TestClaudeLauf(unittest.TestCase):
         with self.assertRaises(claude_lauf.LimitErreicht):
             self.lauf()
         self.assertFalse((self.agent_dir / "args.json").exists())
+
+    def test_warnung_kein_limit(self):
+        os.environ["FAKE_MODUS"] = "warnung"
+        self.assertEqual(self.lauf().text, "Fertig")
+        os.environ.pop("FAKE_MODUS")
+        self.lauf()  # der nächste Lauf startet auch
 
     def test_stufen(self):
         verbrauch.protokollieren({"auslastung": {"status": "allowed", "5h": 0.6, "7d": 0.1,

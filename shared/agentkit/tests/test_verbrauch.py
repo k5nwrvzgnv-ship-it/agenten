@@ -25,6 +25,13 @@ class TestVerbrauch(unittest.TestCase):
         self.assertEqual(verbrauch.stufe(stand(0.1, 0.95), CFG), "nur_auftraege")
         self.assertEqual(verbrauch.stufe(stand(1.0, 0.5, status="rejected"), CFG), "limit")
 
+    def test_warnung_ist_kein_limit(self):
+        # Fall 25.10.: allowed_warning bei 7d 76 %, 5h 21 % sperrte alle Läufe
+        self.assertEqual(verbrauch.stufe(stand(0.21, 0.76, status="allowed_warning"), CFG), "sparen")
+        self.assertEqual(verbrauch.stufe(stand(0.1, 0.1, status="allowed_warning"), CFG), "normal")
+        self.assertTrue(verbrauch.gesperrt("rejected"))
+        self.assertFalse(verbrauch.gesperrt("allowed_warning"))
+
     def test_event_umwandeln(self):
         info = {"status": "allowed", "resetsAt": 100, "unifiedWindows": {
             "five_hour": {"utilization": 0, "resetsAt": 100}, "seven_day": {"utilization": 0.38, "resetsAt": 200}}}

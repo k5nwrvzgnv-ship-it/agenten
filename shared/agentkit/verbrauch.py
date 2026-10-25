@@ -60,10 +60,16 @@ def letzter_stand(datei: Path | None = None, jetzt: float | None = None) -> dict
     return None
 
 
+def gesperrt(status: str | None) -> bool:
+    """True, wenn der gemeldete Status ein Limit ist. "allowed_warning" ist nur eine Warnung (wie "allowed"):
+    Die Stufen sparen/nur_auftraege greifen dann über die Auslastung 5h/7d."""
+    return status not in (None, "allowed", "allowed_warning")
+
+
 def stufe(stand: dict | None, cfg: dict) -> str:
     if stand is None:
         return "normal"
-    if stand.get("status") not in (None, "allowed"):
+    if gesperrt(stand.get("status")):
         return "limit"
     s = cfg["stufen"]
     h5, d7 = stand.get("5h", 0) * 100, stand.get("7d", 0) * 100

@@ -260,6 +260,6 @@ def laufen(
 
     if ergebnis.text == "Zeitlimit überschritten":
         raise Zeitueberschreitung(f"{agent}: Lauf nach {cfg['lauf']['max_minuten']} Minuten abgebrochen")
-    if ergebnis.auslastung and ergebnis.auslastung.get("status") not in (None, "allowed"):
+    if ergebnis.auslastung and verbrauch.gesperrt(ergebnis.auslastung.get("status")):
         raise LimitErreicht(ergebnis.auslastung.get("reset_status"))
     return ergebnis
