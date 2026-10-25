@@ -10,8 +10,9 @@ termin = ""                     # Datum der Prüfungsstunde (Jan 25.10.2026: in 
 abgabe_entwurf = ""             # Bis wann der schriftliche Entwurf abgegeben werden muss
 stundenzahl = ""                # Stunden der Reihe insgesamt (Plan rechnet bis dahin mit 8 bis 10)
 pruefungsstunde_in_reihe = ""   # Die wievielte Stunde der Reihe die Prüfungsstunde ist
+pruefungsstunde_art = "Anwendungsstunde zu von Liszt (Lia, 25.10.2026)"
 stundenlaenge = ""              # 45 oder 90 Minuten
-schulform = ""                  # ISS (grundlegend/erweitert) oder Gymnasium, bestimmt die Niveaustufe im RLP
+schulform = "Gemeinschaftsschule in Neukölln (Lia, 25.10.2026); Niveaustufe noch offen"  # bestimmt die Niveaustufe im RLP
 bewertungsbogen = ""            # Dateiname, sobald Lia ihren offiziellen Bogen schickt (ersetzt rubrik.toml-Entwurf)
 fachseminarleitung_gesehen = "" # Datum, an dem die Fachseminarleitung die Grobskizze gesehen hat
 

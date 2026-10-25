@@ -58,6 +58,17 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   eingeführt), material_fehlt (Liste mit Stunde), Abkürzungen nur aus GLOSSAR (AFB, BBB, LEK, RLP, StGB, JGG,
   ISS, UB, OCR, Doku), andere Großbuchstaben-Kürzel lehnt die Prüfung ab. annahmen im Prompt auf je ein bis
   zwei Sätze begrenzt (noch nicht von Python geprüft).
+- Lias eigener Auftrag (25.10., gesprochen, über Jan): Reihenfragen, reale Fälle, Norwegen, Liszts Tätertypen.
+  Im lia-Chat von Hand recherchiert (nicht über die Agenten), Ergebnis data/reihe/recherche-1/
+  „Recherche Reihe Strafe.docx“ (4 Seiten, mit Quellen; Erzeugung erzeugen.py daneben), Version e1b145d.
+  Kernbefunde: (1) Liszt (ZStW 3, S. 39–42, OCR, am Scan prüfen) sieht für alle drei Tätertypen Freiheitsentzug
+  vor, für Unverbesserliche (rückfällige Eigentumstäter) Einschließung auf unbestimmte Zeit; „Liszt = mild“ ist
+  falsch. Der Liszt-Merksatz aus Runde 1 (Jonas: Bewährung) ist damit fachlich falsch. (2) Reale Fälle: Ingrid M.
+  (85, Memmingen, 17,63 Euro, 4 Monate Haft, LG Memmingen 09.04.2019) empfohlen, Containern Olching (AG
+  Fürstenfeldbruck 30.01.2019, BVerfG 18.08.2020), Schul-Einbrüche Bergisch Gladbach (Dez. 2019).
+  (3) Empfehlung Struktur: ein Fall, neue Täterinfos in der Examensstunde. (4) Norwegen: kein frei abrufbares
+  Video verifiziert, nur Spuren (arte „Kathedralen der Kultur“ Halden, 26 Min., 2016). Nussbaum nicht empfohlen.
+  examen.toml: Schulform Gemeinschaftsschule Neukölln (Niveau offen), Prüfungsstunde = Anwendungsstunde zu Liszt.
 - Tests: 35, grün. Kein Dienst, kein Timer.
 
 ## Aufbau
@@ -103,6 +114,11 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
 4. Verbesserungen am Ablauf vor Runde 2: Länge der annahmen in Python begrenzen (Runde 1: ca. 5000 Zeichen);
    impuls.md in den Kontext (Claude kannte den echten Impuls nicht und nahm einen anderen an).
 5. Danach Folgerunden (Schritt 6) nur für die gewählte Richtung.
+6. Vor Runde 2: Liszts Tätertypen (S. 39–42) als Stellen ins Register von lia/recherche (Auftrag an den
+   recherche-Chat); Kontext der Skizzen um Lias Vorgaben ergänzen (reale Fälle mit Quelle, Examensstunde =
+   Liszt-Anwendung). Regelvorschlag an Lia: „Fälle nur real und mit Quelle, keine erfundenen“ (erst nach Okay).
+7. Recherche im Web können die Agenten heute nicht (Allowlist nur für Primärtexte). Lias Auftrag zeigt den
+   Bedarf: Nachrichtenseiten, Gerichte, Mediatheken. Entscheidung von Jan nötig.
 
 ## Gelernte Regeln
 - (noch keine)
