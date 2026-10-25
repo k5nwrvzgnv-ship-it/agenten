@@ -31,8 +31,18 @@ Stellen. lia/examen liest das Register für die Skizzen.
     kurzzeitige Freiheitsstrafen, S. 41/42 dritte Gruppe, S. 42 Denkzettel, S. 42 Kurzformel. Alle 2 von 2,
     OCR 0,805–0,927, Feld auswahl = "von Hand", 0,41 USD. Liszt jetzt 12 Stellen, Kosten Liszt gesamt 1,69 USD.
 - Meldungen mit diesen Ergebnissen sind an Jan gegangen.
+- Webauftrag (Plan „Webrecherche“, Jan 25.10.2026) fertig und zweimal echt gelaufen, je mit Lias Auftrag:
+  - V1 (data/web/20261025-211339-lia-reihe-strafe): 2,10 USD, 31 Aussagen, 21 belegt, 10 unbelegt; Belege
+    34 bestanden, 0 durchgefallen, 0 ungeprüft (erste Prüfung 2 durchgefallen, nach Nachbesserung 0).
+  - V2 (data/web/20261025-211917-lia-reihe-strafe-v2, mit Positionslandkarte): 2,10 USD, 49 Aussagen, 32
+    belegt, 17 unbelegt; Belege 51 bestanden, 0 durchgefallen, 0 ungeprüft (erste Prüfung 1 durchgefallen).
+  - Grenzen (beim Testlauf gesehen): Ein bestandener Beleg zeigt nur, dass das Zitat auf der Seite steht, nicht
+    dass es jedes Detail der Aussage trägt (z. B. „Olching“ steht weder auf der BVerfG- noch auf der LTO-Seite).
+    Register-Belege prüfen nur, dass die Stelle existiert, nicht, dass sie die Aussage stützt. YouTube-Titel
+    ließen sich auf den Videoseiten nicht prüfen (Videos landeten unter „Nicht belegt“ bzw. Lücken). Claude
+    konnte lia/examen/seminar_vorbild.md nicht lesen (außerhalb des Agent-Ordners).
 - Kein Dienst, kein Timer (Teil D).
-- 90 Tests (tests/), in pruefen.sh eingetragen.
+- 108 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -81,6 +91,19 @@ Stellen. lia/examen liest das Register für die Skizzen.
   data/text/<id>.txt (Textfassung mit „--- Seite N“, lesbar mit agentkit.wortlaut.seiten),
   data/kernstellen/<id>.json (Claudes Antwort), data/register.json. Logs: logs/recherche.log.
 
+## Webauftrag
+- Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python webauftrag.py <auftragsdatei>`.
+  Auftragsdateien von Hand in data/web/auftraege/. Ablage je Auftrag data/web/<id>/: auftrag.txt, ergebnis.json
+  (Claude), ergebnis_1.json (vor der Nachbesserung), geprueft.json (mit Prüfung, Zahlen, Kosten), Recherche.docx,
+  roh/ (Cache der geladenen Seiten).
+- webauftrag.py: Claude (anspruchsvoll, WebSearch/WebFetch, WebFetch nur auf [webfetch] recherche) bekommt den
+  Auftrag und die geprüften Registerstellen, schreibt Aussagen mit Belegen ({url, zitat} oder {register}),
+  luecken, rueckfragen. Durchgefallene Belege einmal zurück (dieselbe Sitzung). Kostengrenze 8 USD je Auftrag.
+  docx über shared/renderer (Art arbeitsblatt, profil.toml = Kopie von lia/examen), Meldung an Jan mit Zahlen.
+- webpruefung.py (rein, getestet): Zitat wörtlich auf der Seite (abruf.laden mit Jans Domains als Allowlist,
+  html_zu_text, wortlaut.steht_in); Videoseiten nur Titel; fremde Domain: ungeprüft, nicht geladen; Register-
+  Verweis muss als Stelle existieren. Belegt = mindestens ein bestandener Beleg, sonst „Nicht belegt“.
+
 ## Registereintrag
 id, art, werk, ausgabe, autor/herausgeber/uebersetzer (falls angegeben), urls, abgerufen (frühester Abruf), roh (je URL: url, abgerufen,
 sha256 des geladenen Inhalts), textfassung (Pfad relativ zum Agent-Ordner), sha256 (der Textfassung),
@@ -123,6 +146,9 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
 4. Claude kann im Agent-Ordner mehr lesen als die Textfassung (claude_lauf beschränkt nur das
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
 5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
+6. Webauftrag: Lias Zentrale als Eingang (Teil C des Plans „Webrecherche“). Offen auch: Wie bekommt Claude
+   Dateien außerhalb des Agent-Ordners (z. B. seminar_vorbild.md)? Vorschlag: der Auftrag nennt sie, Python
+   kopiert sie nach data/web/<id>/ (Jans Entscheidung). Zitatprüfung je Detail ist nicht automatisch möglich.
 
 ## Gelernte Regeln
 - (noch keine)
