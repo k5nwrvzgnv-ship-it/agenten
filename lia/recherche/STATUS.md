@@ -52,7 +52,7 @@ Stellen. lia/examen liest das Register für die Skizzen.
 - Anhänge zum Webauftrag (anhaenge.py): ANHANG:-Zeilen und --anhang, Kopie nach data/web/<id>/anhaenge/, pdf/docx
   mit Textfassung (pypdf 6.21.0 am 25.10. mit Jans Okay installiert). Noch nicht mit echtem Auftrag gelaufen.
 - Kein Dienst, kein Timer (Teil D).
-- 125 Tests (tests/), in pruefen.sh eingetragen.
+- 124 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
