@@ -1,7 +1,8 @@
 """Webauftrag: Ein Rechercheauftrag (Textdatei) wird von Claude im Web recherchiert und von Python geprüft.
 
 Aufruf (vorerst von Hand, Lias Zentrale folgt in Teil C):
-    AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python webauftrag.py <auftragsdatei>
+    AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python webauftrag.py <auftragsdatei> [--anhang <pfad>]
+    AGENTKIT_INSTANZ=... .venv/bin/python webauftrag.py --nur-traegt data/web/<id>
 
 Ablauf (Plan „Webrecherche“, Jan 25.10.2026):
 1. Ablage data/web/<id>/ (auftrag.txt, ergebnis.json von Claude, geprueft.json, Recherche.docx, roh/ Cache).
@@ -11,9 +12,13 @@ Ablauf (Plan „Webrecherche“, Jan 25.10.2026):
 3. Python prüft jeden Beleg (webpruefung.py). Durchgefallene gehen einmal an Claude zurück (dieselbe Sitzung),
    danach wird endgültig geprüft.
 4. docx über shared/renderer (profil.toml = Lias Profil), Meldung an Jan mit Zahlen, Kosten und Pfad.
+5. Prüflauf (traegt.py): Trägt jedes Zitat seine Tatsachenaussage? Günstiger Lauf (art routine), "nein" wird
+   unbelegt, "teilweise" bekommt im docx „Detail nicht belegt: …“. Einzeln: --nur-traegt data/web/<id>.
+Anhänge: Zeilen "ANHANG: <pfad>" im Auftrag oder --anhang <pfad> (anhaenge.py), Kopie nach data/web/<id>/anhaenge/.
 Kostengrenze GRENZE_USD je Auftrag (agent.Kosten).
 """
 
+import argparse
 import json
 import re
 import shutil
@@ -22,10 +27,12 @@ from datetime import datetime
 from pathlib import Path
 
 import agent
+import anhaenge
 import auslesen
 import register
+import traegt
 import webpruefung
-from agentkit import abruf, claude_lauf, einstellungen
+from agentkit import abruf, claude_lauf, einstellungen, textfassung
 
 HIER = agent.HIER
 logger = agent.logger
@@ -53,14 +60,17 @@ def register_text(reg: dict[str, dict]) -> str:
     return "\n".join(zeilen) or "(keine)"
 
 
-def prompt(auftrag: str, reg_text: str, domains: list[str], ausgabe: str) -> str:
+def prompt(auftrag: str, reg_text: str, domains: list[str], ausgabe: str, beilagen: list[str] = ()) -> str:
+    anhang = ("\nANHÄNGE zum Auftrag (mit Read lesen; bei pdf/docx liegt eine Textfassung .txt daneben):\n"
+              + "\n".join(f"- {b}" for b in beilagen) + "\nAndere Pfade aus dem Auftrag sind nicht lesbar.\n"
+              if beilagen else "")
     return f"""Aufgabe: Recherchiere den folgenden Auftrag im Web und schreibe das Ergebnis als JSON in eine Datei.
 
 AUFTRAG (von der Lehrkraft, wörtlich):
 <<<
 {auftrag}
 >>>
-
+{anhang}
 BEREITS GEPRÜFTE QUELLEN (Quellenregister; wörtlich geprüft, Liszt-Stellen vom Scan abgeschrieben).
 Du darfst sie als Beleg nutzen mit {{"register": "<quelle>:<seite>"}}, genau mit dem Verweis vor der Klammer:
 {reg_text}
@@ -116,34 +126,98 @@ def seitenleser(domains: list[str], cache: Path):
     return seitentext
 
 
+def _laufen_standard(hier: Path):
+    def laufen(text, sitzung=None, art="anspruchsvoll"):
+        return claude_lauf.laufen(agent.AGENT, hier, text, art=art, sitzung_fortsetzen=sitzung)
+    return laufen
+
+
+def _lauf(laufen, kosten: "agent.Kosten", name: str):
+    def lauf(text: str, sitzung: str | None, wofuer: str, art: str = "anspruchsvoll"):
+        kosten.vorher()
+        erg = laufen(text, sitzung, art=art)
+        kosten.dazu(erg, f"Webauftrag {name} {wofuer}")
+        if not erg.ok:  # z. B. max_turns: Die Datei kann trotzdem brauchbar sein
+            logger.warning("Webauftrag %s %s: Lauf nicht ok: %s", name, wofuer, erg.text[:300])
+        return erg
+    return lauf
+
+
+def traegt_pruefen(daten: dict, reg: dict, ordner: Path, hier: Path, lauf) -> dict:
+    """Prüflauf „trägt das Zitat die Aussage?“ (traegt.py): art routine, neue Sitzung, eine Nachbesserung."""
+    liste = traegt.faelle(daten, reg)
+    ids = [f["id"] for f in liste]
+    if not ids:
+        return traegt.anwenden(daten, [], {})
+    ausgabe = ordner.relative_to(hier) / "traegt.json"
+    (hier / ausgabe).unlink(missing_ok=True)
+    erg = lauf(traegt.prompt(liste, str(ausgabe)), None, "Prüflauf trägt", art="routine")
+    urteile, fehler = traegt.lesen(hier / ausgabe, ids)
+    if fehler:
+        logger.info("Webauftrag %s: Prüflauf mit Fehlern (%s), Nachbesserung", ordner.name, "; ".join(fehler)[:300])
+        lauf(traegt.nachbesserung_prompt(fehler, str(ausgabe)), erg.sitzung, "Prüflauf Nachbesserung", art="routine")
+        neu, fehler = traegt.lesen(hier / ausgabe, ids)
+        urteile = {**urteile, **neu}
+        if fehler:
+            logger.warning("Webauftrag %s: Prüflauf bleibt fehlerhaft: %s", ordner.name, "; ".join(fehler)[:300])
+    return traegt.anwenden(daten, ids, urteile)
+
+
+def _abschliessen(ordner: Path, daten: dict, reg: dict, kosten, renderer_bauen, melden, abgelehnt: list[str]) -> None:
+    daten["kosten_usd"] = round(kosten.summe, 4)
+    (ordner / "geprueft.json").write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
+    titel = f"Recherche vom {datetime.now():%d.%m.%Y}"
+    if renderer_bauen is None:
+        import tomllib
+
+        import renderer
+        profil = tomllib.loads(PROFIL.read_text(encoding="utf-8"))
+
+        def renderer_bauen(b, ziel):
+            return renderer.bauen(b, ziel, profil=profil, vorschau=False)
+    docx = ordner / "Recherche.docx"
+    renderer_bauen(webpruefung.beschreibung(titel, daten, reg), docx)
+    z, e1, t = daten["zahlen"], daten.get("erste_pruefung") or daten["zahlen"], daten.get("traegt_zahlen")
+    traegt_text = (f"Trägt das Zitat die Aussage: {t['ja']} ja, {t['teilweise']} teilweise, {t['nein']} nein, "
+                   f"{t['nicht_geprueft']} nicht geprüft. ") if t else ""
+    anhang_text = f"Abgelehnte Anhänge: {'; '.join(abgelehnt)}. " if abgelehnt else ""
+    melden(f"Webauftrag fertig: {z['belegt']} von {z['aussagen']} Aussagen belegt, {z['unbelegt']} unbelegt. "
+           f"Belege: {z['bestanden']} bestanden, {z['durchgefallen']} durchgefallen, {z['ungeprueft']} ungeprüft "
+           f"(erste Prüfung: {e1['bestanden']}/{e1['durchgefallen']}/{e1['ungeprueft']}). {traegt_text}"
+           f"Lücken: {len(daten['luecken'])}, Rückfragen: {len(daten['rueckfragen'])}. {anhang_text}"
+           f"Kosten {kosten.summe:.2f} USD in {kosten.laeufe} Läufen. Datei: {docx}")
+    logger.info("Webauftrag %s fertig: %s, trägt %s, %.4f USD", ordner.name, z, t, kosten.summe)
+
+
 def ausfuehren(datei: Path, hier: Path = HIER, laufen=None, seitentext=None, renderer_bauen=None,
-               melden=agent.jan_melden, cfg: dict | None = None, kosten: agent.Kosten | None = None) -> Path:
+               melden=agent.jan_melden, cfg: dict | None = None, kosten: agent.Kosten | None = None,
+               anhang: list[str] = (), als_text=textfassung.als_text,
+               anhang_wurzel: Path = anhaenge.ERLAUBT_UNTER) -> Path:
     """Ein Webauftrag. Gibt den Ordner data/web/<id>/ zurück."""
     cfg = cfg or einstellungen.lade()
     domains = einstellungen.webfetch_domains(cfg, agent.AGENT) or []
     kosten = kosten or agent.Kosten()
-    ordner = hier / "data" / "web" / auftrag_id(datei)
-    ordner.mkdir(parents=True, exist_ok=False)
+    basis, n = hier / "data" / "web" / auftrag_id(datei), 1
+    ordner = basis
+    while ordner.exists():
+        n += 1
+        ordner = basis.with_name(f"{basis.name}-{n}")
+    ordner.mkdir(parents=True)
     shutil.copyfile(datei, ordner / "auftrag.txt")
     auftrag = (ordner / "auftrag.txt").read_text(encoding="utf-8")
+    kopiert, abgelehnt = anhaenge.kopieren(anhaenge.aus_auftrag(auftrag) + list(anhang), ordner / "anhaenge",
+                                           als_text, anhang_wurzel)
+    for a in abgelehnt:
+        logger.warning("Webauftrag %s: Anhang abgelehnt: %s", ordner.name, a)
     reg = register.laden(hier / "data" / "register.json")
     stellen = webpruefung.register_stellen(reg)
     ausgabe = ordner.relative_to(hier) / "ergebnis.json"
     seitentext = seitentext or seitenleser(domains, ordner / "roh")
-    if laufen is None:
-        def laufen(text, sitzung=None):
-            return claude_lauf.laufen(agent.AGENT, hier, text, art="anspruchsvoll", sitzung_fortsetzen=sitzung)
-
-    def lauf(text: str, sitzung: str | None, wofuer: str):
-        kosten.vorher()
-        erg = laufen(text, sitzung)
-        kosten.dazu(erg, f"Webauftrag {ordner.name} {wofuer}")
-        if not erg.ok:  # z. B. max_turns: Die Datei kann trotzdem brauchbar sein
-            logger.warning("Webauftrag %s %s: Lauf nicht ok: %s", ordner.name, wofuer, erg.text[:300])
-        return erg
+    lauf = _lauf(laufen or _laufen_standard(hier), kosten, ordner.name)
+    beilagen = [str(k.relative_to(hier)) for k in kopiert]
 
     try:
-        erg = lauf(prompt(auftrag, register_text(reg), domains, str(ausgabe)), None, "Recherche")
+        erg = lauf(prompt(auftrag, register_text(reg), domains, str(ausgabe), beilagen), None, "Recherche")
         daten = webpruefung.pruefen(webpruefung.lesen(hier / ausgabe), domains, seitentext, stellen)
         nachbesserung = webpruefung.durchgefallene(daten)
         erste = dict(daten["zahlen"])
@@ -152,42 +226,56 @@ def ausfuehren(datei: Path, hier: Path = HIER, laufen=None, seitentext=None, ren
             (ordner / "ergebnis_1.json").write_text((hier / ausgabe).read_text(encoding="utf-8"), encoding="utf-8")
             lauf(nachbesserung_prompt(nachbesserung, str(ausgabe)), erg.sitzung, "Nachbesserung")
             daten = webpruefung.pruefen(webpruefung.lesen(hier / ausgabe), domains, seitentext, stellen)
+        daten["erste_pruefung"] = erste
+        daten["anhaenge"] = {"kopiert": beilagen, "abgelehnt": abgelehnt}
+        daten = traegt_pruefen(daten, reg, ordner, hier, lauf)
     except (webpruefung.WebFehler, agent.KostenGrenze, claude_lauf.LaufFehler) as f:
         logger.error("Webauftrag %s: %s", ordner.name, f)
-        melden(f"Webauftrag {ordner.name} abgebrochen: {f}. Kosten {kosten.summe:.2f} USD. Ordner: {ordner}")
+        anhang_text = f" Abgelehnte Anhänge: {'; '.join(abgelehnt)}." if abgelehnt else ""
+        melden(f"Webauftrag {ordner.name} abgebrochen: {f}. Kosten {kosten.summe:.2f} USD.{anhang_text} Ordner: {ordner}")
         raise
-    daten["erste_pruefung"] = erste
-    daten["kosten_usd"] = round(kosten.summe, 4)
-    (ordner / "geprueft.json").write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
+    _abschliessen(ordner, daten, reg, kosten, renderer_bauen, melden, abgelehnt)
+    return ordner
 
-    titel = f"Recherche vom {datetime.now():%d.%m.%Y}"
-    if renderer_bauen is None:
-        import renderer
-        import tomllib
-        profil = tomllib.loads(PROFIL.read_text(encoding="utf-8"))
 
-        def renderer_bauen(b, ziel):
-            return renderer.bauen(b, ziel, profil=profil, vorschau=False)
-    docx = ordner / "Recherche.docx"
-    renderer_bauen(webpruefung.beschreibung(titel, daten, reg), docx)
-
-    z, e1 = daten["zahlen"], erste
-    melden(f"Webauftrag fertig: {z['belegt']} von {z['aussagen']} Aussagen belegt, {z['unbelegt']} unbelegt. "
-           f"Belege: {z['bestanden']} bestanden, {z['durchgefallen']} durchgefallen, {z['ungeprueft']} ungeprüft "
-           f"(erste Prüfung: {e1['bestanden']}/{e1['durchgefallen']}/{e1['ungeprueft']}). "
-           f"Lücken: {len(daten['luecken'])}, Rückfragen: {len(daten['rueckfragen'])}. "
-           f"Kosten {kosten.summe:.2f} USD in {kosten.laeufe} Läufen. Datei: {docx}")
-    logger.info("Webauftrag %s fertig: %s, %.4f USD", ordner.name, z, kosten.summe)
+def nur_traegt(ordner: Path, hier: Path = HIER, laufen=None, renderer_bauen=None, melden=agent.jan_melden,
+               kosten: agent.Kosten | None = None) -> Path:
+    """Prüflauf auf einen fertigen Auftrag anwenden (ohne neue Recherche), neues docx. Das alte geprueft.json
+    bleibt als geprueft_vor_traegt.json."""
+    kosten = kosten or agent.Kosten()
+    alt = ordner / "geprueft.json"
+    daten = json.loads(alt.read_text(encoding="utf-8"))
+    if "traegt_zahlen" in daten:
+        raise webpruefung.WebFehler(f"{ordner.name}: Prüflauf ist schon gelaufen")
+    shutil.copyfile(alt, ordner / "geprueft_vor_traegt.json")
+    reg = register.laden(hier / "data" / "register.json")
+    lauf = _lauf(laufen or _laufen_standard(hier), kosten, ordner.name)
+    try:
+        daten = traegt_pruefen(daten, reg, ordner, hier, lauf)
+    except (agent.KostenGrenze, claude_lauf.LaufFehler) as f:
+        melden(f"Prüflauf für {ordner.name} abgebrochen: {f}. Kosten {kosten.summe:.2f} USD.")
+        raise
+    daten["kosten_usd_traegt"] = round(kosten.summe, 4)
+    _abschliessen(ordner, daten, reg, kosten, renderer_bauen, melden, daten.get("anhaenge", {}).get("abgelehnt", []))
     return ordner
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2 or not Path(argv[1]).is_file():
-        print("Aufruf: webauftrag.py <auftragsdatei>", file=sys.stderr)
-        return 2
+    teiler = argparse.ArgumentParser(prog="webauftrag.py", description="Webauftrag recherchieren und prüfen.")
+    teiler.add_argument("auftrag", nargs="?", help="Auftragsdatei (Text)")
+    teiler.add_argument("--anhang", action="append", default=[], help="Datei für Claude (mehrfach erlaubt)")
+    teiler.add_argument("--nur-traegt", metavar="ORDNER", help="nur den Prüflauf auf data/web/<id> anwenden")
+    args = teiler.parse_args(argv[1:])
     try:
-        print(ausfuehren(Path(argv[1]).resolve()))
-    except (webpruefung.WebFehler, agent.KostenGrenze, claude_lauf.LaufFehler):
+        if args.nur_traegt:
+            print(nur_traegt(Path(args.nur_traegt).resolve()))
+        elif args.auftrag and Path(args.auftrag).is_file():
+            print(ausfuehren(Path(args.auftrag).resolve(), anhang=args.anhang))
+        else:
+            teiler.print_usage(sys.stderr)
+            return 2
+    except (webpruefung.WebFehler, agent.KostenGrenze, claude_lauf.LaufFehler) as f:
+        print(f, file=sys.stderr)
         return 1
     return 0
 

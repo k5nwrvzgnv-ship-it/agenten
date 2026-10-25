@@ -152,6 +152,14 @@ def _bloecke_liste(punkte: list[str], nummeriert: bool = False) -> list[dict]:
     return [{"typ": "liste", "punkte": punkte[i:i + 50], "nummeriert": nummeriert} for i in range(0, len(punkte), 50)]
 
 
+def _traegt_satz(daten: dict) -> str:
+    z = daten.get("traegt_zahlen")
+    if not z:
+        return ""
+    return (f" Zusätzlich geprüft, ob die Zitate die Tatsachenaussagen tragen (Einschätzungen nicht): {z['ja']} ja, "
+            f"{z['teilweise']} teilweise, {z['nein']} nein, {z['nicht_geprueft']} nicht geprüft.")
+
+
 def beschreibung(titel: str, daten: dict, register: dict[str, dict]) -> dict:
     """Renderer-Beschreibung (Art arbeitsblatt): Abschnitte mit Quellennummern, Quellen, Nicht belegt,
     Lücken, Rückfragen. Belegt sind nur Aussagen mit mindestens einem bestandenen Beleg."""
@@ -168,7 +176,8 @@ def beschreibung(titel: str, daten: dict, register: dict[str, dict]) -> dict:
     bloecke = [{"typ": "absatz", "text": (
         f"Automatisch recherchiert, von Python geprüft. {z['belegt']} von {z['aussagen']} Aussagen belegt. "
         f"Belege: {z['bestanden']} bestanden, {z['durchgefallen']} durchgefallen, {z['ungeprueft']} ungeprüft "
-        "(Quelle nicht auf der Liste). In eckigen Klammern: Nummern der bestandenen Belege, siehe Quellen.")}]
+        "(Quelle nicht auf der Liste). In eckigen Klammern: Nummern der bestandenen Belege, siehe Quellen."
+        + _traegt_satz(daten))}]
     nicht_belegt = []
     for a in daten["abschnitte"]:
         belegte = [s for s in a["aussagen"] if s["belegt"]]
@@ -180,6 +189,11 @@ def beschreibung(titel: str, daten: dict, register: dict[str, dict]) -> dict:
             gut = sorted({nr(b) for b in s["belege"] if b["pruefung"]["status"] == "bestanden"})
             offen = sorted({nr(b) for b in s["belege"] if b["pruefung"]["status"] == "ungeprueft"})
             klammer = ", ".join(map(str, gut)) + (f"; ungeprüft: {', '.join(map(str, offen))}" if offen else "")
+            urteil = s.get("traegt", {})
+            if urteil.get("traegt") == "teilweise":
+                klammer += f"; Detail nicht belegt: {urteil.get('fehlt') or 'nicht genannt'}"
+            elif urteil.get("traegt") == "nicht geprüft":
+                klammer += "; ob das Zitat die Aussage trägt: nicht geprüft"
             bloecke.append({"typ": "absatz", "text": f"{s['text']} [{klammer}]"[:5000]})
     if nicht_belegt:
         bloecke.append({"typ": "ueberschrift", "text": "Nicht belegt", "ebene": 1})
@@ -188,6 +202,8 @@ def beschreibung(titel: str, daten: dict, register: dict[str, dict]) -> dict:
         punkte = []
         for t, s in nicht_belegt:
             gruende = "; ".join(f"{b.get('register') or b['url']}: {b['pruefung']['vermerk']}" for b in s.get("belege", []))
+            if s.get("traegt", {}).get("traegt") == "nein":
+                gruende = f"Zitat trägt die Aussage nicht: {s['traegt'].get('fehlt') or 'ohne Angabe'}; " + gruende
             punkte.append(f"{t}: {s['text']} (Belege: {gruende or 'keine'})")
         bloecke += _bloecke_liste(punkte)
     if quellen:
