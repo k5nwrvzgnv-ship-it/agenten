@@ -11,11 +11,14 @@ Ablauf (Jan, 25.10.2026), gesteuert von agent.py:
 """
 
 import json
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import abschrift
+from agentkit import wortlaut
 
 MIN_STELLEN, MAX_STELLEN = 3, 5
+UEBERSCHNEIDUNG = 40  # gemeinsame Zeichen (normalisiert), ab denen zwei Stellen als doppelt gelten
 MAX_ZEICHEN = 900  # über eine Seitengrenze hinweg darf es etwas länger sein als bei Kant
 
 
@@ -50,24 +53,35 @@ Schreibe das Ergebnis NUR in die Datei {ausgabe}, als JSON:
 Antworte danach mit einem Satz."""
 
 
+def _zeile(s: dict, bilder: dict[int, str]) -> str:
+    kopf = (f"- Stelle {s['nr']}: Bild(er) {', '.join(bilder[x] for x in s['seiten'])} (Druckseite "
+            f"{'/'.join(str(x) for x in s['seiten'])}).")
+    if s.get("genau"):
+        zeile = f"{kopf} GENAU von: \"{s['anfang']}\" bis einschließlich: \"{s['ende']}\"."
+    else:
+        zeile = f"{kopf} Beginnt etwa mit: \"{s['anfang']}\". Endet etwa mit: \"{s['ende']}\"."
+    return zeile + (f" Hinweis: {s['hinweis']}" if s.get("hinweis") else "")
+
+
 def abschrift_prompt(stellen: list[dict], bilder: dict[int, str], ausgabe: str) -> str:
-    """stellen: [{nr, seiten, anfang, ende}], bilder: {seite: Pfad relativ zum Agent-Ordner}."""
-    liste = "\n".join(
-        f"- Stelle {s['nr']}: Bild(er) {', '.join(bilder[x] for x in s['seiten'])} (Druckseite "
-        f"{'/'.join(str(x) for x in s['seiten'])}). Beginnt etwa mit: \"{s['anfang']}\". Endet etwa mit: \"{s['ende']}\"."
-        for s in stellen)
+    """stellen: [{nr, seiten, anfang, ende, genau?, hinweis?}], bilder: {seite: Pfad relativ zum Agent-Ordner}.
+    genau (Stellen von Hand): exakt von den Anfangs- bis einschließlich der Endwörter, nicht bis zum Satzende."""
+    liste = "\n".join(_zeile(s, bilder) for s in stellen)
     return f"""Aufgabe: Schreibe Textstellen von Seitenbildern eines Drucks von 1883 (Fraktur) ab.
 
 Lies NUR die genannten Bilddateien, keine anderen Dateien.
 {liste}
 
-Die Anfangs- und Endwörter sind aus einer schlechten Texterkennung erschlossen und können leicht abweichen.
-Suche die Stelle auf dem Bild und schreibe sie vollständig ab, vom Satzanfang bis zum Satzende.
+Ohne GENAU: Die Anfangs- und Endwörter sind aus einer schlechten Texterkennung erschlossen und können leicht
+abweichen. Suche die Stelle auf dem Bild und schreibe sie vollständig ab, vom Satzanfang bis zum Satzende.
+Mit GENAU: Schreibe exakt von den angegebenen Anfangswörtern bis einschließlich der Endwörter, auch wenn
+die Stelle mitten im Satz endet. Nichts davor, nichts danach.
 
 Regeln:
 - Buchstabengetreu, wie gedruckt. Alte Schreibung belassen (z. B. Theil, seyn, Thatsache). Nichts verbessern,
   nichts modernisieren, nichts auslassen, keine Auslassungszeichen.
 - Langes ſ als s schreiben. ß bleibt ß.
+- Bindestriche der Vorlage (in Fraktur oft "=", z. B. "Eigentums=, in zweiter") als "-" schreiben.
 - Silbentrennung am Zeilenende auflösen (das Trennzeichen sieht aus wie "=" oder "-"); Zeilenumbrüche als
   Leerzeichen. Gesperrt Gedrucktes normal schreiben.
 - Fußnotenzeichen (hochgestellte Ziffern) und Fußnoten weglassen.
@@ -77,6 +91,23 @@ Schreibe das Ergebnis NUR in die Datei {ausgabe}, als JSON:
 {{"stellen": [{{"nr": 1, "zitat": "..."}}]}}
 nr ist genau die Nummer der Stelle aus der Liste oben (nicht neu zählen).
 Antworte danach mit einem Satz."""
+
+
+def schluessel(s: dict) -> str:
+    """Kennung einer Stelle von Hand: erste Seite und Anfangswörter."""
+    return f"{s['seiten'][0]}:{s['anfang']}"
+
+
+def ueberschneidung(zitat: str, vorhandene: list[dict]) -> str | None:
+    """Grund, wenn das Zitat mindestens UEBERSCHNEIDUNG Zeichen (normalisiert) mit einer vorhandenen
+    Stelle gemeinsam hat, sonst None."""
+    kurz = wortlaut.normalisieren(zitat)
+    for v in vorhandene:
+        anderes = wortlaut.normalisieren(v["zitat"])
+        gemeinsam = SequenceMatcher(None, kurz, anderes, autojunk=False).find_longest_match().size
+        if gemeinsam >= min(UEBERSCHNEIDUNG, len(kurz), len(anderes)):
+            return f"überschneidet sich mit vorhandener Stelle S. {v['seite']}"
+    return None
 
 
 def _json_stellen(pfad: Path) -> list:

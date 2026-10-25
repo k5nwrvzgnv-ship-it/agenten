@@ -76,6 +76,15 @@ def _scan_pruefen(q: dict) -> None:
         raise QuellenFehler(f"Quelle {qid}: druckseiten = [von, bis] fehlt")
     if not isinstance(q.get("scan_versatz"), int):
         raise QuellenFehler(f"Quelle {qid}: scan_versatz fehlt")
+    von, bis = seiten
+    for h in q.get("stelle_von_hand", []):
+        s = h.get("seiten")
+        if (not isinstance(s, list) or not 1 <= len(s) <= 2 or not all(isinstance(x, int) and von <= x <= bis for x in s)
+                or (len(s) == 2 and s[1] != s[0] + 1)):
+            raise QuellenFehler(f"Quelle {qid}: stelle_von_hand mit ungültigen seiten {s!r}")
+        for feld in ("anfang", "ende", "position", "zweck"):
+            if not isinstance(h.get(feld), str) or not h[feld].strip():
+                raise QuellenFehler(f"Quelle {qid}: stelle_von_hand S. {s[0]}: {feld} fehlt")
     if sorted(q["urls"]) != sorted(scan.dateien(q["scan_id"]).values()):
         raise QuellenFehler(f"Quelle {qid}: urls müssen die drei Dateien des Scans sein: "
                             + ", ".join(scan.dateien(q["scan_id"]).values()))

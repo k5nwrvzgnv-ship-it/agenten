@@ -80,3 +80,56 @@ urls = [
   "https://archive.org/download/zeitschriftgesa00berluoft/zeitschriftgesa00berluoft_hocr_searchtext.txt.gz",
   "https://archive.org/download/zeitschriftgesa00berluoft/zeitschriftgesa00berluoft_hocr_pageindex.json.gz",
 ]
+
+# Stellen von Hand (Jan, 25.10.2026, Runde 2 von lia/examen): Liszts drei Tätertypen, S. 39–42.
+# Ohne Claude-Auswahl; Anfang und Ende am Bild gelesen. Abschrift und Prüfung wie bei der Auswahl
+# (zwei Abschriften, OCR-Abgleich). Jede wird einmal versucht (Register: kernstellen.von_hand).
+[[quelle.stelle_von_hand]]
+seiten = [39]
+anfang = "Es sind in erster Linie die Eigentums"
+ende = "Brandstiftung, Sachbeschädigung"
+hinweis = "Die Aufzählung geht danach weiter; genau nach dem Wort Sachbeschädigung aufhören (die zwei folgenden Delikte gehören nicht in Material für Klasse 8)."
+position = "Unschädlichmachung (Tätertyp 1: Gewohnheitsverbrecher)"
+zweck = "Zeigt, welche Taten Liszt den Gewohnheitsverbrechern zuordnet: vor allem Eigentumsdelikte wie Diebstahl und Raub."
+
+[[quelle.stelle_von_hand]]
+seiten = [39]
+anfang = "Die „Unschädlichmachung“ der Unverbesserlichen denke ich mir"
+ende = "auf unbestimmte Zeit zu erkennen sei."
+position = "Unschädlichmachung (Tätertyp 1)"
+zweck = "Zeigt: Liszt fordert für Rückfällige nach der dritten Verurteilung Haft auf unbestimmte Zeit."
+
+[[quelle.stelle_von_hand]]
+seiten = [40]
+anfang = "Zweite Gruppe. Die Besserungsbedürftigen."
+ende = "rekrutiert sich das Gewohnheitsverbrechertum."
+position = "Besserung (Tätertyp 2: Besserungsbedürftige)"
+zweck = "Zeigt, wen Liszt bessern will: Täter, die zum Verbrechen neigen, aber noch nicht verloren sind."
+
+[[quelle.stelle_von_hand]]
+seiten = [41]
+anfang = "Das Minimum der hier eintretenden Freiheitsstrafe"
+ende = "gegen die Lehrlinge auf der Bahn des Verbrechens."
+position = "Besserung (Tätertyp 2): lange statt kurzer Haft"
+zweck = "Zeigt, dass Liszt nicht mild ist: Besserung heißt bei ihm mindestens ein Jahr Freiheitsstrafe, kurze Strafen lehnt er ab."
+
+[[quelle.stelle_von_hand]]
+seiten = [41, 42]
+anfang = "Die dritte Gruppe wird, nach Abzug"
+ende = "eine systematische Besserung daher durchaus zwecklos ist."
+position = "Abschreckung (Tätertyp 3: Gelegenheitsverbrecher)"
+zweck = "Erklärt die dritte Gruppe: Für einmalige Täter ist Besserung unnötig, die Gefahr einer Wiederholung gering."
+
+[[quelle.stelle_von_hand]]
+seiten = [42]
+anfang = "Hier soll die Strafe lediglich"
+ende = "für den egoistischen Trieb des Verbrechers."
+position = "Abschreckung (Tätertyp 3): Denkzettel"
+zweck = "Zeigt, was Strafe beim Gelegenheitstäter soll: eine spürbare Warnung, ein Denkzettel."
+
+[[quelle.stelle_von_hand]]
+seiten = [42]
+anfang = "Unschädlichmachung der Unverbesserlichen,"
+ende = "Besserung der Besserungsfähigen."
+position = "Zusammenfassung Zweckstrafe"
+zweck = "Liszts Kurzformel, gut als Merksatz für die Gegenposition zu Kant."

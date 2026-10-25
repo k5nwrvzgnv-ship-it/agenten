@@ -128,9 +128,103 @@ def _kernstellen_merken(e: dict, kosten: Kosten, usd_vorher: float, gestrichen: 
                         "usd": round(kosten.summe - usd_vorher, 4), "gestrichen": gestrichen}
 
 
+def _vom_bild(e: dict, q: dict, hier: Path, auswahl: list[dict], praefix: str, laufen, kosten: Kosten, laden,
+              allowlist, vorhandene: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Bilder laden, zwei Abschriften (bei Abweichung eine dritte), jede Stelle prüfen.
+    Gibt (bestandene Registerstellen, gestrichen [{seite, grund}]) zurück. vorhandene: gegen Überschneidung."""
+    ocr = wortlaut.seiten((hier / e["textfassung"]).read_text(encoding="utf-8"))
+    ordner = Path("data") / "kernstellen"
+    bilder = {}
+    for s in sorted({x for a in auswahl for x in a["seiten"]}):
+        erg_bild = laden(scan.bild_url(e["scan_id"], e["scan_n"][str(s)]), allowlist, hier / "data" / "roh")
+        pfad = Path("data") / "bilder" / q["id"] / f"s{s}.jpg"
+        (hier / pfad).parent.mkdir(parents=True, exist_ok=True)
+        (hier / pfad).write_bytes(erg_bild.inhalt)
+        bilder[s] = str(pfad)
+    schluessel = [seitenbild.schluessel(s) for s in auswahl] if praefix else None
+
+    def abschreiben(stellen: list[dict], name: str) -> dict[int, str]:
+        name = praefix + name
+        datei = ordner / f"{q['id']}_abschrift_{name}.json"
+        nrn = [s["nr"] for s in stellen]
+        # Schon bezahlte Abschrift derselben Textfassung und derselben Stellen wiederverwenden
+        merk = hier / ordner / f"{q['id']}_abschrift_{name}_merk.json"
+        alt = json.loads(merk.read_text(encoding="utf-8")) if merk.exists() else {}
+        if (alt.get("sha256") == e["sha256"] and alt.get("nrn") == nrn and alt.get("schluessel") == schluessel
+                and (hier / datei).exists()):
+            logger.info("%s: gespeicherte Abschrift %s wiederverwendet", q["id"], name)
+            return seitenbild.abschriften_lesen(hier / datei, nrn)
+        (hier / datei).unlink(missing_ok=True)
+        kosten.vorher()
+        erg = laufen(seitenbild.abschrift_prompt(stellen, bilder, str(datei)))  # neue Sitzung, kein Kontext
+        kosten.dazu(erg, f"{q['id']} Abschrift {name}")
+        if not erg.ok:
+            logger.error("%s: Abschrift %s fehlgeschlagen: %s", q["id"], name, erg.text[:300])
+            return {}
+        try:
+            gelesen = seitenbild.abschriften_lesen(hier / datei, nrn)
+            merk.write_text(json.dumps({"sha256": e["sha256"], "nrn": nrn, "schluessel": schluessel}),
+                            encoding="utf-8")
+            return gelesen
+        except seitenbild.SeitenbildFehler as f:
+            logger.error("%s: %s", q["id"], f)
+            return {}
+
+    a = abschreiben(auswahl, "a") if auswahl else {}
+    b = abschreiben(auswahl, "b") if auswahl else {}
+    strittig = [s for s in auswahl if a.get(s["nr"]) and b.get(s["nr"])
+                and abschrift.vergleichen([a[s["nr"]], b[s["nr"]]])[0] is None
+                and "[?]" not in a[s["nr"]] + b[s["nr"]]]
+    c = abschreiben(strittig, "c") if strittig else {}
+
+    gut, gestrichen = [], []
+    for s in auswahl:
+        fassungen = [a.get(s["nr"]), b.get(s["nr"])] + ([c[s["nr"]]] if s["nr"] in c else [])
+        if None in fassungen[:2]:
+            gestrichen.append({"nr": s["nr"], "seite": s["seiten"][0], "grund": "Abschrift fehlt"})
+            continue
+        stelle, grund = seitenbild.stelle_pruefen(s, fassungen, ocr, e["scan"])
+        if stelle:
+            grund = seitenbild.ueberschneidung(stelle["zitat"], vorhandene + gut)
+        if stelle and not grund:
+            gut.append(stelle)
+        else:
+            gestrichen.append({"nr": s["nr"], "seite": s["seiten"][0], "grund": grund})
+            logger.warning("%s: Stelle S. %s verworfen: %s", q["id"], s["seiten"], grund)
+    return gut, gestrichen
+
+
+def handstellen_finden(e: dict, q: dict, hier: Path, laufen, kosten: Kosten, laden, allowlist) -> list[str]:
+    """Stellen von Hand (quellen.toml, stelle_von_hand) vom Seitenbild aufnehmen, ohne Claude-Auswahl.
+    Jede wird nur einmal versucht (kernstellen.von_hand merkt das Ergebnis je Schlüssel)."""
+    erledigt = e["kernstellen"].setdefault("von_hand", {})
+    offen = [h for h in q.get("stelle_von_hand", []) if seitenbild.schluessel(h) not in erledigt]
+    if not offen:
+        return []
+    auswahl = [{"nr": i, "seiten": h["seiten"], "anfang": h["anfang"], "ende": h["ende"], "genau": True,
+                "hinweis": h.get("hinweis", ""), "position": h["position"], "zweck": h["zweck"]}
+               for i, h in enumerate(offen, 1)]
+    usd_vorher = kosten.summe
+    gut, gestrichen = _vom_bild(e, q, hier, auswahl, "hand_", laufen, kosten, laden, allowlist, e["stellen"])
+    for s in gut:
+        s["auswahl"] = "von Hand"
+    e["stellen"] = e["stellen"] + gut
+    weg = {g["nr"]: g["grund"] for g in gestrichen}
+    for s in auswahl:
+        erledigt[seitenbild.schluessel(s)] = f"verworfen: {weg[s['nr']]}" if s["nr"] in weg else "aufgenommen"
+    e["kernstellen"]["von_hand_usd"] = round(e["kernstellen"].get("von_hand_usd", 0) + kosten.summe - usd_vorher, 4)
+    liste = ", ".join(f"S. {'/'.join(map(str, s['seiten']))} {s['position']} ({s['pruefung']['abschriften_gleich']}, "
+                      f"OCR {s['pruefung']['ocr_aehnlichkeit']:.2f})" for s in gut)
+    hinweise = [f"{q['id']}: {len(gut)} von {len(auswahl)} Stellen von Hand aufgenommen ({liste}), "
+                f"{kosten.summe - usd_vorher:.2f} USD. Lia prüft jede am Scan."]
+    if gestrichen:
+        hinweise.append(f"{q['id']}: {len(gestrichen)} verworfen: "
+                        + "; ".join(f"S. {g['seite']}: {g['grund']}" for g in gestrichen))
+    return hinweise
+
+
 def seitenbild_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten: Kosten, laden, allowlist) -> list[str]:
     """Kernstellen vom Seitenbild (seitenbild.py). Füllt e["stellen"], gibt Hinweise für Jan zurück."""
-    ocr = wortlaut.seiten((hier / e["textfassung"]).read_text(encoding="utf-8"))
     von, bis = q["druckseiten"]
     ordner = Path("data") / "kernstellen"
     (hier / ordner).mkdir(parents=True, exist_ok=True)
@@ -156,57 +250,8 @@ def seitenbild_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten: 
                                       ensure_ascii=False, indent=1), encoding="utf-8")
     gestrichen = [{"seite": None, "grund": f"Auswahl: {g}"} for g in verworfen]
 
-    bilder = {}
-    for s in sorted({x for a in auswahl for x in a["seiten"]}):
-        erg_bild = laden(scan.bild_url(e["scan_id"], e["scan_n"][str(s)]), allowlist, hier / "data" / "roh")
-        pfad = Path("data") / "bilder" / q["id"] / f"s{s}.jpg"
-        (hier / pfad).parent.mkdir(parents=True, exist_ok=True)
-        (hier / pfad).write_bytes(erg_bild.inhalt)
-        bilder[s] = str(pfad)
-
-    def abschreiben(stellen: list[dict], name: str) -> dict[int, str]:
-        datei = ordner / f"{q['id']}_abschrift_{name}.json"
-        nrn = [s["nr"] for s in stellen]
-        # Schon bezahlte Abschrift derselben Textfassung und derselben Stellen wiederverwenden
-        merk = hier / ordner / f"{q['id']}_abschrift_{name}_merk.json"
-        alt = json.loads(merk.read_text(encoding="utf-8")) if merk.exists() else {}
-        if alt.get("sha256") == e["sha256"] and alt.get("nrn") == nrn and (hier / datei).exists():
-            logger.info("%s: gespeicherte Abschrift %s wiederverwendet", q["id"], name)
-            return seitenbild.abschriften_lesen(hier / datei, nrn)
-        (hier / datei).unlink(missing_ok=True)
-        kosten.vorher()
-        erg = laufen(seitenbild.abschrift_prompt(stellen, bilder, str(datei)))  # neue Sitzung, kein Kontext
-        kosten.dazu(erg, f"{q['id']} Abschrift {name}")
-        if not erg.ok:
-            logger.error("%s: Abschrift %s fehlgeschlagen: %s", q["id"], name, erg.text[:300])
-            return {}
-        try:
-            gelesen = seitenbild.abschriften_lesen(hier / datei, nrn)
-            merk.write_text(json.dumps({"sha256": e["sha256"], "nrn": nrn}), encoding="utf-8")
-            return gelesen
-        except seitenbild.SeitenbildFehler as f:
-            logger.error("%s: %s", q["id"], f)
-            return {}
-
-    a = abschreiben(auswahl, "a") if auswahl else {}
-    b = abschreiben(auswahl, "b") if auswahl else {}
-    strittig = [s for s in auswahl if a.get(s["nr"]) and b.get(s["nr"])
-                and abschrift.vergleichen([a[s["nr"]], b[s["nr"]]])[0] is None
-                and "[?]" not in a[s["nr"]] + b[s["nr"]]]
-    c = abschreiben(strittig, "c") if strittig else {}
-
-    gut = []
-    for s in auswahl:
-        fassungen = [a.get(s["nr"]), b.get(s["nr"])] + ([c[s["nr"]]] if s["nr"] in c else [])
-        if None in fassungen[:2]:
-            gestrichen.append({"seite": s["seiten"][0], "grund": "Abschrift fehlt"})
-            continue
-        stelle, grund = seitenbild.stelle_pruefen(s, fassungen, ocr, e["scan"])
-        if stelle:
-            gut.append(stelle)
-        else:
-            gestrichen.append({"seite": s["seiten"][0], "grund": grund})
-            logger.warning("%s: Stelle S. %s verworfen: %s", q["id"], s["seiten"], grund)
+    gut, weg = _vom_bild(e, q, hier, auswahl, "", laufen, kosten, laden, allowlist, [])
+    gestrichen += [{"seite": g["seite"], "grund": g["grund"]} for g in weg]
     e["stellen"] = gut
     _kernstellen_merken(e, kosten, usd_vorher, gestrichen)
     liste = ", ".join(f"S. {s['seite']} {s['position']} ({s['pruefung']['abschriften_gleich']}, "
@@ -343,6 +388,21 @@ def lauf(hier: Path = HIER, laden=abruf.laden, melden=jan_melden, jahr: int | No
             logger.error("Kernstellen %s: %s", e["id"], f)
             fehler.append(f"{e['id']}: Kernstellen: {f}")
         register.speichern(reg_pfad, eintraege)  # nach jedem bezahlten Lauf sichern
+    for e in eintraege:
+        q = next((q for q in alle if q["id"] == e["id"]), None)
+        if not (q and q.get("stelle_von_hand") and "scan_id" in e and "kernstellen" in e
+                and e["gemeinfreiheit"]["verwendbar"]):
+            continue
+        try:
+            hinweise += handstellen_finden(e, q, hier, claude, kosten, laden, allowlist)
+        except KostenGrenze as f:
+            logger.error("%s", f)
+            fehler.append(f"{e['id']}: {f}")
+            break
+        except (seitenbild.SeitenbildFehler, claude_lauf.LaufFehler, abruf.AbrufFehler, OSError) as f:
+            logger.error("Stellen von Hand %s: %s", e["id"], f)
+            fehler.append(f"{e['id']}: Stellen von Hand: {f}")
+        register.speichern(reg_pfad, eintraege)
     if kosten.laeufe:
         hinweise.append(f"Kosten: {kosten.summe:.2f} USD in {kosten.laeufe} Claude-Läufen (Grenze {kosten.grenze:.2f} USD)")
 

@@ -63,6 +63,13 @@ class QuellenTest(unittest.TestCase):
     def test_herausgeber_und_entfaellt(self):
         self.fehler(KOPF + KANT + 'herausgeber = "H"\nherausgeber_entfaellt = "Aufsatz"\n', "zugleich")
 
+    def test_stelle_von_hand(self):
+        echt = (HIER / "quellen.toml").read_text(encoding="utf-8")
+        self.assertEqual(len(self.laden(echt)[1][-1]["stelle_von_hand"]), 7)
+        self.fehler(echt.replace("seiten = [41, 42]", "seiten = [41, 43]"), "ungültigen seiten")
+        self.fehler(echt.replace("seiten = [42]", "seiten = [48]", 1), "ungültigen seiten")
+        self.fehler(echt.replace('ende = "Brandstiftung, Sachbeschädigung"', 'ende = ""'), "ende fehlt")
+
     def test_kaputt(self):
         self.fehler("[[quelle", "nicht lesbar")
 

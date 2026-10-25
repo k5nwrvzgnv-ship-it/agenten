@@ -169,6 +169,59 @@ class AblaufTest(unittest.TestCase):
         self.assertEqual(len(reg["stellen"]), 1)
 
 
+ERSTER_SATZ = ("Es war daher eitel Selbsttäuschung, wenn manche, wie Th. R. Schütze (1874), die Erörterung "
+               "jener Fragen aus den Lehrbüchern des Strafrechts verbannen zu dürfen glaubten.")
+HAND = '''
+[[quelle.stelle_von_hand]]
+seiten = [2]
+anfang = "Es war daher eitel"
+ende = "zu dürfen glaubten."
+hinweis = "Nur dieser Satz."
+position = "Unschädlichmachung (Tätertyp 1)"
+zweck = "Zeigt etwas."
+'''
+
+
+class HandTest(unittest.TestCase):
+    def setUp(self):
+        self.hier = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.hier)
+        self.meldungen = []
+
+    def lauf(self, toml, abschriften, auswahl=AUSWAHL):
+        (self.hier / "quellen.toml").write_text(toml, encoding="utf-8")
+        self.claude = Claude(self.hier, auswahl, abschriften)
+        fehler = agent.lauf(self.hier, laden=laden, melden=self.meldungen.append, jahr=2026,
+                            claude=self.claude, reihen=self.hier / "fehlt.toml")
+        return fehler, json.loads((self.hier / "data/register.json").read_text())["quellen"][0]
+
+    def test_aufgenommen_und_nicht_wiederholt(self):
+        self.lauf(QUELLEN, [LESUNG, LESUNG])
+        fehler, reg = self.lauf(QUELLEN + HAND, [ERSTER_SATZ, ERSTER_SATZ])
+        self.assertEqual(fehler, [])
+        self.assertEqual(len(self.claude.prompts), 2)  # keine neue Auswahl, nur zwei Abschriften
+        prompt = self.claude.prompts[0][0]
+        self.assertIn('GENAU von: "Es war daher eitel" bis einschließlich: "zu dürfen glaubten."', prompt)
+        self.assertIn("Hinweis: Nur dieser Satz.", prompt)
+        neu = reg["stellen"][-1]
+        self.assertEqual((neu["zitat"], neu["auswahl"], neu["am_scan_pruefen"]), (ERSTER_SATZ, "von Hand", True))
+        self.assertEqual(neu["scan_link"], {"2": f"https://archive.org/details/{ID}/page/n11"})
+        self.assertEqual(len(reg["stellen"]), 2)  # die Auswahlstelle bleibt
+        self.assertEqual(reg["kernstellen"]["von_hand"], {"2:Es war daher eitel": "aufgenommen"})
+        self.assertIn("1 von 1 Stellen von Hand aufgenommen", self.meldungen[-1])
+        _, reg = self.lauf(QUELLEN + HAND, [])
+        self.assertEqual(len(self.claude.prompts), 0)
+        self.assertEqual(len(reg["stellen"]), 2)
+
+    def test_ueberschneidung_verworfen(self):
+        self.lauf(QUELLEN, [LESUNG, LESUNG])
+        hand = HAND.replace("Es war daher eitel", "Die Geschichte des").replace("zu dürfen glaubten.", "verborgen bleiben.")
+        _, reg = self.lauf(QUELLEN + hand, [LESUNG, LESUNG])
+        self.assertEqual(len(reg["stellen"]), 1)
+        self.assertIn("überschneidet sich", reg["kernstellen"]["von_hand"]["2:Die Geschichte des"])
+        self.assertIn("überschneidet sich", self.meldungen[-1])
+
+
 class AuswahlTest(unittest.TestCase):
     def pruefen(self, stellen):
         with tempfile.TemporaryDirectory() as d:
