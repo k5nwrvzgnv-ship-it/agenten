@@ -233,6 +233,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Zeitüberschreitung, Netzfehler, Zeichensatz, Cache beschädigt). Nur Unit-Tests, noch kein echter Abruf.
    - Erledigt 25.10.: agentkit.wortlaut (normalisieren, steht_in, seiten), inhaltsgleich mit lia/examen/wortlaut.py.
      Offen im lia-Chat: lia/examen auf agentkit.wortlaut umstellen, dann lia/examen/wortlaut.py löschen.
+   - Erledigt 25.10. (Plan „Webrecherche“, Teil A): WebFetch je Agent nur auf freigegebene Domains.
+     shared/einstellungen.toml: [werkzeuge] recherche (mit WebSearch, WebFetch) und [webfetch] recherche = Jans Liste
+     (19 Domains). Lias Instanz hat keine eigene einstellungen.toml und erbt beides; eine Instanzdatei darf
+     [webfetch] ebenfalls setzen. einstellungen.webfetch_domains(cfg, agent) -> Liste oder None (nur reine
+     Domainnamen, sonst ValueError), dieselbe Liste dient als Allowlist für abruf.laden.
+     claude_lauf: Mit Liste wird WebFetch nur als WebFetch(domain:d) und WebFetch(domain:*.d) erlaubt, ohne Liste
+     (uni, einkauf) unverändert. Echte Läufe 25.10. (claude 2.1.304, haiku, Stufe sparen, zusammen 0,004 USD):
+     www.gesetze-im-internet.de und korpora.org ok; example.com, evilarchive.org, archive.org.example.com
+     abgelehnt (permission_denials). www.bpb.de war erlaubt, der Server brach aber ab (ECONNRESET).
+     abruf.html_zu_text(html) bzw. Ergebnis.text_ohne_html(): reiner Text ohne script/style/noscript/svg, eine
+     Zeile je Block, oben Titel, og:title, og:description, description (doppelte nur einmal).
    - Freigabe-Einträge ohne Ausführung durch einen Agenten (Typ "entwurf", Lia setzt selbst ein): Nach der
      Freigabe bleiben sie in „Warten auf Ausführung“. Vorschlag: Typ "entwurf" in der Zentrale nach Freigabe
      direkt als ausgeführt vermerken („setzt Lia selbst ein“). Bis dahin schließt der examen-Chat sie von Hand ab.

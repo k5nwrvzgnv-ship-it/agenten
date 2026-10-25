@@ -41,8 +41,14 @@ VERBOTEN += [f"{w}(**/{m})" for w in ("Edit", "Write") for m in GESCHUETZT]
 OHNE_DATEIZUGRIFF = ("WebSearch", "WebFetch")
 
 
-def rechte(werkzeuge: list[str]) -> dict:
-    return {"permissions": {"deny": VERBOTEN, "allow": [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]}}
+def rechte(werkzeuge: list[str], domains: list[str] | None = None) -> dict:
+    """Rechte für --settings. Mit domains ([webfetch] in einstellungen.toml) ist WebFetch nur für diese
+    Domains und ihre Subdomains erlaubt; alles andere lehnt claude -p ab (keine Rückfrage möglich)."""
+    erlaubt = [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]
+    if domains is not None and "WebFetch" in erlaubt:
+        erlaubt.remove("WebFetch")
+        erlaubt += [f"WebFetch(domain:{p}{d})" for d in domains for p in ("", "*.")]
+    return {"permissions": {"deny": VERBOTEN, "allow": erlaubt}}
 
 def grundregel(person: str = "Jan") -> str:
     return (
@@ -162,7 +168,7 @@ def befehl(
         "--tools", *werkzeuge,
         "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
         "--permission-mode", "acceptEdits",
-        "--settings", json.dumps(rechte(werkzeuge)),
+        "--settings", json.dumps(rechte(werkzeuge, einstellungen.webfetch_domains(cfg, agent))),
         "--append-system-prompt", grundregel(config.person()) + "\n\n" + regeln.regeln_als_text(agent_dir),
     ]
     if sitzung_fortsetzen:

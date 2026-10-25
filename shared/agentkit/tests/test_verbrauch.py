@@ -95,6 +95,32 @@ class EinstellungenInstanzTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 einstellungen.lade(basis, eigen)
 
+    def test_webfetch_domains(self):
+        cfg = {"webfetch": {"recherche": ["BPB.de", " archive.org"], "leer": [], "boese": ["https://x.de"]}}
+        self.assertEqual(einstellungen.webfetch_domains(cfg, "recherche"), ["bpb.de", "archive.org"])
+        self.assertIsNone(einstellungen.webfetch_domains(cfg, "uni"))
+        self.assertIsNone(einstellungen.webfetch_domains({}, "uni"))
+        for agent in ("leer", "boese"):
+            with self.assertRaises(ValueError):
+                einstellungen.webfetch_domains(cfg, agent)
+        for falsch in ["*.bpb.de", "bpb.de/pfad", "bpb.de:443", "localhost", "bpb", ""]:
+            with self.assertRaises(ValueError, msg=falsch):
+                einstellungen.webfetch_domains({"webfetch": {"a": [falsch]}}, "a")
+
+    def test_webfetch_aus_der_instanz(self):
+        with tempfile.TemporaryDirectory() as d:
+            basis, eigen = Path(d) / "basis.toml", Path(d) / "eigen.toml"
+            basis.write_text('[werkzeuge]\nstandard = ["Read"]\n[webfetch]\nrecherche = ["bpb.de"]\n')
+            self.assertEqual(einstellungen.lade(basis, eigen)["webfetch"], {"recherche": ["bpb.de"]})
+            eigen.write_text('[webfetch]\nrecherche = ["zdf.de"]\n')
+            self.assertEqual(einstellungen.webfetch_domains(einstellungen.lade(basis, eigen), "recherche"), ["zdf.de"])
+
+    def test_echte_einstellungen_gueltig(self):
+        cfg = einstellungen.lade()
+        for agent in cfg.get("webfetch", {}):
+            self.assertIn("WebFetch", einstellungen.werkzeuge(cfg, agent))
+            self.assertTrue(einstellungen.webfetch_domains(cfg, agent))
+
     def test_weitergabe_nur_aus_der_eigenen_instanz(self):
         with tempfile.TemporaryDirectory() as d:
             basis, eigen = Path(d) / "basis.toml", Path(d) / "eigen.toml"

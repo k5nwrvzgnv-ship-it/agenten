@@ -84,6 +84,26 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertEqual(a[a.index("--resume") + 1], "abc")
         self.assertNotIn("--session-id", a)
 
+    def test_webfetch_nur_freigegebene_domains(self):
+        rechte = claude_lauf.rechte(["Read", "WebSearch", "WebFetch"], ["bpb.de", "archive.org"])["permissions"]
+        self.assertEqual(rechte["allow"], ["WebSearch", "WebFetch(domain:bpb.de)", "WebFetch(domain:*.bpb.de)",
+                                           "WebFetch(domain:archive.org)", "WebFetch(domain:*.archive.org)"])
+        self.assertNotIn("WebFetch", rechte["allow"])
+        # ohne Liste wie bisher, ohne WebFetch in den Werkzeugen bleibt es aus
+        self.assertEqual(claude_lauf.rechte(["WebFetch"])["permissions"]["allow"], ["WebFetch"])
+        self.assertEqual(claude_lauf.rechte(["Read"], ["bpb.de"])["permissions"]["allow"], [])
+
+    def test_webfetch_liste_im_lauf(self):
+        cfg = copy.deepcopy(CFG)
+        cfg["werkzeuge"]["uni"] = ["Read", "WebFetch"]
+        cfg["webfetch"] = {"uni": ["gesetze-im-internet.de"]}
+        self.lauf(cfg=cfg)
+        a = self.args()
+        self.assertEqual(a[a.index("--tools") + 1: a.index("--strict-mcp-config")], ["Read", "WebFetch"])
+        rechte = json.loads(a[a.index("--settings") + 1])["permissions"]
+        self.assertEqual(rechte["allow"], ["WebFetch(domain:gesetze-im-internet.de)",
+                                           "WebFetch(domain:*.gesetze-im-internet.de)"])
+
     def test_limit_erreicht(self):
         os.environ["FAKE_MODUS"] = "limit"
         with self.assertRaises(claude_lauf.LimitErreicht):

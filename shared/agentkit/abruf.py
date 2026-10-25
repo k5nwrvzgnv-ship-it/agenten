@@ -14,12 +14,16 @@ außer mit neu=True.
     erg = abruf.laden(url, allowlist=["korpora.org"], cache_dir=Path("data/cache"))
     erg.inhalt (bytes), erg.meta (dict), erg.aus_cache, erg.text() (Zeichensatz aus Content-Type)
 
+HTML als reiner Text (für agentkit.wortlaut.steht_in): html_zu_text(html) bzw. erg.text_ohne_html().
+Ohne script, style, template; Titel, og:title, og:description und description stehen oben im Text.
+
 Fehler: AbrufFehler mit Text für Jan (Domain nicht erlaubt, Weiterleitung nach außen, kein https,
 HTTP-Fehler, zu groß, Zeitüberschreitung, Netzfehler, unbekannter Zeichensatz, Cache beschädigt).
 """
 
 import codecs
 import hashlib
+import html.parser
 import json
 import re
 import socket
@@ -100,6 +104,76 @@ class Ergebnis:
     def text(self) -> str:
         return als_text(self.inhalt, self.meta.get("content_type"))
 
+    def text_ohne_html(self) -> str:
+        return html_zu_text(self.text())
+
+
+_UNSICHTBAR = {"script", "style", "template", "noscript", "svg"}
+_BLOCK = {"p", "div", "br", "li", "ul", "ol", "tr", "td", "th", "table", "h1", "h2", "h3", "h4", "h5", "h6",
+          "section", "article", "header", "footer", "nav", "main", "aside", "blockquote", "pre", "dd", "dt",
+          "dl", "figure", "figcaption", "hr", "title", "body", "form", "label", "option"}
+_META = ("og:title", "og:description", "description")
+
+
+class _Textleser(html.parser.HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.teile, self.meta, self.titel = [], {}, []
+        self.verborgen = 0
+        self.im_titel = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _UNSICHTBAR:
+            self.verborgen += 1
+        elif tag == "title":
+            self.im_titel = True
+        elif tag == "meta":
+            a = {k.lower(): (v or "") for k, v in attrs}
+            name = (a.get("property") or a.get("name") or "").lower()
+            if name in _META and a.get("content", "").strip():
+                self.meta.setdefault(name, a["content"].strip())
+        if tag in _BLOCK:
+            self.teile.append("\n")
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag in _UNSICHTBAR:
+            self.verborgen -= 1
+
+    def handle_endtag(self, tag):
+        if tag in _UNSICHTBAR:
+            self.verborgen = max(0, self.verborgen - 1)
+        elif tag == "title":
+            self.im_titel = False
+        if tag in _BLOCK:
+            self.teile.append("\n")
+
+    def handle_data(self, data):
+        if self.verborgen:
+            return
+        if self.im_titel:
+            self.titel.append(data)
+        else:
+            self.teile.append(data)
+
+
+def html_zu_text(quelltext: str) -> str:
+    """HTML als reiner Text: ohne Tags, script und style, Zeichen-Entities aufgelöst, eine Zeile je Block.
+
+    Oben stehen Titel, og:title, og:description und description (bei YouTube steht sonst kaum etwas im HTML).
+    """
+    leser = _Textleser()
+    leser.feed(quelltext)
+    leser.close()
+    kopf = [" ".join("".join(leser.titel).split())] + [leser.meta.get(n, "") for n in _META]
+    zeilen = [" ".join(z.split()) for z in "".join(leser.teile).splitlines()]
+    gesehen, ergebnis = set(), []
+    for z in kopf:  # gleiche Angaben (Titel = og:title) nur einmal
+        if z and z not in gesehen:
+            gesehen.add(z)
+            ergebnis.append(z)
+    return "\n".join(ergebnis + [z for z in zeilen if z])
+
 
 class _Weiterleitung(urllib.request.HTTPRedirectHandler):
     """Prüft jedes Weiterleitungsziel gegen die Allowlist."""
@@ -156,7 +230,10 @@ def _speichern(cache_dir: Path, url: str, inhalt: bytes, meta: dict):
 
 def laden(url: str, allowlist, cache_dir: Path, neu: bool = False, zeitlimit: float = ZEITLIMIT,
           max_bytes: int = MAX_BYTES, _opener=None) -> Ergebnis:
-    """Lädt url (nur https, nur Allowlist) oder nimmt sie aus dem Cache. Fehler: AbrufFehler."""
+    """Lädt url (nur https, nur Allowlist) oder nimmt sie aus dem Cache. HTML als reiner Text (für agentkit.wortlaut.steht_in): html_zu_text(html) bzw. erg.text_ohne_html().
+Ohne script, style, template; Titel, og:title, og:description und description stehen oben im Text.
+
+Fehler: AbrufFehler."""
     host = pruefen(url, allowlist)
     cache_dir = Path(cache_dir)
     if not neu:

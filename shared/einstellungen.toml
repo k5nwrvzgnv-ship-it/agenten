@@ -33,6 +33,25 @@ uni = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch"]
 dokumente = ["Read", "Write", "Edit", "Glob", "Grep"]
 posteingang = ["Read", "Write", "Edit", "Glob", "Grep"]
 einkauf = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
+# Lias Agent lia/recherche (Lias Instanz hat keine eigene einstellungen.toml, sie erbt [werkzeuge] von hier)
+recherche = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
+
+# WebFetch nur auf diese Domains (Subdomains eingeschlossen), Jan 25.10.2026. Agenten ohne Eintrag
+# (z. B. einkauf) dürfen WebFetch, wie unter [werkzeuge], ohne Einschränkung. Python liest dieselbe Liste
+# (einstellungen.webfetch_domains) als Allowlist für agentkit.abruf. WebSearch bleibt frei.
+[webfetch]
+recherche = [
+  # Nachrichten
+  "taz.de", "lto.de", "tagesschau.de", "br.de", "zeit.de", "spiegel.de", "sueddeutsche.de",
+  # Justiz
+  "justiz.bayern.de", "bundesverfassungsgericht.de", "gesetze-im-internet.de",
+  # Bildung
+  "bpb.de",
+  # Mediatheken
+  "ardmediathek.de", "zdf.de", "arte.tv", "youtube.com",
+  # bisherige Quellen
+  "de.wikisource.org", "zeno.org", "korpora.org", "archive.org",
+]
 
 # Aufträge von Agent an Agent (agentkit.auftraege.weitergeben): Absender = [Empfänger].
 # Was hier nicht steht, wird abgelehnt. Das Ergebnis geht an Jan, nicht zurück an den Absender.

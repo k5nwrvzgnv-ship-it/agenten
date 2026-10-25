@@ -106,6 +106,39 @@ class ZeichensatzTest(unittest.TestCase):
             abruf.als_text("Würde".encode("latin-1"), "text/html")
 
 
+class HtmlTest(unittest.TestCase):
+    def test_ohne_script_und_style(self):
+        quelle = """<html><head><title>§ 46 StGB</title><style>p {color: red}</style>
+        <script>var x = "<p>nicht</p>";</script></head><body>
+        <h1>Grundsätze der Strafzumessung</h1><p>(1) Die Schuld des T&auml;ters ist Grundlage
+        für die Zumessung&nbsp;der Strafe.</p><noscript>Bitte JS</noscript><div>Ende<br>Zeile</div></body></html>"""
+        text = abruf.html_zu_text(quelle)
+        self.assertEqual(text.splitlines()[0], "§ 46 StGB")
+        self.assertIn("Grundsätze der Strafzumessung", text.splitlines())
+        self.assertNotIn("color", text)
+        self.assertNotIn("var x", text)
+        self.assertNotIn("nicht", text)
+        self.assertNotIn("Bitte JS", text)
+        self.assertIn("Ende\nZeile", text)
+        from agentkit import wortlaut
+        self.assertTrue(wortlaut.steht_in("Die Schuld des Täters ist Grundlage für die Zumessung der Strafe.", text))
+
+    def test_meta_bei_youtube(self):
+        quelle = """<!DOCTYPE html><html><head><title>Strafe muss sein? - YouTube</title>
+        <meta property="og:title" content="Strafe muss sein?">
+        <meta property="og:description" content="Warum strafen wir? Ein Erkl&auml;rvideo.">
+        <meta name="description" content="Warum strafen wir? Ein Erkl&auml;rvideo.">
+        <meta property="og:image" content="https://i.ytimg.com/x.jpg"></head>
+        <body><script>ytInitialData = {"a": 1}</script></body></html>"""
+        self.assertEqual(abruf.html_zu_text(quelle).splitlines(),
+                         ["Strafe muss sein? - YouTube", "Strafe muss sein?", "Warum strafen wir? Ein Erklärvideo."])
+
+    def test_ohne_kopf_und_kaputtes_html(self):
+        self.assertEqual(abruf.html_zu_text("<p>Kant <b>sagt</b>:<p>Strafe"), "Kant sagt:\nStrafe")
+        self.assertEqual(abruf.html_zu_text(""), "")
+        self.assertEqual(abruf.html_zu_text("<svg/><p>a</p><svg><text>b</text></svg><p>c</p>"), "a\nc")
+
+
 class LadenTest(Basis):
     URL = "https://korpora.org/kant/aa06/331.html"
 
@@ -114,6 +147,7 @@ class LadenTest(Basis):
                                                "Strafe".encode("latin-1"))})
         self.assertFalse(erg.aus_cache)
         self.assertEqual(erg.text(), "Strafe")
+        self.assertEqual(erg.text_ohne_html(), "Strafe")
         self.assertEqual(erg.meta["url"], self.URL)
         self.assertEqual(erg.meta["endgueltige_url"], self.URL)
         self.assertEqual(erg.meta["status"], 200)
