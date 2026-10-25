@@ -166,6 +166,13 @@ def seitenbild_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten: 
 
     def abschreiben(stellen: list[dict], name: str) -> dict[int, str]:
         datei = ordner / f"{q['id']}_abschrift_{name}.json"
+        nrn = [s["nr"] for s in stellen]
+        # Schon bezahlte Abschrift derselben Textfassung und derselben Stellen wiederverwenden
+        merk = hier / ordner / f"{q['id']}_abschrift_{name}_merk.json"
+        alt = json.loads(merk.read_text(encoding="utf-8")) if merk.exists() else {}
+        if alt.get("sha256") == e["sha256"] and alt.get("nrn") == nrn and (hier / datei).exists():
+            logger.info("%s: gespeicherte Abschrift %s wiederverwendet", q["id"], name)
+            return seitenbild.abschriften_lesen(hier / datei, nrn)
         (hier / datei).unlink(missing_ok=True)
         kosten.vorher()
         erg = laufen(seitenbild.abschrift_prompt(stellen, bilder, str(datei)))  # neue Sitzung, kein Kontext
@@ -174,7 +181,9 @@ def seitenbild_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten: 
             logger.error("%s: Abschrift %s fehlgeschlagen: %s", q["id"], name, erg.text[:300])
             return {}
         try:
-            return seitenbild.abschriften_lesen(hier / datei)
+            gelesen = seitenbild.abschriften_lesen(hier / datei, nrn)
+            merk.write_text(json.dumps({"sha256": e["sha256"], "nrn": nrn}), encoding="utf-8")
+            return gelesen
         except seitenbild.SeitenbildFehler as f:
             logger.error("%s: %s", q["id"], f)
             return {}

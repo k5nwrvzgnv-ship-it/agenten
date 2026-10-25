@@ -29,6 +29,13 @@ class AehnlichkeitTest(unittest.TestCase):
         self.assertEqual(abschrift.angleichen("menfd)lid)er"), abschrift.angleichen("menschlicher"))
         self.assertEqual(abschrift.angleichen("Aus=\nführung"), abschrift.angleichen("Ausführung"))
 
+    def test_ueber_seitengrenze(self):
+        vorn, hinten = OCR_S2.split("glaubten.")
+        ganz = abschrift.aehnlichkeit_seiten(LESUNG, [vorn + "glaubten. FUSSNOTE und Seitenkopf " * 3, hinten])
+        self.assertGreaterEqual(ganz, abschrift.SCHWELLE)
+        self.assertEqual(abschrift.aehnlichkeit_seiten(LESUNG, [OCR_S2]), abschrift.aehnlichkeit(LESUNG, OCR_S2))
+        self.assertLess(abschrift.aehnlichkeit_seiten(LESUNG, [ANDERE_SEITE, ANDERE_SEITE]), abschrift.SCHWELLE)
+
     def test_leer(self):
         self.assertEqual(abschrift.aehnlichkeit("", OCR_S2), 0.0)
         self.assertEqual(abschrift.aehnlichkeit("kurz", ""), 0.0)

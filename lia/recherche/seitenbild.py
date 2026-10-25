@@ -75,6 +75,7 @@ Regeln:
 
 Schreibe das Ergebnis NUR in die Datei {ausgabe}, als JSON:
 {{"stellen": [{{"nr": 1, "zitat": "..."}}]}}
+nr ist genau die Nummer der Stelle aus der Liste oben (nicht neu zählen).
 Antworte danach mit einem Satz."""
 
 
@@ -110,12 +111,15 @@ def auswahl_pruefen(pfad: Path, von: int, bis: int) -> tuple[list[dict], list[st
     return gut, schlecht
 
 
-def abschriften_lesen(pfad: Path) -> dict[int, str]:
-    """{nr: zitat} aus einer Abschrift-Datei. Fehlt die Datei: SeitenbildFehler."""
-    aus = {}
-    for s in _json_stellen(pfad):
-        if isinstance(s, dict) and isinstance(s.get("nr"), int) and isinstance(s.get("zitat"), str):
-            aus[s["nr"]] = s["zitat"].strip()
+def abschriften_lesen(pfad: Path, nrn: list[int] | None = None) -> dict[int, str]:
+    """{nr: zitat} aus einer Abschrift-Datei. Fehlt die Datei: SeitenbildFehler.
+    nrn: die angefragten Nummern. Hat Claude neu gezählt (andere Nummern, aber gleich viele Einträge),
+    gilt die Reihenfolge (25.10.: eine dritte Abschrift für nur Stelle 2 kam als nr 1 zurück)."""
+    eintraege = [(s["nr"], s["zitat"].strip()) for s in _json_stellen(pfad)
+                 if isinstance(s, dict) and isinstance(s.get("nr"), int) and isinstance(s.get("zitat"), str)]
+    aus = dict(eintraege)
+    if nrn and set(aus) != set(nrn) and len(eintraege) == len(nrn):
+        return {nr: zitat for nr, (_, zitat) in zip(nrn, eintraege, strict=True)}
     return aus
 
 
@@ -127,7 +131,7 @@ def stelle_pruefen(auswahl: dict, fassungen: list[str], ocr: dict[int, str], sca
         return None, "Abschriften ungleich: " + "; ".join(unterschiede[:8])
     if not abschrift.MIN_ZEICHEN <= len(zitat) <= MAX_ZEICHEN:
         return None, f"Länge {len(zitat)} Zeichen, erlaubt {abschrift.MIN_ZEICHEN} bis {MAX_ZEICHEN}"
-    wert = abschrift.aehnlichkeit(zitat, "\n".join(ocr[s] for s in auswahl["seiten"]))
+    wert = abschrift.aehnlichkeit_seiten(zitat, [ocr[s] for s in auswahl["seiten"]])
     if wert < schwelle:
         return None, f"passt nicht zur OCR der Seite (Ähnlichkeit {wert:.3f} < {schwelle})"
     return {

@@ -152,6 +152,16 @@ class AblaufTest(unittest.TestCase):
         self.assertEqual(len(self.claude.prompts), 2)  # nur die zwei Abschriften, keine neue Auswahl
         self.assertEqual(len(reg["stellen"]), 1)
 
+    def test_abschriften_werden_wiederverwendet(self):
+        self.lauf([LESUNG, LESUNG])
+        reg = json.loads((self.hier / "data/register.json").read_text())
+        del reg["quellen"][0]["kernstellen"]
+        reg["quellen"][0]["stellen"] = []
+        (self.hier / "data/register.json").write_text(json.dumps(reg))
+        _, neu = self.lauf([])
+        self.assertEqual(len(self.claude.prompts), 0)  # Auswahl und beide Abschriften aus dem Speicher
+        self.assertEqual(len(neu["stellen"]), 1)
+
     def test_kein_zweiter_versuch(self):
         self.lauf([LESUNG, LESUNG])
         _, reg = self.lauf([])
@@ -183,6 +193,14 @@ class AuswahlTest(unittest.TestCase):
     def test_datei_fehlt(self):
         with self.assertRaises(seitenbild.SeitenbildFehler):
             seitenbild.auswahl_pruefen(Path("/nicht/da.json"), 1, 2)
+
+    def test_neu_gezaehlt_nach_reihenfolge(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "c.json"
+            p.write_text(json.dumps({"stellen": [{"nr": 1, "zitat": "Text"}]}), encoding="utf-8")
+            self.assertEqual(seitenbild.abschriften_lesen(p, [2]), {2: "Text"})
+            self.assertEqual(seitenbild.abschriften_lesen(p, [2, 3]), {1: "Text"})  # Anzahl passt nicht
+            self.assertEqual(seitenbild.abschriften_lesen(p), {1: "Text"})
 
     def test_laenge(self):
         auswahl = {"seiten": [2], "position": "p", "zweck": "z"}

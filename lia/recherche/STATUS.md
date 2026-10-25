@@ -6,7 +6,7 @@ erlaubten Quellen, als Textfassung mit Seiten, mit geprüfter Gemeinfreiheit und
 Stellen. lia/examen liest das Register für die Skizzen.
 
 ## Stand (25.10.2026)
-- Teil B und Teil C (ohne Liszt) fertig, echt gelaufen (25.10., von Hand). Register data/register.json enthält:
+- Teil B und Teil C fertig, echt gelaufen (25.10., von Hand). Register data/register.json enthält:
   - stgb-46 (StGB § 46): frei (§ 5 UrhG), 1 Stelle (ganzer Paragraf), geprüft
   - jgg-2 (JGG § 2): frei (§ 5 UrhG), 1 Stelle, geprüft. Abs. 1 beginnt wie erwartet mit
     „Die Anwendung des Jugendstrafrechts soll vor allem erneuten Straftaten“.
@@ -16,16 +16,17 @@ Stellen. lia/examen liest das Register für die Skizzen.
     Mittel“, S. 331 „Er muß vorher strafbar befunden sein“, S. 332 Wiedervergeltung („Beschimpfst du
     ihn“), S. 333 Dieb und Zwangsarbeit, S. 333 Inselbeispiel.
   - liszt-zweckgedanke (ZStW Bd. 3, 1883, S. 1–47, Toronto-Scan zeitschriftgesa00berluoft): frei (Liszt gest.
-    1919, kein Herausgeber, Zeitschriftenaufsatz). Textfassung = OCR (unbrauchbar für Wortlaut, nur
-    Orientierung). Kernstellen vom Seitenbild: Auswahl gelaufen (5 Stellen: S. 31 notwendige Strafe,
-    S. 36 Dreiteilung Besserung/Abschreckung/Unschädlichmachung, S. 39 Unverbesserliche, S. 40/41 Anfänger
-    der Verbrecherlaufbahn, S. 44 „weil“/„damit“), 0,68 USD. Abschriften STEHEN AUS: Danach meldete
-    Anthropic "allowed_warning", agentkit wertet das als Limit (Punkt 11 der Haupt-STATUS.md), seitdem
-    verweigert claude_lauf jeden Lauf bis 27.10. 17:00. Nächster Lauf übernimmt die gespeicherte Auswahl
-    (data/kernstellen/liszt-zweckgedanke_auswahl_geprueft.json) und macht nur die Abschriften.
+    1919, kein Herausgeber, Zeitschriftenaufsatz). Textfassung = OCR (nur Orientierung). 5 Kernstellen vom
+    Seitenbild, alle Prüfungen bestanden, geprueft = false, am_scan_pruefen = true, je Scan-Link:
+    S. 31 „Nur die notwendige Strafe ist gerecht“, S. 36 Dreiteilung (2 von 3), S. 39 Unverbesserliche,
+    S. 40/41 Anfänger der Verbrecherlaufbahn, S. 44 „weil“/„damit“. OCR-Ähnlichkeit 0,852–0,918.
+    Kosten 1,28 USD (Auswahl 0,68, Abschriften 0,26/0,25/0,08). S. 39 von mir am Bild nachgeprüft: stimmt.
+    Erster Durchgang verwarf S. 36 und S. 40/41 wegen zweier Fehler im Code (dritte Abschrift neu
+    nummeriert; Seitengrenze mit Fußnoten); behoben, die bezahlten Abschriften wurden ohne neuen Lauf
+    neu bewertet (Merkdateien von Hand angelegt, gleiche Textfassung und Stellen).
 - Meldungen mit diesen Ergebnissen sind an Jan gegangen.
 - Kein Dienst, kein Timer (Teil D).
-- 84 Tests (tests/), in pruefen.sh eingetragen.
+- 87 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -52,7 +53,9 @@ Stellen. lia/examen liest das Register für die Skizzen.
   4. Prüfung: gleich nach wortlaut.normalisieren (2 von 2 oder 2 von 3), 50–900 Zeichen, unscharf zur
      OCR der Seite(n) mindestens SCHWELLE 0,75. Registerstelle: seite, seiten, zitat, position, zweck,
      geprueft = false (kein sicherer Text), am_scan_pruefen = true, scan_link {seite: link},
-     pruefung {abschriften_gleich, ocr_aehnlichkeit, schwelle}.
+     pruefung {abschriften_gleich, ocr_aehnlichkeit, schwelle}. Über eine Seitengrenze: Abschrift an der
+     besten Wortgrenze geteilt, Teile gegen je ihre Seite (Fußnoten und Seitenkopf liegen dazwischen).
+     Bezahlte Abschriften werden je Textfassung und Stellen wiederverwendet (*_merk.json).
 - quellen.toml: von Hand gepflegt, [abruf] allowlist (die einzige Stelle dafür) und je [[quelle]] id,
   art, werk, ausgabe, autor/todesjahr_autor, herausgeber/_todesjahr, uebersetzer/_todesjahr, urls, seiten.
 - quellen.py: liest und prüft quellen.toml ohne Netz (Pflichtfelder, URLs gegen die Allowlist).
@@ -103,16 +106,13 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
 ## Offene Punkte
 1. Nebenbei gesehen: korpora.org schreibt, das Korpus werde fortlaufend korrigiert (Textkorrekturen,
    Lesarten). Ob das für die Zitierfähigkeit „nach AA“ eine Rolle spielt, bei Gelegenheit mit Jan klären.
-2. Liszt-Abschriften nachholen, sobald claude_lauf wieder läuft (Haupt-STATUS Punkt 11 oder 27.10.
-   17:00): `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`. Erwartet 2–3
-   Läufe mit Bildern, etwa 1 USD. Danach Meldung an Jan mit Stellen, Kosten, Verworfenem.
-3. Tests schreiben ins echte logs/recherche.log (logger an HIER), z. B. „liszt Auswahl 0.30 USD“ aus der
+2. Tests schreiben ins echte logs/recherche.log (logger an HIER), z. B. „liszt Auswahl 0.30 USD“ aus der
    Claude-Attrappe. Beim Lesen des Logs beachten; Aufräumen bei Gelegenheit.
-4. Kant S. 333, Inselbeispiel: korpora.org hat „im Gefängni befindliche“ (ohne ß am Zeilenende). Das
+3. Kant S. 333, Inselbeispiel: korpora.org hat „im Gefängni befindliche“ (ohne ß am Zeilenende). Das
    Zitat ist wortgetreu zur Textfassung, Lia sollte es am Druck prüfen.
-5. Claude kann im Agent-Ordner mehr lesen als die Textfassung (claude_lauf beschränkt nur das
+4. Claude kann im Agent-Ordner mehr lesen als die Textfassung (claude_lauf beschränkt nur das
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
-6. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
+5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
 
 ## Gelernte Regeln
 - (noch keine)

@@ -54,6 +54,24 @@ def aehnlichkeit(abschrift: str, ocr: str) -> float:
     return round(beste, 3)
 
 
+def aehnlichkeit_seiten(abschrift_text: str, seiten: list[str]) -> float:
+    """Wie aehnlichkeit, für eine Stelle über eine Seitengrenze: Die Abschrift wird an jeder Wortgrenze
+    geteilt, der Anfang gegen die erste, der Rest gegen die zweite Seite verglichen (nach Länge gewichtet),
+    die beste Teilung zählt. Grund: Zwischen den Seiten stehen in der OCR Fußnoten und der Seitenkopf."""
+    if len(seiten) == 1:
+        return aehnlichkeit(abschrift_text, seiten[0])
+    woerter = abschrift_text.split()
+    beste = 0.0
+    for k in range(1, len(woerter)):
+        vorn, hinten = " ".join(woerter[:k]), " ".join(woerter[k:])
+        lv, lh = len(angleichen(vorn)), len(angleichen(hinten))
+        if not lv or not lh:
+            continue
+        wert = (aehnlichkeit(vorn, seiten[0]) * lv + aehnlichkeit(hinten, seiten[1]) * lh) / (lv + lh)
+        beste = max(beste, wert)
+    return round(beste, 3)
+
+
 def unterschiede(a: str, b: str) -> list[str]:
     """Abweichende Wörter zweier Abschriften, für die Meldung an Jan."""
     wa, wb = a.split(), b.split()
