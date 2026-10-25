@@ -1,0 +1,20 @@
+# Design-Profil für Lias Dokumente aus examen (Kopie von lia/unterricht/profil.toml, 25.10.2026).
+# Werte und Bedeutung: shared/renderer/design.py.
+
+fach = "Ethik"
+lehrkraft = "Frau Pohlmann"
+nummer_text = "Arbeitsblatt"
+schrift = "Calibri"
+schriftgroesse_pt = 11
+zeilenabstand = 1.15
+linienabstand_cm = 0.6
+folien_schrift = "Aptos"
+folien_titelschrift = "Aptos Display"
+
+[farben]
+thema = "FFD873"      # Thema im Kopf des Arbeitsblatts (gelb)
+merksatz = "F2CEED"   # Merksatz-Kasten (rosa)
+material = "D9F2D0"   # Material (grün)
+akzent = "C00000"     # Folien: Titel, Strich, Balken, Leitfrage (rot)
+kasten = "F5F5F5"     # Folien: Kästen (hellgrau)
+satzanfang = "196B24" # Folien: Satzanfänge (dunkelgrün)

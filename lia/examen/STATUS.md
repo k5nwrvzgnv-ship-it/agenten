@@ -44,8 +44,12 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   Annahmen der Skizzen: 8 Stunden, ISS grundlegendes Niveau (Stufen D–E), Liszt auf Besserung reduziert,
   Ankerfall „Jonas“ (Einbrüche, keine Gewalt), Kants Hinrichtungsbeispiel nicht verwendet.
   Dateien: data/reihe/runde-1/ (skizze-A/B/C.md, bericht.md, skizzen.json, pruefung.json).
-  Jan und Lia haben die Skizzen noch nicht gesehen.
-- Tests: 27, grün. Kein Dienst, kein Timer.
+- Für Lia (25.10., kurzfassung.py, ohne Claude, über shared/renderer mit profil.toml): data/reihe/runde-1/fuer-lia/
+  „Runde 1 - drei Grobskizzen.docx“ (4 Seiten: Annahmen je erster Satz, je Skizze eine Seite mit Prüfer-Kernsatz
+  oben) und „Runde 1 - Bewertungsbogen.docx“ (je Skizze Note 1–5, was stört, was übernehmen; Wahl A/B/C/Mischung;
+  Annahmen; Regelwunsch; Tabelle der offenen Angaben aus examen.toml). Vorschau als PNG/PDF daneben, von Claude
+  angesehen. Version ed060d3. Jan schickt beides an Lia; ihre Antworten trägt Jan hier ein.
+- Tests: 32, grün. Kein Dienst, kein Timer.
 
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
@@ -62,7 +66,10 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   lia/unterricht/leitfaden.md, Register lia/recherche/data/register.json (alles nur gelesen).
 - Daten im Repo (keine Schülerdaten): rubrik.toml, rlp_auszug.toml, examen.toml, impuls.md.
 - data/vorgaben/RLP_Ethik_Sek_I.pdf: Kopie aus lia/unterricht/data/wissen/eingang/Vorgaben/ (nicht im Repo).
-- .venv: pypdf (Version wie lia/unterricht), agentkit per agentkit.pth.
+- .venv: pypdf und die Pakete des Renderers (Versionen wie shared/renderer/requirements.txt), agentkit und
+  renderer per agentkit.pth.
+- kurzfassung.py: `.venv/bin/python kurzfassung.py` baut Kurzfassung und Bogen für Runde 1 aus skizzen.json und
+  pruefung.json und sichert eine neue Version. profil.toml: Kopie von lia/unterricht/profil.toml.
 - Reihenkontext (Lerngruppe, Vorwissen, Kant dann von Liszt) steht in lia/unterricht/reihen.toml, nicht doppelt.
 
 ## Entscheidungen
@@ -81,9 +88,9 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
 ## Offene Punkte
 1. Lia: offene Angaben in examen.toml liefern, Rubrik-Entwurf durchsehen, Bewertungsbogen schicken.
 2. Impuls freigeben (Lias Zentrale) und einsetzen, Ergebnis in examen.toml [impuls].
-3. Schritt 5: Lia bewertet Runde 1 (je Skizze Note, was stört, was übernehmen, Wahl). Der Bogen in ihrer
-   Zentrale fehlt noch (Haupt-STATUS Punkt 10); bis dahin über Jan. bericht.md ist mit 40 KB zu lang für Lia,
-   für sie eine kurze Fassung (drei Skizzen + je Prüfer-Kernsatz) vorsehen.
+3. Schritt 5: Lia bewertet Runde 1 mit dem Bogen (docx, über Jan). Danach: Antworten eintragen, offene Angaben
+   nach examen.toml, Regelvorschläge aus „was stört“ und dem Regelwunsch (erst nach Lias Okay eintragen).
+   Der Bogen in ihrer Zentrale fehlt weiter (Haupt-STATUS Punkt 10).
 4. Verbesserungen am Ablauf vor Runde 2: annahmen sind nicht begrenzt (Runde 1: ca. 5000 Zeichen, mehr als
    eine Skizze), Grenze und Pflichtfelder einführen; impuls.md in den Kontext (Claude kannte den echten Impuls
    nicht und nahm einen anderen an).
