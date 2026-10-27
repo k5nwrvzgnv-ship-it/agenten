@@ -320,5 +320,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Lauf. In lia/recherche umgangen (webauftrag.adresse kodiert die URL, faelle.belege_pruefen fängt den Fehler).
    Vorschlag: abruf.laden kodiert Pfad und Query selbst (IRI -> URI) und meldet alles andere als AbrufFehler.
 
+16. Sprache der Zentralen (Jan 27.10.: Nachrichten für Laien, Technik bleibt im Backend, keine neuen Funktionen).
+   Schritt 1 erledigt: Inventur docs/sprache/inventur.md (Code-Texte, echte gesendete Texte, Lias Wortschatz).
+   Schritt 2: Entwurf docs/sprache/sprachregel.md wartet auf Jans Entscheidung (5 Fragen am Ende).
+   Danach: 3 Jargon-Prüfer und Lesbarkeit (WSTF) als getestete Funktion, in pruefen.sh und zur Laufzeit (nur Log);
+   4 Texte umschreiben (Vorlagen, Panel, Hilfe, Fehler, Feedback), Ergebnistext-Vertrag in agentkit, Bedarf an die
+   Agenten in deren STATUS.md; 5 Handy-Bilder vorher/nachher (380 px); danach eine Woche Auswertung.
+
 ## Gelernte Regeln
 - (noch keine)
