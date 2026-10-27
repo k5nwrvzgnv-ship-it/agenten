@@ -134,8 +134,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Claude (List-Unsubscribe, Precedence bulk, Spam, Absenderliste), dann Einordnung per claude_lauf (Frist/
    Rechnung, persönlich, Termin, Bestellung, unwichtig), Meldung [post], data/mails nach 30 Tagen löschen,
    Timer 8/13/19 Uhr. Senden erst Stufe 2 nach Freigabe. Schritt 1 erledigt 27.10.: agentkit.imap
-   (aus uni/postfach.py, Zugang und Stand-Datei als Parameter), uni nutzt es. Nächster Schritt: Gerüst
-   posteingang/ im eigenen Chat ~/agenten/posteingang (Dienst erst nach Jans Okay).
+   (aus uni/postfach.py, Zugang und Stand-Datei als Parameter), uni nutzt es. Gerüst posteingang/ angelegt 27.10.
+   (ohne agent.py und Dienst). Weiter im eigenen Chat ~/agenten/posteingang, Plan in posteingang/STATUS.md.
    Ergebnisdateien an Jan: auftraege.abschliessen(..., dateien=) und meldungen.melden(..., dateien=).
 3. Dateien aus Telegram: gebaut 16.10. (Zentrale nimmt Dokumente und Fotos bis 20 MB an, Ablage
    <agent>/data/eingang/<auftrag-id>/, Pfade im Feld dateien und am Ende des Auftragstexts).

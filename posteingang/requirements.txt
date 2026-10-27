@@ -1,0 +1,1 @@
+# Nur Python-Bordmittel (imaplib über agentkit.imap). Neue Pakete nur nach Jans Okay.

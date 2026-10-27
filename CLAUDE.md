@@ -55,7 +55,7 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - `shared/renderer/`: gemeinsamer Renderer für Jan und Lia (JSON-Beschreibung rein, docx/pptx/PDF raus),
   reine Bibliothek ohne Inhalte, import per agentkit.pth. Eigene STATUS.md, eigener Chat (siehe unten).
 - `shared/vorlagen/`: Gerüst für neue Agenten (agent_beispiel.py, Service, Timer, STATUS.md).
-- `uni/`, `dokumente/`, `lia/<agent>/` (geplant: `posteingang/`, `einkauf/`, Ordner entsteht mit dem Agenten): je ein Agent mit agent.py als Einstieg, eigener
+- `uni/`, `dokumente/`, `posteingang/`, `lia/<agent>/` (geplant: `einkauf/`, Ordner entsteht mit dem Agenten): je ein Agent mit agent.py als Einstieg, eigener
   .venv, .env, STATUS.md, tests/. Laufzeitdaten in data/, logs/ (nicht im Repo).
 - Reihenfolge der Umsetzung: uni, dokumente, posteingang, einkauf.
 - Ein Chat pro Ordner, gestartet in diesem Ordner: je Agent einer (auch lia/<agent>), einer für

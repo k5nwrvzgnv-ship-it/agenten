@@ -17,6 +17,7 @@ TESTS=(
   "shared/renderer|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
   "dokumente|.venv/bin/python|tests"
+  "posteingang|.venv/bin/python|tests"
   "lia/unterricht|.venv/bin/python|tests"
   "lia/auswertung|.venv/bin/python|tests"
   "lia/examen|.venv/bin/python|tests"

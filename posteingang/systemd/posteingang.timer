@@ -1,0 +1,10 @@
+# Zeitgesteuerte Läufe für Agent posteingang (Einrichten siehe posteingang.service)
+[Unit]
+Description=Zeitgesteuerte Läufe für Agent posteingang
+
+[Timer]
+OnCalendar=*-*-* 08,13,19:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

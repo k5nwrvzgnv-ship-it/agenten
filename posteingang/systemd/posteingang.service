@@ -1,0 +1,15 @@
+# Agent posteingang: neue Mails aus Jans privatem Postfach lesen und melden, Aufträge abarbeiten.
+# Einrichten (erst wenn agent.py läuft und Jan Okay gegeben hat):
+#   cp systemd/posteingang.service systemd/posteingang.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now posteingang.timer
+[Unit]
+Description=Agent posteingang
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/posteingang
+ExecStart=/home/agent/agenten/posteingang/.venv/bin/python agent.py
+TimeoutStartSec=30min
+MemoryMax=1G

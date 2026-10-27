@@ -27,6 +27,7 @@ Regeln: CLAUDE.md. Aktueller Stand: STATUS.md.
 │   │
 │   ├── uni/                 Jans Agent uni (läuft)
 │   ├── dokumente/           Jans Agent dokumente (Gerüst, noch kein agent.py)
+│   ├── posteingang/         Jans Agent posteingang, privates Postfach (Gerüst, noch kein agent.py)
 │   │
 │   └── lia/                 Lias Instanz
 │       ├── instanz/         Lias Daten: .env, Warteschlangen, Regeln, Daten ihrer Zentrale
@@ -36,7 +37,8 @@ Regeln: CLAUDE.md. Aktueller Stand: STATUS.md.
 └── .config/systemd/user/    die laufenden Dienste (Kopien der Vorlagen aus dem Repo)
 ```
 
-Geplant, noch ohne Ordner: posteingang (Mails) und einkauf (Recherche mit Preisen).
+posteingang (Jans privates Postfach): Gerüst angelegt, noch kein agent.py, kein Dienst.
+Geplant, noch ohne Ordner: einkauf (Recherche mit Preisen).
 Der Ordner entsteht mit dem Agenten.
 
 ## Jeder Agent-Ordner hat denselben Aufbau
