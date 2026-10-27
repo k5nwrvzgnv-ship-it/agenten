@@ -23,7 +23,7 @@ reihenfrage_kandidaten = [
     "Sollen Gefängnisse Täter:innen bestrafen oder bessern? (aus Lias Planung Reihe_Strafe)",
     "Warum sollte Täter:in xy bestraft werden? (aus den Tipps zur Examensreihe)",
 ]
-seminarvorgaben_reihenfrage = "" # Vorgaben der Seminarleitung zur guten Reihenfrage (Lia schickt sie noch)
+seminarvorgaben_reihenfrage = "lia/recherche/regelwerk_reihe.md, Abschnitt P (aus Lias Fachseminar-Notizen, 27.10.2026)"
 seminar_beispiele = "seminar_vorbild.md: zwei Beispielreihen des Fachseminars (Jan, 25.10.2026)"
 
 # Hinweise aus Lias Material „Tipps Max Examens.docx“ (Tipps zu einer Examensreihe Strafe), sinngemäß.

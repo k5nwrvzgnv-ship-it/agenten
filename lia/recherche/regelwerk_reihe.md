@@ -30,9 +30,9 @@ Nicht hier, sondern bei jedem Lauf frisch gelesen (nicht doppelt pflegen):
 - L6 Religion als Ressource für Identität; Spannungsfeld antimuslimischer Rassismus und Islamismus; alle
   Jugendlichen adressieren; Viktimisierung vermeiden; Sensibilität für Diskriminierungserfahrungen
   (Notizen 664–666, 696, 708).
-- L7 Ableitung aus L6: Fälle, die die Lerngruppe selbst als Gruppe stigmatisieren (etwa Herkunft oder
-  Religion als Ursache von Kriminalität), sind ungeeignet. Ein Fall darf Jugendliche aus ähnlichem Umfeld
-  zeigen, wenn er sie nicht auf Herkunft oder Religion reduziert. (Lia bestätigt.)
+- L7 Fälle, die die Lerngruppe selbst als Gruppe stigmatisieren (etwa Herkunft oder Religion als Ursache
+  von Kriminalität), sind ungeeignet. Ein Fall darf Jugendliche aus ähnlichem Umfeld zeigen, wenn er sie
+  nicht auf Herkunft oder Religion reduziert. (Abgeleitet aus L6, bestätigt 27.10.2026.)
 
 ## P: Problemfrage (Fachseminar, Rosenberger)
 
@@ -129,10 +129,11 @@ Für jeden Kandidaten festhalten, jeweils mit kurzer Begründung und den Regel-K
 5. Tragweite: Trägt er eine ganze Reihe und lässt er sich anschlussfähig ausbauen, z. B. mit neuen
    Informationen über den Täter in der Prüfungsstunde (F6, K8)?
 
-## Offene Spannungen (Lia entscheidet)
+## Entschieden (27.10.2026)
 
-- Rosenbergers Beispiel „Intensivstraftäter unter 14“ (P3) liegt nah an Gewalt; Lias Regel schließt Gewalt
-  aus, „die man rechtfertigen müsste“. Gewalt als Tat, die bestraft wird, ist davon vermutlich nicht
-  gemeint. Bis Lia entscheidet: Fälle mit Gewalt markieren, nicht verwerfen.
-- „Tipps Max Examens“ nennen ein reales Beispiel mit fanatischem bzw. terroristischem Hintergrund; das
-  verträgt sich nicht mit der Regel gegen Tötung und mit L6/L7.
+- G1 Gewalt: Lias Regel schließt Gewalt aus, „die man rechtfertigen müsste“. Gewalt als Tat, die bestraft
+  wird (etwa Rosenbergers Beispiel „Intensivstraftäter unter 14“, P3), fällt nicht darunter. Solche Fälle
+  werden im Dossier als „mit Gewalt“ markiert, nicht verworfen. Tötung bleibt ausgeschlossen.
+- G2 „Tipps Max Examens“ nennen ein reales Beispiel mit fanatischem bzw. terroristischem Hintergrund; das
+  verträgt sich nicht mit der Regel gegen Tötung und mit L6/L7. Nicht gezielt suchen; Lia kann es bewusst
+  als Ausnahme wählen (offen, nicht entschieden).
