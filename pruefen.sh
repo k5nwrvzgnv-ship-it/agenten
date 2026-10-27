@@ -11,6 +11,7 @@ FEHLER=0
 # Ordner | Python | Testordner (relativ zum Ordner)
 TESTS=(
   "shared|python3|agentkit/tests"
+  "shared|python3|sicherung/tests"
   "shared/telegram|.venv/bin/python|tests"
   "shared/renderer|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"

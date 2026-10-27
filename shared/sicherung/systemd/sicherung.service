@@ -1,0 +1,13 @@
+# Vorlage: nach ~/.config/systemd/user/ kopieren, dann systemctl --user daemon-reload.
+# Schiebt das Agenten-Repo nach GitHub (shared/sicherung/sicherung.py). Bei Fehler Meldung an Jan.
+[Unit]
+Description=Sicherung des Agenten-Repos nach GitHub
+# Fällt sogar die Meldung aus, meldet ausfall@ (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten
+ExecStart=/usr/bin/python3 /home/agent/agenten/shared/sicherung/sicherung.py
+TimeoutStartSec=10min
+MemoryMax=300M

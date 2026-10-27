@@ -1,0 +1,11 @@
+# Vorlage: nach ~/.config/systemd/user/ kopieren. Aktivieren: systemctl --user enable --now sicherung.timer
+# 03:30, damit es nicht mit den nächtlichen Agenten-Läufen (u. a. 01:00, 02:30) zusammenfällt.
+[Unit]
+Description=Nächtliche Sicherung des Agenten-Repos nach GitHub
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
