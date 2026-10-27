@@ -73,6 +73,10 @@ systemctl reload caddy
 Prüfen: `curl -s -o /dev/null -w '%{http_code}\n' 'https://kcal.meldro.de/steps?key=x'` muss `403` zeigen
 (kcalbot antwortet, der Schlüssel ist falsch). Ab hier gehen alter und neuer Weg parallel.
 
+Stand 27.10.2026: Schritte 2-4 erledigt. Updates eingespielt (kein Neustart nötig), Caddy 2.6.2 läuft, ufw 80/443
+offen, Zertifikat von Let's Encrypt bis 25.01.2027 (Caddy erneuert selbst). Geprüft vom Server: /steps mit falschem
+Schlüssel 403 (IPv4 und IPv6), / ergibt 404, http leitet auf https um (308).
+
 **5. kcalbot auf den neuen Link umstellen**, in `/opt/kcalbot/.env` die Zeile ändern:
 ```
 PUBLIC_URL=https://kcal.meldro.de
