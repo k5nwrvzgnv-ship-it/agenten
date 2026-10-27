@@ -49,7 +49,7 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   Agent -> Agent nur per `auftraege.weitergeben` und nur Paare aus [weitergabe] in einstellungen.toml),
   `shared/freigabe/` (Entwurf -> Jan), `shared/meldungen/` (Agent -> Jan).
 - `shared/agentkit/`: config (.env laden), log, einstellungen (einstellungen.toml), auftraege, freigabe,
-  meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf, textfassung (Text aus pdf/docx/pptx/xlsx).
+  meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf, textfassung (Text aus pdf/docx/pptx/xlsx), imap (Postfach nur lesend).
 - `shared/telegram/`: Zentrale (Dienst agentenzentrale), einziger Kontakt zu Jan. zentrale.py = Telegram,
   logik.py = reine, getestete Logik.
 - `shared/renderer/`: gemeinsamer Renderer für Jan und Lia (JSON-Beschreibung rein, docx/pptx/PDF raus),

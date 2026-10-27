@@ -8,7 +8,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
   Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
 - agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
-  meldungen, regeln, verbrauch, claude_lauf, textfassung, kalender, abruf, wortlaut. Doku steht jeweils oben im Modul.
+  meldungen, regeln, verbrauch, claude_lauf, textfassung, kalender, abruf, wortlaut, imap. Doku steht jeweils oben im Modul.
   Einbindung per .pth in jede Agent-.venv:
   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
 - Freigabe: Fingerabdruck des Entwurfs muss zur Telegram-Anzeige passen, Ausführung genau einmal
@@ -128,6 +128,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    am PC (Jan einmal selbst).
 2. dokumente: kann Zusammenfassungen (22.10.), weitere Arten im dokumente-Chat (dokumente/STATUS.md). Danach
    posteingang, einkauf (je mit STATUS.md aus shared/vorlagen/).
+   posteingang (Plan Jan 27.10.): Jans privates Postfach jan@kleinke.org bei All-Inkl, IMAP
+   w005718f.kasserver.com:993 (SMTP 465/587), Login direkt mit Postfach-Kennwort (kein App-Passwort bei
+   All-Inkl), Kennwort trägt Jan selbst in posteingang/.env ein. Stufe 1 nur lesen und melden: Vorfilter ohne
+   Claude (List-Unsubscribe, Precedence bulk, Spam, Absenderliste), dann Einordnung per claude_lauf (Frist/
+   Rechnung, persönlich, Termin, Bestellung, unwichtig), Meldung [post], data/mails nach 30 Tagen löschen,
+   Timer 8/13/19 Uhr. Senden erst Stufe 2 nach Freigabe. Schritt 1 erledigt 27.10.: agentkit.imap
+   (aus uni/postfach.py, Zugang und Stand-Datei als Parameter), uni nutzt es. Nächster Schritt: Gerüst
+   posteingang/ im eigenen Chat ~/agenten/posteingang (Dienst erst nach Jans Okay).
    Ergebnisdateien an Jan: auftraege.abschliessen(..., dateien=) und meldungen.melden(..., dateien=).
 3. Dateien aus Telegram: gebaut 16.10. (Zentrale nimmt Dokumente und Fotos bis 20 MB an, Ablage
    <agent>/data/eingang/<auftrag-id>/, Pfade im Feld dateien und am Ende des Auftragstexts).
