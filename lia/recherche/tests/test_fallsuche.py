@@ -7,7 +7,7 @@ from pathlib import Path
 
 import agent
 import fallsuche
-from agentkit import claude_lauf
+from agentkit import claude_lauf, sprache
 from tests.test_faelle import abgleich_eintrag, auswahl, kandidat, leitfrage
 from tests.test_webpruefung import DOMAINS, REGISTER, seitentext
 
@@ -205,6 +205,8 @@ class FallsucheTest(unittest.TestCase):
         self.assertEqual(a["ergebnis_dateien"], [f"data/fallsuche/{ordner.name}/Fallsuche Strafe.pdf"])
         self.assertIn("1 echte Fälle und 1 mögliche Reihenfragen", a["daten"]["kern"])
         self.assertIn("Diktierfunktion", a["daten"]["kern"])
+        # Sprachregel der Zentrale: keine zu langen Sätze (27.10.: einer mit 20 Wörtern)
+        self.assertEqual([b for b in sprache.pruefen(a["daten"]["kern"], "lia") if b.startswith("satz")], [])
         self.assertEqual(a["daten"]["punkte"], ["Muss jeder Dieb ins Gefängnis?"])
         self.assertEqual(a["daten"]["knoepfe"], "nur_antwort")
         with self.assertRaises(fallsuche.faelle.FallFehler):

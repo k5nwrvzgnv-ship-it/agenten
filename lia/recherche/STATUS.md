@@ -68,10 +68,11 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Kosten 42,42 USD (mit zwei neuen Dossiers) in vier Teilläufen (15,33 Abbruch an der Grenze; 8,77 Abbruch am 5h-Kontingent; 6,58
   Absturz bei der Belegprüfung; 10,27), von Jan freigegeben 15 + 30 USD. Suchläufe kosten 2,4–4,5 USD
   (Durchgang 2 teurer als 1), Abgleich 1,54, Dossier 1,98. Ein Suchfenster mit zwei Durchgängen ≈ 6,5–7 USD.
-  Noch nicht an Lia geschickt (wartet auf Jans Okay): `fallsuche.py --an-lia data/fallsuche/20261027-115658`.
+  An Lia geschickt (Jans Okay nach Vorschau, 27.10. 17:54, Auftrag 20261027-175447-recherche-ddaa83), von Lias
+  Zentrale um 17:55 mit PDF zugestellt, ohne Feedback-Knöpfe. Ihr Feedback kommt als Textantwort (lia-feedback).
   Siehe Abschnitt Fallsuche.
 - Kein Dienst, kein Timer (Teil D).
-- 161 Tests (tests/), in pruefen.sh eingetragen.
+- 163 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -217,7 +218,7 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
 5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
 6. Webauftrag: Lias Zentrale als Eingang (Teil C des Plans „Webrecherche“).
-7. Fallsuche: Dossier mit --an-lia schicken (Jans Okay), dann Lias Feedback abwarten; Regelvorschläge daraus erst nach Okay. Rückfragen des Dossiers
+7. Fallsuche: Lias Feedback zum Dossier abwarten (geschickt 27.10.); Regelvorschläge daraus erst nach Okay. Rückfragen des Dossiers
    (Pollux: Taten und Recht belegen; Kants Begnadigungsstelle ins Register; Niveaustufe) an Lia über Jan.
    Verbesserungen: Fälle über 800 Zeichen fallen ohne Nachbesserung heraus, wenn das Budget knapp ist (zwei gute
    gingen so verloren, z. B. „14-Jährige stellt Lehrerfoto mit Beleidigung auf Facebook“) -> Python kürzt nicht,
