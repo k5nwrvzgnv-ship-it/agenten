@@ -197,6 +197,8 @@ class TestAuftraege(unittest.TestCase):
         self.assertEqual((a["status"], a["daten"]), ("zurueckgezogen", {"gestoppt": True}))
         aid = auftraege.neuer_auftrag("uni", "x", basis=self.basis)
         self.assertNotIn("daten", auftraege.abschliessen(aid, "ok", basis=self.basis))
+        auftraege.daten_setzen(aid, {"stand": "gestoppt"}, basis=self.basis)
+        self.assertEqual(auftraege.erledigter(aid, basis=self.basis)["daten"], {"stand": "gestoppt"})
 
     def test_dateien_kommen_in_den_agent_ordner(self):
         agenten = self.basis / "agenten"

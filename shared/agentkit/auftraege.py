@@ -191,6 +191,14 @@ def erledigter(eintrag_id: str, basis: Path | None = None) -> dict:
     return _ablage.lies(pfad)
 
 
+def daten_setzen(eintrag_id: str, daten: dict, basis: Path | None = None) -> dict:
+    """Feld daten eines abgeschlossenen Auftrags ersetzen (z. B. Stand eines Feedback-Falls nach Jans Stopp)."""
+    eintrag = erledigter(eintrag_id, basis)
+    eintrag["daten"] = daten
+    _ablage.schreibe(_ablage.ordner(basis or BASIS, "erledigt") / f"{eintrag_id}.json", eintrag)
+    return eintrag
+
+
 def abschliessen(
     eintrag_id: str,
     ergebnis: str = "",

@@ -1,0 +1,14 @@
+# Vorlage: nach ~/.config/systemd/user/feedback.service kopieren, dann systemctl --user daemon-reload.
+# Feedback-Dienst für Jans Instanz: Feedback zu Jans Agenten und Jans Klicks (Stopp, Übernehmen, Verwerfen)
+# auf Feedback-Meldungen aller Instanzen. Die Zentrale startet ihn nach jedem neuen Auftrag an "feedback".
+[Unit]
+Description=Feedback-Dienst (Jan)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/shared/feedback
+ExecStart=/home/agent/agenten/shared/feedback/.venv/bin/python lauf.py
+# Ein Zuordnungslauf (Sonnet) und ggf. ein Commit mit pruefen.sh im Hook
+TimeoutStartSec=25min
+MemoryMax=800M

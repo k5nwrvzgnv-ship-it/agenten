@@ -13,6 +13,7 @@ TESTS=(
   "shared|python3|agentkit/tests"
   "shared|python3|sicherung/tests"
   "shared/telegram|.venv/bin/python|tests"
+  "shared/feedback|.venv/bin/python|tests"
   "shared/renderer|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
   "dokumente|.venv/bin/python|tests"

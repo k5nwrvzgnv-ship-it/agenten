@@ -35,6 +35,8 @@ posteingang = ["Read", "Write", "Edit", "Glob", "Grep"]
 einkauf = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 # Lias Agent lia/recherche (Lias Instanz hat keine eigene einstellungen.toml, sie erbt [werkzeuge] von hier)
 recherche = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
+# Feedback-Dienst (shared/feedback): Claude ordnet nur zu und antwortet als Text, schreibt nichts
+feedback = ["Read"]
 
 # WebFetch nur auf diese Domains (Subdomains eingeschlossen), Jan 25.10.2026. Agenten ohne Eintrag
 # (z. B. einkauf) dürfen WebFetch, wie unter [werkzeuge], ohne Einschränkung. Python liest dieselbe Liste

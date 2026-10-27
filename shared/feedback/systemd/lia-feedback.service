@@ -1,0 +1,14 @@
+# Vorlage: nach ~/.config/systemd/user/lia-feedback.service kopieren, dann systemctl --user daemon-reload.
+# Feedback-Dienst für Lias Instanz: ordnet Lias Feedback zu. Lias Zentrale startet ihn nach jedem Feedback.
+[Unit]
+Description=Feedback-Dienst (Lia)
+OnFailure=ausfall@%n.service
+
+[Service]
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/shared/feedback
+ExecStart=/home/agent/agenten/shared/feedback/.venv/bin/python lauf.py
+# Ein Zuordnungslauf (Sonnet) und ggf. ein Commit mit pruefen.sh im Hook
+TimeoutStartSec=25min
+MemoryMax=800M
