@@ -54,13 +54,17 @@ Stellen. lia/examen liest das Register für die Skizzen.
 - Fallsuche (Plan Jan 27.10.2026, Lias Auftrag „Neuausrichtung der Recherche“): erster echter Lauf fertig,
   data/fallsuche/20261027-115658/ („Fallsuche Strafe.docx“, 19 Seiten). 5 Fenster, 41 Fälle (31 mit geprüftem
   Zitat, 10 ungeprüft), 70 beim Suchen verworfen; Abgleich 4 stark, 20 mittel, 17 schwach. Dossier: 4 Fälle
-  (Pollux, Heide, Böller mit 33 Verletzten, Raketen-Influencer Neukölln) und 5 Leitfragen mit Kant/Liszt-Belegen.
-  Kosten 40,95 USD in vier Teilläufen (15,33 Abbruch an der Grenze; 8,77 Abbruch am 5h-Kontingent; 6,58
+  (Pollux, Heide, Böller mit 33 Verletzten, Raketen-Influencer Neukölln). Erste Fassung (19 Seiten, fallbezogene
+  Leitfragen mit Namen) von Jan verworfen: zu erschlagend, Reihenfragen müssen allgemein sein wie Lias eigene.
+  Zweite Fassung (--nur-dossier, 0,81 USD): 4 Seiten, 4 allgemeine Reihenfragen (z. B. „Soll die Strafe zur Tat
+  passen oder zu dem Menschen, der sie begangen hat?“), 4 Fälle, 6 „Vielleicht auch interessant“, 4 Rückfragen.
+  Erste Fassung als dossier_v1.json, ergebnis_v1.json, „Fallsuche Strafe v1.docx“ daneben.
+  Kosten 41,76 USD (mit zweitem Dossier) in vier Teilläufen (15,33 Abbruch an der Grenze; 8,77 Abbruch am 5h-Kontingent; 6,58
   Absturz bei der Belegprüfung; 10,27), von Jan freigegeben 15 + 30 USD. Suchläufe kosten 2,4–4,5 USD
   (Durchgang 2 teurer als 1), Abgleich 1,54, Dossier 1,98. Ein Suchfenster mit zwei Durchgängen ≈ 6,5–7 USD.
   Jan schickt das Dossier an Lia; ihr Feedback (gesprochen) kommt über Jan. Siehe Abschnitt Fallsuche.
 - Kein Dienst, kein Timer (Teil D).
-- 153 Tests (tests/), in pruefen.sh eingetragen.
+- 159 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
