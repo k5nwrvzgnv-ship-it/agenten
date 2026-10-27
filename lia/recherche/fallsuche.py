@@ -19,6 +19,9 @@ Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
    Dossier neu.
 Ablage data/fallsuche/<datum-zeit>/. --weiter ORDNER übernimmt fertig geprüfte Fenster eines abgebrochenen Laufs
 und wiederholt keine bezahlte Suche (sammeln-<fenster>-gesucht.json), nur die Prüfung.
+An Lia (nach Jans Durchsicht): --an-lia ORDNER macht aus dem docx eine PDF, legt in Lias Instanz einen Auftrag
+für recherche an und schließt ihn sofort mit der PDF ab; Lias Zentrale stellt ihn mit Feedback-Knöpfen zu, ihre
+Antwort darauf ist Feedback (lia-feedback). Kein Claude-Lauf. Je Ordner nur einmal (ergebnis.json "an_lia").
 Kostengrenze GRENZE_USD je Lauf (Jan 27.10.2026: 15 USD), mit --grenze anders (nur nach Jans Okay).
 """
 
@@ -34,7 +37,7 @@ import faelle
 import register
 import webauftrag
 import webpruefung
-from agentkit import claude_lauf, einstellungen
+from agentkit import auftraege, claude_lauf, config, einstellungen
 
 HIER = agent.HIER
 logger = agent.logger
@@ -244,13 +247,50 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
     return ordner
 
 
+def _pdf_standard(docx: Path) -> Path:
+    from renderer import vorschau
+    return vorschau.als_pdf(docx, docx.parent)
+
+
+def an_lia(ordner: Path, pdf_bauen=None, basis: Path | None = None, agenten_dir: Path | None = None) -> str:
+    """Dossier eines fertigen Laufs an Lias Zentrale (über ihre Auftrags-Warteschlange). Gibt die Auftrags-ID
+    zurück. Braucht AGENTKIT_INSTANZ=Lias Instanz (sonst landet es bei Jan)."""
+    pfad = ordner / "ergebnis.json"
+    ergebnis = json.loads(pfad.read_text(encoding="utf-8"))
+    if ergebnis.get("an_lia"):
+        raise faelle.FallFehler(f"Schon an Lia geschickt: {ergebnis['an_lia']['auftrag']}")
+    docx = ordner / "Fallsuche Strafe.docx"
+    pdf = docx.with_suffix(".pdf")
+    if not pdf.exists() or pdf.stat().st_mtime < docx.stat().st_mtime:
+        pdf = (pdf_bauen or _pdf_standard)(docx)
+    text, daten = faelle.nachricht_an_lia(ergebnis["dossier"])
+    aid = auftraege.neuer_auftrag(agent.AGENT, "Fallsuche Straftheorien: Dossier", quelle="fallsuche",
+                                  basis=basis, agenten_dir=agenten_dir)
+    auftraege.abschliessen(aid, text, dateien=[pdf], daten=daten, basis=basis, agenten_dir=agenten_dir)
+    ergebnis["an_lia"] = {"auftrag": aid, "zeit": datetime.now().isoformat(timespec="seconds"), "datei": pdf.name}
+    pfad.write_text(json.dumps(ergebnis, ensure_ascii=False, indent=1), encoding="utf-8")
+    logger.info("Fallsuche %s: Dossier an Lia (Auftrag %s)", ordner.name, aid)
+    return aid
+
+
 def main(argv: list[str]) -> int:
     teiler = argparse.ArgumentParser(prog="fallsuche.py", description="Fälle suchen, abgleichen, Leitfragen.")
     teiler.add_argument("--fenster", help=f"Komma-Liste aus {', '.join(faelle.FENSTER)} (ohne: alle)")
     teiler.add_argument("--weiter", metavar="ORDNER", help="abgebrochenen Lauf in data/fallsuche/<id> fortsetzen")
+    teiler.add_argument("--an-lia", metavar="ORDNER", help="fertiges Dossier an Lias Zentrale schicken")
     teiler.add_argument("--nur-dossier", action="store_true", help="mit --weiter: nur das Dossier neu schreiben")
     teiler.add_argument("--grenze", type=float, default=GRENZE_USD, help=f"Kostengrenze in USD (ohne: {GRENZE_USD:g})")
     args = teiler.parse_args(argv[1:])
+    if args.an_lia:
+        if config.INSTANZ_NAME != "lia":
+            print("--an-lia nur mit AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz", file=sys.stderr)
+            return 2
+        try:
+            print(an_lia(Path(args.an_lia).resolve()))
+        except (OSError, faelle.FallFehler, auftraege.AuftragFehler) as e:
+            print(e, file=sys.stderr)
+            return 1
+        return 0
     fenster = args.fenster.split(",") if args.fenster else None
     if fenster and (falsch := [f for f in fenster if f not in faelle.FENSTER]):
         print(f"Unbekannte Fenster: {', '.join(falsch)}", file=sys.stderr)

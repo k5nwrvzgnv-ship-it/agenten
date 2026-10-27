@@ -184,6 +184,35 @@ class FallsucheTest(unittest.TestCase):
         self.assertIsNone(self.claude.prompts[0][1])
         self.assertIn("1 ausgewählt", self.meldungen[-1])
 
+    def test_an_lia(self):
+        ordner = self.ausfuehren({"nachrichten": [GUT, None]}, fenster=["nachrichten"])
+        (ordner / "Fallsuche Strafe.docx").write_text("docx")  # der Test-Renderer baut nichts
+        lia = self.hier.parent / f"{self.hier.name}-lia"
+        self.addCleanup(shutil.rmtree, lia, True)
+        basis, agenten = lia / "instanz/auftraege", lia
+
+        def pdf(docx):
+            ziel = docx.with_suffix(".pdf")
+            ziel.write_text("pdf")
+            return ziel
+        (agenten / "recherche").mkdir(parents=True)
+        # Die Ablage prüft, dass die Datei im Agent-Ordner liegt: Ordner dorthin verlegen
+        ziel = agenten / "recherche" / "data" / "fallsuche" / ordner.name
+        shutil.copytree(ordner, ziel)
+        aid = fallsuche.an_lia(ziel, pdf_bauen=pdf, basis=basis, agenten_dir=agenten)
+        a = fallsuche.auftraege.erledigter(aid, basis=basis)
+        self.assertEqual((a["agent"], a["status"]), ("recherche", "erledigt"))
+        self.assertEqual(a["ergebnis_dateien"], [f"data/fallsuche/{ordner.name}/Fallsuche Strafe.pdf"])
+        self.assertIn("1 echte Fälle und 1 mögliche Reihenfragen", a["daten"]["kern"])
+        self.assertIn("Diktierfunktion", a["daten"]["kern"])
+        self.assertEqual(a["daten"]["punkte"], ["Muss jeder Dieb ins Gefängnis?"])
+        with self.assertRaises(fallsuche.faelle.FallFehler):
+            fallsuche.an_lia(ziel, pdf_bauen=pdf, basis=basis, agenten_dir=agenten)  # nur einmal
+        self.assertEqual(len(fallsuche.auftraege.erledigte(basis=basis)), 1)
+
+    def test_an_lia_nur_in_lias_instanz(self):
+        self.assertEqual(fallsuche.main(["fallsuche.py", "--an-lia", str(self.hier)]), 2)
+
     def test_main_prueft_fenster(self):
         self.assertEqual(fallsuche.main(["fallsuche.py", "--fenster", "nachrichten,quatsch"]), 2)
 

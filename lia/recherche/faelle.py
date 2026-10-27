@@ -611,3 +611,16 @@ def beschreibung(titel: str, ges: dict, dossier: dict, zahlen: dict) -> dict:
         bloecke.append({"typ": "ueberschrift", "text": "Offene Fragen an dich", "ebene": 1})
         bloecke.append({"typ": "liste", "punkte": dossier["rueckfragen"]})
     return {"art": "arbeitsblatt", "titel": titel[:200], "nummer": "F", "bloecke": bloecke}
+
+
+# --- Zustellung an Lia (Zentrale) ---------------------------------------------------------------------------
+
+def nachricht_an_lia(dossier: dict) -> tuple[str, dict]:
+    """Ergebnistext und daten (shared/telegram/vorlagen.py: kern, höchstens 3 Punkte) für Lias Zentrale."""
+    fragen = [q["frage"] for q in dossier["leitfragen"]]
+    kern = (f"Dossier zur Reihe Straftheorien: {len(dossier['auswahl'])} echte Fälle und {len(fragen)} mögliche "
+            "Reihenfragen. Lies es in Ruhe und antworte dann direkt auf diese Nachricht mit deinem Feedback, gern "
+            "mit der Diktierfunktion deiner Tastatur."
+            + (" Unten die ersten drei Reihenfragen, alle stehen im Dokument." if len(fragen) > 3 else ""))
+    text = kern + "\n" + "\n".join(f"- {f}" for f in fragen)
+    return text, {"kern": kern, "punkte": fragen[:3]}
