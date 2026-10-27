@@ -10,6 +10,7 @@ Jede Unit trägt `OnFailure=ausfall@%n.service`. systemd startet dann
   Dienst mit Timer alle 15 Minuten nicht jedes Mal meldet.
 - Kurz und ohne Technik (Jan 22.10.): "Störung" fett, welcher Dienst, Grund in Worten. Journal-Zeilen
   stehen nicht in der Meldung, die liest ein Chat am Server (journalctl --user -u <unit>).
+- Sprachregel (docs/sprache/sprachregel.md): Befunde von agentkit.sprache ohne Inhalt ins Journal.
 
 Grenze: Dienste mit Restart=on-failure (agentenzentrale) gelten erst als fehlgeschlagen, wenn
 systemd das Neustarten aufgibt. Einzelne Abstürze mit erfolgreichem Neustart meldet das nicht.
@@ -24,7 +25,7 @@ import urllib.request
 from html import escape
 from pathlib import Path
 
-from . import _ablage, meldungen
+from . import _ablage, meldungen, sprache
 from .config import SHARED_DIR, lies_env
 
 STAND = SHARED_DIR / "ausfall" / "stand.json"
@@ -93,6 +94,8 @@ def melden(unit: str, jetzt: float | None = None, stand_datei: Path | None = Non
     token = env.get("TELEGRAM_BOT_TOKEN", "")
     ergebnis = _befehl("systemctl", "--user", "show", "-p", "Result", "--value", unit)
     nachricht = text(unit, ergebnis)
+    if befunde := sprache.pruefen(nachricht, sprache.JAN):
+        print(f"Sprache sendMessage (Störung): {sprache.log_text(befunde)}", file=sys.stderr)
     try:
         senden(token, env.get("TELEGRAM_CHAT_ID", ""), "<b>Störung</b>\n" + escape(nachricht, False))
         weg = "telegram"

@@ -17,6 +17,8 @@
   kommt nur sie (docx bleibt auf dem Server).
 - Nachrichten an Jan bleiben kurz: Absender fett, Ergebnis, nichts Technisches (IDs, Pfade,
   Stufen). Stufenwechsel nur bei Limit und danach, Weitergaben nur, wenn der Auftrag liegen bleibt.
+  Sprachregel docs/sprache/sprachregel.md: jede ausgehende Nachricht wird geprüft (sprachpruefung.py), Befunde
+  ohne Inhalt als Warnung ins Log.
 - Feedback (CLAUDE.md, "Lernen aus Feedback"): Unter jedem Ergebnis eines Agenten Knöpfe (vorlagen.py: Passt, Zu
   lang, Falscher Fokus, Feedback schreiben). Feedback wird ein Auftrag an "feedback" (bezug = Ergebnis), danach
   startet feedback.service (shared/feedback). Dessen Zusammenfassung kommt als Meldung mit Stopp-Knopf (auch für
@@ -46,7 +48,7 @@ from telegram.ext import (
     filters,
 )
 
-from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen, verbrauch
+from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen, sprache, verbrauch
 from agentkit._ablage import AblageFehler, anhaenge_pruefen, pruefe_dienst
 from logik import (
     AGENTEN,
@@ -75,6 +77,7 @@ from logik import (
     weitergabe_text,
 )
 import panel
+import sprachpruefung
 import vorlagen as v
 
 HIER = Path(__file__).resolve().parent
@@ -360,9 +363,10 @@ async def pc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     gemeldet.listen["am_pc"].add(sitzung)
     gemeldet.speichern()
     logger.info("Sitzung %s liegt am PC", sitzung)
-    await update.message.reply_text(
-        f"Die Sitzung liegt jetzt am PC. Dort eingeben:\n\ncd ~/agenten/{alt['agent']} && claude --resume {sitzung}"
-        "\n\nDanach den PC-Chat beenden und hier /weiter schicken.")
+    with sprachpruefung.ausnahmen("pfad", "bezeichner", "id", "glossar"):  # Befehl zum Kopieren
+        await update.message.reply_text(
+            f"Die Sitzung liegt jetzt am PC. Dort eingeben:\n\ncd ~/agenten/{alt['agent']} && claude --resume {sitzung}"
+            "\n\nDanach den PC-Chat beenden und hier /weiter schicken.")
 
 
 async def weiter(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -661,9 +665,10 @@ async def entwurf_zeigen(bot, e: dict) -> None:
         InlineKeyboardButton("Ablehnen", callback_data=f"a:{e['id']}"),
         InlineKeyboardButton("Ändern", callback_data=f"c:{e['id']}"),
     ]])
-    for i, stueck in enumerate(stuecke := entwurf_als_text(e)):
-        await bot.send_message(JAN, stueck, parse_mode=ParseMode.HTML,
-                               reply_markup=knoepfe if i == len(stuecke) - 1 else None)
+    with sprachpruefung.ausnahmen("laenge"):  # freigegeben wird genau der angezeigte Text
+        for i, stueck in enumerate(stuecke := entwurf_als_text(e)):
+            await bot.send_message(JAN, stueck, parse_mode=ParseMode.HTML,
+                                   reply_markup=knoepfe if i == len(stuecke) - 1 else None)
     gemeldet.angezeigt[e["id"]] = e["fingerabdruck"]
 
 
@@ -742,7 +747,8 @@ async def fehler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def main() -> None:
-    app = Application.builder().token(cfg["TELEGRAM_BOT_TOKEN"]).build()
+    app = (Application.builder().token(cfg["TELEGRAM_BOT_TOKEN"])
+           .rate_limiter(sprachpruefung.Sprachpruefung(sprache.JAN, logger)).build())
     jan = filters.Chat(chat_id=JAN)
     app.add_handler(MessageHandler(~jan, fremd))
     app.add_handler(CommandHandler(["start", "menue", "menu"], start, filters=jan))

@@ -21,6 +21,8 @@ bleibt davon unberührt.
   lia-feedback.service (shared/feedback). Dessen Bestätigung kommt wie ein Ergebnis zurück.
 - Meldungen aus <instanz-ordner>/meldungen/ (z. B. Jans Stopp zu einem Feedback) kommen als Text mit "Menü".
 - Ins Log kommen nur IDs und Arten, keine Inhalte von Lia.
+- Sprachregel docs/sprache/sprachregel.md: jede ausgehende Nachricht wird geprüft (sprachpruefung.py), Befunde
+  ohne Inhalt als Warnung ins Log.
 
 Start: AGENTKIT_INSTANZ=... .venv/bin/python portal.py
 """
@@ -42,11 +44,12 @@ from telegram.ext import (
     filters,
 )
 
-from agentkit import auftraege, config, log, meldungen
+from agentkit import auftraege, config, log, meldungen, sprache
 from agentkit._ablage import AblageFehler, anhaenge_pruefen
 from logik import BESCHRIFTUNG_MAX, MAX_DATEI_BYTES, Eingang, Gemeldet
 import panel as panel_
 import portal_logik as p
+import sprachpruefung
 import vorlagen as v
 
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
@@ -395,7 +398,8 @@ async def fehler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def main() -> None:
     vorgaben = Defaults(link_preview_options=LinkPreviewOptions(is_disabled=True))
-    app = Application.builder().token(cfg["TELEGRAM_BOT_TOKEN"]).defaults(vorgaben).build()
+    app = (Application.builder().token(cfg["TELEGRAM_BOT_TOKEN"]).defaults(vorgaben)
+           .rate_limiter(sprachpruefung.Sprachpruefung(sprache.LIA, logger)).build())
     lia = filters.Chat(chat_id=LIA)
     app.add_handler(MessageHandler(~lia, fremd))
     app.add_handler(MessageHandler(lia & filters.COMMAND, begruessen))
