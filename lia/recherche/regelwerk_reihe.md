@@ -40,9 +40,11 @@ Nicht hier, sondern bei jedem Lauf frisch gelesen (nicht doppelt pflegen):
   Gerüst der Reihe (Notizen 4–5).
 - P2 Keine Antwort, die klar ausgeschlossen ist oder vom Großteil verneint wird; die Antwort darf nicht von
   vornherein klar sein. Notfalls umdrehen, um abzuschwächen (Notizen 11–12).
-- P3 So konkret wie möglich, damit es nicht oberflächlich bleibt; „zum Kern der Sache kommen“. Beispiel
-  aus dem Seminar zu genau diesem Thema: „Intensivstraftäter unter 14 – Muss Strafe sein?“ (Notizen
-  523–525). Form oft „Fall XY – Muss ich …?“ (Notizen 532).
+- P3 Zum Kern der Sache kommen, nicht oberflächlich bleiben (Notizen 523–525). Die Reihenfrage selbst ist
+  allgemein formuliert wie Lias eigene (z. B. „Muss ich fremden Menschen in Not genauso helfen wie
+  Nahestehenden?“), ohne Namen, Orte, Zahlen oder Einzelheiten aus einem Fall. Konkret wird es über den Fall:
+  Er ist der Einstieg, nicht die Frage (Jan 27.10.2026, Gelernte Regel). Seminarbeispiel zum Thema:
+  „Intensivstraftäter unter 14 – Muss Strafe sein?“ (Notizen 524).
 - P4 Eine Problemfrage für die ganze Reihe; sie wird jede Stunde wieder aufgegriffen. Jede Stunde eine neue
   Problemfrage lenkt ab, Unterfragen nur, wenn sachlich nötig (Notizen 6, 45).
 - P5 Klausur bzw. LEK in der Sek I mit derselben Frage wie die Reihenfrage; LEKs brauchen eine
