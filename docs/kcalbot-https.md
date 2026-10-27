@@ -26,6 +26,8 @@ Ein Zertifikat braucht einen Namen, auf den es ausgestellt wird.
   Fremdquelle von Caddy, und für Caddy ist ein Fehler dazu gemeldet (Issue 7399). Nicht empfohlen.
 
 ## Entscheidung 2: Schlüssel bei der Umstellung erneuern
+
+Entschieden 27.10.2026: Schlüssel bleiben, nur PUBLIC_URL wird umgestellt.
 Die bisherigen Schlüssel liefen unverschlüsselt durchs Netz und lagen bis heute lesbar auf dem Server. Da jeder
 Nutzer beim Umstieg ohnehin die URL im Kurzbefehl tauscht, kostet ein neuer Schlüssel nichts extra.
 Empfehlung: ja, im selben Schritt.
