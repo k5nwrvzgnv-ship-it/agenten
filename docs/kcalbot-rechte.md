@@ -58,7 +58,8 @@ Kurzbefehl eintragen, sonst bekommt sein iPhone „forbidden“. Vorher die Nutz
 ## Teil B: Port 8787
 
 Stand 27.10.2026: ufw erlaubt 8787/tcp von überall (IPv4 und IPv6, Kommentar kcalbot-steps). Ob der Kurzbefehl
-benutzt wird, ist noch offen (Zähler aus dem Journal fehlt).
+benutzt wird: ja, 25 Übertragungen in 30 Tagen, PUBLIC_URL=http://84.247.188.205:8787. Also Fall 3, Port bleibt
+offen. HTTPS ist noch nicht entschieden.
 
 Erst nachsehen, dann entscheiden:
 ```bash
