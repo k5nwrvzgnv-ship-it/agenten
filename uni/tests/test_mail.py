@@ -73,10 +73,11 @@ class TestSenden(unittest.TestCase):
     DATEN = {"an": ["a@hnee.de"], "cc": [], "betreff": "Test", "text": "Hallo"}
 
     def test_senden_und_gesendet(self):
-        with mock.patch.object(mail.smtplib, "SMTP") as smtp, mock.patch.object(mail.imaplib, "IMAP4_SSL") as imap:
-            smtp.return_value.__enter__.return_value.send_message.return_value = {}
+        with mock.patch.object(mail._mail.smtplib, "SMTP") as smtp, mock.patch.object(mail._mail.imaplib, "IMAP4_SSL") as imap:
+            smtp.return_value.send_message.return_value = {}
+            imap.return_value.__enter__.return_value.append.return_value = ("OK", [b""])
             ergebnis = mail.senden(self.CFG, self.DATEN)
-        s = smtp.return_value.__enter__.return_value
+        s = smtp.return_value
         smtp.assert_called_once_with("mail.hnee.de", 587, timeout=60)
         s.starttls.assert_called_once()
         s.login.assert_called_once_with("jkl298", "geheim")
@@ -85,15 +86,24 @@ class TestSenden(unittest.TestCase):
         self.assertEqual(ergebnis, "Mail gesendet an a@hnee.de: Test")
 
     def test_gesendet_fehler_ist_kein_sendefehler(self):
-        with mock.patch.object(mail.smtplib, "SMTP") as smtp, \
-             mock.patch.object(mail.imaplib, "IMAP4_SSL", side_effect=OSError("weg")):
-            smtp.return_value.__enter__.return_value.send_message.return_value = {}
+        with mock.patch.object(mail._mail.smtplib, "SMTP") as smtp, \
+             mock.patch.object(mail._mail.imaplib, "IMAP4_SSL", side_effect=OSError("weg")):
+            smtp.return_value.send_message.return_value = {}
             self.assertIn("Kopie in Gesendet fehlgeschlagen", mail.senden(self.CFG, self.DATEN))
 
     def test_abgelehnte_empfaenger_und_ohne_absender(self):
-        with mock.patch.object(mail.smtplib, "SMTP") as smtp, mock.patch.object(mail.imaplib, "IMAP4_SSL"):
-            smtp.return_value.__enter__.return_value.send_message.return_value = {"a@hnee.de": (550, b"x")}
+        with mock.patch.object(mail._mail.smtplib, "SMTP") as smtp, mock.patch.object(mail._mail.imaplib, "IMAP4_SSL"):
+            smtp.return_value.send_message.return_value = {"a@hnee.de": (550, b"x")}
             with self.assertRaisesRegex(mail.MailFehler, "abgelehnt"):
                 mail.senden(self.CFG, self.DATEN)
         with self.assertRaisesRegex(mail.MailFehler, "MAIL_ABSENDER"):
             mail.senden({**self.CFG, "MAIL_ABSENDER": ""}, self.DATEN)
+
+    def test_eintraege_in_env_gehen_vor(self):
+        cfg = {**self.CFG, "MAIL_NUTZER": "anders", "MAIL_KENNWORT": "k2", "GESENDET_ORDNER": "Sent", "SMTP_PORT": ""}
+        with mock.patch.object(mail._mail.smtplib, "SMTP") as smtp, mock.patch.object(mail._mail.imaplib, "IMAP4_SSL") as imap:
+            smtp.return_value.send_message.return_value = {}
+            imap.return_value.__enter__.return_value.append.return_value = ("OK", [b""])
+            mail.senden(cfg, self.DATEN)
+        smtp.return_value.login.assert_called_once_with("anders", "k2")
+        self.assertEqual(imap.return_value.__enter__.return_value.append.call_args.args[0], '"Sent"')

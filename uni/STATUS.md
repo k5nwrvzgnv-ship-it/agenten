@@ -93,7 +93,7 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   In Jans Kalender schreibt der Agent nicht selbst (iCloud nur lesend). Echt getestet mit webinargeek
   (Pollmeier-Webinar 17.11.2026 10:00, Termin danach in Jans Kalender). Seiten, die Termine nur per
   JavaScript nachladen und kein JSON-LD haben, liefern keinen Termin.
-- Mails senden (mail.py, 24.10., Plan von Jan freigegeben): Claude schreibt Entwürfe nach
+- Mails senden (mail.py, 24.10., Plan von Jan freigegeben; seit 28.10. über agentkit.mail): Claude schreibt Entwürfe nach
   data/entwuerfe/<schluessel>/mail_<n>.json (an, cc, betreff, text, antwort_auf_uid, begruendung): in
   erledigen-Aufträgen (Schlüssel = Auftrags-ID), in post_pruefen (post-<zeit>, nur wenn Jan offensichtlich
   antworten muss) und bei neuem Material (material-<zeit>-<kurs>). Python prüft (Adressen, höchstens 5
@@ -333,12 +333,22 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    über eine Telegram-Antwort, und das Blatt vom 20.10. (2026-10-20_Transkript_Nr1_Zusammenfassung.md).
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
-8. Bedarf (Hauptordner-Chat, 27.10.): agentkit.mail gibt es jetzt (verallgemeinert aus uni/mail.py).
-   uni/mail.py darauf umstellen: pruefen(entwurf, original) nimmt die Originalmail als dict (mail_holen
-   vorher selbst aufrufen), senden(cfg, daten) loggt mit MAIL_NUTZER/MAIL_KENNWORT ein (ersatzweise
-   IMAP_NUTZER/IMAP_KENNWORT, nicht HNEE_NUTZER) und legt eine Kopie nur ab, wenn GESENDET_ORDNER gesetzt ist.
-   Also in uni/.env MAIL_NUTZER, MAIL_KENNWORT und GESENDET_ORDNER="Gesendete Elemente" eintragen.
-   SMTP_PORT 587 bleibt STARTTLS. mail_merken und mail_holen bleiben in uni.
+8. Erledigt 28.10.: uni/mail.py nutzt agentkit.mail (pruefen, anzeige, wortlaut, bauen, senden). In uni
+   bleiben mail_merken, mail_holen, pruefen mit antwort_auf_uid (holt das Original aus data/mails/) und senden
+   mit HNEE-Vorgaben (MAIL_NUTZER/MAIL_KENNWORT = HNEE_NUTZER/HNEE_KENNWORT, GESENDET_ORDNER = "Gesendete
+   Elemente"; Einträge in .env gehen vor). Kennwort steht so nur einmal in .env. Nur Unit-Tests, der nächste
+   freigegebene Entwurf ist der Echttest (Kopie in Gesendet prüfen).
+9. Mail-Ablauf wie posteingang (Plan von Jan 28.10. freigegeben): Claude nennt Suchbegriffe, Python sucht in
+   INBOX, Archive, "Gesendete Elemente" und im Kalender, Claude schreibt den Entwurf im Stil von Jans Mails an
+   diese Person; gilt für Jans Aufträge und Antworten auf eingehende Mails, Ändern nutzt denselben Kontext.
+   Wartet auf Bedarf 20 in ../STATUS.md: imap.suchen geht am HNEE-Exchange nicht (BADCHARSET, TO findet
+   nichts; TEXT und FROM ohne Umlaute gehen) und die Auftragslogik aus posteingang/auftrag.py soll nach agentkit.
+   Offen bei Jan: Mail-Aufträge per Präfix "Mail:" (Vorschlag) oder Claude entscheidet.
+   Erster Fall: Antwort an Prof. Böhme auf UID 11077 (26.10., Betreuung Forschungsprojekt Fehlstellenerkennung
+   an Holzlamellen; fragt Zeitplanung, Termin, Exposé). Stilvorlage: BA-Schriftwechsel, 19 Mails von ihm in
+   INBOX (Sep. 2025 bis Apr. 2026), ca. 18 von Jan in "Gesendete Elemente" (TEXT "Boehme"). Jan schreibt den
+   Inhalt (Stichworte) dazu. Der alte Entwurf 20261027-112951-uni-e7a60a (ohne Stilvorlage) liegt offen in der
+   Freigabe und wird abgelehnt, sobald der neue da ist.
 
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.
