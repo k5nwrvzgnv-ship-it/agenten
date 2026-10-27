@@ -18,7 +18,7 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. St
   Erster Timer-Lauf 28.10. 8:00, zugleich erster echter Lauf der Einordnung: Meldung und Log danach prüfen.
 - Mail-Aufträge (Stufe 2, Plan von Jan 27.10. freigegeben, Senden von jan@kleinke.org und Kalender okay):
   gebaut und getestet. agentkit.mail und agentkit.imap.suchen sind da (Bedarf Nr. 19 erledigt 27.10.), mit dem
-  echten agentkit.mail geprüft (pruefen, anzeige). Es fehlen nur die Sende-Werte in .env (Punkt 7).
+  echten agentkit.mail geprüft (pruefen, anzeige). Sende-Werte stehen in .env (27.10.). Bereit für den ersten echten Auftrag.
   Ablauf (agent.py, Logik in auftrag.py): /posteingang <Auftrag> -> Claude (routine) nennt Suchbegriffe ->
   Python sucht in INBOX, Archive und Sent (von/an Person, Stichwort, seit) und im Kalender (agentkit.kalender,
   KALENDER_ICS_URLS aus shared/.env) -> Claude (anspruchsvoll) schreibt Entwurf oder Rückfrage als JSON ->
@@ -71,8 +71,7 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. St
 4. Aufbewahrung: data/mails/ nach 30 Tagen löschen.
 5. Dienst und Timer: erledigt 27.10. Offen: ersten Lauf 28.10. 8:00 prüfen (logs/posteingang.log, Meldung).
 6. Später: Termine über agentkit.kalender, Bestellungen an einkauf.
-7. Mail-Aufträge in Betrieb nehmen: SMTP_HOST, SMTP_PORT=465, MAIL_ABSENDER, MAIL_NAME, GESENDET_ORDNER in
-   .env eintragen (Vorlage .env.example, ohne sie scheitert erst das Senden). Dann erster echter Test mit Jans Auftrag (Absage Paarberatung bei Frau Oppenheimer): Suchbegriffe, gefundene
+7. Mail-Aufträge: Sende-Werte in .env eingetragen 27.10. Offen: erster echter Test mit Jans Auftrag (Absage Paarberatung bei Frau Oppenheimer): Suchbegriffe, gefundene
    Mails und Entwurf im Log und in data/auftraege/ prüfen, erst dann freigeben.
 8. data/auftraege/ (Mailtexte, auch sensibel) wie data/mails/ nach 30 Tagen löschen (zu Punkt 4).
 
