@@ -1,0 +1,15 @@
+<b>Posteingang</b> · Mail-Entwurf
+<b>An M. Berger</b> (m.berger@praxis.example.de)
+Re: Anfrage zur Beratung – Absage Termin am 2.11.
+<i>Antwort auf die Mail vom 11.08.2026</i>
+
+<blockquote>Liebe Frau Berger,
+
+leider müssen wir unseren Termin am Montag, 2.11., absagen. Lia ist zu dieser Zeit in der Schule gebunden.
+
+Wäre im Dezember ein neuer Termin möglich?
+
+Liebe Grüße
+Lia und Jan</blockquote>
+--- Knöpfe ---
+[Freigeben] f:x  [Ändern] c:x  [Ablehnen] a:x

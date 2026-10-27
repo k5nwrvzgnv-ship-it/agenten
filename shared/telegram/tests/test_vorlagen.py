@@ -15,7 +15,7 @@ import vorlagen as v
 
 ORDNER = Path(__file__).parent / "snapshots"
 AID = "20261025-211917-recherche-7ad7f7"
-ERLAUBT = re.compile(r"</?(b|i)>|<blockquote expandable>|</blockquote>")
+ERLAUBT = re.compile(r"</?(b|i|code)>|<blockquote( expandable)?>|</blockquote>")
 
 RECHERCHE = {
     "id": AID, "agent": "recherche", "status": "erledigt", "quelle": "portal-frage",

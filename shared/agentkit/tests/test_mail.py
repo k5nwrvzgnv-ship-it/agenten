@@ -25,6 +25,16 @@ class TestPruefen(unittest.TestCase):
         self.assertEqual(daten["in_reply_to"], "<b@x.de>")
         self.assertEqual(daten["references"], "<a@x.de> <b@x.de>")
         self.assertEqual(daten["antwort_auf"], "Frau Müller <m@x.de>: Termin")
+        self.assertEqual(daten["antwort_auf_von"], "Frau Müller <m@x.de>")
+        self.assertEqual(daten["antwort_auf_datum"], "2026-10-26T10:00:00+01:00")
+
+    def test_pruefen_frage(self):
+        daten = mail.pruefen({**ENTWURF, "pruefen": " ob  Freitag passt "})
+        self.assertEqual(daten["pruefen"], "ob Freitag passt")
+        self.assertTrue(mail.anzeige(daten).endswith("\n\nBitte prüfen: ob Freitag passt"))
+        self.assertNotIn("pruefen", mail.pruefen(ENTWURF))
+        with self.assertRaises(mail.MailFehler):
+            mail.pruefen({**ENTWURF, "pruefen": "x" * 501})
 
     def test_fehler(self):
         for falsch in ("text", {**ENTWURF, "an": []}, {**ENTWURF, "an": ["kein-at"]}, {**ENTWURF, "an": 5},

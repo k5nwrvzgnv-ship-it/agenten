@@ -28,8 +28,33 @@ ENTWURF = {
               "echte Test des Mailversands. Diese Mail wurde erst gesendet, nachdem du sie in Telegram freigegeben "
               "hast.\n\nUni-Agent\n\n(Warum: Echttest des Mailteils, an dich selbst)",
     "daten": {"an": ["jkl298@hnee.de"], "cc": [], "betreff": "Test Uni-Agent: Mailversand nach Freigabe",
+              "text": "Hallo Jan,\n\ndas ist der erste echte Test des Mailversands. Diese Mail wurde erst gesendet, "
+                      "nachdem du sie in Telegram freigegeben hast.\n\nUni-Agent",
               "begruendung": "Echttest des Mailteils, an dich selbst"},
 }
+VERLAUF = " ".join(f"<2026{i:02d}11102541.{i}AB@mail.example.org>" if i % 2 else f"<{i}f3c9a@praxis.example.de>"
+                   for i in range(1, 15))
+ENTWURF_VERLAUF = {
+    "id": "20261028-000141-posteingang-483303", "agent": "posteingang", "typ": "mail", "fingerabdruck": "x",
+    "titel": "Mail: Re: Anfrage zur Beratung – Absage Termin am 2.11.", "inhalt": "(aus den daten)",
+    "daten": {"an": ["m.berger@praxis.example.de"], "cc": [], "betreff": "Re: Anfrage zur Beratung – Absage Termin am 2.11.",
+              "text": "Liebe Frau Berger,\n\nleider müssen wir unseren Termin am Montag, 2.11., absagen. Lia ist zu "
+                      "dieser Zeit in der Schule gebunden.\n\nWäre im Dezember ein neuer Termin möglich?\n\n"
+                      "Liebe Grüße\nLia und Jan",
+              "begruendung": "Die Adresse und den Bezug habe ich aus dem Verlauf mit Frau Berger (m14, m11). Der Termin "
+                             "steht im Kalender am 2.11. von 15:30 bis 16:30. Den Stil habe ich von m11 übernommen.",
+              "in_reply_to": "<14f3c9a@praxis.example.de>", "references": VERLAUF,
+              "antwort_auf": "\"Berger, M.\" <m.berger@praxis.example.de>: AW: AW: AW: AW: AW: AW: Anfrage zur Beratung",
+              "antwort_auf_von": "\"Berger, M.\" <m.berger@praxis.example.de>",
+              "antwort_auf_datum": "2026-08-11T10:25:41+02:00"},
+}
+ENTWURF_FRAGE = {**ENTWURF_VERLAUF, "daten": {
+    **ENTWURF_VERLAUF["daten"], "pruefen": "ob 'eine Woche Vorlauf vereinbart' so stimmt, wie du es gemeint hast."}}
+ENTWURF_LANG = {**ENTWURF_VERLAUF, "vorgaenger": "20261027-000000-posteingang-aaaaaa", "daten": {
+    **ENTWURF_VERLAUF["daten"], "text": "Liebe Frau Berger,\n\n" + "\n\n".join(
+        f"Punkt {i}: Wir haben die Unterlagen für Ihre Beratung durchgesehen und melden uns dazu bald." * 3
+        for i in range(1, 31)) + "\n\nLiebe Grüße\nLia und Jan"}}
+FREIGABE_KNOEPFE = [[("Freigeben", "f:x"), ("Ändern", "c:x"), ("Ablehnen", "a:x")]]
 FEEDBACK_REGEL = {"art": "regel", "ziel": "recherche", "heikel": False,
                   "regel": "Jede Recherche beginnt oben mit einer klaren Empfehlung (z. B. welche Reihenfrage), bevor "
                            "die übrigen Teile folgen.",
@@ -58,8 +83,13 @@ class NachrichtenTest(unittest.TestCase):
             {**a, "ergebnis": "Fehler im Agenten (RenderFehler): Vorlage fehlt\nDetails: dokumente/logs/dokumente.log"}))
 
     def test_jan_entwurf(self):
-        self.snapshot("jan_entwurf_mail", logik.entwurf_als_text(ENTWURF), [[("Freigeben", "f:x"), ("Ablehnen", "a:x"),
-                                                                             ("Ändern", "c:x")]])
+        self.snapshot("jan_entwurf_mail", logik.entwurf_als_text(ENTWURF), FREIGABE_KNOEPFE)
+        self.snapshot("jan_entwurf_mail_verlauf", logik.entwurf_als_text(ENTWURF_VERLAUF), FREIGABE_KNOEPFE)
+        self.snapshot("jan_entwurf_mail_frage", logik.entwurf_als_text(ENTWURF_FRAGE), FREIGABE_KNOEPFE)
+        lang = logik.entwurf_als_text(ENTWURF_LANG)
+        self.assertGreater(len(lang), 1)
+        self.assertTrue(all(len(s) <= logik.MAX_LAENGE for s in lang))
+        self.snapshot("jan_entwurf_mail_lang", lang, FREIGABE_KNOEPFE)
 
     def test_jan_hinweise(self):
         a = {"id": AID, "agent": "dokumente", "von": "uni"}

@@ -20,6 +20,9 @@ ORDNER = Path(__file__).parent / "snapshots"
 ALTLASTEN = Path(__file__).parent / "sprache_altlasten.json"
 AUSNAHMEN = {
     "jan_entwurf_mail": ("laenge",),  # freigegeben wird genau der angezeigte Text, er wird nicht gekürzt
+    "jan_entwurf_mail_verlauf": ("laenge",),
+    "jan_entwurf_mail_frage": ("laenge",),
+    "jan_entwurf_mail_lang": ("laenge",),
 }
 
 

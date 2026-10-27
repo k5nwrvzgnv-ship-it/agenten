@@ -2,7 +2,8 @@
 
 Ablauf ("Claude denkt, Python handelt"):
 1. Claude schreibt einen Entwurf als JSON: {"an": ["..."], "cc": [], "betreff": "...", "text": "...",
-   "begruendung": "..."}. Soll es eine Antwort werden, sucht der Agent die Originalmail selbst heraus
+   "begruendung": "...", "pruefen": "..."} (pruefen optional: eine offene Frage an Jan, z. B. "ob der Termin
+   stimmt"; die Freigabe zeigt sie hervorgehoben). Soll es eine Antwort werden, sucht der Agent die Originalmail selbst heraus
    (ein dict wie agentkit.imap.zerlege, gebraucht werden message_id, references, von, betreff).
 2. daten = mail.pruefen(entwurf, original) prüft ihn und gibt nur bekannte Felder zurück; In-Reply-To und
    References kommen aus dem Original, nicht von Claude. Der Agent legt daten in die Freigabe (typ "mail"),
@@ -31,6 +32,7 @@ from email.message import EmailMessage
 MAX_EMPFAENGER = 5
 MAX_BETREFF = 200
 MAX_TEXT = 20_000
+MAX_PRUEFEN = 500
 ADRESSE = re.compile(r"^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
 
 
@@ -75,6 +77,11 @@ def pruefen(entwurf: dict, original: dict | None = None) -> dict:
         raise MailFehler(f"text: 1 bis {MAX_TEXT} Zeichen")
     daten = {"an": an, "cc": cc, "betreff": betreff, "text": text,
              "begruendung": " ".join(str(entwurf.get("begruendung") or "").split())}
+    pruefen_text = " ".join(str(entwurf.get("pruefen") or "").split())
+    if len(pruefen_text) > MAX_PRUEFEN:
+        raise MailFehler(f"pruefen: höchstens {MAX_PRUEFEN} Zeichen")
+    if pruefen_text:
+        daten["pruefen"] = pruefen_text
     if original is not None:
         if not isinstance(original, dict) or not str(original.get("message_id") or "").strip():
             raise MailFehler("Originalmail ohne Message-ID, Antwort nicht möglich")
@@ -82,11 +89,15 @@ def pruefen(entwurf: dict, original: dict | None = None) -> dict:
         daten["in_reply_to"] = message_id
         daten["references"] = " ".join(x for x in (original.get("references"), message_id) if x)
         daten["antwort_auf"] = f"{original.get('von', '')}: {original.get('betreff', '')}"
+        # nur für die Anzeige in der Freigabe (Name und Datum der Originalmail), gehen nicht mit raus
+        daten["antwort_auf_von"] = str(original.get("von") or "")
+        daten["antwort_auf_datum"] = str(original.get("datum") or "")
     return daten
 
 
 def anzeige(daten: dict) -> str:
-    """Was Jan in Telegram sieht: Kopf und vollständiger Text."""
+    """Kopf, Text und Begründung als Klartext (inhalt des Entwurfs). Telegram zeigt Mails aus den daten
+    (shared/telegram/logik.py, entwurf_als_text)."""
     zeilen = [f"An: {', '.join(daten['an'])}"]
     if daten.get("cc"):
         zeilen.append(f"Cc: {', '.join(daten['cc'])}")
@@ -95,6 +106,8 @@ def anzeige(daten: dict) -> str:
     zeilen += [f"Betreff: {daten['betreff']}", "", daten["text"]]
     if daten.get("begruendung"):
         zeilen += ["", f"(Warum: {daten['begruendung']})"]
+    if daten.get("pruefen"):
+        zeilen += ["", f"Bitte prüfen: {daten['pruefen']}"]
     return "\n".join(zeilen)
 
 

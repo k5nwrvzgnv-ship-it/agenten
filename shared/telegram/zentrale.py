@@ -24,6 +24,8 @@
   startet feedback.service (shared/feedback). Dessen Zusammenfassung kommt als Meldung mit Stopp-Knopf (auch für
   Lias Feedback); der Klick geht wie jeder Meldungsknopf an feedback.service. Eine Antwort auf das Ergebnis setzt
   weiter die Sitzung fort.
+  Ergebnisse, die nur auf einen Entwurf in der Freigabe verweisen, kommen nicht (logik.nur_freigabe_verweis):
+  Feedback dazu läuft über Ändern/Ablehnen am Entwurf.
 - Nimmt Dateien und Fotos an (bis 20 MB). Mit /agent in der Bildunterschrift oder als Antwort auf
   eine Meldung gehen sie sofort an den Auftrag, sonst warten sie in data/eingang/ auf den nächsten
   Auftrag. agentkit.auftraege legt sie dann in <agent>/data/eingang/<auftrag-id>/ ab.
@@ -36,7 +38,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
 from telegram.constants import ParseMode
 from telegram.error import TelegramError
 from telegram.ext import (
@@ -85,6 +87,7 @@ from logik import (
     knopf_beschriftung,
     meldung_knoepfe,
     mit_absender,
+    nur_freigabe_verweis,
     panel_auswerten,
     passt_als_beschriftung,
     status_text,
@@ -660,12 +663,13 @@ async def entwurf_zeigen(bot, e: dict) -> None:
     """Entwurf mit Knöpfen senden und merken, welcher Stand gezeigt wurde (Fingerabdruck)."""
     knoepfe = InlineKeyboardMarkup([[
         InlineKeyboardButton("Freigeben", callback_data=f"f:{e['id']}"),
-        InlineKeyboardButton("Ablehnen", callback_data=f"a:{e['id']}"),
         InlineKeyboardButton("Ändern", callback_data=f"c:{e['id']}"),
+        InlineKeyboardButton("Ablehnen", callback_data=f"a:{e['id']}"),
     ]])
     with sprachpruefung.ausnahmen("laenge"):  # freigegeben wird genau der angezeigte Text
         for i, stueck in enumerate(stuecke := entwurf_als_text(e)):
             await bot.send_message(JAN, stueck, parse_mode=ParseMode.HTML,
+                                   link_preview_options=LinkPreviewOptions(is_disabled=True),
                                    reply_markup=knoepfe if i == len(stuecke) - 1 else None)
     gemeldet.angezeigt[e["id"]] = e["fingerabdruck"]
 
@@ -708,6 +712,11 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
             # Feedback: die Zusammenfassung kommt als Meldung; Zurückgezogenes: Jan hat selbst gestoppt
             if (a["agent"] == FEEDBACK and a.get("quelle") == "feedback" and a["status"] == "erledigt") \
                     or a["status"] == "zurueckgezogen":
+                gemeldet.listen["auftraege"].add(a["id"])
+                geaendert = True
+                continue
+            if nur_freigabe_verweis(a):  # der Entwurf kommt selbst, mit Freigeben/Ändern/Ablehnen (Jan, 28.10.)
+                logger.info("Ergebnis %s nicht gesendet, verweist nur auf die Freigabe", a["id"])
                 gemeldet.listen["auftraege"].add(a["id"])
                 geaendert = True
                 continue

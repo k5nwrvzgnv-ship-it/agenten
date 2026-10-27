@@ -1,3 +1,4 @@
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -43,34 +44,81 @@ class TestLogik(unittest.TestCase):
         self.assertEqual("".join(aufteilen(lang, 1000)), lang)
 
     def test_entwurf_zeigt_alles(self):
-        e = {"agent": "posteingang", "typ": "mail", "titel": "Antwort", "inhalt": "Hallo " * 2000,
-             "daten": {"an": "prof@example.org"}, "vorgaenger": None}
+        e = {"agent": "posteingang", "typ": "mail", "titel": "Antwort", "inhalt": "x", "vorgaenger": None,
+             "daten": {"an": ["prof@example.org"], "betreff": "Termin", "text": "Hallo " * 2000}}
         text = "".join(entwurf_als_text(e))
-        self.assertIn("prof@example.org", text)
+        self.assertEqual(text.count("prof@example.org"), 1)
         self.assertEqual(text.count("Hallo"), 2000)
-        self.assertTrue(text.startswith("<b>Posteingang</b> · Mail-Entwurf\nAntwort"))
-        self.assertIn("Details:\nAn: prof@example.org", text)
+        self.assertTrue(text.startswith("<b>Posteingang</b> · Mail-Entwurf\n<b>An prof@example.org</b>\nTermin\n"))
+        self.assertGreater(len(entwurf_als_text(e)[0]), 1000)  # Kopf nicht allein in der ersten Nachricht
         kauf = entwurf_als_text({"agent": "einkauf", "typ": "kauf", "titel": "Kabel <USB>", "inhalt": "x",
                                  "daten": {"preis": 12.5, "menge": [1, 2]}, "vorgaenger": "alt"})
-        self.assertIn("Kauf-Entwurf, überarbeitet\nKabel &lt;USB&gt;", kauf[0])
-        self.assertIn("Preis: 12.5\nMenge: 1, 2", kauf[0])
+        self.assertIn("Kauf-Entwurf, überarbeitet\n<b>Kabel &lt;USB&gt;</b>\nPreis: 12.5\nMenge: 1, 2\n\n"
+                      "<blockquote>x</blockquote>", kauf[0])
 
-    def test_entwurf_details_ohne_doppeltes(self):
-        text = "Sehr geehrter Herr Böhme,\n\nvielen Dank.\n\nMit besten Grüßen\nJan"
-        e = {"agent": "uni", "typ": "mail", "titel": "Mail: AW: Betreuung", "vorgaenger": None,
-             "inhalt": f"An: boehme@example.org\nCc: a@example.org, b@example.org\nBetreff: AW: Betreuung\n\n{text}",
-             "daten": {"an": ["boehme@example.org"], "cc": ["a@example.org", "b@example.org"],
-                       "betreff": "AW: Betreuung", "text": text, "begruendung": "Er hat zugesagt.",
-                       "in_reply_to": "<x@example.org>", "bcc": [], "anhang": "", "ja": "Jan", "nein": "Ja",
-                       "menge": 1, "fremd": ["boehme@example.org", "c@example.org"]}}
-        (nachricht,) = entwurf_als_text(e)
-        self.assertEqual(nachricht.count("vielen Dank"), 1)
-        details = nachricht.split("Details:\n")[1].splitlines()
-        self.assertEqual([d.split(":")[0] for d in details], ["Warum", "Antwort auf", "Nein", "Menge", "Fremd"])
+    def test_entwurf_mail_aus_daten(self):
+        text = "Sehr geehrter Herr Böhme,\n\nvielen Dank & bis bald.\n\nMit besten Grüßen\nJan"
+        e = {"agent": "uni", "typ": "mail", "titel": "Mail: AW: Betreuung", "vorgaenger": None, "inhalt": "egal",
+             "daten": {"an": ["boehme@example.org"], "cc": ["a@example.org"], "betreff": "AW: Betreuung",
+                       "text": text, "begruendung": "Er hat zugesagt. Bitte prüfe, ob Freitag passt.",
+                       "in_reply_to": "<x@example.org>", "antwort_auf_uid": 7, "bcc": [], "anhang": "plan.pdf",
+                       "antwort_auf": "\"Böhme, Klaus\" <boehme@example.org>: AW: AW: Betreuung"}}
+        (n,) = entwurf_als_text(e)
+        self.assertEqual(n.count("vielen Dank &amp; bis bald"), 1)
+        self.assertIn("<b>An Klaus Böhme</b> (boehme@example.org)\nAW: Betreuung\n"
+                      "<i>Antwort auf die Mail</i>\nCc: a@example.org\nAnhang: plan.pdf\n\n<blockquote>Sehr", n)
+        self.assertTrue(n.endswith("</blockquote>\n\n<b>Bitte prüfen:</b> ob Freitag passt."))
+        for weg in ("Details", "zugesagt", "x@example.org", "expandable"):
+            self.assertNotIn(weg, n)
         termin = entwurf_als_text({"agent": "uni", "typ": "termin", "titel": "T", "inhalt": "x", "vorgaenger": None,
                                    "daten": {"titel": "x"}})
-        self.assertNotIn("Details", termin[0])
         self.assertIn("Termin-Entwurf", termin[0])
+        self.assertNotIn("Titel:", termin[0])
+
+    def test_betreff_und_bezug(self):
+        self.assertEqual(logik.betreff_kurz("AW: AW: Re: AW:Anfrage"), "Re: Anfrage")
+        self.assertEqual(logik.betreff_kurz("WG: AW: Plan"), "Fwd: Plan")
+        self.assertEqual(logik.betreff_kurz("Plan"), "Plan")
+        self.assertEqual(logik.name_aus('"Oppermann, J." <j@x.de>'), ("J. Oppermann", "j@x.de"))
+        self.assertEqual(logik.name_aus("j@x.de"), ("j@x.de", "j@x.de"))
+        daten = {"an": ["a@x.de"], "betreff": "Re: Neu", "antwort_auf_von": "Frau B <b@x.de>",
+                 "antwort_auf_datum": "2026-08-11T10:00:00+02:00", "antwort_auf": "Frau B <b@x.de>: AW: AW: Alt"}
+        self.assertEqual(logik.bezug_text(daten), "Antwort auf die Mail von Frau B vom 11.08.2026: „Re: Alt“")
+        self.assertEqual(logik.bezug_text({"an": ["a@x.de"], "in_reply_to": "<y>"}), "Antwort auf eine frühere Mail")
+        self.assertEqual(logik.bezug_text({"an": ["a@x.de"]}), "")
+
+    def test_warum_und_frage(self):
+        self.assertEqual(logik.warum_und_frage({"begruendung": "A. Bitte prüfe, ob x stimmt. B."}),
+                         ("A. B.", "ob x stimmt."))
+        self.assertEqual(logik.warum_und_frage({"begruendung": "A.", "pruefen": "ob x stimmt"}), ("A.", "ob x stimmt"))
+        self.assertEqual(logik.warum_und_frage({}), ("", ""))
+
+    def test_html_aufteilen_schneidet_keine_tags(self):
+        html = "<b>Kopf</b>\n\n<blockquote>" + "\n".join(f"Zeile {i} &amp; " + "x" * 50 for i in range(300)) \
+            + "</blockquote>\n\n<blockquote expandable><b>Warum so</b>\n" + "y" * 2500 + "</blockquote>"
+        stuecke = logik.html_aufteilen(html, 1000)
+        self.assertGreater(len(stuecke), 10)
+        for s in stuecke:
+            self.assertLessEqual(len(s), 1000)
+            self.assertEqual(s.count("<blockquote"), s.count("</blockquote>"), s[:80])
+            self.assertEqual(s.count("<b>"), s.count("</b>"))
+            self.assertNotRegex(s, r"&[a-z]*$|<[^>]*$")
+        self.assertTrue(stuecke[1].startswith("<blockquote>Zeile"))
+        self.assertTrue(stuecke[-1].startswith("<blockquote expandable>"))
+        ohne = re.compile(r"<[^>]+>|\s")
+        self.assertEqual(ohne.sub("", "".join(stuecke)), ohne.sub("", html))
+        self.assertEqual(logik.html_aufteilen("<b>kurz</b>"), ["<b>kurz</b>"])
+
+    def test_nur_freigabe_verweis(self):
+        a = {"status": "erledigt", "ergebnis": "Entwurf an a@x.de liegt zur Freigabe."}
+        self.assertTrue(logik.nur_freigabe_verweis(a))
+        self.assertTrue(logik.nur_freigabe_verweis({**a, "ergebnis": "Mail-Entwurf an a@x.de liegt zur Freigabe: T\n"
+                                                                    "Mail-Entwurf an b@x.de liegt zur Freigabe: U"}))
+        self.assertTrue(logik.nur_freigabe_verweis({**a, "ergebnis": "Fertig.", "daten": {"nur_freigabe": True}}))
+        self.assertFalse(logik.nur_freigabe_verweis({**a, "ergebnis": a["ergebnis"] + "\nAußerdem: zwei Termine."}))
+        self.assertFalse(logik.nur_freigabe_verweis({**a, "ergebnis_dateien": ["x.pdf"]}))
+        self.assertFalse(logik.nur_freigabe_verweis({**a, "status": "fehlgeschlagen"}))
+        self.assertFalse(logik.nur_freigabe_verweis({**a, "ergebnis": ""}))
 
     def test_verbrauch_text(self):
         def zt(ts):

@@ -406,5 +406,26 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
       Umstellung von posteingang als Bedarf in posteingang/STATUS.md, Aufruf für uni in uni/STATUS.md (Punkt 9).
       Hinweis: CLAUDE.md (Architektur, agentkit-Liste) nennt mailauftrag und mail noch nicht.
 
+21. Freigabe-Ansicht neu (28.10., Jan: "überladen"; Entscheidungen Jan 28.10.: nichts Ausklappbares, also
+   weder Begründung noch technische Kopfzeilen in Telegram; Ergebnisse, die nur auf einen Entwurf verweisen,
+   kommen nicht). Gebaut in shared/telegram/logik.py: entwurf_als_text = Gerüst für alle Typen: Kopf (Mail:
+   **An Name** (Adresse), Betreff wie gesendet, kursiver Bezug "Antwort auf die Mail [von X] vom TT.MM.JJJJ",
+   Präfix-Wurm zusammengefasst über betreff_kurz), Inhalt im blockquote, "Bitte prüfen:" fett sichtbar.
+   Begründung, In-Reply-To und References stehen weiter im Entwurf (inhalt, daten). Mails werden aus daten gezeigt (genau das geht raus), andere
+   Typen aus inhalt plus Feldern, die dort nicht wörtlich stehen. html_aufteilen schließt offene Tags am
+   Schnitt und öffnet sie neu, nichts geht verloren. Knöpfe Freigeben / Ändern / Ablehnen, ohne Link-Vorschau.
+   nur_freigabe_verweis: Ergebnis "Entwurf an ... liegt zur Freigabe" (oder daten.nur_freigabe) wird nicht
+   gesendet, Feedback läuft über Ändern/Ablehnen. agentkit.mail.pruefen nimmt optional "pruefen" (Prüffrage
+   an Jan, bis 500 Zeichen) und legt antwort_auf_von/antwort_auf_datum für die Anzeige ab. Fehlt "pruefen",
+   zieht die Ansicht einen Satz "Bitte prüf..." aus der Begründung.
+   Offen (Bedarf):
+   - mailauftrag (anderer Chat, noch uncommittet), posteingang, uni: Im Entwurfs-Prompt das Feld "pruefen"
+     anbieten ("eine offene Frage an Jan, sonst weglassen"; nicht "rueckfrage", das ist schon die Rückfrage
+     statt Entwurf) und in antwort_lesen durchreichen.
+   - posteingang/agent.py entwurf_einreichen und uni/agent.py: beim Ändern zusätzlich antwort_auf_von und
+     antwort_auf_datum vom Vorgänger übernehmen (sonst fehlen Name und Datum in der Bezugszeile).
+   - posteingang und uni: bei reinen Entwurfs-Ergebnissen daten.nur_freigabe = True setzen, statt sich auf
+     den Text "liegt zur Freigabe" zu verlassen.
+
 ## Gelernte Regeln
 - (noch keine)
