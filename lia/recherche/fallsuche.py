@@ -1,7 +1,7 @@
 """Fallsuche: offene, gründliche Suche nach realen Fällen für Lias Examensreihe, mit Abgleich und Leitfragen.
 
 Aufruf (vorerst von Hand):
-    AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python fallsuche.py [--fenster a,b] [--weiter ORDNER]
+    AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python fallsuche.py [--fenster a,b] [--weiter ORDNER] [--grenze USD]
 
 Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
 1. Sammeln: je Suchfenster (faelle.FENSTER) eine eigene Claude-Sitzung mit WebSearch/WebFetch, danach
@@ -15,7 +15,7 @@ Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
 3. Dossier (dieselbe Sitzung): stärkste Fälle und Leitfragen mit zwei Polen, Kant/Liszt mit Registerbelegen,
    RLP-Bezug. Eine Nachbesserung. docx über shared/renderer, Meldung an Jan. Kein Bewertungsbogen.
 Ablage data/fallsuche/<datum-zeit>/. --weiter ORDNER übernimmt fertig geprüfte Fenster eines abgebrochenen Laufs.
-Kostengrenze GRENZE_USD je Lauf (Jan 27.10.2026: 15 USD).
+Kostengrenze GRENZE_USD je Lauf (Jan 27.10.2026: 15 USD), mit --grenze anders (nur nach Jans Okay).
 """
 
 import argparse
@@ -221,6 +221,7 @@ def main(argv: list[str]) -> int:
     teiler = argparse.ArgumentParser(prog="fallsuche.py", description="Fälle suchen, abgleichen, Leitfragen.")
     teiler.add_argument("--fenster", help=f"Komma-Liste aus {', '.join(faelle.FENSTER)} (ohne: alle)")
     teiler.add_argument("--weiter", metavar="ORDNER", help="abgebrochenen Lauf in data/fallsuche/<id> fortsetzen")
+    teiler.add_argument("--grenze", type=float, default=GRENZE_USD, help=f"Kostengrenze in USD (ohne: {GRENZE_USD:g})")
     args = teiler.parse_args(argv[1:])
     fenster = args.fenster.split(",") if args.fenster else None
     if fenster and (falsch := [f for f in fenster if f not in faelle.FENSTER]):
@@ -231,7 +232,7 @@ def main(argv: list[str]) -> int:
         print(f"Ordner fehlt: {weiter}", file=sys.stderr)
         return 2
     try:
-        print(ausfuehren(fenster=fenster, weiter=weiter))
+        print(ausfuehren(fenster=fenster, weiter=weiter, kosten=agent.Kosten(grenze=args.grenze)))
     except (faelle.FallFehler, agent.KostenGrenze, claude_lauf.LaufFehler) as e:
         print(e, file=sys.stderr)
         return 1
