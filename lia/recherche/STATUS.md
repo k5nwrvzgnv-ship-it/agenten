@@ -51,8 +51,10 @@ Stellen. lia/examen liest das Register für die Skizzen.
   wechselte zwischen den Läufen von teilweise zu ja) und meldet auch Rahmenangaben (Jahr, Heftnummer) als fehlend.
 - Anhänge zum Webauftrag (anhaenge.py): ANHANG:-Zeilen und --anhang, Kopie nach data/web/<id>/anhaenge/, pdf/docx
   mit Textfassung (pypdf 6.21.0 am 25.10. mit Jans Okay installiert). Noch nicht mit echtem Auftrag gelaufen.
+- Fallsuche (Plan Jan 27.10.2026, Lias Auftrag „Neuausrichtung der Recherche“): gebaut und getestet, noch kein
+  echter Lauf. Siehe Abschnitt Fallsuche.
 - Kein Dienst, kein Timer (Teil D).
-- 124 Tests (tests/), in pruefen.sh eingetragen.
+- 148 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -120,6 +122,35 @@ Stellen. lia/examen liest das Register für die Skizzen.
   html_zu_text, wortlaut.steht_in); Videoseiten nur Titel; fremde Domain: ungeprüft, nicht geladen; Register-
   Verweis muss als Stelle existieren. Belegt = mindestens ein bestandener Beleg, sonst „Nicht belegt“.
 
+## Fallsuche
+- Zweck: offene, gründliche Suche nach starken realen Fällen (nicht nur Philosophen: Reportagen, Urteile, Social
+  Media, Popkultur, Alltag) für Lias Examensreihe, laufend gegen regelwerk_reihe.md abgeglichen; daraus Problem-
+  bzw. Leitfragen. Kein Bewertungsbogen: Lia liest das Dossier und spricht ihr Feedback ein.
+- Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python fallsuche.py [--fenster a,b]
+  [--weiter data/fallsuche/<id>]`. Ablage data/fallsuche/<id>/: sammeln-<fenster>.json (+ -geprueft.json),
+  faelle.json, abgleich.json, dossier.json, ergebnis.json, „Fallsuche Strafe.docx“, roh/.
+- fallsuche.py (Ablauf): je Suchfenster (faelle.FENSTER: nachrichten, urteile, social_media, popkultur,
+  lebenswelt) eine Opus-Sitzung mit WebSearch/WebFetch, dazu einmal „weitersuchen“ in derselben Sitzung
+  (DURCHGAENGE = 2), Belege wörtlich geprüft (webpruefung), eine Nachbesserung. Scheitert ein Fenster, laufen
+  die anderen weiter (Meldung). Dann Abgleich (neue Sitzung) und Dossier (dieselbe Sitzung), je eine
+  Nachbesserung. Grenze 15 USD je Lauf (Jan), davon RESERVE_USD = 3 für Abgleich und Dossier; danach werden
+  keine Fenster mehr gestartet. --weiter übernimmt fertig geprüfte Fenster. Meldung an Jan.
+- faelle.py (rein, getestet): Kontext (Regel-Kennungen aus regelwerk_reihe.md, Lias Gelernte Regeln als GR<n>,
+  RLP-Auszug), Prompts, Prüfung der drei Dateien, Zusammenführen (ids F01…, doppelte über URL oder Titel
+  vereint), docx-Beschreibung (Leitfragen, ausgewählte Fälle mit Abgleich je Kriterium, weitere Fälle, Verworfenes,
+  nicht Belegtes, Lücken, Rückfragen, Kurzfassung der genannten Regeln). Fälle mit Gewalt werden markiert (G1).
+- Python prüft: Belege wörtlich; jeder Fall genau einmal abgeglichen, alle fünf Kriterien mit Stufe
+  stark/mittel/schwach, Begründung, nur bekannte Regel-Kennungen; Leitfragen mit genau zwei Polen, Fällen aus der
+  Auswahl, Kant/Liszt mit Registerverweis, RLP-ids aus lia/examen/rlp_auszug.toml.
+- Kontext jedes Laufs (nur gelesen, als Text im Prompt, weil Claude außerhalb von lia/recherche nicht lesen darf):
+  regelwerk_reihe.md, lia/unterricht/STATUS.md (Gelernte Regeln), leitfaden.md, reihen.toml, lia/examen/
+  examen.toml, seminar_vorbild.md, rubrik.toml, rlp_auszug.toml, Register. Prompt-Größe ca. 19k Zeichen je
+  Fenster, 38k Zeichen Abgleich ohne Fälle.
+- regelwerk_reihe.md: Lerngruppe (L), Rosenberger-Vorgaben aus dem Fachseminar (P, F, R), Kritik an früheren
+  Reihen und Runde 1 (K), Prüfkriterien (E), Entscheidungen (G), je mit Quelle. L7 und G1 bestätigt 27.10.2026.
+- Grenzen: claude_lauf erlaubt 30 Schritte und 15 Minuten je Lauf; „gründlich“ entsteht über Fenster und
+  Durchgänge, nicht über einen langen Lauf. Fälle von Seiten außerhalb der Domainliste bleiben „ungeprüft“.
+
 ## Registereintrag
 id, art, werk, ausgabe, autor/herausgeber/uebersetzer (falls angegeben), urls, abgerufen (frühester Abruf), roh (je URL: url, abgerufen,
 sha256 des geladenen Inhalts), textfassung (Pfad relativ zum Agent-Ordner), sha256 (der Textfassung),
@@ -163,6 +194,9 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
 5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
 6. Webauftrag: Lias Zentrale als Eingang (Teil C des Plans „Webrecherche“).
+7. Fallsuche: Domains ergänzen (rbb24.de, deutschlandfunk.de, funk.net, stern.de, openjur.de, de.wikipedia.org;
+   von Jan im Plan 27.10. genehmigt), steht in shared/einstellungen.toml. Danach erster echter Lauf von Hand
+   (bis 15 USD), Dossier über Jan an Lia. Optional: grobe Reihe zum besten Fall (noch nicht gebaut).
 
 ## Gelernte Regeln
 - (noch keine)
