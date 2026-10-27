@@ -10,7 +10,7 @@ warten_minuten = 30      # so lange wartet ein Lauf höchstens auf einen freien 
 # "login" = Jans Login (~/.claude/.credentials.json, sein Abo, geteilt mit seinen Chats),
 # "token" = eigenes Agenten-Konto, CLAUDE_CODE_OAUTH_TOKEN in shared/.env.
 [konto]
-quelle = "login"
+quelle = "token"
 
 # Stufen nach Auslastung des Pro-Kontingents (Prozent, von Anthropic gemeldet).
 # Es gilt die höchste Stufe, deren Grenze im 5-Stunden- ODER 7-Tage-Fenster erreicht ist.

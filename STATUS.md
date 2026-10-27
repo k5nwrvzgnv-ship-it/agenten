@@ -30,12 +30,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Schreibschutz auf Code/STATUS.md/Regeln/Einrichtung, kein Zugriff auf .env. Alles mit echten
   Läufen getestet. Grundlast ca. 6.300 Tokens pro Lauf.
 - Verbrauch: Konto aller Agenten (Jans und Lias Instanz) per [konto] quelle in shared/einstellungen.toml.
-  Heute "login" (Jan 27.10.): Jans Login ~/.claude/.credentials.json (Pro), geteilt mit seinen Chats;
-  claude_lauf entfernt dann ANTHROPIC_API_KEY/AUTH_TOKEN und CLAUDE_CODE_OAUTH_TOKEN für claude -p.
-  Echt getestet 27.10. (Haiku): Lauf ohne Token ok, Auslastung 5h 2 %, 7d 0 %.
-  Alternative "token": eigenes Agenten-Konto, CLAUDE_CODE_OAUTH_TOKEN in shared/.env (steht noch drin);
-  ohne Token startet dann kein Lauf (KeinKonto). Erneuern: `~/.local/bin/claude setup-token` mit dem
-  Agenten-Konto, Jan trägt ihn selbst ein. Stufen normal/sparen/nur_auftraege/limit nach 5h- und 7d-Auslastung dieses Kontos, Werte in
+  Heute "token" (Jan 27.10. abends wieder umgestellt): eigenes Agenten-Konto, CLAUDE_CODE_OAUTH_TOKEN in
+  shared/.env; ohne Token startet kein Lauf (KeinKonto). Erneuern: `~/.local/bin/claude setup-token` mit dem
+  Agenten-Konto, Jan trägt ihn selbst ein.
+  Alternative "login": Jans Login ~/.claude/.credentials.json (Pro), geteilt mit seinen Chats; claude_lauf
+  entfernt dann ANTHROPIC_API_KEY/AUTH_TOKEN und CLAUDE_CODE_OAUTH_TOKEN für claude -p. Echt getestet 27.10.
+  (Haiku): Lauf ohne Token ok. Stufen normal/sparen/nur_auftraege/limit nach 5h- und 7d-Auslastung dieses Kontos, Werte in
   shared/einstellungen.toml. Einschränkung: Auslastung wird nur bei Agenten-Läufen aktualisiert.
 - Qualität: `./pruefen.sh` (Tests aller Ordner, Linter ruff aus .venv im Hauptordner, Regeln in ruff.toml).
   Git-Hook githooks/pre-commit bricht Commits ab, wenn nicht grün (core.hooksPath = githooks).
@@ -343,6 +343,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Zentrale: gehören zum Ergebnistext-Vertrag.
    Offen: Ergebnistext-Vertrag in agentkit, Bedarf an die Agenten in deren STATUS.md; 5 Handy-Bilder vorher/nachher
    (380 px); danach eine Woche Auswertung (Treffer im Log, Passt/Zu lang/Falscher Fokus, Rückfragen, Wünsche).
+17. Bedarf aus uni (27.10.): Nach dem Wechsel [konto] quelle auf "login" sperrt claude_lauf weiter bis 20:10.
+   Grund: verbrauch.letzter_stand nimmt die letzte Auslastung aus laeufe.jsonl egal von welchem Konto; letzter
+   Eintrag ist der abgewiesene uni-Lauf 17:15 auf dem Agenten-Konto (status rejected, 5h 1,02). Der Haiku-Test
+   über den Login steht nicht im Protokoll. Vorschlag: Einträge mit Feld "konto" (quelle) schreiben und
+   letzter_stand nur Einträge des eingestellten Kontos lesen lassen (alte ohne Feld = "token").
 
 ## Gelernte Regeln
 - (noch keine)
