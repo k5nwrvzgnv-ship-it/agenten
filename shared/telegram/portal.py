@@ -116,8 +116,7 @@ async def abschicken(entwurf: dict) -> str:
         eingang.aufraeumen()
     logger.info("Auftrag %s angelegt (%s, %d Dateien)", aid, entwurf["art"], len(dateien))
     await agent_starten(art.agent)
-    mit = f" (mit {p.dateien_anzahl(len(dateien))})" if dateien else ""
-    return f"Ist unterwegs: „{p.kurz(entwurf['text'])}“{mit}\nIch melde mich mit der Antwort."
+    return p.unterwegs(entwurf["text"], len(dateien))
 
 
 # ---------- Eingang: Nachrichten von Lia ----------
@@ -194,8 +193,7 @@ async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         datei, name = m.photo[-1], f"foto-{datetime.now():%Y%m%d-%H%M%S}.jpg"
     if datei.file_size and datei.file_size > MAX_DATEI_BYTES:
         logger.info("Datei über 20 MB abgelehnt")
-        hinweis = "Die Datei ist größer als 20 MB, das lässt Telegram nicht zu. Schick sie Jan bitte anders."
-        await panel(context.bot, context.chat_data, home(hinweis), neu=True)
+        await panel(context.bot, context.chat_data, home(p.ZU_GROSS), neu=True)
         return
     pfad = eingang.neuer_platz(name or "datei")
     try:
@@ -205,7 +203,7 @@ async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         pfad.unlink(missing_ok=True)
         eingang.aufraeumen()
         await panel(context.bot, context.chat_data,
-                    home("Die Datei konnte ich nicht laden. Schick sie bitte noch einmal."), neu=True)
+                    home(p.NICHT_GELADEN), neu=True)
         return
     logger.info("Datei empfangen (%d Bytes)", pfad.stat().st_size)
     if m.media_group_id is None:
@@ -245,8 +243,7 @@ async def dateien_zuordnen(bot, chat_data: dict, caption: str | None) -> None:
 
 async def sonstiges_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Weder Text noch Datei empfangen (Sprachnachricht o. Ä.)")
-    hinweis = "Sprachnachrichten kann ich noch nicht annehmen. Schreib mir bitte als Text."
-    await panel(context.bot, context.chat_data, home(hinweis), neu=True)
+    await panel(context.bot, context.chat_data, home(p.SPRACHNACHRICHT), neu=True)
 
 
 # ---------- Knöpfe ----------
@@ -269,7 +266,7 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     z["panel"] = q.message.message_id  # die angetippte Nachricht ist das Panel
     if wert is None:
-        ansicht = home("Dieser Knopf ist nicht mehr aktuell.")
+        ansicht = home(p.KNOPF_ALT)
     elif wert in ("home", "neu"):
         p.abbrechen(z)
         ansicht = home()
@@ -286,16 +283,16 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if p.einordnen(z, wert[len("als"):]):
             ansicht = p.ansicht_bestaetigen(z["entwurf"], len(eingang.wartende()))
         else:
-            ansicht = home("Das ist nicht mehr aktuell.")
+            ansicht = home(p.KNOPF_ALT)
     elif wert == "ja":
         entwurf = p.entwurf_nehmen(z)
-        ansicht = home(await abschicken(entwurf) if entwurf else "Das ist nicht mehr aktuell.")
+        ansicht = home(await abschicken(entwurf) if entwurf else p.KNOPF_ALT)
     elif wert == "verwerfen":
-        ansicht = home(f"{p.dateien_anzahl(eingang.verwerfen())} verworfen.")
+        ansicht = home(p.verworfen(eingang.verwerfen()))
     else:  # nein: Abbrechen bzw. Verwerfen, mitgeschickte Dateien auch
         p.abbrechen(z)
         eingang.verwerfen()
-        ansicht = home("Abgebrochen.")
+        ansicht = home(p.ABGEBROCHEN)
     await panel(context.bot, z, ansicht)
 
 

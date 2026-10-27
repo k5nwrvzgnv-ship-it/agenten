@@ -1,11 +1,9 @@
-Zentrale
-
 Hallo Lia!
-Unterwegs: 1  |  Fertig: 3
+In Arbeit: 1  |  Fertig: 3
 
 1 Datei liegt bereit und kommt mit deiner nächsten Nachricht mit.
 
-Material erstelle ich schon. Wochenüberblick und Antworten auf Fragen kommen bald.
+Material mache ich schon. Den Überblick über deine Woche und Antworten auf Fragen gibt es bald.
 --- Knöpfe ---
 [Neues Material] p:material  [Meine Woche] p:woche
 [Frage stellen] p:frage  [Meine Anfragen] p:anfragen

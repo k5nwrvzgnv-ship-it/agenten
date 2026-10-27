@@ -1,9 +1,9 @@
 Neues Material
 
-Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min
+„Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min“
 
 Mit 1 Datei.
 
-So abschicken?
+Soll ich das so abschicken?
 --- Knöpfe ---
 [✓ Abschicken] p:ja  [✕ Abbrechen] p:nein

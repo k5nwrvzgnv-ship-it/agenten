@@ -112,6 +112,11 @@ class NachrichtenTest(unittest.TestCase):
         self.snapshot("lia_menue_hilfe", *p.ansicht_hilfe())
         self.snapshot("lia_menue_feedback", *p.ansicht_feedback("fokus"))
 
+    def test_lia_hinweise(self):
+        self.snapshot("lia_hinweise", [p.unterwegs("Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min", 1),
+                                       p.verworfen(2), p.ZU_GROSS, p.NICHT_GELADEN, p.SPRACHNACHRICHT, p.KNOPF_ALT,
+                                       p.ABGEBROCHEN, p.FEHLGESCHLAGEN])
+
     def test_lia_ergebnis_und_dateien(self):
         a = {"id": AID, "agent": "unterricht", "status": "fehlgeschlagen", "text": "meine formatvorlage darauf anwenden"}
         self.snapshot("lia_fehler_ohne_grund", p.ergebnis_nachricht(a), p.ergebnis_knoepfe(a))

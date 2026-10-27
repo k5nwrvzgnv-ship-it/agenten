@@ -21,7 +21,7 @@ class AnsichtenTest(unittest.TestCase):
 
     def test_home_zeigt_zahlen_und_hinweis(self):
         text, knoepfe = p.ansicht_home(1, 3, "Ist unterwegs.")
-        self.assertIn("Unterwegs: 1", text)
+        self.assertIn("In Arbeit: 1", text)
         self.assertIn("Fertig: 3", text)
         self.assertIn("Ist unterwegs.", text)
         self.assertIn(p.IM_AUFBAU, text)
@@ -36,8 +36,8 @@ class AnsichtenTest(unittest.TestCase):
         ]
         text, _ = p.ansicht_anfragen(auftraege)
         self.assertLess(text.index("Neu"), text.index("Alt"))
-        self.assertIn("Neues Material: Neu – unterwegs", text)
-        self.assertIn("Frage stellen: Alt – fertig", text)
+        self.assertIn("Neues Material: „Neu“ – in Arbeit", text)
+        self.assertIn("Frage stellen: „Alt“ – fertig", text)
         self.assertNotIn("unterricht", text)
 
     def test_knopf_auswerten(self):

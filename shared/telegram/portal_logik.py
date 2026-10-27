@@ -37,8 +37,8 @@ class Art:
 
 ARTEN = {
     "material": Art("Neues Material", "unterricht", "portal-material",
-                    anleitung="Schreib mir einfach, was du brauchst:\nFach, Klasse, Thema, Dauer\n\n"
-                              "Zum Beispiel: Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min"),
+                    anleitung="Schreib mir, was du brauchst: Fach, Klasse, Thema und Dauer.\n\n"
+                              "Zum Beispiel: „Arbeitsblatt zum kategorischen Imperativ, Klasse 10, 45 Minuten“"),
     "woche": Art("Meine Woche", "unterricht", "portal-woche", standardtext="Überblick über meine Woche"),
     "frage": Art("Frage stellen", "unterricht", "portal-frage",
                  anleitung="Schreib mir deine Frage als nächste Nachricht."),
@@ -49,20 +49,25 @@ VORSATZ = "p:"
 AKTIONEN = ("home", "neu", "material", "woche", "frage", "anfragen", "hilfe",
             "ja", "nein", "alsmaterial", "alsfrage", "menue", "verwerfen")
 
-TITEL = "Zentrale"
-IM_AUFBAU = "Material erstelle ich schon. Wochenüberblick und Antworten auf Fragen kommen bald."
+IM_AUFBAU = "Material mache ich schon. Den Überblick über deine Woche und Antworten auf Fragen gibt es bald."
 HILFE = (
-    "So funktioniert's\n\n"
-    "Neues Material: Du beschreibst, was du brauchst, und bekommst ein Arbeitsblatt oder Folien.\n"
-    "Meine Woche: Überblick über deine Woche.\n"
-    "Frage stellen: Du schreibst eine Frage, die Antwort kommt hierher.\n"
-    "Meine Anfragen: Was unterwegs ist und was fertig ist.\n\n"
-    "Du kannst mir auch einfach schreiben, dann frage ich, was ich damit tun soll. "
-    "Dateien und Fotos (z. B. einen Text oder ein altes Arbeitsblatt als Vorlage) schickst du einfach mit, "
-    "am besten mit einer Bildunterschrift, was ich damit machen soll. "
-    "Antworten kommen als eigene Nachricht mit einem Knopf zurück ins Menü."
+    "So geht's\n\n"
+    "Neues Material: Du schreibst, was du brauchst. Ich mache dir ein Arbeitsblatt oder Folien.\n"
+    "Meine Woche: Ein Überblick über deine Woche.\n"
+    "Frage stellen: Du schreibst eine Frage. Die Antwort kommt hierher.\n"
+    "Meine Anfragen: Was ich gerade mache und was fertig ist.\n\n"
+    "Du kannst mir auch einfach schreiben. Dann frage ich, was ich damit machen soll.\n"
+    "Dateien und Fotos schickst du einfach mit, zum Beispiel ein altes Arbeitsblatt als Vorlage. "
+    "Schreib am besten dazu, was ich damit machen soll.\n"
+    "Unter jeder Antwort bringt dich ein Knopf zurück ins Menü."
 )
 FEHLGESCHLAGEN = "Das hat leider nicht geklappt. Sag Jan bitte Bescheid."
+# Hinweise oben im Menü (portal.py)
+ZU_GROSS = "Die Datei ist zu groß für Telegram. Schick sie Jan bitte auf einem anderen Weg."
+NICHT_GELADEN = "Die Datei konnte ich nicht laden. Schick sie bitte noch einmal."
+SPRACHNACHRICHT = "Sprachnachrichten verstehe ich noch nicht. Schreib mir bitte."
+KNOPF_ALT = "Dieser Knopf ist veraltet. Hier ist das aktuelle Menü."
+ABGEBROCHEN = "Abgebrochen. Ich habe nichts abgeschickt."
 GRUESSE = re.compile(r"(hallo|hi|hey|moin|servus|huhu|guten (morgen|tag|abend)|start)[\s!.?]*", re.IGNORECASE)
 
 ZURUECK = [[("« Zurück", VORSATZ + "home")]]
@@ -92,7 +97,7 @@ def ist_gruss(text: str) -> bool:
 # ---------- Ansichten: (Text, Knöpfe) ----------
 
 def ansicht_home(offen: int, fertig: int, hinweis: str = "") -> tuple[str, Knoepfe]:
-    zeilen = [TITEL, "", "Hallo Lia!", f"Unterwegs: {offen}  |  Fertig: {fertig}"]
+    zeilen = ["Hallo Lia!", f"In Arbeit: {offen}  |  Fertig: {fertig}"]
     if hinweis:
         zeilen += ["", hinweis]
     zeilen += ["", IM_AUFBAU]
@@ -116,13 +121,13 @@ def dateien_anzahl(anzahl: int) -> str:
 def ansicht_bestaetigen(entwurf: dict, dateien: int = 0) -> tuple[str, Knoepfe]:
     a = ARTEN[entwurf["art"]]
     mit = f"\n\nMit {dateien_anzahl(dateien)}." if dateien else ""
-    text = f"{a.knopf}\n\n{kurz(entwurf['text'], 3500)}{mit}\n\nSo abschicken?"  # Telegram: max. 4096 Zeichen
+    text = f"{a.knopf}\n\n„{kurz(entwurf['text'], 3500)}“{mit}\n\nSoll ich das so abschicken?"  # Telegram: max. 4096 Zeichen
     return text, [[k("✓ Abschicken", "ja"), k("✕ Abbrechen", "nein")]]
 
 
 def ansicht_einordnen(text: str) -> tuple[str, Knoepfe]:
     """Text ohne Menü: Lia wählt, was damit passieren soll."""
-    return f"Was soll ich damit tun?\n\n„{kurz(text, 200)}“", [
+    return f"Was soll ich damit machen?\n\n„{kurz(text, 200)}“", [
         [k("Als Materialwunsch", "alsmaterial"), k("Als Frage", "alsfrage")],
         [k("✕ Verwerfen", "nein")],
     ]
@@ -131,8 +136,8 @@ def ansicht_einordnen(text: str) -> tuple[str, Knoepfe]:
 def ansicht_dateien(anzahl: int) -> tuple[str, Knoepfe]:
     """Dateien ohne Text: Lia soll schreiben, was damit passieren soll."""
     liegt = "liegt" if anzahl == 1 else "liegen"
-    return (f"{dateien_anzahl(anzahl)} {liegt} bereit.\n\nSchreib mir jetzt, was ich damit machen soll, "
-            "z. B. „Mach daraus ein Arbeitsblatt für Klasse 8“."), [
+    return (f"{dateien_anzahl(anzahl)} {liegt} bereit.\n\nSchreib mir jetzt, was ich damit machen soll. "
+            "Zum Beispiel: „Mach daraus ein Arbeitsblatt für Klasse 8“"), [
         [k("✕ Verwerfen", "verwerfen")], *ZURUECK]
 
 
@@ -150,9 +155,9 @@ def ansicht_anfragen(auftraege: list[dict], anzahl: int = 5) -> tuple[str, Knoep
         return "Meine Anfragen\n\nNoch keine Anfragen.", ZURUECK
     zeilen = ["Meine Anfragen", ""]
     for a in sorted(auftraege, key=lambda a: a["id"], reverse=True)[:anzahl]:
-        stand = {"neu": "unterwegs", "erledigt": "fertig"}.get(a.get("status"), "nicht geklappt")
+        stand = {"neu": "in Arbeit", "erledigt": "fertig"}.get(a.get("status"), "hat nicht geklappt")
         art = next((x.knopf for x in ARTEN.values() if x.quelle == a.get("quelle")), "Nachricht")
-        zeilen.append(f"• {art}: {kurz(a['text'])} – {stand}")
+        zeilen.append(f"• {art}: „{kurz(a['text'])}“ – {stand}")
     return "\n".join(zeilen), ZURUECK
 
 
@@ -162,7 +167,7 @@ def ansicht_hilfe() -> tuple[str, Knoepfe]:
 
 def ansicht_feedback(k: str) -> tuple[str, Knoepfe]:
     """Lia hat "Falscher Fokus" oder "Feedback schreiben" getippt: ihre nächste Nachricht ist das Feedback."""
-    return f"Feedback\n\n{v.FB_FRAGE[k]}", ZURUECK
+    return v.FB_FRAGE[k], ZURUECK
 
 
 MENUE_KNOPF = [[k("☰ Menü", "menue")]]
@@ -221,6 +226,16 @@ def abbrechen(zustand: dict) -> None:
     zustand.pop("feedback", None)
 
 
+def unterwegs(text: str, dateien: int) -> str:
+    """Hinweis im Menü, nachdem Lia etwas abgeschickt hat."""
+    mit = f" (mit {dateien_anzahl(dateien)})" if dateien else ""
+    return f"Ich mache mich an „{kurz(text)}“{mit}. Ich melde mich, sobald es fertig ist."
+
+
+def verworfen(anzahl: int) -> str:
+    return f"Ich habe {'die Datei' if anzahl == 1 else f'die {anzahl} Dateien'} gelöscht."
+
+
 def dateien_text(anzahl: int, alle_angekommen: bool) -> str:
     """Abschluss nach den Ergebnisdateien."""
     if not alle_angekommen:
@@ -235,7 +250,7 @@ def ergebnis_nachricht(auftrag: dict) -> list[str]:
     """
     if auftrag.get("agent") == "feedback":
         return [v.feedback_bestaetigung(auftrag)]
-    kopf = f"Zu deiner Anfrage „{v.esc(kurz(auftrag.get('text', '')))}“:\n"
+    kopf = f"Zu „{v.esc(kurz(auftrag.get('text', '')))}“:\n"
     if auftrag.get("status") != "erledigt":
         return [kopf + "\n" + v.esc(auftrag.get("ergebnis") or FEHLGESCHLAGEN)]
     return v.ergebnis_html(kopf, auftrag, aufteilen)
