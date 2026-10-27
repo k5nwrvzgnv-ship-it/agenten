@@ -101,6 +101,14 @@ class LesbarkeitTest(unittest.TestCase):
         self.assertEqual(s.lesbarkeit("Siehe https://example.org/a/b und data/termine/x.ics heute.").woerter, 3)
         self.assertEqual(s.lesbarkeit("Abgabe z. B. am 19.10. um 22:00 Uhr.").laengster_satz, 4)
 
+    def test_zitate_und_beschriftungen_zaehlen_nicht(self):
+        einfach = "Das hat nicht geklappt. Jan weiß Bescheid. Du musst nichts tun."
+        mit = s.lesbarkeit("Neues Material\nZu „Arbeitsblatt kategorischer Imperativ Klassenstufe zehn“:\n" + einfach)
+        self.assertEqual(mit.wstf, s.lesbarkeit("Zu:\n" + einfach).wstf)
+        self.assertTrue(s.ist_fliesstext("Fach, Klasse, Thema, Dauer, Ort"))
+        self.assertFalse(s.ist_fliesstext("Meine Anfragen"))
+        self.assertEqual(s.lesbarkeit("Zu „eins zwei drei vier fünf sechs sieben acht neun“: Danke.").laengster_satz, 2)
+
 
 class PruefenTest(unittest.TestCase):
     def test_grenzen_je_person(self):

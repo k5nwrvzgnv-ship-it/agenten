@@ -1,0 +1,9 @@
+Agentenzentrale
+
+Stufe: normal  |  5h 6 %  7d 1 %
+Entwürfe: 1  |  Aufträge offen: 0
+--- Knöpfe ---
+[uni] u:a:uni:erledigen  [dokumente] u:a:dokumente:erledigen
+[Entwürfe (1)] u:entwuerfe  [Verbrauch] u:verbrauch
+[Status] u:status  [Hilfe] u:hilfe
+[↻ Aktualisieren] u:neu

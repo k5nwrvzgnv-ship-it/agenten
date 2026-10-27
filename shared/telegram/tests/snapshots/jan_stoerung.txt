@@ -1,0 +1,3 @@
+<b>Störung</b>
+Uni-transkript ist ausgefallen: zu wenig Arbeitsspeicher.
+Ich melde mich dazu frühestens in 6 Stunden wieder.

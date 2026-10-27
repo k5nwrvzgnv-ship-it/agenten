@@ -82,7 +82,7 @@ class SnapshotTest(unittest.TestCase):
         self.pruefen("lia_feedback_bestaetigung", p.ergebnis_nachricht(a), p.ergebnis_knoepfe(a))
 
     def test_knoepfe_zu_lang(self):
-        self.pruefen("knoepfe_zu_lang", [""], v.laenge_knoepfe(p.VORSATZ, AID))
+        self.pruefen("lia_knoepfe_zu_lang", [""], v.laenge_knoepfe(p.VORSATZ, AID))
 
     def test_jan_ergebnis_mit_kern(self):
         a = {**RECHERCHE, "agent": "uni"}

@@ -1,0 +1,7 @@
+Auftrag an uni
+Modus: erledigen
+
+Schreib den Auftrag als nächste Nachricht. Wartende Dateien hängen daran.
+--- Knöpfe ---
+[Modus wechseln: lernen] u:a:uni:lernen
+[« Zurück] u:home

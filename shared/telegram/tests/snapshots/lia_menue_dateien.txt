@@ -1,0 +1,6 @@
+2 Dateien liegen bereit.
+
+Schreib mir jetzt, was ich damit machen soll, z. B. „Mach daraus ein Arbeitsblatt für Klasse 8“.
+--- Knöpfe ---
+[✕ Verwerfen] p:verwerfen
+[« Zurück] p:home

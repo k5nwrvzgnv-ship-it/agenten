@@ -1,0 +1,12 @@
+Verbrauch
+
+Stufe: sparen (1 Lauf gleichzeitig, jeder 2. Zeitlauf entfällt, kleineres Modell für Routine)
+5 Stunden: 6 %  (Reset Di 19:00)
+7 Tage: 1 %  (Reset Mo 10:00)
+Stand vom letzten Lauf: Di 16:40 (enthält auch deine eigenen Chats)
+
+Heute:
+- recherche: 1 Lauf, 48k Tokens, 1.5 min, 1 mit Fehler
+- uni: 3 Läufe, 120k Tokens, 4.2 min
+--- Knöpfe ---
+[« Zurück] u:home

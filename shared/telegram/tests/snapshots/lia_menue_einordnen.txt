@@ -1,0 +1,6 @@
+Was soll ich damit tun?
+
+„Kannst du mir einen Fall zu Strafe für Klasse 8 machen?“
+--- Knöpfe ---
+[Als Materialwunsch] p:alsmaterial  [Als Frage] p:alsfrage
+[✕ Verwerfen] p:nein

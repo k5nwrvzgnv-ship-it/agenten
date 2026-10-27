@@ -3,8 +3,9 @@
 - jargon(text, fuer): Treffer aus dem Glossar („nie sagen“) und Technik: IDs, Pfade, Dateinamen, Beträge, Modellnamen,
   rohe Fehlertexte, Bezeichner. fuer = LIA oder JAN (manche Wörter sind nur für Lia tabu).
 - lesbarkeit(text): 1. Wiener Sachtextformel (Schulstufe, niedriger = leichter), längster Satz, sichtbare Zeichen.
-  Gemessen wird erst nach dem Entfernen von HTML, aufklappbaren Teilen, URLs, Pfaden und Zahlen. Unter MIN_WOERTER
-  Wörtern ist die Formel zu ungenau: dann gilt nur die Satzlänge.
+  Gemessen wird erst nach dem Entfernen von HTML, aufklappbaren Teilen, URLs, Pfaden, Zahlen und Zitaten der Person
+  („…“); Beschriftungen wie „Neues Material“ zählen nur für die Satzlänge. Unter MIN_WOERTER Wörtern ist die Formel
+  zu ungenau: dann gilt nur die Satzlänge.
 - pruefen(text, fuer, ausnahmen=()): beides gegen GRENZEN, als Liste von Befunden. ausnahmen: Arten, die in dieser
   Nachricht erlaubt sind (z. B. "betrag" unter Verbrauch, "pfad" beim Befehl unter /pc) oder "laenge" (Entwürfe:
   freigegeben wird genau der angezeigte Text, er wird nicht gekürzt).
@@ -93,6 +94,7 @@ REGELN = [
 ]
 
 URL = re.compile(r"https?://\S+|\b[\w.\-]+@[\w\-]+\.[\w.\-]+")
+ZITAT = re.compile(r"„[^“\n]*“|\"[^\"\n]*\"")
 AUFKLAPPBAR = re.compile(r"<blockquote expandable>.*?</blockquote>", re.DOTALL)
 WORT = re.compile(r"[A-Za-zÄÖÜäöüß]+")
 DOPPELLAUT = re.compile(r"ei|ie|au|eu|äu|ai|ee|aa|oo", re.IGNORECASE)
@@ -137,22 +139,29 @@ def _fuer_messung(text: str) -> str:
     for r in REGELN:
         if r.art in ("pfad", "datei", "id"):
             rein = r.muster.sub(" ", rein)
+    rein = ZITAT.sub(" ", rein)  # Worte der Person selbst (ihre Anfrage, ihr Feedback)
     rein = re.sub(r"\b(z|d|u|v|o|s|bzw|vgl|ggf|ca|Nr|Abs|Bd)\. ?(B|h|a|ä|Ä)?\.?", " ", rein)  # Abkürzungen
     return re.sub(r"\d+([.,:]\d+)*\.?", " ", rein)
+
+
+def ist_fliesstext(zeile: str) -> bool:
+    """Satz statt Beschriftung: endet mit einem Satzzeichen oder hat mehr als 4 Wörter ("Neues Material" zählt nicht)."""
+    return bool(re.search(r"[.!?:…]\s*$", zeile)) or len(WORT.findall(zeile)) > 4
 
 
 def lesbarkeit(text: str) -> Lesbarkeit:
     """1. Wiener Sachtextformel: 0,1935·MS + 0,1672·SL + 0,1297·IW − 0,0327·ES − 0,875.
 
     MS: % Wörter mit 3+ Silben, SL: Wörter je Satz, IW: % Wörter mit mehr als 6 Buchstaben, ES: % einsilbige Wörter.
-    Satzenden: . ! ? und Zeilenumbrüche (jeder Aufzählungspunkt ist ein Satz).
+    Satzenden: . ! ? und Zeilenumbrüche (jeder Aufzählungspunkt ist ein Satz). Die Formel ist für Fließtext gemacht:
+    Beschriftungen (Überschriften, Menüzeilen) und Zitate der Person zählen nicht, die Satzlänge gilt für alle Zeilen.
     """
-    rein = _fuer_messung(text)
-    saetze = [WORT.findall(s) for s in re.split(r"[.!?;]+|\n", rein)]
+    zeilen = _fuer_messung(text).split("\n")
+    saetze = [WORT.findall(s) for z in zeilen if ist_fliesstext(z) for s in re.split(r"[.!?;]+", z)]
     saetze = [s for s in saetze if s]
     woerter = [w for s in saetze for w in s]
     zeichen = len(sichtbar(text, mit_aufklappbarem=False).strip())
-    laengster = max((len(s) for s in saetze), default=0)
+    laengster = max((len(WORT.findall(s)) for z in zeilen for s in re.split(r"[.!?;]+", z)), default=0)
     if len(woerter) < MIN_WOERTER:
         return Lesbarkeit(None, laengster, len(woerter), zeichen)
     n, s = len(woerter), [silben(w) for w in woerter]

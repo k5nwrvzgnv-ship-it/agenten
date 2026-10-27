@@ -1,0 +1,12 @@
+Zentrale
+
+Hallo Lia!
+Unterwegs: 1  |  Fertig: 3
+
+1 Datei liegt bereit und kommt mit deiner nächsten Nachricht mit.
+
+Material erstelle ich schon. Wochenüberblick und Antworten auf Fragen kommen bald.
+--- Knöpfe ---
+[Neues Material] p:material  [Meine Woche] p:woche
+[Frage stellen] p:frage  [Meine Anfragen] p:anfragen
+[Hilfe] p:hilfe  [↻ Aktualisieren] p:neu

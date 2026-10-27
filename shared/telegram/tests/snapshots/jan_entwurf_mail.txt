@@ -1,0 +1,15 @@
+<b>Uni</b> · Mail-Entwurf
+Mail: Test Uni-Agent: Mailversand nach Freigabe
+
+An: jkl298@hnee.de
+Betreff: Test Uni-Agent: Mailversand nach Freigabe
+
+Hallo Jan,
+
+das ist der erste echte Test des Mailversands. Diese Mail wurde erst gesendet, nachdem du sie in Telegram freigegeben hast.
+
+Uni-Agent
+
+(Warum: Echttest des Mailteils, an dich selbst)
+--- Knöpfe ---
+[Freigeben] f:x  [Ablehnen] a:x  [Ändern] c:x

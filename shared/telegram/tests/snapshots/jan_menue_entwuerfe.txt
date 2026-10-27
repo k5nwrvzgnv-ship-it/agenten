@@ -1,0 +1,6 @@
+Entwürfe
+
+• Mail: Test Uni-Agent: Mailversand nach Freigabe (uni)
+--- Knöpfe ---
+[Alle mit Knöpfen anzeigen] u:zeigen
+[« Zurück] u:home
