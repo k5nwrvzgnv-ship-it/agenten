@@ -33,7 +33,7 @@ def _dekodiere(wert: str | None) -> str:
 
 # Beginn des zitierten Verlaufs (Outlook, Thunderbird, Apple Mail), ab hier gehört der Text nicht mehr zur Mail
 ZITAT = re.compile(r"^(-{2,}\s*(Ursprüngliche Nachricht|Original Message)\s*-{2,}"
-                   r"|(Von|From):\s.*\n(Gesendet|Sent|Datum|Date):\s"
+                   r"|(Von|From):\s.*\n+(Gesendet|Sent|Datum|Date):\s"
                    r"|Am .{5,120} schrieb .{1,200}:$|On .{5,120} wrote:$)", re.M | re.I)
 
 

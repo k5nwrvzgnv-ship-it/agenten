@@ -30,6 +30,8 @@ class TestPostfach(unittest.TestCase):
                                                  "Grüße\nT. Böhme\n\n[älterer Verlauf weggelassen]")
         self.assertEqual(postfach.wortlaut("Ja.\nAm 26.10.2026 um 10:00 schrieb Jan Kleinke:\n> Frage"),
                          "Ja.\n\n[älterer Verlauf weggelassen]")
+        outlook = "BG, TB.\n\nVon: Kleinke, Jan <j@hnee.de>\n\nGesendet: Mittwoch, 21. Oktober 2026 12:57\n\nAn: B"
+        self.assertEqual(postfach.wortlaut(outlook), "BG, TB.\n\n[älterer Verlauf weggelassen]")
 
     def test_html_umbrueche(self):
         mail = (b"From: a@hnee.de\r\nSubject: x\r\nContent-Type: text/html; charset=utf-8\r\n\r\n"
