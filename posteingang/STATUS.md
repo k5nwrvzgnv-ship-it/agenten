@@ -5,7 +5,7 @@ Jans privates Postfach jan@kleinke.org überwachen: Wichtiges (Fristen, Rechnung
 Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Später Antwortentwürfe.
 
 ## Stand (27.10.2026)
-- agent.py fertig (Schritt post_pruefen), noch kein Dienst. Ablauf: Mails holen, in data/mails_offen.json
+- agent.py fertig (Schritt post_pruefen). Ablauf: Mails holen, in data/mails_offen.json
   sichern, vorfiltern, Rest per claude_lauf (routine, zeitgesteuert) einordnen (einordnung.py), Meldung
   "[post] Wichtige Mails (n geprüft, m vorgefiltert)", danach mails_offen.json löschen. Arten: Frist/Rechnung,
   Persönlich, Termin, Bestellung/Versand; Verdacht auf Betrug wird mit "Vorsicht" gemeldet. KEINE = nichts.
@@ -13,6 +13,8 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Sp
   höchstens einmal am Tag (data/schritt_fehler.json).
 - Erster Lauf von Hand 27.10. 23:15: Marke gesetzt (data/postfach.json, letzte UID 51748), alte Mails nicht geholt.
   Ab jetzt holt jeder Lauf neue Mails und ruft Claude auf.
+- Dienst und Timer eingerichtet 27.10. 23:20 nach Jans Okay (~/.config/systemd/user/, aus systemd/).
+  Erster Timer-Lauf 28.10. 8:00, zugleich erster echter Lauf der Einordnung: Meldung und Log danach prüfen.
 - vorfilter.py (ohne Netz, tests/test_vorfilter.py): fällt weg bei X-Spam-Flag YES, gesperrtem Absender,
   List-Unsubscribe, Precedence bulk/list/junk. Auto-Submitted bleibt (Rechnungen, Versand).
   Gesperrte Absender aus Regelzeilen "Absender weglassen: a@b.de, @domain.de" (@domain mit Subdomains).
@@ -35,7 +37,8 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Sp
 ## Aufbau
 - Code: posteingang/agent.py (Einstieg), vorfilter.py, einordnung.py (Prompt und Meldung)
 - .venv: posteingang/.venv, agentkit per .pth eingebunden
-- Dienst: posteingang.service (oneshot), Timer: posteingang.timer (8, 13, 19 Uhr). Vorlagen in systemd/.
+- Dienst: posteingang.service (oneshot), Timer: posteingang.timer (8, 13, 19 Uhr), aktiv. Quelle in systemd/,
+  nach Änderung neu kopieren und systemctl --user daemon-reload.
 - Zugangsdaten: posteingang/.env (chmod 600), Vorlage posteingang/.env.example
 - Laufzeitdaten: posteingang/data/, Logs: posteingang/logs/ (beide nicht im Repo)
 
@@ -51,7 +54,7 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Sp
 3. agent.py: erledigt 27.10. Offen: Aufträge von Jan (auftraege) gibt es noch nicht. Bleibt Claude lange
    gesperrt, wächst mails_offen.json (bis 50 neue je Lauf) und damit der Prompt; bei Bedarf deckeln.
 4. Aufbewahrung: data/mails/ nach 30 Tagen löschen.
-5. Dienst und Timer einrichten, erst nach Jans Okay.
+5. Dienst und Timer: erledigt 27.10. Offen: ersten Lauf 28.10. 8:00 prüfen (logs/posteingang.log, Meldung).
 6. Später: Termine über agentkit.kalender, Bestellungen an einkauf, Stufe 2 Entwürfe und Senden
    (mail.py aus uni dann nach agentkit verallgemeinern).
 

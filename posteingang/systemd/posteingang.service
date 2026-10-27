@@ -1,5 +1,5 @@
-# Agent posteingang: neue Mails aus Jans privatem Postfach lesen und melden, Aufträge abarbeiten.
-# Einrichten (erst wenn agent.py läuft und Jan Okay gegeben hat):
+# Agent posteingang: neue Mails aus Jans privatem Postfach lesen und Wichtiges melden.
+# Einrichten (eingerichtet 27.10.2026 nach Jans Okay):
 #   cp systemd/posteingang.service systemd/posteingang.timer ~/.config/systemd/user/
 #   systemctl --user daemon-reload && systemctl --user enable --now posteingang.timer
 [Unit]
