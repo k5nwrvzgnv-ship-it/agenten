@@ -28,20 +28,32 @@ def befehl_auswerten(text: str) -> tuple[str, str, str] | None:
     return befehl, modus, rest.strip()
 
 
-TYP_NAMEN = {"mail": "Mail-Entwurf", "nachricht": "Nachrichten-Entwurf", "kauf": "Kauf-Entwurf"}
+TYP_NAMEN = {"mail": "Mail-Entwurf", "nachricht": "Nachrichten-Entwurf", "kauf": "Kauf-Entwurf",
+             "termin": "Termin-Entwurf"}
+
+
+def _steht_im_inhalt(wert, inhalt: str) -> bool:
+    """Steht der Wert (Text oder Liste von Texten) wörtlich, als ganzes Wort, schon im Inhalt?"""
+    werte = wert if isinstance(wert, list) else [wert]
+    if not all(isinstance(w, str) for w in werte):
+        return False  # Zahlen, Objekte usw. immer zeigen
+    return all(not w.strip() or re.search(r"(?<!\w)" + re.escape(w.strip()) + r"(?!\w)", inhalt) for w in werte)
 
 
 def entwurf_als_text(entwurf: dict) -> list[str]:
     """Entwurf so darstellen, dass Jan alles sieht, was ausgeführt wird (HTML wie mit_absender).
 
-    Lange Inhalte werden auf mehrere Nachrichten verteilt (nichts abschneiden,
-    denn freigegeben wird genau das, was angezeigt wurde).
+    Unter Details steht nur, was im Inhalt nicht schon wörtlich steht (Jan, 27.10.2026),
+    damit z. B. der Mailtext nicht zweimal kommt. Lange Inhalte werden auf mehrere
+    Nachrichten verteilt (nichts abschneiden, denn freigegeben wird genau das, was
+    angezeigt wurde).
     """
     zusatz = TYP_NAMEN.get(entwurf["typ"], "Entwurf") + (", überarbeitet" if entwurf.get("vorgaenger") else "")
     teile = [entwurf["titel"], entwurf["inhalt"]]
-    if entwurf.get("daten"):
-        teile.append("Details:\n" + "\n".join(
-            f"{k}: {v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)}" for k, v in entwurf["daten"].items()))
+    details = [f"{k}: {v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)}"
+               for k, v in (entwurf.get("daten") or {}).items() if not _steht_im_inhalt(v, entwurf["inhalt"])]
+    if details:
+        teile.append("Details:\n" + "\n".join(details))
     return mit_absender(entwurf["agent"], "\n\n".join(teile), zusatz)
 
 

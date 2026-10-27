@@ -55,6 +55,23 @@ class TestLogik(unittest.TestCase):
         self.assertIn("Kauf-Entwurf, überarbeitet\nKabel &lt;USB&gt;", kauf[0])
         self.assertIn("preis: 12.5\nmenge: [1, 2]", kauf[0])
 
+    def test_entwurf_details_ohne_doppeltes(self):
+        text = "Sehr geehrter Herr Böhme,\n\nvielen Dank.\n\nMit besten Grüßen\nJan"
+        e = {"agent": "uni", "typ": "mail", "titel": "Mail: AW: Betreuung", "vorgaenger": None,
+             "inhalt": f"An: boehme@example.org\nCc: a@example.org, b@example.org\nBetreff: AW: Betreuung\n\n{text}",
+             "daten": {"an": ["boehme@example.org"], "cc": ["a@example.org", "b@example.org"],
+                       "betreff": "AW: Betreuung", "text": text, "begruendung": "Er hat zugesagt.",
+                       "in_reply_to": "<x@example.org>", "bcc": [], "anhang": "", "ja": "Jan", "nein": "Ja",
+                       "menge": 1, "fremd": ["boehme@example.org", "c@example.org"]}}
+        (nachricht,) = entwurf_als_text(e)
+        self.assertEqual(nachricht.count("vielen Dank"), 1)
+        details = nachricht.split("Details:\n")[1].splitlines()
+        self.assertEqual([d.split(":")[0] for d in details], ["begruendung", "in_reply_to", "nein", "menge", "fremd"])
+        termin = entwurf_als_text({"agent": "uni", "typ": "termin", "titel": "T", "inhalt": "x", "vorgaenger": None,
+                                   "daten": {"titel": "x"}})
+        self.assertNotIn("Details", termin[0])
+        self.assertIn("Termin-Entwurf", termin[0])
+
     def test_verbrauch_text(self):
         def zt(ts):
             return "ZEIT" if ts else "?"
