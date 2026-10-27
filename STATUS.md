@@ -366,6 +366,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    klein geschriebenen Namen: list-unsubscribe, list-id, precedence, auto-submitted, x-spam-flag (fehlende
    weglassen). posteingang/vorfilter.py liest daraus Newsletter, Massenmails und Spam. Ohne "kopf" prüft der
    Vorfilter nur gesperrte Absender. uni ist nicht betroffen (zusätzliches Feld).
+19. Bedarf aus posteingang (27.10., Plan Mail-Aufträge von Jan freigegeben): Jan gibt per /posteingang einen
+   Auftrag ("Termin bei Frau X absagen"), posteingang sucht Kontext und Schreibstil im Postfach und legt einen
+   Mail-Entwurf in die Freigabe, nach Freigabe Senden von jan@kleinke.org. posteingang-Teil wird gegen diese
+   Schnittstellen gebaut (Funktionen werden übergeben, Tests ohne agentkit-Teil):
+   a) agentkit.imap.suchen(host, port, nutzer, kennwort, ordner, *, von=None, an=None, text=None, seit=None,
+      max_mails=20) -> list[dict]: nur lesend (readonly, BODY.PEEK) wie neue_mails, ohne Stand-Datei, neueste
+      zuerst, jede Mail wie zerlege plus Feld "ordner". Kriterien per UND (IMAP SEARCH FROM/TO/TEXT/SINCE),
+      Umlaute per CHARSET UTF-8. Ordner, den es nicht gibt: leere Liste und Log, kein Fehler.
+      Dazu in zerlege das Feld "an" (To und Cc), damit gesendete Mails ihren Empfänger zeigen.
+   b) agentkit.mail aus uni/mail.py verallgemeinert: pruefen(entwurf, original=None) (Original als dict statt
+      UID-Ablage, weil UIDs je Ordner doppelt sind), anzeige, wortlaut, bauen, senden(cfg, daten) mit
+      SMTP_SSL bei SMTP_PORT 465, sonst STARTTLS; Login aus MAIL_NUTZER/MAIL_KENNWORT (Standard IMAP_NUTZER/
+      IMAP_KENNWORT), Kopie in GESENDET_ORDNER. uni stellt danach darauf um (uni-Chat).
 
 ## Gelernte Regeln
 - (noch keine)
