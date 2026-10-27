@@ -14,6 +14,9 @@ Jeden Block einzeln ausführen und die Ausgabe ansehen, nicht alles auf einmal.
 
 ## Teil A: Datenbank nur noch für bot
 
+Erledigt 27.10.2026 (Jan als root): tracker.db und Sicherungen chmod 600, UMask=0077, Bot läuft. agent kann
+tracker.db nicht mehr lesen (geprüft). Schlüssel des Schritte-Links nicht erneuert.
+
 ```bash
 ls -la /opt/kcalbot
 ```
@@ -53,6 +56,9 @@ Löscht alle Schlüssel. Jeder Nutzer muss danach `/schritte_link` beim Bot aufr
 Kurzbefehl eintragen, sonst bekommt sein iPhone „forbidden“. Vorher die Nutzer fragen.
 
 ## Teil B: Port 8787
+
+Stand 27.10.2026: ufw erlaubt 8787/tcp von überall (IPv4 und IPv6, Kommentar kcalbot-steps). Ob der Kurzbefehl
+benutzt wird, ist noch offen (Zähler aus dem Journal fehlt).
 
 Erst nachsehen, dann entscheiden:
 ```bash
