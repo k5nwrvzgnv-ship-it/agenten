@@ -93,7 +93,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   In Jans Kalender schreibt der Agent nicht selbst (iCloud nur lesend). Echt getestet mit webinargeek
   (Pollmeier-Webinar 17.11.2026 10:00, Termin danach in Jans Kalender). Seiten, die Termine nur per
   JavaScript nachladen und kein JSON-LD haben, liefern keinen Termin.
-- Mails senden (mail.py, 24.10., Plan von Jan freigegeben; seit 28.10. über agentkit.mail): Claude schreibt Entwürfe nach
+- Mails senden (mail.py, 24.10., Plan von Jan freigegeben; seit 28.10. über agentkit.mail; Entwürfe seit 28.10.
+  mit Kontext und Stil aus dem Postfach, siehe Offene Punkte 9. Ursprünglich:) Claude schrieb Entwürfe nach
   data/entwuerfe/<schluessel>/mail_<n>.json (an, cc, betreff, text, antwort_auf_uid, begruendung): in
   erledigen-Aufträgen (Schlüssel = Auftrags-ID), in post_pruefen (post-<zeit>, nur wenn Jan offensichtlich
   antworten muss) und bei neuem Material (material-<zeit>-<kurs>). Python prüft (Adressen, höchstens 5
@@ -338,27 +339,29 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    mit HNEE-Vorgaben (MAIL_NUTZER/MAIL_KENNWORT = HNEE_NUTZER/HNEE_KENNWORT, GESENDET_ORDNER = "Gesendete
    Elemente"; Einträge in .env gehen vor). Kennwort steht so nur einmal in .env. Nur Unit-Tests, der nächste
    freigegebene Entwurf ist der Echttest (Kopie in Gesendet prüfen).
-9. Mail-Ablauf wie posteingang (Plan von Jan 28.10. freigegeben): Claude nennt Suchbegriffe, Python sucht in
-   INBOX, Archive, "Gesendete Elemente" und im Kalender, Claude schreibt den Entwurf im Stil von Jans Mails an
-   diese Person; gilt für Jans Aufträge und Antworten auf eingehende Mails, Ändern nutzt denselben Kontext.
-   Bausteine da (Bedarf 20 erledigt 28.10., Schnittstelle in ../STATUS.md): imap.suchen geht am HNEE-Exchange
-   (ohne CHARSET, Umlaute umgeschrieben; an= prüft Python an To/Cc, findet 45 Mails an Böhme in "Gesendete
-   Elemente"). Auftragslogik in agentkit.mailauftrag, Aufruf etwa so:
-     from agentkit import mailauftrag
-     UNI = mailauftrag.Postfach(agent="Uni-Agent", beschreibung="Hochschulpostfach jkl298@hnee.de, Dozenten
-           und Verwaltung der HNEE", eingang=("INBOX", "Archive"), gesendet="Gesendete Elemente",
-           max_tage_zurueck=1100, unterschrift=None)  # oder feste Unterschrift
-     suchen = lambda ordner, **k: imap.suchen(host, port, HNEE_NUTZER, HNEE_KENNWORT, ordner, **k)
-     prompt_suche(text, heute, UNI) -> suche_lesen(antwort, UNI) -> kontext_sammeln(suche, suchen,
-     kalender.termine oder None, heute, UNI) -> prompt_entwurf(text, kontext, heute, UNI) ->
-     antwort_lesen(antwort, kontext) -> mail.pruefen(roh, original); Ändern: prompt_aendern(..., UNI).
-   Vorbild für den Rest (Kontext in data/auftraege/<id>/kontext.json, Einreichen, Ändern): posteingang/agent.py.
-   Offen bei Jan: Mail-Aufträge per Präfix "Mail:" (Vorschlag) oder Claude entscheidet.
-   Erster Fall: Antwort an Prof. Böhme auf UID 11077 (26.10., Betreuung Forschungsprojekt Fehlstellenerkennung
-   an Holzlamellen; fragt Zeitplanung, Termin, Exposé). Stilvorlage: BA-Schriftwechsel, 19 Mails von ihm in
-   INBOX (Sep. 2025 bis Apr. 2026), 45 von Jan an ihn in "Gesendete Elemente". Jan schreibt den
-   Inhalt (Stichworte) dazu. Der alte Entwurf 20261027-112951-uni-e7a60a (ohne Stilvorlage) liegt offen in der
-   Freigabe und wird abgelehnt, sobald der neue da ist.
+9. Mail-Ablauf wie posteingang (Plan von Jan 28.10., gebaut 28.10., nur Unit-Tests und lesender Probelauf):
+   mailablauf.py (ohne Netz) + agent.py (mail_entwerfen, mail_auftrag, mail_wunsch, aenderung_mit_kontext),
+   gemeinsame Logik aus agentkit.mailauftrag, Postfach mailablauf.UNI (INBOX, Archive, "Gesendete Elemente",
+   bis 1100 Tage zurück, Unterschrift wie in Jans gesendeten Mails).
+   - Aufträge (Jan 28.10.: Claude erkennt selbst, kein Präfix): Jeder neue erledigen-Auftrag bekommt zuerst einen
+     kleinen Lauf (routine, prompt_erkennen): {"mail": false} = normaler Ablauf, sonst zugleich die Suchbegriffe.
+     Dann sucht Python Schriftwechsel und Stil, Claude (anspruchsvoll) schreibt Entwurf oder Rückfrage, Entwurf
+     wie bisher als Wortlaut + Entwurfstext + Freigabe. Antwort auf das Ergebnis (bezug mit gespeichertem Kontext)
+     = Nachtrag, ganzer Ablauf neu. Kosten: ein zusätzlicher kleiner Lauf je Auftrag.
+   - Andere Läufe (Auftrag mit mehr als einer Mail, neue Mails, Material) schreiben nur einen Mail-Wunsch
+     mail_<n>.json {"auftrag", "antwort_auf_uid"}; mail_wunsch macht daraus mit demselben Ablauf den Entwurf, das
+     Original aus data/mails/ kommt sicher in den Kontext (m0, falls die Suche es nicht findet). Kann Claude nicht,
+     bleibt die Datei liegen, Schritt mail_wuensche_nachholen holt sie im nächsten Lauf. Alte Entwürfe mit "text"
+     gehen weiter direkt in die Freigabe.
+   - Ändern: Entwürfe aus dem neuen Ablauf (data/mailentwuerfe.json: Freigabe-ID -> Schlüssel) mit demselben
+     Kontext (data/mailauftraege/<schlüssel>/kontext.json), Regelvorschlag als Feld "regel" in Claudes JSON.
+     Ältere Entwürfe (ohne Kontext, z. B. e7a60a) über den alten Weg.
+   - Probelauf 28.10. lesend (Suche Boehme + Holzlamellen): 15 Mails, Böhmes Mail vom 26.10. als m1, 5
+     Stilvorlagen aus dem BA-Schriftwechsel (Mär./Apr. 2026) und der Anfrage vom 21.10., Prompt ca. 16.600 Zeichen.
+   - Offen: echter Test mit Jans Auftrag an Böhme (Inhalt: Zeitplanung, Termin, Exposé von Jan). Danach Log
+     (Erkennung, Suchbegriffe), data/mailauftraege/<id>/kontext.json und Entwurf prüfen, erst dann freigeben.
+     Den alten Entwurf 20261027-112951-uni-e7a60a (ohne Stilvorlage, offen in der Freigabe) dann ablehnen.
+   - Offen: data/mailauftraege/ (Mailtexte) aufräumen, z. B. nach 30 Tagen löschen (wie posteingang Punkt 8).
 
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.

@@ -350,6 +350,165 @@ class TestMailEntwuerfe(OhneTelegram):
         senden.assert_called_once_with(agent.cfg, {"an": ["a@hnee.de"]})
 
 
+class TestMailAblauf(OhneTelegram):
+    """Mails mit Kontext und Stil aus dem Postfach (mail_entwerfen, mail_auftrag, Mail-Wünsche, Ändern)."""
+    BOEHME = {"uid": 11077, "von": '"Böhme, Thomas" <Thomas.Boehme@hnee.de>', "antwort_an": "Thomas.Boehme@hnee.de",
+              "an": ["Kleinke, Jan <jkl298@hnee.de>"], "message_id": "<b@hnee.de>", "references": "<a@hnee.de>",
+              "betreff": "AW: Anfrage Betreuung", "datum": "2026-10-26T09:44:02+01:00", "text": "Lieber Herr Kleinke",
+              "wortlaut": "Lieber Herr Kleinke,\n\nRückfragen", "anhaenge": []}
+    GESENDET = {"uid": 720, "von": "jkl298@hnee.de", "an": ["Böhme, Thomas <Thomas.Boehme@hnee.de>"],
+                "message_id": "<j@hnee.de>", "betreff": "AW: Termin mündliche Prüfung",
+                "datum": "2026-04-08T14:06:51+02:00", "text": "Hallo Zusammen, ... beste Grüße Jan Kleinke"}
+    ENTWURF = ('{"entwurf": {"an": ["Thomas.Boehme@hnee.de"], "cc": [], "betreff": "AW: Anfrage Betreuung", '
+               '"text": "Hallo Herr Böhme,\\n\\nvielen Dank.", "antwort_auf": "m1", "begruendung": "Stil aus Sent"}}')
+
+    def setUp(self):
+        super().setUp()
+        self.prompts = []
+        self.antworten = []
+
+    def claude(self, agent_name, hier, prompt, **kw):
+        self.prompts.append((prompt, kw))
+        return Ergebnis(self.antworten.pop(0), "s9", True)
+
+    def suchen(self, ordner, **k):
+        if ordner == "INBOX" and k.get("von"):
+            return [dict(self.BOEHME, ordner="INBOX")]
+        if ordner == "Gesendete Elemente" and k.get("an"):
+            return [dict(self.GESENDET, ordner="Gesendete Elemente")]
+        return []
+
+    def test_entwerfen_mit_stil_und_bezug(self):
+        self.antworten = ['{"personen": ["Boehme"], "stichworte": [], "tage_zurueck": 1000, "kalender_tage": 0}',
+                          self.ENTWURF]
+        zeile, sitzung = agent.mail_entwerfen("antworte Böhme", "a1", laufen=self.claude, suchen=self.suchen,
+                                              termine=None, neuer_entwurf=self.neuer_entwurf)
+        self.assertEqual(zeile, "Mail-Entwurf an Thomas.Boehme@hnee.de liegt zur Freigabe: AW: Anfrage Betreuung")
+        self.assertEqual(sitzung, "s9")
+        self.assertEqual([kw["art"] for _, kw in self.prompts], ["routine", "anspruchsvoll"])
+        self.assertIn("Hallo Zusammen", self.prompts[1][0])  # Jans gesendete Mail als Stilvorlage
+        daten = self.angelegt[0]["daten"]
+        self.assertEqual(daten["in_reply_to"], "<b@hnee.de>")
+        self.assertEqual(daten["references"], "<a@hnee.de> <b@hnee.de>")
+        self.assertEqual(self.reihenfolge, ["meldung", "meldung", "entwurf"])
+        self.assertTrue(self.gemeldet[0][0].startswith('Von: "Böhme, Thomas"'))
+        self.assertEqual(json.loads(agent.mailentwuerfe_datei().read_text()), {"e1": "a1"})
+        self.assertIn("antworte Böhme", json.loads(agent.kontext_datei("a1").read_text())["text"])
+
+    def test_auftrag_keine_mail(self):
+        self.antworten = ['{"mail": false}']
+        entwerfen = mock.Mock()
+        self.assertFalse(agent.mail_auftrag({"id": "a1", "text": "Was ist GK 3?"}, laufen=self.claude,
+                                            entwerfen=entwerfen))
+        entwerfen.assert_not_called()
+
+    def test_auftrag_unlesbare_erkennung_normaler_ablauf(self):
+        self.antworten = ["Ich weiß nicht"]
+        self.assertFalse(agent.mail_auftrag({"id": "a1", "text": "x"}, laufen=self.claude, entwerfen=mock.Mock()))
+
+    def test_auftrag_ist_mail(self):
+        self.antworten = ['{"mail": true, "personen": ["Boehme"], "stichworte": ["Holzlamellen"]}']
+        entwerfen = mock.Mock(return_value=("Mail-Entwurf an x liegt zur Freigabe: B", "s2"))
+        with mock.patch.object(agent.auftraege, "abschliessen") as abschliessen:
+            self.assertTrue(agent.mail_auftrag({"id": "a1", "text": "antworte Böhme"}, laufen=self.claude,
+                                               entwerfen=entwerfen))
+        self.assertEqual(entwerfen.call_args.kwargs["suche"]["personen"], ["Boehme"])
+        abschliessen.assert_called_once_with("a1", "Mail-Entwurf an x liegt zur Freigabe: B", status="erledigt",
+                                             sitzung="s2")
+
+    def test_rueckfrage_und_nachtrag(self):
+        self.antworten = ['{"mail": true, "personen": ["Boehme"]}']
+        entwerfen = mock.Mock(return_value=("Rückfrage zur Mail: Welcher Termin?", "s2"))
+        with mock.patch.object(agent.auftraege, "abschliessen") as abschliessen:
+            agent.mail_auftrag({"id": "a1", "text": "antworte Böhme"}, laufen=self.claude, entwerfen=entwerfen)
+        self.assertIn("Antworte auf diese Nachricht", abschliessen.call_args.args[1])
+        agent._schreibe_json(agent.kontext_datei("a1"), {"text": "antworte Böhme", "kontext": {}})
+        entwerfen.return_value = ("Mail-Entwurf an x liegt zur Freigabe: B", "s3")
+        with mock.patch.object(agent.auftraege, "abschliessen"):
+            self.assertTrue(agent.mail_auftrag({"id": "a2", "text": "Dienstag 10 Uhr", "bezug": "a1", "sitzung": "s2"},
+                                               laufen=self.claude, entwerfen=entwerfen))
+        self.assertEqual(entwerfen.call_args.args[0], "antworte Böhme\n\nNachtrag von Jan: Dienstag 10 Uhr")
+        self.assertIsNone(entwerfen.call_args.kwargs["suche"])  # neue Suche mit dem Nachtrag
+        # Antwort auf einen normalen Auftrag (kein gespeicherter Kontext): normaler Ablauf
+        self.assertFalse(agent.mail_auftrag({"id": "a3", "text": "x", "bezug": "zz", "sitzung": "s"},
+                                            laufen=self.claude, entwerfen=entwerfen))
+
+    def test_auftrag_wartet_bleibt_offen(self):
+        self.antworten = ['{"mail": true, "personen": ["Boehme"]}']
+        entwerfen = mock.Mock(side_effect=agent.claude_lauf.Pausiert("Pause"))
+        with mock.patch.object(agent.auftraege, "abschliessen") as abschliessen, \
+             self.assertRaises(agent.claude_lauf.Pausiert):
+            agent.mail_auftrag({"id": "a1", "text": "x"}, laufen=self.claude, entwerfen=entwerfen)
+        abschliessen.assert_not_called()
+
+    def test_auftrag_fehler_wird_abgeschlossen(self):
+        self.antworten = ['{"mail": true, "personen": ["Boehme"]}']
+        entwerfen = mock.Mock(side_effect=agent.mail.MailFehler("an: keine gültige Adresse"))
+        with mock.patch.object(agent.auftraege, "abschliessen") as abschliessen:
+            self.assertTrue(agent.mail_auftrag({"id": "a1", "text": "x"}, laufen=self.claude, entwerfen=entwerfen))
+        self.assertEqual(abschliessen.call_args.kwargs["status"], "fehlgeschlagen")
+
+    def schreiben(self, schluessel, name, inhalt):
+        ordner = agent.entwurf_ordner(schluessel)
+        ordner.mkdir(parents=True, exist_ok=True)
+        (ordner / name).write_text(json.dumps(inhalt))
+        return ordner
+
+    def test_wunsch_mit_original(self):
+        mails = self.hier / "data" / "mails"
+        agent.mail.mail_merken(self.BOEHME, mails)
+        ordner = self.schreiben("post-1", "mail_1.json", {"auftrag": "Zusage bestätigen", "antwort_auf_uid": 11077})
+        entwerfen = mock.Mock(return_value=("Mail-Entwurf an x liegt zur Freigabe: B", "s"))
+        echt = agent.mail.mail_holen
+        with mock.patch.object(agent.mail, "mail_holen", lambda uid, o=None: echt(uid, mails)):
+            zeilen = agent.entwuerfe_einreichen("post-1", nur_fehler=True, zeitgesteuert=True, entwerfen=entwerfen)
+        self.assertEqual(zeilen, [])
+        args, kw = entwerfen.call_args
+        self.assertEqual(args, ("Zusage bestätigen", "post-1-mail_1"))
+        self.assertEqual(kw["original"]["message_id"], "<b@hnee.de>")
+        self.assertTrue(kw["zeitgesteuert"])
+        self.assertTrue((ordner / "mail_1.eingereicht").exists())
+
+    def test_wunsch_wartet_und_ungueltig(self):
+        ordner = self.schreiben("a1", "mail_1.json", {"auftrag": "x"})
+        self.schreiben("a1", "mail_2.json", {"auftrag": ""})
+        entwerfen = mock.Mock(side_effect=agent.claude_lauf.Pausiert("Pause"))
+        zeilen = agent.entwuerfe_einreichen("a1", entwerfen=entwerfen)
+        self.assertTrue((ordner / "mail_1.json").exists())  # bleibt für mail_wuensche_nachholen
+        self.assertTrue((ordner / "mail_2.ungueltig").exists())
+        self.assertEqual(len(zeilen), 1)
+        self.assertIn("Kein Mail-Entwurf möglich", zeilen[0])
+
+    def test_wunsch_rueckfrage_wird_gezeigt(self):
+        self.schreiben("p1", "mail_1.json", {"auftrag": "x"})
+        entwerfen = mock.Mock(return_value=("Rückfrage zur Mail: An wen?", None))
+        zeilen = agent.entwuerfe_einreichen("p1", nur_fehler=True, entwerfen=entwerfen)
+        self.assertTrue(zeilen[0].startswith("Rückfrage zur Mail: An wen?"))
+
+    def test_aendern_mit_kontext_und_regel(self):
+        kontext = {"suche": {"personen": ["Boehme"], "stichworte": [], "tage_zurueck": 30, "kalender_tage": 0},
+                   "mails": [dict(self.BOEHME, ordner="INBOX", schluessel="m1")], "stil": [], "termine": []}
+        agent._schreibe_json(agent.kontext_datei("a1"), {"text": "antworte Böhme", "kontext": kontext})
+        agent._schreibe_json(agent.mailentwuerfe_datei(), {"e0": "a1"})
+        alt = {"id": "e0", "typ": "mail", "daten": {"an": ["Thomas.Boehme@hnee.de"], "cc": [], "betreff": "B",
+                                                    "text": "Sehr geehrter", "in_reply_to": "<b@hnee.de>",
+                                                    "references": "<b@hnee.de>", "antwort_auf": "Böhme: B"}}
+        self.antworten = ['{"entwurf": {"an": ["Thomas.Boehme@hnee.de"], "betreff": "B", "text": "Hallo Herr Böhme", '
+                          '"antwort_auf": null}, "regel": {"regel": "Böhme mit Hallo anreden", "anlass": "Ändern"}}']
+        with mock.patch.object(agent.freigabe, "neuer_entwurf", self.neuer_entwurf), \
+             mock.patch.object(agent.regeln, "regel_vorschlagen") as regel, \
+             mock.patch.object(agent.auftraege, "abschliessen") as abschliessen:
+            agent.aenderung_bearbeiten({"id": "a2", "text": "lockerer", "bezug": "e0", "quelle": "telegram-aendern"},
+                                       laufen=self.claude, holen={"e0": alt}.get)
+        self.assertIn("lockerer", self.prompts[0][0])
+        self.assertIn("Lieber Herr Kleinke", self.prompts[0][0])  # derselbe Kontext
+        self.assertEqual(self.angelegt[0]["vorgaenger"], "e0")
+        self.assertEqual(self.angelegt[0]["daten"]["in_reply_to"], "<b@hnee.de>")  # Bezug bleibt
+        self.assertEqual(self.gemeldet, [("Hallo Herr Böhme", None)])  # kein Wortlaut bei Überarbeitung
+        regel.assert_called_once_with(agent.AGENT, "Böhme mit Hallo anreden", "Ändern")
+        self.assertEqual(abschliessen.call_args.kwargs["status"], "erledigt")
+
+
 class TestTermine(OhneTelegram):
     JETZT = datetime(2026, 10, 27, 11, 0, tzinfo=agent.termine.ZONE)
 
