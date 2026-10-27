@@ -107,6 +107,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Lia, Jans Zentrale meldete „Gestoppt“. Der Stopp-Knopf dieser Meldung antwortet jetzt „Schon entschieden“.
   Nicht echt geprüft: Commit durch den Dienst (Datei lag außerhalb des Repos, nur Unit-Test), Nachbesserung,
   Klicks in Telegram.
+- Vinted-Bot Stufe 1 (27.10., Ausnahme in CLAUDE.md): llm.py protokolliert jeden claude-Lauf in
+  shared/verbrauch/laeufe.jsonl (agent vinted, konto login, art foto/ranking/nachricht/antwort, ohne Auslastung,
+  damit die Stufen weiter nur das Agenten-Konto sehen). Unit mit OnFailure=ausfall@%n.service und Startgrenze
+  5 in 5 min (Vorlage ~/agents/vinted/systemd/), danach bleibt er aus. Testmeldung kam per Telegram raus.
+  Erster echter Eintrag: Ranking mit Opus 0,13 USD. Offen: nach einigen Tagen Kosten je art auswerten,
+  dann entscheiden, ob das Ranking auf Sonnet wechselt (Stufe 2: Freigabe-Warteschlange, Stufe 3: einkauf).
 
 ## Entscheidungen
 - Telegram ist die Zentrale in beide Richtungen. Jan diktiert per Handy-Tastatur, nur Text.
