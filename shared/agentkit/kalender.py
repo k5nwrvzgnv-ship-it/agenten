@@ -1,4 +1,4 @@
-"""Kalender lesen: Jans Apple-Kalender über öffentliche iCloud-Links (nur lesend).
+"""Kalender lesen (öffentliche iCloud-Links) und neue Termine eintragen (CalDAV).
 
 Die Links stehen Komma-getrennt in KALENDER_ICS_URLS (shared/.env), webcal:// wird
 zu https://. termine(von, bis) liefert alle Termine, die den Zeitraum berühren,
@@ -12,13 +12,28 @@ einzeln geänderte Termine (RECURRENCE-ID) und abgesagte (STATUS:CANCELLED).
 Unbekannte Regelteile: nur der erste Termin zählt, und es wird gewarnt.
 
 Ohne Netz testbar: aus_text(ics_text, von, bis).
+
+Schreiben: eintragen(titel, beginn, ende, agent=...) legt einen NEUEN Termin in Jans
+iCloud-Kalender an (CalDAV, PUT mit If-None-Match: *), ändert und löscht nie.
+Zugang aus shared/.env: ICLOUD_APPLE_ID, ICLOUD_APP_PASSWORT (App-spezifisches
+Passwort von appleid.apple.com) und ICLOUD_KALENDER (Anzeigename des Kalenders).
+Fehlt etwas, oder passt der Name auf keinen oder mehrere Kalender: KalenderFehler,
+nichts wird geraten. Steht unter der UID schon ein Termin: TerminSchonDa (nichts
+überschrieben). Ohne uid wird sie fest aus Titel und Beginn gebildet (feste_uid),
+derselbe Termin entsteht so nicht doppelt. Nur nach Freigabe aufrufen (Entwurfstyp
+"termin"). ics(...) baut den Kalendertext, auch für .ics-Anhänge.
 """
 
+import base64
+import hashlib
 import logging
 import re
+import urllib.error
+import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .config import SHARED_DIR, lade_config
@@ -280,3 +295,239 @@ def _termine_eines(e, uid: str, von: datetime, bis: datetime, geaendert: set) ->
         if zeit < bis and (ende > von or (ende == zeit and zeit >= von)):
             termine_.append(Termin(zeit.astimezone(ZONE), ende.astimezone(ZONE), titel, ort, ganztags, uid))
     return termine_
+
+
+# ---------- Schreiben: .ics-Text ----------
+
+def feste_uid(titel: str, beginn: datetime | date, domain: str = "agenten") -> str:
+    """Fest aus Titel und Beginn: derselbe Termin bekommt immer dieselbe UID."""
+    return hashlib.sha1(f"{titel}|{beginn.isoformat()}".encode()).hexdigest()[:16] + "@" + domain
+
+
+def _ics_wert(text: str) -> str:
+    return text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+def _falten(zeile: str) -> list[str]:
+    """Zeilen nach RFC 5545 auf 75 Bytes falten, ohne UTF-8-Zeichen zu zerschneiden."""
+    teile, aktuell = [], ""
+    for zeichen in zeile:
+        grenze = 75 if not teile else 74
+        if len((aktuell + zeichen).encode()) > grenze:
+            teile.append(aktuell)
+            aktuell = ""
+        aktuell += zeichen
+    teile.append(aktuell)
+    return [teile[0]] + [" " + t for t in teile[1:]]
+
+
+def ics(titel: str, beginn: datetime, ende: datetime, uid: str, ort: str = "", beschreibung: str = "",
+        ganztags: bool = False, erinnerungen: tuple[int, ...] = (), link: str = "",
+        methode: str | None = "PUBLISH", jetzt: datetime | None = None) -> str:
+    """Ein Termin als iCalendar-Text (CRLF, gefaltet).
+
+    ganztags: nur die Daten zählen, ende ist der letzte Tag (einschließlich).
+    erinnerungen: Minuten vor Beginn, je eine VALARM. methode=None für CalDAV
+    (dort ist METHOD verboten), "PUBLISH" für .ics-Anhänge zum Antippen.
+    """
+    utc = "%Y%m%dT%H%M%SZ"
+    jetzt = jetzt or datetime.now(timezone.utc)
+    beschreibung = beschreibung + (f"\n\nLink: {link}" if link else "")
+    zeilen = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//agenten//agentkit//DE"]
+    if methode:
+        zeilen.append(f"METHOD:{methode}")
+    zeilen += ["BEGIN:VEVENT", f"UID:{uid}", f"DTSTAMP:{jetzt.astimezone(timezone.utc).strftime(utc)}"]
+    if ganztags:
+        zeilen += [f"DTSTART;VALUE=DATE:{beginn.strftime('%Y%m%d')}",
+                   f"DTEND;VALUE=DATE:{(_als_datum(ende) + timedelta(days=1)).strftime('%Y%m%d')}"]
+    else:
+        zeilen += [f"DTSTART:{beginn.astimezone(timezone.utc).strftime(utc)}",
+                   f"DTEND:{ende.astimezone(timezone.utc).strftime(utc)}"]
+    zeilen.append(f"SUMMARY:{_ics_wert(titel)}")
+    if ort:
+        zeilen.append(f"LOCATION:{_ics_wert(ort)}")
+    if link:
+        zeilen.append(f"URL:{link}")
+    if beschreibung.strip():
+        zeilen.append(f"DESCRIPTION:{_ics_wert(beschreibung.strip())}")
+    for minuten in erinnerungen:
+        zeilen += ["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_ics_wert(titel)}",
+                   f"TRIGGER:-PT{minuten}M", "END:VALARM"]
+    zeilen += ["END:VEVENT", "END:VCALENDAR"]
+    return "\r\n".join(z for zeile in zeilen for z in _falten(zeile)) + "\r\n"
+
+
+def _als_datum(wert: datetime | date) -> date:
+    return wert.date() if isinstance(wert, datetime) else wert
+
+
+def termin_pruefen(titel: str, beginn: datetime | date, ende: datetime | date, ganztags: bool,
+                   erinnerungen: tuple[int, ...]) -> None:
+    """Grobe Plausibilität vor dem Eintragen, sonst KalenderFehler."""
+    if not titel.strip():
+        raise KalenderFehler("Termin ohne Titel")
+    if ganztags:
+        if _als_datum(ende) < _als_datum(beginn):
+            raise KalenderFehler("Ende liegt vor dem Beginn")
+    else:
+        if not (isinstance(beginn, datetime) and isinstance(ende, datetime)):
+            raise KalenderFehler("Termin mit Uhrzeit braucht datetime für Beginn und Ende")
+        if beginn.tzinfo is None or ende.tzinfo is None:
+            raise KalenderFehler("Beginn und Ende brauchen eine Zeitzone")
+        if ende <= beginn:
+            raise KalenderFehler("Ende liegt nicht nach dem Beginn")
+    if any(not isinstance(m, int) or isinstance(m, bool) or m < 0 for m in erinnerungen):
+        raise KalenderFehler(f"Erinnerungen müssen Minuten >= 0 sein: {erinnerungen!r}")
+
+
+# ---------- Schreiben: CalDAV ----------
+
+CALDAV_URL = "https://caldav.icloud.com/"
+CALDAV_DOMAIN = "icloud.com"  # Zugangsdaten gehen nur an diese Domain (und Unterdomains), nur https
+MAX_WEITERLEITUNGEN = 5
+DAV, CALDAV = "DAV:", "urn:ietf:params:xml:ns:caldav"
+PROPFIND_PRINCIPAL = (b'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:">'
+                      b'<d:prop><d:current-user-principal/></d:prop></d:propfind>')
+PROPFIND_HOME = (b'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:" '
+                 b'xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>')
+PROPFIND_KALENDER = (b'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:" '
+                     b'xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:displayname/><d:resourcetype/>'
+                     b'<c:supported-calendar-component-set/></d:prop></d:propfind>')
+
+
+class TerminSchonDa(KalenderFehler):
+    """Unter dieser UID steht schon ein Termin im Kalender, nichts wurde überschrieben."""
+
+
+def eintragen(titel: str, beginn: datetime | date, ende: datetime | date, *, agent: str, ort: str = "",
+              notiz: str = "", uid: str | None = None, ganztags: bool = False,
+              erinnerungen: tuple[int, ...] = (), config: dict[str, str] | None = None) -> str:
+    """Neuen Termin in Jans iCloud-Kalender anlegen, gibt die UID zurück.
+
+    agent: wer ihn anlegt, steht in der Notiz ("angelegt vom Uni-Agenten").
+    config: statt shared/.env (Tests). Fehler: KalenderFehler, TerminSchonDa.
+    """
+    termin_pruefen(titel, beginn, ende, ganztags, tuple(erinnerungen))
+    cfg = config if config is not None else lade_config(SHARED_DIR)
+    fehlend = [k for k in ("ICLOUD_APPLE_ID", "ICLOUD_APP_PASSWORT", "ICLOUD_KALENDER") if not cfg.get(k)]
+    if fehlend:
+        raise KalenderFehler(f"Fehlende Werte in shared/.env: {', '.join(fehlend)}")
+    zugang = (cfg["ICLOUD_APPLE_ID"], cfg["ICLOUD_APP_PASSWORT"])
+    uid = uid or feste_uid(titel, beginn)
+    vermerk = f"angelegt vom {agent[:1].upper()}{agent[1:]}-Agenten"
+    text = ics(titel, beginn, ende, uid, ort=ort, beschreibung=f"{notiz.strip()}\n\n{vermerk}".strip(),
+               ganztags=ganztags, erinnerungen=tuple(erinnerungen), methode=None)
+
+    ziel = urllib.parse.urljoin(kalender_finden(zugang, cfg["ICLOUD_KALENDER"]),
+                                urllib.parse.quote(uid, safe="") + ".ics")
+    status, _, _ = _anfrage("PUT", ziel, zugang, text.encode(),
+                            {"Content-Type": "text/calendar; charset=utf-8", "If-None-Match": "*"})
+    if status == 412:
+        raise TerminSchonDa(f"Termin steht schon im Kalender (UID {uid})")
+    if status not in (200, 201, 204):
+        raise KalenderFehler(f"Termin nicht angelegt: iCloud antwortet mit HTTP {status}")
+    logger.info("Termin eingetragen: %s, %s (UID %s)", titel, beginn.isoformat(), uid)
+    return uid
+
+
+def kalender_finden(zugang: tuple[str, str], name: str) -> str:
+    """URL des Kalenders mit diesem Anzeigenamen: principal -> calendar-home-set -> Kalender."""
+    status, url, inhalt = _anfrage("PROPFIND", CALDAV_URL, zugang, PROPFIND_PRINCIPAL, {"Depth": "0"})
+    _pruefe_207(status, "Anmeldung")
+    principal = urllib.parse.urljoin(url, _href(inhalt, f"{{{DAV}}}current-user-principal"))
+    status, url, inhalt = _anfrage("PROPFIND", principal, zugang, PROPFIND_HOME, {"Depth": "0"})
+    _pruefe_207(status, "Kalenderliste")
+    home = urllib.parse.urljoin(url, _href(inhalt, f"{{{CALDAV}}}calendar-home-set"))
+    status, url, inhalt = _anfrage("PROPFIND", home, zugang, PROPFIND_KALENDER, {"Depth": "1"})
+    _pruefe_207(status, "Kalenderliste")
+    return urllib.parse.urljoin(url, kalender_waehlen(kalenderliste(inhalt), name))
+
+
+def _pruefe_207(status: int, schritt: str) -> None:
+    if status != 207:
+        raise KalenderFehler(f"iCloud ({schritt}): unerwartete Antwort HTTP {status}")
+
+
+def _xml(inhalt: bytes) -> ET.Element:
+    try:
+        return ET.fromstring(inhalt)
+    except ET.ParseError as e:
+        raise KalenderFehler(f"Antwort von iCloud nicht lesbar: {e}") from None
+
+
+def _href(inhalt: bytes, eigenschaft: str) -> str:
+    """Erste href unterhalb der Eigenschaft (z. B. current-user-principal) in einer Multistatus-Antwort."""
+    for knoten in _xml(inhalt).iter(eigenschaft):
+        href = knoten.find(f"{{{DAV}}}href")
+        if href is not None and (href.text or "").strip():
+            return href.text.strip()
+    raise KalenderFehler(f"iCloud nennt keine Adresse für {eigenschaft.split('}')[-1]}")
+
+
+def kalenderliste(inhalt: bytes) -> list[tuple[str, str]]:
+    """(href, Anzeigename) aller Kalender mit Terminen (VEVENT) aus einer PROPFIND-Antwort (Depth 1)."""
+    ergebnis = []
+    for antwort in _xml(inhalt).iter(f"{{{DAV}}}response"):
+        href = (antwort.findtext(f"{{{DAV}}}href") or "").strip()
+        typ = antwort.find(f".//{{{DAV}}}resourcetype")
+        if not href or typ is None or typ.find(f"{{{CALDAV}}}calendar") is None:
+            continue
+        komponenten = antwort.find(f".//{{{CALDAV}}}supported-calendar-component-set")
+        if komponenten is not None and "VEVENT" not in {k.get("name") for k in komponenten}:
+            continue  # z. B. Listen der Erinnerungen-App (nur VTODO)
+        ergebnis.append((href, (antwort.findtext(f".//{{{DAV}}}displayname") or "").strip()))
+    return ergebnis
+
+
+def kalender_waehlen(kalender: list[tuple[str, str]], name: str) -> str:
+    """href des Kalenders mit genau diesem Anzeigenamen, sonst KalenderFehler (nichts raten)."""
+    treffer = [href for href, anzeige in kalender if anzeige == name.strip()]
+    if len(treffer) == 1:
+        return treffer[0]
+    namen = ", ".join(sorted({a for _, a in kalender if a})) or "keine"
+    if not treffer:
+        raise KalenderFehler(f"Kein Kalender namens {name!r} (ICLOUD_KALENDER). Vorhanden: {namen}")
+    raise KalenderFehler(f"{len(treffer)} Kalender heißen {name!r}, bitte einen umbenennen")
+
+
+class _KeineWeiterleitung(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None  # Weiterleitungen prüft _anfrage selbst
+
+
+_OEFFNER = urllib.request.build_opener(_KeineWeiterleitung)
+
+
+def _host_erlaubt(url: str) -> bool:
+    teile = urllib.parse.urlsplit(url)
+    host = (teile.hostname or "").lower()
+    return teile.scheme == "https" and (host == CALDAV_DOMAIN or host.endswith("." + CALDAV_DOMAIN))
+
+
+def _anfrage(methode: str, url: str, zugang: tuple[str, str], daten: bytes,
+             kopf: dict[str, str]) -> tuple[int, str, bytes]:
+    """Eine CalDAV-Anfrage mit Basic-Auth, folgt Weiterleitungen nur innerhalb von icloud.com.
+
+    Gibt (Status, endgültige URL, Inhalt) zurück. 401 und Netzfehler: KalenderFehler.
+    """
+    anmeldung = "Basic " + base64.b64encode(f"{zugang[0]}:{zugang[1]}".encode()).decode()
+    for _ in range(MAX_WEITERLEITUNGEN + 1):
+        if not _host_erlaubt(url):
+            raise KalenderFehler(f"Adresse außerhalb von iCloud abgelehnt: {url}")
+        anfrage = urllib.request.Request(url, data=daten, method=methode, headers={
+            **kopf, "Authorization": anmeldung, "User-Agent": "agenten-kalender/1.0"})
+        try:
+            with _OEFFNER.open(anfrage, timeout=30) as antwort:
+                return antwort.status, antwort.geturl(), antwort.read()
+        except urllib.error.HTTPError as e:
+            status, ziel = e.code, e.headers.get("Location")
+            if status in (301, 302, 303, 307, 308) and ziel:
+                url = urllib.parse.urljoin(url, ziel)
+                continue
+            if status == 401:
+                raise KalenderFehler("iCloud lehnt die Anmeldung ab: ICLOUD_APPLE_ID oder "
+                                     "ICLOUD_APP_PASSWORT prüfen") from None
+            return status, url, e.read()
+        except (OSError, ValueError) as e:
+            raise KalenderFehler(f"iCloud nicht erreichbar: {e}") from None
+    raise KalenderFehler("Zu viele Weiterleitungen bei iCloud")
