@@ -59,4 +59,4 @@ ausgehende Nachricht (nur Warnung ins Log, ohne Inhalt).
 2. „Rechenzeit“ statt „Kontingent“, auch für Jan.
 3. Absender „Zentrale“ für Systemnachrichten an Jan.
 4. Lias Fehlertexte bleiben „Sag Jan bitte Bescheid“, wo Jan keine Meldung bekommt; keine neue Meldung.
-5. Modus-Wörter: „Uni macht es allein“ / „Wir machen es zusammen“ statt „erledigen / lernen“.
+5. Modus-Wörter „erledigen / lernen“ bleiben (Jans eigene Begriffe).
