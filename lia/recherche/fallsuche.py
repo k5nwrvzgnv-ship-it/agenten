@@ -8,7 +8,8 @@ Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
    DURCHGAENGE - 1 Mal „weitersuchen“ in derselben Sitzung. Claude gleicht schon beim Suchen grob gegen das
    Regelwerk ab und schreibt Verworfenes mit Grund auf. Python prüft jeden Beleg wörtlich (webpruefung);
    Durchgefallenes geht einmal zurück. Ein Fenster, das scheitert (Zeitlimit, kaputte Datei), wird gemeldet,
-   die übrigen laufen weiter. Gesammelt wird nur, solange noch RESERVE_USD für Stufe 2 und 3 übrig sind.
+   die übrigen laufen weiter. Ein Suchlauf startet nur, wenn danach (bis LAUF_USD) noch RESERVE_USD für
+   Stufe 2 und 3 übrig sind.
 2. Abgleich: neue Sitzung, alle Fälle gegen Regelwerk, Gelernte Regeln, Leitfaden, Seminarvorbild und Rubrik,
    je Prüfkriterium Stufe, Begründung und Regel-Kennungen. Eine Nachbesserung.
 3. Dossier (dieselbe Sitzung): stärkste Fälle und Leitfragen mit zwei Polen, Kant/Liszt mit Registerbelegen,
@@ -36,6 +37,7 @@ logger = agent.logger
 LIA = HIER.parent
 GRENZE_USD = 15.0
 RESERVE_USD = 3.0   # bleibt für Abgleich und Dossier
+LAUF_USD = 5.0      # so viel kann ein Suchlauf kosten (erster echter Lauf 27.10.: 2,7–4,5 USD)
 DURCHGAENGE = 2     # Suche + einmal weitersuchen je Fenster
 
 
@@ -165,7 +167,7 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
     lauf = _lauf(laufen or webauftrag._laufen_standard(hier), kosten, ordner.name)
 
     def budget_frei() -> bool:
-        return kosten.summe < kosten.grenze - RESERVE_USD
+        return kosten.summe + LAUF_USD <= kosten.grenze - RESERVE_USD
 
     probleme, je_fenster = [], {}
     try:

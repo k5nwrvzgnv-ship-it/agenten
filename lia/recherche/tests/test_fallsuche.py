@@ -122,11 +122,20 @@ class FallsucheTest(unittest.TestCase):
         self.assertIn("--weiter", self.meldungen[-1])
 
     def test_reserve_fuer_abgleich_und_dossier(self):
-        kosten = agent.Kosten(grenze=fallsuche.RESERVE_USD + 0.4)
+        kosten = agent.Kosten(grenze=fallsuche.RESERVE_USD + fallsuche.LAUF_USD + 0.4)
         self.ausfuehren({"nachrichten": [GUT, None], "urteile": [GUT, None]}, kosten=kosten)
         # Erstes Fenster ohne weitersuchen (Budget), zweites ausgelassen, Abgleich und Dossier laufen
         self.assertEqual(len(self.claude.prompts), 3)
         self.assertIn("Fenster urteile ausgelassen", self.meldungen[-1])
+
+    def test_teurer_lauf_frisst_reserve_nicht(self):
+        # Wie am 27.10.: Ein Suchlauf kostet viel; der nächste startet nur, wenn LAUF_USD und Reserve frei bleiben
+        kosten = agent.Kosten(grenze=15.0)
+        self.ausfuehren({"nachrichten": [GUT, None], "urteile": [GUT, None]}, kosten=kosten, usd=4.5)
+        # nachrichten (4,5) und weitersuchen (9,0 + 5 > 12: danach kein Suchlauf mehr), Abgleich, Dossier
+        self.assertEqual(len(self.claude.prompts), 4)
+        self.assertIn("Fenster urteile ausgelassen", self.meldungen[-1])
+        self.assertIn("Fallsuche fertig", self.meldungen[-1])
 
     def test_abgleich_nachbesserung(self):
         kaputt = {"faelle": [abgleich_eintrag("F01", gesamt="super")]}
