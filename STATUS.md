@@ -262,6 +262,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    (Entscheidung Jan).
    Achtung: Weil main jetzt sicherung/main verfolgt, schiebt ein einfaches `git push` nach GitHub. Chats pushen
    weiter nur auf Jans Anweisung.
+13. Bedarf aus lia/examen (Jan 27.10.2026, Plan freigegeben): Alle Agenten (Jans und Lias) laufen über ein
+   eigenes Claude-Konto (anderer Account, ebenfalls Pro). Jans Chats bleiben auf dem bisherigen Login
+   (~/.claude/.credentials.json, jan.kleinke@googlemail.com).
+   - Jan: `~/.local/bin/claude setup-token` im eigenen Terminal, Login mit dem neuen Konto, Token selbst als
+     `CLAUDE_CODE_OAUTH_TOKEN=...` in shared/.env eintragen (KONTINGENT_DIR, gilt damit für alle Instanzen).
+     Token nie in den Chat.
+   - Hauptordner-Chat: claude_lauf liest CLAUDE_CODE_OAUTH_TOKEN aus KONTINGENT_DIR/.env und setzt ihn nur in
+     der Umgebung von `claude -p` (env= bei subprocess.run). Fehlt er: Abbruch mit klarer Meldung, kein
+     stiller Rückfall auf Jans Login. Tests, pruefen.sh, Commit. Danach echter Testlauf, prüfen, dass
+     rate_limit_event zum neuen Konto gehört (Auslastung nicht mehr von Jans Chats beeinflusst).
+   - Danach STATUS anpassen: "Verbrauch" (Stand) und Punkt 8 (Lia nutzt Jans Pro-Abo) gelten nicht mehr.
 
 ## Gelernte Regeln
 - (noch keine)
