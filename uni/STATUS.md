@@ -3,7 +3,7 @@
 ## Zweck
 Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 
-## Stand (23.10.2026)
+## Stand (27.10.2026)
 - Uni: HNE Eberswalde (HNEE). Studiengang laut Moodle: Holzingenieurwesen M.Sc.
 - Moodle: https://lms.hnee.de (Moodle 4.5). App-Login direkt mit HNEE-Nutzername/Kennwort (typeoflogin=1),
   kein SSO. Zugriff über login/token.php (service moodle_mobile_app) + webservice/rest/server.php. Getestet: geht.
@@ -106,7 +106,28 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   post_pruefen legt jede gelesene Mail in data/mails/<uid>.json ab. Lernmodus bekommt keinen Mail-Hinweis.
   Echttest 24.10. erfolgreich: Entwurf an jkl298@hnee.de per Telegram freigegeben, 5 s später gesendet,
   genau einmal im Posteingang und in Gesendete Elemente (gleiche Message-ID). Ändern noch nicht echt getestet.
-- Kalender schreiben: Bedarf im Hauptordner (../STATUS.md Punkt 9), danach hier Entwurfstyp "termin".
+- Termin-Vorschläge (27.10., Jans Wunsch: Agent entscheidet, was in den Kalender kommt, Jan bestätigt kurz):
+  ENTWURF_HINWEIS (Aufträge erledigen, post_pruefen, Material, Ändern) lässt Claude je Termin
+  data/entwuerfe/<schluessel>/termin_<n>.json schreiben (titel, beginn, ende, ort, notiz, erinnerungen_min,
+  quelle, begruendung; Zeit ohne Zone = deutsche Zeit, nur Datum = ganztägig). termine.entwurf_pruefen prüft
+  (nicht vergangen, höchstens 24 h bzw. 14 Tage, höchstens 3 Erinnerungen), Standard-Erinnerungen 1 Tag und 2 Std.
+  vorher, ganztägig Vortag 9 Uhr. agent.termine_einreichen gleicht mit agentkit.kalender ab (gleicher Beginn ±15 min
+  und ein Titel im anderen enthalten = steht schon drin), schlägt jede UID nur einmal vor
+  (data/termine/vorgeschlagen.json), legt data/termine/<schluessel>/<datei>.ics ab und hängt sie an die Meldung
+  bzw. das Auftragsergebnis. Jan tippt die .ics an. Kalender nicht lesbar: Vorschlag ohne Abgleich.
+  Nur Unit-Tests, erster echter Lauf ab Timer 27.10. 13 Uhr steht aus.
+  Direkt eintragen (Freigeben = Termin in iCloud) wartet auf ../STATUS.md Punkt 9 (CalDAV, App-spezifisches
+  Passwort von Jan). Dann Entwurfstyp "termin" in die Freigabe und ausfuehren() -> kalender.eintragen.
+- Mail-Entwürfe als Einzelnachrichten (27.10., Jan): entwuerfe_einreichen schickt vor jedem Entwurf eine Meldung
+  mit dem Wortlaut der Originalmail (mail.wortlaut: Von, Datum, Betreff, Anhänge, Text; nicht bei Überarbeitung)
+  und eine mit dem reinen Entwurfstext (zum Kopieren/Weiterleiten), wartet bis die Zentrale beide verschickt hat
+  (bis_gesendet, max. 120 s, sonst trotzdem weiter; die Zentrale zeigt Entwürfe vor Meldungen), dann erst die
+  Freigabe. post_pruefen meldet die Übersicht zuerst. postfach.py speichert dafür "wortlaut" (Absätze erhalten,
+  zitierter Verlauf ab "Von:/Gesendet:", "Am ... schrieb", "Ursprüngliche Nachricht" abgeschnitten, max. 20.000
+  Zeichen). Mails vor dem 27.10. haben nur den zusammengezogenen text. Die Freigabe-Nachricht der Zentrale zeigt
+  den Text weiterhin noch einmal mit Kopf.
+- Tests mit Meldungen: von OhneTelegram (tests/test_agent.py) erben, sonst landen sie echt in Telegram
+  (passiert am 27.10. mit zwei Testnachrichten).
 - Aufträge während eines Laufs (23.10.): systemctl start auf einen laufenden uni.service startet keinen zweiten
   Lauf. auftraege_abarbeiten holt deshalb so lange nach, bis nichts Neues kommt, und läuft am Ende des Laufs
   noch einmal. Kommt ein Auftrag erst in den letzten Millisekunden, wartet er bis zum nächsten Timer.

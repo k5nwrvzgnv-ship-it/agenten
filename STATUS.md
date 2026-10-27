@@ -224,6 +224,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - .ics-Text gibt es schon in uni/termine.py (ics(), RFC-5545-Faltung, getestet); bei Bedarf nach agentkit
      verschieben statt nachbauen. Bis das fertig ist, schickt uni Termine als .ics-Anhang zum Antippen.
    - Danach im uni-Chat: Entwurfstyp "termin" (Claude schlägt vor, Python prüft, Freigabe, eintragen).
+   - Stand uni 27.10.: Vorschläge, Prüfung, Kalenderabgleich und .ics mit VALARM (termine.ics, termine.uid) sind
+     fertig, Jan tippt bisher die .ics an. Jan will Termine mit einem Tipp bestätigen, Punkt 9 ist damit dringend.
+     Erinnerungen (VALARM) müssen beim PUT mitkommen.
 10. Bedarf aus lia/examen (25.10., Plan Examensreihe von Jan freigegeben, Punkte 1–6, Prüfung in ca. 4 Wochen):
    - Lias Zentrale: kurzer Bewertungsbogen je Runde (je Skizze Note 1–5, „was stört“, „was übernehmen“, Wahl).
      Benötigt ab Runde 1 (Ende Woche 1); bis dahin trägt Jan Lias Antworten von Hand ein.
