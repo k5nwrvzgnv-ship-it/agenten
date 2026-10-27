@@ -17,6 +17,11 @@ Suchen (ohne Stand-Datei, neueste zuerst, Kriterien per UND, Umlaute erlaubt):
 Ein Ordner, den es nicht gibt, liefert eine leere Liste (mit Warnung im Log), keinen Fehler.
 Jede gefundene Mail hat zusätzlich das Feld "ordner".
 
+Server ohne CHARSET UTF-8 (Exchange der HNEE antwortet [BADCHARSET]): Es wird ohne CHARSET erneut
+gesucht, Umlaute umgeschrieben (ö -> oe, ß -> ss). Weil TO dort nichts findet (und TEXT nur den
+Mailtext), wird an= nicht dem Server gegeben: Python holt To/Cc der übrigen Treffer (höchstens
+MAX_PRUEFEN, neueste zuerst) und prüft sie (Teilstring, Groß-/Kleinschreibung und Umlaute egal).
+
 Jede Mail ist ein dict (zerlege): uid, von, an (To und Cc, Liste), antwort_an, message_id, references,
 betreff, datum, text (zusammengezogen, kurz), wortlaut (mit Absätzen, ohne zitierten Verlauf),
 anhaenge (Dateinamen).
@@ -30,6 +35,7 @@ import imaplib
 import json
 import logging
 import re
+import unicodedata
 from datetime import date
 from html import unescape
 from pathlib import Path
@@ -37,6 +43,9 @@ from pathlib import Path
 MAX_TEXT = 2000
 MAX_WORTLAUT = 20_000
 MAX_MAILS = 50
+MAX_PRUEFEN = 1000  # höchstens so viele Köpfe prüfen, wenn an= in Python gefiltert wird
+KOPF_BLOCK = 200
+UMSCHRIFT = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss"})
 MONATE = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 logger = logging.getLogger("agentkit.imap")
@@ -161,11 +170,21 @@ def _wert(s: str, literal_plus: bool) -> bytes:
     return b'"' + roh.replace(b"\\", b"\\\\").replace(b'"', b'\\"') + b'"'
 
 
+def umschreiben(s: str) -> str:
+    """Nur ASCII für Server ohne CHARSET: Umlaute ausgeschrieben, andere Akzente weg (é -> e)."""
+    s = unicodedata.normalize("NFKD", s.translate(UMSCHRIFT))
+    return s.encode("ascii", "ignore").decode()
+
+
 def kriterien(von: str | None = None, an: str | None = None, text: str | None = None,
-              seit: date | None = None, literal_plus: bool = False) -> list[bytes]:
-    """Argumente für UID SEARCH CHARSET UTF-8 (alle Kriterien per UND, ohne Kriterium ALL)."""
+              seit: date | None = None, literal_plus: bool = False, nur_ascii: bool = False) -> list[bytes]:
+    """Argumente für UID SEARCH (alle Kriterien per UND, ohne Kriterium ALL).
+
+    Standard: für CHARSET UTF-8. nur_ascii: für Server ohne CHARSET, Werte umgeschrieben.
+    """
     teile = []
     for name, wert in ((b"FROM", von), (b"TO", an), (b"TEXT", text)):
+        wert = umschreiben(wert) if nur_ascii and wert else wert
         if wert and wert.strip():
             teile.append(name + b" " + _wert(" ".join(wert.split()), literal_plus))
     if seit:
@@ -177,6 +196,23 @@ def _ordnername(ordner: str) -> str:
     return ordner if ordner.startswith('"') else '"' + ordner.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def _vergleich(s: str) -> str:
+    return umschreiben(" ".join(s.split())).lower()
+
+
+def _empfaenger(imap, uids: list[int]) -> dict[int, list[str]]:
+    """To und Cc je UID, in Blöcken geholt (nur Kopfzeilen, BODY.PEEK)."""
+    ergebnis = {}
+    for i in range(0, len(uids), KOPF_BLOCK):
+        menge = ",".join(str(u) for u in uids[i:i + KOPF_BLOCK])
+        _, teile = imap.uid("fetch", menge, "(UID BODY.PEEK[HEADER.FIELDS (TO CC)])")
+        for t in teile:
+            if isinstance(t, tuple) and (m := re.search(rb"UID (\d+)", t[0])):
+                n = email.message_from_bytes(t[1], policy=email.policy.default)
+                ergebnis[int(m.group(1))] = [_dekodiere(a) for a in (*_kopf_liste(n, "To"), *_kopf_liste(n, "Cc"))]
+    return ergebnis
+
+
 def suchen(host: str, port: int, nutzer: str, kennwort: str, ordner: str, *, von: str | None = None,
            an: str | None = None, text: str | None = None, seit: date | None = None,
            max_mails: int = 20) -> list[dict]:
@@ -185,6 +221,7 @@ def suchen(host: str, port: int, nutzer: str, kennwort: str, ordner: str, *, von
     von/an/text: Teilstrings wie in IMAP SEARCH FROM/TO/TEXT (Groß-/Kleinschreibung egal, Umlaute erlaubt).
     seit: Datum (SINCE, nach Eingangsdatum des Servers). Nur lesend, keine Stand-Datei.
     "Neueste" heißt höchste UID, also zuletzt im Ordner angekommen.
+    Lehnt der Server den Suchbefehl aus anderem Grund als BADCHARSET ab: imaplib.IMAP4.error.
     """
     with imaplib.IMAP4_SSL(host, int(port)) as imap:
         imap.login(nutzer, kennwort)
@@ -193,10 +230,21 @@ def suchen(host: str, port: int, nutzer: str, kennwort: str, ordner: str, *, von
             logger.warning("Ordner %r nicht lesbar: %s", ordner, antwort[0] if antwort else typ)
             return []
         literal_plus = "LITERAL+" in getattr(imap, "capabilities", ())
-        _, daten = imap.uid("search", "CHARSET", "UTF-8", *kriterien(von, an, text, seit, literal_plus))
-        uids = sorted((int(u) for u in (daten[0] or b"").split()), reverse=True)[:max(0, max_mails)]
+        typ, daten = imap.uid("search", "CHARSET", "UTF-8", *kriterien(von, an, text, seit, literal_plus))
+        an_filtern = False
+        if typ != "OK" and b"BADCHARSET" in b" ".join(d for d in daten if isinstance(d, bytes)).upper():
+            an_filtern = bool(an and an.strip())
+            logger.info("Server kann kein CHARSET UTF-8, suche in %r ohne (Umlaute umgeschrieben%s)", ordner,
+                        ", an in Python" if an_filtern else "")
+            typ, daten = imap.uid("search", *kriterien(von, None if an_filtern else an, text, seit, nur_ascii=True))
+        if typ != "OK":
+            raise imaplib.IMAP4.error(f"SEARCH in {ordner!r} abgelehnt: {daten[0] if daten else typ!r}")
+        uids = sorted((int(u) for u in (daten[0] or b"").split()), reverse=True)
+        if an_filtern:
+            gesucht, koepfe = _vergleich(an), _empfaenger(imap, uids[:MAX_PRUEFEN])
+            uids = [u for u in uids[:MAX_PRUEFEN] if any(gesucht in _vergleich(a) for a in koepfe.get(u, []))]
         mails = []
-        for uid in uids:
+        for uid in uids[:max(0, max_mails)]:
             _, teile = imap.uid("fetch", str(uid), "(BODY.PEEK[])")
             roh = next((t[1] for t in teile if isinstance(t, tuple)), None)
             if roh:

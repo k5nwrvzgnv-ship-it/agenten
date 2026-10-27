@@ -1,3 +1,4 @@
+import imaplib
 import json
 import tempfile
 import unittest
@@ -99,6 +100,30 @@ class SuchImap(FalschesImap):
         return super().uid(befehl, *args)
 
 
+class ExchangeImap(SuchImap):
+    """Wie der Exchange der HNEE: kein CHARSET UTF-8, jede UID hat ihren eigenen Empfänger."""
+
+    def __init__(self, empfaenger: dict[int, str]):
+        super().__init__(list(empfaenger))
+        self.empfaenger = empfaenger
+
+    def uid(self, befehl, *args):
+        if befehl == "search":
+            self.aufrufe.append(("search", *args))
+            if args[:1] == ("CHARSET",):
+                return "NO", [b"[BADCHARSET (US-ASCII)] The specified charset is not supported."]
+            return "OK", [b" ".join(str(u).encode() for u in self.uids)]
+        self.aufrufe.append(("fetch", args[0], args[1]))
+        if "HEADER.FIELDS" in args[1]:
+            antwort = []
+            for nr, u in enumerate(args[0].split(","), 1):
+                antwort += [(b"%d (UID %s BODY[HEADER.FIELDS (TO CC)] {9}" % (nr, u.encode()),
+                             f"To: {self.empfaenger[int(u)]}\r\n\r\n".encode("utf-8")), b")"]
+            return "OK", antwort
+        roh = f"From: jkl298@hnee.de\r\nTo: {self.empfaenger[int(args[0])]}\r\nSubject: x\r\n\r\nHallo"
+        return "OK", [(b"1 (BODY[] {10}", roh.encode()), b")"]
+
+
 class TestSuchen(unittest.TestCase):
     def suchen(self, falsch, ordner="INBOX", **kw):
         with mock.patch("imaplib.IMAP4_SSL", falsch):
@@ -133,6 +158,33 @@ class TestSuchen(unittest.TestCase):
 
     def test_keine_treffer(self):
         self.assertEqual(self.suchen(SuchImap([])), [])
+
+    def test_badcharset_ohne_charset_umgeschrieben(self):
+        falsch = ExchangeImap({5: "a@hnee.de"})
+        self.assertEqual(len(self.suchen(falsch, von="Böhme", text="Straße")), 1)
+        self.assertIn(("search", b'FROM "Boehme"', b'TEXT "Strasse"'), falsch.aufrufe)
+
+    def test_badcharset_an_in_python_gefiltert(self):
+        falsch = ExchangeImap({3: "=?iso-8859-1?Q?B=F6hme=2C_Thomas?= <thomas.x@hnee.de>", 7: "Jahreis <j@hnee.de>",
+                               9: '"Boehme, Thomas" <tb@hnee.de>', 11: "x@hnee.de"})
+        mails = self.suchen(falsch, "Gesendete Elemente", an="BÖHME", text="Bachelor", max_mails=5)
+        self.assertEqual([m["uid"] for m in mails], [9, 3])
+        self.assertIn(("search", b'TEXT "Bachelor"'), falsch.aufrufe)
+        self.assertIn(("fetch", "11,9,7,3", "(UID BODY.PEEK[HEADER.FIELDS (TO CC)])"), falsch.aufrufe)
+        self.assertEqual(sorted(a[1] for a in falsch.aufrufe if a[0] == "fetch" and a[2] == "(BODY.PEEK[])"),
+                         ["3", "9"])
+        self.assertEqual([m["uid"] for m in self.suchen(ExchangeImap({3: "boehme@x.de", 9: "Boehme <b@x.de>"}),
+                                                        an="boehme", max_mails=1)], [9])
+
+    def test_andere_ablehnung_ist_fehler(self):
+        falsch = SuchImap([1])
+        falsch.uid = lambda befehl, *args: ("NO", [b"Search failed"])
+        with self.assertRaises(imaplib.IMAP4.error):
+            self.suchen(falsch, text="x")
+
+    def test_umschreiben(self):
+        self.assertEqual(imap.umschreiben("Böhme Ärger Straße Café"), "Boehme Aerger Strasse Cafe")
+        self.assertEqual(imap.kriterien(an="Müller", nur_ascii=True), [b'TO "Mueller"'])
 
 
 class TestNeueMails(unittest.TestCase):
