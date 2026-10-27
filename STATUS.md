@@ -362,6 +362,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Eintrag ist der abgewiesene uni-Lauf 17:15 auf dem Agenten-Konto (status rejected, 5h 1,02). Der Haiku-Test
    über den Login steht nicht im Protokoll. Vorschlag: Einträge mit Feld "konto" (quelle) schreiben und
    letzter_stand nur Einträge des eingestellten Kontos lesen lassen (alte ohne Feld = "token").
+18. Bedarf aus posteingang (27.10.): agentkit.imap.zerlege soll zusätzlich "kopf" liefern, ein dict mit
+   klein geschriebenen Namen: list-unsubscribe, list-id, precedence, auto-submitted, x-spam-flag (fehlende
+   weglassen). posteingang/vorfilter.py liest daraus Newsletter, Massenmails und Spam. Ohne "kopf" prüft der
+   Vorfilter nur gesperrte Absender. uni ist nicht betroffen (zusätzliches Feld).
 
 ## Gelernte Regeln
 - (noch keine)
