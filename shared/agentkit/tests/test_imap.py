@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest import mock
 
@@ -26,6 +27,12 @@ class TestImap(unittest.TestCase):
         self.assertEqual(m["anhaenge"], ["liste.pdf"])
         self.assertTrue(m["datum"].startswith("2026-10-16T09:00"))
         self.assertEqual(m["wortlaut"], "Anmeldung bis 30.10.")
+        self.assertEqual(m["an"], [])
+
+    def test_an_aus_to_und_cc(self):
+        mail = (b"From: jan@kleinke.org\r\nTo: =?utf-8?q?Frau_M=C3=BCller?= <m@x.de>, b@y.de\r\n"
+                b"Cc: c@z.de\r\nSubject: x\r\n\r\nHallo")
+        self.assertEqual(imap.zerlege(1, mail)["an"], ["Frau Müller <m@x.de>", "b@y.de", "c@z.de"])
 
     def test_wortlaut_mit_absaetzen_ohne_verlauf(self):
         roh = ("Sehr geehrter Herr Kleinke,\r\n\r\nich übernehme   die Betreuung.\r\n\r\n\r\n\r\nGrüße\r\nT. Böhme\r\n"
@@ -73,6 +80,59 @@ class FalschesImap:
             return "OK", [b" ".join(str(u).encode() for u in self.uids)]
         self.aufrufe.append(("fetch", args[0], args[1]))
         return "OK", [(b"1 (BODY[] {10}", MAIL), b")"]
+
+
+class SuchImap(FalschesImap):
+    """Wie FalschesImap, aber select kann scheitern und search merkt sich die Kriterien."""
+
+    def __init__(self, uids, ordner_da=True, capabilities=("IMAP4REV1",)):
+        super().__init__(uids)
+        self.ordner_da, self.capabilities = ordner_da, capabilities
+
+    def select(self, ordner, readonly=False):
+        self.aufrufe.append(("select", ordner, readonly))
+        return ("OK", [b"3"]) if self.ordner_da else ("NO", [b"Mailbox doesn't exist"])
+
+    def uid(self, befehl, *args):
+        if befehl == "search":
+            self.aufrufe.append(("search", *args))
+        return super().uid(befehl, *args)
+
+
+class TestSuchen(unittest.TestCase):
+    def suchen(self, falsch, ordner="INBOX", **kw):
+        with mock.patch("imaplib.IMAP4_SSL", falsch):
+            return imap.suchen("host", 993, "jan", "geheim", ordner, **kw)
+
+    def test_neueste_zuerst_mit_ordner_lesend(self):
+        falsch = SuchImap([3, 10, 7])
+        mails = self.suchen(falsch, "Sent", an="m@x.de", max_mails=2)
+        self.assertEqual([m["uid"] for m in mails], [10, 7])
+        self.assertEqual({m["ordner"] for m in mails}, {"Sent"})
+        self.assertEqual(mails[0]["betreff"], "Prüfungsanmeldung")
+        self.assertIn(("select", '"Sent"', True), falsch.aufrufe)
+        self.assertIn(("search", "CHARSET", "UTF-8", b'TO "m@x.de"'), falsch.aufrufe)
+        self.assertTrue(all(a[2] == "(BODY.PEEK[])" for a in falsch.aufrufe if a[0] == "fetch"))
+
+    def test_kriterien_und_verknuepft(self):
+        self.assertEqual(imap.kriterien(von="Frau  Müller", text='sag "ab"', seit=date(2026, 9, 3)),
+                         ['FROM "Frau Müller"'.encode(), b'TEXT "sag \\"ab\\""', b"SINCE 03-Sep-2026"])
+        self.assertEqual(imap.kriterien(an="müller", literal_plus=True), [b"TO {7+}\r\nm\xc3\xbcller"])
+        self.assertEqual(imap.kriterien(von=" "), [b"ALL"])
+
+    def test_literal_plus_wenn_server_kann(self):
+        falsch = SuchImap([1], capabilities=("IMAP4REV1", "LITERAL+"))
+        self.suchen(falsch, von="Müller", an="x@y.de")
+        self.assertIn(("search", "CHARSET", "UTF-8", b"FROM {7+}\r\nM\xc3\xbcller", b'TO "x@y.de"'), falsch.aufrufe)
+
+    def test_unbekannter_ordner_leer_mit_log(self):
+        falsch = SuchImap([1, 2], ordner_da=False)
+        with self.assertLogs("agentkit.imap", "WARNING"):
+            self.assertEqual(self.suchen(falsch, "Gibtsnicht", text="x"), [])
+        self.assertFalse([a for a in falsch.aufrufe if a[0] in ("search", "fetch")])
+
+    def test_keine_treffer(self):
+        self.assertEqual(self.suchen(SuchImap([])), [])
 
 
 class TestNeueMails(unittest.TestCase):

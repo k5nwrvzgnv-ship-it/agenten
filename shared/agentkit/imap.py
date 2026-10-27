@@ -9,8 +9,17 @@ alte Mails werden nicht nachgeholt.
 
     mails = imap.neue_mails(host, port, nutzer, kennwort, stand_datei=Path("data/postfach.json"))
 
-Jede Mail ist ein dict (zerlege): uid, von, antwort_an, message_id, references, betreff, datum,
-text (zusammengezogen, kurz), wortlaut (mit Absätzen, ohne zitierten Verlauf), anhaenge (Dateinamen).
+Suchen (ohne Stand-Datei, neueste zuerst, Kriterien per UND, Umlaute erlaubt):
+
+    mails = imap.suchen(host, port, nutzer, kennwort, "Sent", an="frau@x.de", text="Termin",
+                        seit=date(2026, 9, 1), max_mails=20)
+
+Ein Ordner, den es nicht gibt, liefert eine leere Liste (mit Warnung im Log), keinen Fehler.
+Jede gefundene Mail hat zusätzlich das Feld "ordner".
+
+Jede Mail ist ein dict (zerlege): uid, von, an (To und Cc, Liste), antwort_an, message_id, references,
+betreff, datum, text (zusammengezogen, kurz), wortlaut (mit Absätzen, ohne zitierten Verlauf),
+anhaenge (Dateinamen).
 """
 
 import email
@@ -19,13 +28,18 @@ import email.policy
 import email.utils
 import imaplib
 import json
+import logging
 import re
+from datetime import date
 from html import unescape
 from pathlib import Path
 
 MAX_TEXT = 2000
 MAX_WORTLAUT = 20_000
 MAX_MAILS = 50
+MONATE = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+logger = logging.getLogger("agentkit.imap")
 
 
 def _dekodiere(wert: str | None) -> str:
@@ -69,6 +83,12 @@ def _text(roh: str) -> str:
     return re.sub(r"\s+", " ", roh).strip()[:MAX_TEXT]
 
 
+def _kopf_liste(n: email.message.Message, name: str) -> list[str]:
+    """Adressen eines Kopffelds (To, Cc) einzeln, so wie sie dort stehen."""
+    werte = [str(w) for w in n.get_all(name, [])]
+    return [email.utils.formataddr(p) for p in email.utils.getaddresses(werte) if p[1]]
+
+
 def zerlege(uid: int, roh: bytes) -> dict:
     n = email.message_from_bytes(roh, policy=email.policy.default)
     anhaenge = [_dekodiere(t.get_filename()) for t in n.iter_attachments() if t.get_filename()]
@@ -77,6 +97,7 @@ def zerlege(uid: int, roh: bytes) -> dict:
     return {
         "uid": uid,
         "von": _dekodiere(n["From"]),
+        "an": [_dekodiere(a) for a in (*_kopf_liste(n, "To"), *_kopf_liste(n, "Cc"))],
         "antwort_an": email.utils.parseaddr(_dekodiere(n["Reply-To"] or n["From"]))[1],
         "message_id": (n["Message-ID"] or "").strip(),
         "references": " ".join((n["References"] or "").split()),
@@ -129,4 +150,55 @@ def neue_mails(host: str, port: int, nutzer: str, kennwort: str, stand_datei: Pa
                 mails.append(zerlege(uid, roh))
         if neue:
             _schreibe_stand(stand_datei, {"uidvalidity": uidvalidity, "letzte_uid": neue[-1]})
+        return mails
+
+
+def _wert(s: str, literal_plus: bool) -> bytes:
+    """Suchwert für IMAP SEARCH: ASCII als quoted string, sonst UTF-8 als Literal (LITERAL+) bzw. quoted."""
+    roh = s.encode("utf-8")
+    if literal_plus and not s.isascii():
+        return b"{%d+}\r\n" % len(roh) + roh
+    return b'"' + roh.replace(b"\\", b"\\\\").replace(b'"', b'\\"') + b'"'
+
+
+def kriterien(von: str | None = None, an: str | None = None, text: str | None = None,
+              seit: date | None = None, literal_plus: bool = False) -> list[bytes]:
+    """Argumente für UID SEARCH CHARSET UTF-8 (alle Kriterien per UND, ohne Kriterium ALL)."""
+    teile = []
+    for name, wert in ((b"FROM", von), (b"TO", an), (b"TEXT", text)):
+        if wert and wert.strip():
+            teile.append(name + b" " + _wert(" ".join(wert.split()), literal_plus))
+    if seit:
+        teile.append(f"SINCE {seit.day:02d}-{MONATE[seit.month - 1]}-{seit.year}".encode())
+    return teile or [b"ALL"]
+
+
+def _ordnername(ordner: str) -> str:
+    return ordner if ordner.startswith('"') else '"' + ordner.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def suchen(host: str, port: int, nutzer: str, kennwort: str, ordner: str, *, von: str | None = None,
+           an: str | None = None, text: str | None = None, seit: date | None = None,
+           max_mails: int = 20) -> list[dict]:
+    """Mails in einem Ordner, die alle Kriterien erfüllen, neueste zuerst (höchstens max_mails).
+
+    von/an/text: Teilstrings wie in IMAP SEARCH FROM/TO/TEXT (Groß-/Kleinschreibung egal, Umlaute erlaubt).
+    seit: Datum (SINCE, nach Eingangsdatum des Servers). Nur lesend, keine Stand-Datei.
+    "Neueste" heißt höchste UID, also zuletzt im Ordner angekommen.
+    """
+    with imaplib.IMAP4_SSL(host, int(port)) as imap:
+        imap.login(nutzer, kennwort)
+        typ, antwort = imap.select(_ordnername(ordner), readonly=True)
+        if typ != "OK":
+            logger.warning("Ordner %r nicht lesbar: %s", ordner, antwort[0] if antwort else typ)
+            return []
+        literal_plus = "LITERAL+" in getattr(imap, "capabilities", ())
+        _, daten = imap.uid("search", "CHARSET", "UTF-8", *kriterien(von, an, text, seit, literal_plus))
+        uids = sorted((int(u) for u in (daten[0] or b"").split()), reverse=True)[:max(0, max_mails)]
+        mails = []
+        for uid in uids:
+            _, teile = imap.uid("fetch", str(uid), "(BODY.PEEK[])")
+            roh = next((t[1] for t in teile if isinstance(t, tuple)), None)
+            if roh:
+                mails.append({**zerlege(uid, roh), "ordner": ordner})
         return mails
