@@ -16,7 +16,20 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - Zugangsdaten nur in .env-Dateien mit chmod 600, nie im Repo. Neue Geheimnisse vorher gegen .gitignore prüfen.
 - Jeder Agent läuft isoliert: eigener Ordner, eigene virtuelle Umgebung (.venv im Agent-Ordner), eigener systemd-User-Dienst oder -Timer.
 - Keine dauerhaft laufende Browser-Automation. Browser nur zeitgesteuert und kurz.
-- Lernen nur nach Bestätigung: Korrigiert oder lehnt Jan einen Entwurf ab, wird die Regel dahinter vorgeschlagen und erst nach seinem Okay in shared/regeln.md (allgemein) oder in die STATUS.md des Agenten (agentenspezifisch) geschrieben. Agenten lesen beide Dateien bei jedem Lauf.
+- Lernen aus Feedback (Jan 27.10.2026): Feedback der Person, für die ein Agent arbeitet (Lia für lia/, Jan für
+  seine Agenten), wird ohne vorherige Freigabe übernommen. agentkit.feedback ordnet es zu: Nachbesserung (neuer
+  Auftrag an denselben Agenten), Regel (Zeile mit Feedback-ID und Datum in <instanz>/regeln.md oder unter
+  "Gelernte Regeln" in der STATUS.md des Agenten) oder Notiz für Code/Oberfläche (STATUS.md des zuständigen
+  Ordners; Agenten ändern keinen Code). Wirksam sofort; der Feedback-Dienst committet die geänderte Datei selbst.
+- Vetorecht Jan: Zu jedem übernommenen Feedback bekommt Jan eine kurze Zusammenfassung mit Stopp-Knopf. Stopp
+  nimmt die Übernahme zurück (Regel bzw. Notiz gelöscht, Nachbesserung zurückgezogen), die Feedbackgeberin
+  erfährt es kurz.
+- Nie automatisch, sondern als Vorschlag an Jan: alles, was nach außen handelt, Käufe, Limits und die Freigabe
+  berührt; Schülerdaten und Datenschutz; Löschen oder Ändern bestehender Regeln (Feedback fügt nur hinzu);
+  Regeln, die einer bestehenden Regel oder dieser Datei widersprechen; Lias Feedback zu Jans Agenten oder
+  shared/regeln.md; mehr als eine Nachbesserung je Ergebnis oder eine, deren Lauf mehr als 1 USD kosten dürfte.
+- Korrekturen an Entwürfen in der Freigabe (Ändern, Ablehnen) laufen wie bisher: Die Regel dahinter wird
+  vorgeschlagen und erst nach Jans Okay eingetragen. Agenten lesen die Regeldateien bei jedem Lauf.
 
 ## Server und Tabus
 - Ubuntu-Server (Contabo), 4 Kerne, 7,8 GB RAM, kein Swap. Gearbeitet wird als User `agent` ohne sudo.
