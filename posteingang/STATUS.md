@@ -2,7 +2,8 @@
 
 ## Zweck
 Jans privates Postfach jan@kleinke.org überwachen: Wichtiges (Fristen, Rechnungen, persönliche Mails,
-Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Später Antwortentwürfe.
+Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Stufe 2: Mail-Aufträge von Jan
+("Termin bei Frau X absagen"): Kontext und Schreibstil selbst im Postfach suchen, Entwurf in die Freigabe.
 
 ## Stand (27.10.2026)
 - agent.py fertig (Schritt post_pruefen). Ablauf: Mails holen, in data/mails_offen.json
@@ -15,6 +16,17 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Sp
   Ab jetzt holt jeder Lauf neue Mails und ruft Claude auf.
 - Dienst und Timer eingerichtet 27.10. 23:20 nach Jans Okay (~/.config/systemd/user/, aus systemd/).
   Erster Timer-Lauf 28.10. 8:00, zugleich erster echter Lauf der Einordnung: Meldung und Log danach prüfen.
+- Mail-Aufträge (Stufe 2, Plan von Jan 27.10. freigegeben, Senden von jan@kleinke.org und Kalender okay):
+  gebaut und getestet, aber noch NICHT nutzbar: es fehlen agentkit.mail und agentkit.imap.suchen (Bedarf Nr. 19
+  in der Haupt-STATUS.md, Schnittstellen dort beschrieben). Bis dahin lehnt agent.py jeden Auftrag mit Hinweis ab.
+  Ablauf (agent.py, Logik in auftrag.py): /posteingang <Auftrag> -> Claude (routine) nennt Suchbegriffe ->
+  Python sucht in INBOX, Archive und Sent (von/an Person, Stichwort, seit) und im Kalender (agentkit.kalender,
+  KALENDER_ICS_URLS aus shared/.env) -> Claude (anspruchsvoll) schreibt Entwurf oder Rückfrage als JSON ->
+  agentkit.mail.pruefen -> Freigabe (typ mail). Stilvorlage: Jans gesendete Mails an die Person, sonst seine
+  letzten 5 gesendeten. Kontext in data/auftraege/<id>/kontext.json, Zuordnung Freigabe -> Auftrag in
+  data/entwuerfe.json. Antwort auf das Ergebnis = Nachtrag (ganzer Ablauf neu), Ändern = neuer Entwurf mit
+  demselben Kontext, Gesprächsbezug bleibt. Freigegeben -> mail.senden genau einmal (vor den Aufträgen im Lauf).
+  Reihenfolge im Lauf: freigegebene_ausfuehren, auftraege_abarbeiten, post_pruefen.
 - vorfilter.py (ohne Netz, tests/test_vorfilter.py): fällt weg bei X-Spam-Flag YES, gesperrtem Absender,
   List-Unsubscribe, Precedence bulk/list/junk. Auto-Submitted bleibt (Rechnungen, Versand).
   Gesperrte Absender aus Regelzeilen "Absender weglassen: a@b.de, @domain.de" (@domain mit Subdomains).
@@ -35,7 +47,8 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Sp
   setzt nur die Marke, max. 50 Mails pro Lauf).
 
 ## Aufbau
-- Code: posteingang/agent.py (Einstieg), vorfilter.py, einordnung.py (Prompt und Meldung)
+- Code: posteingang/agent.py (Einstieg), vorfilter.py, einordnung.py (Prompt und Meldung), auftrag.py
+  (Mail-Aufträge: Suchbegriffe, Kontext, Prompts)
 - .venv: posteingang/.venv, agentkit per .pth eingebunden
 - Dienst: posteingang.service (oneshot), Timer: posteingang.timer (8, 13, 19 Uhr), aktiv. Quelle in systemd/,
   nach Änderung neu kopieren und systemctl --user daemon-reload.
@@ -47,6 +60,8 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Sp
 - 27.10.2026: Login direkt bei jan@kleinke.org mit dem Postfach-Kennwort (All-Inkl hat keine
   App-Passwörter; Jan wollte kein zweites Postfach). Kennwort trägt Jan selbst in .env ein.
 - 27.10.2026: Stufe 1 nur lesen und melden. Senden erst in Stufe 2, nur nach Freigabe.
+- 27.10.2026: Mail-Aufträge: Claude bekommt keinen Postfach-Zugriff, sondern nennt Suchbegriffe; Python sucht.
+  Schlüssel m1, m2 ... statt UIDs, weil UIDs je Ordner doppelt sind.
 
 ## Offene Punkte (Plan Stufe 1)
 1. Jan: Kennwort in KAS ändern (stand am 27.10. im Chat auf einem Screenshot), dann neu in .env.
@@ -55,8 +70,13 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. Sp
    gesperrt, wächst mails_offen.json (bis 50 neue je Lauf) und damit der Prompt; bei Bedarf deckeln.
 4. Aufbewahrung: data/mails/ nach 30 Tagen löschen.
 5. Dienst und Timer: erledigt 27.10. Offen: ersten Lauf 28.10. 8:00 prüfen (logs/posteingang.log, Meldung).
-6. Später: Termine über agentkit.kalender, Bestellungen an einkauf, Stufe 2 Entwürfe und Senden
-   (mail.py aus uni dann nach agentkit verallgemeinern).
+6. Später: Termine über agentkit.kalender, Bestellungen an einkauf.
+7. Mail-Aufträge in Betrieb nehmen, wenn Bedarf Nr. 19 erledigt ist: Jan trägt SMTP_HOST, SMTP_PORT=465,
+   MAIL_ABSENDER, MAIL_NAME, GESENDET_ORDNER in .env ein (Vorlage .env.example). Falls agentkit.mail anders
+   heißt als in Nr. 19 beschrieben, agent.py anpassen (mail.pruefen(roh, original), anzeige, senden, MailFehler).
+   Dann erster echter Test mit Jans Auftrag (Absage Paarberatung bei Frau Oppenheimer): Suchbegriffe, gefundene
+   Mails und Entwurf im Log und in data/auftraege/ prüfen, erst dann freigeben.
+8. data/auftraege/ (Mailtexte, auch sensibel) wie data/mails/ nach 30 Tagen löschen (zu Punkt 4).
 
 ## Gelernte Regeln
 - (noch keine)
