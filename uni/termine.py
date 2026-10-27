@@ -6,14 +6,20 @@ Schickt Jan einen Link (z. B. Anmeldebestätigung eines Webinars), lädt seite_h
 lesbaren Text für Claude. ics() baut daraus einen Kalendereintrag, den Jan in Telegram antippt
 und in seinen Kalender übernimmt. In Jans Kalender schreibt der Agent nicht selbst.
 
+Termin-Vorschläge von Claude (aus Mails, Material, Aufträgen): Claude schreibt
+data/entwuerfe/<schluessel>/termin_<n>.json, entwurf_pruefen() macht daraus eine Veranstaltung
+(Zeiten ohne Zone gelten als deutsche Zeit, Datum ohne Uhrzeit = ganztägig), doppelt() gleicht mit
+Jans Kalender ab. Erinnerungen werden VALARMs in der .ics.
+
 Ohne Netz testbar: alles außer seite_holen().
 """
 
+import hashlib
 import json
 import re
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
 from zoneinfo import ZoneInfo
 
@@ -23,6 +29,11 @@ LINK = re.compile(r"https?://[^\s<>\"']+")
 DAUER = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
 STANDARD_DAUER = timedelta(hours=1)
 ZONE = ZoneInfo("Europe/Berlin")
+ERINNERUNGEN = (1440, 120)  # Minuten vorher: 1 Tag und 2 Stunden (Jan, 27.10.2026)
+ERINNERUNGEN_GANZTAGS = (900,)  # Vortag 9 Uhr
+MAX_ERINNERUNG = 14 * 1440
+MAX_DAUER = timedelta(hours=24)
+MAX_TAGE = 14
 
 
 class TerminFehler(Exception):
@@ -36,6 +47,8 @@ class Veranstaltung:
     ende: datetime
     ort: str
     beschreibung: str
+    ganztags: bool = False  # dann zählen nur die Daten, ende ist der letzte Tag (einschließlich)
+    erinnerungen: tuple[int, ...] = ()  # Minuten vor Beginn
 
 
 def links(text: str) -> list[str]:
@@ -167,18 +180,30 @@ def ics(v: Veranstaltung, uid: str, link: str = "", jetzt: datetime | None = Non
         "BEGIN:VEVENT",
         f"UID:{uid}",
         f"DTSTAMP:{jetzt.astimezone(timezone.utc).strftime(utc)}",
-        f"DTSTART:{v.beginn.astimezone(timezone.utc).strftime(utc)}",
-        f"DTEND:{v.ende.astimezone(timezone.utc).strftime(utc)}",
-        f"SUMMARY:{_ics_text(v.titel)}",
     ]
+    if v.ganztags:
+        zeilen += [f"DTSTART;VALUE=DATE:{v.beginn.strftime('%Y%m%d')}",
+                   f"DTEND;VALUE=DATE:{(v.ende.date() + timedelta(days=1)).strftime('%Y%m%d')}"]
+    else:
+        zeilen += [f"DTSTART:{v.beginn.astimezone(timezone.utc).strftime(utc)}",
+                   f"DTEND:{v.ende.astimezone(timezone.utc).strftime(utc)}"]
+    zeilen.append(f"SUMMARY:{_ics_text(v.titel)}")
     if v.ort:
         zeilen.append(f"LOCATION:{_ics_text(v.ort)}")
     if link:
         zeilen.append(f"URL:{link}")
     if beschreibung.strip():
         zeilen.append(f"DESCRIPTION:{_ics_text(beschreibung.strip())}")
+    for minuten in v.erinnerungen:
+        zeilen += ["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_ics_text(v.titel)}",
+                   f"TRIGGER:-PT{minuten}M", "END:VALARM"]
     zeilen += ["END:VEVENT", "END:VCALENDAR"]
     return "\r\n".join(z for zeile in zeilen for z in _falten(zeile)) + "\r\n"
+
+
+def uid(v: Veranstaltung) -> str:
+    """Fest aus Titel und Beginn: derselbe Termin bekommt immer dieselbe UID."""
+    return hashlib.sha1(f"{v.titel}|{v.beginn.isoformat()}".encode()).hexdigest()[:16] + "@uni.agenten"
 
 
 def dateiname(v: Veranstaltung) -> str:
@@ -190,5 +215,114 @@ def beschreiben(v: Veranstaltung) -> str:
     """Eine Zeile für Prompt und Meldung, Zeiten deutscher Zeit."""
     tage = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
     b, e = v.beginn.astimezone(ZONE), v.ende.astimezone(ZONE)
+    if v.ganztags:
+        bis = "" if e.date() == b.date() else f" bis {tage[e.weekday()]} {e.strftime('%d.%m.%Y')}"
+        return f"{v.titel}: {tage[b.weekday()]} {b.strftime('%d.%m.%Y')}{bis} (ganztägig)"
     bis = e.strftime("%H:%M") if e.date() == b.date() else e.strftime("%d.%m.%Y %H:%M")
     return f"{v.titel}: {tage[b.weekday()]} {b.strftime('%d.%m.%Y %H:%M')}-{bis} Uhr"
+
+
+def erinnerung_text(minuten: tuple[int, ...]) -> str:
+    """'1 Tag und 2 Std. vorher' für die Meldung."""
+    def eins(m: int) -> str:
+        if m == 0:
+            return "zu Beginn"
+        if m % 1440 == 0:
+            return f"{m // 1440} Tag{'e' if m >= 2880 else ''}"
+        if m % 60 == 0:
+            return f"{m // 60} Std."
+        return f"{m} Min."
+    teile = [eins(m) for m in minuten]
+    if not teile:
+        return "ohne Erinnerung"
+    text = " und ".join([", ".join(teile[:-1]), teile[-1]] if len(teile) > 1 else teile)
+    return f"Erinnerung {text}" + ("" if teile == ["zu Beginn"] else " vorher")
+
+
+def _feld(entwurf: dict, name: str, max_laenge: int, pflicht: bool = False) -> str:
+    wert = entwurf.get(name)
+    wert = " ".join(str(wert).split()) if wert not in (None, "") else ""
+    if pflicht and not wert:
+        raise TerminFehler(f"{name} fehlt")
+    if len(wert) > max_laenge:
+        raise TerminFehler(f"{name}: höchstens {max_laenge} Zeichen")
+    return wert
+
+
+def _zeitpunkt(wert, name: str) -> tuple[datetime, bool]:
+    """'2026-11-05T08:45' (deutsche Zeit, wenn ohne Zone) oder '2026-11-05' (ganztägig)."""
+    if not isinstance(wert, str) or not wert.strip():
+        raise TerminFehler(f"{name} fehlt")
+    wert = wert.strip()
+    try:
+        if len(wert) == 10:
+            return datetime.combine(date.fromisoformat(wert), datetime.min.time(), ZONE), True
+        z = datetime.fromisoformat(wert)
+    except ValueError:
+        raise TerminFehler(f"{name}: kein Datum: {wert!r}") from None
+    return (z if z.tzinfo else z.replace(tzinfo=ZONE)), False
+
+
+def _erinnerungen(wert, ganztags: bool) -> tuple[int, ...]:
+    if wert is None:
+        return ERINNERUNGEN_GANZTAGS if ganztags else ERINNERUNGEN
+    if not isinstance(wert, list) or len(wert) > 3 or not all(isinstance(m, int) and not isinstance(m, bool)
+                                                               for m in wert):
+        raise TerminFehler("erinnerungen_min: Liste mit höchstens 3 ganzen Zahlen")
+    if any(m < 0 or m > MAX_ERINNERUNG for m in wert):
+        raise TerminFehler(f"erinnerungen_min: 0 bis {MAX_ERINNERUNG} Minuten")
+    return tuple(sorted(set(wert), reverse=True))
+
+
+def entwurf_pruefen(entwurf: dict, jetzt: datetime) -> tuple[Veranstaltung, str]:
+    """Termin-Entwurf von Claude prüfen. Gibt Veranstaltung und Begründung zurück."""
+    if not isinstance(entwurf, dict):
+        raise TerminFehler("Entwurf ist kein JSON-Objekt")
+    titel = _feld(entwurf, "titel", 120, pflicht=True)
+    beginn, ganztags = _zeitpunkt(entwurf.get("beginn"), "beginn")
+    notiz = [str(entwurf.get("notiz") or "").strip()]
+    if entwurf.get("ende") in (None, ""):
+        ende = beginn if ganztags else beginn + STANDARD_DAUER
+        if not ganztags:
+            notiz.append("Ende unbekannt, 1 Stunde eingetragen.")
+    else:
+        ende, ende_ganztags = _zeitpunkt(entwurf.get("ende"), "ende")
+        if ende_ganztags != ganztags:
+            raise TerminFehler("beginn und ende: beide mit Uhrzeit oder beide nur Datum")
+    if ganztags:
+        if not timedelta(0) <= ende - beginn <= timedelta(days=MAX_TAGE - 1):
+            raise TerminFehler(f"ende: am selben Tag wie beginn oder bis zu {MAX_TAGE - 1} Tage danach")
+    elif not timedelta(0) < ende - beginn <= MAX_DAUER:
+        raise TerminFehler("ende: nach beginn, höchstens 24 Stunden")
+    letzter = ende + timedelta(days=1) if ganztags else ende
+    if letzter <= jetzt:
+        raise TerminFehler("Termin liegt in der Vergangenheit")
+    if len(notiz[0]) > 1000:
+        raise TerminFehler("notiz: höchstens 1000 Zeichen")
+    quelle = _feld(entwurf, "quelle", 300)
+    if quelle:
+        notiz.append(f"Quelle: {quelle}")
+    v = Veranstaltung(titel, beginn, ende, _feld(entwurf, "ort", 300), "\n\n".join(t for t in notiz if t),
+                      ganztags, _erinnerungen(entwurf.get("erinnerungen_min"), ganztags))
+    return v, _feld(entwurf, "begruendung", 300)
+
+
+def _vergleichsform(titel: str) -> str:
+    return re.sub(r"[^a-z0-9äöüß]", "", titel.lower())
+
+
+def doppelt(v: Veranstaltung, vorhandene) -> bool:
+    """Steht der Termin schon im Kalender? Gleicher Beginn (±15 min, ganztägig: gleicher Tag) und
+    ein Titel im anderen enthalten. vorhandene: Objekte mit beginn, titel, ganztags (agentkit.kalender)."""
+    eigener = _vergleichsform(v.titel)
+    for t in vorhandene:
+        if t.ganztags != v.ganztags:
+            continue
+        if v.ganztags:
+            gleich = t.beginn.date() == v.beginn.date()
+        else:
+            gleich = abs(t.beginn - v.beginn) <= timedelta(minutes=15)
+        anderer = _vergleichsform(t.titel)
+        if gleich and anderer and eigener and (anderer in eigener or eigener in anderer):
+            return True
+    return False

@@ -9,7 +9,7 @@ Ablauf ("Claude denkt, Python handelt"):
 3. Nach der Freigabe baut Python die Mail aus den freigegebenen daten (bauen) und sendet sie einmal
    über SMTP (mail.hnee.de:587, STARTTLS, HNEE-Login), danach eine Kopie nach "Gesendete Elemente".
 
-Ohne Netz testbar: pruefen, anzeige, bauen, mail_merken, mail_holen.
+Ohne Netz testbar: pruefen, anzeige, wortlaut, bauen, mail_merken, mail_holen.
 """
 
 import email.policy
@@ -19,6 +19,7 @@ import json
 import re
 import smtplib
 import time
+from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -93,6 +94,22 @@ def anzeige(daten: dict) -> str:
     if daten.get("begruendung"):
         zeilen += ["", f"(Warum: {daten['begruendung']})"]
     return "\n".join(zeilen)
+
+
+def wortlaut(original: dict) -> str:
+    """Die Originalmail als eigene Telegram-Nachricht (zum Lesen und Weiterleiten).
+
+    Ältere abgelegte Mails haben nur den zusammengezogenen text ohne Absätze.
+    """
+    datum = original.get("datum", "")
+    try:
+        datum = datetime.fromisoformat(datum).strftime("%d.%m.%Y %H:%M")
+    except ValueError:
+        pass
+    zeilen = [f"Von: {original.get('von', '')}", f"Datum: {datum}", f"Betreff: {original.get('betreff', '')}"]
+    if original.get("anhaenge"):
+        zeilen.append(f"Anhänge: {', '.join(original['anhaenge'])}")
+    return "\n".join(zeilen) + "\n\n" + (original.get("wortlaut") or original.get("text") or "(kein Text)")
 
 
 def bauen(daten: dict, absender: str, name: str = "", jetzt: float | None = None) -> EmailMessage:

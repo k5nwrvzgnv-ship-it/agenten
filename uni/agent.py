@@ -13,16 +13,20 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
+Termine aus Mails, Material und Aufträgen schlägt Claude als termin_<n>.json vor, Python prüft sie,
+gleicht mit Jans Kalender ab und hängt je Termin eine .ics an die Meldung (termine_einreichen).
+Mail-Entwürfe kommen als eigene Nachrichten: erst der Wortlaut der Originalmail, dann der Entwurfstext,
+danach der Entwurf mit Knöpfen (entwuerfe_einreichen).
+
 Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Telegram.
 """
 
-import hashlib
 import json
 import time
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from agentkit import auftraege, claude_lauf, config, freigabe, log, meldungen, regeln
+from agentkit import auftraege, claude_lauf, config, freigabe, kalender, log, meldungen, regeln
 
 import fristen
 import kurse
@@ -59,10 +63,11 @@ def _schreibe_json(pfad: Path, daten) -> None:
     tmp.replace(pfad)
 
 
-def melden(text: str) -> None:
-    """Hinweis an Jan per Telegram (über die Zentrale)."""
-    meldungen.melden(AGENT, text)
+def melden(text: str, dateien: list[Path] | None = None) -> str:
+    """Hinweis an Jan per Telegram (über die Zentrale), gibt die ID der Meldung zurück."""
+    mid = meldungen.melden(AGENT, text, dateien=dateien)
     logger.info("Meldung: %s", text.splitlines()[0])
+    return mid
 
 
 # 1. Freigegebene Entwürfe ------------------------------------------------------
@@ -120,7 +125,7 @@ def kurse_spiegeln() -> None:
         kurs, _, rest = rel.partition("/")
         pro_kurs.setdefault(kurs, []).append(rest)
     for kurs, dateien in pro_kurs.items():
-        melden(material_meldung(kurs, dateien))
+        material_melden(kurs, dateien)
 
 
 def normen_aufbereiten() -> None:
@@ -178,7 +183,20 @@ Python prüft ihn, Jan sieht ihn in Telegram und gibt frei, erst dann wird gesen
 HNEE-Adresse, schreib in seinem Namen und unterschreib mit "Jan Kleinke". Gelesene Mails liegen in
 data/mails/<uid>.json (von, antwort_an, betreff, datum, text). Für eine Antwort antwort_auf_uid = uid setzen
 und an = antwort_an. Adressen nur aus Mails, Kursmaterial oder Jans Auftrag übernehmen, nie raten.
-Liegt ein Entwurf vor, sag in deiner Antwort in einem Satz, dass er zur Freigabe liegt."""
+Liegt ein Entwurf vor, sag in deiner Antwort in einem Satz, dass er zur Freigabe liegt.
+
+Termine: Steht in Mail, Material oder Auftrag ein Termin, den Jan wahrnehmen oder sich vormerken sollte
+(Exkursion, Prüfung, Gespräch oder Sprechstunde, verlegte Veranstaltung mit neuem Termin, Pflicht- oder
+Sondertermin, Anmeldeschluss), schreib je Termin {ordner}/termin_1.json (weitere als termin_2.json usw.):
+{{"titel": "kurz, mit Kurs", "beginn": "2026-11-05T08:45", "ende": "2026-11-05T14:00", "ort": "Raum oder
+Treffpunkt mit Adresse", "notiz": "was mitbringen, Ansprechpartner, Link", "erinnerungen_min": [1440, 120],
+"quelle": "Absender und Datum der Mail bzw. Datei und Seite", "begruendung": "ein Satz"}}
+Zeiten in deutscher Ortszeit. Ganztägig (Anmeldeschluss, mehrtägig): beginn und ende nur als Datum
+("2026-11-04"). ende null, wenn unbekannt. erinnerungen_min weglassen heißt 1 Tag und 2 Stunden vorher;
+wähl andere, wenn es passt (früher Termin mit Anreise: Vorabend). Datum und Uhrzeit müssen in der Quelle
+stehen, nie raten. Nicht: reguläre Vorlesungen nach Stundenplan (stehen schon im Kalender), Moodle-Abgabefristen
+(meldet der Agent selbst), Vergangenes, Termine für andere. Python prüft, gleicht mit Jans Kalender ab und
+schickt ihm eine Kalenderdatei zum Antippen. Schreib also nicht "Termin eintragen", sondern nur, worum es geht."""
 
 
 def entwurf_ordner(schluessel: str) -> Path:
@@ -189,10 +207,27 @@ def entwurf_hinweis(schluessel: str) -> str:
     return ENTWURF_HINWEIS.format(ordner=entwurf_ordner(schluessel).relative_to(HIER))
 
 
-def entwuerfe_einreichen(schluessel: str, vorgaenger: str | None = None, alte_daten: dict | None = None,
-                         neuer_entwurf=None) -> list[str]:
-    """Mail-Entwürfe von Claude prüfen und in die Freigabe legen. Gibt Zeilen für Jan zurück.
+def bis_gesendet(ids: list[str], max_sekunden: int = 120, schlafen=time.sleep) -> bool:
+    """Wartet, bis die Zentrale die Meldungen verschickt hat (sie prüft alle 30 s).
 
+    Die Zentrale zeigt Entwürfe vor Meldungen an: Ohne Warten käme der Entwurf vor dem Wortlaut.
+    """
+    for _ in range(max_sekunden // 5):
+        offen = {m["id"] for m in meldungen.neue(AGENT)}
+        if not offen.intersection(ids):
+            return True
+        schlafen(5)
+    logger.warning("Meldungen %s nach %d s nicht verschickt, Entwurf kommt trotzdem", ids, max_sekunden)
+    return False
+
+
+def entwuerfe_einreichen(schluessel: str, vorgaenger: str | None = None, alte_daten: dict | None = None,
+                         neuer_entwurf=None, nur_fehler: bool = False) -> list[str]:
+    """Mail-Entwürfe von Claude prüfen und in die Freigabe legen. Gibt Zeilen für Jan zurück
+    (nur_fehler: nur die nicht vorgelegten).
+
+    Vorher je Entwurf zwei eigene Nachrichten zum Weiterleiten oder Kopieren: der Wortlaut der Mail, auf die
+    geantwortet wird (nicht bei einer Überarbeitung), und der Entwurfstext allein.
     Eingereichte Dateien werden umbenannt (.eingereicht), damit nichts doppelt in die Freigabe kommt.
     Bei einer Überarbeitung (vorgaenger) bleibt der Gesprächsbezug der alten Mail erhalten.
     """
@@ -201,7 +236,8 @@ def entwuerfe_einreichen(schluessel: str, vorgaenger: str | None = None, alte_da
     zeilen = []
     for pfad in sorted(ordner.glob("mail_*.json")) if ordner.exists() else []:
         try:
-            daten = mail.pruefen(json.loads(pfad.read_text()))
+            roh = json.loads(pfad.read_text())
+            daten = mail.pruefen(roh)
         except (json.JSONDecodeError, mail.MailFehler) as f:
             logger.warning("Mail-Entwurf %s ungültig: %s", pfad.name, f)
             zeilen.append(f"Mail-Entwurf {pfad.name} nicht vorgelegt: {f}")
@@ -210,12 +246,77 @@ def entwuerfe_einreichen(schluessel: str, vorgaenger: str | None = None, alte_da
         for feld in ("in_reply_to", "references", "antwort_auf"):
             if alte_daten and alte_daten.get(feld) and not daten.get(feld):
                 daten[feld] = alte_daten[feld]
+        ids = []
+        if roh.get("antwort_auf_uid") not in (None, "") and not vorgaenger:
+            ids.append(melden(mail.wortlaut(mail.mail_holen(roh["antwort_auf_uid"]))))
+        ids.append(melden(daten["text"]))
+        bis_gesendet(ids)
         eid = neuer_entwurf(AGENT, titel=f"Mail: {daten['betreff']}", inhalt=mail.anzeige(daten), typ="mail",
                             daten=daten, vorgaenger=vorgaenger)
         logger.info("Mail-Entwurf %s zur Freigabe: %s", eid, daten["betreff"])
-        zeilen.append(f"Mail-Entwurf an {', '.join(daten['an'])} liegt zur Freigabe: {daten['betreff']}")
+        if not nur_fehler:
+            zeilen.append(f"Mail-Entwurf an {', '.join(daten['an'])} liegt zur Freigabe: {daten['betreff']}")
         pfad.rename(pfad.with_suffix(".eingereicht"))
     return zeilen
+
+
+def hat_mail_entwurf(schluessel: str) -> bool:
+    ordner = entwurf_ordner(schluessel)
+    return ordner.exists() and any(ordner.glob("mail_*.json"))
+
+
+def termine_einreichen(schluessel: str, jetzt: datetime | None = None, vorhandene=None) -> tuple[list[str], list[Path]]:
+    """Termin-Vorschläge von Claude prüfen, mit Jans Kalender abgleichen und als .ics ablegen.
+
+    Gibt Zeilen und Dateien für die Meldung zurück. Ein Termin, der schon einmal vorgeschlagen wurde
+    (data/termine/vorgeschlagen.json), kommt nicht wieder. Ist der Kalender nicht lesbar, wird ohne
+    Abgleich vorgeschlagen. vorhandene: Kalendertermine (Tests), sonst agentkit.kalender.
+    """
+    ordner = entwurf_ordner(schluessel)
+    pfade = sorted(ordner.glob("termin_*.json")) if ordner.exists() else []
+    if not pfade:
+        return [], []
+    jetzt = jetzt or datetime.now(termine.ZONE)
+    merk_datei = HIER / "data" / "termine" / "vorgeschlagen.json"
+    vorgeschlagen = set(_lies_json(merk_datei, []))
+    zeilen, dateien, gueltige = [], [], []
+    for pfad in pfade:
+        try:
+            v, _ = termine.entwurf_pruefen(json.loads(pfad.read_text()), jetzt)
+        except (json.JSONDecodeError, termine.TerminFehler) as f:
+            logger.warning("Termin-Entwurf %s ungültig: %s", pfad.name, f)
+            zeilen.append(f"Termin-Vorschlag {pfad.name} verworfen: {f}")
+            pfad.rename(pfad.with_suffix(".ungueltig"))
+            continue
+        gueltige.append((pfad, v))
+    if gueltige and vorhandene is None:
+        von = min(v.beginn for _, v in gueltige) - timedelta(days=1)
+        bis = max(v.ende for _, v in gueltige) + timedelta(days=2)
+        try:
+            vorhandene = kalender.termine(von, bis)
+        except kalender.KalenderFehler as f:
+            logger.warning("Kalender nicht lesbar, Termine ohne Abgleich: %s", f)
+            vorhandene = []
+    for pfad, v in gueltige:
+        uid = termine.uid(v)
+        if uid in vorgeschlagen:
+            logger.info("Termin schon vorgeschlagen: %s", termine.beschreiben(v))
+            pfad.rename(pfad.with_suffix(".doppelt"))
+            continue
+        if termine.doppelt(v, vorhandene):
+            zeilen.append(f"Steht schon in deinem Kalender: {termine.beschreiben(v)}")
+            pfad.rename(pfad.with_suffix(".doppelt"))
+            continue
+        ics = HIER / "data" / "termine" / schluessel / termine.dateiname(v)
+        ics.parent.mkdir(parents=True, exist_ok=True)
+        ics.write_text(termine.ics(v, uid), newline="")
+        dateien.append(ics)
+        ort = f", {v.ort}" if v.ort else ""
+        zeilen.append(f"Termin zum Antippen: {termine.beschreiben(v)}{ort}. {termine.erinnerung_text(v.erinnerungen)}.")
+        vorgeschlagen.add(uid)
+        _schreibe_json(merk_datei, sorted(vorgeschlagen))
+        pfad.rename(pfad.with_suffix(".eingereicht"))
+    return zeilen, dateien
 
 
 PROMPT_ERLEDIGEN = KONTEXT + """
@@ -363,13 +464,24 @@ Korrigiere alle genannten Stellen in den Dateien unter data/weitergabe/{id}/ und
 Antworte danach wieder mit der Kurzfassung für Telegram (höchstens 10 Zeilen)."""
 
 
-def material_meldung(kurs: str, dateien: list[str], laufen=claude_lauf.laufen) -> str:
+def material_melden(kurs: str, dateien: list[str]) -> None:
+    """Meldung zu neuem Material mit Termin-Vorschlägen, danach die Mail-Entwürfe."""
+    schluessel = f"material-{time.strftime('%Y%m%d-%H%M%S')}-{kurse.sicherer_name(kurs)[:30]}"
+    text = material_meldung(kurs, dateien, schluessel=schluessel)
+    termin_zeilen, ics = termine_einreichen(schluessel)
+    melden("\n\n".join([text, *termin_zeilen]), ics)
+    if fehler := entwuerfe_einreichen(schluessel, nur_fehler=True):
+        melden("\n".join(fehler))
+
+
+def material_meldung(kurs: str, dateien: list[str], laufen=claude_lauf.laufen, schluessel: str = "") -> str:
     """Meldung zu neuem Material: Claude (routine) ordnet ein, darunter die Dateiliste.
 
     Fällt die Einordnung aus (Kontingent, Fehler), kommt die Dateiliste allein mit Hinweis.
+    Entwürfe landen unter schluessel, eingereicht werden sie in material_melden.
     """
     liste = "\n".join(f"- {d}" for d in dateien)
-    schluessel = f"material-{time.strftime('%Y%m%d-%H%M%S')}-{kurse.sicherer_name(kurs)[:30]}"
+    schluessel = schluessel or f"material-{time.strftime('%Y%m%d-%H%M%S')}-{kurse.sicherer_name(kurs)[:30]}"
     try:
         e = laufen(AGENT, HIER, PROMPT_MATERIAL.format(kurs=kurs, dateien=liste) + entwurf_hinweis(schluessel),
                    art="routine", zeitgesteuert=True)
@@ -381,8 +493,7 @@ def material_meldung(kurs: str, dateien: list[str], laufen=claude_lauf.laufen) -
         einordnung = None
     if not einordnung:
         einordnung = "(Keine Einordnung: Claude war gerade nicht verfügbar.)"
-    entwuerfe = entwuerfe_einreichen(schluessel)
-    return "\n\n".join([f"Neues Material in {kurs}:\n{einordnung}", *entwuerfe, f"Dateien:\n{liste}"])
+    return "\n\n".join([f"Neues Material in {kurs}:\n{einordnung}", f"Dateien:\n{liste}"])
 
 
 def dokument_auftrag(a: dict, laufen=claude_lauf.laufen, weitergeben=auftraege.weitergeben) -> None:
@@ -477,10 +588,9 @@ def links_auswerten(a: dict, holen=termine.seite_holen) -> tuple[str, list[Path]
             continue
         gefunden = termine.veranstaltungen(html)
         for v in gefunden:
-            uid = hashlib.sha1(f"{v.titel}|{v.beginn.isoformat()}".encode()).hexdigest()[:16] + "@uni.agenten"
             pfad = DATA / "termine" / a["id"] / termine.dateiname(v)
             pfad.parent.mkdir(parents=True, exist_ok=True)
-            pfad.write_text(termine.ics(v, uid, link=url), newline="")
+            pfad.write_text(termine.ics(v, termine.uid(v), link=url), newline="")
             dateien.append(pfad)
         termin = "; ".join(termine.beschreiben(v) for v in gefunden) or "keine Termindaten auf der Seite"
         zeilen.append(f"- {url}\n  Termin laut Seite: {termin}\n  Seitentext:\n{termine.seitentext(html)}")
@@ -578,7 +688,9 @@ def auftrag_bearbeiten(a: dict) -> bool:
         return True
     text = e.text if e.ok else f"Fehler: {e.text}"
     if not lernen:
-        text = "\n\n".join([text, *entwuerfe_einreichen(a["id"])])
+        termin_zeilen, termin_dateien = termine_einreichen(a["id"])
+        ics_dateien += termin_dateien
+        text = "\n\n".join([text, *termin_zeilen, *entwuerfe_einreichen(a["id"])])
     if lernen and e.ok and e.sitzung:
         _schreibe_json(DATA / "sitzungen" / f"{start['id']}.json", {"sitzung": e.sitzung, "auftrag": start["id"]})
     auftraege.abschliessen(a["id"], text, status="erledigt" if e.ok else "fehlgeschlagen", sitzung=e.sitzung,
@@ -626,7 +738,9 @@ prüft der Agent selbst).
 
 Antworte nur mit der Meldung, pro wichtige Mail eine Zeile:
 - Absender: Betreff. Was zu tun ist (bis wann)
-Ist nichts wichtig und du hast keinen Entwurf geschrieben, antworte genau: KEINE
+Zu einer Mail mit Antwortentwurf nur eine kurze Zeile: Python schickt Jan danach den Wortlaut der Mail und
+deinen Entwurf als eigene Nachrichten.
+Ist nichts wichtig und du hast keinen Entwurf und keinen Termin geschrieben, antworte genau: KEINE
 
 {mails}"""
 
@@ -653,12 +767,15 @@ def post_pruefen() -> None:
     if not e.ok:
         logger.warning("Post-Lauf fehlgeschlagen: %s", e.text)
         return
-    entwuerfe = entwuerfe_einreichen(schluessel)
-    if e.text.strip() != "KEINE" or entwuerfe:
-        melden("\n\n".join([f"Wichtige Uni-Mails ({len(offen)} neue geprüft):\n{e.text.strip()}", *entwuerfe]))
+    text = "" if e.text.strip() == "KEINE" else e.text.strip()
+    termin_zeilen, ics = termine_einreichen(schluessel)
+    if text or termin_zeilen or hat_mail_entwurf(schluessel):
+        melden("\n\n".join([f"Wichtige Uni-Mails ({len(offen)} neue geprüft):\n{text}".strip(), *termin_zeilen]), ics)
     else:
         logger.info("%d neue Mails, nichts Wichtiges", len(offen))
-    MAILS_OFFEN.unlink()
+    MAILS_OFFEN.unlink()  # vor den Entwürfen: Wartet das Einreichen lange, kommen die Mails nicht doppelt
+    if fehler := entwuerfe_einreichen(schluessel, nur_fehler=True):
+        melden("\n".join(fehler))
 
 
 # Fehler einzelner Schritte -------------------------------------------------------

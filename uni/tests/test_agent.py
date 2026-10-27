@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
@@ -234,21 +235,32 @@ class TestMaterialMeldung(unittest.TestCase):
             self.assertTrue(text.endswith("Dateien:\n- a.pdf"))
 
 
-class TestMailEntwuerfe(unittest.TestCase):
+class OhneTelegram(unittest.TestCase):
+    """Meldungen landen in self.gemeldet statt in shared/meldungen/ (sonst schickt die Zentrale sie echt)."""
+
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.hier = Path(self._tmp.name)
-        self.patch = mock.patch.object(agent, "HIER", self.hier)
-        self.patch.start()
-        self.angelegt = []
+        self.gemeldet, self.angelegt, self.reihenfolge = [], [], []
+        for p in (mock.patch.object(agent, "HIER", self.hier),
+                  mock.patch.object(agent.meldungen, "melden", self.melden),
+                  mock.patch.object(agent.meldungen, "neue", lambda *a, **kw: [])):
+            p.start()
+            self.addCleanup(p.stop)
+        self.addCleanup(self._tmp.cleanup)
 
-    def tearDown(self):
-        self.patch.stop()
-        self._tmp.cleanup()
+    def melden(self, agent_name, text, dateien=None, **kw):
+        self.gemeldet.append((text, dateien))
+        self.reihenfolge.append("meldung")
+        return f"m{len(self.gemeldet)}"
 
     def neuer_entwurf(self, agent_name, **kw):
         self.angelegt.append(kw)
+        self.reihenfolge.append("entwurf")
         return f"e{len(self.angelegt)}"
+
+
+class TestMailEntwuerfe(OhneTelegram):
 
     def schreiben(self, schluessel, name, inhalt):
         ordner = agent.entwurf_ordner(schluessel)
@@ -268,6 +280,35 @@ class TestMailEntwuerfe(unittest.TestCase):
         self.assertEqual(sum("nicht vorgelegt" in z for z in zeilen), 2)
         self.assertEqual(agent.entwuerfe_einreichen("a1", neuer_entwurf=self.neuer_entwurf), [])
         self.assertTrue((ordner / "mail_1.eingereicht").exists())
+        self.assertEqual(self.gemeldet, [("T", None)])  # Entwurfstext allein, keine Originalmail
+
+    def test_wortlaut_und_entwurf_einzeln_vor_dem_entwurf(self):
+        mails = self.hier / "data" / "mails"
+        agent.mail.mail_merken({"uid": 7, "von": "Böhme <b@hnee.de>", "message_id": "<m@hnee.de>",
+                                "betreff": "Betreuung", "datum": "2026-10-27T10:05:00+01:00",
+                                "text": "Hallo Herr Kleinke, gern. Grüße", "wortlaut": "Hallo Herr Kleinke,\n\ngern.\n\nGrüße",
+                                "anhaenge": []}, mails)
+        self.schreiben("p1", "mail_1.json", {"an": ["b@hnee.de"], "betreff": "AW: Betreuung", "text": "Vielen Dank",
+                                             "antwort_auf_uid": 7})
+        echt = agent.mail.mail_holen
+        with mock.patch.object(agent.mail, "mail_holen", lambda uid, ordner=None: echt(uid, mails)):
+            zeilen = agent.entwuerfe_einreichen("p1", neuer_entwurf=self.neuer_entwurf, nur_fehler=True)
+        self.assertEqual(zeilen, [])
+        self.assertEqual(self.reihenfolge, ["meldung", "meldung", "entwurf"])
+        wortlaut, entwurf = self.gemeldet[0][0], self.gemeldet[1][0]
+        self.assertTrue(wortlaut.startswith("Von: Böhme <b@hnee.de>\nDatum: 27.10.2026 10:05\nBetreff: Betreuung"))
+        self.assertTrue(wortlaut.endswith("Hallo Herr Kleinke,\n\ngern.\n\nGrüße"))
+        self.assertEqual(entwurf, "Vielen Dank")
+        self.assertEqual(self.angelegt[0]["daten"]["in_reply_to"], "<m@hnee.de>")
+
+    def test_bis_gesendet(self):
+        offen = [[{"id": "m1"}], [{"id": "m1"}], []]
+        with mock.patch.object(agent.meldungen, "neue", lambda *a, **kw: offen.pop(0)):
+            schlaefe = []
+            self.assertTrue(agent.bis_gesendet(["m1"], schlafen=schlaefe.append))
+        self.assertEqual(schlaefe, [5, 5])
+        with mock.patch.object(agent.meldungen, "neue", lambda *a, **kw: [{"id": "m1"}]):
+            self.assertFalse(agent.bis_gesendet(["m1"], max_sekunden=10, schlafen=lambda s: None))
 
     def test_hinweis_nennt_ordner(self):
         self.assertIn("data/entwuerfe/post-1/mail_1.json", agent.entwurf_hinweis("post-1"))
@@ -294,6 +335,7 @@ class TestMailEntwuerfe(unittest.TestCase):
         self.assertIn('"text": "Hi"', prompts[0])
         self.assertEqual(self.angelegt[0]["vorgaenger"], alt["id"])
         self.assertEqual(self.angelegt[0]["daten"]["in_reply_to"], "<x@y>")
+        self.assertEqual(self.gemeldet, [("Guten Tag", None)])  # bei Überarbeitung kein Wortlaut
         regel.assert_called_once_with(agent.AGENT, "Lehrende siezen", "Kommentar")
         self.assertIn("Regelvorschlag zur Freigabe", abschliessen.call_args.args[1])
 
@@ -306,3 +348,46 @@ class TestMailEntwuerfe(unittest.TestCase):
         with mock.patch.object(agent.mail, "senden", return_value="gesendet") as senden:
             self.assertEqual(agent.ausfuehren({"typ": "mail", "daten": {"an": ["a@hnee.de"]}}), "gesendet")
         senden.assert_called_once_with(agent.cfg, {"an": ["a@hnee.de"]})
+
+
+class TestTermine(OhneTelegram):
+    JETZT = datetime(2026, 10, 27, 11, 0, tzinfo=agent.termine.ZONE)
+
+    def schreiben(self, schluessel, name, inhalt):
+        ordner = agent.entwurf_ordner(schluessel)
+        ordner.mkdir(parents=True, exist_ok=True)
+        (ordner / name).write_text(json.dumps(inhalt))
+        return ordner
+
+    def test_vorschlag_abgleich_und_nur_einmal(self):
+        ordner = self.schreiben("post-1", "termin_1.json", {"titel": "Exkursion Holzschutz", "beginn": "2026-10-27T14:00",
+                                                            "ort": "Rio-Reiser-Platz, Berlin"})
+        self.schreiben("post-1", "termin_2.json", {"titel": "Alt", "beginn": "2026-10-20T14:00"})
+        self.schreiben("post-1", "termin_3.json", {"titel": "CAM Exkursion Homag", "beginn": "2026-11-05T08:45",
+                                                   "ende": "2026-11-05T14:00"})
+        im_kalender = [agent.kalender.Termin(datetime(2026, 11, 5, 8, 45, tzinfo=agent.termine.ZONE),
+                                             datetime(2026, 11, 5, 14, tzinfo=agent.termine.ZONE),
+                                             "Exkursion Homag", "", False, "x")]
+        zeilen, dateien = agent.termine_einreichen("post-1", jetzt=self.JETZT, vorhandene=im_kalender)
+        self.assertEqual(zeilen[0], "Termin-Vorschlag termin_2.json verworfen: Termin liegt in der Vergangenheit")
+        self.assertIn("Termin zum Antippen: Exkursion Holzschutz: Di 27.10.2026 14:00-15:00 Uhr, Rio-Reiser-Platz, "
+                      "Berlin. Erinnerung 1 Tag und 2 Std. vorher.", zeilen)
+        self.assertIn("Steht schon in deinem Kalender: CAM Exkursion Homag: Do 05.11.2026 08:45-14:00 Uhr", zeilen)
+        (ics,) = dateien
+        self.assertIn("TRIGGER:-PT120M", ics.read_text())
+        self.assertTrue((ordner / "termin_1.eingereicht").exists())
+        self.schreiben("post-2", "termin_1.json", {"titel": "Exkursion Holzschutz", "beginn": "2026-10-27T14:00"})
+        self.assertEqual(agent.termine_einreichen("post-2", jetzt=self.JETZT, vorhandene=[]), ([], []))
+
+    def test_kalender_nicht_lesbar(self):
+        self.schreiben("a1", "termin_1.json", {"titel": "Gespräch Böhme", "beginn": "2026-11-02T10:00"})
+        with mock.patch.object(agent.kalender, "termine", side_effect=agent.kalender.KalenderFehler("Kalender 1")):
+            zeilen, dateien = agent.termine_einreichen("a1", jetzt=self.JETZT)
+        self.assertEqual(len(dateien), 1)
+        self.assertTrue(zeilen[0].startswith("Termin zum Antippen: Gespräch Böhme"))
+
+    def test_ohne_entwuerfe(self):
+        self.assertEqual(agent.termine_einreichen("leer"), ([], []))
+
+    def test_hinweis_nennt_termine(self):
+        self.assertIn("data/entwuerfe/post-1/termin_1.json", agent.entwurf_hinweis("post-1"))

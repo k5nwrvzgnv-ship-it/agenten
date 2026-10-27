@@ -21,6 +21,20 @@ class TestPostfach(unittest.TestCase):
         self.assertEqual(m["text"], "Anmeldung bis 30.10.")
         self.assertEqual(m["anhaenge"], ["liste.pdf"])
         self.assertTrue(m["datum"].startswith("2026-10-16T09:00"))
+        self.assertEqual(m["wortlaut"], "Anmeldung bis 30.10.")
+
+    def test_wortlaut_mit_absaetzen_ohne_verlauf(self):
+        roh = ("Sehr geehrter Herr Kleinke,\r\n\r\nich übernehme   die Betreuung.\r\n\r\n\r\n\r\nGrüße\r\nT. Böhme\r\n"
+               "\r\nVon: Jan Kleinke <j@hnee.de>\r\nGesendet: Montag, 26. Oktober 2026\r\nAnfrage")
+        self.assertEqual(postfach.wortlaut(roh), "Sehr geehrter Herr Kleinke,\n\nich übernehme die Betreuung.\n\n"
+                                                 "Grüße\nT. Böhme\n\n[älterer Verlauf weggelassen]")
+        self.assertEqual(postfach.wortlaut("Ja.\nAm 26.10.2026 um 10:00 schrieb Jan Kleinke:\n> Frage"),
+                         "Ja.\n\n[älterer Verlauf weggelassen]")
+
+    def test_html_umbrueche(self):
+        mail = (b"From: a@hnee.de\r\nSubject: x\r\nContent-Type: text/html; charset=utf-8\r\n\r\n"
+                b"<p>Hallo,</p><p>Zeile 1<br>Zeile 2</p>")
+        self.assertEqual(postfach.zerlege(1, mail)["wortlaut"], "Hallo,\nZeile 1\nZeile 2")
 
 
 if __name__ == "__main__":

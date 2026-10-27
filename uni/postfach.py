@@ -21,6 +21,7 @@ from pathlib import Path
 HIER = Path(__file__).resolve().parent
 STAND_DATEI = HIER / "data" / "postfach.json"
 MAX_TEXT = 2000
+MAX_WORTLAUT = 20_000
 MAX_MAILS = 50
 
 
@@ -30,7 +31,14 @@ def _dekodiere(wert: str | None) -> str:
     return str(email.header.make_header(email.header.decode_header(wert)))
 
 
-def _text(nachricht: email.message.Message) -> str:
+# Beginn des zitierten Verlaufs (Outlook, Thunderbird, Apple Mail), ab hier gehört der Text nicht mehr zur Mail
+ZITAT = re.compile(r"^(-{2,}\s*(Ursprüngliche Nachricht|Original Message)\s*-{2,}"
+                   r"|(Von|From):\s.*\n(Gesendet|Sent|Datum|Date):\s"
+                   r"|Am .{5,120} schrieb .{1,200}:$|On .{5,120} wrote:$)", re.M | re.I)
+
+
+def _roh(nachricht: email.message.Message) -> str:
+    """Text der Mail mit Zeilenumbrüchen (HTML: Absätze und <br> werden Umbrüche)."""
     teil = nachricht.get_body(preferencelist=("plain", "html")) if hasattr(nachricht, "get_body") else None
     if teil is None:
         return ""
@@ -39,14 +47,30 @@ def _text(nachricht: email.message.Message) -> str:
     except (LookupError, UnicodeDecodeError):
         inhalt = teil.get_payload(decode=True).decode("utf-8", "replace")
     if teil.get_content_subtype() == "html":
-        inhalt = unescape(re.sub(r"<(script|style).*?</\1>|<[^>]+>", " ", inhalt, flags=re.S | re.I))
-    return re.sub(r"\s+", " ", inhalt).strip()[:MAX_TEXT]
+        inhalt = re.sub(r"<(script|style).*?</\1>", " ", inhalt, flags=re.S | re.I)
+        inhalt = re.sub(r"<br\s*/?>|</(p|div|li|tr|h\d)>", "\n", inhalt, flags=re.I)
+        inhalt = unescape(re.sub(r"<[^>]+>", " ", inhalt))
+    return inhalt
+
+
+def wortlaut(roh: str) -> str:
+    """Für Jan zum Lesen und Weiterleiten: Absätze bleiben, zitierter Verlauf fällt weg."""
+    zeilen = [" ".join(z.split()) for z in roh.replace("\r\n", "\n").split("\n")]
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(zeilen)).strip()
+    if m := ZITAT.search(text):
+        text = text[:m.start()].rstrip() + "\n\n[älterer Verlauf weggelassen]"
+    return text[:MAX_WORTLAUT]
+
+
+def _text(roh: str) -> str:
+    return re.sub(r"\s+", " ", roh).strip()[:MAX_TEXT]
 
 
 def zerlege(uid: int, roh: bytes) -> dict:
     n = email.message_from_bytes(roh, policy=email.policy.default)
     anhaenge = [_dekodiere(t.get_filename()) for t in n.iter_attachments() if t.get_filename()]
     datum = email.utils.parsedate_to_datetime(n["Date"]) if n["Date"] else None
+    roh = _roh(n)
     return {
         "uid": uid,
         "von": _dekodiere(n["From"]),
@@ -55,7 +79,8 @@ def zerlege(uid: int, roh: bytes) -> dict:
         "references": " ".join((n["References"] or "").split()),
         "betreff": _dekodiere(n["Subject"]),
         "datum": datum.isoformat() if datum else "",
-        "text": _text(n),
+        "text": _text(roh),
+        "wortlaut": wortlaut(roh),
         "anhaenge": anhaenge,
     }
 
