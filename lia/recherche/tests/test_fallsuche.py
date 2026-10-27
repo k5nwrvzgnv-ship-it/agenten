@@ -206,6 +206,7 @@ class FallsucheTest(unittest.TestCase):
         self.assertIn("1 echte Fälle und 1 mögliche Reihenfragen", a["daten"]["kern"])
         self.assertIn("Diktierfunktion", a["daten"]["kern"])
         self.assertEqual(a["daten"]["punkte"], ["Muss jeder Dieb ins Gefängnis?"])
+        self.assertEqual(a["daten"]["knoepfe"], "nur_antwort")
         with self.assertRaises(fallsuche.faelle.FallFehler):
             fallsuche.an_lia(ziel, pdf_bauen=pdf, basis=basis, agenten_dir=agenten)  # nur einmal
         self.assertEqual(len(fallsuche.auftraege.erledigte(basis=basis)), 1)

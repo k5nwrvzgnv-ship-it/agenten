@@ -319,6 +319,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    de.wikipedia.org/wiki/Antonio_Rüdiger) mit UnicodeEncodeError statt AbrufFehler; das beendete einen bezahlten
    Lauf. In lia/recherche umgangen (webauftrag.adresse kodiert die URL, faelle.belege_pruefen fängt den Fehler).
    Vorschlag: abruf.laden kodiert Pfad und Query selbst (IRI -> URI) und meldet alles andere als AbrufFehler.
+   Zweiter Bedarf (Jan 27.10.): Feedback-Knöpfe passen nicht zu jedem Ergebnis. Beim Dossier der Fallsuche
+   (Fälle und Reihenfragen zur Auswahl) sagt „Passt“ nicht, was passt; es endet immer im Feedback als Text (was
+   gefiel am besten, Rückfragen). Wunsch: Ein Agent kann je Ergebnis die Knöpfe abwählen, z. B. daten.knoepfe =
+   "nur_antwort": dann nur „Menü“, die Antwort auf das Ergebnis bleibt Feedback (mit_feedback unverändert).
+   lia/recherche setzt das Feld schon (fallsuche --an-lia); bis es umgesetzt ist, wartet der Versand an Lia.
 
 16. Sprache der Zentralen (Jan 27.10.: Nachrichten für Laien, Technik bleibt im Backend, keine neuen Funktionen).
    Erledigt: 1 Inventur docs/sprache/inventur.md; 2 Sprachregel docs/sprache/sprachregel.md (angenommen 27.10., alle

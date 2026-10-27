@@ -623,4 +623,6 @@ def nachricht_an_lia(dossier: dict) -> tuple[str, dict]:
             "mit der Diktierfunktion deiner Tastatur."
             + (" Unten die ersten drei Reihenfragen, alle stehen im Dokument." if len(fragen) > 3 else ""))
     text = kern + "\n" + "\n".join(f"- {f}" for f in fragen)
-    return text, {"kern": kern, "punkte": fragen[:3]}
+    # Keine Feedback-Knöpfe: „Passt“ sagt bei einer Auswahl nicht, was passt; Lia antwortet als Text (Jan 27.10.).
+    # Wirkt, sobald shared/telegram das Feld kennt (Bedarf Haupt-STATUS Punkt 15).
+    return text, {"kern": kern, "punkte": fragen[:3], "knoepfe": "nur_antwort"}
