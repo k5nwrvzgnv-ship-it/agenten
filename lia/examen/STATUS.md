@@ -121,11 +121,16 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
 4. Verbesserungen am Ablauf vor Runde 2: Länge der annahmen in Python begrenzen (Runde 1: ca. 5000 Zeichen);
    impuls.md in den Kontext (Claude kannte den echten Impuls nicht und nahm einen anderen an).
 5. Danach Folgerunden (Schritt 6) nur für die gewählte Richtung.
-6. Vor Runde 2: Liszts Tätertypen (S. 39–42) als Stellen ins Register von lia/recherche (Auftrag an den
-   recherche-Chat); Kontext der Skizzen um Lias Vorgaben ergänzen (reale Fälle mit Quelle, Examensstunde =
-   Liszt-Anwendung). Regelvorschlag an Lia: „Fälle nur real und mit Quelle, keine erfundenen“ (erst nach Okay).
-7. Recherche im Web können die Agenten heute nicht (Allowlist nur für Primärtexte). Lias Auftrag zeigt den
-   Bedarf: Nachrichtenseiten, Gerichte, Mediatheken. Entscheidung von Jan nötig.
+6. Vor Runde 2: Kontext der Skizzen um Lias Vorgaben aus ihrem Auftrag ergänzen (reale Fälle mit Quelle statt
+   erfundener, Examensstunde = Liszt-Anwendung, didaktischer Bogen: erst passt eine Strafe spontan, mit mehr
+   Kontext eine andere) und das Ergebnis der Webrecherche V2 als Anhang/Kontext mitgeben
+   (lia/recherche/data/web/20261025-211917-lia-reihe-strafe-v2/). Liszts Tätertypen stehen seit 25.10. als
+   7 geprüfte Stellen im Register (erledigt); der Liszt-Merksatz aus Runde 1 („Bewährung“ für Jonas) ist falsch
+   und darf nicht wieder auftauchen. Regelvorschlag an Lia: „Fälle nur real und mit Quelle“ (erst nach Okay).
+7. Webrecherche durch die Agenten: erledigt 25.10. (lia/recherche, webauftrag.py, Domains in
+   shared/einstellungen.toml [webfetch]). Offen dort: Lias Zentrale als Eingang, Teilläufe für gründliche
+   Aufträge, Prüflauf „trägt das Zitat?“ mit haiku nur Vorsortierung (siehe lia/recherche/STATUS.md).
+8. Lia soll seminar_vorbild.md lesen und bestätigen, was davon Regel werden soll.
 
 ## Gelernte Regeln
 - (noch keine)
