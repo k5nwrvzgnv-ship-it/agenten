@@ -174,7 +174,9 @@ REGELN FÜR DIE DATEI
 - "fall": was geschah, sachlich, höchstens {MAX_FALL} Zeichen, Alter und Strafe nennen, soweit berichtet.
 - "lebenswelt": warum gerade diese Jugendlichen das packt (konkret, nicht allgemein).
 - "strafzweck": welche Spannung zwischen Vergeltung und Zweck der Fall aufmacht.
-- "gewalt": true, wenn die Tat Gewalt enthält (wird markiert, nicht verworfen; Tötung bleibt ausgeschlossen).
+- Keine Fälle mit Gewalt gegen Menschen, auch nicht als bestrafte Tat (Quälen, Schlagen, Raub mit Gewalt,
+  Verletzte durch die Tat; Regel G1): solche Fälle gehören nach "verworfen". "gewalt": true, wenn die Tat Gewalt
+  enthalten könnte; Python wählt solche Fälle nie aus.
 - "quelle_art": eines von {", ".join(QUELLE_ARTEN)}.
 
 AUSGABE: Schreibe NUR in die Datei {ausgabe}, als JSON:
@@ -391,6 +393,16 @@ def verworfen_ids(verworfen: list[dict]) -> dict[str, dict]:
     return {f"V{i:02d}": v for i, v in enumerate(verworfen, 1)}
 
 
+GEWALT = re.compile(r"Gewalt|Tötung|getötet|tödlich|Mord|Messer|Vergewalt|verletz|quält|geschlagen|Schläg|Terror",
+                    re.IGNORECASE)
+
+
+def ohne_gewalt(verworfen: dict[str, dict]) -> dict[str, dict]:
+    """Verworfene, die nicht wegen Gewalt oder Tötung verworfen wurden (nur diese darf das Dossier nennen)."""
+    return {k: v for k, v in verworfen.items()
+            if "G1" not in v.get("regeln", []) and not GEWALT.search(f"{v['titel']} {v.get('grund', '')}")}
+
+
 KENNUNG = re.compile(r"\b(?:GR|[LPFRKGE])\d+\b")
 
 
@@ -410,12 +422,14 @@ def dossier_prompt(faelle: list[dict], abgleich: dict[str, dict], verworfen: dic
     uebersicht = [{"id": f["id"], "titel": f["titel"], "fall": f["fall"], "gewalt": f["gewalt"],
                    "gesamt": abgleich[f["id"]]["gesamt"],
                    "abgleich": {k: f"{w['stufe']}: {w['begruendung']}" for k, w in abgleich[f["id"]]["kriterien"].items()},
-                   "gefaehrdet": abgleich[f["id"]]["gefaehrdet"]} for f in faelle if f["id"] in abgleich]
-    weg = [{"id": k, "titel": v["titel"], "grund": v.get("grund", "")} for k, v in verworfen.items()]
+                   "gefaehrdet": abgleich[f["id"]]["gefaehrdet"]}
+                  for f in faelle if f["id"] in abgleich and not f["gewalt"]]  # Gewalt nie (Regel G1)
+    weg = [{"id": k, "titel": v["titel"], "grund": v.get("grund", "")} for k, v in ohne_gewalt(verworfen).items()]
     fragen = "\n".join(f"- {q}" for q in kontext["reihenfragen"]) or "(keine)"
     return f"""Aufgabe: Schreibe das Dossier für Lia aus einer fertigen Fallsuche. Kein Web nötig.
 Lia ist Lehrerin; sie liest das Dossier und spricht danach ihr Feedback ein. Es soll sie nicht erschlagen:
-kurz, klar, ohne Regel-Kennungen (L1, P3, GR2 usw.) in den Texten für sie.
+kurz, klar, ohne Regel-Kennungen (L1, P3, GR2 usw.) in den Texten für sie. Keine Fälle mit Gewalt gegen
+Menschen, auch nicht als bestrafte Tat (Regel G1); solche sind unten schon herausgenommen, nenne auch keine.
 
 REIHE UND LERNGRUPPE
 {kontext['reihe']}
@@ -470,8 +484,9 @@ def _lia_text(wert, feld: str, f: list[str], laenge: int = MAX_LIA) -> None:
 
 def dossier_lesen(pfad: Path, abgleich: dict[str, dict], regel_ids: set[str], rlp_ids: set[str],
                   register_ids: set[str], verworfen: dict[str, dict] = None,
-                  fallbezug: set[str] = frozenset()) -> tuple[dict, list[str]]:
-    """Dossier prüfen. Gibt (daten, fehler) zurück; fehlerhafte Teile sind entfernt."""
+                  fallbezug: set[str] = frozenset(), gewalt: set[str] = frozenset()) -> tuple[dict, list[str]]:
+    """Dossier prüfen. Gibt (daten, fehler) zurück; fehlerhafte Teile sind entfernt. gewalt: ids von Fällen mit
+    Gewalt, die weder ausgewählt noch genannt werden dürfen (Regel G1); verworfen nur ohne Gewalt übergeben."""
     daten = _json(pfad)
     verworfen = verworfen or {}
     fehler, auswahl = [], []
@@ -479,6 +494,9 @@ def dossier_lesen(pfad: Path, abgleich: dict[str, dict], regel_ids: set[str], rl
         f = []
         if not isinstance(a, dict) or a.get("id") not in abgleich:
             fehler.append(f"auswahl: {a!r:.80} (id aus dem Abgleich nötig)")
+            continue
+        if a["id"] in gewalt:
+            fehler.append(f"auswahl {a['id']}: Fall mit Gewalt, nicht erlaubt")
             continue
         _lia_text(a.get("kurztitel"), "kurztitel", f, 60)
         _lia_text(a.get("warum"), "warum", f)
@@ -530,6 +548,9 @@ def dossier_lesen(pfad: Path, abgleich: dict[str, dict], regel_ids: set[str], rl
     for x in daten.get("auch_interessant", []) if isinstance(daten.get("auch_interessant"), list) else []:
         f = []
         ref = x.get("ref") if isinstance(x, dict) else None
+        if ref in gewalt:
+            fehler.append(f"auch_interessant: {ref} ist ein Fall mit Gewalt, nicht erlaubt")
+            continue
         if ref in gewaehlt or not (ref in abgleich or ref in verworfen):
             fehler.append(f"auch_interessant: {ref!r} ist kein übriger Fall (F..) oder verworfener (V..)")
             continue
@@ -574,8 +595,7 @@ def beschreibung(titel: str, ges: dict, dossier: dict, zahlen: dict) -> dict:
     bloecke.append({"typ": "ueberschrift", "text": "Die stärksten Fälle", "ebene": 1})
     for a in dossier["auswahl"]:
         f = nach_id[a["id"]]
-        bloecke.append({"typ": "material", "titel": a["kurztitel"] + (" (mit Gewalt)" if f["gewalt"] else ""),
-                        "text": f["fall"]})
+        bloecke.append({"typ": "material", "titel": a["kurztitel"], "text": f["fall"]})
         bloecke.append({"typ": "liste", "punkte": [f"Warum er trägt: {a['warum']}", f"Worauf achten: {a['achten']}",
                                                    f"Quelle: {_quelle(f)}"]})
     if dossier["auch_interessant"]:

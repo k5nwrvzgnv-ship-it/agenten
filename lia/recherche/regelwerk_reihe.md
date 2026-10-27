@@ -131,9 +131,10 @@ Für jeden Kandidaten festhalten, jeweils mit kurzer Begründung und den Regel-K
 
 ## Entschieden (27.10.2026)
 
-- G1 Gewalt: Lias Regel schließt Gewalt aus, „die man rechtfertigen müsste“. Gewalt als Tat, die bestraft
-  wird (etwa Rosenbergers Beispiel „Intensivstraftäter unter 14“, P3), fällt nicht darunter. Solche Fälle
-  werden im Dossier als „mit Gewalt“ markiert, nicht verworfen. Tötung bleibt ausgeschlossen.
+- G1 Gewalt: Keine Fälle mit Gewalt gegen Menschen, auch nicht als Tat, die bestraft wird (etwa Quälen,
+  Schlagen, Raub mit Gewalt, Verletzte durch die Tat). Das fällt unter Lias Regel „keine Gewalt“ (Jan 27.10.2026;
+  korrigiert die frühere Auslegung, Gewalt als bestrafte Tat sei erlaubt). Tötung sowieso. Solche Fälle werden
+  beim Suchen verworfen und nie ausgewählt.
 - G2 „Tipps Max Examens“ nennen ein reales Beispiel mit fanatischem bzw. terroristischem Hintergrund; das
   verträgt sich nicht mit der Regel gegen Tötung und mit L6/L7. Nicht gezielt suchen; Lia kann es bewusst
   als Ausnahme wählen (offen, nicht entschieden).

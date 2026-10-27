@@ -145,8 +145,9 @@ def _dossier(ges: dict, abgleich: dict, ordner: Path, hier: Path, kontext: dict,
     ausgabe = ordner.relative_to(hier) / "dossier.json"
     verworfen = faelle.verworfen_ids(ges["verworfen"])
     pruef = dict(abgleich=abgleich, regel_ids=regel_ids, rlp_ids=set(kontext["rlp"]),
-                 register_ids=set(webpruefung.register_stellen(reg)), verworfen=verworfen,
-                 fallbezug=faelle.fallwoerter(ges["faelle"], kontext["allgemein"]))
+                 register_ids=set(webpruefung.register_stellen(reg)), verworfen=faelle.ohne_gewalt(verworfen),
+                 fallbezug=faelle.fallwoerter(ges["faelle"], kontext["allgemein"]),
+                 gewalt={f["id"] for f in ges["faelle"] if f["gewalt"]})
     (hier / ausgabe).unlink(missing_ok=True)
     erg = lauf(faelle.dossier_prompt(ges["faelle"], abgleich, verworfen, kontext, str(ausgabe)), None, "Dossier")
     sitzung = erg.sitzung

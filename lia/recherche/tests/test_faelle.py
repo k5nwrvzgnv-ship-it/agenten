@@ -188,6 +188,23 @@ class DossierTest(Temp):
         for teil in ("ohne Pollux", "keine Zahlen", "ohne Neukölln", "länger als 100"):
             self.assertIn(teil, text)
 
+    def test_gewalt_nie_auswaehlen_oder_nennen(self):
+        d, fehler = faelle.dossier_lesen(
+            self.datei("d.json", {"auswahl": [auswahl("F02"), auswahl()], "leitfragen": [leitfrage()],
+                                  "auch_interessant": [{"ref": "F02", "warum": "x"}]}),
+            self.ABGLEICH, {"P3"}, {"strafe"}, {"liszt:41"}, gewalt={"F02"})
+        self.assertEqual([a["id"] for a in d["auswahl"]], ["F01"])
+        self.assertEqual(d["auch_interessant"], [])
+        self.assertIn("F02: Fall mit Gewalt", " ".join(fehler))
+        self.assertIn("F02 ist ein Fall mit Gewalt", " ".join(fehler))
+
+    def test_verworfene_ohne_gewalt(self):
+        v = {"V01": {"titel": "Containern", "grund": "keine Lebenswelt"},
+             "V02": {"titel": "Gruppenvergewaltigung", "grund": "Gewalt"},
+             "V03": {"titel": "Schlägerei", "grund": "passt", "regeln": ["G1"]},
+             "V04": {"titel": "Ku'damm-Raser", "grund": "Tötung eines Unbeteiligten."}}
+        self.assertEqual(list(faelle.ohne_gewalt(v)), ["V01"])
+
     def test_keine_kennungen_fuer_lia(self):
         d, fehler = self.lesen({"auswahl": [auswahl(warum="erfüllt L2 und GR3")],
                                 "leitfragen": [leitfrage(kant="Kant (K1) sagt ja.")]})
@@ -255,10 +272,10 @@ class BeschreibungTest(Temp):
         b = faelle.beschreibung("Fallsuche", ges, dossier, zahlen)
         text = json.dumps(b, ensure_ascii=False)
         for teil in ("4 reale Fälle", "Reihenfrage 1", "Muss jeder Dieb ins Gefängnis?", "Einstieg (Fahrraddieb)",
-                     "Fahrraddieb (mit Gewalt)", "Quelle: https://taz.de/fall", "Containern (beim Suchen aussortiert)",
+                     "Fahrraddieb", "Quelle: https://taz.de/fall", "Containern (beim Suchen aussortiert)",
                      "Offene Fragen an dich"):
             self.assertIn(teil, text)
-        for nicht in ("Abwegig", "Zweiter", "kein Video", "L3", "P3", "Bewertungsbogen"):
+        for nicht in ("Abwegig", "Zweiter", "kein Video", "L3", "P3", "Bewertungsbogen", "mit Gewalt"):
             self.assertNotIn(nicht, text)
         renderer.bauen(b, self.tmp / "d.docx", vorschau=False)
         self.assertTrue((self.tmp / "d.docx").exists())
