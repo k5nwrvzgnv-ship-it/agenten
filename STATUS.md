@@ -29,9 +29,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - claude-Läufe ("Claude denkt, Python handelt"): ohne Bash und MCP, Schreiben nur im Agent-Ordner,
   Schreibschutz auf Code/STATUS.md/Regeln/Einrichtung, kein Zugriff auf .env. Alles mit echten
   Läufen getestet. Grundlast ca. 6.300 Tokens pro Lauf.
-- Verbrauch: Jan hat ein Pro-Abo, Agenten teilen es mit seinen Chats. Stufen normal/sparen/
-  nur_auftraege/limit nach 5h- und 7d-Auslastung, Werte in shared/einstellungen.toml.
-  Einschränkung: Auslastung wird nur bei Agenten-Läufen aktualisiert.
+- Verbrauch: Alle Agenten (Jans und Lias Instanz) laufen über ein eigenes Claude-Konto (Pro), getrennt von
+  Jans Chats (Login ~/.claude/.credentials.json). claude_lauf setzt CLAUDE_CODE_OAUTH_TOKEN aus shared/.env
+  nur in der Umgebung von claude -p; ohne Token startet kein Lauf (KeinKonto), kein Rückfall auf Jans Login.
+  Token erneuern: `~/.local/bin/claude setup-token` mit dem Agenten-Konto, Jan trägt ihn selbst ein.
+  Echt getestet 27.10.: rate_limit_event des Agenten-Kontos (5h 6 %, 7d 1 %) unterscheidet sich von Jans
+  (7d 100 %). Stufen normal/sparen/nur_auftraege/limit nach 5h- und 7d-Auslastung dieses Kontos, Werte in
+  shared/einstellungen.toml. Einschränkung: Auslastung wird nur bei Agenten-Läufen aktualisiert.
 - Qualität: `./pruefen.sh` (Tests aller Ordner, Linter ruff aus .venv im Hauptordner, Regeln in ruff.toml).
   Git-Hook githooks/pre-commit bricht Commits ab, wenn nicht grün (core.hooksPath = githooks).
 - agentkit.kalender (20.10.): termine(von, bis) aus KALENDER_ICS_URLS, nur Bordmittel (zoneinfo,
@@ -132,8 +136,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Speicherengpass endet sofort im OOM-Killer. Vorschlag: 2-4 GB Swapdatei, nur nach Jans Okay.
 8. Lias Agenten-Netzwerk: Architektur in docs/lia-architektur.md (Abschnitt 3 und 7 = Fahrplan).
    Entschieden 21.10.: Ordner unter agent statt User lia; vorhandener Token bleibt (stand im Chat,
-   /revoke optional); Lia nutzt Jans Pro-Abo (teilt das Kontingent, Schuldaten liefen über Jans
-   Konto, siehe Abschnitt 0); agentkit als Paket erst beim Umzug zu einem User lia.
+   /revoke optional); agentkit als Paket erst beim Umzug zu einem User lia. Konto (seit 27.10.): Lias Agenten
+   laufen wie Jans über das Agenten-Konto (siehe Stand, Verbrauch), nicht mehr über Jans Pro-Abo; Lias eigene
+   claude.ai-Chats sind davon nicht berührt. docs/lia-architektur.md Abschnitt 0 beschreibt noch den alten Stand.
    Gebaut: Lias Zentrale und Platzhalter unterricht (siehe Stand).
    Offen:
    - Handtest: Lia tippt alle Knöpfe, schickt Freitext und einen Gruß, bekommt "kommt bald".
@@ -262,17 +267,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    (Entscheidung Jan).
    Achtung: Weil main jetzt sicherung/main verfolgt, schiebt ein einfaches `git push` nach GitHub. Chats pushen
    weiter nur auf Jans Anweisung.
-13. Bedarf aus lia/examen (Jan 27.10.2026, Plan freigegeben): Alle Agenten (Jans und Lias) laufen über ein
-   eigenes Claude-Konto (anderer Account, ebenfalls Pro). Jans Chats bleiben auf dem bisherigen Login
-   (~/.claude/.credentials.json, jan.kleinke@googlemail.com).
-   - Jan: `~/.local/bin/claude setup-token` im eigenen Terminal, Login mit dem neuen Konto, Token selbst als
-     `CLAUDE_CODE_OAUTH_TOKEN=...` in shared/.env eintragen (KONTINGENT_DIR, gilt damit für alle Instanzen).
-     Token nie in den Chat.
-   - Hauptordner-Chat: claude_lauf liest CLAUDE_CODE_OAUTH_TOKEN aus KONTINGENT_DIR/.env und setzt ihn nur in
-     der Umgebung von `claude -p` (env= bei subprocess.run). Fehlt er: Abbruch mit klarer Meldung, kein
-     stiller Rückfall auf Jans Login. Tests, pruefen.sh, Commit. Danach echter Testlauf, prüfen, dass
-     rate_limit_event zum neuen Konto gehört (Auslastung nicht mehr von Jans Chats beeinflusst).
-   - Danach STATUS anpassen: "Verbrauch" (Stand) und Punkt 8 (Lia nutzt Jans Pro-Abo) gelten nicht mehr.
+13. Erledigt 27.10.: Agenten laufen über ein eigenes Claude-Konto (siehe Stand, Verbrauch). Testlauf als Agent
+   „kontotest“ im Verbrauchsprotokoll (Haiku, 0,0007 USD); er hat den alten Stand von Jans Konto (7d 94 %,
+   Stufe nur_auftraege) überschrieben, Stufe jetzt normal.
 
 ## Gelernte Regeln
 - (noch keine)
