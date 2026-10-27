@@ -216,5 +216,16 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
 8. Bedarf an agentkit (Hauptordner): abruf.laden scheitert an URLs mit Umlauten (UnicodeEncodeError, nicht
    AbrufFehler). Hier umgangen mit webauftrag.adresse() und einem Fang in faelle.belege_pruefen.
 
+9. Bedarf aus der Feedbackschleife (Hauptordner, Jan 27.10.2026, ändert die Entscheidung „Meldungen an Jan,
+   nicht an Lia“ für Ergebnisse): Ergebnisse gehen an Lia über ihre Warteschlange, nicht als Meldung an Jan:
+   auftraege.neuer_auftrag (oder Auftrag aus Lias Zentrale, offener Punkt 6) und abschliessen(id, kurzer Text,
+   dateien=[docx], daten={"kern": Empfehlung in 1-2 Sätzen, "punkte": bis 3, "pruefen": was Lia prüfen muss,
+   "belege": ["Quelle: „Zitat“", ...]}). Lias Zentrale zeigt es mit Kern zuerst und Feedback-Knöpfen. Rückfragen
+   des Ergebnisses gehören in den Kern oder in „pruefen“. Ein Kern fehlt heute in den Daten (geprueft.json,
+   dossier.json) und müsste von Claude kommen. Nachbesserungen kommen als Auftrag mit bezug und sitzung, aber nur
+   automatisch, wenn recherche einen Dienst hat (lia-recherche) und die Kosten des Ergebnisses bekannt sind und unter
+   1 USD liegen; sonst entscheidet Jan. Regeln aus Lias Feedback können mit „(Feedback <id>)“ unter „Gelernte
+   Regeln“ hier landen (faelle.py liest als GR-Kennungen bisher nur lia/unterricht/STATUS.md).
+
 ## Gelernte Regeln
 - (noch keine)

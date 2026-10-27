@@ -58,6 +58,7 @@ Der Ordner entsteht mit dem Agenten.
 | `uni` + `uni.timer` | Agent uni, 8/13/19 Uhr und nach Aufträgen | `uni/systemd/` |
 | `uni-transkript` + Timer | Vorlesungen transkribieren | `uni/systemd/` |
 | `lia-unterricht` | Lias Platzhalter, startet nach Aufträgen | `lia/unterricht/systemd/` |
+| `feedback`, `lia-feedback` | Feedback zu Ergebnissen zuordnen und übernehmen, Jans Stopp | `shared/feedback/systemd/` |
 | `ausfall@` | Meldung an Jan, wenn ein Dienst ausfällt | `shared/systemd/` |
 | `vinted-bot` | alter Vinted-Bot, nicht Teil des Systems | – |
 

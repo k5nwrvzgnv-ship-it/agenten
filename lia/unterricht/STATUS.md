@@ -164,8 +164,15 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 
 ## Offene Punkte
 1. Handtest: Lia tippt „Neues Material“ und schickt einen Wunsch, einmal Arbeitsblatt, einmal Folien.
-2. Wünsche nach Änderung („mach Aufgabe 3 leichter“): Lias Zentrale kennt noch keine Antwort auf ein Ergebnis.
-   Dann Sitzung fortsetzen (Feld sitzung ist gespeichert) und Beschreibung überarbeiten lassen.
+2. Wünsche nach Änderung („mach Aufgabe 3 leichter“): Bedarf aus der Feedbackschleife (Hauptordner, 27.10.).
+   Lias Zentrale nimmt Feedback jetzt an (Knöpfe unter dem Ergebnis, Antwort darauf). Ordnet der Feedback-Dienst es
+   als Nachbesserung ein, kommt ein Auftrag an unterricht mit derselben quelle, bezug = altes Ergebnis, sitzung =
+   dessen Sitzung, Text „Nachbesserung zu deinem Ergebnis …“. Bitte: bei sitzung die Sitzung fortsetzen und die
+   Beschreibung überarbeiten statt neu anzufangen. Automatisch nur bei bekannten Kosten bis 1 USD (verbrauch je
+   Auftrag) und mit Dienst lia-unterricht. Außerdem neu: Regeln aus Lias Feedback landen mit „(Feedback <id>)“ in
+   „Gelernte Regeln“ hier oder in lia/instanz/regeln.md; Wünsche an den Agenten unter „Wünsche aus Feedback“.
+   Optional: abschliessen(..., daten={"kern": "1-2 Sätze", "punkte": [...], "pruefen": "..."}) für die Vorlage
+   (shared/telegram/vorlagen.py).
 3. Dauerhafte Schulvorlage: zurückgestellt (Lia 25.10.: die bisherigen Vorlagen für ABs und Folien passen,
    Schulbranding erst mal egal).
 4. Handtest Anhang: Lia schickt einen Text oder ein altes Arbeitsblatt mit „Mach daraus ein Arbeitsblatt“.

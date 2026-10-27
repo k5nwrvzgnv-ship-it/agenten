@@ -83,6 +83,29 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Test-Unit geprüft: kam an. Eingerichtet für uni, uni-transkript, agentenzentrale; uni-lernen und
   dokumente haben es in der Vorlage. Grenze: agentenzentrale hat Restart=on-failure und gilt nie als
   fehlgeschlagen, solange der Neustart klappt. Nicht erkannt: Timer, die gar nicht mehr starten.
+- Feedbackschleife (Jan 27.10., CLAUDE.md „Lernen aus Feedback“): Unter jedem Ergebnis in beiden Zentralen
+  Knöpfe Passt / Zu lang (nur hier oder ab jetzt immer) / Falscher Fokus / Feedback schreiben (shared/telegram/
+  vorlagen.py). Bei Lia ist auch eine Antwort auf ein Ergebnis Feedback, bei Jan setzt eine Antwort weiter die Sitzung
+  fort. Feedback = Auftrag an „feedback“ (quelle feedback, bezug = Ergebnis); Dienste feedback und lia-feedback
+  (shared/feedback/lauf.py, eingerichtet 27.10.), die Zentralen starten sie. Claude (routine, nur Read) ordnet zu:
+  nachbesserung, regel, notiz oder keine; agentkit.feedback.entscheiden prüft die Nie-automatisch-Liste (heikel,
+  Widerspruch, zweite Nachbesserung, Kosten über 1 USD oder unbekannt, Agent ohne Dienst). Regel/Notiz: Zeile mit
+  „(Feedback <id>)“ in <instanz>/regeln.md bzw. „Gelernte Regeln“ oder „Wünsche aus Feedback“ einer STATUS.md
+  (Oberfläche: diese Datei); der Dienst committet genau diese Datei. Jan bekommt je Fall eine Meldung „Feedback“
+  mit Stopp (Vorschlag: Übernehmen/Verwerfen; eigenes Feedback: Rückgängig). Klick -> feedback.service, der Fall
+  wird über shared/feedback/data/meldungen.json gefunden, auch in Lias Instanz. Lia bekommt die Bestätigung als
+  Ergebnis, nach Jans Entscheidung eine Meldung (Lias Zentrale zeigt jetzt Meldungen aus lia/instanz/meldungen).
+- Vorlagen (27.10.): Ergebnis mit daten.kern (auftraege.abschliessen(..., daten=)) -> Kern, höchstens 3 Punkte,
+  „Bitte prüfen“, höchstens 10 Belege als ausklappbares Zitat. Ohne daten wie bisher. Lia sieht bei Fehlern den
+  Grund des Agenten. Kurzer Text steht mit den Knöpfen unter der Datei. Snapshot-Tests in
+  shared/telegram/tests/snapshots (bei gewollter Änderung SNAPSHOTS_NEU=1, Diff ansehen, committen).
+- Nachweis Feedbackschleife (27.10.): echtes Ergebnis Webauftrag V2 in einer Nachweis-Instanz (Scratch), Lias
+  Zentrale mit aufgezeichneten Telegram-Aufrufen (Lia bekam nichts). „Falscher Fokus“ + Text -> Feedback-Auftrag;
+  echter Zuordnungslauf (Sonnet, 0,03 USD, 8 s): Regel nur für recherche, eingetragen; Meldung an Jan um 16:19:35
+  gesendet; Stopp (Auftrag wie aus dem Klick) über feedback.service: Regel entfernt, Stand gestoppt, Nachricht an
+  Lia, Jans Zentrale meldete „Gestoppt“. Der Stopp-Knopf dieser Meldung antwortet jetzt „Schon entschieden“.
+  Nicht echt geprüft: Commit durch den Dienst (Datei lag außerhalb des Repos, nur Unit-Test), Nachbesserung,
+  Klicks in Telegram.
 
 ## Entscheidungen
 - Telegram ist die Zentrale in beide Richtungen. Jan diktiert per Handy-Tastatur, nur Text.
@@ -279,6 +302,18 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 13. Erledigt 27.10.: Agenten laufen über ein eigenes Claude-Konto (siehe Stand, Verbrauch). Testlauf als Agent
    „kontotest“ im Verbrauchsprotokoll (Haiku, 0,0007 USD); er hat den alten Stand von Jans Konto (7d 94 %,
    Stufe nur_auftraege) überschrieben, Stufe jetzt normal.
+
+14. Feedbackschleife, offen:
+   - Fortschritt per bearbeiteter Nachricht (z. B. auftraege.fortschritt(id, text), Zentralen bearbeiten eine
+     Statusnachricht) noch nicht gebaut; die Agenten müssten Zwischenstände melden.
+   - Grenze: Der Commit des Dienstes nimmt die ganze Datei mit, also auch unfertige Änderungen eines Chats an
+     derselben STATUS.md. Ist pruefen.sh rot, bleibt die Zeile uncommittet und Jan bekommt eine Meldung.
+   - Stopp einer Nachbesserung greift nur, solange der Agent sie noch nicht bearbeitet; sonst scheitert sein
+     abschliessen (Log), und das Ergebnis ist schon zugestellt.
+   - Bedarf an Agenten: recherche und unterricht (in deren STATUS.md). uni setzt Nachbesserungen schon in der
+     Sitzung fort (bezug, sitzung); daten.kern ist für alle Agenten optional.
+   - lia/recherche/faelle.py und lia/examen lesen Lias Regeln nur aus lia/unterricht/STATUS.md; Regeln aus Feedback
+     in lia/instanz/regeln.md oder einer anderen STATUS.md erreichen sie nur über claude_lauf (Systemprompt).
 
 ## Gelernte Regeln
 - (noch keine)
