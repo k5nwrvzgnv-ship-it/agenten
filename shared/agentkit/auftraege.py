@@ -47,7 +47,7 @@ from .config import SHARED_DIR, person
 BASIS = SHARED_DIR / "auftraege"
 AGENTEN_DIR = SHARED_DIR.parent
 EINGANG = Path("data") / "eingang"
-ABSCHLUESSE = ("erledigt", "fehlgeschlagen")
+ABSCHLUESSE = ("erledigt", "fehlgeschlagen", "zurueckgezogen")  # zurueckgezogen: Jans Stopp, wird nicht gemeldet
 MODI = ("erledigen", "lernen")
 ALLE = "*"  # neue(..., dienst=ALLE): Aufträge aller Dienste
 
@@ -199,11 +199,15 @@ def abschliessen(
     dateien: list[Path] | None = None,
     basis: Path | None = None,
     agenten_dir: Path | None = None,
+    daten: dict | None = None,
 ) -> dict:
-    """Verschiebt den Auftrag nach erledigt/ (status erledigt oder fehlgeschlagen).
+    """Verschiebt den Auftrag nach erledigt/ (status siehe ABSCHLUESSE).
 
     sitzung: Claude-Sitzung des Laufs, damit Jan per Antwort darin weitermachen kann.
     dateien: Ergebnisdateien im Agent-Ordner (absolut oder relativ dazu), gehen an Jan.
+    daten: strukturierter Teil des Ergebnisses für die Vorlagen der Zentralen (Feld daten), z. B.
+    {"kern": "1-2 Sätze", "punkte": [...], "pruefen": "...", "belege": [...]}, siehe shared/telegram/vorlagen.py.
+    Feedback speichert hier seine Zuordnung.
     """
     if status not in ABSCHLUESSE:
         raise AuftragFehler(f"Unbekannter Abschluss: {status!r}")
@@ -216,5 +220,5 @@ def abschliessen(
         _ablage.ordner(basis, "erledigt"),
         eintrag_id,
         {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis, "sitzung": sitzung,
-         "ergebnis_dateien": ergebnis_dateien},
+         "ergebnis_dateien": ergebnis_dateien, **({"daten": daten} if daten is not None else {})},
     )

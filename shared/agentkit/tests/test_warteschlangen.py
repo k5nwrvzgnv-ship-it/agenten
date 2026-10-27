@@ -191,6 +191,13 @@ class TestAuftraege(unittest.TestCase):
         self.assertEqual(auftraege.abschliessen(aid, "Timeout", "fehlgeschlagen", basis=self.basis)["status"],
                          "fehlgeschlagen")
 
+    def test_daten_und_zurueckgezogen(self):
+        aid = auftraege.neuer_auftrag("uni", "kürzer", basis=self.basis)
+        a = auftraege.abschliessen(aid, "", "zurueckgezogen", daten={"gestoppt": True}, basis=self.basis)
+        self.assertEqual((a["status"], a["daten"]), ("zurueckgezogen", {"gestoppt": True}))
+        aid = auftraege.neuer_auftrag("uni", "x", basis=self.basis)
+        self.assertNotIn("daten", auftraege.abschliessen(aid, "ok", basis=self.basis))
+
     def test_dateien_kommen_in_den_agent_ordner(self):
         agenten = self.basis / "agenten"
         (agenten / "uni").mkdir(parents=True)

@@ -8,6 +8,10 @@ Ablauf (CLAUDE.md, "Lernen nur nach Bestätigung"):
 1. Agent ruft regel_vorschlagen() auf -> Entwurf vom Typ "regel" in der Freigabe.
 2. Jan gibt frei (oder lehnt ab).
 3. Erst dann schreibt regel_eintragen() die Regel in die Datei.
+
+Aus Feedback (CLAUDE.md, "Lernen aus Feedback"): agentkit.feedback schreibt Regeln und Notizen ohne
+Freigabe mit zeile_eintragen(); jede Zeile endet mit "(Feedback <id>)". Jans Stopp entfernt sie mit
+zeilen_entfernen(). Bestehende Zeilen werden dabei nie geändert.
 """
 
 from datetime import date
@@ -115,17 +119,54 @@ def regel_eintragen(entwurf: dict, agent_dir: Path | None = None) -> bool:
     regel = daten["regel"]
     if any(r.split(": ", 1)[-1].startswith(regel) for r in _lies_regeln(pfad, ueberschrift)):
         return False
+    _einfuegen(pfad, ueberschrift, f"- {date.today():%d.%m.%Y}: {regel} (Anlass: {daten['anlass']})")
+    return True
 
+
+def _einfuegen(pfad: Path, ueberschrift: str, neue_zeile: str, anlegen: bool = False) -> None:
+    """Zeile ans Ende der Liste im Abschnitt; anlegen=True legt einen fehlenden Abschnitt am Dateiende an."""
     zeilen = pfad.read_text(encoding="utf-8").splitlines()
+    if anlegen and not any(z.strip() == ueberschrift for z in zeilen):
+        zeilen += ["", ueberschrift]
     start, ende = _abschnitt_grenzen(zeilen, ueberschrift)
-    neue_zeile = f"- {date.today():%d.%m.%Y}: {regel} (Anlass: {daten['anlass']})"
     abschnitt = [z for z in zeilen[start + 1 : ende] if z.strip() != PLATZHALTER]
     # nach dem letzten Listenpunkt einfügen, Leerzeilen am Abschnittsende behalten
     letzte = max((i for i, z in enumerate(abschnitt) if z.strip().startswith("- ")), default=-1)
     if letzte == -1:
-        while abschnitt and not abschnitt[0].strip():
+        while abschnitt and not abschnitt[0].strip() and any(z.strip() for z in abschnitt):
             abschnitt.pop(0)
     abschnitt.insert(letzte + 1, neue_zeile)
     zeilen[start + 1 : ende] = abschnitt
     pfad.write_text("\n".join(zeilen) + "\n", encoding="utf-8")
-    return True
+
+
+def herkunft(feedback_id: str) -> str:
+    return f"(Feedback {feedback_id})"
+
+
+def zeile_eintragen(pfad: Path, ueberschrift: str, text: str, feedback_id: str, heute: date | None = None) -> str:
+    """Regel oder Notiz aus Feedback eintragen, ohne Freigabe. Gibt die geschriebene Zeile zurück.
+
+    text muss genau eine nicht leere Zeile sein. Fehlt der Abschnitt, wird er am Ende angelegt.
+    """
+    text = text.strip()
+    if not text or "\n" in text:
+        raise RegelFehler("Eine Regel muss genau eine nicht leere Zeile sein")
+    if not Path(pfad).exists():
+        raise RegelFehler(f"Datei fehlt: {pfad}")
+    zeile = f"- {heute or date.today():%d.%m.%Y}: {text} {herkunft(feedback_id)}"
+    _einfuegen(Path(pfad), ueberschrift, zeile, anlegen=True)
+    return zeile
+
+
+def zeilen_entfernen(pfad: Path, feedback_id: str) -> int:
+    """Entfernt alle Zeilen, die aus diesem Feedback stammen (Jans Stopp). Gibt ihre Anzahl zurück."""
+    pfad = Path(pfad)
+    if not pfad.exists():
+        return 0
+    zeilen = pfad.read_text(encoding="utf-8").splitlines()
+    marke = herkunft(feedback_id)
+    bleiben = [z for z in zeilen if not (z.lstrip().startswith("- ") and z.rstrip().endswith(marke))]
+    if len(bleiben) != len(zeilen):
+        pfad.write_text("\n".join(bleiben) + "\n", encoding="utf-8")
+    return len(zeilen) - len(bleiben)
