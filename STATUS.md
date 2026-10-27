@@ -385,6 +385,24 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
       UID-Ablage, weil UIDs je Ordner doppelt sind), anzeige, wortlaut, bauen, senden(cfg, daten) mit
       SMTP_SSL bei SMTP_PORT 465, sonst STARTTLS; Login aus MAIL_NUTZER/MAIL_KENNWORT (Standard IMAP_NUTZER/
       IMAP_KENNWORT), Kopie in GESENDET_ORDNER. uni stellt danach darauf um (uni-Chat).
+20. Bedarf aus uni (28.10., Plan von Jan freigegeben: Mail-Ablauf von posteingang auch für uni, erster Fall
+   Antwort an Prof. Böhme im Stil des BA-Schriftwechsels):
+   a) agentkit.imap.suchen scheitert am Exchange der HNEE (mail.hnee.de), lesend getestet 28.10.:
+      - SEARCH CHARSET UTF-8 -> Antwort "[BADCHARSET ...]", suchen wirft ValueError (int(b'[BADCHARSET')).
+        Ohne CHARSET gehen ASCII-Kriterien (FROM "Boehme" findet 19 Mails in INBOX), Umlaute dann nicht
+        (imaplib kodiert ascii).
+      - TO findet nichts: "Gesendete Elemente", TO "Thomas.Boehme", "Boehme@hnee.de", "Thomas", "Jahreis"
+        -> leer, obwohl Mails an sie gingen (UID 739, 736); nur TO "hnee.de" trifft. HEADER To "Boehme" auch leer.
+        TEXT "Boehme" trifft dagegen (18 gesendete Mails).
+      Vorschlag: BADCHARSET erkennen und ohne CHARSET erneut suchen, Umlaute dabei umschreiben (ö -> oe,
+      ß -> ss) oder weglassen; an= als TEXT suchen und in Python gegen das Feld "an" prüfen (Teilstring,
+      Groß-/Kleinschreibung egal). Gilt auch für von=, falls Absendernamen mit Umlaut gesucht werden.
+   b) Den allgemeinen Teil von posteingang/auftrag.py nach agentkit (z. B. agentkit.mailauftrag), damit uni
+      ihn nicht nachbaut: prompt_suche, suche_lesen, kontext_sammeln, kontext_als_text, prompt_entwurf,
+      prompt_aendern, antwort_lesen. Anzupassen je Agent: Beschreibung des Postfachs im Prompt (uni: HNEE-Adresse
+      jkl298@hnee.de, Dozenten), Ordner (uni: INBOX, Archive, "Gesendete Elemente"), MAX_TAGE_ZURUECK (uni
+      braucht ca. 3 Jahre: BA-Verlauf mit Böhme Sep. 2025 bis Apr. 2026), Unterschrift. posteingang danach
+      darauf umstellen (posteingang-Chat). uni baut seinen Teil im uni-Chat dagegen.
 
 ## Gelernte Regeln
 - (noch keine)
