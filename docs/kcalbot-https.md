@@ -39,7 +39,8 @@ Empfehlung: ja, im selben Schritt.
 | kcal | A | 84.247.188.205 | 3600 |
 | kcal | AAAA | 2a02:c207:3020:9076::1 | 3600 |
 
-Erst möglich, wenn die Registrierung durch ist (Status nicht mehr REG REQUESTED).
+Erledigt 27.10.2026 (über Claude in Chrome), vom Server aus geprüft: kcal.meldro.de löst auf beide Adressen auf.
+Die übrigen Einträge (Parkseite von INWX, auch * als Platzhalter) sind unverändert.
 Prüfen vom Mac: `dig +short kcal.meldro.de` zeigt die IP.
 
 **2. Caddy installieren** (Ubuntu-Paket, legt den Dienst `caddy` unter eigenem User an, etwa 30-50 MB RAM):
