@@ -58,13 +58,19 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Leitfragen mit Namen) von Jan verworfen: zu erschlagend, Reihenfragen müssen allgemein sein wie Lias eigene.
   Zweite Fassung (--nur-dossier, 0,81 USD): 4 Seiten, 4 allgemeine Reihenfragen (z. B. „Soll die Strafe zur Tat
   passen oder zu dem Menschen, der sie begangen hat?“), 4 Fälle, 6 „Vielleicht auch interessant“, 4 Rückfragen.
-  Erste Fassung als dossier_v1.json, ergebnis_v1.json, „Fallsuche Strafe v1.docx“ daneben.
-  Kosten 41,76 USD (mit zweitem Dossier) in vier Teilläufen (15,33 Abbruch an der Grenze; 8,77 Abbruch am 5h-Kontingent; 6,58
+  Erste Fassung als dossier_v1.json, ergebnis_v1.json, „Fallsuche Strafe v1.docx“ daneben. Zweite Fassung von Jan
+  verworfen, weil drei der vier Fälle Gewalt enthielten (Heide: Mädchen quälen eine 13-Jährige) -> Regel G1
+  korrigiert: keine Gewalt gegen Menschen, auch nicht als bestrafte Tat (als dossier_v2.json, „… v2.docx“).
+  Dritte Fassung (0,66 USD, aktuell): Rakete Neukölln, Y-Kollektiv Jugendarrest, Kamila W. (Ersatzfreiheitsstrafe),
+  Mizzy (Prank-Verbot gebrochen, Jugendhaft), 14-Jährige postet Lehrerfoto; Reihenfragen u. a. „Muss jemand ins
+  Gefängnis, auch wenn es ihn nicht besser macht?“, „Darf man jemanden länger einsperren, weil er es wieder tun
+  könnte?“. 14 der 41 Fälle sind wegen Gewalt nicht mehr nutzbar; die Suche verwirft solche jetzt gleich.
+  Kosten 42,42 USD (mit zwei neuen Dossiers) in vier Teilläufen (15,33 Abbruch an der Grenze; 8,77 Abbruch am 5h-Kontingent; 6,58
   Absturz bei der Belegprüfung; 10,27), von Jan freigegeben 15 + 30 USD. Suchläufe kosten 2,4–4,5 USD
   (Durchgang 2 teurer als 1), Abgleich 1,54, Dossier 1,98. Ein Suchfenster mit zwei Durchgängen ≈ 6,5–7 USD.
   Jan schickt das Dossier an Lia; ihr Feedback (gesprochen) kommt über Jan. Siehe Abschnitt Fallsuche.
 - Kein Dienst, kein Timer (Teil D).
-- 159 Tests (tests/), in pruefen.sh eingetragen.
+- 161 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
