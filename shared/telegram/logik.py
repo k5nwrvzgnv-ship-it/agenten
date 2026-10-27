@@ -12,6 +12,7 @@ AGENTEN = ("uni", "dokumente", "posteingang", "einkauf")
 MAX_LAENGE = 3800  # Telegram erlaubt 4096 Zeichen pro Nachricht, etwas Puffer
 MAX_DATEI_BYTES = 20 * 1024 * 1024  # mehr lädt die Bot-Schnittstelle von Telegram nicht herunter
 ZENTRALE = "zentrale"  # Absender für Systemnachrichten (Sprachregel, Jan 27.10.2026)
+SYSTEM = ("feedback",)  # Dienste ohne eigenen Namen bei Jan: sie schreiben als Zentrale
 
 # ---------- Texte für Jan (docs/sprache/sprachregel.md) ----------
 OHNE_GRUND = "Einen Grund kann ich dir leider nicht nennen. Schick den Auftrag noch einmal, oder sieh am PC nach."
@@ -256,6 +257,7 @@ def mit_absender(agent: str, text: str, zusatz: str = "") -> list[str]:
 
     Technisches (IDs, Pfade, Auftragstext) gehört nicht hierher, sondern ins Log.
     """
+    agent = ZENTRALE if agent in SYSTEM else agent
     kopf = f"<b>{escape(anzeigename(agent), False)}</b>" + (f" · {escape(zusatz, False)}" if zusatz else "")
     stuecke = aufteilen(text.strip(), MAX_LAENGE - 100)
     return [f"{kopf}\n{escape(stuecke[0], False)}".rstrip(), *(escape(s, False) for s in stuecke[1:])]

@@ -7,7 +7,6 @@ prüft alle Snapshots gegen die Sprachregel. Neu schreiben wie in test_vorlagen.
 import os
 import re
 import unittest
-from pathlib import Path
 
 from agentkit import ausfall
 from agentkit import feedback as fb
@@ -100,16 +99,13 @@ class NachrichtenTest(unittest.TestCase):
             "data/ausgabe/x/Zusammenfassung_Gebrauchsklassen.pdf")))
 
     def test_jan_feedback(self):
-        repo = Path("/home/agent/agenten")
-        ziel = (repo / "lia/recherche/STATUS.md", fb.REGEL_ABSCHNITT_AGENT)
-        text, knoepfe = fb.zusammenfassung("Lia", "recherche", FEEDBACK_TEXT, FEEDBACK_REGEL, True, "",
-                                           fb.wirkung_text(FEEDBACK_REGEL, ziel, repo))
+        text, knoepfe = fb.zusammenfassung("Lia", "recherche", FEEDBACK_TEXT, FEEDBACK_REGEL, True, "")
         self.snapshot("jan_feedback_regel", logik.mit_absender("feedback", text),
                       logik.meldung_knoepfe({"id": AID, "knoepfe": knoepfe}))
         nb = {"art": "nachbesserung", "ziel": "", "auftrag": "Setz die Empfehlung ganz nach oben.", "heikel": False,
               "zusammenfassung": "Lia will die Empfehlung in diesem Ergebnis oben sehen."}
         text, knoepfe = fb.zusammenfassung("Lia", "recherche", FEEDBACK_TEXT, nb, False,
-                                           "Kosten der Nachbesserung unbekannt", fb.wirkung_text(nb, None, repo))
+                                           fb.entscheiden(nb, fb.Lage(dienst_da=True))[1])
         self.snapshot("jan_feedback_vorschlag", logik.mit_absender("feedback", text),
                       logik.meldung_knoepfe({"id": AID, "knoepfe": knoepfe}))
 
@@ -151,7 +147,7 @@ class NachrichtenTest(unittest.TestCase):
                  "text": FEEDBACK_TEXT, "ergebnis": fb.bestaetigung(z, uebernommen)}
             self.snapshot(f"lia_feedback_{name}", p.ergebnis_nachricht(a), p.ergebnis_knoepfe(a))
         fall = {"feedback": FEEDBACK_TEXT, "zuordnung": FEEDBACK_REGEL}
-        self.snapshot("lia_feedback_gestoppt", fb.stopp_text(fall, "Die Regel ist wieder gestrichen."))
+        self.snapshot("lia_feedback_gestoppt", fb.stopp_text(fall, "Das gilt also nicht mehr."))
         self.snapshot("lia_feedback_entschieden_ja", fb.entscheidung_text(fall, True))
         self.snapshot("lia_feedback_entschieden_nein", fb.entscheidung_text(fall, False))
 

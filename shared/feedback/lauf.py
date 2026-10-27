@@ -30,6 +30,7 @@ JAN = config.KONTINGENT_DIR  # Jans shared-Ordner: dort landen die Meldungen an 
 INDEX = fb.Index(HIER / "data" / "meldungen.json")
 logger = log.hole_logger(HIER, "feedback")
 STOPP = (fb.KNOPF_STOPP, "Rückgängig")
+STAND_TEXT = {"uebernommen": "übernommen", "gestoppt": "gestoppt", "verworfen": "verworfen"}
 
 
 @dataclass(frozen=True)
@@ -105,7 +106,8 @@ def anwenden(ort: Ort, fid: str, z: dict, ziel: tuple[Path, str] | None, alt: di
         zeile = regeln.zeile_eintragen(ziel[0], ziel[1], text, fid)
         logger.info("Feedback %s: %s eingetragen in %s", fid, z["art"], ziel[0])
         if grund := commit(ziel[0], f"Feedback {fid}: {'Regel' if z['art'] == 'regel' else 'Notiz'} übernommen"):
-            jan_melden(f"Feedback {fid} steht in {ziel[0]}, der Commit ist fehlgeschlagen: {fb.kurz(grund, 300)}")
+            logger.error("Feedback %s: Commit von %s fehlgeschlagen: %s", fid, ziel[0], grund)
+            jan_melden("Ein Feedback gilt jetzt, ist aber nicht gesichert. Einzelheiten am PC.")
         return zeile, None
     if z["art"] == "nachbesserung":
         nb = auftraege.neuer_auftrag(alt["agent"], fb.nachbesserung_text(z, alt), quelle=alt.get("quelle") or "telegram",
@@ -141,7 +143,8 @@ def feedback_bearbeiten(ort: Ort, a: dict, laufen=claude_lauf.laufen) -> None:
         z = fb.zuordnung_lesen(e.text if e.ok else "", agenten_liste)
     except fb.FeedbackFehler as f:
         logger.error("Feedback %s nicht zugeordnet: %s (Antwort: %s)", fid, f, fb.kurz(e.text, 300))
-        jan_melden(f"{person} zu {agent}: „{fb.kurz(a['text'], 300)}“\nKonnte ich nicht zuordnen ({f}). Bitte selbst ansehen.")
+        jan_melden(f"Feedback von {person} zu {fb.agent_name(agent)}: „{fb.kurz(a['text'], 300)}“\n"
+                   "Damit wusste ich nichts anzufangen. Sieh es dir bitte selbst an.")
         auftraege.abschliessen(fid, "Danke, ist angekommen. Jan schaut es sich an.", basis=ort.auftraege)
         return
     lage = fb.Lage(nachbesserungen_bisher(ort, alt["id"]), verbrauch.kosten(alt["id"]),
@@ -150,7 +153,7 @@ def feedback_bearbeiten(ort: Ort, a: dict, laufen=claude_lauf.laufen) -> None:
     ziel = fb.ziel_datei(z, ort.instanz, ort.agenten_dir, REPO)
     zeile, nb = anwenden(ort, fid, z, ziel, alt) if ok else (None, None)
     fall = fb.fall(fid, alt["id"], agent, a["text"], z, ok, grund, ziel, zeile, nb, ort.instanz)
-    text, knoepfe = fb.zusammenfassung(person, agent, a["text"], z, ok, grund, fb.wirkung_text(z, ziel, REPO))
+    text, knoepfe = fb.zusammenfassung(person, agent, a["text"], z, ok, grund)
     if ok and z["art"] == "keine":
         knoepfe = []  # nichts zurückzunehmen
     elif ort.ist_jan and ok:
@@ -160,7 +163,8 @@ def feedback_bearbeiten(ort: Ort, a: dict, laufen=claude_lauf.laufen) -> None:
         INDEX.merken(mid, ort.instanz, fid)
     fall["meldung"] = mid
     auftraege.abschliessen(fid, fb.bestaetigung(z, ok), daten=fall, basis=ort.auftraege)
-    logger.info("Feedback %s: %s, %s, Meldung %s", fid, z["art"], "übernommen" if ok else f"Vorschlag ({grund})", mid)
+    logger.info("Feedback %s: %s, %s, Ziel %s, Kosten %s, Meldung %s", fid, z["art"],
+                "übernommen" if ok else f"Vorschlag ({grund})", ziel[0] if ziel else "-", lage.kosten_usd, mid)
 
 
 # ---------- Jans Klick ----------
@@ -170,16 +174,19 @@ def stoppen(ort: Ort, fall: dict) -> tuple[str, str]:
     art, fid = fall["zuordnung"]["art"], fall["feedback_id"]
     if art in ("regel", "notiz"):
         n = regeln.zeilen_entfernen(Path(fall["datei"]), fid)
-        if n and (grund := commit(Path(fall["datei"]), f"Feedback {fid}: zurückgenommen (Jans Stopp)")):
-            return f"Zeile entfernt, Commit fehlgeschlagen: {fb.kurz(grund, 200)}", "Die Regel gilt nicht mehr."
-        wort = "Regel" if art == "regel" else "Notiz"
-        return f"{wort} entfernt ({n} Zeile).", f"Die {wort} ist wieder gestrichen."
+        fuer_person = "Das gilt also nicht mehr." if art == "regel" else "Der Wunsch ist nicht mehr notiert."
+        if not n:
+            return "Es stand schon nicht mehr drin.", fuer_person
+        if grund := commit(Path(fall["datei"]), f"Feedback {fid}: zurückgenommen (Jans Stopp)"):
+            logger.error("Feedback %s: Commit der Rücknahme fehlgeschlagen: %s", fid, grund)
+            return "Es ist gestrichen, aber nicht gesichert. Einzelheiten am PC.", fuer_person
+        return "Es ist wieder gestrichen.", fuer_person
     if art == "nachbesserung":
         try:
             auftraege.abschliessen(fall["nachbesserung"], "Von Jan gestoppt.", "zurueckgezogen", basis=ort.auftraege)
-            return "Nachbesserung zurückgezogen.", "Die Nachbesserung kommt nicht."
+            return "Die überarbeitete Fassung kommt nicht.", "Die neue Fassung kommt also nicht."
         except auftraege.AuftragFehler:
-            return "Die Nachbesserung war schon fertig und ist zugestellt.", "Das neue Ergebnis bleibt, es wird nicht weiter nachgebessert."
+            return "Die überarbeitete Fassung war schon fertig und ist zugestellt.", "Die neue Fassung bleibt, wie sie ist."
     return "Es war nichts übernommen.", "Es ändert sich nichts."
 
 
@@ -187,7 +194,8 @@ def knopf_bearbeiten(a: dict) -> None:
     """Jans Klick auf eine Feedback-Meldung (läuft in Jans Instanz)."""
     eintrag = INDEX.finden(a.get("meldung") or "")
     if eintrag is None:
-        auftraege.abschliessen(a["id"], "Zu dieser Meldung finde ich keinen Feedback-Fall.", "fehlgeschlagen")
+        logger.warning("Klick %s: kein Feedback-Fall zur Meldung %s", a["id"], a.get("meldung"))
+        auftraege.abschliessen(a["id"], "Zu dieser Meldung finde ich nichts mehr. Einzelheiten am PC.", "fehlgeschlagen")
         return
     ort, fid = Ort(Path(eintrag["instanz"])), eintrag["feedback_id"]
     fall = auftraege.erledigter(fid, basis=ort.auftraege)["daten"]
@@ -211,7 +219,7 @@ def knopf_bearbeiten(a: dict) -> None:
         person_melden(ort, fb.entscheidung_text(fall, False))
         antwort = "Verworfen." + ("" if ort.ist_jan else f" {ort.person()} weiß Bescheid.")
     else:
-        antwort = f"Schon entschieden (Stand: {fall['stand']})."
+        antwort = f"Das ist schon entschieden: {STAND_TEXT.get(fall['stand'], fall['stand'])}."
     auftraege.daten_setzen(fid, fall, basis=ort.auftraege)
     logger.info("Klick %r auf Feedback %s: %s", aktion, fid, antwort)
     auftraege.abschliessen(a["id"], antwort)
@@ -227,9 +235,9 @@ def main() -> None:
         except (claude_lauf.LimitErreicht, claude_lauf.KeinPlatz, claude_lauf.LaeuftSchon) as f:
             logger.warning("Feedback %s wartet: %s", a["id"], f)  # bleibt in neu/, nächster Start
             break
-        except Exception as f:
+        except Exception:
             logger.exception("Feedback %s: unerwarteter Fehler", a["id"])
-            jan_melden(f"Feedback-Dienst: Fehler bei {a['id']}: {type(f).__name__}: {f}")
+            jan_melden("Ein Feedback hat nicht geklappt. Einzelheiten am PC.")
             try:
                 auftraege.abschliessen(a["id"], "Das hat leider nicht geklappt. Jan weiß Bescheid.", "fehlgeschlagen")
             except auftraege.AuftragFehler:

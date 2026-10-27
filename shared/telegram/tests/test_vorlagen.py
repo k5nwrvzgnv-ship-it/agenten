@@ -91,8 +91,7 @@ class SnapshotTest(unittest.TestCase):
     def test_jan_feedback_zusammenfassung(self):
         z = {"art": "regel", "ziel": "alle", "regel": "Ergebnisse beginnen mit einer Empfehlung in einem Satz.",
              "zusammenfassung": "Lia will die Empfehlung zuerst sehen."}
-        text, knoepfe = fb.zusammenfassung("Lia", "recherche", "Ich will zuerst wissen, was du empfiehlst", z, True, "",
-                                           "„Ergebnisse beginnen mit einer Empfehlung in einem Satz.“ in lia/instanz/regeln.md")
+        text, knoepfe = fb.zusammenfassung("Lia", "recherche", "Ich will zuerst wissen, was du empfiehlst", z, True, "")
         self.pruefen("jan_feedback_zusammenfassung", logik.mit_absender("feedback", text),
                      logik.meldung_knoepfe({"id": "20261027-120001-feedback-abcdef", "knoepfe": knoepfe}))
 

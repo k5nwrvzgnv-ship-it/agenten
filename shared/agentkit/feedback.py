@@ -36,12 +36,6 @@ MAX_NACHBESSERUNGEN = 1  # je Ergebnis automatisch
 KNOPF_STOPP = "Stopp"
 KNOPF_UEBERNEHMEN = "Übernehmen"
 KNOPF_VERWERFEN = "Verwerfen"
-ART_TEXT = {
-    "nachbesserung": "Nachbesserung dieses Ergebnisses",
-    "regel": "Regel (dauerhaft)",
-    "notiz": "Wunsch an Code oder Oberfläche (Notiz)",
-    "keine": "nichts zu tun",
-}
 
 
 class FeedbackFehler(Exception):
@@ -147,18 +141,18 @@ class Lage:
 def entscheiden(z: dict, lage: Lage) -> tuple[bool, str]:
     """(übernehmen, Grund für einen Vorschlag an Jan). CLAUDE.md: was nie automatisch geht."""
     if z["heikel"]:
-        return False, z["heikel_grund"] or "berührt etwas, das nie automatisch übernommen wird"
+        return False, z["heikel_grund"] or "es berührt etwas, das ich nie von selbst übernehme"
     if z["art"] == "regel" and z["widerspricht"]:
-        return False, f"widerspricht einer bestehenden Regel: {kurz(z['widerspricht'], 200)}"
+        return False, f"es widerspricht dem, was schon gilt: „{kurz(z['widerspricht'], 200)}“"
     if z["art"] == "nachbesserung":
         if lage.nachbesserungen_bisher >= MAX_NACHBESSERUNGEN:
-            return False, "zu diesem Ergebnis gab es schon eine Nachbesserung"
+            return False, "zu diesem Ergebnis gab es schon eine überarbeitete Fassung"
         if lage.kosten_usd is None:
-            return False, "Kosten der Nachbesserung unbekannt"
+            return False, "ich weiß nicht, wie viel Rechenzeit das braucht"
         if lage.kosten_usd > MAX_KOSTEN_USD:
-            return False, f"Nachbesserung dürfte etwa {lage.kosten_usd:.2f} USD kosten (Grenze {MAX_KOSTEN_USD:.0f} USD)"
+            return False, "das braucht mehr Rechenzeit, als ich allein freigeben darf"
         if not lage.dienst_da:
-            return False, "der Agent hat keinen Dienst, der Auftrag bliebe liegen"
+            return False, "der Agent ist noch nicht eingerichtet"
     return True, ""
 
 
@@ -184,69 +178,76 @@ def nachbesserung_text(z: dict, auftrag: dict) -> str:
             f"(Auftrag {auftrag['id']}):\n\n{z['auftrag']}")
 
 
+def agent_name(agent: str) -> str:
+    """'recherche' -> 'Recherche' (Sprachregel: Agenten groß)."""
+    return agent[:1].upper() + agent[1:]
+
+
 def ziel_name(z: dict, person: str) -> str:
-    """Wo eine Regel oder Notiz landet, in Worten."""
+    """Für wen eine Regel oder Notiz gilt, in Worten."""
+    if z["ziel"] == ALLE:
+        return f"alles von {person}"
+    if z["ziel"] == OBERFLAECHE:
+        return "die Zentrale"
+    return agent_name(z["ziel"])
+
+
+def wirkung_fuer_person(z: dict) -> str:
+    """Was das Feedback bewirkt, in Lias bzw. Jans Worten (ohne Dank)."""
     if z["art"] == "regel":
-        return f"für alle Agenten von {person}" if z["ziel"] == ALLE else f"nur für {z['ziel']}"
+        return f"Ab jetzt gilt: „{z['regel']}“"
+    if z["art"] == "nachbesserung":
+        return "Ich mache das Ergebnis jetzt noch einmal. Es kommt dann hierher."
     if z["art"] == "notiz":
-        return "für die Telegram-Oberfläche" if z["ziel"] == OBERFLAECHE else f"für {z['ziel']}"
+        return "Ich habe es notiert. Das kann ich noch nicht. Jan baut es ein."
     return ""
 
 
 def bestaetigung(z: dict, uebernommen: bool) -> str:
     """Rückmeldung an die Person, die das Feedback gegeben hat."""
     if not uebernommen:
-        return "Danke. Das lege ich Jan zur Entscheidung vor, ich sage dir Bescheid."
+        return "Danke. Das lege ich Jan zur Entscheidung vor. Ich sage dir dann Bescheid."
+    if z["art"] == "keine":
+        return "Danke, ist angekommen."
+    return f"Danke. {wirkung_fuer_person(z)}"
+
+
+def wirkung_text(z: dict, person: str, agent: str) -> str:
+    """Was passiert ist (bzw. bei einem Vorschlag passieren würde), für Jan. Wo es steht, steht im Log."""
     if z["art"] == "regel":
-        return f"Danke, übernommen. Ab jetzt gilt: {z['regel']}"
-    if z["art"] == "nachbesserung":
-        return "Danke. Die Nachbesserung läuft, das neue Ergebnis kommt hierher."
+        return f"Ab jetzt gilt für {ziel_name(z, person)}: „{z['regel']}“"
     if z["art"] == "notiz":
-        return "Danke, für später notiert. Das braucht eine Programmänderung, Jan baut es bei Gelegenheit ein."
-    return "Danke, ist angekommen."
+        return f"Wunsch für später notiert, für {ziel_name(z, person)}: „{z['notiz']}“"
+    if z["art"] == "nachbesserung":
+        return f"{agent_name(agent)} schickt eine überarbeitete Fassung: „{kurz(z['auftrag'], 300)}“"
+    return "Nichts zu tun."
 
 
-def zusammenfassung(person: str, agent: str, feedback_text: str, z: dict, uebernommen: bool, grund: str,
-                    wirkung: str) -> tuple[str, list[list[str]]]:
-    """Meldung an Jan (Text, Knöpfe): wer, was, welche Art, was passiert ist."""
-    zeilen = [f"{person} zu {agent}: „{kurz(feedback_text, 300)}“"]
+def zusammenfassung(person: str, agent: str, feedback_text: str, z: dict, uebernommen: bool,
+                    grund: str) -> tuple[str, list[list[str]]]:
+    """Meldung an Jan (Text, Knöpfe): wer, was, was passiert ist bzw. was ich vorschlage."""
+    zeilen = [f"Feedback von {person} zu {agent_name(agent)}: „{kurz(feedback_text, 300)}“"]
+    if uebernommen:
+        zeilen.append(wirkung_text(z, person, agent))
+        return "\n".join(zeilen), [[KNOPF_STOPP]]
     if z.get("zusammenfassung"):
         zeilen.append(z["zusammenfassung"])
-    art = ART_TEXT[z["art"]] + (f", {ziel_name(z, person)}" if ziel_name(z, person) else "")
-    zeilen.append(f"Art: {art}")
-    if uebernommen:
-        zeilen.append(f"Passiert: {wirkung}")
-        return "\n".join(zeilen), [[KNOPF_STOPP]]
-    zeilen.append(f"Nicht automatisch übernommen: {grund}")
-    zeilen.append(f"Vorschlag: {wirkung}")
+    zeilen.append(f"Mein Vorschlag: {wirkung_text(z, person, agent)}")
+    zeilen.append(f"Das übernehme ich nicht von selbst, denn {grund}.")
     return "\n".join(zeilen), [[KNOPF_UEBERNEHMEN, KNOPF_VERWERFEN]]
-
-
-def wirkung_text(z: dict, ziel: tuple[Path, str] | None, repo: Path) -> str:
-    """Was passiert ist (bzw. bei einem Vorschlag passieren würde), für Jan."""
-    if z["art"] == "nachbesserung":
-        return f"neuer Auftrag an den Agenten: {kurz(z['auftrag'], 300)}"
-    if z["art"] == "keine":
-        return "nichts"
-    pfad = ziel[0]
-    try:
-        pfad = pfad.relative_to(repo)
-    except ValueError:
-        pass
-    text = z["regel"] if z["art"] == "regel" else z["notiz"]
-    return f"„{text}“ in {pfad}"
 
 
 def stopp_text(fall: dict, ergebnis: str) -> str:
     """Kurze Nachricht an die Person nach Jans Stopp."""
-    return f"Jan hat dein Feedback „{kurz(fall.get('feedback', ''), 120)}“ zurückgenommen: {ergebnis}"
+    return f"Jan nimmt dein Feedback „{kurz(fall.get('feedback', ''), 120)}“ zurück. {ergebnis}"
 
 
 def entscheidung_text(fall: dict, uebernommen: bool) -> str:
     """Nachricht an die Person, nachdem Jan über einen Vorschlag entschieden hat."""
+    zitat = f"„{kurz(fall.get('feedback', ''), 120)}“"
     if uebernommen:
-        return f"Jan hat dein Feedback „{kurz(fall.get('feedback', ''), 120)}“ übernommen. {bestaetigung(fall['zuordnung'], True)}"
-    return f"Jan hat entschieden, dein Feedback „{kurz(fall.get('feedback', ''), 120)}“ nicht zu übernehmen."
+        return f"Jan hat dein Feedback {zitat} angenommen. {wirkung_fuer_person(fall['zuordnung'])}".strip()
+    return f"Jan hat dein Feedback {zitat} angesehen. Es bleibt alles, wie es ist."
 
 
 def fall(feedback_id: str, bezug: str, agent: str, feedback_text: str, z: dict, uebernommen: bool, grund: str,

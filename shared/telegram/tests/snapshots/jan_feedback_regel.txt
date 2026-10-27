@@ -1,7 +1,5 @@
-<b>Feedback</b>
-Lia zu recherche: „Falscher Fokus: Mir fehlt oben eine klare Empfehlung, welche Reihenfrage ich nehmen soll.“
-Lia will bei jeder Recherche zuerst eine klare Empfehlung ganz oben sehen.
-Art: Regel (dauerhaft), nur für recherche
-Passiert: „Jede Recherche beginnt oben mit einer klaren Empfehlung (z. B. welche Reihenfrage), bevor die übrigen Teile folgen.“ in lia/recherche/STATUS.md
+<b>Zentrale</b>
+Feedback von Lia zu Recherche: „Falscher Fokus: Mir fehlt oben eine klare Empfehlung, welche Reihenfrage ich nehmen soll.“
+Ab jetzt gilt für Recherche: „Jede Recherche beginnt oben mit einer klaren Empfehlung (z. B. welche Reihenfrage), bevor die übrigen Teile folgen.“
 --- Knöpfe ---
 [Stopp] m:20261025-211917-recherche-7ad7f7:0:0

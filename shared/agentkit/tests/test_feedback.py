@@ -53,9 +53,9 @@ class TestEntscheiden(unittest.TestCase):
             (antwort(heikel=True, heikel_grund="Datenschutz"), gut, "Datenschutz"),
             (antwort(widerspricht="Lieber kurz"), gut, "widerspricht"),
             (nb, fb.Lage(nachbesserungen_bisher=1, kosten_usd=0.6, dienst_da=True), "schon eine"),
-            (nb, fb.Lage(kosten_usd=None, dienst_da=True), "unbekannt"),
-            (nb, fb.Lage(kosten_usd=2.1, dienst_da=True), "2.10 USD"),
-            (nb, fb.Lage(kosten_usd=0.6, dienst_da=False), "keinen Dienst"),
+            (nb, fb.Lage(kosten_usd=None, dienst_da=True), "weiß nicht"),
+            (nb, fb.Lage(kosten_usd=2.1, dienst_da=True), "mehr Rechenzeit"),
+            (nb, fb.Lage(kosten_usd=0.6, dienst_da=False), "nicht eingerichtet"),
         ]
         for z, lage, grund in faelle:
             with self.subTest(grund=grund):
@@ -80,31 +80,28 @@ class TestTexte(unittest.TestCase):
 
     def test_zusammenfassung_mit_stopp(self):
         z = antwort()
-        ziel = fb.ziel_datei(z, self.instanz, self.agenten, self.repo)
-        text, knoepfe = fb.zusammenfassung("Lia", "recherche", "Bitte immer erst die Empfehlung", z, True, "",
-                                           fb.wirkung_text(z, ziel, self.repo))
-        self.assertEqual(text, "Lia zu recherche: „Bitte immer erst die Empfehlung“\nLia will es kürzer.\n"
-                               "Art: Regel (dauerhaft), für alle Agenten von Lia\n"
-                               "Passiert: „Ergebnisse beginnen mit einer Empfehlung.“ in lia/instanz/regeln.md")
+        text, knoepfe = fb.zusammenfassung("Lia", "recherche", "Bitte immer erst die Empfehlung", z, True, "")
+        self.assertEqual(text, "Feedback von Lia zu Recherche: „Bitte immer erst die Empfehlung“\n"
+                               "Ab jetzt gilt für alles von Lia: „Ergebnisse beginnen mit einer Empfehlung.“")
         self.assertEqual(knoepfe, [["Stopp"]])
 
     def test_vorschlag_mit_zwei_knoepfen(self):
         z = antwort(art="nachbesserung", auftrag="kürzer")
-        text, knoepfe = fb.zusammenfassung("Lia", "unterricht", "zu lang", z, False, "Kosten unbekannt",
-                                           fb.wirkung_text(z, None, self.repo))
-        self.assertIn("Nicht automatisch übernommen: Kosten unbekannt", text)
-        self.assertIn("Vorschlag: neuer Auftrag an den Agenten: kürzer", text)
+        text, knoepfe = fb.zusammenfassung("Lia", "unterricht", "zu lang", z, False, "Grund")
+        self.assertIn("Das übernehme ich nicht von selbst, denn Grund.", text)
+        self.assertIn("Mein Vorschlag: Unterricht schickt eine überarbeitete Fassung: „kürzer“", text)
         self.assertEqual(knoepfe, [["Übernehmen", "Verwerfen"]])
 
     def test_bestaetigungen(self):
-        self.assertIn("Ab jetzt gilt: Ergebnisse beginnen", fb.bestaetigung(antwort(), True))
-        self.assertIn("Nachbesserung läuft", fb.bestaetigung(antwort(art="nachbesserung"), True))
-        self.assertIn("für später notiert", fb.bestaetigung(antwort(art="notiz"), True))
+        self.assertIn("Ab jetzt gilt: „Ergebnisse beginnen", fb.bestaetigung(antwort(), True))
+        self.assertIn("mache das Ergebnis jetzt noch einmal", fb.bestaetigung(antwort(art="nachbesserung"), True))
+        self.assertIn("notiert", fb.bestaetigung(antwort(art="notiz"), True))
+        self.assertEqual("Danke, ist angekommen.", fb.bestaetigung(antwort(art="keine"), True))
         self.assertIn("Jan zur Entscheidung", fb.bestaetigung(antwort(), False))
         fall = {"feedback": "zu lang", "zuordnung": antwort()}
-        self.assertIn("zurückgenommen: Regel entfernt", fb.stopp_text(fall, "Regel entfernt"))
-        self.assertIn("übernommen. Danke, übernommen.", fb.entscheidung_text(fall, True))
-        self.assertIn("nicht zu übernehmen", fb.entscheidung_text(fall, False))
+        self.assertEqual("Jan nimmt dein Feedback „zu lang“ zurück. Gilt nicht mehr.", fb.stopp_text(fall, "Gilt nicht mehr."))
+        self.assertIn("angenommen. Ab jetzt gilt:", fb.entscheidung_text(fall, True))
+        self.assertIn("Es bleibt alles, wie es ist.", fb.entscheidung_text(fall, False))
 
     def test_agenten_und_index(self):
         for name in ("uni", "dokumente", "Kaputt"):

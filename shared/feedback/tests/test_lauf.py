@@ -64,23 +64,23 @@ class TestLauf(unittest.TestCase):
 
     def test_regel_uebernommen_und_gestoppt(self):
         f = self.feedback("Bitte immer erst die Empfehlung", zuordnung())
-        self.assertEqual(f["ergebnis"], "Danke, übernommen. Ab jetzt gilt: Ergebnisse beginnen mit einer Empfehlung.")
+        self.assertEqual(f["ergebnis"], "Danke. Ab jetzt gilt: „Ergebnisse beginnen mit einer Empfehlung.“")
         self.assertEqual((f["daten"]["stand"], f["daten"]["bezug"]), ("uebernommen", self.ergebnis["id"]))
         regeln_md = (self.instanz / "regeln.md").read_text(encoding="utf-8")
         self.assertIn(f"Ergebnisse beginnen mit einer Empfehlung. (Feedback {f['id']})", regeln_md)
         self.assertEqual(self.commits[0][0], "regeln.md")
         m = self.jan_meldung(f)
         self.assertEqual((m["agent"], m["knoepfe"], m["dienst"]), ("feedback", [["Stopp"]], "feedback"))
-        self.assertIn("Passiert: „Ergebnisse beginnen mit einer Empfehlung.“", m["text"])
+        self.assertIn("Ab jetzt gilt für alles von Lia: „Ergebnisse beginnen mit einer Empfehlung.“", m["text"])
 
         k = self.klick(m, "Stopp")
-        self.assertEqual(k["ergebnis"], "Gestoppt. Regel entfernt (1 Zeile). Lia weiß Bescheid.")
+        self.assertEqual(k["ergebnis"], "Gestoppt. Es ist wieder gestrichen. Lia weiß Bescheid.")
         self.assertNotIn("Empfehlung", (self.instanz / "regeln.md").read_text(encoding="utf-8"))
         self.assertEqual(auftraege.erledigter(f["id"], basis=self.basis)["daten"]["stand"], "gestoppt")
         an_lia = meldungen.neue(basis=self.instanz / "meldungen")[-1]["text"]
-        self.assertIn("Jan hat dein Feedback „Bitte immer erst die Empfehlung“ zurückgenommen", an_lia)
+        self.assertEqual("Jan nimmt dein Feedback „Bitte immer erst die Empfehlung“ zurück. Das gilt also nicht mehr.", an_lia)
         self.assertEqual(len(self.commits), 2)
-        self.assertIn("Schon entschieden", self.klick(m, "Stopp")["ergebnis"])
+        self.assertEqual("Das ist schon entschieden: gestoppt.", self.klick(m, "Stopp")["ergebnis"])
 
     def test_nachbesserung_und_stopp_zieht_zurueck(self):
         (self.units / "lia-recherche.service").write_text("")
@@ -91,9 +91,9 @@ class TestLauf(unittest.TestCase):
                          (f["daten"]["nachbesserung"], self.ergebnis["id"], "s0", "portal-frage"))
         self.assertIn("Kürze auf eine Seite.", nb["text"])
         self.assertEqual(self.starts, ["lia-recherche"])
-        self.assertIn("Nachbesserung läuft", f["ergebnis"])
+        self.assertIn("mache das Ergebnis jetzt noch einmal", f["ergebnis"])
         self.assertEqual(self.klick(self.jan_meldung(f), "Stopp")["ergebnis"],
-                         "Gestoppt. Nachbesserung zurückgezogen. Lia weiß Bescheid.")
+                         "Gestoppt. Die überarbeitete Fassung kommt nicht. Lia weiß Bescheid.")
         self.assertEqual(auftraege.erledigter(nb["id"], basis=self.basis)["status"], "zurueckgezogen")
 
     def test_zweite_nachbesserung_wird_vorschlag_und_jan_uebernimmt(self):
@@ -107,17 +107,17 @@ class TestLauf(unittest.TestCase):
         self.assertEqual(auftraege.neue("recherche", basis=self.basis), [])
         m = self.jan_meldung(f)
         self.assertEqual(m["knoepfe"], [["Übernehmen", "Verwerfen"]])
-        self.assertIn("schon eine Nachbesserung", m["text"])
+        self.assertIn("schon eine überarbeitete Fassung", m["text"])
         self.assertEqual(self.klick(m, "Übernehmen")["ergebnis"], "Übernommen. Lia weiß Bescheid.")
         self.assertIn("Noch kürzer.", auftraege.neue("recherche", basis=self.basis)[0]["text"])
-        self.assertIn("übernommen", meldungen.neue(basis=self.instanz / "meldungen")[-1]["text"])
+        self.assertIn("angenommen", meldungen.neue(basis=self.instanz / "meldungen")[-1]["text"])
 
     def test_heikel_verwerfen(self):
         f = self.feedback("Schick das gleich an die Schulleitung", zuordnung(heikel=True, heikel_grund="Handeln nach außen"))
         self.assertEqual(f["daten"]["stand"], "vorschlag")
         self.assertIn("(noch keine)", (self.instanz / "regeln.md").read_text(encoding="utf-8"))
         self.assertEqual(self.klick(self.jan_meldung(f), "Verwerfen")["ergebnis"], "Verworfen. Lia weiß Bescheid.")
-        self.assertIn("nicht zu übernehmen", meldungen.neue(basis=self.instanz / "meldungen")[-1]["text"])
+        self.assertIn("Es bleibt alles, wie es ist.", meldungen.neue(basis=self.instanz / "meldungen")[-1]["text"])
 
     def test_notiz_fuer_agent_und_lob(self):
         f = self.feedback("Kann recherche auch Videos prüfen?", zuordnung(art="notiz", ziel="recherche", notiz="Videos prüfen"))
@@ -132,7 +132,7 @@ class TestLauf(unittest.TestCase):
         f = self.feedback("hm", claude_lauf.Ergebnis(text="weiß nicht", sitzung=None, ok=True))
         self.assertEqual(f["status"], "erledigt")
         self.assertIn("Jan schaut es sich an", f["ergebnis"])
-        self.assertIn("Konnte ich nicht zuordnen", self.jan_meldung()["text"])
+        self.assertIn("Damit wusste ich nichts anzufangen", self.jan_meldung()["text"])
 
     def test_ergebnis_fehlt(self):
         auftraege.neuer_auftrag("feedback", "x", quelle="feedback", bezug="20260101-000000-uni-abcdef", basis=self.basis)
