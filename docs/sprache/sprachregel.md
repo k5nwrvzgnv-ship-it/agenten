@@ -1,4 +1,4 @@
-# Sprachregel der Zentralen (ENTWURF, wartet auf Jans Entscheidung)
+# Sprachregel der Zentralen (von Jan angenommen 27.10.2026)
 
 Gilt für jede Nachricht, die Lias oder Jans Zentrale schickt, auch für Ergebnisse und Meldungen der Agenten.
 Telegram ist die Oberfläche: Was dort steht, muss ohne Technikwissen verständlich sein. Technik steht im Log.
@@ -47,15 +47,16 @@ Telegram ist die Oberfläche: Was dort steht, muss ohne Technikwissen verständl
 | läuft noch nicht (Dienst) | „ist noch nicht eingerichtet“ | Jan |
 | Zentrale, Panel | „Menü“ | Lia |
 
-## Prüfung (Schritt 3)
-Jargon-Prüfer: Glossar, IDs, Pfade, Dateinamen, Beträge, Modellnamen, rohe Fehlertexte. Lesbarkeit: 1. WSTF, gemessen
-erst nach Entfernen von URLs, Pfaden und Zahlen, nur ab 10 Wörtern; darunter zählt nur die Satzlänge.
+## Prüfung
+agentkit.sprache: Jargon-Prüfer (Glossar, soweit als Muster eindeutig, dazu IDs, Pfade, Dateinamen, Beträge,
+Modellnamen, rohe Fehlertexte, Bezeichner) und 1. WSTF. Gemessen wird Fließtext nach Entfernen von URLs, Pfaden, Zahlen
+und Zitaten der Person („…“); Beschriftungen (bis 4 Wörter ohne Satzzeichen, z. B. „Neues Material“) zählen nur für die
+Satzlänge; unter 10 Wörtern gilt nur die Satzlänge. Läuft über alle Snapshots (pruefen.sh) und zur Laufzeit über jede
+ausgehende Nachricht (nur Warnung ins Log, ohne Inhalt).
 
-## Zu entscheiden (Jan)
-1. Grenzwerte: WSTF Lia 6 / Jan 8, Satz 15 / 20 Wörter, 600 / 800 Zeichen. Heute: echte Nachrichten an Jan im Median
-   7–8,4, Lias Kontingent-Fehler 7,0.
-2. „Rechenzeit“ statt „Kontingent“ auch für dich?
-3. Absender „Zentrale“ für Systemnachrichten an dich (heute ohne Absender bzw. „Feedback“, „Störung“)?
-4. Lias Fehlertexte: Wo du heute keine Meldung bekommst (Anfrage nicht angelegt, Datei nicht gesendet), schreibt Lia
-   weiter „Sag Jan bitte Bescheid“. Oder soll dort eine Meldung an dich dazukommen (kleine Änderung, keine neue Funktion)?
-5. Modus-Wörter bei dir: „erledigen / lernen“ bleiben, oder „Uni macht es allein / Wir machen es zusammen“?
+## Entschieden (Jan 27.10.2026)
+1. Grenzwerte wie oben: WSTF Lia 6 / Jan 8, Satz 15 / 20 Wörter, 600 / 800 Zeichen.
+2. „Rechenzeit“ statt „Kontingent“, auch für Jan.
+3. Absender „Zentrale“ für Systemnachrichten an Jan.
+4. Lias Fehlertexte bleiben „Sag Jan bitte Bescheid“, wo Jan keine Meldung bekommt; keine neue Meldung.
+5. Modus-Wörter: „Uni macht es allein“ / „Wir machen es zusammen“ statt „erledigen / lernen“.

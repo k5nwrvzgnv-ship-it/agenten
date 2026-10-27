@@ -321,11 +321,20 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Vorschlag: abruf.laden kodiert Pfad und Query selbst (IRI -> URI) und meldet alles andere als AbrufFehler.
 
 16. Sprache der Zentralen (Jan 27.10.: Nachrichten für Laien, Technik bleibt im Backend, keine neuen Funktionen).
-   Schritt 1 erledigt: Inventur docs/sprache/inventur.md (Code-Texte, echte gesendete Texte, Lias Wortschatz).
-   Schritt 2: Entwurf docs/sprache/sprachregel.md wartet auf Jans Entscheidung (5 Fragen am Ende).
-   Danach: 3 Jargon-Prüfer und Lesbarkeit (WSTF) als getestete Funktion, in pruefen.sh und zur Laufzeit (nur Log);
-   4 Texte umschreiben (Vorlagen, Panel, Hilfe, Fehler, Feedback), Ergebnistext-Vertrag in agentkit, Bedarf an die
-   Agenten in deren STATUS.md; 5 Handy-Bilder vorher/nachher (380 px); danach eine Woche Auswertung.
+   Erledigt: 1 Inventur docs/sprache/inventur.md; 2 Sprachregel docs/sprache/sprachregel.md (angenommen 27.10., alle
+   5 Punkte wie vorgeschlagen); 3 agentkit.sprache (Jargon-Prüfer, 1. Wiener Sachtextformel, Grenzen je Person) mit
+   Tests; Snapshots aller Nachrichtenarten, die schon reine Funktionen sind (shared/telegram/tests/test_nachrichten.py,
+   lia_* / jan_*), geprüft in test_sprache_snapshots.py; Laufzeitprüfung in beiden Zentralen (sprachpruefung.py als
+   rate_limiter, Warnung „Sprache <Endpunkt> (<Absender>): …“ ohne Inhalt im Log), Ausfallmeldung ins Journal.
+   Beide Zentralen am 27.10. 17:02 neu gestartet, laufen; noch keine echte Nachricht seitdem geprüft.
+   Altlasten: shared/telegram/tests/sprache_altlasten.json (48 Befunde in 24 von 39 Snapshots) darf nur kürzer werden
+   (SPRACHE_ALTLASTEN_KUERZEN=1 streicht Behobenes). Nachweis = Datei leer, dann löschen.
+   Nicht als Snapshot abgedeckt: Texte direkt in zentrale.py, portal.py, feedback/lauf.py (Hilfe, Status, Fehler,
+   Sitzung, Dateien, Stopp-Antworten). Schritt 4 zieht sie in logik.py / portal_logik.py / agentkit.feedback und
+   bekommt dabei Snapshots.
+   Offen: 4 umschreiben (Vorlagen, Panel, Hilfe, Fehler, Feedback inkl. Jans Zusammenfassung ohne Pfade),
+   Ergebnistext-Vertrag in agentkit, Bedarf an die Agenten in deren STATUS.md; 5 Handy-Bilder vorher/nachher
+   (380 px); danach eine Woche Auswertung (Treffer im Log, Passt/Zu lang/Falscher Fokus, Rückfragen, Wünsche).
 
 ## Gelernte Regeln
 - (noch keine)
