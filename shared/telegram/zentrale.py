@@ -17,6 +17,11 @@
   kommt nur sie (docx bleibt auf dem Server).
 - Nachrichten an Jan bleiben kurz: Absender fett, Ergebnis, nichts Technisches (IDs, Pfade,
   Stufen). Stufenwechsel nur bei Limit und danach, Weitergaben nur, wenn der Auftrag liegen bleibt.
+- Feedback (CLAUDE.md, "Lernen aus Feedback"): Unter jedem Ergebnis eines Agenten Knöpfe (vorlagen.py: Passt, Zu
+  lang, Falscher Fokus, Feedback schreiben). Feedback wird ein Auftrag an "feedback" (bezug = Ergebnis), danach
+  startet feedback.service (shared/feedback). Dessen Zusammenfassung kommt als Meldung mit Stopp-Knopf (auch für
+  Lias Feedback); der Klick geht wie jeder Meldungsknopf an feedback.service. Eine Antwort auf das Ergebnis setzt
+  weiter die Sitzung fort.
 - Nimmt Dateien und Fotos an (bis 20 MB). Mit /agent in der Bildunterschrift oder als Antwort auf
   eine Meldung gehen sie sofort an den Auftrag, sonst warten sie in data/eingang/ auf den nächsten
   Auftrag. agentkit.auftraege legt sie dann in <agent>/data/eingang/<auftrag-id>/ ab.
@@ -70,8 +75,10 @@ from logik import (
     weitergabe_text,
 )
 import panel
+import vorlagen as v
 
 HIER = Path(__file__).resolve().parent
+FEEDBACK = "feedback"  # Feedback-Dienst (shared/feedback), kein Agent mit Befehl
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 AGENTEN_DIR = auftraege.AGENTEN_DIR
 PRUEF_INTERVALL = 30  # Sekunden
@@ -110,7 +117,7 @@ async def senden(context: ContextTypes.DEFAULT_TYPE, text: str | list[str], knoe
 
 
 async def dateien_senden(context: ContextTypes.DEFAULT_TYPE, agent: str, dateien: list[str],
-                         beschriftung: str | None = None) -> list:
+                         beschriftung: str | None = None, knoepfe=None) -> list:
     """Schickt Ergebnisdateien eines Agenten, beschriftung (HTML) unter der letzten.
 
     Ein Fehler betrifft nur die eine Datei, Jan erfährt davon. Scheitert die beschriftete Datei,
@@ -123,23 +130,24 @@ async def dateien_senden(context: ContextTypes.DEFAULT_TYPE, agent: str, dateien
             # noch einmal prüfen: zwischen Ablage und Senden kann sich die Datei geändert haben
             pfad = AGENTEN_DIR / agent / anhaenge_pruefen(AGENTEN_DIR / agent, [datei])[0]
             with open(pfad, "rb") as f:
-                gesendet.append(await context.bot.send_document(JAN, f, filename=pfad.name, write_timeout=120,
-                                                                caption=text, parse_mode=ParseMode.HTML))
+                gesendet.append(await context.bot.send_document(
+                    JAN, f, filename=pfad.name, write_timeout=120, caption=text, parse_mode=ParseMode.HTML,
+                    reply_markup=knoepfe if i == len(dateien) - 1 else None))
         except (AblageFehler, OSError, TelegramError) as f:
             logger.error("Datei %s von %s nicht gesendet: %s", datei, agent, f)
             if text:
-                gesendet += await senden(context, [text])
+                gesendet += await senden(context, [text], knoepfe)
             await context.bot.send_message(JAN, f"{anzeigename(agent)}: Datei {Path(datei).name} kam nicht durch ({f}).")
     return gesendet
 
 
 async def mit_dateien(context: ContextTypes.DEFAULT_TYPE, agent: str, stuecke: list[str], dateien: list[str],
                       knoepfe=None) -> list:
-    """Text (HTML-Stücke aus mit_absender) und Dateien so knapp wie möglich: kurzer Text ohne Knöpfe
-    steht unter der Datei, sonst kommt er vorher als eigene Nachricht."""
+    """Text (HTML-Stücke aus mit_absender) und Dateien so knapp wie möglich: kurzer Text steht mit den
+    Knöpfen unter der Datei, sonst kommt er vorher als eigene Nachricht."""
     dateien = dateien_auswaehlen(dateien)
-    if dateien and not knoepfe and passt_als_beschriftung(stuecke):
-        return await dateien_senden(context, agent, dateien, stuecke[0])
+    if dateien and passt_als_beschriftung(stuecke):
+        return await dateien_senden(context, agent, dateien, stuecke[0], knoepfe)
     return await senden(context, stuecke, knoepfe) + await dateien_senden(context, agent, dateien)
 
 
@@ -154,7 +162,7 @@ async def agent_starten(agent: str, dienst: str | None = None) -> None:
     except AblageFehler as f:
         logger.error("Dienst nicht gestartet: %s", f)
         return
-    if agent not in AGENTEN or not (UNIT_DIR / f"{dienst}.service").exists():
+    if agent not in (*AGENTEN, FEEDBACK) or not (UNIT_DIR / f"{dienst}.service").exists():
         logger.info("Kein Dienst %s.service, Auftrag wartet auf den nächsten Lauf", dienst)
         return
     proc = await asyncio.create_subprocess_exec(
@@ -378,6 +386,12 @@ async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if m is not None:
         await meldung_beantworten(context.bot, m, text, "antwort")
         return
+    # Wartet ein Feedback ("Falscher Fokus", "Feedback schreiben") auf Jans Text?
+    fb = context.chat_data.pop("feedback", None)
+    if fb:
+        await update.message.reply_text(await feedback_anlegen(fb["bezug"], fb["k"], text))
+        await knoepfe_weg(context.bot, fb.get("nachricht"))
+        return
     # Wartet ein "Ändern" auf Jans Kommentar?
     aendern_id = context.chat_data.pop("aendern", None)
     if aendern_id:
@@ -416,6 +430,59 @@ async def aenderung_eintragen(update: Update, eid: str, kommentar: str) -> None:
     mit = f" mit {len(dateien)} Datei(en)" if dateien else ""
     await update.message.reply_text(f"Änderungswunsch an {entwurf['agent']} weitergegeben{mit}.")
     await agent_starten(entwurf["agent"])
+
+
+# ---------- Feedback ----------
+
+async def feedback_anlegen(bezug: str, k: str, eingabe: str = "") -> str:
+    """Feedback als Auftrag an feedback.service (ohne wartende Dateien). Gibt die Antwort an Jan zurück."""
+    try:
+        fid = auftraege.neuer_auftrag(FEEDBACK, v.feedback_text(k, eingabe), quelle="feedback", bezug=bezug)
+    except auftraege.AuftragFehler as e:
+        logger.error("Feedback zu %s nicht angelegt: %s", bezug, e)
+        return f"Feedback nicht angelegt: {e}"
+    logger.info("Feedback %s zu %s angelegt (%s)", fid, bezug, k)
+    await agent_starten(FEEDBACK)
+    return v.DANKE
+
+
+async def knoepfe_weg(bot, nachricht_id: int | None) -> None:
+    if nachricht_id:
+        try:
+            await bot.edit_message_reply_markup(JAN, nachricht_id, reply_markup=None)
+        except TelegramError as e:
+            logger.info("Knöpfe nicht entfernt: %s", e)
+
+
+def ergebnis_knoepfe(a: dict) -> InlineKeyboardMarkup | None:
+    """Feedback-Knöpfe unter erledigten Aufträgen der Agenten (nicht unter Fehlern, nicht beim Feedback-Dienst)."""
+    if a["status"] != "erledigt" or a["agent"] == FEEDBACK:
+        return None
+    return panel.markup(v.feedback_knoepfe("", a["id"]))
+
+
+async def feedback_knopf(q, context: ContextTypes.DEFAULT_TYPE, aid: str, k: str) -> None:
+    await q.answer()
+    try:
+        a = auftraege.erledigter(aid)
+    except auftraege.AuftragFehler:
+        await q.edit_message_reply_markup(None)
+        return
+    logger.info("Feedback-Knopf %s zu %s", k, aid)
+    if k == "lang":
+        await q.edit_message_reply_markup(panel.markup(v.laenge_knoepfe("", aid)))
+    elif k == "zu":
+        await q.edit_message_reply_markup(ergebnis_knoepfe(a))
+    elif k in ("fokus", "frei"):
+        context.chat_data["feedback"] = {"bezug": aid, "k": k, "nachricht": q.message.message_id}
+        await q.message.reply_text(v.FB_FRAGE[k])
+    else:  # ok, lh, li
+        if aid in gemeldet.listen["geklickt"]:
+            return  # Doppelklick
+        gemeldet.geklickt(aid)
+        gemeldet.speichern()
+        await q.edit_message_reply_markup(None)
+        await q.message.reply_text(v.vermerk(k) if k == "ok" else await feedback_anlegen(aid, k))
 
 
 # ---------- Dateien ----------
@@ -498,6 +565,10 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if art == "u":  # Menü-Nachricht
         await panel_knopf(q, context)
+        return
+
+    if (fb := v.feedback_auswerten(q.data, "")) is not None:  # Knopf unter einem Ergebnis
+        await feedback_knopf(q, context, *fb)
         return
 
     if art == "m":  # Knopf unter einer Meldung
@@ -632,7 +703,14 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
 
     for a in auftraege.erledigte():
         if a["id"] not in gemeldet.listen["auftraege"]:
-            nachrichten = await mit_dateien(context, a["agent"], auftrag_nachricht(a), a.get("ergebnis_dateien", []))
+            # Feedback: die Zusammenfassung kommt als Meldung; Zurückgezogenes: Jan hat selbst gestoppt
+            if (a["agent"] == FEEDBACK and a.get("quelle") == "feedback" and a["status"] == "erledigt") \
+                    or a["status"] == "zurueckgezogen":
+                gemeldet.listen["auftraege"].add(a["id"])
+                geaendert = True
+                continue
+            nachrichten = await mit_dateien(context, a["agent"], auftrag_nachricht(a), a.get("ergebnis_dateien", []),
+                                            ergebnis_knoepfe(a))
             for n in nachrichten:  # auch eine Antwort auf die Datei setzt die Sitzung fort
                 gemeldet.nachricht_merken(n.message_id, a["id"])
             gemeldet.listen["auftraege"].add(a["id"])

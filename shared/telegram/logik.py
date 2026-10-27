@@ -140,6 +140,9 @@ def mit_absender(agent: str, text: str, zusatz: str = "") -> list[str]:
 def auftrag_nachricht(auftrag: dict) -> list[str]:
     """Ergebnis eines abgeschlossenen Auftrags für Jan: nur Absender und Ergebnis des Agenten."""
     if auftrag["status"] == "erledigt":
+        if (auftrag.get("daten") or {}).get("kern"):  # strukturiertes Ergebnis: Vorlage, Kern zuerst
+            import vorlagen
+            return vorlagen.ergebnis_html(mit_absender(auftrag["agent"], "")[0], auftrag, aufteilen)
         return mit_absender(auftrag["agent"], auftrag.get("ergebnis") or "Erledigt.")
     return mit_absender(auftrag["agent"], auftrag.get("ergebnis") or "Kein Grund angegeben, Details im Log.",
                         "hat nicht geklappt")

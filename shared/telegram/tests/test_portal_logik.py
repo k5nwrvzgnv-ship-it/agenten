@@ -90,10 +90,29 @@ class AblaufTest(unittest.TestCase):
         self.assertIn("Jan", p.dateien_text(2, False))
 
     def test_ergebnis_mit_bezug(self):
-        text = p.ergebnis_text({"status": "erledigt", "ergebnis": "Kommt bald.", "text": "Arbeitsblatt Kant"})
+        [text] = p.ergebnis_nachricht({"status": "erledigt", "ergebnis": "Kommt bald.", "text": "Arbeitsblatt Kant"})
         self.assertIn("Arbeitsblatt Kant", text)
         self.assertTrue(text.endswith("Kommt bald."))
-        self.assertIn(p.FEHLGESCHLAGEN, p.ergebnis_text({"status": "fehlgeschlagen", "text": "x"}))
+        self.assertIn(p.FEHLGESCHLAGEN, p.ergebnis_nachricht({"status": "fehlgeschlagen", "text": "x"})[0])
+        # der Grund des Agenten kommt bei Lia an (Bedarf aus lia/unterricht)
+        self.assertIn("ab 14:00", p.ergebnis_nachricht({"status": "fehlgeschlagen", "text": "x",
+                                                        "ergebnis": "Kontingent aufgebraucht, ab 14:00"})[0])
+
+    def test_feedback_zustand(self):
+        z = {"wartet_auf": "material"}
+        p.feedback_gewaehlt(z, "20261027-120000-unterricht-abcdef", "fokus")
+        self.assertEqual(z, {"feedback": {"bezug": "20261027-120000-unterricht-abcdef", "k": "fokus"}})
+        self.assertEqual(p.text_eingang(z, "mehr Fälle"), "feedback")
+        self.assertIn("feedback", z)  # portal.py nimmt es heraus
+        p.anleitung_gewaehlt(z, "frage")
+        self.assertNotIn("feedback", z)
+
+    def test_feedback_knoepfe_nur_bei_ergebnissen(self):
+        a = {"id": "20261027-120000-unterricht-abcdef", "agent": "unterricht", "status": "erledigt"}
+        self.assertEqual(len(p.ergebnis_knoepfe(a)), 2)
+        self.assertEqual(p.ergebnis_knoepfe({**a, "status": "fehlgeschlagen"}), p.MENUE_KNOPF)
+        self.assertEqual(p.ergebnis_knoepfe({**a, "agent": "feedback"}), p.MENUE_KNOPF)
+        self.assertEqual(p.fuer_lia([a, {**a, "agent": "feedback"}, {**a, "status": "zurueckgezogen"}]), [a])
 
     def test_dateien(self):
         text, _ = p.ansicht_bestaetigen({"art": "material", "text": "Mach daraus ein Arbeitsblatt"}, 2)

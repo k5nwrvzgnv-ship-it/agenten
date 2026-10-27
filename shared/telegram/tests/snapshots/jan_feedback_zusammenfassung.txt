@@ -1,0 +1,7 @@
+<b>Feedback</b>
+Lia zu recherche: „Ich will zuerst wissen, was du empfiehlst“
+Lia will die Empfehlung zuerst sehen.
+Art: Regel (dauerhaft), für alle Agenten von Lia
+Passiert: „Ergebnisse beginnen mit einer Empfehlung in einem Satz.“ in lia/instanz/regeln.md
+--- Knöpfe ---
+[Stopp] m:20261027-120001-feedback-abcdef:0:0

@@ -9,13 +9,19 @@ Tippen verändert (Ansichten). Schreibt Lia etwas, kommt das Panel neu unter ihr
 - Dateien: warten in der Zentrale, bis Lia schreibt, was damit passieren soll (Bildunterschrift oder nächste
   Nachricht), und hängen dann am Material- oder Frage-Auftrag. Abbrechen oder Verwerfen löscht sie.
 
+- Ergebnisse: Vorlage aus vorlagen.py (HTML), darunter Feedback-Knöpfe (p:fb:<auftrag-id>:<k>). "Falscher Fokus"
+  und "Feedback schreiben" warten auf Lias nächste Nachricht; eine Antwort auf das Ergebnis ist ebenfalls Feedback.
+
 Zustand je Chat (chat_data): "wartet_auf" = Art, deren Inhalt als nächste Nachricht kommt,
-"entwurf" = {"art", "text"}, der auf Bestätigung wartet.
-Knopf-Daten: p:<aktion>, siehe AKTIONEN.
+"entwurf" = {"art", "text"}, der auf Bestätigung wartet, "feedback" = {"bezug", "k"}, das auf Lias Text wartet.
+Knopf-Daten: p:<aktion>, siehe AKTIONEN, und p:fb:... (vorlagen.feedback_auswerten).
 """
 
 import re
 from dataclasses import dataclass
+
+import vorlagen as v
+from logik import aufteilen
 
 Knoepfe = list[list[tuple[str, str]]]
 
@@ -154,6 +160,11 @@ def ansicht_hilfe() -> tuple[str, Knoepfe]:
     return HILFE, ZURUECK
 
 
+def ansicht_feedback(k: str) -> tuple[str, Knoepfe]:
+    """Lia hat "Falscher Fokus" oder "Feedback schreiben" getippt: ihre nächste Nachricht ist das Feedback."""
+    return f"Feedback\n\n{v.FB_FRAGE[k]}", ZURUECK
+
+
 MENUE_KNOPF = [[k("☰ Menü", "menue")]]
 
 
@@ -161,6 +172,7 @@ MENUE_KNOPF = [[k("☰ Menü", "menue")]]
 
 def anleitung_gewaehlt(zustand: dict, art: str) -> None:
     zustand.pop("entwurf", None)
+    zustand.pop("feedback", None)
     zustand["wartet_auf"] = art
 
 
@@ -172,7 +184,10 @@ def sofort_entwurf(zustand: dict, art: str) -> dict:
 
 
 def text_eingang(zustand: dict, text: str) -> str:
-    """Lia hat Text geschickt. Gibt zurück, was zu zeigen ist: "home", "bestaetigen" oder "einordnen"."""
+    """Lia hat Text geschickt. Gibt zurück, was zu tun ist: "feedback" (zustand["feedback"] bleibt für portal.py),
+    "home", "bestaetigen" oder "einordnen"."""
+    if "feedback" in zustand:
+        return "feedback"
     art = zustand.pop("wartet_auf", None)
     if art is None and ist_gruss(text):
         zustand.pop("entwurf", None)
@@ -195,9 +210,15 @@ def entwurf_nehmen(zustand: dict) -> dict | None:
     return zustand.pop("entwurf", None)
 
 
+def feedback_gewaehlt(zustand: dict, bezug: str, k: str) -> None:
+    abbrechen(zustand)
+    zustand["feedback"] = {"bezug": bezug, "k": k}
+
+
 def abbrechen(zustand: dict) -> None:
     zustand.pop("entwurf", None)
     zustand.pop("wartet_auf", None)
+    zustand.pop("feedback", None)
 
 
 def dateien_text(anzahl: int, alle_angekommen: bool) -> str:
@@ -207,9 +228,28 @@ def dateien_text(anzahl: int, alle_angekommen: bool) -> str:
     return "Das ist die Datei." if anzahl == 1 else f"Das sind die {anzahl} Dateien."
 
 
-def ergebnis_text(auftrag: dict) -> str:
-    """Antwort an Lia, mit Bezug auf ihre Anfrage, ohne Technik (keine IDs, keine Agentennamen)."""
-    kopf = f"Zu deiner Anfrage „{kurz(auftrag.get('text', ''))}“:\n\n"
+def ergebnis_nachricht(auftrag: dict) -> list[str]:
+    """Antwort an Lia (HTML), mit Bezug auf ihre Anfrage, ohne Technik (keine IDs, keine Agentennamen).
+
+    Feedback-Bestätigungen haben ihren eigenen Kopf. Hat es nicht geklappt, steht der Grund des Agenten da.
+    """
+    if auftrag.get("agent") == "feedback":
+        return [v.feedback_bestaetigung(auftrag)]
+    kopf = f"Zu deiner Anfrage „{v.esc(kurz(auftrag.get('text', '')))}“:\n"
     if auftrag.get("status") != "erledigt":
-        return kopf + FEHLGESCHLAGEN
-    return kopf + (auftrag.get("ergebnis") or "Erledigt.")
+        return [kopf + "\n" + v.esc(auftrag.get("ergebnis") or FEHLGESCHLAGEN)]
+    return v.ergebnis_html(kopf, auftrag, aufteilen)
+
+
+def mit_feedback(auftrag: dict) -> bool:
+    """Bekommt dieses Ergebnis Feedback-Knöpfe? Nicht bei Fehlern und nicht bei Feedback-Bestätigungen."""
+    return auftrag.get("status") == "erledigt" and auftrag.get("agent") != "feedback"
+
+
+def ergebnis_knoepfe(auftrag: dict) -> Knoepfe:
+    return v.feedback_knoepfe(VORSATZ, auftrag["id"], MENUE_KNOPF) if mit_feedback(auftrag) else MENUE_KNOPF
+
+
+def fuer_lia(auftraege: list[dict]) -> list[dict]:
+    """Aufträge, die Lia als Anfragen sieht (ohne Feedback und Zurückgezogenes)."""
+    return [a for a in auftraege if a.get("agent") != "feedback" and a.get("status") != "zurueckgezogen"]
