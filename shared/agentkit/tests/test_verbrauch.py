@@ -59,6 +59,13 @@ class TestVerbrauch(unittest.TestCase):
         self.assertEqual((h["laeufe"], h["tokens"], h["fehler"]), (2, 150, 1))
         self.assertAlmostEqual(h["minuten"], 1.5)
 
+    def test_kosten_je_auftrag(self):
+        self.assertIsNone(verbrauch.kosten("a1", self.datei))
+        verbrauch.protokollieren({"agent": "uni", "auftrag": "a1", "usd": 0.25}, self.datei)
+        verbrauch.protokollieren({"agent": "uni", "auftrag": "a1", "usd": 0.5}, self.datei)
+        verbrauch.protokollieren({"agent": "uni", "auftrag": "a2", "usd": 3}, self.datei)
+        self.assertEqual(verbrauch.kosten("a1", self.datei), 0.75)
+
 
 class TestEinstellungen(unittest.TestCase):
     def test_kein_bash(self):

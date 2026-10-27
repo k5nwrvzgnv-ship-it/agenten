@@ -113,5 +113,11 @@ def heute(datei: Path | None = None) -> dict[str, dict]:
     return summe
 
 
+def kosten(auftrag_id: str, datei: Path | None = None) -> float | None:
+    """Summe der Kosten (USD) aller Läufe zu einem Auftrag, None, wenn kein Lauf protokolliert ist."""
+    werte = [e.get("usd") or 0 for e in _eintraege(datei) if e.get("auftrag") == auftrag_id]
+    return round(sum(werte), 4) if werte else None
+
+
 def zeit_text(ts: float | None) -> str:
     return datetime.fromtimestamp(ts).strftime("%d.%m. %H:%M") if ts else "?"
