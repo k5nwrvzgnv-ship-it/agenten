@@ -385,24 +385,26 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
       UID-Ablage, weil UIDs je Ordner doppelt sind), anzeige, wortlaut, bauen, senden(cfg, daten) mit
       SMTP_SSL bei SMTP_PORT 465, sonst STARTTLS; Login aus MAIL_NUTZER/MAIL_KENNWORT (Standard IMAP_NUTZER/
       IMAP_KENNWORT), Kopie in GESENDET_ORDNER. uni stellt danach darauf um (uni-Chat).
-20. Bedarf aus uni (28.10., Plan von Jan freigegeben: Mail-Ablauf von posteingang auch für uni, erster Fall
-   Antwort an Prof. Böhme im Stil des BA-Schriftwechsels):
-   a) agentkit.imap.suchen scheitert am Exchange der HNEE (mail.hnee.de), lesend getestet 28.10.:
-      - SEARCH CHARSET UTF-8 -> Antwort "[BADCHARSET ...]", suchen wirft ValueError (int(b'[BADCHARSET')).
-        Ohne CHARSET gehen ASCII-Kriterien (FROM "Boehme" findet 19 Mails in INBOX), Umlaute dann nicht
-        (imaplib kodiert ascii).
-      - TO findet nichts: "Gesendete Elemente", TO "Thomas.Boehme", "Boehme@hnee.de", "Thomas", "Jahreis"
-        -> leer, obwohl Mails an sie gingen (UID 739, 736); nur TO "hnee.de" trifft. HEADER To "Boehme" auch leer.
-        TEXT "Boehme" trifft dagegen (18 gesendete Mails).
-      Vorschlag: BADCHARSET erkennen und ohne CHARSET erneut suchen, Umlaute dabei umschreiben (ö -> oe,
-      ß -> ss) oder weglassen; an= als TEXT suchen und in Python gegen das Feld "an" prüfen (Teilstring,
-      Groß-/Kleinschreibung egal). Gilt auch für von=, falls Absendernamen mit Umlaut gesucht werden.
-   b) Den allgemeinen Teil von posteingang/auftrag.py nach agentkit (z. B. agentkit.mailauftrag), damit uni
-      ihn nicht nachbaut: prompt_suche, suche_lesen, kontext_sammeln, kontext_als_text, prompt_entwurf,
-      prompt_aendern, antwort_lesen. Anzupassen je Agent: Beschreibung des Postfachs im Prompt (uni: HNEE-Adresse
-      jkl298@hnee.de, Dozenten), Ordner (uni: INBOX, Archive, "Gesendete Elemente"), MAX_TAGE_ZURUECK (uni
-      braucht ca. 3 Jahre: BA-Verlauf mit Böhme Sep. 2025 bis Apr. 2026), Unterschrift. posteingang danach
-      darauf umstellen (posteingang-Chat). uni baut seinen Teil im uni-Chat dagegen.
+20. Erledigt 28.10. (Bedarf aus uni, Plan von Jan freigegeben: Mail-Ablauf von posteingang auch für uni):
+   a) agentkit.imap.suchen geht jetzt auch am HNEE-Exchange. Antwortet der Server auf SEARCH CHARSET UTF-8
+      mit [BADCHARSET], wird ohne CHARSET erneut gesucht, Umlaute umgeschrieben (umschreiben: ö -> oe,
+      ß -> ss, Akzente weg). an= geht dort nicht an den Server (TO findet nichts, TEXT nur den Mailtext,
+      UID 739 an Böhme fehlte damit): Python holt To/Cc der übrigen Treffer in Blöcken
+      (BODY.PEEK[HEADER.FIELDS (TO CC)], höchstens MAX_PRUEFEN = 1000 neueste) und vergleicht als Teilstring
+      (Groß-/Kleinschreibung und Umlaute egal). Andere Ablehnung von SEARCH: imaplib.IMAP4.error statt
+      ValueError. Server mit CHARSET (jan@kleinke.org) unverändert. Lesender Echttest 28.10.: HNEE "Gesendete
+      Elemente" an="Boehme" und an="Böhme" je 45 Mails (mit UID 739; TEXT "Boehme" allein fand nur 17),
+      INBOX von="Böhme" 20; kleinke.org INBOX text="für" und Sent an= gehen weiter.
+   b) agentkit.mailauftrag = allgemeiner Teil von posteingang/auftrag.py, Tests in test_mailauftrag:
+      Postfach(agent, beschreibung, eingang, gesendet, max_tage_zurueck, unterschrift) – Standard STANDARD
+      = posteingang (jan@kleinke.org, INBOX/Archive, Sent, 730 Tage, Unterschrift wie in Jans Mails).
+      prompt_suche(text, heute, postfach), suche_lesen(antwort, postfach), kontext_sammeln(suche, suchen,
+      termine, heute, postfach) (termine=None: ohne Kalender), kontext_als_text(kontext),
+      prompt_entwurf(text, kontext, heute, postfach), prompt_aendern(kommentar, alt, text, kontext, heute,
+      postfach), antwort_lesen(antwort, kontext) -> ("entwurf", roh, original) | ("rueckfrage", text, None);
+      Fehler: AuftragFehler. Ist unterschrift gesetzt, verlangt der Prompt sie wörtlich.
+      Umstellung von posteingang als Bedarf in posteingang/STATUS.md, Aufruf für uni in uni/STATUS.md (Punkt 9).
+      Hinweis: CLAUDE.md (Architektur, agentkit-Liste) nennt mailauftrag und mail noch nicht.
 
 ## Gelernte Regeln
 - (noch keine)

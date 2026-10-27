@@ -74,6 +74,10 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. St
 7. Mail-Aufträge: Sende-Werte in .env eingetragen 27.10. Offen: erster echter Test mit Jans Auftrag (Absage Paarberatung bei Frau Oppenheimer): Suchbegriffe, gefundene
    Mails und Entwurf im Log und in data/auftraege/ prüfen, erst dann freigeben.
 8. data/auftraege/ (Mailtexte, auch sensibel) wie data/mails/ nach 30 Tagen löschen (zu Punkt 4).
+9. Bedarf (Hauptordner 28.10.): auftrag.py auf agentkit.mailauftrag umstellen (gleicher Inhalt, dort für uni
+   verallgemeinert, Schnittstelle in ../STATUS.md Punkt 20). Standard mailauftrag.STANDARD entspricht dem
+   heutigen auftrag.py; gesendet kommt jetzt über Postfach(gesendet=GESENDET_ORDNER), nicht als Argument von
+   kontext_sammeln. Danach auftrag.py und tests/test_auftrag.py löschen.
 
 ## Gelernte Regeln
 - (noch keine)

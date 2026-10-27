@@ -341,12 +341,22 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 9. Mail-Ablauf wie posteingang (Plan von Jan 28.10. freigegeben): Claude nennt Suchbegriffe, Python sucht in
    INBOX, Archive, "Gesendete Elemente" und im Kalender, Claude schreibt den Entwurf im Stil von Jans Mails an
    diese Person; gilt für Jans Aufträge und Antworten auf eingehende Mails, Ändern nutzt denselben Kontext.
-   Wartet auf Bedarf 20 in ../STATUS.md: imap.suchen geht am HNEE-Exchange nicht (BADCHARSET, TO findet
-   nichts; TEXT und FROM ohne Umlaute gehen) und die Auftragslogik aus posteingang/auftrag.py soll nach agentkit.
+   Bausteine da (Bedarf 20 erledigt 28.10., Schnittstelle in ../STATUS.md): imap.suchen geht am HNEE-Exchange
+   (ohne CHARSET, Umlaute umgeschrieben; an= prüft Python an To/Cc, findet 45 Mails an Böhme in "Gesendete
+   Elemente"). Auftragslogik in agentkit.mailauftrag, Aufruf etwa so:
+     from agentkit import mailauftrag
+     UNI = mailauftrag.Postfach(agent="Uni-Agent", beschreibung="Hochschulpostfach jkl298@hnee.de, Dozenten
+           und Verwaltung der HNEE", eingang=("INBOX", "Archive"), gesendet="Gesendete Elemente",
+           max_tage_zurueck=1100, unterschrift=None)  # oder feste Unterschrift
+     suchen = lambda ordner, **k: imap.suchen(host, port, HNEE_NUTZER, HNEE_KENNWORT, ordner, **k)
+     prompt_suche(text, heute, UNI) -> suche_lesen(antwort, UNI) -> kontext_sammeln(suche, suchen,
+     kalender.termine oder None, heute, UNI) -> prompt_entwurf(text, kontext, heute, UNI) ->
+     antwort_lesen(antwort, kontext) -> mail.pruefen(roh, original); Ändern: prompt_aendern(..., UNI).
+   Vorbild für den Rest (Kontext in data/auftraege/<id>/kontext.json, Einreichen, Ändern): posteingang/agent.py.
    Offen bei Jan: Mail-Aufträge per Präfix "Mail:" (Vorschlag) oder Claude entscheidet.
    Erster Fall: Antwort an Prof. Böhme auf UID 11077 (26.10., Betreuung Forschungsprojekt Fehlstellenerkennung
    an Holzlamellen; fragt Zeitplanung, Termin, Exposé). Stilvorlage: BA-Schriftwechsel, 19 Mails von ihm in
-   INBOX (Sep. 2025 bis Apr. 2026), ca. 18 von Jan in "Gesendete Elemente" (TEXT "Boehme"). Jan schreibt den
+   INBOX (Sep. 2025 bis Apr. 2026), 45 von Jan an ihn in "Gesendete Elemente". Jan schreibt den
    Inhalt (Stichworte) dazu. Der alte Entwurf 20261027-112951-uni-e7a60a (ohne Stilvorlage) liegt offen in der
    Freigabe und wird abgelehnt, sobald der neue da ist.
 
