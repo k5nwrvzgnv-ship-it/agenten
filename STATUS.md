@@ -2,7 +2,7 @@
 
 Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konventionen: CLAUDE.md.
 
-## Stand (22.10.2026)
+## Stand (27.10.2026)
 - Übersicht, wo was liegt, welche Dienste laufen und welcher Chat wohin gehört: README.md
   (aufgeräumt 21.10.: lia/instanz statt lia/shared, Dienst-Vorlagen je Ordner in systemd/).
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
@@ -73,7 +73,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Gibt es eine gleichnamige PDF, kommt nur sie (docx bleibt auf dem Server). Stufenwechsel nur bei
   Limit ("Kontingent aufgebraucht, Aufträge warten bis ...") und wenn es wieder frei ist; Stufe sonst
   nur unter /verbrauch. Bestätigung eines Auftrags: "Uni ist dran." Technisches ins Log.
-  Entwürfe ebenso: "<b>Uni</b> · Mail-Entwurf", Titel, Inhalt, Details als Zeilen (nichts gekürzt).
+  Entwürfe ebenso: "<b>Uni</b> · Mail-Entwurf", Titel, Inhalt, Details als Zeilen. Unter Details nur, was im
+  Inhalt nicht schon wörtlich (als ganzes Wort) steht (Jan 27.10.); Zahlen und Objekte immer. Nichts gekürzt.
+  Typnamen: Mail-, Nachrichten-, Kauf-, Termin-Entwurf.
 - Ausfallmeldung (21.10.): Jede Unit trägt OnFailure=ausfall@%n.service (Vorlage
   shared/systemd/ausfall@.service, eingerichtet). agentkit.ausfall schickt "Störung" fett, Dienst und Grund in
   Worten (oom-kill = zu wenig Arbeitsspeicher), ohne Journal-Zeilen, direkt per Telegram, sonst über
@@ -210,23 +212,27 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Neustart aus; alle Dienste kamen von selbst wieder). Offen: 15 normale Updates, Ubuntu 26.04 nicht
      nebenbei einspielen.
    Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
-9. Bedarf aus uni (24.10., Plan von Jan freigegeben): Termine in Jans Kalender SCHREIBEN, in agentkit.kalender.
-   - Ziel: Jans iCloud-Hauptkalender (Jans Wahl, kein eigener Agenten-Kalender). Nur neue Termine anlegen,
-     nicht ändern oder löschen. Jeder Termin nur nach Freigabe (Entwurfstyp "termin" in uni, Ausführung in
-     uni/agent.py ausfuehren(), wie typ "mail").
-   - Weg: CalDAV (caldav.icloud.com:443, erreichbar), nur Python-Bordmittel (urllib, xml.etree), kein Paket.
-     Ablauf: principal -> calendar-home-set -> Kalender per Anzeigename wählen -> PUT <uid>.ics mit
-     If-None-Match: * (kein Überschreiben). Zugang: Apple-ID + App-spezifisches Passwort (Jan erzeugt es unter
-     appleid.apple.com, trägt es selbst in shared/.env ein, chmod 600), Kalendername ebenfalls in shared/.env.
-   - Gewünschte Schnittstelle: kalender.eintragen(titel, beginn, ende, ort="", notiz="", uid=None) -> uid,
-     Fehler als KalenderFehler. Notiz bekommt "angelegt vom Uni-Agenten", UID fest aus Titel+Beginn, damit
-     derselbe Termin nicht doppelt entsteht. Kalender ohne Namen/Zugang: klare Fehlermeldung, nichts raten.
-   - .ics-Text gibt es schon in uni/termine.py (ics(), RFC-5545-Faltung, getestet); bei Bedarf nach agentkit
-     verschieben statt nachbauen. Bis das fertig ist, schickt uni Termine als .ics-Anhang zum Antippen.
-   - Danach im uni-Chat: Entwurfstyp "termin" (Claude schlägt vor, Python prüft, Freigabe, eintragen).
-   - Stand uni 27.10.: Vorschläge, Prüfung, Kalenderabgleich und .ics mit VALARM (termine.ics, termine.uid) sind
-     fertig, Jan tippt bisher die .ics an. Jan will Termine mit einem Tipp bestätigen, Punkt 9 ist damit dringend.
-     Erinnerungen (VALARM) müssen beim PUT mitkommen.
+9. Termine in Jans iCloud-Kalender SCHREIBEN (Bedarf uni, Plan von Jan 24.10.): agentkit-Teil erledigt 27.10.
+   - `kalender.eintragen(titel, beginn, ende, *, agent, ort="", notiz="", uid=None, ganztags=False,
+     erinnerungen=(), config=None) -> uid`. Nur neue Termine: CalDAV (principal -> calendar-home-set ->
+     Kalender per Anzeigename, nur Kalender mit VEVENT) -> PUT <uid>.ics mit If-None-Match: *, ohne METHOD,
+     Erinnerungen als VALARM. Notiz endet mit "angelegt vom Uni-Agenten" (aus agent). Ohne uid: feste_uid(titel,
+     beginn) = sha1(titel|beginn.isoformat())[:16] + "@agenten" (gleiche Formel wie termine.uid in uni, das
+     seine eigene uid mitgeben kann). Ganztags: ende = letzter Tag, einschließlich (wie uni).
+   - Fehler: KalenderFehler (fehlende Werte in .env, Termin unplausibel, Kalendername passt auf keinen oder
+     mehrere, Anmeldung abgelehnt, Netz, HTTP-Fehler); TerminSchonDa (Unterklasse) bei HTTP 412 = UID steht
+     schon im Kalender, nichts überschrieben. Zugangsdaten gehen nur per https an *.icloud.com, jede
+     Weiterleitung geprüft.
+   - `kalender.ics(titel, beginn, ende, uid, ort, beschreibung, ganztags, erinnerungen, link, methode, jetzt)`:
+     inhaltsgleich mit uni/termine.ics (PRODID agentkit). methode=None für CalDAV.
+   - Geprüft: Unit-Tests mit nachgebautem Server; echte Anfrage an caldav.icloud.com mit falschem Zugang
+     ergibt die erwartete Ablehnung (Netzweg ok). Noch kein echter Termin eingetragen.
+   - Offen Jan: in shared/.env eintragen ICLOUD_APPLE_ID, ICLOUD_APP_PASSWORT (App-spezifisches Passwort,
+     appleid.apple.com) und ICLOUD_KALENDER (Anzeigename des Hauptkalenders). Danach einmal echt testen
+     (Testtermin, dann von Hand löschen).
+   - Offen uni-Chat: Entwurfstyp "termin" (Freigabe, dann kalender.eintragen in ausfuehren(), TerminSchonDa
+     als "stand schon im Kalender" melden); termine.ics/_falten auf agentkit.kalender umstellen und die eigene
+     Kopie löschen. Die Zentrale zeigt typ "termin" als "Termin-Entwurf".
 10. Bedarf aus lia/examen (25.10., Plan Examensreihe von Jan freigegeben, Punkte 1–6, Prüfung in ca. 4 Wochen):
    - Lias Zentrale: kurzer Bewertungsbogen je Runde (je Skizze Note 1–5, „was stört“, „was übernehmen“, Wahl).
      Benötigt ab Runde 1 (Ende Woche 1); bis dahin trägt Jan Lias Antworten von Hand ein.
