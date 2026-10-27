@@ -257,8 +257,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      als "stand schon im Kalender" melden); termine.ics/_falten auf agentkit.kalender umstellen und die eigene
      Kopie löschen. Die Zentrale zeigt typ "termin" als "Termin-Entwurf".
 10. Bedarf aus lia/examen (25.10., Plan Examensreihe von Jan freigegeben, Punkte 1–6, Prüfung in ca. 4 Wochen):
-   - Lias Zentrale: kurzer Bewertungsbogen je Runde (je Skizze Note 1–5, „was stört“, „was übernehmen“, Wahl).
-     Benötigt ab Runde 1 (Ende Woche 1); bis dahin trägt Jan Lias Antworten von Hand ein.
+   - Lias Zentrale: Bewertungsbogen je Runde ENTFÄLLT (Jan/Lia 27.10., Auftrag „Neuausrichtung der Recherche“):
+     Lia liest Ergebnisse und spricht ihr Feedback als Text ein (bis auf Weiteres über Jan).
    - Erledigt 25.10. (Teil A lia/recherche): agentkit.abruf, nur Bordmittel (urllib). Allowlist von Jan
      freigegeben: gesetze-im-internet.de, de.wikisource.org, zeno.org, korpora.org, archive.org (gibt der Aufrufer an).
      `abruf.laden(url, allowlist, cache_dir, neu=False, zeitlimit=60, max_bytes=30 MB)` -> Ergebnis mit
@@ -314,6 +314,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Sitzung fort (bezug, sitzung); daten.kern ist für alle Agenten optional.
    - lia/recherche/faelle.py und lia/examen lesen Lias Regeln nur aus lia/unterricht/STATUS.md; Regeln aus Feedback
      in lia/instanz/regeln.md oder einer anderen STATUS.md erreichen sie nur über claude_lauf (Systemprompt).
+
+15. Bedarf aus lia/recherche (27.10.): agentkit.abruf.laden scheitert an URLs mit Umlauten im Pfad (z. B.
+   de.wikipedia.org/wiki/Antonio_Rüdiger) mit UnicodeEncodeError statt AbrufFehler; das beendete einen bezahlten
+   Lauf. In lia/recherche umgangen (webauftrag.adresse kodiert die URL, faelle.belege_pruefen fängt den Fehler).
+   Vorschlag: abruf.laden kodiert Pfad und Query selbst (IRI -> URI) und meldet alles andere als AbrufFehler.
 
 ## Gelernte Regeln
 - (noch keine)
