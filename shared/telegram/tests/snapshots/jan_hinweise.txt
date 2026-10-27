@@ -1,0 +1,31 @@
+Freigegeben. Uni führt es jetzt aus und meldet sich.
+--- nächste Nachricht ---
+Abgelehnt. Uni führt nichts aus.
+--- nächste Nachricht ---
+Was soll anders werden? Schreib es als nächste Nachricht.
+--- nächste Nachricht ---
+Der Entwurf wurde nach der Anzeige geändert. Ich habe nichts freigegeben. Im Menü unter Entwürfe kannst du ihn neu anzeigen lassen.
+--- nächste Nachricht ---
+Über diesen Entwurf ist schon entschieden.
+--- nächste Nachricht ---
+Das ging nicht. Einzelheiten stehen am PC.
+--- nächste Nachricht ---
+Uni überarbeitet den Entwurf (mit 1 Datei). Die neue Fassung kommt hierher.
+--- nächste Nachricht ---
+Den Befehl in der Bildunterschrift kenne ich nicht. 2 Dateien liegen bereit. Schick jetzt den Auftrag, zum Beispiel /uni Fasse das zusammen. Die Dateien kommen mit. /verwerfen löscht sie.
+--- nächste Nachricht ---
+2 Dateien gelöscht.
+--- nächste Nachricht ---
+Es warten keine Dateien.
+--- nächste Nachricht ---
+Den Auftrag konnte ich nicht anlegen. Schick ihn bitte noch einmal. Einzelheiten stehen am PC.
+--- nächste Nachricht ---
+Die Datei ist zu groß für Telegram. Leg sie am PC in den Ordner des passenden Agenten.
+--- nächste Nachricht ---
+Die Datei konnte ich nicht laden. Schick sie bitte noch einmal.
+--- nächste Nachricht ---
+Der Text ist nicht mehr da. Schick ihn bitte noch einmal.
+--- nächste Nachricht ---
+Dieser Knopf ist veraltet. Hier ist das aktuelle Menü.
+--- nächste Nachricht ---
+An wen geht das?

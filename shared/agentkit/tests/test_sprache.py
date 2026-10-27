@@ -107,6 +107,8 @@ class LesbarkeitTest(unittest.TestCase):
         self.assertEqual(mit.wstf, s.lesbarkeit("Zu:\n" + einfach).wstf)
         self.assertTrue(s.ist_fliesstext("Fach, Klasse, Thema, Dauer, Ort"))
         self.assertFalse(s.ist_fliesstext("Meine Anfragen"))
+        self.assertFalse(s.ist_fliesstext("Entwürfe offen: "))
+        self.assertEqual(s.jargon("/uni Fasse das zusammen", s.JAN), [])
         self.assertEqual(s.lesbarkeit("Zu „eins zwei drei vier fünf sechs sieben acht neun“: Danke.").laengster_satz, 2)
 
 

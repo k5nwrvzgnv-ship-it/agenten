@@ -1,0 +1,10 @@
+Zentrale
+
+Die Rechenzeit wird knapp, darum spare ich.
+Verbraucht: 6 % (5 Stunden), 1 % (7 Tage)
+Entwürfe: 0  |  Aufträge in Arbeit: 1
+--- Knöpfe ---
+[Uni] u:a:uni:erledigen
+[Entwürfe (0)] u:entwuerfe  [Verbrauch] u:verbrauch
+[Status] u:status  [Hilfe] u:hilfe
+[↻ Aktualisieren] u:neu

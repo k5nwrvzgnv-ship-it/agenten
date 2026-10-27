@@ -23,10 +23,10 @@ class TestAusfall(unittest.TestCase):
 
     def test_text_in_worten(self):
         self.assertEqual(ausfall.text("uni-transkript.service", "oom-kill"),
-                         "Uni-transkript ist ausgefallen: zu wenig Arbeitsspeicher.\n"
-                         "Ich melde mich dazu frühestens in 6 Stunden wieder.")
-        self.assertIn("Grund unbekannt (komisch)", ausfall.text("uni.service", "komisch"))
-        self.assertIn("ausgefallen: Grund unbekannt.", ausfall.text("uni.service", ""))
+                         "Uni (transkript) ist ausgefallen: zu wenig Arbeitsspeicher.\n"
+                         "Bitte sieh am PC nach. Zu diesem Teil melde ich mich frühestens in 6 Stunden wieder.")
+        self.assertIn("ausgefallen: aus unbekanntem Grund.", ausfall.text("uni.service", "komisch"))
+        self.assertIn("ausgefallen: aus unbekanntem Grund.", ausfall.text("uni.service", ""))
 
     def test_senden_und_sperre(self):
         gesendet = []
@@ -34,7 +34,7 @@ class TestAusfall(unittest.TestCase):
         self.assertEqual(ausfall.melden("uni.service", 1000.0, self.stand, senden, self.env), "telegram")
         token, chat, text = gesendet[0]
         self.assertEqual((token, chat), ("123:geheim", "42"))
-        self.assertTrue(text.startswith("<b>Störung</b>\nUni ist ausgefallen: zu wenig Arbeitsspeicher."))
+        self.assertTrue(text.startswith("<b>Zentrale</b> · Störung\nUni ist ausgefallen: zu wenig Arbeitsspeicher."))
         self.assertNotIn("geheim", text)  # keine Journal-Zeilen mehr
         # innerhalb der Sperre nichts, andere Unit schon, nach der Sperre wieder
         self.assertEqual(ausfall.melden("uni.service", 1000.0 + 3600, self.stand, senden, self.env), "gesperrt")
@@ -52,7 +52,7 @@ class TestAusfall(unittest.TestCase):
                              "warteschlange")
         agent, text = melden.call_args.args
         self.assertEqual(agent, "uni")
-        self.assertIn("Uni-transkript ist ausgefallen", text)
+        self.assertIn("Uni (transkript) ist ausgefallen", text)
         self.assertNotIn("<b>", text)  # die Zentrale setzt den Absender selbst
         self.assertEqual(ausfall.melden("uni-transkript.service", 1001.0, self.stand, kaputt, self.env), "gesperrt")
 

@@ -67,18 +67,37 @@ class NachrichtenTest(unittest.TestCase):
         self.snapshot("jan_weitergabe", logik.weitergabe_text(a, False))
         self.snapshot("jan_rechenzeit_leer", logik.stufe_text("normal", "limit", ZEIT, zeit_text))
         self.snapshot("jan_rechenzeit_frei", logik.stufe_text("limit", "normal", ZEIT, zeit_text))
-        self.snapshot("jan_stoerung", "<b>Störung</b>\n" + ausfall.text("uni-transkript.service", "oom-kill"))
+        self.snapshot("jan_stoerung", ausfall.KOPF + ausfall.text("uni-transkript.service", "oom-kill"))
 
     def test_jan_menue(self):
-        zeilen = ["Stufe: normal  |  5h 6 %  7d 1 %", "Entwürfe: 1  |  Aufträge offen: 0"]  # wie zentrale.home()
-        self.snapshot("jan_menue", *logik.ansicht_home(zeilen, ["uni", "dokumente"], 1))
+        stand = {"5h": 0.06, "7d": 0.01, **ZEIT}
+        self.snapshot("jan_menue", *logik.ansicht_home(logik.home_zeilen(stand, "normal", 1, 0, 2), ["uni", "dokumente"], 1))
+        self.snapshot("jan_menue_sparen", *logik.ansicht_home(logik.home_zeilen(stand, "sparen", 0, 1, 0), ["uni"], 0))
         self.snapshot("jan_menue_agent", *logik.ansicht_agent("uni", "erledigen"))
         self.snapshot("jan_menue_entwuerfe", *logik.ansicht_entwuerfe([ENTWURF]))
         heute = {"uni": {"laeufe": 3, "tokens": 120_000, "minuten": 4.2, "fehler": 0},
-                 "recherche": {"laeufe": 1, "tokens": 48_000, "minuten": 1.5, "fehler": 1}}
-        stand = {"5h": 0.06, "7d": 0.01, **ZEIT}
+                 "lia/recherche": {"laeufe": 1, "tokens": 48_000, "minuten": 1.5, "fehler": 1}}
         self.snapshot("jan_menue_verbrauch", *logik.ansicht_text("Verbrauch", logik.verbrauch_text(
             stand, "sparen", heute, zeit_text)))
+
+    def test_jan_hilfe_und_status(self):
+        self.snapshot("jan_hilfe", logik.hilfe_text(logik.AGENTEN))
+        self.snapshot("jan_status", logik.status_text({"offen": 1, "ausfuehrung": 0, "unklar": 0, "auftraege": 2,
+                                                       "am_pc": 0, "dateien": 1}))
+
+    def test_jan_antworten(self):
+        self.snapshot("jan_hinweise", [
+            logik.freigabe_antwort("freigegeben", "uni"), logik.freigabe_antwort("abgelehnt", "uni"),
+            logik.freigabe_antwort("aendern", "uni"),
+            logik.freigabe_fehler("20261027-112951-uni-e7a60a: Entwurf weicht von der Anzeige ab, nicht freigegeben"),
+            logik.freigabe_fehler("20261027-112951-uni-e7a60a ist nicht (mehr) offen"), logik.freigabe_fehler("?"),
+            logik.aenderung_weiter("uni", 1), logik.dateien_warten(2, "/uni Fasse das zusammen", True),
+            logik.dateien_verworfen(2), logik.dateien_verworfen(0), logik.NICHT_ANGELEGT, logik.DATEI_ZU_GROSS,
+            logik.DATEI_NICHT_GELADEN, logik.TEXT_WEG, logik.KNOPF_ALT, logik.AN_WEN])
+        self.snapshot("jan_unklar", logik.mit_absender("uni", logik.unklar_text(
+            "Mail: AW: Anfrage Betreuung Forschungsprojekt")))
+        self.snapshot("jan_datei_fehlt", logik.mit_absender("dokumente", logik.datei_nicht_gesendet(
+            "data/ausgabe/x/Zusammenfassung_Gebrauchsklassen.pdf")))
 
     def test_jan_feedback(self):
         repo = Path("/home/agent/agenten")

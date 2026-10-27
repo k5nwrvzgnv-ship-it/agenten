@@ -8,7 +8,8 @@ Jede Unit trägt `OnFailure=ausfall@%n.service`. systemd startet dann
 - Klappt das nicht, landet die Meldung in shared/meldungen/, die Zentrale schickt sie später.
 - Pro Unit höchstens eine Meldung in SPERRE_S (Stand in shared/ausfall/stand.json), damit ein
   Dienst mit Timer alle 15 Minuten nicht jedes Mal meldet.
-- Kurz und ohne Technik (Jan 22.10.): "Störung" fett, welcher Dienst, Grund in Worten. Journal-Zeilen
+- Kurz und ohne Technik (Jan 22.10.): "Zentrale · Störung" (Absender wie alle Systemnachrichten), welcher Dienst,
+  Grund in Worten, was zu tun ist. Journal-Zeilen
   stehen nicht in der Meldung, die liest ein Chat am Server (journalctl --user -u <unit>).
 - Sprachregel (docs/sprache/sprachregel.md): Befunde von agentkit.sprache ohne Inhalt ins Journal.
 
@@ -30,6 +31,7 @@ from .config import SHARED_DIR, lies_env
 
 STAND = SHARED_DIR / "ausfall" / "stand.json"
 SPERRE_S = 6 * 3600
+KOPF = "<b>Zentrale</b> · Störung\n"
 GRUENDE = {
     "oom-kill": "zu wenig Arbeitsspeicher",
     "timeout": "hat zu lange gebraucht",
@@ -53,11 +55,12 @@ def darf_melden(stand: dict, unit: str, jetzt: float, sperre_s: float = SPERRE_S
 
 
 def text(unit: str, ergebnis: str) -> str:
-    """'uni-transkript.service', 'oom-kill' -> 'Uni-transkript ist ausgefallen: zu wenig Arbeitsspeicher. ...'"""
-    name = unit.split(".", 1)[0]
-    grund = GRUENDE.get(ergebnis, f"Grund unbekannt ({ergebnis})" if ergebnis else "Grund unbekannt")
-    return (f"{name[:1].upper()}{name[1:]} ist ausgefallen: {grund}.\n"
-            f"Ich melde mich dazu frühestens in {SPERRE_S // 3600} Stunden wieder.")
+    """'uni-transkript.service', 'oom-kill' -> 'Uni (transkript) ist ausgefallen: zu wenig Arbeitsspeicher. ...'"""
+    teile = unit.split(".", 1)[0].split("@", 1)[0].split("-")
+    name = teile[0][:1].upper() + teile[0][1:] + (f" ({' '.join(teile[1:])})" if teile[1:] else "")
+    grund = GRUENDE.get(ergebnis, "aus unbekanntem Grund")
+    return (f"{name} ist ausgefallen: {grund}.\n"
+            f"Bitte sieh am PC nach. Zu diesem Teil melde ich mich frühestens in {SPERRE_S // 3600} Stunden wieder.")
 
 
 def _befehl(*args: str) -> str:
@@ -94,10 +97,11 @@ def melden(unit: str, jetzt: float | None = None, stand_datei: Path | None = Non
     token = env.get("TELEGRAM_BOT_TOKEN", "")
     ergebnis = _befehl("systemctl", "--user", "show", "-p", "Result", "--value", unit)
     nachricht = text(unit, ergebnis)
+    print(f"Ausfall {unit}: Result={ergebnis or '?'}", file=sys.stderr)  # der genaue Grund steht nur im Journal
     if befunde := sprache.pruefen(nachricht, sprache.JAN):
         print(f"Sprache sendMessage (Störung): {sprache.log_text(befunde)}", file=sys.stderr)
     try:
-        senden(token, env.get("TELEGRAM_CHAT_ID", ""), "<b>Störung</b>\n" + escape(nachricht, False))
+        senden(token, env.get("TELEGRAM_CHAT_ID", ""), KOPF + escape(nachricht, False))
         weg = "telegram"
     except Exception as f:  # noqa: BLE001 – dann eben über die Zentrale
         grund = str(f).replace(token, "<token>") if token else str(f)

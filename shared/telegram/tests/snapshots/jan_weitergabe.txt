@@ -1,1 +1,2 @@
-Uni hat Dokumente einen Auftrag gegeben, aber Dokumente läuft noch nicht. Der Auftrag wartet.
+<b>Zentrale</b>
+Uni hat Dokumente etwas aufgetragen. Dokumente ist aber noch nicht eingerichtet. So lange wartet der Auftrag.

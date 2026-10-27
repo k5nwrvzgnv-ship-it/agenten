@@ -1,7 +1,4 @@
 {
- "jan_bestaetigung": [
-  "datei: Dateiname"
- ],
  "jan_feedback_regel": [
   "datei: Dateiname",
   "glossar: Agentenname klein",
@@ -26,39 +23,6 @@
   "fehlertext: Fehlertext",
   "glossar: Agentenname klein",
   "pfad: Pfad"
- ],
- "jan_fehler_ohne_grund": [
-  "glossar: Log"
- ],
- "jan_menue": [
-  "glossar: 5h/7d",
-  "glossar: Stufe",
-  "knopf glossar: Agentenname klein"
- ],
- "jan_menue_agent": [
-  "glossar: Agentenname klein",
-  "lesbarkeit"
- ],
- "jan_menue_entwuerfe": [
-  "glossar: Agentenname klein"
- ],
- "jan_menue_verbrauch": [
-  "glossar: Agentenname klein",
-  "glossar: Lauf",
-  "glossar: Reset",
-  "glossar: Stufe",
-  "glossar: Tokens"
- ],
- "jan_rechenzeit_frei": [
-  "glossar: Kontingent",
-  "lesbarkeit"
- ],
- "jan_rechenzeit_leer": [
-  "glossar: Kontingent",
-  "lesbarkeit"
- ],
- "jan_weitergabe": [
-  "glossar: läuft noch nicht"
  ],
  "lia_feedback_bestaetigung": [
   "lesbarkeit"

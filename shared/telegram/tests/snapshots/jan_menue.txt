@@ -1,9 +1,10 @@
-Agentenzentrale
+Zentrale
 
-Stufe: normal  |  5h 6 %  7d 1 %
-Entwürfe: 1  |  Aufträge offen: 0
+Verbraucht: 6 % (5 Stunden), 1 % (7 Tage)
+Entwürfe: 1  |  Aufträge in Arbeit: 0
+Wartende Dateien: 2
 --- Knöpfe ---
-[uni] u:a:uni:erledigen  [dokumente] u:a:dokumente:erledigen
+[Uni] u:a:uni:erledigen  [Dokumente] u:a:dokumente:erledigen
 [Entwürfe (1)] u:entwuerfe  [Verbrauch] u:verbrauch
 [Status] u:status  [Hilfe] u:hilfe
 [↻ Aktualisieren] u:neu

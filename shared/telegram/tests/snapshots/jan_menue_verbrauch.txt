@@ -1,12 +1,12 @@
 Verbrauch
 
-Stufe: sparen (1 Lauf gleichzeitig, jeder 2. Zeitlauf entfällt, kleineres Modell für Routine)
-5 Stunden: 6 %  (Reset Di 19:00)
-7 Tage: 1 %  (Reset Mo 10:00)
-Stand vom letzten Lauf: Di 16:40 (enthält auch deine eigenen Chats)
+Die Rechenzeit wird knapp, darum spare ich. Ich mache nur eine Sache auf einmal. Jeder zweite feste Durchgang fällt aus. Leichte Sachen mache ich mit weniger Aufwand.
+Letzte 5 Stunden: 6 % verbraucht, wieder frei Di 19:00
+Letzte 7 Tage: 1 % verbraucht, wieder frei Mo 10:00
+Stand: Di 16:40
 
 Heute:
-- recherche: 1 Lauf, 48k Tokens, 1.5 min, 1 mit Fehler
-- uni: 3 Läufe, 120k Tokens, 4.2 min
+• Recherche (Lia): 1-mal gearbeitet, 1,5 Minuten, 1-mal hat es nicht geklappt
+• Uni: 3-mal gearbeitet, 4,2 Minuten
 --- Knöpfe ---
 [« Zurück] u:home

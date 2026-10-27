@@ -49,11 +49,11 @@ class TestLogik(unittest.TestCase):
         self.assertIn("prof@example.org", text)
         self.assertEqual(text.count("Hallo"), 2000)
         self.assertTrue(text.startswith("<b>Posteingang</b> · Mail-Entwurf\nAntwort"))
-        self.assertIn("Details:\nan: prof@example.org", text)
+        self.assertIn("Details:\nAn: prof@example.org", text)
         kauf = entwurf_als_text({"agent": "einkauf", "typ": "kauf", "titel": "Kabel <USB>", "inhalt": "x",
                                  "daten": {"preis": 12.5, "menge": [1, 2]}, "vorgaenger": "alt"})
         self.assertIn("Kauf-Entwurf, überarbeitet\nKabel &lt;USB&gt;", kauf[0])
-        self.assertIn("preis: 12.5\nmenge: [1, 2]", kauf[0])
+        self.assertIn("Preis: 12.5\nMenge: 1, 2", kauf[0])
 
     def test_entwurf_details_ohne_doppeltes(self):
         text = "Sehr geehrter Herr Böhme,\n\nvielen Dank.\n\nMit besten Grüßen\nJan"
@@ -66,7 +66,7 @@ class TestLogik(unittest.TestCase):
         (nachricht,) = entwurf_als_text(e)
         self.assertEqual(nachricht.count("vielen Dank"), 1)
         details = nachricht.split("Details:\n")[1].splitlines()
-        self.assertEqual([d.split(":")[0] for d in details], ["begruendung", "in_reply_to", "nein", "menge", "fremd"])
+        self.assertEqual([d.split(":")[0] for d in details], ["Warum", "Antwort auf", "Nein", "Menge", "Fremd"])
         termin = entwurf_als_text({"agent": "uni", "typ": "termin", "titel": "T", "inhalt": "x", "vorgaenger": None,
                                    "daten": {"titel": "x"}})
         self.assertNotIn("Details", termin[0])
@@ -76,12 +76,15 @@ class TestLogik(unittest.TestCase):
         def zt(ts):
             return "ZEIT" if ts else "?"
 
-        self.assertIn("unbekannt", verbrauch_text(None, "normal", {}, zt))
+        self.assertIn("erst nach der ersten Aufgabe", verbrauch_text(None, "normal", {}, zt))
         stand = {"5h": 0.11, "7d": 0.39, "reset_5h": 1, "reset_7d": 2, "zeit": 3}
         heute = {"uni": {"laeufe": 2, "tokens": 12000, "minuten": 1.5, "usd": 0.1, "fehler": 1}}
         text = verbrauch_text(stand, "sparen", heute, zt)
-        for teil in ("5 Stunden: 11 %", "7 Tage: 39 %", "sparen", "uni: 2 Läufe, 12k Tokens", "1 mit Fehler"):
+        for teil in ("5 Stunden: 11 %", "7 Tage: 39 %", "darum spare ich", "Uni: 2-mal gearbeitet, 1,5 Minuten",
+                     "1-mal hat es nicht geklappt"):
             self.assertIn(teil, text)
+        self.assertNotIn("Tokens", text)
+        self.assertIn("Recherche (Lia): 2-mal", verbrauch_text(stand, "normal", {"lia/recherche": heute["uni"]}, zt))
 
     def test_gemeldet_speichern_laden(self):
         pfad = Path(tempfile.mkdtemp()) / "data" / "gemeldet.json"
@@ -194,12 +197,12 @@ class PanelTest(unittest.TestCase):
         text, knoepfe = logik.ansicht_home(["Offene Entwürfe: 2"], ["uni"], 2, "Auftrag weitergegeben.")
         self.assertIn("Offene Entwürfe: 2", text)
         self.assertIn("Auftrag weitergegeben.", text)
-        self.assertEqual(knoepfe[0], [("uni", "u:a:uni:erledigen")])
+        self.assertEqual(knoepfe[0], [("Uni", "u:a:uni:erledigen")])
         self.assertIn(("Entwürfe (2)", "u:entwuerfe"), knoepfe[1])
 
     def test_agent_modus_wechseln(self):
         text, knoepfe = logik.ansicht_agent("uni", "erledigen")
-        self.assertIn("Modus: erledigen", text)
+        self.assertIn("Auftrag an Uni (erledigen)", text)
         self.assertEqual(knoepfe[0][0][1], "u:a:uni:lernen")
 
     def test_text_wird_gekuerzt(self):
@@ -214,8 +217,9 @@ class TestWeitergabe(unittest.TestCase):
 
     def test_weitergabe_nur_wenn_sie_liegen_bleibt(self):
         self.assertIsNone(weitergabe_text(self.A, dienst_da=True))
-        text = weitergabe_text(self.A, dienst_da=False)
-        self.assertIn("Dokumente läuft noch nicht", text)
+        (text,) = weitergabe_text(self.A, dienst_da=False)
+        self.assertTrue(text.startswith("<b>Zentrale</b>\n"))
+        self.assertIn("Dokumente ist aber noch nicht eingerichtet", text)
         self.assertNotIn(self.A["id"], text)
 
     def test_ergebnis_ohne_technik(self):
@@ -244,13 +248,15 @@ class TestWeitergabe(unittest.TestCase):
         zeit = lambda ts: "18:00"  # noqa: E731
         self.assertIsNone(stufe_text("normal", "sparen", None, zeit))
         self.assertIsNone(stufe_text("sparen", "nur_auftraege", None, zeit))
-        self.assertIn("warten bis 18:00", stufe_text("sparen", "limit", {"reset_status": 1}, zeit))
-        self.assertIn("bis es wieder frei ist", stufe_text("normal", "limit", {}, zeit))
-        self.assertIn("wieder frei", stufe_text("limit", "nur_auftraege", None, zeit))
+        self.assertIn("warten bis 18:00", stufe_text("sparen", "limit", {"reset_status": 1}, zeit)[0])
+        self.assertIn("sobald wieder Rechenzeit frei ist", stufe_text("normal", "limit", {}, zeit)[0])
+        self.assertIn("wieder Rechenzeit frei", stufe_text("limit", "nur_auftraege", None, zeit)[0])
+        self.assertTrue(stufe_text("limit", "normal", None, zeit)[0].startswith("<b>Zentrale</b>"))
 
     def test_bestaetigung(self):
-        self.assertEqual(bestaetigung("uni", "erledigen", []), "Uni ist dran.")
-        self.assertEqual(bestaetigung("uni", "lernen", ["a.pdf"]), "Uni ist dran (lernen), mit 1 Datei: a.pdf.")
+        self.assertEqual(bestaetigung("uni", "erledigen", []), "Uni ist dran. Das Ergebnis kommt hierher.")
+        self.assertEqual(bestaetigung("uni", "lernen", ["a.pdf", "b.pdf"]),
+                         "Uni ist dran (lernen), mit 2 Dateien. Das Ergebnis kommt hierher.")
 
     def test_weitergaben_werden_gemerkt(self):
         with tempfile.TemporaryDirectory() as d:

@@ -46,7 +46,7 @@ def _r(muster: str, flags: int = 0) -> re.Pattern:
 
 
 GROSS_KLEIN = re.IGNORECASE
-AGENTEN_KLEIN = r"\b(uni|dokumente|recherche|unterricht|examen|feedback|sicherung|posteingang|einkauf)\b"
+AGENTEN_KLEIN = r"(?<![/\w])(uni|dokumente|recherche|unterricht|examen|feedback|sicherung|posteingang|einkauf)\b"
 
 REGELN = [
     # Glossar (docs/sprache/sprachregel.md). Zu allgemeine Wörter (Fehler, Notiz, Modell, Lauf im Sinn von Verlauf)
@@ -145,8 +145,8 @@ def _fuer_messung(text: str) -> str:
 
 
 def ist_fliesstext(zeile: str) -> bool:
-    """Satz statt Beschriftung: endet mit einem Satzzeichen oder hat mehr als 4 Wörter ("Neues Material" zählt nicht)."""
-    return bool(re.search(r"[.!?:…]\s*$", zeile)) or len(WORT.findall(zeile)) > 4
+    """Satz statt Beschriftung: endet mit . ! ? … oder hat mehr als 4 Wörter ("Entwürfe offen: 1" zählt nicht)."""
+    return bool(re.search(r"[.!?…]\s*$", zeile)) or len(WORT.findall(zeile)) > 4
 
 
 def lesbarkeit(text: str) -> Lesbarkeit:
