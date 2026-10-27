@@ -51,6 +51,8 @@ recherche = [
   "ardmediathek.de", "zdf.de", "arte.tv", "youtube.com",
   # bisherige Quellen
   "de.wikisource.org", "zeno.org", "korpora.org", "archive.org",
+  # Fallsuche (Jan 27.10.2026): Nachrichten, Jugend, Urteile, Orientierung
+  "rbb24.de", "deutschlandfunk.de", "funk.net", "stern.de", "openjur.de", "de.wikipedia.org",
 ]
 
 # Aufträge von Agent an Agent (agentkit.auftraege.weitergeben): Absender = [Empfänger].
