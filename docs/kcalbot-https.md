@@ -3,7 +3,7 @@
 Stand 27.10.2026. Vorgeschichte und Rechte: kcalbot-rechte.md. Alles hier läuft als root (`ssh agents`).
 
 ## Ziel
-Der iPhone-Kurzbefehl schickt die Schritte über `https://<name>/steps?...` statt `http://84.247.188.205:8787/...`.
+Der iPhone-Kurzbefehl schickt die Schritte über `https://kcal.meldro.de/steps?...` statt `http://84.247.188.205:8787/...`.
 Der Schlüssel geht dann verschlüsselt über das Netz. Port 8787 ist danach von außen zu, kcalbot lauscht nur noch lokal.
 
 ## Ausgangslage (geprüft)
@@ -13,6 +13,8 @@ Der Schlüssel geht dann verschlüsselt über das Netz. Port 8787 ist danach von
 - Der Kurzbefehl wird benutzt: 25 Übertragungen in 30 Tagen.
 
 ## Entscheidung 1: Name für das Zertifikat
+
+Entschieden 27.10.2026: Variante A, Domain meldro.de bei INWX (Nameserver INWX), Subdomain kcal.meldro.de.
 Ein Zertifikat braucht einen Namen, auf den es ausgestellt wird.
 
 - **A: eigene Domain oder Subdomain (empfohlen).** Zum Beispiel `kcal.<deine-domain>.de`, ein A-Eintrag auf
@@ -30,8 +32,15 @@ Empfehlung: ja, im selben Schritt.
 
 ## Schritte (Variante A)
 
-**1. DNS-Eintrag** beim Domain-Anbieter: `kcal.<domain>` A 84.247.188.205, AAAA 2a02:c207:3020:9076::1.
-Prüfen vom Mac: `dig +short kcal.<domain>` zeigt die IP.
+**1. DNS-Eintrag** bei INWX (Domainliste, meldro.de, DNS bzw. Nameserver-Einträge), zwei neue Einträge:
+
+| Name | Typ | Wert | TTL |
+|---|---|---|---|
+| kcal | A | 84.247.188.205 | 3600 |
+| kcal | AAAA | 2a02:c207:3020:9076::1 | 3600 |
+
+Erst möglich, wenn die Registrierung durch ist (Status nicht mehr REG REQUESTED).
+Prüfen vom Mac: `dig +short kcal.meldro.de` zeigt die IP.
 
 **2. Caddy installieren** (Ubuntu-Paket, legt den Dienst `caddy` unter eigenem User an, etwa 30-50 MB RAM):
 ```bash
@@ -46,7 +55,7 @@ ufw allow 443/tcp comment 'caddy'
 
 **4. Caddy einrichten**, die Datei `/etc/caddy/Caddyfile` komplett ersetzen durch:
 ```
-kcal.<domain> {
+kcal.meldro.de {
 	handle /steps {
 		reverse_proxy 127.0.0.1:8787
 	}
@@ -60,12 +69,12 @@ der Schlüssel aus der URL landet also nirgends. Dann:
 ```bash
 systemctl reload caddy
 ```
-Prüfen: `curl -s -o /dev/null -w '%{http_code}\n' 'https://kcal.<domain>/steps?key=x'` muss `403` zeigen
+Prüfen: `curl -s -o /dev/null -w '%{http_code}\n' 'https://kcal.meldro.de/steps?key=x'` muss `403` zeigen
 (kcalbot antwortet, der Schlüssel ist falsch). Ab hier gehen alter und neuer Weg parallel.
 
 **5. kcalbot auf den neuen Link umstellen**, in `/opt/kcalbot/.env` die Zeile ändern:
 ```
-PUBLIC_URL=https://kcal.<domain>
+PUBLIC_URL=https://kcal.meldro.de
 ```
 Optional jetzt die Schlüssel erneuern (Entscheidung 2, Befehl in kcalbot-rechte.md), dann:
 ```bash
