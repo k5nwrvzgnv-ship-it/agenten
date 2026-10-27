@@ -10,6 +10,7 @@ from unittest import mock
 from agentkit import claude_lauf, einstellungen, verbrauch
 
 CFG = einstellungen.lade()
+TOKEN_CFG = {**CFG, "konto": {"quelle": "token"}}
 
 # Nachgebautes claude: schreibt seine Argumente in args.json und gibt stream-json aus.
 FAKE = """#!/usr/bin/env python3
@@ -81,9 +82,27 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertEqual((eintrag["agent"], eintrag["auftrag"], eintrag["tokens"]), ("uni", "a1", 1130))
         self.assertEqual(eintrag["auslastung"]["7d"], 0.4)
 
+    def test_jans_login(self):
+        cfg = copy.deepcopy(CFG)
+        cfg["konto"] = {"quelle": "login"}
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "fremd", "CLAUDE_CODE_OAUTH_TOKEN": "alt"}):
+            self.lauf(cfg)
+        env = json.loads((self.agent_dir / "env.json").read_text())
+        self.assertEqual(env, {"CLAUDE_CODE_OAUTH_TOKEN": None, "ANTHROPIC_API_KEY": None})
+        self.konto_env.unlink()  # Login braucht keinen Token
+        self.assertTrue(self.lauf(cfg).ok)
+
+    def test_unbekannte_quelle(self):
+        cfg = copy.deepcopy(CFG)
+        cfg["konto"] = {"quelle": "api"}
+        with self.assertRaises(claude_lauf.KeinKonto):
+            self.lauf(cfg)
+
     def test_token_des_agentenkontos(self):
+        cfg = copy.deepcopy(CFG)
+        cfg["konto"] = {"quelle": "token"}
         with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "fremd"}):
-            self.lauf()
+            self.lauf(cfg)
         env = json.loads((self.agent_dir / "env.json").read_text())
         self.assertEqual(env, {"CLAUDE_CODE_OAUTH_TOKEN": "token-agentenkonto", "ANTHROPIC_API_KEY": None})
         self.assertNotIn("CLAUDE_CODE_OAUTH_TOKEN", os.environ)  # nur für claude -p gesetzt
@@ -96,13 +115,13 @@ class TestClaudeLauf(unittest.TestCase):
             else:
                 self.konto_env.write_text(inhalt)
             with self.assertRaises(claude_lauf.KeinKonto) as fehler:
-                self.lauf()
+                self.lauf(TOKEN_CFG)
             self.assertIn("CLAUDE_CODE_OAUTH_TOKEN fehlt", str(fehler.exception))
             self.assertFalse((self.agent_dir / "args.json").exists())  # claude nie gestartet
         self.konto_env.write_text("CLAUDE_CODE_OAUTH_TOKEN=x\n")
         self.konto_env.chmod(0o644)
         with self.assertRaises(claude_lauf.KeinKonto):  # falsche Rechte: auch kein Lauf
-            self.lauf()
+            self.lauf(TOKEN_CFG)
 
     def test_lernsitzung_und_fortsetzen(self):
         self.lauf(art="anspruchsvoll", lernsitzung=True)

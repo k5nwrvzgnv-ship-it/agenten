@@ -29,12 +29,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - claude-Läufe ("Claude denkt, Python handelt"): ohne Bash und MCP, Schreiben nur im Agent-Ordner,
   Schreibschutz auf Code/STATUS.md/Regeln/Einrichtung, kein Zugriff auf .env. Alles mit echten
   Läufen getestet. Grundlast ca. 6.300 Tokens pro Lauf.
-- Verbrauch: Alle Agenten (Jans und Lias Instanz) laufen über ein eigenes Claude-Konto (Pro), getrennt von
-  Jans Chats (Login ~/.claude/.credentials.json). claude_lauf setzt CLAUDE_CODE_OAUTH_TOKEN aus shared/.env
-  nur in der Umgebung von claude -p; ohne Token startet kein Lauf (KeinKonto), kein Rückfall auf Jans Login.
-  Token erneuern: `~/.local/bin/claude setup-token` mit dem Agenten-Konto, Jan trägt ihn selbst ein.
-  Echt getestet 27.10.: rate_limit_event des Agenten-Kontos (5h 6 %, 7d 1 %) unterscheidet sich von Jans
-  (7d 100 %). Stufen normal/sparen/nur_auftraege/limit nach 5h- und 7d-Auslastung dieses Kontos, Werte in
+- Verbrauch: Konto aller Agenten (Jans und Lias Instanz) per [konto] quelle in shared/einstellungen.toml.
+  Heute "login" (Jan 27.10.): Jans Login ~/.claude/.credentials.json (Pro), geteilt mit seinen Chats;
+  claude_lauf entfernt dann ANTHROPIC_API_KEY/AUTH_TOKEN und CLAUDE_CODE_OAUTH_TOKEN für claude -p.
+  Echt getestet 27.10. (Haiku): Lauf ohne Token ok, Auslastung 5h 2 %, 7d 0 %.
+  Alternative "token": eigenes Agenten-Konto, CLAUDE_CODE_OAUTH_TOKEN in shared/.env (steht noch drin);
+  ohne Token startet dann kein Lauf (KeinKonto). Erneuern: `~/.local/bin/claude setup-token` mit dem
+  Agenten-Konto, Jan trägt ihn selbst ein. Stufen normal/sparen/nur_auftraege/limit nach 5h- und 7d-Auslastung dieses Kontos, Werte in
   shared/einstellungen.toml. Einschränkung: Auslastung wird nur bei Agenten-Läufen aktualisiert.
 - Qualität: `./pruefen.sh` (Tests aller Ordner, Linter ruff aus .venv im Hauptordner, Regeln in ruff.toml).
   Git-Hook githooks/pre-commit bricht Commits ab, wenn nicht grün (core.hooksPath = githooks).
@@ -162,7 +163,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 8. Lias Agenten-Netzwerk: Architektur in docs/lia-architektur.md (Abschnitt 3 und 7 = Fahrplan).
    Entschieden 21.10.: Ordner unter agent statt User lia; vorhandener Token bleibt (stand im Chat,
    /revoke optional); agentkit als Paket erst beim Umzug zu einem User lia. Konto (seit 27.10.): Lias Agenten
-   laufen wie Jans über das Agenten-Konto (siehe Stand, Verbrauch), nicht mehr über Jans Pro-Abo; Lias eigene
+   laufen über dasselbe Konto wie Jans (siehe Stand, Verbrauch, heute Jans Login); Lias eigene
    claude.ai-Chats sind davon nicht berührt. docs/lia-architektur.md Abschnitt 0 beschreibt noch den alten Stand.
    Gebaut: Lias Zentrale und Platzhalter unterricht (siehe Stand).
    Offen:

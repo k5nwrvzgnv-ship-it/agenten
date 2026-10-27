@@ -6,6 +6,12 @@ max_schritte = 30        # Arbeitsschritte pro claude-Lauf (--max-turns)
 max_minuten = 15         # danach wird der Lauf abgebrochen
 warten_minuten = 30      # so lange wartet ein Lauf höchstens auf einen freien Platz
 
+# Claude-Konto aller Agenten (alle Instanzen):
+# "login" = Jans Login (~/.claude/.credentials.json, sein Abo, geteilt mit seinen Chats),
+# "token" = eigenes Agenten-Konto, CLAUDE_CODE_OAUTH_TOKEN in shared/.env.
+[konto]
+quelle = "login"
+
 # Stufen nach Auslastung des Pro-Kontingents (Prozent, von Anthropic gemeldet).
 # Es gilt die höchste Stufe, deren Grenze im 5-Stunden- ODER 7-Tage-Fenster erreicht ist.
 [stufen]

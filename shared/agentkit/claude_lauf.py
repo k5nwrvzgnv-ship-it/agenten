@@ -10,10 +10,11 @@ Claude denkt, der Python-Code des Agenten handelt. Deshalb bekommt Claude:
 Außerdem: Sperre pro Agent, höchstens N Läufe gleichzeitig (je nach Stufe),
 Zeitlimit, Verbrauchsprotokoll.
 
-Konto: Alle Agenten aller Instanzen laufen über ein eigenes Claude-Konto, nicht über Jans Login.
-Der Token (CLAUDE_CODE_OAUTH_TOKEN aus `claude setup-token`) steht in KONTINGENT_DIR/.env und wird
-nur in die Umgebung von claude -p gesetzt. Fehlt er, startet kein Lauf (KeinKonto), es gibt keinen
-Rückfall auf Jans Login.
+Konto ([konto] quelle in einstellungen.toml, gilt für alle Instanzen):
+- "login": Jans Login (~/.claude/.credentials.json, sein Abo). Andere Zugänge werden für claude -p entfernt.
+- "token": eigenes Agenten-Konto. Der Token (CLAUDE_CODE_OAUTH_TOKEN aus `claude setup-token`) steht in
+  KONTINGENT_DIR/.env und wird nur in die Umgebung von claude -p gesetzt. Fehlt er, startet kein Lauf
+  (KeinKonto), es gibt keinen Rückfall auf Jans Login.
 """
 
 import fcntl
@@ -33,8 +34,8 @@ from .config import KONTINGENT_DIR
 CLAUDE_BIN = os.environ.get("AGENTKIT_CLAUDE_BIN", str(Path.home() / ".local" / "bin" / "claude"))
 SLOT_DIR = KONTINGENT_DIR / "verbrauch" / "plaetze"  # gemeinsam für alle Instanzen (ein Konto)
 KONTO_ENV = KONTINGENT_DIR / ".env"  # CLAUDE_CODE_OAUTH_TOKEN des Agenten-Kontos
-# Andere Zugänge, die claude vor dem Token nehmen könnte: werden für claude -p entfernt.
-FREMDE_ZUGAENGE = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+# Andere Zugänge, die claude vor dem gewählten nehmen könnte: werden für claude -p entfernt.
+FREMDE_ZUGAENGE = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN")
 
 VERBOTEN = [f"{w}(**/{m})" for w in ("Read", "Grep", "Edit", "Write") for m in (".env", ".env.*")]
 # Claude darf im Agent-Ordner Protokolle und Notizen schreiben, aber nie Code, Regeln oder
@@ -100,8 +101,13 @@ class KeinKonto(LaufFehler):
     """Kein Token für das Agenten-Konto: Lauf startet nicht."""
 
 
-def umgebung(env_pfad: Path | None = None, basis=os.environ) -> dict:
-    """Umgebung für claude -p: wie die eigene, aber mit dem Token des Agenten-Kontos."""
+def umgebung(quelle: str = "token", env_pfad: Path | None = None, basis=os.environ) -> dict:
+    """Umgebung für claude -p: wie die eigene, aber nur mit dem Zugang der gewählten Quelle."""
+    env = {k: v for k, v in basis.items() if k not in FREMDE_ZUGAENGE}
+    if quelle == "login":
+        return env
+    if quelle != "token":
+        raise KeinKonto(f'[konto] quelle = "{quelle}" unbekannt, erlaubt sind "login" und "token".')
     pfad = env_pfad or KONTO_ENV
     try:
         token = config.lies_env(pfad).get("CLAUDE_CODE_OAUTH_TOKEN", "")
@@ -110,7 +116,6 @@ def umgebung(env_pfad: Path | None = None, basis=os.environ) -> dict:
     if not token:
         raise KeinKonto(f"CLAUDE_CODE_OAUTH_TOKEN fehlt in {pfad}. Agenten laufen nicht über Jans Login. "
                         "Token mit `claude setup-token` (Agenten-Konto) erzeugen und dort eintragen.")
-    env = {k: v for k, v in basis.items() if k not in FREMDE_ZUGAENGE}
     env["CLAUDE_CODE_OAUTH_TOKEN"] = token
     return env
 
@@ -269,7 +274,7 @@ def laufen(
         modell = cfg["modelle"]["anspruchsvoll"]
     sitzung_neu = str(uuid.uuid4()) if lernsitzung and not sitzung_fortsetzen else None
     cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen)
-    env = umgebung()
+    env = umgebung(cfg.get("konto", {}).get("quelle", "token"))
 
     with _sperre(agent_dir / "data" / "lauf.lock", LaeuftSchon(f"{agent} läuft schon")):
         with _platz(cfg["parallel"][stufe], cfg["lauf"]["warten_minuten"] * 60, slot_dir or SLOT_DIR):
