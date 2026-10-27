@@ -32,7 +32,7 @@ Regeln: CLAUDE.md. Aktueller Stand: STATUS.md.
 │       ├── instanz/         Lias Daten: .env, Warteschlangen, Regeln, Daten ihrer Zentrale
 │       └── unterricht/      Lias Agent unterricht (Platzhalter, antwortet „kommt bald“)
 │
-├── agents/vinted/           alter Vinted-Bot, gehört NICHT zum System (nicht anfassen)
+├── agents/vinted/           alter Vinted-Bot, gehört NICHT zum System (nicht anfassen, Ausnahme: CLAUDE.md)
 └── .config/systemd/user/    die laufenden Dienste (Kopien der Vorlagen aus dem Repo)
 ```
 
@@ -60,7 +60,7 @@ Der Ordner entsteht mit dem Agenten.
 | `lia-unterricht` | Lias Platzhalter, startet nach Aufträgen | `lia/unterricht/systemd/` |
 | `feedback`, `lia-feedback` | Feedback zu Ergebnissen zuordnen und übernehmen, Jans Stopp | `shared/feedback/systemd/` |
 | `ausfall@` | Meldung an Jan, wenn ein Dienst ausfällt | `shared/systemd/` |
-| `vinted-bot` | alter Vinted-Bot, nicht Teil des Systems | – |
+| `vinted-bot` | alter Vinted-Bot, nicht Teil des Systems; zählt in /verbrauch mit, meldet Ausfälle | `~/agents/vinted/systemd/` |
 
 Status: `systemctl --user status <dienst>`. Logs: `journalctl --user -u <dienst>` oder `<ordner>/logs/`.
 Nach Änderung einer Vorlage: Vorlage kopieren, dann `systemctl --user daemon-reload`, dann `systemctl --user restart <dienst>`.

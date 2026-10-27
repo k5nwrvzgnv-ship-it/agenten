@@ -37,6 +37,9 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - Nicht anfassen (Ordner, Dienste, Ports, Zugangsdaten):
   - kcalbot: Systemdienst `kcalbot.service`, User `bot`, /opt/kcalbot, vermutlich Port 8787
   - Vinted-Bot: User-Dienst `vinted-bot.service`, /home/agent/agents/vinted, Port 9222 (lokal)
+    Ausnahme (Jan 27.10.2026, Stufe 1): llm.py protokolliert jeden claude-Lauf per agentkit.verbrauch
+    (agent vinted, konto login, ohne Auslastung), die Unit trägt OnFailure=ausfall@%n.service und eine
+    Startgrenze. Sonst weiter nicht anfassen.
 - Jeder Agent bekommt eigene Zugangsdaten, auch einen eigenen Telegram-Bot-Token. Die Tokens der bestehenden Bots werden nicht wiederverwendet.
 
 ## Architektur
