@@ -9,7 +9,9 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
    Aufträge "Transkript <Kurs> [Datum]" legt Python als Vorlesungstranskript ab (transkripte.py),
    Claude meldet daraus Prüfungshinweise, Fristen und Organisatorisches.
    Aufträge "Dokument: ..." bereitet Claude mit Belegen auf (Protokoll, Behauptungsliste, Beschreibung),
-   Python prüft die Übergabe (weitergabe.py) und gibt sie an den Agenten dokumente weiter,
+   Python prüft die Übergabe (weitergabe.py) und gibt sie an den Agenten dokumente weiter.
+   Lernblätter beschreibt Claude als data/lernblaetter/<auftrag>/blatt_<n>.json, Python baut daraus
+   ein PDF und hängt es an das Ergebnis (lernblatt.py, lernblaetter_bauen),
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -23,6 +25,7 @@ Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Te
 
 import json
 import time
+import tomllib
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -30,6 +33,7 @@ from agentkit import auftraege, claude_lauf, config, freigabe, kalender, log, me
 
 import fristen
 import kurse
+import lernblatt
 import mail
 import moodle
 import literatur
@@ -46,6 +50,7 @@ ERINNERT_DATEI = DATA / "erinnert.json"
 MAILS_OFFEN = DATA / "mails_offen.json"
 FEHLER_DATEI = DATA / "schritt_fehler.json"
 FORMAT_MD = HIER.parent / "shared" / "renderer" / "FORMAT.md"
+PROFIL_LERNBLATT = HIER / "profil-lernblatt.toml"
 logger = log.hole_logger(HIER, AGENT)
 cfg = config.lade_config(HIER, pflicht=("HNEE_NUTZER", "HNEE_KENNWORT", "MOODLE_URL", "IMAP_HOST"))
 
@@ -155,6 +160,8 @@ Kursmaterial aus Moodle liegt in data/kurse/<Kurs>/. Lies zuerst data/kurse/<Kur
 Textfassung <datei>.txt mit Seiten- bzw. Foliennummern ("--- Seite 12"). Such darin mit Grep.
 Formeln, Tabellen und Bilder fehlen in der Textfassung oft: dann die Seite im PDF mit Read ansehen. Alte Formate (doc, ppt, xls) kannst du nicht lesen, sag das dann.
 ZIP-Archive sind nach <name>_entpackt/ entpackt, die Inhaltsliste steht in <name>.zip.txt.
+Lernblätter, die du schon für Jan gemacht hast: data/lernblaetter/<auftrag>/blatt_<n>.json, ältere als .md in
+data/kurse/<Kurs>/transkripte/.
 Vorlesungstranskripte: Jans eigene in data/kurse/<Kurs>/transkripte/, automatische aus
 Aufzeichnungen als <video>.txt neben dem Video (Zeitmarken [mm:ss], Hörfehler möglich).
 Such darin mit Grep und nenne Datum bzw. Zeitmarke als Quelle.
@@ -197,6 +204,72 @@ wähl andere, wenn es passt (früher Termin mit Anreise: Vorabend). Datum und Uh
 stehen, nie raten. Nicht: reguläre Vorlesungen nach Stundenplan (stehen schon im Kalender), Moodle-Abgabefristen
 (meldet der Agent selbst), Vergangenes, Termine für andere. Python prüft, gleicht mit Jans Kalender ab und
 schickt ihm eine Kalenderdatei zum Antippen. Schreib also nicht "Termin eintragen", sondern nur, worum es geht."""
+
+
+LERNBLATT_HINWEIS = """
+
+Lernblätter: Will Jan ein Lernblatt, eine Zusammenfassung oder ein aufbereitetes Blatt zum Lernen, schreib es
+nicht als .md, sondern als Beschreibung nach {ordner}/blatt_1.json (ein zweites Blatt: blatt_2.json).
+Das Format steht in {format} (Art "zusammenfassung", Quellen ins Feld quellen, nicht in den Text).
+Python baut daraus ein PDF und schickt es Jan mit deiner Antwort. Ist die Beschreibung ungültig, bekommst du
+die Fehler. Soll ein Blatt geändert werden, ändere die Datei dort. Liegt es nur als .md vor, übertrag es in
+blatt_1.json. Nenn in der Kurzfassung keinen Pfad zum Blatt, sag nur, dass das PDF anhängt."""
+
+PROMPT_BLATT_NACHBESSERN = """Python hat diese Lernblätter nicht gebaut, die Beschreibung ist ungültig:
+{fehler}
+
+Korrigiere alle genannten Stellen in den Dateien unter {ordner}/ (Format: {format}).
+Antworte danach mit einem Satz, was du korrigiert hast."""
+
+
+def lernblatt_hinweis(schluessel: str) -> str:
+    """Hinweis für den Prompt, legt dabei das Format für Claude ab."""
+    ziel = HIER / lernblatt.ORDNER / "FORMAT.md"
+    lernblatt.format_ablegen(FORMAT_MD.read_text(), ziel)
+    return LERNBLATT_HINWEIS.format(ordner=lernblatt.ordner(HIER, schluessel).relative_to(HIER),
+                                    format=ziel.relative_to(HIER))
+
+
+def lernblaetter_bauen(schluessel: str, auftrag_id: str, sitzung: str | None, laufen=claude_lauf.laufen,
+                       bauen=lernblatt.bauen_neue) -> tuple[list[str], list[Path], str | None]:
+    """Neue oder geänderte Lernblätter bauen, bei ungültiger Beschreibung eine Nachbesserung in derselben Sitzung.
+
+    schluessel: erster Auftrag der Antwortkette (Ordner der Blätter), auftrag_id: der laufende Auftrag.
+    Gibt Zeilen fürs Ergebnis, die PDFs und die neueste Sitzung zurück. Wirft nichts: Ein Fehler hier soll den
+    Auftrag nicht wiederholen lassen, der Claude-Lauf ist schon bezahlt.
+    """
+    ordner = lernblatt.ordner(HIER, schluessel)
+    if not ordner.is_dir():
+        return [], [], sitzung
+    zeilen = []
+    try:
+        profil = tomllib.loads(PROFIL_LERNBLATT.read_text())
+        b = bauen(ordner, profil)
+    except (OSError, ValueError) as f:
+        logger.error("Lernblätter %s nicht gebaut: %s", schluessel, f)
+        return [f"Lernblatt nicht gebaut: {f}"], [], sitzung
+    if b.ungueltig and sitzung:
+        logger.warning("Lernblatt %s ungültig, Nachbesserung: %s", schluessel, ", ".join(b.ungueltig))
+        fehler = "\n".join(f"{name}:\n{text}" for name, text in b.ungueltig.items())
+        try:
+            e = laufen(AGENT, HIER, PROMPT_BLATT_NACHBESSERN.format(
+                fehler=fehler, ordner=ordner.relative_to(HIER), format=lernblatt.ORDNER / "FORMAT.md"),
+                art="anspruchsvoll", auftrag_id=auftrag_id, sitzung_fortsetzen=sitzung)
+            sitzung = e.sitzung or sitzung
+            b2 = bauen(ordner, profil)
+            b.pdfs, b.ungueltig, b.fehler = b.pdfs + b2.pdfs, b2.ungueltig, b.fehler + b2.fehler
+        except (*WARTEN, claude_lauf.LaufFehler, OSError, ValueError) as f:
+            logger.error("Nachbesserung Lernblatt %s fehlgeschlagen: %s", schluessel, f)
+            zeilen.append(f"Nachbesserung des Lernblatts nicht möglich: {f}")
+    for name, text in b.ungueltig.items():
+        logger.warning("Lernblatt %s/%s ungültig: %s", schluessel, name, text)
+        zeilen.append(f"Lernblatt {name} nicht gebaut, Beschreibung ungültig:\n{text}")
+    for f in b.fehler:
+        logger.error("Lernblatt %s: %s", schluessel, f)
+        zeilen.append(f"Lernblatt nicht gebaut: {f}")
+    for pdf in b.pdfs:
+        logger.info("Lernblatt gebaut: %s", pdf.relative_to(HIER))
+    return zeilen, b.pdfs, sitzung
 
 
 def entwurf_ordner(schluessel: str) -> Path:
@@ -673,9 +746,9 @@ def auftrag_bearbeiten(a: dict) -> bool:
         vorlage = PROMPT_ANTWORT_LERNEN if lernen else PROMPT_ANTWORT_ERLEDIGEN
     else:
         vorlage = PROMPT_LERNEN if lernen else PROMPT_ERLEDIGEN
-    zusatz, ics_dateien = links_auswerten(a)
+    zusatz, anhaenge = links_auswerten(a)
     if not lernen:
-        zusatz += entwurf_hinweis(a["id"])
+        zusatz += entwurf_hinweis(a["id"]) + lernblatt_hinweis(start["id"])
     (HIER / "protokolle").mkdir(exist_ok=True)
     try:
         e = claude_lauf.laufen(AGENT, HIER, vorlage.format(text=a["text"] + zusatz, id=start["id"]),
@@ -684,17 +757,19 @@ def auftrag_bearbeiten(a: dict) -> bool:
     except WARTEN as f:
         return _warten(a, f)
     except claude_lauf.LaufFehler as f:
-        auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen", dateien=ics_dateien)
+        auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen", dateien=anhaenge)
         return True
     text = e.text if e.ok else f"Fehler: {e.text}"
+    sitzung = e.sitzung
     if not lernen:
+        blatt_zeilen, pdfs, sitzung = lernblaetter_bauen(start["id"], a["id"], e.sitzung)
         termin_zeilen, termin_dateien = termine_einreichen(a["id"])
-        ics_dateien += termin_dateien
-        text = "\n\n".join([text, *termin_zeilen, *entwuerfe_einreichen(a["id"])])
+        anhaenge += pdfs + termin_dateien
+        text = "\n\n".join([text, *blatt_zeilen, *termin_zeilen, *entwuerfe_einreichen(a["id"])])
     if lernen and e.ok and e.sitzung:
         _schreibe_json(DATA / "sitzungen" / f"{start['id']}.json", {"sitzung": e.sitzung, "auftrag": start["id"]})
-    auftraege.abschliessen(a["id"], text, status="erledigt" if e.ok else "fehlgeschlagen", sitzung=e.sitzung,
-                           dateien=ics_dateien)
+    auftraege.abschliessen(a["id"], text, status="erledigt" if e.ok else "fehlgeschlagen", sitzung=sitzung,
+                           dateien=anhaenge)
     return True
 
 

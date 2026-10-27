@@ -126,6 +126,19 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   zitierter Verlauf ab "Von:/Gesendet:", "Am ... schrieb", "Ursprüngliche Nachricht" abgeschnitten, max. 20.000
   Zeichen). Mails vor dem 27.10. haben nur den zusammengezogenen text. Die Freigabe-Nachricht der Zentrale zeigt
   den Text weiterhin noch einmal mit Kopf.
+- Lernblätter als PDF (lernblatt.py, 27.10., Plan von Jan freigegeben): Vorher schrieb Claude Lernblätter als .md
+  nach data/kurse/<Kurs>/transkripte/ und Jan bekam nur den Pfad. Jetzt sagt LERNBLATT_HINWEIS (Aufträge erledigen
+  und Antworten darauf): Lernblatt als Renderer-Beschreibung (Art zusammenfassung) nach
+  data/lernblaetter/<erster Auftrag der Kette>/blatt_<n>.json, Änderungen per Antwort in derselben Datei. Das Format
+  legt Python vor jedem Lauf als data/lernblaetter/FORMAT.md ab (Abschnitte Allgemein und Zusammenfassung aus
+  shared/renderer/FORMAT.md), damit es nicht in jedem Prompt steht. agent.lernblaetter_bauen baut nach dem Lauf
+  jedes neue oder geänderte Blatt (Prüfsumme in <ordner>/.gebaut.json) nach blatt_<n>/<Titel>.docx und .pdf
+  (renderer.bauen ohne Bildvorschau + vorschau.als_pdf, also ohne pypdfium2; LibreOffice ~3 s, ~220 MB) und hängt
+  das PDF an das Ergebnis. Ungültige Beschreibung: eine Nachbesserung in derselben Sitzung, bleibt sie ungültig,
+  stehen die Fehler im Ergebnis. PDF-Fehler (LibreOffice) stehen im Ergebnis und im Log, nächster Lauf versucht
+  es neu. Profil: uni/profil-lernblatt.toml (Kopie von Jans Zusammenfassungs-Profil, HNEE-Farben).
+  Abgrenzung: "Dokument:"-Aufträge (zum Weitergeben, mit Belegprüfung in dokumente) bleiben wie sie sind.
+  Nur Unit-Tests und ein Probebau mit LibreOffice; echter Lauf steht aus (Offene Punkte 7).
 - Tests mit Meldungen: von OhneTelegram (tests/test_agent.py) erben, sonst landen sie echt in Telegram
   (passiert am 27.10. mit zwei Testnachrichten).
 - Tests schreiben nicht ins echte logs/*.log: tests/__init__.py richtet die Logger uni, uni-lernen und
@@ -313,6 +326,11 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 5. Weitere Normen von Jan: je Lieferung Verzeichnis prüfen und im Holzschutz-Prüfungsplan (json und md)
    "fehlt" und Quellen nachziehen. Kernliste des Semesters liegt vollständig vor (24.10.). Nicht in Nautos:
    WTA-Merkblätter (Transkript IHS 20.10. S. 22, Regelsanierung).
+7. Echttest Lernblatt-PDF: Jan antwortet in Telegram auf das Ergebnis von Auftrag 20261027-171320-uni-a4ca81
+   (Exkursion Hausschwamm), z. B. "Schick mir das Lernblatt als PDF". Erwartet: Claude überträgt
+   data/kurse/Integrierter Holzschutz/transkripte/2026-10-27_Exkursion_Hausschwamm_Zusammenfassung.md nach
+   data/lernblaetter/20261027-171320-uni-a4ca81/blatt_1.json, PDF hängt an. Dabei Tokens ansehen. Ebenso möglich
+   für das Blatt vom 20.10. (2026-10-20_Transkript_Nr1_Zusammenfassung.md).
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
 

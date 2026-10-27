@@ -391,3 +391,75 @@ class TestTermine(OhneTelegram):
 
     def test_hinweis_nennt_termine(self):
         self.assertIn("data/entwuerfe/post-1/termin_1.json", agent.entwurf_hinweis("post-1"))
+
+
+class TestLernblaetter(OhneTelegram):
+    """Claude schreibt blatt_<n>.json, Python baut das PDF (LibreOffice hier durch eine Attrappe ersetzt)."""
+
+    def setUp(self):
+        super().setUp()
+        self.ordner = self.hier / "data" / "lernblaetter" / ID
+        self.aufrufe = []
+
+    @staticmethod
+    def bauen(ordner, profil):
+        def pdf(docx, ziel):
+            (ziel / f"{docx.stem}.pdf").write_text("pdf")
+            return ziel / f"{docx.stem}.pdf"
+        return agent.lernblatt.bauen_neue(ordner, profil, als_pdf=pdf)
+
+    def blatt(self, inhalt):
+        self.ordner.mkdir(parents=True, exist_ok=True)
+        (self.ordner / "blatt_1.json").write_text(inhalt if isinstance(inhalt, str) else json.dumps(inhalt))
+
+    def claude(self, korrigiert=None, fehler=None):
+        def laufen(agent_name, hier, prompt, **kw):
+            self.aufrufe.append((prompt, kw))
+            if fehler:
+                raise fehler
+            if korrigiert:
+                self.blatt(korrigiert)
+            return Ergebnis(text="Korrigiert.", sitzung="s2", ok=True)
+        return laufen
+
+    def test_ohne_blatt_nichts(self):
+        self.assertEqual(agent.lernblaetter_bauen(ID, "a2", "s1", laufen=self.claude()), ([], [], "s1"))
+        self.assertEqual(self.aufrufe, [])
+
+    def test_gueltiges_blatt_wird_pdf_ohne_claude(self):
+        self.blatt(BESCHREIBUNG)
+        zeilen, pdfs, sitzung = agent.lernblaetter_bauen(ID, "a2", "s1", laufen=self.claude(), bauen=self.bauen)
+        self.assertEqual((zeilen, sitzung, self.aufrufe), ([], "s1", []))
+        self.assertEqual(pdfs, [self.ordner / "blatt_1" / "IHS.pdf"])
+        self.assertEqual(agent.lernblaetter_bauen(ID, "a2", "s1", bauen=self.bauen)[1], [])  # schon geschickt
+
+    def test_ungueltig_eine_nachbesserung_in_derselben_sitzung(self):
+        self.blatt({**BESCHREIBUNG, "datum": "x"})
+        zeilen, pdfs, sitzung = agent.lernblaetter_bauen(ID, "a2", "s1", laufen=self.claude(BESCHREIBUNG),
+                                                          bauen=self.bauen)
+        self.assertEqual((zeilen, sitzung, len(pdfs)), ([], "s2", 1))
+        prompt, kw = self.aufrufe[0]
+        self.assertIn("blatt_1.json:\n- datum", prompt)
+        self.assertIn(f"data/lernblaetter/{ID}/", prompt)
+        self.assertEqual((kw["sitzung_fortsetzen"], kw["auftrag_id"]), ("s1", "a2"))
+
+    def test_bleibt_ungueltig_steht_im_ergebnis(self):
+        self.blatt("{kein json")
+        zeilen, pdfs, _ = agent.lernblaetter_bauen(ID, "a2", "s1", laufen=self.claude(), bauen=self.bauen)
+        self.assertEqual((pdfs, len(self.aufrufe)), ([], 1))
+        self.assertEqual(len(zeilen), 1)
+        self.assertTrue(zeilen[0].startswith("Lernblatt blatt_1.json nicht gebaut, Beschreibung ungültig:"))
+
+    def test_claude_nicht_verfuegbar_wirft_nicht(self):
+        self.blatt({**BESCHREIBUNG, "datum": "x"})
+        zeilen, pdfs, sitzung = agent.lernblaetter_bauen(
+            ID, "a2", "s1", laufen=self.claude(fehler=agent.claude_lauf.Pausiert("Stufe")), bauen=self.bauen)
+        self.assertEqual((pdfs, sitzung), ([], "s1"))
+        self.assertIn("Nachbesserung des Lernblatts nicht möglich: Stufe", zeilen[0])
+        self.assertIn("nicht gebaut", zeilen[1])
+
+    def test_hinweis_legt_format_ab(self):
+        text = agent.lernblatt_hinweis(ID)
+        self.assertIn(f"data/lernblaetter/{ID}/blatt_1.json", text)
+        self.assertIn("data/lernblaetter/FORMAT.md", text)
+        self.assertIn("## Zusammenfassung", (self.hier / "data" / "lernblaetter" / "FORMAT.md").read_text())
