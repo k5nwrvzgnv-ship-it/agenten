@@ -128,6 +128,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   den Text weiterhin noch einmal mit Kopf.
 - Tests mit Meldungen: von OhneTelegram (tests/test_agent.py) erben, sonst landen sie echt in Telegram
   (passiert am 27.10. mit zwei Testnachrichten).
+- Tests schreiben nicht ins echte logs/*.log: tests/__init__.py richtet die Logger uni, uni-lernen und
+  uni-transkript vorab ohne Datei ein (hole_logger hängt dann nichts mehr an). Neuer Logger-Name: dort ergänzen.
 - Aufträge während eines Laufs (23.10.): systemctl start auf einen laufenden uni.service startet keinen zweiten
   Lauf. auftraege_abarbeiten holt deshalb so lange nach, bis nichts Neues kommt, und läuft am Ende des Laufs
   noch einmal. Kommt ein Auftrag erst in den letzten Millisekunden, wartet er bis zum nächsten Timer.
@@ -311,7 +313,6 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 5. Weitere Normen von Jan: je Lieferung Verzeichnis prüfen und im Holzschutz-Prüfungsplan (json und md)
    "fehlt" und Quellen nachziehen. Kernliste des Semesters liegt vollständig vor (24.10.). Nicht in Nautos:
    WTA-Merkblätter (Transkript IHS 20.10. S. 22, Regelsanierung).
-6. Tests schreiben über den echten Logger in logs/uni.log (Einträge mit abc123). Aufräumen vorschlagen.
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
 
