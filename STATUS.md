@@ -332,14 +332,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    Tests; Snapshots aller Nachrichtenarten, die schon reine Funktionen sind (shared/telegram/tests/test_nachrichten.py,
    lia_* / jan_*), geprüft in test_sprache_snapshots.py; Laufzeitprüfung in beiden Zentralen (sprachpruefung.py als
    rate_limiter, Warnung „Sprache <Endpunkt> (<Absender>): …“ ohne Inhalt im Log), Ausfallmeldung ins Journal.
-   Beide Zentralen am 27.10. 17:02 neu gestartet, laufen; noch keine echte Nachricht seitdem geprüft.
-   Altlasten: shared/telegram/tests/sprache_altlasten.json (48 Befunde in 24 von 39 Snapshots) darf nur kürzer werden
-   (SPRACHE_ALTLASTEN_KUERZEN=1 streicht Behobenes). Nachweis = Datei leer, dann löschen.
-   Nicht als Snapshot abgedeckt: Texte direkt in zentrale.py, portal.py, feedback/lauf.py (Hilfe, Status, Fehler,
-   Sitzung, Dateien, Stopp-Antworten). Schritt 4 zieht sie in logik.py / portal_logik.py / agentkit.feedback und
-   bekommt dabei Snapshots.
-   Offen: 4 umschreiben (Vorlagen, Panel, Hilfe, Fehler, Feedback inkl. Jans Zusammenfassung ohne Pfade),
-   Ergebnistext-Vertrag in agentkit, Bedarf an die Agenten in deren STATUS.md; 5 Handy-Bilder vorher/nachher
+   Schritt 4 (umschreiben) weitgehend erledigt: Lias Zentrale (Menü, Hilfe, Hinweise, Ergebniskopf), Jans Zentrale
+   (Menü, Hilfe, Status, Verbrauch, Freigabe, Fehler; Texte aus zentrale.py jetzt in logik.py mit Snapshots) und
+   Feedback (agentkit.feedback, feedback/lauf.py): Jans Zusammenfassung kommt von „Zentrale“ (logik.SYSTEM), ohne
+   Pfade und „Art:“, Ablageort steht nur im Log des Feedback-Dienstes; Gründe für Vorschläge in Alltagsworten.
+   Beide Zentralen am 27.10. 17:40 mit allen Änderungen neu gestartet; noch keine echte Nachricht seitdem geprüft.
+   Altlasten: shared/telegram/tests/sprache_altlasten.json (noch 7 Befunde in 3 Snapshots) darf nur kürzer werden
+   (SPRACHE_ALTLASTEN_KUERZEN=1 streicht Behobenes). Nachweis = Datei leer, dann löschen. Rest: jan_fehler_mit_grund
+   (Fehlertext und Pfad, die der Agent selbst ins Ergebnis schreibt), lia_fehler („Kontingent“ im Ergebnistext von
+   unterricht), lia_recherche (langer Satz im Kern von recherche). Alle drei kommen aus den Agenten, nicht aus der
+   Zentrale: gehören zum Ergebnistext-Vertrag.
+   Offen: Ergebnistext-Vertrag in agentkit, Bedarf an die Agenten in deren STATUS.md; 5 Handy-Bilder vorher/nachher
    (380 px); danach eine Woche Auswertung (Treffer im Log, Passt/Zu lang/Falscher Fokus, Rückfragen, Wünsche).
 
 ## Gelernte Regeln
