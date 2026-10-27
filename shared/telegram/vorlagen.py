@@ -10,6 +10,9 @@ Text in eine Beschriftung (1024 Zeichen ohne Formatierung), steht er unter der D
 Feedback-Knöpfe unter jedem Ergebnis: <vorsatz>fb:<auftrag-id>:<k> (höchstens 64 Bytes), k siehe FB_KNOEPFE.
 "Zu lang" fragt nach: nur dieses Ergebnis (lh) oder ab jetzt immer (li). "Falscher Fokus" und "Feedback
 schreiben" warten auf die nächste Nachricht. Dazu feedback_text() für den Auftragstext.
+Ein Agent kann die Knöpfe je Ergebnis abwählen: daten.knoepfe = "nur_antwort" (z. B. ein Dossier zur Auswahl,
+bei dem „Passt“ nichts sagt). Dann steht darunter nur, was die Zentrale sonst noch zeigt (bei Lia „Menü“);
+eine Antwort auf das Ergebnis bleibt bei Lia Feedback, bei Jan setzt sie wie immer das Gespräch fort.
 """
 
 import re
@@ -20,6 +23,7 @@ MAX_TEXT = 3800
 PUNKTE_MAX = 3
 BELEGE_MAX = 10  # mehr stehen im Dokument
 ID = r"\d{8}-\d{6}-[a-z]+-[0-9a-f]{6}"
+NUR_ANTWORT = "nur_antwort"  # daten.knoepfe: keine Feedback-Knöpfe, Antwort genügt
 FB_KNOEPFE = {
     "ok": "Passt",
     "lang": "Zu lang",
@@ -97,6 +101,11 @@ def fb_daten(vorsatz: str, aid: str, k: str) -> str:
     if len(daten.encode()) > 64:
         raise ValueError(f"Knopf-Daten zu lang: {daten}")
     return daten
+
+
+def ohne_feedback_knoepfe(auftrag: dict) -> bool:
+    """Hat der Agent die Feedback-Knöpfe für dieses Ergebnis abgewählt (daten.knoepfe = NUR_ANTWORT)?"""
+    return (auftrag.get("daten") or {}).get("knoepfe") == NUR_ANTWORT
 
 
 def feedback_knoepfe(vorsatz: str, aid: str, extra: Knoepfe | None = None) -> Knoepfe:

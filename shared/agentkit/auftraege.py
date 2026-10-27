@@ -215,6 +215,7 @@ def abschliessen(
     dateien: Ergebnisdateien im Agent-Ordner (absolut oder relativ dazu), gehen an Jan.
     daten: strukturierter Teil des Ergebnisses für die Vorlagen der Zentralen (Feld daten), z. B.
     {"kern": "1-2 Sätze", "punkte": [...], "pruefen": "...", "belege": [...]}, siehe shared/telegram/vorlagen.py.
+    "knoepfe": "nur_antwort" wählt die Feedback-Knöpfe unter diesem Ergebnis ab (Antwort genügt).
     Feedback speichert hier seine Zuordnung.
     """
     if status not in ABSCHLUESSE:

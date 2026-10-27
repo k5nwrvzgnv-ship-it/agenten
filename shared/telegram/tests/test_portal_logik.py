@@ -112,6 +112,10 @@ class AblaufTest(unittest.TestCase):
         self.assertEqual(len(p.ergebnis_knoepfe(a)), 2)
         self.assertEqual(p.ergebnis_knoepfe({**a, "status": "fehlgeschlagen"}), p.MENUE_KNOPF)
         self.assertEqual(p.ergebnis_knoepfe({**a, "agent": "feedback"}), p.MENUE_KNOPF)
+        nur_antwort = {**a, "daten": {"kern": "Dossier", "knoepfe": "nur_antwort"}}
+        self.assertEqual(p.ergebnis_knoepfe(nur_antwort), p.MENUE_KNOPF)
+        self.assertTrue(p.mit_feedback(nur_antwort))  # Lias Antwort darauf bleibt Feedback
+        self.assertEqual(len(p.ergebnis_knoepfe({**a, "daten": {"knoepfe": "unbekannt"}})), 2)
         self.assertEqual(p.fuer_lia([a, {**a, "agent": "feedback"}, {**a, "status": "zurueckgezogen"}]), [a])
 
     def test_dateien(self):

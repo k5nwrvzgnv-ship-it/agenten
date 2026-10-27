@@ -64,6 +64,12 @@ class SnapshotTest(unittest.TestCase):
         self.assertNotIn("vierte Punkt", stuecke[0])
         self.pruefen("lia_recherche", stuecke, p.ergebnis_knoepfe(RECHERCHE))
 
+    def test_lia_dossier_ohne_feedback_knoepfe(self):
+        dossier = {**RECHERCHE, "daten": {"kern": "Hier sind 4 Fälle und 3 Reihenfragen zur Auswahl.",
+                                          "punkte": ["Darf Strafe abschrecken?", "Wem nützt Strafe?",
+                                                     "Ist Strafe gerecht?"], "knoepfe": v.NUR_ANTWORT}}
+        self.pruefen("lia_dossier_nur_antwort", p.ergebnis_nachricht(dossier), p.ergebnis_knoepfe(dossier))
+
     def test_lia_einfach_und_lang(self):
         a = {"id": AID, "agent": "unterricht", "status": "erledigt", "text": "Arbeitsblatt Kant", "ergebnis": "Hier ist dein Arbeitsblatt."}
         self.pruefen("lia_einfach", p.ergebnis_nachricht(a), p.ergebnis_knoepfe(a))
@@ -97,6 +103,11 @@ class SnapshotTest(unittest.TestCase):
 
 
 class VorlagenTest(unittest.TestCase):
+    def test_ohne_feedback_knoepfe(self):
+        self.assertTrue(v.ohne_feedback_knoepfe({"daten": {"knoepfe": v.NUR_ANTWORT}}))
+        for a in ({}, {"daten": None}, {"daten": {"kern": "x"}}, {"daten": {"knoepfe": "alle"}}):
+            self.assertFalse(v.ohne_feedback_knoepfe(a), a)
+
     def test_feedback_auswerten(self):
         self.assertEqual(v.feedback_auswerten(f"p:fb:{AID}:lang", "p:"), (AID, "lang"))
         self.assertEqual(v.feedback_auswerten(f"fb:{AID}:li", ""), (AID, "li"))

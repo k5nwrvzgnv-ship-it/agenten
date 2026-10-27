@@ -459,8 +459,9 @@ async def knoepfe_weg(bot, nachricht_id: int | None) -> None:
 
 
 def ergebnis_knoepfe(a: dict) -> InlineKeyboardMarkup | None:
-    """Feedback-Knöpfe unter erledigten Aufträgen der Agenten (nicht unter Fehlern, nicht beim Feedback-Dienst)."""
-    if a["status"] != "erledigt" or a["agent"] == FEEDBACK:
+    """Feedback-Knöpfe unter erledigten Aufträgen der Agenten (nicht unter Fehlern, nicht beim Feedback-Dienst,
+    nicht wenn der Agent sie abgewählt hat)."""
+    if a["status"] != "erledigt" or a["agent"] == FEEDBACK or v.ohne_feedback_knoepfe(a):
         return None
     return panel.markup(v.feedback_knoepfe("", a["id"]))
 

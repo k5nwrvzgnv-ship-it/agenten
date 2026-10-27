@@ -262,7 +262,10 @@ def mit_feedback(auftrag: dict) -> bool:
 
 
 def ergebnis_knoepfe(auftrag: dict) -> Knoepfe:
-    return v.feedback_knoepfe(VORSATZ, auftrag["id"], MENUE_KNOPF) if mit_feedback(auftrag) else MENUE_KNOPF
+    """Feedback-Knöpfe und Menü, nur Menü bei Fehlern, Bestätigungen und wenn der Agent sie abgewählt hat."""
+    if not mit_feedback(auftrag) or v.ohne_feedback_knoepfe(auftrag):
+        return MENUE_KNOPF
+    return v.feedback_knoepfe(VORSATZ, auftrag["id"], MENUE_KNOPF)
 
 
 def fuer_lia(auftraege: list[dict]) -> list[dict]:
