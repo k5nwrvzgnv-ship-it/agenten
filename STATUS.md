@@ -250,6 +250,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 11. Erledigt 25.10.: Status "allowed_warning" sperrte alle Läufe (verbrauch.stufe und Prüfung am Ende von
    claude_lauf.laufen werteten jeden Status außer "allowed" als Limit). Jetzt verbrauch.gesperrt(status):
    None, "allowed" und "allowed_warning" sind frei, die Stufen sparen/nur_auftraege kommen aus 5h/7d. Mit Tests.
+12. Sicherung (Jan 27.10.2026, Plan freigegeben): Repo gespiegelt nach privatem GitHub-Repo
+   k5nwrvzgnv-ship-it/agenten (Remote „sicherung“, main verfolgt sicherung/main). Zugang nur über Deploy-Key
+   ~/.ssh/github_sicherung (Host-Alias github-sicherung in ~/.ssh/config, Schreibrecht nur auf dieses Repo).
+   Erster Push 27.10. (Stand 89be3a1). data/ und .env sind nicht im Repo und damit nicht auf GitHub.
+   Offen: nächtlicher Push per systemd-User-Timer (wartet auf Jans Okay); Sicherung von Lias Daten (data/,
+   ca. 330 MB, persönlich, nicht auf GitHub) per rsync auf Jans Mac (Entscheidung Jan).
+   Achtung: Weil main jetzt sicherung/main verfolgt, schiebt ein einfaches `git push` nach GitHub. Chats pushen
+   weiter nur auf Jans Anweisung.
 
 ## Gelernte Regeln
 - (noch keine)
