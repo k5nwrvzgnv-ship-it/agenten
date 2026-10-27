@@ -25,6 +25,7 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote, urlsplit, urlunsplit
 
 import agent
 import anhaenge
@@ -114,13 +115,21 @@ sie ohne Beleg stehen (dann erscheint sie unter „Nicht belegt“). Nichts erfi
 Schreibe die VOLLSTÄNDIGE, korrigierte Datei neu nach {ausgabe}, im selben Format. Antworte danach mit einem Satz."""
 
 
+def adresse(url: str) -> str:
+    """URL nur aus ASCII-Zeichen (Umlaute im Pfad prozentkodiert, Host als IDNA); urllib lehnt sonst ab."""
+    t = urlsplit(url.strip())
+    host = (t.hostname or "").encode("idna").decode("ascii") + (f":{t.port}" if t.port else "")
+    sicher = "/%:@!$&'()*+,;=-._~"
+    return urlunsplit((t.scheme, host, quote(t.path, safe=sicher), quote(t.query, safe=sicher + "?"), ""))
+
+
 def seitenleser(domains: list[str], cache: Path):
     """seitentext(url) für webpruefung: lädt über agentkit.abruf (Allowlist = Jans Domains), Text ohne HTML."""
     texte = {}
 
     def seitentext(url: str) -> str:
         if url not in texte:
-            erg = abruf.laden(url, domains, cache)
+            erg = abruf.laden(adresse(url), domains, cache)
             texte[url] = abruf.html_zu_text(auslesen.html_text(erg.inhalt, erg.meta.get("content_type")))
         return texte[url]
     return seitentext

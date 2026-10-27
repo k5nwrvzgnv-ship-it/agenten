@@ -176,5 +176,16 @@ class WebauftragTest(unittest.TestCase):
                          "20261025-090501-lias-auftrag-1")
 
 
+class AdresseTest(unittest.TestCase):
+    def test_umlaute_werden_kodiert(self):
+        self.assertEqual(webauftrag.adresse("https://de.wikipedia.org/wiki/Antonio_Rüdiger"),
+                         "https://de.wikipedia.org/wiki/Antonio_R%C3%BCdiger")
+        self.assertEqual(webauftrag.adresse("https://taz.de/a?b=Fußball&c=1#x"), "https://taz.de/a?b=Fu%C3%9Fball&c=1")
+
+    def test_schon_kodiert_bleibt(self):
+        url = "https://de.wikipedia.org/wiki/Rassismus_im_Fu%C3%9Fball"
+        self.assertEqual(webauftrag.adresse(url), url)
+
+
 if __name__ == "__main__":
     unittest.main()

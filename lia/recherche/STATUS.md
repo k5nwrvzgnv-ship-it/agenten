@@ -51,10 +51,16 @@ Stellen. lia/examen liest das Register für die Skizzen.
   wechselte zwischen den Läufen von teilweise zu ja) und meldet auch Rahmenangaben (Jahr, Heftnummer) als fehlend.
 - Anhänge zum Webauftrag (anhaenge.py): ANHANG:-Zeilen und --anhang, Kopie nach data/web/<id>/anhaenge/, pdf/docx
   mit Textfassung (pypdf 6.21.0 am 25.10. mit Jans Okay installiert). Noch nicht mit echtem Auftrag gelaufen.
-- Fallsuche (Plan Jan 27.10.2026, Lias Auftrag „Neuausrichtung der Recherche“): gebaut und getestet, noch kein
-  echter Lauf. Siehe Abschnitt Fallsuche.
+- Fallsuche (Plan Jan 27.10.2026, Lias Auftrag „Neuausrichtung der Recherche“): erster echter Lauf fertig,
+  data/fallsuche/20261027-115658/ („Fallsuche Strafe.docx“, 19 Seiten). 5 Fenster, 41 Fälle (31 mit geprüftem
+  Zitat, 10 ungeprüft), 70 beim Suchen verworfen; Abgleich 4 stark, 20 mittel, 17 schwach. Dossier: 4 Fälle
+  (Pollux, Heide, Böller mit 33 Verletzten, Raketen-Influencer Neukölln) und 5 Leitfragen mit Kant/Liszt-Belegen.
+  Kosten 40,95 USD in vier Teilläufen (15,33 Abbruch an der Grenze; 8,77 Abbruch am 5h-Kontingent; 6,58
+  Absturz bei der Belegprüfung; 10,27), von Jan freigegeben 15 + 30 USD. Suchläufe kosten 2,4–4,5 USD
+  (Durchgang 2 teurer als 1), Abgleich 1,54, Dossier 1,98. Ein Suchfenster mit zwei Durchgängen ≈ 6,5–7 USD.
+  Jan schickt das Dossier an Lia; ihr Feedback (gesprochen) kommt über Jan. Siehe Abschnitt Fallsuche.
 - Kein Dienst, kein Timer (Teil D).
-- 148 Tests (tests/), in pruefen.sh eingetragen.
+- 153 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
@@ -134,7 +140,9 @@ Stellen. lia/examen liest das Register für die Skizzen.
   (DURCHGAENGE = 2), Belege wörtlich geprüft (webpruefung), eine Nachbesserung. Scheitert ein Fenster, laufen
   die anderen weiter (Meldung). Dann Abgleich (neue Sitzung) und Dossier (dieselbe Sitzung), je eine
   Nachbesserung. Grenze 15 USD je Lauf (Jan), davon RESERVE_USD = 3 für Abgleich und Dossier; danach werden
-  keine Fenster mehr gestartet. --weiter übernimmt fertig geprüfte Fenster. Meldung an Jan.
+  keine Fenster mehr gestartet: Ein Suchlauf startet nur, wenn danach (LAUF_USD = 5) noch die Reserve frei ist.
+  --weiter übernimmt fertig geprüfte Fenster und wiederholt keine bezahlte Suche (sammeln-<f>-gesucht.json, mit
+  Sitzung; ohne Sitzung keine Nachbesserung). --grenze USD nur nach Jans Okay. Meldung an Jan.
 - faelle.py (rein, getestet): Kontext (Regel-Kennungen aus regelwerk_reihe.md, Lias Gelernte Regeln als GR<n>,
   RLP-Auszug), Prompts, Prüfung der drei Dateien, Zusammenführen (ids F01…, doppelte über URL oder Titel
   vereint), docx-Beschreibung (Leitfragen, ausgewählte Fälle mit Abgleich je Kriterium, weitere Fälle, Verworfenes,
@@ -194,9 +202,15 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
 5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
 6. Webauftrag: Lias Zentrale als Eingang (Teil C des Plans „Webrecherche“).
-7. Fallsuche: Domains ergänzen (rbb24.de, deutschlandfunk.de, funk.net, stern.de, openjur.de, de.wikipedia.org;
-   von Jan im Plan 27.10. genehmigt), steht in shared/einstellungen.toml. Danach erster echter Lauf von Hand
-   (bis 15 USD), Dossier über Jan an Lia. Optional: grobe Reihe zum besten Fall (noch nicht gebaut).
+7. Fallsuche: Lias Feedback zum Dossier abwarten; Regelvorschläge daraus erst nach Okay. Rückfragen des Dossiers
+   (Pollux: Taten und Recht belegen; Kants Begnadigungsstelle ins Register; Niveaustufe) an Lia über Jan.
+   Verbesserungen: Fälle über 800 Zeichen fallen ohne Nachbesserung heraus, wenn das Budget knapp ist (zwei gute
+   gingen so verloren, z. B. „14-Jährige stellt Lehrerfoto mit Beleidigung auf Facebook“) -> Python kürzt nicht,
+   besser Grenze im Prompt betonen oder 1000 erlauben. docx wirkt wie ein Arbeitsblatt (Kopf mit Name/Datum,
+   „Arbeitsblatt F“, Absätze dicht, doppelter Punkt nach den Polen); eigene Art im Renderer wäre besser.
+   Optional: grobe Reihe zum besten Fall (noch nicht gebaut).
+8. Bedarf an agentkit (Hauptordner): abruf.laden scheitert an URLs mit Umlauten (UnicodeEncodeError, nicht
+   AbrufFehler). Hier umgangen mit webauftrag.adresse() und einem Fang in faelle.belege_pruefen.
 
 ## Gelernte Regeln
 - (noch keine)

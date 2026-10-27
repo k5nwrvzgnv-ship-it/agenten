@@ -8,7 +8,7 @@ from pathlib import Path
 import agent
 import fallsuche
 from agentkit import claude_lauf
-from tests.test_faelle import abgleich_eintrag, kandidat, leitfrage
+from tests.test_faelle import abgleich_eintrag, auswahl, kandidat, leitfrage
 from tests.test_webpruefung import DOMAINS, REGISTER, seitentext
 
 CFG = {"webfetch": {"recherche": DOMAINS}}
@@ -39,8 +39,7 @@ class Claude:
             antwort = self.abgleich.pop(0) if self.abgleich else {"faelle": [abgleich_eintrag(i) for i in self.ids]}
         elif "dossier.json" in str(pfad):
             antwort = self.dossier.pop(0) if self.dossier else {
-                "auswahl": [{"id": "F01", "warum": "trägt"}], "leitfragen": [leitfrage(rlp=["strafe"])],
-                "rueckfragen": []}
+                "auswahl": [auswahl()], "leitfragen": [leitfrage(rlp=["strafe"])], "rueckfragen": []}
         else:
             antwort = self.sammeln[self.fenster].pop(0)
             if antwort == "fehler":
@@ -62,7 +61,9 @@ class FallsucheTest(unittest.TestCase):
         dateien = {
             "regelwerk.md": "## L\n- L1 Lerngruppe trifft.\n- L3 Containern meiden.\n## P\n- P3 Konkret.\n",
             "STATUS.md": "## Gelernte Regeln\n- 24.10.: Keine Tötung.\n",
-            "leitfaden.md": "LEITFADEN", "reihen.toml": '[[reihe]]\nklasse = "8"\ntitel = "Straftheorien"\n',
+            "leitfaden.md": "LEITFADEN",
+            "reihen.toml": '[[reihe]]\nklasse = "8"\ntitel = "Straftheorien"\nbisherige_reihen = '
+                           '["Klasse 7, Lüge: Sollte ich lügen, um einen Freund zu schützen?"]\n',
             "examen.toml": "[pruefung]\n", "vorbild.md": "VORBILD", "rubrik.toml": "RUBRIK",
             "rlp.toml": '[[stelle]]\nid = "strafe"\nseite = 24\ntext = "Strafe"\n',
         }
@@ -74,9 +75,11 @@ class FallsucheTest(unittest.TestCase):
                                      rlp=k / "rlp.toml")
         self.meldungen, self.gebaut = [], []
 
-    def ausfuehren(self, sammeln, fenster=("nachrichten", "urteile"), kosten=None, weiter=None, **mehr):
+    def ausfuehren(self, sammeln, fenster=("nachrichten", "urteile"), kosten=None, weiter=None, nur_dossier=False,
+                   **mehr):
         self.claude = Claude(self.hier, sammeln, **mehr)
-        return fallsuche.ausfuehren(hier=self.hier, fenster=list(fenster), weiter=weiter, laufen=self.claude,
+        return fallsuche.ausfuehren(hier=self.hier, fenster=list(fenster), weiter=weiter, nur_dossier=nur_dossier,
+                                    laufen=self.claude,
                                     seitentext=seitentext, renderer_bauen=lambda b, z: self.gebaut.append((b, z)),
                                     melden=self.meldungen.append, cfg=CFG, kosten=kosten, pfade=self.pfade)
 
@@ -86,20 +89,22 @@ class FallsucheTest(unittest.TestCase):
         self.assertEqual(len(arten), 6)  # je Fenster Suche + weiter, Abgleich, Dossier
         self.assertEqual(self.claude.prompts[1][1], "s-1")  # weitersuchen in derselben Sitzung
         self.assertIsNone(self.claude.prompts[4][1])  # Abgleich: neue Sitzung
-        self.assertEqual(self.claude.prompts[5][1], "s-5")  # Dossier: Sitzung des Abgleichs
+        self.assertIsNone(self.claude.prompts[5][1])  # Dossier: neue Sitzung
         erster = self.claude.prompts[0][0]
         for teil in ("L3 Containern meiden", "GR1: 24.10.: Keine Tötung", "Straftheorien", "taz.de"):
             self.assertIn(teil, erster)
         abgleich = self.claude.prompts[4][0]
         for teil in ("LEITFADEN", "VORBILD", "RUBRIK", '"id": "F01"', '"id": "F02"'):
             self.assertIn(teil, abgleich)
-        self.assertIn("liszt:41", self.claude.prompts[5][0])
+        dossier = self.claude.prompts[5][0]
+        for teil in ("liszt:41", "Sollte ich lügen, um einen Freund zu schützen?", '"id": "V01"', "Containern"):
+            self.assertIn(teil, dossier)
         e = json.loads((ordner / "ergebnis.json").read_text())
         self.assertEqual(e["zahlen"], {"fenster": 2, "faelle": 2, "belegt": 1, "ungeprueft": 1, "verworfen": 1,
                                        "nicht_belegt": 0})
         self.assertEqual(e["probleme"], [])
         self.assertEqual(self.gebaut[0][1], ordner / "Fallsuche Strafe.docx")
-        self.assertIn("Muss der Fahrraddieb", json.dumps(self.gebaut[0][0], ensure_ascii=False))
+        self.assertIn("Muss jeder Dieb ins Gefängnis?", json.dumps(self.gebaut[0][0], ensure_ascii=False))
         self.assertIn("2 Fälle aus 2 Fenstern (1 mit geprüftem Zitat), 1 ausgewählt, 1 Leitfragen", self.meldungen[-1])
         self.assertIn("Kosten 3.00 USD in 6 Läufen", self.meldungen[-1])
 
@@ -157,6 +162,27 @@ class FallsucheTest(unittest.TestCase):
         self.ausfuehren({}, fenster=["nachrichten"], weiter=ordner)
         self.assertEqual(len(self.claude.prompts), 2)  # nur Abgleich und Dossier
         self.assertTrue((ordner / "ergebnis.json").exists())
+
+    def test_weiter_wiederholt_bezahlte_suche_nicht(self):
+        # Wie am 27.10.: Suche bezahlt, dann Absturz bei der Belegprüfung
+        def kaputt(url):
+            raise RuntimeError("Absturz")
+        self.claude = Claude(self.hier, {"nachrichten": [GUT, None]})
+        with self.assertRaises(RuntimeError):
+            fallsuche.ausfuehren(hier=self.hier, fenster=["nachrichten"], laufen=self.claude, seitentext=kaputt,
+                                 renderer_bauen=lambda b, z: None, melden=self.meldungen.append, cfg=CFG,
+                                 pfade=self.pfade)
+        ordner = next((self.hier / "data/fallsuche").iterdir())
+        self.ausfuehren({}, fenster=["nachrichten"], weiter=ordner)
+        self.assertEqual(len(self.claude.prompts), 2)  # nur Abgleich und Dossier, keine neue Suche
+        self.assertIn("1 mit geprüftem Zitat", self.meldungen[-1])
+
+    def test_nur_dossier(self):
+        ordner = self.ausfuehren({"nachrichten": [GUT, None]}, fenster=["nachrichten"])
+        self.ausfuehren({}, weiter=ordner, nur_dossier=True)
+        self.assertEqual(len(self.claude.prompts), 1)  # nur das Dossier, neue Sitzung
+        self.assertIsNone(self.claude.prompts[0][1])
+        self.assertIn("1 ausgewählt", self.meldungen[-1])
 
     def test_main_prueft_fenster(self):
         self.assertEqual(fallsuche.main(["fallsuche.py", "--fenster", "nachrichten,quatsch"]), 2)

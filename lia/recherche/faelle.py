@@ -9,8 +9,10 @@ sammeln-<fenster>.json  {"kandidaten": [{"titel", "fall", "quelle_art", "belege"
                          "verworfen": [{"titel", "grund", "regeln": [...]}], "luecken": [...]}
 abgleich.json           {"faelle": [{"id", "kriterien": {<kriterium>: {"stufe", "begruendung", "regeln"}},
                           "gefaehrdet": [...], "gesamt"}]}
-dossier.json            {"auswahl": [{"id", "warum"}], "leitfragen": [{"frage", "pole": [a, b], "faelle",
-                          "kant", "liszt", "belege_register", "rlp", "regeln", "begruendung"}], "rueckfragen"}
+dossier.json            {"auswahl": [{"id", "kurztitel", "warum", "achten"}], "leitfragen": [{"frage", "pole": [a, b],
+                          "faelle", "einstieg", "kant", "liszt", "belege_register", "rlp", "regeln"}],
+                         "auch_interessant": [{"ref": "F07" | "V03", "warum"}], "rueckfragen"}
+Reihenfragen sind allgemein wie Lias eigene (Jan 27.10.2026): keine Namen, Orte oder Zahlen aus den Fällen.
 """
 
 import json
@@ -32,8 +34,11 @@ KRITERIEN = {  # Prüfkriterien je Fund (Auftrag 27.10.2026, regelwerk_reihe.md 
 STUFEN = ("stark", "mittel", "schwach")
 MAX_FALL = 800
 MAX_BEGRUENDUNG = 600
-MAX_FRAGE = 150
-MAX_AUSWAHL = 8
+MAX_FRAGE = 100
+MAX_AUSWAHL = 6
+MAX_INTERESSANT = 6
+MAX_RUECKFRAGEN = 4
+MAX_LIA = 400  # Texte für Lia im Dossier
 MAX_ZITAT = 300
 
 # Suchfenster: je eines ein eigener Claude-Lauf. Die Beispiele sind Suchrichtungen, keine Tatsachen.
@@ -111,6 +116,17 @@ def gelernte_regeln(status_text: str) -> dict[str, str]:
 
 def rlp_stellen(rlp_toml: str) -> dict[str, str]:
     return {s["id"]: f"{s.get('abschnitt', '')}: {s['text']}" for s in tomllib.loads(rlp_toml).get("stelle", [])}
+
+
+def reihenfragen_lias(reihen_toml: str) -> list[str]:
+    """Lias bisherige Reihenfragen aus reihen.toml (bisherige_reihen: „Klasse 7, Thema: Frage? Merksätze …“)."""
+    fragen = []
+    for r in tomllib.loads(reihen_toml).get("reihe", []):
+        for eintrag in r.get("bisherige_reihen", []):
+            m = re.search(r":\s*([^:?]+\?)", eintrag)
+            if m:
+                fragen.append(m.group(1).strip())
+    return fragen
 
 
 def _liste(d: dict[str, str]) -> str:
@@ -224,7 +240,10 @@ def belege_pruefen(daten: dict, domains: list[str], seitentext) -> dict:
     """Je Beleg "pruefung" (webpruefung.beleg_pruefen), je Kandidat "status": belegt | ungeprueft | nicht_belegt."""
     for k in daten["kandidaten"]:
         for b in k["belege"]:
-            b["pruefung"] = webpruefung.beleg_pruefen(b, domains, seitentext, {})
+            try:
+                b["pruefung"] = webpruefung.beleg_pruefen(b, domains, seitentext, {})
+            except (UnicodeError, OSError, ValueError) as e:  # eine kaputte Adresse darf das Fenster nicht kosten
+                b["pruefung"] = {"status": "durchgefallen", "vermerk": f"Seite nicht ladbar: {e}"}
         werte = {b["pruefung"]["status"] for b in k["belege"]}
         k["status"] = "belegt" if "bestanden" in werte else "ungeprueft" if "ungeprueft" in werte else "nicht_belegt"
     return daten
@@ -368,21 +387,65 @@ def abgleich_lesen(pfad: Path, ids: list[str], regel_ids: set[str]) -> tuple[dic
     return gut, fehler
 
 
-def dossier_prompt(kontext: dict, ausgabe: str) -> str:
-    return f"""Nächster Schritt: das Dossier. Wähle aus deinem Abgleich die stärksten Fälle (höchstens {MAX_AUSWAHL},
-nur gesamt „stark“; „mittel“ nur, wenn es weniger als drei starke gibt, dann sag das in "rueckfragen").
-Entwickle daraus Problem- bzw. Leitfragen für mögliche Reihen. Das ist der eigentliche Kern.
+def verworfen_ids(verworfen: list[dict]) -> dict[str, dict]:
+    return {f"V{i:02d}": v for i, v in enumerate(verworfen, 1)}
 
-Für jede Leitfrage (drei bis sechs):
-- "frage": höchstens {MAX_FRAGE} Zeichen, für Klasse 8 verständlich, nach dem Regelwerk (P1–P7, K4–K6).
-- "pole": genau zwei Antworten, die sich klar widersprechen.
-- "faelle": ids der gewählten Fälle, die sie tragen.
-- "kant" und "liszt": wie die beiden Positionen die Frage am Fall beantworten, je ein bis zwei Sätze, fachlich
-  korrekt (K1: von Liszt will Besserung durch Strafe, auch Haft). "belege_register": Verweise auf die geprüften
-  Stellen unten, genau als „<quelle>:<seite>“.
-- "rlp": ids aus dem RLP-Auszug unten. "regeln": Kennungen, die die Frage erfüllt. "begruendung": warum diese
-  Frage trägt, höchstens {MAX_BEGRUENDUNG} Zeichen.
-Keine Bewertungsbögen.
+
+KENNUNG = re.compile(r"\b(?:GR|[LPFRKGE])\d+\b")
+
+
+def fallwoerter(faelle: list[dict], allgemein: str) -> set[str]:
+    """Wörter, die eine Reihenfrage an einen Fall binden: groß geschriebene Wörter aus Titeln und Fallberichten,
+    die nicht im allgemeinen Kontext stehen und in höchstens zwei Fällen vorkommen (Namen, Orte, Marken)."""
+    allgemein = allgemein.lower()
+    zaehler: dict[str, int] = {}
+    for f in faelle:
+        for w in set(re.findall(r"\b[A-ZÄÖÜ][\wäöüß-]{2,}", f"{f['titel']} {f['fall']}")):
+            zaehler[w] = zaehler.get(w, 0) + 1
+    return {w for w, n in zaehler.items() if n <= 2 and w.lower() not in allgemein}
+
+
+def dossier_prompt(faelle: list[dict], abgleich: dict[str, dict], verworfen: dict[str, dict], kontext: dict,
+                   ausgabe: str) -> str:
+    uebersicht = [{"id": f["id"], "titel": f["titel"], "fall": f["fall"], "gewalt": f["gewalt"],
+                   "gesamt": abgleich[f["id"]]["gesamt"],
+                   "abgleich": {k: f"{w['stufe']}: {w['begruendung']}" for k, w in abgleich[f["id"]]["kriterien"].items()},
+                   "gefaehrdet": abgleich[f["id"]]["gefaehrdet"]} for f in faelle if f["id"] in abgleich]
+    weg = [{"id": k, "titel": v["titel"], "grund": v.get("grund", "")} for k, v in verworfen.items()]
+    fragen = "\n".join(f"- {q}" for q in kontext["reihenfragen"]) or "(keine)"
+    return f"""Aufgabe: Schreibe das Dossier für Lia aus einer fertigen Fallsuche. Kein Web nötig.
+Lia ist Lehrerin; sie liest das Dossier und spricht danach ihr Feedback ein. Es soll sie nicht erschlagen:
+kurz, klar, ohne Regel-Kennungen (L1, P3, GR2 usw.) in den Texten für sie.
+
+REIHE UND LERNGRUPPE
+{kontext['reihe']}
+
+REGELWERK (für dich; Kennungen nur in den Feldern "regeln")
+{kontext['regelwerk']}
+
+LIAS GELERNTE REGELN
+{_liste(kontext['gelernte'])}
+
+FÄLLE MIT ABGLEICH (JSON)
+{json.dumps(uebersicht, ensure_ascii=False, indent=1)}
+
+BEIM SUCHEN VERWORFEN (JSON)
+{json.dumps(weg, ensure_ascii=False, indent=1)}
+
+1. "auswahl": die stärksten Fälle (höchstens {MAX_AUSWAHL}, gesamt „stark“; „mittel“ nur, wenn es weniger als drei
+   starke gibt). Je Fall "kurztitel" (höchstens 60 Zeichen), "warum" (warum er für diese Klasse trägt) und
+   "achten" (worauf Lia achten muss), je höchstens {MAX_LIA} Zeichen, in normaler Sprache.
+2. "leitfragen": drei bis fünf mögliche Reihenfragen. WICHTIG: Eine Reihenfrage ist allgemein, wie Lias eigene:
+{fragen}
+   Also keine Namen, Orte, Zahlen oder Einzelheiten aus einem Fall, höchstens {MAX_FRAGE} Zeichen, für Klasse 8
+   verständlich, offen, mit zwei klar getrennten Antworten ("pole"). Der Fall ist der Einstieg, nicht die Frage:
+   "einstieg" sagt in ein bis zwei Sätzen, wie ein ausgewählter Fall ("faelle") zur Frage führt. "kant" und
+   "liszt": wie die beiden die Frage beantworten, je ein bis zwei Sätze, fachlich korrekt (von Liszt will Besserung
+   durch Strafe, auch Haft), mit "belege_register" (Verweise unten, genau als „<quelle>:<seite>“). Dazu "rlp"
+   (ids unten) und "regeln" (Kennungen, die die Frage erfüllt).
+3. "auch_interessant": höchstens {MAX_INTERESSANT} weitere Fälle, die Lia wahrscheinlich interessieren, aus den
+   übrigen Fällen (id F..) oder den verworfenen (id V..), je "ref" und "warum" (ein Satz). Abwegiges weglassen.
+4. "rueckfragen": höchstens {MAX_RUECKFRAGEN}, nur was Lia wirklich entscheiden muss.
 
 GEPRÜFTE STELLEN (Quellenregister)
 {kontext['register']}
@@ -391,21 +454,37 @@ RLP-AUSZUG
 {_liste(kontext['rlp'])}
 
 AUSGABE: Schreibe NUR in die Datei {ausgabe}, als JSON:
-{{"auswahl": [{{"id": "F01", "warum": "..."}}], "leitfragen": [{{"frage": "...", "pole": ["...", "..."],
-"faelle": ["F01"], "kant": "...", "liszt": "...", "belege_register": ["kant-mds-strafrecht:331"], "rlp": ["..."],
-"regeln": ["P3"], "begruendung": "..."}}], "rueckfragen": ["..."]}}
+{{"auswahl": [{{"id": "F01", "kurztitel": "...", "warum": "...", "achten": "..."}}],
+"leitfragen": [{{"frage": "...", "pole": ["...", "..."], "faelle": ["F01"], "einstieg": "...", "kant": "...",
+"liszt": "...", "belege_register": ["kant-mds-strafrecht:331"], "rlp": ["..."], "regeln": ["P1"]}}],
+"auch_interessant": [{{"ref": "V03", "warum": "..."}}], "rueckfragen": ["..."]}}
 Antworte danach mit einem Satz."""
 
 
+def _lia_text(wert, feld: str, f: list[str], laenge: int = MAX_LIA) -> None:
+    if not _text(wert) or len(wert) > laenge:
+        f.append(f"{feld} fehlt oder länger als {laenge} Zeichen")
+    elif KENNUNG.search(wert):
+        f.append(f"{feld}: keine Regel-Kennungen im Text für Lia ({KENNUNG.search(wert).group(0)})")
+
+
 def dossier_lesen(pfad: Path, abgleich: dict[str, dict], regel_ids: set[str], rlp_ids: set[str],
-                  register_ids: set[str]) -> tuple[dict, list[str]]:
-    """Dossier prüfen. Gibt (daten, fehler) zurück; bei Fehlern sind die betroffenen Teile entfernt."""
+                  register_ids: set[str], verworfen: dict[str, dict] = None,
+                  fallbezug: set[str] = frozenset()) -> tuple[dict, list[str]]:
+    """Dossier prüfen. Gibt (daten, fehler) zurück; fehlerhafte Teile sind entfernt."""
     daten = _json(pfad)
-    fehler = []
-    auswahl = []
+    verworfen = verworfen or {}
+    fehler, auswahl = [], []
     for a in daten.get("auswahl", []) if isinstance(daten.get("auswahl"), list) else []:
-        if not isinstance(a, dict) or a.get("id") not in abgleich or not _text(a.get("warum")):
-            fehler.append(f"auswahl: {a!r:.80} (id aus dem Abgleich und warum nötig)")
+        f = []
+        if not isinstance(a, dict) or a.get("id") not in abgleich:
+            fehler.append(f"auswahl: {a!r:.80} (id aus dem Abgleich nötig)")
+            continue
+        _lia_text(a.get("kurztitel"), "kurztitel", f, 60)
+        _lia_text(a.get("warum"), "warum", f)
+        _lia_text(a.get("achten"), "achten", f)
+        if f:
+            fehler.append(f"auswahl {a['id']}: {'; '.join(f)}")
         elif a["id"] not in {x["id"] for x in auswahl}:
             auswahl.append(a)
     if not auswahl:
@@ -420,17 +499,21 @@ def dossier_lesen(pfad: Path, abgleich: dict[str, dict], regel_ids: set[str], rl
         if not isinstance(q, dict):
             fehler.append(f"leitfragen[{i}]: Objekt erwartet")
             continue
-        if not _text(q.get("frage")) or len(q["frage"]) > MAX_FRAGE:
-            f.append(f"frage fehlt oder länger als {MAX_FRAGE} Zeichen")
+        frage = q.get("frage")
+        _lia_text(frage, "frage", f, MAX_FRAGE)
+        if _text(frage):
+            if re.search(r"\d", frage):
+                f.append("frage: keine Zahlen aus dem Fall, allgemein formulieren")
+            if gebunden := sorted(w for w in fallbezug if re.search(rf"\b{re.escape(w)}\b", frage)):
+                f.append(f"frage: allgemein formulieren wie Lias Reihenfragen, ohne {', '.join(gebunden)}")
         pole = q.get("pole")
         if not (isinstance(pole, list) and len(pole) == 2 and all(_text(p) for p in pole)):
             f.append("pole: genau zwei Texte")
         fl = q.get("faelle")
         if not isinstance(fl, list) or not fl or [x for x in fl if x not in gewaehlt]:
             f.append("faelle: nur ids aus der auswahl, mindestens eine")
-        for feld in ("kant", "liszt", "begruendung"):
-            if not _text(q.get(feld)) or len(q[feld]) > MAX_BEGRUENDUNG:
-                f.append(f"{feld} fehlt oder länger als {MAX_BEGRUENDUNG} Zeichen")
+        for feld in ("einstieg", "kant", "liszt"):
+            _lia_text(q.get(feld), feld, f)
         for feld, erlaubt in (("belege_register", register_ids), ("rlp", rlp_ids), ("regeln", regel_ids)):
             werte = q.get(feld)
             if not isinstance(werte, list) or not werte:
@@ -438,83 +521,73 @@ def dossier_lesen(pfad: Path, abgleich: dict[str, dict], regel_ids: set[str], rl
             elif unbekannt := [x for x in werte if x not in erlaubt]:
                 f.append(f"{feld}: unbekannt {unbekannt}")
         if f:
-            fehler.append(f"leitfragen[{i}] ({str(q.get('frage', ''))[:60]}): {'; '.join(f)}")
+            fehler.append(f"leitfragen[{i}] ({str(frage or '')[:60]}): {'; '.join(f)}")
         else:
             leitfragen.append(q)
     if not leitfragen:
         fehler.append("keine gültige Leitfrage")
-    rueck = [x for x in daten.get("rueckfragen", []) if _text(x)]
-    return {"auswahl": auswahl, "leitfragen": leitfragen, "rueckfragen": rueck}, fehler
+    interessant = []
+    for x in daten.get("auch_interessant", []) if isinstance(daten.get("auch_interessant"), list) else []:
+        f = []
+        ref = x.get("ref") if isinstance(x, dict) else None
+        if ref in gewaehlt or not (ref in abgleich or ref in verworfen):
+            fehler.append(f"auch_interessant: {ref!r} ist kein übriger Fall (F..) oder verworfener (V..)")
+            continue
+        _lia_text(x.get("warum"), "warum", f)
+        if f:
+            fehler.append(f"auch_interessant {ref}: {'; '.join(f)}")
+        elif len(interessant) < MAX_INTERESSANT:
+            interessant.append(x)
+    rueck = [x for x in daten.get("rueckfragen", []) if _text(x) and not KENNUNG.search(x)][:MAX_RUECKFRAGEN]
+    return {"auswahl": auswahl, "leitfragen": leitfragen, "auch_interessant": interessant, "rueckfragen": rueck}, fehler
 
 
 # --- Dossier als docx (Renderer, Art arbeitsblatt) --------------------------------------------------------
 
-def _liste_bloecke(punkte: list[str], nummeriert: bool = False) -> list[dict]:
-    punkte = [p[:4900] for p in punkte]
-    return [{"typ": "liste", "punkte": punkte[i:i + 50], "nummeriert": nummeriert} for i in range(0, len(punkte), 50)]
+def _quelle(f: dict) -> str:
+    """Erste Quelle mit geprüftem Zitat, sonst die erste."""
+    belege = sorted(f["belege"], key=lambda b: b.get("pruefung", {}).get("status") != "bestanden")
+    b = belege[0]
+    return b["url"] + ("" if b.get("pruefung", {}).get("status") == "bestanden" else " (Zitat nicht geprüft)")
 
 
-def _quellen(f: dict) -> str:
-    teile = []
-    for b in f["belege"]:
-        st = b.get("pruefung", {}).get("status", "")
-        teile.append(f"{b['url']} ({'Zitat geprüft' if st == 'bestanden' else 'ungeprüft' if st == 'ungeprueft' else st})")
-    return "; ".join(teile)
-
-
-def beschreibung(titel: str, ges: dict, abgleich: dict[str, dict], dossier: dict, regeltexte: dict[str, str],
-                 zahlen: dict) -> dict:
-    """Renderer-Beschreibung: Leitfragen, gewählte Fälle mit Abgleich, weitere Fälle, Verworfenes, Lücken,
-    Rückfragen, Kurzfassung der genannten Regeln."""
+def beschreibung(titel: str, ges: dict, dossier: dict, zahlen: dict) -> dict:
+    """Schlankes Dossier für Lia: Reihenfragen, stärkste Fälle, einige weitere, offene Fragen. Keine Kennungen,
+    keine langen Listen (alles Übrige steht in den JSON-Dateien)."""
     nach_id = {f["id"]: f for f in ges["faelle"]}
-    genannt: set[str] = set()
+    verworfen = verworfen_ids(ges["verworfen"])
+    kurz = {a["id"]: a["kurztitel"] for a in dossier["auswahl"]}
     bloecke = [{"typ": "absatz", "text": (
-        f"Automatisch recherchiert in {zahlen['fenster']} Suchfenstern, von Python geprüft. {zahlen['faelle']} Fälle "
-        f"mit Quelle gefunden ({zahlen['belegt']} mit wörtlich geprüftem Zitat, {zahlen['ungeprueft']} nur mit Quelle "
-        f"außerhalb der Liste), {zahlen['verworfen']} schon bei der Suche verworfen, {zahlen['nicht_belegt']} ohne "
-        f"gültigen Beleg aussortiert. Alle Fälle gegen das Regelwerk abgeglichen; Kennungen in Klammern, Kurzfassung "
-        "am Ende. Ausgewählt sind die stärksten Fälle.")}]
-    bloecke.append({"typ": "ueberschrift", "text": "Leitfragen", "ebene": 1})
-    for q in dossier["leitfragen"]:
-        genannt |= set(q["regeln"])
-        bloecke.append({"typ": "ueberschrift", "text": q["frage"], "ebene": 2})
-        bloecke.append({"typ": "absatz", "text": (
-            f"Pole: {q['pole'][0]} / {q['pole'][1]}. Fälle: {', '.join(nach_id[x]['titel'] + ' (' + x + ')' for x in q['faelle'])}. "
-            f"Kant: {q['kant']} Von Liszt: {q['liszt']} Belege: {', '.join(q['belege_register'])}. RLP: "
-            f"{', '.join(q['rlp'])}. Warum: {q['begruendung']} ({', '.join(q['regeln'])})")[:5000]})
-    bloecke.append({"typ": "ueberschrift", "text": "Ausgewählte Fälle", "ebene": 1})
+        f"Die Agenten haben {zahlen['faelle'] + zahlen['verworfen']} reale Fälle angesehen (Nachrichten, Urteile, "
+        "Social Media, Popkultur, Alltag) und jeden gegen deine Regeln, Rosenbergers Vorgaben und die Kritik an "
+        f"früheren Reihen geprüft. Hier stehen nur die stärksten {len(dossier['auswahl'])} und die Reihenfragen, "
+        "die sich daraus ergeben.")}]
+    bloecke.append({"typ": "ueberschrift", "text": "Mögliche Reihenfragen", "ebene": 1})
+    for i, q in enumerate(dossier["leitfragen"], 1):
+        bloecke.append({"typ": "merksatz", "titel": f"Reihenfrage {i}", "text": q["frage"]})
+        einstieg = ", ".join(kurz[x] for x in q["faelle"])
+        bloecke.append({"typ": "liste", "punkte": [
+            f"Zwei Antworten: {q['pole'][0].rstrip('.')} oder {q['pole'][1].rstrip('.')}.",
+            f"Einstieg ({einstieg}): {q['einstieg']}",
+            f"Kant: {q['kant']}",
+            f"Von Liszt: {q['liszt']}"]})
+    bloecke.append({"typ": "ueberschrift", "text": "Die stärksten Fälle", "ebene": 1})
     for a in dossier["auswahl"]:
-        f, e = nach_id[a["id"]], abgleich[a["id"]]
-        marke = " (mit Gewalt)" if f["gewalt"] else ""
-        bloecke.append({"typ": "ueberschrift", "text": f"{f['id']} {f['titel']}{marke}"[:200], "ebene": 2})
-        bloecke.append({"typ": "absatz", "text": f"{f['fall']} Quellen: {_quellen(f)}"[:5000]})
+        f = nach_id[a["id"]]
+        bloecke.append({"typ": "material", "titel": a["kurztitel"] + (" (mit Gewalt)" if f["gewalt"] else ""),
+                        "text": f["fall"]})
+        bloecke.append({"typ": "liste", "punkte": [f"Warum er trägt: {a['warum']}", f"Worauf achten: {a['achten']}",
+                                                   f"Quelle: {_quelle(f)}"]})
+    if dossier["auch_interessant"]:
+        bloecke.append({"typ": "ueberschrift", "text": "Vielleicht auch interessant", "ebene": 1})
         punkte = []
-        for k, frage in KRITERIEN.items():
-            w = e["kriterien"][k]
-            genannt |= set(w["regeln"])
-            punkte.append(f"{frage} {w['stufe']}: {w['begruendung']} ({', '.join(w['regeln'])})")
-        if e["gefaehrdet"]:
-            genannt |= set(e["gefaehrdet"])
-            punkte.append(f"Gefährdet: {', '.join(e['gefaehrdet'])}")
-        punkte.append(f"Gesamt: {e['gesamt']}. Warum ausgewählt: {a['warum']}")
-        bloecke += _liste_bloecke(punkte)
-    gewaehlt = {a["id"] for a in dossier["auswahl"]}
-    weitere = [f"{f['id']} {f['titel']}: {abgleich[f['id']]['gesamt'] if f['id'] in abgleich else 'nicht abgeglichen'}"
-               f"{'; gefährdet ' + ', '.join(abgleich[f['id']]['gefaehrdet']) if abgleich.get(f['id'], {}).get('gefaehrdet') else ''}"
-               f". {_quellen(f)}" for f in ges["faelle"] if f["id"] not in gewaehlt]
-    for kopf, punkte in (
-        ("Weitere geprüfte Fälle", weitere),
-        ("Bei der Suche verworfen", [f"{v['titel']}: {v.get('grund', '')} ({', '.join(v.get('regeln', []))})"
-                                     for v in ges["verworfen"]]),
-        ("Ohne gültigen Beleg aussortiert", [f"{k['titel']}: {_quellen(k)}" for k in ges["nicht_belegt"]]),
-        ("Lücken", ges["luecken"]),
-        ("Rückfragen", dossier["rueckfragen"]),
-    ):
-        if punkte:
-            bloecke.append({"typ": "ueberschrift", "text": kopf, "ebene": 1})
-            bloecke += _liste_bloecke(punkte)
-    regeln = [f"{k}: {regeltexte[k]}" for k in regeltexte if k in genannt]
-    if regeln:
-        bloecke.append({"typ": "ueberschrift", "text": "Genannte Regeln (Kurzfassung)", "ebene": 1})
-        bloecke += _liste_bloecke(regeln)
-    return {"art": "arbeitsblatt", "titel": titel[:200], "nummer": "F", "bloecke": bloecke[:200]}
+        for x in dossier["auch_interessant"]:
+            if x["ref"] in nach_id:
+                punkte.append(f"{nach_id[x['ref']]['titel']}: {x['warum']}")
+            else:
+                punkte.append(f"{verworfen[x['ref']]['titel']} (beim Suchen aussortiert): {x['warum']}")
+        bloecke.append({"typ": "liste", "punkte": punkte})
+    if dossier["rueckfragen"]:
+        bloecke.append({"typ": "ueberschrift", "text": "Offene Fragen an dich", "ebene": 1})
+        bloecke.append({"typ": "liste", "punkte": dossier["rueckfragen"]})
+    return {"art": "arbeitsblatt", "titel": titel[:200], "nummer": "F", "bloecke": bloecke}

@@ -12,9 +12,13 @@ Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
    Stufe 2 und 3 übrig sind.
 2. Abgleich: neue Sitzung, alle Fälle gegen Regelwerk, Gelernte Regeln, Leitfaden, Seminarvorbild und Rubrik,
    je Prüfkriterium Stufe, Begründung und Regel-Kennungen. Eine Nachbesserung.
-3. Dossier (dieselbe Sitzung): stärkste Fälle und Leitfragen mit zwei Polen, Kant/Liszt mit Registerbelegen,
-   RLP-Bezug. Eine Nachbesserung. docx über shared/renderer, Meldung an Jan. Kein Bewertungsbogen.
-Ablage data/fallsuche/<datum-zeit>/. --weiter ORDNER übernimmt fertig geprüfte Fenster eines abgebrochenen Laufs.
+3. Dossier (neue Sitzung): stärkste Fälle, allgemeine Reihenfragen wie Lias eigene (Python lehnt Namen, Orte und
+   Zahlen aus den Fällen ab) mit zwei Polen, Einstieg über einen Fall, Kant/Liszt mit Registerbelegen, RLP-Bezug;
+   einige weitere interessante Fälle, wenige Rückfragen. Eine Nachbesserung. Schlankes docx über shared/renderer
+   ohne Regel-Kennungen, Meldung an Jan. Kein Bewertungsbogen. --weiter ORDNER --nur-dossier schreibt nur das
+   Dossier neu.
+Ablage data/fallsuche/<datum-zeit>/. --weiter ORDNER übernimmt fertig geprüfte Fenster eines abgebrochenen Laufs
+und wiederholt keine bezahlte Suche (sammeln-<fenster>-gesucht.json), nur die Prüfung.
 Kostengrenze GRENZE_USD je Lauf (Jan 27.10.2026: 15 USD), mit --grenze anders (nur nach Jans Okay).
 """
 
@@ -57,8 +61,8 @@ def kontext_laden(pfade: Pfade, reg: dict) -> dict:
     """Alles, was Claude lesen soll, als Text (Claude darf außerhalb von lia/recherche nicht lesen)."""
     def lies(p: Path) -> str:
         return p.read_text(encoding="utf-8")
-    regelwerk = lies(pfade.regelwerk)
-    return {
+    regelwerk, reihen = lies(pfade.regelwerk), lies(pfade.reihen)
+    k = {
         "regelwerk": regelwerk,
         "regeltexte": faelle.regeln_aus_regelwerk(regelwerk),
         "gelernte": faelle.gelernte_regeln(lies(pfade.status_unterricht)),
@@ -69,7 +73,12 @@ def kontext_laden(pfade: Pfade, reg: dict) -> dict:
         "rubrik": lies(pfade.rubrik),
         "rlp": faelle.rlp_stellen(lies(pfade.rlp)),
         "register": webauftrag.register_text(reg),
+        "reihenfragen": faelle.reihenfragen_lias(reihen),
     }
+    # Wörter, die in einer allgemeinen Reihenfrage stehen dürfen (Prüfung „keine Namen aus dem Fall“)
+    k["allgemein"] = "\n".join([regelwerk, reihen, k["leitfaden"], k["examen"], k["vorbild"], k["rubrik"],
+                                *k["gelernte"].values(), *k["rlp"].values()])
+    return k
 
 
 def _lauf(laufen, kosten: agent.Kosten, name: str):
@@ -91,17 +100,24 @@ def sammeln(fenster: str, ordner: Path, hier: Path, kontext: dict, domains: list
         logger.info("Fallsuche %s: Fenster %s schon fertig, übernommen", ordner.name, fenster)
         return json.loads(fertig.read_text(encoding="utf-8"))
     ausgabe = ordner.relative_to(hier) / f"sammeln-{fenster}.json"
-    erg = lauf(faelle.sammel_prompt(fenster, kontext, domains, str(ausgabe)), None, f"Sammeln {fenster}")
-    for n in range(2, DURCHGAENGE + 1):
-        if not budget_frei():
-            break
-        erg = lauf(faelle.weiter_prompt(str(ausgabe)), erg.sitzung, f"Sammeln {fenster} Durchgang {n}")
+    gesucht = ordner / f"sammeln-{fenster}-gesucht.json"  # Suche bezahlt; bei --weiter nicht wiederholen
+    if gesucht.exists():
+        logger.info("Fallsuche %s: Fenster %s schon gesucht, nur noch prüfen", ordner.name, fenster)
+        sitzung = json.loads(gesucht.read_text(encoding="utf-8")).get("sitzung")
+    else:
+        erg = lauf(faelle.sammel_prompt(fenster, kontext, domains, str(ausgabe)), None, f"Sammeln {fenster}")
+        for n in range(2, DURCHGAENGE + 1):
+            if not budget_frei():
+                break
+            erg = lauf(faelle.weiter_prompt(str(ausgabe)), erg.sitzung, f"Sammeln {fenster} Durchgang {n}")
+        sitzung = erg.sitzung
+        gesucht.write_text(json.dumps({"sitzung": sitzung}), encoding="utf-8")
     daten, fehler = faelle.sammeln_lesen(hier / ausgabe)
     daten = faelle.belege_pruefen(daten, domains, seitentext)
     nachbessern = fehler + faelle.durchgefallene(daten)
-    if nachbessern and budget_frei():
+    if nachbessern and sitzung and budget_frei():  # ohne Sitzung (Marke von Hand) keine Nachbesserung
         logger.info("Fallsuche %s %s: %d Punkte zur Nachbesserung", ordner.name, fenster, len(nachbessern))
-        lauf(faelle.nachbesserung_prompt(nachbessern, str(ausgabe)), erg.sitzung, f"Sammeln {fenster} Nachbesserung")
+        lauf(faelle.nachbesserung_prompt(nachbessern, str(ausgabe)), sitzung, f"Sammeln {fenster} Nachbesserung")
         daten, fehler = faelle.sammeln_lesen(hier / ausgabe)
         daten = faelle.belege_pruefen(daten, domains, seitentext)
     if fehler:
@@ -123,12 +139,17 @@ def _abgleichen(ges: dict, ordner: Path, hier: Path, kontext: dict, regel_ids: s
     return abgleich, fehler, erg.sitzung
 
 
-def _dossier(abgleich: dict, ordner: Path, hier: Path, kontext: dict, regel_ids: set[str], reg: dict,
-             sitzung: str, lauf):
+def _dossier(ges: dict, abgleich: dict, ordner: Path, hier: Path, kontext: dict, regel_ids: set[str], reg: dict,
+             lauf):
+    """Dossier in einer neuen Sitzung (alles Nötige steht im Prompt), eine Nachbesserung."""
     ausgabe = ordner.relative_to(hier) / "dossier.json"
+    verworfen = faelle.verworfen_ids(ges["verworfen"])
     pruef = dict(abgleich=abgleich, regel_ids=regel_ids, rlp_ids=set(kontext["rlp"]),
-                 register_ids=set(webpruefung.register_stellen(reg)))
-    lauf(faelle.dossier_prompt(kontext, str(ausgabe)), sitzung, "Dossier")
+                 register_ids=set(webpruefung.register_stellen(reg)), verworfen=verworfen,
+                 fallbezug=faelle.fallwoerter(ges["faelle"], kontext["allgemein"]))
+    (hier / ausgabe).unlink(missing_ok=True)
+    erg = lauf(faelle.dossier_prompt(ges["faelle"], abgleich, verworfen, kontext, str(ausgabe)), None, "Dossier")
+    sitzung = erg.sitzung
     dossier, fehler = faelle.dossier_lesen(hier / ausgabe, **pruef)
     if fehler:
         logger.info("Fallsuche %s: Dossier mit Fehlern (%s), Nachbesserung", ordner.name, "; ".join(fehler)[:300])
@@ -149,8 +170,9 @@ def _renderer_standard():
 
 def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path | None = None, laufen=None,
                seitentext=None, renderer_bauen=None, melden=agent.jan_melden, cfg: dict | None = None,
-               kosten: agent.Kosten | None = None, pfade: Pfade | None = None) -> Path:
-    """Eine Fallsuche. Gibt den Ordner data/fallsuche/<id>/ zurück."""
+               kosten: agent.Kosten | None = None, pfade: Pfade | None = None, nur_dossier: bool = False) -> Path:
+    """Eine Fallsuche. Gibt den Ordner data/fallsuche/<id>/ zurück. nur_dossier (mit weiter): Suche und Abgleich
+    aus faelle.json und abgleich.json übernehmen, nur das Dossier neu."""
     cfg = cfg or einstellungen.lade()
     domains = einstellungen.webfetch_domains(cfg, agent.AGENT) or []
     kosten = kosten or agent.Kosten(grenze=GRENZE_USD)
@@ -171,6 +193,10 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
 
     probleme, je_fenster = [], {}
     try:
+        if nur_dossier:
+            ges = json.loads((ordner / "faelle.json").read_text(encoding="utf-8"))
+            abgleich, _ = faelle.abgleich_lesen(ordner / "abgleich.json", [f["id"] for f in ges["faelle"]], regel_ids)
+            fenster = []
         for f in fenster:
             if not budget_frei() and not (ordner / f"sammeln-{f}-geprueft.json").exists():
                 probleme.append(f"Fenster {f} ausgelassen (Budget für Abgleich und Dossier reserviert)")
@@ -180,16 +206,17 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
             except (faelle.FallFehler, claude_lauf.Zeitueberschreitung) as e:
                 logger.error("Fallsuche %s: Fenster %s gescheitert: %s", ordner.name, f, e)
                 probleme.append(f"Fenster {f} gescheitert: {e}")
-        ges = faelle.zusammenfuehren(je_fenster)
-        (ordner / "faelle.json").write_text(json.dumps(ges, ensure_ascii=False, indent=1), encoding="utf-8")
-        if not ges["faelle"]:
-            raise faelle.FallFehler("kein Fall mit Quelle gefunden")
-        abgleich, fehler, sitzung = _abgleichen(ges, ordner, hier, kontext, regel_ids, lauf)
-        if fehler:
-            probleme.append(f"Abgleich unvollständig: {'; '.join(fehler)[:300]}")
+        if not nur_dossier:
+            ges = faelle.zusammenfuehren(je_fenster)
+            (ordner / "faelle.json").write_text(json.dumps(ges, ensure_ascii=False, indent=1), encoding="utf-8")
+            if not ges["faelle"]:
+                raise faelle.FallFehler("kein Fall mit Quelle gefunden")
+            abgleich, fehler, _ = _abgleichen(ges, ordner, hier, kontext, regel_ids, lauf)
+            if fehler:
+                probleme.append(f"Abgleich unvollständig: {'; '.join(fehler)[:300]}")
         if not abgleich:
             raise faelle.FallFehler("kein gültiger Abgleich")
-        dossier, fehler = _dossier(abgleich, ordner, hier, kontext, regel_ids, reg, sitzung, lauf)
+        dossier, fehler = _dossier(ges, abgleich, ordner, hier, kontext, regel_ids, reg, lauf)
         if fehler:
             probleme.append(f"Dossier: verworfen {'; '.join(fehler)[:300]}")
     except (faelle.FallFehler, agent.KostenGrenze, claude_lauf.LaufFehler) as e:
@@ -198,7 +225,7 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
                f"Fortsetzen mit --weiter {ordner}")
         raise
 
-    zahlen = {"fenster": len(je_fenster), "faelle": len(ges["faelle"]),
+    zahlen = {"fenster": len({x for f in ges["faelle"] for x in f["fenster"]}), "faelle": len(ges["faelle"]),
               "belegt": sum(f["status"] == "belegt" for f in ges["faelle"]),
               "ungeprueft": sum(f["status"] == "ungeprueft" for f in ges["faelle"]),
               "verworfen": len(ges["verworfen"]), "nicht_belegt": len(ges["nicht_belegt"])}
@@ -208,8 +235,7 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
     docx = ordner / "Fallsuche Strafe.docx"
     titel = f"Fallsuche Straftheorien vom {datetime.now():%d.%m.%Y}"
     (renderer_bauen or _renderer_standard())(
-        faelle.beschreibung(titel, ges, abgleich, dossier, {**kontext["regeltexte"], **kontext["gelernte"]}, zahlen),
-        docx)
+        faelle.beschreibung(titel, ges, dossier, zahlen), docx)
     melden(f"Fallsuche fertig: {zahlen['faelle']} Fälle aus {zahlen['fenster']} Fenstern ({zahlen['belegt']} mit "
            f"geprüftem Zitat), {len(dossier['auswahl'])} ausgewählt, {len(dossier['leitfragen'])} Leitfragen. "
            f"{' '.join(probleme)} Kosten {kosten.summe:.2f} USD in {kosten.laeufe} Läufen. Datei: {docx}")
@@ -221,6 +247,7 @@ def main(argv: list[str]) -> int:
     teiler = argparse.ArgumentParser(prog="fallsuche.py", description="Fälle suchen, abgleichen, Leitfragen.")
     teiler.add_argument("--fenster", help=f"Komma-Liste aus {', '.join(faelle.FENSTER)} (ohne: alle)")
     teiler.add_argument("--weiter", metavar="ORDNER", help="abgebrochenen Lauf in data/fallsuche/<id> fortsetzen")
+    teiler.add_argument("--nur-dossier", action="store_true", help="mit --weiter: nur das Dossier neu schreiben")
     teiler.add_argument("--grenze", type=float, default=GRENZE_USD, help=f"Kostengrenze in USD (ohne: {GRENZE_USD:g})")
     args = teiler.parse_args(argv[1:])
     fenster = args.fenster.split(",") if args.fenster else None
@@ -228,11 +255,15 @@ def main(argv: list[str]) -> int:
         print(f"Unbekannte Fenster: {', '.join(falsch)}", file=sys.stderr)
         return 2
     weiter = Path(args.weiter).resolve() if args.weiter else None
+    if args.nur_dossier and not weiter:
+        print("--nur-dossier braucht --weiter ORDNER", file=sys.stderr)
+        return 2
     if weiter and not weiter.is_dir():
         print(f"Ordner fehlt: {weiter}", file=sys.stderr)
         return 2
     try:
-        print(ausfuehren(fenster=fenster, weiter=weiter, kosten=agent.Kosten(grenze=args.grenze)))
+        print(ausfuehren(fenster=fenster, weiter=weiter, nur_dossier=args.nur_dossier,
+                         kosten=agent.Kosten(grenze=args.grenze)))
     except (faelle.FallFehler, agent.KostenGrenze, claude_lauf.LaufFehler) as e:
         print(e, file=sys.stderr)
         return 1
