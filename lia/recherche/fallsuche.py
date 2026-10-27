@@ -20,8 +20,8 @@ Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
 Ablage data/fallsuche/<datum-zeit>/. --weiter ORDNER übernimmt fertig geprüfte Fenster eines abgebrochenen Laufs
 und wiederholt keine bezahlte Suche (sammeln-<fenster>-gesucht.json), nur die Prüfung.
 An Lia (nach Jans Durchsicht): --an-lia ORDNER macht aus dem docx eine PDF, legt in Lias Instanz einen Auftrag
-für recherche an und schließt ihn sofort mit der PDF ab; Lias Zentrale stellt ihn mit Feedback-Knöpfen zu, ihre
-Antwort darauf ist Feedback (lia-feedback). Kein Claude-Lauf. Je Ordner nur einmal (ergebnis.json "an_lia").
+für recherche an und schließt ihn sofort mit der PDF ab; Lias Zentrale stellt ihn ohne Feedback-Knöpfe zu, ihre
+Textantwort darauf ist Feedback (lia-feedback). Kein Claude-Lauf. Je Ordner nur einmal (ergebnis.json "an_lia").
 Kostengrenze GRENZE_USD je Lauf (Jan 27.10.2026: 15 USD), mit --grenze anders (nur nach Jans Okay).
 """
 

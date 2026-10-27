@@ -68,7 +68,8 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Kosten 42,42 USD (mit zwei neuen Dossiers) in vier Teilläufen (15,33 Abbruch an der Grenze; 8,77 Abbruch am 5h-Kontingent; 6,58
   Absturz bei der Belegprüfung; 10,27), von Jan freigegeben 15 + 30 USD. Suchläufe kosten 2,4–4,5 USD
   (Durchgang 2 teurer als 1), Abgleich 1,54, Dossier 1,98. Ein Suchfenster mit zwei Durchgängen ≈ 6,5–7 USD.
-  Jan schickt das Dossier an Lia; ihr Feedback (gesprochen) kommt über Jan. Siehe Abschnitt Fallsuche.
+  Noch nicht an Lia geschickt (wartet auf Jans Okay): `fallsuche.py --an-lia data/fallsuche/20261027-115658`.
+  Siehe Abschnitt Fallsuche.
 - Kein Dienst, kein Timer (Teil D).
 - 161 Tests (tests/), in pruefen.sh eingetragen.
 
@@ -153,6 +154,10 @@ Stellen. lia/examen liest das Register für die Skizzen.
   keine Fenster mehr gestartet: Ein Suchlauf startet nur, wenn danach (LAUF_USD = 5) noch die Reserve frei ist.
   --weiter übernimmt fertig geprüfte Fenster und wiederholt keine bezahlte Suche (sammeln-<f>-gesucht.json, mit
   Sitzung; ohne Sitzung keine Nachbesserung). --grenze USD nur nach Jans Okay. Meldung an Jan.
+- An Lia (nach Jans Durchsicht): `--an-lia ORDNER` macht aus dem docx eine PDF, legt in Lias Instanz einen Auftrag
+  für recherche an und schließt ihn sofort ab (PDF, daten: kern, erste drei Reihenfragen, knoepfe = "nur_antwort").
+  Lias Zentrale stellt es ohne Feedback-Knöpfe zu ("Passt" sagt bei einer Auswahl nicht, was passt); ihre
+  Textantwort ist Feedback (lia-feedback). Kein Claude-Lauf, je Ordner nur einmal (ergebnis.json "an_lia").
 - faelle.py (rein, getestet): Kontext (Regel-Kennungen aus regelwerk_reihe.md, Lias Gelernte Regeln als GR<n>,
   RLP-Auszug), Prompts, Prüfung der drei Dateien, Zusammenführen (ids F01…, doppelte über URL oder Titel
   vereint), docx-Beschreibung (Leitfragen, ausgewählte Fälle mit Abgleich je Kriterium, weitere Fälle, Verworfenes,
@@ -212,7 +217,7 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    Schreiben). Engere Leserechte bräuchten eine Änderung in agentkit (Hauptordner-Chat).
 5. Teil D: Dienst und Timer (02:30), Grenze 8 USD pro Nacht.
 6. Webauftrag: Lias Zentrale als Eingang (Teil C des Plans „Webrecherche“).
-7. Fallsuche: Lias Feedback zum Dossier abwarten; Regelvorschläge daraus erst nach Okay. Rückfragen des Dossiers
+7. Fallsuche: Dossier mit --an-lia schicken (Jans Okay), dann Lias Feedback abwarten; Regelvorschläge daraus erst nach Okay. Rückfragen des Dossiers
    (Pollux: Taten und Recht belegen; Kants Begnadigungsstelle ins Register; Niveaustufe) an Lia über Jan.
    Verbesserungen: Fälle über 800 Zeichen fallen ohne Nachbesserung heraus, wenn das Budget knapp ist (zwei gute
    gingen so verloren, z. B. „14-Jährige stellt Lehrerfoto mit Beleidigung auf Facebook“) -> Python kürzt nicht,
