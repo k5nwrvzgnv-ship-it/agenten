@@ -333,6 +333,12 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
    über eine Telegram-Antwort, und das Blatt vom 20.10. (2026-10-20_Transkript_Nr1_Zusammenfassung.md).
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
+8. Bedarf (Hauptordner-Chat, 27.10.): agentkit.mail gibt es jetzt (verallgemeinert aus uni/mail.py).
+   uni/mail.py darauf umstellen: pruefen(entwurf, original) nimmt die Originalmail als dict (mail_holen
+   vorher selbst aufrufen), senden(cfg, daten) loggt mit MAIL_NUTZER/MAIL_KENNWORT ein (ersatzweise
+   IMAP_NUTZER/IMAP_KENNWORT, nicht HNEE_NUTZER) und legt eine Kopie nur ab, wenn GESENDET_ORDNER gesetzt ist.
+   Also in uni/.env MAIL_NUTZER, MAIL_KENNWORT und GESENDET_ORDNER="Gesendete Elemente" eintragen.
+   SMTP_PORT 587 bleibt STARTTLS. mail_merken und mail_holen bleiben in uni.
 
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.

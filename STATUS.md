@@ -8,7 +8,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 - Server: 7,8 GB RAM, 4 Kerne, 90 GB frei, Python 3.12, Node 22, kein Docker, kein sudo.
   Alles unter User `agent` in /home/agent/agenten, Dienste als systemd-User-Units.
 - agentkit (shared/agentkit/) fertig und getestet: config, log, einstellungen, auftraege, freigabe,
-  meldungen, regeln, verbrauch, claude_lauf, textfassung, kalender, abruf, wortlaut, imap. Doku steht jeweils oben im Modul.
+  meldungen, regeln, verbrauch, claude_lauf, textfassung, kalender, abruf, wortlaut, imap
+  (neue_mails, suchen), mail (Entwurf prüfen und senden). Doku steht jeweils oben im Modul.
   Einbindung per .pth in jede Agent-.venv:
   `python3 -m venv .venv && echo /home/agent/agenten/shared > .venv/lib/python3.12/site-packages/agentkit.pth`
 - Freigabe: Fingerabdruck des Entwurfs muss zur Telegram-Anzeige passen, Ausführung genau einmal
@@ -366,7 +367,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    klein geschriebenen Namen: list-unsubscribe, list-id, precedence, auto-submitted, x-spam-flag (fehlende
    weglassen). posteingang/vorfilter.py liest daraus Newsletter, Massenmails und Spam. Ohne "kopf" prüft der
    Vorfilter nur gesperrte Absender. uni ist nicht betroffen (zusätzliches Feld).
-19. Bedarf aus posteingang (27.10., Plan Mail-Aufträge von Jan freigegeben): Jan gibt per /posteingang einen
+19. Erledigt 27.10.: imap.suchen und mail wie unten beschrieben, Tests in agentkit/tests (test_imap,
+   test_mail). Lesender Echttest von imap.suchen gegen jan@kleinke.org: INBOX/Sent/Archive, seit, zwei
+   Umlaut-Kriterien zugleich (LITERAL+), unbekannter Ordner -> leere Liste. Senden nicht echt getestet (macht
+   posteingang nach Jans Freigabe). Abweichung: ohne GESENDET_ORDNER keine Kopie in Gesendet (steht im Ergebnis).
+   "an" in zerlege ist eine Liste. uni-Umstellung als Bedarf in uni/STATUS.md eingetragen.
+   Ursprünglicher Bedarf aus posteingang (27.10., Plan Mail-Aufträge von Jan freigegeben): Jan gibt per /posteingang einen
    Auftrag ("Termin bei Frau X absagen"), posteingang sucht Kontext und Schreibstil im Postfach und legt einen
    Mail-Entwurf in die Freigabe, nach Freigabe Senden von jan@kleinke.org. posteingang-Teil wird gegen diese
    Schnittstellen gebaut (Funktionen werden übergeben, Tests ohne agentkit-Teil):
