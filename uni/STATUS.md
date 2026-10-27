@@ -326,11 +326,10 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 5. Weitere Normen von Jan: je Lieferung Verzeichnis prüfen und im Holzschutz-Prüfungsplan (json und md)
    "fehlt" und Quellen nachziehen. Kernliste des Semesters liegt vollständig vor (24.10.). Nicht in Nautos:
    WTA-Merkblätter (Transkript IHS 20.10. S. 22, Regelsanierung).
-7. Echttest Lernblatt-PDF: Jan antwortet in Telegram auf das Ergebnis von Auftrag 20261027-171320-uni-a4ca81
-   (Exkursion Hausschwamm), z. B. "Schick mir das Lernblatt als PDF". Erwartet: Claude überträgt
-   data/kurse/Integrierter Holzschutz/transkripte/2026-10-27_Exkursion_Hausschwamm_Zusammenfassung.md nach
-   data/lernblaetter/20261027-171320-uni-a4ca81/blatt_1.json, PDF hängt an. Dabei Tokens ansehen. Ebenso möglich
-   für das Blatt vom 20.10. (2026-10-20_Transkript_Nr1_Zusammenfassung.md).
+7. Lernblatt-PDF: Echttest 27.10. geklappt (Auftrag 20261027-204849-uni-827139, Antwort auf a4ca81, im Chat
+   wie eine Telegram-Antwort angelegt, gleiche Sitzung): blatt_1.json gültig im ersten Anlauf, PDF 6 Seiten hing
+   am Ergebnis. Verbrauch: Opus, 4 Schritte, ca. 370.000 Tokens, 1,29 USD, 82 s. Offen: derselbe Weg direkt
+   über eine Telegram-Antwort, und das Blatt vom 20.10. (2026-10-20_Transkript_Nr1_Zusammenfassung.md).
 4. Zu prüfen: Lauf uni-transkript in der Nacht zum 22.10. (DL 260914 sollte fertig werden, danach die
    übrigen Aufnahmen), Weiterleitung BFH-Postfach.
 
