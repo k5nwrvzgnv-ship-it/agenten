@@ -429,8 +429,28 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 
 22. Leitstand (Frontend zur Steuerung, Plan 28.10.): docs/leitstand-plan.md mit Eingriffspunkten, Ereignis-Schema,
    Schnittstelle, Variantenvergleich (Empfehlung: eigenes Dashboard, Python-Bordmittel, nur per SSH-Tunnel) und
-   Messgrößen. Klickbarer Entwurf: https://claude.ai/artifact/6DVm6MiPQHtjiMbjb6buzT. Nichts gebaut.
-   Nächster Schritt nach Jans Okay: Stufe 1 (agentkit.ereignis, Läufe nur lesend).
+   Messgrößen. Klickbarer Entwurf: https://claude.ai/artifact/6DVm6MiPQHtjiMbjb6buzT.
+   Stufe 1 gebaut 28.10. (Plan von Jan freigegeben):
+   - agentkit.ereignis: KONTINGENT_DIR/ereignisse/<JJJJ-MM-TT>.jsonl, nur anhängen, id = "<tag>:<byte>", lesen(seit=),
+     aufraeumen(30 Tage). Nur IDs, Arten, Zahlen, Werkzeugnamen; Texte in daten auf 100 Zeichen gekürzt; schreiben()
+     wirft nie. AGENTKIT_EREIGNIS_DIR lenkt um (pruefen.sh setzt einen Temp-Ordner, Tests schreiben nie echt).
+   - claude_lauf.laufen: Popen in eigener Prozessgruppe, Ausgabe zeilenweise, Zeitlimit beendet auch Kindprozesse
+     (Vorbereitung Abbruch Stufe 2). Ereignisse lauf.gestartet (mit pid), werkzeug (live), lauf.beendet, lauf.fehler
+     (limit, pausiert, zeit, laeuft_schon, kein_platz, konto, technik). Ergebnis.lauf = Lauf-ID. Echter Haiku-Lauf
+     28.10.: ok, 0,0009 USD, Ereignisse wie erwartet.
+   - auftraege/freigabe: auftrag.angelegt/.abgeschlossen, freigabe.wartet/.entschieden/.ausfuehrung_begonnen/
+     .ausgefuehrt. Mit eigener basis (Tests) unter <basis>/ereignisse.
+   - shared/leitstand/: logik.py (getestet), server.py (nur GET, Unix-Socket data/leitstand.sock, Ordner 700),
+     index.html (Netz, Läufe, fragt alle 2 s nach neuen Ereignissen, Stand im Adress-Anker, übersteht Neuladen).
+     Lias Läufe ohne Auftrags- und Ergebnistext. Von Hand gegen echte Daten geprüft (Scratch-Socket), Dienste und
+     offene Freigaben stimmten. Dienstvorlage systemd/leitstand.service, NICHT eingerichtet (wartet auf Jans Okay).
+   Offen:
+   - Dienst einrichten (Vorlage kopieren, daemon-reload, enable --now), Zugriff vom Mac:
+     ssh -N -L 8790:/home/agent/agenten/shared/leitstand/data/leitstand.sock agent@<server>, dann localhost:8790.
+   - Zentralen erst nach Neustart mit auftrag.angelegt (laufende Prozesse haben den alten agentkit-Code).
+   - Bedarf an alle Agenten: auftrag_id an claude_lauf.laufen mitgeben (heute u. a. uni/karten, recherche, examen,
+     unterricht/leitfaden nicht), sonst „Lauf ohne Auftrag“. Die Agent-Chats übernehmen das aus diesem Punkt.
+   - Stufe 2 (Freigabe, Abbruch), Stufe 3 (Einstellungen) laut Plan, je nach Okay.
 
 ## Gelernte Regeln
 - (noch keine)
