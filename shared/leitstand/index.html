@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leitstand</title>
+<style>
+:root { --grund: #F6F5F2; --karte: #FFFFFF; --text: #1C1D1F; --leise: #5A5D63; --linie: #DEDBD4;
+  --blau: #1F5E8C; --orange: #9A4A0C; --rot: #A33A1F; --kopf: #1C1D1F; --kopftext: #F6F5F2; }
+@media (prefers-color-scheme: dark) {
+  :root { --grund: #17181A; --karte: #222326; --text: #ECEAE5; --leise: #A9ABB0; --linie: #3A3B3F;
+    --blau: #7FB3DA; --orange: #E8A35C; --rot: #F0907A; --kopf: #0E0F10; --kopftext: #ECEAE5; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--grund); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; padding: 12px 16px; background: var(--kopf); color: var(--kopftext); }
+header b { font-size: 18px; }
+nav { display: flex; gap: 4px; flex-grow: 1; }
+nav button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+nav button[aria-pressed="true"] { background: var(--kopftext); color: var(--kopf); }
+.pille { padding: 3px 10px; border: 1px solid #55575C; border-radius: 6px; font: 13px ui-monospace, monospace; }
+main { max-width: 1280px; margin: 0 auto; padding: 16px; }
+.raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.karte { background: var(--karte); border: 1px solid var(--linie); border-radius: 10px; padding: 12px 14px; }
+button.karte { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+button.karte[aria-pressed="true"] { outline: 2px solid var(--blau); }
+.punkt { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; background: #B9B6AF; }
+.laeuft .punkt { background: var(--blau); } .gestoert .punkt { background: var(--rot); }
+.leise { color: var(--leise); font-size: 13px; }
+.zweispaltig { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.liste { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.detail { flex: 999 1 520px; min-width: 0; }
+.st-ok { color: #2F6B3A; } .st-laeuft { color: var(--blau); } .st-fehler { color: var(--rot); }
+@media (prefers-color-scheme: dark) { .st-ok { color: #8FD0A0; } }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td { padding: 6px 8px; border-top: 1px solid var(--linie); vertical-align: top; }
+td.mono, .mono { font-family: ui-monospace, monospace; font-size: 13px; }
+pre { white-space: pre-wrap; margin: 0; font: inherit; }
+.hinweis { padding: 10px 12px; border-radius: 6px; background: var(--karte); border: 1px dashed var(--linie); }
+</style>
+</head>
+<body>
+<header>
+  <b>Leitstand</b>
+  <nav aria-label="Bereiche">
+    <button data-sicht="netz" aria-pressed="true">Netz</button>
+    <button data-sicht="laeufe" aria-pressed="false">Läufe</button>
+  </nav>
+  <span class="pille" id="verbrauch">…</span>
+</header>
+<main>
+  <p id="fehler" class="hinweis" hidden></p>
+  <section id="netz">
+    <p class="leise">Nur lesen (Stufe 1). Eingreifen weiter über Telegram.</p>
+    <div class="raster" id="agenten"></div>
+  </section>
+  <section id="laeufe" hidden>
+    <div class="zweispaltig">
+      <div class="liste" id="laufliste"></div>
+      <div class="detail karte" id="laufdetail"><p class="leise">Lauf links auswählen.</p></div>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+const ZUSTAND = { laeuft: "läuft", bereit: "bereit", gestoert: "Störung", unbekannt: "unbekannt" };
+const STATUS = { laeuft: "läuft", ok: "fertig", fehlgeschlagen: "fehlgeschlagen", abgestuerzt: "abgestürzt",
+  "fehler:limit": "Kontingent erschöpft", "fehler:pausiert": "ausgelassen (Stufe)", "fehler:zeit": "Zeitlimit",
+  "fehler:laeuft_schon": "lief schon", "fehler:kein_platz": "kein freier Platz", "fehler:konto": "kein Konto",
+  "fehler:technik": "technischer Fehler" };
+let sicht = "netz", gewaehlt = null, letzteId = null;
+
+function el(tag, attrs, ...kinder) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "text") e.textContent = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const k of kinder) if (k != null) e.append(k);
+  return e;
+}
+const zeit = (ts) => ts ? new Date(ts * 1000).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "–";
+const statusKlasse = (s) => s === "ok" ? "st-ok" : s === "laeuft" ? "st-laeuft" : "st-fehler";
+const lname = (l) => (l.instanz ? l.instanz + "/" : "") + (l.agent || "?");
+
+async function holen(pfad) {
+  const r = await fetch(pfad, { cache: "no-store" });
+  if (!r.ok) throw new Error(pfad + ": " + r.status);
+  return r.json();
+}
+function fehler(text) { const f = document.getElementById("fehler"); f.hidden = !text; f.textContent = text || ""; }
+
+async function zustandLaden() {
+  const z = await holen("/api/zustand");
+  const v = z.verbrauch;
+  document.getElementById("verbrauch").textContent = v.stand == null ? `Abo · Stufe ${v.stufe}` :
+    `Abo (${v.konto}) · 5h ${v["5h"]} % · 7d ${v["7d"]} % · Stufe ${v.stufe} · Stand ${zeit(v.stand)}`;
+  const raster = document.getElementById("agenten");
+  raster.replaceChildren(...z.agenten.map((a) => {
+    const zeilen = [el("div", { class: "leise", text: ZUSTAND[a.zustand] + (a.nur_anzeige ? " · nur Anzeige" : "") })];
+    if (a.naechster_lauf) zeilen.push(el("div", { class: "leise", text: "nächster Lauf: " + a.naechster_lauf }));
+    if (a.letzter_lauf) zeilen.push(el("div", { class: "leise", text: "letzter Lauf: " + zeit(a.letzter_lauf.start) + " · " + (STATUS[a.letzter_lauf.status] || a.letzter_lauf.status) }));
+    if (a.freigaben_offen) zeilen.push(el("div", { class: "st-laeuft", text: a.freigaben_offen + " Freigabe(n) offen" }));
+    if (a.unklar) zeilen.push(el("div", { class: "st-fehler", text: a.unklar + " Ausführung(en) unklar, bitte prüfen" }));
+    const kopf = el("div", {}, el("span", { class: "punkt", "aria-hidden": "true" }), el("b", { text: a.anzeige }));
+    const attrs = { class: "karte " + a.zustand };
+    if (a.letzter_lauf) {
+      return el("button", { ...attrs, "aria-pressed": "false", onclick: () => { gewaehlt = a.letzter_lauf.id; zeige("laeufe"); } }, kopf, ...zeilen);
+    }
+    return el("div", attrs, kopf, ...zeilen);
+  }));
+}
+
+async function laeufeLaden() {
+  const liste = await holen("/api/laeufe");
+  const box = document.getElementById("laufliste");
+  if (!liste.length) { box.replaceChildren(el("p", { class: "leise", text: "Noch keine Läufe mit Ereignissen." })); return; }
+  box.replaceChildren(...liste.map((l) => el("button", { class: "karte", "aria-pressed": String(l.id === gewaehlt),
+    onclick: () => { gewaehlt = l.id; laeufeLaden(); detailLaden(); } },
+    el("div", {}, el("b", { text: lname(l) }), " ", el("span", { class: statusKlasse(l.status), text: STATUS[l.status] || l.status })),
+    el("div", { class: "leise", text: zeit(l.start) + (l.zeitgesteuert ? " · Zeitplan" : "") + (l.modell ? " · " + l.modell : "") }))));
+}
+
+async function detailLaden() {
+  const box = document.getElementById("laufdetail");
+  if (!gewaehlt) return;
+  let l;
+  try { l = await holen("/api/laeufe/" + encodeURIComponent(gewaehlt)); } catch (e) { box.replaceChildren(el("p", { class: "leise", text: "Lauf nicht gefunden." })); return; }
+  const fakten = [["Status", STATUS[l.status] || l.status], ["Modell", l.modell], ["Stufe", l.stufe], ["Konto", l.konto],
+    ["Tokens", l.tokens], ["Dauer", l.dauer_s != null ? l.dauer_s + " s" : null], ["Werkzeugaufrufe", l.werkzeuge],
+    ["Auftrag", l.auftrag || "ohne Auftrag (Zeitplan oder intern)"], ["Lauf", l.id]].filter(([, w]) => w != null);
+  const teile = [el("h2", { text: lname(l) + " · " + zeit(l.start) }),
+    el("table", {}, ...fakten.map(([k, w]) => el("tr", {}, el("td", { class: "leise", text: k }), el("td", { text: String(w) }))))];
+  const a = l.auftrag_daten;
+  if (a && a.text != null) {
+    teile.push(el("h3", { text: "Auftrag" }), el("pre", { text: a.text }));
+    if (a.ergebnis) teile.push(el("h3", { text: "Ergebnis" }), el("pre", { text: a.ergebnis }));
+  } else if (l.instanz) {
+    teile.push(el("p", { class: "leise", text: "Lias Instanz: Auftrag und Ergebnis werden hier nicht angezeigt." }));
+  }
+  teile.push(el("h3", { text: "Ereignisse" }), el("table", {}, ...l.ereignisse.map((e) => el("tr", {},
+    el("td", { class: "mono", text: zeit(e.zeit) }), el("td", { class: "mono", text: e.typ }),
+    el("td", { class: "mono", text: Object.entries(e.daten).filter(([, w]) => w != null && w !== "").map(([k, w]) => k + "=" + w).join("  ") })))));
+  box.replaceChildren(...teile);
+}
+
+function zeige(neu) {
+  sicht = neu;
+  document.querySelectorAll("nav button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sicht === sicht)));
+  document.getElementById("netz").hidden = sicht !== "netz";
+  document.getElementById("laeufe").hidden = sicht !== "laeufe";
+  try { location.hash = sicht + (gewaehlt ? ":" + gewaehlt : ""); } catch (e) { /* egal */ }
+  allesLaden();
+}
+
+async function allesLaden() {
+  try {
+    if (sicht === "netz") await zustandLaden(); else { await zustandLaden(); await laeufeLaden(); await detailLaden(); }
+    fehler("");
+  } catch (e) { fehler("Leitstand nicht erreichbar oder Fehler: " + e.message); }
+}
+
+async function nachfragen() {
+  try {
+    const neu = await holen("/api/ereignisse" + (letzteId ? "?seit=" + encodeURIComponent(letzteId) : ""));
+    if (neu.length) { const erster = letzteId === null; letzteId = neu[neu.length - 1].id; if (!erster) await allesLaden(); }
+    fehler("");
+  } catch (e) { fehler("Leitstand nicht erreichbar: " + e.message); }
+}
+
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => zeige(b.dataset.sicht)));
+const [hSicht, hLauf] = location.hash.slice(1).split(":");
+if (hLauf) gewaehlt = hLauf;
+zeige(hSicht === "laeufe" ? "laeufe" : "netz");
+nachfragen();
+setInterval(nachfragen, 2000);
+setInterval(() => sicht === "netz" && zustandLaden().catch(() => {}), 30000);
+</script>
+</body>
+</html>

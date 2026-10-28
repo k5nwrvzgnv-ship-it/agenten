@@ -1,0 +1,17 @@
+[Unit]
+Description=Leitstand (lesende Web-Ansicht der Agenten, Unix-Socket, Zugriff per SSH-Tunnel)
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/agent/agenten/shared/leitstand
+ExecStart=/home/agent/agenten/shared/leitstand/.venv/bin/python server.py
+Restart=on-failure
+RestartSec=10
+MemoryMax=150M
+
+[Install]
+WantedBy=default.target
