@@ -233,10 +233,14 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Sonntagsbericht, Simulation alle 4 Wochen, zuletzt Trigger vor der Vorlesung.
   - Mündliche Simulation per Stimme (Entscheidung Jan 29.10.): ElevenLabs, Stimme der IHS-Professorin als
     Instant Voice Clone aus einer Vorlesungsaufnahme, Zustimmung der Professorin liegt laut Jan vor.
-    Stufe 1: ElevenLabs-Agent in Echtzeit (Jan richtet Konto, Klon und Agent im Web ein; uni liefert
-    Prüfer-Prompt und Wissensdateien). Stufe 2: dieselbe Stimme in der Simulation über Telegram-
-    Sprachnachrichten (mit Bildkarten, Bericht, Rückfluss in FSRS; Zentrale braucht Sprachnachrichten).
-    Plan steht, Bau wartet auf Jans Okay. Audio liegt nicht auf dem Server, ffmpeg fehlt.
+    Stufe 1: ElevenLabs-Agent in Echtzeit. Jan richtet Konto, Klon und Agent im Web ein. sprachpruefung.py
+    <modul> <teil> baut ohne Claude-Lauf das Paket nach data/lernen/<modul>/elevenlabs/<teil>/: prompt.md
+    (Rolle aus plan["teile"], Ablauf Vortrag -> Fragen nach Score -> Note), begruessung.txt,
+    wissen_themen.md (Themen des Teils + Kartenwissen, Bildkarten als Merkmale), wissen_vorlesung.md
+    (Transkripte des Kurses), ANLEITUNG.md. Paket IHS gebaut 29.10., in ElevenLabs noch nicht getestet.
+    Offen: Auswertung des ElevenLabs-Transkripts (per /uni) in FSRS. Stufe 2: dieselbe Stimme über
+    Telegram-Sprachnachrichten (mit Bildkarten, Bericht, FSRS; Zentrale braucht Sprachnachrichten).
+    Audio liegt nicht auf dem Server, ffmpeg fehlt.
 
 - Dokument-Aufträge an dokumente (Teil D von Punkt 3a im Hauptordner, gebaut 22.10., nur Unit-Tests):
   - Auslöser: Auftrag beginnt mit "Dokument:" (weitergabe.ist_dokumentauftrag), nur im ersten Lauf, nicht bei
