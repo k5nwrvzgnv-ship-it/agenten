@@ -452,6 +452,27 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Bedarf an alle Agenten: auftrag_id an claude_lauf.laufen mitgeben (heute u. a. uni/karten, recherche, examen,
      unterricht/leitfaden nicht), sonst „Lauf ohne Auftrag“. Die Agent-Chats übernehmen das aus diesem Punkt.
    - Stufe 2 (Freigabe, Abbruch), Stufe 3 (Einstellungen) laut Plan, je nach Okay.
+23. Bedarf aus der Leitstand-Prüfung gegen echte Nutzung (lia-Chat, 28.10.2026, Rohdaten 16.–28.10.). Prototyp mit
+   geschwärzten Daten und allen Tabellen (Eingriffe, Aufgaben Jan/Lia, Zielwerte, Aufgabentest) nur im Scratchpad
+   dieses Chats (/tmp/claude-1002/-home-agent-agenten-lia/91021f8b-bf4d-4aa2-b56c-5ff60187dab6/scratchpad/proto/,
+   flüchtig); bei Bedarf nach docs/ übernehmen. Nichts davon ist gebaut.
+   - Sicherheit, vor Stufe 2: Überholte Entwürfe bleiben in freigabe/offen freigebbar. Am 28.10. lagen zwei: der
+     Böhme-Entwurf vom 27.10. (anderer Inhalt, kein vorgaenger-Link zur Fassung vom 28.10.) und die alte
+     Absage an die Beratung (die Nachbesserung ging schon raus). Vorschlag: freigabe.entscheide lehnt "freigegeben"
+     ab, wenn es im selben Strang (Agent, Empfänger, Betreff ohne Re/AW) einen jüngeren Entwurf gibt;
+     neuer_entwurf mit vorgaenger zieht den Vorgänger zurück. Gilt dann für Telegram und Leitstand.
+   - Fehlklick am Handy: Feld "nicht vor" (z. B. 10 s nach Freigabe), damit Rückgängig möglich ist, bevor
+     ausfuehrung_beginnen greift.
+   - Ereignisse: auftrag.angelegt landet in shared/auftraege/ereignisse/ (nicht in Git, nicht in .gitignore) statt
+     in shared/ereignisse/. Vermutung: die Zentrale übergibt basis, und auftraege schreibt dann unter
+     <basis>/ereignisse. Nicht geprüft.
+   - Feedback-Tests schreiben ins echte shared/feedback/logs/feedback.log (2531 Zeilen, fast alles Tests).
+   - laeufe.jsonl: kein Fehlerfeld (3 recherche-Läufe am 27.10. nach ca. 540 s ok = false ohne Ursache), Konto
+     nur beim Vinted-Bot. Für Messungen beides mitschreiben.
+   - Lias Entwurf examen-0c44bf ("Lia setzt selbst ein") offen seit 25.10.; Lia braucht einen Weg, ihn
+     abzuschließen. Zugang Lias zu einer Web-Ansicht ist offen (SSH-Tunnel nicht zumutbar), Entscheidung Jan.
+   - Zur Messung der Handeingriffe fehlen Zeitstempel in der Bash-History (HISTTIMEFORMAT in ~/.bashrc, nur mit
+     Jans Okay).
 
 ## Gelernte Regeln
 - (noch keine)
