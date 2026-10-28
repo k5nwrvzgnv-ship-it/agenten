@@ -427,5 +427,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - posteingang und uni: bei reinen Entwurfs-Ergebnissen daten.nur_freigabe = True setzen, statt sich auf
      den Text "liegt zur Freigabe" zu verlassen.
 
+22. Leitstand (Frontend zur Steuerung, Plan 28.10.): docs/leitstand-plan.md mit Eingriffspunkten, Ereignis-Schema,
+   Schnittstelle, Variantenvergleich (Empfehlung: eigenes Dashboard, Python-Bordmittel, nur per SSH-Tunnel) und
+   Messgrößen. Klickbarer Entwurf: https://claude.ai/artifact/6DVm6MiPQHtjiMbjb6buzT. Nichts gebaut.
+   Nächster Schritt nach Jans Okay: Stufe 1 (agentkit.ereignis, Läufe nur lesend).
+
 ## Gelernte Regeln
 - (noch keine)
