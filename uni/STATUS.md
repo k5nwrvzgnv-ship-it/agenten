@@ -231,6 +231,12 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     (Zentrale soll Klick-Aufträge still abschließen), dann richtet Jan den Dienst ein.
   - Nächste Schritte: Dienst einrichten und über Telegram testen, Nachholwege für verpasste Termine,
     Sonntagsbericht, Simulation alle 4 Wochen, zuletzt Trigger vor der Vorlesung.
+  - Mündliche Simulation per Stimme (Entscheidung Jan 29.10.): ElevenLabs, Stimme der IHS-Professorin als
+    Instant Voice Clone aus einer Vorlesungsaufnahme, Zustimmung der Professorin liegt laut Jan vor.
+    Stufe 1: ElevenLabs-Agent in Echtzeit (Jan richtet Konto, Klon und Agent im Web ein; uni liefert
+    Prüfer-Prompt und Wissensdateien). Stufe 2: dieselbe Stimme in der Simulation über Telegram-
+    Sprachnachrichten (mit Bildkarten, Bericht, Rückfluss in FSRS; Zentrale braucht Sprachnachrichten).
+    Plan steht, Bau wartet auf Jans Okay. Audio liegt nicht auf dem Server, ffmpeg fehlt.
 
 - Dokument-Aufträge an dokumente (Teil D von Punkt 3a im Hauptordner, gebaut 22.10., nur Unit-Tests):
   - Auslöser: Auftrag beginnt mit "Dokument:" (weitergabe.ist_dokumentauftrag), nur im ersten Lauf, nicht bei
