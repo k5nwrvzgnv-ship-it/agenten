@@ -40,6 +40,9 @@ shared/auftraege/erledigt/
 # Verbrauchsprotokoll der claude-Läufe
 shared/verbrauch/
 
+# Ereignisse für den Leitstand (agentkit.ereignis): nur IDs und Zahlen, trotzdem nicht ins Repo
+shared/ereignisse/
+
 # Meldungen an Jan: können persönliche Inhalte enthalten
 shared/meldungen/
 
