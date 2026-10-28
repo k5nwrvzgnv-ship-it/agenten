@@ -40,7 +40,7 @@ neue(agent, dienst="uni-lernen") nur die für uni-lernen. Ohne Angabe kommen all
 import shutil
 from pathlib import Path
 
-from . import _ablage, einstellungen
+from . import _ablage, einstellungen, ereignis
 from ._ablage import AblageFehler as AuftragFehler  # noqa: F401
 from .config import SHARED_DIR, person
 
@@ -137,6 +137,9 @@ def _anlegen(agent: str, text: str, felder: dict, dateien: list[Path], ablegen, 
         "ergebnis": "",
     }
     _ablage.schreibe(_ablage.ordner(basis, "neu") / f"{eintrag_id}.json", eintrag)
+    ereignis.schreiben("auftrag.angelegt", agent, auftrag=eintrag_id, ordner=ereignis.ordner_zu(basis), daten={
+        "quelle": eintrag.get("quelle"), "modus": eintrag.get("modus"), "von": eintrag.get("von"),
+        "bezug": eintrag.get("bezug"), "dienst": eintrag.get("dienst"), "dateien": len(anhaenge)})
     return eintrag_id
 
 
@@ -223,11 +226,14 @@ def abschliessen(
     _ablage.pruefe_id(eintrag_id)
     agent = eintrag_id.split("-")[2]  # vor dem Verschieben prüfen, sonst bliebe der Auftrag halb abgeschlossen
     ergebnis_dateien = _ablage.anhaenge_pruefen((agenten_dir or AGENTEN_DIR) / agent, dateien or [])
-    basis = basis or BASIS
-    return _ablage.abschliessen(
+    eigene_basis, basis = basis, basis or BASIS
+    eintrag = _ablage.abschliessen(
         _ablage.ordner(basis, "neu"),
         _ablage.ordner(basis, "erledigt"),
         eintrag_id,
         {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis, "sitzung": sitzung,
          "ergebnis_dateien": ergebnis_dateien, **({"daten": daten} if daten is not None else {})},
     )
+    ereignis.schreiben("auftrag.abgeschlossen", agent, auftrag=eintrag_id, ordner=ereignis.ordner_zu(eigene_basis),
+                       daten={"status": status, "dateien": len(ergebnis_dateien)})
+    return eintrag

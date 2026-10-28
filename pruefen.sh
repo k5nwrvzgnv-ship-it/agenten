@@ -7,6 +7,10 @@
 cd "$(dirname "$0")" || exit 1
 WURZEL=$(pwd)
 FEHLER=0
+# Tests schreiben Ereignisse (agentkit.ereignis) nie in die echte Datei
+AGENTKIT_EREIGNIS_DIR=$(mktemp -d)
+export AGENTKIT_EREIGNIS_DIR
+trap 'rm -rf "$AGENTKIT_EREIGNIS_DIR"' EXIT
 
 # Ordner | Python | Testordner (relativ zum Ordner)
 TESTS=(

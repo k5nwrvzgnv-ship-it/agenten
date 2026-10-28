@@ -14,7 +14,8 @@ auf MAX_TEXT Zeichen gekürzt.
 schreiben() wirft nie: Ein Fehler hier darf keinen Lauf beenden. Er landet als Warnung im Log.
 
 Typen (Stand Stufe 1): auftrag.angelegt, auftrag.abgeschlossen, lauf.gestartet, werkzeug, lauf.beendet,
-lauf.fehler, freigabe.wartet, freigabe.entschieden, freigabe.ausgefuehrt, freigabe.unklar.
+lauf.fehler, freigabe.wartet, freigabe.entschieden, freigabe.ausfuehrung_begonnen, freigabe.ausgefuehrt.
+Unklare Ausführungen (begonnen, nie abgeschlossen) ergeben sich daraus bzw. aus freigabe.unklare().
 """
 
 import fcntl
@@ -28,9 +29,15 @@ from pathlib import Path
 from . import config
 from .config import KONTINGENT_DIR
 
-ORDNER = KONTINGENT_DIR / "ereignisse"
+# AGENTKIT_EREIGNIS_DIR: anderer Ordner, z. B. in pruefen.sh, damit Tests nie in die echte Datei schreiben
+ORDNER = Path(os.environ.get("AGENTKIT_EREIGNIS_DIR") or KONTINGENT_DIR / "ereignisse")
 MAX_TEXT = 100
 logger = logging.getLogger("agentkit.ereignis")
+
+
+def ordner_zu(basis: Path | None) -> Path | None:
+    """Ereignis-Ordner für eine Warteschlange: Mit eigener basis (Tests) darin, sonst der gemeinsame."""
+    return None if basis is None else Path(basis) / "ereignisse"
 
 
 def _kuerzen(wert):

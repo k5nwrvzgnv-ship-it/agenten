@@ -25,7 +25,7 @@ import json
 import os
 from pathlib import Path
 
-from . import _ablage
+from . import _ablage, ereignis
 from ._ablage import AblageFehler as FreigabeFehler  # noqa: F401
 from .config import SHARED_DIR
 
@@ -54,7 +54,7 @@ def neuer_entwurf(
     typ: z. B. "mail", "nachricht", "kauf". daten: alles, was der Agent nach
     der Freigabe braucht (Empfänger, Betreff, Link ...).
     """
-    basis = basis or BASIS
+    eigene_basis, basis = basis, basis or BASIS
     if vorgaenger is not None:
         _ablage.pruefe_id(vorgaenger)
     eintrag_id = _ablage.neue_id(agent)
@@ -77,7 +77,13 @@ def neuer_entwurf(
     }
     eintrag["fingerabdruck"] = fingerabdruck(eintrag)
     _ablage.schreibe(_ablage.ordner(basis, "offen") / f"{eintrag_id}.json", eintrag)
+    _ereignis("freigabe.wartet", eintrag_id, eigene_basis, typ=typ, vorgaenger=vorgaenger)
     return eintrag_id
+
+
+def _ereignis(art: str, eintrag_id: str, basis: Path | None, **daten) -> None:
+    ereignis.schreiben(art, eintrag_id.split("-")[2], ordner=ereignis.ordner_zu(basis),
+                       daten={"freigabe": eintrag_id, **daten})
 
 
 def offene(agent: str | None = None, basis: Path | None = None) -> list[dict]:
@@ -105,7 +111,7 @@ def entscheide(
         raise FreigabeFehler(f"Unbekannte Entscheidung: {status!r}")
     if status == "aendern" and not kommentar.strip():
         raise FreigabeFehler("Bei 'aendern' ist ein Kommentar nötig")
-    basis = basis or BASIS
+    eigene_basis, basis = basis, basis or BASIS
     if status == "freigegeben":
         _ablage.pruefe_id(eintrag_id)
         pfad = _ablage.ordner(basis, "offen") / f"{eintrag_id}.json"
@@ -113,12 +119,14 @@ def entscheide(
             raise FreigabeFehler(f"{eintrag_id} ist nicht (mehr) offen")
         if gesehen is None or gesehen != fingerabdruck(_ablage.lies(pfad)):
             raise FreigabeFehler(f"{eintrag_id}: Entwurf weicht von der Anzeige ab, nicht freigegeben")
-    return _ablage.abschliessen(
+    eintrag = _ablage.abschliessen(
         _ablage.ordner(basis, "offen"),
         _ablage.ordner(basis, "erledigt"),
         eintrag_id,
         {"status": status, "entschieden": _ablage.jetzt(), "kommentar": kommentar},
     )
+    _ereignis("freigabe.entschieden", eintrag_id, eigene_basis, status=status)
+    return eintrag
 
 
 def _erledigt_pfad(eintrag_id: str, basis: Path) -> Path:
@@ -170,6 +178,7 @@ def ausfuehrung_beginnen(
         raise FreigabeFehler(f"{eintrag_id} wird schon oder wurde schon ausgeführt") from None
     entwurf["ausfuehrung_start"] = _ablage.jetzt()
     _ablage.schreibe(pfad, entwurf)
+    _ereignis("freigabe.ausfuehrung_begonnen", eintrag_id, None if basis is BASIS else basis, typ=entwurf["typ"])
     return entwurf
 
 
@@ -198,4 +207,5 @@ def ausfuehrung_abschliessen(
         raise FreigabeFehler(f"{eintrag_id} ist schon abgeschlossen")
     entwurf.update(ausgefuehrt=_ablage.jetzt(), ausfuehrung=ergebnis, erfolgreich=erfolgreich)
     _ablage.schreibe(pfad, entwurf)
+    _ereignis("freigabe.ausgefuehrt", eintrag_id, None if basis is BASIS else basis, erfolgreich=erfolgreich)
     return entwurf

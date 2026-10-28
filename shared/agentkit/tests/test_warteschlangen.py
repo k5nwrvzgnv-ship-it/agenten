@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agentkit import auftraege, freigabe
+from agentkit import auftraege, ereignis, freigabe
 
 
 def freigeben(eid, basis):
@@ -96,6 +96,19 @@ class TestAusfuehrung(unittest.TestCase):
         with self.assertRaises(freigabe.FreigabeFehler):
             freigabe.ausfuehrung_abschliessen(eid, "nochmal", basis=self.basis)
 
+    def test_ereignisse_der_freigabe(self):
+        eid = freigabe.neuer_entwurf("posteingang", "Antwort", "Hallo", typ="mail", basis=self.basis)
+        freigeben(eid, self.basis)
+        freigabe.ausfuehrung_beginnen(eid, basis=self.basis)
+        freigabe.ausfuehrung_abschliessen(eid, "Mail gesendet", basis=self.basis)
+        ev = ereignis.lesen(ordner=self.basis / "ereignisse")
+        self.assertEqual([e["typ"] for e in ev], ["freigabe.wartet", "freigabe.entschieden",
+                                                   "freigabe.ausfuehrung_begonnen", "freigabe.ausgefuehrt"])
+        self.assertEqual({e["agent"] for e in ev}, {"posteingang"})
+        self.assertEqual({e["daten"]["freigabe"] for e in ev}, {eid})
+        self.assertEqual(ev[1]["daten"]["status"], "freigegeben")
+        self.assertNotIn("Hallo", json.dumps(ev))
+
     def test_abgelehnt_wird_nicht_ausgefuehrt(self):
         eid = freigabe.neuer_entwurf("uni", "t", "i", basis=self.basis)
         freigabe.entscheide(eid, "abgelehnt", basis=self.basis)
@@ -134,6 +147,16 @@ class TestAusfuehrung(unittest.TestCase):
 class TestAuftraege(unittest.TestCase):
     def setUp(self):
         self.basis = Path(tempfile.mkdtemp())
+
+    def test_ereignisse_der_auftraege(self):
+        agenten = Path(tempfile.mkdtemp())
+        a = auftraege.neuer_auftrag("uni", "Geheimer Text", quelle="knopf", basis=self.basis, agenten_dir=agenten)
+        auftraege.abschliessen(a, "Fertig", status="fehlgeschlagen", basis=self.basis, agenten_dir=agenten)
+        ev = ereignis.lesen(ordner=self.basis / "ereignisse")
+        self.assertEqual([(e["typ"], e["agent"], e["auftrag"]) for e in ev],
+                         [("auftrag.angelegt", "uni", a), ("auftrag.abgeschlossen", "uni", a)])
+        self.assertEqual((ev[0]["daten"]["quelle"], ev[1]["daten"]["status"]), ("knopf", "fehlgeschlagen"))
+        self.assertNotIn("Geheim", json.dumps(ev))
 
     def test_ablauf(self):
         a1 = auftraege.neuer_auftrag("einkauf", "Geschenk für Mama", basis=self.basis)
