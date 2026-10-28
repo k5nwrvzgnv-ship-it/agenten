@@ -64,7 +64,7 @@ Der Ordner entsteht mit dem Agenten.
 | `lia-unterricht` | Lias Platzhalter, startet nach Aufträgen | `lia/unterricht/systemd/` |
 | `feedback`, `lia-feedback` | Feedback zu Ergebnissen zuordnen und übernehmen, Jans Stopp | `shared/feedback/systemd/` |
 | `ausfall@` | Meldung an Jan, wenn ein Dienst ausfällt | `shared/systemd/` |
-| `leitstand` (noch nicht eingerichtet) | Web-Ansicht, Unix-Socket `shared/leitstand/data/leitstand.sock` | `shared/leitstand/systemd/` |
+| `leitstand` | Web-Ansicht, Unix-Socket `shared/leitstand/data/leitstand.sock` | `shared/leitstand/systemd/` |
 | `vinted-bot` | alter Vinted-Bot, nicht Teil des Systems; zählt in /verbrauch mit, meldet Ausfälle | `~/agents/vinted/systemd/` |
 
 Status: `systemctl --user status <dienst>`. Logs: `journalctl --user -u <dienst>` oder `<ordner>/logs/`.

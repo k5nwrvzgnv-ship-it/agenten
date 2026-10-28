@@ -443,11 +443,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - shared/leitstand/: logik.py (getestet), server.py (nur GET, Unix-Socket data/leitstand.sock, Ordner 700),
      index.html (Netz, Läufe, fragt alle 2 s nach neuen Ereignissen, Stand im Adress-Anker, übersteht Neuladen).
      Lias Läufe ohne Auftrags- und Ergebnistext. Von Hand gegen echte Daten geprüft (Scratch-Socket), Dienste und
-     offene Freigaben stimmten. Dienstvorlage systemd/leitstand.service, NICHT eingerichtet (wartet auf Jans Okay).
+     offene Freigaben stimmten. Dienst leitstand eingerichtet 28.10. 22:56 (Jans Okay, enable --now, Vorlage
+     systemd/leitstand.service, OnFailure=ausfall@, MemoryMax 150M). Beide Zentralen zugleich neu gestartet
+     (schreiben jetzt auftrag.angelegt; Panel erst wieder nach /start).
+   Zugriff vom Mac: ssh -N -L 8790:/home/agent/agenten/shared/leitstand/data/leitstand.sock agent@<server>, dann
+   http://localhost:8790. Noch nicht von Jan im Browser geprüft.
    Offen:
-   - Dienst einrichten (Vorlage kopieren, daemon-reload, enable --now), Zugriff vom Mac:
-     ssh -N -L 8790:/home/agent/agenten/shared/leitstand/data/leitstand.sock agent@<server>, dann localhost:8790.
-   - Zentralen erst nach Neustart mit auftrag.angelegt (laufende Prozesse haben den alten agentkit-Code).
    - Bedarf an alle Agenten: auftrag_id an claude_lauf.laufen mitgeben (heute u. a. uni/karten, recherche, examen,
      unterricht/leitfaden nicht), sonst „Lauf ohne Auftrag“. Die Agent-Chats übernehmen das aus diesem Punkt.
    - Stufe 2 (Freigabe, Abbruch), Stufe 3 (Einstellungen) laut Plan, je nach Okay.
