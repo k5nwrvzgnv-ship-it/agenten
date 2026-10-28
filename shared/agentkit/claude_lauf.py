@@ -19,18 +19,22 @@ Konto ([konto] quelle in einstellungen.toml, gilt für alle Instanzen):
 
 import fcntl
 import json
+import logging
 import os
+import signal
 import subprocess
+import threading
 import time
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import einstellungen, regeln, verbrauch
+from . import einstellungen, ereignis, regeln, verbrauch
 from . import config
 from .config import KONTINGENT_DIR
 
+logger = logging.getLogger("agentkit.claude_lauf")
 CLAUDE_BIN = os.environ.get("AGENTKIT_CLAUDE_BIN", str(Path.home() / ".local" / "bin" / "claude"))
 SLOT_DIR = KONTINGENT_DIR / "verbrauch" / "plaetze"  # gemeinsam für alle Instanzen (ein Konto)
 KONTO_ENV = KONTINGENT_DIR / ".env"  # CLAUDE_CODE_OAUTH_TOKEN des Agenten-Kontos
@@ -131,6 +135,7 @@ class Ergebnis:
     dauer_s: float = 0.0
     verweigert: list = field(default_factory=list)
     auslastung: dict | None = None
+    lauf: str | None = None  # ID des Laufs in agentkit.ereignis
 
 
 @contextmanager
@@ -240,6 +245,71 @@ def auswerten(ausgabe: str) -> Ergebnis:
     )
 
 
+def werkzeuge_aus_zeile(zeile: str) -> list[str]:
+    """Namen der Werkzeuge, die Claude in dieser stream-json-Zeile aufruft (nur Namen, keine Eingaben)."""
+    try:
+        d = json.loads(zeile)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(d, dict) or d.get("type") != "assistant":
+        return []
+    inhalt = (d.get("message") or {}).get("content") or []
+    return [str(t.get("name")) for t in inhalt if isinstance(t, dict) and t.get("type") == "tool_use"]
+
+
+def _gruppe_beenden(p: subprocess.Popen, warten_s: float = 5) -> None:
+    """claude und alles, was es gestartet hat, beenden: erst TERM, nach warten_s KILL."""
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        try:
+            os.killpg(p.pid, sig)
+        except ProcessLookupError:
+            return
+        try:
+            p.wait(warten_s)
+            return
+        except subprocess.TimeoutExpired:
+            continue
+
+
+def ausfuehren(cmd: list[str], cwd: Path, env: dict, zeitlimit_s: float, bei_zeile=None) -> tuple[str, bool]:
+    """Startet cmd in eigener Prozessgruppe und liest die Ausgabe (stdout und stderr) Zeile für Zeile.
+
+    bei_zeile(zeile) wird für jede Zeile sofort aufgerufen (Fehler darin beenden den Lauf nicht).
+    Nach zeitlimit_s wird die Gruppe beendet. Rückgabe: (ganze Ausgabe, Zeitlimit überschritten).
+    """
+    p = subprocess.Popen(cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    abgelaufen = threading.Event()
+
+    def stoppen():
+        abgelaufen.set()
+        _gruppe_beenden(p)
+
+    waechter = threading.Timer(zeitlimit_s, stoppen)
+    waechter.daemon = True
+    waechter.start()
+    zeilen = []
+    try:
+        for zeile in p.stdout:
+            zeilen.append(zeile)
+            if bei_zeile:
+                try:
+                    bei_zeile(zeile)
+                except Exception as e:  # noqa: BLE001 - Anzeige darf den Lauf nicht beenden
+                    logger.warning("bei_zeile: %s", e)
+        p.wait()
+    finally:
+        waechter.cancel()
+        if p.poll() is None:  # z. B. Abbruch des Agenten selbst: claude nicht verwaist zurücklassen
+            _gruppe_beenden(p)
+        p.stdout.close()
+    return "".join(zeilen), abgelaufen.is_set()
+
+
+FEHLERGRUND = {"LimitErreicht": "limit", "Pausiert": "pausiert", "Zeitueberschreitung": "zeit",
+               "LaeuftSchon": "laeuft_schon", "KeinPlatz": "kein_platz", "KeinKonto": "konto"}
+
+
 def laufen(
     agent: str,
     agent_dir: Path,
@@ -252,12 +322,29 @@ def laufen(
     cfg: dict | None = None,
     slot_dir: Path | None = None,
     protokoll: Path | None = None,
+    ereignis_dir: Path | None = None,
 ) -> Ergebnis:
     """Führt einen claude-Lauf aus. art: "routine" oder "anspruchsvoll".
 
     lernsitzung=True legt eine neue Sitzung mit fester ID an (Ergebnis.sitzung),
     die später mit sitzung_fortsetzen weitergeführt werden kann (auch am PC).
+    Schreibt Ereignisse (agentkit.ereignis): lauf.gestartet, werkzeug (live), lauf.beendet, lauf.fehler.
     """
+    lauf_id = uuid.uuid4().hex[:12]
+
+    def ev(typ: str, **daten) -> None:
+        ereignis.schreiben(typ, agent, lauf=lauf_id, auftrag=auftrag_id, daten=daten, ordner=ereignis_dir)
+
+    try:
+        return _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
+                       cfg, slot_dir, protokoll, lauf_id, ev)
+    except Exception as f:
+        ev("lauf.fehler", grund=FEHLERGRUND.get(type(f).__name__, "technik"))
+        raise
+
+
+def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
+            cfg, slot_dir, protokoll, lauf_id, ev) -> Ergebnis:
     cfg = cfg or einstellungen.lade()
     agent_dir = Path(agent_dir)
     stufe = verbrauch.stufe(verbrauch.letzter_stand(protokoll), cfg)
@@ -274,21 +361,30 @@ def laufen(
         modell = cfg["modelle"]["anspruchsvoll"]
     sitzung_neu = str(uuid.uuid4()) if lernsitzung and not sitzung_fortsetzen else None
     cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen)
-    env = umgebung(cfg.get("konto", {}).get("quelle", "token"))
+    quelle = cfg.get("konto", {}).get("quelle", "token")
+    env = umgebung(quelle)
+
+    def bei_zeile(zeile: str) -> None:
+        for name in werkzeuge_aus_zeile(zeile):
+            ev("werkzeug", name=name)
 
     with _sperre(agent_dir / "data" / "lauf.lock", LaeuftSchon(f"{agent} läuft schon")):
         with _platz(cfg["parallel"][stufe], cfg["lauf"]["warten_minuten"] * 60, slot_dir or SLOT_DIR):
+            ev("lauf.gestartet", modell=modell, stufe=stufe, konto=quelle, art=art, zeitgesteuert=zeitgesteuert,
+               fortsetzung=bool(sitzung_fortsetzen), pid=os.getpid())
             start = time.monotonic()
-            try:
-                p = subprocess.run(
-                    cmd, cwd=agent_dir, env=env, stdin=subprocess.DEVNULL, capture_output=True,
-                    text=True, timeout=cfg["lauf"]["max_minuten"] * 60,
-                )
-                ergebnis = auswerten(p.stdout + "\n" + p.stderr)
-            except subprocess.TimeoutExpired:
+            ausgabe, abgelaufen = ausfuehren(cmd, agent_dir, env, cfg["lauf"]["max_minuten"] * 60, bei_zeile)
+            if abgelaufen:
                 ergebnis = Ergebnis(text="Zeitlimit überschritten", sitzung=sitzung_neu or sitzung_fortsetzen, ok=False)
+            else:
+                ergebnis = auswerten(ausgabe)
             ergebnis.dauer_s = ergebnis.dauer_s or time.monotonic() - start
             ergebnis.sitzung = ergebnis.sitzung or sitzung_neu or sitzung_fortsetzen
+            ergebnis.lauf = lauf_id
+    a = ergebnis.auslastung or {}
+    ev("lauf.beendet", ok=ergebnis.ok, schritte=ergebnis.schritte, tokens=ergebnis.tokens, usd=round(ergebnis.usd, 4),
+       dauer_s=round(ergebnis.dauer_s, 1), verweigert=len(ergebnis.verweigert),
+       auslastung_5h=a.get("5h"), auslastung_7d=a.get("7d"))
 
     verbrauch.protokollieren({
         "agent": agent, "instanz": config.INSTANZ_NAME, "auftrag": auftrag_id, "modell": modell, "art": art, "stufe": stufe,

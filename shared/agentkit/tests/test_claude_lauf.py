@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from agentkit import claude_lauf, einstellungen, verbrauch
+from agentkit import claude_lauf, einstellungen, ereignis, verbrauch
 
 CFG = einstellungen.lade()
 TOKEN_CFG = {**CFG, "konto": {"quelle": "token"}}
@@ -20,6 +20,14 @@ json.dump({k: os.environ.get(k) for k in ("CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_
 modus = os.environ.get("FAKE_MODUS", "ok")
 if modus == "langsam":
     time.sleep(5)
+print(json.dumps({"type": "assistant", "message": {"content": [
+    {"type": "text", "text": "Ich lese"}, {"type": "tool_use", "name": "Read", "input": {"file_path": "geheim.txt"}}]}}))
+sys.stdout.flush()
+if modus == "kind":
+    import subprocess
+    kind = subprocess.Popen(["sleep", "30"])
+    open("kind.pid", "w").write(str(kind.pid))
+    time.sleep(30)
 status = {"limit": "rejected", "warnung": "allowed_warning"}.get(modus, "allowed")
 print(json.dumps({"type": "rate_limit_event", "rate_limit_info": {"status": status, "resetsAt": 4102444800,
     "unifiedWindows": {"five_hour": {"utilization": 0.2, "resetsAt": 4102444800},
@@ -52,6 +60,10 @@ class TestClaudeLauf(unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
         os.environ.pop("FAKE_MODUS", None)
+        self.ereignis_dir = self.tmp / "ereignisse"
+        p = mock.patch.object(ereignis, "ORDNER", self.ereignis_dir)
+        p.start()
+        self.addCleanup(p.stop)
 
     def lauf(self, cfg=CFG, **kw):
         return claude_lauf.laufen("uni", self.agent_dir, "Prüfe Fristen", cfg=cfg,
@@ -205,12 +217,61 @@ class TestClaudeLauf(unittest.TestCase):
                     self.lauf(cfg=cfg)
             self.lauf(cfg=cfg)  # ein Platz wieder frei
 
+    def ereignisse(self):
+        return ereignis.lesen(ordner=self.ereignis_dir)
+
+    def test_ereignisse_eines_laufs(self):
+        e = self.lauf(auftrag_id="a1")
+        ev = self.ereignisse()
+        self.assertEqual([x["typ"] for x in ev], ["lauf.gestartet", "werkzeug", "lauf.beendet"])
+        self.assertEqual({x["lauf"] for x in ev}, {e.lauf})
+        self.assertEqual({x["auftrag"] for x in ev}, {"a1"})
+        self.assertEqual(ev[1]["daten"], {"name": "Read"})  # nur der Name, kein Pfad
+        self.assertNotIn("geheim", json.dumps(ev))
+        self.assertEqual(ev[0]["daten"]["konto"], CFG["konto"]["quelle"])
+        b = ev[2]["daten"]
+        self.assertEqual((b["ok"], b["tokens"], b["schritte"], b["auslastung_5h"]), (True, 1130, 3, 0.2))
+
+    def test_ereignis_bei_limit(self):
+        os.environ["FAKE_MODUS"] = "limit"
+        with self.assertRaises(claude_lauf.LimitErreicht):
+            self.lauf()
+        ev = self.ereignisse()
+        self.assertEqual(ev[-1]["typ"], "lauf.fehler")
+        self.assertEqual(ev[-1]["daten"], {"grund": "limit"})
+
+    def test_zeitlimit_beendet_auch_kindprozesse(self):
+        os.environ["FAKE_MODUS"] = "kind"
+        cfg = copy.deepcopy(CFG)
+        cfg["lauf"]["max_minuten"] = 0.03
+        with self.assertRaises(claude_lauf.Zeitueberschreitung):
+            self.lauf(cfg=cfg)
+        kind = int((self.agent_dir / "kind.pid").read_text())
+        time.sleep(0.2)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(kind, 0)
+        self.assertEqual(self.ereignisse()[-1]["daten"], {"grund": "zeit"})
+
+    def test_ereignis_fehler_beendet_lauf_nicht(self):
+        with mock.patch.object(ereignis, "ORDNER", self.tmp / "STATUS.md" / "x"), self.assertLogs("agentkit.ereignis"):
+            (self.tmp / "STATUS.md").write_text("")
+            self.assertTrue(self.lauf().ok)
+
+    def test_werkzeuge_aus_zeile(self):
+        self.assertEqual(claude_lauf.werkzeuge_aus_zeile("kein json"), [])
+        self.assertEqual(claude_lauf.werkzeuge_aus_zeile('{"type": "result"}'), [])
+        self.assertEqual(claude_lauf.werkzeuge_aus_zeile('[1]'), [])
+        zeile = json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Write"},
+                                                                         {"type": "tool_use", "name": "Grep"}]}})
+        self.assertEqual(claude_lauf.werkzeuge_aus_zeile(zeile), ["Write", "Grep"])
+
 
 class GrundregelTest(unittest.TestCase):
     def test_jan_unveraendert_lia_mit_namen(self):
         self.assertIn("in Jans Agenten-System", claude_lauf.GRUNDREGEL)
         self.assertEqual(claude_lauf.grundregel(), claude_lauf.GRUNDREGEL)
         self.assertIn("in Lias Agenten-System", claude_lauf.grundregel("Lia"))
+
 
 if __name__ == "__main__":
     unittest.main()
