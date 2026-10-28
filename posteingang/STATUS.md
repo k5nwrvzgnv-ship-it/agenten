@@ -80,4 +80,4 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. St
    kontext_sammeln. Danach auftrag.py und tests/test_auftrag.py löschen.
 
 ## Gelernte Regeln
-- (noch keine)
+- 28.10.2026: Absender weglassen: @klarna.de, @klarna.com (Anlass: Jan, Klarna interessiert ihn nicht)
