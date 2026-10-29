@@ -233,6 +233,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Impress), Installation braucht sudo und Jans Okay. Danach lia/unterricht die Art freischalten.
      Übergangsweise hat der lia-Chat die Notentabelle einmal von Hand als leere Vorlage gebaut (ohne Schülerdaten,
      5 Noten 0-15 -> Schnitt 2/3, LEK 0-15 1/3 -> Endnote 0-15 mit zwei Nachkommastellen).
+     Plan im Renderer-Chat 29.10. (shared/renderer/STATUS.md, Nächste Schritte), wartet auf Jans Freigabe: Art
+     "arbeitsmappe" -> .xlsx. Bedarf an lia/unterricht, sobald sie gebaut ist: material.ARTEN um
+     "arbeitsmappe": ".xlsx" ergänzen (auch die Fehlermeldung in _beschreibung_lesen), dateiname passt
+     ("Arbeitsmappe <Titel>.xlsx"); Skill einzelmaterial: Abschnitt „Art wählen“ (Tabelle, Notentabelle,
+     Liste zum Ausfüllen -> arbeitsmappe) und die Regel „keine Namen, Noten oder anderen Schülerdaten in die
+     Beschreibung, nur leere Vorlagen“; Kontrolle: Bei .xlsx kommen ohne Calc keine Bilder, nur Kontrolltext mit
+     Probe (prompt_kontrolle darf mit leerer Bilderliste nicht scheitern); SEITEN_ENDUNGEN unverändert. Ein Test
+     mit einer arbeitsmappe-Beschreibung in tests/test_material.py.
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt
      lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/instanz/einstellungen.toml, PERSON=Lia
