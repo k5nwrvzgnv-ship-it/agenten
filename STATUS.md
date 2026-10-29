@@ -226,6 +226,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        17 Aufträge also ~10 USD Kontingent). Danach in lia/auswertung: auswertung.py vergleichsbogen <ordner>.
      - 11 Regelvorschläge in lia/auswertung/STATUS.md, warten auf Freigabe.
      - Bewertung (Bögen, Noten, Mitarbeit) wäre ein eigener Agent, erst nach Klärung Schülerdaten (lia-architektur Abschnitt 0).
+   - Bedarf aus lia/ (29.10., Jan, Renderer-Chat): Excel (.xlsx) als neue Art im Renderer, damit Lias Agenten
+     Tabellen ausgeben können (Anlass: Lia wünscht vom Agenten eine Notentabelle). Nötig: Spalten, Kopf, Formeln,
+     Eingabeprüfung (z. B. ganze Zahlen 0-15), Zahlenformat, Druck A4 quer. xlsxwriter steht schon in
+     shared/renderer/requirements.txt. Vorschau: libreoffice-calc-nogui fehlt auf dem Server (nur Writer und
+     Impress), Installation braucht sudo und Jans Okay. Danach lia/unterricht die Art freischalten.
+     Übergangsweise hat der lia-Chat die Notentabelle einmal von Hand als leere Vorlage gebaut (ohne Schülerdaten,
+     5 Noten 0-15 -> Schnitt 2/3, LEK 0-15 1/3 -> Endnote 0-15 mit zwei Nachkommastellen).
    - Erledigt 21.10. für echte Läufe in Lias Instanz: ein Kontingent für alle Instanzen
      (config.KONTINGENT_DIR: einstellungen.toml, verbrauch/, Plätze in Jans shared; /verbrauch zeigt
      lia/<agent>), eigene Werkzeuge nur über [werkzeuge] in lia/instanz/einstellungen.toml, PERSON=Lia
