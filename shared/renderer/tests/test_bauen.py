@@ -127,6 +127,13 @@ class TestBauen(unittest.TestCase):
         self.assertEqual(e.bilder[0].parent, self.tmp / "f-vorschau")
         self.assertTrue(e.pdf.is_file())
 
+    @unittest.skipUnless(shutil.which(vorschau.SOFFICE), "LibreOffice nicht installiert")
+    def test_mit_vorschau_arbeitsmappe(self):
+        e = bauen(NOTEN, self.tmp / "noten.xlsx")
+        self.assertEqual(e.hinweise, [])
+        self.assertEqual([b.name for b in e.bilder], ["noten-seite-01.png", "noten-seite-02.png"])  # 35 Zeilen
+        self.assertTrue(e.pdf.is_file())
+
 
 class TestKontrolle(unittest.TestCase):
     def test_andere_endung(self):

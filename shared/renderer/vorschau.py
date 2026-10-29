@@ -1,7 +1,9 @@
-"""Vorschau: docx/pptx -> PDF (LibreOffice) -> ein PNG je Seite (pypdfium2).
+"""Vorschau: docx/pptx/xlsx -> PDF (LibreOffice) -> ein PNG je Seite (pypdfium2).
 
 Damit sehen Claude und der Renderer-Chat, wie eine gebaute Datei aussieht. Schriften, die auf dem Server
-fehlen, ersetzt LibreOffice (Calibri durch Carlito mit gleichen Maßen, Aptos nur ungefähr).
+fehlen, ersetzt LibreOffice (Calibri durch Carlito mit gleichen Maßen, Aptos nur ungefähr). Formeln in xlsx rechnet
+Calc nur neu, wenn das Profil es verlangt (OOXMLRecalcMode, siehe PROFIL_EINSTELLUNGEN); sonst zeigt es die in der
+Datei gespeicherten Werte.
 pypdfium2 wird erst bei Bedarf importiert: Wer keine Vorschau braucht, braucht es nicht in seiner .venv.
 """
 
@@ -15,6 +17,14 @@ ZEITLIMIT_S = 120
 AUFLOESUNG_DPI = 100  # reicht zum Ansehen, ein A4-Bild ist dann etwa 830 x 1170 Pixel
 MAX_SEITEN = 30
 OFFICE_ENDUNGEN = (".docx", ".pptx", ".xlsx", ".odt", ".odp")
+# Calc: xlsx beim Laden immer neu berechnen (0 = immer). Geschrieben in jedes frische Profil.
+PROFIL_EINSTELLUNGEN = """<?xml version="1.0" encoding="UTF-8"?>
+<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<item oor:path="/org.openoffice.Office.Calc/Formula/Load"><prop oor:name="OOXMLRecalcMode" oor:op="fuse">
+<value>0</value></prop></item>
+</oor:items>
+"""
 
 
 class VorschauFehler(RuntimeError):
@@ -31,6 +41,11 @@ def vorschau(quelle: Path, zielordner: Path, dpi: int = AUFLOESUNG_DPI) -> list[
 
 def als_pdf(quelle: Path, zielordner: Path) -> Path:
     """Office-Datei mit LibreOffice in PDF umwandeln. Gibt den Pfad der PDF zurück."""
+    return umwandeln(quelle, zielordner, "pdf")
+
+
+def umwandeln(quelle: Path, zielordner: Path, endung: str) -> Path:
+    """Office-Datei mit LibreOffice umwandeln, z. B. in "pdf" oder (erstes Blatt einer xlsx) in "csv"."""
     if quelle.suffix.lower() not in OFFICE_ENDUNGEN:
         raise VorschauFehler(f"{quelle.name}: nur {', '.join(OFFICE_ENDUNGEN)} oder .pdf")
     if not quelle.is_file():
@@ -40,18 +55,21 @@ def als_pdf(quelle: Path, zielordner: Path) -> Path:
         raise VorschauFehler("LibreOffice (soffice) ist nicht installiert")
     # Eigenes Profil je Aufruf: Zwei gleichzeitige Läufe sperren sich sonst gegenseitig.
     with tempfile.TemporaryDirectory(prefix="renderer-lo-") as profil:
+        (Path(profil) / "user").mkdir()
+        (Path(profil) / "user" / "registrymodifications.xcu").write_text(PROFIL_EINSTELLUNGEN, encoding="utf-8")
         befehl = [soffice, "--headless", "--norestore", "--nolockcheck",
                   f"-env:UserInstallation={Path(profil).as_uri()}",
-                  "--convert-to", "pdf", "--outdir", str(zielordner), str(quelle)]
+                  "--convert-to", endung, "--outdir", str(zielordner), str(quelle)]
         try:
             lauf = subprocess.run(befehl, capture_output=True, text=True, timeout=ZEITLIMIT_S)
         except subprocess.TimeoutExpired as e:
             raise VorschauFehler(f"{quelle.name}: LibreOffice brauchte länger als {ZEITLIMIT_S} s") from e
-    pdf = zielordner / f"{quelle.stem}.pdf"
-    if lauf.returncode != 0 or not pdf.is_file():
+    ziel = zielordner / f"{quelle.stem}.{endung}"
+    if lauf.returncode != 0 or not ziel.is_file():
         meldung = (lauf.stderr or lauf.stdout).strip()[-500:]
-        raise VorschauFehler(f"{quelle.name}: Umwandlung in PDF fehlgeschlagen ({lauf.returncode}): {meldung}")
-    return pdf
+        raise VorschauFehler(f"{quelle.name}: Umwandlung in {endung.upper()} fehlgeschlagen ({lauf.returncode}): "
+                             f"{meldung}")
+    return ziel
 
 
 def als_bilder(pdf: Path, zielordner: Path, dpi: int = AUFLOESUNG_DPI) -> list[Path]:
