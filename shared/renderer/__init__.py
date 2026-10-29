@@ -52,6 +52,8 @@ def bauen(beschreibung: dict | str, ziel: Path, profil: dict | None = None, vorl
              "arbeitsmappe": arbeitsmappe}[b["art"]]
     modul.bauen(b, ziel, profil, vorlage)
     ergebnis = Ergebnis(ziel, kontrolle.kontrolltext(ziel))
+    if b["art"] == "arbeitsmappe" and arbeitsmappe.proben(b):
+        ergebnis.kontrolltext += "\n" + arbeitsmappe.proben(b)
     if vorschau:
         ordner = ziel.parent / f"{ziel.stem}-vorschau"
         try:

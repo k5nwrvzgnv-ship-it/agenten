@@ -38,6 +38,66 @@ def bauen(beschreibung: dict, ziel: Path, profil: dict | None = None, vorlage: P
     return ziel
 
 
+def proben(beschreibung: dict) -> str:
+    """Kontrolle für Claude: Rechnungen jedes Blatts mit Beispielwerten in Python nachgerechnet (steht nicht in der
+    Datei). Fünf Zeilen: alle Eingaben am Minimum, am Maximum, von links nach rechts aufsteigend (zeigt Gewichte),
+    jede zweite leer und die übrigen in der Mitte, alle leer. Ohne min gilt 0, ohne max 10."""
+    zeilen = []
+    for blatt in beschreibung["blaetter"]:
+        spalten = blatt["spalten"]
+        formeln = {s["id"]: s["baum"] for s in spalten if s["art"] == "rechnung"}
+        if not formeln:
+            continue
+        eingaben = [s for s in spalten if s["art"] == "zahl"]
+        zeilen.append(f"Probe für Blatt „{blatt['name']}“ (vom Renderer nachgerechnet, steht nicht in der Datei):")
+        faelle = [
+            ("alle Eingaben am Minimum", {s["id"]: _unten(s) for s in eingaben}),
+            ("alle Eingaben am Maximum", {s["id"]: _oben(s) for s in eingaben}),
+            ("aufsteigend vom Minimum zum Maximum",
+             {s["id"]: _anteil(s, i / max(len(eingaben) - 1, 1)) for i, s in enumerate(eingaben)}),
+            ("jede zweite Eingabe leer, die übrigen in der Mitte",
+             {s["id"]: _mitte(s) if i % 2 == 0 else rechnung.LEER for i, s in enumerate(eingaben)}),
+            ("alle Eingaben leer", {s["id"]: rechnung.LEER for s in eingaben}),
+        ]
+        ids = [s["id"] for s in spalten]
+        for nr, (name, werte) in enumerate(faelle, 1):
+            ergebnis = rechnung.zeile_ausrechnen(formeln, ids, werte)
+            links = "; ".join(f"{s['kopf']} {_zeigen(werte[s['id']], None)}" for s in eingaben) or "keine Eingaben"
+            rechts = "; ".join(f"{s['kopf']} {_zeigen(ergebnis[s['id']], s['nachkommastellen'])}"
+                               for s in spalten if s["art"] == "rechnung")
+            zeilen.append(f"Probe {nr} ({name}): {links} -> {rechts}")
+    return "\n".join(zeilen)
+
+
+def _unten(s: dict) -> float:
+    return s["min"] if s["min"] is not None else min(0, s["max"]) if s["max"] is not None else 0
+
+
+def _oben(s: dict) -> float:
+    return s["max"] if s["max"] is not None else max(10, _unten(s))
+
+
+def _mitte(s: dict) -> float:
+    return _anteil(s, 0.5)
+
+
+def _anteil(s: dict, anteil: float) -> float:
+    """Wert zwischen Minimum (0) und Maximum (1), bei ganzen Zahlen gerundet."""
+    wert = _unten(s) + (_oben(s) - _unten(s)) * anteil
+    return float(math.floor(wert + 0.5)) if s["ganz"] else round(wert, 4)
+
+
+def _zeigen(wert, stellen: int | None) -> str:
+    """Wert wie in einem deutschen Excel: leer, #DIV/0!, 8 oder 12,50."""
+    if wert is rechnung.LEER:
+        return "leer"
+    if wert == rechnung.FEHLER:
+        return wert
+    if stellen is None:
+        return _zahl(wert)
+    return f"{wert:.{stellen}f}".replace(".", ",")
+
+
 def zahlformat(spalte: dict) -> str | None:
     """Excel-Zahlformat einer Spalte, None: Standard."""
     if spalte["art"] == "nummer" or spalte["ganz"]:

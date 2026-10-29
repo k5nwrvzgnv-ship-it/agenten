@@ -142,6 +142,20 @@ class TestEinzelheiten(unittest.TestCase):
         self.assertIn("<f>2*3</f><v>6</v>", zelle(blatt, "A2"))
         self.assertIn("<f>COUNT(A2)</f><v>1</v>", zelle(blatt, "B2"))
 
+    def test_proben_sonderfaelle(self):
+        d = self.blatt(spalten=[
+            {"id": "a", "kopf": "A", "art": "zahl", "min": -4},
+            {"id": "b", "kopf": "B", "art": "zahl", "max": 0},
+            {"id": "q", "kopf": "Quote", "art": "rechnung", "formel": "a / b", "nachkommastellen": 1}])
+        zeilen = arbeitsmappe.proben(lesen(d)).split("\n")
+        self.assertEqual(zeilen[1], "Probe 1 (alle Eingaben am Minimum): A -4; B 0 -> Quote #DIV/0!")
+        self.assertEqual(zeilen[2], "Probe 2 (alle Eingaben am Maximum): A 10; B 0 -> Quote #DIV/0!")
+        self.assertEqual(zeilen[4], "Probe 4 (jede zweite Eingabe leer, die übrigen in der Mitte): A 3; B leer "
+                                    "-> Quote leer")
+        self.assertEqual(arbeitsmappe.proben(lesen(self.blatt())), "")  # ohne Rechnung keine Probe
+        ohne_eingabe = self.blatt(spalten=[{"id": "a", "kopf": "A", "art": "rechnung", "formel": "1/3"}])
+        self.assertIn("keine Eingaben -> A 0,33", arbeitsmappe.proben(lesen(ohne_eingabe)))
+
     def test_keine_vorlage(self):
         with self.assertRaisesRegex(ValueError, "Vorlagen gibt es für xlsx nicht"):
             arbeitsmappe.bauen(lesen(self.blatt()), Path(tempfile.mkdtemp()) / "x.xlsx", vorlage=Path("v.xlsx"))
