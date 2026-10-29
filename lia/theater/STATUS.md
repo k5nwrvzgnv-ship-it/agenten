@@ -7,7 +7,7 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 
 ## Stand (29.10.2026)
 - Plan, Pakete (wie lia/examen) und Kostengrenze 5 USD je Aufruf von Jan freigegeben (29.10.).
-- Code fertig, 44 Tests grün, in pruefen.sh eingetragen.
+- Code fertig, 50 Tests grün, in pruefen.sh eingetragen.
 - Erster echter Lauf 29.10. (data/runde-20261029-140740/), an der Kostengrenze abgebrochen:
   - Szenenkarte 2,18 USD (398 s, 868k Tokens): 44 Spielanlässe (21/15/8), beim ersten Versuch geprüft, ohne
     Nachbesserung. M0-1, M3-3, M3-4 unter nicht_gefunden (Lias eigene Ideen, mit Anknüpfungspunkt). 16 Hinweise,
@@ -19,9 +19,14 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
     „zu lasch“: Countdown je Akt, Kostümteil als Zeichen für Rolle/Ich, wachsender Chor aus Splittern, anonyme
     Angst-Sätze der SuS für Heraustreten und Chor.
   - Summe 5,45 USD, Szenenaufgabe deshalb nicht gelaufen. Meldung an Jan ging raus.
-  - Dokumente 1–3 danach von Python aus den geprüften Antworten gebaut (ohne Claude): fuer-lia/1 Szenenkarte
-    (17 Seiten), 2 Ablauf und Varianten (5), 3 Spielfassung (14), je mit PDF-Vorschau. Jan hat sie noch nicht
-    gesehen, Lia hat nichts bekommen.
+  - Fortsetzung 29.10. 14:50 (Jans Okay, mit Lias Fachbuch): Szenenkarte und Ablauf übernommen, Szenenaufgabe in
+    eigener Sitzung 1,39 USD (117 s, 575k Tokens; Schätzung „unter 1 USD“ lag daneben, das Buch kostet mit).
+    Ergebnis 3 Seiten: 8 feste Bausteine (Türen, Sardinenteller, wiederkehrender Satz, Selsdons Stichwort,
+    Schlusssatz auf „Sardinen“), 5 Arbeitsschritte = 60 Min, Planungstabelle. Quellen Kündiger S. 285, 296,
+    314–315 von mir im Auszug nachgeprüft: stimmen. Schönheitsfehler: Seite 2 halb leer (Claude setzt vor die
+    Tabelle einen Seitenwechsel).
+  - Runde gesamt 6,84 USD. Alle vier Dokumente in data/runde-20261029-140740/fuer-lia/ (docx und PDF-Vorschau).
+    An Jan zur Vorschau geschickt, Lia hat nichts bekommen.
 - Umbau nach dem Lauf: runde.py <ordner> setzt eine Runde fort (geprüfte Antworten werden übernommen); die
   Szenenaufgabe läuft in einer eigenen Sitzung mit dem Ablauf als Kurzfassung statt des ganzen Stücks.
   Ablauftabelle mit drei Spalten, Seiten zusammengefasst, Optionen als Überschriften.
@@ -41,8 +46,8 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   - data/eingang/Praxis Schultheater.pdf (Lia über Jan, 29.10.): Scan mit Texterkennung, 259 MB, 384 Seiten.
     Sabine Kündiger, Praxis Schultheater. Reihen und Modelle für die Sekundarstufe I und II, Klett/Kallmeyer,
     3. Aufl. 2022. Textfassung 760.000 Zeichen (OCR mit Leerzeichenfehlern, Abbildungen teils als Zeichensalat).
-    Noch nicht als Kontext eingebunden. Passend zu Lias Fassung: Slow Motion (S. 123), Chorisches Sprechen (267),
-    Improvisation (283), Status (291), Szenische Figurenarbeit (302), Konzeption/Komposition/Ästhetik (315–339).
+    Als Kontext eingebunden (Jan 29.10.): S. 123–136 und 267–336 (theater.toml [buch], buch.py), 172.000 Zeichen
+    in 5 Teilen, Zeichensalat-Zeilen gefiltert. Szenenkarte und Szenenaufgabe lesen es.
 - Lias Konzept in Kürze: drei Akte wie im Original (Generalprobe, Premiere, Dernière), Eröffnung 3 Min, je Akt
   10 Min, 35–40 Min, 18 SuS. Heraustreten aus den Rollen, Chor über Scheitern und Angst. Muss-Liste in
   theater.toml (M0-1 bis M3-4). Offen bei Lia: Figurensplitting, Schwerpunkt Akt 2, Partitur oder Montage.
@@ -89,9 +94,9 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Textbücher gleich umbrochen sind, ist nicht geprüft.
 
 ## Offene Punkte
-1. Jan: Fortsetzung für die Szenenaufgabe freigeben (`runde.py runde-20261029-140740`, Schätzung unter 1 USD,
-   nicht gemessen) und über die Kostengrenze entscheiden: eine volle Runde kostet nach diesem Lauf etwa 6 USD.
-2. Danach Jans Vorschau aller vier Dokumente, dann an Lia (Weg wie lia/recherche, über Auftrag an Lias Zentrale).
+1. Jans Vorschau der vier Dokumente, dann an Lia (Weg wie lia/recherche, über Auftrag an Lias Zentrale).
+2. Kostengrenze: Eine volle neue Runde mit Buch dürfte über 7 USD kosten (Szenenkarte liest dann auch das Buch,
+   nicht gemessen). Mit 5 USD bricht sie ab und muss fortgesetzt werden. Jan entscheidet.
 3. Fragen an Lia (über Jan):
    - Frederick (Philip/Scheich) fehlt in Figuren.docx. Fällt die Figur weg, oder ist sie nur vergessen?
    - Termin der Aufführung und bis wann sie den Ablaufvorschlag braucht.
