@@ -176,6 +176,18 @@ class Ablauf(unittest.TestCase):
         self.assertIn({"typ": "ueberschrift", "text": "Akt 3 im Original: 0 von 10 Einheiten bleiben", "ebene": 2},
                       bloecke)
 
+    def test_seiten_zusammengefasst(self):
+        nach_nr = {e.nr: e for e in self.e}  # Seite = nr // 3 + 4
+        b = {"stellen": [{"von": 2, "bis": 2}, {"von": 3, "bis": 4}, {"von": 12, "bis": 13}]}
+        self.assertEqual(fassung._seiten(b, nach_nr), "S. 4–5; S. 8")
+
+    def test_ablauf_kurz_ohne_originaltext(self):
+        import aufgabe
+        text = aufgabe.ablauf_kurz(ablauf_gut())
+        self.assertIn("- B02 (Teil 1, 10 Min, original): Probe. von hinten", text)
+        self.assertIn("  Neuer Text: Wir haben Angst.", text)
+        self.assertNotIn("w3", text)
+
     def test_ablauf_dokument_gueltig(self):
         b = fassung.ablauf(ablauf_gut(), self.e, MUSS, RAHMEN, "Stück")
         self.assertEqual(renderer_pruefen(b), [])

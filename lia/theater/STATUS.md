@@ -7,7 +7,24 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 
 ## Stand (29.10.2026)
 - Plan, Pakete (wie lia/examen) und Kostengrenze 5 USD je Aufruf von Jan freigegeben (29.10.).
-- Code fertig, 39 Tests grün, in pruefen.sh eingetragen. Noch kein echter Lauf.
+- Code fertig, 44 Tests grün, in pruefen.sh eingetragen.
+- Erster echter Lauf 29.10. (data/runde-20261029-140740/), an der Kostengrenze abgebrochen:
+  - Szenenkarte 2,18 USD (398 s, 868k Tokens): 44 Spielanlässe (21/15/8), beim ersten Versuch geprüft, ohne
+    Nachbesserung. M0-1, M3-3, M3-4 unter nicht_gefunden (Lias eigene Ideen, mit Anknüpfungspunkt). 16 Hinweise,
+    fachlich genau (z. B. Lloyd spricht schon im Original aus dem Zuschauerraum; im Original springt Tim für
+    Selsdon ein, nicht das Publikum; Meditation nur zweimal kurz erwähnt; Druckfehler BROOKE statt POPPY bei 1277).
+  - Ablauf 3,27 USD (333 s, 659k Tokens, Fortsetzung derselben Sitzung schickt das ganze Stück noch einmal mit):
+    19 Bausteine, 38 Min, beim ersten Versuch geprüft. Vom Original bleiben 240 von 2253 Einheiten, etwa 15 Min
+    Sprechzeit. Empfehlungen: Montage aus Originalpointen; Akt 2 Schwerpunkt Publikumsaktion. Vorschläge gegen
+    „zu lasch“: Countdown je Akt, Kostümteil als Zeichen für Rolle/Ich, wachsender Chor aus Splittern, anonyme
+    Angst-Sätze der SuS für Heraustreten und Chor.
+  - Summe 5,45 USD, Szenenaufgabe deshalb nicht gelaufen. Meldung an Jan ging raus.
+  - Dokumente 1–3 danach von Python aus den geprüften Antworten gebaut (ohne Claude): fuer-lia/1 Szenenkarte
+    (17 Seiten), 2 Ablauf und Varianten (5), 3 Spielfassung (14), je mit PDF-Vorschau. Jan hat sie noch nicht
+    gesehen, Lia hat nichts bekommen.
+- Umbau nach dem Lauf: runde.py <ordner> setzt eine Runde fort (geprüfte Antworten werden übernommen); die
+  Szenenaufgabe läuft in einer eigenen Sitzung mit dem Ablauf als Kurzfassung statt des ganzen Stücks.
+  Ablauftabelle mit drei Spalten, Seiten zusammengefasst, Optionen als Überschriften.
 - Zerlegung am echten Text geprüft: 2253 Einheiten (Akt 1: [1]–[1113], S. 4–74; Akt 2: [1114]–[1821], S. 75–130;
   Akt 3: [1822]–[2253], S. 131–170). Sprechzeit geschätzt 68 / 40 / 29 Min. Kein Wort geht verloren (nur die
   Sprecherkennungen wandern ins Feld sprecher). Grenze: Regie ohne Klammer und ohne Namen in Großbuchstaben
@@ -67,12 +84,13 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Textbücher gleich umbrochen sind, ist nicht geprüft.
 
 ## Offene Punkte
-1. Erster echter Lauf, Ergebnis an Jan zur Vorschau, danach an Lia (Weg wie lia/recherche, über Auftrag an
-   Lias Zentrale).
-2. Fragen an Lia (über Jan):
+1. Jan: Fortsetzung für die Szenenaufgabe freigeben (`runde.py runde-20261029-140740`, Schätzung unter 1 USD,
+   nicht gemessen) und über die Kostengrenze entscheiden: eine volle Runde kostet nach diesem Lauf etwa 6 USD.
+2. Danach Jans Vorschau aller vier Dokumente, dann an Lia (Weg wie lia/recherche, über Auftrag an Lias Zentrale).
+3. Fragen an Lia (über Jan):
    - Frederick (Philip/Scheich) fehlt in Figuren.docx. Fällt die Figur weg, oder ist sie nur vergessen?
    - Termin der Aufführung und bis wann sie den Ablaufvorschlag braucht.
-3. Folgerunden aus Lias Feedback: heute startet runde.py immer von vorn. Eine Runde, die auf einem bestehenden
+4. Folgerunden aus Lias Feedback: heute startet runde.py immer von vorn. Eine Runde, die auf einem bestehenden
    Ablauf weiterarbeitet, fehlt noch.
 
 ## Gelernte Regeln

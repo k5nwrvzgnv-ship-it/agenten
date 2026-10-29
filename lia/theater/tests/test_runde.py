@@ -102,9 +102,10 @@ class Runde(unittest.TestCase):
         claude, gebaut = Claude(self.tmp, kaputt={"ablauf.json"}), []
         z = runde.runde(self.pfade, laufen=claude, renderer_bauen=renderer_attrappe(gebaut))
         self.assertEqual(len(claude.prompts), 4)  # Karte, Ablauf, Nachbesserung, Aufgabe
-        self.assertIsNone(claude.prompts[0][1])
-        self.assertTrue(all(s == "s1" for _, s in claude.prompts[1:]))  # eine Sitzung
+        self.assertEqual([s for _, s in claude.prompts], [None, "s1", "s1", None])  # Aufgabe in neuer Sitzung
         self.assertIn("Fehler gefunden", claude.prompts[2][0])
+        self.assertIn("B1 (Teil 1, 10 Min, gemischt): T. S", claude.prompts[3][0])  # Ablauf als Kurzfassung
+        self.assertNotIn("stueck-teil-1.txt", claude.prompts[3][0])
         self.assertEqual([g[0] for g in gebaut], list(runde.DOKUMENTE))
         self.assertEqual({g[1] for g in gebaut}, {"Darstellendes Spiel"})
         self.assertAlmostEqual(z["usd"], 2.0)
@@ -137,6 +138,32 @@ class Runde(unittest.TestCase):
         with self.assertRaisesRegex(runde.RundenFehler, "Szenenkarte nach Nachbesserung noch fehlerhaft"):
             runde.runde(self.pfade, laufen=immer_kaputt, renderer_bauen=renderer_attrappe([]))
 
+    def test_fortsetzen_uebernimmt_gepruefte_antworten(self):
+        erste = Claude(self.tmp, usd=3.0)
+        with self.assertRaisesRegex(runde.RundenFehler, "Kostengrenze"):
+            runde.runde(self.pfade, laufen=erste, renderer_bauen=renderer_attrappe([]))
+        ordner = next((self.tmp / "data").glob("runde-*")).name
+        (self.tmp / "data" / ordner / "ablauf.json").write_text("{}", encoding="utf-8")  # fehlerhaft: läuft neu
+        zweite, gebaut = Claude(self.tmp), []
+        z = runde.runde(self.pfade, laufen=zweite, renderer_bauen=renderer_attrappe(gebaut), fortsetzen=ordner)
+        laeufe = [re.search(r"data/runde-[^ \n]+?/(\w+)\.json", p).group(1) for p, _ in zweite.prompts]
+        self.assertEqual(laeufe, ["ablauf", "stueck_im_stueck"])  # Szenenkarte übernommen
+        self.assertEqual(z["usd"], 1.0)
+        self.assertEqual(len(gebaut), 4)
+
+    def test_fortsetzen_unbekannter_ordner(self):
+        with self.assertRaisesRegex(runde.RundenFehler, "keine angefangene Runde"):
+            runde.runde(self.pfade, laufen=Claude(self.tmp), fortsetzen="runde-gibt-es-nicht")
+
+    def test_main_mit_ordner_setzt_fort(self):
+        aufrufe, alt = [], runde.runde
+        runde.runde = lambda **kw: aufrufe.append(kw) or (_ for _ in ()).throw(RuntimeError("halt"))
+        try:
+            runde.main(["runde-x"], melden=lambda t: None)
+        finally:
+            runde.runde = alt
+        self.assertEqual(aufrufe, [{"fortsetzen": "runde-x"}])
+
     def test_kostengrenze(self):
         with self.assertRaisesRegex(runde.RundenFehler, "Kostengrenze 5.00 USD"):
             runde.runde(self.pfade, laufen=Claude(self.tmp, usd=3.0), renderer_bauen=renderer_attrappe([]))
@@ -151,7 +178,7 @@ class Runde(unittest.TestCase):
         alt = runde.runde
         runde.runde = lambda: (_ for _ in ()).throw(RuntimeError("kaputt"))
         try:
-            self.assertEqual(runde.main(melden=gemeldet.append), 1)
+            self.assertEqual(runde.main([], melden=gemeldet.append), 1)
         finally:
             runde.runde = alt
         self.assertEqual(gemeldet, ["Runde abgebrochen: kaputt"])

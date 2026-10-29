@@ -1,7 +1,8 @@
 """Schritt 3: Szenenaufgabe, mit der die SuS das Stück im Stück selbst erfinden (Plan Jan 29.10.2026).
 
 Claude schreibt die Renderer-Beschreibung (arbeitsblatt) direkt, im Stil von Lias Szenenaufgaben. Python prüft
-sie mit renderer.pruefen; Fehler gehen einmal an Claude zurück.
+sie mit renderer.pruefen; Fehler gehen einmal an Claude zurück. Eigene Sitzung mit dem Ablauf als Kurzfassung,
+ohne Stücktext (kostet so einen Bruchteil einer fortgesetzten Sitzung).
 """
 
 from pathlib import Path
@@ -25,18 +26,36 @@ def pruefen(daten: dict) -> list[str]:
     return renderer_pruefen(daten)
 
 
-def prompt(ausgabe: str, vorbild: str, format_text: str) -> str:
-    return f"""Gut. Jetzt Schritt 3: eine Szenenaufgabe für die SuS, mit der sie das Stück im Stück selbst erfinden.
+def ablauf_kurz(ablauf: dict) -> str:
+    """Bausteine des geprüften Ablaufs als Text (ohne Originaltext), damit Schritt 3 das Stück nicht braucht."""
+    zeilen = []
+    for b in ablauf["bausteine"]:
+        zeilen.append(f"- {b['id']} (Teil {b['teil']}, {b['minuten']:g} Min, {b['art']}): {b['titel']}. {b['spielidee']}")
+        if b.get("neuer_text"):
+            zeilen.append("  Neuer Text: " + " ".join(b["neuer_text"].split()))
+    return "\n".join(zeilen)
+
+
+def prompt(ausgabe: str, vorgaben: str, grundlagen: str, ablauf: str, format_text: str) -> str:
+    return f"""Du hilfst Lia, Lehrerin für Darstellendes Spiel. Ihr Kurs spielt eine eigene Fassung von „Der nackte
+Wahnsinn“ (Michael Frayn): Eine Theatertruppe probt und spielt ein Stück im Stück, und in jedem Akt geht mehr schief.
 Lia: „Unklar ist mir, wie das Stück im Stück aussehen soll – da hätte ich gern etwas Kurzes, das sich die SuS
 selbst ausdenken.“
 
-Das Mini-Stück ersetzt NACKTE TATSACHEN. Es soll etwa 3–4 Minuten dauern und so gebaut sein, dass dein Ablauf aus
-Schritt 2 funktioniert: Lege fest, was das Mini-Stück enthalten muss, damit die Pannen der drei Akte möglich sind
+Lies zuerst mit Read: Lias Vorgaben {vorgaben} und Lias Grundlagen {grundlagen} (darin unter „Szenenaufgabe_CvO“
+ihr Vorbild für Szenenaufgaben).
+
+Der Ablauf ihrer Fassung (schon geprüft):
+{ablauf}
+
+Aufgabe: eine Szenenaufgabe für die SuS, mit der sie das Stück im Stück selbst erfinden. Das Mini-Stück ersetzt
+NACKTE TATSACHEN. Es soll etwa 3–4 Minuten dauern und so gebaut sein, dass der Ablauf oben funktioniert: Lege
+fest, was das Mini-Stück enthalten muss, damit die Pannen der drei Akte möglich sind
 (zum Beispiel Türen und Auftritte, ein Requisit, das verwechselt wird, ein Satz, der immer wiederkommt, eine
 Figur, die oft fehlt). Nenne diese Bausteine als feste Vorgaben, alles andere erfinden die SuS (Ort, Handlung,
 Figuren im Mini-Stück). Es muss einfach genug sein, dass alle es nach zwei Durchläufen auswendig können.
 
-Stil wie Lias Szenenaufgabe (Vorbild: {vorbild}): kurze Anweisung, Hinweise als Liste, klare Arbeitsschritte, du
+Stil wie Lias Szenenaufgabe: kurze Anweisung, Hinweise als Liste, klare Arbeitsschritte, du
 sprichst die SuS mit „ihr“ an. Eine bis zwei Seiten. Gib eine Zeit an (z. B. eine Einheit à 60 Minuten) und
 einen Tipp, wie sie anfangen (z. B. ein bewegtes Standbild als Anfang und Ende des Mini-Stücks).
 

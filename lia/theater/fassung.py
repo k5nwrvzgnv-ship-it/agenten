@@ -256,7 +256,14 @@ def _teilname(rahmen: dict, teil: int) -> str:
 
 
 def _seiten(b: dict, nach_nr: dict[int, stueck.Einheit]) -> str:
-    return "; ".join(karte.seiten_text(nach_nr[s["von"]].seite, nach_nr[s["bis"]].seite) for s in b.get("stellen", []))
+    """Seiten der Stellen, gleiche und anschließende Seiten zusammengefasst (S. 8; S. 8; S. 9 -> S. 8–9)."""
+    bereiche: list[list[int]] = []
+    for von, bis in sorted((nach_nr[s["von"]].seite, nach_nr[s["bis"]].seite) for s in b.get("stellen", [])):
+        if bereiche and von <= bereiche[-1][1] + 1:
+            bereiche[-1][1] = max(bereiche[-1][1], bis)
+        else:
+            bereiche.append([von, bis])
+    return "; ".join(karte.seiten_text(v, b) for v, b in bereiche)
 
 
 def spielfassung(daten: dict, einheiten: list[stueck.Einheit], rahmen: dict, titel: str) -> dict:
@@ -304,22 +311,23 @@ def ablauf(daten: dict, einheiten: list[stueck.Einheit], muss: list[dict], rahme
     nach_nr = {e.nr: e for e in einheiten}
     summe = sum(b["minuten"] for b in daten["bausteine"])
     art = {"original": "Original", "neu": "neu", "gemischt": "gemischt"}
-    zeilen = [[b["id"], f"{b['titel']}\n{', '.join(b.get('muss', []))}", karte.zahl(b["minuten"]),
+    # drei Spalten: der Renderer teilt die Breite gleichmäßig auf, eine eigene Spalte „Nr.“ wäre zu breit
+    zeilen = [[f"{b['id']} {b['titel']}" + (f"\nDeine Punkte: {', '.join(b['muss'])}" if b.get("muss") else ""),
+               karte.zahl(b["minuten"]),
                art[b["art"]] + (f"\n{_seiten(b, nach_nr)}" if b.get("stellen") else "")] for b in daten["bausteine"]]
     bloecke = [
         {"typ": "absatz", "text": f"Vorschlag für {karte.zahl(summe)} Minuten mit {rahmen['spieler']} SuS. Die Spielfassung mit "
                                   "dem ganzen Text ist eine eigene Datei."},
         {"typ": "ueberschrift", "text": "Ablauf"},
-        {"typ": "tabelle", "kopf": ["Nr.", "Baustein und deine Punkte", "Min.", "Art und Seiten"], "zeilen": zeilen,
-         "erste_spalte_fett": True},
+        {"typ": "tabelle", "kopf": ["Baustein", "Min.", "Art und Seiten"], "zeilen": zeilen},
         {"typ": "ueberschrift", "text": "Deine offenen Fragen"},
     ]
     for v in sorted(daten["varianten"], key=lambda v: list(FRAGEN).index(v["frage"])):
         bloecke.append({"typ": "ueberschrift", "text": FRAGEN[v["frage"]], "ebene": 2})
         for i, o in enumerate(v["optionen"]):
             empf = " (Empfehlung)" if i == v["empfehlung"] else ""
-            bloecke.append({"typ": "absatz", "text": f"{o['titel']}{empf}\n{o['beschreibung']}\n"
-                                                     f"Dafür: {o['vorteile']}\nDagegen: {o['nachteile']}"})
+            bloecke += [{"typ": "ueberschrift", "text": f"{o['titel']}{empf}", "ebene": 3},
+                        {"typ": "absatz", "text": f"{o['beschreibung']}\nDafür: {o['vorteile']}\nDagegen: {o['nachteile']}"}]
     bloecke.append({"typ": "ueberschrift", "text": "Damit es weniger lasch wird"})
     bloecke.append({"typ": "liste", "punkte": [f"{z['titel']}: {z['vorschlag']}" for z in daten["zuspitzung"]]})
     for feld, ueberschrift in (("annahmen", "Annahmen"), ("rueckfragen", "Fragen an dich")):

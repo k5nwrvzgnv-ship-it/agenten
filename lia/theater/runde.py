@@ -1,11 +1,12 @@
 """Eine Runde für Lias Fassung: Szenenkarte, Ablauf mit Spielfassung, Szenenaufgabe Stück im Stück.
 
-Aufruf von Hand (kein Dienst): AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py
+Aufruf von Hand (kein Dienst): AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py [ordner]
+(mit ordner, z. B. runde-20261029-140740: abgebrochene Runde fortsetzen, geprüfte Antworten werden übernommen)
 Ablauf (Plan Jan 29.10.2026):
 1. Vorbereiten ohne Claude: Stücktext zerlegen (stueck.py), nummerierte Teile, Lias Vorgaben und ausgewählte
    Grundlagen nach data/runde-<zeit>/kontext/ (Claude liest nur im Agent-Ordner).
-2. Szenenkarte (karte.py), Ablauf (fassung.py), Szenenaufgabe (aufgabe.py): drei Claude-Läufe (Opus) in einer
-   Sitzung, je höchstens eine Nachbesserung, danach Abbruch.
+2. Szenenkarte (karte.py) und Ablauf (fassung.py) in einer Sitzung, Szenenaufgabe (aufgabe.py) in einer neuen,
+   kleinen Sitzung (nur der Ablauf, nicht das Stück). Opus, je höchstens eine Nachbesserung, danach Abbruch.
 3. Python baut die vier Dokumente nach data/runde-<zeit>/fuer-lia/ und meldet Jan das Ergebnis (Vorschau,
    erst danach geht es an Lia).
 Kostengrenze 5 USD je Aufruf (Jan, 29.10.2026). Fehler: loggen und Meldung an Jan, nie still.
@@ -158,6 +159,20 @@ def _lauf_mit_pruefung(laufen, kosten: Kosten, wofuer: str, erster_prompt: str, 
     return daten, sitzung
 
 
+def _schritt(laufen, kosten: Kosten, wofuer: str, erster_prompt: str, ausgabe: Path, pruefen,
+             sitzung: str | None) -> tuple[dict, str | None]:
+    """Wie _lauf_mit_pruefung; liegt die Antwort schon geprüft vor (fortgesetzte Runde), wird sie übernommen."""
+    if ausgabe.exists():
+        try:
+            daten = karte.antwort_lesen(ausgabe)
+            if not pruefen(daten):
+                logger.info("%s: vorhandene Antwort %s übernommen, kein Claude-Lauf", wofuer, ausgabe.name)
+                return daten, sitzung
+        except karte.AntwortFehler:
+            pass
+    return _lauf_mit_pruefung(laufen, kosten, wofuer, erster_prompt, ausgabe, pruefen, sitzung)
+
+
 def bauen(ordner: Path, beschreibungen: list[dict], profil: dict, renderer_bauen=None) -> list[Path]:
     """Dokumente für Lia. Ist eine von Python gebaute Beschreibung ungültig, ist das ein Fehler im Agenten."""
     if renderer_bauen is None:
@@ -178,28 +193,39 @@ def bauen(ordner: Path, beschreibungen: list[dict], profil: dict, renderer_bauen
     return dateien
 
 
-def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None) -> dict:
-    """Führt eine Runde aus. Rückgabe: Zusammenfassung für die Meldung. Fehler: RundenFehler u. a."""
+def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None, fortsetzen: str | None = None) -> dict:
+    """Führt eine Runde aus. Rückgabe: Zusammenfassung für die Meldung. Fehler: RundenFehler u. a.
+
+    fortsetzen: Name eines Ordners in data/ (z. B. nach Abbruch an der Kostengrenze). Schon geprüfte Antworten
+    werden übernommen, nur fehlende Schritte laufen. Eine neue Sitzung, weil die alte nicht mehr fortgesetzt wird.
+    """
     pfade = pfade or Pfade()
-    ordner = pfade.hier / "data" / f"runde-{time.strftime('%Y%m%d-%H%M%S')}"
+    if fortsetzen:
+        ordner = pfade.hier / "data" / fortsetzen
+        if not (ordner / "einheiten.json").exists():
+            raise RundenFehler(f"{ordner} ist keine angefangene Runde")
+    else:
+        ordner = pfade.hier / "data" / f"runde-{time.strftime('%Y%m%d-%H%M%S')}"
     v, einheiten, rel = vorbereiten(pfade, ordner)
     titel, muss, rahmen = v["stueck"]["titel"], v["muss"], v["rahmen"]
     kosten = Kosten()
     rel_ordner = ordner.relative_to(pfade.hier)
 
-    k, sitzung = _lauf_mit_pruefung(
+    k, sitzung = _schritt(
         laufen, kosten, "Szenenkarte",
         karte.prompt(str(rel_ordner / "szenenkarte.json"), rel["teile"], rel["vorgaben"], rel["grundlagen"],
                      rel["schema"]),
         ordner / "szenenkarte.json", lambda d: karte.pruefen(d, einheiten, muss), None)
-    f, sitzung = _lauf_mit_pruefung(
+    f, sitzung = _schritt(
         laufen, kosten, "Ablauf", fassung.prompt(str(rel_ordner / "ablauf.json"), rahmen),
         ordner / "ablauf.json", lambda d: fassung.pruefen(d, einheiten, muss, rahmen), sitzung)
-    a, sitzung = _lauf_mit_pruefung(
+    # Eigene, kleine Sitzung: die Fortsetzung schickt sonst den ganzen Stücktext noch einmal mit (Lauf 29.10.:
+    # Ablauf in derselben Sitzung 3,27 USD)
+    a, _ = _schritt(
         laufen, kosten, "Szenenaufgabe",
-        aufgabe.prompt(str(rel_ordner / "stueck_im_stueck.json"), rel["grundlagen"] + " (Abschnitt Szenenaufgabe_CvO)",
-                       aufgabe.format_abschnitte()),
-        ordner / "stueck_im_stueck.json", aufgabe.pruefen, sitzung)
+        aufgabe.prompt(str(rel_ordner / "stueck_im_stueck.json"), rel["vorgaben"], rel["grundlagen"],
+                       aufgabe.ablauf_kurz(f), aufgabe.format_abschnitte()),
+        ordner / "stueck_im_stueck.json", aufgabe.pruefen, None)
 
     fassung.schreiben_text(ordner / "spielfassung.txt", f, einheiten)
     profil = tomllib.loads(pfade.profil.read_text(encoding="utf-8"))
@@ -224,9 +250,11 @@ def melden_text(z: dict) -> str:
             f"{z['ordner']}: " + ", ".join(z["dateien"]) + ". Noch nicht an Lia geschickt.")
 
 
-def main(melden=jan_melden) -> int:
+def main(argv: list[str] | None = None, melden=jan_melden) -> int:
+    """Ohne Argument eine neue Runde, mit Ordnername (z. B. runde-20261029-140740) Fortsetzung."""
+    argv = sys.argv[1:] if argv is None else argv
     try:
-        z = runde()
+        z = runde(fortsetzen=argv[0]) if argv else runde()
     except Exception as e:  # jeder Abbruch muss bei Jan ankommen
         logger.exception("Runde abgebrochen")
         melden(f"Runde abgebrochen: {e}")
