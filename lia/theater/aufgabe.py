@@ -36,14 +36,19 @@ def ablauf_kurz(ablauf: dict) -> str:
     return "\n".join(zeilen)
 
 
-def prompt(ausgabe: str, vorgaben: str, grundlagen: str, ablauf: str, format_text: str) -> str:
+def prompt(ausgabe: str, vorgaben: str, grundlagen: str, ablauf: str, format_text: str, buch: list[str]) -> str:
+    buchteile = "\n".join(f"- {t}" for t in buch)
     return f"""Du hilfst Lia, Lehrerin für Darstellendes Spiel. Ihr Kurs spielt eine eigene Fassung von „Der nackte
 Wahnsinn“ (Michael Frayn): Eine Theatertruppe probt und spielt ein Stück im Stück, und in jedem Akt geht mehr schief.
 Lia: „Unklar ist mir, wie das Stück im Stück aussehen soll – da hätte ich gern etwas Kurzes, das sich die SuS
 selbst ausdenken.“
 
 Lies zuerst mit Read: Lias Vorgaben {vorgaben} und Lias Grundlagen {grundlagen} (darin unter „Szenenaufgabe_CvO“
-ihr Vorbild für Szenenaufgaben).
+ihr Vorbild für Szenenaufgaben). Dazu Kapitel aus Lias Fachbuch (Kündiger, Praxis Schultheater), vor allem
+Improvisation, Szenische Figurenarbeit, Konzeption und Komposition. Lies die Teile, die du brauchst, und nimm
+passende Übungen oder Methoden von dort in die Aufgabe auf. Nutzt du eine, setze ans Ende des Blatts einen Absatz
+„Methode nach: Kündiger, Praxis Schultheater, S. n“:
+{buchteile}
 
 Der Ablauf ihrer Fassung (schon geprüft):
 {ablauf}

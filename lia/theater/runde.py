@@ -3,8 +3,9 @@
 Aufruf von Hand (kein Dienst): AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py [ordner]
 (mit ordner, z. B. runde-20261029-140740: abgebrochene Runde fortsetzen, geprüfte Antworten werden übernommen)
 Ablauf (Plan Jan 29.10.2026):
-1. Vorbereiten ohne Claude: Stücktext zerlegen (stueck.py), nummerierte Teile, Lias Vorgaben und ausgewählte
-   Grundlagen nach data/runde-<zeit>/kontext/ (Claude liest nur im Agent-Ordner).
+1. Vorbereiten ohne Claude: Stücktext zerlegen (stueck.py), nummerierte Teile, Lias Vorgaben, ausgewählte
+   Grundlagen und Kapitel aus Lias Fachbuch (buch.py) nach data/runde-<zeit>/kontext/ (Claude liest nur im
+   Agent-Ordner).
 2. Szenenkarte (karte.py) und Ablauf (fassung.py) in einer Sitzung, Szenenaufgabe (aufgabe.py) in einer neuen,
    kleinen Sitzung (nur der Ablauf, nicht das Stück). Opus, je höchstens eine Nachbesserung, danach Abbruch.
 3. Python baut die vier Dokumente nach data/runde-<zeit>/fuer-lia/ und meldet Jan das Ergebnis (Vorschau,
@@ -20,6 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import aufgabe
+import buch
 import fassung
 import karte
 import stueck
@@ -126,9 +128,22 @@ def vorbereiten(pfade: Pfade, ordner: Path) -> tuple[dict, list[stueck.Einheit],
     grundlagen = kontext / "grundlagen.md"
     grundlagen.write_text("# Lias DS-Grundlagen (Infoblätter und Aufgaben)\n\n" + "\n\n".join(teile_grundlagen) + "\n",
                           encoding="utf-8")
+    b = v["buch"]
+    pfad = pfade.hier / b["textfassung"]
+    if not pfad.exists():
+        raise RundenFehler(f"Textfassung des Buchs fehlt: {pfad}")
+    try:
+        buch_teile = buch.auszug(pfad.read_text(encoding="utf-8"), b["bereiche"], b["versatz"], b["titel"])
+    except buch.BuchFehler as e:
+        raise RundenFehler(f"Buchauszug: {e}") from None
+    buch_pfade = []
+    for i, t in enumerate(buch_teile, 1):
+        p = kontext / f"buch-teil-{i}.md"
+        p.write_text(t, encoding="utf-8")
+        buch_pfade.append(p)
     rel = {"teile": [str(p.relative_to(pfade.hier)) for p in teile],
            "vorgaben": str(vorgaben.relative_to(pfade.hier)), "grundlagen": str(grundlagen.relative_to(pfade.hier)),
-           "schema": v["kontext"]["schema"]}
+           "schema": v["kontext"]["schema"], "buch": [str(p.relative_to(pfade.hier)) for p in buch_pfade]}
     return v, einheiten, rel
 
 
@@ -214,7 +229,7 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
     k, sitzung = _schritt(
         laufen, kosten, "Szenenkarte",
         karte.prompt(str(rel_ordner / "szenenkarte.json"), rel["teile"], rel["vorgaben"], rel["grundlagen"],
-                     rel["schema"]),
+                     rel["schema"], rel["buch"]),
         ordner / "szenenkarte.json", lambda d: karte.pruefen(d, einheiten, muss), None)
     f, sitzung = _schritt(
         laufen, kosten, "Ablauf", fassung.prompt(str(rel_ordner / "ablauf.json"), rahmen),
@@ -224,7 +239,7 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
     a, _ = _schritt(
         laufen, kosten, "Szenenaufgabe",
         aufgabe.prompt(str(rel_ordner / "stueck_im_stueck.json"), rel["vorgaben"], rel["grundlagen"],
-                       aufgabe.ablauf_kurz(f), aufgabe.format_abschnitte()),
+                       aufgabe.ablauf_kurz(f), aufgabe.format_abschnitte(), rel["buch"]),
         ordner / "stueck_im_stueck.json", aufgabe.pruefen, None)
 
     fassung.schreiben_text(ordner / "spielfassung.txt", f, einheiten)

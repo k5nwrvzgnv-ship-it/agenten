@@ -130,8 +130,9 @@ def zitat(e: stueck.Einheit, n: int = ZITAT_ZEICHEN) -> str:
     return z if len(z) <= n else z[: n - 1].rsplit(" ", 1)[0] + " …"
 
 
-def prompt(ausgabe: str, teile: list[str], vorgaben: str, grundlagen: str, schema: str) -> str:
+def prompt(ausgabe: str, teile: list[str], vorgaben: str, grundlagen: str, schema: str, buch: list[str]) -> str:
     dateien = "\n".join(f"- {t}" for t in teile)
+    buchteile = "\n".join(f"- {t}" for t in buch)
     return f"""Du hilfst Lia, Lehrerin für Darstellendes Spiel, eine eigene Fassung von „Der nackte Wahnsinn“
 (Michael Frayn) für ihren Kurs zu entwickeln. Lia will nicht klassisch kürzen, sondern Spielanlässe finden, Szenen
 daraus entwickeln und die lustigen Textstellen behalten. Die Rechte hat sie mit dem Verlag geklärt.
@@ -143,6 +144,10 @@ Lies zuerst vollständig (mit Read):
 {dateien}
 3. Lias Grundlagen aus dem Unterricht (was die SuS können): {grundlagen}
 4. Lias Schema „Vom Text zur Szene“ (Bild): {schema}
+5. Kapitel aus Lias Fachbuch (Kündiger, Praxis Schultheater: Slow Motion, Chor, Improvisation, Status,
+   Figurenarbeit, Konzeption, Komposition, Ästhetik). Nutze es für Spielweisen und Übungen, nenne die Buchseite
+   („Kündiger S. n“), wenn du dich darauf beziehst:
+{buchteile}
 
 Aufgabe in diesem Schritt: eine Szenenkarte des Originals. Teile jeden Akt in Spielanlässe: zusammenhängende
 Abschnitte, aus denen man eine Szene entwickeln kann (eine Situation, ein Konflikt, eine Panne, ein Running Gag).

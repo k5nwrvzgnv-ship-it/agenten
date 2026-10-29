@@ -112,3 +112,12 @@ dateien = [
   "Szenenaufgabe_CvO.docx",
 ]
 schema = "data/vorgaben/vom_text_zur_szene.jpg"  # Lias Schema „Vom Text zur Szene“ (Vorschaubild der .pages)
+
+# Lias Fachbuch (Jan 29.10.2026): nur diese Kapitel, gedruckte Seiten. PDF-Seite = gedruckte Seite + versatz.
+[buch]
+titel = "Sabine Kündiger, Praxis Schultheater. Reihen und Modelle für die Sekundarstufe I und II (Klett/Kallmeyer, 3. Aufl. 2022)"
+textfassung = "data/text/eingang__Praxis_Schultheater.pdf.txt"
+versatz = 2
+# 123–136 Slow Motion; 267–282 Chorisches Sprechen; 283–290 Improvisation; 291–301 Status;
+# 302–314 Szenische Figurenarbeit; 315–321 Konzeption; 322–326 Komposition; 327–336 Ästhetik, Aufgabenbeispiele
+bereiche = [[123, 136], [267, 336]]

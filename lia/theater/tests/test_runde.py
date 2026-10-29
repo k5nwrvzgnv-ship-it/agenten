@@ -23,8 +23,11 @@ def aufbauen(tmp: Path) -> runde.Pfade:
     (texte / "eingang__stueck.pdf.txt").write_text(TEXT, encoding="utf-8")
     (texte / "eingang__Erste_Gedanken.docx.txt").write_text("Kontaktlinsen drin lassen!", encoding="utf-8")
     (texte / "eingang__Figuren.docx.txt").write_text("Lloyd | Regisseur", encoding="utf-8")
+    seiten = "".join(f"--- Seite {p}\nBuchseite {p - 2} Übung\n" for p in range(1, 400))
+    (texte / "eingang__Praxis_Schultheater.pdf.txt").write_text(seiten, encoding="utf-8")
     toml = (HIER / "theater.toml").read_text(encoding="utf-8")
-    toml = re.sub(r'textfassung = ".*"', 'textfassung = "data/text/eingang__stueck.pdf.txt"', toml)
+    # nur die Textfassung des Stücks umbiegen (die des Buchs steht weiter unten und bleibt)
+    toml = re.sub(r'textfassung = ".*"', 'textfassung = "data/text/eingang__stueck.pdf.txt"', toml, count=1)
     for name in re.findall(r'^  "([^"]+)",', toml, re.M):
         (texte / f"k11__{name}.txt").write_text(f"Inhalt {name}", encoding="utf-8")
     (tmp / "theater.toml").write_text(toml, encoding="utf-8")
@@ -127,6 +130,16 @@ class Runde(unittest.TestCase):
         self.assertIn("data/runde-", erster)
         self.assertNotIn(str(self.tmp), erster)
         self.assertIn("data/vorgaben/vom_text_zur_szene.jpg", erster)
+        self.assertRegex(erster, r"data/runde-[^/]+/kontext/buch-teil-1\.md")
+        self.assertIn("buch-teil-1.md", claude.prompts[2][0])  # auch die Szenenaufgabe bekommt das Buch
+        ordner = next((self.tmp / "data").glob("runde-*"))
+        buch1 = (ordner / "kontext" / "buch-teil-1.md").read_text(encoding="utf-8")
+        self.assertIn("--- Buch S. 123\nBuchseite 123 Übung", buch1)
+
+    def test_buch_fehlt(self):
+        (self.pfade.texte / "eingang__Praxis_Schultheater.pdf.txt").unlink()
+        with self.assertRaisesRegex(runde.RundenFehler, "Textfassung des Buchs fehlt"):
+            runde.runde(self.pfade, laufen=Claude(self.tmp), renderer_bauen=renderer_attrappe([]))
 
     def test_zweimal_fehlerhaft_bricht_ab(self):
         claude = Claude(self.tmp, kaputt={"szenenkarte.json"})
