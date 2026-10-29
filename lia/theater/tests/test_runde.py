@@ -196,6 +196,46 @@ class Runde(unittest.TestCase):
             runde.runde = alt
         self.assertEqual(gemeldet, ["Runde abgebrochen: kaputt"])
 
+    def test_an_lia(self):
+        wurzel = Path(tempfile.mkdtemp())  # Agenten-Ordner wie lia/: <wurzel>/theater
+        self.addCleanup(shutil.rmtree, wurzel)
+        hier = wurzel / "theater"
+        hier.mkdir()
+        pfade = aufbauen(hier)
+        z = runde.runde(pfade, laufen=Claude(hier), renderer_bauen=renderer_attrappe([]))
+        ordner = Path(z["ordner"]).parent
+        basis = wurzel / "auftraege"
+        aid = runde.an_lia(ordner, basis=basis, agenten_dir=wurzel)
+        auftrag = json.loads((basis / "erledigt" / f"{aid}.json").read_text(encoding="utf-8"))
+        self.assertEqual(auftrag["agent"], "theater")
+        self.assertEqual(auftrag["status"], "erledigt")
+        self.assertEqual(auftrag["ergebnis_dateien"],
+                         [f"data/{ordner.name}/fuer-lia/{name}" for name in runde.DOKUMENTE])
+        daten = auftrag["daten"]
+        self.assertEqual(daten["knoepfe"], "nur_antwort")
+        self.assertLessEqual(len(daten["kern"]), 600)  # Grenzen aus shared/telegram/vorlagen.py
+        self.assertEqual(len(daten["punkte"]), 3)
+        self.assertTrue(all(len(p) <= 300 for p in daten["punkte"]))
+        self.assertIn("4 Bausteine für 37 Minuten", daten["kern"])
+        self.assertIn("Frederick", daten["pruefen"])
+        with self.assertRaisesRegex(runde.RundenFehler, f"Schon an Lia geschickt: {aid}"):
+            runde.an_lia(ordner, basis=basis, agenten_dir=wurzel)
+
+    def test_an_lia_ohne_dokumente(self):
+        with self.assertRaises(runde.RundenFehler):
+            runde.runde(self.pfade, laufen=Claude(self.tmp, usd=3.0), renderer_bauen=renderer_attrappe([]))
+        ordner = next((self.tmp / "data").glob("runde-*"))
+        with self.assertRaisesRegex(runde.RundenFehler, "nicht fertig, es fehlen: 1 Szenenkarte.docx"):
+            runde.an_lia(ordner, basis=self.tmp / "auftraege", agenten_dir=self.tmp.parent)
+
+    def test_main_an_lia_nur_in_lias_instanz(self):
+        alt = runde.config.INSTANZ_NAME
+        runde.config.INSTANZ_NAME = None
+        try:
+            self.assertEqual(runde.main(["--an-lia", "runde-x"], melden=lambda t: None), 2)
+        finally:
+            runde.config.INSTANZ_NAME = alt
+
     def test_lesbarer_name(self):
         self.assertEqual(runde.lesbarer_name("Spielmo╠êglichkeiten_Status.docx"), "Spielmöglichkeiten_Status.docx")
         self.assertEqual(runde.lesbarer_name("AB_1.docx"), "AB_1.docx")

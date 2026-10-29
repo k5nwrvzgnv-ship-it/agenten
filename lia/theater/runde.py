@@ -2,6 +2,8 @@
 
 Aufruf von Hand (kein Dienst): AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py [ordner]
 (mit ordner, z. B. runde-20261029-140740: abgebrochene Runde fortsetzen, geprüfte Antworten werden übernommen)
+An Lia nach Jans Durchsicht: runde.py --an-lia <ordner> (die vier docx über Lias Zentrale, ohne Feedback-Knöpfe,
+ihre Textantwort ist Feedback; nur einmal je Runde, an_lia.json).
 Ablauf (Plan Jan 29.10.2026):
 1. Vorbereiten ohne Claude: Stücktext zerlegen (stueck.py), nummerierte Teile, Lias Vorgaben, ausgewählte
    Grundlagen und Kapitel aus Lias Fachbuch (buch.py) nach data/runde-<zeit>/kontext/ (Claude liest nur im
@@ -25,7 +27,7 @@ import buch
 import fassung
 import karte
 import stueck
-from agentkit import claude_lauf, config, log, meldungen
+from agentkit import auftraege, claude_lauf, config, log, meldungen
 
 AGENT = "theater"
 HIER = Path(__file__).resolve().parent
@@ -265,9 +267,68 @@ def melden_text(z: dict) -> str:
             f"{z['ordner']}: " + ", ".join(z["dateien"]) + ". Noch nicht an Lia geschickt.")
 
 
+def nachricht_an_lia(z: dict) -> tuple[str, dict]:
+    """Ergebnistext und daten für Lias Zentrale (shared/telegram/vorlagen.py: kern, höchstens 3 Punkte, pruefen)."""
+    kern = (f"Hier ist ein erster Vorschlag für deine Fassung von „Der nackte Wahnsinn“: {z['bausteine']} Bausteine "
+            f"für {karte.zahl(z['minuten'])} Minuten. Vom Original bleiben nur die Pointen, etwa "
+            f"{z['sprechminuten']:.0f} Minuten Text, alles andere sind eigene Szenen. Lies in Ruhe und antworte "
+            "direkt auf diese Nachricht, gern mit der Diktierfunktion: was passt, was nicht, was fehlt.")
+    punkte = [f"1 Szenenkarte und 2 Ablauf: das Original in {z['anlaesse']} Spielanlässen mit deinen Muss-Punkten, "
+              "dazu der Ablauf mit je zwei Varianten zu deinen offenen Fragen und Ideen, damit es weniger lasch wird.",
+              "3 Spielfassung: Originaltext mit Seiten und Strichen, neue Texte (Einstieg, Heraustreten, Chor) als "
+              "Vorschlag zum Umarbeiten.",
+              "4 Szenenaufgabe: Die SuS erfinden das Stück im Stück selbst, in einer Einheit."]
+    pruefen = ("Zwei Fragen: Frederick fehlt in deiner Figurenliste. Fällt er weg? Und wann ist die Aufführung?")
+    text = "\n".join([kern] + [f"- {p}" for p in punkte] + [pruefen])
+    # Keine Feedback-Knöpfe: „Passt“ sagt bei einem Entwurf mit Varianten nicht, was passt (wie lia/recherche).
+    return text, {"kern": kern, "punkte": punkte, "pruefen": pruefen, "knoepfe": "nur_antwort"}
+
+
+def an_lia(ordner: Path, basis: Path | None = None, agenten_dir: Path | None = None) -> str:
+    """Die vier Dokumente einer fertigen Runde an Lias Zentrale (über ihre Auftrags-Warteschlange), nur nach Jans
+    Durchsicht und nur einmal je Runde (an_lia.json). Gibt die Auftrags-ID zurück. Kein Claude-Lauf."""
+    merker = ordner / "an_lia.json"
+    if merker.exists():
+        raise RundenFehler(f"Schon an Lia geschickt: {json.loads(merker.read_text(encoding='utf-8'))['auftrag']}")
+    dateien = [ordner / "fuer-lia" / name for name in DOKUMENTE]
+    fehlen = [d.name for d in dateien if not d.exists()]
+    if fehlen:
+        raise RundenFehler(f"Runde {ordner.name} ist nicht fertig, es fehlen: {', '.join(fehlen)}")
+    v = tomllib.loads((ordner.parents[1] / "theater.toml").read_text(encoding="utf-8"))
+    einheiten = stueck.aus_dicts(json.loads((ordner / "einheiten.json").read_text(encoding="utf-8")))
+    k = karte.antwort_lesen(ordner / "szenenkarte.json")
+    f = karte.antwort_lesen(ordner / "ablauf.json")
+    if karte.pruefen(k, einheiten, v["muss"]) or fassung.pruefen(f, einheiten, v["muss"], v["rahmen"]):
+        raise RundenFehler(f"Runde {ordner.name}: Szenenkarte oder Ablauf besteht die Prüfung nicht mehr")
+    nach_nr = {e.nr: e for e in einheiten}
+    z = {"bausteine": len(f["bausteine"]), "minuten": sum(b["minuten"] for b in f["bausteine"]),
+         "anlaesse": len(k["anlaesse"]),
+         "sprechminuten": stueck.sprechminuten([nach_nr[n] for b in f["bausteine"] for n in fassung.behalten(b)])}
+    text, daten = nachricht_an_lia(z)
+    aid = auftraege.neuer_auftrag(AGENT, f"Fassung {v['stueck']['titel']}: Runde {ordner.name}", quelle="theater",
+                                  basis=basis, agenten_dir=agenten_dir)
+    auftraege.abschliessen(aid, text, dateien=dateien, daten=daten, basis=basis, agenten_dir=agenten_dir)
+    merker.write_text(json.dumps({"auftrag": aid, "zeit": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                                  "dateien": [d.name for d in dateien]}, ensure_ascii=False), encoding="utf-8")
+    logger.info("Runde %s an Lia (Auftrag %s)", ordner.name, aid)
+    return aid
+
+
 def main(argv: list[str] | None = None, melden=jan_melden) -> int:
-    """Ohne Argument eine neue Runde, mit Ordnername (z. B. runde-20261029-140740) Fortsetzung."""
+    """Ohne Argument eine neue Runde, mit Ordnername (z. B. runde-20261029-140740) Fortsetzung,
+    mit --an-lia <ordner> die fertigen Dokumente an Lia (nach Jans Durchsicht)."""
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--an-lia"]:
+        if len(argv) != 2 or config.INSTANZ_NAME != "lia":
+            print("Aufruf: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py --an-lia <ordner>",
+                  file=sys.stderr)
+            return 2
+        try:
+            print(an_lia(HIER / "data" / argv[1]))
+        except (OSError, RundenFehler, karte.AntwortFehler, auftraege.AuftragFehler) as e:
+            print(e, file=sys.stderr)
+            return 1
+        return 0
     try:
         z = runde(fortsetzen=argv[0]) if argv else runde()
     except Exception as e:  # jeder Abbruch muss bei Jan ankommen
