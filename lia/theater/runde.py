@@ -9,7 +9,9 @@ Ablauf (Plan Jan 29.10.2026):
    Grundlagen und Kapitel aus Lias Fachbuch (buch.py) nach data/runde-<zeit>/kontext/ (Claude liest nur im
    Agent-Ordner).
 2. Szenenkarte (karte.py), Ablauf (fassung.py) und Szenenaufgabe (aufgabe.py) in einer Sitzung (bei einer
-   fortgesetzten Runde ohne Sitzung eine neue). Opus, je höchstens eine Nachbesserung, danach Abbruch.
+   fortgesetzten Runde ohne Sitzung eine neue). Dazwischen der Prüfschritt (kritik.py): ein Prüfer in neuer
+   Sitzung bewertet den Ablauf gegen die Rubrik, unter „gut“ überarbeitet der Autor, höchstens zweimal.
+   Opus, je höchstens eine Nachbesserung, danach Abbruch.
 3. Python baut die vier Dokumente nach data/runde-<zeit>/fuer-lia/ und meldet Jan das Ergebnis (Vorschau,
    erst danach geht es an Lia).
 Keine Kostengrenze (Jan 29.10.2026: die Qualität entscheidet); Kosten stehen im Log und in der Meldung.
@@ -27,6 +29,7 @@ import aufgabe
 import buch
 import fassung
 import karte
+import kritik
 import stueck
 from agentkit import auftraege, claude_lauf, config, log, meldungen
 
@@ -240,6 +243,8 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
     f, sitzung = _schritt(
         laufen, kosten, "Ablauf", fassung.prompt(str(rel_ordner / "ablauf.json"), rahmen),
         ordner / "ablauf.json", lambda d: fassung.pruefen(d, einheiten, muss, rahmen), sitzung)
+    p = _pruefschleife(laufen, kosten, ordner, rel_ordner, rel, f, sitzung, einheiten, muss, rahmen, v)
+    f, sitzung = p["ablauf"], p["sitzung"]
     # In derselben Sitzung: Claude kennt dort Stück, Szenenkarte und die Gründe für den Ablauf (Qualität vor
     # Kosten, Jan 29.10.2026). Nur ohne Sitzung (fortgesetzte Runde, Schritte übernommen) eine neue; der Prompt
     # reicht dafür auch allein (Ablauf als Kurzfassung, Vorgaben, Grundlagen und Buch zum Lesen).
@@ -251,9 +256,12 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
 
     fassung.schreiben_text(ordner / "spielfassung.txt", f, einheiten)
     profil = tomllib.loads(pfade.profil.read_text(encoding="utf-8"))
-    dateien = bauen(ordner, [karte.beschreibung(k, einheiten, muss, titel),
-                             fassung.ablauf(f, einheiten, muss, rahmen, titel),
+    ablauf_doc = fassung.ablauf(f, einheiten, muss, rahmen, titel)
+    ablauf_doc["bloecke"] += kritik.bloecke(p["kritik"], v, p["ueberarbeitungen"], p["aenderungen"])
+    dateien = bauen(ordner, [karte.beschreibung(k, einheiten, muss, titel), ablauf_doc,
                              fassung.spielfassung(f, einheiten, rahmen, titel), a], profil, renderer_bauen)
+    (ordner / "ergebnis.json").write_text(json.dumps({"ablauf": p["datei"], "kritik": p["kritik_datei"]},
+                                                     ensure_ascii=False), encoding="utf-8")
     nach_nr = {e.nr: e for e in einheiten}
     behalten = sum(len(fassung.behalten(b)) for b in f["bausteine"])
     return {
@@ -262,12 +270,51 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
         "minuten": sum(b["minuten"] for b in f["bausteine"]),
         "behalten": behalten, "einheiten": len(einheiten),
         "sprechminuten": stueck.sprechminuten([nach_nr[n] for b in f["bausteine"] for n in fassung.behalten(b)]),
+        "ueberarbeitungen": p["ueberarbeitungen"],
+        "unter_gut": [b["id"] for b in kritik.unter_schwelle(p["kritik"], v)],
     }
 
 
+def _pruefschleife(laufen, kosten: Kosten, ordner: Path, rel_ordner: Path, rel: dict, f: dict, sitzung: str | None,
+                   einheiten: list[stueck.Einheit], muss: list[dict], rahmen: dict, rubrik: dict) -> dict:
+    """Prüfer (neue Sitzung) bewertet, Autor (seine Sitzung) überarbeitet, bis alles mindestens „gut“ ist oder
+    kritik.MAX_UEBERARBEITUNGEN erreicht sind. Dateien: ablauf.json, kritik-1.json, ablauf-2.json, kritik-2.json, …"""
+    version, aenderungen = 1, []
+    while True:
+        datei = "ablauf.json" if version == 1 else f"ablauf-{version}.json"
+        spielfassung = ordner / f"spielfassung-{version}.txt"
+        fassung.schreiben_text(spielfassung, f, einheiten)
+        kdatei = f"kritik-{version}.json"
+        k, _ = _schritt(
+            laufen, kosten, f"Prüfung {version}",
+            kritik.prompt(str(rel_ordner / kdatei), str(rel_ordner / spielfassung.name), str(rel_ordner / datei),
+                          rel["vorgaben"], rel["grundlagen"], rel["buch"], str(rel_ordner / "szenenkarte.json"),
+                          rubrik, version),
+            ordner / kdatei, lambda d: kritik.pruefen(d, rubrik), None)
+        unter = kritik.unter_schwelle(k, rubrik)
+        logger.info("Prüfung %d: %d von %d Kriterien unter „%s“ (%s)", version, len(unter), len(k["kriterien"]),
+                    rubrik["stufen"]["mindestens"], ", ".join(b["id"] for b in unter))
+        if not unter or version > kritik.MAX_UEBERARBEITUNGEN:
+            return {"ablauf": f, "sitzung": sitzung, "kritik": k, "ueberarbeitungen": version - 1,
+                    "aenderungen": aenderungen, "datei": datei, "kritik_datei": kdatei}
+        neu = f"ablauf-{version + 1}.json"
+        f, sitzung = _schritt(
+            laufen, kosten, f"Überarbeitung {version}",
+            kritik.ueberarbeitung_prompt(str(rel_ordner / neu), str(rel_ordner / datei), k, rubrik,
+                                         rel["teile"] + [rel["vorgaben"], str(rel_ordner / "szenenkarte.json"),
+                                                         rel["grundlagen"]] + rel["buch"]),
+            ordner / neu, lambda d: fassung.pruefen(d, einheiten, muss, rahmen) + kritik.aenderungen_pruefen(d),
+            sitzung)
+        aenderungen += f["aenderungen"]
+        version += 1
+
+
 def melden_text(z: dict) -> str:
+    pruefung = ("alle Kriterien mindestens „gut“" if not z["unter_gut"] else
+                "noch unter „gut“: " + ", ".join(z["unter_gut"]))
     return (f"Runde fertig ({z['usd']:.2f} USD). Szenenkarte mit {z['anlaesse']} Spielanlässen, Ablauf mit "
-            f"{z['bausteine']} Bausteinen für {z['minuten']:g} Minuten. Vom Original bleiben {z['behalten']} von "
+            f"{z['bausteine']} Bausteinen für {z['minuten']:g} Minuten, {z['ueberarbeitungen']}-mal nach Prüfung "
+            f"überarbeitet, {pruefung}. Vom Original bleiben {z['behalten']} von "
             f"{z['einheiten']} Einheiten (etwa {z['sprechminuten']:.0f} Min Sprechzeit). Dokumente zur Vorschau in "
             f"{z['ordner']}: " + ", ".join(z["dateien"]) + ". Noch nicht an Lia geschickt.")
 
@@ -300,7 +347,9 @@ def an_lia(ordner: Path, basis: Path | None = None, agenten_dir: Path | None = N
     v = tomllib.loads((ordner.parents[1] / "theater.toml").read_text(encoding="utf-8"))
     einheiten = stueck.aus_dicts(json.loads((ordner / "einheiten.json").read_text(encoding="utf-8")))
     k = karte.antwort_lesen(ordner / "szenenkarte.json")
-    f = karte.antwort_lesen(ordner / "ablauf.json")
+    ergebnis = ordner / "ergebnis.json"  # welcher Ablauf in die Dokumente ging (nach Prüfung und Überarbeitung)
+    name = json.loads(ergebnis.read_text(encoding="utf-8"))["ablauf"] if ergebnis.exists() else "ablauf.json"
+    f = karte.antwort_lesen(ordner / name)
     if karte.pruefen(k, einheiten, v["muss"]) or fassung.pruefen(f, einheiten, v["muss"], v["rahmen"]):
         raise RundenFehler(f"Runde {ordner.name}: Szenenkarte oder Ablauf besteht die Prüfung nicht mehr")
     nach_nr = {e.nr: e for e in einheiten}

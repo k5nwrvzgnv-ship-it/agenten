@@ -121,3 +121,87 @@ versatz = 2
 # 123–136 Slow Motion; 267–282 Chorisches Sprechen; 283–290 Improvisation; 291–301 Status;
 # 302–314 Szenische Figurenarbeit; 315–321 Konzeption; 322–326 Komposition; 327–336 Ästhetik, Aufgabenbeispiele
 bereiche = [[123, 136], [267, 336]]
+
+# Rubrik für den Prüfschritt (kritik.py, Jan 29.10.2026: Qualität entscheidet).
+# STAND: ENTWURF (29.10.2026), von Claude aus Lias Nachricht, Erste_Gedanken.docx und Figuren.docx abgeleitet.
+# Lia hat sie nicht gesehen. Feld quelle sagt, woher das Kriterium kommt.
+[stufen]
+liste = ["nicht erkennbar", "ansatzweise", "gut", "sehr gut"]
+mindestens = "gut"  # darunter wird überarbeitet
+
+[[kriterium]]
+id = "steigerung"
+name = "Steigerung über drei Durchläufe"
+frage = "Wird jeder Akt sichtbar chaotischer, und erkennt das Publikum dieselben Momente wieder, die jedes Mal mehr schiefgehen?"
+gut = "Dieselben Bausteine (Requisit, Auftritte, Satz) kehren in allen drei Akten wieder und kippen jedes Mal stärker; Akt 3 ist der Höhepunkt."
+quelle = "Lias Nachricht: Jeder Durchlauf wird chaotischer"
+
+[[kriterium]]
+id = "fallhoehe"
+name = "Thema Scheitern trägt"
+frage = "Ist das Scheitern mehr als ein Gag: Steigt die Fallhöhe, und spürt das Publikum, was für die Figuren und die SuS auf dem Spiel steht?"
+gut = "Jeder Akt hat eine erkennbare Fallhöhe (Probe, Premiere, letzte Vorstellung); Scheitern und Angst werden auch ernst gezeigt, nicht nur komisch."
+quelle = "Lias Nachricht: Thema ist das Scheitern; „zu lasch inhaltlich“"
+
+[[kriterium]]
+id = "heraustreten"
+name = "Heraustreten aus den Rollen"
+frage = "Erzählt das Heraustreten etwas über die SuS selbst, und ist klar, wann gespielt wird und wann nicht?"
+gut = "Ein klares Zeichen trennt Spiel und Nicht-Spiel; die Momente als sie selbst sind vorbereitet, steigern sich und führen in den Chor; niemand muss Privates preisgeben."
+quelle = "Lias Nachricht: SuS treten heraus und sprechen als sie selbst; „Und Bitte!“ als Signal"
+
+[[kriterium]]
+id = "komik"
+name = "Komik und Pointen"
+frage = "Sind die besten Pointen des Originals erhalten und ohne Kenntnis des Stücks verständlich?"
+gut = "Jede gewählte Originalstelle hat eine Pointe, die ohne Vorwissen zündet; Running Gags werden eingeführt, bevor sie ausgespielt werden."
+quelle = "Lias Nachricht: lustige Textstellen behalten"
+
+[[kriterium]]
+id = "liste"
+name = "Lias Muss-Liste sinnvoll umgesetzt"
+frage = "Sind die Punkte aus Lias Liste nicht nur abgehakt, sondern so umgesetzt, dass sie wirken?"
+gut = "Jeder Muss-Punkt hat einen spielbaren Moment mit klarer Funktion im Ablauf; Lias Umdeutungen (Seitentür, Publikum, Kamera, Traumreise) sind ausgearbeitet."
+quelle = "Erste_Gedanken.docx, Lias Nachricht"
+
+[[kriterium]]
+id = "ensemble"
+name = "18 SuS spielen mit"
+frage = "Hat jede der 18 Personen Auftritte und eine Aufgabe, und ist die Verteilung auf neun Figuren plus Chor klar?"
+gut = "Besetzungsidee für 18 Personen erkennbar (Splitting oder Doppelbesetzung), niemand steht lange nur herum, Chor und Gruppenszenen beziehen alle ein."
+quelle = "Lias Rahmen: 18 SuS; offene Frage Figurensplitting"
+
+[[kriterium]]
+id = "probbar"
+name = "In der Probenzeit machbar"
+frage = "Ist die Fassung in etwa 20 Einheiten à 60 Minuten plus 2–3 halbe Tage zu erarbeiten, mit lernbarer Textmenge?"
+gut = "Textmenge je Person überschaubar, Improvisationsanteile haben feste Ankerpunkte, technische Mittel (Kamera, Mikro) sind schulisch machbar."
+quelle = "Lias Rahmen: etwa 20 Einheiten plus 2–3 halbe Tage"
+
+[[kriterium]]
+id = "zeit"
+name = "Zeitplan realistisch"
+frage = "Passen die Minuten je Baustein zu dem, was dort gespielt wird (Text, Slapstick, Übergänge, Publikum)?"
+gut = "Kein Baustein überladen, Übergänge eingeplant, Summe 35–40 Minuten auch mit Pausen und Lachern plausibel."
+quelle = "Lias Rahmen: 35–40 Minuten"
+
+[[kriterium]]
+id = "dramaturgie"
+name = "Dramaturgie und Übergänge"
+frage = "Gibt es einen roten Faden von der Eröffnung bis zum Chor, mit klaren Übergängen zwischen den Bausteinen und Akten?"
+gut = "Eröffnung führt Figuren und Spielregeln ein, jeder Akt hat Anfang und Ende, die Übergänge sind gestaltet, das Ende greift den Anfang auf."
+quelle = "Lias Schema „Vom Text zur Szene“ (Szenenfolge, Szenenübergänge)"
+
+[[kriterium]]
+id = "mittel"
+name = "Theatrale Mittel der SuS"
+frage = "Nutzt die Fassung, was die SuS können (Kompositionsmethoden, chorisches Sprechen, Status, bewegte Standbilder)?"
+gut = "Jedes dieser Mittel kommt gezielt vor, mit Wirkung im Ablauf, nicht als Pflichtübung."
+quelle = "Lias Nachricht: Die SuS kennen Kompositionsmethoden, chorisches Sprechen, Status und bewegte Standbilder"
+
+[[kriterium]]
+id = "publikum"
+name = "Publikum sicher einbezogen"
+frage = "Wird das Publikum so einbezogen, dass es funktioniert, auch wenn niemand mitmacht, und ohne jemanden bloßzustellen?"
+gut = "Jede Publikumsaktion hat einen Plan B (vorbereitete Person aus dem Kurs), klare Regeln und bleibt freiwillig."
+quelle = "Lias Nachricht: Publikum einbezogen, Ersatz aus dem Publikum"

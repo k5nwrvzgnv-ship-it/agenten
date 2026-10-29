@@ -65,17 +65,27 @@ def antworten(einheiten: list[stueck.Einheit], muss_ids: list[str]) -> dict:
 class Claude:
     """Schreibt die Antwortdatei, deren Pfad im Prompt steht. `kaputt`: diese Dateien beim ersten Mal fehlerhaft."""
 
-    def __init__(self, hier: Path, kaputt=(), usd=0.5):
-        self.hier, self.kaputt, self.usd, self.prompts = hier, set(kaputt), usd, []
+    def __init__(self, hier: Path, kaputt=(), usd=0.5, stufen=None):
+        """stufen: Prüfrunde -> Stufe für alle Kriterien (fehlt eine Runde: „gut“)."""
+        self.hier, self.kaputt, self.usd, self.prompts, self.stufen = hier, set(kaputt), usd, [], stufen or {}
 
     def __call__(self, prompt, sitzung=None):
         self.prompts.append((prompt, sitzung))
-        pfad = Path(re.search(r"(data/runde-[^ \n]+?\.json)", prompt).group(1))
+        pfad = Path(re.search(r"Datei (?:/\S*?/)?(data/runde-[^ \n]+?\.json)", prompt).group(1))
         ordner = self.hier / pfad.parent
         einheiten = stueck.aus_dicts(json.loads((ordner / "einheiten.json").read_text(encoding="utf-8")))
         import tomllib
-        muss = [m["id"] for m in tomllib.loads((self.hier / "theater.toml").read_text(encoding="utf-8"))["muss"]]
-        daten = antworten(einheiten, muss)[pfad.name]
+        v = tomllib.loads((self.hier / "theater.toml").read_text(encoding="utf-8"))
+        muss = [m["id"] for m in v["muss"]]
+        if pfad.name.startswith("kritik-"):
+            stufe = self.stufen.get(int(pfad.stem.split("-")[1]), "gut")
+            daten = {"kriterien": [{"id": k["id"], "stufe": stufe, "beleg": f"Beleg {k['id']}",
+                                    "verbesserung": f"Besser {k['id']}"} for k in v["kriterium"]],
+                     "staerken": ["Chor"], "wichtigste_aenderungen": ["Mehr Fallhöhe in B2"]}
+        elif pfad.name.startswith("ablauf-"):
+            daten = dict(antworten(einheiten, muss)["ablauf.json"], aenderungen=[f"Geändert in {pfad.stem}"])
+        else:
+            daten = antworten(einheiten, muss)[pfad.name]
         if pfad.name in self.kaputt:
             self.kaputt.discard(pfad.name)
             daten = {"kaputt": True}
@@ -104,14 +114,19 @@ class Runde(unittest.TestCase):
     def test_ganze_runde_mit_nachbesserung(self):
         claude, gebaut = Claude(self.tmp, kaputt={"ablauf.json"}), []
         z = runde.runde(self.pfade, laufen=claude, renderer_bauen=renderer_attrappe(gebaut))
-        self.assertEqual(len(claude.prompts), 4)  # Karte, Ablauf, Nachbesserung, Aufgabe
-        self.assertEqual([s for _, s in claude.prompts], [None, "s1", "s1", "s1"])  # alles in einer Sitzung
+        self.assertEqual(len(claude.prompts), 5)  # Karte, Ablauf, Nachbesserung, Prüfung, Aufgabe
+        # Prüfer in neuer Sitzung, Autor (Karte, Ablauf, Aufgabe) in einer
+        self.assertEqual([s for _, s in claude.prompts], [None, "s1", "s1", None, "s1"])
         self.assertIn("Fehler gefunden", claude.prompts[2][0])
-        self.assertIn("B1 (Teil 1, 10 Min, gemischt): T. S", claude.prompts[3][0])  # Ablauf als Kurzfassung
-        self.assertNotIn("stueck-teil-1.txt", claude.prompts[3][0])
+        self.assertIn("Prüfrunde 1", claude.prompts[3][0])
+        self.assertIn("spielfassung-1.txt", claude.prompts[3][0])
+        self.assertIn("B1 (Teil 1, 10 Min, gemischt): T. S", claude.prompts[4][0])  # Ablauf als Kurzfassung
+        self.assertNotIn("stueck-teil-1.txt", claude.prompts[4][0])
+        self.assertEqual(z["ueberarbeitungen"], 0)
+        self.assertEqual(z["unter_gut"], [])
         self.assertEqual([g[0] for g in gebaut], list(runde.DOKUMENTE))
         self.assertEqual({g[1] for g in gebaut}, {"Darstellendes Spiel"})
-        self.assertAlmostEqual(z["usd"], 2.0)
+        self.assertAlmostEqual(z["usd"], 2.5)
         self.assertEqual(z["minuten"], 37)
         self.assertEqual(z["behalten"], 2)
         ordner = Path(z["ordner"]).parent
@@ -131,7 +146,8 @@ class Runde(unittest.TestCase):
         self.assertNotIn(str(self.tmp), erster)
         self.assertIn("data/vorgaben/vom_text_zur_szene.jpg", erster)
         self.assertRegex(erster, r"data/runde-[^/]+/kontext/buch-teil-1\.md")
-        self.assertIn("buch-teil-1.md", claude.prompts[2][0])  # auch die Szenenaufgabe bekommt das Buch
+        self.assertIn("buch-teil-1.md", claude.prompts[2][0])  # auch der Prüfer bekommt das Buch
+        self.assertIn("buch-teil-1.md", claude.prompts[3][0])  # und die Szenenaufgabe
         ordner = next((self.tmp / "data").glob("runde-*"))
         buch1 = (ordner / "kontext" / "buch-teil-1.md").read_text(encoding="utf-8")
         self.assertIn("--- Buch S. 123\nBuchseite 123 Übung", buch1)
@@ -159,10 +175,10 @@ class Runde(unittest.TestCase):
         (self.tmp / "data" / ordner / "ablauf.json").write_text("{}", encoding="utf-8")  # fehlerhaft: läuft neu
         zweite, gebaut = Claude(self.tmp), []
         z = runde.runde(self.pfade, laufen=zweite, renderer_bauen=renderer_attrappe(gebaut), fortsetzen=ordner)
-        laeufe = [re.search(r"data/runde-[^ \n]+?/(\w+)\.json", p).group(1) for p, _ in zweite.prompts]
-        self.assertEqual(laeufe, ["ablauf", "stueck_im_stueck"])  # Szenenkarte übernommen
-        self.assertEqual([s for _, s in zweite.prompts], [None, "s1"])  # neue Sitzung, Aufgabe setzt sie fort
-        self.assertEqual(z["usd"], 1.0)
+        laeufe = [re.search(r"Datei data/runde-[^ \n]+?/([\w-]+)\.json", p).group(1) for p, _ in zweite.prompts]
+        self.assertEqual(laeufe, ["ablauf", "kritik-1", "stueck_im_stueck"])  # Szenenkarte übernommen
+        self.assertEqual([s for _, s in zweite.prompts], [None, None, "s1"])  # Aufgabe setzt die Autorensitzung fort
+        self.assertEqual(z["usd"], 1.5)
         self.assertEqual(len(gebaut), 4)
 
     def test_fortsetzen_unbekannter_ordner(self):
@@ -185,7 +201,44 @@ class Runde(unittest.TestCase):
     def test_ohne_grenze_laeuft_alles(self):
         self.assertIsNone(runde.GRENZE_USD)
         z = runde.runde(self.pfade, laufen=Claude(self.tmp, usd=30.0), renderer_bauen=renderer_attrappe([]))
-        self.assertEqual(z["usd"], 90.0)
+        self.assertEqual(z["usd"], 120.0)
+
+    def test_pruefung_unter_gut_fuehrt_zur_ueberarbeitung(self):
+        claude, gebaut = Claude(self.tmp, stufen={1: "ansatzweise"}), []
+        bau = renderer_attrappe(gebaut)
+        beschreibungen = []
+        z = runde.runde(self.pfade, laufen=claude,
+                        renderer_bauen=lambda b, ziel, profil=None: beschreibungen.append(b) or bau(b, ziel, profil))
+        laeufe = [re.search(r"Datei data/runde-[^ \n]+?/([\w-]+)\.json", p).group(1) for p, _ in claude.prompts]
+        self.assertEqual(laeufe, ["szenenkarte", "ablauf", "kritik-1", "ablauf-2", "kritik-2", "stueck_im_stueck"])
+        ueber = claude.prompts[3]
+        self.assertEqual(ueber[1], "s1")  # Überarbeitung in der Autorensitzung
+        self.assertIn("Verbesserung: Besser steigerung", ueber[0])
+        self.assertIn("deinen Ablauf (data/runde-", ueber[0])
+        self.assertIsNone(claude.prompts[4][1])  # neuer Prüfer
+        self.assertEqual((z["ueberarbeitungen"], z["unter_gut"]), (1, []))
+        ordner = Path(z["ordner"]).parent
+        self.assertEqual(json.loads((ordner / "ergebnis.json").read_text())["ablauf"], "ablauf-2.json")
+        ablauf_doc = json.dumps(beschreibungen[1], ensure_ascii=False)
+        self.assertIn("einmal überarbeitet. Alle Kriterien mindestens „gut“.", ablauf_doc)
+        self.assertIn("Geändert in ablauf-2", ablauf_doc)
+        self.assertIn("1-mal nach Prüfung überarbeitet, alle Kriterien mindestens „gut“", runde.melden_text(z))
+
+    def test_hoechstens_zwei_ueberarbeitungen(self):
+        claude = Claude(self.tmp, stufen={1: "ansatzweise", 2: "ansatzweise", 3: "ansatzweise"})
+        z = runde.runde(self.pfade, laufen=claude, renderer_bauen=renderer_attrappe([]))
+        laeufe = [re.search(r"Datei data/runde-[^ \n]+?/([\w-]+)\.json", p).group(1) for p, _ in claude.prompts]
+        self.assertEqual(laeufe, ["szenenkarte", "ablauf", "kritik-1", "ablauf-2", "kritik-2", "ablauf-3", "kritik-3",
+                                  "stueck_im_stueck"])
+        self.assertEqual(z["ueberarbeitungen"], 2)
+        self.assertEqual(len(z["unter_gut"]), 11)
+        self.assertIn("noch unter „gut“: steigerung", runde.melden_text(z))
+
+    def test_ueberarbeitung_ohne_aenderungen_wird_nachgebessert(self):
+        claude = Claude(self.tmp, stufen={1: "ansatzweise"}, kaputt={"ablauf-2.json"})
+        z = runde.runde(self.pfade, laufen=claude, renderer_bauen=renderer_attrappe([]))
+        self.assertEqual(z["ueberarbeitungen"], 1)
+        self.assertTrue(any("Fehler gefunden" in p and "ablauf-2.json" in p for p, _ in claude.prompts))
 
     def test_kontextdatei_fehlt(self):
         next(self.pfade.texte.glob("*Szenenaufgabe_CvO*")).unlink()
