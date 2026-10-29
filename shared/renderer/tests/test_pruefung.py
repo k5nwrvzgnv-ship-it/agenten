@@ -124,9 +124,9 @@ class TestFehler(unittest.TestCase):
         self.assertEqual(self.fehler("[1, 2]"), ["Beschreibung: muss ein Objekt {...} sein, ist [1, 2]"])
 
     def test_art_fehlt_oder_falsch(self):
-        self.assertEqual(self.fehler({"titel": "x"}), ['art: fehlt, erlaubt sind "arbeitsblatt", "folien" oder "zusammenfassung"'])
+        self.assertEqual(self.fehler({"titel": "x"}), ['art: fehlt, erlaubt sind "arbeitsblatt", "folien", "zusammenfassung" oder "arbeitsmappe"'])
         self.assertEqual(self.fehler({"art": "brief"}),
-                         ['art: muss "arbeitsblatt", "folien" oder "zusammenfassung" sein, ist "brief"'])
+                         ['art: muss "arbeitsblatt", "folien", "zusammenfassung" oder "arbeitsmappe" sein, ist "brief"'])
 
     def test_unbekanntes_feld_mit_tippfehler_hinweis(self):
         f = self.fehler(blatt_mit(b8={"typ": "liste", "punkt": ["a"]}))
@@ -284,6 +284,116 @@ class TestFehler(unittest.TestCase):
     def test_lange_werte_gekuerzt(self):
         f = self.fehler({"art": "x" * 100})
         self.assertIn('ist "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...', f[0])
+
+
+NOTEN = {"art": "arbeitsmappe", "titel": "Notenübersicht", "blaetter": [{
+    "name": "Noten", "titel": "Notenübersicht Ethik", "hinweise": ["Notenpunkte 0 bis 15 eintragen."],
+    "zeilen": 35, "fixierte_spalten": 2,
+    "spalten": [
+        {"id": "nr", "kopf": "Nr.", "art": "nummer"},
+        {"id": "name", "kopf": "Name", "art": "text", "breite": 28},
+        *[{"id": f"n{i}", "kopf": f"Note {i}", "art": "zahl", "ganz": True, "min": 0, "max": 15} for i in range(1, 6)],
+        {"id": "schnitt", "kopf": "Durchschnitt", "art": "rechnung", "formel": "mittelwert(n1:n5)"},
+        {"id": "lek", "kopf": "LEK", "art": "zahl", "ganz": True, "min": 0, "max": 15},
+        {"id": "endnote", "kopf": "Endnote", "art": "rechnung",
+         "formel": "wenn_leer(2/3 * schnitt + 1/3 * lek, schnitt)", "nachkommastellen": 2}]}]}
+
+
+def noten_mit(**spalten) -> dict:
+    """Kopie von NOTEN, Spalten per Index ersetzbar (s3={...}) oder Blattfelder setzen (zeilen=0)."""
+    d = copy.deepcopy(NOTEN)
+    for name, wert in spalten.items():
+        if name.startswith("s") and name[1:].isdigit():
+            d["blaetter"][0]["spalten"][int(name[1:])] = wert
+        else:
+            d["blaetter"][0][name] = wert
+    return d
+
+
+class TestArbeitsmappe(unittest.TestCase):
+    def fehler(self, beschreibung) -> list[str]:
+        f = pruefen(beschreibung)
+        self.assertTrue(f, "Fehler erwartet")
+        return f
+
+    def test_gueltig_mit_standardwerten(self):
+        e = lesen(json.dumps(NOTEN))
+        blatt = e["blaetter"][0]
+        self.assertEqual((blatt["zeilen"], blatt["fixierte_spalten"], blatt["hochformat"]), (35, 2, False))
+        nr, name, n1, schnitt = blatt["spalten"][0], blatt["spalten"][1], blatt["spalten"][2], blatt["spalten"][7]
+        self.assertEqual((nr["breite"], name["breite"], name["max_zeichen"]), (None, 28, None))
+        self.assertEqual((n1["ganz"], n1["min"], n1["max"], n1["nachkommastellen"]), (True, 0, 15, None))
+        self.assertEqual((schnitt["nachkommastellen"], schnitt["formel"]), (2, "mittelwert(n1:n5)"))
+        self.assertEqual(schnitt["baum"].wert, "mittelwert")
+        self.assertIsNone(n1["baum"])
+
+    def test_formelfehler_mit_pfad(self):
+        f = self.fehler(noten_mit(s9={"id": "endnote", "kopf": "E", "art": "rechnung", "formel": "AVERAGE(n1:n5)"}))
+        self.assertEqual(f, ["blaetter[0].spalten[9].formel: Zeichen 1: Großbuchstaben sind nicht erlaubt, "
+                             "Spalten-ids und Funktionen klein schreiben"])
+
+    def test_alle_formelfehler_auf_einmal(self):
+        f = self.fehler(noten_mit(
+            s7={"id": "schnitt", "kopf": "S", "art": "rechnung", "formel": "mittelwert(n1:n6)"},
+            s9={"id": "endnote", "kopf": "E", "art": "rechnung", "formel": "2/3 * schnit + name"}))
+        self.assertEqual(len(f), 3, f)
+        self.assertIn("blaetter[0].spalten[7].formel: Zeichen 15: unbekannte Spalte 'n6'", f[0])
+        self.assertIn("blaetter[0].spalten[9].formel: Zeichen 7: unbekannte Spalte 'schnit' (gemeint: 'schnitt'?)",
+                      f[1])
+        self.assertIn("Spalte 'name' hat die Art 'text'", f[2])
+
+    def test_kreis(self):
+        f = self.fehler(noten_mit(s7={"id": "schnitt", "kopf": "S", "art": "rechnung", "formel": "endnote - 1"}))
+        self.assertEqual(f, ["blaetter[0].spalten[7].formel: Rechnungen brauchen sich gegenseitig: "
+                             "schnitt -> endnote -> schnitt (keine Rechnung darf sich selbst brauchen, "
+                             "auch nicht über einen Bereich)"])
+
+    def test_spalten(self):
+        faelle = [
+            ({"id": "Note1", "kopf": "x", "art": "zahl"}, "spalten[2].id: \"Note1\" geht nicht: nur Kleinbuchstaben"),
+            ({"id": "summe", "kopf": "x", "art": "zahl"}, "spalten[2].id: \"summe\" geht nicht: ist ein Funktionsname"),
+            ({"id": "n1", "kopf": "x", "art": "datum"}, "spalten[2].art: muss einer von"),
+            ({"id": "n1", "kopf": "x", "art": "zahl", "formel": "1"}, "spalten[2].formel: unbekanntes Feld"),
+            ({"id": "n1", "kopf": "x", "art": "rechnung"}, "spalten[2].formel: fehlt"),
+            ({"id": "n1", "kopf": "x", "art": "zahl", "min": 5, "max": 1}, "spalten[2].min: ist größer als max"),
+            ({"id": "n1", "kopf": "x", "art": "zahl", "ganz": True, "max": 1.5}, "spalten[2].max: muss bei ganz"),
+            ({"id": "n1", "kopf": "x", "art": "zahl", "ganz": True, "nachkommastellen": 1},
+             "spalten[2].nachkommastellen: passt nicht zu ganz"),
+            ({"id": "n1", "kopf": "x", "art": "zahl", "nachkommastellen": 5}, "spalten[2].nachkommastellen: muss"),
+            ({"id": "n1", "kopf": "x", "art": "text", "breite": 100}, "spalten[2].breite: muss eine Zahl von 3 bis 60"),
+            ({"id": "n1", "kopf": "x" * 51, "art": "zahl"}, "spalten[2].kopf: zu lang"),
+            ({"id": "name", "kopf": "x", "art": "zahl"}, "spalten[2].id: \"name\" gibt es schon in spalten[1]"),
+        ]
+        for spalte, erwartet in faelle:
+            with self.subTest(erwartet=erwartet):
+                f = self.fehler(noten_mit(s2=spalte))
+                self.assertIn("blaetter[0]." + erwartet, f[0], f)
+
+    def test_blatt(self):
+        faelle = [
+            ({"zeilen": 0}, "blaetter[0].zeilen: muss eine ganze Zahl von 1 bis 500"),
+            ({"name": "Noten: 8b"}, "blaetter[0].name: ohne die Zeichen"),
+            ({"name": "x" * 32}, "blaetter[0].name: zu lang"),
+            ({"name": "history"}, "blaetter[0].name: \"History\" ist in Excel reserviert"),
+            ({"fixierte_spalten": 4}, "blaetter[0].fixierte_spalten: muss eine ganze Zahl von 0 bis 3"),
+            ({"hinweise": []}, "blaetter[0].hinweise: muss 1 bis 5 Einträge haben"),
+            ({"hinweise": ["x" * 301]}, "blaetter[0].hinweise[0]: zu lang"),
+            ({"farbe": "rot"}, "blaetter[0].farbe: unbekanntes Feld"),
+        ]
+        for aenderung, erwartet in faelle:
+            with self.subTest(erwartet=erwartet):
+                self.assertIn(erwartet, self.fehler(noten_mit(**aenderung))[0])
+
+    def test_fixierte_spalten_kleiner_als_spalten(self):
+        d = {"art": "arbeitsmappe", "titel": "x", "blaetter": [{"name": "a", "zeilen": 1, "fixierte_spalten": 1,
+                                                               "spalten": [{"id": "a", "kopf": "A", "art": "text"}]}]}
+        self.assertIn("fixierte_spalten: muss kleiner als die Zahl der Spalten (1)", self.fehler(d)[0])
+
+    def test_blattnamen_eindeutig(self):
+        d = copy.deepcopy(NOTEN)
+        d["blaetter"].append(copy.deepcopy(d["blaetter"][0]) | {"name": "NOTEN"})
+        self.assertEqual(self.fehler(d), ['blaetter[1].name: "NOTEN" gibt es schon (Groß-/Kleinschreibung zählt '
+                                          'nicht), jedes Blatt braucht einen eigenen Namen'])
 
 
 if __name__ == "__main__":

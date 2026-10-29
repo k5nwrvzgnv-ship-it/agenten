@@ -16,7 +16,7 @@ PROFIL = BEISPIELE / "profil-lia-stil.toml"
 class TestFormat(unittest.TestCase):
     def test_beispiele_sind_gueltig(self):
         beispiele = re.findall(r"```json\n(.*?)```", FORMAT.read_text(encoding="utf-8"), re.S)
-        self.assertEqual(len(beispiele), 3)
+        self.assertEqual(len(beispiele), 4)
         for text in beispiele:
             self.assertEqual(pruefen(text), [], text[:60])
 

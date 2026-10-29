@@ -1,6 +1,6 @@
 # Format der Beschreibung (für Claude)
 
-Du beschreibst ein Dokument als JSON (Arbeitsblatt, Zusammenfassung oder Folien). Python prüft es und baut daraus
+Du beschreibst ein Dokument als JSON (Arbeitsblatt, Zusammenfassung, Folien oder Arbeitsmappe). Python prüft es und baut daraus
 die Datei. Du schreibst nur Inhalt: keine Dateinamen, keine Pfade, keine Schriftarten oder Farben. Die Gestaltung
 kommt aus dem Profil des Agenten.
 
@@ -224,3 +224,81 @@ Jeder Teil hat `text` und optional `fett`, `farbe` (`"blau"`, `"orange"`, `"grue
 Punkte und zentrierte Absätze höchstens 300 Zeichen.
 
 **Icons:** `achtung`, `aufgabe`, `auge`, `bild`, `buch`, `buecher`, `checkliste`, `daumen_hoch`, `daumen_runter`, `flagge`, `frage`, `gehirn`, `gesetz`, `gespraech`, `gluehbirne`, `gruppe`, `haken`, `handschlag`, `haus`, `herz`, `kalender`, `karte`, `kreuz`, `lupe`, `megafon`, `mikrofon`, `musik`, `neutral`, `notizen`, `ohr`, `paket`, `partner`, `person`, `pfeil`, `puzzle`, `rakete`, `sanduhr`, `schale`, `schreiben`, `schule`, `smiley`, `sprechblase`, `stern`, `stift`, `tafel`, `text`, `traurig`, `uhr`, `video`, `waage`, `wecker`, `welt`, `zeigefinger`, `ziel`, `zitat`.
+
+## Arbeitsmappe (wird eine xlsx-Datei für Excel)
+
+Für Tabellen zum Ausfüllen, in denen Excel rechnet, z. B. eine Notentabelle. Du beschreibst nur leere Vorlagen:
+Spalten, Zeilenzahl, Eingabeprüfung und Rechnungen. Werte trägt später die Lehrkraft ein. Jedes Blatt hat oben
+den Titel und die Hinweise, darunter die Kopfzeile und die Zeilen. Die Kopfzeile bleibt beim Blättern stehen,
+gedruckt wird A4 quer auf Seitenbreite mit Seitenzahl. Rechenfelder sind grau hinterlegt.
+
+```json
+{
+  "art": "arbeitsmappe",
+  "titel": "Notenübersicht",
+  "blaetter": [{
+    "name": "Noten",
+    "titel": "Notenübersicht",
+    "hinweise": ["Notenpunkte 0 bis 15 eintragen. Leere Felder zählen nicht mit.",
+                 "Endnote = 2/3 Durchschnitt + 1/3 LEK. Ohne LEK zeigt die Endnote den Durchschnitt der Noten."],
+    "zeilen": 35,
+    "fixierte_spalten": 2,
+    "spalten": [
+      {"id": "nr", "kopf": "Nr.", "art": "nummer"},
+      {"id": "name", "kopf": "Name", "art": "text", "breite": 28},
+      {"id": "n1", "kopf": "Note 1", "art": "zahl", "ganz": true, "min": 0, "max": 15},
+      {"id": "n2", "kopf": "Note 2", "art": "zahl", "ganz": true, "min": 0, "max": 15},
+      {"id": "n3", "kopf": "Note 3", "art": "zahl", "ganz": true, "min": 0, "max": 15},
+      {"id": "n4", "kopf": "Note 4", "art": "zahl", "ganz": true, "min": 0, "max": 15},
+      {"id": "n5", "kopf": "Note 5", "art": "zahl", "ganz": true, "min": 0, "max": 15},
+      {"id": "schnitt", "kopf": "Durchschnitt", "art": "rechnung", "formel": "mittelwert(n1:n5)"},
+      {"id": "lek", "kopf": "LEK", "art": "zahl", "ganz": true, "min": 0, "max": 15},
+      {"id": "endnote", "kopf": "Endnote", "art": "rechnung", "formel": "wenn_leer(2/3 * schnitt + 1/3 * lek, schnitt)"}
+    ]
+  }]
+}
+```
+
+| Feld | Pflicht | Bedeutung |
+|---|---|---|
+| `art` | ja | `"arbeitsmappe"` |
+| `titel` | ja | Titel der Datei, höchstens 200 Zeichen |
+| `blaetter` | ja | 1 bis 10 Blätter |
+
+Ein Blatt hat:
+
+| Feld | Pflicht | Bedeutung |
+|---|---|---|
+| `name` | ja | Name des Reiters, höchstens 31 Zeichen, ohne `[ ] : * ? / \`, je Datei verschieden |
+| `zeilen` | ja | Zahl der leeren Zeilen zum Ausfüllen, 1 bis 500 |
+| `spalten` | ja | 1 bis 30 Spalten von links nach rechts |
+| `titel` | nein | steht fett in der ersten Zeile und oben auf jeder gedruckten Seite, höchstens 200 Zeichen |
+| `hinweise` | nein | 1 bis 5 Zeilen unter dem Titel (je höchstens 300 Zeichen), z. B. was einzutragen ist und wie gerechnet wird |
+| `fixierte_spalten` | nein | 0 bis 3 Spalten links, die beim Blättern nach rechts stehen bleiben (Standard 0) |
+| `hochformat` | nein | `true` druckt hoch statt quer (Standard `false`) |
+
+Jede Spalte hat `id` (Pflicht: Kleinbuchstaben a-z, Ziffern und `_`, am Anfang ein Buchstabe, z. B. `"note1"`, je
+Blatt verschieden), `kopf` (Pflicht, höchstens 50 Zeichen), `art` (Pflicht) und `breite` (optional, 3 bis 60
+Zeichen). Arten:
+
+| art | weitere Felder | Bedeutung |
+|---|---|---|
+| `nummer` | keine | laufende Nummer 1, 2, 3, … (schreibt der Renderer) |
+| `text` | `max_zeichen` (optional, 1 bis 1000) | Eingabe von Text, z. B. Name |
+| `zahl` | `ganz` (true/false), `min`, `max`, `nachkommastellen` (0 bis 4, nicht mit `ganz`), alle optional | Eingabe einer Zahl. Excel weist andere Eingaben mit Meldung ab, z. B. „Bitte eine ganze Zahl von 0 bis 15 eintragen.“ |
+| `rechnung` | `formel` (Pflicht), `nachkommastellen` (0 bis 4, Standard 2) | Excel rechnet, grau hinterlegt. Die Nachkommastellen betreffen nur die Anzeige, gerechnet wird genau. |
+
+**Formeln** schreibst du in einer kleinen Rechensprache, nicht als Excel-Formel (kein `=`, keine Zellen wie `C5`):
+- Zahlen mit Punkt: `2.5`, Brüche als Rechnung: `2/3`
+- Spalten derselben Zeile über ihre `id`: `lek`
+- Bereiche nebeneinanderliegender Zahl- oder Rechenspalten: `n1:n5` (nur in den Funktionen unten)
+- `+ - * /` und Klammern
+- `summe(...)`, `mittelwert(...)`, `min(...)`, `max(...)`, `anzahl(...)`: mit Spalten oder Bereichen, durch Komma
+  getrennt, z. B. `max(n1, n3:n5)`. `anzahl` zählt die ausgefüllten Felder.
+- `runden(x, n)`: auf n Stellen (0 bis 4) runden
+- `wenn_leer(a, b)`: a, solange a nicht leer ist, sonst b
+
+Leer-Regel: Eine Rechnung bleibt leer, solange ein Feld fehlt, das sie braucht. `summe`, `mittelwert`, `min` und
+`max` nehmen nur die ausgefüllten Felder und bleiben erst leer, wenn alle leer sind. Für einen Ersatzwert bei
+fehlenden Feldern nimm `wenn_leer`. Eine Rechnung darf andere Rechnungen benutzen, aber nicht sich selbst.
+Text-Spalten und `nummer` lassen sich nicht verrechnen.

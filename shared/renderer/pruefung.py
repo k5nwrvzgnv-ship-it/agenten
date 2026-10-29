@@ -12,6 +12,7 @@ import json
 import math
 import re
 
+from renderer import rechnung
 from renderer.icons import NAMEN
 
 # Grenzen (in FORMAT.md genannt; bei Änderung dort nachziehen)
@@ -67,8 +68,22 @@ MAX_SELBSTTEST = 30
 MAX_FRAGE = 1000
 MAX_LOESUNG = 3000
 MAX_OFFENE_FRAGEN = 30
+# Arbeitsmappe (Excel)
+MAX_BLAETTER = 10
+MAX_BLATTNAME = 31  # Grenze von Excel
+MAX_HINWEISE = 5
+MAX_HINWEIS = 300
+MAX_ZEILEN = 500
+MAX_SPALTEN = 30
+MAX_KOPF = 50
+MAX_SPALTE_ID = 30
+BREITE = (3, 60)  # Zeichen
+MAX_FIXIERT = 3
+MAX_NACHKOMMA = 4
+MAX_ZAHL = 1e9
+MAX_ZEICHEN_GRENZE = 1000
 
-ARTEN = ("arbeitsblatt", "folien", "zusammenfassung")
+ARTEN = ("arbeitsblatt", "folien", "zusammenfassung", "arbeitsmappe")
 BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "merksatz", "anweisung", "material", "aufgaben",
               "neue_seite")
 ANTWORTARTEN = ("linien", "kasten", "ankreuzen", "satzanfaenge")
@@ -79,6 +94,7 @@ Z_BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "hinweis", "rechen
 HINWEISARTEN = ("pruefungsrelevant", "organisatorisch")
 KENNZEICHNUNGEN = ("unsicher", "muendlich")
 QUELLENARTEN = ("transkript", "folie", "norm")
+SPALTENARTEN = ("nummer", "text", "zahl", "rechnung")
 ICON_NAMEN = NAMEN
 
 # Zeichen, die in docx/pptx (XML) nicht vorkommen dürfen. Zeilenumbruch und Tab sind erlaubt.
@@ -87,6 +103,8 @@ _DATUM = re.compile(r"^(\d{2})\.(\d{2})\.(\d{4})$")
 _SEITEN = re.compile(r"^\d{1,4}( ?[-–] ?\d{1,4})?(, ?\d{1,4}( ?[-–] ?\d{1,4})?)*$")  # 4 | 4-5 | 4, 7
 _NUMMER_VORN = re.compile(r"^\d+(\.\d+)+\.?\s|^\d+\.\s")  # "1. ", "1.2 ", nicht "3 Säulen"
 _QUELLE_IM_TEXT = re.compile(r"[\[(](Transkript|Folie)\b")
+_SPALTE_ID = re.compile(r"^[a-z][a-z0-9_]*$")
+_BLATTNAME_VERBOTEN = re.compile(r"[\[\]:*?/\\]")
 _FEHLT = object()
 
 
@@ -151,6 +169,8 @@ def _beschreibung(p: "_Pruefer", daten) -> dict | None:
         return _folien(p, daten)
     if art == "zusammenfassung":
         return _zusammenfassung(p, daten)
+    if art == "arbeitsmappe":
+        return _arbeitsmappe(p, daten)
     erlaubt = ", ".join(_zeigen(a) for a in ARTEN[:-1]) + f" oder {_zeigen(ARTEN[-1])}"
     if art is _FEHLT:
         p.melden("art", f"fehlt, erlaubt sind {erlaubt}")
@@ -520,6 +540,165 @@ def _z_block(p: "_Pruefer", b, pfad: str) -> dict | None:
             "aufgabe": p.text(b.get("aufgabe", _FEHLT), f"{pfad}.aufgabe", MAX_AUFGABE), "gegeben": gegeben,
             "schritte": schritte, "ergebnis": p.text(b.get("ergebnis", _FEHLT), f"{pfad}.ergebnis", MAX_RECHNUNG),
             **_beleg(p, b, pfad)}
+
+
+def _arbeitsmappe(p: "_Pruefer", d: dict) -> dict:
+    p.felder(d, "", pflicht=("art", "titel", "blaetter"))
+    titel = p.text(d.get("titel", _FEHLT), "titel", MAX_TITEL)
+    blaetter = []
+    namen = []
+    for i, b in enumerate(p.liste(d.get("blaetter", _FEHLT), "blaetter", 1, MAX_BLAETTER) or []):
+        blatt = _blatt(p, b, f"blaetter[{i}]")
+        if blatt is None:
+            continue
+        if blatt["name"] and blatt["name"].lower() in namen:
+            p.melden(f"blaetter[{i}].name", f"{_zeigen(blatt['name'])} gibt es schon (Groß-/Kleinschreibung zählt "
+                                            "nicht), jedes Blatt braucht einen eigenen Namen")
+        namen.append((blatt["name"] or "").lower())
+        blaetter.append(blatt)
+    return {"art": "arbeitsmappe", "titel": titel, "blaetter": blaetter}
+
+
+def _blatt(p: "_Pruefer", b, pfad: str) -> dict | None:
+    if not isinstance(b, dict):
+        p.melden(pfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(b)}")
+        return None
+    p.felder(b, pfad, pflicht=("name", "zeilen", "spalten"),
+             optional=("titel", "hinweise", "fixierte_spalten", "hochformat"))
+    name = p.text(b.get("name", _FEHLT), f"{pfad}.name", MAX_BLATTNAME)
+    if name is not None:
+        if _BLATTNAME_VERBOTEN.search(name) or name.startswith("'") or name.endswith("'"):
+            p.melden(f"{pfad}.name", "ohne die Zeichen [ ] : * ? / \\ und ohne ' am Anfang oder Ende (Excel)")
+            name = None
+        elif name.strip().lower() == "history":
+            p.melden(f"{pfad}.name", "\"History\" ist in Excel reserviert, bitte anders nennen")
+            name = None
+    titel = p.text(b["titel"], f"{pfad}.titel", MAX_TITEL) if "titel" in b else ""
+    hinweise = []
+    if "hinweise" in b:
+        texte = p.liste(b["hinweise"], f"{pfad}.hinweise", 1, MAX_HINWEISE) or []
+        hinweise = [p.text(h, f"{pfad}.hinweise[{j}]", MAX_HINWEIS) for j, h in enumerate(texte)]
+    fixiert = p.ganzzahl(b["fixierte_spalten"], f"{pfad}.fixierte_spalten", 0, MAX_FIXIERT) \
+        if "fixierte_spalten" in b else 0
+    spalten = [_spalte(p, s, f"{pfad}.spalten[{j}]")
+               for j, s in enumerate(p.liste(b.get("spalten", _FEHLT), f"{pfad}.spalten", 1, MAX_SPALTEN) or [])]
+    if fixiert and len(spalten) <= fixiert:
+        p.melden(f"{pfad}.fixierte_spalten", f"muss kleiner als die Zahl der Spalten ({len(spalten)}) sein")
+    _formeln_pruefen(p, spalten, pfad)
+    return {
+        "name": name,
+        "titel": titel,
+        "hinweise": hinweise,
+        "zeilen": p.ganzzahl(b.get("zeilen", _FEHLT), f"{pfad}.zeilen", 1, MAX_ZEILEN),
+        "fixierte_spalten": fixiert,
+        "hochformat": p.wahrheitswert(b["hochformat"], f"{pfad}.hochformat") if "hochformat" in b else False,
+        "spalten": spalten,
+    }
+
+
+def _spalte(p: "_Pruefer", s, pfad: str) -> dict | None:
+    if not isinstance(s, dict):
+        p.melden(pfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(s)}")
+        return None
+    art = s.get("art", _FEHLT)
+    if art not in SPALTENARTEN:
+        erlaubt = ", ".join(_zeigen(a) for a in SPALTENARTEN)
+        if art is _FEHLT:
+            p.melden(f"{pfad}.art", f"fehlt, erlaubt sind {erlaubt}")
+        else:
+            p.melden(f"{pfad}.art", f"muss einer von {erlaubt} sein, ist {_zeigen(art)}{_aehnlich(art, SPALTENARTEN)}")
+        return None
+    zusatz = {"nummer": (), "text": ("max_zeichen",), "zahl": ("ganz", "min", "max", "nachkommastellen"),
+              "rechnung": ("nachkommastellen",)}[art]
+    p.felder(s, pfad, pflicht=("id", "kopf", "art") + (("formel",) if art == "rechnung" else ()),
+             optional=("breite",) + zusatz)
+    sid = p.text(s.get("id", _FEHLT), f"{pfad}.id", MAX_SPALTE_ID)
+    if sid is not None and (not _SPALTE_ID.match(sid) or sid in rechnung.FUNKTIONEN):
+        grund = "ist ein Funktionsname" if sid in rechnung.FUNKTIONEN else \
+            "nur Kleinbuchstaben a-z, Ziffern und _, am Anfang ein Buchstabe, z. B. \"note1\""
+        p.melden(f"{pfad}.id", f"{_zeigen(sid)} geht nicht: {grund}")
+        sid = None
+    spalte = {"id": sid, "kopf": p.text(s.get("kopf", _FEHLT), f"{pfad}.kopf", MAX_KOPF), "art": art,
+              "breite": p.zahl(s["breite"], f"{pfad}.breite", *BREITE) if "breite" in s else None,
+              "max_zeichen": None, "ganz": False, "min": None, "max": None, "nachkommastellen": None, "formel": None,
+              "baum": None}  # baum: zerlegte Formel (rechnung.Knoten)
+    if art == "text" and "max_zeichen" in s:
+        spalte["max_zeichen"] = p.ganzzahl(s["max_zeichen"], f"{pfad}.max_zeichen", 1, MAX_ZEICHEN_GRENZE)
+    if art == "zahl":
+        ganz = p.wahrheitswert(s["ganz"], f"{pfad}.ganz") if "ganz" in s else False
+        spalte["ganz"] = ganz
+        for grenze in ("min", "max"):
+            if grenze in s:
+                wert = p.zahl(s[grenze], f"{pfad}.{grenze}", -MAX_ZAHL, MAX_ZAHL)
+                if wert is not None and ganz and wert != int(wert):
+                    p.melden(f"{pfad}.{grenze}", f"muss bei ganz: true eine ganze Zahl sein, ist {_zeigen(wert)}")
+                    wert = None
+                spalte[grenze] = wert
+        if spalte["min"] is not None and spalte["max"] is not None and spalte["min"] > spalte["max"]:
+            p.melden(f"{pfad}.min", f"ist größer als max ({_zeigen(spalte['min'])} > {_zeigen(spalte['max'])})")
+        if "nachkommastellen" in s and ganz:
+            p.melden(f"{pfad}.nachkommastellen", "passt nicht zu ganz: true, eins von beiden weglassen")
+        elif "nachkommastellen" in s:
+            spalte["nachkommastellen"] = p.ganzzahl(s["nachkommastellen"], f"{pfad}.nachkommastellen", 0,
+                                                    MAX_NACHKOMMA)
+    if art == "rechnung":
+        spalte["nachkommastellen"] = p.ganzzahl(s["nachkommastellen"], f"{pfad}.nachkommastellen", 0,
+                                                MAX_NACHKOMMA) if "nachkommastellen" in s else 2
+        formel = p.text(s.get("formel", _FEHLT), f"{pfad}.formel", rechnung.MAX_FORMEL)
+        if formel is not None:
+            try:
+                spalte["baum"] = rechnung.zerlegen(formel)
+                spalte["formel"] = formel
+            except rechnung.FormelFehler as e:
+                p.melden(f"{pfad}.formel", str(e))
+    return spalte
+
+
+def _formeln_pruefen(p: "_Pruefer", spalten: list, pfad: str):
+    """Bezüge, Kreise und Länge der Formeln eines Blatts. Nur, wenn alle Spalten lesbar sind (keine Folgefehler)."""
+    if any(s is None or s["id"] is None for s in spalten):
+        return
+    ids = [s["id"] for s in spalten]
+    for j, sid in enumerate(ids):
+        if sid in ids[:j]:
+            p.melden(f"{pfad}.spalten[{j}].id", f"{_zeigen(sid)} gibt es schon in spalten[{ids.index(sid)}], "
+                                                 "jede Spalte braucht eine eigene id")
+            return
+    reihe = [(s["id"], s["art"]) for s in spalten]
+    formeln, alle_lesbar = {}, True
+    for j, s in enumerate(spalten):
+        if s["art"] != "rechnung":
+            continue
+        fehler = rechnung.pruefen_gegen(s["baum"], reihe) if s["baum"] is not None else [None]
+        for f in fehler:
+            if f is not None:  # None: Formel schon als Fehler gemeldet
+                p.melden(f"{pfad}.spalten[{j}].formel", str(f))
+        alle_lesbar = alle_lesbar and not fehler
+        formeln[s["id"]] = s["baum"]
+    if not alle_lesbar:
+        return
+    kreis = rechnung.zyklus(formeln, ids)
+    if kreis:
+        j = ids.index(kreis[0])
+        p.melden(f"{pfad}.spalten[{j}].formel", "Rechnungen brauchen sich gegenseitig: " + " -> ".join(kreis)
+                 + " (keine Rechnung darf sich selbst brauchen, auch nicht über einen Bereich)")
+        return
+    zelle = {sid: f"{_spaltenbuchstabe(k)}{MAX_ZEILEN + 20}" for k, sid in enumerate(ids)}.__getitem__
+    for j, s in enumerate(spalten):
+        if s["art"] == "rechnung":
+            if len(rechnung.excel(s["baum"], zelle)) > rechnung.MAX_EXCEL:
+                p.melden(f"{pfad}.spalten[{j}].formel", "wird in Excel zu lang, bitte vereinfachen "
+                                                        "(z. B. einen Teil in eine eigene rechnung-Spalte)")
+
+
+def _spaltenbuchstabe(nr: int) -> str:
+    """0 -> A, 25 -> Z, 26 -> AA."""
+    text = ""
+    nr += 1
+    while nr:
+        nr, rest = divmod(nr - 1, 26)
+        text = chr(65 + rest) + text
+    return text
 
 
 def _punkt(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> dict | None:
