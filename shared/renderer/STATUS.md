@@ -117,16 +117,18 @@ Anlass: Lias Notentabelle (Bedarf in `../../STATUS.md`, 29.10.). Referenzfall: N
   `zeilen` (1–500 leere Eingabezeilen), `spalten` (1–30), `fixierte_spalten` (0–3, Standard 0), `hochformat`
   (Standard false). Je Spalte: `id` (klein, a-z 0-9 _, eindeutig), `kopf` (höchstens 50), `breite` (3–60 Zeichen,
   optional, sonst nach Art), `art`:
-  - `nummer`: laufende Nummer 1..zeilen, vom Renderer geschrieben, gesperrt.
+  - `nummer`: laufende Nummer 1..zeilen, vom Renderer geschrieben.
   - `text`: Eingabe, optional `max_zeichen`.
   - `zahl`: Eingabe, `ganz` (Standard false), `min`/`max` (optional), `nachkommastellen` 0–4 (Anzeige).
-  - `rechnung`: `formel` in der kleinen Rechensprache unten, `nachkommastellen` 0–4. Gesperrt, grau hinterlegt.
+  - `rechnung`: `formel` in der kleinen Rechensprache unten, `nachkommastellen` 0–4 (nur Anzeige, der Wert bleibt
+    genau; runden nur mit `runden`). Grau hinterlegt.
   Vorbelegte Werte (`daten`) und Auswahllisten bewusst nicht in Stufe 1: nicht nötig für den Referenzfall, und
   keine Schülerdaten über Claude. Später nur erweitern.
 - **Formeln:** Claude schreibt nie Excel-Formeln. Erlaubt: Zahlen (Punkt als Komma), Spalten-`id`s derselben Zeile,
   Bereiche `n1:n5` (nebeneinanderliegende Zahl- oder Rechenspalten), `+ - * /`, Klammern, Funktionen `summe`,
-  `mittelwert`, `min`, `max`, `anzahl` (Bereiche oder Listen) und `runden(x, n)`. Beispiel: Durchschnitt
-  `mittelwert(n1:n5)`, Endnote `2/3 * schnitt + 1/3 * lek`. `pruefung.py` zerlegt die Formel selbst (Tokenizer,
+  `mittelwert`, `min`, `max`, `anzahl` (Bereiche oder Listen), `runden(x, n)` und `wenn_leer(a, b)` (a, solange a
+  leer ist b). Beispiel: Durchschnitt `mittelwert(n1:n5)`, Endnote `wenn_leer(2/3 * schnitt + 1/3 * lek, schnitt)`
+  (ohne LEK zählt der Durchschnitt allein, ohne Note bleibt sie leer). `pruefung.py` zerlegt die Formel selbst (Tokenizer,
   rekursiver Abstieg, höchstens 300 Zeichen, Tiefe 10) und meldet unbekannte Spalten mit Vorschlag
   (`_aehnlich`), Textspalten in Rechnungen, Selbstbezug, Zyklen, `/0`. Python erzeugt den Excel-Text aus dem Baum
   (AVERAGE(C5:G5)), kein Zeichen von Claude landet ungeprüft in einer Formel. Damit sind INDIRECT, HYPERLINK,
@@ -140,42 +142,41 @@ Anlass: Lias Notentabelle (Bedarf in `../../STATUS.md`, 29.10.). Referenzfall: N
   Formatcodes.
 - **Aufbau und Druck:** Titel fett, Hinweise klein, Kopfzeile hinterlegt mit Rahmen, Tabelle mit dünnen Linien,
   Kopf fixiert (`freeze_panes`), A4 quer (`hochformat` für Ausnahmen), auf Seitenbreite (`fit_to_pages(1, 0)`),
-  Kopf auf jeder Seite wiederholt, Fußzeile „Seite x von y“. Blattschutz ohne Kennwort: nur Eingabefelder frei
-  (Rechenfelder lassen sich nicht versehentlich überschreiben; aufheben über Überprüfen > Blattschutz).
+  Kopf auf jeder Seite wiederholt, Fußzeile „Seite x von y“. Kein Blattschutz, Rechenfelder nur grau.
 - **Bibliothek:** xlsxwriter 3.2.9 (schon in `requirements.txt` und der .venv), neues Modul `arbeitsmappe.py`.
   Rechensprache in eigenem Modul `rechnung.py` (reine Logik: zerlegen, prüfen, nach Excel übersetzen, selbst
   ausrechnen), von `pruefung.py` und `arbeitsmappe.py` genutzt.
 - **Kontrolle:** `kontrolle.py` liest die gebaute .xlsx mit Bordmitteln (zipfile, xml.etree, kein neues Paket):
-  je Blatt Druckformat, fixierte Zeilen/Spalten, Schutz, Titel, Hinweise, je Spalte Buchstabe, Kopf, Art, Breite,
+  je Blatt Druckformat, fixierte Zeilen/Spalten, Titel, Hinweise, je Spalte Buchstabe, Kopf, Art, Breite,
   Prüfung, Format, Formel (aus der Datei, mit deutschen Funktionsnamen). Dazu „Probe“: `rechnung.py` rechnet die
   Formeln mit Beispielwerten selbst nach (alle Eingaben am Minimum, alle am Maximum, jede zweite leer und die
-  übrigen in der Mitte): `Probe 3: Note 1–5 = 8, leer, 8, leer, 8; LEK leer -> Durchschnitt 8,00; Endnote leer`.
+  übrigen in der Mitte): `Probe 3: Note 1–5 = 8, leer, 8, leer, 8; LEK leer -> Durchschnitt 8,00; Endnote 8,00`.
   Die Probe zeigt, ob
   die Beschreibung meint, was gewünscht ist; ob Excel dasselbe rechnet, sichern Tests (unten) und einmal Jan/Lia
   in Excel ab.
 - **Vorschau ohne Calc:** keine Bilder, `hinweise` sagt „Keine Vorschau: LibreOffice Calc fehlt“, Kontrolltext und
-  Probe reichen für Tabellen. **Mit Calc** (`libreoffice-calc-nogui` 24.2.7 aus noble-updates, passt zu Writer und
+  Probe müssen dann reichen. **Mit Calc** (`libreoffice-calc-nogui` 24.2.7 aus noble-updates, passt zu Writer und
   Impress, etwa 30 MB, braucht sudo): Druckbild A4 quer als PNG wie bei docx/pptx und ein Test, der jede
-  Probe-Formel von Calc nachrechnen lässt und mit `rechnung.py` vergleicht. Empfehlung: installieren (Jan als
+  Probe-Formel von Calc nachrechnen lässt und mit `rechnung.py` vergleicht. Jan installiert Calc (29.10., als
   root: `apt install libreoffice-calc-nogui`). Ob Calc beim Laden einer xlsxwriter-Datei neu rechnet, prüfe ich
   beim Bau (sonst Umwandlung mit Neuberechnung erzwingen).
 - **Profil:** schlicht. Schrift und Größe aus dem Profil, Kopf `farben.tabellenkopf` (Jan: HNEE EAEADA, Lia:
   Standard E7E6E6), neuer Profilwert `farben.rechenfeld` (Standard F2F2F2). Keine bunten Flächen.
 - **Tests** (`tests/test_rechnung.py`, `tests/test_arbeitsmappe.py`, Erweiterung von `test_pruefung.py`,
   `test_format.py`, `test_bauen.py`): Formel zerlegen und übersetzen (Vorrang, Klammern, Bereiche, Kommazahlen,
-  Leer-Regel), Ablehnungen (unbekannte Spalte mit Vorschlag, Textspalte, Zyklus, Selbstbezug, `/0`, fremde
+  Leer-Regel, `wenn_leer`), Ablehnungen (unbekannte Spalte mit Vorschlag, Textspalte, Zyklus, Selbstbezug, `/0`, fremde
   Funktion wie `indirekt`, Zeichen wie `=`, `"`, `!`, `$`), Ausrechnen in Python inkl. leerer Felder; Bau des
   Referenzfalls: Formeln je Zeile mit richtigen Zellbezügen, Datenüberprüfung 0–15, Formate, fixierter Kopf,
-  Druck quer/Seitenbreite, Schutz und gesperrte Zellen, Text mit `=` bleibt Text; Kontrolltext; ungültige
+  Druck quer/Seitenbreite, kein Blattschutz, Text mit `=` bleibt Text; Kontrolltext; ungültige
   Beschreibungen (Blattname, doppelte id, Grenzen) mit Pfad; FORMAT-Beispiel gültig. Mit Calc zusätzlich:
   Calc-Ergebnis = Python-Ergebnis (skipUnless wie bei der Vorschau).
 - **Schritte nach Freigabe:** (1) `rechnung.py` mit Tests, (2) Prüfung und FORMAT.md, (3) `arbeitsmappe.py`,
   (4) Kontrolltext und Probe, (5) Referenzfall bauen, Jan öffnet ihn in Excel, Vergleich mit der Handvorlage,
   (6) mit Calc: Vorschau und Vergleichstest. Je Schritt ein Commit. Danach Bedarf an lia/unterricht (steht in
   `../../STATUS.md`).
-- **Offen (Jan/Lia):** Calc installieren? Blattschutz ja? Endnote nur angezeigt mit zwei Stellen oder auf zwei
-  Stellen gerundet? Endnote leer, solange die LEK fehlt (Vorschlag), oder schon aus den Noten allein? Wo liegt die
-  Handvorlage?
+- **Entschieden (Jan 29.10.):** Calc wird installiert, kein Blattschutz, Endnote mit zwei Stellen nur angezeigt
+  (nicht gerundet), ohne LEK zählt der Durchschnitt der Noten allein.
+- **Offen:** Jans Freigabe des Plans. Wo liegt die Handvorlage?
 
 ## Offene Punkte
 1. Logo der HNEE: liegt bisher nur weiß als SVG vor (für dunklen Grund). Besser eine offizielle grüne Logo-Datei
