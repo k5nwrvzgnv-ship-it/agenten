@@ -38,6 +38,11 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   - data/vorgaben/nachricht.md: Lias Nachricht vom 29.10. (Konzept, offene Fragen, Unsicherheit), wörtlich.
     data/vorgaben/vom_text_zur_szene.jpg: Vorschaubild ihres Schemas (die .pages selbst ist nicht lesbar).
   - data/text/: Textfassungen aller docx/pdf (agentkit.textfassung).
+  - data/eingang/Praxis Schultheater.pdf (Lia über Jan, 29.10.): Scan mit Texterkennung, 259 MB, 384 Seiten.
+    Sabine Kündiger, Praxis Schultheater. Reihen und Modelle für die Sekundarstufe I und II, Klett/Kallmeyer,
+    3. Aufl. 2022. Textfassung 760.000 Zeichen (OCR mit Leerzeichenfehlern, Abbildungen teils als Zeichensalat).
+    Noch nicht als Kontext eingebunden. Passend zu Lias Fassung: Slow Motion (S. 123), Chorisches Sprechen (267),
+    Improvisation (283), Status (291), Szenische Figurenarbeit (302), Konzeption/Komposition/Ästhetik (315–339).
 - Lias Konzept in Kürze: drei Akte wie im Original (Generalprobe, Premiere, Dernière), Eröffnung 3 Min, je Akt
   10 Min, 35–40 Min, 18 SuS. Heraustreten aus den Rollen, Chor über Scheitern und Angst. Muss-Liste in
   theater.toml (M0-1 bis M3-4). Offen bei Lia: Figurensplitting, Schwerpunkt Akt 2, Partitur oder Montage.
