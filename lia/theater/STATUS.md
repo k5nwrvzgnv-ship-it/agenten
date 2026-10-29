@@ -38,15 +38,13 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   - Lias Unsicherheit: Sie weiß nicht, wie sie kürzen und weitermachen soll. Inhaltlich ist es ihr noch zu lasch.
     Unklar ist auch das Stück im Stück: Sie möchte etwas Kurzes, das sich die SuS selbst ausdenken.
 
-## Rechte (wichtig für den Aufbau)
-- Die PDF ist eine Ansichtssendung „ausschließlich Ihnen überlassen“. Kopien für Einstudierung, Aufführung oder
-  Unterricht sind verboten. Eine Aufführung braucht einen Vertrag mit dem Deutschen Theaterverlag, 10 gekaufte
-  Textbücher und eine Gebühr.
-- Lias Konzept ist eine Bearbeitung (Striche, neue Szenen, Heraustreten, Chortext). Ob der Verlag das erlaubt,
-  muss Lia dort klären. Der Agent kann das nicht prüfen.
-- Folge für den Agenten: Er gibt keinen Stücktext aus, auch keine Strichfassung mit Text. Er verweist nur mit
-  Seite und den ersten Worten einer Stelle (höchstens etwa 8 Wörter). Damit arbeitet Lia in den gekauften
-  Textbüchern. Neue Texte (Chortext, Einstieg, Heraustreten) schreibt der Agent selbst.
+## Rechte
+- Die PDF ist eine Ansichtssendung des Deutschen Theaterverlags; laut Vermerk sind Kopien für Einstudierung,
+  Aufführung oder Unterricht ohne Vertrag verboten.
+- Jan 29.10.2026: Lia hat alles mit dem Verlag geklärt (Bearbeitung und Ausgabe des Textes). Der Agent darf
+  deshalb Stücktext ausgeben, auch Strich- und Spielfassungen. Den Vertrag selbst habe ich nicht gesehen.
+- Originaltext tippt Claude nicht ab: Claude wählt Stellen über Nummern aus, Python übernimmt sie wörtlich aus
+  der Textfassung. Neue Texte (Chortext, Einstieg, Heraustreten) sind als neu gekennzeichnet.
 
 ## Plan (Vorschlag an Jan 29.10.2026, noch nicht freigegeben)
 Zur Einordnung: Das Original hat rund 165 Seiten Text und dauert etwa 2,5 Stunden. Lia hat je Akt 10 Minuten,
@@ -54,14 +52,14 @@ davon geht ein Teil an eigene Szenen (Publikum, Freeze, Chor). Das ist eher eine
 Originalfragmenten als eine Kürzung. Das ist meine Einschätzung, keine gemessene Zahl; der Agent soll sie im
 ersten Lauf mit Seitenzahlen und geschätzter Dauer belegen.
 
-1. Szenenkarte (ein Lauf, Opus): Claude liest die Textfassung und baut je Akt eine Liste der Spielanlässe:
-   PDF-Seiten von–bis, Figuren, worum es geht, warum es komisch ist, geschätzte Spieldauer, ob es zu Lias
-   Muss-Liste gehört. Python prüft jede Fundstelle: Seite gibt es, die ersten Worte stehen wörtlich auf dieser
-   Seite (wie agentkit.wortlaut in lia/recherche). Ergebnis als docx/PDF in Lias Stil (renderer, Profil wie
-   lia/unterricht).
-2. Ablaufvorschlag (zweiter Lauf, gleiche Sitzung): Bausteine für 35–40 Minuten mit Zeit je Baustein: welche
-   Originalfragmente (nur Verweise), wo eigene Szenen, Publikumsmomente, Freeze und Chor liegen. Python rechnet
-   die Zeiten zusammen und prüft, dass jede Muss-Stelle genau einmal vorkommt. Zu Lias offenen Fragen je zwei
+1. Szenenkarte (ein Lauf, Opus): Python zerlegt die Textfassung in Repliken und Regieanweisungen mit fester
+   Nummer und PDF-Seite. Claude baut je Akt eine Liste der Spielanlässe: Nummern von–bis, Figuren, worum es
+   geht, warum es komisch ist, ob es zu Lias Muss-Liste gehört. Python prüft die Nummern und schätzt die
+   Spieldauer aus der Wortzahl. Ergebnis als docx/PDF in Lias Stil (renderer, Profil wie lia/unterricht).
+2. Ablaufvorschlag und Spielfassung (zweiter Lauf, gleiche Sitzung): Bausteine für 35–40 Minuten: welche
+   Originalfragmente (als Nummern), wo eigene Szenen, Publikumsmomente, Freeze und Chor liegen. Python baut
+   daraus die Spielfassung: Originaltext wörtlich, neue Texte markiert, dazu eine Strichübersicht je Akt.
+   Python rechnet die Zeiten zusammen und prüft, dass jede Muss-Stelle genau einmal vorkommt. Zu Lias offenen Fragen je zwei
    Varianten mit Vor- und Nachteil (Figurensplitting: 18 SuS auf 9 Figuren ergibt genau 2 je Figur;
    Schwerpunkt Akt 2). Gegen „zu lasch“: Vorschläge, die an ihr Thema Scheitern und Angst und an das anknüpfen,
    was die SuS können (ihre ABs aus data/text als Kontext, ohne Bewertungsdaten).
@@ -73,7 +71,8 @@ ersten Lauf mit Seitenzahlen und geschätzter Dauer belegen.
 - Gestartet von Hand (wie lia/examen), kein Dienst.
 - Pakete: pypdf und die Renderer-Pakete in den Versionen von lia/examen. Braucht Jans Okay.
 - Kostengrenze: Vorschlag 5 USD je Lauf, danach Abbruch mit Meldung an Jan.
-- Tests für Fundstellenprüfung, Zeitrechnung, Muss-Liste und das Zitatlimit; Eintrag in pruefen.sh.
+- Tests für Zerlegung in Repliken, Nummernprüfung, Zeitrechnung, Muss-Liste und den Bau der Spielfassung;
+  Eintrag in pruefen.sh.
 
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
@@ -87,7 +86,6 @@ ersten Lauf mit Seitenzahlen und geschätzter Dauer belegen.
 ## Offene Punkte
 1. Jan: Plan, Pakete und Kostengrenze freigeben.
 2. Fragen an Lia (über Jan):
-   - Hat sie mit dem Verlag geklärt, ob die Bearbeitung erlaubt ist?
    - Frederick (Philip/Scheich) fehlt in Figuren.docx. Fällt die Figur weg, oder ist sie nur vergessen?
    - Termin der Aufführung und bis wann sie den Ablaufvorschlag braucht.
    - PDF nennt „Kurs DS 12. Klasse“, das Material heißt „11. Klasse 25/26“: gleiche Gruppe, jetzt in Klasse 12?
