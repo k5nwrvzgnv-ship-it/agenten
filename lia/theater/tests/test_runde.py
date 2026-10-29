@@ -105,7 +105,7 @@ class Runde(unittest.TestCase):
         claude, gebaut = Claude(self.tmp, kaputt={"ablauf.json"}), []
         z = runde.runde(self.pfade, laufen=claude, renderer_bauen=renderer_attrappe(gebaut))
         self.assertEqual(len(claude.prompts), 4)  # Karte, Ablauf, Nachbesserung, Aufgabe
-        self.assertEqual([s for _, s in claude.prompts], [None, "s1", "s1", None])  # Aufgabe in neuer Sitzung
+        self.assertEqual([s for _, s in claude.prompts], [None, "s1", "s1", "s1"])  # alles in einer Sitzung
         self.assertIn("Fehler gefunden", claude.prompts[2][0])
         self.assertIn("B1 (Teil 1, 10 Min, gemischt): T. S", claude.prompts[3][0])  # Ablauf als Kurzfassung
         self.assertNotIn("stueck-teil-1.txt", claude.prompts[3][0])
@@ -154,13 +154,14 @@ class Runde(unittest.TestCase):
     def test_fortsetzen_uebernimmt_gepruefte_antworten(self):
         erste = Claude(self.tmp, usd=3.0)
         with self.assertRaisesRegex(runde.RundenFehler, "Kostengrenze"):
-            runde.runde(self.pfade, laufen=erste, renderer_bauen=renderer_attrappe([]))
+            runde.runde(self.pfade, laufen=erste, renderer_bauen=renderer_attrappe([]), grenze=5.0)
         ordner = next((self.tmp / "data").glob("runde-*")).name
         (self.tmp / "data" / ordner / "ablauf.json").write_text("{}", encoding="utf-8")  # fehlerhaft: läuft neu
         zweite, gebaut = Claude(self.tmp), []
         z = runde.runde(self.pfade, laufen=zweite, renderer_bauen=renderer_attrappe(gebaut), fortsetzen=ordner)
         laeufe = [re.search(r"data/runde-[^ \n]+?/(\w+)\.json", p).group(1) for p, _ in zweite.prompts]
         self.assertEqual(laeufe, ["ablauf", "stueck_im_stueck"])  # Szenenkarte übernommen
+        self.assertEqual([s for _, s in zweite.prompts], [None, "s1"])  # neue Sitzung, Aufgabe setzt sie fort
         self.assertEqual(z["usd"], 1.0)
         self.assertEqual(len(gebaut), 4)
 
@@ -179,7 +180,12 @@ class Runde(unittest.TestCase):
 
     def test_kostengrenze(self):
         with self.assertRaisesRegex(runde.RundenFehler, "Kostengrenze 5.00 USD"):
-            runde.runde(self.pfade, laufen=Claude(self.tmp, usd=3.0), renderer_bauen=renderer_attrappe([]))
+            runde.runde(self.pfade, laufen=Claude(self.tmp, usd=3.0), renderer_bauen=renderer_attrappe([]), grenze=5.0)
+
+    def test_ohne_grenze_laeuft_alles(self):
+        self.assertIsNone(runde.GRENZE_USD)
+        z = runde.runde(self.pfade, laufen=Claude(self.tmp, usd=30.0), renderer_bauen=renderer_attrappe([]))
+        self.assertEqual(z["usd"], 90.0)
 
     def test_kontextdatei_fehlt(self):
         next(self.pfade.texte.glob("*Szenenaufgabe_CvO*")).unlink()
@@ -231,7 +237,7 @@ class Runde(unittest.TestCase):
 
     def test_an_lia_ohne_dokumente(self):
         with self.assertRaises(runde.RundenFehler):
-            runde.runde(self.pfade, laufen=Claude(self.tmp, usd=3.0), renderer_bauen=renderer_attrappe([]))
+            runde.runde(self.pfade, laufen=Claude(self.tmp, usd=3.0), renderer_bauen=renderer_attrappe([]), grenze=5.0)
         ordner = next((self.tmp / "data").glob("runde-*"))
         with self.assertRaisesRegex(runde.RundenFehler, "nicht fertig, es fehlen: 1 Szenenkarte.docx"):
             runde.an_lia(ordner, basis=self.tmp / "auftraege", agenten_dir=self.tmp.parent)

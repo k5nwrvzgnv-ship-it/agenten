@@ -6,8 +6,9 @@ Hilft Lia in ihrem zweiten Fach Theater (Darstellendes Spiel). Erste Aufgabe: au
 sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstellen behalten.
 
 ## Stand (29.10.2026)
-- Plan, Pakete (wie lia/examen) und Kostengrenze 5 USD je Aufruf von Jan freigegeben (29.10.).
-- Code fertig, 54 Tests grün, in pruefen.sh eingetragen.
+- Plan und Pakete (wie lia/examen) von Jan freigegeben (29.10.). Kostengrenze seit 29.10. nachmittags aufgehoben
+  (siehe Entscheidungen); der erste Lauf lief noch mit 5 USD.
+- Code fertig, 55 Tests grün, in pruefen.sh eingetragen.
 - An Lia geschickt (Jans Okay nach Vorschau, 29.10. 15:01, Auftrag 20261029-150107-theater-0baec0): die vier docx,
   ohne Feedback-Knöpfe, von Lias Zentrale um 15:01:33 zugestellt (4 Nachrichten). Die Zentrale warnte: Text zu lang
   und ein Satz mit 29 Wörtern (Sprachregel agentkit.sprache). Gesendet ist gesendet; nachricht_an_lia ist danach
@@ -32,7 +33,8 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   - Runde gesamt 6,84 USD. Alle vier Dokumente in data/runde-20261029-140740/fuer-lia/ (docx und PDF-Vorschau).
     Erst Jan zur Vorschau, dann an Lia (siehe oben).
 - Umbau nach dem Lauf: runde.py <ordner> setzt eine Runde fort (geprüfte Antworten werden übernommen); die
-  Szenenaufgabe läuft in einer eigenen Sitzung mit dem Ablauf als Kurzfassung statt des ganzen Stücks.
+  Szenenaufgabe bekommt den Ablauf zusätzlich als Kurzfassung. (Die eigene Sitzung für die Szenenaufgabe, nur der
+  Kosten wegen, ist wieder zurückgenommen: sie läuft in der Hauptsitzung, siehe Entscheidungen.)
   Ablauftabelle mit drei Spalten, Seiten zusammengefasst, Optionen als Überschriften.
 - Zerlegung am echten Text geprüft: 2253 Einheiten (Akt 1: [1]–[1113], S. 4–74; Akt 2: [1114]–[1821], S. 75–130;
   Akt 3: [1822]–[2253], S. 131–170). Sprechzeit geschätzt 68 / 40 / 29 Min. Kein Wort geht verloren (nur die
@@ -67,7 +69,8 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Entfernt Fußzeile und Anmerkung der Ansichtssendung (auch mitten in der Zeile). Sprechzeit 130 Wörter/Min.
 - runde.py: bereitet data/runde-<zeit>/kontext/ vor (Stück in 6 nummerierten Teilen, vorgaben.md aus theater.toml
   und Lias Texten, grundlagen.md aus 12 ausgewählten Infoblättern und Aufgaben), dann drei Claude-Läufe (Opus) in
-  einer Sitzung, je höchstens eine Nachbesserung, Kostengrenze 5 USD (Jan 29.10.2026).
+  einer Sitzung (fortgesetzte Runde ohne Sitzung: neue), je höchstens eine Nachbesserung, keine Kostengrenze
+  (GRENZE_USD = None; runde(grenze=...) nur noch für Tests). Kosten stehen im Log und in der Meldung an Jan.
   1. karte.py: szenenkarte.json (8–45 Spielanlässe mit Nummernbereich, Figuren, worum, Komik, Muss-Punkte,
      Pointen). Python prüft Akt, Nummern, Überschneidungen, Muss-Liste (Punkte, die nicht im Original stehen,
      unter nicht_gefunden mit Grund).
@@ -99,16 +102,18 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 - 29.10.2026: Bewertungsdaten aus Lias Zip werden nicht verwendet (Schülerdaten).
 - 29.10.2026: Seiten in den Dokumenten = gedruckte Seiten der Ansichtssendung (E 245). Ob die gekauften
   Textbücher gleich umbrochen sind, ist nicht geprüft.
+- 29.10.2026 (Jan): Kosten spielen keine Rolle, die Qualität des Ergebnisses entscheidet. Deshalb keine
+  Kostengrenze mehr, und die Szenenaufgabe läuft wieder in der Sitzung, die das Stück kennt. Weiter gilt die
+  Grenze des Kontingents (5-Stunden-Fenster): ist es voll, bricht ein Lauf mit LimitErreicht ab und lässt sich mit
+  runde.py <ordner> fortsetzen. Künftige Abwägungen im Agenten nach Qualität, nicht nach Preis.
 
 ## Offene Punkte
 1. Lias Feedback abwarten. Eine Regel landet unter „Gelernte Regeln“ hier; eine Nachbesserung wird ein Vorschlag an
    Jan, weil theater keinen Dienst hat (shared/feedback prüft das).
-2. Kostengrenze: Eine volle neue Runde mit Buch dürfte über 7 USD kosten (Szenenkarte liest dann auch das Buch,
-   nicht gemessen). Mit 5 USD bricht sie ab und muss fortgesetzt werden. Jan entscheidet.
-3. Fragen an Lia (über Jan):
+2. Fragen an Lia (über Jan):
    - Frederick (Philip/Scheich) fehlt in Figuren.docx. Fällt die Figur weg, oder ist sie nur vergessen?
    - Termin der Aufführung und bis wann sie den Ablaufvorschlag braucht.
-4. Folgerunden aus Lias Feedback: heute startet runde.py immer von vorn. Eine Runde, die auf einem bestehenden
+3. Folgerunden aus Lias Feedback: heute startet runde.py immer von vorn. Eine Runde, die auf einem bestehenden
    Ablauf weiterarbeitet, fehlt noch.
 
 ## Gelernte Regeln

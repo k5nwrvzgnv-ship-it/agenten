@@ -8,11 +8,12 @@ Ablauf (Plan Jan 29.10.2026):
 1. Vorbereiten ohne Claude: Stücktext zerlegen (stueck.py), nummerierte Teile, Lias Vorgaben, ausgewählte
    Grundlagen und Kapitel aus Lias Fachbuch (buch.py) nach data/runde-<zeit>/kontext/ (Claude liest nur im
    Agent-Ordner).
-2. Szenenkarte (karte.py) und Ablauf (fassung.py) in einer Sitzung, Szenenaufgabe (aufgabe.py) in einer neuen,
-   kleinen Sitzung (nur der Ablauf, nicht das Stück). Opus, je höchstens eine Nachbesserung, danach Abbruch.
+2. Szenenkarte (karte.py), Ablauf (fassung.py) und Szenenaufgabe (aufgabe.py) in einer Sitzung (bei einer
+   fortgesetzten Runde ohne Sitzung eine neue). Opus, je höchstens eine Nachbesserung, danach Abbruch.
 3. Python baut die vier Dokumente nach data/runde-<zeit>/fuer-lia/ und meldet Jan das Ergebnis (Vorschau,
    erst danach geht es an Lia).
-Kostengrenze 5 USD je Aufruf (Jan, 29.10.2026). Fehler: loggen und Meldung an Jan, nie still.
+Keine Kostengrenze (Jan 29.10.2026: die Qualität entscheidet); Kosten stehen im Log und in der Meldung.
+Fehler: loggen und Meldung an Jan, nie still.
 """
 
 import json
@@ -32,7 +33,7 @@ from agentkit import auftraege, claude_lauf, config, log, meldungen
 AGENT = "theater"
 HIER = Path(__file__).resolve().parent
 logger = log.hole_logger(HIER, AGENT)
-GRENZE_USD = 5.0
+GRENZE_USD = None  # Jan 29.10.2026: Kosten spielen keine Rolle, die Qualität entscheidet (vorher 5 USD)
 DOKUMENTE = ("1 Szenenkarte.docx", "2 Ablauf und Varianten.docx", "3 Spielfassung.docx",
              "4 Szenenaufgabe Stück im Stück.docx")
 
@@ -51,11 +52,13 @@ class RundenFehler(Exception):
 
 
 class Kosten:
-    def __init__(self, grenze: float = GRENZE_USD):
+    """Summe der Läufe fürs Log und die Meldung; grenze None = keine Grenze."""
+
+    def __init__(self, grenze: float | None = GRENZE_USD):
         self.grenze, self.summe = grenze, 0.0
 
     def vorher(self):
-        if self.summe >= self.grenze:
+        if self.grenze is not None and self.summe >= self.grenze:
             raise RundenFehler(f"Kostengrenze {self.grenze:.2f} USD erreicht ({self.summe:.2f} USD)")
 
     def dazu(self, erg, wofuer: str):
@@ -210,7 +213,8 @@ def bauen(ordner: Path, beschreibungen: list[dict], profil: dict, renderer_bauen
     return dateien
 
 
-def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None, fortsetzen: str | None = None) -> dict:
+def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None, fortsetzen: str | None = None,
+          grenze: float | None = GRENZE_USD) -> dict:
     """Führt eine Runde aus. Rückgabe: Zusammenfassung für die Meldung. Fehler: RundenFehler u. a.
 
     fortsetzen: Name eines Ordners in data/ (z. B. nach Abbruch an der Kostengrenze). Schon geprüfte Antworten
@@ -225,7 +229,7 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
         ordner = pfade.hier / "data" / f"runde-{time.strftime('%Y%m%d-%H%M%S')}"
     v, einheiten, rel = vorbereiten(pfade, ordner)
     titel, muss, rahmen = v["stueck"]["titel"], v["muss"], v["rahmen"]
-    kosten = Kosten()
+    kosten = Kosten(grenze)
     rel_ordner = ordner.relative_to(pfade.hier)
 
     k, sitzung = _schritt(
@@ -236,13 +240,14 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
     f, sitzung = _schritt(
         laufen, kosten, "Ablauf", fassung.prompt(str(rel_ordner / "ablauf.json"), rahmen),
         ordner / "ablauf.json", lambda d: fassung.pruefen(d, einheiten, muss, rahmen), sitzung)
-    # Eigene, kleine Sitzung: die Fortsetzung schickt sonst den ganzen Stücktext noch einmal mit (Lauf 29.10.:
-    # Ablauf in derselben Sitzung 3,27 USD)
-    a, _ = _schritt(
+    # In derselben Sitzung: Claude kennt dort Stück, Szenenkarte und die Gründe für den Ablauf (Qualität vor
+    # Kosten, Jan 29.10.2026). Nur ohne Sitzung (fortgesetzte Runde, Schritte übernommen) eine neue; der Prompt
+    # reicht dafür auch allein (Ablauf als Kurzfassung, Vorgaben, Grundlagen und Buch zum Lesen).
+    a, sitzung = _schritt(
         laufen, kosten, "Szenenaufgabe",
         aufgabe.prompt(str(rel_ordner / "stueck_im_stueck.json"), rel["vorgaben"], rel["grundlagen"],
                        aufgabe.ablauf_kurz(f), aufgabe.format_abschnitte(), rel["buch"]),
-        ordner / "stueck_im_stueck.json", aufgabe.pruefen, None)
+        ordner / "stueck_im_stueck.json", aufgabe.pruefen, sitzung)
 
     fassung.schreiben_text(ordner / "spielfassung.txt", f, einheiten)
     profil = tomllib.loads(pfade.profil.read_text(encoding="utf-8"))

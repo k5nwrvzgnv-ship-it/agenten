@@ -1,8 +1,8 @@
 """Schritt 3: Szenenaufgabe, mit der die SuS das Stück im Stück selbst erfinden (Plan Jan 29.10.2026).
 
 Claude schreibt die Renderer-Beschreibung (arbeitsblatt) direkt, im Stil von Lias Szenenaufgaben. Python prüft
-sie mit renderer.pruefen; Fehler gehen einmal an Claude zurück. Eigene Sitzung mit dem Ablauf als Kurzfassung,
-ohne Stücktext (kostet so einen Bruchteil einer fortgesetzten Sitzung).
+sie mit renderer.pruefen; Fehler gehen einmal an Claude zurück. Läuft in der Sitzung von Szenenkarte und Ablauf;
+der Prompt enthält den Ablauf als Kurzfassung, damit er auch in einer neuen Sitzung reicht (fortgesetzte Runde).
 """
 
 from pathlib import Path
