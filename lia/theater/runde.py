@@ -269,16 +269,14 @@ def melden_text(z: dict) -> str:
 
 def nachricht_an_lia(z: dict) -> tuple[str, dict]:
     """Ergebnistext und daten für Lias Zentrale (shared/telegram/vorlagen.py: kern, höchstens 3 Punkte, pruefen)."""
-    kern = (f"Hier ist ein erster Vorschlag für deine Fassung von „Der nackte Wahnsinn“: {z['bausteine']} Bausteine "
-            f"für {karte.zahl(z['minuten'])} Minuten. Vom Original bleiben nur die Pointen, etwa "
-            f"{z['sprechminuten']:.0f} Minuten Text, alles andere sind eigene Szenen. Lies in Ruhe und antworte "
-            "direkt auf diese Nachricht, gern mit der Diktierfunktion: was passt, was nicht, was fehlt.")
-    punkte = [f"1 Szenenkarte und 2 Ablauf: das Original in {z['anlaesse']} Spielanlässen mit deinen Muss-Punkten, "
-              "dazu der Ablauf mit je zwei Varianten zu deinen offenen Fragen und Ideen, damit es weniger lasch wird.",
-              "3 Spielfassung: Originaltext mit Seiten und Strichen, neue Texte (Einstieg, Heraustreten, Chor) als "
-              "Vorschlag zum Umarbeiten.",
-              "4 Szenenaufgabe: Die SuS erfinden das Stück im Stück selbst, in einer Einheit."]
-    pruefen = ("Zwei Fragen: Frederick fehlt in deiner Figurenliste. Fällt er weg? Und wann ist die Aufführung?")
+    # Sprachregel der Zentrale (agentkit.sprache, für Lia): kurze Sätze, höchstens 600 Zeichen für alles zusammen
+    kern = (f"Hier ist ein erster Plan für dein Stück. Er dauert {karte.zahl(z['minuten'])} Minuten. "
+            f"Vom Original bleiben nur die besten Stellen, etwa {z['sprechminuten']:.0f} Minuten Text. "
+            "Lies in Ruhe. Dann antworte einfach auf diese Nachricht.")
+    punkte = [f"Datei 1 und 2: das Stück in {z['anlaesse']} Szenen und dein Ablauf, mit Ideen zu deinen Fragen.",
+              "Datei 3: der Text zum Spielen, mit Strichen.",
+              "Datei 4: Die Klasse erfindet das Stück im Stück selbst."]
+    pruefen = "Fällt Frederick weg? Und wann ist die Aufführung?"
     text = "\n".join([kern] + [f"- {p}" for p in punkte] + [pruefen])
     # Keine Feedback-Knöpfe: „Passt“ sagt bei einem Entwurf mit Varianten nicht, was passt (wie lia/recherche).
     return text, {"kern": kern, "punkte": punkte, "pruefen": pruefen, "knoepfe": "nur_antwort"}

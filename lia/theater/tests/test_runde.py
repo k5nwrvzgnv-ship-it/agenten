@@ -216,10 +216,18 @@ class Runde(unittest.TestCase):
         self.assertLessEqual(len(daten["kern"]), 600)  # Grenzen aus shared/telegram/vorlagen.py
         self.assertEqual(len(daten["punkte"]), 3)
         self.assertTrue(all(len(p) <= 300 for p in daten["punkte"]))
-        self.assertIn("4 Bausteine für 37 Minuten", daten["kern"])
+        self.assertIn("Er dauert 37 Minuten.", daten["kern"])
         self.assertIn("Frederick", daten["pruefen"])
         with self.assertRaisesRegex(runde.RundenFehler, f"Schon an Lia geschickt: {aid}"):
             runde.an_lia(ordner, basis=basis, agenten_dir=wurzel)
+
+    def test_nachricht_an_lia_haelt_sprachregel(self):
+        from agentkit import sprache
+        # echte Größen der ersten Runde; 80 Zeichen Puffer für den Kopf, den die Zentrale davorsetzt
+        text, daten = runde.nachricht_an_lia({"bausteine": 19, "minuten": 38.0, "anlaesse": 44, "sprechminuten": 14.9})
+        sichtbar = "\n".join([daten["kern"], *daten["punkte"], daten["pruefen"]])
+        self.assertEqual(sprache.pruefen(sichtbar, sprache.LIA), [])
+        self.assertLessEqual(sprache.lesbarkeit(sichtbar).zeichen, sprache.GRENZEN[sprache.LIA].zeichen - 80)
 
     def test_an_lia_ohne_dokumente(self):
         with self.assertRaises(runde.RundenFehler):

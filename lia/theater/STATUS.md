@@ -7,7 +7,11 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 
 ## Stand (29.10.2026)
 - Plan, Pakete (wie lia/examen) und Kostengrenze 5 USD je Aufruf von Jan freigegeben (29.10.).
-- Code fertig, 50 Tests grün, in pruefen.sh eingetragen.
+- Code fertig, 54 Tests grün, in pruefen.sh eingetragen.
+- An Lia geschickt (Jans Okay nach Vorschau, 29.10. 15:01, Auftrag 20261029-150107-theater-0baec0): die vier docx,
+  ohne Feedback-Knöpfe, von Lias Zentrale um 15:01:33 zugestellt (4 Nachrichten). Die Zentrale warnte: Text zu lang
+  und ein Satz mit 29 Wörtern (Sprachregel agentkit.sprache). Gesendet ist gesendet; nachricht_an_lia ist danach
+  gekürzt und im Test gegen die Sprachregel geprüft. Lias Antwort kommt als Feedback (lia-feedback).
 - Erster echter Lauf 29.10. (data/runde-20261029-140740/), an der Kostengrenze abgebrochen:
   - Szenenkarte 2,18 USD (398 s, 868k Tokens): 44 Spielanlässe (21/15/8), beim ersten Versuch geprüft, ohne
     Nachbesserung. M0-1, M3-3, M3-4 unter nicht_gefunden (Lias eigene Ideen, mit Anknüpfungspunkt). 16 Hinweise,
@@ -26,7 +30,7 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
     314–315 von mir im Auszug nachgeprüft: stimmen. Schönheitsfehler: Seite 2 halb leer (Claude setzt vor die
     Tabelle einen Seitenwechsel).
   - Runde gesamt 6,84 USD. Alle vier Dokumente in data/runde-20261029-140740/fuer-lia/ (docx und PDF-Vorschau).
-    An Jan zur Vorschau geschickt, Lia hat nichts bekommen.
+    Erst Jan zur Vorschau, dann an Lia (siehe oben).
 - Umbau nach dem Lauf: runde.py <ordner> setzt eine Runde fort (geprüfte Antworten werden übernommen); die
   Szenenaufgabe läuft in einer eigenen Sitzung mit dem Ablauf als Kurzfassung statt des ganzen Stücks.
   Ablauftabelle mit drei Spalten, Seiten zusammengefasst, Optionen als Überschriften.
@@ -56,6 +60,9 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 ## Aufbau
 - Aufruf von Hand: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py`
   Ergebnis in data/runde-<zeit>/fuer-lia/ (vier docx, je mit PDF-Vorschau), Meldung an Jan. Noch nicht an Lia.
+  `runde.py <ordner>` setzt eine abgebrochene Runde fort. `runde.py --an-lia <ordner>` (nur in Lias Instanz, nach
+  Jans Durchsicht): legt einen Auftrag für theater an und schließt ihn sofort mit den vier docx ab (daten: kern,
+  3 Punkte, pruefen, knoepfe = "nur_antwort"); Lias Zentrale stellt zu. Nur einmal je Runde (an_lia.json).
 - stueck.py: Textfassung -> nummerierte Einheiten (rede/regie/text, Sprecher, gedruckte Seite, PDF-Seite).
   Entfernt Fußzeile und Anmerkung der Ansichtssendung (auch mitten in der Zeile). Sprechzeit 130 Wörter/Min.
 - runde.py: bereitet data/runde-<zeit>/kontext/ vor (Stück in 6 nummerierten Teilen, vorgaben.md aus theater.toml
@@ -94,7 +101,8 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Textbücher gleich umbrochen sind, ist nicht geprüft.
 
 ## Offene Punkte
-1. Jans Vorschau der vier Dokumente, dann an Lia (Weg wie lia/recherche, über Auftrag an Lias Zentrale).
+1. Lias Feedback abwarten. Eine Regel landet unter „Gelernte Regeln“ hier; eine Nachbesserung wird ein Vorschlag an
+   Jan, weil theater keinen Dienst hat (shared/feedback prüft das).
 2. Kostengrenze: Eine volle neue Runde mit Buch dürfte über 7 USD kosten (Szenenkarte liest dann auch das Buch,
    nicht gemessen). Mit 5 USD bricht sie ab und muss fortgesetzt werden. Jan entscheidet.
 3. Fragen an Lia (über Jan):
