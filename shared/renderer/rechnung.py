@@ -210,6 +210,16 @@ def ausrechnen(baum: Knoten, werte: dict, reihe: list[str]):
     return ausrechnen(baum.kinder[1], werte, reihe) if wert is LEER else wert
 
 
+def spaltenbuchstabe(nr: int) -> str:
+    """Excel-Spalte: 0 -> A, 25 -> Z, 26 -> AA."""
+    text = ""
+    nr += 1
+    while nr:
+        nr, rest = divmod(nr - 1, 26)
+        text = chr(65 + rest) + text
+    return text
+
+
 def zeile_ausrechnen(formeln: dict[str, Knoten], reihe: list[str], eingaben: dict) -> dict:
     """Alle Werte einer Zeile: Eingaben (Zahl oder LEER) plus jede Rechnung in der nötigen Reihenfolge."""
     werte = dict(eingaben)

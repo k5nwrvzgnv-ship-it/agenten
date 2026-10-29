@@ -683,22 +683,12 @@ def _formeln_pruefen(p: "_Pruefer", spalten: list, pfad: str):
         p.melden(f"{pfad}.spalten[{j}].formel", "Rechnungen brauchen sich gegenseitig: " + " -> ".join(kreis)
                  + " (keine Rechnung darf sich selbst brauchen, auch nicht über einen Bereich)")
         return
-    zelle = {sid: f"{_spaltenbuchstabe(k)}{MAX_ZEILEN + 20}" for k, sid in enumerate(ids)}.__getitem__
+    zelle = {sid: f"{rechnung.spaltenbuchstabe(k)}{MAX_ZEILEN + 20}" for k, sid in enumerate(ids)}.__getitem__
     for j, s in enumerate(spalten):
         if s["art"] == "rechnung":
             if len(rechnung.excel(s["baum"], zelle)) > rechnung.MAX_EXCEL:
                 p.melden(f"{pfad}.spalten[{j}].formel", "wird in Excel zu lang, bitte vereinfachen "
                                                         "(z. B. einen Teil in eine eigene rechnung-Spalte)")
-
-
-def _spaltenbuchstabe(nr: int) -> str:
-    """0 -> A, 25 -> Z, 26 -> AA."""
-    text = ""
-    nr += 1
-    while nr:
-        nr, rest = divmod(nr - 1, 26)
-        text = chr(65 + rest) + text
-    return text
 
 
 def _punkt(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> dict | None:

@@ -31,6 +31,7 @@ STANDARD = {
         "rechenbeispiel": "F2F2F2",
         "tabellenkopf": "E7E6E6",
         "kennzeichnung": "7F7F7F",  # Zusammenfassung: [unsicher], [nur mündlich] und Quellen (Schrift)
+        "rechenfeld": "F2F2F2",  # Arbeitsmappe: Felder, in denen Excel rechnet (Kopf: tabellenkopf)
     },
 }
 
