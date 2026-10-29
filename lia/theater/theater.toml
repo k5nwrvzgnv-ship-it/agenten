@@ -1,0 +1,114 @@
+# Vorgaben für Lias Fassung von „Der nackte Wahnsinn“ (aus Erste_Gedanken.docx, Figuren.docx und Lias Nachricht
+# vom 29.10.2026). Keine Schülerdaten. Für Claude schreibgeschützt (*.toml).
+
+[stueck]
+titel = "Der nackte Wahnsinn"
+autor = "Michael Frayn"
+textfassung = "data/text/eingang__e-245-der-nackte-wahnsinn.pdf.txt"
+
+[rahmen]
+minuten_min = 35
+minuten_max = 40
+spieler = 18
+einheiten = "etwa 20 Einheiten à 60 Minuten plus 2–3 halbe Tage"
+koennen = ["Kompositionsmethoden", "chorisches Sprechen", "Status", "bewegte Standbilder"]
+# Lias Zeitplan aus Figuren.docx: Eröffnung 3 Min, je Akt 10 Min
+teile = [
+  { akt = 0, name = "Eröffnung", minuten = 3 },
+  { akt = 1, name = "Akt 1: Generalprobe (4. Wand bleibt)", minuten = 10 },
+  { akt = 2, name = "Akt 2: Premiere (Publikum einbezogen)", minuten = 10 },
+  { akt = 3, name = "Akt 3: Dernière (komplettes Chaos)", minuten = 10 },
+]
+
+# Was nach Lia bleiben muss. akt = Teil in Lias Fassung.
+[[muss]]
+id = "M0-1"
+akt = 0
+text = "Einstiegsszene außerhalb des Textes: Rollen werden vorgestellt, eventuell mit Choreo (Kostüme anziehen, Eigenheiten)"
+[[muss]]
+id = "M1-1"
+akt = 1
+text = "Lloyd spricht anfangs von hinten (Überraschung) und kommt dann nach vorn"
+[[muss]]
+id = "M1-2"
+akt = 1
+text = "Poppy kommt immer wieder durch die Seitentür im Zuschauerraum"
+[[muss]]
+id = "M1-3"
+akt = 1
+text = "Klares Signal für Spiel und Nicht-Spiel, zum Beispiel „Und Bitte!“"
+[[muss]]
+id = "M1-4"
+akt = 1
+text = "Jemand aus dem Publikum übernimmt, als Selsdon fehlt"
+[[muss]]
+id = "M1-5"
+akt = 1
+text = "Belinda spricht mit dem Publikum, wenn sie über die Truppe schwärmt"
+[[muss]]
+id = "M1-6"
+akt = 1
+text = "Kontaktlinsen-Moment (eventuell mit Publikum)"
+[[muss]]
+id = "M1-7"
+akt = 1
+text = "Aufdeckmoment der Beziehungen (Dreiecksbeziehung evtl. in etwas anderes umfunktioniert)"
+[[muss]]
+id = "M1-8"
+akt = 1
+text = "Schluss: Poppy schließt unter Tränen den Vorhang"
+[[muss]]
+id = "M2-1"
+akt = 2
+text = "Blumen-Missverständnis (und Whisky-Verwechslung)"
+[[muss]]
+id = "M2-2"
+akt = 2
+text = "Manche wollen nicht auftreten"
+[[muss]]
+id = "M2-3"
+akt = 2
+text = "Durchsagen"
+[[muss]]
+id = "M2-4"
+akt = 2
+text = "Meditationsübungen, evtl. als Traumreise"
+[[muss]]
+id = "M2-5"
+akt = 2
+text = "Kamera: vor und hinter der Bühne darstellen"
+[[muss]]
+id = "M3-1"
+akt = 3
+text = "Durchsagen unterbrechen Tim"
+[[muss]]
+id = "M3-2"
+akt = 3
+text = "Chaos, alle sind zerstritten"
+[[muss]]
+id = "M3-3"
+akt = 3
+text = "Freeze: Heraustreten aus den Rollen, die SuS sprechen als sie selbst"
+[[muss]]
+id = "M3-4"
+akt = 3
+text = "Chor am Ende zu Scheitern und Angst"
+
+# Lias Grundlagen als Kontext für Claude: Teil des Dateinamens in data/text/ (genau ein Treffer).
+# Bewusst nicht: Bewertung und Klausuren, Planungen mit Namen, Chortexte der SuS (persönliche Aussagen).
+[kontext]
+dateien = [
+  "Kompositionsmethoden_Infoblatt.docx",
+  "Beispiele_Kompositionsmethoden.docx",
+  "Flexibler_Dialog_Versionen.pdf",
+  "Mini_Gestaltungsaufgaben_Steigerung.docx",
+  "Infoblatt_Status.docx",
+  "Spielmo",  # Spielmöglichkeiten_Status.docx (Umlaut im Zip zerlegt)
+  "Der_Chor_Infoblatt.pdf",
+  "Szenenaufgabe_Chor_1.pdf",
+  "Bewegtes_Standbild_Parameter.docx",
+  "Aufgabe_Bewegtes_Standbild .docx",
+  "Theater_Objekte_Infoblatt.docx",
+  "Szenenaufgabe_CvO.docx",
+]
+schema = "data/vorgaben/vom_text_zur_szene.jpg"  # Lias Schema „Vom Text zur Szene“ (Vorschaubild der .pages)
