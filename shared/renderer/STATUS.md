@@ -2,12 +2,16 @@
 
 ## Zweck
 Gemeinsame Bibliothek für Jan und Lia: Claude schreibt eine JSON-Beschreibung, Python baut daraus ein Arbeitsblatt
-(docx) oder Folien (pptx) im Stil von Lias Material oder eine Zusammenfassung (docx) in Jans Stil, mit Kontrolltext
-und Vorschaubildern für Claude. Claude führt nie Code aus. Nutzer: Lias Material-Agent (Übergabe
+(docx) oder Folien (pptx) im Stil von Lias Material, eine Zusammenfassung (docx) in Jans Stil oder eine Arbeitsmappe
+(xlsx, Tabellen zum Ausfüllen mit Rechnungen), mit Kontrolltext und Vorschaubildern für Claude. Claude führt nie Code aus. Nutzer: Lias Material-Agent (Übergabe
 `../../docs/uebergabe-lia-dokumente.md`) und Jans dokumente-Agent (Zusammenfassungen, Hauptordner-STATUS Punkt 3a). Grundlage: `../../docs/lia-architektur.md`, Abschnitt 2.1 (Rolle material).
 
-## Stand (22.10.2026)
-Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 110 Tests). Noch nutzt ihn kein Agent.
+## Stand (29.10.2026)
+Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 153 Tests). lia/unterricht nutzt Arbeitsblatt
+und Folien.
+Art `arbeitsmappe` (Excel) fertig (29.10.): Lias Notentabelle gebaut (`data/nachbau/notentabelle/`, Vorschau
+angesehen, Calc rechnet wie Python). Offen: Jan öffnet sie in Excel, Vergleich mit der Handvorlage, lia/unterricht
+schaltet die Art frei (Bedarf in `../../STATUS.md`).
 Art `zusammenfassung` fertig, mit HNEE-Farben im Profil (Vorschau angesehen, Jan hat die Farben am 22.10. freigegeben,
 Beispiel `beispiele/zusammenfassung-beispiel.json`). Es fehlt nur das Logo (Offene Punkte 1).
 Lias Arbeitsblatt 5.2 und Präsentation 5 sind nachgebaut und nah am Original (Jan hat beide in Word und
@@ -22,24 +26,28 @@ ergebnis = bauen(beschreibung, ausgang / "blatt.docx", profil=profil, vorlage=No
 ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hinweise
 ```
 - Format für Claude: `FORMAT.md` (gehört in den Skill des Agenten). Art `arbeitsblatt` -> .docx, `folien` -> .pptx,
-  `zusammenfassung` -> .docx (Jan bekommt das PDF aus der Vorschau, `ergebnis.pdf`).
+  `zusammenfassung` -> .docx (Jan bekommt das PDF aus der Vorschau, `ergebnis.pdf`), `arbeitsmappe` -> .xlsx
+  (ohne Vorlage; der Kontrolltext endet mit Proben, die Python nachgerechnet hat).
 - Profil: dict, z. B. aus TOML. Vorlage mit Lias Stil: `beispiele/profil-lia-stil.toml` (ohne Namen, Fach und
   Lehrkraft trägt ihr Agent ein), mit Jans Stil: `beispiele/profil-jan-zusammenfassung.toml` (`erstellt_von` trägt
   der dokumente-Agent ein). Felder und Standardwerte: `design.py`.
 - Vorlage: .docx/.pptx des Agenten (`<agent>/data/vorlagen/`); .dotx/.potx vorher mit `vorlage_umwandeln()`.
 - Vorschau: `<ziel ohne Endung>-vorschau/` mit PNG je Seite und PDF. Scheitert sie, steht der Grund in `hinweise`
   (und im Log `renderer`), die Datei gibt es trotzdem. Die PDF nutzt die Ersatzschriften des Servers.
-- Die .venv des Agenten braucht python-docx, python-pptx, Pillow und pypdfium2 (Versionen: `requirements.txt`),
-  LibreOffice kommt aus dem System (`/usr/bin/soffice`).
+- Die .venv des Agenten braucht python-docx, python-pptx, xlsxwriter, Pillow und pypdfium2 (Versionen:
+  `requirements.txt`), LibreOffice kommt aus dem System (`/usr/bin/soffice`, mit Calc für xlsx).
 
 ## Aufbau
 - `__init__.py`: `bauen`, `Ergebnis`, `pruefen`, `vorlage_umwandeln`, `BeschreibungUngueltig`.
 - `pruefung.py`: strenge Prüfung (reine Logik), `lesen()` liefert die Beschreibung mit allen Standardwerten. Grenzen
   stehen oben im Modul und in `FORMAT.md`, bei Änderung beide anpassen (`tests/test_format.py` prüft die Beispiele).
-- `arbeitsblatt.py`, `folien.py`, `zusammenfassung.py`: bauen aus der gelesenen Beschreibung. Die Zusammenfassung
+- `arbeitsblatt.py`, `folien.py`, `zusammenfassung.py`, `arbeitsmappe.py`: bauen aus der gelesenen Beschreibung.
+  `rechnung.py`: Rechensprache der Arbeitsmappe (reine Logik: zerlegen, gegen Spalten prüfen, Kreise, nach Excel
+  übersetzen, in Python nachrechnen). Die Zusammenfassung
   erbt Seite, Schrift und XML-Hilfen vom Arbeitsblatt (`arbeitsblatt._Bau`), Änderungen dort wirken auf beide. `design.py`: Profil. `icons.py`: 55 Icons
   (Tabler Icons 3.49.0, MIT, Schriften in `icons/`). `vorlagen.py`. `kontrolle.py`: Kontrolltext aus der gebauten
-  Datei in Lesereihenfolge. `vorschau.py`: LibreOffice -> PDF, pypdfium2 -> PNG.
+  Datei in Lesereihenfolge (xlsx mit zipfile/xml.etree). `vorschau.py`: LibreOffice -> PDF, pypdfium2 -> PNG.
+  `tests/test_calc.py`: Calc rechnet dasselbe wie `rechnung.py` (übersprungen ohne LibreOffice).
 - `data/` (nicht im Repo): `lia-vorbilder/` (Lias PDFs), `nachbau/` (Nachbauten mit Vergleichsbildern),
   `icons/uebersicht.png`, Testausgaben.
 - .venv neu aufsetzen: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann
@@ -106,79 +114,24 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 - Keine Inhalte, Zugangsdaten oder Netzzugriffe im Renderer.
 - Erst die Vorschau ansehen, dann „fertig“ sagen.
 
-## Nächste Schritte
-### Excel als neue Art `arbeitsmappe` (Plan 29.10., wartet auf Jans Freigabe, noch nichts gebaut)
-Anlass: Lias Notentabelle (Bedarf in `../../STATUS.md`, 29.10.). Referenzfall: Nr., Name, Note 1–5 (ganze Zahlen
-0–15), Durchschnitt nur über eingetragene Noten (zählt 2/3), LEK 0–15 (1/3), Endnote mit zwei Nachkommastellen,
-35 Zeilen. Die von Hand gebaute Vorlage des lia-Chats liegt nicht auf dem Server (Vergleich, sobald Jan sie hochlädt).
-- **Format** (neuer Abschnitt in `FORMAT.md`): `"art": "arbeitsmappe"` -> .xlsx (Name bewusst anders als der Block
-  `tabelle`). Felder: `titel`, `blaetter` (1–10). Je Blatt: `name` (Reiter, 1–31 Zeichen, ohne `[]:*?/\`, eindeutig),
-  `titel` (erste Zeile, über alle Spalten), `hinweise` (0–5 Zeilen unter dem Titel, je höchstens 300 Zeichen),
-  `zeilen` (1–500 leere Eingabezeilen), `spalten` (1–30), `fixierte_spalten` (0–3, Standard 0), `hochformat`
-  (Standard false). Je Spalte: `id` (klein, a-z 0-9 _, eindeutig), `kopf` (höchstens 50), `breite` (3–60 Zeichen,
-  optional, sonst nach Art), `art`:
-  - `nummer`: laufende Nummer 1..zeilen, vom Renderer geschrieben.
-  - `text`: Eingabe, optional `max_zeichen`.
-  - `zahl`: Eingabe, `ganz` (Standard false), `min`/`max` (optional), `nachkommastellen` 0–4 (Anzeige).
-  - `rechnung`: `formel` in der kleinen Rechensprache unten, `nachkommastellen` 0–4 (nur Anzeige, der Wert bleibt
-    genau; runden nur mit `runden`). Grau hinterlegt.
-  Vorbelegte Werte (`daten`) und Auswahllisten bewusst nicht in Stufe 1: nicht nötig für den Referenzfall, und
-  keine Schülerdaten über Claude. Später nur erweitern.
-- **Formeln:** Claude schreibt nie Excel-Formeln. Erlaubt: Zahlen (Punkt als Komma), Spalten-`id`s derselben Zeile,
-  Bereiche `n1:n5` (nebeneinanderliegende Zahl- oder Rechenspalten), `+ - * /`, Klammern, Funktionen `summe`,
-  `mittelwert`, `min`, `max`, `anzahl` (Bereiche oder Listen), `runden(x, n)` und `wenn_leer(a, b)` (a, solange a
-  leer ist b). Beispiel: Durchschnitt `mittelwert(n1:n5)`, Endnote `wenn_leer(2/3 * schnitt + 1/3 * lek, schnitt)`
-  (ohne LEK zählt der Durchschnitt allein, ohne Note bleibt sie leer). `pruefung.py` zerlegt die Formel selbst (Tokenizer,
-  rekursiver Abstieg, höchstens 300 Zeichen, Tiefe 10) und meldet unbekannte Spalten mit Vorschlag
-  (`_aehnlich`), Textspalten in Rechnungen, Selbstbezug, Zyklen, `/0`. Python erzeugt den Excel-Text aus dem Baum
-  (AVERAGE(C5:G5)), kein Zeichen von Claude landet ungeprüft in einer Formel. Damit sind INDIRECT, HYPERLINK,
-  WEBSERVICE, DDE (`=cmd|…`), Verweise auf andere Blätter oder Dateien ausgeschlossen. Leer-Regel: Eine Rechnung
-  bleibt leer, solange ein benutzter Einzelwert leer ist oder ein Bereich in mittelwert/min/max ganz leer ist
-  (Excel: `IF(OR(COUNT(C5:G5)=0,COUNT(I5)=0),"",…)`; COUNT statt ISBLANK, weil eine leere Rechnung "" enthält).
-  Alle Texte (Titel, Kopf, Hinweise) mit `write_string` schreiben, sonst würde ein Text mit `=` zur Formel.
-- **Eingabeprüfung:** je `zahl`-Spalte eine Datenüberprüfung (xlsxwriter `data_validation`) mit deutscher
-  Fehlermeldung aus dem Renderer, z. B. „Bitte eine ganze Zahl von 0 bis 15 eintragen.“, Abweisen statt Warnen.
-  `text` mit `max_zeichen` ebenso. Zahlenformate nur aus `ganz`/`nachkommastellen` (`0`, `0.00`), keine freien
-  Formatcodes.
-- **Aufbau und Druck:** Titel fett, Hinweise klein, Kopfzeile hinterlegt mit Rahmen, Tabelle mit dünnen Linien,
-  Kopf fixiert (`freeze_panes`), A4 quer (`hochformat` für Ausnahmen), auf Seitenbreite (`fit_to_pages(1, 0)`),
-  Kopf auf jeder Seite wiederholt, Fußzeile „Seite x von y“. Kein Blattschutz, Rechenfelder nur grau.
-- **Bibliothek:** xlsxwriter 3.2.9 (schon in `requirements.txt` und der .venv), neues Modul `arbeitsmappe.py`.
-  Rechensprache in eigenem Modul `rechnung.py` (reine Logik: zerlegen, prüfen, nach Excel übersetzen, selbst
-  ausrechnen), von `pruefung.py` und `arbeitsmappe.py` genutzt.
-- **Kontrolle:** `kontrolle.py` liest die gebaute .xlsx mit Bordmitteln (zipfile, xml.etree, kein neues Paket):
-  je Blatt Druckformat, fixierte Zeilen/Spalten, Titel, Hinweise, je Spalte Buchstabe, Kopf, Art, Breite,
-  Prüfung, Format, Formel (aus der Datei, mit deutschen Funktionsnamen). Dazu „Probe“: `rechnung.py` rechnet die
-  Formeln mit Beispielwerten selbst nach (alle Eingaben am Minimum, alle am Maximum, jede zweite leer und die
-  übrigen in der Mitte): `Probe 3: Note 1–5 = 8, leer, 8, leer, 8; LEK leer -> Durchschnitt 8,00; Endnote 8,00`.
-  Die Probe zeigt, ob
-  die Beschreibung meint, was gewünscht ist; ob Excel dasselbe rechnet, sichern Tests (unten) und einmal Jan/Lia
-  in Excel ab.
-- **Vorschau ohne Calc:** keine Bilder, `hinweise` sagt „Keine Vorschau: LibreOffice Calc fehlt“, Kontrolltext und
-  Probe müssen dann reichen. **Mit Calc** (`libreoffice-calc-nogui` 24.2.7 aus noble-updates, passt zu Writer und
-  Impress, etwa 30 MB, braucht sudo): Druckbild A4 quer als PNG wie bei docx/pptx und ein Test, der jede
-  Probe-Formel von Calc nachrechnen lässt und mit `rechnung.py` vergleicht. Calc ist installiert (29.10.). Geprüft:
-  xlsx -> PDF (A4 quer, Seitenbreite) und -> CSV gehen. Calc rechnet xlsxwriter-Dateien beim Laden aber nicht neu
-  (zeigt die Platzhalter 0). Abhilfe getestet: im frischen LibreOffice-Profil `registrymodifications.xcu` mit
-  `/org.openoffice.Office.Calc/Formula/Load` `OOXMLRecalcMode` = 0 (immer neu rechnen), dann stimmen die Werte
-  (12,5 / 11,33; ohne LEK 8 / 8). `vorschau.als_pdf` muss das für .xlsx setzen.
-- **Profil:** schlicht. Schrift und Größe aus dem Profil, Kopf `farben.tabellenkopf` (Jan: HNEE EAEADA, Lia:
-  Standard E7E6E6), neuer Profilwert `farben.rechenfeld` (Standard F2F2F2). Keine bunten Flächen.
-- **Tests** (`tests/test_rechnung.py`, `tests/test_arbeitsmappe.py`, Erweiterung von `test_pruefung.py`,
-  `test_format.py`, `test_bauen.py`): Formel zerlegen und übersetzen (Vorrang, Klammern, Bereiche, Kommazahlen,
-  Leer-Regel, `wenn_leer`), Ablehnungen (unbekannte Spalte mit Vorschlag, Textspalte, Zyklus, Selbstbezug, `/0`, fremde
-  Funktion wie `indirekt`, Zeichen wie `=`, `"`, `!`, `$`), Ausrechnen in Python inkl. leerer Felder; Bau des
-  Referenzfalls: Formeln je Zeile mit richtigen Zellbezügen, Datenüberprüfung 0–15, Formate, fixierter Kopf,
-  Druck quer/Seitenbreite, kein Blattschutz, Text mit `=` bleibt Text; Kontrolltext; ungültige
-  Beschreibungen (Blattname, doppelte id, Grenzen) mit Pfad; FORMAT-Beispiel gültig. Mit Calc zusätzlich:
-  Calc-Ergebnis = Python-Ergebnis (skipUnless wie bei der Vorschau).
-- **Schritte nach Freigabe:** (1) `rechnung.py` mit Tests, (2) Prüfung und FORMAT.md, (3) `arbeitsmappe.py`,
-  (4) Kontrolltext und Probe, (5) Referenzfall bauen, Jan öffnet ihn in Excel, Vergleich mit der Handvorlage,
-  (6) mit Calc: Vorschau und Vergleichstest. Je Schritt ein Commit. Danach Bedarf an lia/unterricht (steht in
-  `../../STATUS.md`).
-- **Entschieden (Jan 29.10.):** Calc wird installiert, kein Blattschutz, Endnote mit zwei Stellen nur angezeigt
-  (nicht gerundet), ohne LEK zählt der Durchschnitt der Noten allein.
-- **Offen:** Jans Freigabe des Plans. Wo liegt die Handvorlage?
+## Arbeitsmappe (Excel, gebaut 29.10. nach Jans Plan-Freigabe)
+- Format: `FORMAT.md`, Abschnitt Arbeitsmappe. Leere Vorlagen: Blätter mit Titel, Hinweisen, Spalten (`nummer`,
+  `text`, `zahl`, `rechnung`) und Zeilenzahl. Keine vorbelegten Werte und keine Auswahllisten (später nur erweitern;
+  keine Schülerdaten über Claude).
+- Formeln: Claude schreibt die Rechensprache (`mittelwert(n1:n5)`, `wenn_leer(2/3 * schnitt + 1/3 * lek, schnitt)`),
+  nie Excel. `rechnung.py` erzeugt die Excel-Formel aus dem Baum. Leer-Regel: leer, solange ein benutzter Wert fehlt
+  (summe/mittelwert/min/max: erst wenn alle fehlen), Excel `IF(COUNT(..)=0,"",..)`. COUNT statt ISBLANK, weil eine
+  leere Rechnung "" enthält; COUNT übergeht auch Fehler (#DIV/0!), `ausrechnen()` genauso.
+- Bau (`arbeitsmappe.py`, xlsxwriter): `strings_to_formulas`/`_urls` aus (Text mit `=` bleibt Text), Datenüberprüfung
+  mit deutscher Meldung, Zahlformate nur `0`/`0.00`, Rechenfelder `farben.rechenfeld`, Kopf `farben.tabellenkopf`,
+  kein Blattschutz, Kopf fixiert, A4 quer auf Seitenbreite, Titel bis Kopf auf jeder Seite, „Seite x von y“.
+  Gespeicherte Werte = Werte einer leeren Zeile (sonst zeigen Programme ohne Neuberechnung 0).
+- Calc rechnet xlsx beim Laden nur neu mit `OOXMLRecalcMode` = 0 im Profil; `vorschau.umwandeln` schreibt das in jedes
+  frische Profil. CSV-Ausgabe (`umwandeln(.., "csv")`) zeigt volle Genauigkeit, nur das erste Blatt.
+- Entscheidungen Jan 29.10.: Calc installiert, kein Blattschutz, Nachkommastellen nur Anzeige, ohne LEK zählt der
+  Durchschnitt (per `wenn_leer`).
+- Offen: Jan öffnet `data/nachbau/notentabelle/Notentabelle.xlsx` in Excel (Eingabeprüfung, Rechnung, Druck).
+  Handvorlage des lia-Chats zum Vergleich fehlt auf dem Server. 35 Zeilen ergeben 2 Druckseiten (26 + 9).
 
 ## Offene Punkte
 1. Logo der HNEE: liegt bisher nur weiß als SVG vor (für dunklen Grund). Besser eine offizielle grüne Logo-Datei
@@ -190,7 +143,7 @@ Anlass: Lias Notentabelle (Bedarf in `../../STATUS.md`, 29.10.). Referenzfall: N
 3. Echte Vorlage von Lia oder Jan testen, sobald es eine gibt (Zentrale muss Dateien annehmen, Hauptordner-Chat).
 4. Kleinigkeiten nach Bedarf: Aufzählungspunkte stehen in LibreOffice etwas hoch (in PowerPoint unauffällig),
    Icons im Folieninhalt etwas größer, Zeilennummern im Material (Lias Hilfen verweisen auf Zeilen).
-5. Später für Jans dokumente-Agent: weitere Arten (Brief, Bericht; Excel siehe Nächste Schritte), Bearbeiten bestehender
+5. Später für Jans dokumente-Agent: weitere Arten (Brief, Bericht), Bearbeiten bestehender
    Dateien (Anforderungen in `../../dokumente/STATUS.md`).
 
 ## Gelernte Regeln
