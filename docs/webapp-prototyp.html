@@ -1,0 +1,737 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lias Assistenz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+<style>
+/* Layout: eine Handy-Spalte (max. 34rem), feste Leiste unten, Detailansichten mit Zurück-Kopf.
+   Farben: Heftpapier mit Tinte, Textmarker-Gelb nur für "wartet auf dich" und markierte Stellen. */
+:root {
+  --papier: #f6f8fb;
+  --karte: #ffffff;
+  --tinte: #1b2a3a;
+  --leise: #5b6b7d;
+  --linie: #d9e1ea;
+  --akzent: #1d5c8c;
+  --akzent-fl: #e3eef7;
+  --marker: #f4d23c;
+  --marker-fl: #fdf6d2;
+  --gut: #23784a;
+  --gut-fl: #e2f3e8;
+  --warn: #9a5a00;
+  --warn-fl: #fbefdc;
+  --fehler: #a3312b;
+  --fehler-fl: #f8e3e1;
+  --schatten: 0 1px 2px rgba(27,42,58,.08), 0 4px 14px rgba(27,42,58,.06);
+  --schrift: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --titel: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --papier: #10171f; --karte: #18222d; --tinte: #e6edf4; --leise: #9fb0c1; --linie: #2a3846;
+  --akzent: #7fb6e3; --akzent-fl: #1c3346; --marker: #e8c53a; --marker-fl: #3a3416;
+  --gut: #6fcf97; --gut-fl: #173326; --warn: #f0b35a; --warn-fl: #3a2a12; --fehler: #f08a80; --fehler-fl: #3d1d1b;
+  --schatten: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --papier: #10171f; --karte: #18222d; --tinte: #e6edf4; --leise: #9fb0c1; --linie: #2a3846;
+  --akzent: #7fb6e3; --akzent-fl: #1c3346; --marker: #e8c53a; --marker-fl: #3a3416;
+  --gut: #6fcf97; --gut-fl: #173326; --warn: #f0b35a; --warn-fl: #3a2a12; --fehler: #f08a80; --fehler-fl: #3d1d1b;
+  --schatten: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { background: var(--papier); }
+body { margin: 0; color: var(--tinte); font: 16px/1.5 var(--schrift); -webkit-text-size-adjust: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; border-radius: 6px; }
+
+.app { max-width: 34rem; margin: 0 auto; min-height: 100vh;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(84px + env(safe-area-inset-bottom, 0px)); }
+.proto { font-size: .8rem; color: var(--leise); text-align: center; padding-block: 8px 0; }
+h1, h2, h3 { font-family: var(--titel); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
+.kopf { display: flex; align-items: center; gap: 12px; padding-block: 14px 10px; }
+.kopf h1 { flex: 1; min-width: 0; }
+.zurueck { border: 0; background: var(--akzent-fl); color: var(--akzent); border-radius: 999px;
+  min-height: 44px; padding: 0 16px; font-weight: 700; cursor: pointer; }
+.gruppe { display: grid; gap: 10px; margin-block: 18px; }
+.etikett { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--leise); }
+.leise { color: var(--leise); }
+.klein { font-size: .88rem; }
+
+.karte { background: var(--karte); border: 1px solid var(--linie); border-radius: var(--r); box-shadow: var(--schatten);
+  padding: 14px 16px; display: grid; gap: 6px; text-align: left; width: 100%; cursor: pointer; }
+.karte.ruhig { cursor: default; }
+.karte.wartet { border-color: var(--marker); background: linear-gradient(90deg, var(--marker-fl), var(--karte) 70%); }
+.karte .zeile { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.karte .titel { font-weight: 700; min-width: 0; }
+.pille { display: inline-block; font-size: .78rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.p-neu { background: var(--marker); color: #1b2a3a; }
+.p-arbeit { background: var(--akzent-fl); color: var(--akzent); }
+.p-fertig { background: var(--gut-fl); color: var(--gut); }
+.p-warten { background: var(--warn-fl); color: var(--warn); }
+.p-fehler { background: var(--fehler-fl); color: var(--fehler); }
+.balken { height: 6px; background: var(--linie); border-radius: 3px; overflow: hidden; }
+.balken i { display: block; height: 100%; background: var(--akzent); border-radius: 3px; }
+
+.haupt { border: 0; background: var(--akzent); color: var(--karte); font-weight: 700; border-radius: var(--r);
+  min-height: 52px; padding: 0 20px; width: 100%; cursor: pointer; font-size: 1.05rem; }
+.zweit { border: 1px solid var(--linie); background: var(--karte); font-weight: 700; border-radius: 12px;
+  min-height: 46px; padding: 0 14px; cursor: pointer; }
+.zweit.gut { border-color: var(--gut); color: var(--gut); }
+.zweit.weg { color: var(--fehler); }
+.zweit.mini { min-height: 38px; font-size: .88rem; }
+.knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
+.knoepfe > * { flex: 1 1 auto; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--linie); background: var(--karte); border-radius: 999px; min-height: 40px;
+  padding: 0 14px; cursor: pointer; font-weight: 700; }
+.chip[aria-pressed="true"] { background: var(--akzent); border-color: var(--akzent); color: var(--karte); }
+.segment { display: grid; grid-template-columns: 1fr 1fr; background: var(--akzent-fl); border-radius: 12px; padding: 4px; gap: 4px; }
+.segment button { border: 0; background: none; min-height: 40px; border-radius: 9px; font-weight: 700; color: var(--akzent); cursor: pointer; }
+.segment button[aria-pressed="true"] { background: var(--karte); color: var(--tinte); box-shadow: var(--schatten); }
+label.feld { display: grid; gap: 6px; font-weight: 700; }
+textarea, input[type="text"], input[type="search"], select { width: 100%; border: 1px solid var(--linie);
+  background: var(--karte); border-radius: 12px; padding: 12px; min-height: 46px; font-weight: 400; }
+textarea { min-height: 110px; resize: vertical; }
+.hinweis { background: var(--warn-fl); color: var(--tinte); border-radius: 12px; padding: 10px 12px; font-size: .9rem; margin: 0; }
+.hinweis b { color: var(--warn); }
+.hinweis.gut { background: var(--gut-fl); }
+.hinweis.gut b { color: var(--gut); }
+.datei-wahl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.datei-wahl input, .unsichtbar { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.datei-wahl label { cursor: pointer; }
+details.beachte { background: var(--karte); border: 1px solid var(--linie); border-radius: 12px; padding: 10px 14px; }
+details.beachte summary { cursor: pointer; font-weight: 700; min-height: 28px; }
+details.beachte ul { margin: 8px 0 0; padding-left: 1.2em; display: grid; gap: 4px; font-size: .92rem; }
+
+.kern { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+/* Seiten: weißes Blatt in beiden Themen, wie gedruckt */
+.seite { background: #fff; color: #1b2a3a; aspect-ratio: 1 / 1.414; width: 100%; max-width: 100%; border: 1px solid var(--linie);
+  border-radius: 6px; padding: 7% 8%; font-size: clamp(.62rem, 2.9vw, .92rem); line-height: 1.45; overflow: hidden;
+  box-shadow: var(--schatten); display: flex; flex-direction: column; gap: .5em; text-align: left; }
+.seite .sk { display: flex; justify-content: space-between; border-bottom: 1px solid #b8c4d0; padding-bottom: 4px; color: #5b6b7d; }
+.seite .h { font-family: var(--titel); font-size: 1.35em; font-weight: 700; }
+.seite .auf { border: 1px solid #b8c4d0; border-radius: 4px; padding: 6px 8px; }
+.seite .lin { border-bottom: 1px solid #cfd8e1; height: 1.5em; }
+.seite .fuss { margin-top: auto; color: #8796a5; font-size: .85em; text-align: right; }
+.vorschau { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vorschau button { border: 0; padding: 0; background: none; cursor: pointer; display: grid; gap: 4px; text-align: center; }
+.vorschau .seite { font-size: clamp(.3rem, 1.25vw, .45rem); pointer-events: none; }
+.vorschau .marke { font-size: .8rem; color: var(--leise); }
+.block { border: 2px solid transparent; border-radius: 4px; background: none; padding: 2px 4px; margin: -2px -4px; text-align: left; cursor: pointer; color: inherit; display: block; width: calc(100% + 8px); }
+.block:hover { border-color: #cfd8e1; }
+.block[aria-pressed="true"] { border-color: #e0b400; background: #fdf3c4; }
+.block.hat { box-shadow: inset 3px 0 0 #e0b400; }
+.blaettern { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.anm { display: grid; gap: 8px; }
+.anm-eintrag { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; background: var(--marker-fl);
+  border-radius: 12px; padding: 10px 12px; }
+.anm-eintrag span { min-width: 0; }
+.dateien { display: grid; gap: 8px; }
+.datei { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--karte);
+  border: 1px solid var(--linie); border-radius: 12px; padding: 8px 8px 8px 12px; flex-wrap: wrap; }
+.datei > span { min-width: 0; overflow-wrap: anywhere; flex: 1 1 12rem; }
+.datei .knoepfe { flex: 0 0 auto; }
+.rueckmeldung { background: var(--karte); border: 1px solid var(--gut); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 8px; }
+.rueckmeldung ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.entwurf-text { background: var(--karte); border: 1px solid var(--linie); border-radius: var(--r); padding: 14px 16px; white-space: pre-wrap; }
+dl.details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
+dl.details dt { color: var(--leise); }
+dl.details dd { margin: 0; min-width: 0; }
+
+.leiste { position: fixed; left: 0; right: 0; bottom: 0; background: var(--karte); border-top: 1px solid var(--linie);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); z-index: 5; }
+.leiste nav { max-width: 34rem; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+.leiste button { border: 0; background: none; min-height: 60px; display: grid; place-items: center; gap: 2px;
+  font-size: .75rem; font-weight: 700; color: var(--leise); cursor: pointer; padding: 6px 2px; }
+.leiste button[aria-current="page"] { color: var(--akzent); }
+.leiste svg { width: 24px; height: 24px; }
+.leiste .plus { background: var(--akzent); color: var(--karte); border-radius: 999px; width: 44px; height: 44px; display: grid; place-items: center; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  background: var(--tinte); color: var(--papier); border-radius: 12px; padding: 12px 14px; display: flex; gap: 14px;
+  align-items: center; width: min(32rem, calc(100% - 32px)); z-index: 9; box-shadow: var(--schatten); }
+.toast span { flex: 1; min-width: 0; }
+.toast button { border: 0; background: none; color: var(--marker); font-weight: 700; min-height: 40px; cursor: pointer; }
+
+.regel { background: var(--karte); border: 1px solid var(--linie); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.regel.frisch { border-color: var(--gut); }
+.schalter { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--karte);
+  border: 1px solid var(--linie); border-radius: 12px; padding: 10px 14px; min-height: 52px; }
+.schalter input { width: 22px; height: 22px; accent-color: var(--akzent); }
+.test table { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.test td, .test th { border-bottom: 1px solid var(--linie); padding: 8px 4px; text-align: left; vertical-align: top; }
+.test pre { white-space: pre-wrap; background: var(--karte); border: 1px solid var(--linie); border-radius: 10px; padding: 10px; font-size: .8rem; }
+@media (prefers-reduced-motion: no-preference) { .karte, .chip, .zweit, .haupt { transition: transform .08s; } .karte:active, .haupt:active { transform: scale(.99); } }
+</style>
+
+<div class="app">
+  <div class="proto">Prototyp mit erfundenen Beispielen. Nichts wird gespeichert oder verschickt.</div>
+  <main id="ansicht"></main>
+</div>
+
+<div class="leiste"><nav id="leiste" aria-label="Bereiche"></nav></div>
+<div id="toast" class="toast" role="status" hidden><span id="toast-text"></span><button id="toast-knopf" type="button"></button></div>
+
+<script>
+"use strict";
+// ---------- Beispieldaten (erfunden) ----------
+const reihen = [
+  { id: "strafe", fach: "Ethik", klasse: "Klasse 10", titel: "Strafe", frage: "Wozu strafen wir?",
+    behandelt: ["Kant: Vergeltung", "Bentham: Abschreckung"], stand: "Woche 3 von 6" },
+  { id: "pflicht", fach: "Ethik", klasse: "Klasse 10", titel: "Pflicht und Neigung",
+    frage: "Muss ich tun, was ich soll, auch wenn ich nicht will?", behandelt: ["Kant: guter Wille"], stand: "Woche 1 von 5" },
+  { id: "freund", fach: "Ethik", klasse: "Klasse 8", titel: "Freundschaft", frage: "Was schulden wir Freunden?",
+    behandelt: ["Aristoteles: drei Arten von Freundschaft"], stand: "Woche 2 von 4" },
+  { id: "komoedie", fach: "Darstellendes Spiel", klasse: "Kurs 11", titel: "Stück im Stück",
+    frage: "Wie zeigt man Theater auf dem Theater?", behandelt: ["Probe als Rahmen", "Slapstick-Timing"], stand: "Probenphase" },
+];
+const FALL_V1 = "Mia hat ihrer Freundin Jana versprochen, am Samstag beim Umzug zu helfen. Jana hat sonst niemanden, der hilft. Am Freitagabend ruft Mias Onkel an. Er hat zwei Karten für ein Konzert ihrer Lieblingsband, am Samstag um 14 Uhr. Die Karten waren teuer, und er freut sich sehr. Mia weiß: Wenn sie zum Konzert geht, muss Jana die schweren Kisten allein tragen. Wenn sie hilft, ist ihr Onkel enttäuscht.";
+const FALL_V2 = "Mia hat Jana versprochen, am Samstag beim Umzug zu helfen. Am Freitag bekommt Mia eine Karte für ein Konzert. Das Konzert ist am Samstag.";
+const AUFGABE_V1 = "Soll Mia helfen oder zum Konzert gehen? Entscheide dich und begründe in einem Satz.";
+const AUFGABE_V2 = "Was soll Mia tun? Kreuze an und schreib einen Satz: Weil …";
+const auftraege = [
+  { id: "fall", art: "Material", titel: "Fallbeispiel: Versprechen oder Konzert", reihe: "freund", stand: "fertig", neu: true, zeit: "heute 15:12",
+    versionen: [{ kern: ["Ein Fall für Klasse 8, eine Seite, kurze Sätze", "Klare Entscheidung: helfen oder Konzert, mit einem Begründungssatz", "Im Begleittext: Testfall mit Aristoteles' Freundschaft der Tugend"],
+      pruefen: "Passt der Onkel als Gegenspieler, oder lieber ein Sporttermin?", fall: FALL_V1, aufgabe: AUFGABE_V1 }],
+    dateien: ["Arbeitsblatt Versprechen oder Konzert", "Begleittext für dich"] },
+  { id: "ki", art: "Material", titel: "Arbeitsblatt Kategorischer Imperativ, 45 Minuten", reihe: "pflicht", stand: "arbeit", fortschritt: 60, zeit: "heute 15:31", eta: "fertig etwa 16:40" },
+  { id: "aktuell", art: "Recherche", titel: "Aktuelle Fälle zur Strafe aus den Nachrichten", reihe: "strafe", stand: "warten", zeit: "heute 15:40", eta: "startet um 18:00, vorher ist das Kontingent voll" },
+  { id: "fallsuche", art: "Recherche", titel: "Fallsuche Strafe: Dossier", reihe: "strafe", stand: "fertig", zeit: "Di 27.10.",
+    versionen: [{ kern: ["5 echte Fälle mit Quellen", "4 mögliche Reihenfragen", "Fälle ohne Gewalt gegen Menschen"], pruefen: "Fall 3 stammt aus Norwegen. Passt das für deine Klasse?" }],
+    dateien: ["Fallsuche Strafe"] },
+  { id: "komoedie", art: "Theater", titel: "Fassung Komödie, Runde 1", reihe: "komoedie", stand: "fertig", zeit: "Do 29.10.",
+    versionen: [{ kern: ["19 Bausteine für 38 Minuten", "Vom Original bleiben die Pointen", "Szenenaufgabe Stück im Stück für die Gruppe"], pruefen: "Fehlt eine Figur, oder fällt sie weg?" }],
+    dateien: ["1 Szenenkarte", "2 Ablauf und Varianten", "3 Spielfassung", "4 Szenenaufgabe"] },
+  { id: "frage", art: "Frage", titel: "Trennt Kant Pflicht und Neigung schon in der Grundlegung?", reihe: "pflicht", stand: "fertig", zeit: "Mo 26.10.",
+    versionen: [{ kern: ["Ja, im ersten Abschnitt der Grundlegung (Kaufmann-Beispiel)", "Belegstelle mit Seite im Begleittext", "Vereinfachung für Klasse 10 ist gekennzeichnet"], pruefen: "" }],
+    dateien: ["Antwort mit Belegen"] },
+  { id: "vorlage", art: "Material", titel: "Meine Formatvorlage auf ein Arbeitsblatt anwenden", stand: "fehler", zeit: "Do 22.10.",
+    grund: "Das Kontingent war aufgebraucht. Ich habe den Auftrag nicht von selbst neu gestartet." },
+];
+const entwuerfe = [
+  { id: "umfrage", titel: "Umfrage vor der Reihe Strafe", art: "Material", selbst: true, zeit: "Sa 25.10.",
+    details: [["Einsatz", "Du teilst sie selbst aus, auf Papier, ohne Namen"], ["Reihe", "Strafe, Klasse 10"]],
+    text: "Kurze Umfrage zum Thema Strafe\nOhne Namen. Es gibt kein Richtig oder Falsch.\n\n1. Wo hast du schon erlebt, dass jemand bestraft wurde?\n2. War die Strafe gerecht? Warum?\n3. Wozu ist eine Strafe da? Kreuze an, was für dich stimmt:\n   ( ) damit es wieder gerecht ist\n   ( ) damit es niemand wieder tut\n   ( ) damit der Mensch etwas lernt" },
+  { id: "mail", titel: "Mail an den Fachbereich Ethik: Materialtausch", art: "Mail", selbst: false, zeit: "heute 14:05",
+    details: [["An", "Fachbereich Ethik (intern)"], ["Betreff", "Materialtausch am Donnerstag"]],
+    text: "Liebe Kolleginnen und Kollegen,\n\nfür den Materialtausch am Donnerstag bringe ich zwei Fallbeispiele für Klasse 8 und ein Arbeitsblatt zum kategorischen Imperativ mit. Wer etwas zur Reihe Strafe hat, gern mitbringen.\n\nViele Grüße\nLia" },
+];
+const regeln = [
+  { text: "Texte für Schülerinnen und Schüler: Fließtext in ganzen Sätzen, Belege in den Begleittext.", her: "von dir freigegeben, 24.10." },
+  { text: "Klasse 8: kurze Sätze, keine Redewendungen, schwierige Wörter erklären.", her: "von dir freigegeben, 24.10." },
+  { text: "Fallbeispiele: alltagsnah, eindeutige Entscheidung, keine Gewalt.", her: "von dir freigegeben, 24.10." },
+  { text: "Recherche: keine Gewalt gegen Menschen, auch nicht als bestrafte Tat.", her: "aus deinem Feedback, 27.10." },
+];
+const vorlagen = {
+  gestaltung: [
+    { id: "g1", name: "Arbeitsblatt (Word)", info: "Kopfzeile mit Fach, Klasse, Name und Datum. Gilt für alle Arbeitsblätter.", stand: "aktiv" },
+    { id: "g2", name: "Folien (PowerPoint)", info: "Ruhiger Hintergrund, große Schrift. Gilt für alle Folien.", stand: "aktiv" },
+  ],
+  muster: [
+    { id: "m1", typ: "Fallbeispiel", name: "Fallbeispiel Fundsache (Klasse 8)", warum: "kurze Sätze, klare Entscheidung", stand: "aktiv" },
+    { id: "m2", typ: "Fallbeispiel", name: "Fallbeispiel Geburtstag", warum: "alltagsnah, entweder oder", stand: "aktiv" },
+    { id: "m3", typ: "Argumentieren", name: "Behauptung, Begründung, Beispiel: Tiere essen", warum: "je Teil genau ein ganzer Satz", stand: "aktiv" },
+    { id: "m4", typ: "Theater", name: "Szenenkarte Probe", warum: "Ablauf auf einen Blick", stand: "aktiv" },
+  ],
+  sammlung: { anzahl: 211, neu: [], zuletzt: ["Reihe Strafe Einstieg.docx", "Kant Kaufmann Textauszug.pdf", "Warm-up Raumlauf.docx"] },
+};
+const ARTEN = ["Material", "Frage", "Text prüfen", "Recherche", "Theater"];
+const MUSTER_FUER = { "Material": ["Fallbeispiel", "Argumentieren"], "Theater": ["Theater"] };
+
+// ---------- Zustand ----------
+const z = { bereich: "heute", detail: null, neu: { art: "Material", text: "", reihe: "pflicht", dateien: [] },
+  filter: "alle", suche: "", aendernOffen: false, aendernArt: "aendern", version: {}, erledigt: {}, reiheOffen: null,
+  unterricht: "reihen", seite: 0, block: null, anm: {}, umfang: null, rueck: {} };
+const test = { aktiv: null, start: 0, ergebnisse: {} };
+const AUFGABEN = [
+  ["A1", "Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 Minuten, Reihe Pflicht und Neigung, mit Foto des alten Arbeitsblatts bestellen"],
+  ["A2", "Das Fallbeispiel ist zu lang: eine kürzere Fassung bekommen"],
+  ["A3", "Den Entwurf der Umfrage abschließen (du teilst sie selbst aus)"],
+  ["A4", "In der Reihe Strafe eintragen, dass Hegel behandelt ist"],
+  ["A5", "Das Dossier Fallsuche Strafe finden und herunterladen"],
+  ["A6", "Im Fallbeispiel zur Aufgabe anmerken, dass sie Ankreuzen braucht, und eine neue Fassung anfordern"],
+  ["A7", "Ein Musterblatt für Fallbeispiele hinzufügen"],
+];
+function geschafft(nr) {
+  if (test.aktiv !== nr || test.ergebnisse[nr]) return;
+  test.ergebnisse[nr] = { erfolg: "ja", sek: Math.round((Date.now() - test.start) / 1000) };
+  test.aktiv = null;
+}
+
+// ---------- Hilfen ----------
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const reihe = (id) => reihen.find((r) => r.id === id);
+const auftrag = (id) => auftraege.find((a) => a.id === id);
+const PILLE = { fertig: ["p-fertig", "fertig"], arbeit: ["p-arbeit", "in Arbeit"], warten: ["p-warten", "wartet"], fehler: ["p-fehler", "hat nicht geklappt"] };
+let toastUhr = null;
+function toast(text, knopf, aktion, ms = 4000) {
+  clearTimeout(toastUhr);
+  $("#toast-text").textContent = text;
+  const k = $("#toast-knopf");
+  k.hidden = !knopf; k.textContent = knopf || "";
+  k.onclick = () => { $("#toast").hidden = true; clearTimeout(toastUhr); aktion && aktion(); };
+  $("#toast").hidden = false;
+  toastUhr = setTimeout(() => { $("#toast").hidden = true; }, ms);
+}
+function gehe(bereich, detail = null) {
+  z.bereich = bereich; z.detail = detail; z.aendernOffen = false; z.reiheOffen = null; z.umfang = null;
+  zeichnen(); window.scrollTo(0, 0);
+}
+
+// ---------- Leiste ----------
+const SYM = {
+  heute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+  anfragen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+  neu: '<span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>',
+  unterricht: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 5v16"/></svg>',
+  ich: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>',
+};
+const NAMEN = { heute: "Heute", anfragen: "Anfragen", neu: "Neu", unterricht: "Unterricht", ich: "Ich" };
+function leiste() {
+  $("#leiste").innerHTML = Object.keys(NAMEN).map((b) =>
+    `<button type="button" data-bereich="${b}" ${z.bereich === b ? 'aria-current="page"' : ""}>${SYM[b]}<span>${NAMEN[b]}</span></button>`).join("");
+}
+
+// ---------- Seiten eines Ergebnisses (wie die PNG-Vorschau des Renderers) ----------
+function seitenVon(a, v) {
+  if (!v.fall) return [];
+  const r = reihe(a.reihe);
+  return [
+    { name: "Arbeitsblatt", bloecke: [
+      { id: "kopf", name: "Kopfzeile", html: `<div class="sk"><span>Ethik · ${esc(r.klasse)}</span><span>Name: ________</span></div>` },
+      { id: "titel", name: "Überschrift", html: `<div class="h">Versprechen oder Konzert?</div>` },
+      { id: "fall", name: "Falltext", html: `<div>${esc(v.fall)}</div>` },
+      { id: "aufgabe", name: "Aufgabe", html: `<div class="auf"><b>Aufgabe:</b> ${esc(v.aufgabe)}</div><div class="lin"></div><div class="lin"></div>` },
+    ] },
+    { name: "Begleittext", bloecke: [
+      { id: "ziel", name: "Ziel der Stunde", html: `<div class="h">Begleittext für dich</div><div><b>Ziel:</b> Die Klasse entscheidet einen Konflikt zwischen Versprechen und eigenem Wunsch und begründet mit einem Satz.</div>` },
+      { id: "test", name: "Testfall", html: `<div><b>Testfall:</b> Nach Aristoteles' Freundschaft der Tugend hilft Mia, weil es um Jana selbst geht und nicht um einen Vorteil. Die Entscheidung ist eindeutig.</div>` },
+      { id: "beleg", name: "Beleg", html: `<div><b>Beleg:</b> Nikomachische Ethik, Buch VIII, Kapitel 3 und 4. Vereinfacht für Klasse 8.</div>` },
+    ] },
+  ];
+}
+function blattHtml(seite, nr, gesamt, waehlbar, anmerkungen) {
+  const bl = seite.bloecke.map((b) => {
+    if (!waehlbar) return b.html;
+    const hat = anmerkungen.some((x) => x.seite === nr && x.block === b.id);
+    return `<button type="button" class="block ${hat ? "hat" : ""}" data-block="${b.id}" aria-pressed="${z.block === b.id}" aria-label="${esc(b.name)} auswählen">${b.html}</button>`;
+  }).join("");
+  return `<div class="seite">${bl}<div class="fuss">Seite ${nr + 1} von ${gesamt}</div></div>`;
+}
+
+// ---------- Ansichten ----------
+function karteAuftrag(a) {
+  const [kl, txt] = a.neu ? ["p-neu", "neu"] : PILLE[a.stand];
+  const r = a.reihe ? reihe(a.reihe) : null;
+  const unten = a.stand === "arbeit" ? `<div class="balken" aria-hidden="true"><i style="width:${a.fortschritt}%"></i></div><span class="klein leise">${esc(a.eta)}</span>`
+    : a.stand === "warten" ? `<span class="klein leise">${esc(a.eta)}</span>`
+    : `<span class="klein leise">${esc(a.art)}${r ? " · " + esc(r.titel) : ""} · ${esc(a.zeit)}</span>`;
+  return `<button type="button" class="karte ${a.neu ? "wartet" : ""}" data-auftrag="${a.id}">
+    <div class="zeile"><span class="titel">${esc(a.titel)}</span><span class="pille ${kl}">${txt}</span></div>${unten}</button>`;
+}
+function karteEntwurf(e) {
+  return `<button type="button" class="karte wartet" data-entwurf="${e.id}">
+    <div class="zeile"><span class="titel">${esc(e.titel)}</span><span class="pille p-neu">${e.selbst ? "abschließen" : "freigeben"}</span></div>
+    <span class="klein leise">${esc(e.art)}-Entwurf · ${esc(e.zeit)}</span></button>`;
+}
+function vHeute() {
+  const offeneE = entwuerfe.filter((e) => !z.erledigt[e.id]);
+  const neue = auftraege.filter((a) => a.neu);
+  const lauf = auftraege.filter((a) => a.stand === "arbeit" || a.stand === "warten");
+  const wartet = neue.length + offeneE.length;
+  return `<div class="kopf"><h1>Hallo Lia</h1></div>
+    <p class="leise" style="margin:0">${wartet ? `${wartet === 1 ? "Eine Sache wartet" : wartet + " Sachen warten"} auf dich.` : "Nichts wartet auf dich."}</p>
+    <section class="gruppe"><h2 class="etikett">Wartet auf dich</h2>
+      ${neue.map(karteAuftrag).join("")}${offeneE.map(karteEntwurf).join("")}
+      ${wartet ? "" : '<p class="leise">Alles erledigt.</p>'}</section>
+    <section class="gruppe"><h2 class="etikett">In Arbeit</h2>${lauf.map(karteAuftrag).join("") || '<p class="leise">Gerade läuft nichts.</p>'}</section>
+    <button type="button" class="haupt" data-bereich="neu">Neuer Auftrag</button>`;
+}
+function beachteListe(n) {
+  const punkte = [];
+  const r = n.reihe ? reihe(n.reihe) : null;
+  if (r) punkte.push(`Reihe ${esc(r.titel)} (${esc(r.klasse)}): „${esc(r.frage)}“. Schon behandelt: ${r.behandelt.map(esc).join(", ") || "noch nichts"}.`);
+  else punkte.push("Keine Reihe gewählt. Dann kenne ich Klasse und Reihenfrage nicht.");
+  const gest = n.art === "Theater" ? null : vorlagen.gestaltung.find((g) => g.stand === "aktiv" && g.name.startsWith("Arbeitsblatt"));
+  if (gest && ["Material", "Text prüfen"].includes(n.art)) punkte.push(`Gestaltung: ${esc(gest.name)}.`);
+  const typen = MUSTER_FUER[n.art] || [];
+  const muster = vorlagen.muster.filter((m) => m.stand === "aktiv" && typen.includes(m.typ));
+  if (muster.length) punkte.push(`Musterblätter als Anregung: ${muster.map((m) => esc(m.name)).join(", ")}.`);
+  punkte.push(`${regeln.length} Regeln, die ich mir gemerkt habe (unter „Ich“).`);
+  if (["Material", "Frage", "Recherche"].includes(n.art)) punkte.push(`Deine Materialsammlung (${vorlagen.sammlung.anzahl + vorlagen.sammlung.neu.length} Dateien) zum Nachschlagen.`);
+  return { punkte, kurz: [r ? "Reihe" : null, muster.length ? "Musterblätter" : null, `${regeln.length} Regeln`].filter(Boolean).join(", ") };
+}
+function vNeu() {
+  const n = z.neu;
+  const ph = { "Material": "Zum Beispiel: Arbeitsblatt zum kategorischen Imperativ, 45 Minuten, mit Fallbeispiel",
+    "Frage": "Zum Beispiel: Wo unterscheidet Kant Pflicht und Neigung?", "Text prüfen": "Was soll ich an deinem Text prüfen?",
+    "Recherche": "Zum Beispiel: aktuelle Fälle zur Strafe, ohne Gewalt", "Theater": "Zum Beispiel: Warm-up für Präsenz, 10 Minuten" }[n.art];
+  const b = beachteListe(n);
+  return `<div class="kopf"><h1>Neuer Auftrag</h1></div>
+    <div class="gruppe"><span class="etikett" id="art-l">Was brauchst du?</span>
+      <div class="chips" role="group" aria-labelledby="art-l">${ARTEN.map((a) => `<button type="button" class="chip" data-art="${a}" aria-pressed="${n.art === a}">${a}</button>`).join("")}</div></div>
+    <div class="gruppe"><label class="feld" for="auftrag-text">Dein Wunsch
+      <textarea id="auftrag-text" placeholder="${esc(ph)}">${esc(n.text)}</textarea></label>
+      <span class="klein leise">Lieber sprechen? Tipp auf das Mikrofon deiner Tastatur.</span></div>
+    <div class="gruppe"><label class="feld" for="auftrag-reihe">Für welche Reihe?
+      <select id="auftrag-reihe"><option value="">keine Reihe</option>${reihen.map((r) => `<option value="${r.id}" ${n.reihe === r.id ? "selected" : ""}>${esc(r.titel)} (${esc(r.klasse)})</option>`).join("")}</select></label></div>
+    <div class="gruppe"><span class="etikett">Vorlage oder Foto für diesen Auftrag</span>
+      <div class="datei-wahl"><input id="auftrag-datei" type="file" multiple accept="image/*,.pdf,.docx,.pptx">
+        <label for="auftrag-datei" class="zweit" style="display:inline-grid;place-items:center">Foto oder Datei</label>
+        <span class="klein leise">${n.dateien.length ? n.dateien.map(esc).join(", ") : "keine Datei"}</span></div>
+      <p class="hinweis"><b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p></div>
+    <details class="beachte" id="beachte"><summary>Das beachte ich: ${esc(b.kurz)}</summary><ul>${b.punkte.map((p) => `<li>${p}</li>`).join("")}</ul>
+      <p class="klein leise" style="margin:8px 0 0">Ändern kannst du das unter „Unterricht“ und „Ich“.</p></details>
+    <div class="gruppe"><button type="button" class="haupt" id="abschicken">Abschicken</button></div>`;
+}
+function rueckmeldungHtml(id) {
+  const r = z.rueck[id];
+  if (!r) return "";
+  return `<div class="rueckmeldung" role="status"><b>Das mache ich aus deinem Feedback</b><ul>
+    ${r.nachbesserung ? `<li>${esc(r.nachbesserung)}</li>` : ""}
+    ${r.regel != null ? `<li>Ich merke mir ab jetzt: „${esc(regeln[r.regel].text)}“ <button type="button" class="zweit mini" data-regel-weg="${id}">Nicht merken</button></li>` : ""}
+    ${r.danke ? `<li>${esc(r.danke)}</li>` : ""}</ul>
+    <span class="klein leise">Jan bekommt eine kurze Zusammenfassung und kann es stoppen.</span></div>`;
+}
+function vAuftrag(a) {
+  if (a.neu) a.neu = false;
+  const r = a.reihe ? reihe(a.reihe) : null;
+  const kopf = `<div class="kopf"><button type="button" class="zurueck" data-zurueck>Zurück</button></div>
+    <h1>${esc(a.titel)}</h1><p class="leise klein" style="margin:4px 0 0">${esc(a.art)}${r ? " · " + esc(r.titel) + ", " + esc(r.klasse) : ""} · ${esc(a.zeit)}</p>`;
+  if (a.stand === "fehler") {
+    return kopf + `<section class="gruppe"><p class="hinweis">${esc(a.grund)}</p>
+      <button type="button" class="haupt" data-nochmal="${a.id}">Noch einmal senden</button></section>`;
+  }
+  if (a.stand !== "fertig") {
+    return kopf + `<section class="gruppe"><span class="pille ${PILLE[a.stand][0]}">${PILLE[a.stand][1]}</span><p style="margin:0">${esc(a.eta)}.</p>
+      <p class="leise klein" style="margin:0">Ich sage dir über Telegram Bescheid, wenn es fertig ist.</p>
+      <button type="button" class="zweit weg" data-zurueckziehen="${a.id}">Auftrag zurückziehen</button></section>`;
+  }
+  const vi = z.version[a.id] ?? a.versionen.length - 1;
+  const v = a.versionen[vi];
+  const seiten = seitenVon(a, v);
+  const anm = z.anm[a.id] || [];
+  const umfangFrage = z.umfang && z.umfang.id === a.id;
+  return kopf + `
+    ${a.versionen.length > 1 ? `<div class="chips" role="group" aria-label="Fassung" style="margin-top:12px">${a.versionen.map((_, i) => `<button type="button" class="chip" data-version="${i}" aria-pressed="${i === vi}">Fassung ${i + 1}</button>`).join("")}</div>` : ""}
+    ${rueckmeldungHtml(a.id) ? `<div class="gruppe">${rueckmeldungHtml(a.id)}</div>` : ""}
+    <section class="gruppe"><h2 class="etikett">Das Wichtigste</h2><ul class="kern">${v.kern.map((k) => `<li>${esc(k)}</li>`).join("")}</ul>
+      ${v.pruefen ? `<p class="hinweis"><b>Bitte prüfen:</b> ${esc(v.pruefen)}</p>` : ""}</section>
+    ${seiten.length ? `<section class="gruppe"><h2 class="etikett">Seiten</h2>
+      <div class="vorschau">${seiten.map((s, i) => `<button type="button" data-seite="${i}" aria-label="${esc(s.name)} groß ansehen und anmerken">${blattHtml(s, i, seiten.length, false, anm)}<span class="marke">${esc(s.name)}${anm.some((x) => x.seite === i) ? " · " + anm.filter((x) => x.seite === i).length + " Anm." : ""}</span></button>`).join("")}</div>
+      <span class="klein leise">Tipp auf eine Seite, um sie groß zu sehen und an einer Stelle etwas anzumerken.</span></section>` : ""}
+    ${anm.length ? `<section class="gruppe"><h2 class="etikett">Deine Anmerkungen</h2><div class="anm">${anm.map((x, i) => `<div class="anm-eintrag"><span><b>${esc(seiten[x.seite] ? seiten[x.seite].name : "")}, ${esc(x.name)}:</b> ${esc(x.text)}</span><button type="button" class="zweit mini weg" data-anm-weg="${i}">Löschen</button></div>`).join("")}</div>
+      <button type="button" class="haupt" data-nachbessern="${a.id}">Neue Fassung mit ${anm.length === 1 ? "dieser Anmerkung" : anm.length + " Anmerkungen"}</button></section>` : ""}
+    <section class="gruppe"><h2 class="etikett">Dateien</h2><div class="dateien">${a.dateien.map((d) => `<div class="datei"><span>${esc(d)}${a.versionen.length > 1 ? `<br><span class="klein leise">Fassung ${vi + 1}</span>` : ""}</span><div class="knoepfe"><button type="button" class="zweit mini" data-laden="${a.id}" data-format="PDF">PDF zum Drucken</button><button type="button" class="zweit mini" data-laden="${a.id}" data-format="Word">Word</button></div></div>`).join("")}</div></section>
+    <section class="gruppe"><h2 class="etikett">Wie ist es?</h2>
+      <div class="knoepfe"><button type="button" class="zweit gut" data-fb="passt">Passt</button><button type="button" class="zweit" data-fb="lang">Zu lang</button>
+        <button type="button" class="zweit" data-fb="fokus">Falscher Fokus</button><button type="button" class="zweit" data-fb="aendern">Ändern …</button></div>
+      ${umfangFrage ? `<div class="rueckmeldung"><b>${esc(z.umfang.frage)}</b>
+        <div class="knoepfe"><button type="button" class="zweit" data-umfang="hier">Nur bei diesem</button><button type="button" class="zweit" data-umfang="immer">Ab jetzt immer</button></div></div>` : ""}
+      ${z.aendernOffen ? `<label class="feld" for="aendern-text">${z.aendernArt === "fokus" ? "Worauf soll ich mich stattdessen konzentrieren?" : "Was soll anders werden?"}
+        <textarea id="aendern-text" placeholder="Zum Beispiel: ohne den Onkel, Entscheidung schon im ersten Satz"></textarea></label>
+        <label class="schalter" for="aendern-immer"><span>Auch bei künftigen Aufträgen so machen</span><input id="aendern-immer" type="checkbox"></label>
+        <button type="button" class="haupt" data-nachbessern-text="${a.id}">Neue Fassung anfordern</button>` : ""}
+    </section>`;
+}
+function vSeite(a) {
+  const vi = z.version[a.id] ?? a.versionen.length - 1;
+  const v = a.versionen[vi];
+  const seiten = seitenVon(a, v);
+  const s = seiten[z.seite];
+  const anm = z.anm[a.id] || [];
+  const blk = s.bloecke.find((b) => b.id === z.block);
+  const hier = anm.filter((x) => x.seite === z.seite);
+  return `<div class="kopf"><button type="button" class="zurueck" data-zurueck>Zurück</button><h1>${esc(s.name)}</h1></div>
+    <p class="klein leise" style="margin:0">Tipp auf die Stelle, zu der du etwas sagen willst.</p>
+    <section class="gruppe">${blattHtml(s, z.seite, seiten.length, true, anm)}
+      <div class="blaettern"><button type="button" class="zweit" data-blatt="-1" ${z.seite === 0 ? "disabled" : ""}>Vorige Seite</button>
+        <span class="klein leise">Seite ${z.seite + 1} von ${seiten.length}</span>
+        <button type="button" class="zweit" data-blatt="1" ${z.seite === seiten.length - 1 ? "disabled" : ""}>Nächste Seite</button></div></section>
+    <section class="gruppe"><label class="feld" for="anm-text">Anmerkung zu: ${blk ? esc(blk.name) : "der ganzen Seite"}
+      <textarea id="anm-text" placeholder="Zum Beispiel: Für die 8 lieber zum Ankreuzen"></textarea></label>
+      <button type="button" class="haupt" data-anm-speichern="${a.id}">Anmerkung speichern</button>
+      ${hier.length ? `<div class="anm">${hier.map((x) => `<div class="anm-eintrag"><span><b>${esc(x.name)}:</b> ${esc(x.text)}</span></div>`).join("")}</div>` : ""}
+      <span class="klein leise">Anmerkungen sammeln sich beim Ergebnis. Von dort forderst du eine neue Fassung an.</span></section>`;
+}
+function vEntwurf(e) {
+  const fertig = z.erledigt[e.id];
+  return `<div class="kopf"><button type="button" class="zurueck" data-zurueck>Zurück</button></div>
+    <h1>${esc(e.titel)}</h1><p class="leise klein" style="margin:4px 0 0">${esc(e.art)}-Entwurf · ${esc(e.zeit)}</p>
+    <section class="gruppe"><dl class="details">${e.details.map(([k, w]) => `<dt>${esc(k)}</dt><dd>${esc(w)}</dd>`).join("")}</dl>
+      <div class="entwurf-text">${esc(e.text)}</div></section>
+    <section class="gruppe">${fertig ? `<p class="hinweis gut">${esc(fertig)}</p>` :
+      e.selbst ? `<p class="leise klein" style="margin:0">Diesen Entwurf schickt niemand ab. Du setzt ihn selbst ein.</p>
+        <button type="button" class="haupt" data-selbst="${e.id}">Erledigt, setze ich selbst ein</button>
+        <div class="knoepfe"><button type="button" class="zweit" data-e-aendern="${e.id}">Ändern …</button><button type="button" class="zweit weg" data-ablehnen="${e.id}">Brauche ich nicht</button></div>`
+      : `<p class="leise klein" style="margin:0">Nach dem Freigeben geht genau dieser Text einmal raus.</p>
+        <button type="button" class="haupt" data-freigeben="${e.id}">Freigeben und senden</button>
+        <div class="knoepfe"><button type="button" class="zweit" data-e-aendern="${e.id}">Ändern …</button><button type="button" class="zweit weg" data-ablehnen="${e.id}">Ablehnen</button></div>`}
+    </section>`;
+}
+function vAnfragen() {
+  const F = { alle: "Alle", fertig: "Fertig", arbeit: "In Arbeit", fehler: "Nicht geklappt" };
+  const s = z.suche.trim().toLowerCase();
+  const liste = auftraege.filter((a) => (z.filter === "alle" || a.stand === z.filter || (z.filter === "arbeit" && a.stand === "warten"))
+    && (!s || (a.titel + " " + a.art).toLowerCase().includes(s)));
+  return `<div class="kopf"><h1>Anfragen</h1></div>
+    <label class="feld" for="suche"><span class="etikett">Suchen</span><input id="suche" type="search" placeholder="Thema oder Art" value="${esc(z.suche)}"></label>
+    <div class="chips" role="group" aria-label="Filter" style="margin-top:12px">${Object.entries(F).map(([k, t]) => `<button type="button" class="chip" data-filter="${k}" aria-pressed="${z.filter === k}">${t}</button>`).join("")}</div>
+    <section class="gruppe">${liste.map(karteAuftrag).join("") || '<p class="leise">Nichts gefunden.</p>'}</section>`;
+}
+function vUnterricht() {
+  return `<div class="kopf"><h1>Unterricht</h1></div>
+    <div class="segment" role="group" aria-label="Ansicht"><button type="button" data-unterricht="reihen" aria-pressed="${z.unterricht === "reihen"}">Meine Reihen</button><button type="button" data-unterricht="vorlagen" aria-pressed="${z.unterricht === "vorlagen"}">Meine Vorlagen</button></div>
+    ${z.unterricht === "reihen" ? vReihen() : vVorlagen()}`;
+}
+function vReihen() {
+  return `<p class="leise" style="margin:14px 0 0">Was hier steht, beachte ich bei jedem Auftrag für diese Reihe.</p>
+    <section class="gruppe">${reihen.map((r) => `<div class="karte ruhig">
+      <div class="zeile"><span class="titel">${esc(r.titel)}</span><span class="pille p-arbeit">${esc(r.klasse)}</span></div>
+      <span class="klein">${esc(r.frage)}</span><span class="klein leise">${esc(r.fach)} · ${esc(r.stand)}</span>
+      <span class="klein"><b>Schon behandelt:</b> ${r.behandelt.map(esc).join(", ") || "noch nichts"}</span>
+      ${z.reiheOffen === r.id ? `<label class="feld klein" for="neu-position">Was ist dazugekommen?<input id="neu-position" type="text" placeholder="Zum Beispiel: Hegel: Strafe als Recht des Täters"></label>
+        <div class="knoepfe"><button type="button" class="haupt" data-position-speichern="${r.id}">Speichern</button><button type="button" class="zweit" data-reihe-zu>Abbrechen</button></div>`
+      : `<button type="button" class="zweit" data-reihe-auf="${r.id}">Behandeltes ergänzen</button>`}
+    </div>`).join("")}</section>
+    <button type="button" class="zweit" style="width:100%" data-demo>Neue Reihe anlegen</button>`;
+}
+function vorlageZeile(v, mitTyp) {
+  const aktiv = v.stand === "aktiv";
+  return `<div class="karte ruhig">
+    <div class="zeile"><span class="titel">${esc(v.name)}</span><span class="pille ${aktiv ? "p-fertig" : v.stand === "liest" ? "p-arbeit" : "p-warten"}">${aktiv ? "wird genutzt" : v.stand === "liest" ? "wird gelesen" : "pausiert"}</span></div>
+    <span class="klein">${mitTyp ? `<b>${esc(v.typ)}:</b> ${esc(v.warum)}` : esc(v.info)}</span>
+    ${v.stand === "liest" ? "" : `<div class="knoepfe"><button type="button" class="zweit mini" data-vorlage-ansehen="${v.id}">Ansehen</button><button type="button" class="zweit mini" data-vorlage-pause="${v.id}">${aktiv ? "Nicht mehr nutzen" : "Wieder nutzen"}</button></div>`}
+  </div>`;
+}
+function vVorlagen() {
+  const s = vorlagen.sammlung;
+  return `<p class="leise" style="margin:14px 0 0">Deine Dateien bleiben deine. Ich nutze sie nur so, wie es hier steht.</p>
+    <section class="gruppe"><h2 class="etikett">Gestaltung</h2>
+      <span class="klein leise">So sehen alle neuen Arbeitsblätter und Folien aus: Kopfzeile, Logo, Ränder, Schrift. Eine Word- oder PowerPoint-Datei.</span>
+      ${vorlagen.gestaltung.map((v) => vorlageZeile(v, false)).join("")}
+      <input class="unsichtbar" id="vl-gestaltung" type="file" accept=".docx,.dotx,.pptx,.potx">
+      <label for="vl-gestaltung" class="zweit" style="display:grid;place-items:center">Gestaltung hochladen</label></section>
+    <section class="gruppe"><h2 class="etikett">Musterblätter</h2>
+      <span class="klein leise">Gelungene Beispiele je Materialtyp. Ich nehme sie als Anregung, nicht als Schablone.</span>
+      ${vorlagen.muster.map((v) => vorlageZeile(v, true)).join("")}
+      <label class="feld klein" for="vl-muster-typ">Für welchen Typ?<select id="vl-muster-typ"><option>Fallbeispiel</option><option>Arbeitsblatt-Text</option><option>Argumentieren</option><option>Aufgaben und Kärtchen</option><option>Theater</option></select></label>
+      <input class="unsichtbar" id="vl-muster" type="file" accept="image/*,.pdf,.docx,.pptx">
+      <label for="vl-muster" class="zweit" style="display:grid;place-items:center">Musterblatt hinzufügen</label></section>
+    <section class="gruppe"><h2 class="etikett">Materialsammlung</h2>
+      <div class="karte ruhig"><div class="zeile"><span class="titel">${s.anzahl + s.neu.length} Dateien</span><span class="pille p-fertig">zum Nachschlagen</span></div>
+        <span class="klein">Alte Arbeitsblätter, Texte, Folien. Ich suche darin, wenn es passt, und sage dir, welche Datei ich genutzt habe.</span>
+        <span class="klein leise">Zuletzt: ${[...s.neu.map((n) => n.name + (n.stand === "liest" ? " (wird gelesen)" : "")), ...s.zuletzt].slice(0, 4).map(esc).join(", ")}</span></div>
+      <input class="unsichtbar" id="vl-sammlung" type="file" multiple accept="image/*,.pdf,.docx,.pptx,.xlsx">
+      <label for="vl-sammlung" class="zweit" style="display:grid;place-items:center">Dateien hinzufügen</label></section>
+    <p class="hinweis"><b>Bitte keine Namen</b> von Schülerinnen und Schülern in Vorlagen. Ausgefüllte Blätter vorher schwärzen.</p>`;
+}
+function vIch() {
+  return `<div class="kopf"><h1>Ich</h1></div>
+    <section class="gruppe"><h2 class="etikett">Was ich mir gemerkt habe</h2>
+      ${regeln.map((r, i) => `<div class="regel ${r.frisch ? "frisch" : ""}"><span>${esc(r.text)}</span><span class="klein leise">${esc(r.her)}</span>
+        <button type="button" class="zweit mini" data-regel-stopp="${i}" style="justify-self:start">Nicht mehr beachten</button></div>`).join("")}</section>
+    <section class="gruppe"><h2 class="etikett">Benachrichtigungen</h2>
+      <label class="schalter" for="n-tg"><span>Hinweis über Telegram, wenn etwas fertig ist</span><input id="n-tg" type="checkbox" checked></label>
+      <label class="schalter" for="n-push"><span>Hinweis direkt aufs Handy <span class="klein leise">(kommt später)</span></span><input id="n-push" type="checkbox" disabled></label></section>
+    <section class="gruppe"><h2 class="etikett">Anmelden</h2>
+      <div class="datei"><span>iPhone (Face ID)<br><span class="klein leise">seit 02.11.</span></span><button type="button" class="zweit mini weg" data-demo>Entfernen</button></div>
+      <button type="button" class="zweit" data-demo>Weiteres Gerät hinzufügen</button>
+      <button type="button" class="zweit weg" data-demo>Überall abmelden</button></section>
+    <section class="gruppe"><h2 class="etikett">Für den Test</h2>
+      <button type="button" class="zweit" data-bereich="test">Testleitung (für Jan)</button></section>`;
+}
+function vTest() {
+  const zeilen = AUFGABEN.map(([nr, t]) => {
+    const e = test.ergebnisse[nr];
+    const lauf = test.aktiv === nr;
+    return `<tr><td><b>${nr}</b></td><td>${esc(t)}</td><td>${e ? `${e.erfolg === "ja" ? "geschafft" : esc(e.erfolg)}, ${e.sek} s` : lauf ? "läuft …" : ""}<br>
+      ${lauf ? `<button type="button" class="zweit mini" data-test-hilfe="${nr}">mit Hilfe</button> <button type="button" class="zweit mini weg" data-test-abbruch="${nr}">nein</button>` : e ? "" : `<button type="button" class="zweit mini" data-test-start="${nr}">Start</button>`}</td></tr>`;
+  }).join("");
+  const text = AUFGABEN.map(([nr]) => { const e = test.ergebnisse[nr]; return `${nr}\t${e ? e.erfolg : "-"}\t${e ? e.sek : "-"}`; }).join("\n");
+  return `<div class="kopf"><button type="button" class="zurueck" data-bereich="ich">Zurück</button><h1>Testleitung</h1></div>
+    <div class="test"><p class="klein leise">Start tippen, Aufgabe vorlesen, Handy an Lia geben. Die Zeit stoppt von selbst, wenn die Aufgabe gelöst ist. Schwierigkeit 1–7 und Zitate auf Papier. A1–A5 auch in Telegram, A6 und A7 nur hier.</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>Nr.</th><th>Aufgabe</th><th>Ergebnis</th></tr></thead><tbody>${zeilen}</tbody></table></div>
+    <h2 class="etikett" style="margin-top:16px">Zum Abschreiben</h2><pre id="test-text">Nr.\tErfolg\tSekunden\n${esc(text)}</pre>
+    <button type="button" class="zweit" id="test-kopieren">Kopieren</button></div>`;
+}
+
+function zeichnen() {
+  leiste();
+  let html;
+  const d = z.detail;
+  if (d && d.typ === "auftrag") html = vAuftrag(auftrag(d.id));
+  else if (d && d.typ === "seite") html = vSeite(auftrag(d.id));
+  else if (d && d.typ === "entwurf") html = vEntwurf(entwuerfe.find((e) => e.id === d.id));
+  else html = { heute: vHeute, neu: vNeu, anfragen: vAnfragen, unterricht: vUnterricht, ich: vIch, test: vTest }[z.bereich]();
+  $("#ansicht").innerHTML = html;
+}
+
+// ---------- Bedienung ----------
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  const d = b.dataset;
+  if (d.bereich) return gehe(d.bereich);
+  if (d.zurueck !== undefined) {
+    if (z.detail && z.detail.typ === "seite") { z.block = null; return gehe(z.bereich, { typ: "auftrag", id: z.detail.id }); }
+    return gehe(z.bereich);
+  }
+  if (d.auftrag) return gehe(z.bereich, { typ: "auftrag", id: d.auftrag });
+  if (d.entwurf) return gehe(z.bereich, { typ: "entwurf", id: d.entwurf });
+  if (d.art) { z.neu.text = $("#auftrag-text").value; z.neu.art = d.art; return zeichnen(); }
+  if (b.id === "abschicken") return abschicken();
+  if (d.version) { z.version[z.detail.id] = Number(d.version); return zeichnen(); }
+  if (d.seite) { z.seite = Number(d.seite); z.block = null; return gehe(z.bereich, { typ: "seite", id: z.detail.id }); }
+  if (d.block) { z.block = z.block === d.block ? null : d.block; const t = $("#anm-text").value; zeichnen(); $("#anm-text").value = t; $("#anm-text").focus({ preventScroll: true }); return; }
+  if (d.blatt) { z.seite += Number(d.blatt); z.block = null; return zeichnen(); }
+  if (d.anmSpeichern) return anmerkungSpeichern(d.anmSpeichern);
+  if (d.anmWeg) { z.anm[z.detail.id].splice(Number(d.anmWeg), 1); return zeichnen(); }
+  if (d.fb) return feedback(d.fb);
+  if (d.umfang) return umfangGewaehlt(d.umfang);
+  if (d.nachbessern) return nachbessern(d.nachbessern, "", false);
+  if (d.nachbessernText) return nachbessern(d.nachbessernText, $("#aendern-text").value.trim(), $("#aendern-immer").checked);
+  if (d.regelWeg) { const r = z.rueck[d.regelWeg]; regeln.splice(r.regel, 1); r.regel = null; zeichnen(); return toast("Gut, das merke ich mir nicht."); }
+  if (d.laden) { if (d.laden === "fallsuche") geschafft("A5"); return toast(`Im Prototyp gibt es keine echte Datei. In der App öffnet sich hier die ${d.format === "PDF" ? "PDF" : "Word-Datei"}.`); }
+  if (d.selbst) { z.erledigt[d.selbst] = "Abgeschlossen. Du setzt ihn selbst ein, es wurde nichts verschickt."; geschafft("A3"); zeichnen(); return toast("Abgeschlossen", "Rückgängig", () => { delete z.erledigt[d.selbst]; zeichnen(); }, 10000); }
+  if (d.freigeben) { z.erledigt[d.freigeben] = "Freigegeben. Im Prototyp wird nichts gesendet."; zeichnen(); return toast("Geht in 10 Sekunden raus", "Rückgängig", () => { delete z.erledigt[d.freigeben]; zeichnen(); }, 10000); }
+  if (d.ablehnen) { z.erledigt[d.ablehnen] = "Abgelehnt. Es wurde nichts verschickt."; zeichnen(); return toast("Abgelehnt", "Rückgängig", () => { delete z.erledigt[d.ablehnen]; zeichnen(); }, 10000); }
+  if (d.eAendern) return toast("In der App schreibst du hier, was anders werden soll.");
+  if (d.nochmal) { Object.assign(auftrag(d.nochmal), { stand: "arbeit", fortschritt: 5, eta: "fertig in etwa 15 Minuten", zeit: "gerade eben" }); zeichnen(); return toast("Ist wieder unterwegs."); }
+  if (d.zurueckziehen) { const i = auftraege.findIndex((x) => x.id === d.zurueckziehen); const [weg] = auftraege.splice(i, 1); gehe(z.bereich); return toast("Zurückgezogen", "Rückgängig", () => { auftraege.splice(i, 0, weg); zeichnen(); }, 10000); }
+  if (d.filter) { z.filter = d.filter; return zeichnen(); }
+  if (d.unterricht) { z.unterricht = d.unterricht; z.reiheOffen = null; return zeichnen(); }
+  if (d.reiheAuf) { z.reiheOffen = d.reiheAuf; zeichnen(); const f = $("#neu-position"); f && f.focus(); return; }
+  if (d.reiheZu !== undefined) { z.reiheOffen = null; return zeichnen(); }
+  if (d.positionSpeichern) return positionSpeichern(d.positionSpeichern);
+  if (d.vorlageAnsehen) return toast("In der App siehst du hier eine Probeseite mit dieser Vorlage.");
+  if (d.vorlagePause) { const v = [...vorlagen.gestaltung, ...vorlagen.muster].find((x) => x.id === d.vorlagePause); v.stand = v.stand === "aktiv" ? "pausiert" : "aktiv"; zeichnen(); return toast(v.stand === "aktiv" ? "Nutze ich wieder." : "Nutze ich ab jetzt nicht mehr. Die Datei bleibt hier."); }
+  if (d.regelStopp) return toast("Ich frage Jan, ob ich diese Regel weglassen darf. Bis dahin gilt sie.");
+  if (d.demo !== undefined) return toast("Im Prototyp noch nicht dabei.");
+  if (d.testStart) { test.aktiv = d.testStart; test.start = Date.now(); gehe("heute"); return toast(`${d.testStart} läuft. Handy an Lia geben.`); }
+  if (d.testHilfe || d.testAbbruch) { const nr = d.testHilfe || d.testAbbruch; test.ergebnisse[nr] = { erfolg: d.testHilfe ? "mit Hilfe" : "nein", sek: Math.round((Date.now() - test.start) / 1000) }; test.aktiv = null; return zeichnen(); }
+  if (b.id === "test-kopieren") {
+    navigator.clipboard.writeText($("#test-text").textContent).then(() => toast("Kopiert"), () => { const r = document.createRange(); r.selectNodeContents($("#test-text")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Text ist markiert, bitte selbst kopieren."); });
+  }
+});
+document.addEventListener("input", (ev) => {
+  if (ev.target.id === "auftrag-text") z.neu.text = ev.target.value;
+  if (ev.target.id === "suche") { z.suche = ev.target.value; const pos = ev.target.selectionStart; zeichnen(); const f = $("#suche"); f.focus(); f.setSelectionRange(pos, pos); }
+});
+document.addEventListener("change", (ev) => {
+  const id = ev.target.id;
+  if (id === "auftrag-reihe") { z.neu.text = $("#auftrag-text").value; z.neu.reihe = ev.target.value; zeichnen(); }
+  if (id === "auftrag-datei") { z.neu.text = $("#auftrag-text").value; z.neu.dateien = [...ev.target.files].map((f) => f.name); zeichnen(); }
+  if (id === "vl-gestaltung" || id === "vl-muster" || id === "vl-sammlung") vorlageHochladen(id, [...ev.target.files]);
+});
+
+function abschicken() {
+  const n = z.neu;
+  n.text = $("#auftrag-text").value.trim();
+  if (!n.text) { toast("Schreib kurz, was du brauchst."); $("#auftrag-text").focus(); return; }
+  const a = { id: "n" + Date.now(), art: n.art, titel: n.text.length > 70 ? n.text.slice(0, 69) + "…" : n.text, reihe: n.reihe || null,
+    stand: "arbeit", fortschritt: 5, zeit: "gerade eben", eta: "fertig in etwa 15 Minuten" };
+  if (n.art === "Material" && n.reihe === "pflicht" && n.dateien.length && /imperativ/i.test(n.text)) geschafft("A1");
+  auftraege.unshift(a);
+  const alt = { ...n };
+  z.neu = { art: "Material", text: "", reihe: n.reihe, dateien: [] };
+  gehe("heute");
+  toast("Ist unterwegs. Ich melde mich, wenn es fertig ist.", "Zurücknehmen", () => {
+    auftraege.splice(auftraege.indexOf(a), 1); z.neu = alt; gehe("neu");
+  }, 10000);
+}
+function feedback(art) {
+  const id = z.detail.id;
+  z.umfang = null;
+  if (art === "aendern" || art === "fokus") { z.aendernOffen = !(z.aendernOffen && z.aendernArt === art); z.aendernArt = art; zeichnen(); const f = $("#aendern-text"); f && f.focus(); return; }
+  z.aendernOffen = false;
+  if (art === "passt") { z.rueck[id] = { danke: "Ich merke mir, dass dieses Ergebnis so passt. Es kann später als Musterblatt dienen." }; return zeichnen(); }
+  if (art === "lang") { z.umfang = { id, frage: "Zu lang nur bei diesem Ergebnis oder ab jetzt immer bei Fallbeispielen?" }; return zeichnen(); }
+}
+function umfangGewaehlt(wahl) {
+  const id = z.umfang.id;
+  z.umfang = null;
+  nachbessern(id, "kürzer", wahl === "immer", "Fallbeispiele für Klasse 8: höchstens drei Sätze.");
+}
+function anmerkungSpeichern(id) {
+  const text = $("#anm-text").value.trim();
+  if (!text) { toast("Schreib kurz, was anders werden soll."); $("#anm-text").focus(); return; }
+  const a = auftrag(id);
+  const v = a.versionen[z.version[id] ?? a.versionen.length - 1];
+  const s = seitenVon(a, v)[z.seite];
+  const blk = s.bloecke.find((b) => b.id === z.block);
+  (z.anm[id] = z.anm[id] || []).push({ seite: z.seite, block: blk ? blk.id : null, name: blk ? blk.name : "ganze Seite", text });
+  z.block = null;
+  zeichnen();
+  toast("Gespeichert. Weitere Stellen antippen oder zurück zum Ergebnis.", "Zum Ergebnis", () => gehe(z.bereich, { typ: "auftrag", id }), 6000);
+}
+function nachbessern(id, wunsch, immer, regelText) {
+  const a = auftrag(id);
+  const anm = z.anm[id] || [];
+  if (!wunsch && !anm.length) { toast("Schreib kurz, was anders werden soll."); return; }
+  if (id === "fall" && (/kurz|lang|weniger/i.test(wunsch) || wunsch)) geschafft("A2");
+  if (id === "fall" && anm.some((x) => x.block === "aufgabe")) geschafft("A6");
+  const rueck = { nachbesserung: `Ich mache eine neue Fassung${anm.length ? ` mit deinen ${anm.length === 1 ? "Anmerkung" : anm.length + " Anmerkungen"}` : ""}. Die alte bleibt hier.`, regel: null };
+  if (immer) {
+    regeln.push({ text: regelText || wunsch, her: "aus deinem Feedback, heute", frisch: true });
+    rueck.regel = regeln.length - 1;
+  }
+  z.rueck[id] = rueck;
+  z.aendernOffen = false;
+  const genutzt = anm.slice();
+  z.anm[id] = [];
+  zeichnen();
+  setTimeout(() => {
+    const kurz = /kurz|lang|weniger/i.test(wunsch);
+    const ank = genutzt.some((x) => x.block === "aufgabe") || /kreuz/i.test(wunsch);
+    const alt = a.versionen[a.versionen.length - 1];
+    a.versionen.push({
+      kern: [kurz ? "Kürzer: drei Sätze, eine Entscheidung" : "Geändert nach deinem Wunsch",
+        genutzt.length ? `${genutzt.length === 1 ? "Deine Anmerkung ist" : "Deine " + genutzt.length + " Anmerkungen sind"} umgesetzt` : "Gleicher Begleittext",
+        wunsch ? "Dein Wunsch: „" + wunsch + "“" : "Sonst unverändert"],
+      pruefen: "", fall: alt.fall ? (kurz ? FALL_V2 : alt.fall) : undefined, aufgabe: alt.fall ? (ank ? AUFGABE_V2 : alt.aufgabe) : undefined });
+    z.version[id] = a.versionen.length - 1;
+    if (z.detail && z.detail.id === id) zeichnen();
+    toast("Fassung " + a.versionen.length + " ist da.");
+  }, 2500);
+}
+function positionSpeichern(id) {
+  const wert = $("#neu-position").value.trim();
+  if (!wert) { toast("Schreib kurz, was dazugekommen ist."); return; }
+  reihe(id).behandelt.push(wert);
+  if (id === "strafe" && /hegel/i.test(wert)) geschafft("A4");
+  z.reiheOffen = null; zeichnen(); toast("Gespeichert. Ab jetzt beachte ich das.");
+}
+function vorlageHochladen(feld, dateien) {
+  if (!dateien.length) return;
+  const eintraege = [];
+  if (feld === "vl-gestaltung") {
+    const f = dateien[0];
+    const v = { id: "g" + Date.now(), name: f.name, info: "Ab dem nächsten Auftrag nutze ich diese Gestaltung. Bisherige Ergebnisse bleiben, wie sie sind.", stand: "liest" };
+    vorlagen.gestaltung.push(v); eintraege.push(v);
+  } else if (feld === "vl-muster") {
+    const typ = $("#vl-muster-typ").value;
+    for (const f of dateien) { const v = { id: "m" + Date.now() + f.name, typ, name: f.name, warum: "Ich lese es und schreibe auf, was daran gut ist. Du kannst es korrigieren.", stand: "liest" }; vorlagen.muster.push(v); eintraege.push(v); }
+    if (typ === "Fallbeispiel") geschafft("A7");
+  } else {
+    for (const f of dateien) { const v = { name: f.name, stand: "liest" }; vorlagen.sammlung.neu.unshift(v); eintraege.push(v); }
+  }
+  zeichnen();
+  toast(dateien.length === 1 ? "Hochgeladen. Ich lese die Datei." : `${dateien.length} Dateien hochgeladen. Ich lese sie.`);
+  setTimeout(() => { eintraege.forEach((v) => { v.stand = "aktiv"; }); if (z.bereich === "unterricht") zeichnen(); }, 2500);
+}
+
+const start = (location.hash || "").slice(1);
+if (NAMEN[start] || start === "test") z.bereich = start;
+if (start === "vorlagen") { z.bereich = "unterricht"; z.unterricht = "vorlagen"; }
+zeichnen();
+</script>

@@ -493,5 +493,18 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Zur Messung der Handeingriffe fehlen Zeitstempel in der Bash-History (HISTTIMEFORMAT in ~/.bashrc, nur mit
      Jans Okay).
 
+24. Web-App für Lia und weitere Lehrerinnen (Entwurf 29.10.2026, nichts gebaut): docs/webapp-plan.md, Prototyp
+   docs/webapp-prototyp.html (Beispieldaten, Seitenvorschau mit Anmerkungen, Feedback mit Geltungsbereich, Vorlagen,
+   Testleitung für 7 Aufgaben), privat veröffentlicht unter
+   https://claude.ai/artifact/JMoaDZKoS59tpG35fbxZDs (für Lia erst nach „Teilen“ durch Jan).
+   - Befund: Lia hat über Telegram in 8 Tagen 1 Auftrag geschickt (wegen Kontingent fehlgeschlagen), kein Feedback;
+     fast alles läuft mündlich über Jan. portal.py kennt keine Freigaben (examen-0c44bf offen seit 25.10.).
+   - Caddy läuft schon als root auf 80/443 (kcal.meldro.de). Vorschlag: zweiter Block für die Web-App, von Jan als
+     root, erst nach den Klärungen K1–K6 (Schule/Datenschutz, Abo oder API, AVV, Name der Domain).
+   - Offen, Entscheidung Jan: Klärungen anstoßen, Beobachtung und Prototyp-Test mit Lia, Pakete (fastapi, uvicorn,
+     jinja2, python-multipart, webauthn, htmx-Datei) für Bauschritt 1. Bauplan in Abschnitt 7 des Plans.
+   - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
+   - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
+
 ## Gelernte Regeln
 - (noch keine)
