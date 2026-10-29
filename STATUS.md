@@ -264,7 +264,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      installiert (/usr/bin/soffice, für die Vorschau des Renderers). Jan kommt jetzt per SSH-Schlüssel
      contabo_agents auch als root auf den Server (über Contabo „Zugangsdaten zurücksetzen“, das löste einen
      Neustart aus; alle Dienste kamen von selbst wieder). Offen: 15 normale Updates, Ubuntu 26.04 nicht
-     nebenbei einspielen.
+     nebenbei einspielen. 29.10.: libreoffice-calc-nogui 24.2.7 ergänzt (Jan als root, für Excel im Renderer).
+     Vom Windows-Rechner kommt Jan mit C:\Users\jan\.ssh\id_ed25519_contabo als root auf den Server.
    Vorbehalt Datenschutz: Mail- und IServ-Teil erst nach Klärung mit der Schule (Abschnitt 0).
 9. Termine in Jans iCloud-Kalender SCHREIBEN (Bedarf uni, Plan von Jan 24.10.): agentkit-Teil erledigt 27.10.
    - `kalender.eintragen(titel, beginn, ende, *, agent, ort="", notiz="", uid=None, ganztags=False,

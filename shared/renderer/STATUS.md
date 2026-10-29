@@ -86,7 +86,7 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 - Kontrolltext: lxml-Elemente festhalten statt `id()` merken (Adressen werden wiederverwendet).
 - Vorschau-Schriften: Carlito ersetzt Calibri maßgleich. Aptos ersetzt `~/.config/fontconfig/fonts.conf` durch
   Liberation Sans (eher breiter, Überläufe fallen also früher auf). LibreOffice aus apt (`libreoffice-writer-nogui`,
-  `libreoffice-impress-nogui`, `fonts-crosextra-carlito`), etwa 5 s je Datei.
+  `libreoffice-impress-nogui`, `libreoffice-calc-nogui` seit 29.10., `fonts-crosextra-carlito`), etwa 5 s je Datei.
 
 ## Entscheidungen (Jan, 21./22.10.)
 - Lias Stil ist der Maßstab. Das Profil gibt der Agent mit, der Renderer enthält keine Daten einer Person.
@@ -157,9 +157,11 @@ Anlass: Lias Notentabelle (Bedarf in `../../STATUS.md`, 29.10.). Referenzfall: N
 - **Vorschau ohne Calc:** keine Bilder, `hinweise` sagt „Keine Vorschau: LibreOffice Calc fehlt“, Kontrolltext und
   Probe müssen dann reichen. **Mit Calc** (`libreoffice-calc-nogui` 24.2.7 aus noble-updates, passt zu Writer und
   Impress, etwa 30 MB, braucht sudo): Druckbild A4 quer als PNG wie bei docx/pptx und ein Test, der jede
-  Probe-Formel von Calc nachrechnen lässt und mit `rechnung.py` vergleicht. Jan installiert Calc (29.10., als
-  root: `apt install libreoffice-calc-nogui`). Ob Calc beim Laden einer xlsxwriter-Datei neu rechnet, prüfe ich
-  beim Bau (sonst Umwandlung mit Neuberechnung erzwingen).
+  Probe-Formel von Calc nachrechnen lässt und mit `rechnung.py` vergleicht. Calc ist installiert (29.10.). Geprüft:
+  xlsx -> PDF (A4 quer, Seitenbreite) und -> CSV gehen. Calc rechnet xlsxwriter-Dateien beim Laden aber nicht neu
+  (zeigt die Platzhalter 0). Abhilfe getestet: im frischen LibreOffice-Profil `registrymodifications.xcu` mit
+  `/org.openoffice.Office.Calc/Formula/Load` `OOXMLRecalcMode` = 0 (immer neu rechnen), dann stimmen die Werte
+  (12,5 / 11,33; ohne LEK 8 / 8). `vorschau.als_pdf` muss das für .xlsx setzen.
 - **Profil:** schlicht. Schrift und Größe aus dem Profil, Kopf `farben.tabellenkopf` (Jan: HNEE EAEADA, Lia:
   Standard E7E6E6), neuer Profilwert `farben.rechenfeld` (Standard F2F2F2). Keine bunten Flächen.
 - **Tests** (`tests/test_rechnung.py`, `tests/test_arbeitsmappe.py`, Erweiterung von `test_pruefung.py`,
