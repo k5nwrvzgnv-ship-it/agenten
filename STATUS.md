@@ -583,8 +583,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      c) Chat-Agent für Lia (eigener Ordner lia/chat/ oder Teil von unterricht): kurze Antworten über
         agentkit.claude_lauf, Kontext des Orts aus Dateien (Fach, Klasse mit Lerngruppe, Reihe, Stunden, Regeln),
         kleines Modell für schnelle Fragen, kein Starten von Aufträgen, keine Schülernamen, Verlauf befristet.
-     d) agentkit: Zustand „final“ einer Fassung und „eigene Fassung“ (oder die Web-App speichert es selbst nach
-        den Konten), Entscheidung im Hauptordner-Chat.
+     d) Erledigt 30.10. in agentkit.fassungen (siehe „Vom Hauptordner-Chat“ unten), Umstellung der Web-App offen.
      e) lia/unterricht (später, nach Jans Okay): Varianten in einem Lauf bauen (einfach/Türkisch/Hilfekarten aus
         derselben Beschreibung), statt je Variante ein eigener Lauf mit der fertigen Datei als Anhang (heute in
         der Web-App, kostet je Variante einen ganzen Material-Lauf). Ein echter Lauf mit Anhang fehlt noch.
@@ -596,18 +595,36 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         Umstellung ein Symlink auf ../instanz/reihen.toml; bitte auf lia/instanz/reihen.toml umstellen (oder
         config.SHARED_DIR), dann löscht der unterricht-Chat den Symlink. Achtung: reihe_text gibt alle Felder aus,
         künftig auch id, agenten und [[reihe.stunde]].
-   - Vom lia/theater-Chat (30.10., board-plan.md 8, Jans Okay 30.10.): theater nimmt neue Aufträge an. Für die
-     Web-App: agent "theater", quelle "portal-theater", Feld reihe, danach agent_starten("theater") (Dienst
-     lia-theater). Text, erste Zeile entscheidet:
-     - „Spielfassung: <Stück>“, darunter „Länge: 35–40 Minuten“ (oder eine Zahl, dann ±2), „Spieler*innen: 18“,
-       „Was bleiben muss: …“ (auch mehrzeilig, höchstens 1500 Zeichen). Fehlt eine Zeile, gilt theater.toml. Nur
-       „Der nackte Wahnsinn“ (auch „Noises Off“); ein anderes Stück startet keinen Lauf, Lia bekommt „Für dieses
-       Stück habe ich den Text noch nicht“, Jan eine Meldung. Ergebnis: vier docx (Szenenkarte, Ablauf,
-       Spielfassung, Stück im Stück), eine ganze Runde, bis zu 3 Stunden, Kosten etwa wie 29.10. (rund 7 USD).
-     - „Szenenaufgabe: <Thema>“, darunter z. B. „Methode: …“, „Szene: …“ (Baustein B.. oder Stelle), „Material:
-       …“, optional „Gruppe: …“; Anhänge (pdf, docx, Bilder) im Feld dateien werden gelesen. Ergebnis: eine docx.
-       Rückmeldung mit bezug auf den Auftrag überarbeitet die Szenenaufgabe.
-     Weitere Zeilen (z. B. „Reihe: …“) stören nicht. Kein echter Lauf bisher, nur Tests.
+   - Vom Hauptordner-Chat (30.10., board-plan.md 10, Jans Entscheidung 30.10.: agentkit speichert, laufender
+     Lauf wird abgebrochen). Gebaut und getestet, Bedarf b und d damit auf agentkit-Seite erledigt:
+     Alle Aufrufe mit basis=<instanz>/auftraege und agenten_dir=<instanz>.parent (Web-App: INSTANZ).
+     1. agentkit.fassungen (Speicher <instanz>/fassungen/<ursprung>.json, Ursprung = erster Auftrag der
+        bezug-Kette; Dateien eigener Fassungen in <agent>/data/eingang/<ursprung>/eigene-<n>/, Claude darf lesen):
+        - final_setzen(auftrag_id, fassung, basis=): fassung = erledigte Auftrags-ID der Kette oder "eigene-<n>",
+          None nimmt final zurück. lesen(auftrag_id, basis=) -> {"ursprung","agent","final","eigene":[...]}.
+        - eigene_dazu(auftrag_id, datei, notiz="", basis=, agenten_dir=) verschiebt die Datei, gibt
+          {"n","name","datei","notiz","zeit"} zurück.
+        - rueckmeldung(bezug, text, datei=None, notiz="", basis=, agenten_dir=) -> (feedback_id, eigene|None):
+          Rückmeldung mit Datei in einem Aufruf (Datei wird eigene Fassung, dann Auftrag an "feedback");
+          danach agent_starten("feedback") wie bisher.
+        - Für Agenten: finale(agent, basis=) -> neueste zuerst {"ursprung","auftrag" (Text),"fassung","dateien",
+          "zeit"} als Beispiele; grundlage(auftrag_id) = neueste eigene Fassung nach dem letzten Ergebnis.
+          kette(auftrag_id), ursprung(auftrag_id).
+        Bedarf shared/webapp: zustand.py "final" und "eigene" auf agentkit.fassungen umstellen (bestehende
+        Einträge in data/ übernehmen oder verwerfen, Testbetrieb) und /rueckmeldung über fassungen.rueckmeldung;
+        Text „liegt bisher nur in der Web-App“ in logik.rueckmeldung_text streichen.
+     2. auftraege.zurueckziehen(auftrag_id, grund="", basis=): neu oder laufend -> Status zurueckgezogen
+        (zweimal schadet nicht, schon erledigt: AuftragFehler). Ein laufender claude-Lauf des Auftrags endet
+        binnen 5 s mit claude_lauf.Zurueckgezogen (ein LaufFehler); ein späteres abschliessen() des Agenten
+        ändert nichts und wirft nicht. auftraege.zurueckgezogen(id, basis=) fragt den Stand ab.
+        Bedarf an alle Agenten (lia/unterricht, theater, examen, recherche): claude_lauf.Zurueckgezogen vor
+        LaufFehler fangen, nur loggen, keine Meldung an Jan (sonst kommt „fehlgeschlagen“ an Jan).
+     3. Rückmeldung mit Datei: Der Feedback-Dienst liest die Word-Kommentare der neuesten eigenen Fassung
+        (agentkit.textfassung.word_kommentare, ohne Pakete) in die Zuordnung und hängt die Fassung als Kopie an
+        die Nachbesserung (Feld dateien, Text „Grundlage ist Lias eigene Fassung …“). neuer_auftrag hat dafür
+        kopieren=True. Bedarf lia/unterricht (b): Nachbesserung mit angehängter docx auf dieser Datei aufbauen
+        (Kommentare umsetzen und entfernen) statt auf dem letzten Ergebnis; finale Fassungen als Beispiele
+        (fassungen.finale) in den Prompt, wenn gewünscht.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 
