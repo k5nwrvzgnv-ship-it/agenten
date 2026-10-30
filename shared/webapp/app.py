@@ -63,7 +63,8 @@ und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
 ergebnis_dateien, nie über einen Pfad aus der URL; jeder Pfad wird gegen den Agent-Ordner geprüft (dateien.py).
 
-Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET)
+Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET; mit WEBAPP_PORT=8791 auf 127.0.0.1:8791
+       statt Socket, so läuft der Dienst systemd/webapp.service hinter Caddy)
 """
 
 import logging
@@ -96,6 +97,8 @@ import zustand
 
 HIER = Path(__file__).resolve().parent
 SOCKET = Path(os.environ.get("WEBAPP_SOCKET") or HIER / "data" / "webapp.sock")
+# Port auf 127.0.0.1 statt Socket (Dienst webapp.service hinter Caddy, lia.meldro.de; Jan 30.10. „Weg 2“)
+PORT = os.environ.get("WEBAPP_PORT", "")
 ECHTE_INSTANZ = HIER.parent.parent / "lia" / "instanz"
 INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or ECHTE_INSTANZ)
 NEUER_AUFTRAG = os.environ.get("WEBAPP_NEUER_AUFTRAG", "")  # "", "test" oder "echt" (siehe oben)
@@ -1074,10 +1077,16 @@ def socket_vorbereiten(socket_pfad: Path = SOCKET) -> None:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    socket_vorbereiten()
-    logger.info("Web-App hört auf %s, Instanz %s, Neuer Auftrag: %s", SOCKET, INSTANZ, neu_modus() or "aus")
+    port = logik.port_pruefen(PORT)
+    ort = f"127.0.0.1:{port}" if port else str(SOCKET)
+    logger.info("Web-App hört auf %s, Instanz %s, Neuer Auftrag: %s, Fragen: %s", ort, INSTANZ,
+                neu_modus() or "aus", "an" if CHAT else "aus")
     if NEUER_AUFTRAG and not neu_modus():
         logger.warning("WEBAPP_NEUER_AUFTRAG=%s gilt nicht für %s, Neuer Auftrag bleibt aus", NEUER_AUFTRAG, INSTANZ)
+    if port:  # nur lokal; von außen nur über Caddy (HTTPS, Passwort)
+        uvicorn.run(app, host="127.0.0.1", port=port, log_level="info", proxy_headers=False, server_header=False)
+        return
+    socket_vorbereiten()
     try:
         uvicorn.run(app, uds=str(SOCKET), log_level="info", proxy_headers=False, server_header=False)
     finally:

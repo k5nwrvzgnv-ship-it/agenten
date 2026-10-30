@@ -1422,3 +1422,12 @@ FRAGE_FEHLER = {"leer": "Schreib kurz deine Frage.", "lang": "Die Frage ist zu l
 
 def chat_id_gueltig(wert: str | None) -> bool:
     return bool(re.fullmatch(r"[0-9a-f]{12}", wert or ""))
+
+
+def port_pruefen(wert: str | None) -> int | None:
+    """WEBAPP_PORT: Zahl von 1024 bis 65535, sonst None (dann Unix-Socket). Falsche Angabe: ValueError."""
+    if not wert:
+        return None
+    if not wert.isdigit() or not 1024 <= int(wert) <= 65535:
+        raise ValueError(f"WEBAPP_PORT {wert!r}: Zahl von 1024 bis 65535")
+    return int(wert)

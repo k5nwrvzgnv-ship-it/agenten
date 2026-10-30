@@ -770,6 +770,12 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.neu_link("r", None, "", "0123456789ab"), "/neu?reihe=r&aus=0123456789ab")
         self.assertEqual(logik.neu_link("r", None, "", "../x"), "/neu?reihe=r")
 
+    def test_port(self):
+        self.assertEqual((logik.port_pruefen(""), logik.port_pruefen(None), logik.port_pruefen("8791")), (None, None, 8791))
+        for falsch in ("80", "x", "70000", "-1"):
+            with self.assertRaises(ValueError):
+                logik.port_pruefen(falsch)
+
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
         e = logik.klasse_ansicht("ethik-8", r, {"ethik-8-helfen": [{}, {}], "ethik-8-straftheorien": [{}]})

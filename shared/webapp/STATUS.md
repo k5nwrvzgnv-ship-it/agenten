@@ -207,17 +207,22 @@ nutzt jetzt Vorlagen aus seinem data/vorlagen/, ein Upload fehlt), Konten.
   python-multipart, webauthn samt Abhängigkeiten. agentkit per `.venv/.../agentkit.pth`.
 - Tests ohne httpx (nicht freigegeben): echter Uvicorn auf einem Socket im Temp-Ordner, Anfragen mit http.client.
 
-## Starten und ansehen (zum Test, kein Dienst)
-Auf dem Server (vom Mac aus `ssh agents-user`): `cd ~/agenten/shared/webapp && .venv/bin/python app.py` (Strg+C beendet).
-Mit „Neuer Auftrag“ im Testbetrieb: `cd ~/agenten/shared/webapp && WEBAPP_INSTANZ=$PWD/data/test/instanz
-WEBAPP_NEUER_AUFTRAG=test .venv/bin/python app.py` (zeigt dann die Test-Instanz, nicht Lias Aufträge).
-Mit der Spalte „Fragen“ zusätzlich `WEBAPP_CHAT=an` davor (Lias Kontingent). Alles echt auf Lias Daten:
-`WEBAPP_NEUER_AUFTRAG=echt WEBAPP_CHAT=an .venv/bin/python app.py` (nur mit Jans Okay, siehe Offene Punkte 0).
-Auf Jans Mac (Kurzname aus seiner ~/.ssh/config): `ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agents-user`, dann
-http://localhost:8792. Nach einer Code-Änderung die laufende App mit Strg+C beenden und neu starten. Andere Instanz: `WEBAPP_INSTANZ=/pfad`, anderer Socket: `WEBAPP_SOCKET=/pfad`.
-Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start löscht sie.
+## Starten und ansehen
+Dienst (Jan 30.10. „Weg 2“): `webapp.service` (Vorlage `systemd/webapp.service`, installiert in
+~/.config/systemd/user/, aktiviert), hört nur auf `127.0.0.1:8791`, echt auf lia/instanz mit
+`WEBAPP_NEUER_AUFTRAG=echt` und `WEBAPP_CHAT=an`. Neu starten nach einer Code-Änderung:
+`systemctl --user restart webapp.service`; Log: `journalctl --user -u webapp.service -n 50`.
+Von außen: `https://lia.meldro.de` über Caddy (HTTPS, Passwortschutz basicauth, Benutzer `lia`). Passwort im
+Klartext und als Hash nur in `.env` (0600, nicht im Repo); den fertigen Caddy-Block erzeugt `data/caddy-lia.txt`
+(0600). Eintragen macht Jan als root (siehe Offene Punkte 1).
+Jan über den Tunnel (Mac): `ssh -N -L 8792:127.0.0.1:8791 agents-user`, dann http://localhost:8792.
+Zum Testen von Hand ohne Dienst wie bisher: `.venv/bin/python app.py` (Unix-Socket `data/webapp.sock`, Tunnel
+`-L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock`), Test-Instanz mit `WEBAPP_INSTANZ=$PWD/data/test/instanz
+WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_PORT=<n>`.
 
 ## Entscheidungen
+- Jan 30.10. abends: „Weg 2“: Lia nutzt die App über https://lia.meldro.de mit Passwort (Caddy basicauth), Dienst
+  webapp.service auf 127.0.0.1:8791; Passkeys (Bauschritt 2) später, Adresse bleibt.
 - Jan 30.10. abends: „Ja, echt“: Die Web-App läuft schon vor den Konten echt auf lia/instanz
   (`WEBAPP_NEUER_AUFTRAG=echt WEBAPP_CHAT=an`), nur über Jans SSH-Tunnel. Neu, Variante, Rückmeldung, Nochmal,
   Zurückziehen und Fragen starten damit Läufe auf Lias Kontingent; Ergebnisse gehen auch per Telegram an Lia.
@@ -236,8 +241,11 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
 8. Aufträge, die inhaltlich eine neue Fassung sind, aber als neuer Material-Auftrag mit Datei kamen (93e29e,
    03b145 zur Theater-Fassung), haben kein `bezug` und stehen einzeln. Nicht geraten; Jan gefragt, ob so etwas
    zusammengehören soll (sauber wäre ein Änderungswunsch mit Datei aus der Ergebnis-Ansicht, Bauschritt 4).
-1. Dienst `webapp.service` (User-Unit mit OnFailure=ausfall@%n.service, MemoryMax=300M, Startgrenze): braucht
-   Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
+1. lia.meldro.de (Jan als root, 30.10. vorbereitet): DNS bei INWX A `84.247.188.205` und AAAA
+   `2a02:c207:3020:9076::1` (wie kcal), dann `data/caddy-lia.txt` an /etc/caddy/Caddyfile anhängen (kcal-Block
+   bleibt), `caddy validate --config /etc/caddy/Caddyfile`, `systemctl reload caddy`. Danach prüfen: ohne Passwort
+   401, mit Passwort 200, Formulare (Origin = Host lia.meldro.de). Passwortschutz ist Übergang bis Bauschritt 2
+   (Passkey); Klärung K1 (Schule/Datenschutz) offen, Jan hat „Weg 2“ trotzdem entschieden.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
 4. Material-Ansicht: Stunden (ohne Datei), Varianten-Zuordnung und Entwurf-Entscheidungen liegen nur in der

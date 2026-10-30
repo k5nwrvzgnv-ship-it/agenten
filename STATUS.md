@@ -572,8 +572,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      mit Ort, Auch als (einfach, Hilfekarten, Level) im selben Lauf, Varianten nachträglich, Rückmeldung je
      Datei/Seite, final und eigene Fassung über agentkit.fassungen, Entwurf selbst einsetzen, Nochmal,
      Zurückziehen, Vorlagen und Ich (lesend), Spalte „Fragen“ an lia/chat (nur mit WEBAPP_CHAT=an). Einzelheiten
-     shared/webapp/STATUS.md „Board komplett“. Jan 30.10.: „Ja, echt“ (WEBAPP_NEUER_AUFTRAG=echt, WEBAPP_CHAT=an auf
-     lia/instanz, nur über Jans Tunnel, noch kein echter Lauf). Offen bei Jan: erster echter Lauf Spielfassung
+     shared/webapp/STATUS.md „Board komplett“. Jan 30.10.: „Ja, echt“ und „Weg 2“: Dienst webapp.service läuft (127.0.0.1:8791, echt auf
+     lia/instanz, Fragen an); für Lia https://lia.meldro.de mit Passwort über Caddy, DNS und Caddy-Block trägt Jan
+     als root ein (Vorlage shared/webapp/data/caddy-lia.txt, Schritte shared/webapp/STATUS.md Offene Punkte 1). Offen bei Jan: erster echter Lauf Spielfassung
      (ca. 7 USD), ob Lias Ablage in die App soll. Nicht gebaut:
      „+ Reihe“ in der App, Konten.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):

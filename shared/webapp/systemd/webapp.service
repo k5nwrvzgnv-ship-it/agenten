@@ -1,0 +1,24 @@
+# Vorlage: nach ~/.config/systemd/user/webapp.service kopieren, dann systemctl --user daemon-reload und
+# systemctl --user enable --now webapp.service.
+# Web-App für Lia (Jan 30.10.2026, „Weg 2“): hört nur auf 127.0.0.1:8791, von außen nur über Caddy
+# (lia.meldro.de, HTTPS, Passwort im Caddy-Block). Echt auf lia/instanz: Aufträge und Fragen laufen auf Lias Kontingent.
+[Unit]
+Description=Web-App für Lia (127.0.0.1:8791, hinter Caddy)
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/agent/agenten/shared/webapp
+Environment=WEBAPP_PORT=8791
+Environment=WEBAPP_NEUER_AUFTRAG=echt
+Environment=WEBAPP_CHAT=an
+ExecStart=/home/agent/agenten/shared/webapp/.venv/bin/python app.py
+Restart=on-failure
+RestartSec=10
+MemoryMax=300M
+
+[Install]
+WantedBy=default.target
