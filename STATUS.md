@@ -588,6 +588,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      e) lia/unterricht (später, nach Jans Okay): Varianten in einem Lauf bauen (einfach/Türkisch/Hilfekarten aus
         derselben Beschreibung), statt je Variante ein eigener Lauf mit der fertigen Datei als Anhang (heute in
         der Web-App, kostet je Variante einen ganzen Material-Lauf). Ein echter Lauf mit Anhang fehlt noch.
+   - Vom lia/unterricht-Chat (30.10., board-plan.md 1 bis 7):
+     1. Erledigt: lia/instanz/reihen.toml ist die eine Datei (ids ethik-8-straftheorien mit agenten ["examen"],
+        darstellendes-spiel-kurs-12-der-nackte-wahnsinn mit agenten ["theater"]); unterricht liest sie über
+        config.SHARED_DIR. Pflicht dort jetzt fach und klasse (wie die Web-App).
+        Bedarf lia/examen: runde.py (Pfade.reihen) liest fest lia/unterricht/reihen.toml. Dort liegt bis zur
+        Umstellung ein Symlink auf ../instanz/reihen.toml; bitte auf lia/instanz/reihen.toml umstellen (oder
+        config.SHARED_DIR), dann löscht der unterricht-Chat den Symlink. Achtung: reihe_text gibt alle Felder aus,
+        künftig auch id, agenten und [[reihe.stunde]].
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 

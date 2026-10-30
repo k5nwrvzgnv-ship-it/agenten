@@ -3,7 +3,7 @@
 Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal-frage, portal-text).
 - portal-material: Material auf Zuruf (material.py, Skill einzelmaterial). Lia bekommt die docx- oder
   pptx-Datei mit Begleittext. Scheitert es, erfährt Jan die Ursache als Meldung in seiner Zentrale.
-  Lias laufende Reihen (reihen.toml) gehen mit; ist die Datei fehlerhaft, läuft er ohne sie und Jan erfährt es.
+  Lias Reihen (<instanz>/reihen.toml, gemeinsam mit der Web-App) gehen mit; ist die Datei fehlerhaft, läuft er ohne sie und Jan erfährt es.
   Ebenso der Katalog von Lias früherem Material (data/wissen/katalog.md, wissen.py) und der Leitfaden
   (leitfaden.md), falls vorhanden. Nachbesserungen aus Lias Feedback (bezug, sitzung) überarbeiten das alte
   Material; ändert Claude nichts, bekommt Lia nur die Antwort.
@@ -23,6 +23,7 @@ from agentkit import auftraege, claude_lauf, config, log, meldungen, verbrauch
 AGENT = "unterricht"
 HIER = Path(__file__).resolve().parent
 PROFIL = HIER / "profil.toml"
+REIHEN = config.SHARED_DIR / "reihen.toml"  # lia/instanz/reihen.toml, eine Datei für Web-App und Agenten
 logger = log.hole_logger(HIER, AGENT)
 
 ANTWORTEN = {
@@ -51,7 +52,7 @@ def profil_laden() -> dict:
 def reihen_laden() -> list[dict]:
     """Reihenkontext; ist reihen.toml fehlerhaft, ohne ihn weiter (Lia soll trotzdem Material bekommen)."""
     try:
-        return reihen.laden(HIER / "reihen.toml")
+        return reihen.laden(REIHEN)
     except reihen.ReihenFehler as e:
         logger.error("Reihenkontext fehlt: %s", e)
         jan_melden(f"reihen.toml fehlerhaft, Material ohne Reihenkontext: {e}")

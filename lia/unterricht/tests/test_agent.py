@@ -19,6 +19,7 @@ class AgentTest(unittest.TestCase):
         for p in (mock.patch.object(auftraege, "BASIS", self.basis),
                   mock.patch.object(auftraege, "AGENTEN_DIR", self.agenten),
                   mock.patch.object(agent, "HIER", self.hier),
+                  mock.patch.object(agent, "REIHEN", self.hier / "reihen.toml"),
                   mock.patch.object(agent, "jan_melden", self.gemeldet.append)):
             p.start()
             self.addCleanup(p.stop)
@@ -95,22 +96,22 @@ class AgentTest(unittest.TestCase):
     def test_reihen_laden(self):
         self.assertEqual(agent.reihen_laden(), [])  # keine Datei
         self.hier.mkdir(parents=True)
-        (self.hier / "reihen.toml").write_text("[[reihe]]\nklasse = 8\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
-        self.assertEqual(agent.reihen_laden(), [{"klasse": 8, "reihenfrage": "Helfen?"}])
+        (self.hier / "reihen.toml").write_text("[[reihe]]\nfach = 'Ethik'\nklasse = 8\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
+        self.assertEqual(agent.reihen_laden(), [{"fach": "Ethik", "klasse": 8, "reihenfrage": "Helfen?"}])
         self.assertEqual(self.gemeldet, [])
-        (self.hier / "reihen.toml").write_text("[[reihe]]\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
+        (self.hier / "reihen.toml").write_text("[[reihe]]\nfach = 'Ethik'\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
         self.assertEqual(agent.reihen_laden(), [])
         self.assertEqual(len(self.gemeldet), 1)
         self.assertIn("klasse fehlt", self.gemeldet[0])
 
     def test_material_bekommt_reihen(self):
         self.hier.mkdir(parents=True)
-        (self.hier / "reihen.toml").write_text("[[reihe]]\nklasse = 8\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
+        (self.hier / "reihen.toml").write_text("[[reihe]]\nfach = 'Ethik'\nklasse = 8\nreihenfrage = 'Helfen?'\n", encoding="utf-8")
         bearbeiten = mock.Mock(side_effect=material.MaterialFehler("egal"))
         auftraege.neuer_auftrag("unterricht", "Blatt", quelle="portal-material")
         with mock.patch.object(agent.material_auftrag, "__defaults__", (bearbeiten,)):
             agent.auftraege_abarbeiten()
-        self.assertEqual(bearbeiten.call_args.kwargs["reihen"], [{"klasse": 8, "reihenfrage": "Helfen?"}])
+        self.assertEqual(bearbeiten.call_args.kwargs["reihen"], [{"fach": "Ethik", "klasse": 8, "reihenfrage": "Helfen?"}])
         self.assertEqual(bearbeiten.call_args.kwargs["katalog"], "")  # kein Katalog in self.hier
         k = self.hier / "data" / "wissen" / "katalog.md"
         k.parent.mkdir(parents=True)
