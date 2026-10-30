@@ -1,0 +1,8 @@
+{#- Antwort auf eine gerade gestellte Frage (htmx, /teile/frage/<id>). Solange sie fehlt, fragt dieser Block nach
+    2 s wieder nach; die fertige Antwort ersetzt ihn und fragt nicht mehr. -#}
+{%- if wartet %}
+<div hx-get="/teile/frage/{{ id }}" hx-trigger="load delay:2s" hx-swap="outerHTML"><p class="unter">Denkt nach …</p></div>
+{%- else %}
+{%- set f = a %}
+{% include "_antwort.html" %}
+{%- endif %}

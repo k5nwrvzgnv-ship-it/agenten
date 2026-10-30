@@ -1,20 +1,22 @@
-"""Was die Web-App selbst speichert, bis Konten oder agentkit es können: "final" je Auftrag, Lias eigene Fassungen,
-die Stunden einer Reihe, welches Material zu welcher Stunde gehört und welche Aufträge Varianten eines Materials sind.
+"""Was die Web-App selbst speichert: Stunden einer Reihe (solange reihen.toml keine hat), welches Material zu welcher
+Stunde gehört, welche Aufträge Varianten eines Materials sind, Lias Entscheidungen zu Entwürfen, „Nochmal“.
+"final" und Lias eigene Fassungen speichert seit 30.10.2026 agentkit.fassungen (<instanz>/fassungen/, Dateien im
+Agent-Ordner, damit die Agenten sie sehen; Jans Entscheidung). lesen() liefert sie zum Anzeigen mit.
 
 Je Instanz eine JSON-Datei data/zustand/<schluessel>.json, die Dateien der eigenen Fassungen unter
 data/eigene/<schluessel>/<ursprung-id>/<n>/<name>. Nichts davon liegt in Lias Instanz, die Agenten sehen es nicht
 (Bedarf b und d in Punkt 24 der Haupt-STATUS).
 
 Format:
-  {"final":  {"<ursprung-id>": {"fassung": "<auftrags-id oder eigene-n>", "zeit": "<iso>"}},
-   "eigene": {"<ursprung-id>": [{"name": "Blatt.docx", "datei": "1/Blatt.docx", "zeit": "<iso>", "notiz": ""}]},
-   "stunden": {"<reihe-id>": [{"thema": "Kant: Vergeltung", "zeit": "<iso>"}]},   Nummer = Platz in der Liste (ab 1)
+  {"stunden": {"<reihe-id>": [{"thema": "Kant: Vergeltung", "zeit": "<iso>"}]},   Nummer = Platz in der Liste (ab 1)
    "stunde_von": {"<ursprung-id>": {"reihe": "<reihe-id>", "nr": 2}},
    "varianten": {"<ursprung-id>": [{"art": "einfach", "auftrag": "<auftrags-id der variante>", "zeit": "<iso>"}]},
    "varianten_wunsch": {"<ursprung-id>": ["tuerkisch"]},   Lias „Auch als“, bis die Variante angefordert ist
    "entwuerfe": {"<entwurf-id>": {"stand": "selbst" | "nein", "zeit": "<iso>"}},   Lias Entscheidung (logik)
    "ersetzt": {"<fehlgeschlagener ursprung>": "<auftrags-id von Nochmal>"}}
-Die reine Logik dazu steht in logik.py (final_setzen, eigene_dazu, stunde_dazu, stunde_zuordnen).
+Die reine Logik dazu steht in logik.py (stunde_dazu, stunde_zuordnen, variante_dazu, entwurf_entscheiden).
+Dazu beim Lesen (nur lesend aus agentkit.fassungen): "final": {"<ursprung>": {"fassung", "zeit"}},
+"eigene": {"<ursprung>": [{"n", "name", "datei" (relativ zum Agent-Ordner), "notiz", "zeit"}]}.
 Stunden kennen die Agenten nicht; ein Auftrag aus einer Stunde nennt sie im Text (logik.text_mit_reihe).
 """
 
@@ -28,7 +30,7 @@ from pathlib import Path
 logger = logging.getLogger("webapp")
 
 
-FELDER = ("final", "eigene", "stunden", "stunde_von", "varianten", "varianten_wunsch", "entwuerfe", "ersetzt")
+FELDER = ("stunden", "stunde_von", "varianten", "varianten_wunsch", "entwuerfe", "ersetzt")
 
 
 def leer() -> dict:
@@ -39,25 +41,43 @@ class Zustand:
     def __init__(self, daten_dir: Path, instanz: Path):
         schluessel = hashlib.sha256(str(instanz.resolve()).encode()).hexdigest()[:12]
         self.datei = daten_dir / "zustand" / f"{schluessel}.json"
-        self.ablage = daten_dir / "eigene" / schluessel
+        self.fassungen = instanz / "fassungen"  # agentkit.fassungen (basis = instanz/auftraege)
 
     def lesen(self) -> dict:
-        """Gespeicherter Zustand; fehlt die Datei: leer. Kaputte Datei: Fehler im Log, leer (nichts überschreiben,
-        schreiben() bricht dann ab)."""
+        """Gespeicherter Zustand samt final und eigene aus agentkit.fassungen; fehlt die Datei: leer. Kaputte Datei:
+        Fehler im Log, leer (nichts überschreiben, schreiben() bricht dann ab)."""
+        zustand = {**leer(), **self._fassungen()}
         try:
             daten = json.loads(self.datei.read_text(encoding="utf-8"))
         except FileNotFoundError:
-            return leer()
+            return zustand
         except (OSError, ValueError) as fehler:
             logger.error("Zustand %s nicht lesbar: %s", self.datei, fehler)
-            return {**leer(), "kaputt": True}
+            return {**zustand, "kaputt": True}
         if not isinstance(daten, dict):
             logger.error("Zustand %s ist kein Objekt", self.datei)
-            return {**leer(), "kaputt": True}
-        return {f: dict(daten.get(f) or {}) for f in FELDER}
+            return {**zustand, "kaputt": True}
+        return {**zustand, **{f: dict(daten.get(f) or {}) for f in FELDER}}
+
+    def _fassungen(self) -> dict:
+        """final und eigene je Ursprung aus <instanz>/fassungen/*.json (nur lesen; schreiben tut agentkit)."""
+        final, eigene = {}, {}
+        for pfad in sorted(self.fassungen.glob("*.json")) if self.fassungen.is_dir() else []:
+            try:
+                stand = json.loads(pfad.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as fehler:
+                logger.error("Fassungen %s nicht lesbar: %s", pfad, fehler)
+                continue
+            u = stand.get("ursprung") or pfad.stem
+            if stand.get("final"):
+                final[u] = stand["final"]
+            if stand.get("eigene"):
+                eigene[u] = sorted(stand["eigene"], key=lambda e: e.get("n", 0))
+        return {"final": final, "eigene": eigene}
 
     def schreiben(self, daten: dict) -> None:
-        """Ganz oder gar nicht (temporäre Datei, dann umbenennen). Eine kaputte Datei wird nie überschrieben."""
+        """Ganz oder gar nicht (temporäre Datei, dann umbenennen). Eine kaputte Datei wird nie überschrieben.
+        final und eigene schreibt diese Funktion nicht (agentkit.fassungen)."""
         if daten.get("kaputt"):
             raise OSError(f"Zustand {self.datei} ist kaputt, nichts geschrieben")
         self.datei.parent.mkdir(parents=True, exist_ok=True)
@@ -70,10 +90,3 @@ class Zustand:
         except BaseException:
             Path(tmp).unlink(missing_ok=True)
             raise
-
-    def finale(self) -> set[str]:
-        """IDs der Ursprünge mit einer finalen Fassung (für "Heute")."""
-        return set(self.lesen()["final"])
-
-    def ordner_eigene(self, ursprung_id: str, n: int) -> Path:
-        return self.ablage / ursprung_id / str(n)

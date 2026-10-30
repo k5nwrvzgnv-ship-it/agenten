@@ -666,6 +666,45 @@ class TestOrdnung(Aufbau):
         self.assertEqual(a["text"], "Spielfassung: Der nackte Wahnsinn\nLänge: 35–40 Minuten\nSpieler*innen: 18\n"
                                     "Was bleiben muss: Akt 1\nTreppe\n\nReihe: Der nackte Wahnsinn (Darstellendes Spiel, Kurs 12)")
 
+    def test_fragen_spalte(self):
+        self.assertIn("Kommt bald", self.hole("/reihe/strafe")[1])  # ohne WEBAPP_CHAT nur Platzhalter
+        self.assertEqual(self.post("/fragen", {"text": "x"})[0].status, 404)
+        ordner = self.tmp / "chat"
+        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
+            _, html = self.hole("/reihe/strafe")
+            for text in ("Ich weiß:</span> Ethik › Klasse 8 › Straftheorien", 'name="ohne"', 'action="/fragen"',
+                         "htmx-2.0.4.min.js"):
+                self.assertIn(text, html)
+            r, _ = self.post("/fragen", {"text": "Was heißt Vergeltung?", "reihe": "strafe", "zurueck": "/reihe/strafe"})
+            self.assertEqual(r.status, 303)
+            fid = r.getheader("location").split("frage=")[1].split("#")[0]
+            frage = json.loads((ordner / "fragen" / f"{fid}.json").read_text())
+            self.assertEqual((frage["text"], frage["ort"]["reihe"], frage["ort"]["chip"]),
+                             ("Was heißt Vergeltung?", "strafe", "Ethik › Klasse 8 › Straftheorien"))
+            _, html = self.hole(f"/reihe/strafe?frage={fid}")
+            self.assertIn(f'hx-get="/teile/frage/{fid}"', html)
+            _, teil = self.hole(f"/teile/frage/{fid}")
+            self.assertIn("Denkt nach", teil)
+            app.chat().antwort_schreiben({"id": fid, "ok": True, "text": "**Vergeltung** heißt <b>x</b>", "fehler": None},
+                                         ordner)
+            _, teil = self.hole(f"/teile/frage/{fid}")
+            self.assertIn("<b>Vergeltung</b> heißt &lt;b&gt;x&lt;/b&gt;", teil)
+            self.assertNotIn("hx-get", teil)
+            (ordner / "verlauf.jsonl").write_text(json.dumps({"id": fid, "reihe": "strafe", "chip": "Ethik › Klasse 8",
+                                                              "frage": "Was heißt Vergeltung?",
+                                                              "antwort": "**Vergeltung** heißt Ausgleich."}) + "\n")
+            _, html = self.hole("/reihe/strafe")
+            self.assertIn('<p class="fragen-frage">Was heißt Vergeltung?</p>', html)
+            self.assertIn(f'href="/neu?reihe=strafe&amp;aus={fid}">Daraus Auftrag machen</a>', html)
+            _, html = self.hole(f"/neu?reihe=strafe&aus={fid}")
+            self.assertIn(f"aus={fid}", html)  # Galerie trägt die Antwort weiter
+            _, html = self.hole(f"/neu?art=arbeitsblatt&reihe=strafe&aus={fid}")
+            self.assertIn("Was heißt Vergeltung?\n\nVergeltung heißt Ausgleich.</textarea>", html)
+            r, _ = self.post("/fragen", {"text": " ", "zurueck": "https://boese.example/x"})
+            self.assertEqual(r.getheader("location"), "/?fragefehler=leer#fragen")
+            self.assertIn("Schreib kurz deine Frage.", self.hole("/?fragefehler=leer")[1])
+            self.assertEqual(self.hole("/teile/frage/../../x")[0].status, 404)
+
     def test_auch_als_im_formular(self):
         self.assertIn('name="varianten" value="hilfekarten"', self.hole("/neu?art=arbeitsblatt")[1])
         self.assertNotIn('name="varianten"', self.hole("/neu?art=tabelle")[1])
@@ -815,8 +854,11 @@ class TestMaterial(Aufbau):
         (a,) = self.neue()
         # gilt der neuesten fertigen Fassung (wie in Telegram), die Datei ist Lias eigene Fassung
         self.assertEqual((a["agent"], a["quelle"], a["bezug"]), ("feedback", "feedback", NB))
-        self.assertTrue(a["text"].startswith("Bitte kürzer\n\nDazu gibt es eine Datei mit Kommentaren "
-                                             "(Kommentare.docx, Fassung 2)"))
+        self.assertEqual(a["text"], "Bitte kürzer\n\nDazu eine Datei mit Kommentaren: Kommentare.docx.")
+        # agentkit.fassungen: eigene Fassung in der Instanz, Datei im Agent-Ordner (die Agenten sehen sie)
+        stand = app.fassungen.lesen("20261030-140944-unterricht-93e29e", basis=self.instanz / "auftraege")
+        self.assertEqual([e["name"] for e in stand["eigene"]], ["Kommentare.docx"])
+        self.assertTrue((self.tmp / "unterricht" / stand["eigene"][0]["datei"]).is_file())
         r, inhalt = self.hole(self.URL + "/eigene/1", roh=True)
         self.assertEqual(inhalt, b"KOMM")
         _, html = self.hole(self.URL)

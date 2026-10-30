@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block titel %}{{ e.titel }}{% endblock %}</title>
 <link rel="stylesheet" href="/statisch/stil.css">
-{%- block skripte %}{% endblock %}
+{%- block skripte %}{% if fragen %}<script src="/statisch/htmx-2.0.4.min.js" defer></script>{% endif %}{% endblock %}
 </head>
 <body>
 <div class="rahmen">
@@ -48,9 +48,40 @@
     {%- endfor %}
   </ul>
 </nav>
-<aside class="fragen" aria-label="Fragen">
+<aside class="fragen" aria-label="Fragen" id="fragen">
   <h2 class="fragen-titel">Fragen</h2>
+  {%- if fragen %}
+  {%- set wartend = request.query_params.get("frage", "") %}
+  {%- set fehler_frage = request.query_params.get("fragefehler", "") %}
+  <div class="fragen-verlauf">
+    {%- for f in fragen.verlauf %}
+    {%- if f.wechsel %}<p class="fragen-trenner">jetzt: {{ f.chip or "ohne Ort" }}</p>{% endif %}
+    <p class="fragen-frage">{{ f.frage }}</p>
+    {% include "_antwort.html" %}
+    {%- endfor %}
+    {%- if wartend and wartend not in fragen.verlauf | map(attribute="id") | list %}
+    <div hx-get="/teile/frage/{{ wartend }}" hx-trigger="load" hx-swap="outerHTML"><p class="unter">Denkt nach …</p></div>
+    {%- elif not fragen.verlauf %}
+    <p class="leer">Frag kurz, zum Beispiel: „Was heißt …?“, „Erklär das für eine 8. Klasse“, „Zwei Sätze zu …“.</p>
+    {%- endif %}
+  </div>
+  {%- if fehler_frage in frage_fehler %}<p class="fehler" role="alert">{{ frage_fehler[fehler_frage] }}</p>{% endif %}
+  <form class="fragen-form" method="post" action="/fragen">
+    <input type="hidden" name="token" value="{{ fragen_token }}">
+    <input type="hidden" name="zurueck" value="{{ request.url.path }}">
+    <input type="hidden" name="reihe" value="{{ fragen.reihe }}">
+    <input type="hidden" name="stunde" value="{{ fragen.stunde }}">
+    <p class="fragen-ort"><span class="unter">Ich weiß:</span> {{ fragen.chip or "ohne Ort" }}</p>
+    {%- if fragen.chip %}<label class="unter"><input type="checkbox" name="ohne" value="1"> ohne Ort fragen</label>{% endif %}
+    <label class="unsichtbar" for="chat-eingabe">Deine Frage</label>
+    <textarea id="chat-eingabe" name="text" rows="3" maxlength="4000" required></textarea>
+    <label class="unter"><input type="checkbox" name="gruendlich" value="1"> gründlich (dauert länger)</label>
+    <button class="knopf knopf-voll" type="submit">Fragen</button>
+    <span class="unter">Keine Namen von Schüler*innen. Läuft über dein Kontingent.</span>
+  </form>
+  {%- else %}
   <p class="leer">Kommt bald. Hier kannst du später kurz etwas fragen, passend zu dem, was du gerade offen hast.</p>
+  {%- endif %}
 </aside>
 </div>
 </body>

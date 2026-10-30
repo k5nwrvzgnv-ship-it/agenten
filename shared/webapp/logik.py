@@ -512,23 +512,6 @@ def final_erlaubt(ref: str, schritte: list[dict]) -> bool:
     return any(x.get("ref") == ref and x.get("finalbar") for x in schritte)
 
 
-def final_setzen(zustand_: dict, kopf_id: str, ref: str, an: bool, zeit: str) -> dict:
-    """Neuer Zustand (zustand.py) mit final an bzw. aus. Je Auftrag ist höchstens eine Fassung final."""
-    final = dict(zustand_.get("final") or {})
-    if an:
-        final[kopf_id] = {"fassung": ref, "zeit": zeit}
-    elif (final.get(kopf_id) or {}).get("fassung") == ref:
-        del final[kopf_id]
-    return {**zustand_, "final": final}
-
-
-def eigene_dazu(zustand_: dict, kopf_id: str, eintrag: dict) -> tuple[dict, int]:
-    """Neuer Zustand mit einer eigenen Fassung mehr und ihre Nummer (ab 1)."""
-    eigene = {k: list(v) for k, v in (zustand_.get("eigene") or {}).items()}
-    eigene.setdefault(kopf_id, []).append(eintrag)
-    return {**zustand_, "eigene": eigene}, len(eigene[kopf_id])
-
-
 EIGENE_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx")
 RUECK_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
 
@@ -573,16 +556,15 @@ def rueckmeldung_ziel(kette: list[dict], fassung_id: str | None, nr_text: str | 
             "fassung_name": fassung_namen(kette).get(fassung["id"], "")}
 
 
-def rueckmeldung_text(text: str, datei_name_: str = "", fassung: str = "", ziel: dict | None = None) -> str:
+def rueckmeldung_text(text: str, datei_name_: str = "", ziel: dict | None = None) -> str:
     """Text des Auftrags an den Feedback-Dienst. ziel (rueckmeldung_ziel): Der Text beginnt mit Datei und Seite.
-    Eine angehängte Datei liegt als eigene Fassung in der Web-App (die Agenten können sie noch nicht lesen,
-    Bedarf b in Punkt 24 der Haupt-STATUS)."""
+    Eine angehängte Datei wird eigene Fassung (agentkit.fassungen.rueckmeldung); der Feedback-Dienst liest ihre
+    Word-Kommentare und hängt sie an die Nachbesserung."""
     if ziel:
         text = f"Zur Datei {ziel['text']}: {text}"
     if not datei_name_:
         return text
-    return (f"{text}\n\nDazu gibt es eine Datei mit Kommentaren ({datei_name_}, {fassung}). Sie liegt bisher nur in "
-            "der Web-App.")
+    return f"{text}\n\nDazu eine Datei mit Kommentaren: {dateiname_bereinigen(datei_name_)}."
 
 
 def seiten_text(anzahl: int) -> str:
@@ -703,17 +685,26 @@ VORLAGE_FREI = {"name": "Neuer Auftrag", "frage": "Was brauchst du?",
                 "hint": "Zum Beispiel: Arbeitsblatt zum kategorischen Imperativ, Klasse 10, 45 Minuten, mit Fallbeispiel"}
 
 
-def neu_link(reihe_id: str = "", stunde: int | None = None, art_: str = "") -> str:
-    """Link auf „Neu“ mit vorbelegtem Ort (und Art)."""
+def neu_link(reihe_id: str = "", stunde: int | None = None, art_: str = "", aus: str = "") -> str:
+    """Link auf „Neu“ mit vorbelegtem Ort (und Art). aus: id einer Chat-Antwort („Daraus Auftrag machen“)."""
     teile = [f"art={art_}"] if art_ else []
     teile += [f"reihe={reihe_id}"] if reihe_id else []
     teile += [f"stunde={stunde}"] if reihe_id and stunde else []
+    teile += [f"aus={aus}"] if chat_id_gueltig(aus) else []
     return "/neu" + ("?" + "&".join(teile) if teile else "")
 
 
-def galerie(reihe_id: str = "", stunde: int | None = None, fach: str = "") -> list[dict]:
+def text_aus_chat(eintrag: dict | None) -> str:
+    """Vorbelegter Wunsch aus einer Chat-Antwort: Lias Frage und die Antwort, ohne Markdown-Sternchen."""
+    if not eintrag:
+        return ""
+    antwort = _FETT.sub(r"\1", eintrag.get("antwort") or "").strip()
+    return f"{eintrag.get('frage') or ''}\n\n{antwort}".strip()[:NEU_TEXT_MAX]
+
+
+def galerie(reihe_id: str = "", stunde: int | None = None, fach: str = "", aus: str = "") -> list[dict]:
     """Vorlagen für einen Ort: alle für alle Fächer, dazu die des Fachs der Reihe (ohne Ort: alle)."""
-    return [{"art": k, **v, "link": neu_link(reihe_id, stunde, k)} for k, v in VORLAGEN.items()
+    return [{"art": k, **v, "link": neu_link(reihe_id, stunde, k, aus)} for k, v in VORLAGEN.items()
             if not v.get("fach") or not fach or v["fach"] == fach]
 
 
@@ -1331,3 +1322,90 @@ def nochmal_felder(kette: list[dict]) -> dict:
     letzte, k = fassungen(kette)[-1], kopf(kette)
     return {"text": letzte.get("text") or "", "quelle": letzte.get("quelle") or NEU_QUELLE,
             "bezug": letzte.get("bezug"), "sitzung": letzte.get("sitzung"), "reihe": k.get("reihe")}
+
+
+# Spalte „Fragen“ (Board „Desktop“): Chat-Agent lia/chat über seine Schnittstelle (Warteschlange in Dateien).
+# Die Antworten sind Markdown (fett, Listen); hier nur so viel davon, wie die Spalte zeigt, ohne HTML von außen.
+_FETT = re.compile(r"\*\*(.+?)\*\*")
+VERLAUF_ANZAHL = 6  # so viele Fragen zeigt die Spalte (der Agent hält 30 Tage)
+
+
+def _teile(zeile: str) -> list[dict]:
+    teile, pos = [], 0
+    for m in _FETT.finditer(zeile):
+        if m.start() > pos:
+            teile.append({"text": zeile[pos:m.start()], "fett": False})
+        teile.append({"text": m.group(1), "fett": True})
+        pos = m.end()
+    if pos < len(zeile):
+        teile.append({"text": zeile[pos:], "fett": False})
+    return teile
+
+
+def markdown_bloecke(text: str) -> list[dict]:
+    """Antworttext in Blöcke: {"absatz": [Teile]} oder {"punkte": [[Teile]]} (Zeilen mit "- ", "* " oder "1. "),
+    Teile {"text", "fett"} (**…**). Überschriften (#) werden fette Absätze."""
+    bloecke: list[dict] = []
+    for zeile in (text or "").replace("\r\n", "\n").split("\n"):
+        z = zeile.strip()
+        punkt = re.match(r"^(?:[-*]|\d+[.)])\s+(.*)$", z)
+        if punkt:
+            if not bloecke or "punkte" not in bloecke[-1]:
+                bloecke.append({"punkte": []})
+            bloecke[-1]["punkte"].append(_teile(punkt.group(1)))
+        elif z.startswith("#"):
+            bloecke.append({"absatz": [{"text": z.lstrip("#").strip(), "fett": True}]})
+        elif z:
+            if bloecke and "absatz" in bloecke[-1] and bloecke[-1].get("weiter"):
+                bloecke[-1]["absatz"] += [{"text": " ", "fett": False}, *_teile(z)]
+            else:
+                bloecke.append({"absatz": _teile(z), "weiter": True})
+        elif bloecke:
+            bloecke[-1].pop("weiter", None)
+    for b in bloecke:
+        b.pop("weiter", None)
+    return bloecke
+
+
+def fragen_eintrag(e: dict) -> dict:
+    """Eine Frage mit Antwort für die Spalte (aus verlauf() bzw. antwort_holen() des Chat-Agenten)."""
+    return {"id": e.get("id") or "", "frage": e.get("frage") or "", "chip": e.get("chip") or "",
+            "reihe": e.get("reihe") or "", "ok": e.get("ok", True), "gruendlich": bool(e.get("gruendlich")),
+            "bloecke": markdown_bloecke(e.get("antwort") if "antwort" in e else e.get("text") or "")}
+
+
+def fragen_spalte(verlauf: list[dict], reihe: dict | None, stunde: tuple[int, str] | None) -> dict:
+    """Werte für die Spalte: Ort als Chip („Ich weiß: …“), die letzten Fragen (neueste unten) mit Trennlinie, wenn
+    die Reihe wechselt."""
+    eintraege = [fragen_eintrag(e) for e in verlauf[-VERLAUF_ANZAHL:]]
+    vorher = None
+    for e in eintraege:
+        e["wechsel"] = vorher is not None and e["reihe"] != vorher
+        vorher = e["reihe"]
+    return {"chip": ort_text(reihe, stunde), "reihe": reihe["id"] if reihe else "",
+            "stunde": stunde[0] if stunde else "", "verlauf": eintraege}
+
+
+def frage_ort(reihe: dict | None, stunde: tuple[int, str] | None, materialien: list[str]) -> dict | None:
+    """Ort für schnittstelle.frage_stellen: nur die Reihe ist Pflicht."""
+    if not reihe:
+        return None
+    ort = {"reihe": reihe["id"], "chip": ort_text(reihe, stunde), "materialien": materialien[:20]}
+    if stunde:
+        ort |= {"stunde": stunde[0], "stunde_thema": stunde[1]}
+    return ort
+
+
+def zurueck_pfad(wert: str | None) -> str:
+    """Seite, auf die es nach der Frage zurückgeht: nur ein Pfad dieser App, sonst „Heute“."""
+    wert = (wert or "").split("?", 1)[0].split("#", 1)[0]
+    return wert if re.fullmatch(r"/[A-Za-z0-9/_\-]*", wert) and not wert.startswith("//") else "/"
+
+
+FRAGE_FEHLER = {"leer": "Schreib kurz deine Frage.", "lang": "Die Frage ist zu lang (höchstens 4.000 Zeichen).",
+                "veraltet": "Die Seite war veraltet. Bitte schick die Frage noch einmal.",
+                "technik": "Die Frage kam nicht an. Sag Jan bitte Bescheid."}
+
+
+def chat_id_gueltig(wert: str | None) -> bool:
+    return bool(re.fullmatch(r"[0-9a-f]{12}", wert or ""))

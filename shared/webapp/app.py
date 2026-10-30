@@ -14,6 +14,7 @@ Die App selbst läuft ohne AGENTKIT_INSTANZ. Logik in logik.py (getestet), hier 
 GET:
   /                                     Seite Heute
   /teile/heute                          Inhalt von Heute (htmx lädt ihn jede Minute neu)
+  /teile/frage/<id>                     Antwort des Chat-Agenten für die Spalte „Fragen“ (htmx, alle 2 s)
   /ergebnis/<id>                        Auftrag mit Feedback-Schleife: neueste Fassung und Verlauf (auch
                                         fehlgeschlagene mit Grund). IDs von Nachbesserungen und Rückmeldungen
                                         leiten auf den Ursprung um.
@@ -35,11 +36,12 @@ GET:
   /neu                                  Galerie der Vorlagen bzw. Formular (?art=…), Ort vorbelegt (?reihe=…&stunde=n),
                                         nur wenn eingeschaltet
 POST:
+  /fragen                               Frage an den Chat-Agenten (lia/chat), nur mit WEBAPP_CHAT=an
   /neu                                  legt einen Auftrag an (agentkit.auftraege.neuer_auftrag mit basis=)
   /ergebnis/<id>/rueckmeldung           Rückmeldung an den Feedback-Dienst (Auftrag an feedback, bezug = Fassung),
                                         wie Neuer Auftrag nur im Testbetrieb oder echt; eine Datei wird eigene Fassung
-  /ergebnis/<id>/final                  Fassung als final markieren oder zurücknehmen (nur in data/, zustand.py)
-  /ergebnis/<id>/eigene                 eigene Fassung hochladen (nur in data/, die Agenten sehen sie nicht)
+  /ergebnis/<id>/final                  Fassung als final markieren oder zurücknehmen (agentkit.fassungen)
+  /ergebnis/<id>/eigene                 eigene Fassung hochladen (agentkit.fassungen, Datei in den Agent-Ordner)
   /entwurf/<id>                         Lias Entscheidung „Setze ich selbst ein“/„Brauche ich nicht“/rückgängig (data/)
   /ergebnis/<id>/nochmal                fehlgeschlagenen letzten Versuch noch einmal anlegen (nur test/echt)
   /ergebnis/<id>/stunde                 Material einer Stunde der Reihe zuordnen (nur in data/)
@@ -52,7 +54,9 @@ Neuer Auftrag und Rückmeldung sind ausgeschaltet, bis WEBAPP_NEUER_AUFTRAG gese
   test  nur mit einer anderen Instanz als lia/instanz (WEBAPP_INSTANZ), kein Agent startet
   echt  jede Instanz, danach startet lia-unterricht.service bzw. lia-feedback.service (Ergebnis kommt auch per
         Telegram, Lias Kontingent)
-Final, eigene Fassung und Stunden schreiben nur in data/ der Web-App (nicht in Lias Instanz) und gehen darum immer.
+Final und eigene Fassung speichert agentkit.fassungen in der Instanz (Jans Entscheidung 30.10.: die Agenten sollen sie
+sehen); Stunden, Varianten-Zuordnung, Entwurf-Entscheidungen und „Nochmal“ nur data/ der Web-App. Alles davon geht
+immer, auch ohne WEBAPP_NEUER_AUFTRAG, weil es keinen Lauf startet.
 Ohne Konten schützen sich die Formulare vor fremden Seiten im selben Browser (CSRF): Origin muss zum Host passen
 und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
@@ -66,6 +70,7 @@ import os
 import secrets
 import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -80,7 +85,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from agentkit import auftraege, config, freigabe
+from agentkit import auftraege, config, fassungen, freigabe
 from agentkit._ablage import AblageFehler, pruefe_id
 
 import dateien
@@ -93,6 +98,9 @@ SOCKET = Path(os.environ.get("WEBAPP_SOCKET") or HIER / "data" / "webapp.sock")
 ECHTE_INSTANZ = HIER.parent.parent / "lia" / "instanz"
 INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or ECHTE_INSTANZ)
 NEUER_AUFTRAG = os.environ.get("WEBAPP_NEUER_AUFTRAG", "")  # "", "test" oder "echt" (siehe oben)
+CHAT = os.environ.get("WEBAPP_CHAT", "") == "an"  # Spalte „Fragen“ an den Chat-Agenten (Lias Kontingent)
+CHAT_DIR = HIER.parent.parent / "lia" / "chat"
+CHAT_ORDNER = CHAT_DIR / "data"  # Warteschlange des Chat-Agenten (lia/chat/schnittstelle.py)
 DATEN = HIER / "data"
 EINGANG = DATEN / "eingang"  # Uploads, bis agentkit sie in den Agent-Ordner verschiebt
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
@@ -170,6 +178,38 @@ def heute_daten(reihen: list[dict] | None = None) -> dict:
                        set(z_["ersetzt"]))
 
 
+def chat():
+    """Schnittstelle des Chat-Agenten (lia/chat/schnittstelle.py, nur Bordmittel) oder None, wenn aus."""
+    if not CHAT:
+        return None
+    if str(CHAT_DIR) not in sys.path:
+        sys.path.append(str(CHAT_DIR))
+    import schnittstelle
+    return schnittstelle
+
+
+def _fragen(reihen: list[dict], aktiv: str, stunde: int | None) -> dict | None:
+    """Werte der Spalte „Fragen“ für den Ort der Seite; None, wenn der Chat aus ist (dann Platzhalter)."""
+    modul = chat()
+    if modul is None:
+        return None
+    reihe = next((r for r in reihen if r["id"] == aktiv), None)
+    st = _stunde_tupel(reihe, stunde)
+    try:
+        verlauf = modul.verlauf(CHAT_ORDNER)
+    except (OSError, ValueError) as fehler_:
+        logger.error("Chat-Verlauf nicht lesbar: %s", fehler_)
+        verlauf = []
+    return logik.fragen_spalte(verlauf, reihe, st)
+
+
+def _stunde_tupel(reihe: dict | None, nr: int | None) -> tuple[int, str] | None:
+    if not reihe or not nr:
+        return None
+    stunden = logik.reihe_stunden(reihe, zustand_().lesen())
+    return (nr, stunden[nr - 1]["thema"]) if 1 <= nr <= len(stunden) else None
+
+
 def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int | None = None,
            neu_hier: str = "", stunde: int | None = None) -> dict:
     """Werte für basis.html: Baum (links) und Brotkrumen. Ohne anzahl_wartet wird "Heute" dafür berechnet.
@@ -179,7 +219,8 @@ def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int
     reihe = next((r for r in reihen if r["id"] == aktiv), None)
     stunden = {aktiv: logik.reihe_stunden(reihe, zustand_().lesen())} if reihe else {}
     return {"baum": logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde), "krumen": krumen,
-            "neu_hier": neu_hier if neu_modus() else ""}
+            "neu_hier": neu_hier if neu_modus() else "", "fragen": _fragen(reihen, aktiv, stunde),
+            "fragen_token": logik.formular_token(GEHEIM), "frage_fehler": logik.FRAGE_FEHLER}
 
 
 def neu_modus() -> str:
@@ -203,6 +244,45 @@ def seite_heute(request: Request):
 @app.get("/teile/heute", response_class=HTMLResponse)
 def teil_heute(request: Request):
     return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus()})
+
+
+@app.post("/fragen")
+async def frage_stellen(request: Request):
+    """Frage an den Chat-Agenten; danach zurück auf die Seite, die Antwort lädt htmx nach (/teile/frage/<id>)."""
+    modul = chat()
+    if modul is None:
+        raise HTTPException(404)
+    form = await formular_lesen(request, "Frage", 0)
+    zurueck = logik.zurueck_pfad(str(form.get("zurueck") or ""))
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return RedirectResponse(f"{zurueck}?fragefehler=veraltet#fragen", status_code=303)
+    reihen = reihen_laden()
+    reihe = None if form.get("ohne") else next((r for r in reihen if r["id"] == str(form.get("reihe") or "")), None)
+    stunde = _stunde_tupel(reihe, logik.stunde_nummer(str(form.get("stunde") or ""), 999))
+    try:
+        fid = modul.frage_stellen(str(form.get("text") or ""), logik.frage_ort(reihe, stunde, []),
+                                  form.get("gruendlich") == "1", CHAT_ORDNER)
+    except modul.FrageFehler as fehler_:
+        code = "leer" if not str(form.get("text") or "").strip() else "lang" if "lang" in str(fehler_) else "technik"
+        return RedirectResponse(f"{zurueck}?fragefehler={code}#fragen", status_code=303)
+    except OSError as fehler_:
+        logger.error("Frage nicht gestellt: %s", fehler_)
+        return RedirectResponse(f"{zurueck}?fragefehler=technik#fragen", status_code=303)
+    logger.info("Frage %s gestellt (%s, %s)", fid, reihe["id"] if reihe else "ohne Ort",
+                "gründlich" if form.get("gruendlich") == "1" else "schnell")
+    return RedirectResponse(f"{zurueck}?frage={fid}#fragen", status_code=303)
+
+
+@app.get("/teile/frage/{frage_id}", response_class=HTMLResponse)
+def teil_frage(request: Request, frage_id: str):
+    """Antwort auf eine Frage für htmx: solange sie fehlt, „Denkt nach“ mit erneutem Nachfragen in 2 s."""
+    modul = chat()
+    if modul is None or not logik.chat_id_gueltig(frage_id):
+        raise HTTPException(404)
+    antwort = modul.antwort_holen(frage_id, CHAT_ORDNER)
+    return vorlagen.TemplateResponse(request, "_frage.html", {
+        "id": frage_id, "a": logik.fragen_eintrag(antwort) if antwort else None,
+        "fehler": (antwort or {}).get("fehler"), "wartet": antwort is None})
 
 
 @app.get("/unterricht")
@@ -379,7 +459,7 @@ def _ort(reihen: list[dict], reihe_id: str, stunde_text: str) -> tuple[dict | No
 
 
 def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200,
-              reihe: str = "", art: str = "", stunde: str = "", extra: dict | None = None):
+              reihe: str = "", art: str = "", stunde: str = "", extra: dict | None = None, aus: str = ""):
     """Galerie (ohne art) bzw. Formular einer Vorlage, Ort aus reihe und stunde vorbelegt."""
     reihen = reihen_laden()
     ort_reihe, ort_stunde = _ort(reihen, reihe, stunde)
@@ -390,7 +470,7 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
         "art": art if vorlage else "", "vorlage": vorlage, "varianten": logik.VARIANTEN,
         "galerie": logik.galerie(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None,
-                                 ort_reihe["fach"] if ort_reihe else ""), "extra": extra or {},
+                                 ort_reihe["fach"] if ort_reihe else "", aus), "extra": extra or {},
         "andere": logik.neu_link(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
         "reihen": [] if ort_reihe else logik.reihen_auswahl(reihen), "reihe": ort_reihe["id"] if ort_reihe else reihe,
         "ort_fest": bool(ort_reihe), "stunde": ort_stunde[0] if ort_stunde else "",
@@ -405,7 +485,11 @@ def seite_neu(request: Request):
     if not neu_modus():
         raise HTTPException(404)
     q = request.query_params
-    return _formular(request, reihe=q.get("reihe") or "", art=q.get("art") or "", stunde=q.get("stunde") or "")
+    text, aus = "", q.get("aus") or ""
+    if aus and chat() is not None:  # „Daraus Auftrag machen“: Frage und Antwort als Wunsch
+        text = logik.text_aus_chat(next((e for e in chat().verlauf(CHAT_ORDNER) if e.get("id") == aus), None))
+    return _formular(request, text=text, reihe=q.get("reihe") or "", art=q.get("art") or "",
+                     stunde=q.get("stunde") or "", aus=aus if text else "")
 
 
 def agent_starten(agent: str) -> None:
@@ -625,9 +709,11 @@ async def ergebnis_final(request: Request, eintrag_id: str):
     ref, an = str(form.get("ref") or ""), form.get("an") == "1"
     if not logik.final_erlaubt(ref, e["verlauf"]):
         raise HTTPException(404)
+    if not an and (z["final"].get(kopf["id"]) or {}).get("fassung") != ref:
+        return _fertig(kopf, "nicht-final")  # war nicht final: nichts zu tun
     try:
-        zustand_().schreiben(logik.final_setzen(z, kopf["id"], ref, an, datetime.now(ZONE).isoformat()))
-    except OSError as fehler_:
+        fassungen.final_setzen(kopf["id"], ref if an else None, basis=INSTANZ / "auftraege")
+    except (fassungen.FassungFehler, OSError) as fehler_:
         logger.error("Final nicht gespeichert: %s", fehler_)
         return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
     logger.info("Final %s: %s (%s)", "an" if an else "aus", kopf["id"], ref)
@@ -644,9 +730,7 @@ def _variante_quelle(kette: list[dict], kopf: dict, e: dict, z: dict) -> Path | 
     if final.startswith("eigene-"):
         eigene = z["eigene"].get(kopf["id"]) or []
         n = int(final.rsplit("-", 1)[1]) if final.rsplit("-", 1)[1].isdigit() else 0
-        if 1 <= n <= len(eigene):
-            return dateien.sicher(zustand_().ablage / kopf["id"], str(eigene[n - 1].get("datei") or ""), endungen)
-        return None
+        return _eigene_pfad(kopf, eigene, n, endungen)
     fassung = next((a for a in logik.fassungen(kette) if a["id"] == final), None)
     if fassung and fassung.get("status") == "erledigt" and fassung.get("ergebnis_dateien"):
         kandidaten = [(fassung, nr) for nr in range(len(fassung["ergebnis_dateien"]))]
@@ -763,22 +847,31 @@ async def ergebnis_stunde(request: Request, eintrag_id: str):
     return _fertig(kopf, "zugeordnet")
 
 
+def _eigene_pfad(kopf: dict, eigene: list[dict], n: int, endungen: set[str]) -> Path | None:
+    """Datei der n-ten eigenen Fassung im Agent-Ordner (agentkit.fassungen), gegen den Ordner geprüft."""
+    eintrag = next((e for e in eigene if e.get("n") == n), None)
+    wurzel = dateien.agent_ordner(INSTANZ, kopf.get("agent"))
+    if eintrag is None or wurzel is None:
+        return None
+    return dateien.sicher(wurzel, str(eintrag.get("datei") or ""), endungen)
+
+
+def _upload_ablegen(upload: UploadFile) -> Path:
+    """Upload in einen neuen Ordner unter EINGANG schreiben (agentkit verschiebt ihn dann zum Agenten)."""
+    EINGANG.mkdir(parents=True, exist_ok=True)
+    return datei_ablegen(upload, Path(tempfile.mkdtemp(dir=EINGANG)) / "datei")
+
+
 def _eigene_speichern(kette: list[dict], kopf: dict, upload: UploadFile, notiz: str) -> tuple[str, str]:
-    """Lias Datei als nächste eigene Fassung ablegen und im Zustand eintragen: (Dateiname, Name der Fassung)."""
-    z_ = zustand_()
-    z = z_.lesen()
-    n = len(z["eigene"].get(kopf["id"]) or []) + 1
-    ordner = z_.ordner_eigene(kopf["id"], n)
-    shutil.rmtree(ordner, ignore_errors=True)  # Rest eines abgebrochenen Versuchs
-    pfad = datei_ablegen(upload, ordner)
-    eintrag = {"name": pfad.name, "datei": f"{n}/{pfad.name}", "zeit": datetime.now(ZONE).isoformat(), "notiz": notiz}
-    neu, n = logik.eigene_dazu(z, kopf["id"], eintrag)
+    """Lias Datei als nächste eigene Fassung über agentkit.fassungen ablegen: (Dateiname, Name der Fassung)."""
+    pfad = _upload_ablegen(upload)
     try:
-        z_.schreiben(neu)
-    except OSError:
-        shutil.rmtree(ordner, ignore_errors=True)
-        raise
-    return pfad.name, logik.fassung_namen(kette, neu["eigene"][kopf["id"]])[logik.eigene_ref(n)]
+        eintrag = fassungen.eigene_dazu(kopf["id"], pfad, notiz, basis=INSTANZ / "auftraege",
+                                        agenten_dir=INSTANZ.parent)
+    finally:
+        shutil.rmtree(pfad.parent.parent, ignore_errors=True)
+    eigene = zustand_().lesen()["eigene"].get(kopf["id"]) or [eintrag]
+    return eintrag["name"], logik.fassung_namen(kette, eigene).get(logik.eigene_ref(eintrag["n"]), "")
 
 
 @app.post("/ergebnis/{eintrag_id}/eigene", response_class=HTMLResponse)
@@ -796,7 +889,7 @@ async def ergebnis_eigene(request: Request, eintrag_id: str):
             return _ergebnis_seite(request, kette, kopf, "eigene", fehler=fehler, status=400)
         try:
             _eigene_speichern(kette, kopf, datei, "")
-        except OSError as fehler_:
+        except (fassungen.FassungFehler, OSError) as fehler_:
             logger.error("Eigene Fassung nicht gespeichert: %s", fehler_)
             return _ergebnis_seite(request, kette, kopf, "eigene", fehler=[logik.FEHLGESCHLAGEN], status=500)
     finally:
@@ -832,14 +925,18 @@ async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
         if fehler:
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=fehler, text=text, status=400,
                                    ziel=ziel)
-        try:
-            name, fassung = _eigene_speichern(kette, kopf, datei, "mit deinen Kommentaren") if datei else ("", "")
-            fid = auftraege.neuer_auftrag("feedback", logik.rueckmeldung_text(text, name, fassung, ziel),
-                                          quelle="feedback", bezug=bezug, basis=INSTANZ / "auftraege")
-        except (auftraege.AuftragFehler, OSError) as fehler_:
+        pfad = _upload_ablegen(datei) if datei else None
+        try:  # agentkit: die Datei wird eigene Fassung (Agent sieht sie), dann der Auftrag an den Feedback-Dienst
+            fid, _ = fassungen.rueckmeldung(bezug, logik.rueckmeldung_text(text, datei.filename if datei else "", ziel),
+                                            pfad, "mit deinen Kommentaren", basis=INSTANZ / "auftraege",
+                                            agenten_dir=INSTANZ.parent)
+        except (fassungen.FassungFehler, auftraege.AuftragFehler, OSError) as fehler_:
             logger.error("Rückmeldung nicht angelegt: %s", fehler_)
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[logik.FEHLGESCHLAGEN], text=text,
                                    status=500, ziel=ziel)
+        finally:
+            if pfad:
+                shutil.rmtree(pfad.parent.parent, ignore_errors=True)
     finally:
         if datei:
             await datei.close()
@@ -854,10 +951,7 @@ def eigene_datei(eintrag_id: str, nr: int):
     _, kopf = _kopf_fuer_post(eintrag_id)
     z_ = zustand_()
     eigene = z_.lesen()["eigene"].get(kopf["id"]) or []
-    if not 1 <= nr <= len(eigene):
-        raise HTTPException(404)
-    return _ausliefern(dateien.sicher(z_.ablage / kopf["id"], str(eigene[nr - 1].get("datei") or ""),
-                                      set(logik.RUECK_ENDUNGEN)))
+    return _ausliefern(_eigene_pfad(kopf, eigene, nr, set(logik.RUECK_ENDUNGEN)))
 
 
 @app.get("/ergebnis/{eintrag_id}/datei/{nr:int}")

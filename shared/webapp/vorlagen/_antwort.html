@@ -1,0 +1,12 @@
+{#- Eine Antwort des Chat-Agenten (f aus logik.fragen_eintrag): Blöcke aus Markdown, ohne HTML von außen, dazu
+    „Daraus Auftrag machen“ (öffnet Neu mit Frage und Antwort, am Ort der Frage). -#}
+<div class="fragen-antwort{% if not f.ok %} fragen-fehler{% endif %}">
+  {%- for b in f.bloecke %}
+  {%- if b.punkte %}
+  <ul class="fragen-punkte">{% for p in b.punkte %}<li>{% for s in p %}{% if s.fett %}<b>{{ s.text }}</b>{% else %}{{ s.text }}{% endif %}{% endfor %}</li>{% endfor %}</ul>
+  {%- else %}
+  <p>{% for s in b.absatz %}{% if s.fett %}<b>{{ s.text }}</b>{% else %}{{ s.text }}{% endif %}{% endfor %}</p>
+  {%- endif %}
+  {%- endfor %}
+  {%- if f.ok and f.frage %}<a class="knopf knopf-klein" href="/neu?{% if f.reihe %}reihe={{ f.reihe }}&amp;{% endif %}aus={{ f.id }}">Daraus Auftrag machen</a>{% endif %}
+</div>

@@ -512,3 +512,17 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .bild-skript { background: repeating-linear-gradient(#fff 0 6px, #d0d0d0 6px 8px, #fff 8px 12px, var(--schwarz) 12px 13px); }
 .formular .feld { min-height: 44px; padding: 0 10px; font: inherit; border: 2px solid var(--schwarz); border-radius: 0; }
 .feld-titel { font-weight: 700; margin-top: 8px; }
+
+/* Spalte „Fragen“ (Chat-Agent) */
+.fragen-verlauf { display: flex; flex-direction: column; gap: 8px; }
+.fragen-frage { align-self: flex-end; max-width: 85%; margin: 0; padding: 10px 12px; background: var(--schwarz); color: var(--weiss); font-size: 14px; }
+.fragen-antwort { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--schwarz); font-size: 14px; }
+.fragen-antwort p { margin: 0; }
+.fragen-antwort .knopf { align-self: flex-start; }
+.fragen-fehler { border-color: var(--akzent); }
+.fragen-punkte { margin: 0; padding-left: 18px; border: 0; }
+.fragen-punkte li { border: 0; padding: 2px 0; }
+.fragen-trenner { margin: 6px 0 0; font-size: 12px; color: var(--grau); text-transform: uppercase; letter-spacing: .06em; }
+.fragen-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.fragen-form textarea { font: inherit; padding: 8px; border: 2px solid var(--schwarz); border-radius: 0; }
+.fragen-ort { margin: 0; font-weight: 700; }

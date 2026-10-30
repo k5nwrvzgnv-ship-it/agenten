@@ -369,18 +369,6 @@ class TestMaterial(unittest.TestCase):
         alt_alt = {**alt, "abgeschlossen": "2026-10-20T10:00:00+02:00"}
         self.assertEqual(logik.ergebnis([alt_alt], {}, JETZT)["marke"], "")
 
-    def test_final_setzen_und_eigene_dazu(self):
-        z = {"final": {}, "eigene": {}}
-        z1 = logik.final_setzen(z, "K", "A", True, "t1")
-        self.assertEqual(z1["final"], {"K": {"fassung": "A", "zeit": "t1"}})
-        self.assertEqual(z["final"], {})  # nichts verändert
-        self.assertEqual(logik.final_setzen(z1, "K", "B", True, "t2")["final"]["K"]["fassung"], "B")  # nur eine
-        self.assertEqual(logik.final_setzen(z1, "K", "B", False, "t2")["final"], z1["final"])  # andere bleibt
-        self.assertEqual(logik.final_setzen(z1, "K", "A", False, "t2")["final"], {})
-        z2, n = logik.eigene_dazu(z1, "K", {"name": "a.docx"})
-        z3, n3 = logik.eigene_dazu(z2, "K", {"name": "b.pdf"})
-        self.assertEqual((n, n3, len(z2["eigene"]["K"]), len(z3["eigene"]["K"])), (1, 2, 1, 2))
-
     def test_heute_final_wartet_nicht(self):
         a = auftrag("A", abgeschlossen="2026-10-30T14:00:00+01:00")
         self.assertEqual(logik.heute([], [a], [], JETZT)["anzahl_wartet"], 1)
@@ -397,9 +385,8 @@ class TestMaterial(unittest.TestCase):
         self.assertEqual(logik.datei_pruefen("a.png", 1, logik.EIGENE_ENDUNGEN),
                          ["Diese Datei geht nicht. Möglich sind: Excel, PDF, PowerPoint, Word."])
         self.assertEqual(logik.rueckmeldung_text("kürzer"), "kürzer")
-        self.assertEqual(logik.rueckmeldung_text("kürzer", "Blatt.docx", "Fassung 2"),
-                         "kürzer\n\nDazu gibt es eine Datei mit Kommentaren (Blatt.docx, Fassung 2). Sie liegt bisher "
-                         "nur in der Web-App.")
+        self.assertEqual(logik.rueckmeldung_text("kürzer", "Blatt.docx"),
+                         "kürzer\n\nDazu eine Datei mit Kommentaren: Blatt.docx.")
 
 
 class TestEntwurf(unittest.TestCase):
@@ -758,6 +745,27 @@ class TestReihen(unittest.TestCase):
             ("Klasse 8", "Läuft: Straftheorien (in Planung)", "2 Reihen · 1 Sache", "/klasse/ethik-8"),
             ("Klasse 7", "keine laufende Reihe", "1 Reihe · noch nichts", "/klasse/ethik-7")])
         self.assertIsNone(logik.fach_ansicht("mathe", r, {}))
+
+    def test_fragen(self):
+        self.assertEqual(logik.markdown_bloecke("**V** heißt:\nAusgleich.\n\n- eins\n2. **zwei**\n# Kopf"), [
+            {"absatz": [{"text": "V", "fett": True}, {"text": " heißt:", "fett": False}, {"text": " ", "fett": False},
+                        {"text": "Ausgleich.", "fett": False}]},
+            {"punkte": [[{"text": "eins", "fett": False}], [{"text": "zwei", "fett": True}]]},
+            {"absatz": [{"text": "Kopf", "fett": True}]}])
+        ethik = reihen()[0]
+        sp = logik.fragen_spalte([{"id": "a", "reihe": "x", "frage": "1"}, {"id": "b", "reihe": ethik["id"], "frage": "2"}],
+                                 ethik, (3, "Kant"))
+        self.assertEqual((sp["chip"], sp["stunde"], [e["wechsel"] for e in sp["verlauf"]]),
+                         ("Ethik › Klasse 8 › Straftheorien (in Planung) › Stunde 3", 3, [False, True]))
+        self.assertEqual(logik.frage_ort(ethik, (3, "Kant"), ["AB"]),
+                         {"reihe": ethik["id"], "chip": sp["chip"], "materialien": ["AB"], "stunde": 3,
+                          "stunde_thema": "Kant"})
+        self.assertIsNone(logik.frage_ort(None, None, []))
+        self.assertEqual([logik.zurueck_pfad(w) for w in ("/reihe/a?x=1#y", "//boese", "https://x", "/a b", None)],
+                         ["/reihe/a", "/", "/", "/", "/"])
+        self.assertEqual(logik.text_aus_chat({"frage": "Was?", "antwort": "**V** a."}), "Was?\n\nV a.")
+        self.assertEqual(logik.neu_link("r", None, "", "0123456789ab"), "/neu?reihe=r&aus=0123456789ab")
+        self.assertEqual(logik.neu_link("r", None, "", "../x"), "/neu?reihe=r")
 
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
