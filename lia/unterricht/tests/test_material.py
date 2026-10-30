@@ -4,6 +4,7 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import material
 import renderer
@@ -286,6 +287,17 @@ class MaterialTest(unittest.TestCase):
         self.assertEqual(f.dateien, [])
         self.assertTrue((self.ordner / "beschreibung-erwartungshorizont.json").is_file())
 
+    def test_nachbesserung_mit_eigener_fassung(self):
+        eingang = self.hier / "data" / "eingang" / "nb"
+        eingang.mkdir(parents=True)
+        (eingang / "foto.jpg").write_bytes(b"x")
+        self.auftrag["dateien"] = ["data/eingang/nb/foto.jpg"]
+        f, claude = self.nachbesserung([(dict(BLATT, titel="Lias Fassung"), "a"), (None, "Fertig.")])
+        self.assertEqual(claude.sitzungen[0], "alt")
+        self.assertIn("## Angehängte Dateien von Lia", claude.prompts[0])
+        self.assertIn("Lias eigene Fassung", claude.prompts[0])
+        self.assertIn("data/eingang/nb/foto.jpg", claude.prompts[0])
+
     def test_nachbesserung_ohne_altes_material(self):
         self.auftrag["bezug"] = "gibt-es-nicht"
         with self.assertRaises(material.MaterialFehler):
@@ -349,6 +361,20 @@ class AnhaengeTest(unittest.TestCase):
         self.assertIn("nur die ersten 8 von 10", bilder)
         self.assertIn("data/eingang/a1/text.docx-seiten/seite-08.png", bilder)
         self.assertNotIn("seite-09", bilder)
+
+    def test_word_kommentare(self):
+        import docx
+        docx.Document().save(self.eingang / "eigene.docx")
+        kommentare = [{"stelle": "Aufgabe 2", "kommentar": "zu schwer", "autor": "Lia"},
+                      {"stelle": "", "kommentar": "Bild fehlt", "autor": "Lia"}]
+        with mock.patch.object(material.textfassung, "word_kommentare", return_value=kommentare):
+            zeilen = material.anhaenge_vorbereiten(self.hier, ["data/eingang/a1/eigene.docx"], self.vorschau)
+        self.assertIn("  Kommentare in der Datei (kommentierte Stelle: Kommentar):", zeilen)
+        self.assertIn("    - „Aufgabe 2“: zu schwer", zeilen)
+        self.assertIn("    - Bild fehlt", zeilen)
+        with mock.patch.object(material.textfassung, "word_kommentare", side_effect=ValueError("kaputt")):
+            zeilen = material.anhaenge_vorbereiten(self.hier, ["data/eingang/a1/eigene.docx"], self.vorschau)
+        self.assertIn("  Kommentare nicht lesbar (kaputt)", zeilen)
 
     def test_scan_ohne_text(self):
         import io
