@@ -1,0 +1,16 @@
+# Vorlage: nach ~/.config/systemd/user/lia-theater.service kopieren, dann systemctl --user daemon-reload.
+# Agent theater für Lia (Antworten und Nachbesserungen zu ihrer Fassung). Lias Zentrale und lia-feedback starten
+# den Dienst nach jedem neuen Auftrag. Neue Runden startet weiter nur runde.py von Hand.
+[Unit]
+Description=Lias Agent theater
+# Bei Ausfall Meldung an Jan (ausfall@ läuft ohne AGENTKIT_INSTANZ, also in Jans Instanz)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
+WorkingDirectory=/home/agent/agenten/lia/theater
+ExecStart=/home/agent/agenten/lia/theater/.venv/bin/python agent.py
+# Ein Auftrag: bis zu zwei Claude-Läufe (Opus, ganzes Stück als Kontext möglich) plus Bauen und Vorschau
+TimeoutStartSec=40min
+MemoryMax=1500M
