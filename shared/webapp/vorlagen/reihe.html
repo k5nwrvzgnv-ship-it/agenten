@@ -1,0 +1,22 @@
+{#- Reihe (nur lesend): Reihenfrage, schon Behandeltes, Entwürfe und Aufträge der Reihe. Stunden kommen mit
+    Bauschritt 3, Ansichten für Fach und Klasse mit Bauschritt 2. -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{% block seitenkopf %}
+<header class="kopf">
+  <span class="datum grau">{{ e.unter }}</span>
+  <h1 class="titel-gross">{{ e.titel }}</h1>
+  {%- if e.reihenfrage %}<p class="absatz">{{ e.reihenfrage }}</p>{% endif %}
+</header>
+{% endblock %}
+{% block inhalt %}
+{%- if e.behandelt %}<p class="absatz unter"><b>Schon behandelt:</b> {{ e.behandelt }}</p>{% endif %}
+<section aria-labelledby="ab1">
+  <h2 id="ab1"><span class="akzent">01</span>Zur ganzen Reihe</h2>
+  {%- if e.zeilen %}
+  <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
+  {%- else %}
+  <p class="leer">Noch keine Aufträge zu dieser Reihe.</p>
+  {%- endif %}
+</section>
+{% endblock %}

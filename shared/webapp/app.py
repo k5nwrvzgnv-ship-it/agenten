@@ -1,5 +1,8 @@
 """Web-App für Lia: Seite "Heute" mit Ergebnis- und Entwurf-Ansicht und "Neuer Auftrag", ohne Anmeldung.
 
+Rahmen in drei Spalten (docs/webapp-aufbau.md, Bauschritt 1): links der Baum (Heute, je Fach Klassen/Kurse und
+Reihen), in der Mitte der Inhalt mit Brotkrumen, rechts "Fragen" (bisher nur Platzhalter, kein Chat).
+
 Kein Port: Uvicorn hört auf einem Unix-Socket in data/ (Ordner nur für User agent), wie der Leitstand.
 Zugriff zum Test per SSH-Tunnel:
   ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agents-user
@@ -18,8 +21,8 @@ GET:
   /ergebnis/<id>/datei/<n>/pdf          PDF aus der Vorschau des Renderers
   /ergebnis/<id>/datei/<n>/seite/<m>    Seitenbild m (ab 1) der Vorschau
   /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
-  /unterricht                           Fach, Klasse oder Kurs, Reihe mit ihren Aufträgen (ordnung.py, nur lesend)
-  /?ordnung=<filter>                    Heute nur für ein Fach, eine Klasse, eine Reihe oder "ohne" Reihe
+  /reihe/<kennung>                      Reihe mit Reihenfrage und ihren Aufträgen (ordnung.py, nur lesend)
+  /unterricht                           alte Seite, leitet auf / um
   /statisch/...                         CSS, htmx
   /neu                                  Formular Neuer Auftrag (nur Material), nur wenn eingeschaltet
 POST, die einzige Route mit Wirkung:
@@ -86,18 +89,12 @@ app.mount("/statisch", StaticFiles(directory=HIER / "statisch"), name="statisch"
 vorlagen = Jinja2Templates(directory=HIER / "vorlagen")
 
 
-NICHT_GEFUNDEN = ('<!doctype html><html lang="de"><head><meta charset="utf-8">'
-                  '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Nicht gefunden</title>'
-                  '<link rel="stylesheet" href="/statisch/stil.css"></head><body><main class="einzeln">'
-                  '<header class="kopf"><a class="zurueck" href="/"><span aria-hidden="true">←</span>Zurück</a>'
-                  '<h1 class="titel-gross">Nicht gefunden</h1></header>'
-                  '<p class="absatz">Das gibt es hier nicht (mehr).</p></main></body></html>')
-
-
 @app.exception_handler(StarletteHTTPException)
 async def fehlerseite(request: Request, fehler: StarletteHTTPException):
     if fehler.status_code == 404:
-        return HTMLResponse(NICHT_GEFUNDEN, status_code=404)
+        return vorlagen.TemplateResponse(request, "nicht_gefunden.html", {
+            "e": {"titel": "Nicht gefunden"}, **rahmen(reihen_laden(), logik.krumen("Nicht gefunden"))},
+            status_code=404)
     return await http_exception_handler(request, fehler)
 
 
@@ -122,13 +119,19 @@ def reihen_laden() -> list[dict]:
     return reihen
 
 
-def heute_daten(filter_: str | None = None) -> dict:
-    reihen = reihen_laden()
+def heute_daten(reihen: list[dict] | None = None) -> dict:
     return logik.heute(auftraege.neue(basis=INSTANZ / "auftraege"),
                        auftraege.erledigte(basis=INSTANZ / "auftraege"),
                        freigabe.offene(basis=INSTANZ / "freigabe"),
                        datetime.now(ZONE), config.person(INSTANZ),
-                       reihen, logik.filter_gueltig(filter_, reihen))
+                       reihen if reihen is not None else reihen_laden())
+
+
+def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int | None = None) -> dict:
+    """Werte für basis.html: Baum (links) und Brotkrumen. Ohne anzahl_wartet wird "Heute" dafür berechnet."""
+    if anzahl_wartet is None:
+        anzahl_wartet = heute_daten(reihen)["anzahl_wartet"]
+    return {"baum": logik.baum(reihen, anzahl_wartet, aktiv), "krumen": krumen}
 
 
 def neu_modus() -> str:
@@ -142,33 +145,46 @@ def neu_modus() -> str:
 
 @app.get("/", response_class=HTMLResponse)
 def seite_heute(request: Request):
+    reihen = reihen_laden()
+    h = heute_daten(reihen)
     return vorlagen.TemplateResponse(request, "heute.html", {
-        "h": heute_daten(request.query_params.get("ordnung")), "neu": neu_modus(),
-        "abgeschickt": request.query_params.get("abgeschickt") == "1"})
+        "h": h, "neu": neu_modus(), "abgeschickt": request.query_params.get("abgeschickt") == "1",
+        **rahmen(reihen, logik.krumen(), "heute", h["anzahl_wartet"])})
 
 
 @app.get("/teile/heute", response_class=HTMLResponse)
 def teil_heute(request: Request):
-    return vorlagen.TemplateResponse(request, "_heute.html", {
-        "h": heute_daten(request.query_params.get("ordnung")), "neu": neu_modus()})
+    return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus()})
 
 
-@app.get("/unterricht", response_class=HTMLResponse)
-def seite_unterricht(request: Request):
+@app.get("/unterricht")
+def alte_seite_unterricht():
+    """Die Seite gibt es nicht mehr (Bauschritt 1 des neuen Aufbaus): Reihen stehen jetzt im Baum."""
+    return RedirectResponse("/", status_code=301)
+
+
+@app.get("/reihe/{reihe_id}", response_class=HTMLResponse)
+def seite_reihe(request: Request, reihe_id: str):
+    reihen = reihen_laden()
+    reihe = next((r for r in reihen if r["id"] == reihe_id), None)
+    if reihe is None:
+        raise HTTPException(404)
     basis = INSTANZ / "auftraege"
-    u = logik.unterricht(reihen_laden(), [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
-                         datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"))
-    return vorlagen.TemplateResponse(request, "unterricht.html", {
-        "e": {"titel": "Unterricht", "unter": "Nach Fach, Klasse und Reihe"}, "u": u})
+    e = logik.reihe_ansicht(reihe, reihen, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
+                            datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"))
+    return vorlagen.TemplateResponse(request, "reihe.html", {
+        "e": e, **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"])})
 
 
 def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200,
               reihe: str = ""):
+    reihen = reihen_laden()
     return vorlagen.TemplateResponse(request, "neu.html", {
         "e": {"titel": "Neuer Auftrag", "unter": "Auftrag an deine Assistenz"},
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
-        "reihen": logik.reihen_auswahl(reihen_laden()), "reihe": reihe,
+        "reihen": logik.reihen_auswahl(reihen), "reihe": reihe,
         "text_max": logik.NEU_TEXT_MAX, "max_mb": logik.NEU_DATEI_MAX_MB, "endungen": ",".join(logik.NEU_ENDUNGEN),
+        **rahmen(reihen, logik.krumen("Neuer Auftrag")),
     }, status_code=status)
 
 
@@ -291,7 +307,10 @@ def seite_ergebnis(request: Request, eintrag_id: str):
                                                  a.get("ergebnis_dateien") or [])
                   for a in logik.fassungen(kette) if a.get("status") == "erledigt"}
     e = logik.ergebnis(kette, vorschauen, datetime.now(ZONE))
-    return vorlagen.TemplateResponse(request, "ergebnis.html", {"e": e})
+    reihen = reihen_laden()
+    reihe = logik.reihe_von(kopf, reihen)
+    return vorlagen.TemplateResponse(request, "ergebnis.html", {
+        "e": e, **rahmen(reihen, logik.krumen(e["titel"], reihe), reihe["id"] if reihe else "")})
 
 
 @app.get("/ergebnis/{eintrag_id}/datei/{nr:int}")
@@ -322,7 +341,11 @@ def seite_entwurf(request: Request, eintrag_id: str):
     eintrag = next((e for e in freigabe.offene(basis=INSTANZ / "freigabe") if e.get("id") == eintrag_id), None)
     if eintrag is None:
         raise HTTPException(404)
-    return vorlagen.TemplateResponse(request, "entwurf.html", {"e": logik.entwurf(eintrag, datetime.now(ZONE))})
+    e = logik.entwurf(eintrag, datetime.now(ZONE))
+    reihen = reihen_laden()
+    reihe = logik.reihe_von(eintrag, reihen)
+    return vorlagen.TemplateResponse(request, "entwurf.html", {
+        "e": e, **rahmen(reihen, logik.krumen(e["titel"], reihe), reihe["id"] if reihe else "")})
 
 
 def socket_vorbereiten(socket_pfad: Path = SOCKET) -> None:

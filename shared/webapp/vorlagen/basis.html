@@ -1,19 +1,52 @@
+{#- Rahmen für alle Seiten (docs/webapp-aufbau.md 4.1): Baum | Inhalt mit Brotkrumen | Fragen. Im HTML steht der
+    Inhalt vorn, damit er bei schmalem Fenster oben steht; die Spalten ordnet stil.css. -#}
 <!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ e.titel }}</title>
+<title>{% block titel %}{{ e.titel }}{% endblock %}</title>
 <link rel="stylesheet" href="/statisch/stil.css">
+{%- block skripte %}{% endblock %}
 </head>
 <body>
-<main class="einzeln">
+<div class="rahmen">
+<main class="inhalt{% block main_klasse %} einzeln{% endblock %}">
+<nav class="krumen" aria-label="Brotkrumen">
+  <ol>
+    {%- for k in krumen.teile %}
+    <li>{% if k.link %}<a href="{{ k.link }}">{{ k.text }}</a>{% else %}<span>{{ k.text }}</span>{% endif %}<span class="trenner" aria-hidden="true">›</span></li>
+    {%- endfor %}
+    <li aria-current="page">{{ krumen.hier }}</li>
+  </ol>
+</nav>
+{% block seitenkopf %}
 <header class="kopf">
-  <a class="zurueck" href="/"><span aria-hidden="true">←</span>Zurück</a>
-  <span class="datum grau">{{ e.unter }}</span>
+  {%- if e.unter %}<span class="datum grau">{{ e.unter }}</span>{% endif %}
   <h1 class="titel-gross">{{ e.titel }}</h1>
 </header>
+{% endblock %}
 {% block inhalt %}{% endblock %}
 </main>
+<nav class="baum" aria-label="Fächer und Reihen">
+  <a class="baum-name" href="/">Deine Assistenz</a>
+  <ul>
+    {%- for b in baum %}
+    {%- if b.art == "fach" %}
+    <li class="baum-fach">{{ b.text }}</li>
+    {%- elif b.art == "gruppe" %}
+    <li class="baum-gruppe">{{ b.text }}</li>
+    {%- else %}
+    <li><a class="baum-eintrag tiefe-{{ b.tiefe }}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}><span>{{ b.text }}</span>
+      {%- if b.zahl %}<span class="baum-zahl">{{ b.zahl }}</span>{% endif %}</a></li>
+    {%- endif %}
+    {%- endfor %}
+  </ul>
+</nav>
+<aside class="fragen" aria-label="Fragen">
+  <h2 class="fragen-titel">Fragen</h2>
+  <p class="leer">Kommt bald. Hier kannst du später kurz etwas fragen, passend zu dem, was du gerade offen hast.</p>
+</aside>
+</div>
 </body>
 </html>

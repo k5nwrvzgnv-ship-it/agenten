@@ -1,15 +1,13 @@
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Heute</title>
-<link rel="stylesheet" href="/statisch/stil.css">
+{#- Heute in der Mitte des Rahmens. htmx lädt den Inhalt jede Minute neu (/teile/heute). -#}
+{% extends "basis.html" %}
+{% block titel %}Heute{% endblock %}
+{% block skripte %}
 <script src="/statisch/htmx-2.0.4.min.js" defer></script>
-</head>
-<body>
-<main id="heute" hx-get="/teile/heute{% if h.filter %}?ordnung={{ h.filter|urlencode }}{% endif %}" hx-trigger="every 60s" hx-swap="innerHTML">
+{%- endblock %}
+{% block main_klasse %}{% endblock %}
+{% block seitenkopf %}{% endblock %}
+{% block inhalt %}
+<div id="heute" class="heute" hx-get="/teile/heute" hx-trigger="every 60s" hx-swap="innerHTML">
 {% include "_heute.html" %}
-</main>
-</body>
-</html>
+</div>
+{% endblock %}

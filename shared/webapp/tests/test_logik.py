@@ -411,31 +411,6 @@ class TestReihen(unittest.TestCase):
         zweimal = reihen(ETHIK, {**ETHIK, "titel": "Helfen"})  # examen in zwei Reihen: nicht sicher
         self.assertIsNone(logik.reihe_von({"agent": "examen"}, zweimal))
 
-    def test_filter(self):
-        ethik, theater = reihen()
-        self.assertTrue(logik.reihe_passt(None, ""))
-        self.assertTrue(logik.reihe_passt(None, "ohne"))
-        self.assertFalse(logik.reihe_passt(ethik, "ohne"))
-        self.assertTrue(logik.reihe_passt(ethik, "fach:ethik"))
-        self.assertFalse(logik.reihe_passt(theater, "fach:ethik"))
-        self.assertTrue(logik.reihe_passt(ethik, "gruppe:ethik-8"))
-        self.assertTrue(logik.reihe_passt(ethik, "reihe:ethik-8-straftheorien"))
-        self.assertFalse(logik.reihe_passt(None, "fach:ethik"))
-
-    def test_chips(self):
-        self.assertEqual(logik.filter_chips([], ""), [])
-        r = reihen()
-        self.assertEqual([(c["text"], c["wert"], c["aktiv"]) for c in logik.filter_chips(r, "fach:darstellendes-spiel")], [
-            ("Alle", "", False), ("Ethik", "fach:ethik", False),
-            ("Darstellendes Spiel", "fach:darstellendes-spiel", True),
-            ("Ohne Reihe", "ohne", False)])
-        mehr = reihen(ETHIK, {**ETHIK, "klasse": "7", "titel": "Glück", "agenten": []})
-        self.assertIn(("Ethik 7", "gruppe:ethik-7"), [(c["text"], c["wert"]) for c in logik.filter_chips(mehr, "")])
-        self.assertEqual(logik.filter_gueltig("fach:darstellendes-spiel", r), "fach:darstellendes-spiel")
-        self.assertEqual(logik.filter_gueltig("reihe:ethik-8-straftheorien", r), "reihe:ethik-8-straftheorien")
-        self.assertEqual(logik.filter_gueltig("fach:mathe", r), "")
-        self.assertEqual(logik.filter_gueltig(None, r), "")
-
     def test_auswahl_und_pruefen(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"})
         self.assertEqual(logik.reihen_auswahl(r), [
@@ -447,44 +422,68 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.reihe_pruefen("ethik-8-helfen", r)[0], None)  # abgeschlossen
         self.assertTrue(logik.reihe_pruefen("../x", r)[1])
 
-    def test_heute_mit_reihe_und_filter(self):
+    def test_heute_mit_ort(self):
         alt, fb, nb = theater_kette()
         material = auftrag("20261030-123903-unterricht-ef0a90", text="Notentabelle",
                            abgeschlossen="2026-10-27T12:00:00+01:00")
         entwurf = {"id": "20261025-003745-examen-0c44bf", "agent": "examen", "typ": "entwurf",
                    "titel": "Umfrage", "erstellt": "2026-10-25T00:37:45+02:00"}
-        r = reihen()
-        h = logik.heute([], [alt, fb, nb, material], [entwurf], JETZT, reihen=r)
+        h = logik.heute([], [alt, fb, nb, material], [entwurf], JETZT, reihen=reihen())
         self.assertEqual([z["reihe"] for z in h["wartet"]],
-                         ["Ethik · Klasse 8 · Straftheorien (in Planung)", "Darstellendes Spiel · Kurs 12 · Der nackte Wahnsinn"])
-        self.assertEqual(h["fertig"][0]["reihe"], "")
-        self.assertEqual(len(h["chips"]), 4)
-        h = logik.heute([], [alt, fb, nb, material], [entwurf], JETZT, reihen=r, filter_="fach:darstellendes-spiel")
-        self.assertEqual([z["titel"] for z in h["wartet"]], ["Fassung Der nackte Wahnsinn"])
-        self.assertEqual((h["fertig"], h["anzahl_wartet"]), ([], 2))  # die Begrüßung zählt alles
-        h = logik.heute([], [alt, fb, nb, material], [entwurf], JETZT, reihen=r, filter_="ohne")
-        self.assertEqual(([z["titel"] for z in h["fertig"]], h["wartet"]), (["Notentabelle"], []))
-        self.assertNotIn("_passt", h["fertig"][0])
+                         ["Ethik › Klasse 8 › Straftheorien (in Planung)", "Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn"])
+        self.assertEqual((h["fertig"][0]["titel"], h["fertig"][0]["reihe"]), ("Notentabelle", ""))
+        self.assertNotIn("chips", h)
 
     def test_heute_ohne_reihen_wie_bisher(self):
         h = logik.heute([], [auftrag("20261030-123903-unterricht-ef0a90")], [], JETZT)
-        self.assertEqual((h["chips"], h["wartet"][0]["reihe"]), ([], ""))
+        self.assertEqual(h["wartet"][0]["reihe"], "")
 
-    def test_unterricht(self):
+    def test_reihe_ansicht(self):
         alt, fb, nb = theater_kette()
         material = auftrag("20261030-123903-unterricht-ef0a90", text="Notentabelle")
         mit_reihe = auftrag("20261030-140000-unterricht-aaaaaa", text="Arbeitsblatt Kant", status="neu",
                             abgeschlossen=None, reihe="ethik-8-straftheorien")
         entwurf = {"id": "20261025-003745-examen-0c44bf", "agent": "examen", "typ": "entwurf", "titel": "Umfrage",
                    "erstellt": "2026-10-25T00:37:45+02:00"}
-        u = logik.unterricht(reihen(), [alt, fb, nb, material, mit_reihe], JETZT, [entwurf])
-        self.assertEqual([f["name"] for f in u["faecher"]], ["Ethik", "Darstellendes Spiel"])
-        ethik = u["faecher"][0]["gruppen"][0]
-        self.assertEqual((ethik["name"], ethik["reihen"][0]["behandelt"]), ("Klasse 8", "Kant; Bentham"))
-        self.assertEqual([(z["titel"], z["marke"]) for z in ethik["reihen"][0]["zeilen"]],
+        r = reihen()
+        alle = [alt, fb, nb, material, mit_reihe]
+        ethik = logik.reihe_ansicht(r[0], r, alle, JETZT, [entwurf])
+        self.assertEqual((ethik["titel"], ethik["unter"], ethik["behandelt"]),
+                         ("Straftheorien (in Planung)", "Ethik · Klasse 8", "Kant; Bentham"))
+        self.assertEqual([(z["titel"], z["marke"]) for z in ethik["zeilen"]],
                          [("Umfrage", "Offen"), ("Arbeitsblatt Kant", "Läuft")])
-        self.assertEqual(ethik["reihen"][0]["zeilen"][1]["link"], "")  # läuft noch, keine Ergebnis-Ansicht
-        theater = u["faecher"][1]["gruppen"][0]["reihen"][0]
+        self.assertEqual(ethik["zeilen"][1]["link"], "")  # läuft noch, keine Ergebnis-Ansicht
+        theater = logik.reihe_ansicht(r[1], r, alle, JETZT, [entwurf])
         self.assertEqual(len(theater["zeilen"]), 1)  # Kette mit Rückmeldung ist eine Zeile
         self.assertEqual(theater["zeilen"][0]["link"], f"/ergebnis/{ALT_ID}")
-        self.assertEqual([z["titel"] for z in u["ohne"]], ["Notentabelle"])
+        self.assertEqual([z["titel"] for z in logik.zeilen_je_reihe(r, alle, JETZT)["ohne"]], ["Notentabelle"])
+        fertig = reihen({**ETHIK, "stand": "abgeschlossen"})[0]
+        self.assertEqual(logik.reihe_ansicht(fertig, [fertig], [], JETZT)["unter"], "Ethik · Klasse 8 · abgeschlossen")
+
+    def test_baum(self):
+        r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"})
+        b = logik.baum(r, 2, "heute")
+        self.assertEqual([(e["art"], e["text"], e.get("link", ""), e.get("tiefe")) for e in b], [
+            ("eintrag", "Heute", "/", 0), ("fach", "Ethik", "", None), ("gruppe", "Klasse 8", "", 0),
+            ("eintrag", "Straftheorien (in Planung)", "/reihe/ethik-8-straftheorien", 1),
+            ("eintrag", "Helfen (abgeschlossen)", "/reihe/ethik-8-helfen", 1),
+            ("fach", "Darstellendes Spiel", "", None), ("gruppe", "Kurs 12", "", 0),
+            ("eintrag", "Der nackte Wahnsinn", "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn", 1)])
+        self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), (2, True, False))
+        b = logik.baum(r, 0, "ethik-8-straftheorien")
+        self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), ("", False, True))
+        self.assertEqual(logik.baum([], 1), [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0,
+                                              "zahl": 1, "aktiv": False}])
+
+    def test_krumen(self):
+        ethik = reihen()[0]
+        self.assertEqual(logik.krumen(), {"teile": [], "hier": "Heute"})
+        self.assertEqual(logik.krumen("Neuer Auftrag"),
+                         {"teile": [{"text": "Heute", "link": "/"}], "hier": "Neuer Auftrag"})
+        self.assertEqual(logik.krumen(reihe=ethik), {"teile": [{"text": "Ethik", "link": ""},
+                                                               {"text": "Klasse 8", "link": ""}],
+                                                     "hier": "Straftheorien (in Planung)"})
+        k = logik.krumen("Umfrage", ethik)
+        self.assertEqual(([x["text"] for x in k["teile"]], k["teile"][2]["link"], k["hier"]),
+                         (["Ethik", "Klasse 8", "Straftheorien (in Planung)"], "/reihe/ethik-8-straftheorien",
+                          "Umfrage"))

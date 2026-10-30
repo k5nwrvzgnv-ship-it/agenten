@@ -1,4 +1,4 @@
-{#- Inhalt von Heute. Zeilen mit link führen zur Ergebnis- bzw. Entwurf-Ansicht (nur lesend). -#}
+{#- Inhalt von Heute. Jede Zeile nennt ihren Ort (Brotkrume). Zeilen mit link führen zur Ergebnis- bzw. Entwurf-Ansicht (nur lesend). -#}
 {%- from "_zeile.html" import zeile -%}
 <header class="kopf">
   <span class="datum">{{ h.datum }}</span>
@@ -6,14 +6,6 @@
   <p class="gruss">{{ h.begruessung }}
     {%- if h.anzahl_wartet %} <span class="akzent">{{ h.anzahl_wartet }}</span>{% endif %} {{ h.wartet_text }}</p>
 </header>
-{%- if h.chips %}
-<nav class="chips" aria-label="Ordnen nach Fach und Reihe">
-  {%- for c in h.chips %}
-  <a href="/{% if c.wert %}?ordnung={{ c.wert|urlencode }}{% endif %}"{% if c.aktiv %} aria-current="true"{% endif %}>{{ c.text }}</a>
-  {%- endfor %}
-  <a class="verweis" href="/unterricht">Unterricht<span aria-hidden="true"> →</span></a>
-</nav>
-{%- endif %}
 {%- if neu %}
 <a class="knopf-gross" href="/neu">Neuer Auftrag<span aria-hidden="true">+</span></a>
 {%- endif %}

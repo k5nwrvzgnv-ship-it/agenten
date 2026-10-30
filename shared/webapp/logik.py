@@ -189,18 +189,16 @@ def ketten_zeile(kette: list[dict], jetzt: datetime, marke: str = "") -> dict:
 
 
 def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt: datetime,
-          person: str = "Lia", reihen: list[dict] | None = None, filter_: str = "") -> dict:
+          person: str = "Lia", reihen: list[dict] | None = None) -> dict:
     """Ansichtsdaten für "Heute". neue/erledigte: agentkit.auftraege, entwuerfe: agentkit.freigabe.offene().
 
     Je Kette eine Zeile. Abschnitt, Zeit und "Neu" richten sich nach der jüngsten Fassung; läuft etwas in der
     Kette (Nachbesserung oder Rückmeldung), steht sie unter "Läuft gerade".
-    reihen (reihen_aus): jede Zeile nennt ihre Reihe; filter_ (filter_gueltig) zeigt nur passende Zeilen. Die
-    Zahl in der Begrüßung zählt immer alles, was wartet."""
+    reihen (reihen_aus): jede Zeile nennt ihren Ort als Brotkrume (Fach › Klasse › Reihe)."""
     reihen = reihen or []
 
     def mit_reihe(zeile: dict, eintrag: dict) -> dict:
-        r = reihe_von(eintrag, reihen)
-        return {**zeile, "reihe": reihe_text(r), "_passt": reihe_passt(r, filter_)}
+        return {**zeile, "reihe": reihe_text(reihe_von(eintrag, reihen))}
 
     laufend, fertige = [], []
     for kette in ketten([*neue, *erledigte]):
@@ -228,24 +226,17 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
                                 kopf(k))
                       for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"]
     n = len(wartet)
-
-    def gefiltert(zeilen: list[dict]) -> list[dict]:
-        return [{k: v for k, v in z.items() if k != "_passt"} for z in zeilen if z["_passt"]]
-
-    rest = gefiltert(rest)
     return {
         "datum": datum_text(jetzt),
         "begruessung": f"Hallo {person}.",
         "anzahl_wartet": n,
         "wartet_text": ("Gerade wartet nichts auf dich." if n == 0
                         else "Sache wartet auf dich." if n == 1 else "Sachen warten auf dich."),
-        "wartet": gefiltert(wartet),
-        "laeuft": gefiltert(laeuft),
+        "wartet": wartet,
+        "laeuft": laeuft,
         "fertig": rest[:FERTIG_ANZAHL],
         "fertig_weitere": max(0, len(rest) - FERTIG_ANZAHL),
-        "fehlgeschlagen": gefiltert(fehlgeschlagen),
-        "chips": filter_chips(reihen, filter_),
-        "filter": filter_,
+        "fehlgeschlagen": fehlgeschlagen,
     }
 
 
@@ -470,6 +461,8 @@ REIHE_TEXTE = ("id", "fach", "klasse", "titel", "reihenfrage", "lerngruppe", "no
 REIHE_LISTEN = ("behandelt", "merksaetze", "bisherige_reihen", "agenten")
 REIHE_STAENDE = ("laufend", "abgeschlossen")
 OHNE_REIHE = "ohne"
+ORT_TRENNER = " › "
+KRUME_LANG = 60  # letzte Brotkrume (z. B. ein langer Ergebnistitel)
 _UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
 _KLAMMER = re.compile(r"\s*\([^)]*\)")
 
@@ -535,38 +528,8 @@ def reihe_von(eintrag: dict, reihen: list[dict]) -> dict | None:
 
 
 def reihe_text(reihe: dict | None) -> str:
-    return f"{reihe['fach']} · {reihe['gruppe']} · {reihe['titel']}" if reihe else ""
-
-
-def reihe_passt(reihe: dict | None, filter_: str) -> bool:
-    """filter_: "" (alle), "ohne", "fach:<id>", "gruppe:<id>" oder "reihe:<id>"."""
-    if not filter_:
-        return True
-    if filter_ == OHNE_REIHE:
-        return reihe is None
-    art_, _, wert = filter_.partition(":")
-    return reihe is not None and reihe.get({"fach": "fach_id", "gruppe": "gruppe_id", "reihe": "id"}.get(art_, "")) == wert
-
-
-def filter_chips(reihen: list[dict], aktiv: str) -> list[dict]:
-    """Auswahl über "Heute": Alle, je Fach, je Klasse (nur wenn ein Fach mehrere hat), Ohne Reihe. Ohne Reihen leer."""
-    if not reihen:
-        return []
-    chips = [("Alle", "")]
-    for fach_id in dict.fromkeys(r["fach_id"] for r in reihen):
-        im_fach = [r for r in reihen if r["fach_id"] == fach_id]
-        chips.append((im_fach[0]["fach"], f"fach:{fach_id}"))
-        gruppen = {r["gruppe_id"]: r for r in im_fach}
-        if len(gruppen) > 1:
-            chips += [(f"{r['fach']} {r['klasse']}", f"gruppe:{gid}") for gid, r in gruppen.items()]
-    chips.append(("Ohne Reihe", OHNE_REIHE))
-    return [{"text": t, "wert": w, "aktiv": w == aktiv} for t, w in chips]
-
-
-def filter_gueltig(wert: str | None, reihen: list[dict]) -> str:
-    """Der Filter aus der URL, wenn es ihn als Chip oder Reihe gibt; sonst "" (alle)."""
-    erlaubt = {c["wert"] for c in filter_chips(reihen, "")} | {f"reihe:{r['id']}" for r in reihen}
-    return wert if wert in erlaubt else ""
+    """Ort einer Zeile als Brotkrume: „Ethik › Klasse 8 › Straftheorien“."""
+    return ORT_TRENNER.join((reihe["fach"], reihe["gruppe"], reihe["titel"])) if reihe else ""
 
 
 def reihen_auswahl(reihen: list[dict]) -> list[dict]:
@@ -590,9 +553,10 @@ def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict]) -> str:
     return f"{text}\n\nReihe: {r['titel']} ({r['fach']}, {r['gruppe']})" if r else text
 
 
-def unterricht(reihen: list[dict], auftraege_: list[dict], jetzt: datetime, entwuerfe: list[dict] | None = None) -> dict:
-    """Ansicht "Unterricht": Fach, Klasse oder Kurs, Reihe, je mit offenen Entwürfen und ihren Aufträgen (neueste
-    zuerst), darunter alles ohne Reihe. Je Kette eine Zeile wie in "Heute"."""
+def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
+                    entwuerfe: list[dict] | None = None) -> dict[str, list[dict]]:
+    """Zeilen je Reihen-Kennung (OHNE_REIHE für den Rest): offene Entwürfe, dann je Kette eine Zeile wie in
+    "Heute" (neueste zuerst), mit Marke Offen, Läuft oder Hat nicht geklappt."""
     zeilen_je: dict[str, list] = {}
     for e in sorted(entwuerfe or [], key=lambda e: e.get("erstellt") or "", reverse=True):
         r = reihe_von(e, reihen)
@@ -607,12 +571,50 @@ def unterricht(reihen: list[dict], auftraege_: list[dict], jetzt: datetime, entw
         if not zeigbar(kopf(kette)):
             zeile["link"] = ""
         zeilen_je.setdefault(r["id"] if r else OHNE_REIHE, []).append(zeile)
-    faecher: dict[str, dict] = {}
+    return zeilen_je
+
+
+def reihe_ansicht(reihe: dict, reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
+                  entwuerfe: list[dict] | None = None) -> dict:
+    """Ansicht einer Reihe (nur lesend): Reihenfrage, schon Behandeltes, offene Entwürfe und Aufträge der Reihe.
+    Stunden gibt es noch in keiner Datei (Bauschritt 3)."""
+    return {"titel": reihe["titel"], "unter": f"{reihe['fach']} · {reihe['gruppe']}"
+                                              + ("" if reihe["laufend"] else " · abgeschlossen"),
+            "reihenfrage": reihe["reihenfrage"], "behandelt": "; ".join(reihe["behandelt"]),
+            "zeilen": zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe).get(reihe["id"], [])}
+
+
+def reihe_link(reihe: dict) -> str:
+    return f"/reihe/{reihe['id']}"
+
+
+def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
+    """Linke Spalte: oben "Heute" mit der Zahl, was wartet, dann je Fach die Klassen/Kurse und ihre Reihen.
+    aktiv: "heute" oder die Kennung der gezeigten Reihe. art: "eintrag" (Link), "fach" (Überschrift) oder
+    "gruppe" (Klasse/Kurs, ohne eigene Ansicht bis Bauschritt 2)."""
+    eintraege = [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0, "zahl": anzahl_wartet or "",
+                  "aktiv": aktiv == "heute"}]
+    faecher: dict[str, dict[str, list[dict]]] = {}
     for r in reihen:
-        fach = faecher.setdefault(r["fach_id"], {"name": r["fach"], "gruppen": {}})
-        gruppe = fach["gruppen"].setdefault(r["gruppe_id"], {"name": r["gruppe"], "reihen": []})
-        gruppe["reihen"].append({"id": r["id"], "titel": r["titel"], "reihenfrage": r["reihenfrage"],
-                                 "behandelt": "; ".join(r["behandelt"]), "laufend": r["laufend"],
-                                 "zeilen": zeilen_je.get(r["id"], [])})
-    return {"faecher": [{"name": f["name"], "gruppen": list(f["gruppen"].values())} for f in faecher.values()],
-            "ohne": zeilen_je.get(OHNE_REIHE, [])}
+        faecher.setdefault(r["fach"], {}).setdefault(r["gruppe"], []).append(r)
+    for fach, gruppen in faecher.items():
+        eintraege.append({"art": "fach", "text": fach})
+        for gruppe, reihen_ in gruppen.items():
+            eintraege.append({"art": "gruppe", "text": gruppe, "tiefe": 0})
+            eintraege += [{"art": "eintrag", "text": r["titel"] + ("" if r["laufend"] else " (abgeschlossen)"),
+                           "link": reihe_link(r), "tiefe": 1, "zahl": "", "aktiv": aktiv == r["id"]}
+                          for r in reihen_]
+    return eintraege
+
+
+def krumen(hier: str = "", reihe: dict | None = None) -> dict:
+    """Brotkrumen über dem Inhalt: Teile mit Link (Fach und Klasse noch ohne, Bauschritt 2), dann die Seite selbst.
+    Ohne Angaben "Heute"; nur reihe: die Reihen-Ansicht; reihe und hier: eine Seite in der Reihe; nur hier: eine
+    Seite ohne Reihe unter "Heute"."""
+    hier = kurz(hier, KRUME_LANG)
+    if reihe is None:
+        return {"teile": [{"text": "Heute", "link": "/"}] if hier else [], "hier": hier or "Heute"}
+    teile = [{"text": reihe["fach"], "link": ""}, {"text": reihe["gruppe"], "link": ""}]
+    if not hier:
+        return {"teile": teile, "hier": reihe["titel"]}
+    return {"teile": [*teile, {"text": reihe["titel"], "link": reihe_link(reihe)}], "hier": hier}

@@ -132,6 +132,23 @@ class TestApp(Aufbau):
         self.assertIn('href="/ergebnis/20261022-232618-unterricht-67ba47"', html)
         self.assertIn('src="/statisch/htmx-2.0.4.min.js"', html)
 
+    def test_rahmen(self):
+        _, html = self.hole("/")
+        for text in ('<nav class="baum"', '<aside class="fragen"', "Kommt bald.", '<nav class="krumen"',
+                     '<li aria-current="page">Heute</li>', 'aria-current="page"><span>Heute</span>'
+                     '<span class="baum-zahl">2</span>', 'hx-get="/teile/heute"'):
+            self.assertIn(text, html)
+        for weg in ("ordnung=", "/unterricht", "Unterricht"):
+            self.assertNotIn(weg, html)
+        r, _ = self.hole("/unterricht")
+        self.assertEqual((r.status, r.getheader("Location")), (301, "/"))
+        _, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")  # Einzelansicht im selben Rahmen
+        self.assertIn('<span class="baum-zahl">2</span>', html)
+        self.assertIn('<li aria-current="page">Umfrage vor der Reihe</li>', html)
+        r, html = self.hole("/reihe/gibt-es-nicht")
+        self.assertEqual(r.status, 404)
+        self.assertIn('<nav class="baum"', html)
+
     def test_teil_und_kopfzeilen(self):
         r, html = self.hole("/teile/heute")
         self.assertEqual(r.status, 200)
@@ -155,7 +172,7 @@ class TestApp(Aufbau):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
         self.assertEqual(r.status, 200)
         for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · heute 14:40", "Ein Arbeitsblatt zu Kant.",
-                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "Seiten", "Dateien", "Zurück",
+                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "Seiten", "Dateien", '<a href="/">Heute</a>',
                      "Etwa zwei Seiten, passt in eine Stunde.", "Aus Fassung 1", "Verlauf", "Deine Rückmeldung",
                      "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>"):
             self.assertIn(text, html)
@@ -349,43 +366,38 @@ class TestOrdnung(Aufbau):
             patch.start()
             self.addCleanup(patch.stop)
 
-    def test_heute_mit_chips_und_filter(self):
+    def test_baum_und_ort_in_heute(self):
         _, html = self.hole("/")
-        for text in ('href="/?ordnung=fach%3Aethik"', ">Darstellendes Spiel</a>", ">Ohne Reihe</a>", 'href="/unterricht"',
-                     "Ethik · Klasse 8 · Straftheorien"):
+        for text in ('<li class="baum-fach">Ethik</li>', '<li class="baum-gruppe">Klasse 8</li>',
+                     '<a class="baum-eintrag tiefe-1" href="/reihe/strafe"><span>Straftheorien</span></a>',
+                     '<li class="baum-fach">Darstellendes Spiel</li>', '<li class="baum-gruppe">Kurs 12</li>',
+                     "Ethik › Klasse 8 › Straftheorien"):
             self.assertIn(text, html)
-        self.assertIn('aria-current="true">Alle</a>', html)
-        _, html = self.hole("/?ordnung=fach%3Adarstellendes-spiel")
-        self.assertIn('aria-current="true">Darstellendes Spiel</a>', html)
-        self.assertNotIn("Umfrage vor der Reihe", html)  # Entwurf aus examen gehört zu Ethik
-        self.assertIn('hx-get="/teile/heute?ordnung=fach%3Adarstellendes-spiel"', html)
-        self.assertNotIn("Gerade wartet nichts", html)  # Begrüßung zählt trotzdem alles
-        _, html = self.hole("/teile/heute?ordnung=fach%3Aethik")
-        self.assertIn("Umfrage vor der Reihe", html)
-        self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", html)  # Material ohne Reihe
-        _, html = self.hole("/?ordnung=ohne")
-        self.assertIn("Arbeitsblatt &lt;Kant&gt;", html)
-        self.assertNotIn("Umfrage vor der Reihe", html)
-        _, html = self.hole("/?ordnung=%3Cboese%3E")  # unbekannter Filter: alles
-        self.assertIn("Umfrage vor der Reihe", html)
-        self.assertNotIn("boese", html)
+        self.assertNotIn("Theater</", html)
 
-    def test_unterricht(self):
-        r, html = self.hole("/unterricht")
+    def test_reihe(self):
+        r, html = self.hole("/reihe/strafe")
         self.assertEqual(r.status, 200)
-        for text in ("Ethik", "Straftheorien", "Klasse 8", "Wozu &lt;strafen&gt; wir?", "Kant; Bentham", "Darstellendes Spiel",
-                     "Kurs 12", "Noch keine Aufträge zu dieser Reihe.", "Ohne Reihe",
-                     'href="/ergebnis/20261030-140944-unterricht-93e29e"', "Umfrage vor der Reihe"):
+        for text in ("Straftheorien", "Ethik · Klasse 8", "Wozu &lt;strafen&gt; wir?", "Kant; Bentham",
+                     "Zur ganzen Reihe", "Umfrage vor der Reihe", 'aria-current="page"><span>Straftheorien</span>',
+                     '<li><span>Ethik</span>', '<li aria-current="page">Straftheorien</li>'):
             self.assertIn(text, html)
+        self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", html)  # Material ohne Reihe steht nur in Heute
         self.assertNotIn("20261030", self.sichtbar(html))
+        r, html = self.hole("/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn")
+        self.assertEqual(r.status, 200)
+        self.assertIn("Noch keine Aufträge zu dieser Reihe.", html)
+        _, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")  # Ort als Brotkrume mit Link zur Reihe
+        self.assertIn('<a href="/reihe/strafe">Straftheorien</a>', html)
 
-    def test_unterricht_ohne_reihen_und_kaputte_datei(self):
+    def test_ohne_reihen_und_kaputte_datei(self):
         (self.instanz / "reihen.toml").write_text("[[reihe]\n")
         with self.assertLogs("webapp", "ERROR"):
-            _, html = self.hole("/unterricht")
-        self.assertIn("Noch keine Reihen eingetragen.", html)
-        _, html = self.hole("/")
-        self.assertNotIn("Ohne Reihe", html)  # ohne Reihen keine Chips
+            r, html = self.hole("/")
+        self.assertEqual(r.status, 200)
+        self.assertNotIn("baum-fach", html)
+        self.assertIn('<span class="baum-zahl">', html)
+        self.assertEqual(self.hole("/reihe/strafe")[0].status, 404)
 
     def schicke(self, text="Arbeitsblatt Kant", reihe=""):
         body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "text": text, "reihe": reihe}, [])
@@ -398,8 +410,8 @@ class TestOrdnung(Aufbau):
         self.assertEqual(self.schicke(reihe="strafe")[0].status, 303)
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
         self.assertEqual((a["reihe"], a["text"]), ("strafe", "Arbeitsblatt Kant\n\nReihe: Straftheorien (Ethik, Klasse 8)"))
-        _, html = self.hole("/?ordnung=reihe%3Astrafe")
-        self.assertIn("Arbeitsblatt Kant", html.split("Läuft gerade</h2>")[1])
+        _, html = self.hole("/reihe/strafe")
+        self.assertIn("Arbeitsblatt Kant", html.split("Zur ganzen Reihe</h2>")[1])
 
     def test_neuer_auftrag_ohne_und_mit_falscher_reihe(self):
         self.assertEqual(self.schicke()[0].status, 303)
