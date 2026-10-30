@@ -172,15 +172,18 @@ class TestApp(Aufbau):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
         self.assertEqual(r.status, 200)
         for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · heute 14:40", "Ein Arbeitsblatt zu Kant.",
-                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "Seiten", "Dateien", '<a href="/">Heute</a>',
+                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "2 Seiten · ansehen", "Dateien",
+                     '<a href="/">Heute</a>',
                      "Etwa zwei Seiten, passt in eine Stunde.", "Aus Fassung 1", "Verlauf", "Deine Rückmeldung",
                      "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>"):
             self.assertIn(text, html)
         basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
         self.assertIn(f'href="{basis}/pdf"', html)
         self.assertIn(f'href="{basis}"', html)
-        self.assertIn(f'src="{basis}/seite/2"', html)
-        self.assertNotIn(f"{basis}/seite/3", html)
+        # je Datei eine Karte mit der ersten Seite klein, auch an der früheren Fassung im Verlauf
+        self.assertEqual(html.count(f'src="{basis}/seite/1"'), 2)
+        self.assertEqual(html.count(f'<a class="dateiname" href="{basis}/ansehen">Arbeitsblatt</a>'), 2)
+        self.assertNotIn(f"{basis}/seite/2", html)
         for verboten in ("93e29e", "unterricht", "data/arbeit", "Wie ist es", "Anmerk"):
             self.assertNotIn(verboten, self.sichtbar(html))
 
@@ -197,6 +200,30 @@ class TestApp(Aufbau):
         self.assertEqual((r.status, r.getheader("Content-Type"), inhalt), (200, "image/png", b"PNG\x02"))
         for falsch in (basis + "/seite/0", basis + "/seite/3", basis[:-1] + "1", basis[:-1] + "x",
                        basis + "/../../../../.env"):
+            self.assertEqual(self.hole(falsch)[0].status, 404, falsch)
+
+    def test_seiten_betrachter(self):
+        basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
+        r, html = self.hole(basis + "/ansehen")
+        self.assertEqual(r.status, 200)
+        for text in (f'src="{basis}/seite/1"', f'href="{basis}/ansehen?seite=2" rel="next"', "1 / 2",
+                     f'href="{basis}/pdf"', f'href="{basis}" download', "Zurück zum Ergebnis",
+                     'href="/ergebnis/20261030-140944-unterricht-93e29e">Arbeitsblatt &lt;Kant&gt; &amp; Strafe</a>',
+                     '<li aria-current="page">Arbeitsblatt</li>', "Seite 1 von 2"):
+            self.assertIn(text, html)
+        self.assertNotIn('rel="prev"', html)
+        self.assertNotIn("<script", html)
+        _, html = self.hole(basis + "/ansehen?seite=2")
+        self.assertIn(f'src="{basis}/seite/2"', html)
+        self.assertIn(f'href="{basis}/ansehen?seite=1" rel="prev"', html)
+        self.assertNotIn('rel="next"', html)
+        for verboten in ("93e29e", "unterricht", "data/arbeit"):
+            self.assertNotIn(verboten, self.sichtbar(html))
+        for falsch in ("?seite=0", "?seite=3", "?seite=x", "?seite=", "?seite=-1"):
+            self.assertEqual(self.hole(basis + "/ansehen" + falsch)[0].status, 404, falsch)
+        for falsch in (basis[:-1] + "1/ansehen", "/ergebnis/20261030-150000-unterricht-aaaaaa/datei/0/ansehen",
+                       "/ergebnis/20261022-232618-unterricht-67ba47/datei/0/ansehen",
+                       "/ergebnis/20261030-999999-unterricht-ffffff/datei/0/ansehen"):
             self.assertEqual(self.hole(falsch)[0].status, 404, falsch)
 
     def test_pfad_ausserhalb_des_agent_ordners_404(self):

@@ -1,0 +1,35 @@
+{#- Seiten-Betrachter einer Ergebnisdatei: eine Seite groß, Vor/Zurück und Seitenzahlen als Links, ohne
+    JavaScript. Zurück zum Ergebnis über die Brotkrumen und den Link unten. -#}
+{% extends "basis.html" %}
+{% block titel %}{{ e.titel }}, Seite {{ e.seite }}{% endblock %}
+{% block inhalt %}
+{%- macro blaettern() %}
+<nav class="blaettern" aria-label="Seiten">
+  {%- if e.vorher %}<a class="knopf" href="{{ e.vorher }}" rel="prev">‹ Vorige</a>
+  {%- else %}<span class="knopf knopf-aus" aria-hidden="true">‹ Vorige</span>{% endif %}
+  <span class="seitenzahl">{{ e.seite }} / {{ e.anzahl }}</span>
+  {%- if e.nachher %}<a class="knopf" href="{{ e.nachher }}" rel="next">Nächste ›</a>
+  {%- else %}<span class="knopf knopf-aus" aria-hidden="true">Nächste ›</span>{% endif %}
+</nav>
+{%- endmacro %}
+{{ blaettern() }}
+<figure class="betrachter">
+  <a href="{{ e.nachher or e.bild }}"{% if not e.nachher %} target="_blank" rel="noopener"{% endif %}>
+    <img src="{{ e.bild }}" alt="{{ e.titel }}, Seite {{ e.seite }} von {{ e.anzahl }}">
+  </a>
+  <figcaption class="unter">{% if e.nachher %}Tipp auf die Seite für die nächste.{% else %}Letzte Seite. Tipp auf die Seite, um sie in voller Größe zu öffnen.{% endif %}</figcaption>
+</figure>
+{%- if e.anzahl > 2 %}
+<ol class="seitenwahl" aria-label="Zu Seite">
+  {%- for s in e.seiten %}
+  <li><a href="{{ s.link }}"{% if s.aktiv %} aria-current="page"{% endif %}>{{ s.nr }}</a></li>
+  {%- endfor %}
+</ol>
+{%- endif %}
+<div class="knoepfe knoepfe-unten">
+  {%- for k in e.knoepfe %}
+  <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="{{ k.link }}" download>{{ k.text }}</a>
+  {%- endfor %}
+  <a class="knopf" href="{{ e.ergebnis_link }}">Zurück zum Ergebnis</a>
+</div>
+{% endblock %}

@@ -20,6 +20,8 @@ GET:
   /ergebnis/<id>/datei/<n>              Download der n-ten Ergebnisdatei
   /ergebnis/<id>/datei/<n>/pdf          PDF aus der Vorschau des Renderers
   /ergebnis/<id>/datei/<n>/seite/<m>    Seitenbild m (ab 1) der Vorschau
+  /ergebnis/<id>/datei/<n>/ansehen      Seiten-Betrachter (?seite=m, Standard 1): eine Seite groß, Vor/Zurück,
+                                        ohne JavaScript; <id> ist die Fassung, aus der die Datei stammt
   /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
   /reihe/<kennung>                      Reihe mit Reihenfrage und ihren Aufträgen (ordnung.py, nur lesend)
   /unterricht                           alte Seite, leitet auf / um
@@ -330,6 +332,24 @@ def datei_seite(eintrag_id: str, nr: int, seite: int):
     wurzel, relativ = _ergebnisdatei(eintrag_id, nr)
     seiten = dateien.vorschau_seiten(wurzel, relativ)
     return _ausliefern(seiten[seite - 1] if 1 <= seite <= len(seiten) else None, herunterladen=False)
+
+
+@app.get("/ergebnis/{eintrag_id}/datei/{nr:int}/ansehen", response_class=HTMLResponse)
+def seite_ansehen(request: Request, eintrag_id: str, nr: int, seite: str | None = None):
+    wurzel, _ = _ergebnisdatei(eintrag_id, nr)
+    pfade = _auftrag(eintrag_id).get("ergebnis_dateien") or []
+    datei = next((d for d in logik.dateien_ansicht(pfade, dateien.vorschau_info(wurzel, pfade)) if d["nr"] == nr),
+                 None)
+    basis = INSTANZ / "auftraege"
+    kette = logik.kette_von(eintrag_id, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)])
+    e = logik.betrachter(kette, eintrag_id, datei, seite) if datei else None
+    if e is None:
+        raise HTTPException(404)
+    reihen = reihen_laden()
+    reihe = logik.reihe_von(logik.kopf(kette), reihen)
+    ueber = {"text": e["ergebnis_titel"], "link": e["ergebnis_link"]}
+    return vorlagen.TemplateResponse(request, "ansehen.html", {
+        "e": e, **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "")})
 
 
 @app.get("/entwurf/{eintrag_id}", response_class=HTMLResponse)

@@ -123,6 +123,10 @@ body {
   .rahmen { grid-template-columns: minmax(0, 1fr); grid-template-areas: "inhalt" "baum" "fragen"; }
   .inhalt { padding: 16px 16px 40px; }
   .baum { border-right: 0; border-top: 3px solid var(--schwarz); }
+  .datei-karte { grid-template-columns: 56px minmax(0, 1fr); }
+  .datei-karte .knoepfe { grid-column: 2; flex-wrap: wrap; }
+  .vorschau img { width: 56px; }
+  .betrachter img { min-height: 0; max-height: none; width: 100%; }
   .baum-eintrag { min-height: 44px; }
   h1 { font-size: 48px; }
 }
@@ -231,19 +235,6 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 
 .hinweis { margin: 0; padding-left: 12px; border-left: 3px solid var(--akzent); font-size: 15px; }
 
-.seiten { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.seiten a { display: flex; flex-direction: column; gap: 6px; text-decoration: none; }
-.seiten img {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 210 / 297;
-  object-fit: contain;
-  border: 1px solid var(--schwarz);
-  background: var(--weiss);
-}
-.seitenzahl { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-align: right; }
-
 .dateien { display: flex; flex-direction: column; border-top: 1px solid var(--schwarz); }
 .datei {
   display: grid;
@@ -270,6 +261,54 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 .knopf-voll { background: var(--schwarz); color: var(--weiss); }
 .knopf:hover { border-color: var(--akzent); }
 .knopf-voll:hover { color: var(--weiss); background: var(--akzent); }
+.knopf-aus { color: var(--hell); border-color: var(--hell); }
+
+/* Datei mit Seitenbildern: Karte mit der ersten Seite klein, Klick öffnet den Seiten-Betrachter */
+.datei-karte { grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; }
+.datei-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.datei-text .dateiname { color: var(--schwarz); text-decoration: none; }
+.datei-text .dateiname:hover, .datei-karte .vorschau:hover + .datei-text .dateiname { color: var(--akzent); }
+.vorschau img {
+  display: block;
+  width: 64px;
+  aspect-ratio: 210 / 297;
+  object-fit: contain;
+  border: 1px solid var(--schwarz);
+  background: var(--weiss);
+}
+.vorschau:hover img { border-color: var(--akzent); }
+
+/* Seiten-Betrachter: die ganze Seite passt in das Fenster */
+.blaettern { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.seitenzahl { font-size: 14px; font-weight: 700; letter-spacing: .08em; }
+.betrachter { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.betrachter a { display: block; }
+.betrachter img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 240px);
+  min-height: 320px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid var(--schwarz);
+  background: var(--weiss);
+}
+.seitenwahl { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.seitenwahl a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--hell);
+  color: var(--schwarz);
+  font-weight: 700;
+  text-decoration: none;
+}
+.seitenwahl a:hover { border-color: var(--akzent); }
+.seitenwahl a[aria-current="page"] { background: var(--schwarz); border-color: var(--schwarz); color: var(--weiss); }
+.knoepfe-unten { flex-wrap: wrap; }
 
 .entwurf {
   white-space: pre-wrap;

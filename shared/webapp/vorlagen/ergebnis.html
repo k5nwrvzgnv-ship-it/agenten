@@ -21,10 +21,22 @@
   {%- if x.pruefen %}<p class="hinweis"><b>Bitte prüfen:</b> {{ x.pruefen }}</p>{% endif %}
 {%- endmacro %}
 {%- macro dateiliste(liste) %}
+  {#- Je Datei eine Zeile; mit Seitenbildern als Karte mit der ersten Seite klein, Klick öffnet den Betrachter -#}
   <div class="dateien">
     {%- for d in liste %}
-    <div class="datei">
+    {%- set ansehen = "/ergebnis/" ~ d.auftrag ~ "/datei/" ~ d.nr ~ "/ansehen" %}
+    <div class="datei{% if d.seiten %} datei-karte{% endif %}">
+      {%- if d.seiten %}
+      <a class="vorschau" href="{{ ansehen }}" tabindex="-1" aria-hidden="true">
+        <img src="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/seite/1" alt="" loading="lazy">
+      </a>
+      <span class="datei-text">
+        <a class="dateiname" href="{{ ansehen }}">{{ d.name }}</a>
+        <span class="unter">{{ d.seiten_text }} · ansehen</span>
+      </span>
+      {%- else %}
       <span class="dateiname">{{ d.name }}</span>
+      {%- endif %}
       <span class="knoepfe">
       {%- for k in d.knoepfe %}
         <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
@@ -50,30 +62,10 @@
 </section>
 {%- endif %}
 
-{%- set mit_seiten = e.dateien | selectattr("seiten") | list %}
-{%- if mit_seiten %}
-<section>
-  {{ kopf("Seiten") }}
-  {%- if e.dateien_aus %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
-  {%- for d in mit_seiten %}
-  {%- if e.dateien | length > 1 %}<h3>{{ d.name }}</h3>{% endif %}
-  <div class="seiten">
-    {%- for m in range(1, d.seiten + 1) %}
-    <a href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/seite/{{ m }}" aria-label="{{ d.name }}, Seite {{ m }} groß ansehen">
-      <img src="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/seite/{{ m }}" alt="{{ d.name }}, Seite {{ m }}" loading="lazy">
-      <span class="seitenzahl">{{ m }}/{{ d.seiten }}</span>
-    </a>
-    {%- endfor %}
-  </div>
-  {%- endfor %}
-  <span class="unter">Tipp auf eine Seite, um sie groß zu sehen.</span>
-</section>
-{%- endif %}
-
 {%- if e.dateien %}
 <section>
   {{ kopf("Dateien") }}
-  {%- if e.dateien_aus and not mit_seiten %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
+  {%- if e.dateien_aus %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
   {{ dateiliste(e.dateien) }}
 </section>
 {%- endif %}

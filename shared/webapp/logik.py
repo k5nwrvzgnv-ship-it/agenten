@@ -287,7 +287,8 @@ def dateien_ansicht(pfade: list[str], vorschauen: list[tuple[bool, bool, int]]) 
         if hat_pdf and endung != ".pdf":
             knoepfe.append({"text": "PDF", "pfad": "/pdf"})
         knoepfe.append({"text": DATEIKNOEPFE.get(endung, "Datei"), "pfad": ""})
-        ansicht.append({"nr": nr, "name": datei_name(pfad), "knoepfe": knoepfe, "seiten": seiten})
+        ansicht.append({"nr": nr, "name": datei_name(pfad), "knoepfe": knoepfe, "seiten": seiten,
+                        "seiten_text": seiten_text(seiten) if seiten else ""})
     return ansicht
 
 
@@ -311,13 +312,26 @@ def _dateien(auftrag: dict | None, vorschauen: dict[str, list[tuple[bool, bool, 
             for d in dateien_ansicht(pfade, vorschauen.get(auftrag["id"]) or [(False, False, 0)] * len(pfade))]
 
 
+def fassung_namen(kette: list[dict]) -> dict[str, str]:
+    """Name jeder Fassung der Kette: "Fassung n" (n zählt den Ursprung und Fassungen mit Dateien), sonst "Antwort"."""
+    namen, nummer = {}, 0
+    for a in fassungen(kette):
+        if nummer == 0 or a.get("ergebnis_dateien"):
+            nummer += 1
+            namen[a["id"]] = f"Fassung {nummer}"
+        else:
+            namen[a["id"]] = "Antwort"
+    return namen
+
+
 def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[tuple[bool, bool, int]]],
             jetzt: datetime) -> list[dict]:
     """Schritte der Kette in zeitlicher Folge: Fassungen (bzw. Antworten ohne Dateien) und Lias Rückmeldungen.
 
     art: "fassung" oder "rueckmeldung". aktuell: diese Fassung steht oben in der Ansicht."""
     beantwortet = {a["id"] for a in kette if a.get("agent") != "feedback"}
-    schritte, nummer = [], 0
+    namen = fassung_namen(kette)
+    schritte = []
     for a in kette:
         if a.get("agent") == "feedback":
             nb = (a.get("daten") or {}).get("nachbesserung")
@@ -327,14 +341,9 @@ def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[
                              "zeit": zeit_text(a.get("erstellt"), jetzt), "zitat": ohne_ids(a.get("text") or ""),
                              "notiz": notiz})
             continue
-        if nummer == 0 or a.get("ergebnis_dateien"):
-            nummer += 1
-            name = f"Fassung {nummer}"
-        else:
-            name = "Antwort"
         status = a.get("status")
         schritte.append({
-            "art": "fassung", "name": name, "id": a["id"], "aktuell": a is aktuell,
+            "art": "fassung", "name": namen[a["id"]], "id": a["id"], "aktuell": a is aktuell,
             "zeit": ("seit " + zeit_text(a.get("erstellt"), jetzt) if status == "neu"
                      else zeit_text(a.get("abgeschlossen"), jetzt)),
             "notiz": ("Läuft gerade." if status == "neu"
@@ -375,6 +384,39 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
         "dateien_aus": (next(x["name"] for x in schritte if x.get("id") == dateien_von["id"])
                         if dateien_ and dateien_von is not aktuell else ""),
         "verlauf": schritte if len(kette) > 1 else [],
+    }
+
+
+def seiten_text(anzahl: int) -> str:
+    return "1 Seite" if anzahl == 1 else f"{anzahl} Seiten"
+
+
+def betrachter(kette: list[dict], auftrag_id: str, datei: dict, seite: str | None) -> dict | None:
+    """Seiten-Betrachter für eine Datei einer Fassung: eine Seite groß, Vor/Zurück, Rückweg zum Ergebnis.
+
+    datei aus dateien_ansicht (nr, name, knoepfe, seiten) der Fassung auftrag_id; seite aus ?seite= (Standard 1).
+    None (404), wenn die Datei keine Seitenbilder hat oder die Seitenzahl keine Zahl von 1 bis zur Anzahl ist."""
+    anzahl = datei.get("seiten") or 0
+    wert = "1" if seite is None else seite.strip()
+    if not anzahl or not (wert.isascii() and wert.isdigit()) or len(wert) > 4 or not 1 <= int(wert) <= anzahl:
+        return None
+    m = int(wert)
+    k = kopf(kette)
+    namen = fassung_namen(kette)
+    basis = f"/ergebnis/{auftrag_id}/datei/{datei['nr']}"
+    seiten = [{"nr": n, "link": f"{basis}/ansehen?seite={n}", "aktiv": n == m} for n in range(1, anzahl + 1)]
+    return {
+        "titel": datei["name"],
+        # Fassung nur nennen, wenn es mehr als eine gibt
+        "unter": " · ".join(x for x in (namen.get(auftrag_id) if len(namen) > 1 else "", f"Seite {m} von {anzahl}")
+                            if x),
+        "ergebnis_titel": titel(k, {a["id"]: a for a in kette}, TITEL_LANG),
+        "ergebnis_link": ergebnis_link(k),
+        "seite": m, "anzahl": anzahl, "seiten": seiten,
+        "bild": f"{basis}/seite/{m}",
+        "vorher": seiten[m - 2]["link"] if m > 1 else "",
+        "nachher": seiten[m]["link"] if m < anzahl else "",
+        "knoepfe": [{**kn, "link": basis + kn["pfad"]} for kn in datei["knoepfe"]],
     }
 
 
@@ -607,14 +649,16 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
     return eintraege
 
 
-def krumen(hier: str = "", reihe: dict | None = None) -> dict:
+def krumen(hier: str = "", reihe: dict | None = None, ueber: dict | None = None) -> dict:
     """Brotkrumen über dem Inhalt: Teile mit Link (Fach und Klasse noch ohne, Bauschritt 2), dann die Seite selbst.
     Ohne Angaben "Heute"; nur reihe: die Reihen-Ansicht; reihe und hier: eine Seite in der Reihe; nur hier: eine
-    Seite ohne Reihe unter "Heute"."""
+    Seite ohne Reihe unter "Heute". ueber ({"text", "link"}): eine Seite dazwischen, z. B. das Ergebnis über dem
+    Seiten-Betrachter."""
     hier = kurz(hier, KRUME_LANG)
+    extra = [{"text": kurz(ueber["text"], KRUME_LANG), "link": ueber["link"]}] if ueber and hier else []
     if reihe is None:
-        return {"teile": [{"text": "Heute", "link": "/"}] if hier else [], "hier": hier or "Heute"}
+        return {"teile": [{"text": "Heute", "link": "/"}, *extra] if hier else [], "hier": hier or "Heute"}
     teile = [{"text": reihe["fach"], "link": ""}, {"text": reihe["gruppe"], "link": ""}]
     if not hier:
         return {"teile": teile, "hier": reihe["titel"]}
-    return {"teile": [*teile, {"text": reihe["titel"], "link": reihe_link(reihe)}], "hier": hier}
+    return {"teile": [*teile, {"text": reihe["titel"], "link": reihe_link(reihe)}, *extra], "hier": hier}

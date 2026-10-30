@@ -297,6 +297,37 @@ class TestErgebnis(unittest.TestCase):
         self.assertEqual([k["text"] for k in d[1]["knoepfe"]], ["PDF", "Excel"])
         self.assertEqual([k["text"] for k in d[2]["knoepfe"]], ["PowerPoint"])
 
+    def test_fassung_namen(self):
+        alt, fb, nb = theater_kette()
+        self.assertEqual(logik.fassung_namen([alt, fb, nb]), {ALT_ID: "Fassung 1", NB_ID: "Antwort"})
+        nb_datei = {**nb, "ergebnis_dateien": ["d/neu.docx"]}
+        self.assertEqual(logik.fassung_namen([alt, fb, nb_datei])[NB_ID], "Fassung 2")
+
+    def test_betrachter(self):
+        alt, fb, nb = theater_kette()
+        nb = {**nb, "ergebnis_dateien": ["d/neu.docx"]}
+        datei = {"nr": 1, "name": "Ablauf", "seiten": 3,
+                 "knoepfe": [{"text": "PDF", "pfad": "/pdf"}, {"text": "Word", "pfad": ""}]}
+        b = logik.betrachter([alt, fb, nb], NB_ID, datei, None)  # ohne ?seite= die erste Seite
+        basis = f"/ergebnis/{NB_ID}/datei/1"
+        self.assertEqual((b["titel"], b["unter"], b["seite"], b["bild"], b["vorher"], b["nachher"]),
+                         ("Ablauf", "Fassung 2 · Seite 1 von 3", 1, basis + "/seite/1", "", basis + "/ansehen?seite=2"))
+        self.assertEqual((b["ergebnis_titel"], b["ergebnis_link"]), ("Fassung Der nackte Wahnsinn", f"/ergebnis/{ALT_ID}"))
+        self.assertEqual([k["link"] for k in b["knoepfe"]], [basis + "/pdf", basis])
+        b = logik.betrachter([alt, fb, nb], NB_ID, datei, "2")
+        self.assertEqual((b["vorher"], b["nachher"]), (basis + "/ansehen?seite=1", basis + "/ansehen?seite=3"))
+        self.assertEqual([s["aktiv"] for s in b["seiten"]], [False, True, False])
+        b = logik.betrachter([alt, fb, nb], NB_ID, datei, " 3 ")
+        self.assertEqual((b["nachher"], b["seite"]), ("", 3))
+        for falsch in ("0", "4", "-1", "x", "", "1.5", "٢", "00002000000"):
+            self.assertIsNone(logik.betrachter([alt, fb, nb], NB_ID, datei, falsch), falsch)
+        self.assertIsNone(logik.betrachter([alt], ALT_ID, {**datei, "seiten": 0}, "1"))  # keine Seitenbilder
+        # nur eine Fassung: keine Fassung im Untertitel
+        self.assertEqual(logik.betrachter([alt], ALT_ID, datei, "1")["unter"], "Seite 1 von 3")
+
+    def test_seiten_text(self):
+        self.assertEqual((logik.seiten_text(1), logik.seiten_text(4)), ("1 Seite", "4 Seiten"))
+
 
 class TestEntwurf(unittest.TestCase):
     def test_ganzer_text_und_nur_bekannte_details(self):
@@ -487,3 +518,9 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(([x["text"] for x in k["teile"]], k["teile"][2]["link"], k["hier"]),
                          (["Ethik", "Klasse 8", "Straftheorien (in Planung)"], "/reihe/ethik-8-straftheorien",
                           "Umfrage"))
+        k = logik.krumen("Ablauf", ethik, {"text": "Umfrage", "link": "/ergebnis/x"})
+        self.assertEqual(([x["text"] for x in k["teile"]], k["teile"][3]["link"], k["hier"]),
+                         (["Ethik", "Klasse 8", "Straftheorien (in Planung)", "Umfrage"], "/ergebnis/x", "Ablauf"))
+        k = logik.krumen("Ablauf", None, {"text": "Umfrage " * 20, "link": "/ergebnis/x"})
+        self.assertEqual([x["link"] for x in k["teile"]], ["/", "/ergebnis/x"])
+        self.assertLessEqual(len(k["teile"][1]["text"]), logik.KRUME_LANG)
