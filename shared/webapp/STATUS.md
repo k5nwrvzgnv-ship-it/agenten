@@ -7,25 +7,35 @@ Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Moderni
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
 ## Stand (30.10.2026)
-Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, `./pruefen.sh` grün
-(Web-App: 38 Tests).
+Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
+als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), `./pruefen.sh` grün (Web-App: 43 Tests).
 - Seite „Heute“, nur lesend, ohne Anmeldung, aus `lia/instanz` über agentkit (`auftraege.neue/erledigte`,
   `freigabe.offene`, je mit `basis=`). Die App selbst läuft ohne `AGENTKIT_INSTANZ`.
 - Abschnitte: 01 Wartet auf dich (offene Entwürfe, Ergebnisse der letzten 48 h als „Neu“), 02 Läuft gerade,
   03 Fertig (höchstens 10), 04 Hat nicht geklappt (mit dem Grund des Agenten). Leere Abschnitte 03/04 fehlen.
-- Echter Lauf 30.10. über den Socket: 7 Aufträge und examen-0c44bf richtig eingeteilt (5 warten, 1 fertig,
-  1 fehlgeschlagen; der Feedback-Auftrag erscheint nicht selbst, sondern als „Antwort auf deine Rückmeldung zu …“).
+- Ein Auftrag mit Feedback-Schleife ist EIN Auftrag (`logik.ketten`): Ursprung, Lias Rückmeldungen (Agent feedback)
+  und Nachbesserungen hängen über `bezug` zusammen, auch Nachbesserungen von Nachbesserungen. „Heute“ zeigt je
+  Kette eine Zeile mit Titel und Link des Ursprungs; Zeit, „Neu“ und Abschnitt nach der jüngsten Fassung, Hinweis
+  „nach deiner Rückmeldung“. Läuft etwas in der Kette (Nachbesserung oder Rückmeldung), steht sie nur unter
+  „Läuft gerade“ („Arbeitet an deiner Rückmeldung“, mit Link auf das bisherige Ergebnis).
+- Echter Lauf 30.10. über einen Test-Socket: Theater-Fassung 0baec0 mit Lias Frage und Antwort 5d88d5 als eine
+  Zeile; alle 7 Links aus „Heute“ 200, 5d88d5 und 1c1e7e leiten auf 0baec0 um.
 - Begriffe aus Lias Sicht: Art aus quelle bzw. Agent (Material, Frage, Woche, Theater, Recherche, Examen), IDs und
   „Runde runde-…“ werden aus Titeln entfernt (Test prüft, dass keine ID und kein Agentenname im HTML steht).
 - Zeiten in Europe/Berlin (Sommerzeit beachtet). htmx lädt den Inhalt jede Minute neu (`/teile/heute`).
 - Kopfzeilen: CSP nur `'self'`, `no-store`, `nosniff`, kein Referrer; keine API-Doku (`/docs` 404).
 - Zeilen in „Heute“ sind Links (außer „Läuft gerade“). IDs stehen nur in der URL, nie im sichtbaren Text.
-- Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, Feedback-Bestätigungen
-  und zurückgezogene 404): Titel, Art und Zeit; „Das Wichtigste“ aus `daten.kern`/`punkte`/`pruefen`, ohne
+- Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, zurückgezogene 404; IDs
+  von Nachbesserungen und Rückmeldungen leiten mit 303 auf den Ursprung um): Titel, Art und Zeit der neuesten
+  Fassung; „Das Wichtigste“ aus `daten.kern`/`punkte`/`pruefen` der neuesten erledigten Fassung, ohne
   `daten` der ganze Ergebnistext (Zeilen mit „- “ als Liste); Seiten aus `<stem>-vorschau/<stem>-seite-NN.png`
   (Klick öffnet das Bild groß); Dateien mit Knöpfen PDF (aus der Vorschau) und Original (Word/Excel/PowerPoint/PDF).
-  Nachbesserung: Lias Rückmeldung (aus dem Feedback-Fall, `daten.nachbesserung`) und Link zum ursprünglichen
-  Ergebnis; das ursprüngliche zeigt „Später dazu“. Fehlgeschlagen: „Hat nicht geklappt“ mit Grund.
+  Seiten und Dateien aus der jüngsten Fassung mit Dateien („Aus Fassung 1“, wenn die Antwort keine hat).
+  Darunter „Verlauf“: Fassung 1, Deine Rückmeldung (Lias Text), Antwort bzw. Fassung n (n zählt nur Fassungen mit
+  Dateien), je mit Zeit; frühere Fassungen aufklappbar (`<details>`, Kern, Punkte, Dateien), die oberste „steht
+  oben“. Rückmeldung ohne Nachbesserung zeigt die Antwort des Feedback-Agenten. Läuft eine Nachbesserung: Hinweis
+  oben; ist die letzte fehlgeschlagen: Hinweis und oben die Fassung davor. Alles fehlgeschlagen: „Hat nicht
+  geklappt“ mit Grund. Downloads tragen die ID der Fassung, aus der die Datei stammt.
 - Entwurf `/entwurf/<id>` (nur `freigabe.offene` der Instanz): ganzer Text ohne Kürzung, Details nur aus
   `logik.ENTWURF_DETAILS` (bisher „Einsatz“; `daten.datei` ist ein interner Pfad und bleibt verborgen),
   Hinweis „Setzt du selbst ein“. Keine Knöpfe.
@@ -34,7 +44,7 @@ Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet
   Vorschau (der Renderer hat dafür keine `-vorschau/` angelegt), dort nur der Download.
 
 ## Technik
-- `logik.py`: reine Logik (`heute()`, `ergebnis()`, `entwurf()`), getestet. `dateien.py`: Pfade der
+- `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`), getestet. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
   kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
   `ergebnis_dateien`, nie einen Pfad. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
@@ -58,12 +68,24 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
+0. Neuer Auftrag (Punkt 24 Unterpunkt 5): Plan an Jan vorgelegt 30.10., wartet auf sein Okay, noch nichts gebaut
+   (kein Knopf, keine POST-Route). Befunde: Der Theater-Agent nimmt nur Nachbesserungen an (neue Runden nur
+   `runde.py` von Hand), also zuerst nur Material (`unterricht`, quelle `portal-material`). Lias Zentrale stellt
+   jedes neu erledigte Ergebnis der Instanz per Telegram zu, also auch Aufträge aus der Web-App; Jans Tests gegen
+   `lia/instanz` landen bei Lia und auf ihrem Kontingent. Vorschlag und Fragen: Formular nur Material, Text,
+   Dateien wie Telegram (bis 20 MB), Hinweis „Bitte keine Namen“, Anlegen wie portal.abschicken
+   (`neuer_auftrag(..., basis=)`, dann `systemctl --user start --no-block lia-unterricht.service`), Schutz ohne
+   Konten über Origin-Prüfung und CSRF-Token; erst mit Test-Instanz ohne Agentenstart, echte Instanz erst mit
+   Bauschritt 2.
+8. Aufträge, die inhaltlich eine neue Fassung sind, aber als neuer Material-Auftrag mit Datei kamen (93e29e,
+   03b145 zur Theater-Fassung), haben kein `bezug` und stehen einzeln. Nicht geraten; Jan gefragt, ob so etwas
+   zusammengehören soll (sauber wäre ein Änderungswunsch mit Datei aus der Ergebnis-Ansicht, Bauschritt 4).
 1. Dienst `webapp.service` (User-Unit mit OnFailure=ausfall@%n.service, MemoryMax=300M, Startgrenze): braucht
    Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
 4. Ergebnis und Entwurf nur lesend: keine Feedback-Knöpfe (Bauschritt 3), kein Abschließen/Ändern/Ablehnen
-   (Bauschritt 5), keine Fassungs-Chips, keine Anmerkungen an einer Stelle. Kein Knopf „Neuer Auftrag“, keine
+   (Bauschritt 5), keine Anmerkungen an einer Stelle. Fassungen stehen im Verlauf (keine Chips). Kein Knopf „Neuer Auftrag“, keine
    Leiste mit Bereichen, kein Fortschrittsbalken: gibt es noch nicht.
 7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
    Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.

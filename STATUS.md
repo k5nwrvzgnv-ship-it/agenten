@@ -531,8 +531,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      SSH-Tunnel, von Hand gestartet, kein Dienst, keine Anmeldung. Echter Lauf zeigt die 7 Aufträge und
      examen-0c44bf. Dazu (Jan 30.10. vorgezogen): Ergebnis- und Entwurf-Ansicht nur lesend, per Klick aus
      „Heute“ (Punkte 2 und 4 oben ohne Knöpfe): Kern, Punkte, Bitte prüfen, Seitenvorschau, Downloads mit
-     Pfadprüfung, Verweis Nachbesserung/Ursprung, Grund bei Fehlschlag; Entwurf ganz mit Einsatz. Nächster
-     Schritt: Bauschritt 2 (Konten, Einladung, Passkey). Dienst webapp.service: Okay Jan.
+     Pfadprüfung, Grund bei Fehlschlag; Entwurf ganz mit Einsatz. Nach Jans Anmerkung 30.10.: Auftrag mit
+     Feedback-Schleife ist ein Auftrag (Kette über bezug), eine Zeile in „Heute“, Ergebnis mit neuester Fassung
+     und Verlauf (Fassungen, Lias Rückmeldungen). „Neuer Auftrag“: Plan an Jan vorgelegt, wartet auf sein Okay
+     (zuerst nur Material, da theater nur Nachbesserungen annimmt; Ergebnisse gehen auch per Telegram an Lia;
+     Details in shared/webapp/STATUS.md, Offener Punkt 0). Danach Bauschritt 2 (Konten, Einladung, Passkey).
+     Dienst webapp.service: Okay Jan.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 
