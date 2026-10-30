@@ -90,8 +90,9 @@ final, Mustertabelle, Heuristik-Review, Test mit 7 Aufgaben, Empfehlung). Klickb
   `ordnung.py`; umstellen mit dem ersten Bauschritt), DS-Kurs 12 gibt es (in keiner Datei, Reihen offen),
   Notentabelle gehört zu Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt
   docx/pptx und PDF.
-- Nächster Schritt: Jan klickt das Board durch (nicht geprüft, ob es im Canvas fehlerfrei läuft) und macht den
-  Test mit Lia. Gebaut wird erst nach Test und Jans Okay, in den
+- Jan hat das Desktop-Board am 30.10. durchgeklickt: sieht gut aus, alles klappt. Nächster Schritt: Test mit Lia
+  am PC (Plan Abschnitt 6, Bogen `data/ia/testbogen.csv`), Canvas dafür über „Teilen“ freigeben oder an Jans
+  Rechner testen. Danach Auswertung hier eintragen, dann Jans Okay für Bauschritt 1 des neuen Aufbaus. Gebaut wird erst nach Test und Jans Okay, in den
   Bauschritten aus Abschnitt 5 des Plans.
 
 ## Technik
