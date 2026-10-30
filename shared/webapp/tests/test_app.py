@@ -694,6 +694,29 @@ class TestMaterial(Aufbau):
         self.assertEqual(r.status, 400)
         self.assertIn("Wähle eine Datei aus.", html)
 
+    def test_rueckmeldung_je_datei(self):
+        ursprung = "20261030-140944-unterricht-93e29e"
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten"):
+            _, html = self.hole(self.URL)
+            link = f"{self.URL}?offen=rueckmeldung&amp;fassung={ursprung}&amp;datei=0#rueckmeldung"
+            self.assertIn(f'<a class="knopf" href="{link}">Rückmeldung</a>', html)
+            _, html = self.hole(f"/ergebnis/{ursprung}/datei/0/ansehen?seite=2")
+            self.assertIn(f"{self.URL}?offen=rueckmeldung&amp;fassung={ursprung}&amp;datei=0&amp;seite=2#rueckmeldung", html)
+            _, html = self.hole(f"{self.URL}?offen=rueckmeldung&fassung={ursprung}&datei=0&seite=2")
+            for text in ("Zu „Arbeitsblatt.docx“, Seite 2", '<input type="hidden" name="dnr" value="0">',
+                         "Stattdessen zum Ganzen"):
+                self.assertIn(text, html)
+            _, html = self.hole(f"{self.URL}?offen=rueckmeldung&fassung={ursprung}&datei=7")  # unbekannt: das Ganze
+            self.assertNotIn('name="dnr"', html)
+            r, _ = self.sende("/rueckmeldung", {"text": "Aufgabe 2 kürzer", "fassung": ursprung, "dnr": "0", "seite": "2"})
+            self.assertEqual(r.status, 303)
+        (a,) = self.neue()
+        # gilt der Fassung, aus der die Datei stammt (nicht der neuesten Antwort)
+        self.assertEqual((a["bezug"], a["text"]), (ursprung, "Zur Datei „Arbeitsblatt.docx“, Seite 2: Aufgabe 2 kürzer"))
+        with mock.patch.object(app, "NEUER_AUFTRAG", ""):
+            self.assertNotIn(">Rückmeldung</a>", self.hole(self.URL)[1])
+            self.assertNotIn("Rückmeldung zu dieser Seite", self.hole(f"/ergebnis/{ursprung}/datei/0/ansehen")[1])
+
     def test_rueckmeldung_aus_ohne_einstellung(self):
         _, html = self.hole(self.URL + "?offen=rueckmeldung")
         self.assertIn("Rückmeldungen gehen im Moment noch über Telegram", html)

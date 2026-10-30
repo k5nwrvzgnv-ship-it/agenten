@@ -688,6 +688,15 @@ class TestReihen(unittest.TestCase):
         zeilen = logik.zeilen_je_reihe(r, [material, variante], JETZT, ausblenden={v1["id"]})
         self.assertEqual([z["id"] for z in zeilen["ethik-8-straftheorien"]], [material["id"]])
 
+    def test_rueckmeldung_ziel(self):
+        alt, fb, nb = theater_kette()
+        z = logik.rueckmeldung_ziel([alt, fb, nb], ALT_ID, "1", "3")
+        self.assertEqual((z["fassung"], z["nr"], z["seite"], z["text"]), (ALT_ID, 1, 3, "„2 Ablauf.docx“, Seite 3"))
+        self.assertEqual(logik.rueckmeldung_ziel([alt], ALT_ID, "0", "x")["text"], "„1 Szenenkarte.docx“")
+        for args in ((NB_ID, "0", ""), (ALT_ID, "2", ""), (ALT_ID, "-1", ""), ("unbekannt", "0", ""), (FB_ID, "0", "")):
+            self.assertIsNone(logik.rueckmeldung_ziel([alt, fb, nb], *args), args)
+        self.assertEqual(logik.rueckmeldung_text("Kürzer", ziel=z), "Zur Datei „2 Ablauf.docx“, Seite 3: Kürzer")
+
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
         e = logik.klasse_ansicht("ethik-8", r, {"ethik-8-helfen": [{}, {}], "ethik-8-straftheorien": [{}]})

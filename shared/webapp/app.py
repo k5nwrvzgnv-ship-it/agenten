@@ -521,7 +521,11 @@ def _material(kette: list[dict], kopf: dict) -> tuple[dict, list[dict], dict]:
 
 
 def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str = "", hinweis: str = "",
-                    fehler: list[str] | None = None, text: str = "", status: int = 200):
+                    fehler: list[str] | None = None, text: str = "", status: int = 200, ziel: dict | None = None):
+    """Material-Ansicht. ziel: Rückmeldung an einer Datei/Seite (logik.rueckmeldung_ziel), sonst aus der URL."""
+    if ziel is None and offen == "rueckmeldung":
+        q = request.query_params
+        ziel = logik.rueckmeldung_ziel(kette, q.get("fassung"), q.get("datei"), q.get("seite"))
     e, _, z = _material(kette, kopf)
     reihen = reihen_laden()
     reihe = logik.reihe_von(kopf, reihen)
@@ -541,6 +545,7 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
         original[1] in logik.VARIANTEN else "", "original_link": f"/ergebnis/{original[0]}" if original else "",
         "variante_moeglich": bool(neu_modus()) and not original and _variante_quelle(kette, kopf, e, z) is not None,
         "variante_arten": logik.VARIANTEN, "extra_max": logik.VARIANTE_EXTRA_MAX,
+        "ziel": ziel,
         "e": e, "kopf_id": kopf["id"], "basis_url": logik.ergebnis_link(kopf), "token": logik.formular_token(GEHEIM),
         "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene", "variante") else "",
         "hinweis": hinweis, "fehler": fehler or [], "text": text, "text_max": logik.NEU_TEXT_MAX,
@@ -739,25 +744,30 @@ async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
     datei = form.get("datei")
     datei = datei if isinstance(datei, UploadFile) and datei.filename else None
     text = str(form.get("text") or "")
+    ziel = logik.rueckmeldung_ziel(kette, str(form.get("fassung") or ""), str(form.get("dnr") or ""),
+                                   str(form.get("seite") or ""))
     try:
         if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[logik.VERALTET], text=text,
-                                   status=400)
+                                   status=400, ziel=ziel)
         text, fehler = logik.rueckmeldung_pruefen(text, (datei.filename, datei.size or 0) if datei else None)
-        # wie in Telegram: die Rückmeldung gilt der neuesten fertigen Fassung des Assistenten
-        bezug = next((a["id"] for a in reversed(logik.fassungen(kette)) if a.get("status") == "erledigt"), "")
+        # an einer Datei: die Fassung, aus der sie stammt (die Nachbesserung setzt dort auf); sonst wie in
+        # Telegram die neueste fertige Fassung des Assistenten
+        bezug = ziel["fassung"] if ziel else next(
+            (a["id"] for a in reversed(logik.fassungen(kette)) if a.get("status") == "erledigt"), "")
         if not bezug:
             raise HTTPException(404)
         if fehler:
-            return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=fehler, text=text, status=400)
+            return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=fehler, text=text, status=400,
+                                   ziel=ziel)
         try:
             name, fassung = _eigene_speichern(kette, kopf, datei, "mit deinen Kommentaren") if datei else ("", "")
-            fid = auftraege.neuer_auftrag("feedback", logik.rueckmeldung_text(text, name, fassung),
+            fid = auftraege.neuer_auftrag("feedback", logik.rueckmeldung_text(text, name, fassung, ziel),
                                           quelle="feedback", bezug=bezug, basis=INSTANZ / "auftraege")
         except (auftraege.AuftragFehler, OSError) as fehler_:
             logger.error("Rückmeldung nicht angelegt: %s", fehler_)
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[logik.FEHLGESCHLAGEN], text=text,
-                                   status=500)
+                                   status=500, ziel=ziel)
     finally:
         if datei:
             await datei.close()
@@ -813,7 +823,7 @@ def seite_ansehen(request: Request, eintrag_id: str, nr: int, seite: str | None 
     reihe = logik.reihe_von(logik.kopf(kette), reihen)
     ueber = {"text": e["ergebnis_titel"], "link": e["ergebnis_link"]}
     return vorlagen.TemplateResponse(request, "ansehen.html", {
-        "e": e, **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "")})
+        "e": e, "aktionen": neu_modus(), **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "")})
 
 
 @app.get("/entwurf/{eintrag_id}", response_class=HTMLResponse)

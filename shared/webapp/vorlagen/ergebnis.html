@@ -45,6 +45,9 @@
       {%- for k in d.knoepfe %}
         <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
       {%- endfor %}
+      {%- if aktionen %}
+        <a class="knopf" href="{{ basis_url }}?offen=rueckmeldung&amp;fassung={{ d.auftrag }}&amp;datei={{ d.nr }}#rueckmeldung">Rückmeldung</a>
+      {%- endif %}
       </span>
     </div>
     {%- endfor %}
@@ -151,6 +154,13 @@
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
   <form class="formular" method="post" action="{{ basis_url }}/rueckmeldung" enctype="multipart/form-data">
     <input type="hidden" name="token" value="{{ token }}">
+    {%- if ziel %}
+    <input type="hidden" name="fassung" value="{{ ziel.fassung }}">
+    <input type="hidden" name="dnr" value="{{ ziel.nr }}">
+    <input type="hidden" name="seite" value="{{ ziel.seite }}">
+    <p class="absatz">Zu {{ ziel.text }}{% if ziel.fassung_name and e.verlauf | length > 1 %} ({{ ziel.fassung_name }}){% endif %}.
+      <a href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Stattdessen zum Ganzen</a></p>
+    {%- endif %}
     <label class="tafel-titel" for="rueck-text">Was soll anders werden?</label>
     <textarea id="rueck-text" name="text" rows="3" maxlength="{{ text_max }}" required>{{ text }}</textarea>
     <label class="datei-wahl" for="rueck-datei">Datei mit Kommentaren anhängen (Word, PDF, Foto)

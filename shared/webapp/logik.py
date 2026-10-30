@@ -520,9 +520,29 @@ def rueckmeldung_pruefen(text: str, datei: tuple[str, int] | None) -> tuple[str,
     return text, fehler
 
 
-def rueckmeldung_text(text: str, datei_name_: str = "", fassung: str = "") -> str:
-    """Text des Auftrags an den Feedback-Dienst. Eine angehängte Datei liegt als eigene Fassung in der Web-App
-    (die Agenten können sie noch nicht lesen, Bedarf b in Punkt 24 der Haupt-STATUS)."""
+def rueckmeldung_ziel(kette: list[dict], fassung_id: str | None, nr_text: str | None,
+                      seite_text: str | None) -> dict | None:
+    """Worauf sich eine Rückmeldung bezieht, wenn Lia sie an einer Datei (und Seite) gibt (Jan 30.10.: Rückmeldung
+    je Dokument statt je Ergebnis). fassung_id: Fassung, aus der die Datei stammt; nr_text: Index in deren
+    ergebnis_dateien; seite_text: Seite im Betrachter (optional). Unbekanntes: None (dann gilt das Ganze)."""
+    fassung = next((a for a in fassungen(kette) if a.get("id") == fassung_id and a.get("status") == "erledigt"), None)
+    pfade = (fassung or {}).get("ergebnis_dateien") or []
+    if not fassung or not (nr_text or "").isdigit() or not 0 <= int(nr_text) < len(pfade):
+        return None
+    nr = int(nr_text)
+    seite = int(seite_text) if (seite_text or "").isdigit() and 1 <= int(seite_text) <= 999 else None
+    name = Path(pfade[nr]).name  # mit Endung: der Agent findet die Datei daran
+    return {"fassung": fassung["id"], "nr": nr, "seite": seite or "", "name": name,
+            "text": f"„{name}“" + (f", Seite {seite}" if seite else ""),
+            "fassung_name": fassung_namen(kette).get(fassung["id"], "")}
+
+
+def rueckmeldung_text(text: str, datei_name_: str = "", fassung: str = "", ziel: dict | None = None) -> str:
+    """Text des Auftrags an den Feedback-Dienst. ziel (rueckmeldung_ziel): Der Text beginnt mit Datei und Seite.
+    Eine angehängte Datei liegt als eigene Fassung in der Web-App (die Agenten können sie noch nicht lesen,
+    Bedarf b in Punkt 24 der Haupt-STATUS)."""
+    if ziel:
+        text = f"Zur Datei {ziel['text']}: {text}"
     if not datei_name_:
         return text
     return (f"{text}\n\nDazu gibt es eine Datei mit Kommentaren ({datei_name_}, {fassung}). Sie liegt bisher nur in "
@@ -560,6 +580,8 @@ def betrachter(kette: list[dict], auftrag_id: str, datei: dict, seite: str | Non
         "vorher": seiten[m - 2]["link"] if m > 1 else "",
         "nachher": seiten[m]["link"] if m < anzahl else "",
         "knoepfe": [{**kn, "link": basis + kn["pfad"]} for kn in datei["knoepfe"]],
+        "rueckmeldung": (f"{ergebnis_link(k)}?offen=rueckmeldung&fassung={auftrag_id}&datei={datei['nr']}"
+                         f"&seite={m}#rueckmeldung"),
     }
 
 

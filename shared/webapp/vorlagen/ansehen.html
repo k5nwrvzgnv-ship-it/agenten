@@ -30,6 +30,7 @@
   {%- for k in e.knoepfe %}
   <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="{{ k.link }}" download>{{ k.text }}</a>
   {%- endfor %}
+  {%- if aktionen %}<a class="knopf" href="{{ e.rueckmeldung }}">Rückmeldung zu dieser Seite</a>{% endif %}
   <a class="knopf" href="{{ e.ergebnis_link }}">Zurück zum Ergebnis</a>
 </div>
 {% endblock %}
