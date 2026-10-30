@@ -20,6 +20,7 @@ TESTS=(
   "shared/feedback|.venv/bin/python|tests"
   "shared/renderer|.venv/bin/python|tests"
   "shared/leitstand|.venv/bin/python|tests"
+  "shared/webapp|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
   "dokumente|.venv/bin/python|tests"
   "posteingang|.venv/bin/python|tests"

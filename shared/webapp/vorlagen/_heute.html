@@ -1,0 +1,37 @@
+{#- Inhalt von Heute. Nur Elemente, die es schon gibt: keine Links auf Ergebnis/Entwurf (Bauschritt 3 und 5). -#}
+{%- macro zeile(z, offen=false) -%}
+<li class="zeile">
+  <span class="punkt{% if offen %} punkt-offen{% endif %}" aria-hidden="true"></span>
+  <span class="text">
+    <span class="titel">{{ z.titel }}</span>
+    <span class="unter">{{ z.unter }}</span>
+    {%- if z.hinweis %}<span class="unter">{{ z.hinweis }}</span>{% endif %}
+    {%- if z.grund %}<span class="grund">{{ z.grund }}</span>{% endif %}
+  </span>
+  {%- if z.marke %}<span class="marke">{{ z.marke }}</span>{% endif %}
+</li>
+{%- endmacro -%}
+<header class="kopf">
+  <span class="datum">{{ h.datum }}</span>
+  <h1>Heute</h1>
+  <p class="gruss">{{ h.begruessung }}
+    {%- if h.anzahl_wartet %} <span class="akzent">{{ h.anzahl_wartet }}</span>{% endif %} {{ h.wartet_text }}</p>
+</header>
+
+{#- (Name, Zeilen, Punkt offen, Text wenn leer; ohne Text fehlt der leere Abschnitt) #}
+{%- set abschnitte = [("Wartet auf dich", h.wartet, false, "Nichts offen."),
+                      ("Läuft gerade", h.laeuft, true, "Gerade läuft nichts."),
+                      ("Fertig", h.fertig, false, ""), ("Hat nicht geklappt", h.fehlgeschlagen, false, "")] %}
+{%- set nummer = namespace(n=0) %}
+{%- for name, zeilen, offen, leer in abschnitte if zeilen or leer %}
+{%- set nummer.n = nummer.n + 1 %}
+<section aria-labelledby="ab{{ nummer.n }}">
+  <h2 id="ab{{ nummer.n }}"><span class="akzent">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
+  {%- if zeilen %}
+  <ul>{% for z in zeilen %}{{ zeile(z, offen) }}{% endfor %}</ul>
+  {%- if name == "Fertig" and h.fertig_weitere %}<p class="leer">und {{ h.fertig_weitere }} ältere</p>{% endif %}
+  {%- else %}
+  <p class="leer">{{ leer }}</p>
+  {%- endif %}
+</section>
+{%- endfor %}
