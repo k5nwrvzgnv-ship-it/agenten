@@ -316,5 +316,49 @@ class TestEntwurf(unittest.TestCase):
         self.assertEqual((e["hinweis"], e["details"]), ("Wartet auf deine Entscheidung", []))
 
 
+class TestNeuerAuftrag(unittest.TestCase):
+    def test_dateiname_bereinigen(self):
+        self.assertEqual(logik.dateiname_bereinigen("3 Spielfassung_feedback.docx"), "3 Spielfassung_feedback.docx")
+        self.assertEqual(logik.dateiname_bereinigen("../../.env"), "env")
+        self.assertEqual(logik.dateiname_bereinigen("C:\\Users\\lia\\Foto.JPG"), "Foto.jpg")
+        self.assertEqual(logik.dateiname_bereinigen(".versteckt.pdf"), "versteckt.pdf")
+        self.assertEqual(logik.dateiname_bereinigen('a<b>\x00c?.pdf'), "a_b__c_.pdf")
+        self.assertEqual(logik.dateiname_bereinigen(""), "datei")
+        self.assertEqual(logik.dateiname_bereinigen(".pdf"), "pdf")
+        lang = logik.dateiname_bereinigen("x" * 300 + ".docx")
+        self.assertEqual((len(lang), lang[-5:]), (100, ".docx"))
+
+    def test_pruefen(self):
+        self.assertEqual(logik.neuer_auftrag_pruefen("  Arbeitsblatt Kant\r\n45 Min  ", []),
+                         ("Arbeitsblatt Kant\n45 Min", []))
+        self.assertEqual(logik.neuer_auftrag_pruefen("", [])[1], ["Schreib bitte kurz, was du brauchst."])
+        self.assertEqual(len(logik.neuer_auftrag_pruefen("x" * (logik.NEU_TEXT_MAX + 1), [])[1]), 1)
+        mb = 1024 * 1024
+        _, fehler = logik.neuer_auftrag_pruefen("Vorlage", [("a.docx", mb), ("b.PNG", 2 * mb), ("c.exe", 10),
+                                                            ("d.pdf", 21 * mb), ("e.pdf", 0)])
+        self.assertEqual(len(fehler), 3)
+        self.assertIn("„c.exe“", fehler[0])
+        self.assertIn("größer als 20 MB", fehler[1])
+        self.assertIn("leer", fehler[2])
+        self.assertEqual(len(logik.neuer_auftrag_pruefen("x", [("a.pdf", 1)] * 11)[1]), 1)
+
+    def test_herkunft(self):
+        self.assertTrue(logik.herkunft_passt("http://localhost:8792", "localhost:8792", "same-origin"))
+        self.assertTrue(logik.herkunft_passt("https://lia.meldro.de", "lia.meldro.de", None))
+        self.assertFalse(logik.herkunft_passt("https://boese.example", "localhost:8792", "cross-site"))
+        self.assertFalse(logik.herkunft_passt("https://boese.example", "localhost:8792", None))
+        self.assertFalse(logik.herkunft_passt("http://localhost:8792", "localhost:8792", "same-site"))
+        self.assertFalse(logik.herkunft_passt(None, "localhost:8792", None))
+        self.assertFalse(logik.herkunft_passt("null", "localhost:8792", None))
+
+    def test_token(self):
+        geheim = b"g" * 32
+        t = logik.formular_token(geheim)
+        self.assertTrue(logik.token_passt(geheim, t))
+        self.assertFalse(logik.token_passt(b"h" * 32, t))
+        self.assertFalse(logik.token_passt(geheim, ""))
+        self.assertFalse(logik.token_passt(geheim, None))
+
+
 if __name__ == "__main__":
     unittest.main()

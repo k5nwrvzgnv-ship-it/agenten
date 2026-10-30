@@ -17,6 +17,12 @@
   <p class="gruss">{{ h.begruessung }}
     {%- if h.anzahl_wartet %} <span class="akzent">{{ h.anzahl_wartet }}</span>{% endif %} {{ h.wartet_text }}</p>
 </header>
+{%- if neu %}
+<a class="knopf-gross" href="/neu">Neuer Auftrag<span aria-hidden="true">+</span></a>
+{%- endif %}
+{%- if abgeschickt %}
+<p class="hinweis">Dein Auftrag ist unterwegs. Er steht unter „Läuft gerade“.</p>
+{%- endif %}
 
 {#- (Name, Zeilen, Punkt offen, Text wenn leer; ohne Text fehlt der leere Abschnitt) #}
 {%- set abschnitte = [("Wartet auf dich", h.wartet, false, "Nichts offen."),

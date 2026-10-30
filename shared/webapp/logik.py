@@ -13,8 +13,11 @@ in Links, nie im sichtbaren Text.
 App erst mit Konten (Bauschritt 2/3).
 """
 
+import hmac
 import re
+import unicodedata
 from datetime import datetime, timedelta
+from urllib.parse import urlsplit
 
 NEU_STUNDEN = 48
 FERTIG_ANZAHL = 10  # so viele fertige Aufträge zeigt "Heute", der Rest kommt später unter "Anfragen"
@@ -380,3 +383,64 @@ def entwurf(eintrag: dict, jetzt: datetime) -> dict:
         "details": details,
         "hinweis": entwurf_hinweis(eintrag),
     }
+
+
+# Neuer Auftrag: nur Arten, deren Agent neue Aufträge annimmt. Theater nimmt nur Nachbesserungen an (neue Runden
+# startet runde.py von Hand), Frage und Woche sind in unterricht Platzhalter. Material wie im Telegram-Portal.
+NEU_AGENT, NEU_QUELLE = "unterricht", "portal-material"
+NEU_TEXT_MAX = 5000
+NEU_DATEIEN_MAX = 10
+NEU_DATEI_MAX_MB = 20  # wie Telegram
+# Was der Agent lesen kann: Office und PDF über agentkit.textfassung, Bilder direkt
+NEU_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
+_UNERLAUBT = re.compile(r'[\\/:*?"<>|\x00-\x1f\x7f]')
+
+
+def dateiname_bereinigen(name: str) -> str:
+    """Sicherer Dateiname aus dem Upload: ohne Ordner, Steuerzeichen und Punkt am Anfang, höchstens 100 Zeichen."""
+    name = unicodedata.normalize("NFC", name.replace("\\", "/").rsplit("/", 1)[-1])
+    name = " ".join(_UNERLAUBT.sub("_", name).split()).lstrip(".")
+    stamm, punkt, endung = name.rpartition(".")
+    if not punkt:
+        stamm, endung = name, ""
+    stamm = stamm[: 100 - len(endung) - 1].rstrip() or "datei"
+    return f"{stamm}.{endung.lower()}" if endung else stamm
+
+
+def neuer_auftrag_pruefen(text: str, dateien: list[tuple[str, int]]) -> tuple[str, list[str]]:
+    """Prüft Lias Eingaben. dateien: (Name, Größe in Bytes). Gibt den bereinigten Text und Fehlertexte zurück."""
+    text = (text or "").replace("\r\n", "\n").strip()
+    fehler = []
+    if not text:
+        fehler.append("Schreib bitte kurz, was du brauchst.")
+    elif len(text) > NEU_TEXT_MAX:
+        fehler.append(f"Der Text ist zu lang (höchstens {NEU_TEXT_MAX} Zeichen).")
+    if len(dateien) > NEU_DATEIEN_MAX:
+        fehler.append(f"Höchstens {NEU_DATEIEN_MAX} Dateien auf einmal.")
+    for name, groesse in dateien:
+        if not name.lower().endswith(NEU_ENDUNGEN):
+            fehler.append(f"„{dateiname_bereinigen(name)}“: Diese Art Datei kann ich nicht lesen "
+                          "(PDF, Word, PowerPoint, Excel, Foto).")
+        elif groesse > NEU_DATEI_MAX_MB * 1024 * 1024:
+            fehler.append(f"„{dateiname_bereinigen(name)}“ ist größer als {NEU_DATEI_MAX_MB} MB.")
+        elif groesse == 0:
+            fehler.append(f"„{dateiname_bereinigen(name)}“ ist leer.")
+    return text, fehler
+
+
+def herkunft_passt(origin: str | None, host: str | None, sec_fetch_site: str | None) -> bool:
+    """Kommt ein Formular von dieser Seite? Schutz gegen fremde Seiten im selben Browser (CSRF), solange es
+    keine Konten gibt: Origin muss zum Host passen, Sec-Fetch-Site (wenn gesendet) same-origin sein."""
+    if sec_fetch_site and sec_fetch_site != "same-origin":
+        return False
+    if not origin or not host or origin == "null":
+        return False
+    return urlsplit(origin).netloc == host
+
+
+def formular_token(geheim: bytes) -> str:
+    return hmac.new(geheim, b"neuer-auftrag", "sha256").hexdigest()
+
+
+def token_passt(geheim: bytes, token: str | None) -> bool:
+    return bool(token) and hmac.compare_digest(formular_token(geheim), token)

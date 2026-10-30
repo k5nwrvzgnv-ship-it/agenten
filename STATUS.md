@@ -533,9 +533,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      „Heute“ (Punkte 2 und 4 oben ohne Knöpfe): Kern, Punkte, Bitte prüfen, Seitenvorschau, Downloads mit
      Pfadprüfung, Grund bei Fehlschlag; Entwurf ganz mit Einsatz. Nach Jans Anmerkung 30.10.: Auftrag mit
      Feedback-Schleife ist ein Auftrag (Kette über bezug), eine Zeile in „Heute“, Ergebnis mit neuester Fassung
-     und Verlauf (Fassungen, Lias Rückmeldungen). „Neuer Auftrag“: Plan an Jan vorgelegt, wartet auf sein Okay
-     (zuerst nur Material, da theater nur Nachbesserungen annimmt; Ergebnisse gehen auch per Telegram an Lia;
-     Details in shared/webapp/STATUS.md, Offener Punkt 0). Danach Bauschritt 2 (Konten, Einladung, Passkey).
+     und Verlauf (Fassungen, Lias Rückmeldungen). „Neuer Auftrag“ (Jans Okay 30.10.): nur Material, gebaut,
+     standardmäßig aus, im Testbetrieb gegen shared/webapp/data/test/instanz (kein Agentenstart), Schutz über
+     Origin und Token. Echt auf lia/instanz erst mit Bauschritt 2 und Jans Okay (Ergebnisse gingen auch per
+     Telegram an Lia). Theater erst, wenn lia/theater neue Aufträge annimmt (bisher nur Nachbesserungen).
+     agentkit.auftraege.neuer_auftrag hat dafür den Parameter absender. Nächster Schritt: Bauschritt 2 (Konten,
+     Einladung, Passkey).
      Dienst webapp.service: Okay Jan.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.

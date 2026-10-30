@@ -1,0 +1,29 @@
+{#- Neuer Auftrag (Board ModNeu), nur Material. Ohne Auswahl der Art, Reihe und „Das beachte ich“: gibt es noch
+    nicht. Formular ohne JavaScript, Schutz über Origin-Prüfung und Token (app.py). -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+{%- if modus == "test" %}
+<p class="hinweis"><b>Testbetrieb:</b> Der Auftrag landet in einer Test-Instanz, kein Agent startet.</p>
+{%- endif %}
+{%- if fehler %}
+<div class="fehler" role="alert">
+  {%- for f in fehler %}<p>{{ f }}</p>{% endfor %}
+</div>
+{%- endif %}
+<form class="formular" method="post" action="/neu" enctype="multipart/form-data">
+  <input type="hidden" name="token" value="{{ token }}">
+  <section>
+    <h2><span class="akzent">01</span><label for="wunsch">Was brauchst du?</label></h2>
+    <textarea id="wunsch" name="text" rows="6" maxlength="{{ text_max }}" required
+              placeholder="Zum Beispiel: Arbeitsblatt zum kategorischen Imperativ, Klasse 10, 45 Minuten, mit Fallbeispiel">{{ text }}</textarea>
+    <span class="unter">Material: Arbeitsblatt, Folien oder Arbeitsmappe. Lieber sprechen? Tipp auf das Mikrofon deiner Tastatur.</span>
+  </section>
+  <section>
+    <h2><span class="akzent">02</span><label for="dateien">Datei, wenn du magst</label></h2>
+    <input id="dateien" name="dateien" type="file" multiple accept="{{ endungen }},image/*">
+    <span class="unter">Zum Beispiel ein altes Arbeitsblatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.</span>
+    <p class="hinweis"><b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p>
+  </section>
+  <button class="knopf-gross" type="submit">Abschicken<span aria-hidden="true">→</span></button>
+</form>
+{% endblock %}

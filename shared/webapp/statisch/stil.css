@@ -208,3 +208,39 @@ details[open] > summary.schritt-kopf::before { content: "–"; }
 summary.schritt-kopf:hover b { color: var(--akzent); }
 .schritt-inhalt { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
 .zitat { margin: 0; font-size: 16px; }
+
+/* Neuer Auftrag (Board ModNeu) und der Einstieg in Heute */
+.knopf-gross {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 0;
+  background: var(--schwarz);
+  color: var(--weiss);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.knopf-gross span { font-size: 22px; }
+.knopf-gross:hover, .knopf-gross:focus-visible { background: var(--akzent); color: var(--weiss); }
+.formular { display: flex; flex-direction: column; gap: 28px; }
+.formular section { gap: 10px; }
+.formular textarea {
+  font: inherit;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--schwarz);
+  border-bottom: 1px solid var(--schwarz);
+  border-radius: 0;
+  background: var(--weiss);
+  color: var(--schwarz);
+  resize: vertical;
+}
+.formular input[type=file] { font: inherit; font-size: 15px; padding: 10px 0; border-top: 1px solid var(--schwarz); }
+.fehler { padding-left: 12px; border-left: 3px solid var(--akzent); color: var(--akzent); font-weight: 700; }
+.fehler p { margin: 0 0 4px; }

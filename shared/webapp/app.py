@@ -1,4 +1,4 @@
-"""Web-App für Lia: Seite "Heute" mit Ergebnis- und Entwurf-Ansicht, nur lesend, ohne Anmeldung.
+"""Web-App für Lia: Seite "Heute" mit Ergebnis- und Entwurf-Ansicht und "Neuer Auftrag", ohne Anmeldung.
 
 Kein Port: Uvicorn hört auf einem Unix-Socket in data/ (Ordner nur für User agent), wie der Leitstand.
 Zugriff zum Test per SSH-Tunnel:
@@ -8,7 +8,7 @@ und dann http://localhost:8792 im Browser.
 Daten: Warteschlangen der Instanz WEBAPP_INSTANZ (Standard lia/instanz) über agentkit mit basis=.
 Die App selbst läuft ohne AGENTKIT_INSTANZ. Logik in logik.py (getestet), hier nur Dateien und HTTP.
 
-Nur GET:
+GET:
   /                                     Seite Heute
   /teile/heute                          Inhalt von Heute (htmx lädt ihn jede Minute neu)
   /ergebnis/<id>                        Auftrag mit Feedback-Schleife: neueste Fassung und Verlauf (auch
@@ -19,6 +19,15 @@ Nur GET:
   /ergebnis/<id>/datei/<n>/seite/<m>    Seitenbild m (ab 1) der Vorschau
   /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
   /statisch/...                         CSS, htmx
+  /neu                                  Formular Neuer Auftrag (nur Material), nur wenn eingeschaltet
+POST, die einzige Route mit Wirkung:
+  /neu                                  legt einen Auftrag an (agentkit.auftraege.neuer_auftrag mit basis=)
+
+Neuer Auftrag ist ausgeschaltet, bis WEBAPP_NEUER_AUFTRAG gesetzt ist:
+  test  nur mit einer anderen Instanz als lia/instanz (WEBAPP_INSTANZ), kein Agent startet
+  echt  jede Instanz, danach startet lia-unterricht.service (Ergebnis kommt auch per Telegram, Lias Kontingent)
+Ohne Konten schützt sich das Formular vor fremden Seiten im selben Browser (CSRF): Origin muss zum Host passen
+und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
 ergebnis_dateien, nie über einen Pfad aus der URL; jeder Pfad wird gegen den Agent-Ordner geprüft (dateien.py).
 
@@ -27,6 +36,10 @@ Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET)
 
 import logging
 import os
+import secrets
+import shutil
+import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -37,6 +50,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from agentkit import auftraege, config, freigabe
@@ -47,7 +61,12 @@ import logik
 
 HIER = Path(__file__).resolve().parent
 SOCKET = Path(os.environ.get("WEBAPP_SOCKET") or HIER / "data" / "webapp.sock")
-INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or HIER.parent.parent / "lia" / "instanz")
+ECHTE_INSTANZ = HIER.parent.parent / "lia" / "instanz"
+INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or ECHTE_INSTANZ)
+NEUER_AUFTRAG = os.environ.get("WEBAPP_NEUER_AUFTRAG", "")  # "", "test" oder "echt" (siehe oben)
+EINGANG = HIER / "data" / "eingang"  # Uploads, bis agentkit sie in den Agent-Ordner verschiebt
+UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
+GEHEIM = secrets.token_bytes(32)  # für das Formular-Token, neu bei jedem Start
 ZONE = ZoneInfo("Europe/Berlin")
 logger = logging.getLogger("webapp")
 
@@ -95,14 +114,102 @@ def heute_daten(instanz: Path | None = None) -> dict:
                        datetime.now(ZONE), config.person(instanz))
 
 
+def neu_modus() -> str:
+    """"test", "echt" oder "" (aus). test gilt nie für Lias echte Instanz."""
+    if NEUER_AUFTRAG == "echt":
+        return "echt"
+    if NEUER_AUFTRAG == "test" and INSTANZ.resolve() != ECHTE_INSTANZ.resolve():
+        return "test"
+    return ""
+
+
 @app.get("/", response_class=HTMLResponse)
 def seite_heute(request: Request):
-    return vorlagen.TemplateResponse(request, "heute.html", {"h": heute_daten()})
+    return vorlagen.TemplateResponse(request, "heute.html", {
+        "h": heute_daten(), "neu": neu_modus(), "abgeschickt": request.query_params.get("abgeschickt") == "1"})
 
 
 @app.get("/teile/heute", response_class=HTMLResponse)
 def teil_heute(request: Request):
-    return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten()})
+    return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus()})
+
+
+def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200):
+    return vorlagen.TemplateResponse(request, "neu.html", {
+        "e": {"titel": "Neuer Auftrag", "unter": "Auftrag an deine Assistenz"},
+        "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
+        "text_max": logik.NEU_TEXT_MAX, "max_mb": logik.NEU_DATEI_MAX_MB, "endungen": ",".join(logik.NEU_ENDUNGEN),
+    }, status_code=status)
+
+
+@app.get("/neu", response_class=HTMLResponse)
+def seite_neu(request: Request):
+    if not neu_modus():
+        raise HTTPException(404)
+    return _formular(request)
+
+
+def agent_starten(agent: str) -> None:
+    """Startet lia-<agent>.service wie portal.agent_starten (--no-block: nicht auf das Ende warten)."""
+    dienst = f"lia-{agent}"
+    if not (UNIT_DIR / f"{dienst}.service").exists():
+        logger.error("Kein Dienst %s.service, Auftrag wartet", dienst)
+        return
+    lauf = subprocess.run(["systemctl", "--user", "start", "--no-block", f"{dienst}.service"],
+                          capture_output=True, text=True, check=False)
+    if lauf.returncode != 0:
+        logger.error("Start von %s.service fehlgeschlagen: %s", dienst, lauf.stderr.strip())
+
+
+@app.post("/neu", response_class=HTMLResponse)
+async def neu_abschicken(request: Request):
+    modus = neu_modus()
+    if not modus:
+        raise HTTPException(404)
+    if not logik.herkunft_passt(request.headers.get("origin"), request.headers.get("host"),
+                                request.headers.get("sec-fetch-site")):
+        logger.warning("Neuer Auftrag abgewiesen: fremde Herkunft")
+        raise HTTPException(403)
+    grenze = (logik.NEU_DATEIEN_MAX * logik.NEU_DATEI_MAX_MB + 1) * 1024 * 1024
+    if int(request.headers.get("content-length") or 0) > grenze:
+        raise HTTPException(413)
+    try:
+        form = await request.form(max_files=logik.NEU_DATEIEN_MAX + 1, max_fields=5, max_part_size=64 * 1024)
+    except Exception:  # kaputtes oder zu großes Formular (MultiPartException u. a.)
+        logger.warning("Neuer Auftrag: Formular nicht lesbar")
+        raise HTTPException(400) from None
+    text = str(form.get("text") or "")
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return _formular(request, text, ["Die Seite war veraltet. Bitte wähle die Dateien neu und schick es noch "
+                                         "einmal ab."], 400)
+    dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
+    text, fehler = logik.neuer_auftrag_pruefen(text, [(d.filename, d.size or 0) for d in dateien_])
+    if fehler:
+        return _formular(request, text, fehler, 400)
+    EINGANG.mkdir(parents=True, exist_ok=True)
+    ablage = Path(tempfile.mkdtemp(dir=EINGANG))
+    try:
+        pfade = []
+        for nr, d in enumerate(dateien_):  # je Datei ein Unterordner: gleiche Namen überschreiben sich nicht
+            pfad = ablage / str(nr) / logik.dateiname_bereinigen(d.filename)
+            pfad.parent.mkdir()
+            with pfad.open("wb") as ziel:
+                shutil.copyfileobj(d.file, ziel)
+            pfade.append(pfad)
+        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, text, quelle=logik.NEU_QUELLE, dateien=pfade,
+                                      basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
+                                      absender=config.person(INSTANZ))
+    except (auftraege.AuftragFehler, OSError) as fehler_:
+        logger.error("Neuer Auftrag nicht angelegt: %s", fehler_)
+        return _formular(request, text, [logik.FEHLGESCHLAGEN], 500)
+    finally:
+        shutil.rmtree(ablage, ignore_errors=True)
+        for d in dateien_:
+            await d.close()
+    logger.info("Auftrag %s angelegt (%s, %d Dateien, %s)", aid, logik.NEU_AGENT, len(pfade), modus)
+    if modus == "echt":
+        agent_starten(logik.NEU_AGENT)
+    return RedirectResponse("/?abgeschickt=1", status_code=303)
 
 
 def _auftrag(eintrag_id: str) -> dict:
@@ -194,7 +301,9 @@ def socket_vorbereiten(socket_pfad: Path = SOCKET) -> None:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     socket_vorbereiten()
-    logger.info("Web-App hört auf %s, Instanz %s", SOCKET, INSTANZ)
+    logger.info("Web-App hört auf %s, Instanz %s, Neuer Auftrag: %s", SOCKET, INSTANZ, neu_modus() or "aus")
+    if NEUER_AUFTRAG and not neu_modus():
+        logger.warning("WEBAPP_NEUER_AUFTRAG=%s gilt nicht für %s, Neuer Auftrag bleibt aus", NEUER_AUFTRAG, INSTANZ)
     try:
         uvicorn.run(app, uds=str(SOCKET), log_level="info", proxy_headers=False, server_header=False)
     finally:

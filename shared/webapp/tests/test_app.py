@@ -34,7 +34,9 @@ def schreibe(pfad: Path, daten: dict) -> None:
     pfad.write_text(json.dumps(daten, ensure_ascii=False), encoding="utf-8")
 
 
-class TestApp(unittest.TestCase):
+class Aufbau(unittest.TestCase):
+    """Echter Uvicorn auf einem Socket im Temp-Ordner, Instanz mit Beispielaufträgen."""
+
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp)
@@ -100,9 +102,9 @@ class TestApp(unittest.TestCase):
             faden.join(5)
         self.addCleanup(stoppen)
 
-    def hole(self, pfad, methode="GET", roh=False):
+    def hole(self, pfad, methode="GET", roh=False, body=None, kopf=None):
         v = UnixVerbindung(str(self.sock))
-        v.request(methode, pfad)
+        v.request(methode, pfad, body=body, headers=kopf or {})
         r = v.getresponse()
         inhalt = r.read()
         v.close()
@@ -111,6 +113,9 @@ class TestApp(unittest.TestCase):
     def sichtbar(self, html):
         """HTML ohne Links: IDs dürfen nur in href stehen."""
         return re.sub(r'(href|src)="[^"]*"', "", html)
+
+
+class TestApp(Aufbau):
 
     def test_heute_zeigt_echte_eintraege_ohne_ids(self):
         r, html = self.hole("/")
@@ -223,6 +228,96 @@ class TestApp(unittest.TestCase):
 
     def test_socket_ordner_nur_fuer_agent(self):
         self.assertEqual(stat.S_IMODE(self.sock.parent.stat().st_mode), 0o700)
+
+
+def multipart(felder: dict, dateien: list[tuple[str, bytes]]) -> tuple[bytes, str]:
+    grenze = "----grenze7MA4YWxk"
+    teile = [f'--{grenze}\r\nContent-Disposition: form-data; name="{n}"\r\n\r\n{w}\r\n'.encode()
+             for n, w in felder.items()]
+    for name, inhalt in dateien:
+        teile.append(f'--{grenze}\r\nContent-Disposition: form-data; name="dateien"; filename="{name}"\r\n'
+                     "Content-Type: application/octet-stream\r\n\r\n".encode() + inhalt + b"\r\n")
+    return b"".join(teile) + f"--{grenze}--\r\n".encode(), f"multipart/form-data; boundary={grenze}"
+
+
+class TestNeuerAuftrag(Aufbau):
+    """Neuer Auftrag über den echten Server."""
+
+    def setUp(self):
+        super().setUp()
+        for name, wert in (("EINGANG", self.tmp / "eingang"), ("NEUER_AUFTRAG", "test")):
+            patch = mock.patch.object(app, name, wert)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def schicke(self, text="Arbeitsblatt Kant, 45 Minuten", dateien=(), token=None, origin="http://localhost"):
+        body, art = multipart({"token": token or app.logik.formular_token(app.GEHEIM), "text": text}, list(dateien))
+        kopf = {"Content-Type": art, "Content-Length": str(len(body))}
+        if origin:
+            kopf["Origin"] = origin
+        return self.hole("/neu", "POST", body=body, kopf=kopf)
+
+    def neue(self):
+        return app.auftraege.neue(basis=self.instanz / "auftraege")
+
+    def test_aus_ohne_einstellung_und_nie_test_auf_lias_instanz(self):
+        with mock.patch.object(app, "NEUER_AUFTRAG", ""):
+            self.assertEqual(self.hole("/neu")[0].status, 404)
+            self.assertEqual(self.schicke()[0].status, 404)
+            self.assertNotIn('href="/neu"', self.hole("/")[1])
+        with mock.patch.object(app, "INSTANZ", app.ECHTE_INSTANZ):
+            self.assertEqual(app.neu_modus(), "")  # nur prüfen, nichts abschicken
+        self.assertEqual(self.neue(), [])
+
+    def test_formular_und_einstieg_in_heute(self):
+        r, html = self.hole("/neu")
+        self.assertEqual(r.status, 200)
+        for text in ("Neuer Auftrag", "Testbetrieb", 'enctype="multipart/form-data"', 'name="token"',
+                     "Bitte keine Namen", 'type="file"', "Abschicken"):
+            self.assertIn(text, html)
+        self.assertIn('href="/neu"', self.hole("/")[1])
+        self.assertIn('href="/neu"', self.hole("/teile/heute")[1])
+
+    def test_fremde_herkunft_und_falsches_token_legen_nichts_an(self):
+        self.assertEqual(self.schicke(origin=None)[0].status, 403)
+        self.assertEqual(self.schicke(origin="https://boese.example")[0].status, 403)
+        r, html = self.schicke(token="falsch")
+        self.assertEqual(r.status, 400)
+        self.assertIn("Die Seite war veraltet", html)
+        self.assertIn("Arbeitsblatt Kant, 45 Minuten", html)  # Text bleibt stehen
+        self.assertEqual(self.neue(), [])
+
+    def test_auftrag_mit_datei(self):
+        r, _ = self.schicke("Arbeitsblatt nach dieser Vorlage", [("../Vorlage.docx", b"DOCX"), ("Foto.JPG", b"JPG")])
+        self.assertEqual((r.status, r.getheader("Location")), (303, "/?abgeschickt=1"))
+        (a,) = self.neue()
+        self.assertEqual((a["agent"], a["quelle"], a["modus"], a["bezug"], a["dienst"]),
+                         ("unterricht", "portal-material", "erledigen", None, None))
+        self.assertEqual(a["dateien"], [f"data/eingang/{a['id']}/Vorlage.docx", f"data/eingang/{a['id']}/Foto.jpg"])
+        self.assertTrue(a["text"].startswith("Arbeitsblatt nach dieser Vorlage\n\nAngehängte Dateien von Lia"))
+        self.assertEqual((self.tmp / "unterricht" / a["dateien"][0]).read_bytes(), b"DOCX")
+        self.assertEqual(list((self.tmp / "eingang").iterdir()), [])  # Zwischenablage aufgeräumt
+        _, html = self.hole("/?abgeschickt=1")
+        self.assertIn("Dein Auftrag ist unterwegs", html)
+        self.assertIn("Arbeitsblatt nach dieser Vorlage", html.split("Läuft gerade</h2>")[1])
+
+    def test_falsche_eingaben(self):
+        r, html = self.schicke("Vorlage", [("tool.exe", b"MZ")])
+        self.assertEqual(r.status, 400)
+        self.assertIn("„tool.exe“: Diese Art Datei kann ich nicht lesen", html)
+        r, html = self.schicke("   ")
+        self.assertEqual(r.status, 400)
+        self.assertIn("Schreib bitte kurz, was du brauchst.", html)
+        self.assertEqual(self.neue(), [])
+
+    def test_echt_startet_den_agenten(self):
+        with mock.patch.object(app, "NEUER_AUFTRAG", "echt"), mock.patch.object(app, "agent_starten") as start:
+            self.assertEqual(self.schicke()[0].status, 303)
+        start.assert_called_once_with("unterricht")
+        self.assertEqual(len(self.neue()), 1)
+        with mock.patch.object(app, "agent_starten") as start:  # im Testbetrieb nicht
+            self.schicke()
+        start.assert_not_called()
 
 
 class TestHtmx(unittest.TestCase):

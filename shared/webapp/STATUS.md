@@ -8,7 +8,8 @@ https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
 ## Stand (30.10.2026)
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
-als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), `./pruefen.sh` grün (Web-App: 43 Tests).
+als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
+`./pruefen.sh` grün (Web-App: 53 Tests).
 - Seite „Heute“, nur lesend, ohne Anmeldung, aus `lia/instanz` über agentkit (`auftraege.neue/erledigte`,
   `freigabe.offene`, je mit `basis=`). Die App selbst läuft ohne `AGENTKIT_INSTANZ`.
 - Abschnitte: 01 Wartet auf dich (offene Entwürfe, Ergebnisse der letzten 48 h als „Neu“), 02 Läuft gerade,
@@ -43,6 +44,21 @@ als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), `./pruefen.sh` grün (Web-A
   Downloads und Seitenbilder kommen, falsche Nummern und Pfade 404. Das Dossier der Recherche (PDF) hat keine
   Vorschau (der Renderer hat dafür keine `-vorschau/` angelegt), dort nur der Download.
 
+- Neuer Auftrag `/neu` (Board ModNeu, nur Material: `unterricht`, quelle `portal-material`), standardmäßig AUS.
+  `WEBAPP_NEUER_AUFTRAG=test` gilt nur, wenn `WEBAPP_INSTANZ` nicht `lia/instanz` ist; kein Agent startet.
+  `=echt`: jede Instanz, danach `systemctl --user start --no-block lia-unterricht.service`; das Ergebnis stellt
+  Lias Zentrale auch per Telegram zu, Kosten auf Lias Kontingent. Ist es an, steht oben in „Heute“ der Knopf
+  „Neuer Auftrag“, nach dem Abschicken (303 auf `/?abgeschickt=1`) der Hinweis „Dein Auftrag ist unterwegs“.
+  Formular ohne JavaScript: Text (Pflicht, bis 5000 Zeichen), Dateien (bis 10, je bis 20 MB, PDF/Word/PowerPoint/
+  Excel/JPG/PNG, Namen bereinigt), Hinweis „Bitte keine Namen“; Fehler zeigt das Formular mit Text wieder (400).
+  Anlegen über `agentkit.auftraege.neuer_auftrag(..., basis=, agenten_dir=<instanz>/.., absender=PERSON)`;
+  Uploads liegen kurz in `data/eingang/` und werden von agentkit nach `<agent>/data/eingang/<id>/` verschoben.
+  Schutz ohne Konten: Origin muss zum Host passen (Sec-Fetch-Site same-origin), sonst 403; Token im Formular
+  (HMAC, geheim je Start der App), nach einem Neustart „Die Seite war veraltet“. Ohne Zurücknehmen, ohne Reihe,
+  ohne „Das beachte ich“, keine Auswahl der Art (gibt es noch nicht).
+- Test-Instanz für Jan: `data/test/instanz` (`.env` mit PERSON=Lia, 0600) und Agent-Ordner `data/test/unterricht`,
+  nicht im Repo. Probelauf 30.10.: Auftrag mit PDF angelegt, Datei verschoben, ohne Origin 403; danach gelöscht.
+
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`), getestet. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
@@ -58,6 +74,8 @@ als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), `./pruefen.sh` grün (Web-A
 
 ## Starten und ansehen (zum Test, kein Dienst)
 Auf dem Server (vom Mac aus `ssh agents-user`): `cd ~/agenten/shared/webapp && .venv/bin/python app.py` (Strg+C beendet).
+Mit „Neuer Auftrag“ im Testbetrieb: `cd ~/agenten/shared/webapp && WEBAPP_INSTANZ=$PWD/data/test/instanz
+WEBAPP_NEUER_AUFTRAG=test .venv/bin/python app.py` (zeigt dann die Test-Instanz, nicht Lias Aufträge).
 Auf Jans Mac (Kurzname aus seiner ~/.ssh/config): `ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agents-user`, dann
 http://localhost:8792. Nach einer Code-Änderung die laufende App mit Strg+C beenden und neu starten. Andere Instanz: `WEBAPP_INSTANZ=/pfad`, anderer Socket: `WEBAPP_SOCKET=/pfad`.
 Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start löscht sie.
@@ -68,15 +86,9 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-0. Neuer Auftrag (Punkt 24 Unterpunkt 5): Plan an Jan vorgelegt 30.10., wartet auf sein Okay, noch nichts gebaut
-   (kein Knopf, keine POST-Route). Befunde: Der Theater-Agent nimmt nur Nachbesserungen an (neue Runden nur
-   `runde.py` von Hand), also zuerst nur Material (`unterricht`, quelle `portal-material`). Lias Zentrale stellt
-   jedes neu erledigte Ergebnis der Instanz per Telegram zu, also auch Aufträge aus der Web-App; Jans Tests gegen
-   `lia/instanz` landen bei Lia und auf ihrem Kontingent. Vorschlag und Fragen: Formular nur Material, Text,
-   Dateien wie Telegram (bis 20 MB), Hinweis „Bitte keine Namen“, Anlegen wie portal.abschicken
-   (`neuer_auftrag(..., basis=)`, dann `systemctl --user start --no-block lia-unterricht.service`), Schutz ohne
-   Konten über Origin-Prüfung und CSRF-Token; erst mit Test-Instanz ohne Agentenstart, echte Instanz erst mit
-   Bauschritt 2.
+0. Neuer Auftrag echt (`WEBAPP_NEUER_AUFTRAG=echt` auf lia/instanz): erst mit Bauschritt 2 (Konten) und Jans
+   Okay. Theater als Art erst, wenn der Theater-Agent neue Aufträge annimmt (bisher nur Nachbesserungen, neue
+   Runden mit `runde.py` von Hand; Bedarf an den lia/theater-Chat). Zurücknehmen (10 s) fehlt noch.
 8. Aufträge, die inhaltlich eine neue Fassung sind, aber als neuer Material-Auftrag mit Datei kamen (93e29e,
    03b145 zur Theater-Fassung), haben kein `bezug` und stehen einzeln. Nicht geraten; Jan gefragt, ob so etwas
    zusammengehören soll (sauber wäre ein Änderungswunsch mit Datei aus der Ergebnis-Ansicht, Bauschritt 4).
@@ -85,7 +97,7 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
 4. Ergebnis und Entwurf nur lesend: keine Feedback-Knöpfe (Bauschritt 3), kein Abschließen/Ändern/Ablehnen
-   (Bauschritt 5), keine Anmerkungen an einer Stelle. Fassungen stehen im Verlauf (keine Chips). Kein Knopf „Neuer Auftrag“, keine
+   (Bauschritt 5), keine Anmerkungen an einer Stelle. Fassungen stehen im Verlauf (keine Chips). Keine
    Leiste mit Bereichen, kein Fortschrittsbalken: gibt es noch nicht.
 7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
    Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.
