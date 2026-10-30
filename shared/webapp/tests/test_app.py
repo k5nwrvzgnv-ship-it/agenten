@@ -321,9 +321,17 @@ class TestNeuerAuftrag(Aufbau):
         self.assertEqual(self.neue(), [])
 
     def test_formular_und_einstieg_in_heute(self):
-        r, html = self.hole("/neu")
+        r, html = self.hole("/neu")  # ohne Art: Galerie
         self.assertEqual(r.status, 200)
-        for text in ("Neuer Auftrag", "Testbetrieb", 'enctype="multipart/form-data"', 'name="token"',
+        for text in ('href="/neu?art=arbeitsblatt"', 'href="/neu?art=praesentation"', 'href="/neu?art=tabelle"'):
+            self.assertIn(text, html)
+        self.assertNotIn('type="file"', html)
+        r, html = self.hole("/neu?art=arbeitsblatt")
+        self.assertEqual(r.status, 200)
+        self.assertIn("Was soll drauf?", html)
+        self.assertIn('<input type="hidden" name="art" value="arbeitsblatt">', html)
+        self.assertNotIn('name="art"', self.hole("/neu?art=quatsch")[1])  # unbekannt: Galerie
+        for text in ("Testbetrieb", 'enctype="multipart/form-data"', 'name="token"',
                      "Bitte keine Namen", 'type="file"', "Abschicken"):
             self.assertIn(text, html)
         self.assertIn('href="/neu"', self.hole("/")[1])
@@ -501,13 +509,39 @@ class TestOrdnung(Aufbau):
                          kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
 
     def test_neuer_auftrag_mit_reihe(self):
-        _, html = self.hole("/neu")
+        _, html = self.hole("/neu?art=arbeitsblatt")
         self.assertIn('<option value="strafe">Straftheorien (Ethik, Klasse 8)</option>', html)
         self.assertEqual(self.schicke(reihe="strafe")[0].status, 303)
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
         self.assertEqual((a["reihe"], a["text"]), ("strafe", "Arbeitsblatt Kant\n\nReihe: Straftheorien (Ethik, Klasse 8)"))
         _, html = self.hole("/reihe/strafe")
         self.assertIn("Arbeitsblatt Kant", html.split("Zur ganzen Reihe</h2>")[1])
+
+    def test_neu_hier_mit_art_und_stunde(self):
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+        _, html = self.hole("/reihe/strafe/stunde/1")
+        self.assertIn('<a class="knopf knopf-voll" href="/neu?reihe=strafe&amp;stunde=1">+ Neu hier</a>', html)
+        self.assertIn('href="/neu?reihe=strafe"', self.hole("/reihe/strafe")[1])
+        _, html = self.hole("/neu?reihe=strafe&stunde=1")
+        self.assertIn('href="/neu?art=tabelle&amp;reihe=strafe&amp;stunde=1"', html)
+        _, html = self.hole("/neu?art=praesentation&reihe=strafe&stunde=1")
+        for text in ("für Ethik › Klasse 8 › Straftheorien › Stunde 1", '<input type="hidden" name="reihe" value="strafe">',
+                     '<input type="hidden" name="stunde" value="1">', "Beachtet: Ethik › Klasse 8 › Straftheorien › Stunde 1"):
+            self.assertIn(text, html)
+        self.assertNotIn('<select id="reihe"', html)
+        r, _ = self.post("/neu", {"text": "Folien Kant", "art": "praesentation", "reihe": "strafe", "stunde": "1"})
+        self.assertEqual((r.status, r.getheader("location")), (303, "/reihe/strafe/stunde/1?erledigt=auftrag-test"))
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertEqual(a["text"], "Präsentation: Folien Kant\n\nReihe: Straftheorien (Ethik, Klasse 8)\nStunde 1: Kant")
+        _, html = self.hole("/reihe/strafe/stunde/1?erledigt=auftrag-test")
+        self.assertIn("Präsentation: Folien Kant", html)
+        self.assertIn("Auftrag angelegt (Testbetrieb", html)
+        # unbekannte Stunde fällt weg, unbekannte Art auch
+        self.assertEqual(self.post("/neu", {"text": "x", "art": "quatsch", "reihe": "strafe", "stunde": "7"})[0].status, 303)
+        b = next(x for x in app.auftraege.neue(basis=self.instanz / "auftraege") if x["id"] != a["id"])
+        self.assertEqual(b["text"], "x\n\nReihe: Straftheorien (Ethik, Klasse 8)")
+        with mock.patch.object(app, "NEUER_AUFTRAG", ""):
+            self.assertNotIn("+ Neu hier", self.hole("/reihe/strafe")[1])
 
     def test_neuer_auftrag_ohne_und_mit_falscher_reihe(self):
         self.assertEqual(self.schicke()[0].status, 303)

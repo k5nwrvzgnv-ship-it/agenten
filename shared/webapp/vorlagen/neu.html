@@ -1,5 +1,6 @@
-{#- Neuer Auftrag (Board ModNeu), nur Material, mit Auswahl der Reihe (laufende Reihen). Ohne Auswahl der Art
-    und „Das beachte ich“: gibt es noch nicht. Formular ohne JavaScript, Schutz über Origin-Prüfung und Token (app.py). -#}
+{#- Neu (Board „Desktop“, Ansicht Neu): ohne art die Galerie der Vorlagen, mit art das kurze Formular dieser Art.
+    Der Ort (Reihe, Stunde) ist vorbelegt, wenn Lia „+ Neu hier“ an einem Ort drückt; sonst wählt sie die Reihe.
+    Formular ohne JavaScript, Schutz über Origin-Prüfung und Token (app.py). -#}
 {% extends "basis.html" %}
 {% block inhalt %}
 {%- if modus == "test" %}
@@ -10,13 +11,31 @@
   {%- for f in fehler %}<p>{{ f }}</p>{% endfor %}
 </div>
 {%- endif %}
+{%- if not vorlage %}
+<div class="galerie">
+  {%- for v in galerie %}
+  <a class="galerie-karte" href="{{ v.link }}">
+    <span class="galerie-bild bild-{{ v.bild }}" aria-hidden="true"></span>
+    <span class="titel">{{ v.name }}</span>
+    <span class="unter">{{ v.text }}</span>
+  </a>
+  {%- endfor %}
+</div>
+<p class="unter">Mehr Arten (Reihenentwurf, Lernerfolgskontrolle, Spielfassung) kommen, sobald deine Assistenz sie bauen kann.
+  {%- if not ort_fest %} Tipp: Mit „+ Neu hier“ in einer Reihe oder Stunde ist der Ort schon eingetragen.{% endif %}</p>
+{%- else %}
 <form class="formular" method="post" action="/neu" enctype="multipart/form-data">
   <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="art" value="{{ art }}">
+  {%- if ort_fest %}
+  <input type="hidden" name="reihe" value="{{ reihe }}">
+  {%- if stunde %}<input type="hidden" name="stunde" value="{{ stunde }}">{% endif %}
+  {%- endif %}
   <section>
-    <h2><span class="akzent">01</span><label for="wunsch">Was brauchst du?</label></h2>
+    <h2><span class="akzent">01</span><label for="wunsch">{{ vorlage.frage }}</label></h2>
     <textarea id="wunsch" name="text" rows="6" maxlength="{{ text_max }}" required
-              placeholder="Zum Beispiel: Arbeitsblatt zum kategorischen Imperativ, Klasse 10, 45 Minuten, mit Fallbeispiel">{{ text }}</textarea>
-    <span class="unter">Material: Arbeitsblatt, Folien oder Arbeitsmappe. Lieber sprechen? Tipp auf das Mikrofon deiner Tastatur.</span>
+              placeholder="{{ vorlage.hint }}">{{ text }}</textarea>
+    <span class="unter">Lieber sprechen? Tipp auf das Mikrofon deiner Tastatur.</span>
   </section>
   {%- if reihen %}
   <section>
@@ -33,9 +52,12 @@
   <section>
     <h2><span class="akzent">{{ "03" if reihen else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
     <input id="dateien" name="dateien" type="file" multiple accept="{{ endungen }},image/*">
-    <span class="unter">Zum Beispiel ein altes Arbeitsblatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.</span>
-    <p class="hinweis"><b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p>
+    <span class="unter">Zum Beispiel ein altes Blatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.</span>
   </section>
+  <p class="hinweis">Beachtet: {% if beachte %}{{ beachte }}, {% endif %}deine Gestaltung und deine Regeln.
+    <b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p>
   <button class="knopf-gross" type="submit">Abschicken<span aria-hidden="true">→</span></button>
+  <a class="knopf" href="{{ andere }}">Andere Vorlage</a>
 </form>
+{%- endif %}
 {% endblock %}

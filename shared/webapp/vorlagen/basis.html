@@ -12,6 +12,7 @@
 <body>
 <div class="rahmen">
 <main class="inhalt{% block main_klasse %} einzeln{% endblock %}">
+<div class="krumen-zeile">
 <nav class="krumen" aria-label="Brotkrumen">
   <ol>
     {%- for k in krumen.teile %}
@@ -20,6 +21,8 @@
     <li aria-current="page">{{ krumen.hier }}</li>
   </ol>
 </nav>
+{%- if neu_hier %}<a class="knopf knopf-voll" href="{{ neu_hier }}">+ Neu hier</a>{% endif %}
+</div>
 {% block seitenkopf %}
 <header class="kopf">
   {%- if e.unter %}<span class="datum grau">{{ e.unter }}</span>{% endif %}

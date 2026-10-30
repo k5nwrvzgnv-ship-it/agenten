@@ -457,6 +457,8 @@ HINWEISE = {
     "stunde": "Angelegt. Mit „Gehört zu“ in einem Material ordnest du es hier ein.",
     "thema": "Thema geändert.",
     "zugeordnet": "Eingeordnet.",
+    "auftrag": "Dein Auftrag ist unterwegs. Er steht hier und in „Heute“.",
+    "auftrag-test": "Auftrag angelegt (Testbetrieb, es startet kein Agent). Er steht hier und in „Heute“.",
 }
 
 
@@ -582,6 +584,42 @@ NEU_DATEI_MAX_MB = 20  # wie Telegram
 # Was der Agent lesen kann: Office und PDF über agentkit.textfassung, Bilder direkt
 NEU_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
 _UNERLAUBT = re.compile(r'[\\/:*?"<>|\x00-\x1f\x7f]')
+
+
+# Vorlagen der Galerie „Neu“ (Board „Desktop“): nur Arten, die der Agent wirklich baut (Arbeitsblatt docx, Folien
+# pptx, Arbeitsmappe xlsx). Reihenentwurf, LEK, Spielfassung und Szenenaufgabe fehlen, bis ein Agent sie kann.
+VORLAGEN = {
+    "arbeitsblatt": {"name": "Arbeitsblatt", "text": "Text, Merksatz, Aufgaben", "bild": "ab",
+                     "frage": "Was soll drauf?", "hint": "Thema, Position, Fall, Dauer …"},
+    "praesentation": {"name": "Präsentation", "text": "Folien für eine Stunde", "bild": "folie",
+                      "frage": "Wofür?", "hint": "Ablauf der Stunde, Leitfrage …"},
+    "tabelle": {"name": "Tabelle", "text": "Notentabelle, Liste (Excel), ohne Namen", "bild": "tabelle",
+                "frage": "Welche Spalten?", "hint": "Nr., Note 1–5, Durchschnitt …"},
+}
+
+
+# Formular ohne Vorlage (Freitext wie bisher), wenn ein Auftrag ohne Art nicht angenommen wurde
+VORLAGE_FREI = {"name": "Neuer Auftrag", "frage": "Was brauchst du?",
+                "hint": "Zum Beispiel: Arbeitsblatt zum kategorischen Imperativ, Klasse 10, 45 Minuten, mit Fallbeispiel"}
+
+
+def neu_link(reihe_id: str = "", stunde: int | None = None, art_: str = "") -> str:
+    """Link auf „Neu“ mit vorbelegtem Ort (und Art)."""
+    teile = [f"art={art_}"] if art_ else []
+    teile += [f"reihe={reihe_id}"] if reihe_id else []
+    teile += [f"stunde={stunde}"] if reihe_id and stunde else []
+    return "/neu" + ("?" + "&".join(teile) if teile else "")
+
+
+def galerie(reihe_id: str = "", stunde: int | None = None) -> list[dict]:
+    return [{"art": k, **v, "link": neu_link(reihe_id, stunde, k)} for k, v in VORLAGEN.items()]
+
+
+def ort_text(reihe: dict | None, stunde: tuple[int, str] | None = None) -> str:
+    """Ort im Formular „Neu“: „Ethik › Klasse 8 › Straftheorien › Stunde 3“."""
+    if not reihe:
+        return ""
+    return reihe_text(reihe) + (f"{ORT_TRENNER}{stunden_wort(reihe)[0]} {stunde[0]}" if stunde else "")
 
 
 def dateiname_bereinigen(name: str) -> str:
@@ -727,11 +765,20 @@ def reihe_pruefen(wert: str | None, reihen: list[dict]) -> tuple[str | None, lis
     return None, ["Diese Reihe gibt es nicht (mehr). Bitte wähl sie neu."]
 
 
-def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict]) -> str:
-    """Auftragstext für den Agenten: Die gewählte Reihe steht am Ende, damit er sie ohne eigenen Code im Prompt hat
-    (Lias Reihen kennt er aus reihen.toml)."""
+def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict], stunde: tuple[int, str] | None = None,
+                   art_: str = "") -> str:
+    """Auftragstext für den Agenten: Art vorn, gewählte Reihe und Stunde (Nummer, Thema) am Ende, damit er sie
+    ohne eigenen Code im Prompt hat (Lias Reihen kennt er aus reihen.toml, Stunden kennt er nicht)."""
+    vorlage = VORLAGEN.get(art_)
+    if vorlage:
+        text = f"{vorlage['name']}: {text}"
     r = next((x for x in reihen if x["id"] == reihe_id), None)
-    return f"{text}\n\nReihe: {r['titel']} ({r['fach']}, {r['gruppe']})" if r else text
+    if not r:
+        return text
+    text += f"\n\nReihe: {r['titel']} ({r['fach']}, {r['gruppe']})"
+    if stunde:
+        text += f"\n{stunden_wort(r)[0]} {stunde[0]}: {stunde[1]}"
+    return text
 
 
 def material_marke(kette: list[dict], jetzt: datetime, finale: set[str] = frozenset(),

@@ -622,6 +622,22 @@ class TestReihen(unittest.TestCase):
             (1, "Einstieg neu", "noch leer", "/reihe/ethik-8-straftheorien/stunde/1"),
             (2, "Kant", "noch leer", "/reihe/ethik-8-straftheorien/stunde/2")])
 
+    def test_neu_galerie_und_text(self):
+        ethik, theater = reihen()
+        self.assertEqual([g["link"] for g in logik.galerie(ethik["id"], 3)], [
+            "/neu?art=arbeitsblatt&reihe=ethik-8-straftheorien&stunde=3",
+            "/neu?art=praesentation&reihe=ethik-8-straftheorien&stunde=3",
+            "/neu?art=tabelle&reihe=ethik-8-straftheorien&stunde=3"])
+        self.assertEqual(logik.neu_link(), "/neu")
+        self.assertEqual(logik.neu_link("", 3), "/neu")  # Stunde nur mit Reihe
+        self.assertEqual(logik.ort_text(theater, (2, "Akt 1")), "Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn › Probe 2")
+        self.assertEqual(logik.ort_text(None), "")
+        r = [ethik, theater]
+        self.assertEqual(logik.text_mit_reihe("Fall Tim", ethik["id"], r, (3, "Anwendung Kant"), "arbeitsblatt"),
+                         "Arbeitsblatt: Fall Tim\n\nReihe: Straftheorien (in Planung) (Ethik, Klasse 8)\n"
+                         "Stunde 3: Anwendung Kant")
+        self.assertEqual(logik.text_mit_reihe("Fall Tim", None, r, (3, "x"), "quatsch"), "Fall Tim")
+
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
         e = logik.klasse_ansicht("ethik-8", r, {"ethik-8-helfen": [{}, {}], "ethik-8-straftheorien": [{}]})

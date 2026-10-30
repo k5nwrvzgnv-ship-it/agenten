@@ -478,3 +478,22 @@ button.knopf { font-family: inherit; cursor: pointer; }
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Galerie „Neu“ (Board „Desktop“): je Vorlage eine Karte mit angedeutetem Blatt */
+.galerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.galerie-karte {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 2px solid var(--schwarz);
+  color: inherit;
+  text-decoration: none;
+}
+.galerie-karte:hover, .galerie-karte:focus-visible { border-color: var(--akzent); }
+.galerie-karte:hover .titel { color: var(--akzent); }
+.galerie-bild { display: block; height: 54px; border: 1px solid var(--schwarz); background: var(--weiss); }
+.bild-ab { background: linear-gradient(#ffd873 0 10px, #fff 10px 16px, #e4e4e4 16px 18px, #fff 18px 24px, #d9f2d0 24px 44px, #fff 44px); }
+.bild-folie { background: linear-gradient(90deg, var(--akzent) 0 6px, #fff 6px); }
+.bild-tabelle { background: repeating-linear-gradient(90deg, transparent 0 30px, var(--schwarz) 30px 31px), repeating-linear-gradient(#fff 0 12px, #e4e4e4 12px 13px); }
+.krumen-zeile { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }

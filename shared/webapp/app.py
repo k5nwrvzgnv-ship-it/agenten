@@ -29,7 +29,8 @@ GET:
   /klasse/<kennung>                     Klasse/Kurs mit ihren Reihen (nur lesend)
   /unterricht                           alte Seite, leitet auf / um
   /statisch/...                         CSS, htmx
-  /neu                                  Formular Neuer Auftrag (nur Material), nur wenn eingeschaltet
+  /neu                                  Galerie der Vorlagen bzw. Formular (?art=…), Ort vorbelegt (?reihe=…&stunde=n),
+                                        nur wenn eingeschaltet
 POST:
   /neu                                  legt einen Auftrag an (agentkit.auftraege.neuer_auftrag mit basis=)
   /ergebnis/<id>/rueckmeldung           Rückmeldung an den Feedback-Dienst (Auftrag an feedback, bezug = Fassung),
@@ -148,11 +149,14 @@ def heute_daten(reihen: list[dict] | None = None) -> dict:
                        reihen if reihen is not None else reihen_laden(), zustand_().finale())
 
 
-def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int | None = None) -> dict:
-    """Werte für basis.html: Baum (links) und Brotkrumen. Ohne anzahl_wartet wird "Heute" dafür berechnet."""
+def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int | None = None,
+           neu_hier: str = "") -> dict:
+    """Werte für basis.html: Baum (links) und Brotkrumen. Ohne anzahl_wartet wird "Heute" dafür berechnet.
+    neu_hier: Link für „+ Neu hier“ neben den Brotkrumen (nur, wenn Neuer Auftrag eingeschaltet ist)."""
     if anzahl_wartet is None:
         anzahl_wartet = heute_daten(reihen)["anzahl_wartet"]
-    return {"baum": logik.baum(reihen, anzahl_wartet, aktiv), "krumen": krumen}
+    return {"baum": logik.baum(reihen, anzahl_wartet, aktiv), "krumen": krumen,
+            "neu_hier": neu_hier if neu_modus() else ""}
 
 
 def neu_modus() -> str:
@@ -206,8 +210,14 @@ def seite_reihe(request: Request, reihe_id: str):
                             freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]), z["eigene"],
                             z["stunden"].get(reihe_id) or [], z["stunde_von"])
     return vorlagen.TemplateResponse(request, "reihe.html", {
-        "e": e, "token": logik.formular_token(GEHEIM), "fehler": [], "thema": "",
-        "thema_max": logik.STUNDE_THEMA_MAX, **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"])})
+        "e": e, "token": logik.formular_token(GEHEIM), "fehler": [], "thema": "", "thema_max": logik.STUNDE_THEMA_MAX,
+        "hinweis": logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
+        **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))})
+
+
+def _neu_hier(reihe: dict, nr: int | None = None) -> str:
+    """„+ Neu hier“ nur an laufenden Reihen (abgeschlossene nehmen keine Aufträge mehr an, reihe_pruefen)."""
+    return logik.neu_link(reihe["id"], nr) if reihe["laufend"] else ""
 
 
 def _stunde_seite(request: Request, reihe_id: str, nr_text: str, hinweis: str = "", fehler: list[str] | None = None,
@@ -225,7 +235,8 @@ def _stunde_seite(request: Request, reihe_id: str, nr_text: str, hinweis: str = 
     return vorlagen.TemplateResponse(request, "stunde.html", {
         "e": e, "reihe": reihe, "token": logik.formular_token(GEHEIM), "hinweis": hinweis, "fehler": fehler or [],
         "thema": thema or e["titel"], "thema_max": logik.STUNDE_THEMA_MAX,
-        **rahmen(reihen, logik.krumen(e["unter"], reihe), reihe["id"])}, status_code=status)
+        **rahmen(reihen, logik.krumen(e["unter"], reihe), reihe["id"], neu_hier=_neu_hier(reihe, nr))},
+        status_code=status)
 
 
 @app.get("/reihe/{reihe_id}/stunde/{nr}", response_class=HTMLResponse)
@@ -248,7 +259,8 @@ async def stunde_anlegen(request: Request, reihe_id: str):
                                 z["stunden"].get(reihe_id) or [], z["stunde_von"])
         return vorlagen.TemplateResponse(request, "reihe.html", {
             "e": e, "token": logik.formular_token(GEHEIM), "fehler": fehler, "thema": thema,
-            "thema_max": logik.STUNDE_THEMA_MAX, **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"])},
+            "thema_max": logik.STUNDE_THEMA_MAX, "hinweis": "",
+            **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))},
             status_code=400)
     z_ = zustand_()
     try:
@@ -294,15 +306,34 @@ def seite_klasse(request: Request, gruppe_id: str):
         "e": e, **rahmen(reihen, logik.krumen_klasse(e["reihe"]), logik.klasse_aktiv(gruppe_id))})
 
 
+def _ort(reihen: list[dict], reihe_id: str, stunde_text: str) -> tuple[dict | None, tuple[int, str] | None]:
+    """Vorbelegter Ort für „Neu“: laufende Reihe und Stunde (Nummer, Thema); Unbekanntes fällt weg."""
+    reihe = next((r for r in reihen if r["id"] == reihe_id and r["laufend"]), None)
+    if reihe is None:
+        return None, None
+    stunden = zustand_().lesen()["stunden"].get(reihe["id"]) or []
+    nr = logik.stunde_nummer(stunde_text, len(stunden))
+    return reihe, ((nr, stunden[nr - 1]["thema"]) if nr else None)
+
+
 def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200,
-              reihe: str = ""):
+              reihe: str = "", art: str = "", stunde: str = ""):
+    """Galerie (ohne art) bzw. Formular einer Vorlage, Ort aus reihe und stunde vorbelegt."""
     reihen = reihen_laden()
+    ort_reihe, ort_stunde = _ort(reihen, reihe, stunde)
+    vorlage = logik.VORLAGEN.get(art) or (logik.VORLAGE_FREI if fehler else None)
     return vorlagen.TemplateResponse(request, "neu.html", {
-        "e": {"titel": "Neuer Auftrag", "unter": "Auftrag an deine Assistenz"},
+        "e": {"titel": vorlage["name"] if vorlage else "Neu",
+              "unter": "für " + logik.ort_text(ort_reihe, ort_stunde) if ort_reihe else "Auftrag an deine Assistenz"},
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
-        "reihen": logik.reihen_auswahl(reihen), "reihe": reihe,
+        "art": art if vorlage else "", "vorlage": vorlage,
+        "galerie": logik.galerie(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
+        "andere": logik.neu_link(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
+        "reihen": [] if ort_reihe else logik.reihen_auswahl(reihen), "reihe": ort_reihe["id"] if ort_reihe else reihe,
+        "ort_fest": bool(ort_reihe), "stunde": ort_stunde[0] if ort_stunde else "",
+        "beachte": logik.ort_text(ort_reihe, ort_stunde),
         "text_max": logik.NEU_TEXT_MAX, "max_mb": logik.NEU_DATEI_MAX_MB, "endungen": ",".join(logik.NEU_ENDUNGEN),
-        **rahmen(reihen, logik.krumen("Neuer Auftrag")),
+        **rahmen(reihen, logik.krumen("Neu", ort_reihe) if ort_reihe else logik.krumen("Neu")),
     }, status_code=status)
 
 
@@ -310,7 +341,8 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
 def seite_neu(request: Request):
     if not neu_modus():
         raise HTTPException(404)
-    return _formular(request)
+    q = request.query_params
+    return _formular(request, reihe=q.get("reihe") or "", art=q.get("art") or "", stunde=q.get("stunde") or "")
 
 
 def agent_starten(agent: str) -> None:
@@ -357,34 +389,49 @@ async def neu_abschicken(request: Request):
         raise HTTPException(404)
     form = await formular_lesen(request, "Neuer Auftrag", logik.NEU_DATEIEN_MAX)
     text, gewaehlt = str(form.get("text") or ""), str(form.get("reihe") or "")
+    art, stunde_text = str(form.get("art") or ""), str(form.get("stunde") or "")
+    if art not in logik.VORLAGEN:
+        art = ""
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
-        return _formular(request, text, [logik.VERALTET], 400, gewaehlt)
+        return _formular(request, text, [logik.VERALTET], 400, gewaehlt, art, stunde_text)
     dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
     text, fehler = logik.neuer_auftrag_pruefen(text, [(d.filename, d.size or 0) for d in dateien_])
     reihen = reihen_laden()
     reihe, fehler_reihe = logik.reihe_pruefen(gewaehlt, reihen)
     if fehler or fehler_reihe:
-        return _formular(request, text, fehler + fehler_reihe, 400, reihe or "")
+        return _formular(request, text, fehler + fehler_reihe, 400, reihe or "", art, stunde_text)
+    _, stunde = _ort(reihen, reihe or "", stunde_text)
     EINGANG.mkdir(parents=True, exist_ok=True)
     ablage = Path(tempfile.mkdtemp(dir=EINGANG))
     try:
         pfade = []
         for nr, d in enumerate(dateien_):  # je Datei ein Unterordner: gleiche Namen überschreiben sich nicht
             pfade.append(datei_ablegen(d, ablage / str(nr)))
-        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, logik.text_mit_reihe(text, reihe, reihen),
+        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, logik.text_mit_reihe(text, reihe, reihen, stunde, art),
                                       quelle=logik.NEU_QUELLE, dateien=pfade, basis=INSTANZ / "auftraege",
                                       agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe)
     except (auftraege.AuftragFehler, OSError) as fehler_:
         logger.error("Neuer Auftrag nicht angelegt: %s", fehler_)
-        return _formular(request, text, [logik.FEHLGESCHLAGEN], 500)
+        return _formular(request, text, [logik.FEHLGESCHLAGEN], 500, reihe or "", art, stunde_text)
     finally:
         shutil.rmtree(ablage, ignore_errors=True)
         for d in dateien_:
             await d.close()
-    logger.info("Auftrag %s angelegt (%s, %d Dateien, Reihe %s, %s)", aid, logik.NEU_AGENT, len(pfade),
-                reihe or "keine", modus)
+    logger.info("Auftrag %s angelegt (%s, %d Dateien, Reihe %s, Stunde %s, %s)", aid, logik.NEU_AGENT, len(pfade),
+                reihe or "keine", stunde[0] if stunde else "keine", modus)
+    if stunde:  # die Web-App merkt sich die Stunde (zustand.py), die Agenten kennen keine
+        try:
+            z_ = zustand_()
+            z_.schreiben(logik.stunde_zuordnen(z_.lesen(), aid, reihe, stunde[0]))
+        except OSError as fehler_:
+            logger.error("Stunde von %s nicht gespeichert: %s", aid, fehler_)
     if modus == "echt":
         agent_starten(logik.NEU_AGENT)
+    erledigt = "auftrag" if modus == "echt" else "auftrag-test"
+    if reihe:
+        r = next(x for x in reihen if x["id"] == reihe)
+        ziel = logik.stunde_link(r, stunde[0]) if stunde else logik.reihe_link(r)
+        return RedirectResponse(f"{ziel}?erledigt={erledigt}", status_code=303)
     return RedirectResponse("/?abgeschickt=1", status_code=303)
 
 
@@ -458,7 +505,8 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
         "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene") else "",
         "hinweis": hinweis, "fehler": fehler or [], "text": text, "text_max": logik.NEU_TEXT_MAX,
         "rueck_endungen": ",".join(logik.RUECK_ENDUNGEN), "eigene_endungen": ",".join(logik.EIGENE_ENDUNGEN),
-        **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "")}, status_code=status)
+        **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "",
+                 neu_hier=_neu_hier(reihe, nr) if reihe else "")}, status_code=status)
 
 
 @app.get("/ergebnis/{eintrag_id}", response_class=HTMLResponse)
