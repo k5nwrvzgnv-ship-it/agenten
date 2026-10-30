@@ -8,8 +8,24 @@ Erwartungshorizont in ihrem Stil mit Begleittext, auf Wunsch mit Varianten in ei
 Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
 ## Stand (30.10.2026)
-- Board „Desktop“ (shared/webapp/board-plan.md 1 bis 7, 30.10.): gebaut und mit Tests geprüft, noch KEIN echter
-  Lauf damit (nichts auf Lias Kontingent):
+- Board „Desktop“ (shared/webapp/board-plan.md 1 bis 7, 30.10.): gebaut, mit Tests und je einem echten Probelauf
+  geprüft (Jans Okay 30.10., direkt mit material.bearbeiten, Lia bekam nichts; Skript im Chat-Scratchpad):
+  - Reihenentwurf Straftheorien Kl. 8: 1 docx, 4 Seiten, 2 Läufe, 2,15 USD, 540k Tokens, 5:22 min. Reihenfrage als
+    Vorschlag gekennzeichnet, Positionen-Tabelle, Lerngruppe, Fall ohne Gewalt (ersetzte Lias Fälle), Stunden,
+    Merksätze mit Testfall; meldet Unsicherheit zu von Liszt. Ordner data/arbeit/20261030-233001-unterricht-a0be01/.
+  - LEK Straftheorien: LEK (3 S.) + Erwartungshorizont (3 S., Tabelle Aufgabe/Erwartung/Punkte, 26 P.), 2 Läufe,
+    1,91 USD, 657k Tokens, 3:26 min. Schwäche: Anwendungsfall mit Schubsen und Krankenhaus (gegen Regel
+    „keine Gewalt“). Ordner ...-a0be02/.
+  - Varianten einfach, Hilfekarten, Level zum Blatt vom 23.10.: 6 docx (Original unverändert, Niveau 2 = Original),
+    2 Läufe, 1,73 USD, 447k Tokens, 3:35 min (sonst 5 Läufe zu je ca. 1 USD). Schwächen: alle Fassungen außer
+    den Hilfekarten 2 Seiten statt 1, Begleittext einmal in Sie-Form. Ordner ...-a0be03/.
+  - Nachbesserung mit eigener Fassung (Word mit 3 Kommentaren und einer Textänderung, von Claude im Chat als
+    Ersatz für Lia geschrieben): alles umgesetzt, Kommentare entfernt, Rückfrage zum Strafmaß; 2 Läufe,
+    1,04 USD, 326k Tokens, 57 s. Ordner ...-a0be04/.
+  - Zusammen 6,83 USD Kontingent. Für alle: Dateinamen beginnen mit „Arbeitsblatt“ auch bei Reihenentwurf und LEK,
+    Kopf mit Name/Datum (Renderer-Bedarf), Begleittexte länger als 2–4 Sätze. Jan und Lia haben die Dateien
+    noch nicht angesehen.
+  Inhalt:
   - Reihen in lia/instanz/reihen.toml (eine Datei für Web-App und Agenten, siehe Ablauf). Eingetragen: Ethik 8
     Straftheorien (laufend, agenten examen), Darstellendes Spiel Kurs 12 „Der nackte Wahnsinn“ (agenten
     theater), Kurs 11 2026/27 (laufend, noch ohne Einheiten), Archiv 2025/26: Klasse 7 (5 Reihen) und Kurs 11
@@ -222,9 +238,9 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
    Die Datei von 23:15 (22.10.) wurde noch abgelehnt und muss neu geschickt werden.
 5. Ausbau des Skills nach Architektur 2.5 (beispiele/, evals/), sobald Lia Ergebnisse abgenommen hat.
 6. Woche und Frage: noch Platzhalter. Dateien an einer Frage werden bisher nur bestätigt.
-7. Board-Funktionen echt prüfen (nach Jans Okay, Lias Kontingent): je ein Lauf Reihenentwurf, LEK mit
-   Erwartungshorizont, Varianten zu fertigem Material, Nachbesserung mit Lias Word-Fassung; danach Kosten hier
-   eintragen. Erwartung: Varianten in einem Lauf deutlich billiger als je ein Lauf pro Variante.
+7. Aus den Probeläufen 30.10. (Vorschläge, noch nicht gebaut): Dateiname nach der Art aus dem Wunsch
+   („Reihenentwurf …“, „Lernerfolgskontrolle …“); Varianten auf eine Seite halten; Fälle in LEKs an die
+   Gewalt-Regel binden. Jan/Lia sehen die vier Ergebnisse an.
 8. claude_lauf.Zurueckgezogen (Auftrag von Lia zurückgezogen) in agent.py vor LaufFehler fangen, nur loggen,
    keine Meldung an Jan (Bedarf des Hauptordner-Chats, Punkt 24).
 9. Symlink reihen.toml löschen, sobald lia/examen lia/instanz/reihen.toml liest (Bedarf in Punkt 24).
