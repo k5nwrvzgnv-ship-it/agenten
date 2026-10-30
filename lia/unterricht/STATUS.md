@@ -35,8 +35,11 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 - Folien sind nur mit Tests geprüft, noch nicht im echten Lauf.
 - Arbeitsmappe (Excel) freigeschaltet 30.10.: Skill Version 2 (Art wählen, nur leere Vorlagen ohne Schülerdaten),
   FORMAT-Abschnitt Arbeitsmappe im Prompt, Kontrolle mit Vorschau (Calc) und Hinweis auf die Probe-Zeilen des
-  Renderers (Python rechnet die Formeln an Beispielwerten nach). Echt gebaut mit Lias Profil (Notentabelle, eine
-  Seite, Proben stimmen), noch kein Claude-Lauf. Jan hat die Notentabelle des Renderers noch nicht in Excel geprüft.
+  Renderers (Python rechnet die Formeln an Beispielwerten nach). Erster echter Lauf 30.10. (Auftrag von Jan in
+  Lias Namen angelegt, Lia wollte die Tabelle ohne neuen Auftrag): Notentabelle Ethik, 35 Zeilen, Note 1–5 und LEK
+  0–15, Endnote 2/3 Schnitt + 1/3 LEK, ohne LEK der Schnitt; eine Seite. 2 Läufe, 0,77 USD, 179.883 Tokens.
+  Über Lias Zentrale zugestellt. Begleittext mit 6 Sätzen länger als die 2–4 vorgegebenen.
+  Ordner: data/arbeit/20261030-123903-unterricht-ef0a90/. Excel selbst (statt Calc) noch nicht geprüft.
 - Angehängte Dateien (22.10.): Lias Zentrale nimmt Dateien und Fotos an, sie kommen im Feld dateien mit.
   Aufbereitung mit echtem LibreOffice geprüft, ein echter Claude-Lauf mit Anhang fehlt noch.
 
