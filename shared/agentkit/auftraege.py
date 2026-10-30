@@ -37,6 +37,7 @@ nur seine Aufträge: neue(agent, dienst=None) die ohne Dienst (<agent>.service),
 neue(agent, dienst="uni-lernen") nur die für uni-lernen. Ohne Angabe kommen alle.
 """
 
+import re
 import shutil
 from pathlib import Path
 
@@ -49,6 +50,7 @@ AGENTEN_DIR = SHARED_DIR.parent
 EINGANG = Path("data") / "eingang"
 ABSCHLUESSE = ("erledigt", "fehlgeschlagen", "zurueckgezogen")  # zurueckgezogen: Jans Stopp, wird nicht gemeldet
 MODI = ("erledigen", "lernen")
+REIHE_MUSTER = re.compile(r"[a-z0-9][a-z0-9-]{0,79}")
 ALLE = "*"  # neue(..., dienst=ALLE): Aufträge aller Dienste
 
 
@@ -65,6 +67,7 @@ def neuer_auftrag(
     basis: Path | None = None,
     agenten_dir: Path | None = None,
     absender: str | None = None,
+    reihe: str | None = None,
 ) -> str:
     """Legt einen Auftrag an und gibt seine ID zurück.
 
@@ -74,6 +77,8 @@ def neuer_auftrag(
     meldung, dienst: Antwort auf eine Meldung (siehe oben).
     absender: Name im Satz über angehängte Dateien; Standard config.person() der eigenen Instanz. Für Programme,
     die mit basis= für eine andere Instanz anlegen (Web-App für Lia).
+    reihe: Kennung einer Unterrichtsreihe (Web-App für Lia, Kleinbuchstaben, Ziffern, Bindestriche). Das Feld
+    steht nur im Auftrag, wenn es gesetzt ist.
     """
     if modus not in MODI:
         raise AuftragFehler(f"Unbekannter Modus: {modus!r}")
@@ -82,8 +87,10 @@ def neuer_auftrag(
     if meldung is not None:
         _ablage.pruefe_id(meldung)
     _ablage.pruefe_dienst(agent, dienst)
+    if reihe is not None and not REIHE_MUSTER.fullmatch(reihe):
+        raise AuftragFehler(f"Ungültige Reihe: {reihe!r}")
     felder = {"quelle": quelle, "modus": modus, "bezug": bezug, "sitzung": sitzung, "meldung": meldung,
-              "dienst": dienst}
+              "dienst": dienst, **({"reihe": reihe} if reihe is not None else {})}
     return _anlegen(agent, text, felder, dateien or [], shutil.move, absender or person(), basis, agenten_dir)
 
 

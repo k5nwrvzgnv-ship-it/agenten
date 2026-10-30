@@ -346,6 +346,16 @@ class TestWeitergabe(unittest.TestCase):
         self.assertIn("Angehängte Dateien von Lia (im Agent-Ordner)", a["text"])
         self.assertFalse(datei.exists())  # verschoben
 
+    def test_neuer_auftrag_mit_reihe(self):
+        auftraege.neuer_auftrag("unterricht", "Arbeitsblatt", basis=self.basis, reihe="ethik-8-straftheorien")
+        auftraege.neuer_auftrag("unterricht", "ohne Reihe", basis=self.basis)
+        mit, ohne = sorted(auftraege.neue(basis=self.basis), key=lambda a: a["text"])
+        self.assertEqual(mit["reihe"], "ethik-8-straftheorien")
+        self.assertNotIn("reihe", ohne)  # alte Form bleibt unverändert
+        for falsch in ["", "Ethik 8", "../x", "-x", "a" * 81]:
+            with self.subTest(reihe=falsch), self.assertRaises(auftraege.AuftragFehler):
+                auftraege.neuer_auftrag("unterricht", "x", basis=self.basis, reihe=falsch)
+
     def test_dateien_nur_aus_dem_eigenen_ordner(self):
         (self.agenten / "uni" / ".env").write_text("GEHEIM=1")
         (self.agenten / "einkauf" / "x.txt").write_text("x")
