@@ -76,6 +76,20 @@ Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), `./pruefen.sh` grün (We
 - Test-Instanz für Jan: `data/test/instanz` (`.env` mit PERSON=Lia, 0600) und Agent-Ordner `data/test/unterricht`,
   nicht im Repo. Probelauf 30.10.: Auftrag mit PDF angelegt, Datei verschoben, ohne Origin 403; danach gelöscht.
 
+## Neuplanung Desktop zuerst (30.10.2026, nur Plan, nichts gebaut)
+Auftrag Jan 30.10.: Lia nutzt die App meist am PC; Chips und „Unterricht →“ sind unlogisch. Plan:
+`../../docs/webapp-aufbau.md` (Befund, Abdeckung mit Regeln R1–R11, Objektmodell, Zustände Auftrag → Fassungen →
+final, Mustertabelle, Heuristik-Review, Test mit 7 Aufgaben, Empfehlung). Klickbares Board „Desktop“ und Board
+„Handy-Prüfung“ im Canvas (unten, „Neu 30.10.: Desktop zuerst“). Abdeckung und Testbogen in `data/ia/`
+(nicht im Repo).
+- Kern: drei Spalten Baum (Fach → Klasse/Kurs → Reihe → Stunde) | Inhalt mit Brotkrumen | Chat „Fragen“ mit dem
+  Ort als Kontext. „Heute“ ist oberster Eintrag im Baum. „+ Neu hier“ öffnet eine Vorlagengalerie mit
+  vorbelegtem Ort. Material zeigt Fassungen, „Als final markieren“ (nur Lia), „Rückmeldung geben“ (auch mit Datei),
+  „Eigene Fassung hochladen“ (Lias echter Weg, löst offenen Punkt 8). Stunde ist leichte, nie verpflichtende Ebene.
+- Nächster Schritt: Jan klickt das Board durch (nicht geprüft, ob es im Canvas fehlerfrei läuft), klärt die drei
+  Fragen aus Abschnitt 7 des Plans und macht den Test mit Lia. Gebaut wird erst nach Test und Jans Okay, in den
+  Bauschritten aus Abschnitt 5 des Plans.
+
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
   `reihe_von()`, `filter_chips()`, `unterricht()`), getestet. `ordnung.py`: Reihen-Dateien lesen. `dateien.py`: Pfade der

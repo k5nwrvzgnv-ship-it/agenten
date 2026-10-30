@@ -553,6 +553,22 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      shared/webapp/ordnung.py. Bis dahin setzt die App die Reihen aus unterricht/examen/theater zusammen.
      Später: Feld reihe des Auftrags bevorzugt nutzen, statt selbst eine Reihe zu wählen (heute steht sie als
      Zeile „Reihe: …“ am Ende des Auftragstexts).
+   - Neuplanung Desktop zuerst (Jan 30.10., nur Plan): docs/webapp-aufbau.md, klickbares Board „Desktop“ und
+     „Handy-Prüfung“ im Canvas. Drei Spalten Baum | Inhalt | Fragen (Chat), Vorlagengalerie am Ort, final setzt
+     Lia, eigene Fassung hochladen. Chips und /unterricht sollen entfallen. Gebaut wird erst nach Lias Test
+     (7 Aufgaben, Ziel 6 von 7 ohne Hilfe, Jan leitet) und Jans Okay. Jan klärt vorher: Fachname „Darstellendes
+     Spiel“ statt „Theater“? Welche Programme nutzt Lia am PC? Gibt es Kurs 12, für welche Klasse ist die
+     Notentabelle?
+   - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
+     a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
+        Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext.
+     b) alle Material-Agenten: Nachbesserung auf Grundlage einer von Lia hochgeladenen Fassung (Word mit
+        Kommentaren) als Fassung desselben Auftrags (bezug), nicht als neuer Auftrag.
+     c) Chat-Agent für Lia (eigener Ordner lia/chat/ oder Teil von unterricht): kurze Antworten über
+        agentkit.claude_lauf, Kontext des Orts aus Dateien (Fach, Klasse mit Lerngruppe, Reihe, Stunden, Regeln),
+        kleines Modell für schnelle Fragen, kein Starten von Aufträgen, keine Schülernamen, Verlauf befristet.
+     d) agentkit: Zustand „final“ einer Fassung und „eigene Fassung“ (oder die Web-App speichert es selbst nach
+        den Konten), Entscheidung im Hauptordner-Chat.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 

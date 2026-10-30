@@ -258,6 +258,9 @@ Jan schreibt mit, hilft nicht und erklärt nichts, solange Lia nicht festhängt.
 
 ### 4.1 Informationsarchitektur
 
+> Ersetzt am 30.10.2026 (Desktop zuerst, Baum Fach → Klasse → Reihe → Stunde): `docs/webapp-aufbau.md`.
+> 4.1 und 4.2 bleiben als Herkunft stehen.
+
 Fünf Bereiche, unten als Leiste (Handy) bzw. links (Rechner). Alles andere ist eine Ebene darunter.
 
 ```
