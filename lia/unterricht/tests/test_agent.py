@@ -51,6 +51,14 @@ class AgentTest(unittest.TestCase):
         self.assertEqual(a["ergebnis_dateien"], ["data/arbeit/x/Arbeitsblatt Kant.docx"])
         self.assertEqual(self.gemeldet, [])
 
+    def test_kaputte_vorlage_meldet_jan(self):
+        fertig = material.Fertig([], "Text.", "s1", 1, 0.1, 10, ["Vorlage nicht nutzbar: x.dotx: kaputt"])
+        auftraege.neuer_auftrag("unterricht", "Blatt", quelle="portal-material")
+        with mock.patch.object(agent.material_auftrag, "__defaults__", (mock.Mock(return_value=fertig),)):
+            agent.auftraege_abarbeiten()
+        self.assertEqual(len(self.gemeldet), 1)
+        self.assertIn("ohne Lias Formatvorlage", self.gemeldet[0])
+
     def test_nachbesserung_ohne_datei(self):
         fertig = material.Fertig([], "Aufgabe 1 bleibt so.", "s2", 1, 0.3, 900, [])
         auftraege.neuer_auftrag("unterricht", "Nachbesserung ...", quelle="portal-material", bezug="20261030-100000-unterricht-abcdef", sitzung="s1")

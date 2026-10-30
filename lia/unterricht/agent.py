@@ -13,6 +13,7 @@ Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal
 import tomllib
 from pathlib import Path
 
+import formatvorlage
 import leitfaden
 import material
 import reihen
@@ -70,7 +71,8 @@ def material_auftrag(a: dict, bearbeiten=material.bearbeiten) -> None:
     try:
         f = bearbeiten(a, HIER, profil_laden(), laufen=claude_laufen(a["id"]), bauen=renderer.bauen,
                        reihen=reihen_laden(), katalog=wissen.katalog_laden(HIER / "data" / "wissen" / "katalog.md"),
-                       leitfaden=leitfaden.laden(HIER / "leitfaden.md"))
+                       leitfaden=leitfaden.laden(HIER / "leitfaden.md"),
+                       vorlagen=lambda endung: formatvorlage.waehlen(HIER, endung))
     except claude_lauf.LimitErreicht as e:
         logger.warning("Auftrag %s: %s", a["id"], e)
         auftraege.abschliessen(a["id"], LIMIT.format(zeit=verbrauch.zeit_text(e.reset)),
@@ -83,6 +85,8 @@ def material_auftrag(a: dict, bearbeiten=material.bearbeiten) -> None:
         jan_melden(f"Materialwunsch {a['id']} fehlgeschlagen: {e}")
         return
     hinweis = f", Hinweise: {'; '.join(f.hinweise)}" if f.hinweise else ""
+    if kaputt := [h for h in f.hinweise if h.startswith("Vorlage nicht nutzbar")]:
+        jan_melden(f"Material {a['id']} ohne Lias Formatvorlage gebaut: {'; '.join(kaputt)}")
     logger.info("Auftrag %s fertig: %s, %d Läufe, %.2f USD, %d Tokens%s", a["id"],
                 ", ".join(d.name for d in f.dateien) or "ohne Datei", f.laeufe, f.usd, f.tokens, hinweis)
     auftraege.abschliessen(a["id"], f.begleittext, sitzung=f.sitzung, dateien=f.dateien)

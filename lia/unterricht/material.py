@@ -340,9 +340,11 @@ def bearbeiten(
     reihen: list[dict] | None = None,
     katalog: str = "",
     leitfaden: str = "",
+    vorlagen: Callable[[str], tuple[Path | None, list[str]]] | None = None,
 ) -> Fertig:
     """Erstellt das Material zu einem Auftrag. laufen(prompt, sitzung) -> claude_lauf.Ergebnis,
-    bauen(beschreibung, ziel, profil=...) -> renderer.Ergebnis, reihen aus reihen.laden(), katalog aus wissen.katalog_laden(), leitfaden aus leitfaden.laden().
+    bauen(beschreibung, ziel, profil=..., vorlage=...) -> renderer.Ergebnis, reihen aus reihen.laden(),
+    vorlagen(endung) -> (Vorlage oder None, Hinweise) aus formatvorlage.waehlen (Lias eigene Formatvorlage), katalog aus wissen.katalog_laden(), leitfaden aus leitfaden.laden().
     MaterialFehler, wenn nichts entsteht;
     Fehler von claude_lauf (z. B. LimitErreicht) gehen unverändert weiter."""
     ordner = hier / "data" / "arbeit" / auftrag["id"]
@@ -375,6 +377,26 @@ def bearbeiten(
             raise MaterialFehler(f"Claude-Lauf {len(laeufe)} fehlgeschlagen: {e.text[:500]}")
         return e
 
+    def mit_vorlage(beschreibung, ziel):
+        """Baut mit Lias Formatvorlage, wenn es eine gibt; ist sie kaputt, ohne sie (Hinweis „Vorlage nicht
+        nutzbar“, der Agent meldet es Jan)."""
+        vorlage = None
+        if vorlagen:
+            try:
+                vorlage, h = vorlagen(ziel.suffix)
+                hinweise.extend(h)
+            except ValueError as f:
+                hinweise.append(f"Vorlage nicht nutzbar: {f}")
+        if vorlage is None:
+            return bauen(beschreibung, ziel, profil=profil)
+        try:
+            return bauen(beschreibung, ziel, profil=profil, vorlage=vorlage)
+        except ValueError as f:
+            if isinstance(f, BeschreibungUngueltig):
+                raise
+            hinweise.append(f"Vorlage nicht nutzbar: {vorlage.name}: {f}")
+            return bauen(beschreibung, ziel, profil=profil)
+
     def alle_bauen():
         """Baut Haupt- und Zusatzdateien. _Korrektur mit den Fehlern aller Dateien auf einmal."""
         dateien = beschreibungen(ordner)
@@ -393,7 +415,7 @@ def bearbeiten(
                     raise _Korrektur(f"{prel}: ergibt denselben Dateinamen wie eine andere Beschreibung")
                 namen.add(name)
                 try:
-                    ergebnisse.append(bauen(beschreibung, ordner / name, profil=profil))
+                    ergebnisse.append(mit_vorlage(beschreibung, ordner / name))
                 except BeschreibungUngueltig as f:
                     raise _Korrektur(str(f)) from None
             except _Korrektur as f:
@@ -453,5 +475,5 @@ def bearbeiten(
         laeufe=len(laeufe),
         usd=sum(x.usd for x in laeufe),
         tokens=sum(x.tokens for x in laeufe),
-        hinweise=hinweise + [h for x in ergebnisse for h in x.hinweise],
+        hinweise=list(dict.fromkeys(hinweise + [h for x in ergebnisse for h in x.hinweise])),
     )
