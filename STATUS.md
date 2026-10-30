@@ -504,10 +504,27 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    https://claude.ai/artifact/JMoaDZKoS59tpG35fbxZDs (für Lia erst nach „Teilen“ durch Jan).
    - Befund: Lia hat über Telegram in 8 Tagen 1 Auftrag geschickt (wegen Kontingent fehlgeschlagen), kein Feedback;
      fast alles läuft mündlich über Jan. portal.py kennt keine Freigaben (examen-0c44bf offen seit 25.10.).
-   - Caddy läuft schon als root auf 80/443 (kcal.meldro.de). Vorschlag: zweiter Block für die Web-App, von Jan als
-     root, erst nach den Klärungen K1–K6 (Schule/Datenschutz, Abo oder API, AVV, Name der Domain).
-   - Offen, Entscheidung Jan: Klärungen anstoßen, Beobachtung und Prototyp-Test mit Lia, Pakete (fastapi, uvicorn,
-     jinja2, python-multipart, webauthn, htmx-Datei) für Bauschritt 1. Bauplan in Abschnitt 7 des Plans.
+   - Entschieden (Jan 30.10.): Die Web-App wird für Lia nutzbar gemacht, Gestaltung „Modernist“ (Boards
+     ModHeute/ModNeu/ModErgebnis im Canvas https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU). Adresse
+     lia.meldro.de (Subdomain, nichts zu kaufen; neutrale Domain erst mit einer zweiten Lehrerin). Gebaut wird in
+     shared/webapp/ vom Hauptordner-Chat.
+   - Auftrag an den Hauptordner-Chat (aus dem lia/-Chat, 30.10.): Lia braucht einen Überblick, was gerade läuft.
+     Nur echte Daten aus lia/instanz, keine Beispielinhalte. Erste Stufe:
+     1. Heute: wartet auf Lia (offene Entwürfe, neue Ergebnisse), läuft gerade (auftraege/neu), fertig und
+        fehlgeschlagen (auftraege/erledigt), Begriffe aus Lias Sicht, keine Agentennamen und IDs.
+     2. Ergebnis: Kern bzw. Antworttext, Seitenvorschau aus dem Renderer (`<stem>-vorschau/`), Downloads der
+        ergebnis_dateien (PDF, Word, PowerPoint, Excel), Pfade gegen den Agent-Ordner geprüft.
+     3. Feedback-Knöpfe wie in Telegram, über agentkit.feedback, mit Rückmeldung, was daraus wurde.
+     4. Entwurf: Setze ich selbst ein / Ändern / Ablehnen (für examen-0c44bf, Typ entwurf).
+     5. Neuer Auftrag nur für Arten, die laufen: Material (unterricht, auch Arbeitsmappe), Theater.
+     Weggelassen, weil es das noch nicht gibt: Mail-Entwürfe, „Text prüfen“, Frage und Woche (Platzhalter in
+     unterricht), Fortschrittsbalken, Anmerkung an einer Stelle, Reihen und Vorlagen pflegen. Telegram bleibt
+     für Hinweise.
+   - Vor dem Bau offen, Entscheidung Jan: Pakete (fastapi, uvicorn, jinja2, python-multipart, webauthn,
+     htmx-Datei), Anmeldung per Passkey mit Einladungslink. Jan als root: DNS lia.meldro.de bei INWX (A/AAAA wie
+     kcal) und zweiter Caddy-Block (Vorschlag in docs/webapp-plan.md 1.3), kcal-Block danach prüfen. Klärungen
+     K1 (Schule/Datenschutz) und K3 (Abo oder API) sind nicht erledigt; Jan entscheidet, ob Lia vorher startet.
+     Bis dahin läuft die App lokal (Unix-Socket wie der Leitstand). Bauplan in Abschnitt 7 des Plans.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 
