@@ -5,7 +5,13 @@ Hilft Lia in ihrem zweiten Fach Theater (Darstellendes Spiel). Erste Aufgabe: au
 (Michael Frayn, Noises Off) eine eigene Fassung für ihren DS-Kurs entwickeln. Lia will nicht klassisch kürzen,
 sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstellen behalten.
 
-## Stand (29.10.2026)
+## Stand (30.10.2026)
+- Dienst lia-theater eingerichtet (Jans Okay 30.10.): agent.py arbeitet Aufträge aus Lias Warteschlange selbst ab,
+  vor allem Nachbesserungen aus ihrem Feedback. Erster Auftrag 20261030-111155-theater-5d88d5 (Lias Frage, wie
+  lange die Fassung dauert): 2 Läufe, 0,55 USD, Antwort 38 Min, davon gut 11 Min neue Szenen, etwa 15 Min Text aus
+  dem Stück und 8 Min neuer Text; von Lias Zentrale um 12:19 zugestellt. Die Nachbesserung lief wegen eines Satzes
+  mit 17 Wörtern (Sprachregel), danach ging die Antwort mit Warnung im Log raus. Den Chor (gemischt) zählt Claude
+  zu den neuen Teilen; die Kennzahlen von Python trennen nach Art (neu 8,5 Min, gemischt 23 Min).
 - Plan und Pakete (wie lia/examen) von Jan freigegeben (29.10.). Kostengrenze seit 29.10. nachmittags aufgehoben
   (siehe Entscheidungen); der erste Lauf lief noch mit 5 USD.
 - Code fertig, 55 Tests grün, in pruefen.sh eingetragen.
@@ -60,7 +66,18 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Unsicher: wie kürzen, „zu lasch“, wie das Stück im Stück aussieht (die SuS sollen es selbst erfinden).
 
 ## Aufbau
-- Aufruf von Hand: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py`
+- Dienst: lia-theater.service (Vorlage systemd/lia-theater.service, in ~/.config/systemd/user/), oneshot,
+  OnFailure=ausfall@%n.service. Lias Zentrale und lia-feedback starten ihn nach jedem neuen Auftrag.
+- agent.py: holt auftraege.neue("theater"), je Auftrag nachbesserung.bearbeiten. Fehler: Lia bekommt eine kurze
+  Nachricht, Jan die Ursache; Kontingent voll: Lia erfährt, ab wann.
+- nachbesserung.py: Runde finden (bezug auf einen früheren Auftrag, auf an_lia.json, sonst Rundenname im Text),
+  gültigen Ablauf finden (stand.json des Bezugs, sonst ergebnis.json bzw. ablauf.json der Runde). Ordner
+  data/<runde>/nachbesserung-<auftrag>/: kennzahlen.md (Python rechnet Spielzeit, Sprechzeit, Wörter je Baustein),
+  spielfassung-vorher.txt, antwort.json, bei Überarbeitung ablauf.json, spielfassung.txt und fuer-lia/ (Ablauf und
+  Spielfassung als docx), stand.json (welcher Ablauf danach gilt). Ein Claude-Lauf (Opus, neue Sitzung) wählt
+  "antwort" oder "ueberarbeitung"; Python prüft antwort.json, den neuen Ablauf wie fassung.pruefen plus aenderungen
+  und die Sprachregel für Lia. Eine Nachbesserung; harte Fehler danach brechen ab, Sprachregel nur Warnung.
+- Neue Runde von Hand: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py`
   Ergebnis in data/runde-<zeit>/fuer-lia/ (vier docx, je mit PDF-Vorschau), Meldung an Jan. Noch nicht an Lia.
   `runde.py <ordner>` setzt eine abgebrochene Runde fort. `runde.py --an-lia <ordner>` (nur in Lias Instanz, nach
   Jans Durchsicht): legt einen Auftrag für theater an und schließt ihn sofort mit den vier docx ab (daten: kern,
@@ -108,13 +125,12 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   runde.py <ordner> fortsetzen. Künftige Abwägungen im Agenten nach Qualität, nicht nach Preis.
 
 ## Offene Punkte
-1. Lias Feedback abwarten. Eine Regel landet unter „Gelernte Regeln“ hier; eine Nachbesserung wird ein Vorschlag an
-   Jan, weil theater keinen Dienst hat (shared/feedback prüft das).
+1. Lias Feedback: Regeln landen unter „Gelernte Regeln“ hier, Nachbesserungen bearbeitet der Dienst selbst.
 2. Fragen an Lia (über Jan):
    - Frederick (Philip/Scheich) fehlt in Figuren.docx. Fällt die Figur weg, oder ist sie nur vergessen?
    - Termin der Aufführung und bis wann sie den Ablaufvorschlag braucht.
-3. Folgerunden aus Lias Feedback: heute startet runde.py immer von vorn. Eine Runde, die auf einem bestehenden
-   Ablauf weiterarbeitet, fehlt noch.
+3. Überarbeitung über den Dienst ist getestet, aber noch nie echt gelaufen. Sie baut nur Ablauf und Spielfassung
+   neu (ohne Prüfschritt aus kritik.py, ohne neue Szenenkarte und Szenenaufgabe).
 
 ## Gelernte Regeln
 - (noch keine)
