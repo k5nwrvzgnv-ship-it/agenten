@@ -34,6 +34,11 @@ Auf Jans Mac (Kurzname aus seiner ~/.ssh/config): `ssh -N -L 8792:/home/agent/ag
 http://localhost:8792. Andere Instanz: `WEBAPP_INSTANZ=/pfad`, anderer Socket: `WEBAPP_SOCKET=/pfad`.
 Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start löscht sie.
 
+## Entscheidungen
+- Jan 30.10.: Design von „Heute“ passt (im Tunnel angesehen). Nächster Schritt vorgezogen vor die Konten:
+  Ergebnis- und Entwurf-Ansicht nur lesend (Klick aus „Heute“), Knöpfe mit Wirkung erst danach. Lia bekommt
+  ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
+
 ## Offene Punkte
 1. Dienst `webapp.service` (User-Unit mit OnFailure=ausfall@%n.service, MemoryMax=300M, Startgrenze): braucht
    Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
