@@ -12,6 +12,7 @@
     „Gehört zu: {{ e.wort }} {{ e.nr }}“.</p>
   {%- endif %}
 </section>
+{%- if not e.aus_datei %}
 <details class="tafel"{% if fehler %} open{% endif %}>
   <summary>Thema ändern</summary>
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
@@ -22,4 +23,5 @@
     <button class="knopf" type="submit">Speichern</button>
   </form>
 </details>
+{%- endif %}
 {% endblock %}

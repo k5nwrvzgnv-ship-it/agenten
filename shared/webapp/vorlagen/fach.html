@@ -1,0 +1,15 @@
+{#- Fach (nur lesend): Klassen/Kurse. Material des Fachs (RLP, Operatoren, Referendariat) steht in keiner Datei:
+    dafür der leere Zustand. -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{% block inhalt %}
+<section aria-labelledby="ab1">
+  <h2 id="ab1"><span class="akzent">01</span>Klassen und Kurse</h2>
+  <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
+</section>
+<section aria-labelledby="ab2">
+  <h2 id="ab2"><span class="akzent">02</span>Zum ganzen Fach</h2>
+  <p class="leer">Noch nichts. Hier steht später, was für alle Klassen gilt: Rahmenlehrplan, Operatoren, Seminar und
+    Unterrichtsbesuche.</p>
+</section>
+{% endblock %}

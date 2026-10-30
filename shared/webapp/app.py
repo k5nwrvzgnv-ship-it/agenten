@@ -176,7 +176,8 @@ def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int
     neu_hier: Link für „+ Neu hier“ neben den Brotkrumen (nur, wenn Neuer Auftrag eingeschaltet ist)."""
     if anzahl_wartet is None:
         anzahl_wartet = heute_daten(reihen)["anzahl_wartet"]
-    stunden = zustand_().lesen()["stunden"] if aktiv in {r["id"] for r in reihen} else {}
+    reihe = next((r for r in reihen if r["id"] == aktiv), None)
+    stunden = {aktiv: logik.reihe_stunden(reihe, zustand_().lesen())} if reihe else {}
     return {"baum": logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde), "krumen": krumen,
             "neu_hier": neu_hier if neu_modus() else ""}
 
@@ -230,7 +231,7 @@ def _reihe_seite(request: Request, reihe_id: str, fehler: list[str] | None = Non
     z = zustand_().lesen()
     e = logik.reihe_ansicht(reihe, reihen, _alle_auftraege(), datetime.now(ZONE),
                             _entwuerfe(), set(z["final"]), z["eigene"],
-                            z["stunden"].get(reihe_id) or [], z["stunde_von"], _ausblenden(z))
+                            logik.reihe_stunden(reihe, z), z["stunde_von"], _ausblenden(z))
     return vorlagen.TemplateResponse(request, "reihe.html", {
         "e": e, "token": logik.formular_token(GEHEIM), "fehler": fehler or [], "thema": thema,
         "thema_max": logik.STUNDE_THEMA_MAX,
@@ -252,7 +253,7 @@ def _stunde_seite(request: Request, reihe_id: str, nr_text: str, hinweis: str = 
                   thema: str = "", status: int = 200):
     reihen, reihe = _reihe(reihe_id)
     z = zustand_().lesen()
-    stunden = z["stunden"].get(reihe_id) or []
+    stunden = logik.reihe_stunden(reihe, z)
     nr = logik.stunde_nummer(nr_text, len(stunden))
     if nr is None:
         raise HTTPException(404)
@@ -276,6 +277,8 @@ def seite_stunde(request: Request, reihe_id: str, nr: str):
 @app.post("/reihe/{reihe_id}/stunden", response_class=HTMLResponse)
 async def stunde_anlegen(request: Request, reihe_id: str):
     _, reihe = _reihe(reihe_id)
+    if reihe.get("stunden"):
+        raise HTTPException(404)  # Stunden aus reihen.toml ändert die Datei, nicht die Web-App
     form = await formular_lesen(request, "Stunde", 0)
     thema, fehler = logik.stunde_pruefen(str(form.get("thema") or ""))
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
@@ -297,6 +300,8 @@ async def stunde_anlegen(request: Request, reihe_id: str):
 async def stunde_aendern(request: Request, reihe_id: str, nr: str):
     _, reihe = _reihe(reihe_id)
     z_ = zustand_()
+    if reihe.get("stunden"):
+        raise HTTPException(404)  # Stunden aus reihen.toml ändert die Datei, nicht die Web-App
     nummer = logik.stunde_nummer(nr, len(z_.lesen()["stunden"].get(reihe_id) or []))
     if nummer is None:
         raise HTTPException(404)
@@ -368,7 +373,7 @@ def _ort(reihen: list[dict], reihe_id: str, stunde_text: str) -> tuple[dict | No
     reihe = next((r for r in reihen if r["id"] == reihe_id and r["laufend"]), None)
     if reihe is None:
         return None, None
-    stunden = zustand_().lesen()["stunden"].get(reihe["id"]) or []
+    stunden = logik.reihe_stunden(reihe, zustand_().lesen())
     nr = logik.stunde_nummer(stunde_text, len(stunden))
     return reihe, ((nr, stunden[nr - 1]["thema"]) if nr else None)
 
@@ -559,7 +564,7 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
     e, _, z = _material(kette, kopf)
     reihen = reihen_laden()
     reihe = logik.reihe_von(kopf, reihen)
-    stunden = (z["stunden"].get(reihe["id"]) or []) if reihe else []
+    stunden = logik.reihe_stunden(reihe, z) if reihe else []
     ort = z["stunde_von"].get(kopf["id"]) or {}
     nr = ort.get("nr") if reihe and ort.get("reihe") == reihe["id"] else None
     nr = nr if isinstance(nr, int) and 1 <= nr <= len(stunden) else None
@@ -743,7 +748,7 @@ async def ergebnis_stunde(request: Request, eintrag_id: str):
     z_ = zustand_()
     z = z_.lesen()
     wert = str(form.get("nr") or "")
-    nr = logik.stunde_nummer(wert, len(z["stunden"].get(reihe["id"]) or []))
+    nr = logik.stunde_nummer(wert, len(logik.reihe_stunden(reihe, z)))
     if nr is None and wert != "0":
         raise HTTPException(404)
     try:

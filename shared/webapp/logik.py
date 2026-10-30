@@ -739,9 +739,12 @@ def token_passt(geheim: bytes, token: str | None) -> bool:
 # ein Auftrag gehört zu ihr, wenn er ihre Kennung im Feld "reihe" trägt (Neuer Auftrag) oder sein Agent in ihrer
 # Liste "agenten" steht und in keiner anderen (theater, examen). Was nicht sicher passt, ist "ohne Reihe": Am
 # Auftragstext wird nichts geraten.
-REIHE_TEXTE = ("id", "fach", "klasse", "titel", "reihenfrage", "lerngruppe", "notizen", "stand")
+REIHE_TEXTE = ("id", "fach", "klasse", "titel", "reihenfrage", "lerngruppe", "notizen", "stand", "schuljahr")
 REIHE_LISTEN = ("behandelt", "merksaetze", "bisherige_reihen", "agenten")
 REIHE_STAENDE = ("laufend", "abgeschlossen")
+# [[reihe.stunde]] wie lia/unterricht/reihen.py (_stunden_pruefen): nr ab 1, thema, optional marke
+STUNDE_FELDER = ("nr", "thema", "marke")
+STUNDE_MARKEN = ("UB", "Prüfung")
 OHNE_REIHE = "ohne"
 ORT_TRENNER = " › "
 KRUME_LANG = 60  # letzte Brotkrume (z. B. ein langer Ergebnistitel)
@@ -770,10 +773,11 @@ def reihen_aus(eintraege: list, standard_fach: str = "") -> tuple[list[dict], li
         if not isinstance(e, dict):
             fehler.append(f"Reihe {nr}: kein Block [[reihe]]")
             continue
-        falsch = sorted(k for k in e if k not in REIHE_TEXTE + REIHE_LISTEN
+        falsch = sorted(k for k in e if (_stunden_falsch(e[k]) if k == "stunde" else (
+                        k not in REIHE_TEXTE + REIHE_LISTEN
                         or (k in REIHE_TEXTE and not isinstance(e[k], str))
                         or (k in REIHE_LISTEN and not (isinstance(e[k], list)
-                                                       and all(isinstance(x, str) for x in e[k]))))
+                                                       and all(isinstance(x, str) for x in e[k]))))))
         fach = (e.get("fach") if isinstance(e.get("fach"), str) else "").strip() or standard_fach
         klasse = (e.get("klasse") if isinstance(e.get("klasse"), str) else "").strip()
         titel_ = (e.get("titel") if isinstance(e.get("titel"), str) else "").strip()
@@ -791,13 +795,40 @@ def reihen_aus(eintraege: list, standard_fach: str = "") -> tuple[list[dict], li
             fehler.append(f"Reihe {nr}: stand {stand!r}, erlaubt {list(REIHE_STAENDE)}")
         else:
             ids.add(rid)
+            schuljahr = (e.get("schuljahr") or "").strip()
+            # Archiv (Regel R11): abgeschlossene Reihe eines genannten Schuljahrs; die Klasse trägt dann das Jahr,
+            # damit „Kurs 11 · 2025/26“ nicht mit dem laufenden Kurs 11 zusammenfällt
+            archiv = bool(schuljahr) and stand == "abgeschlossen"
+            gruppe = gruppe_name(klasse) + (f" · {schuljahr}" if archiv else "")
             reihen.append({
-                "id": rid, "fach": fach, "fach_id": kennung(fach), "klasse": klasse, "gruppe": gruppe_name(klasse),
-                "gruppe_id": kennung(fach, klasse), "titel": titel_ or gruppe_name(klasse),
+                "id": rid, "fach": fach, "fach_id": kennung(fach), "klasse": klasse, "gruppe": gruppe,
+                "gruppe_id": kennung(fach, klasse, schuljahr) if archiv else kennung(fach, klasse),
+                "titel": titel_ or gruppe_name(klasse), "schuljahr": schuljahr, "archiv": archiv,
                 "reihenfrage": (e.get("reihenfrage") or "").strip(), "behandelt": list(e.get("behandelt") or []),
                 "laufend": stand == "laufend", "agenten": list(e.get("agenten") or []),
+                "stunden": [{"thema": s["thema"].strip(), "marke": s.get("marke", ""), "aus_datei": True}
+                            for s in sorted(e.get("stunde") or [], key=lambda s: s["nr"])],
             })
     return reihen, fehler
+
+
+def _stunden_falsch(stunden) -> bool:
+    """Stimmt [[reihe.stunde]] nicht (Regeln wie lia/unterricht/reihen.py)? Die Nummern müssen 1 bis n sein, weil
+    die App Stunden nach ihrem Platz zählt."""
+    if not isinstance(stunden, list) or not all(isinstance(s, dict) for s in stunden):
+        return True
+    for s in stunden:
+        if set(s) - set(STUNDE_FELDER) or not isinstance(s.get("nr"), int) or isinstance(s["nr"], bool) \
+                or not isinstance(s.get("thema"), str) or not s["thema"].strip() \
+                or ("marke" in s and s["marke"] not in STUNDE_MARKEN):
+            return True
+    return sorted(s["nr"] for s in stunden) != list(range(1, len(stunden) + 1))
+
+
+def reihe_stunden(reihe: dict, zustand_: dict) -> list[dict]:
+    """Stunden einer Reihe: aus reihen.toml, wenn dort welche stehen (dann pflegt sie die Datei), sonst die, die
+    die Web-App selbst speichert (zustand.py)."""
+    return reihe.get("stunden") or (zustand_.get("stunden") or {}).get(reihe["id"]) or []
 
 
 def reihe_von(eintrag: dict, reihen: list[dict]) -> dict | None:
@@ -897,8 +928,8 @@ def reihe_ansicht(reihe: dict, reihen: list[dict], auftraege_: list[dict], jetzt
                                               + ("" if reihe["laufend"] else " · abgeschlossen"),
             "reihenfrage": reihe["reihenfrage"], "behandelt": "; ".join(reihe["behandelt"]),
             "zeilen": je_stunde.get(0, []), "wort": einzahl, "wort_mehrzahl": mehrzahl,
-            "stunden_neu": reihe_link(reihe) + "/stunden",
-            "stunden": [{"nr": nr, "titel": s["thema"], "link": stunde_link(reihe, nr),
+            "stunden_neu": "" if reihe.get("stunden") else reihe_link(reihe) + "/stunden",
+            "stunden": [{"nr": nr, "titel": s["thema"], "link": stunde_link(reihe, nr), "marke": s.get("marke", ""),
                          "unter": ", ".join(z["titel"] for z in je_stunde.get(nr, [])) or "noch leer"}
                         for nr, s in enumerate(stunden_, 1)]}
 
@@ -972,9 +1003,15 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[
     for fach, gruppen in faecher.items():
         fid = next(iter(gruppen.values()))[0]["fach_id"]
         eintraege.append({"art": "fach", "text": fach, "link": f"/fach/{fid}", "aktiv": aktiv == fach_aktiv(fid)})
-        for gruppe, reihen_ in gruppen.items():
-            eintraege.append({"art": "gruppe", "text": gruppe, "tiefe": 0, "link": klasse_link(reihen_[0]),
+        # Archiv (Regel R11) nach den laufenden Klassen, eingeklappt: Reihen nur, wenn man in ihnen ist
+        for gruppe, reihen_ in sorted(gruppen.items(), key=lambda g: g[1][0]["archiv"]):
+            archiv = reihen_[0]["archiv"]
+            drin = aktiv in {klasse_aktiv(reihen_[0]["gruppe_id"]), *(r["id"] for r in reihen_)}
+            eintraege.append({"art": "gruppe", "text": ("Archiv: " if archiv else "") + gruppe, "tiefe": 0,
+                              "link": klasse_link(reihen_[0]),
                               "aktiv": aktiv == klasse_aktiv(reihen_[0]["gruppe_id"])})
+            if archiv and not drin:
+                continue
             for r in reihen_:
                 eintraege.append({"art": "eintrag", "text": r["titel"] + ("" if r["laufend"] else " (abgeschlossen)"),
                                   "link": reihe_link(r), "tiefe": 1, "zahl": "",
@@ -1078,7 +1115,9 @@ def stunde_ansicht(reihe: dict, nr: int, stunden_: list[dict], zeilen: list[dict
                    stunde_von: dict[str, dict]) -> dict:
     """Ansicht einer Stunde: Thema und ihr Material (zeilen: Zeilen der Reihe aus zeilen_je_reihe)."""
     einzahl, _ = stunden_wort(reihe)
-    return {"titel": stunden_[nr - 1]["thema"], "unter": f"{einzahl} {nr}", "nr": nr, "wort": einzahl,
+    marke = stunden_[nr - 1].get("marke") or ""
+    return {"titel": stunden_[nr - 1]["thema"], "unter": f"{einzahl} {nr}" + (f" · {marke}" if marke else ""),
+            "nr": nr, "wort": einzahl, "aus_datei": bool(stunden_[nr - 1].get("aus_datei")),
             "zeilen": material_je_stunde(reihe["id"], zeilen, stunde_von, len(stunden_)).get(nr, [])}
 
 
@@ -1152,12 +1191,10 @@ def regeln_aus(texte: list[tuple[str, str]]) -> list[dict]:
 # Varianten (Board „Desktop“, Regel R2: ein Material mit Varianten, keine neuen Materialien). Kein Agent baut
 # Varianten selbst (unterricht liefert genau eine Datei je Auftrag). Darum ist jede Variante ein eigener Auftrag an
 # den Material-Agenten mit der Datei des Originals als Anhang; die Web-App merkt sich, was zusammengehört
-# (zustand.py: varianten, varianten_wunsch). Türkisch nur auf Auftrag (Leitfaden des Material-Agenten).
+# (zustand.py: varianten, varianten_wunsch). Türkisch braucht Jan nicht (30.10., Leitfaden: eingestellt).
 VARIANTEN = {
     "einfach": {"name": "einfach",
                 "auftrag": "sprachlich einfacher: kürzere Sätze, schwierige Wörter erklärt, gleiche Inhalte und Aufgaben"},
-    "tuerkisch": {"name": "Türkisch",
-                  "auftrag": "auf Türkisch: Texte und Aufgaben als türkischer Paralleltext, gleicher Aufbau"},
     "hilfekarten": {"name": "mit Hilfekarten",
                     "auftrag": "mit Hilfekarten: gleiche Aufgaben, dazu gestufte Hilfen je Aufgabe"},
 }

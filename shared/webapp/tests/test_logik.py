@@ -658,7 +658,8 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.regel("Ohne Datum"), {"titel": "Ohne Datum", "unter": ""})
 
     def test_varianten(self):
-        self.assertEqual(logik.varianten_waehlen(["tuerkisch", "x", "einfach", "einfach"]), ["einfach", "tuerkisch"])
+        self.assertEqual(logik.varianten_waehlen(["hilfekarten", "tuerkisch", "einfach", "einfach"]),
+                         ["einfach", "hilfekarten"])  # Türkisch gibt es nicht mehr (Jan 30.10.)
         self.assertEqual(logik.variante_pruefen("einfach", "  mehr   Bilder "), ("mehr Bilder", []))
         self.assertTrue(logik.variante_pruefen("quatsch", "")[1])
         self.assertTrue(logik.variante_pruefen("einfach", "x" * 501)[1])
@@ -727,6 +728,27 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.nochmal_felder([gut, nb])["sitzung"], "s")
         h = logik.heute([], [kaputt], [], JETZT, ersetzt={kaputt["id"]})
         self.assertEqual(h["fehlgeschlagen"], [])
+
+    def test_archiv_und_stunden_aus_datei(self):
+        stunden = [{"nr": 2, "thema": "Kant", "marke": "UB"}, {"nr": 1, "thema": "Einstieg"}]
+        r, fehler = logik.reihen_aus([
+            {**ETHIK, "stunde": stunden},
+            {"fach": "Ethik", "klasse": "7", "titel": "Freundschaft", "schuljahr": "2025/26", "stand": "abgeschlossen"},
+            {"fach": "Ethik", "klasse": "7", "titel": "Tiere", "stunde": [{"nr": 2, "thema": "x"}]},
+            {"fach": "Ethik", "klasse": "7", "titel": "Falsch", "stunde": [{"nr": 1, "thema": "x", "marke": "Probe"}]}])
+        self.assertEqual(len(fehler), 2)  # Lücke in den Nummern, unbekannte Marke
+        ethik, archiv = r
+        self.assertEqual([s["thema"] for s in logik.reihe_stunden(ethik, {"stunden": {ethik["id"]: [{"thema": "z"}]}})],
+                         ["Einstieg", "Kant"])  # die Datei gewinnt
+        self.assertEqual((archiv["gruppe"], archiv["gruppe_id"], archiv["archiv"]),
+                         ("Klasse 7 · 2025/26", "ethik-7-2025-26", True))
+        a = logik.reihe_ansicht(ethik, r, [], JETZT, stunden_=logik.reihe_stunden(ethik, {}))
+        self.assertEqual(([s["marke"] for s in a["stunden"]], a["stunden_neu"]), (["", "UB"], ""))
+        self.assertEqual(logik.stunde_ansicht(ethik, 2, logik.reihe_stunden(ethik, {}), [], {})["unter"], "Stunde 2 · UB")
+        b = logik.baum(r, 0)
+        self.assertIn("Archiv: Klasse 7 · 2025/26", [e["text"] for e in b])
+        self.assertNotIn("Freundschaft (abgeschlossen)", [e["text"] for e in b])  # eingeklappt
+        self.assertIn("Freundschaft (abgeschlossen)", [e["text"] for e in logik.baum(r, 0, archiv["id"])])
 
     def test_fach_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"},

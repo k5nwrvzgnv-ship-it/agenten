@@ -28,6 +28,7 @@
     <li><a class="zeile zeile-stunde" href="{{ s.link }}">
       <span class="stunde-nr">{{ s.nr }}</span>
       <span class="text"><span class="titel">{{ s.titel }}</span><span class="unter">{{ s.unter }}</span></span>
+      {%- if s.marke %}<span class="marke">{{ s.marke }}</span>{% endif %}
     </a></li>
     {%- endfor %}
   </ul>
@@ -35,6 +36,7 @@
   <p class="leer">Noch keine {{ e.wort_mehrzahl }}. Leg sie an, wenn du magst; Material kann auch bei der ganzen Reihe bleiben.</p>
   {%- endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
+  {%- if e.stunden_neu %}
   <form class="zeile-form" method="post" action="{{ e.stunden_neu }}">
     <input type="hidden" name="token" value="{{ token }}">
     <label class="unsichtbar" for="thema">Thema der neuen {{ e.wort }}</label>
@@ -42,5 +44,6 @@
            placeholder="Thema">
     <button class="knopf" type="submit">+ {{ e.wort }}</button>
   </form>
+  {%- endif %}
 </section>
 {% endblock %}
