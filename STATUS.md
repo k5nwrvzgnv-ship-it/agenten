@@ -572,8 +572,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      mit Ort, Auch als (einfach, Hilfekarten, Level) im selben Lauf, Varianten nachträglich, Rückmeldung je
      Datei/Seite, final und eigene Fassung über agentkit.fassungen, Entwurf selbst einsetzen, Nochmal,
      Zurückziehen, Vorlagen und Ich (lesend), Spalte „Fragen“ an lia/chat (nur mit WEBAPP_CHAT=an). Einzelheiten
-     shared/webapp/STATUS.md „Board komplett“. Offen bei Jan: echt auf lia/instanz vor den Konten (Läufe auf Lias
-     Kontingent), erster echter Lauf Spielfassung (ca. 7 USD), ob Lias Ablage in die App soll. Nicht gebaut:
+     shared/webapp/STATUS.md „Board komplett“. Jan 30.10.: „Ja, echt“ (WEBAPP_NEUER_AUFTRAG=echt, WEBAPP_CHAT=an auf
+     lia/instanz, nur über Jans Tunnel, noch kein echter Lauf). Offen bei Jan: erster echter Lauf Spielfassung
+     (ca. 7 USD), ob Lias Ablage in die App soll. Nicht gebaut:
      „+ Reihe“ in der App, Konten.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer

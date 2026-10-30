@@ -218,14 +218,17 @@ http://localhost:8792. Nach einer Code-Änderung die laufende App mit Strg+C bee
 Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start löscht sie.
 
 ## Entscheidungen
+- Jan 30.10. abends: „Ja, echt“: Die Web-App läuft schon vor den Konten echt auf lia/instanz
+  (`WEBAPP_NEUER_AUFTRAG=echt WEBAPP_CHAT=an`), nur über Jans SSH-Tunnel. Neu, Variante, Rückmeldung, Nochmal,
+  Zurückziehen und Fragen starten damit Läufe auf Lias Kontingent; Ergebnisse gehen auch per Telegram an Lia.
+  Lia selbst hat weiter keinen Zugang (Konten fehlen). Die App läuft von Hand, kein Dienst.
 - Jan 30.10.: Design von „Heute“ passt (im Tunnel angesehen). Nächster Schritt vorgezogen vor die Konten:
   Ergebnis- und Entwurf-Ansicht nur lesend (Klick aus „Heute“), Knöpfe mit Wirkung erst danach. Lia bekommt
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-0. Echt (`WEBAPP_NEUER_AUFTRAG=echt` auf lia/instanz: Neu, Variante, Rückmeldung, Nochmal, Zurückziehen starten
-   Läufe auf Lias Kontingent, Ergebnisse gehen auch per Telegram an Lia): Jan entscheidet, ob vor den Konten.
-   Bis dahin nur Testbetrieb (Test-Instanz ohne Ergebnisse und ohne Agent).
+0. Echt auf lia/instanz: freigegeben (Jan 30.10., siehe Entscheidungen). Noch kein echter Lauf aus der Web-App;
+   den ersten beobachten (Log der App, Ergebnis in „Heute“, Nachricht an Lia per Telegram).
 9. Reihen: lia/instanz/reihen.toml gibt es (30.10.); der Ersatz aus den Agent-Ordnern greift nur noch ohne sie.
    Pflege durch Lia in der App (Neue Reihe, Behandeltes ergänzen) und
    „Reihe zuordnen“ für alte Aufträge (schreibt in Lias Instanz) erst mit Konten. Weitere Klassen von Lia sind
