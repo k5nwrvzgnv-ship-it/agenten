@@ -243,7 +243,7 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
     f, sitzung = _schritt(
         laufen, kosten, "Ablauf", fassung.prompt(str(rel_ordner / "ablauf.json"), rahmen),
         ordner / "ablauf.json", lambda d: fassung.pruefen(d, einheiten, muss, rahmen), sitzung)
-    p = _pruefschleife(laufen, kosten, ordner, rel_ordner, rel, f, sitzung, einheiten, muss, rahmen, v)
+    p = pruefschleife(laufen, kosten, ordner, rel_ordner, rel, f, sitzung, einheiten, muss, rahmen, v)
     f, sitzung = p["ablauf"], p["sitzung"]
     # In derselben Sitzung: Claude kennt dort Stück, Szenenkarte und die Gründe für den Ablauf (Qualität vor
     # Kosten, Jan 29.10.2026). Nur ohne Sitzung (fortgesetzte Runde, Schritte übernommen) eine neue; der Prompt
@@ -275,7 +275,7 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
     }
 
 
-def _pruefschleife(laufen, kosten: Kosten, ordner: Path, rel_ordner: Path, rel: dict, f: dict, sitzung: str | None,
+def pruefschleife(laufen, kosten: Kosten, ordner: Path, rel_ordner: Path, rel: dict, f: dict, sitzung: str | None,
                    einheiten: list[stueck.Einheit], muss: list[dict], rahmen: dict, rubrik: dict) -> dict:
     """Prüfer (neue Sitzung) bewertet, Autor (seine Sitzung) überarbeitet, bis alles mindestens „gut“ ist oder
     kritik.MAX_UEBERARBEITUNGEN erreicht sind. Dateien: ablauf.json, kritik-1.json, ablauf-2.json, kritik-2.json, …"""

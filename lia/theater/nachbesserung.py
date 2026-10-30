@@ -5,7 +5,9 @@ rechnet Kennzahlen (Minuten je Baustein, Sprechzeit des Originals, Länge des ne
 data/<runde>/nachbesserung-<auftrag>/. Claude liest dort und entscheidet:
 - "antwort": Lia bekommt nur eine kurze Antwort (Frage, Erklärung), die Fassung bleibt.
 - "ueberarbeitung": Claude schreibt den ganzen Ablauf neu (ablauf.json, Format und Regeln wie in fassung.py),
-  Python prüft ihn und baut Ablauf und Spielfassung neu. Lia bekommt beide Dateien.
+  Python prüft ihn. Danach der Prüfschritt wie in einer Runde (runde.pruefschleife: unabhängiger Prüfer gegen die
+  Rubrik, unter „gut“ überarbeitet der Autor in seiner Sitzung, höchstens kritik.MAX_UEBERARBEITUNGEN-mal).
+  Python baut Ablauf (mit Lias Änderungen und der Prüfung) und Spielfassung neu. Lia bekommt beide Dateien.
 Die Antwort für Lia steht in antwort.json (kern, höchstens 3 Punkte, pruefen) und wird gegen die Sprachregel der
 Zentrale (agentkit.sprache, für Lia) geprüft. Eine Nachbesserung, danach Abbruch (harte Fehler) bzw. Versand mit
 Warnung im Log (nur Sprachregel). stand.json merkt, welcher Ablauf nach dem Auftrag gilt (für Folgeaufträge).
@@ -14,12 +16,14 @@ Reine Logik, Claude und Renderer kommen als Funktionen herein.
 
 import json
 import re
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import fassung
 import karte
 import kritik
+import runde as runde_mod
 import stueck
 from agentkit import sprache
 
@@ -246,8 +250,9 @@ def bearbeiten(auftrag: dict, u: Umgebung) -> Ergebnis:
         raise NachbesserungFehler(f"Ablauf der Runde {runde.name}: {e}") from None
     ordner = runde / f"nachbesserung-{auftrag['id']}"
     ordner.mkdir(exist_ok=True)
-    for name in ("antwort.json", "ablauf.json"):  # Reste eines abgebrochenen Laufs zählen nicht
-        (ordner / name).unlink(missing_ok=True)
+    for muster in ("antwort.json", "ablauf*.json", "kritik-*.json"):  # Reste eines abgebrochenen Laufs zählen nicht
+        for p in ordner.glob(muster):
+            p.unlink()
     (ordner / "kennzahlen.md").write_text(kennzahlen(ablauf, einheiten, v["rahmen"]), encoding="utf-8")
     fassung.schreiben_text(ordner / "spielfassung-vorher.txt", ablauf, einheiten)
     rel = lambda p: str(p.relative_to(u.hier))  # noqa: E731
@@ -277,9 +282,13 @@ def bearbeiten(auftrag: dict, u: Umgebung) -> Ergebnis:
         erg.hinweise.append(f"Sprachregel: {sprache.log_text(befunde)}")
     gilt = alt
     if neu is not None:
-        erg.dateien = bauen(ordner, neu, einheiten, v, u)
-        fassung.schreiben_text(ordner / "spielfassung.txt", neu, einheiten)
-        gilt = ordner / "ablauf.json"
+        p = pruefen_lassen(ordner, runde, neu, erg.sitzung, einheiten, v, u, lauf)
+        if p["unter_gut"]:
+            erg.hinweise.append(f"nach {p['ueberarbeitungen']} Überarbeitungen noch unter „gut“: "
+                                + ", ".join(p["unter_gut"]))
+        erg.dateien = bauen(ordner, p["ablauf"], einheiten, v, u, neu["aenderungen"], p)
+        fassung.schreiben_text(ordner / "spielfassung.txt", p["ablauf"], einheiten)
+        gilt = ordner / p["datei"]
     (ordner / "stand.json").write_text(json.dumps(
         {"auftrag": auftrag["id"], "art": antwort["art"], "ablauf": str(gilt.relative_to(runde))},
         ensure_ascii=False), encoding="utf-8")
@@ -287,12 +296,30 @@ def bearbeiten(auftrag: dict, u: Umgebung) -> Ergebnis:
     return erg
 
 
-def bauen(ordner: Path, ablauf: dict, einheiten, v: dict, u: Umgebung) -> list[Path]:
-    """Ablauf und Spielfassung neu, mit den Änderungen am Ende des Ablaufs."""
+def pruefen_lassen(ordner: Path, runde: Path, neu: dict, sitzung: str | None, einheiten, v: dict, u: Umgebung,
+                   laufen) -> dict:
+    """Prüfschritt wie in runde.py auf den überarbeiteten Ablauf (ordner/ablauf.json). Rückgabe von
+    runde.pruefschleife, dazu unter_gut (ids der Kriterien, die nach allen Überarbeitungen unter „gut“ bleiben)."""
+    rel = lambda p: str(p.relative_to(u.hier))  # noqa: E731
+    kontext = runde / "kontext"
+    shutil.copy(runde / "szenenkarte.json", ordner / "szenenkarte.json")  # der Prüfer liest sie neben dem Ablauf
+    pfade = {"teile": [rel(p) for p in sorted(kontext.glob("stueck-teil-*.txt"))],
+             "vorgaben": rel(kontext / "vorgaben.md"), "grundlagen": rel(kontext / "grundlagen.md"),
+             "buch": [rel(p) for p in sorted(kontext.glob("buch-teil-*.md"))]}
+    p = runde_mod.pruefschleife(laufen, runde_mod.Kosten(None), ordner, ordner.relative_to(u.hier), pfade, neu,
+                                sitzung, einheiten, v["muss"], v["rahmen"], v)
+    p["unter_gut"] = [b["id"] for b in kritik.unter_schwelle(p["kritik"], v)]
+    return p
+
+
+def bauen(ordner: Path, ablauf: dict, einheiten, v: dict, u: Umgebung, lia_aenderungen: list[str],
+          pruefung: dict) -> list[Path]:
+    """Ablauf und Spielfassung neu; am Ende des Ablaufs, was nach Lias Rückmeldung geändert ist, und die Prüfung."""
     titel, rahmen = v["stueck"]["titel"], v["rahmen"]
     doc = fassung.ablauf(ablauf, einheiten, v["muss"], rahmen, titel)
     doc["bloecke"] += [{"typ": "ueberschrift", "text": "Was ich nach deiner Rückmeldung geändert habe"},
-                       {"typ": "liste", "punkte": ablauf["aenderungen"]}]
+                       {"typ": "liste", "punkte": lia_aenderungen}]
+    doc["bloecke"] += kritik.bloecke(pruefung["kritik"], v, pruefung["ueberarbeitungen"], pruefung["aenderungen"])
     ziel = ordner / "fuer-lia"
     ziel.mkdir(exist_ok=True)
     dateien = []

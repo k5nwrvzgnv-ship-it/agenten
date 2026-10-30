@@ -23,6 +23,11 @@ GUT = {"art": "antwort", "kern": "Die Fassung dauert etwa 37 Minuten.",
        "pruefen": ""}
 
 
+def bewertung(stufe: str) -> dict:
+    return {"kriterien": [{"id": k["id"], "stufe": stufe, "beleg": "Beleg", "verbesserung": "Besser"}
+                          for k in V["kriterium"]], "staerken": ["Chor"], "wichtigste_aenderungen": ["Mehr Fallhöhe"]}
+
+
 def auftrag(aid="20261030-111155-theater-5d88d5", bezug="20261029-150107-theater-0baec0",
             text="Nachbesserung zu deinem Ergebnis: Wie lange dauert die Fassung?"):
     return {"id": aid, "agent": "theater", "text": text, "bezug": bezug}
@@ -162,9 +167,13 @@ class Bearbeiten(Grundlage):
         ueberarbeitet = dict(GUT, art="ueberarbeitung", kern="Ich habe den Schluss gekürzt.")
         # erster Versuch ohne aenderungen: eine Nachbesserung
         claude = Claude(self.tmp, a["id"], [{"antwort.json": ueberarbeitet, "ablauf.json": self.ablauf},
-                                            {"antwort.json": ueberarbeitet, "ablauf.json": neu}])
+                                            {"antwort.json": ueberarbeitet, "ablauf.json": neu},
+                                            {"kritik-1.json": bewertung("gut")}])
         e = nachbesserung.bearbeiten(a, self.umgebung(claude))
         self.assertIn("aenderungen", claude.prompts[1][0])
+        self.assertIn("Prüfrunde 1", claude.prompts[2][0])
+        self.assertEqual([s for _, s in claude.prompts], [None, "s1", None])  # Prüfer in neuer Sitzung
+        self.assertEqual(e.hinweise, [])
         self.assertEqual([d.name for d in e.dateien], list(nachbesserung.DOKUMENTE))
         self.assertEqual([g[0] for g in self.gebaut], list(nachbesserung.DOKUMENTE))
         ordner = self.runde / f"nachbesserung-{a['id']}"
@@ -174,6 +183,40 @@ class Bearbeiten(Grundlage):
         claude = Claude(self.tmp, b["id"], [{"antwort.json": GUT}])
         nachbesserung.bearbeiten(b, self.umgebung(claude))
         self.assertIn(f"{ordner.name}/ablauf.json", claude.prompts[0][0])
+
+    def test_ueberarbeitung_nach_pruefung(self):
+        a = auftrag()
+        neu = dict(self.ablauf, aenderungen=["Akt 2 mit mehr Publikum"])
+        zwei = dict(self.ablauf, aenderungen=["Fallhöhe in Akt 3 gesteigert"])
+        ueberarbeitet = dict(GUT, art="ueberarbeitung", kern="Ich habe Akt 2 umgebaut.")
+        claude = Claude(self.tmp, a["id"], [{"antwort.json": ueberarbeitet, "ablauf.json": neu},
+                                            {"kritik-1.json": bewertung("ansatzweise")},
+                                            {"ablauf-2.json": zwei},
+                                            {"kritik-2.json": bewertung("gut")}])
+        e = nachbesserung.bearbeiten(a, self.umgebung(claude))
+        self.assertEqual([s for _, s in claude.prompts], [None, None, "s1", None])  # Autor bleibt in seiner Sitzung
+        ordner = self.runde / f"nachbesserung-{a['id']}"
+        stand = json.loads((ordner / "stand.json").read_text(encoding="utf-8"))
+        self.assertEqual(stand["ablauf"], f"{ordner.name}/ablauf-2.json")
+        doc = json.loads((ordner / "fuer-lia" / "2 Ablauf und Varianten.json").read_text(encoding="utf-8"))
+        texte = json.dumps(doc, ensure_ascii=False)
+        self.assertIn("Akt 2 mit mehr Publikum", texte)  # Lias Änderung
+        self.assertIn("Fallhöhe in Akt 3 gesteigert", texte)  # nach der Prüfung
+        self.assertIn("einmal überarbeitet", texte)
+        self.assertEqual(e.laeufe, 4)
+
+    def test_unter_gut_bleibt_als_hinweis(self):
+        a = auftrag()
+        neu = dict(self.ablauf, aenderungen=["A"])
+        laeufe = [{"antwort.json": dict(GUT, art="ueberarbeitung"), "ablauf.json": neu}]
+        for i in range(1, 4):
+            laeufe.append({f"kritik-{i}.json": bewertung("ansatzweise")})
+            if i < 3:
+                laeufe.append({f"ablauf-{i + 1}.json": dict(self.ablauf, aenderungen=[f"Runde {i}"])})
+        claude = Claude(self.tmp, a["id"], laeufe)
+        e = nachbesserung.bearbeiten(a, self.umgebung(claude))
+        self.assertIn("unter „gut“", e.hinweise[0])
+        self.assertEqual(len(e.dateien), 2)
 
 
 class Agent(Grundlage):

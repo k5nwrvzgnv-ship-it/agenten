@@ -11,6 +11,6 @@ Type=oneshot
 Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
 WorkingDirectory=/home/agent/agenten/lia/theater
 ExecStart=/home/agent/agenten/lia/theater/.venv/bin/python agent.py
-# Ein Auftrag: bis zu zwei Claude-Läufe (Opus, ganzes Stück als Kontext möglich) plus Bauen und Vorschau
-TimeoutStartSec=40min
+# Ein Auftrag: bis zu 7 Claude-Läufe (Opus; Überarbeitung mit Nachbesserung, 3 Prüfungen, 2 Überarbeitungen) plus Bauen
+TimeoutStartSec=90min
 MemoryMax=1500M
