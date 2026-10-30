@@ -580,9 +580,15 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         30.10.: Die Web-App speichert Stunden selbst (shared/webapp/zustand.py) und schreibt sie in den Text.
      b) alle Material-Agenten: Nachbesserung auf Grundlage einer von Lia hochgeladenen Fassung (Word mit
         Kommentaren) als Fassung desselben Auftrags (bezug), nicht als neuer Auftrag.
-     c) Chat-Agent für Lia (eigener Ordner lia/chat/ oder Teil von unterricht): kurze Antworten über
-        agentkit.claude_lauf, Kontext des Orts aus Dateien (Fach, Klasse mit Lerngruppe, Reihe, Stunden, Regeln),
-        kleines Modell für schnelle Fragen, kein Starten von Aufträgen, keine Schülernamen, Verlauf befristet.
+     c) Erledigt 30.10. (Jans Okay): Agent lia/chat, läuft (Dienste lia-chat.path, lia-chat-aufraeumen.timer),
+        echter Test 8–14 s je schnelle Frage. Bedarf shared/webapp: Spalte „Fragen“ anschließen. Schnittstelle
+        (Einzelheiten lia/chat/STATUS.md, Abschnitt „Schnittstelle“): lia/chat in sys.path, `import schnittstelle`
+        (nur Bordmittel); `frage_stellen(text, ort=None, gruendlich=False) -> id`, ort = {"reihe": kennung,
+        "stunde": n, "chip": "Ethik › 8 › …", "stunde_thema", "materialien": [Titel]} (nur reihe Pflicht);
+        `antwort_holen(id)` alle 2 s bis nicht None ({"ok", "text" (Markdown), "fehler": None/limit/belegt/zeit/
+        technik/ungueltig, "wieder_frei", "chip"}, bei Fehler Satz für Lia in text); `verlauf()` für die Spalte
+        (30 Tage, Trennlinie bei Wechsel von reihe). Ungültige Frage: FrageFehler mit Satz für Lia. Hinweis
+        „Bitte keine Namen von Schüler*innen“ unter dem Feld und „Daraus Auftrag machen“ baut die Web-App.
      d) Erledigt 30.10. in agentkit.fassungen (siehe „Vom Hauptordner-Chat“ unten), Umstellung der Web-App offen.
      e) lia/unterricht (später, nach Jans Okay): Varianten in einem Lauf bauen (einfach/Türkisch/Hilfekarten aus
         derselben Beschreibung), statt je Variante ein eigener Lauf mit der fertigen Datei als Anhang (heute in
