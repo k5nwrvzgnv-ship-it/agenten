@@ -48,6 +48,7 @@ class Ergebnis:
     usd: float = 0.0
     laeufe: int = 0
     hinweise: list[str] = field(default_factory=list)
+    fuer_jan: str = ""  # Meldung an Jan nach Erfolg (neue Runde aus der Web-App), sonst nur Log
 
 
 def runde_finden(auftrag: dict, data: Path) -> Path:
@@ -242,7 +243,7 @@ def bearbeiten(auftrag: dict, u: Umgebung) -> Ergebnis:
     data = u.hier / "data"
     runde = runde_finden(auftrag, data)
     alt = ablauf_finden(runde, auftrag.get("bezug"))
-    v = u.vorgaben
+    v = runde_mod.vorgaben_der_runde(runde, u.vorgaben)  # z. B. mit Lias Länge aus der Web-App
     einheiten = stueck.aus_dicts(json.loads((runde / "einheiten.json").read_text(encoding="utf-8")))
     try:
         ablauf = karte.antwort_lesen(alt)

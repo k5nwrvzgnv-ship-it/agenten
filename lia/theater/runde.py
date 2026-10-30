@@ -31,6 +31,7 @@ import fassung
 import karte
 import kritik
 import stueck
+import wunsch as wunsch_mod
 from agentkit import auftraege, claude_lauf, config, log, meldungen
 
 AGENT = "theater"
@@ -97,7 +98,7 @@ def lesbarer_name(name: str) -> str:
     return unicodedata.normalize("NFC", name)
 
 
-def vorgaben_text(v: dict, nachricht: str, gedanken: str, figuren: str) -> str:
+def vorgaben_text(v: dict, nachricht: str, gedanken: str, figuren: str, auftrag: str = "") -> str:
     r = v["rahmen"]
     zeilen = ["# Lias Vorgaben", "", "## Rahmen",
               f"- {r['minuten_min']}–{r['minuten_max']} Minuten, {r['spieler']} SuS, {r['einheiten']}",
@@ -108,12 +109,22 @@ def vorgaben_text(v: dict, nachricht: str, gedanken: str, figuren: str) -> str:
     zeilen += ["", "## Lias Nachricht (29.10.2026)", nachricht.strip(),
                "", "## Lias Notizen: Erste Gedanken", gedanken.strip(),
                "", "## Lias Notizen: Figuren und Zeitplan", figuren.strip()]
+    zeilen += ["", auftrag.strip()] if auftrag else []
     return "\n".join(zeilen) + "\n"
 
 
-def vorbereiten(pfade: Pfade, ordner: Path) -> tuple[dict, list[stueck.Einheit], dict]:
-    """Kontextdateien für Claude. Rückgabe: Vorgaben, Einheiten, Pfade der Kontextdateien (relativ zu hier)."""
+def vorgaben_der_runde(ordner: Path, v: dict) -> dict:
+    """Vorgaben, mit denen die Runde lief (vorgaben.json, z. B. mit Lias Länge aus der Web-App), sonst v."""
+    p = ordner / "vorgaben.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else v
+
+
+def vorbereiten(pfade: Pfade, ordner: Path, wunsch: dict | None = None) -> tuple[dict, list[stueck.Einheit], dict]:
+    """Kontextdateien für Claude. Rückgabe: Vorgaben, Einheiten, Pfade der Kontextdateien (relativ zu hier).
+    wunsch: Lias Angaben aus der Web-App (wunsch.spielfassung_angaben); passt Rahmen und Rubrik an."""
     v = tomllib.loads(pfade.vorgaben.read_text(encoding="utf-8"))
+    if wunsch:
+        v = wunsch_mod.anpassen(v, wunsch)
     einheiten = stueck.zerlegen((pfade.hier / v["stueck"]["textfassung"]).read_text(encoding="utf-8"))
     kontext = ordner / "kontext"
     kontext.mkdir(parents=True, exist_ok=True)
@@ -126,8 +137,10 @@ def vorbereiten(pfade: Pfade, ordner: Path) -> tuple[dict, list[stueck.Einheit],
     vorgaben = kontext / "vorgaben.md"
     vorgaben.write_text(vorgaben_text(v, pfade.nachricht.read_text(encoding="utf-8"),
                                       textdatei(pfade.texte, "Erste_Gedanken").read_text(encoding="utf-8"),
-                                      textdatei(pfade.texte, "eingang__Figuren").read_text(encoding="utf-8")),
+                                      textdatei(pfade.texte, "eingang__Figuren").read_text(encoding="utf-8"),
+                                      wunsch_mod.vorgaben_abschnitt(wunsch) if wunsch else ""),
                         encoding="utf-8")
+    (ordner / "vorgaben.json").write_text(json.dumps(v, ensure_ascii=False, indent=1), encoding="utf-8")
     teile_grundlagen = []
     for name in v["kontext"]["dateien"]:
         p = textdatei(pfade.texte, name)
@@ -217,11 +230,12 @@ def bauen(ordner: Path, beschreibungen: list[dict], profil: dict, renderer_bauen
 
 
 def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None, fortsetzen: str | None = None,
-          grenze: float | None = GRENZE_USD) -> dict:
+          grenze: float | None = GRENZE_USD, wunsch: dict | None = None) -> dict:
     """Führt eine Runde aus. Rückgabe: Zusammenfassung für die Meldung. Fehler: RundenFehler u. a.
 
     fortsetzen: Name eines Ordners in data/ (z. B. nach Abbruch an der Kostengrenze). Schon geprüfte Antworten
     werden übernommen, nur fehlende Schritte laufen. Eine neue Sitzung, weil die alte nicht mehr fortgesetzt wird.
+    wunsch: Lias Angaben aus der Web-App (wunsch.json im Ordner, gilt auch beim Fortsetzen).
     """
     pfade = pfade or Pfade()
     if fortsetzen:
@@ -230,7 +244,12 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
             raise RundenFehler(f"{ordner} ist keine angefangene Runde")
     else:
         ordner = pfade.hier / "data" / f"runde-{time.strftime('%Y%m%d-%H%M%S')}"
-    v, einheiten, rel = vorbereiten(pfade, ordner)
+    if wunsch:
+        ordner.mkdir(parents=True, exist_ok=True)
+        (ordner / "wunsch.json").write_text(json.dumps(wunsch, ensure_ascii=False), encoding="utf-8")
+    elif (ordner / "wunsch.json").exists():
+        wunsch = json.loads((ordner / "wunsch.json").read_text(encoding="utf-8"))
+    v, einheiten, rel = vorbereiten(pfade, ordner, wunsch)
     titel, muss, rahmen = v["stueck"]["titel"], v["muss"], v["rahmen"]
     kosten = Kosten(grenze)
     rel_ordner = ordner.relative_to(pfade.hier)
@@ -309,27 +328,28 @@ def pruefschleife(laufen, kosten: Kosten, ordner: Path, rel_ordner: Path, rel: d
         version += 1
 
 
-def melden_text(z: dict) -> str:
+def melden_text(z: dict, an_lia_auftrag: str | None = None) -> str:
     pruefung = ("alle Kriterien mindestens „gut“" if not z["unter_gut"] else
                 "noch unter „gut“: " + ", ".join(z["unter_gut"]))
     return (f"Runde fertig ({z['usd']:.2f} USD). Szenenkarte mit {z['anlaesse']} Spielanlässen, Ablauf mit "
             f"{z['bausteine']} Bausteinen für {z['minuten']:g} Minuten, {z['ueberarbeitungen']}-mal nach Prüfung "
             f"überarbeitet, {pruefung}. Vom Original bleiben {z['behalten']} von "
             f"{z['einheiten']} Einheiten (etwa {z['sprechminuten']:.0f} Min Sprechzeit). Dokumente zur Vorschau in "
-            f"{z['ordner']}: " + ", ".join(z["dateien"]) + ". Noch nicht an Lia geschickt.")
+            f"{z['ordner']}: " + ", ".join(z["dateien"]) + "."
+            + (f" An Lia geschickt (Auftrag {an_lia_auftrag})." if an_lia_auftrag else " Noch nicht an Lia geschickt."))
 
 
-def nachricht_an_lia(z: dict) -> tuple[str, dict]:
+def nachricht_an_lia(z: dict, anfang: str = "Hier ist ein erster Plan für dein Stück.",
+                     pruefen: str = "Fällt Frederick weg? Und wann ist die Aufführung?") -> tuple[str, dict]:
     """Ergebnistext und daten für Lias Zentrale (shared/telegram/vorlagen.py: kern, höchstens 3 Punkte, pruefen)."""
     # Sprachregel der Zentrale (agentkit.sprache, für Lia): kurze Sätze, höchstens 600 Zeichen für alles zusammen
-    kern = (f"Hier ist ein erster Plan für dein Stück. Er dauert {karte.zahl(z['minuten'])} Minuten. "
+    kern = (f"{anfang} Er dauert {karte.zahl(z['minuten'])} Minuten. "
             f"Vom Original bleiben nur die besten Stellen, etwa {z['sprechminuten']:.0f} Minuten Text. "
             "Lies in Ruhe. Dann antworte einfach auf diese Nachricht.")
     punkte = [f"Datei 1 und 2: das Stück in {z['anlaesse']} Szenen und dein Ablauf, mit Ideen zu deinen Fragen.",
               "Datei 3: der Text zum Spielen, mit Strichen.",
               "Datei 4: Die Klasse erfindet das Stück im Stück selbst."]
-    pruefen = "Fällt Frederick weg? Und wann ist die Aufführung?"
-    text = "\n".join([kern] + [f"- {p}" for p in punkte] + [pruefen])
+    text = "\n".join([kern] + [f"- {p}" for p in punkte] + ([pruefen] if pruefen else []))
     # Keine Feedback-Knöpfe: „Passt“ sagt bei einem Entwurf mit Varianten nicht, was passt (wie lia/recherche).
     return text, {"kern": kern, "punkte": punkte, "pruefen": pruefen, "knoepfe": "nur_antwort"}
 
@@ -344,7 +364,7 @@ def an_lia(ordner: Path, basis: Path | None = None, agenten_dir: Path | None = N
     fehlen = [d.name for d in dateien if not d.exists()]
     if fehlen:
         raise RundenFehler(f"Runde {ordner.name} ist nicht fertig, es fehlen: {', '.join(fehlen)}")
-    v = tomllib.loads((ordner.parents[1] / "theater.toml").read_text(encoding="utf-8"))
+    v = vorgaben_der_runde(ordner, tomllib.loads((ordner.parents[1] / "theater.toml").read_text(encoding="utf-8")))
     einheiten = stueck.aus_dicts(json.loads((ordner / "einheiten.json").read_text(encoding="utf-8")))
     k = karte.antwort_lesen(ordner / "szenenkarte.json")
     ergebnis = ordner / "ergebnis.json"  # welcher Ablauf in die Dokumente ging (nach Prüfung und Überarbeitung)

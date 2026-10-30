@@ -6,6 +6,11 @@ Hilft Lia in ihrem zweiten Fach Theater (Darstellendes Spiel). Erste Aufgabe: au
 sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstellen behalten.
 
 ## Stand (30.10.2026)
+- Neue Aufträge aus Lias Web-App (Jans Okay 30.10., board-plan.md Punkt 8), gebaut und getestet, noch KEIN echter
+  Lauf (Jans Okay nötig, Lias Kontingent): „Spielfassung: …“ ist eine ganze Runde mit Lias Länge, Spieler*innen
+  und „Was bleiben muss“, Ergebnis direkt an Lia, Meldung mit Kosten an Jan; „Szenenaufgabe: …“ ein Arbeitsblatt
+  für eine Gruppe. Format für die Web-App in Punkt 24 der Haupt-STATUS. Die Web-App bietet die Arten noch nicht an.
+  Zeitlimit des Dienstes 180 statt 90 Minuten (Unit installiert, daemon-reload, Jans Okay).
 - Dienst lia-theater eingerichtet (Jans Okay 30.10.): agent.py arbeitet Aufträge aus Lias Warteschlange selbst ab,
   vor allem Nachbesserungen aus ihrem Feedback. Erster Auftrag 20261030-111155-theater-5d88d5 (Lias Frage, wie
   lange die Fassung dauert): 2 Läufe, 0,55 USD, Antwort 38 Min, davon gut 11 Min neue Szenen, etwa 15 Min Text aus
@@ -22,7 +27,7 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Renderer. Eine Überarbeitung, die alle Prüfrunden durchläuft, ist nur in Tests gelaufen.
 - Plan und Pakete (wie lia/examen) von Jan freigegeben (29.10.). Kostengrenze seit 29.10. nachmittags aufgehoben
   (siehe Entscheidungen); der erste Lauf lief noch mit 5 USD.
-- Code fertig, 55 Tests grün, in pruefen.sh eingetragen.
+- Code fertig, 109 Tests grün, in pruefen.sh eingetragen.
 - An Lia geschickt (Jans Okay nach Vorschau, 29.10. 15:01, Auftrag 20261029-150107-theater-0baec0): die vier docx,
   ohne Feedback-Knöpfe, von Lias Zentrale um 15:01:33 zugestellt (4 Nachrichten). Die Zentrale warnte: Text zu lang
   und ein Satz mit 29 Wörtern (Sprachregel agentkit.sprache). Gesendet ist gesendet; nachricht_an_lia ist danach
@@ -75,8 +80,10 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 
 ## Aufbau
 - Dienst: lia-theater.service (Vorlage systemd/lia-theater.service, in ~/.config/systemd/user/), oneshot,
-  OnFailure=ausfall@%n.service. Lias Zentrale und lia-feedback starten ihn nach jedem neuen Auftrag.
-- agent.py: holt auftraege.neue("theater"), je Auftrag nachbesserung.bearbeiten. Fehler: Lia bekommt eine kurze
+  OnFailure=ausfall@%n.service, TimeoutStartSec=180min. Lias Zentrale und lia-feedback starten ihn nach jedem
+  neuen Auftrag, die Web-App soll es auch (agent_starten("theater")).
+- agent.py: holt auftraege.neue("theater"), je Auftrag neuauftrag.bearbeiten (Spielfassung, Szenenaufgabe, sonst
+  nachbesserung.bearbeiten). Nach Erfolg mit Ergebnis.fuer_jan eine Meldung an Jan. Fehler: Lia bekommt eine kurze
   Nachricht, Jan die Ursache; Kontingent voll: Lia erfährt, ab wann.
 - nachbesserung.py: Runde finden (bezug auf einen früheren Auftrag, auf an_lia.json, sonst Rundenname im Text),
   gültigen Ablauf finden (stand.json des Bezugs, sonst ergebnis.json bzw. ablauf.json der Runde). Ordner
@@ -88,6 +95,18 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Bei Überarbeitung danach runde.pruefschleife (Prüfer gegen die Rubrik, Autor überarbeitet höchstens zweimal);
   bricht sie ab, gilt der letzte Stand, der Pythons Prüfung besteht. Ablauf-Dokument: Lias Änderungen, Prüfung.
   Lias Antworttext entsteht vor dem Prüfschritt; spätere Änderungen stehen nur im Dokument.
+- wunsch.py (reine Logik): Art aus der ersten Zeile („Spielfassung:“, „Szenenaufgabe:“; quelle portal-theater ohne
+  Art und ohne bezug ist ein Fehler), Zeilen „Schlüssel: Wert“ (Länge, Spieler*innen, Was bleiben muss), Stück
+  passt nur zu theater.toml. anpassen: Länge neu, Zeitplan je Teil anteilig, Spielerzahl auch im Kriterium
+  ensemble, „Was bleiben muss“ als zusätzliches Kriterium „auftrag“ der Rubrik (Python prüft nur die feste Liste).
+- neuauftrag.py: Spielfassung = runde.runde(wunsch=...), Ordner bekommt wunsch.json und vorgaben.json (gilt auch
+  beim Fortsetzen und für spätere Nachbesserungen, runde.vorgaben_der_runde), an_lia.json mit der Auftrags-ID
+  (Lias Rückmeldung findet die Runde). Anderes Stück: NeuesStueck, kein Lauf, Lia kurz, Jan die Ursache.
+  Szenenaufgabe: Runde, die Lia zuletzt bekam (an_lia.json, nach zeit), Ablauf = Stand des letzten echten
+  Auftrags (nicht probe-…). Ordner <runde>/szenenaufgabe-<auftrag>/: spielfassung.txt, aufgabe.json
+  ({"blatt", "text_aus_dem_stueck": [{von, bis}]}, höchstens 150 Einheiten; Python hängt den Originaltext wörtlich
+  an), fuer-lia/<Titel>.docx. Anhänge bekommen eine Textfassung daneben. Eine Nachbesserung. Rückmeldung mit bezug
+  auf eine Szenenaufgabe überarbeitet diese in derselben Runde.
 - Neue Runde von Hand: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py`
   Ergebnis in data/runde-<zeit>/fuer-lia/ (vier docx, je mit PDF-Vorschau), Meldung an Jan. Noch nicht an Lia.
   `runde.py <ordner>` setzt eine abgebrochene Runde fort. `runde.py --an-lia <ordner>` (nur in Lias Instanz, nach
@@ -143,6 +162,10 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 3. Überarbeitung baut nur Ablauf und Spielfassung neu (keine neue Szenenkarte oder Szenenaufgabe). Ob der Autor
    im Prüfschritt Lias „nur das ändern“ immer einhält, steht nicht im Prompt (kritik.ueberarbeitung_prompt gilt auch
    für runde.py); im Probelauf tat er es aus der Sitzung heraus.
+
+4. Neue Aufträge: Ist Lias Kontingent mitten in einer Spielfassung voll, startet ein erneuter Auftrag eine neue
+   Runde (die alte ließe sich nur von Hand mit runde.py <ordner> fortsetzen). Erster echter Lauf je Art steht aus.
+   Gibt Lia nur eine Länge (eine Zahl), gilt ±2 Minuten (Annahme, nicht mit Lia geklärt).
 
 ## Gelernte Regeln
 - (noch keine)

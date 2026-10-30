@@ -70,3 +70,81 @@ Schreibe eine Beschreibung nach diesem Format als JSON in die Datei {ausgabe}. a
 {format_text}
 
 Antworte am Ende nur mit „fertig“."""
+
+
+# Szenenaufgabe auf Lias Auftrag aus der Web-App („Szenenaufgabe: …“, Plan Jan 30.10.2026): ein Arbeitsblatt für
+# eine Gruppe. Originaltext tippt Claude nicht ab, sondern nennt Nummern; Python hängt den Text wörtlich an.
+TEXT_MAX_EINHEITEN = 150  # so viel Originaltext höchstens auf einem Blatt
+
+
+def szenen_pruefen(daten: dict, anzahl: int) -> list[str]:
+    """Antwort {"blatt": arbeitsblatt, "text_aus_dem_stueck": [{"von": n, "bis": m}, ...]}; anzahl = Einheiten."""
+    if not isinstance(daten.get("blatt"), dict):
+        return ["blatt fehlt (die Beschreibung des Arbeitsblatts)"]
+    fehler = pruefen(daten["blatt"])
+    stellen = daten.get("text_aus_dem_stueck", [])
+    if not isinstance(stellen, list):
+        return fehler + ["text_aus_dem_stueck muss eine Liste sein"]
+    summe = 0
+    for i, s in enumerate(stellen, 1):
+        von, bis = (s.get("von"), s.get("bis")) if isinstance(s, dict) else (None, None)
+        if not (isinstance(von, int) and isinstance(bis, int) and 1 <= von <= bis <= anzahl):
+            fehler.append(f"text_aus_dem_stueck {i}: von/bis müssen Nummern 1–{anzahl} sein, von <= bis")
+            continue
+        summe += bis - von + 1
+    if summe > TEXT_MAX_EINHEITEN:
+        fehler.append(f"text_aus_dem_stueck: {summe} Einheiten, höchstens {TEXT_MAX_EINHEITEN}")
+    return fehler
+
+
+def mit_text(daten: dict, originalbloecke) -> dict:
+    """Arbeitsblatt mit dem Originaltext am Ende. originalbloecke(stellen) -> Blöcke (fassung._originalbloecke)."""
+    blatt = dict(daten["blatt"], bloecke=list(daten["blatt"]["bloecke"]))
+    stellen = daten.get("text_aus_dem_stueck") or []
+    if stellen:
+        blatt["bloecke"] += [{"typ": "ueberschrift", "text": "Text aus dem Stück"}] + originalbloecke(stellen)
+    return blatt
+
+
+def szenen_prompt(ausgabe: str, auftrag: str, vorgaben: str, grundlagen: str, teile: list[str], ablauf: str,
+                  spielfassung: str, anhaenge: list[str], format_text: str, buch: list[str],
+                  vorher: str | None = None) -> str:
+    """vorher: Beschreibung einer früheren Szenenaufgabe; dann ist auftrag Lias Rückmeldung dazu."""
+    liste = lambda xs: "\n".join(f"- {x}" for x in xs)  # noqa: E731
+    anhang = (f"\nLia hat Material angehängt (gehört zu diesem Auftrag):\n{liste(anhaenge)}\n" if anhaenge else "")
+    worum = (f"Lia hat eine Szenenaufgabe von dir bekommen ({vorher}, lies sie zuerst) und meldet zurück. Überarbeite "
+             "sie danach; was Lia nicht anspricht, bleibt. Ihre Rückmeldung, wörtlich:" if vorher else
+             "Lia möchte eine Szenenaufgabe für eine Gruppe. Ihr Auftrag, wörtlich:")
+    return f"""Du hilfst Lia, Lehrerin für Darstellendes Spiel. Ihr Kurs spielt eine eigene Fassung von „Der nackte
+Wahnsinn“ (Michael Frayn). {worum}
+
+{auftrag}
+{anhang}
+Lies zuerst mit Read: Lias Vorgaben {vorgaben}, ihre Grundlagen {grundlagen} (darin unter „Szenenaufgabe_CvO“ ihr
+Vorbild für Szenenaufgaben) und die aktuelle Spielfassung {spielfassung}. Das Stück in nummerierten Einheiten
+([n] vor jeder Einheit), lies die Teile, die du für die Szene brauchst:
+{liste(teile)}
+Kapitel aus Lias Fachbuch (Kündiger, Praxis Schultheater). Passt eine Methode oder Übung von dort, nimm sie auf und
+setze ans Ende des Blatts einen Absatz „Methode nach: Kündiger, Praxis Schultheater, S. n“:
+{liste(buch)}
+
+Der aktuelle Ablauf ihrer Fassung (Bausteine B.., wie Lia sie kennt):
+{ablauf}
+
+Aufgabe: ein Arbeitsblatt für die Gruppe, mit der Methode, der Szene und dem Material aus Lias Auftrag. Stil wie
+Lias Szenenaufgabe: kurze Anweisung, Hinweise als Liste, klare Arbeitsschritte mit Zeitangaben, du sprichst die
+SuS mit „ihr“ an, ein bis zwei Seiten. Fehlt im Auftrag etwas (z. B. die Gruppengröße), triff eine sinnvolle Wahl
+und nenne sie im Blatt.
+
+Originaltext tippst du nicht ab. Braucht die Gruppe Text aus dem Stück, nenne die Nummern in
+„text_aus_dem_stueck“; Python setzt den Text wörtlich unter die Überschrift „Text aus dem Stück“ ans Ende des
+Blatts (höchstens {TEXT_MAX_EINHEITEN} Einheiten). Kurze Zitate (ein Satz) im Blatt sind in Ordnung.
+
+Schreibe JSON in die Datei {ausgabe}:
+{{"blatt": <Beschreibung nach dem Format unten, art = "arbeitsblatt", titel beginnt mit „Szenenaufgabe:“>,
+  "text_aus_dem_stueck": [{{"von": 1201, "bis": 1234}}]}}
+(leere Liste, wenn kein Originaltext nötig ist)
+
+{format_text}
+
+Antworte am Ende nur mit „fertig“."""

@@ -596,6 +596,18 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         Umstellung ein Symlink auf ../instanz/reihen.toml; bitte auf lia/instanz/reihen.toml umstellen (oder
         config.SHARED_DIR), dann löscht der unterricht-Chat den Symlink. Achtung: reihe_text gibt alle Felder aus,
         künftig auch id, agenten und [[reihe.stunde]].
+   - Vom lia/theater-Chat (30.10., board-plan.md 8, Jans Okay 30.10.): theater nimmt neue Aufträge an. Für die
+     Web-App: agent "theater", quelle "portal-theater", Feld reihe, danach agent_starten("theater") (Dienst
+     lia-theater). Text, erste Zeile entscheidet:
+     - „Spielfassung: <Stück>“, darunter „Länge: 35–40 Minuten“ (oder eine Zahl, dann ±2), „Spieler*innen: 18“,
+       „Was bleiben muss: …“ (auch mehrzeilig, höchstens 1500 Zeichen). Fehlt eine Zeile, gilt theater.toml. Nur
+       „Der nackte Wahnsinn“ (auch „Noises Off“); ein anderes Stück startet keinen Lauf, Lia bekommt „Für dieses
+       Stück habe ich den Text noch nicht“, Jan eine Meldung. Ergebnis: vier docx (Szenenkarte, Ablauf,
+       Spielfassung, Stück im Stück), eine ganze Runde, bis zu 3 Stunden, Kosten etwa wie 29.10. (rund 7 USD).
+     - „Szenenaufgabe: <Thema>“, darunter z. B. „Methode: …“, „Szene: …“ (Baustein B.. oder Stelle), „Material:
+       …“, optional „Gruppe: …“; Anhänge (pdf, docx, Bilder) im Feld dateien werden gelesen. Ergebnis: eine docx.
+       Rückmeldung mit bezug auf den Auftrag überarbeitet die Szenenaufgabe.
+     Weitere Zeilen (z. B. „Reihe: …“) stören nicht. Kein echter Lauf bisher, nur Tests.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 

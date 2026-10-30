@@ -1,9 +1,10 @@
 """Agent theater in Lias Instanz (AGENTKIT_INSTANZ=lia/instanz), Einstieg des Dienstes lia-theater.
 
-Holt die offenen Aufträge an theater und beantwortet sie einzeln (nachbesserung.py): vor allem Nachbesserungen aus
-Lias Feedback zu einer Runde (Frage beantworten oder Ablauf und Spielfassung überarbeiten). Lia bekommt die Antwort
-über ihre Zentrale. Scheitert ein Auftrag, bekommt Lia eine kurze Nachricht und Jan die Ursache als Meldung in
-seiner Zentrale. Neue Runden startet weiter nur runde.py von Hand.
+Holt die offenen Aufträge an theater und beantwortet sie einzeln (neuauftrag.bearbeiten): neue Aufträge aus Lias
+Web-App („Spielfassung: …“ ist eine ganze Runde, „Szenenaufgabe: …“ ein Arbeitsblatt, neuauftrag.py) und
+Nachbesserungen aus Lias Feedback zu einer Runde (Frage beantworten oder Ablauf und Spielfassung überarbeiten,
+nachbesserung.py). Lia bekommt die Antwort über ihre Zentrale. Scheitert ein Auftrag, bekommt Lia eine kurze
+Nachricht und Jan die Ursache als Meldung in seiner Zentrale. runde.py von Hand bleibt möglich (Vorschau für Jan).
 Aufruf: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py
 """
 
@@ -11,6 +12,7 @@ import tomllib
 from pathlib import Path
 
 import nachbesserung
+import neuauftrag
 from agentkit import auftraege, claude_lauf, config, log, meldungen, verbrauch
 
 AGENT = "theater"
@@ -39,13 +41,18 @@ def umgebung(auftrag_id: str) -> nachbesserung.Umgebung:
                                   laufen=claude_laufen(auftrag_id), renderer_bauen=renderer.bauen)
 
 
-def auftrag_bearbeiten(a: dict, bearbeiten=nachbesserung.bearbeiten, umgebung=umgebung, melden=jan_melden) -> None:
+def auftrag_bearbeiten(a: dict, bearbeiten=neuauftrag.bearbeiten, umgebung=umgebung, melden=jan_melden) -> None:
     try:
         e = bearbeiten(a, umgebung(a["id"]))
     except claude_lauf.LimitErreicht as f:
         logger.warning("Auftrag %s: %s", a["id"], f)
         auftraege.abschliessen(a["id"], LIMIT.format(zeit=verbrauch.zeit_text(f.reset)), status="fehlgeschlagen")
         melden(f"Anfrage von Lia nicht bearbeitet: {f}")
+        return
+    except neuauftrag.NeuesStueck as f:
+        logger.warning("Auftrag %s: %s", a["id"], f)
+        auftraege.abschliessen(a["id"], neuauftrag.NEUES_STUECK_LIA, status="fehlgeschlagen")
+        melden(f"Auftrag {a['id']}: {f}")
         return
     except Exception as f:  # jeder Abbruch: Lia bekommt eine Antwort, Jan die Ursache
         logger.exception("Auftrag %s fehlgeschlagen", a["id"])
@@ -55,6 +62,8 @@ def auftrag_bearbeiten(a: dict, bearbeiten=nachbesserung.bearbeiten, umgebung=um
     hinweis = f", Hinweise: {'; '.join(e.hinweise)}" if e.hinweise else ""
     logger.info("Auftrag %s fertig: %d Läufe, %.2f USD, %d Dateien%s", a["id"], e.laeufe, e.usd, len(e.dateien), hinweis)
     auftraege.abschliessen(a["id"], e.text, sitzung=e.sitzung, dateien=e.dateien, daten=e.daten)
+    if e.fuer_jan:
+        melden(e.fuer_jan)
 
 
 def auftraege_abarbeiten(**kw) -> None:

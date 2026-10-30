@@ -76,6 +76,7 @@ class Claude:
         einheiten = stueck.aus_dicts(json.loads((ordner / "einheiten.json").read_text(encoding="utf-8")))
         import tomllib
         v = tomllib.loads((self.hier / "theater.toml").read_text(encoding="utf-8"))
+        v = runde.vorgaben_der_runde(ordner, v)  # mit Lias Angaben aus der Web-App (Rubrik mit „auftrag“)
         muss = [m["id"] for m in v["muss"]]
         if pfad.name.startswith("kritik-"):
             stufe = self.stufen.get(int(pfad.stem.split("-")[1]), "gut")
