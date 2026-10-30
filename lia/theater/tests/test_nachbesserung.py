@@ -205,6 +205,35 @@ class Bearbeiten(Grundlage):
         self.assertIn("einmal überarbeitet", texte)
         self.assertEqual(e.laeufe, 4)
 
+    def test_pruefschritt_bricht_ab_letzter_guter_stand_gilt(self):
+        a = auftrag()
+        neu = dict(self.ablauf, aenderungen=["Kamera raus"])
+        zu_lang = dict(self.ablauf, aenderungen=["x" * 500])  # besteht aenderungen_pruefen nicht
+        claude = Claude(self.tmp, a["id"], [{"antwort.json": dict(GUT, art="ueberarbeitung"), "ablauf.json": neu},
+                                            {"kritik-1.json": bewertung("ansatzweise")},
+                                            {"ablauf-2.json": zu_lang}, {"ablauf-2.json": zu_lang}])
+        e = nachbesserung.bearbeiten(a, self.umgebung(claude))
+        self.assertIn("Prüfschritt abgebrochen, Stand ablauf.json", e.hinweise[0])
+        self.assertIn("unter „gut“", e.hinweise[1])  # Bewertung von Version 1 bleibt
+        ordner = self.runde / f"nachbesserung-{a['id']}"
+        self.assertEqual(json.loads((ordner / "stand.json").read_text(encoding="utf-8"))["ablauf"],
+                         f"{ordner.name}/ablauf.json")
+        texte = (ordner / "fuer-lia" / "2 Ablauf und Varianten.json").read_text(encoding="utf-8")
+        self.assertIn("Kamera raus", texte)
+        self.assertIn("nicht überarbeitet", texte)
+
+    def test_letzter_guter_stand_ohne_bewertung(self):
+        ordner = self.runde / "nachbesserung-x"
+        ordner.mkdir()
+        (ordner / "ablauf.json").write_text(json.dumps(dict(self.ablauf, aenderungen=["A"])), encoding="utf-8")
+        (ordner / "ablauf-2.json").write_text(json.dumps(dict(self.ablauf, aenderungen=["B"])), encoding="utf-8")
+        p = nachbesserung.letzter_guter_stand(ordner, self.einheiten, V)
+        self.assertEqual((p["datei"], p["ueberarbeitungen"], p["aenderungen"], p["kritik"]),
+                         ("ablauf-2.json", 1, ["B"], None))
+        (ordner / "ablauf.json").write_text("{}", encoding="utf-8")
+        with self.assertRaises(nachbesserung.NachbesserungFehler):
+            nachbesserung.letzter_guter_stand(ordner, self.einheiten, V)
+
     def test_unter_gut_bleibt_als_hinweis(self):
         a = auftrag()
         neu = dict(self.ablauf, aenderungen=["A"])

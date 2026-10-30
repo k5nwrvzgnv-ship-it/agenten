@@ -12,6 +12,14 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   dem Stück und 8 Min neuer Text; von Lias Zentrale um 12:19 zugestellt. Die Nachbesserung lief wegen eines Satzes
   mit 17 Wörtern (Sprachregel), danach ging die Antwort mit Warnung im Log raus. Den Chor (gemischt) zählt Claude
   zu den neuen Teilen; die Kennzahlen von Python trennen nach Art (neu 8,5 Min, gemischt 23 Min).
+- Überarbeitung mit Prüfschritt, echter Probelauf 30.10. ohne Zustellung (nachbesserung.bearbeiten direkt, Auftrag
+  probe-20261030, Ordner data/runde-20261029-140740/nachbesserung-probe-20261030/, Wunsch: Kamera-Szene raus, mehr
+  Publikum in Akt 2). Lias Änderung sauber (nur B12 geändert, 38 Min bleiben). Prüfung 1: 8 von 11 Kriterien unter
+  „gut“ (die Runde vom 29.10. lief noch ohne Prüfschritt). Der Autor übernahm von sich aus nur Prüfer-Punkte zu
+  Akt 2 („sonst nichts ändern“), seine Überarbeitung war nach der Nachbesserung 9 Zeichen zu lang, und der Lauf
+  brach ab (5,44 USD). Deshalb gilt jetzt: Bricht der Prüfschritt ab, geht der letzte geprüfte Stand an Lia
+  (letzter_guter_stand), Jan sieht es im Log-Hinweis. Am Probeordner nachgeprüft, die beiden docx baut der echte
+  Renderer. Eine Überarbeitung, die alle Prüfrunden durchläuft, ist nur in Tests gelaufen.
 - Plan und Pakete (wie lia/examen) von Jan freigegeben (29.10.). Kostengrenze seit 29.10. nachmittags aufgehoben
   (siehe Entscheidungen); der erste Lauf lief noch mit 5 USD.
 - Code fertig, 55 Tests grün, in pruefen.sh eingetragen.
@@ -77,6 +85,9 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Spielfassung als docx), stand.json (welcher Ablauf danach gilt). Ein Claude-Lauf (Opus, neue Sitzung) wählt
   "antwort" oder "ueberarbeitung"; Python prüft antwort.json, den neuen Ablauf wie fassung.pruefen plus aenderungen
   und die Sprachregel für Lia. Eine Nachbesserung; harte Fehler danach brechen ab, Sprachregel nur Warnung.
+  Bei Überarbeitung danach runde.pruefschleife (Prüfer gegen die Rubrik, Autor überarbeitet höchstens zweimal);
+  bricht sie ab, gilt der letzte Stand, der Pythons Prüfung besteht. Ablauf-Dokument: Lias Änderungen, Prüfung.
+  Lias Antworttext entsteht vor dem Prüfschritt; spätere Änderungen stehen nur im Dokument.
 - Neue Runde von Hand: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py`
   Ergebnis in data/runde-<zeit>/fuer-lia/ (vier docx, je mit PDF-Vorschau), Meldung an Jan. Noch nicht an Lia.
   `runde.py <ordner>` setzt eine abgebrochene Runde fort. `runde.py --an-lia <ordner>` (nur in Lias Instanz, nach
@@ -129,8 +140,9 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 2. Fragen an Lia (über Jan):
    - Frederick (Philip/Scheich) fehlt in Figuren.docx. Fällt die Figur weg, oder ist sie nur vergessen?
    - Termin der Aufführung und bis wann sie den Ablaufvorschlag braucht.
-3. Überarbeitung über den Dienst ist getestet, aber noch nie echt gelaufen. Sie baut nur Ablauf und Spielfassung
-   neu (ohne Prüfschritt aus kritik.py, ohne neue Szenenkarte und Szenenaufgabe).
+3. Überarbeitung baut nur Ablauf und Spielfassung neu (keine neue Szenenkarte oder Szenenaufgabe). Ob der Autor
+   im Prüfschritt Lias „nur das ändern“ immer einhält, steht nicht im Prompt (kritik.ueberarbeitung_prompt gilt auch
+   für runde.py); im Probelauf tat er es aus der Sitzung heraus.
 
 ## Gelernte Regeln
 - (noch keine)

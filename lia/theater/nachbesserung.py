@@ -283,6 +283,8 @@ def bearbeiten(auftrag: dict, u: Umgebung) -> Ergebnis:
     gilt = alt
     if neu is not None:
         p = pruefen_lassen(ordner, runde, neu, erg.sitzung, einheiten, v, u, lauf)
+        if p.get("abgebrochen"):
+            erg.hinweise.append(f"Prüfschritt abgebrochen, Stand {p['datei']}: {p['abgebrochen']}")
         if p["unter_gut"]:
             erg.hinweise.append(f"nach {p['ueberarbeitungen']} Überarbeitungen noch unter „gut“: "
                                 + ", ".join(p["unter_gut"]))
@@ -306,10 +308,42 @@ def pruefen_lassen(ordner: Path, runde: Path, neu: dict, sitzung: str | None, ei
     pfade = {"teile": [rel(p) for p in sorted(kontext.glob("stueck-teil-*.txt"))],
              "vorgaben": rel(kontext / "vorgaben.md"), "grundlagen": rel(kontext / "grundlagen.md"),
              "buch": [rel(p) for p in sorted(kontext.glob("buch-teil-*.md"))]}
-    p = runde_mod.pruefschleife(laufen, runde_mod.Kosten(None), ordner, ordner.relative_to(u.hier), pfade, neu,
-                                sitzung, einheiten, v["muss"], v["rahmen"], v)
-    p["unter_gut"] = [b["id"] for b in kritik.unter_schwelle(p["kritik"], v)]
+    try:
+        p = runde_mod.pruefschleife(laufen, runde_mod.Kosten(None), ordner, ordner.relative_to(u.hier), pfade, neu,
+                                    sitzung, einheiten, v["muss"], v["rahmen"], v)
+    except (runde_mod.RundenFehler, karte.AntwortFehler) as f:
+        # Lias Änderung ist da und geprüft; ein gescheiterter Prüfschritt soll sie nicht verwerfen (Probelauf 30.10.)
+        p = letzter_guter_stand(ordner, einheiten, v)
+        p["abgebrochen"] = str(f)
+    p["unter_gut"] = [b["id"] for b in kritik.unter_schwelle(p["kritik"], v)] if p["kritik"] else []
     return p
+
+
+def letzter_guter_stand(ordner: Path, einheiten, v: dict) -> dict:
+    """Nach Abbruch des Prüfschritts: die höchste Version (ablauf.json, ablauf-2.json, ...), die die Prüfung von
+    Python besteht, mit ihrer Bewertung kritik-<n>.json, falls es die gültig gibt. Format wie runde.pruefschleife."""
+    gut, aenderungen = None, []
+    for n in range(1, kritik.MAX_UEBERARBEITUNGEN + 2):
+        datei = "ablauf.json" if n == 1 else f"ablauf-{n}.json"
+        try:
+            f = karte.antwort_lesen(ordner / datei)
+        except karte.AntwortFehler:
+            break
+        if fassung.pruefen(f, einheiten, v["muss"], v["rahmen"]) + kritik.aenderungen_pruefen(f):
+            break
+        if n > 1:
+            aenderungen += f["aenderungen"]
+        gut = {"ablauf": f, "datei": datei, "ueberarbeitungen": n - 1, "aenderungen": list(aenderungen),
+               "kritik": None, "kritik_datei": None}
+        try:
+            k = karte.antwort_lesen(ordner / f"kritik-{n}.json")
+            if not kritik.pruefen(k, v):
+                gut.update(kritik=k, kritik_datei=f"kritik-{n}.json")
+        except karte.AntwortFehler:
+            pass
+    if gut is None:
+        raise NachbesserungFehler("Prüfschritt abgebrochen und kein gültiger Ablauf vorhanden")
+    return gut
 
 
 def bauen(ordner: Path, ablauf: dict, einheiten, v: dict, u: Umgebung, lia_aenderungen: list[str],
@@ -319,7 +353,11 @@ def bauen(ordner: Path, ablauf: dict, einheiten, v: dict, u: Umgebung, lia_aende
     doc = fassung.ablauf(ablauf, einheiten, v["muss"], rahmen, titel)
     doc["bloecke"] += [{"typ": "ueberschrift", "text": "Was ich nach deiner Rückmeldung geändert habe"},
                        {"typ": "liste", "punkte": lia_aenderungen}]
-    doc["bloecke"] += kritik.bloecke(pruefung["kritik"], v, pruefung["ueberarbeitungen"], pruefung["aenderungen"])
+    if pruefung["kritik"]:
+        doc["bloecke"] += kritik.bloecke(pruefung["kritik"], v, pruefung["ueberarbeitungen"], pruefung["aenderungen"])
+    elif pruefung["aenderungen"]:
+        doc["bloecke"] += [{"typ": "ueberschrift", "text": "Nach der Prüfung geändert", "ebene": 2},
+                           {"typ": "liste", "punkte": pruefung["aenderungen"]}]
     ziel = ordner / "fuer-lia"
     ziel.mkdir(exist_ok=True)
     dateien = []
