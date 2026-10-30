@@ -1,5 +1,5 @@
 """Was die Web-App selbst speichert, bis Konten oder agentkit es können: "final" je Auftrag, Lias eigene Fassungen,
-die Stunden einer Reihe und welches Material zu welcher Stunde gehört.
+die Stunden einer Reihe, welches Material zu welcher Stunde gehört und welche Aufträge Varianten eines Materials sind.
 
 Je Instanz eine JSON-Datei data/zustand/<schluessel>.json, die Dateien der eigenen Fassungen unter
 data/eigene/<schluessel>/<ursprung-id>/<n>/<name>. Nichts davon liegt in Lias Instanz, die Agenten sehen es nicht
@@ -9,7 +9,9 @@ Format:
   {"final":  {"<ursprung-id>": {"fassung": "<auftrags-id oder eigene-n>", "zeit": "<iso>"}},
    "eigene": {"<ursprung-id>": [{"name": "Blatt.docx", "datei": "1/Blatt.docx", "zeit": "<iso>", "notiz": ""}]},
    "stunden": {"<reihe-id>": [{"thema": "Kant: Vergeltung", "zeit": "<iso>"}]},   Nummer = Platz in der Liste (ab 1)
-   "stunde_von": {"<ursprung-id>": {"reihe": "<reihe-id>", "nr": 2}}}
+   "stunde_von": {"<ursprung-id>": {"reihe": "<reihe-id>", "nr": 2}},
+   "varianten": {"<ursprung-id>": [{"art": "einfach", "auftrag": "<auftrags-id der variante>", "zeit": "<iso>"}]},
+   "varianten_wunsch": {"<ursprung-id>": ["tuerkisch"]}}   Lias „Auch als“, bis die Variante angefordert ist
 Die reine Logik dazu steht in logik.py (final_setzen, eigene_dazu, stunde_dazu, stunde_zuordnen).
 Stunden kennen die Agenten nicht; ein Auftrag aus einer Stunde nennt sie im Text (logik.text_mit_reihe).
 """
@@ -24,7 +26,7 @@ from pathlib import Path
 logger = logging.getLogger("webapp")
 
 
-FELDER = ("final", "eigene", "stunden", "stunde_von")
+FELDER = ("final", "eigene", "stunden", "stunde_von", "varianten", "varianten_wunsch")
 
 
 def leer() -> dict:

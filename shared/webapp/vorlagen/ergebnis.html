@@ -1,6 +1,6 @@
 {#- Material-Ansicht (Board „Desktop“): Kopf mit Art, Titel und Marke; links die ersten Seiten bzw. die Dateien,
-    rechts die Knöpfe; darunter „Das Wichtigste“ und die Fassungen (neueste oben). Ohne JavaScript: Rückmeldung und
-    eigene Fassung öffnen sich über ?offen=…, Formulare mit Token (app.py). Varianten gibt es noch nicht. -#}
+    rechts die Knöpfe; darunter „Das Wichtigste“ und die Fassungen (neueste oben). Ohne JavaScript: Rückmeldung,
+    eigene Fassung und Variante öffnen sich über ?offen=…, Formulare mit Token (app.py). -#}
 {% extends "basis.html" %}
 {% block seitenkopf %}
 <header class="material-kopf">
@@ -60,6 +60,51 @@
 {%- endmacro %}
 
 {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
+{%- if variante_art or varianten.gemacht or varianten.gewuenscht or variante_moeglich %}
+{#- Varianten (Board „Desktop“): normal ist das Original, jede Variante ein eigener Auftrag mit eigener Ansicht -#}
+<div class="varianten">
+  <span class="varianten-titel">Varianten:</span>
+  {%- if variante_art %}<a class="variante" href="{{ original_link }}">normal</a>
+  {%- else %}<span class="variante variante-hier" aria-current="page">normal</span>{% endif %}
+  {%- for v in varianten.gemacht %}
+  {%- if v.link == basis_url %}<span class="variante variante-hier" aria-current="page">{{ v.name }}</span>
+  {%- elif v.link %}<a class="variante" href="{{ v.link }}">{{ v.name }}{% if v.marke %} <span class="unter">{{ v.marke }}</span>{% endif %}</a>
+  {%- else %}<span class="variante">{{ v.name }}{% if v.marke %} <span class="unter">{{ v.marke }}</span>{% endif %}</span>{% endif %}
+  {%- endfor %}
+  {%- if variante_moeglich %}
+  {%- for w in varianten.gewuenscht %}
+  <form class="final-form" method="post" action="{{ basis_url }}/variante">
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="art" value="{{ w.art }}">
+    <button class="knopf knopf-klein" type="submit">{{ w.name }} anfordern</button>
+  </form>
+  {%- endfor %}
+  <a class="knopf knopf-klein{% if offen == 'variante' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=variante#variante">+ Variante</a>
+  {%- elif varianten.gewuenscht and not variante_art %}
+  <span class="unter">Gewünscht: {{ varianten.gewuenscht | map(attribute="name") | join(", ") }}. Anfordern geht, sobald das Blatt fertig ist.</span>
+  {%- endif %}
+</div>
+{%- endif %}
+{%- if offen == "variante" and variante_moeglich %}
+<div class="tafel" id="variante">
+  {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Variante landet in der Test-Instanz, kein Agent startet.</p>{% endif %}
+  {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
+  <form class="formular" method="post" action="{{ basis_url }}/variante">
+    <input type="hidden" name="token" value="{{ token }}">
+    <fieldset class="auswahl">
+      <legend class="tafel-titel">Welche Variante?</legend>
+      {%- for k, v in variante_arten.items() %}
+      <label><input type="radio" name="art" value="{{ k }}"{% if loop.first %} checked{% endif %}> {{ v.name }}</label>
+      {%- endfor %}
+    </fieldset>
+    <label for="variante-extra">Was noch? (wenn du magst)</label>
+    <input id="variante-extra" name="extra" type="text" maxlength="{{ extra_max }}" value="{{ text }}">
+    <button class="knopf knopf-voll" type="submit">Variante anfordern</button>
+  </form>
+  <span class="unter">Deine Assistenz baut sie aus {{ "der finalen Fassung" if e.final_name else "der Fassung oben" }}.
+    Bitte keine Namen von Schüler*innen.</span>
+</div>
+{%- endif %}
 {%- if e.laeuft %}<p class="hinweis">{{ e.laeuft }}</p>{% endif %}
 
 {%- if e.fehlgeschlagen %}

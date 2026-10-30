@@ -657,6 +657,37 @@ class TestReihen(unittest.TestCase):
             {"titel": "Kurze Sätze", "unter": "30.10.2026"}]}])
         self.assertEqual(logik.regel("Ohne Datum"), {"titel": "Ohne Datum", "unter": ""})
 
+    def test_varianten(self):
+        self.assertEqual(logik.varianten_waehlen(["tuerkisch", "x", "einfach", "einfach"]), ["einfach", "tuerkisch"])
+        self.assertEqual(logik.variante_pruefen("einfach", "  mehr   Bilder "), ("mehr Bilder", []))
+        self.assertTrue(logik.variante_pruefen("quatsch", "")[1])
+        self.assertTrue(logik.variante_pruefen("einfach", "x" * 501)[1])
+        self.assertEqual(logik.variante_text("hilfekarten", "AB Kant"),
+                         "Variante „mit Hilfekarten“ von „AB Kant“: Bau das angehängte Blatt als Variante, mit "
+                         "Hilfekarten: gleiche Aufgaben, dazu gestufte Hilfen je Aufgabe. Gestaltung und Dateiart bleiben.")
+        z = logik.wunsch_setzen({}, "K", ["einfach", "tuerkisch"])
+        z = logik.variante_dazu(z, "K", "einfach", "V1", "t")
+        self.assertEqual((z["varianten"], z["varianten_wunsch"]),
+                         ({"K": [{"art": "einfach", "auftrag": "V1", "zeit": "t"}]}, {"K": ["tuerkisch"]}))
+        self.assertEqual(logik.variante_dazu(z, "K", "tuerkisch", "V2", "t")["varianten_wunsch"], {})
+        self.assertEqual(logik.variante_von(z, "V1"), ("K", "einfach"))
+        self.assertIsNone(logik.variante_von(z, "K"))
+        self.assertEqual(logik.varianten_ids(z), {"V1"})
+        v1 = auftrag("20261030-150000-unterricht-cccccc", text="Variante", ergebnis_dateien=["a.docx"])
+        z = {"varianten": {"K": [{"art": "einfach", "auftrag": v1["id"]},
+                                 {"art": "tuerkisch", "auftrag": "20261030-160000-unterricht-dddddd"}]},
+             "varianten_wunsch": {"K": ["hilfekarten"]}}
+        leiste = logik.varianten_leiste(z, "K", [v1], JETZT)
+        self.assertEqual(leiste, {"gemacht": [{"name": "einfach", "link": f"/ergebnis/{v1['id']}", "marke": "Fassung 1 · neu"}],
+                                  "gewuenscht": [{"art": "hilfekarten", "name": "mit Hilfekarten"}]})
+        laeuft = {**v1, "status": "neu"}
+        self.assertEqual(logik.varianten_leiste(z, "K", [laeuft], JETZT)["gemacht"][0]["link"], "")
+        r = reihen()
+        material = auftrag("20261030-140000-unterricht-aaaaaa", reihe="ethik-8-straftheorien")
+        variante = auftrag(v1["id"], reihe="ethik-8-straftheorien")
+        zeilen = logik.zeilen_je_reihe(r, [material, variante], JETZT, ausblenden={v1["id"]})
+        self.assertEqual([z["id"] for z in zeilen["ethik-8-straftheorien"]], [material["id"]])
+
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
         e = logik.klasse_ansicht("ethik-8", r, {"ethik-8-helfen": [{}, {}], "ethik-8-straftheorien": [{}]})

@@ -457,6 +457,8 @@ HINWEISE = {
     "stunde": "Angelegt. Mit „Gehört zu“ in einem Material ordnest du es hier ein.",
     "thema": "Thema geändert.",
     "zugeordnet": "Eingeordnet.",
+    "variante": "Die Variante ist unterwegs. Sie erscheint hier unter „Varianten“ und in „Heute“.",
+    "variante-test": "Variante angelegt (Testbetrieb, es startet kein Agent).",
     "auftrag": "Dein Auftrag ist unterwegs. Er steht hier und in „Heute“.",
     "auftrag-test": "Auftrag angelegt (Testbetrieb, es startet kein Agent). Er steht hier und in „Heute“.",
 }
@@ -798,16 +800,20 @@ def material_marke(kette: list[dict], jetzt: datetime, finale: set[str] = frozen
 
 def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
                     entwuerfe: list[dict] | None = None, finale: set[str] = frozenset(),
-                    eigene: dict[str, list[dict]] | None = None) -> dict[str, list[dict]]:
+                    eigene: dict[str, list[dict]] | None = None,
+                    ausblenden: set[str] = frozenset()) -> dict[str, list[dict]]:
     """Zeilen je Reihen-Kennung (OHNE_REIHE für den Rest): offene Entwürfe, dann je Kette eine Zeile wie in
     "Heute" (neueste zuerst), mit Marke Offen bzw. dem Stand des Materials (material_marke).
-    finale, eigene: was die Web-App selbst speichert (zustand.py)."""
+    finale, eigene: was die Web-App selbst speichert (zustand.py). ausblenden: IDs von Varianten, sie stehen beim
+    Original (varianten_leiste)."""
     zeilen_je: dict[str, list] = {}
     for e in sorted(entwuerfe or [], key=lambda e: e.get("erstellt") or "", reverse=True):
         r = reihe_von(e, reihen)
         zeilen_je.setdefault(r["id"] if r else OHNE_REIHE, []).append(entwurf_zeile(e, jetzt))
     for kette in sorted((k for k in ketten(auftraege_) if fassungen(k)),
                         key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True):
+        if kopf(kette)["id"] in ausblenden:
+            continue
         r = reihe_von(kopf(kette), reihen)
         marke = material_marke(kette, jetzt, finale, (eigene or {}).get(kopf(kette)["id"], []))
         zeile = {**ketten_zeile(kette, jetzt, marke), "id": kopf(kette)["id"]}  # id nur zum Zuordnen, nie sichtbar
@@ -820,10 +826,10 @@ def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
 def reihe_ansicht(reihe: dict, reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
                   entwuerfe: list[dict] | None = None, finale: set[str] = frozenset(),
                   eigene: dict[str, list[dict]] | None = None, stunden_: list[dict] = (),
-                  stunde_von: dict[str, dict] | None = None) -> dict:
+                  stunde_von: dict[str, dict] | None = None, ausblenden: set[str] = frozenset()) -> dict:
     """Ansicht einer Reihe: Reihenfrage, schon Behandeltes, Material und Entwürfe zur ganzen Reihe, darunter die
     Stunden (bzw. Proben) mit ihrem Material. stunden_, stunde_von: aus zustand.py (die Web-App speichert sie)."""
-    zeilen = zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe, finale, eigene).get(reihe["id"], [])
+    zeilen = zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe, finale, eigene, ausblenden).get(reihe["id"], [])
     je_stunde = material_je_stunde(reihe["id"], zeilen, stunde_von or {}, len(stunden_))
     einzahl, mehrzahl = stunden_wort(reihe)
     return {"titel": reihe["titel"], "unter": f"{reihe['fach']} · {reihe['gruppe']}"
@@ -1045,3 +1051,90 @@ def regeln_aus(texte: list[tuple[str, str]]) -> list[dict]:
             name = "Für alles" if not agent else "Für " + ARTEN_NACH_AGENT.get(agent, "Weiteres")
             gruppen.append({"titel": name, "regeln": zeilen})
     return gruppen
+
+
+# Varianten (Board „Desktop“, Regel R2: ein Material mit Varianten, keine neuen Materialien). Kein Agent baut
+# Varianten selbst (unterricht liefert genau eine Datei je Auftrag). Darum ist jede Variante ein eigener Auftrag an
+# den Material-Agenten mit der Datei des Originals als Anhang; die Web-App merkt sich, was zusammengehört
+# (zustand.py: varianten, varianten_wunsch). Türkisch nur auf Auftrag (Leitfaden des Material-Agenten).
+VARIANTEN = {
+    "einfach": {"name": "einfach",
+                "auftrag": "sprachlich einfacher: kürzere Sätze, schwierige Wörter erklärt, gleiche Inhalte und Aufgaben"},
+    "tuerkisch": {"name": "Türkisch",
+                  "auftrag": "auf Türkisch: Texte und Aufgaben als türkischer Paralleltext, gleicher Aufbau"},
+    "hilfekarten": {"name": "mit Hilfekarten",
+                    "auftrag": "mit Hilfekarten: gleiche Aufgaben, dazu gestufte Hilfen je Aufgabe"},
+}
+VARIANTE_ENDUNGEN = (".docx", ".pptx")  # Varianten von Blättern und Folien, nicht von Tabellen oder PDFs
+VARIANTE_EXTRA_MAX = 500
+
+
+def varianten_waehlen(werte: list[str]) -> list[str]:
+    """Bekannte Varianten aus dem Formular „Auch als“, in fester Reihenfolge, ohne Doppelte."""
+    return [k for k in VARIANTEN if k in werte]
+
+
+def variante_pruefen(art_: str, extra: str) -> tuple[str, list[str]]:
+    extra = " ".join((extra or "").split())
+    fehler = [] if art_ in VARIANTEN else ["Wähl eine Variante aus."]
+    if len(extra) > VARIANTE_EXTRA_MAX:
+        fehler.append(f"Der Text ist zu lang (höchstens {VARIANTE_EXTRA_MAX} Zeichen).")
+    return extra, fehler
+
+
+def variante_text(art_: str, titel_: str, extra: str = "") -> str:
+    """Auftragstext einer Variante (die Reihe hängt text_mit_reihe an)."""
+    v = VARIANTEN[art_]
+    return (f"Variante „{v['name']}“ von „{titel_}“: Bau das angehängte Blatt als Variante, {v['auftrag']}. "
+            "Gestaltung und Dateiart bleiben." + (f" Dazu: {extra}" if extra else ""))
+
+
+def variante_dazu(zustand_: dict, kopf_id: str, art_: str, auftrag_id: str, zeit: str) -> dict:
+    """Neuer Zustand: auftrag_id ist die Variante art_ von kopf_id. Ein erfüllter Wunsch fällt weg."""
+    varianten = dict(zustand_.get("varianten") or {})
+    varianten[kopf_id] = [*(varianten.get(kopf_id) or []), {"art": art_, "auftrag": auftrag_id, "zeit": zeit}]
+    wunsch = dict(zustand_.get("varianten_wunsch") or {})
+    rest = [w for w in wunsch.get(kopf_id) or [] if w != art_]
+    if rest:
+        wunsch[kopf_id] = rest
+    else:
+        wunsch.pop(kopf_id, None)
+    return {**zustand_, "varianten": varianten, "varianten_wunsch": wunsch}
+
+
+def wunsch_setzen(zustand_: dict, kopf_id: str, arten: list[str]) -> dict:
+    """Neuer Zustand mit Lias Wunsch „Auch als“ für ein Material, das noch läuft."""
+    wunsch = dict(zustand_.get("varianten_wunsch") or {})
+    if arten:
+        wunsch[kopf_id] = list(arten)
+    return {**zustand_, "varianten_wunsch": wunsch}
+
+
+def variante_von(zustand_: dict, auftrag_id: str) -> tuple[str, str] | None:
+    """(ID des Originals, Art), wenn auftrag_id eine Variante ist."""
+    for kopf_id, liste in (zustand_.get("varianten") or {}).items():
+        for v in liste:
+            if v.get("auftrag") == auftrag_id:
+                return kopf_id, v.get("art") or ""
+    return None
+
+
+def varianten_ids(zustand_: dict) -> set[str]:
+    return {v.get("auftrag") for liste in (zustand_.get("varianten") or {}).values() for v in liste}
+
+
+def varianten_leiste(zustand_: dict, kopf_id: str, auftraege_: list[dict], jetzt: datetime,
+                     finale: set[str] = frozenset()) -> dict:
+    """Leiste „Varianten“ in der Material-Ansicht: normal (dieses Material), je Variante Name, Link und Stand,
+    dazu gewünschte, noch nicht angeforderte Varianten. Leer, wenn es nichts davon gibt."""
+    gemacht = []
+    for v in (zustand_.get("varianten") or {}).get(kopf_id) or []:
+        kette = kette_von(v.get("auftrag") or "", auftraege_)
+        if not kette or v.get("art") not in VARIANTEN:
+            continue  # zurückgezogen oder unbekannt
+        k = kopf(kette)  # läuft die Variante noch, hat sie keine Ansicht (wie in Heute)
+        gemacht.append({"name": VARIANTEN[v["art"]]["name"], "link": ergebnis_link(k) if zeigbar(k) else "",
+                        "marke": material_marke(kette, jetzt, finale) if fassungen(kette) else ""})
+    gewuenscht = [{"art": w, "name": VARIANTEN[w]["name"]}
+                  for w in (zustand_.get("varianten_wunsch") or {}).get(kopf_id) or [] if w in VARIANTEN]
+    return {"gemacht": gemacht, "gewuenscht": gewuenscht}

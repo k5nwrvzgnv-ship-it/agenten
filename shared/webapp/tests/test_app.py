@@ -284,7 +284,7 @@ class TestApp(Aufbau):
 def multipart(felder: dict, dateien: list[tuple[str, bytes]]) -> tuple[bytes, str]:
     grenze = "----grenze7MA4YWxk"
     teile = [f'--{grenze}\r\nContent-Disposition: form-data; name="{n}"\r\n\r\n{w}\r\n'.encode()
-             for n, w in felder.items()]
+             for n, werte in felder.items() for w in (werte if isinstance(werte, list) else [werte])]
     for name, inhalt in dateien:
         teile.append(f'--{grenze}\r\nContent-Disposition: form-data; name="dateien"; filename="{name}"\r\n'
                      "Content-Type: application/octet-stream\r\n\r\n".encode() + inhalt + b"\r\n")
@@ -558,6 +558,45 @@ class TestOrdnung(Aufbau):
         self.assertEqual(b["text"], "x\n\nReihe: Straftheorien (Ethik, Klasse 8)")
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
             self.assertNotIn("+ Neu hier", self.hole("/reihe/strafe")[1])
+
+    def test_varianten(self):
+        original = "20261030-140944-unterricht-93e29e"
+        _, html = self.hole(f"/ergebnis/{original}")
+        self.assertIn('<span class="variante variante-hier" aria-current="page">normal</span>', html)
+        self.assertIn(f'href="/ergebnis/{original}?offen=variante#variante">+ Variante</a>', html)
+        _, html = self.hole(f"/ergebnis/{original}?offen=variante")
+        self.assertIn('<input type="radio" name="art" value="tuerkisch">', html)
+        self.assertEqual(self.post(f"/ergebnis/{original}/variante", {"art": "quatsch"})[0].status, 400)
+        r, _ = self.post(f"/ergebnis/{original}/variante", {"art": "tuerkisch", "extra": "Merksatz zweisprachig"})
+        self.assertEqual((r.status, r.getheader("location")), (303, f"/ergebnis/{original}?erledigt=variante-test"))
+        (v,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertTrue(v["text"].startswith("Variante „Türkisch“ von „Arbeitsblatt <Kant> & Strafe“: Bau das angehängte"))
+        self.assertIn("Dazu: Merksatz zweisprachig", v["text"])
+        self.assertTrue((self.tmp / "unterricht" / "data" / "arbeit" / "x" / "Arbeitsblatt.docx").exists())  # Kopie
+        _, html = self.hole(f"/ergebnis/{original}")
+        self.assertIn('<span class="variante">Türkisch <span class="unter">Läuft</span></span>', html)
+        self.assertNotIn(v["id"], self.hole("/")[1].split("Läuft gerade")[0])  # läuft, steht unter Läuft gerade
+        app.auftraege.abschliessen(v["id"], "Fertig.", basis=self.instanz / "auftraege")
+        _, html = self.hole(f"/ergebnis/{original}")
+        self.assertIn(f'<a class="variante" href="/ergebnis/{v["id"]}">Türkisch', html)
+        _, html = self.hole(f"/ergebnis/{v['id']}")
+        for text in (f'<a class="variante" href="/ergebnis/{original}">normal</a>',
+                     '<span class="variante variante-hier" aria-current="page">Türkisch</span>',
+                     f'<a href="/ergebnis/{original}">Original</a>'):
+            self.assertIn(text, html)
+        self.assertNotIn("+ Variante", html)
+        self.assertEqual(self.post(f"/ergebnis/{v['id']}/variante", {"art": "einfach"})[0].status, 404)
+        with mock.patch.object(app, "NEUER_AUFTRAG", ""):
+            self.assertNotIn("+ Variante", self.hole(f"/ergebnis/{original}")[1])
+            self.assertEqual(self.post(f"/ergebnis/{original}/variante", {"art": "einfach"})[0].status, 404)
+
+    def test_auch_als_im_formular(self):
+        self.assertIn('name="varianten" value="tuerkisch"', self.hole("/neu?art=arbeitsblatt")[1])
+        self.assertNotIn('name="varianten"', self.hole("/neu?art=tabelle")[1])
+        r, _ = self.post("/neu", {"text": "Blatt", "art": "arbeitsblatt", "varianten": ["tuerkisch", "quatsch", "einfach"]})
+        self.assertEqual(r.status, 303)
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertEqual(app.zustand_().lesen()["varianten_wunsch"], {a["id"]: ["einfach", "tuerkisch"]})
 
     def test_neuer_auftrag_ohne_und_mit_falscher_reihe(self):
         self.assertEqual(self.schicke()[0].status, 303)

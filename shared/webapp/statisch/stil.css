@@ -497,3 +497,12 @@ button.knopf { font-family: inherit; cursor: pointer; }
 .bild-folie { background: linear-gradient(90deg, var(--akzent) 0 6px, #fff 6px); }
 .bild-tabelle { background: repeating-linear-gradient(90deg, transparent 0 30px, var(--schwarz) 30px 31px), repeating-linear-gradient(#fff 0 12px, #e4e4e4 12px 13px); }
 .krumen-zeile { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* Varianten-Leiste der Material-Ansicht und Auswahl (Radio, Häkchen) */
+.varianten { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; }
+.varianten-titel { font-weight: 700; }
+.variante { padding: 4px 10px; border: 2px solid var(--schwarz); text-decoration: none; color: inherit; }
+.variante-hier { background: var(--schwarz); color: var(--weiss); font-weight: 700; }
+.auswahl { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; border: 0; }
+.auswahl legend { font-weight: 700; margin-bottom: 6px; }
+.auswahl label { display: flex; align-items: center; gap: 6px; min-height: 44px; }

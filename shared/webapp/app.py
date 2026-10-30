@@ -40,6 +40,8 @@ POST:
   /ergebnis/<id>/final                  Fassung als final markieren oder zurücknehmen (nur in data/, zustand.py)
   /ergebnis/<id>/eigene                 eigene Fassung hochladen (nur in data/, die Agenten sehen sie nicht)
   /ergebnis/<id>/stunde                 Material einer Stunde der Reihe zuordnen (nur in data/)
+  /ergebnis/<id>/variante               Variante anfordern: neuer Auftrag an den Material-Agenten mit der Datei als
+                                        Anhang (wie Neuer Auftrag nur test/echt), Zuordnung in data/
   /reihe/<kennung>/stunden              neue Stunde am Ende der Reihe (nur in data/)
   /reihe/<kennung>/stunde/<n>           Thema der Stunde ändern (nur in data/)
 
@@ -204,17 +206,23 @@ def _alle_auftraege() -> list[dict]:
     return [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)]
 
 
-@app.get("/reihe/{reihe_id}", response_class=HTMLResponse)
-def seite_reihe(request: Request, reihe_id: str):
+def _reihe_seite(request: Request, reihe_id: str, fehler: list[str] | None = None, thema: str = "",
+                 status: int = 200):
     reihen, reihe = _reihe(reihe_id)
     z = zustand_().lesen()
     e = logik.reihe_ansicht(reihe, reihen, _alle_auftraege(), datetime.now(ZONE),
                             freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]), z["eigene"],
-                            z["stunden"].get(reihe_id) or [], z["stunde_von"])
+                            z["stunden"].get(reihe_id) or [], z["stunde_von"], logik.varianten_ids(z))
     return vorlagen.TemplateResponse(request, "reihe.html", {
-        "e": e, "token": logik.formular_token(GEHEIM), "fehler": [], "thema": "", "thema_max": logik.STUNDE_THEMA_MAX,
-        "hinweis": logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
-        **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))})
+        "e": e, "token": logik.formular_token(GEHEIM), "fehler": fehler or [], "thema": thema,
+        "thema_max": logik.STUNDE_THEMA_MAX,
+        "hinweis": "" if fehler else logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
+        **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))}, status_code=status)
+
+
+@app.get("/reihe/{reihe_id}", response_class=HTMLResponse)
+def seite_reihe(request: Request, reihe_id: str):
+    return _reihe_seite(request, reihe_id)
 
 
 def _neu_hier(reihe: dict, nr: int | None = None) -> str:
@@ -232,7 +240,7 @@ def _stunde_seite(request: Request, reihe_id: str, nr_text: str, hinweis: str = 
         raise HTTPException(404)
     zeilen = logik.zeilen_je_reihe(reihen, _alle_auftraege(), datetime.now(ZONE),
                                    freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]),
-                                   z["eigene"]).get(reihe_id, [])
+                                   z["eigene"], logik.varianten_ids(z)).get(reihe_id, [])
     e = logik.stunde_ansicht(reihe, nr, stunden, zeilen, z["stunde_von"])
     return vorlagen.TemplateResponse(request, "stunde.html", {
         "e": e, "reihe": reihe, "token": logik.formular_token(GEHEIM), "hinweis": hinweis, "fehler": fehler or [],
@@ -249,21 +257,13 @@ def seite_stunde(request: Request, reihe_id: str, nr: str):
 
 @app.post("/reihe/{reihe_id}/stunden", response_class=HTMLResponse)
 async def stunde_anlegen(request: Request, reihe_id: str):
-    reihen, reihe = _reihe(reihe_id)
+    _, reihe = _reihe(reihe_id)
     form = await formular_lesen(request, "Stunde", 0)
     thema, fehler = logik.stunde_pruefen(str(form.get("thema") or ""))
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
         fehler = [logik.VERALTET]
     if fehler:
-        z = zustand_().lesen()
-        e = logik.reihe_ansicht(reihe, reihen, _alle_auftraege(), datetime.now(ZONE),
-                                freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]), z["eigene"],
-                                z["stunden"].get(reihe_id) or [], z["stunde_von"])
-        return vorlagen.TemplateResponse(request, "reihe.html", {
-            "e": e, "token": logik.formular_token(GEHEIM), "fehler": fehler, "thema": thema,
-            "thema_max": logik.STUNDE_THEMA_MAX, "hinweis": "",
-            **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))},
-            status_code=400)
+        return _reihe_seite(request, reihe_id, fehler, thema, 400)
     z_ = zustand_()
     try:
         neu, nr = logik.stunde_dazu(z_.lesen(), reihe_id, thema, datetime.now(ZONE).isoformat())
@@ -300,7 +300,8 @@ async def stunde_aendern(request: Request, reihe_id: str, nr: str):
 def seite_klasse(request: Request, gruppe_id: str):
     reihen = reihen_laden()
     zeilen_je = logik.zeilen_je_reihe(reihen, _alle_auftraege(), datetime.now(ZONE),
-                                      freigabe.offene(basis=INSTANZ / "freigabe"))
+                                      freigabe.offene(basis=INSTANZ / "freigabe"),
+                                      ausblenden=logik.varianten_ids(zustand_().lesen()))
     e = logik.klasse_ansicht(gruppe_id, reihen, zeilen_je)
     if e is None:
         raise HTTPException(404)
@@ -352,7 +353,7 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
         "e": {"titel": vorlage["name"] if vorlage else "Neu",
               "unter": "für " + logik.ort_text(ort_reihe, ort_stunde) if ort_reihe else "Auftrag an deine Assistenz"},
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
-        "art": art if vorlage else "", "vorlage": vorlage,
+        "art": art if vorlage else "", "vorlage": vorlage, "varianten": logik.VARIANTEN,
         "galerie": logik.galerie(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
         "andere": logik.neu_link(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
         "reihen": [] if ort_reihe else logik.reihen_auswahl(reihen), "reihe": ort_reihe["id"] if ort_reihe else reihe,
@@ -393,7 +394,7 @@ async def formular_lesen(request: Request, wofuer: str, max_dateien: int):
     if int(request.headers.get("content-length") or 0) > grenze:
         raise HTTPException(413)
     try:
-        return await request.form(max_files=max_dateien + 1, max_fields=5, max_part_size=64 * 1024)
+        return await request.form(max_files=max_dateien + 1, max_fields=10, max_part_size=64 * 1024)
     except Exception:  # kaputtes oder zu großes Formular (MultiPartException u. a.)
         logger.warning("%s: Formular nicht lesbar", wofuer)
         raise HTTPException(400) from None
@@ -445,12 +446,16 @@ async def neu_abschicken(request: Request):
             await d.close()
     logger.info("Auftrag %s angelegt (%s, %d Dateien, Reihe %s, Stunde %s, %s)", aid, logik.NEU_AGENT, len(pfade),
                 reihe or "keine", stunde[0] if stunde else "keine", modus)
-    if stunde:  # die Web-App merkt sich die Stunde (zustand.py), die Agenten kennen keine
+    wunsch = logik.varianten_waehlen([str(w) for w in form.getlist("varianten")]) if art == "arbeitsblatt" else []
+    if stunde or wunsch:  # die Web-App merkt sich Stunde und „Auch als“ (zustand.py), die Agenten kennen beides nicht
         try:
             z_ = zustand_()
-            z_.schreiben(logik.stunde_zuordnen(z_.lesen(), aid, reihe, stunde[0]))
+            z = z_.lesen()
+            if stunde:
+                z = logik.stunde_zuordnen(z, aid, reihe, stunde[0])
+            z_.schreiben(logik.wunsch_setzen(z, aid, wunsch))
         except OSError as fehler_:
-            logger.error("Stunde von %s nicht gespeichert: %s", aid, fehler_)
+            logger.error("Stunde/Varianten von %s nicht gespeichert: %s", aid, fehler_)
     if modus == "echt":
         agent_starten(logik.NEU_AGENT)
     erledigt = "auftrag" if modus == "echt" else "auftrag-test"
@@ -525,10 +530,19 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
     nr = ort.get("nr") if reihe and ort.get("reihe") == reihe["id"] else None
     nr = nr if isinstance(nr, int) and 1 <= nr <= len(stunden) else None
     ueber = {"text": f"{logik.stunden_wort(reihe)[0]} {nr}", "link": logik.stunde_link(reihe, nr)} if nr else None
+    original = logik.variante_von(z, kopf["id"])
+    if original:  # Varianten stehen beim Original: Brotkrume und Leiste von dort
+        ueber = {"text": "Original", "link": f"/ergebnis/{original[0]}"}
+    leiste = logik.varianten_leiste(z, original[0] if original else kopf["id"], _alle_auftraege(),
+                                    datetime.now(ZONE), set(z["final"]))
     return vorlagen.TemplateResponse(request, "ergebnis.html", {
-        "stunden": logik.stunden_auswahl(reihe, stunden) if stunden else [], "stunde_nr": nr or 0,
+        "stunden": logik.stunden_auswahl(reihe, stunden) if stunden and not original else [], "stunde_nr": nr or 0,
+        "varianten": leiste, "variante_art": logik.VARIANTEN[original[1]]["name"] if original and
+        original[1] in logik.VARIANTEN else "", "original_link": f"/ergebnis/{original[0]}" if original else "",
+        "variante_moeglich": bool(neu_modus()) and not original and _variante_quelle(kette, kopf, e, z) is not None,
+        "variante_arten": logik.VARIANTEN, "extra_max": logik.VARIANTE_EXTRA_MAX,
         "e": e, "kopf_id": kopf["id"], "basis_url": logik.ergebnis_link(kopf), "token": logik.formular_token(GEHEIM),
-        "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene") else "",
+        "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene", "variante") else "",
         "hinweis": hinweis, "fehler": fehler or [], "text": text, "text_max": logik.NEU_TEXT_MAX,
         "rueck_endungen": ",".join(logik.RUECK_ENDUNGEN), "eigene_endungen": ",".join(logik.EIGENE_ENDUNGEN),
         **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "",
@@ -574,6 +588,79 @@ async def ergebnis_final(request: Request, eintrag_id: str):
         return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
     logger.info("Final %s: %s (%s)", "an" if an else "aus", kopf["id"], ref)
     return _fertig(kopf, "final" if an else "nicht-final")
+
+
+def _variante_quelle(kette: list[dict], kopf: dict, e: dict, z: dict) -> Path | None:
+    """Datei, aus der eine Variante entsteht: die finale Fassung (auch Lias eigene), sonst die Datei oben in der
+    Ansicht. Nur Material des Material-Agenten und nur Word/PowerPoint (logik.VARIANTE_ENDUNGEN)."""
+    if kopf.get("agent") != logik.NEU_AGENT:
+        return None
+    endungen = set(logik.VARIANTE_ENDUNGEN)
+    final = (z["final"].get(kopf["id"]) or {}).get("fassung") or ""
+    if final.startswith("eigene-"):
+        eigene = z["eigene"].get(kopf["id"]) or []
+        n = int(final.rsplit("-", 1)[1]) if final.rsplit("-", 1)[1].isdigit() else 0
+        if 1 <= n <= len(eigene):
+            return dateien.sicher(zustand_().ablage / kopf["id"], str(eigene[n - 1].get("datei") or ""), endungen)
+        return None
+    fassung = next((a for a in logik.fassungen(kette) if a["id"] == final), None)
+    if fassung and fassung.get("status") == "erledigt" and fassung.get("ergebnis_dateien"):
+        kandidaten = [(fassung, nr) for nr in range(len(fassung["ergebnis_dateien"]))]
+    else:
+        nach_id = {a["id"]: a for a in kette}
+        kandidaten = [(nach_id[d["auftrag"]], d["nr"]) for d in e["dateien"] if d["auftrag"] in nach_id]
+    for auftrag, nr in kandidaten:
+        rel = auftrag["ergebnis_dateien"][nr]
+        wurzel = dateien.agent_ordner(INSTANZ, auftrag.get("agent"))
+        pfad = dateien.sicher(wurzel, rel, endungen) if wurzel else None
+        if pfad:
+            return pfad
+    return None
+
+
+@app.post("/ergebnis/{eintrag_id}/variante", response_class=HTMLResponse)
+async def ergebnis_variante(request: Request, eintrag_id: str):
+    modus = neu_modus()
+    if not modus:
+        raise HTTPException(404)
+    kette, kopf = _kopf_fuer_post(eintrag_id)
+    form = await formular_lesen(request, "Variante", 0)
+    art, extra = str(form.get("art") or ""), str(form.get("extra") or "")
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return _ergebnis_seite(request, kette, kopf, "variante", fehler=[logik.VERALTET], text=extra, status=400)
+    extra, fehler = logik.variante_pruefen(art, extra)
+    if fehler:
+        return _ergebnis_seite(request, kette, kopf, "variante", fehler=fehler, text=extra, status=400)
+    e, _, z = _material(kette, kopf)
+    if logik.variante_von(z, kopf["id"]):
+        raise HTTPException(404)  # keine Variante einer Variante
+    quelle = _variante_quelle(kette, kopf, e, z)
+    if quelle is None:
+        raise HTTPException(404)
+    reihen = reihen_laden()
+    reihe = logik.reihe_von(kopf, reihen)
+    EINGANG.mkdir(parents=True, exist_ok=True)
+    ablage = Path(tempfile.mkdtemp(dir=EINGANG))
+    try:
+        kopie = ablage / quelle.name  # agentkit verschiebt den Anhang, das Original bleibt
+        shutil.copyfile(quelle, kopie)
+        text = logik.text_mit_reihe(logik.variante_text(art, e["titel"], extra), reihe["id"] if reihe else None,
+                                    reihen)
+        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, text, quelle=logik.NEU_QUELLE, dateien=[kopie],
+                                      basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
+                                      absender=config.person(INSTANZ), reihe=reihe["id"] if reihe else None)
+        z_ = zustand_()
+        z_.schreiben(logik.variante_dazu(z_.lesen(), kopf["id"], art, aid, datetime.now(ZONE).isoformat()))
+    except (auftraege.AuftragFehler, OSError) as fehler_:
+        logger.error("Variante nicht angelegt: %s", fehler_)
+        return _ergebnis_seite(request, kette, kopf, "variante", fehler=[logik.FEHLGESCHLAGEN], text=extra,
+                               status=500)
+    finally:
+        shutil.rmtree(ablage, ignore_errors=True)
+    logger.info("Variante %s (%s) zu %s angelegt (%s)", aid, art, kopf["id"], modus)
+    if modus == "echt":
+        agent_starten(logik.NEU_AGENT)
+    return _fertig(kopf, "variante" if modus == "echt" else "variante-test")
 
 
 @app.post("/ergebnis/{eintrag_id}/stunde", response_class=HTMLResponse)
