@@ -12,8 +12,8 @@ Angehängte Dateien (Feld dateien, Vorlage für genau diesen Auftrag): anhaenge_
 Textfassung (pdf, docx, pptx) und Seitenbilder (auch für Scans) an, weil Claudes Read PDFs auf dem Server
 nicht öffnen kann. Bilder öffnet Claude direkt.
 
-Lias laufende Reihen (reihen.toml, reihen.py) stehen nach dem Wunsch im Prompt, damit Claude Klasse,
-Reihenfrage und schon Behandeltes kennt. Danach der Katalog von Lias früherem Material (wissen.py), aus dem
+Lias laufende Reihen (lia/instanz/reihen.toml, reihen.py) stehen nach dem Wunsch im Prompt, damit Claude Klasse,
+Reihenfrage, schon Behandeltes und die Stunden der Reihe kennt; die Reihe aus dem Feld reihe des Auftrags zuerst. Danach der Katalog von Lias früherem Material (wissen.py), aus dem
 Claude passende Beispiele mit Read liest, und der von Jan freigegebene Leitfaden „So unterrichtet Lia“ (leitfaden.md).
 
 Nachbesserungen (Auftrag mit bezug, aus Lias Feedback): Python kopiert die Beschreibung des Ergebnisses, auf das
@@ -304,7 +304,7 @@ def bearbeiten(
             e = None
     if e is None:
         e = claude(prompt_start(auftrag["text"], fach, rel, skill, format_text, anhaenge,
-                                reihen_modul.prompt_reihen(reihen or [], fach), wissen_modul.prompt_wissen(katalog),
+                                reihen_modul.prompt_reihen(reihen or [], fach, auftrag.get("reihe")), wissen_modul.prompt_wissen(katalog),
                                 leitfaden_modul.prompt_leitfaden(leitfaden),
                                 prompt_vorher(rel) if vorher is not None else ""))
     if vorher is not None and json_pfad.read_bytes() == vorher.read_bytes():

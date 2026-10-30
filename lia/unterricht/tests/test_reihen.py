@@ -76,6 +76,45 @@ class ReihenTest(unittest.TestCase):
                                       "- Ethik, Klasse 7 (2025/26): Glück – Wie führe ich ein glückliches Leben?\n\n"))
         self.assertNotIn("steht nicht im Prompt", text)
 
+    def test_stunden(self):
+        text = GUT + """
+[[reihe]]
+id = "ds-kurs-12-stueck"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 12"
+titel = "Stück"
+agenten = ["theater"]
+
+[[reihe.stunde]]
+nr = 2
+thema = "Szene 2"
+marke = "Prüfung"
+
+[[reihe.stunde]]
+nr = 1
+thema = "Leseprobe"
+"""
+        r = reihen.laden(self.datei(text))
+        self.assertEqual([s["nr"] for s in r[-1]["stunden"]], [1, 2])
+        self.assertNotIn("stunde", r[-1])
+        prompt = reihen.prompt_reihen(r, "Ethik")
+        self.assertIn("- Proben der Reihe:\n  - Probe 1: Leseprobe\n  - Probe 2: Szene 2 (Prüfung)", prompt)
+        self.assertNotIn("zugeordnet)", prompt)
+        # gewählte Reihe steht zuerst und ist markiert
+        prompt = reihen.prompt_reihen(r, "Ethik", gewaehlt="ds-kurs-12-stueck")
+        self.assertIn("## Lias laufende Reihen\n", prompt)
+        erster = prompt.split("### ")[1]
+        self.assertTrue(erster.startswith("Darstellendes Spiel, Kurs 12: Stück (Lia hat den Auftrag dieser Reihe zugeordnet)"))
+        self.assertEqual(prompt.count("Kurs 12: Stück"), 1)
+        # auch eine abgeschlossene Reihe kann gewählt sein (Archiv), dann voll und nicht in der Liste
+        prompt = reihen.prompt_reihen(r, "Ethik", gewaehlt=None)
+        self.assertIn("Klasse 7 (2025/26): Glück", prompt)
+        r[3]["id"] = "ethik-7-glueck"
+        prompt = reihen.prompt_reihen(r, "Ethik", gewaehlt="ethik-7-glueck")
+        self.assertIn("### Ethik, Klasse 7: Glück (Lia hat", prompt)
+        self.assertNotIn("Abgeschlossene Reihen", prompt)
+        self.assertEqual(reihen.stunden_wort(r[0]), "Stunde")
+
     def test_fehler(self):
         faelle = {
             "[[reihe]\nklasse = 8": "kein gültiges TOML",
@@ -88,6 +127,13 @@ class ReihenTest(unittest.TestCase):
             "[[reihe]]\nfach = 'Ethik'\nklasse = 8\nid = 'Ethik 8'": "id nur aus",
             "[[reihe]]\nfach = 'E'\nklasse = 8\nid = 'a'\n[[reihe]]\nfach = 'E'\nklasse = 7\nid = 'a'": "doppelt",
             "[[reihe]]\nfach = 'Ethik'\nklasse = 8\nagenten = 'theater'": "agenten muss eine Liste",
+            "[[reihe]]\nfach = 'E'\nklasse = 8\nstunde = 'x'": "[[reihe.stunde]]",
+            "[[reihe]]\nfach = 'E'\nklasse = 8\n[[reihe.stunde]]\nthema = 'x'": "nr als ganze Zahl",
+            "[[reihe]]\nfach = 'E'\nklasse = 8\n[[reihe.stunde]]\nnr = 0\nthema = 'x'": "nr als ganze Zahl",
+            "[[reihe]]\nfach = 'E'\nklasse = 8\n[[reihe.stunde]]\nnr = 1": "thema fehlt",
+            "[[reihe]]\nfach = 'E'\nklasse = 8\n[[reihe.stunde]]\nnr = 1\nthema = 'x'\n[[reihe.stunde]]\nnr = 1\nthema = 'y'": "doppelt",
+            "[[reihe]]\nfach = 'E'\nklasse = 8\n[[reihe.stunde]]\nnr = 1\nthema = 'x'\nmarke = 'Test'": "marke 'Test'",
+            "[[reihe]]\nfach = 'E'\nklasse = 8\n[[reihe.stunde]]\nnr = 1\nthema = 'x'\ndauer = 90": "unbekannten Feldern",
             "[[reihe]]\nfach = 'Ethik'\nklasse = 8\nbisherige_reihen = 'Lüge'": "bisherige_reihen muss eine Liste",
             "[[reihe]]\nfach = 'Ethik'\nklasse = 8\nreihenfrage = 'x'\nthema = 'y'": "unbekannte Felder ['thema']",
             "[[reihe]]\nfach = 'Ethik'\nklasse = 8\nreihenfrage = 'x'\nbehandelt = 'Singer'": "behandelt muss eine Liste",

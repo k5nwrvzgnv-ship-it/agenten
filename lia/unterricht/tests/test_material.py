@@ -105,6 +105,17 @@ class MaterialTest(unittest.TestCase):
         self.assertLess(start.index("## Lias laufende Reihen"), start.index("Skill einzelmaterial"))
         self.assertNotIn("laufende Reihen", claude.prompts[1])
 
+    def test_gewaehlte_reihe_zuerst(self):
+        claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
+        andere = {"id": "a", "fach": "Ethik", "klasse": 8, "titel": "Strafe"}
+        gewaehlt = {"id": "b", "fach": "Ethik", "klasse": 10, "titel": "Pflicht",
+                    "stunden": [{"nr": 1, "thema": "Kant", "marke": "UB"}]}
+        material.bearbeiten({**self.auftrag, "reihe": "b"}, self.hier, PROFIL, laufen=claude, bauen=BAUEN,
+                            reihen=[andere, gewaehlt])
+        start = claude.prompts[0]
+        self.assertLess(start.index("Klasse 10: Pflicht (Lia hat den Auftrag"), start.index("Klasse 8: Strafe"))
+        self.assertIn("- Stunden der Reihe:\n  - Stunde 1: Kant (UB)", start)
+
     def test_katalog_im_startprompt(self):
         claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
         material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN,
