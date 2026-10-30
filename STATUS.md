@@ -520,8 +520,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Weggelassen, weil es das noch nicht gibt: Mail-Entwürfe, „Text prüfen“, Frage und Woche (Platzhalter in
      unterricht), Fortschrittsbalken, Anmerkung an einer Stelle, Reihen und Vorlagen pflegen. Telegram bleibt
      für Hinweise.
-   - Vor dem Bau offen, Entscheidung Jan: Pakete (fastapi, uvicorn, jinja2, python-multipart, webauthn,
-     htmx-Datei), Anmeldung per Passkey mit Einladungslink. Jan als root: DNS lia.meldro.de bei INWX (A/AAAA wie
+   - Pakete freigegeben (Jan 30.10.): fastapi, uvicorn, jinja2, python-multipart, webauthn, htmx-Datei, nur in
+     shared/webapp/.venv und dessen requirements.txt. Anmeldung per Passkey mit Einladungslink.
+   - Offen, Jan als root: DNS lia.meldro.de bei INWX (A/AAAA wie
      kcal) und zweiter Caddy-Block (Vorschlag in docs/webapp-plan.md 1.3), kcal-Block danach prüfen. Klärungen
      K1 (Schule/Datenschutz) und K3 (Abo oder API) sind nicht erledigt; Jan entscheidet, ob Lia vorher startet.
      Bis dahin läuft die App lokal (Unix-Socket wie der Leitstand). Bauplan in Abschnitt 7 des Plans.
