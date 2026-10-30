@@ -10,7 +10,7 @@ https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
 Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen Aufbaus „Desktop zuerst“
-(Jans Okay 30.10.), `./pruefen.sh` grün (Web-App: 74 Tests).
+(Jans Okay 30.10.), Seitengalerie statt aller Seitenbilder (Jans Wunsch 30.10.), `./pruefen.sh` grün (Web-App: 78 Tests).
 - Rahmen (Plan `../../docs/webapp-aufbau.md` 4.1, Board „Desktop“): drei Spalten Baum (260 px) | Inhalt mit
   Brotkrumen (bis 840 px) | „Fragen“ (320 px, nur Platzhalter „Kommt bald“, kein Chat, kein Claude-Aufruf). Alle
   Seiten (auch 404) über `vorlagen/basis.html`. Im HTML steht der Inhalt vorn. Unter 1100 px rutscht „Fragen“
@@ -48,9 +48,16 @@ Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen A
 - Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, zurückgezogene 404; IDs
   von Nachbesserungen und Rückmeldungen leiten mit 303 auf den Ursprung um): Titel, Art und Zeit der neuesten
   Fassung; „Das Wichtigste“ aus `daten.kern`/`punkte`/`pruefen` der neuesten erledigten Fassung, ohne
-  `daten` der ganze Ergebnistext (Zeilen mit „- “ als Liste); Seiten aus `<stem>-vorschau/<stem>-seite-NN.png`
-  (Klick öffnet das Bild groß); Dateien mit Knöpfen PDF (aus der Vorschau) und Original (Word/Excel/PowerPoint/PDF).
-  Seiten und Dateien aus der jüngsten Fassung mit Dateien („Aus Fassung 1“, wenn die Antwort keine hat).
+  `daten` der ganze Ergebnistext (Zeilen mit „- “ als Liste); „Dateien“: je Datei eine Zeile mit Knöpfen PDF (aus
+  der Vorschau) und Original (Word/Excel/PowerPoint/PDF); hat sie Seitenbilder (`<stem>-vorschau/<stem>-seite-NN.png`),
+  ist sie eine Karte mit der ersten Seite klein, Name und „n Seiten · ansehen“ (auch an früheren Fassungen im Verlauf).
+  Dateien aus der jüngsten Fassung mit Dateien („Aus Fassung 1“, wenn die Antwort keine hat).
+- Seiten-Betrachter `/ergebnis/<id>/datei/<n>/ansehen?seite=m` (`logik.betrachter`, ohne JavaScript; `<id>` ist die
+  Fassung, aus der die Datei stammt): eine Seite groß (passt ins Fenster), „‹ Vorige“/„Nächste ›“, Seitenzahlen als
+  Links ab 3 Seiten, Tipp aufs Bild = nächste Seite (letzte: Bild in voller Größe), PDF, Original, „Zurück zum
+  Ergebnis“; Brotkrumen bis zum Ergebnis; Untertitel „Fassung n · Seite m von k“ (Fassung nur, wenn es mehrere
+  gibt). Falsche Seite, Datei ohne Seitenbilder, unerlaubte Pfade: 404. Echter Lauf 30.10.: Theater 4 Karten oben
+  und 4 im Verlauf, alle Betrachter 200, Seite 99 404.
   Darunter „Verlauf“: Fassung 1, Deine Rückmeldung (Lias Text), Antwort bzw. Fassung n (n zählt nur Fassungen mit
   Dateien), je mit Zeit; frühere Fassungen aufklappbar (`<details>`, Kern, Punkte, Dateien), die oberste „steht
   oben“. Rückmeldung ohne Nachbesserung zeigt die Antwort des Feedback-Agenten. Läuft eine Nachbesserung: Hinweis
@@ -111,7 +118,7 @@ Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt docx/pptx 
   `data/webapp.sock` (Ordner 0700; Uvicorn setzt den Socket selbst auf 0666, der Ordner schützt).
 - `vorlagen/basis.html` (Rahmen: Brotkrumen, Inhalt, Baum, Fragen; Kopf für Einzelansichten),
   `heute.html` (Seite), `_heute.html` (Inhalt, auch für htmx), `_zeile.html` (Zeile für Heute und Reihe),
-  `reihe.html`, `ergebnis.html`, `entwurf.html`, `neu.html`, `nicht_gefunden.html` (404 im Rahmen),
+  `reihe.html`, `ergebnis.html`, `ansehen.html` (Seiten-Betrachter), `entwurf.html`, `neu.html`, `nicht_gefunden.html` (404 im Rahmen),
   `statisch/stil.css`. `app.rahmen()` liefert Baum und Brotkrumen für jede Seite.
 - `statisch/htmx-2.0.4.min.js` mit `.sha256` (von unpkg und jsdelivr geladen, beide gleich; Test prüft die Summe).
 - `requirements.txt`: feste Versionen (pip freeze) von fastapi, uvicorn (ohne [standard]), jinja2,
@@ -146,9 +153,13 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
    Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
-4. Ergebnis und Entwurf nur lesend: keine Feedback-Knöpfe (Bauschritt 3), kein Abschließen/Ändern/Ablehnen
-   (Bauschritt 5), keine Anmerkungen an einer Stelle. Fassungen stehen im Verlauf (keine Chips). Keine
-   Leiste mit Bereichen, kein Fortschrittsbalken: gibt es noch nicht.
+4. Ergebnis und Entwurf nur lesend. Fehlende Optionen gegen Board „Desktop“ und Prototyp (30.10. an Jan, er
+   entscheidet die Reihenfolge): Feedback-Knöpfe Passt/Zu lang/Falscher Fokus/Freitext (wie Telegram, über
+   Auftrag an feedback mit bezug; ohne Konten im Testbetrieb machbar), Rückmeldung mit Datei (braucht feedback/
+   Agenten: Datei an Nachbesserung, Bedarf b in Punkt 24), Eigene Fassung hochladen (Bedarf b), Als final markieren
+   (Speicher: nach Konten oder agentkit, Bedarf d), Nochmal bei Fehlschlag, Auftrag zurückziehen (agentkit),
+   Entwurf Setze ich selbst ein/Ändern/Ablehnen (Freigabe, schreibt in Lias Instanz), Varianten (Agent liefert
+   keine), Anmerkungen an einer Stelle (Renderer), Fassungen als Liste mit „von dir/vom Assistenten“.
 7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
    Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.
 5. Schrift: Inter/Inter Tight werden nur genutzt, wenn sie auf dem Gerät sind (sonst Helvetica/Arial). Google Fonts

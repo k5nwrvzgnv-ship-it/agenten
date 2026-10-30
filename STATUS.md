@@ -558,7 +558,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      (nur Platzhalter „Kommt bald“), Baum aus den Reihen (Heute mit Zahl, je Fach Klassen/Kurse und Reihen),
      Reihen-Ansicht /reihe/<kennung> (nur lesend), „Heute“ ohne Chips mit Ort je Zeile, /unterricht leitet auf /
      um. Fach und Kurs im Code umgestellt. Ergebnis, Entwurf, Neuer Auftrag unverändert im Rahmen.
-     Nächster Schritt: Jan sieht es im Tunnel an; dann Bauschritt 2 des neuen Aufbaus (Orts-Ansichten
+     Seitengalerie (Jans Wunsch 30.10.): je Dokument eine Karte mit kleiner erster Seite, Klick öffnet einen
+     Seiten-Betrachter mit Vor/Zurück (ohne JavaScript), auch im Verlauf. Fehlende Optionen am Dokument (Feedback-
+     Knöpfe, final, eigene Fassung, Rückmeldung mit Datei, Nochmal, Entwurf-Knöpfe) als Liste an Jan; er legt die
+     Reihenfolge fest (shared/webapp/STATUS.md, Offene Punkte 4).
+     Nächster Schritt: Jans Entscheidung zur Reihenfolge; sonst Bauschritt 2 des neuen Aufbaus (Orts-Ansichten
      Fach/Klasse, Material mit Marke; Konten sind dort Bauschritt 5). Stunden erst mit Bedarf a) unten.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
