@@ -8,9 +8,29 @@ JETZT = datetime(2026, 10, 30, 15, 0, tzinfo=ZoneInfo("Europe/Berlin"))
 
 
 def auftrag(aid, agent="unterricht", status="erledigt", text="Arbeitsblatt Strafe", abgeschlossen="2026-10-30T14:16:49+01:00",
-            **felder):
-    return {"id": aid, "agent": agent, "text": text, "status": status, "erstellt": "2026-10-30T14:09:44+01:00",
+            erstellt="2026-10-30T14:09:44+01:00", **felder):
+    return {"id": aid, "agent": agent, "text": text, "status": status, "erstellt": erstellt,
             "abgeschlossen": abgeschlossen, "ergebnis": "", "ergebnis_dateien": [], **felder}
+
+
+ALT_ID, FB_ID, NB_ID = ("20261029-150107-theater-0baec0", "20261030-110916-feedback-1c1e7e",
+                        "20261030-111155-theater-5d88d5")
+
+
+def theater_kette():
+    """Wie in lia/instanz: Fassung, Lias Frage dazu (Feedback), Antwort als Nachbesserung ohne Dateien."""
+    alt = auftrag(ALT_ID, agent="theater", text="Fassung Der nackte Wahnsinn: Runde runde-20261029-140740",
+                  erstellt="2026-10-29T15:01:07+01:00", abgeschlossen="2026-10-29T15:01:07+01:00",
+                  ergebnis_dateien=["d/1 Szenenkarte.docx", "d/2 Ablauf.docx"],
+                  daten={"kern": "19 Bausteine für 38 Minuten.", "punkte": ["Szenenkarte"]})
+    fb = auftrag(FB_ID, agent="feedback", bezug=ALT_ID, text="wieviele minuten ist das etwa lang?",
+                 erstellt="2026-10-30T11:09:16+01:00", abgeschlossen="2026-10-30T11:09:25+01:00",
+                 ergebnis="Danke. Das lege ich Jan zur Entscheidung vor.", daten={"nachbesserung": NB_ID})
+    nb = auftrag(NB_ID, agent="theater", bezug=ALT_ID, erstellt="2026-10-30T11:11:55+01:00",
+                 abgeschlossen="2026-10-30T12:19:06+01:00",
+                 text=f"Nachbesserung zu deinem Ergebnis (Auftrag {ALT_ID}):\n\nBeantworte Lias Frage",
+                 daten={"kern": "Etwa 38 Min.", "punkte": ["Anfang 3 Min"], "pruefen": "Nicht dazuzählen."})
+    return alt, fb, nb
 
 
 class TestTexte(unittest.TestCase):
@@ -122,6 +142,35 @@ class TestHeute(unittest.TestCase):
         self.assertEqual(h["fertig_weitere"], 2)
         self.assertEqual(h["fertig"][0]["unter"], "Material · Mi 21.10.")  # neueste zuerst
 
+    def test_feedback_schleife_ist_eine_zeile(self):
+        alt, fb, nb = theater_kette()
+        h = logik.heute([], [nb, fb, alt], [], JETZT)
+        self.assertEqual([(z["titel"], z["unter"], z["marke"], z["hinweis"], z["link"]) for z in h["wartet"]],
+                         [("Fassung Der nackte Wahnsinn", "Theater · heute 12:19", "Neu",
+                           "2 Word-Dateien · nach deiner Rückmeldung", f"/ergebnis/{ALT_ID}")])
+        self.assertEqual((h["fertig"], h["laeuft"]), ([], []))
+        # Nachbesserung läuft: die Kette steht nur unter "Läuft gerade", mit Link auf das bisherige Ergebnis
+        laeuft = {**nb, "status": "neu", "abgeschlossen": None}
+        h = logik.heute([laeuft], [fb, alt], [], JETZT)
+        self.assertEqual((h["wartet"], h["fertig"]), ([], []))
+        self.assertEqual([(z["titel"], z["unter"], z["hinweis"], z["link"]) for z in h["laeuft"]],
+                         [("Fassung Der nackte Wahnsinn", "Theater · seit heute 11:11", "Arbeitet an deiner Rückmeldung",
+                           f"/ergebnis/{ALT_ID}")])
+        # Rückmeldung läuft noch (noch keine Nachbesserung): ebenso
+        fb_laeuft = {**fb, "status": "neu", "abgeschlossen": None}
+        h = logik.heute([fb_laeuft], [alt], [], JETZT)
+        self.assertEqual([(z["titel"], z["unter"]) for z in h["laeuft"]],
+                         [("Fassung Der nackte Wahnsinn", "Theater · seit heute 11:09")])
+        # Älter als NEU_STUNDEN: unter Fertig; letzte Nachbesserung fehlgeschlagen: unter Hat nicht geklappt
+        spaeter = JETZT + timedelta(days=3)
+        self.assertEqual([z["titel"] for z in logik.heute([], [alt, fb, nb], [], spaeter)["fertig"]],
+                         ["Fassung Der nackte Wahnsinn"])
+        kaputt = {**nb, "status": "fehlgeschlagen", "ergebnis": "Kontingent aufgebraucht."}
+        h = logik.heute([], [alt, fb, kaputt], [], JETZT)
+        self.assertEqual((h["wartet"], h["fertig"]), ([], []))
+        self.assertEqual([(z["titel"], z["grund"]) for z in h["fehlgeschlagen"]],
+                         [("Fassung Der nackte Wahnsinn", "Kontingent aufgebraucht.")])
+
     def test_eine_sache(self):
         h = logik.heute([], [auftrag("N")], [], JETZT)
         self.assertEqual(h["wartet_text"], "Sache wartet auf dich.")
@@ -134,62 +183,104 @@ class TestErgebnis(unittest.TestCase):
                     ergebnis="langer Telegram-Text", ergebnis_dateien=["d/1 Szenenkarte.docx", "d/2 Ablauf.docx"],
                     daten={"kern": "19 Bausteine.", "punkte": ["Szenenkarte", "Ablauf"], "pruefen": "Frederick?",
                            "knoepfe": "nur_antwort"})
-        e = logik.ergebnis(a, [a], [(True, True, 17), (True, False, 0)], JETZT)
+        e = logik.ergebnis([a], {"A": [(True, True, 17), (True, False, 0)]}, JETZT)
         self.assertEqual((e["titel"], e["unter"]), ("Fassung Der nackte Wahnsinn", "Theater · heute 14:16"))
         self.assertEqual((e["kern"], e["punkte"], e["pruefen"]), ("19 Bausteine.", ["Szenenkarte", "Ablauf"],
                                                                   "Frederick?"))
         self.assertEqual(e["bloecke"], [])  # mit Kern kein zweites Mal der ganze Text
         self.assertFalse(e["fehlgeschlagen"])
         d1, d2 = e["dateien"]
-        self.assertEqual((d1["nr"], d1["name"], d1["seiten"]), (0, "1 Szenenkarte", 17))
+        self.assertEqual((d1["nr"], d1["name"], d1["seiten"], d1["auftrag"]), (0, "1 Szenenkarte", 17, "A"))
+        self.assertEqual((e["verlauf"], e["dateien_aus"], e["laeuft"]), ([], "", ""))  # ohne Schleife kein Verlauf
         self.assertEqual(d1["knoepfe"], [{"text": "PDF", "pfad": "/pdf"}, {"text": "Word", "pfad": ""}])
         self.assertEqual(d2["knoepfe"], [{"text": "Word", "pfad": ""}])
 
     def test_ohne_daten_ganzer_text_in_bloecken(self):
         a = auftrag("A", ergebnis="Erster Absatz.\n\nZweiter.\n- eins\n- zwei\nDanach (Auftrag 20261030-140944-unterricht-93e29e)")
-        e = logik.ergebnis(a, [a], [], JETZT)
+        e = logik.ergebnis([a], {}, JETZT)
         self.assertEqual(e["bloecke"], [{"absatz": "Erster Absatz."}, {"absatz": "Zweiter."},
                                         {"punkte": ["eins", "zwei"]}, {"absatz": "Danach"}])
         self.assertEqual((e["kern"], e["punkte"], e["dateien"]), ("", [], []))
 
     def test_titel_in_der_ansicht_lang(self):
         a = auftrag("A", text="x" * 150)
-        self.assertEqual(logik.ergebnis(a, [a], [], JETZT)["titel"], "X" + "x" * 149)
+        self.assertEqual(logik.ergebnis([a], {}, JETZT)["titel"], "X" + "x" * 149)
 
     def test_fehlgeschlagen_zeigt_grund_ohne_dateien(self):
         a = auftrag("K", status="fehlgeschlagen", ergebnis="Kontingent aufgebraucht.",
                     ergebnis_dateien=["d/x.docx"], daten={"kern": "alt"})
-        e = logik.ergebnis(a, [a], [], JETZT)
+        e = logik.ergebnis([a], {}, JETZT)
         self.assertTrue(e["fehlgeschlagen"])
         self.assertEqual(e["grund"], "Kontingent aufgebraucht.")
         self.assertEqual((e["kern"], e["dateien"]), ("", []))
         leer = auftrag("K", status="fehlgeschlagen", ergebnis="")
-        self.assertEqual(logik.ergebnis(leer, [leer], [], JETZT)["grund"], logik.FEHLGESCHLAGEN)
+        self.assertEqual(logik.ergebnis([leer], {}, JETZT)["grund"], logik.FEHLGESCHLAGEN)
 
-    def test_nachbesserung_verweist_auf_ursprung_und_rueckmeldung(self):
-        alt_id, nb_id = "20261029-150107-theater-0baec0", "20261030-111155-theater-5d88d5"
-        alt = auftrag(alt_id, agent="theater", text="Fassung Der nackte Wahnsinn: Runde runde-20261029-140740")
-        nb = auftrag(nb_id, agent="theater", bezug=alt_id, abgeschlossen="2026-10-30T12:19:06+01:00",
-                     text=f"Nachbesserung zu deinem Ergebnis (Auftrag {alt_id}):\n\nBeantworte Lias Frage")
-        fb = auftrag("20261030-110916-feedback-1c1e7e", agent="feedback", bezug=alt_id,
-                     text="wieviele minuten ist das etwa lang?", daten={"nachbesserung": nb_id})
-        alle = [alt, nb, fb]
-        e = logik.ergebnis(nb, alle, [], JETZT)
-        self.assertEqual(e["titel"], "Antwort auf deine Rückmeldung zu „Fassung Der nackte Wahnsinn“")
-        self.assertEqual(e["bezug"], {"titel": "Fassung Der nackte Wahnsinn", "link": f"/ergebnis/{alt_id}"})
-        self.assertEqual(e["rueckmeldung"], "wieviele minuten ist das etwa lang?")
-        self.assertEqual(e["antworten"], [])
-        # Das ursprüngliche Ergebnis zeigt die Antwort, aber nicht die Feedback-Bestätigung
-        u = logik.ergebnis(alt, alle, [], JETZT)
-        self.assertEqual(u["antworten"], [{"titel": "Antwort auf deine Rückmeldung zu „Fassung Der nackte Wahnsinn“",
-                                           "unter": "heute 12:19", "link": f"/ergebnis/{nb_id}"}])
-        self.assertEqual((u["bezug"], u["rueckmeldung"]), (None, ""))
-        # Sichtbare Texte ohne IDs und Agentennamen (Links dürfen IDs tragen)
-        for ansicht in (e, u):
-            sichtbar = repr({k: v for k, v in ansicht.items() if k not in ("bezug", "antworten")}
-                            ) + repr([x["titel"] for x in ansicht["antworten"]])
-            for verboten in ("2026102", "theater", "feedback", "runde-"):
-                self.assertNotIn(verboten, sichtbar)
+    def test_feedback_schleife_ein_auftrag_mit_verlauf(self):
+        alt, fb, nb = theater_kette()
+        alle = [nb, alt, fb]
+        e = logik.ergebnis(logik.kette_von(NB_ID, alle), {ALT_ID: [(True, True, 3), (True, False, 0)]}, JETZT)
+        self.assertEqual(e["titel"], "Fassung Der nackte Wahnsinn")
+        self.assertEqual(e["unter"], "Theater · heute 12:19")  # Zeit der neuesten Fassung
+        # Oben die Antwort, die Dateien aus der ersten Fassung (die Antwort hat keine)
+        self.assertEqual((e["kern"], e["punkte"], e["pruefen"]), ("Etwa 38 Min.", ["Anfang 3 Min"], "Nicht dazuzählen."))
+        self.assertEqual([(d["auftrag"], d["name"]) for d in e["dateien"]],
+                         [(ALT_ID, "1 Szenenkarte"), (ALT_ID, "2 Ablauf")])
+        self.assertEqual(e["dateien_aus"], "Fassung 1")
+        v = e["verlauf"]
+        self.assertEqual([(x["art"], x["name"], x["zeit"]) for x in v],
+                         [("fassung", "Fassung 1", "gestern 15:01"), ("rueckmeldung", "Deine Rückmeldung", "heute 11:09"),
+                          ("fassung", "Antwort", "heute 12:19")])
+        self.assertEqual((v[0]["aktuell"], v[2]["aktuell"]), (False, True))
+        self.assertEqual(v[0]["kern"], "19 Bausteine für 38 Minuten.")
+        self.assertEqual(len(v[0]["dateien"]), 2)
+        self.assertEqual((v[1]["zitat"], v[1]["notiz"]), ("wieviele minuten ist das etwa lang?", ""))
+        # Jede ID der Kette ergibt dieselbe Kette mit demselben Kopf
+        for aid in (ALT_ID, FB_ID, NB_ID):
+            self.assertEqual(logik.kopf(logik.kette_von(aid, alle))["id"], ALT_ID)
+        self.assertEqual(logik.kette_von("gibt-es-nicht", alle), [])
+        # Sichtbare Texte ohne IDs und Agentennamen (nur "id"/"auftrag" für Links dürfen IDs tragen)
+        def ohne_links(x):
+            if isinstance(x, dict):
+                return {k: ohne_links(w) for k, w in x.items() if k not in ("id", "auftrag")}
+            return [ohne_links(w) for w in x] if isinstance(x, list) else x
+        sichtbar = repr(ohne_links(e))
+        for verboten in ("2026102", "theater", "feedback", "runde-"):
+            self.assertNotIn(verboten, sichtbar)
+
+    def test_verlauf_laufend_und_fehlgeschlagen(self):
+        alt, fb, nb = theater_kette()
+        laeuft = {**nb, "status": "neu", "abgeschlossen": None}
+        e = logik.ergebnis([alt, fb, laeuft], {}, JETZT)
+        self.assertEqual(e["laeuft"], "Arbeitet gerade an deiner Rückmeldung (seit heute 11:11).")
+        self.assertEqual(e["kern"], "19 Bausteine für 38 Minuten.")  # oben noch die erste Fassung
+        self.assertEqual(e["dateien_aus"], "")
+        self.assertEqual((e["verlauf"][2]["notiz"], e["verlauf"][2]["zeit"]), ("Läuft gerade.", "seit heute 11:11"))
+        kaputt = {**nb, "status": "fehlgeschlagen", "ergebnis": "Kontingent aufgebraucht."}
+        e = logik.ergebnis([alt, fb, kaputt], {}, JETZT)
+        self.assertFalse(e["fehlgeschlagen"])
+        self.assertEqual(e["zuletzt_fehlgeschlagen"], "Kontingent aufgebraucht.")
+        self.assertEqual(e["verlauf"][2]["notiz"], "Hat nicht geklappt: Kontingent aufgebraucht.")
+        # Rückmeldung ohne Nachbesserung (z. B. als Regel übernommen): die Antwort des Feedback-Agenten
+        nur_fb = {**fb, "daten": {}, "ergebnis": "Danke, merke ich mir."}
+        self.assertEqual(logik.ergebnis([alt, nur_fb], {}, JETZT)["verlauf"][1]["notiz"], "Danke, merke ich mir.")
+
+    def test_zweite_nachbesserung_mit_dateien_ist_fassung_2(self):
+        alt, fb, nb = theater_kette()
+        fb2 = auftrag("FB2", agent="feedback", bezug=NB_ID, text="kürzer bitte", erstellt="2026-10-30T13:00:00+01:00")
+        nb2 = auftrag("NB2", agent="theater", bezug=NB_ID, text="Nachbesserung", abgeschlossen="2026-10-30T14:00:00+01:00",
+                      ergebnis_dateien=["d/3 Spielfassung.docx"], daten={"kern": "Gekürzt."})
+        alle = [alt, fb, nb, fb2, nb2]
+        self.assertEqual({logik.kopf(logik.kette_von(x, alle))["id"] for x in ("FB2", "NB2")}, {ALT_ID})
+        e = logik.ergebnis(logik.kette_von("NB2", alle), {"NB2": [(True, True, 1)]}, JETZT)
+        self.assertEqual([x["name"] for x in e["verlauf"]],
+                         ["Fassung 1", "Deine Rückmeldung", "Antwort", "Deine Rückmeldung", "Fassung 2"])
+        self.assertEqual((e["kern"], e["dateien_aus"], e["dateien"][0]["auftrag"]), ("Gekürzt.", "", "NB2"))
+
+    def test_bezug_im_kreis_bricht_ab(self):
+        a = auftrag("A", bezug="B")
+        b = auftrag("B", bezug="A", abgeschlossen="2026-10-30T15:00:00+01:00")
+        self.assertEqual(sorted(x["id"] for k in logik.ketten([a, b]) for x in k), ["A", "B"])  # endet, nichts doppelt
 
     def test_zeigbar(self):
         self.assertTrue(logik.zeigbar(auftrag("A")))

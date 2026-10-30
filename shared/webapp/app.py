@@ -11,7 +11,9 @@ Die App selbst läuft ohne AGENTKIT_INSTANZ. Logik in logik.py (getestet), hier 
 Nur GET:
   /                                     Seite Heute
   /teile/heute                          Inhalt von Heute (htmx lädt ihn jede Minute neu)
-  /ergebnis/<id>                        Ergebnis (auch fehlgeschlagene Aufträge mit Grund)
+  /ergebnis/<id>                        Auftrag mit Feedback-Schleife: neueste Fassung und Verlauf (auch
+                                        fehlgeschlagene mit Grund). IDs von Nachbesserungen und Rückmeldungen
+                                        leiten auf den Ursprung um.
   /ergebnis/<id>/datei/<n>              Download der n-ten Ergebnisdatei
   /ergebnis/<id>/datei/<n>/pdf          PDF aus der Vorschau des Renderers
   /ergebnis/<id>/datei/<n>/seite/<m>    Seitenbild m (ab 1) der Vorschau
@@ -32,7 +34,7 @@ from zoneinfo import ZoneInfo
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -132,12 +134,24 @@ def _ausliefern(pfad: Path | None, herunterladen: bool = True) -> FileResponse:
 
 @app.get("/ergebnis/{eintrag_id}", response_class=HTMLResponse)
 def seite_ergebnis(request: Request, eintrag_id: str):
-    auftrag = _auftrag(eintrag_id)
-    pfade = auftrag.get("ergebnis_dateien") or []
-    wurzel = dateien.agent_ordner(INSTANZ, auftrag.get("agent"))
-    e = logik.ergebnis(auftrag, auftraege.erledigte(basis=INSTANZ / "auftraege"),
-                       dateien.vorschau_info(wurzel, pfade), datetime.now(ZONE))
-    return vorlagen.TemplateResponse(request, "ergebnis.html", {"e": e, "id": eintrag_id})
+    try:
+        auftrag = auftraege.erledigter(eintrag_id, basis=INSTANZ / "auftraege")  # prüft die ID (pruefe_id)
+    except AblageFehler:
+        raise HTTPException(404) from None
+    if not (logik.zeigbar(auftrag) or auftrag.get("agent") == "feedback"):
+        raise HTTPException(404)
+    basis = INSTANZ / "auftraege"
+    kette = logik.kette_von(eintrag_id, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)])
+    kopf = logik.kopf(kette)
+    if not logik.zeigbar(kopf):  # z. B. Rückmeldung zu einem unbekannten Ergebnis
+        raise HTTPException(404)
+    if kopf["id"] != eintrag_id:
+        return RedirectResponse(f"/ergebnis/{kopf['id']}", status_code=303)
+    vorschauen = {a["id"]: dateien.vorschau_info(dateien.agent_ordner(INSTANZ, a.get("agent")),
+                                                 a.get("ergebnis_dateien") or [])
+                  for a in logik.fassungen(kette) if a.get("status") == "erledigt"}
+    e = logik.ergebnis(kette, vorschauen, datetime.now(ZONE))
+    return vorlagen.TemplateResponse(request, "ergebnis.html", {"e": e})
 
 
 @app.get("/ergebnis/{eintrag_id}/datei/{nr:int}")

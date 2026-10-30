@@ -16,6 +16,9 @@ import uvicorn
 import app
 
 
+NB = "20261030-143100-unterricht-bbbbbb"
+
+
 class UnixVerbindung(http.client.HTTPConnection):
     def __init__(self, pfad):
         super().__init__("localhost")
@@ -62,8 +65,15 @@ class TestApp(unittest.TestCase):
             "ergebnis_dateien": ["../geheim.pdf", str(self.tmp / "geheim.pdf"), ".env",
                                  "data/arbeit/x/../../../../geheim.pdf"]})
         schreibe(self.instanz / "auftraege" / "erledigt" / "20261030-110916-feedback-1c1e7e.json", {
-            "id": "20261030-110916-feedback-1c1e7e", "agent": "feedback", "text": "zu lang", "status": "erledigt",
-            "bezug": "20261030-140944-unterricht-93e29e", "abgeschlossen": "2026-10-30T11:09:25+01:00"})
+            "id": "20261030-110916-feedback-1c1e7e", "agent": "feedback", "text": "Ist das <zu> lang?", "status": "erledigt",
+            "bezug": "20261030-140944-unterricht-93e29e", "erstellt": "2026-10-30T14:30:00+01:00",
+            "abgeschlossen": "2026-10-30T14:30:09+01:00", "daten": {"nachbesserung": NB}})
+        # Nachbesserung zur Rückmeldung: Antwort ohne Dateien, gehört zum selben Auftrag
+        schreibe(self.instanz / "auftraege" / "erledigt" / f"{NB}.json", {
+            "id": NB, "agent": "unterricht", "bezug": "20261030-140944-unterricht-93e29e",
+            "text": "Nachbesserung zu deinem Ergebnis (Auftrag 20261030-140944-unterricht-93e29e)", "status": "erledigt",
+            "erstellt": "2026-10-30T14:31:00+01:00", "abgeschlossen": "2026-10-30T14:40:00+01:00", "ergebnis": "x",
+            "ergebnis_dateien": [], "daten": {"kern": "Etwa zwei Seiten, passt in eine Stunde."}})
         schreibe(self.instanz / "auftraege" / "erledigt" / "20261022-232618-unterricht-67ba47.json", {
             "id": "20261022-232618-unterricht-67ba47", "agent": "unterricht", "text": "formatvorlage anwenden",
             "status": "fehlgeschlagen", "abgeschlossen": "2026-10-22T23:27:02+02:00",
@@ -139,8 +149,10 @@ class TestApp(unittest.TestCase):
     def test_ergebnis(self):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
         self.assertEqual(r.status, 200)
-        for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · ", "Ein Arbeitsblatt zu Kant.",
-                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "Seiten", "Dateien", "Zurück"):
+        for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · heute 14:40", "Ein Arbeitsblatt zu Kant.",
+                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "Seiten", "Dateien", "Zurück",
+                     "Etwa zwei Seiten, passt in eine Stunde.", "Aus Fassung 1", "Verlauf", "Deine Rückmeldung",
+                     "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>"):
             self.assertIn(text, html)
         basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
         self.assertIn(f'href="{basis}/pdf"', html)
@@ -182,13 +194,22 @@ class TestApp(unittest.TestCase):
         self.assertIn("Gerade ist das gemeinsame Kontingent aufgebraucht.", html)
 
     def test_unbekannt_und_ungueltig_404(self):
-        for pfad in ("/ergebnis/20261030-110916-feedback-1c1e7e",  # Feedback-Bestätigung ist kein Ergebnis
-                     "/ergebnis/20261030-999999-unterricht-ffffff", "/ergebnis/..%2F..%2Fapp",
+        for pfad in ("/ergebnis/20261030-999999-unterricht-ffffff", "/ergebnis/..%2F..%2Fapp",
                      "/ergebnis/nicht-gueltig", "/entwurf/20261030-140944-unterricht-93e29e",
                      "/entwurf/20261025-003745-examen-0c44bf.json"):
             r, html = self.hole(pfad)
             self.assertEqual(r.status, 404, pfad)
             self.assertIn("Nicht gefunden", html)
+
+    def test_kette_ein_auftrag_und_umleitung(self):
+        _, html = self.hole("/")
+        self.assertEqual(html.count('href="/ergebnis/20261030-140944-unterricht-93e29e"'), 1)
+        self.assertNotIn(NB, html)  # keine eigene Zeile für die Nachbesserung
+        self.assertNotIn("Antwort auf deine Rückmeldung", html)
+        self.assertIn("1 Word-Datei · nach deiner Rückmeldung", html)
+        for aid in (NB, "20261030-110916-feedback-1c1e7e"):  # Nachbesserung und Rückmeldung führen zum Ursprung
+            r, _ = self.hole(f"/ergebnis/{aid}")
+            self.assertEqual((r.status, r.getheader("Location")), (303, "/ergebnis/20261030-140944-unterricht-93e29e"))
 
     def test_entwurf(self):
         r, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")

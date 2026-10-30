@@ -3,6 +3,9 @@
 heute() baut aus den Warteschlangen einer Instanz (agentkit.auftraege, agentkit.freigabe) die Ansicht
 "Heute": wartet auf Lia (offene Entwürfe, neue Ergebnisse), läuft gerade, fertig, hat nicht geklappt.
 ergebnis() und entwurf() bauen die Einzelansichten, auf die die Zeilen von "Heute" verlinken.
+Ein Auftrag mit Feedback-Schleife ist EIN Auftrag: Ursprung, Lias Rückmeldungen (Agent feedback) und die
+Nachbesserungen hängen über "bezug" zusammen (ketten()). "Heute" zeigt je Kette eine Zeile, die Ergebnis-Ansicht
+die neueste Fassung oben und darunter den Verlauf.
 Begriffe aus Lias Sicht: keine Agentennamen, keine IDs (wie shared/telegram/portal_logik.py). IDs stehen nur
 in Links, nie im sichtbaren Text.
 
@@ -121,35 +124,97 @@ def entwurf_zeile(entwurf: dict, jetzt: datetime) -> dict:
                   entwurf_hinweis(entwurf), entwurf_link(entwurf))
 
 
-def ergebnis_zeile(auftrag: dict, nach_id: dict[str, dict], jetzt: datetime, marke: str = "") -> dict:
-    return _zeile(titel(auftrag, nach_id), art(auftrag), zeit_text(auftrag.get("abgeschlossen"), jetzt), marke,
-                  dateien_text(auftrag.get("ergebnis_dateien") or []), ergebnis_link(auftrag))
-
-
 def ist_neu(auftrag: dict, jetzt: datetime) -> bool:
     fertig = auftrag.get("abgeschlossen")
     return bool(fertig) and jetzt - datetime.fromisoformat(fertig) <= timedelta(hours=NEU_STUNDEN)
 
 
+def _zeitpunkt(auftrag: dict) -> float:
+    """Wann ein Schritt der Kette geschah: Rückmeldung beim Schreiben, Fassung beim Fertigwerden (sonst Start)."""
+    t = (auftrag.get("erstellt") if auftrag.get("agent") == "feedback" else None) \
+        or auftrag.get("abgeschlossen") or auftrag.get("erstellt")
+    return datetime.fromisoformat(t).timestamp() if t else 0.0
+
+
+def ursprung_id(auftrag: dict, nach_id: dict[str, dict]) -> str:
+    """ID des Ursprungsauftrags: bezug bis zum Anfang folgen (Nachbesserungen von Nachbesserungen)."""
+    gesehen = {auftrag.get("id")}
+    while auftrag.get("bezug") in nach_id and auftrag["bezug"] not in gesehen:
+        auftrag = nach_id[auftrag["bezug"]]
+        gesehen.add(auftrag.get("id"))
+    return auftrag.get("id") or ""
+
+
+def ketten(auftraege_: list[dict]) -> list[list[dict]]:
+    """Aufträge (neue und erledigte) als Ketten je Ursprung, jede zeitlich sortiert; zurückgezogene fehlen."""
+    gueltig = [a for a in auftraege_ if a.get("id") and a.get("status") != "zurueckgezogen"]
+    nach_id = {a["id"]: a for a in gueltig}
+    gruppen: dict[str, list[dict]] = {}
+    for a in gueltig:
+        gruppen.setdefault(ursprung_id(a, nach_id), []).append(a)
+    return [sorted(k, key=_zeitpunkt) for k in gruppen.values()]
+
+
+def kette_von(auftrag_id: str, auftraege_: list[dict]) -> list[dict]:
+    return next((k for k in ketten(auftraege_) if any(a["id"] == auftrag_id for a in k)), [])
+
+
+def fassungen(kette: list[dict]) -> list[dict]:
+    """Die Ergebnisse einer Kette (Ursprung und Nachbesserungen), ohne Lias Rückmeldungen."""
+    return [a for a in kette if a.get("agent") != "feedback"]
+
+
+def kopf(kette: list[dict]) -> dict:
+    """Der Auftrag, für den die Kette steht (Titel, Art, Link): die erste Fassung."""
+    return (fassungen(kette) or kette)[0]
+
+
+def _aktuelle_dateien(fassungen_: list[dict]) -> dict | None:
+    """Die jüngste erledigte Fassung mit Dateien (eine Antwort ohne Dateien ersetzt sie nicht)."""
+    return next((a for a in reversed(fassungen_) if a.get("status") == "erledigt" and a.get("ergebnis_dateien")),
+                None)
+
+
+def ketten_zeile(kette: list[dict], jetzt: datetime, marke: str = "") -> dict:
+    nach_id = {a["id"]: a for a in kette}
+    k, f = kopf(kette), fassungen(kette)
+    dateien_von = _aktuelle_dateien(f)
+    hinweis = " · ".join(x for x in (dateien_text(dateien_von["ergebnis_dateien"]) if dateien_von else "",
+                                     "nach deiner Rückmeldung" if len(f) > 1 else "") if x)
+    return _zeile(titel(k, nach_id), art(k), zeit_text(f[-1].get("abgeschlossen"), jetzt), marke, hinweis,
+                  ergebnis_link(k))
+
+
 def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt: datetime,
           person: str = "Lia") -> dict:
-    """Ansichtsdaten für "Heute". neue/erledigte: agentkit.auftraege, entwuerfe: agentkit.freigabe.offene()."""
-    nach_id = {a["id"]: a for a in [*neue, *erledigte] if "id" in a}
-    erledigte = sorted(erledigte, key=lambda a: a.get("abgeschlossen") or "", reverse=True)
-    # Feedback-Bestätigungen sind keine Ergebnisse: Was daraus wird, zeigt die Nachbesserung
-    ergebnisse = [a for a in erledigte if a.get("status") == "erledigt" and a.get("agent") != "feedback"]
-    neu = [a for a in ergebnisse if ist_neu(a, jetzt)]
+    """Ansichtsdaten für "Heute". neue/erledigte: agentkit.auftraege, entwuerfe: agentkit.freigabe.offene().
+
+    Je Kette eine Zeile. Abschnitt, Zeit und "Neu" richten sich nach der jüngsten Fassung; läuft etwas in der
+    Kette (Nachbesserung oder Rückmeldung), steht sie unter "Läuft gerade"."""
+    laufend, fertige = [], []
+    for kette in ketten([*neue, *erledigte]):
+        if any(a.get("status") == "neu" for a in kette):
+            laufend.append(kette)
+        elif fassungen(kette):  # nur Rückmeldungen ohne bekanntes Ergebnis: nichts zu zeigen
+            fertige.append(kette)
+    fertige.sort(key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True)
+    ergebnisse = [k for k in fertige if fassungen(k)[-1].get("status") == "erledigt"]
+    neu = [k for k in ergebnisse if ist_neu(fassungen(k)[-1], jetzt)]
     wartet = ([entwurf_zeile(e, jetzt) for e in sorted(entwuerfe, key=lambda e: e.get("erstellt") or "",
                                                        reverse=True)]
-              + [ergebnis_zeile(a, nach_id, jetzt, "Neu") for a in neu])
-    laeuft = [_zeile(titel(a, nach_id), art(a) if a.get("agent") != "feedback" else "Rückmeldung",
-                     "seit " + zeit_text(a.get("erstellt"), jetzt) if a.get("erstellt") else "")
-              for a in sorted(neue, key=lambda a: a.get("erstellt") or "")]
-    rest = [a for a in ergebnisse if a not in neu]
-    fehlgeschlagen = [{**_zeile(titel(a, nach_id), art(a), zeit_text(a.get("abgeschlossen"), jetzt),
-                              link=ergebnis_link(a)),
-                       "grund": kurz(grund(a), 300)}
-                      for a in erledigte if a.get("status") == "fehlgeschlagen" and a.get("agent") != "feedback"]
+              + [ketten_zeile(k, jetzt, "Neu") for k in neu])
+    laeuft = []
+    for kette in sorted(laufend, key=lambda k: _zeitpunkt(next(a for a in k if a.get("status") == "neu"))):
+        k = kopf(kette)
+        start = next(a for a in kette if a.get("status") == "neu").get("erstellt")
+        laeuft.append(_zeile(titel(k, {a["id"]: a for a in kette}),
+                             art(k) if k.get("agent") != "feedback" else "Rückmeldung",
+                             "seit " + zeit_text(start, jetzt) if start else "",
+                             hinweis="Arbeitet an deiner Rückmeldung" if len(kette) > 1 else "",
+                             link=ergebnis_link(k) if zeigbar(k) else ""))
+    rest = [k for k in ergebnisse if k not in neu]
+    fehlgeschlagen = [{**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1]), 300)}
+                      for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"]
     n = len(wartet)
     return {
         "datum": datum_text(jetzt),
@@ -159,7 +224,7 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
                         else "Sache wartet auf dich." if n == 1 else "Sachen warten auf dich."),
         "wartet": wartet,
         "laeuft": laeuft,
-        "fertig": [ergebnis_zeile(a, nach_id, jetzt) for a in rest[:FERTIG_ANZAHL]],
+        "fertig": [ketten_zeile(k, jetzt) for k in rest[:FERTIG_ANZAHL]],
         "fertig_weitere": max(0, len(rest) - FERTIG_ANZAHL),
         "fehlgeschlagen": fehlgeschlagen,
     }
@@ -216,43 +281,90 @@ def dateien_ansicht(pfade: list[str], vorschauen: list[tuple[bool, bool, int]]) 
     return ansicht
 
 
-def ergebnis(auftrag: dict, erledigte: list[dict], vorschauen: list[tuple[bool, bool, int]],
-             jetzt: datetime) -> dict:
-    """Ansicht eines Ergebnisses. erledigte: alle abgeschlossenen Aufträge der Instanz (für Bezüge)."""
-    nach_id = {a["id"]: a for a in erledigte if "id" in a}
+def inhalt(auftrag: dict) -> dict:
+    """Kern, Punkte, Blöcke und "Bitte prüfen" einer Fassung. Ohne daten.kern der ganze Ergebnistext."""
     daten = auftrag.get("daten") or {}
-    fehlgeschlagen = auftrag.get("status") == "fehlgeschlagen"
-    text = auftrag.get("ergebnis") or ""
-    if fehlgeschlagen:
-        kern, punkte, bloecke = "", [], []
-    elif daten.get("kern"):
+    if auftrag.get("status") != "erledigt":
+        return {"kern": "", "punkte": [], "bloecke": [], "pruefen": ""}
+    if daten.get("kern"):
         kern, punkte, bloecke = ohne_ids(daten["kern"]), [ohne_ids(p) for p in daten.get("punkte") or []], []
     else:
-        kern, punkte, bloecke = "", [], absaetze(text)
-    bezug = nach_id.get(auftrag.get("bezug") or "")
-    # Lias Rückmeldung, aus der diese Nachbesserung entstand (Feedback-Fall nennt die Nachbesserung)
-    rueckmeldung = next((ohne_ids(a.get("text") or "") for a in erledigte
-                         if a.get("agent") == "feedback" and auftrag.get("id")
-                         and (a.get("daten") or {}).get("nachbesserung") == auftrag["id"]), "")
-    antworten = sorted((a for a in erledigte if a.get("bezug") == auftrag.get("id") and auftrag.get("id")
-                        and zeigbar(a) and a.get("status") == "erledigt"),
-                       key=lambda a: a.get("abgeschlossen") or "")
-    pfade = [] if fehlgeschlagen else list(auftrag.get("ergebnis_dateien") or [])
+        kern, punkte, bloecke = "", [], absaetze(auftrag.get("ergebnis") or "")
+    return {"kern": kern, "punkte": punkte, "bloecke": bloecke, "pruefen": ohne_ids(daten.get("pruefen") or "")}
+
+
+def _dateien(auftrag: dict | None, vorschauen: dict[str, list[tuple[bool, bool, int]]]) -> list[dict]:
+    if not auftrag:
+        return []
+    pfade = list(auftrag.get("ergebnis_dateien") or [])
+    return [{**d, "auftrag": auftrag["id"]}
+            for d in dateien_ansicht(pfade, vorschauen.get(auftrag["id"]) or [(False, False, 0)] * len(pfade))]
+
+
+def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[tuple[bool, bool, int]]],
+            jetzt: datetime) -> list[dict]:
+    """Schritte der Kette in zeitlicher Folge: Fassungen (bzw. Antworten ohne Dateien) und Lias Rückmeldungen.
+
+    art: "fassung" oder "rueckmeldung". aktuell: diese Fassung steht oben in der Ansicht."""
+    beantwortet = {a["id"] for a in kette if a.get("agent") != "feedback"}
+    schritte, nummer = [], 0
+    for a in kette:
+        if a.get("agent") == "feedback":
+            nb = (a.get("daten") or {}).get("nachbesserung")
+            notiz = ("Wird gerade bearbeitet." if a.get("status") == "neu"
+                     else "" if nb in beantwortet else ohne_ids(a.get("ergebnis") or ""))
+            schritte.append({"art": "rueckmeldung", "name": "Deine Rückmeldung",
+                             "zeit": zeit_text(a.get("erstellt"), jetzt), "zitat": ohne_ids(a.get("text") or ""),
+                             "notiz": notiz})
+            continue
+        if nummer == 0 or a.get("ergebnis_dateien"):
+            nummer += 1
+            name = f"Fassung {nummer}"
+        else:
+            name = "Antwort"
+        status = a.get("status")
+        schritte.append({
+            "art": "fassung", "name": name, "id": a["id"], "aktuell": a is aktuell,
+            "zeit": ("seit " + zeit_text(a.get("erstellt"), jetzt) if status == "neu"
+                     else zeit_text(a.get("abgeschlossen"), jetzt)),
+            "notiz": ("Läuft gerade." if status == "neu"
+                      else "Hat nicht geklappt: " + grund(a) if status == "fehlgeschlagen" else ""),
+            **inhalt(a),
+            "dateien": _dateien(a, vorschauen) if status == "erledigt" else [],
+        })
+    return schritte
+
+
+def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int]]], jetzt: datetime) -> dict:
+    """Ansicht eines Auftrags samt Feedback-Schleife (kette aus ketten()): neueste Fassung oben, darunter der
+    Verlauf. vorschauen: je Auftrags-ID die Vorschau-Infos seiner Ergebnisdateien (siehe dateien_ansicht)."""
+    nach_id = {a["id"]: a for a in kette}
+    k, f = kopf(kette), fassungen(kette)
+    fertig = [a for a in f if a.get("status") in ("erledigt", "fehlgeschlagen")]
+    erledigt = [a for a in f if a.get("status") == "erledigt"]
+    aktuell = erledigt[-1] if erledigt else None
+    juengste = fertig[-1] if fertig else k
+    dateien_von = _aktuelle_dateien(f)
+    laufend = next((a for a in kette if a.get("status") == "neu"), None)
+    fehlgeschlagen = aktuell is None
+    schritte = verlauf(kette, aktuell, vorschauen, jetzt)
+    dateien_ = _dateien(dateien_von, vorschauen)
     return {
-        "titel": titel(auftrag, nach_id, TITEL_LANG),
-        "unter": " · ".join(x for x in (art(auftrag), zeit_text(auftrag.get("abgeschlossen"), jetzt)) if x),
+        "titel": titel(k, nach_id, TITEL_LANG),
+        "unter": " · ".join(x for x in (art(k), zeit_text(juengste.get("abgeschlossen"), jetzt)) if x),
         "fehlgeschlagen": fehlgeschlagen,
-        "grund": grund(auftrag) if fehlgeschlagen else "",
-        "kern": kern,
-        "punkte": punkte,
-        "bloecke": bloecke,
-        "pruefen": "" if fehlgeschlagen else ohne_ids(daten.get("pruefen") or ""),
-        "dateien": dateien_ansicht(pfade, vorschauen) if pfade else [],
-        "rueckmeldung": rueckmeldung,
-        "bezug": ({"titel": titel(bezug, nach_id), "link": ergebnis_link(bezug)}
-                  if bezug and zeigbar(bezug) else None),
-        "antworten": [{"titel": titel(a, nach_id), "unter": zeit_text(a.get("abgeschlossen"), jetzt),
-                       "link": ergebnis_link(a)} for a in antworten],
+        "grund": grund(juengste) if fehlgeschlagen else "",
+        # Die letzte Nachbesserung ist fehlgeschlagen, oben steht die Fassung davor
+        "zuletzt_fehlgeschlagen": (grund(juengste) if not fehlgeschlagen and juengste is not aktuell
+                                   and juengste.get("status") == "fehlgeschlagen" else ""),
+        "laeuft": ("Arbeitet gerade an deiner Rückmeldung (seit " + zeit_text(laufend.get("erstellt"), jetzt) + ")."
+                   if laufend else ""),
+        **inhalt(aktuell or {}),
+        "dateien": dateien_,
+        # Die neueste Antwort hat keine Dateien: Sie stammen aus einer früheren Fassung
+        "dateien_aus": (next(x["name"] for x in schritte if x.get("id") == dateien_von["id"])
+                        if dateien_ and dateien_von is not aktuell else ""),
+        "verlauf": schritte if len(kette) > 1 else [],
     }
 
 

@@ -1,10 +1,41 @@
-{#- Ergebnis, nur lesend (Board ModErgebnis). Keine Feedback-Knöpfe, keine Anmerkungen: gibt es noch nicht. -#}
+{#- Ergebnis, nur lesend (Board ModErgebnis). Ein Auftrag samt Feedback-Schleife: neueste Fassung oben, darunter
+    der Verlauf. Keine Feedback-Knöpfe, keine Anmerkungen: gibt es noch nicht. -#}
 {% extends "basis.html" %}
 {% block inhalt %}
 {%- set nummer = namespace(n=0) %}
 {%- macro kopf(name) %}{% set nummer.n = nummer.n + 1 %}
 <h2><span class="akzent">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
 {%- endmacro %}
+{%- macro inhalt(x) %}
+  {%- if x.kern %}<p class="absatz">{{ x.kern }}</p>{% endif %}
+  {%- if x.punkte %}
+  <ol class="punkte">{% for p in x.punkte %}<li><span class="nr">{{ loop.index }}</span>{{ p }}</li>{% endfor %}</ol>
+  {%- endif %}
+  {%- for b in x.bloecke %}
+  {%- if b.punkte %}
+  <ul class="punkte">{% for p in b.punkte %}<li><span class="nr" aria-hidden="true">–</span>{{ p }}</li>{% endfor %}</ul>
+  {%- else %}
+  <p class="absatz">{{ b.absatz }}</p>
+  {%- endif %}
+  {%- endfor %}
+  {%- if x.pruefen %}<p class="hinweis"><b>Bitte prüfen:</b> {{ x.pruefen }}</p>{% endif %}
+{%- endmacro %}
+{%- macro dateiliste(liste) %}
+  <div class="dateien">
+    {%- for d in liste %}
+    <div class="datei">
+      <span class="dateiname">{{ d.name }}</span>
+      <span class="knoepfe">
+      {%- for k in d.knoepfe %}
+        <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
+      {%- endfor %}
+      </span>
+    </div>
+    {%- endfor %}
+  </div>
+{%- endmacro %}
+
+{%- if e.laeuft %}<p class="hinweis">{{ e.laeuft }}</p>{% endif %}
 
 {%- if e.fehlgeschlagen %}
 <section>
@@ -14,26 +45,8 @@
 {%- elif e.kern or e.bloecke or e.pruefen %}
 <section>
   {{ kopf("Das Wichtigste") }}
-  {%- if e.kern %}<p class="absatz">{{ e.kern }}</p>{% endif %}
-  {%- if e.punkte %}
-  <ol class="punkte">{% for p in e.punkte %}<li><span class="nr">{{ loop.index }}</span>{{ p }}</li>{% endfor %}</ol>
-  {%- endif %}
-  {%- for b in e.bloecke %}
-  {%- if b.punkte %}
-  <ul class="punkte">{% for p in b.punkte %}<li><span class="nr" aria-hidden="true">–</span>{{ p }}</li>{% endfor %}</ul>
-  {%- else %}
-  <p class="absatz">{{ b.absatz }}</p>
-  {%- endif %}
-  {%- endfor %}
-  {%- if e.pruefen %}<p class="hinweis"><b>Bitte prüfen:</b> {{ e.pruefen }}</p>{% endif %}
-</section>
-{%- endif %}
-
-{%- if e.rueckmeldung or e.bezug %}
-<section>
-  {{ kopf("Deine Rückmeldung") }}
-  {%- if e.rueckmeldung %}<p class="hinweis">„{{ e.rueckmeldung }}“</p>{% endif %}
-  {%- if e.bezug %}<a class="verweis" href="{{ e.bezug.link }}">Zum ursprünglichen Ergebnis: {{ e.bezug.titel }}</a>{% endif %}
+  {%- if e.zuletzt_fehlgeschlagen %}<p class="hinweis">Deine letzte Rückmeldung hat nicht geklappt: {{ e.zuletzt_fehlgeschlagen }}</p>{% endif %}
+  {{ inhalt(e) }}
 </section>
 {%- endif %}
 
@@ -41,12 +54,13 @@
 {%- if mit_seiten %}
 <section>
   {{ kopf("Seiten") }}
+  {%- if e.dateien_aus %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
   {%- for d in mit_seiten %}
   {%- if e.dateien | length > 1 %}<h3>{{ d.name }}</h3>{% endif %}
   <div class="seiten">
     {%- for m in range(1, d.seiten + 1) %}
-    <a href="/ergebnis/{{ id }}/datei/{{ d.nr }}/seite/{{ m }}" aria-label="{{ d.name }}, Seite {{ m }} groß ansehen">
-      <img src="/ergebnis/{{ id }}/datei/{{ d.nr }}/seite/{{ m }}" alt="{{ d.name }}, Seite {{ m }}" loading="lazy">
+    <a href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/seite/{{ m }}" aria-label="{{ d.name }}, Seite {{ m }} groß ansehen">
+      <img src="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/seite/{{ m }}" alt="{{ d.name }}, Seite {{ m }}" loading="lazy">
       <span class="seitenzahl">{{ m }}/{{ d.seiten }}</span>
     </a>
     {%- endfor %}
@@ -59,32 +73,38 @@
 {%- if e.dateien %}
 <section>
   {{ kopf("Dateien") }}
-  <div class="dateien">
-    {%- for d in e.dateien %}
-    <div class="datei">
-      <span class="dateiname">{{ d.name }}</span>
-      <span class="knoepfe">
-      {%- for k in d.knoepfe %}
-        <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="/ergebnis/{{ id }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
-      {%- endfor %}
-      </span>
-    </div>
-    {%- endfor %}
-  </div>
+  {%- if e.dateien_aus and not mit_seiten %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
+  {{ dateiliste(e.dateien) }}
 </section>
 {%- endif %}
 
-{%- if e.antworten %}
+{%- if e.verlauf %}
 <section>
-  {{ kopf("Später dazu") }}
-  <ul>
-    {%- for a in e.antworten %}
-    <li><a class="zeile" href="{{ a.link }}">
-      <span class="punkt" aria-hidden="true"></span>
-      <span class="text"><span class="titel">{{ a.titel }}</span><span class="unter">{{ a.unter }}</span></span>
-    </a></li>
+  {{ kopf("Verlauf") }}
+  <ol class="verlauf">
+    {%- for s in e.verlauf %}
+    <li class="schritt schritt-{{ s.art }}">
+      {%- if s.art == "rueckmeldung" %}
+      <span class="schritt-kopf"><b>{{ s.name }}</b><span class="unter">{{ s.zeit }}</span></span>
+      <p class="zitat">„{{ s.zitat }}“</p>
+      {%- if s.notiz %}<span class="unter">{{ s.notiz }}</span>{% endif %}
+      {%- elif s.aktuell %}
+      <span class="schritt-kopf"><b>{{ s.name }}</b><span class="unter">{{ s.zeit }} · steht oben</span></span>
+      {%- elif s.kern or s.bloecke or s.dateien %}
+      <details>
+        <summary class="schritt-kopf"><b>{{ s.name }}</b><span class="unter">{{ s.zeit }} · ansehen</span></summary>
+        <div class="schritt-inhalt">
+          {{ inhalt(s) }}
+          {%- if s.dateien %}{{ dateiliste(s.dateien) }}{% endif %}
+        </div>
+      </details>
+      {%- else %}
+      <span class="schritt-kopf"><b>{{ s.name }}</b><span class="unter">{{ s.zeit }}</span></span>
+      {%- endif %}
+      {%- if s.art == "fassung" and s.notiz %}<span class="unter">{{ s.notiz }}</span>{% endif %}
+    </li>
     {%- endfor %}
-  </ul>
+  </ol>
 </section>
 {%- endif %}
 {% endblock %}
