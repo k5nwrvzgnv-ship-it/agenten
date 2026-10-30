@@ -498,7 +498,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Zur Messung der Handeingriffe fehlen Zeitstempel in der Bash-History (HISTTIMEFORMAT in ~/.bashrc, nur mit
      Jans Okay).
 
-24. Web-App für Lia und weitere Lehrerinnen (Entwurf 29.10.2026, Bauschritt 1 gebaut 30.10.): docs/webapp-plan.md, Prototyp
+24. Web-App für Lia und weitere Lehrerinnen (Entwurf 29.10.2026, Bauschritt 1 und Ansichten gebaut 30.10.): docs/webapp-plan.md, Prototyp
    docs/webapp-prototyp.html (Beispieldaten, Seitenvorschau mit Anmerkungen, Feedback mit Geltungsbereich, Vorlagen,
    Testleitung für 7 Aufgaben), privat veröffentlicht unter
    https://claude.ai/artifact/JMoaDZKoS59tpG35fbxZDs (für Lia erst nach „Teilen“ durch Jan).
@@ -529,7 +529,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Stand 30.10.: Bauschritt 1 fertig (shared/webapp/, eigene STATUS.md): Seite „Heute“ nur lesend aus
      lia/instanz (wartet auf Lia, läuft, fertig, hat nicht geklappt), Unix-Socket data/webapp.sock, Zugriff per
      SSH-Tunnel, von Hand gestartet, kein Dienst, keine Anmeldung. Echter Lauf zeigt die 7 Aufträge und
-     examen-0c44bf. Nächster Schritt: Bauschritt 2 (Konten, Einladung, Passkey). Dienst webapp.service: Okay Jan.
+     examen-0c44bf. Dazu (Jan 30.10. vorgezogen): Ergebnis- und Entwurf-Ansicht nur lesend, per Klick aus
+     „Heute“ (Punkte 2 und 4 oben ohne Knöpfe): Kern, Punkte, Bitte prüfen, Seitenvorschau, Downloads mit
+     Pfadprüfung, Verweis Nachbesserung/Ursprung, Grund bei Fehlschlag; Entwurf ganz mit Einsatz. Nächster
+     Schritt: Bauschritt 2 (Konten, Einladung, Passkey). Dienst webapp.service: Okay Jan.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 

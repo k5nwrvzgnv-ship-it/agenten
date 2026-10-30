@@ -7,7 +7,8 @@ Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Moderni
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
 ## Stand (30.10.2026)
-Bauschritt 1 fertig und committet, `./pruefen.sh` grün (Web-App: 18 Tests).
+Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, `./pruefen.sh` grün
+(Web-App: 38 Tests).
 - Seite „Heute“, nur lesend, ohne Anmeldung, aus `lia/instanz` über agentkit (`auftraege.neue/erledigte`,
   `freigabe.offene`, je mit `basis=`). Die App selbst läuft ohne `AGENTKIT_INSTANZ`.
 - Abschnitte: 01 Wartet auf dich (offene Entwürfe, Ergebnisse der letzten 48 h als „Neu“), 02 Läuft gerade,
@@ -18,11 +19,28 @@ Bauschritt 1 fertig und committet, `./pruefen.sh` grün (Web-App: 18 Tests).
   „Runde runde-…“ werden aus Titeln entfernt (Test prüft, dass keine ID und kein Agentenname im HTML steht).
 - Zeiten in Europe/Berlin (Sommerzeit beachtet). htmx lädt den Inhalt jede Minute neu (`/teile/heute`).
 - Kopfzeilen: CSP nur `'self'`, `no-store`, `nosniff`, kein Referrer; keine API-Doku (`/docs` 404).
+- Zeilen in „Heute“ sind Links (außer „Läuft gerade“). IDs stehen nur in der URL, nie im sichtbaren Text.
+- Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, Feedback-Bestätigungen
+  und zurückgezogene 404): Titel, Art und Zeit; „Das Wichtigste“ aus `daten.kern`/`punkte`/`pruefen`, ohne
+  `daten` der ganze Ergebnistext (Zeilen mit „- “ als Liste); Seiten aus `<stem>-vorschau/<stem>-seite-NN.png`
+  (Klick öffnet das Bild groß); Dateien mit Knöpfen PDF (aus der Vorschau) und Original (Word/Excel/PowerPoint/PDF).
+  Nachbesserung: Lias Rückmeldung (aus dem Feedback-Fall, `daten.nachbesserung`) und Link zum ursprünglichen
+  Ergebnis; das ursprüngliche zeigt „Später dazu“. Fehlgeschlagen: „Hat nicht geklappt“ mit Grund.
+- Entwurf `/entwurf/<id>` (nur `freigabe.offene` der Instanz): ganzer Text ohne Kürzung, Details nur aus
+  `logik.ENTWURF_DETAILS` (bisher „Einsatz“; `daten.datei` ist ein interner Pfad und bleibt verborgen),
+  Hinweis „Setzt du selbst ein“. Keine Knöpfe.
+- Echter Lauf 30.10.: alle 7 Links aus „Heute“ liefern 200 (5 Ergebnisse, 1 Fehlschlag, examen-0c44bf),
+  Downloads und Seitenbilder kommen, falsche Nummern und Pfade 404. Das Dossier der Recherche (PDF) hat keine
+  Vorschau (der Renderer hat dafür keine `-vorschau/` angelegt), dort nur der Download.
 
 ## Technik
-- `logik.py`: reine Logik (`heute()`), getestet. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
+- `logik.py`: reine Logik (`heute()`, `ergebnis()`, `entwurf()`), getestet. `dateien.py`: Pfade der
+  Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
+  kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
+  `ergebnis_dateien`, nie einen Pfad. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
   `data/webapp.sock` (Ordner 0700; Uvicorn setzt den Socket selbst auf 0666, der Ordner schützt).
-- `vorlagen/heute.html` (Seite), `vorlagen/_heute.html` (Inhalt, auch für htmx), `statisch/stil.css`.
+- `vorlagen/heute.html` (Seite), `vorlagen/_heute.html` (Inhalt, auch für htmx), `vorlagen/basis.html` (Kopf mit
+  Zurück für Einzelansichten), `ergebnis.html`, `entwurf.html`, `statisch/stil.css`. 404 als lesbare Seite.
 - `statisch/htmx-2.0.4.min.js` mit `.sha256` (von unpkg und jsdelivr geladen, beide gleich; Test prüft die Summe).
 - `requirements.txt`: feste Versionen (pip freeze) von fastapi, uvicorn (ohne [standard]), jinja2,
   python-multipart, webauthn samt Abhängigkeiten. agentkit per `.venv/.../agentkit.pth`.
@@ -31,7 +49,7 @@ Bauschritt 1 fertig und committet, `./pruefen.sh` grün (Web-App: 18 Tests).
 ## Starten und ansehen (zum Test, kein Dienst)
 Auf dem Server (vom Mac aus `ssh agents-user`): `cd ~/agenten/shared/webapp && .venv/bin/python app.py` (Strg+C beendet).
 Auf Jans Mac (Kurzname aus seiner ~/.ssh/config): `ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agents-user`, dann
-http://localhost:8792. Andere Instanz: `WEBAPP_INSTANZ=/pfad`, anderer Socket: `WEBAPP_SOCKET=/pfad`.
+http://localhost:8792. Nach einer Code-Änderung die laufende App mit Strg+C beenden und neu starten. Andere Instanz: `WEBAPP_INSTANZ=/pfad`, anderer Socket: `WEBAPP_SOCKET=/pfad`.
 Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start löscht sie.
 
 ## Entscheidungen
@@ -44,8 +62,11 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
    Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
-4. Zeilen sind noch keine Links (Ergebnis-Ansicht ist Bauschritt 3, Entwurf abschließen Bauschritt 5). Kein Knopf
-   „Neuer Auftrag“, keine Leiste mit Bereichen, kein Fortschrittsbalken: gibt es noch nicht.
+4. Ergebnis und Entwurf nur lesend: keine Feedback-Knöpfe (Bauschritt 3), kein Abschließen/Ändern/Ablehnen
+   (Bauschritt 5), keine Fassungs-Chips, keine Anmerkungen an einer Stelle. Kein Knopf „Neuer Auftrag“, keine
+   Leiste mit Bereichen, kein Fortschrittsbalken: gibt es noch nicht.
+7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
+   Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.
 5. Schrift: Inter/Inter Tight werden nur genutzt, wenn sie auf dem Gerät sind (sonst Helvetica/Arial). Google Fonts
    bewusst nicht (Lias Gerät soll nur mit dem Server sprechen). Schriftdateien lokal ausliefern: Jan fragen
    (Lizenz OFL, Dateien ins Repo wie htmx).
