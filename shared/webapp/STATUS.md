@@ -9,7 +9,26 @@ https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 ## Stand (30.10.2026)
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
-Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), `./pruefen.sh` grün (Web-App: 73 Tests).
+Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen Aufbaus „Desktop zuerst“
+(Jans Okay 30.10.), `./pruefen.sh` grün (Web-App: 74 Tests).
+- Rahmen (Plan `../../docs/webapp-aufbau.md` 4.1, Board „Desktop“): drei Spalten Baum (260 px) | Inhalt mit
+  Brotkrumen (bis 840 px) | „Fragen“ (320 px, nur Platzhalter „Kommt bald“, kein Chat, kein Claude-Aufruf). Alle
+  Seiten (auch 404) über `vorlagen/basis.html`. Im HTML steht der Inhalt vorn. Unter 1100 px rutscht „Fragen“
+  unter den Inhalt, unter 640 px alles untereinander: Inhalt, Baum, Fragen (einfacher als der Drilldown aus 4.2,
+  die Brotkrumen führen zu „Heute“ zurück).
+- Baum (`logik.baum`): oben „Heute“ mit der Zahl, was wartet, dann je Fach (Überschrift) die Klassen/Kurse (ohne
+  Link, Ansicht kommt in Bauschritt 2) und deren Reihen (Link `/reihe/<kennung>`, abgeschlossene mit Zusatz).
+  Die gezeigte Seite ist markiert. Stunden gibt es in keiner Datei: nicht angezeigt.
+- Brotkrumen (`logik.krumen`): Heute; Reihe: Fach › Klasse; Seite in einer Reihe (Ergebnis, Entwurf mit Reihe):
+  Fach › Klasse › Reihe (Link) › Titel (gekürzt auf 60 Zeichen); sonst Heute › Titel.
+- Reihe `/reihe/<kennung>` (`logik.reihe_ansicht`, nur lesend): Fach · Klasse, Reihenfrage, „Schon behandelt“,
+  „Zur ganzen Reihe“ mit offenen Entwürfen und Aufträgen (Marke Offen, Läuft, Hat nicht geklappt). Unbekannt: 404.
+- „Heute“ in der Mitte, Inhalt wie bisher, jede Zeile mit Reihe nennt ihren Ort („Ethik › Klasse 8 ›
+  Straftheorien“). Chips, `?ordnung=`, Seite `/unterricht` und „Unterricht →“ sind weg; `/unterricht` leitet mit
+  301 auf `/` um. Aufträge ohne Reihe stehen nur in „Heute“.
+- Ergebnis, Entwurf und Neuer Auftrag wie unten, nur im Rahmen; „Zurück“ ersetzt durch die Brotkrumen.
+- Echter Lauf 30.10. (Test-Socket, lia/instanz): Baum Heute 5, Ethik › Klasse 8 › Straftheorien (in Planung),
+  Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn; alle Links aus „Heute“ und beide Reihen 200.
 - Seite „Heute“, nur lesend, ohne Anmeldung, aus `lia/instanz` über agentkit (`auftraege.neue/erledigte`,
   `freigabe.offene`, je mit `basis=`). Die App selbst läuft ohne `AGENTKIT_INSTANZ`.
 - Abschnitte: 01 Wartet auf dich (offene Entwürfe, Ergebnisse der letzten 48 h als „Neu“), 02 Läuft gerade,
@@ -60,54 +79,40 @@ Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), `./pruefen.sh` grün (We
   - Reihen aus `<instanz>/reihen.toml` (Format in `ordnung.py`: wie lia/unterricht/reihen.toml plus `id`,
     `stand`, `agenten`). Gibt es sie nicht (heute), setzt `ordnung.py` sie zusammen: Reihen aus
     `lia/unterricht/reihen.toml` (Fach aus profil.toml), Examensaufträge zur Reihe aus `examen.toml`
-    (`titel_in_reihen_toml`), Theater aus `theater.toml` als Fach „Theater“, „Kurs 11“ (Jan 30.10., steht in
-    keiner Datei, `THEATER_KURS`). Kaputte Dateien: Fehler im Log (nur bei Änderung), App zeigt ohne Reihen.
+    (`titel_in_reihen_toml`), das Stück aus `theater.toml` als Fach „Darstellendes Spiel“, „Kurs 12“ (Jan
+    30.10., steht in keiner Datei, `THEATER_FACH`, `THEATER_KURS`). Kaputte Dateien: Fehler im Log (nur bei Änderung), App zeigt ohne Reihen.
   - Zuordnung (`logik.reihe_von`): Feld `reihe` des Auftrags, sonst der Agent, wenn er in genau einer Reihe unter
     `agenten` steht. Nichts aus dem Text geraten, sonst „ohne Reihe“. Bei Ketten zählt der Ursprung.
-    Echte Daten 30.10.: Theater-Fassung 0baec0 -> Theater; Entwurf examen-0c44bf -> Ethik 8 Straftheorien;
+    Echte Daten 30.10.: Theater-Fassung 0baec0 -> Der nackte Wahnsinn; Entwurf examen-0c44bf -> Ethik 8 Straftheorien;
     alle Material-Aufträge, Recherche und der Fehlschlag ohne Reihe.
-  - „Heute“: Chips Alle, je Fach, je Klasse (nur bei mehreren Klassen eines Fachs), Ohne Reihe, als Links
-    `/?ordnung=fach:ethik|gruppe:…|reihe:…|ohne` (unbekannte Werte: alle); htmx lädt mit demselben Filter nach.
-    Jede Zeile nennt ihre Reihe. Die Begrüßung zählt alles, was wartet, auch bei Filter. Ohne Reihen keine Chips.
-  - `/unterricht` (nur lesend): je Fach, Klasse/Kurs und Reihe Reihenfrage, „Schon behandelt“, offene Entwürfe
-    und Aufträge (Marke Offen, Läuft, Hat nicht geklappt), darunter „Ohne Reihe“. Kein Anlegen/Ändern.
   - Neuer Auftrag: Auswahl „Für welche Reihe?“ (laufende Reihen, Standard keine). Der Auftrag trägt `reihe`
     (agentkit, neues optionales Feld) und am Textende „Reihe: Titel (Fach, Klasse)“ für den Agenten.
 - Test-Instanz für Jan: `data/test/instanz` (`.env` mit PERSON=Lia, 0600) und Agent-Ordner `data/test/unterricht`,
   nicht im Repo. Probelauf 30.10.: Auftrag mit PDF angelegt, Datei verschoben, ohne Origin 403; danach gelöscht.
 
-## Neuplanung Desktop zuerst (30.10.2026, nur Plan, nichts gebaut)
-Auftrag Jan 30.10.: Lia nutzt die App meist am PC; Chips und „Unterricht →“ sind unlogisch. Plan:
-`../../docs/webapp-aufbau.md` (Befund, Abdeckung mit Regeln R1–R11, Objektmodell, Zustände Auftrag → Fassungen →
-final, Mustertabelle, Heuristik-Review, Test mit 7 Aufgaben, Empfehlung). Klickbares Board „Desktop“ und Board
-„Handy-Prüfung“ im Canvas (unten, „Neu 30.10.: Desktop zuerst“). Abdeckung und Testbogen in `data/ia/`
-(nicht im Repo).
-- Kern: drei Spalten Baum (Fach → Klasse/Kurs → Reihe → Stunde) | Inhalt mit Brotkrumen | Chat „Fragen“ mit dem
-  Ort als Kontext. „Heute“ ist oberster Eintrag im Baum. „+ Neu hier“ öffnet eine Vorlagengalerie mit
-  vorbelegtem Ort. Material zeigt Fassungen, „Als final markieren“ (nur Lia), „Rückmeldung geben“ (auch mit Datei),
-  „Eigene Fassung hochladen“ (Lias echter Weg, löst offenen Punkt 8). Stunde ist leichte, nie verpflichtende Ebene.
-- Geklärt (Jan 30.10.): Fach heißt „Darstellendes Spiel“ (App sagt noch „Theater“, `THEATER_KURS` in
-  `ordnung.py`; umstellen mit dem ersten Bauschritt), DS-Kurs 12 gibt es (in keiner Datei, Reihen offen),
-  Notentabelle gehört zu Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt
-  docx/pptx und PDF.
-- Jan hat das Desktop-Board am 30.10. durchgeklickt: sieht gut aus, alles klappt.
-- Test mit Lia 30.10. (Jan): Lia findet es gut, die Ebene Stunde will sie. Das Stück „Der nackte Wahnsinn“
-  gehört zu Kurs 12, nicht zu Kurs 11 (im Board korrigiert; im Code noch `THEATER_KURS = "Kurs 11"` in
-  `ordnung.py` und in den Tests). Zahlen je Aufgabe nicht erhoben.
-- Nächster Schritt: Jans Okay für Bauschritt 1 des neuen Aufbaus (Plan Abschnitt 5), dabei Fach „Darstellendes
-  Spiel“ und Kurs 12 im Code umstellen. Gebaut wird erst nach Test und Jans Okay, in den
-  Bauschritten aus Abschnitt 5 des Plans.
+## Neuer Aufbau „Desktop zuerst“ (Plan 30.10.2026)
+Plan `../../docs/webapp-aufbau.md` (Abschnitt 5: Bauschritte), Boards „Desktop“ und „Handy-Prüfung“ im Canvas.
+Lias Test 30.10. (Jan): gefällt, Ebene Stunde gewünscht. Geklärt (Jan 30.10.): Fach „Darstellendes Spiel“, das
+Stück gehört zu Kurs 12, Kurs 11 mit Kompositionsmethoden (laut Plan 4 ein echter Ort)
+steht in keiner Datei und fehlt daher im Baum, Notentabelle gehört zu Ethik 8,
+Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt docx/pptx und PDF.
+- Bauschritt 1 gebaut (siehe Stand). Nächste: 2 Orts-Ansichten Fach/Klasse, Material mit Marke statt
+  Ergebnisliste; 3 Stunden (braucht Datei, Bedarf lia/unterricht); 4 Vorlagengalerie; 5 mit Konten final,
+  eigene Fassung, Rückmeldung; 6 Chat-Spalte (braucht Chat-Agent).
+- Laut Plan 5 entfällt die Reihen-Auswahl im Formular; sie bleibt, bis „+ Neu hier“ den Ort vorbelegt
+  (Bauschritt 4). Die Art „Theater“ (Agent theater) heißt in den Zeilen noch so; im Board „Spielfassung“.
 
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
-  `reihe_von()`, `filter_chips()`, `unterricht()`), getestet. `ordnung.py`: Reihen-Dateien lesen. `dateien.py`: Pfade der
+  `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`), getestet. `ordnung.py`: Reihen-Dateien lesen. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
   kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
   `ergebnis_dateien`, nie einen Pfad. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
   `data/webapp.sock` (Ordner 0700; Uvicorn setzt den Socket selbst auf 0666, der Ordner schützt).
-- `vorlagen/heute.html` (Seite), `vorlagen/_heute.html` (Inhalt, auch für htmx), `_zeile.html` (Zeile für Heute
-  und Unterricht), `unterricht.html`, `vorlagen/basis.html` (Kopf mit
-  Zurück für Einzelansichten), `ergebnis.html`, `entwurf.html`, `statisch/stil.css`. 404 als lesbare Seite.
+- `vorlagen/basis.html` (Rahmen: Brotkrumen, Inhalt, Baum, Fragen; Kopf für Einzelansichten),
+  `heute.html` (Seite), `_heute.html` (Inhalt, auch für htmx), `_zeile.html` (Zeile für Heute und Reihe),
+  `reihe.html`, `ergebnis.html`, `entwurf.html`, `neu.html`, `nicht_gefunden.html` (404 im Rahmen),
+  `statisch/stil.css`. `app.rahmen()` liefert Baum und Brotkrumen für jede Seite.
 - `statisch/htmx-2.0.4.min.js` mit `.sha256` (von unpkg und jsdelivr geladen, beide gleich; Test prüft die Summe).
 - `requirements.txt`: feste Versionen (pip freeze) von fastapi, uvicorn (ohne [standard]), jinja2,
   python-multipart, webauthn samt Abhängigkeiten. agentkit per `.venv/.../agentkit.pth`.

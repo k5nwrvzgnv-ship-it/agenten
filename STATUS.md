@@ -498,7 +498,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Zur Messung der Handeingriffe fehlen Zeitstempel in der Bash-History (HISTTIMEFORMAT in ~/.bashrc, nur mit
      Jans Okay).
 
-24. Web-App für Lia und weitere Lehrerinnen (Entwurf 29.10.2026, Bauschritt 1 und Ansichten gebaut 30.10.): docs/webapp-plan.md, Prototyp
+24. Web-App für Lia und weitere Lehrerinnen (Entwurf 29.10.2026, gebaut ab 30.10., neuer Aufbau Bauschritt 1 30.10.): docs/webapp-plan.md, Prototyp
    docs/webapp-prototyp.html (Beispieldaten, Seitenvorschau mit Anmerkungen, Feedback mit Geltungsbereich, Vorlagen,
    Testleitung für 7 Aufgaben), privat veröffentlicht unter
    https://claude.ai/artifact/JMoaDZKoS59tpG35fbxZDs (für Lia erst nach „Teilen“ durch Jan).
@@ -540,29 +540,26 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      agentkit.auftraege.neuer_auftrag hat dafür den Parameter absender. Nächster Schritt: Bauschritt 2 (Konten,
      Einladung, Passkey).
      Dienst webapp.service: Okay Jan.
-   - Ordnung nach Fach, Klasse und Reihe (Jans Wunsch und Okay 30.10., gebaut): „Heute“ mit Chips Alle, Ethik,
-     Theater, Ohne Reihe; Ansicht /unterricht (Fach, Klasse oder Kurs, Reihe mit Entwürfen und Aufträgen);
-     Auswahl der Reihe beim Neuen Auftrag (Testbetrieb). Zuordnung nur über das neue optionale Feld reihe in
-     agentkit.auftraege.neuer_auftrag oder den Agenten (theater -> Theater Kurs 11, examen -> Ethik 8
-     Straftheorien), sonst „ohne Reihe“. Entschieden: Fach heißt „Theater“, Theater-Reihe „Der nackte Wahnsinn“,
-     Kurs 11; Reihen pflegt vorerst Jan, Lia erst mit Konten.
+   - Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.): Zuordnung nur über das optionale Feld reihe in
+     agentkit.auftraege.neuer_auftrag oder den Agenten (theater -> Darstellendes Spiel Kurs 12 „Der nackte
+     Wahnsinn“, examen -> Ethik 8 Straftheorien), sonst ohne Reihe. Auswahl der Reihe beim Neuen Auftrag
+     (Testbetrieb). Reihen pflegt vorerst Jan, Lia erst mit Konten.
    - Bedarf an den lia/unterricht-Chat (Jan 30.10.): EINE Datei lia/instanz/reihen.toml für App und Agenten. Bitte
      lia/unterricht/reihen.toml dorthin verschieben, reihen.py und lia/examen (titel_in_reihen_toml) umstellen,
-     Felder id, stand (laufend/abgeschlossen) und agenten erlauben und den Theater-Kurs eintragen
-     (fach "Theater", klasse "Kurs 11", titel "Der nackte Wahnsinn", agenten ["theater"]); Format in
+     Felder id, stand (laufend/abgeschlossen) und agenten erlauben und den Kurs eintragen (fach „Darstellendes
+     Spiel“, klasse „Kurs 12“, titel „Der nackte Wahnsinn“, agenten ["theater"]); Format in
      shared/webapp/ordnung.py. Bis dahin setzt die App die Reihen aus unterricht/examen/theater zusammen.
      Später: Feld reihe des Auftrags bevorzugt nutzen, statt selbst eine Reihe zu wählen (heute steht sie als
      Zeile „Reihe: …“ am Ende des Auftragstexts).
-   - Neuplanung Desktop zuerst (Jan 30.10., nur Plan): docs/webapp-aufbau.md, klickbares Board „Desktop“ und
-     „Handy-Prüfung“ im Canvas. Drei Spalten Baum | Inhalt | Fragen (Chat), Vorlagengalerie am Ort, final setzt
-     Lia, eigene Fassung hochladen. Chips und /unterricht sollen entfallen. Gebaut wird erst nach Lias Test
-     (7 Aufgaben, Ziel 6 von 7 ohne Hilfe, Jan leitet) und Jans Okay. Geklärt (Jan 30.10.): Fach heißt
-     „Darstellendes Spiel“ (ersetzt „Theater“), es gibt DS-Kurs 12 (Reihen offen), Notentabelle gehört zu
-     Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform (Ausgabe docx/pptx und PDF).
-     Test mit Lia 30.10.: Aufbau gefällt, Ebene Stunde gewünscht; das Stück „Der nackte Wahnsinn“ gehört zu
-     Kurs 12 (nicht Kurs 11). Bedarf an den lia/unterricht-Chat dazu: Theater-Eintrag in lia/instanz/reihen.toml
-     mit fach „Darstellendes Spiel“ und klasse „Kurs 12“ (statt „Theater“, „Kurs 11“ weiter oben).
-     Nächster Schritt: Jans Okay für Bauschritt 1 des neuen Aufbaus.
+   - Neuer Aufbau Desktop zuerst (Plan docs/webapp-aufbau.md, Boards „Desktop“ und „Handy-Prüfung“ im Canvas;
+     Lias Test 30.10.: gefällt, Ebene Stunde gewünscht). Geklärt (Jan 30.10.): Fach „Darstellendes Spiel“,
+     Stück gehört zu Kurs 12, Notentabelle zu Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform.
+     Stand 30.10.: Bauschritt 1 gebaut (Jans Okay 30.10.): drei Spalten Baum | Inhalt mit Brotkrumen | „Fragen“
+     (nur Platzhalter „Kommt bald“), Baum aus den Reihen (Heute mit Zahl, je Fach Klassen/Kurse und Reihen),
+     Reihen-Ansicht /reihe/<kennung> (nur lesend), „Heute“ ohne Chips mit Ort je Zeile, /unterricht leitet auf /
+     um. Fach und Kurs im Code umgestellt. Ergebnis, Entwurf, Neuer Auftrag unverändert im Rahmen.
+     Nächster Schritt: Jan sieht es im Tunnel an; dann Bauschritt 2 des neuen Aufbaus (Orts-Ansichten
+     Fach/Klasse, Material mit Marke; Konten sind dort Bauschritt 5). Stunden erst mit Bedarf a) unten.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext.
