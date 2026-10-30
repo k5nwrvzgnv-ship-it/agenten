@@ -1,5 +1,5 @@
-{#- Vorlagen (Board „Desktop“): Gestaltung, Arten, Muster. Nur lesend: Die Gestaltung steht im Profil des
-    Material-Agenten, eigene Formatvorlagen und Muster gibt es noch nicht (leere Zustände). -#}
+{#- Vorlagen (Board „Desktop“): Gestaltung (Profil des Material-Agenten, nur lesend) und Lias eigene
+    Formatvorlagen (hochladen, entfernen; der Material-Agent nimmt die neueste je Sorte), Arten, Muster (leer). -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
 {% block inhalt %}
@@ -10,15 +10,51 @@
   {%- else %}
   <p class="leer">Noch keine Gestaltung hinterlegt.</p>
   {%- endif %}
-  <p class="leer">Eigene Word- oder PowerPoint-Vorlage mit Kopfzeile und Logo: kommt, sobald deine Assistenz sie
-    nutzen kann. Bis dahin schick sie Jan.</p>
+</section>
+<section aria-labelledby="ab-fv" id="formatvorlagen">
+  <h2 id="ab-fv"><span class="akzent">02</span>Deine Formatvorlagen</h2>
+  {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
+  {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
+  {%- if formatvorlagen %}
+  <ul>
+    {%- for v in formatvorlagen %}
+    <li class="zeile">
+      <span class="punkt" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ v.titel }}</span><span class="unter">{{ v.unter }}</span></span>
+      <span class="knoepfe">
+        <span class="marke">{{ v.marke }}</span>
+        <form class="final-form" method="post" action="/vorlagen/formatvorlage/entfernen">
+          <input type="hidden" name="token" value="{{ token }}">
+          <input type="hidden" name="geltung" value="{{ v.geltung }}">
+          <input type="hidden" name="name" value="{{ v.name }}">
+          <button class="knopf knopf-klein" type="submit">Entfernen</button>
+        </form>
+      </span>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="leer">Noch keine. Deine Assistenz nimmt dann die Gestaltung oben.</p>
+  {%- endif %}
+  <form class="formular tafel" method="post" action="/vorlagen/formatvorlage" enctype="multipart/form-data">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label class="tafel-titel" for="fv-datei">Word- oder PowerPoint-Vorlage mit Kopfzeile und Logo</label>
+    <input id="fv-datei" name="datei" type="file" accept="{{ endungen }}" required>
+    <label for="fv-geltung">Gilt für</label>
+    <select id="fv-geltung" name="geltung">
+      {%- for k, name in geltungen.items() %}<option value="{{ k }}">{{ name }}</option>{% endfor %}
+    </select>
+    <button class="knopf knopf-voll" type="submit">Hochladen</button>
+    <span class="unter">Aus der Vorlage kommen Kopf- und Fußzeile, Logo und Ränder (bzw. der Folienmaster). Schrift und
+      Farben der Inhalte bleiben wie oben. Gilt ab dem nächsten Auftrag; die neueste Vorlage einer Sorte gilt.</span>
+  </form>
 </section>
 <section aria-labelledby="ab2">
-  <h2 id="ab2"><span class="akzent">02</span>Arten</h2>
+  <h2 id="ab2"><span class="akzent">03</span>Arten</h2>
   <ul>{% for v in arten %}{{ zeile({"titel": v.name, "unter": v.text, "marke": v.fach or "alle Fächer"}) }}{% endfor %}</ul>
 </section>
 <section aria-labelledby="ab3">
-  <h2 id="ab3"><span class="akzent">03</span>Muster</h2>
+  <h2 id="ab3"><span class="akzent">04</span>Muster</h2>
   <p class="leer">Noch keine. Später: gelungene Blätter, die deine Assistenz als Anregung nimmt. Sie schlägt dir
     welche vor, wenn du etwas als final markierst.</p>
 </section>

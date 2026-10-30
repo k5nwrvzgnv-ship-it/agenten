@@ -628,7 +628,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         Arbeitsblätter bzw. Folien darauf (neueste gilt). Kaputte Vorlage: ohne sie, Jan bekommt eine Meldung.
         Noch keine echte Vorlage dort. Vorlage je Art (Jan 30.10.): data/vorlagen/reihenentwurf/ und
         data/vorlagen/lernerfolgskontrolle/ (auch Erwartungshorizont) gehen vor, sonst die allgemeine.
-        Bedarf shared/webapp (Jan 30.10.: „Lia soll selbst eine neue Vorlage hochladen können“): auf der Seite
+        Erledigt 30.10. (shared/webapp, Seite Vorlagen): Bedarf shared/webapp („Lia soll selbst eine neue Vorlage
+        hochladen können“): auf der Seite
         Vorlagen Upload einer .dotx/.docx/.potx/.pptx nach lia/unterricht/data/vorlagen/ bzw. in den Unterordner
         der Art (reihenentwurf, lernerfolgskontrolle), Name ohne Pfadteile; bestehende anzeigen und entfernen.
         Bedarf shared/renderer: Die Kopf-Tabelle mit Name/Datum setzt der Renderer immer, auch mit Vorlage. Für

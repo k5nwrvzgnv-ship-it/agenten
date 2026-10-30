@@ -554,6 +554,35 @@ class TestOrdnung(Aufbau):
         self.assertIn('href="/reihe/strafe/stunde/1" aria-current="page"><span>1  Einstieg</span>', html)
         self.assertIn('<a class="baum-eintrag tiefe-1" href="/reihe/strafe"><span>', html)  # Reihe nicht markiert
 
+    def test_formatvorlagen(self):
+        ordner = self.tmp / "unterricht" / "data" / "vorlagen"
+
+        def hoch(name, inhalt=b"PK-VORLAGE", geltung=""):
+            body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "geltung": geltung}, [(name, inhalt)])
+            body = body.replace(b'name="dateien"', b'name="datei"')
+            return self.hole("/vorlagen/formatvorlage", "POST", body=body,
+                             kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
+        self.assertIn("Noch keine. Deine Assistenz nimmt dann die Gestaltung oben.", self.hole("/vorlagen")[1])
+        r, _ = hoch("../Schule Kopf.dotx")
+        self.assertEqual((r.status, r.getheader("location")), (303, "/vorlagen?erledigt=formatvorlage#formatvorlagen"))
+        self.assertEqual((ordner / "Schule Kopf.dotx").read_bytes(), b"PK-VORLAGE")
+        self.assertEqual(hoch("LEK.docx", geltung="lernerfolgskontrolle")[0].status, 303)
+        self.assertTrue((ordner / "lernerfolgskontrolle" / "LEK.docx").exists())
+        self.assertEqual(hoch("bild.png")[0].status, 400)
+        self.assertEqual(hoch("a.docx", geltung="../x")[0].status, 400)
+        self.assertEqual(hoch("leer.docx", b"")[0].status, 400)
+        _, html = self.hole("/vorlagen?erledigt=formatvorlage")
+        for text in ("Schule Kopf.dotx", "Word-Vorlage für Arbeitsblatt und Präsentation", "LEK.docx",
+                     "Lernerfolgskontrolle (auch Erwartungshorizont)", ">gilt<", "Gespeichert."):
+            self.assertIn(text, html)
+        body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "geltung": "", "name": "../geheim.pdf"}, [])
+        r, _ = self.hole("/vorlagen/formatvorlage/entfernen", "POST", body=body,
+                         kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
+        self.assertEqual(r.status, 404)
+        self.assertTrue((self.tmp / "geheim.pdf").exists())
+        self.assertEqual(self.post("/vorlagen/formatvorlage/entfernen", {"geltung": "", "name": "Schule Kopf.dotx"})[0].status, 303)
+        self.assertFalse((ordner / "Schule Kopf.dotx").exists())
+
     def test_ohne_reihen_und_kaputte_datei(self):
         (self.instanz / "reihen.toml").write_text("[[reihe]\n")
         with self.assertLogs("webapp", "ERROR"):

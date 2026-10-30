@@ -185,9 +185,14 @@ lia/chat neu, Hauptordner/agentkit). In der Web-App gebaut, je mit Tests:
   Ort“ (Reihe, auf Stundenseiten mit Stunde), „ohne Ort fragen“, „gründlich“, Antwort per htmx alle 2 s
   (`/teile/frage/<id>`), die letzten 6 Fragen mit Trennlinie bei Ortswechsel, Markdown nur fett und Listen,
   „Daraus Auftrag machen“ öffnet Neu mit Frage und Antwort am Ort. Noch nie aus der Web-App echt gefragt.
+- Formatvorlagen (Jan 30.10.): Seite Vorlagen › „Deine Formatvorlagen“: Upload .dotx/.docx/.potx/.pptx (bis
+  20 MB) nach `lia/unterricht/data/vorlagen/` bzw. `…/reihenentwurf/`, `…/lernerfolgskontrolle/` („Gilt für“),
+  Name bereinigt, gleicher Name ersetzt; Liste mit „gilt“ (neueste je Geltung und Sorte, wie
+  formatvorlage.waehlen) bzw. „nicht genutzt“; Entfernen nur für gelistete Dateien (samt umgewandelter Kopie).
+  Startet keinen Lauf, geht darum immer. Den Kopf mit Name/Datum setzt der Renderer weiter selbst (Bedarf
+  shared/renderer in Punkt 24).
 Nicht gebaut: „+ Reihe“ in der App (schreibt reihen.toml; Jan bzw. unterricht-Chat), Fach-Material und Lias
-Ablage (Jan fragen), Datei in eine Stunde ziehen (JavaScript), Muster, eigene Formatvorlage hochladen (unterricht
-nutzt jetzt Vorlagen aus seinem data/vorlagen/, ein Upload fehlt), Konten.
+Ablage (Jan fragen), Datei in eine Stunde ziehen (JavaScript), Muster, Konten.
 
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,

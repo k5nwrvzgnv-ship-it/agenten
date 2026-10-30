@@ -490,6 +490,8 @@ HINWEISE = {
     "stunde": "Angelegt. Mit „Gehört zu“ in einem Material ordnest du es hier ein.",
     "thema": "Thema geändert.",
     "zugeordnet": "Eingeordnet.",
+    "formatvorlage": "Gespeichert. Deine Assistenz nimmt die Vorlage ab dem nächsten Auftrag.",
+    "formatvorlage-weg": "Entfernt.",
     "zurueckgezogen": "Zurückgezogen. Deine Assistenz hört damit auf.",
     "nochmal": "Läuft noch einmal. Das Ergebnis erscheint in „Heute“.",
     "nochmal-test": "Noch einmal angelegt (Testbetrieb, es startet kein Agent).",
@@ -1431,3 +1433,40 @@ def port_pruefen(wert: str | None) -> int | None:
     if not wert.isdigit() or not 1024 <= int(wert) <= 65535:
         raise ValueError(f"WEBAPP_PORT {wert!r}: Zahl von 1024 bis 65535")
     return int(wert)
+
+
+# Lias eigene Formatvorlagen (Board „Desktop“, Vorlagen › Gestaltung; Jan 30.10.: „Lia soll selbst eine neue Vorlage
+# hochladen können“). lia/unterricht/formatvorlage.py nimmt die neueste Vorlage einer Sorte (Word bzw. PowerPoint)
+# aus data/vorlagen/<art>/, sonst aus data/vorlagen/. Die Web-App legt sie dort ab, zeigt und entfernt sie.
+FORMAT_ENDUNGEN = (".dotx", ".docx", ".potx", ".pptx")
+FORMAT_GELTUNG = {"": "Arbeitsblatt und Präsentation", "reihenentwurf": "Reihenentwurf",
+                  "lernerfolgskontrolle": "Lernerfolgskontrolle (auch Erwartungshorizont)"}
+_FORMAT_SORTE = {".dotx": "Word", ".docx": "Word", ".potx": "PowerPoint", ".pptx": "PowerPoint"}
+
+
+def formatvorlagen(dateien_: list[tuple[str, str, float]]) -> list[dict]:
+    """Zeilen „Deine Formatvorlagen“ aus (Geltung, Dateiname, Änderungszeit). Je Geltung und Sorte gilt die neueste
+    (wie formatvorlage.waehlen); die anderen heißen „nicht genutzt“."""
+    neueste: dict[tuple[str, str], float] = {}
+    for geltung, name, zeit in dateien_:
+        sorte = _FORMAT_SORTE.get(Path(name).suffix.lower(), "")
+        neueste[(geltung, sorte)] = max(zeit, neueste.get((geltung, sorte), 0))
+    zeilen = []
+    for geltung, name, zeit in sorted(dateien_, key=lambda d: (list(FORMAT_GELTUNG).index(d[0]), -d[2])):
+        sorte = _FORMAT_SORTE.get(Path(name).suffix.lower(), "")
+        gilt = neueste[(geltung, sorte)] == zeit
+        zeilen.append({"titel": name, "unter": f"{sorte}-Vorlage für {FORMAT_GELTUNG[geltung]}",
+                       "marke": "gilt" if gilt else "nicht genutzt", "geltung": geltung, "name": name})
+    return zeilen
+
+
+def formatvorlage_pruefen(name: str, groesse: int, geltung: str) -> list[str]:
+    fehler = [] if geltung in FORMAT_GELTUNG else ["Wofür soll die Vorlage gelten? Bitte neu wählen."]
+    if not name.lower().endswith(FORMAT_ENDUNGEN):
+        fehler.append("Diese Datei geht nicht. Möglich sind Word-Vorlagen (.dotx, .docx) und PowerPoint-Vorlagen "
+                      "(.potx, .pptx).")
+    elif groesse > NEU_DATEI_MAX_MB * 1024 * 1024:
+        fehler.append(f"Die Datei ist größer als {NEU_DATEI_MAX_MB} MB.")
+    elif groesse == 0:
+        fehler.append("Die Datei ist leer.")
+    return fehler

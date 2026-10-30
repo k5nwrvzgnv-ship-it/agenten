@@ -30,6 +30,7 @@ GET:
   /fach/<kennung>                       Fach mit Klassen/Kursen (nur lesend)
   /klasse/<kennung>                     Klasse/Kurs mit ihren Reihen (nur lesend)
   /vorlagen                             Gestaltung (Profil des Material-Agenten) und Arten, nur lesend
+  /vorlagen/formatvorlage(/entfernen)   POST: Lias Word-/PowerPoint-Vorlage für lia/unterricht ablegen bzw. entfernen
   /ich                                  Lias Regeln (regeln.md, Gelernte Regeln der Agenten), nur lesend
   /unterricht                           alte Seite, leitet auf / um
   /statisch/...                         CSS, htmx
@@ -436,15 +437,93 @@ _lese_fehler: list[str] = []  # wie _reihen_fehler: Fehler im Profil nur einmal 
 
 @app.get("/vorlagen", response_class=HTMLResponse)
 def seite_vorlagen(request: Request):
-    profil, fehler = ordnung.profil(INSTANZ)
-    if fehler != _lese_fehler:
-        for f in fehler:
+    return _vorlagen_seite(request, logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""))
+
+
+def _vorlagen_ordner(geltung: str) -> Path:
+    """Ordner der Formatvorlagen von lia/unterricht (data/vorlagen bzw. data/vorlagen/<art>) der Instanz."""
+    basis = INSTANZ.parent / logik.NEU_AGENT / "data" / "vorlagen"
+    return basis / geltung if geltung else basis
+
+
+def _formatvorlagen() -> list[dict]:
+    dateien_ = []
+    for geltung in logik.FORMAT_GELTUNG:
+        ordner = _vorlagen_ordner(geltung)
+        for p in sorted(ordner.iterdir()) if ordner.is_dir() else []:
+            if p.is_file() and not p.is_symlink() and p.suffix.lower() in logik.FORMAT_ENDUNGEN \
+                    and not p.name.startswith((".", "~$")):
+                dateien_.append((geltung, p.name, p.stat().st_mtime))
+    return logik.formatvorlagen(dateien_)
+
+
+def _vorlagen_seite(request: Request, hinweis: str = "", fehler: list[str] | None = None, status: int = 200):
+    profil, lese_fehler = ordnung.profil(INSTANZ)
+    if lese_fehler != _lese_fehler:
+        for f in lese_fehler:
             logger.error("Profil: %s", f)
-        _lese_fehler[:] = fehler
+        _lese_fehler[:] = lese_fehler
     return vorlagen.TemplateResponse(request, "vorlagen.html", {
         "e": {"titel": "Vorlagen", "unter": "Gilt für alles, was deine Assistenz für dich baut."},
         "gestaltung": logik.gestaltung(profil), "arten": list(logik.VORLAGEN.values()),
-        **rahmen(reihen_laden(), logik.krumen("Vorlagen"), "vorlagen")})
+        "formatvorlagen": _formatvorlagen(), "geltungen": logik.FORMAT_GELTUNG, "token": logik.formular_token(GEHEIM),
+        "endungen": ",".join(logik.FORMAT_ENDUNGEN), "hinweis": hinweis, "fehler": fehler or [],
+        **rahmen(reihen_laden(), logik.krumen("Vorlagen"), "vorlagen")}, status_code=status)
+
+
+@app.post("/vorlagen/formatvorlage", response_class=HTMLResponse)
+async def formatvorlage_hochladen(request: Request):
+    """Lias Word-/PowerPoint-Vorlage nach lia/unterricht/data/vorlagen[/<art>]; die neueste ihrer Sorte gilt.
+    Startet keinen Lauf und geht darum immer (wie final)."""
+    form = await formular_lesen(request, "Formatvorlage", 1)
+    datei = form.get("datei")
+    try:
+        if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+            return _vorlagen_seite(request, fehler=[logik.VERALTET], status=400)
+        if not isinstance(datei, UploadFile) or not datei.filename:
+            return _vorlagen_seite(request, fehler=["Wähle eine Datei aus."], status=400)
+        geltung = str(form.get("geltung") or "")
+        fehler = logik.formatvorlage_pruefen(datei.filename, datei.size or 0, geltung)
+        if fehler:
+            return _vorlagen_seite(request, fehler=fehler, status=400)
+        ordner, tmp = _vorlagen_ordner(geltung), None
+        try:
+            ordner.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=ordner, prefix=".hochladen-")
+            with os.fdopen(fd, "wb") as ziel:
+                shutil.copyfileobj(datei.file, ziel)
+            name = logik.dateiname_bereinigen(datei.filename)
+            os.replace(tmp, ordner / name)  # gleicher Name: ersetzt die alte Fassung
+        except OSError as fehler_:
+            if tmp:
+                Path(tmp).unlink(missing_ok=True)
+            logger.error("Formatvorlage nicht gespeichert: %s", fehler_)
+            return _vorlagen_seite(request, fehler=[logik.FEHLGESCHLAGEN], status=500)
+    finally:
+        if isinstance(datei, UploadFile):
+            await datei.close()
+    logger.info("Formatvorlage %s für %s gespeichert", name, geltung or "alle")
+    return RedirectResponse("/vorlagen?erledigt=formatvorlage#formatvorlagen", status_code=303)
+
+
+@app.post("/vorlagen/formatvorlage/entfernen", response_class=HTMLResponse)
+async def formatvorlage_entfernen(request: Request):
+    form = await formular_lesen(request, "Formatvorlage entfernen", 0)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return _vorlagen_seite(request, fehler=[logik.VERALTET], status=400)
+    geltung, name = str(form.get("geltung") or ""), str(form.get("name") or "")
+    if not any(v["geltung"] == geltung and v["name"] == name for v in _formatvorlagen()):
+        raise HTTPException(404)  # nur, was die Seite gezeigt hat (kein Pfad aus dem Formular)
+    ordner = _vorlagen_ordner(geltung)
+    try:
+        (ordner / name).unlink()
+        for endung in (".docx", ".pptx"):  # umgewandelte Kopie von .dotx/.potx (formatvorlage.py)
+            (ordner / "umgewandelt" / (Path(name).stem + endung)).unlink(missing_ok=True)
+    except OSError as fehler_:
+        logger.error("Formatvorlage nicht entfernt: %s", fehler_)
+        return _vorlagen_seite(request, fehler=[logik.FEHLGESCHLAGEN], status=500)
+    logger.info("Formatvorlage %s (%s) entfernt", name, geltung or "alle")
+    return RedirectResponse("/vorlagen?erledigt=formatvorlage-weg#formatvorlagen", status_code=303)
 
 
 @app.get("/ich", response_class=HTMLResponse)

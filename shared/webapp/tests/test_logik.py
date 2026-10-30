@@ -770,6 +770,15 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.neu_link("r", None, "", "0123456789ab"), "/neu?reihe=r&aus=0123456789ab")
         self.assertEqual(logik.neu_link("r", None, "", "../x"), "/neu?reihe=r")
 
+    def test_formatvorlagen(self):
+        z = logik.formatvorlagen([("", "alt.dotx", 1.0), ("", "neu.docx", 2.0), ("", "Folien.potx", 1.5),
+                                  ("reihenentwurf", "R.docx", 0.5)])
+        self.assertEqual([(v["titel"], v["marke"]) for v in z],
+                         [("neu.docx", "gilt"), ("Folien.potx", "gilt"), ("alt.dotx", "nicht genutzt"), ("R.docx", "gilt")])
+        self.assertEqual(z[1]["unter"], "PowerPoint-Vorlage für Arbeitsblatt und Präsentation")
+        self.assertEqual(logik.formatvorlage_pruefen("a.potx", 10, "reihenentwurf"), [])
+        self.assertEqual(len(logik.formatvorlage_pruefen("a.pdf", 10, "quatsch")), 2)
+
     def test_port(self):
         self.assertEqual((logik.port_pruefen(""), logik.port_pruefen(None), logik.port_pruefen("8791")), (None, None, 8791))
         for falsch in ("80", "x", "70000", "-1"):
