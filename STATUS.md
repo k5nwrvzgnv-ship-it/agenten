@@ -561,8 +561,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Seitengalerie (Jans Wunsch 30.10.): je Dokument eine Karte mit kleiner erster Seite, Klick öffnet einen
      Seiten-Betrachter mit Vor/Zurück (ohne JavaScript), auch im Verlauf. Fehlende Optionen am Dokument (Feedback-
      Knöpfe, final, eigene Fassung, Rückmeldung mit Datei, Nochmal, Entwurf-Knöpfe) als Liste an Jan; er legt die
-     Reihenfolge fest (shared/webapp/STATUS.md, Offene Punkte 4).
-     Nächster Schritt: Jans Entscheidung zur Reihenfolge; sonst Bauschritt 2 des neuen Aufbaus (Orts-Ansichten
+     Reihenfolge fest (shared/webapp/STATUS.md, Offene Punkte 4). Jan 30.10.: Material-Ansicht genau wie das Board
+     „Desktop“ ausprobieren: gebaut (Knopf-Spalte, Fassungen-Liste, final, eigene Fassung, Rückmeldung). Final und
+     eigene Fassungen speichert die Web-App vorerst selbst in shared/webapp/data/ (nicht in Lias Instanz, Agenten
+     sehen sie nicht: Bedarf b und d bleiben); Rückmeldung nur im Testbetrieb, echt erst mit Jans Okay.
+     Nächster Schritt: Jan probiert die Material-Ansicht im Tunnel; sonst Bauschritt 2 des neuen Aufbaus (Orts-Ansichten
      Fach/Klasse, Material mit Marke; Konten sind dort Bauschritt 5). Stunden erst mit Bedarf a) unten.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer

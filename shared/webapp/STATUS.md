@@ -10,7 +10,8 @@ https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
 Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen Aufbaus „Desktop zuerst“
-(Jans Okay 30.10.), Seitengalerie statt aller Seitenbilder (Jans Wunsch 30.10.), `./pruefen.sh` grün (Web-App: 78 Tests).
+(Jans Okay 30.10.), Seitengalerie statt aller Seitenbilder und Material-Ansicht wie Board „Desktop“ (Jans Wunsch 30.10.),
+`./pruefen.sh` grün (Web-App: 89 Tests).
 - Rahmen (Plan `../../docs/webapp-aufbau.md` 4.1, Board „Desktop“): drei Spalten Baum (260 px) | Inhalt mit
   Brotkrumen (bis 840 px) | „Fragen“ (320 px, nur Platzhalter „Kommt bald“, kein Chat, kein Claude-Aufruf). Alle
   Seiten (auch 404) über `vorlagen/basis.html`. Im HTML steht der Inhalt vorn. Unter 1100 px rutscht „Fragen“
@@ -45,6 +46,27 @@ Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen A
 - Zeiten in Europe/Berlin (Sommerzeit beachtet). htmx lädt den Inhalt jede Minute neu (`/teile/heute`).
 - Kopfzeilen: CSP nur `'self'`, `no-store`, `nosniff`, kein Referrer; keine API-Doku (`/docs` 404).
 - Zeilen in „Heute“ sind Links (außer „Läuft gerade“). IDs stehen nur in der URL, nie im sichtbaren Text.
+- Material-Ansicht (Jan 30.10.: „genau so wie das Board ausprobieren“, Board „Desktop“, Ansicht Material) auf
+  `/ergebnis/<id>`: Kopf mit Art und Dateiart („Material · Word“, „Theater · 4 Word-Dateien“), Titel, Marke
+  (Final, Läuft, Neu · wartet). Links bei genau einer Datei mit Seitenbildern die ersten zwei Seiten (Klick öffnet
+  den Betrachter), sonst die Karten bzw. der Text; rechts die Knopf-Spalte: In Word/PowerPoint/Excel öffnen und
+  PDF zum Drucken (nur bei einer Datei), Als final markieren, Rückmeldung geben, Eigene Fassung hochladen. Darunter
+  „Das Wichtigste“ und „Fassungen“ (neueste oben: Name, „vom Assistenten/von dir, Zeit“, Kurztext, Marke Final,
+  ältere zum Aufklappen, kleiner Knopf „Als final markieren“ an jeder Fassung mit Dateien und an eigenen).
+  Ohne JavaScript: Rückmeldung und eigene Fassung öffnen sich über `?offen=rueckmeldung|eigene`, nach einer
+  Aktion 303 auf `?erledigt=…` mit Hinweis oben. Varianten fehlen (kein Agent liefert welche).
+  - Als final markieren (`POST …/final`, nur Fassungen aus `logik.final_erlaubt`, je Auftrag höchstens eine) und
+    Eigene Fassung hochladen (`POST …/eigene`, Word/PowerPoint/Excel/PDF bis 20 MB, Download `…/eigene/<n>`)
+    speichert die Web-App selbst (`zustand.py`: `data/zustand/<schlüssel>.json`, Dateien `data/eigene/`, je
+    Instanz). Nichts davon liegt in Lias Instanz, die Agenten sehen es nicht (Bedarf b und d in Punkt 24); darum
+    geht es auch auf lia/instanz. Final nimmt den Auftrag aus „Wartet auf dich“, unter Fertig steht „Final“.
+  - Rückmeldung geben (`POST …/rueckmeldung`): Text (Pflicht), Datei mit Kommentaren (wird Lias eigene Fassung
+    „mit deinen Kommentaren“, der Text nennt sie). Legt wie Telegram einen Auftrag an `feedback` an (quelle
+    feedback, bezug = neueste fertige Fassung des Assistenten). Nur wenn `WEBAPP_NEUER_AUFTRAG` gilt: test (nicht
+    auf lia/instanz, kein Agent) bzw. echt (startet lia-feedback.service). Sonst steht dort „Rückmeldungen gehen
+    im Moment noch über Telegram“.
+  - Alle POSTs mit Herkunftsprüfung und Token (`app.formular_lesen`), Aktionen nur an der ID des Ursprungs.
+  - Echter Lauf 30.10. (nur lesend): alle 5 Ergebnisse 200, nichts gespeichert.
 - Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, zurückgezogene 404; IDs
   von Nachbesserungen und Rückmeldungen leiten mit 303 auf den Ursprung um): Titel, Art und Zeit der neuesten
   Fassung; „Das Wichtigste“ aus `daten.kern`/`punkte`/`pruefen` der neuesten erledigten Fassung, ohne
@@ -111,14 +133,14 @@ Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt docx/pptx 
 
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
-  `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`), getestet. `ordnung.py`: Reihen-Dateien lesen. `dateien.py`: Pfade der
+  `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`), getestet. `ordnung.py`: Reihen-Dateien lesen. `zustand.py`: final und eigene Fassungen in data/. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
   kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
   `ergebnis_dateien`, nie einen Pfad. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
   `data/webapp.sock` (Ordner 0700; Uvicorn setzt den Socket selbst auf 0666, der Ordner schützt).
 - `vorlagen/basis.html` (Rahmen: Brotkrumen, Inhalt, Baum, Fragen; Kopf für Einzelansichten),
   `heute.html` (Seite), `_heute.html` (Inhalt, auch für htmx), `_zeile.html` (Zeile für Heute und Reihe),
-  `reihe.html`, `ergebnis.html`, `ansehen.html` (Seiten-Betrachter), `entwurf.html`, `neu.html`, `nicht_gefunden.html` (404 im Rahmen),
+  `reihe.html`, `ergebnis.html` (Material-Ansicht), `ansehen.html` (Seiten-Betrachter), `entwurf.html`, `neu.html`, `nicht_gefunden.html` (404 im Rahmen),
   `statisch/stil.css`. `app.rahmen()` liefert Baum und Brotkrumen für jede Seite.
 - `statisch/htmx-2.0.4.min.js` mit `.sha256` (von unpkg und jsdelivr geladen, beide gleich; Test prüft die Summe).
 - `requirements.txt`: feste Versionen (pip freeze) von fastapi, uvicorn (ohne [standard]), jinja2,
@@ -153,13 +175,13 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
    Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
-4. Ergebnis und Entwurf nur lesend. Fehlende Optionen gegen Board „Desktop“ und Prototyp (30.10. an Jan, er
-   entscheidet die Reihenfolge): Feedback-Knöpfe Passt/Zu lang/Falscher Fokus/Freitext (wie Telegram, über
-   Auftrag an feedback mit bezug; ohne Konten im Testbetrieb machbar), Rückmeldung mit Datei (braucht feedback/
-   Agenten: Datei an Nachbesserung, Bedarf b in Punkt 24), Eigene Fassung hochladen (Bedarf b), Als final markieren
-   (Speicher: nach Konten oder agentkit, Bedarf d), Nochmal bei Fehlschlag, Auftrag zurückziehen (agentkit),
-   Entwurf Setze ich selbst ein/Ändern/Ablehnen (Freigabe, schreibt in Lias Instanz), Varianten (Agent liefert
-   keine), Anmerkungen an einer Stelle (Renderer), Fassungen als Liste mit „von dir/vom Assistenten“.
+4. Material-Ansicht: Lias eigene Fassungen und Dateien aus Rückmeldungen liegen nur in der Web-App; die nächste
+   Runde des Agenten setzt nicht darauf auf (Bedarf b). Final liegt nur in der Web-App (Bedarf d bzw. Konten).
+   Rückmeldung auf lia/instanz erst mit `echt` und Jans Okay (Lauf auf Lias Kontingent, Antwort auch per
+   Telegram). Die Test-Instanz hat keine Ergebnisse: Zum Ausprobieren der Rückmeldung müsste dort eines liegen
+   (z. B. Kopie eines echten Ergebnisses). Noch offen: Nochmal bei Fehlschlag, Auftrag zurückziehen (agentkit),
+   Entwurf Setze ich selbst ein/Ändern/Ablehnen (Freigabe), Varianten, Anmerkungen an einer Stelle (Renderer).
+   Telegram-Feedback-Knöpfe nicht übernehmen (Jan 30.10.: „die im tg sind quatsch“).
 7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
    Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.
 5. Schrift: Inter/Inter Tight werden nur genutzt, wenn sie auf dem Gerät sind (sonst Helvetica/Arial). Google Fonts
