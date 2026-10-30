@@ -498,7 +498,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Zur Messung der Handeingriffe fehlen Zeitstempel in der Bash-History (HISTTIMEFORMAT in ~/.bashrc, nur mit
      Jans Okay).
 
-24. Web-App für Lia und weitere Lehrerinnen (Entwurf 29.10.2026, nichts gebaut): docs/webapp-plan.md, Prototyp
+24. Web-App für Lia und weitere Lehrerinnen (Entwurf 29.10.2026, Bauschritt 1 gebaut 30.10.): docs/webapp-plan.md, Prototyp
    docs/webapp-prototyp.html (Beispieldaten, Seitenvorschau mit Anmerkungen, Feedback mit Geltungsbereich, Vorlagen,
    Testleitung für 7 Aufgaben), privat veröffentlicht unter
    https://claude.ai/artifact/JMoaDZKoS59tpG35fbxZDs (für Lia erst nach „Teilen“ durch Jan).
@@ -526,6 +526,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      kcal) und zweiter Caddy-Block (Vorschlag in docs/webapp-plan.md 1.3), kcal-Block danach prüfen. Klärungen
      K1 (Schule/Datenschutz) und K3 (Abo oder API) sind nicht erledigt; Jan entscheidet, ob Lia vorher startet.
      Bis dahin läuft die App lokal (Unix-Socket wie der Leitstand). Bauplan in Abschnitt 7 des Plans.
+   - Stand 30.10.: Bauschritt 1 fertig (shared/webapp/, eigene STATUS.md): Seite „Heute“ nur lesend aus
+     lia/instanz (wartet auf Lia, läuft, fertig, hat nicht geklappt), Unix-Socket data/webapp.sock, Zugriff per
+     SSH-Tunnel, von Hand gestartet, kein Dienst, keine Anmeldung. Echter Lauf zeigt die 7 Aufträge und
+     examen-0c44bf. Nächster Schritt: Bauschritt 2 (Konten, Einladung, Passkey). Dienst webapp.service: Okay Jan.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 
