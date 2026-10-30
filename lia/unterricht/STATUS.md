@@ -1,12 +1,23 @@
 # Status: Agent unterricht (Lias Instanz)
 
 ## Zweck
-Material auf Zuruf für Lia (docs/lia-architektur.md, Schritt 1): Lia tippt in ihrer Zentrale „Neues Material“,
-beschreibt ihren Wunsch und bekommt ein Arbeitsblatt (docx), Folien (pptx) oder eine Arbeitsmappe (xlsx, z. B.
-Notentabelle) in ihrem Stil mit Begleittext.
+Material auf Zuruf für Lia (docs/lia-architektur.md, Schritt 1): Lia tippt in ihrer Zentrale „Neues Material“
+oder legt es in der Web-App an, beschreibt ihren Wunsch und bekommt ein Arbeitsblatt (docx), Folien (pptx), eine
+Arbeitsmappe (xlsx, z. B. Notentabelle), einen Reihenentwurf oder eine Lernerfolgskontrolle mit
+Erwartungshorizont in ihrem Stil mit Begleittext, auf Wunsch mit Varianten in einem Lauf.
 Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
 ## Stand (30.10.2026)
+- Board „Desktop“ (shared/webapp/board-plan.md 1 bis 7, 30.10.): gebaut und mit Tests geprüft, noch KEIN echter
+  Lauf damit (nichts auf Lias Kontingent):
+  - Reihen in lia/instanz/reihen.toml (eine Datei für Web-App und Agenten, siehe Ablauf). Eingetragen: Ethik 8
+    Straftheorien (laufend, agenten examen), Darstellendes Spiel Kurs 12 „Der nackte Wahnsinn“ (agenten
+    theater), Kurs 11 2026/27 (laufend, noch ohne Einheiten), Archiv 2025/26: Klasse 7 (5 Reihen) und Kurs 11
+    (6 Einheiten aus Lias Ordnern). Stunden: noch keine eingetragen.
+  - Arten Reihenentwurf und Lernerfolgskontrolle (Erwartungshorizont immer als eigene Datei, Jan 30.10.),
+    Varianten einfach, Hilfekarten, Level (Niveau 1–3) in einem Lauf; Türkisch entfällt (Jan 30.10.).
+  - Nachbesserung auf Grundlage von Lias eigener Fassung mit Word-Kommentaren.
+  - Eigene Formatvorlage aus data/vorlagen/ (liegt noch keine).
 - Reihenkontext (23.10., Schritt 1 aus der Auswertung): reihen.toml wird gelesen und jedem Material-Lauf
   mitgegeben. Eingetragen nach Lias Angaben (23.10.): Ethik Klasse 8, Lerngruppe, frühere Reihen aus Kl. 7/8,
   behandelte Philosoph*innen, nächste Reihe Straftheorien (Reihenfrage noch offen). Merksätze fehlen noch.
@@ -44,17 +55,31 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Aufbereitung mit echtem LibreOffice geprüft, ein echter Claude-Lauf mit Anhang fehlt noch.
 
 ## Ablauf (material.py)
-1. Prompt = Lias Wunsch + laufende Reihen (reihen.toml) + Anhänge + Katalog (data/wissen/katalog.md) +
+1. Prompt = Lias Wunsch + Art des Auftrags (Reihenentwurf, Lernerfolgskontrolle, Varianten; aus dem Text) +
+   Reihen (lia/instanz/reihen.toml) + Anhänge + Katalog (data/wissen/katalog.md) +
    Leitfaden (leitfaden.md) + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien/Arbeitsmappe aus
    shared/renderer/FORMAT.md (zur Laufzeit gelesen, bleibt aktuell). Claude schreibt mit Write
-   data/arbeit/<auftrag>/beschreibung.json.
-2. Python baut mit renderer.bauen (Profil profil.toml). Fehler (Datei fehlt, kein JSON, falsche art,
-   BeschreibungUngueltig) gehen in derselben Sitzung an Claude zurück, höchstens 3 Korrekturen.
-3. Kontrolle: Claude sieht Kontrolltext und Vorschau-PNGs. Ändert Claude die Beschreibung, baut Python neu
+   data/arbeit/<auftrag>/beschreibung.json, weitere Dateien desselben Ergebnisses als beschreibung-<name>.json
+   (erwartungshorizont, einfach, hilfekarten, niveau-1 bis -3; höchstens 6 Dateien, mehr baut Python nicht).
+2. Python baut alle mit renderer.bauen (Profil profil.toml, Vorlage aus data/vorlagen/, falls da). Fehler (Datei
+   fehlt, kein JSON, falsche art, BeschreibungUngueltig) gehen gesammelt je Datei in derselben Sitzung an Claude
+   zurück, höchstens 3 Korrekturen. Dateiname „Arbeitsblatt Titel (Niveau 1).docx“.
+3. Kontrolle: Claude sieht Kontrolltext (je Datei ein Abschnitt) und alle Vorschau-PNGs. Ändert Claude die Beschreibung, baut Python neu
    (eine Kontrollrunde, die neue Vorschau sieht Claude nicht mehr).
-4. Claudes letzte Antwort ist der Begleittext, die Datei geht über auftraege.abschliessen(..., dateien=).
+4. Claudes letzte Antwort ist der Begleittext, die Dateien (Hauptdatei zuerst) gehen über
+   auftraege.abschliessen(..., dateien=).
+- Arten (Schnittstelle Web-App): Text beginnt mit „Reihenentwurf:“ bzw. „Lernerfolgskontrolle:“; beide werden
+  als Arbeitsblatt gebaut (Kopf mit Name/Datum, Bedarf renderer: Art ohne Namensfeld). Zeile „Varianten: …“ oder
+  „Auch als: …“ (einfach, Hilfekarten, Level; Unbekanntes setzt Claude sinnvoll um). Varianten zu fertigem
+  Material: Auftrag mit bezug (und sitzung) wie eine Nachbesserung, Claude schreibt nur die neuen Dateien.
+- Eigene Fassung (board-plan.md 6): Der Feedback-Dienst hängt Lias hochgeladene Fassung an die Nachbesserung
+  (dateien). Sie ist dann die Grundlage; Textfassung, Seitenbilder und Word-Kommentare (agentkit.textfassung,
+  mit kommentierter Stelle) stehen im Prompt, auch beim Fortsetzen der Sitzung.
+- Formatvorlage (formatvorlage.py, board-plan.md 7): .dotx/.docx für Arbeitsblätter, .potx/.pptx für Folien in
+  data/vorlagen/, die neueste gilt (Hinweis im Log nennt die anderen); .dotx/.potx wandelt der Renderer nach
+  data/vorlagen/umgewandelt/ um. Kaputte Vorlage: ohne sie bauen, Jan bekommt eine Meldung.
 - Nachbesserungen (30.10., aus Lias Feedback, Auftrag mit bezug und sitzung, quelle wie das Original): Python
-  kopiert data/arbeit/<bezug>/beschreibung.json in den neuen Arbeitsordner. Mit sitzung setzt Claude die alte
+  kopiert alle Beschreibungen aus data/arbeit/<bezug>/ in den neuen Arbeitsordner. Mit sitzung setzt Claude die alte
   Sitzung fort (kurzer Prompt: Rückmeldung, Pfad der Kopie, nur ändern, was Lia will); ohne sitzung oder wenn das
   Fortsetzen scheitert ein neuer Lauf mit vollem Startprompt und Abschnitt „Lias bisheriges Material“. Danach
   Bauen und Kontrolle wie oben. Bleibt die Beschreibung unverändert (Lia hat nur gefragt), bekommt Lia nur den
@@ -64,11 +89,16 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Datei eine Textfassung (<datei>.txt, agentkit.textfassung, pypdf) und Seitenbilder (<datei>-seiten/, über
   renderer.vorschau, auch für Scans; höchstens 8 je Datei im Prompt). Grund: Claudes Read öffnet PDFs auf dem
   Server nicht (kein poppler). Bilder öffnet Claude direkt, andere Formate versucht Claude mit Read.
-- Reihenkontext (reihen.py, reihen.toml): je Reihe [[reihe]] mit klasse (Pflicht), dazu fach, titel,
-  reihenfrage (fehlt, solange eine Reihe geplant wird), lerngruppe, notizen, behandelt, merksaetze,
-  bisherige_reihen. Alle Reihen gehen in den Startprompt, Claude nimmt die
-  passende und nennt sonst seine Annahme im Begleittext. reihen.toml ist im Repo (keine Schülerdaten) und für
-  Claude schreibgeschützt (*.toml in claude_lauf.GESCHUETZT). Ist die Datei fehlerhaft, läuft das Material ohne
+- Reihenkontext (reihen.py, lia/instanz/reihen.toml, gelesen über config.SHARED_DIR; Format im Kopf der Datei
+  und von shared/webapp/ordnung.py): je Reihe [[reihe]] mit fach und klasse (Pflicht), dazu id, titel,
+  reihenfrage (fehlt, solange eine Reihe geplant wird), lerngruppe, notizen, schuljahr, stand (laufend oder
+  abgeschlossen), behandelt, merksaetze, bisherige_reihen, agenten und [[reihe.stunde]] (nr, thema, marke UB
+  oder Prüfung). Laufende Reihen gehen voll in den Startprompt, mit Stunden („Probe“ bei agenten theater);
+  abgeschlossene nur als kurze Liste. Die Reihe aus dem Feld reihe des Auftrags steht zuerst und markiert, die
+  Stunde liest Claude aus der Zeile „Stunde n: …“ im Text. Sonst nimmt Claude die passende und nennt seine
+  Annahme im Begleittext. reihen.toml ist im Repo (keine Schülerdaten) und für Claude schreibgeschützt (*.toml
+  in claude_lauf.GESCHUETZT). lia/unterricht/reihen.toml ist ein Symlink darauf, nur für lia/examen (runde.py
+  liest den alten Pfad; löschen, sobald examen umgestellt ist). Ist die Datei fehlerhaft, läuft das Material ohne
   Reihen und Jan bekommt eine Meldung. Pflege heute von Hand durch Jan; später ggf. über Lias Zentrale.
 - Opus (art="anspruchsvoll"), Zeitbudget 18 min für neue Läufe, Dienst-Timeout 25 min.
 - Fehler: Lia bekommt „nicht erstellen, Jan ist informiert“ (ihre Zentrale zeigt bei fehlgeschlagen
@@ -79,13 +109,14 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz (Warteschlangen, Regeln, .env dort)
 - Code: agent.py (Verteilung nach quelle, Fehler, Meldung an Jan), material.py (Ablauf, ohne Netz testbar),
-  reihen.py (Reihenkontext laden und prüfen, Prompt-Abschnitt), wissen.py (Textfassungen, Katalog, Prompt-Abschnitt),
+  reihen.py (Reihenkontext laden und prüfen, Prompt-Abschnitt), formatvorlage.py (Lias Vorlage wählen), wissen.py (Textfassungen, Katalog, Prompt-Abschnitt),
   leitfaden.py (Leitfaden-Entwurf per Claude, freigegebenen Leitfaden laden, Prompt-Abschnitt). leitfaden.md ist
   für Claude noch nicht schreibgeschützt (Bedarf in Haupt-STATUS)
 - Wissen: data/wissen/eingang/ (Lias Dateien), text/ (Textfassungen), katalog.md, alles nicht im Repo.
   Nach neuen Dateien von Hand: .venv/bin/python wissen.py (liest nur Neues, entfernt Textfassungen gelöschter
   Quellen; ca. 2 min beim ersten Mal). Neue Dateien vorher auf Schülerdaten prüfen.
-- Skill: skills/einzelmaterial/SKILL.md (Version 2, Art wählen, Qualitätskriterien). Version steht in material.py.
+- Skill: skills/einzelmaterial/SKILL.md (Version 3: Art wählen, Reihenentwurf, Lernerfolgskontrolle, Varianten,
+  Qualitätskriterien). Version steht in material.py.
 - Profil: profil.toml (Kopie von shared/renderer/beispiele/profil-lia-stil.toml, Ethik, Frau Pohlmann)
 - .venv: Pakete aus requirements.txt (Versionen wie shared/renderer), agentkit und renderer per agentkit.pth
 - Dienst: lia-unterricht.service (oneshot, Vorlage systemd/, MemoryMax 1500M), gestartet von Lias Zentrale.
@@ -131,7 +162,8 @@ C. Beispielsammlung (beispiele.py), Teil 1 erledigt 23.10.: Vorschlag data/wisse
    AB_5.1 vs. 5.2 auch als Muster für differenzierung (Zuteilung der Position nach Schwierigkeit).
    Erörterung leicht/mittel/schwer (differenzierung; Abbau der Hilfen, nicht die mittlere Stufe nachahmen).
    Präsentation_5 und Präsentation_6 (folien). LEK Klasse 8 Erörterung vom 13.10. (lek). LEK Lügen mit
-   Erwartungshorizont kein Muster (Lia: auch bei LEKs kein Erwartungshorizont). Auswahl abgeschlossen 25.10.
+   Erwartungshorizont kein Muster (Lia 25.10.: auch bei LEKs kein Erwartungshorizont; seit Jan 30.10.
+   doch: zu jeder LEK ein Erwartungshorizont als eigene Datei). Auswahl abgeschlossen 25.10.
    Teil 2: gewählte Blätter ins Renderer-JSON übertragen (Claude, gegen
    das Original geprüft) und als skills/einzelmaterial/beispiele/ ablegen, ca. 0,40–0,60 USD je Blatt.
 D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, blind gegen ihr echtes Blatt),
@@ -190,6 +222,13 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
    Die Datei von 23:15 (22.10.) wurde noch abgelehnt und muss neu geschickt werden.
 5. Ausbau des Skills nach Architektur 2.5 (beispiele/, evals/), sobald Lia Ergebnisse abgenommen hat.
 6. Woche und Frage: noch Platzhalter. Dateien an einer Frage werden bisher nur bestätigt.
+7. Board-Funktionen echt prüfen (nach Jans Okay, Lias Kontingent): je ein Lauf Reihenentwurf, LEK mit
+   Erwartungshorizont, Varianten zu fertigem Material, Nachbesserung mit Lias Word-Fassung; danach Kosten hier
+   eintragen. Erwartung: Varianten in einem Lauf deutlich billiger als je ein Lauf pro Variante.
+8. claude_lauf.Zurueckgezogen (Auftrag von Lia zurückgezogen) in agent.py vor LaufFehler fangen, nur loggen,
+   keine Meldung an Jan (Bedarf des Hauptordner-Chats, Punkt 24).
+9. Symlink reihen.toml löschen, sobald lia/examen lia/instanz/reihen.toml liest (Bedarf in Punkt 24).
+10. Einheiten des neuen Kurs 11 (2026/27) und Stunden der laufenden Reihen eintragen, wenn Lia sie nennt.
 
 ## Gelernte Regeln
 - 23.10.2026: Bei der Wahl zweier gegensätzlicher Positionen zählt die Quellenlage: Es muss Texte dazu geben, möglichst digital verfügbar, kostengünstig und nicht zu nischig. (Anlass: Lias Wunsch, von Jan freigegeben)
