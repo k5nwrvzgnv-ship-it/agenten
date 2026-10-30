@@ -214,6 +214,21 @@ class TestAuftraege(unittest.TestCase):
         self.assertEqual(auftraege.abschliessen(aid, "Timeout", "fehlgeschlagen", basis=self.basis)["status"],
                          "fehlgeschlagen")
 
+    def test_zurueckziehen(self):
+        aid = auftraege.neuer_auftrag("uni", "t", basis=self.basis)
+        self.assertFalse(auftraege.zurueckgezogen(aid, self.basis))
+        a = auftraege.zurueckziehen(aid, "Lia will es nicht mehr", basis=self.basis)
+        self.assertEqual((a["status"], a["ergebnis"]), ("zurueckgezogen", "Lia will es nicht mehr"))
+        self.assertTrue(auftraege.zurueckgezogen(aid, self.basis))
+        self.assertEqual(auftraege.neue(basis=self.basis), [])
+        # spätes Abschließen des Agenten und zweites Zurückziehen ändern nichts
+        self.assertEqual(auftraege.abschliessen(aid, "fertig", basis=self.basis)["status"], "zurueckgezogen")
+        self.assertEqual(auftraege.zurueckziehen(aid, basis=self.basis)["ergebnis"], "Lia will es nicht mehr")
+        fertig = auftraege.neuer_auftrag("uni", "t", basis=self.basis)
+        auftraege.abschliessen(fertig, "ok", basis=self.basis)
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.zurueckziehen(fertig, basis=self.basis)
+
     def test_daten_und_zurueckgezogen(self):
         aid = auftraege.neuer_auftrag("uni", "kürzer", basis=self.basis)
         a = auftraege.abschliessen(aid, "", "zurueckgezogen", daten={"gestoppt": True}, basis=self.basis)

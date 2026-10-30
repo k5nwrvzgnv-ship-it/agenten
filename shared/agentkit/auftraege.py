@@ -35,6 +35,10 @@ Rückfragen per Meldung (siehe meldungen): Klick oder Antwort auf eine Meldung w
 Auftrag mit meldung=<Meldungs-ID> und dienst=<Dienst der Meldung>. Jeder Dienst holt
 nur seine Aufträge: neue(agent, dienst=None) die ohne Dienst (<agent>.service),
 neue(agent, dienst="uni-lernen") nur die für uni-lernen. Ohne Angabe kommen alle.
+
+Zurückziehen (Jan 30.10.2026): zurueckziehen(id) schließt einen offenen Auftrag mit Status zurueckgezogen ab, auch
+während der Agent daran arbeitet. claude_lauf bricht einen laufenden Lauf dazu ab (Zurueckgezogen), und ein
+späteres abschliessen() des Agenten ändert nichts mehr und wirft nicht.
 """
 
 import re
@@ -68,6 +72,7 @@ def neuer_auftrag(
     agenten_dir: Path | None = None,
     absender: str | None = None,
     reihe: str | None = None,
+    kopieren: bool = False,
 ) -> str:
     """Legt einen Auftrag an und gibt seine ID zurück.
 
@@ -79,6 +84,7 @@ def neuer_auftrag(
     die mit basis= für eine andere Instanz anlegen (Web-App für Lia).
     reihe: Kennung einer Unterrichtsreihe (Web-App für Lia, Kleinbuchstaben, Ziffern, Bindestriche). Das Feld
     steht nur im Auftrag, wenn es gesetzt ist.
+    kopieren: dateien kopieren statt verschieben (z. B. Lias eigene Fassung, die in agentkit.fassungen bleibt).
     """
     if modus not in MODI:
         raise AuftragFehler(f"Unbekannter Modus: {modus!r}")
@@ -91,7 +97,8 @@ def neuer_auftrag(
         raise AuftragFehler(f"Ungültige Reihe: {reihe!r}")
     felder = {"quelle": quelle, "modus": modus, "bezug": bezug, "sitzung": sitzung, "meldung": meldung,
               "dienst": dienst, **({"reihe": reihe} if reihe is not None else {})}
-    return _anlegen(agent, text, felder, dateien or [], shutil.move, absender or person(), basis, agenten_dir)
+    return _anlegen(agent, text, felder, dateien or [], shutil.copy2 if kopieren else shutil.move,
+                    absender or person(), basis, agenten_dir)
 
 
 def weitergeben(
@@ -204,6 +211,23 @@ def erledigter(eintrag_id: str, basis: Path | None = None) -> dict:
     return _ablage.lies(pfad)
 
 
+def zurueckgezogen(eintrag_id: str, basis: Path | None = None) -> bool:
+    """Wurde der Auftrag zurückgezogen? (claude_lauf fragt das während eines Laufs.)"""
+    _ablage.pruefe_id(eintrag_id)
+    pfad = _ablage.ordner(basis or BASIS, "erledigt") / f"{eintrag_id}.json"
+    try:
+        return _ablage.lies(pfad).get("status") == "zurueckgezogen"
+    except (FileNotFoundError, ValueError):
+        return False
+
+
+def zurueckziehen(eintrag_id: str, grund: str = "", basis: Path | None = None) -> dict:
+    """Offenen Auftrag (neu oder laufend) zurückziehen, z. B. auf Lias Wunsch in der Web-App. Ein laufender
+    claude-Lauf dazu endet binnen weniger Sekunden. Schon erledigt oder fehlgeschlagen: AuftragFehler;
+    zweimal zurückziehen schadet nicht."""
+    return abschliessen(eintrag_id, grund, "zurueckgezogen", basis=basis)
+
+
 def daten_setzen(eintrag_id: str, daten: dict, basis: Path | None = None) -> dict:
     """Feld daten eines abgeschlossenen Auftrags ersetzen (z. B. Stand eines Feedback-Falls nach Jans Stopp)."""
     eintrag = erledigter(eintrag_id, basis)
@@ -230,6 +254,7 @@ def abschliessen(
     {"kern": "1-2 Sätze", "punkte": [...], "pruefen": "...", "belege": [...]}, siehe shared/telegram/vorlagen.py.
     "knoepfe": "nur_antwort" wählt die Feedback-Knöpfe unter diesem Ergebnis ab (Antwort genügt).
     Feedback speichert hier seine Zuordnung.
+    Wurde der Auftrag inzwischen zurückgezogen, bleibt er so und wird unverändert zurückgegeben.
     """
     if status not in ABSCHLUESSE:
         raise AuftragFehler(f"Unbekannter Abschluss: {status!r}")
@@ -237,13 +262,18 @@ def abschliessen(
     agent = eintrag_id.split("-")[2]  # vor dem Verschieben prüfen, sonst bliebe der Auftrag halb abgeschlossen
     ergebnis_dateien = _ablage.anhaenge_pruefen((agenten_dir or AGENTEN_DIR) / agent, dateien or [])
     eigene_basis, basis = basis, basis or BASIS
-    eintrag = _ablage.abschliessen(
-        _ablage.ordner(basis, "neu"),
-        _ablage.ordner(basis, "erledigt"),
-        eintrag_id,
-        {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis, "sitzung": sitzung,
-         "ergebnis_dateien": ergebnis_dateien, **({"daten": daten} if daten is not None else {})},
-    )
+    try:
+        eintrag = _ablage.abschliessen(
+            _ablage.ordner(basis, "neu"),
+            _ablage.ordner(basis, "erledigt"),
+            eintrag_id,
+            {"status": status, "abgeschlossen": _ablage.jetzt(), "ergebnis": ergebnis, "sitzung": sitzung,
+             "ergebnis_dateien": ergebnis_dateien, **({"daten": daten} if daten is not None else {})},
+        )
+    except AuftragFehler:
+        if zurueckgezogen(eintrag_id, basis):  # Agent kommt nach dem Zurückziehen: nichts ändern, nicht abstürzen
+            return erledigter(eintrag_id, basis)
+        raise
     ereignis.schreiben("auftrag.abgeschlossen", agent, auftrag=eintrag_id, ordner=ereignis.ordner_zu(eigene_basis),
                        daten={"status": status, "dateien": len(ergebnis_dateien)})
     return eintrag

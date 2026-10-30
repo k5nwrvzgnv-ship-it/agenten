@@ -4,10 +4,15 @@ Mit Seiten-, Folien- bzw. Blattangaben ("--- Seite 3"). Alte Formate (doc, ppt, 
 nicht, dafür bräuchte es LibreOffice.
 Die Bibliotheken (pypdf, python-docx, python-pptx, openpyxl) importiert die Funktion
 erst bei Bedarf: Jeder Agent installiert in seiner .venv nur, welche Formate er braucht.
+word_kommentare() kommt ohne Pakete aus (zipfile), z. B. für Lias Word-Datei mit Kommentaren im Feedback-Dienst.
 """
 
 import logging
+import zipfile
 from pathlib import Path
+from xml.etree import ElementTree
+
+W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
 def als_text(pfad: Path) -> str | None:
@@ -54,3 +59,38 @@ def als_text(pfad: Path) -> str | None:
                     teile.append(" | ".join("" if w is None else str(w) for w in reihe))
         return "\n".join(teile)
     return None
+
+
+def word_kommentare(pfad: Path) -> list[dict]:
+    """Kommentare einer docx-Datei in Reihenfolge: {"stelle": kommentierter Text, "kommentar": Text, "autor"}.
+    Ohne Kommentare oder bei anderen Formaten: []. Kaputte Datei: ValueError."""
+    if Path(pfad).suffix.lower() != ".docx":
+        return []
+    try:
+        with zipfile.ZipFile(pfad) as z:
+            namen = set(z.namelist())
+            if "word/comments.xml" not in namen:
+                return []
+            kommentare = ElementTree.fromstring(z.read("word/comments.xml"))
+            dokument = ElementTree.fromstring(z.read("word/document.xml"))
+    except (zipfile.BadZipFile, KeyError, ElementTree.ParseError) as f:
+        raise ValueError(f"{Path(pfad).name}: {f}") from None
+    stellen: dict[str, list[str]] = {}
+    offen: set[str] = set()
+    for e in dokument.iter():
+        if e.tag == f"{W}commentRangeStart":
+            offen.add(e.get(f"{W}id"))
+            stellen.setdefault(e.get(f"{W}id"), [])
+        elif e.tag == f"{W}commentRangeEnd":
+            offen.discard(e.get(f"{W}id"))
+        elif e.tag == f"{W}t" and e.text:
+            for i in offen:
+                stellen[i].append(e.text)
+    ergebnis = []
+    for k in kommentare.iter(f"{W}comment"):
+        absaetze = ["".join(t.text or "" for t in a.iter(f"{W}t")) for a in k.iter(f"{W}p")]
+        text = "\n".join(a for a in absaetze if a.strip()).strip()
+        if text:
+            ergebnis.append({"stelle": " ".join("".join(stellen.get(k.get(f"{W}id"), [])).split()),
+                             "kommentar": text, "autor": k.get(f"{W}author") or ""})
+    return ergebnis

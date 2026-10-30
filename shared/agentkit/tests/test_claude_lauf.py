@@ -2,12 +2,13 @@ import copy
 import json
 import os
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from agentkit import claude_lauf, einstellungen, ereignis, verbrauch
+from agentkit import auftraege, claude_lauf, einstellungen, ereignis, verbrauch
 
 CFG = einstellungen.lade()
 TOKEN_CFG = {**CFG, "konto": {"quelle": "token"}}
@@ -204,6 +205,27 @@ class TestClaudeLauf(unittest.TestCase):
         with self.assertRaises(claude_lauf.Zeitueberschreitung):
             self.lauf(cfg=cfg)
         self.assertFalse(json.loads(self.protokoll.read_text().splitlines()[-1])["ok"])
+
+    def test_zurueckgezogen_beendet_lauf(self):
+        os.environ["FAKE_MODUS"] = "kind"
+        basis = self.tmp / "auftraege"
+        aid = auftraege.neuer_auftrag("uni", "Fristen", basis=basis)
+        threading.Timer(0.3, auftraege.zurueckziehen, (aid, "", basis)).start()
+        start = time.monotonic()
+        with mock.patch.object(claude_lauf, "PRUEF_S", 0.1), self.assertRaises(claude_lauf.Zurueckgezogen):
+            self.lauf(auftrag_id=aid, auftrag_basis=basis)
+        self.assertLess(time.monotonic() - start, 10)
+        self.assertEqual(self.ereignisse()[-1]["daten"], {"grund": "zurueckgezogen"})
+        self.assertFalse(json.loads(self.protokoll.read_text().splitlines()[-1])["ok"])
+        # Der Agent schließt danach ab: nichts ändert sich, kein Fehler
+        a = auftraege.abschliessen(aid, "fertig", basis=basis)
+        self.assertEqual((a["status"], a["ergebnis"]), ("zurueckgezogen", ""))
+
+    def test_offener_auftrag_laeuft_durch(self):
+        basis = self.tmp / "auftraege"
+        aid = auftraege.neuer_auftrag("uni", "Fristen", basis=basis)
+        with mock.patch.object(claude_lauf, "PRUEF_S", 0.05):
+            self.assertTrue(self.lauf(auftrag_id=aid, auftrag_basis=basis).ok)
 
     def test_sperren(self):
         with claude_lauf._sperre(self.agent_dir / "data" / "lauf.lock", RuntimeError()):

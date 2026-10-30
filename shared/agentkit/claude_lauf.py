@@ -30,7 +30,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import einstellungen, ereignis, regeln, verbrauch
+from . import _ablage, auftraege, einstellungen, ereignis, regeln, verbrauch
 from . import config
 from .config import KONTINGENT_DIR
 
@@ -99,6 +99,11 @@ class LimitErreicht(LaufFehler):
 
 class Zeitueberschreitung(LaufFehler):
     pass
+
+
+class Zurueckgezogen(LaufFehler):
+    """Der Auftrag wurde während des Laufs zurückgezogen (auftraege.zurueckziehen), claude ist beendet.
+    Agenten loggen das nur: kein Abschluss nötig, keine Meldung an Jan."""
 
 
 class KeinKonto(LaufFehler):
@@ -257,6 +262,11 @@ def werkzeuge_aus_zeile(zeile: str) -> list[str]:
     return [str(t.get("name")) for t in inhalt if isinstance(t, dict) and t.get("type") == "tool_use"]
 
 
+def _ablage_id(auftrag_id: str) -> bool:
+    """Nur echte Auftrags-IDs prüfen (Tests und Timer-Läufe übergeben auch andere Kennungen)."""
+    return bool(_ablage.ID_MUSTER.match(auftrag_id))
+
+
 def _gruppe_beenden(p: subprocess.Popen, warten_s: float = 5) -> None:
     """claude und alles, was es gestartet hat, beenden: erst TERM, nach warten_s KILL."""
     for sig in (signal.SIGTERM, signal.SIGKILL):
@@ -271,23 +281,41 @@ def _gruppe_beenden(p: subprocess.Popen, warten_s: float = 5) -> None:
             continue
 
 
-def ausfuehren(cmd: list[str], cwd: Path, env: dict, zeitlimit_s: float, bei_zeile=None) -> tuple[str, bool]:
+PRUEF_S = 5  # so oft fragt ein Lauf, ob sein Auftrag zurückgezogen wurde
+
+
+def ausfuehren(cmd: list[str], cwd: Path, env: dict, zeitlimit_s: float, bei_zeile=None,
+               abbrechen=None, pruef_s: float | None = None) -> tuple[str, str | None]:
     """Startet cmd in eigener Prozessgruppe und liest die Ausgabe (stdout und stderr) Zeile für Zeile.
 
     bei_zeile(zeile) wird für jede Zeile sofort aufgerufen (Fehler darin beenden den Lauf nicht).
-    Nach zeitlimit_s wird die Gruppe beendet. Rückgabe: (ganze Ausgabe, Zeitlimit überschritten).
+    Nach zeitlimit_s wird die Gruppe beendet, ebenso, sobald abbrechen() (alle pruef_s Sekunden gefragt) True ist.
+    Rückgabe: (ganze Ausgabe, Grund des Abbruchs: None, "zeit" oder "abbruch").
     """
     p = subprocess.Popen(cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True, start_new_session=True)
-    abgelaufen = threading.Event()
+    grund: list[str] = []
+    fertig = threading.Event()
 
-    def stoppen():
-        abgelaufen.set()
+    def stoppen(warum: str):
+        if not grund:
+            grund.append(warum)
         _gruppe_beenden(p)
 
-    waechter = threading.Timer(zeitlimit_s, stoppen)
+    def fragen():
+        while not fertig.wait(pruef_s or PRUEF_S):
+            try:
+                if abbrechen():
+                    stoppen("abbruch")
+                    return
+            except Exception as e:  # noqa: BLE001 - die Frage darf den Lauf nicht beenden
+                logger.warning("abbrechen: %s", e)
+
+    waechter = threading.Timer(zeitlimit_s, stoppen, ("zeit",))
     waechter.daemon = True
     waechter.start()
+    if abbrechen:
+        threading.Thread(target=fragen, daemon=True).start()
     zeilen = []
     try:
         for zeile in p.stdout:
@@ -300,14 +328,16 @@ def ausfuehren(cmd: list[str], cwd: Path, env: dict, zeitlimit_s: float, bei_zei
         p.wait()
     finally:
         waechter.cancel()
+        fertig.set()
         if p.poll() is None:  # z. B. Abbruch des Agenten selbst: claude nicht verwaist zurücklassen
             _gruppe_beenden(p)
         p.stdout.close()
-    return "".join(zeilen), abgelaufen.is_set()
+    return "".join(zeilen), (grund[0] if grund else None)
 
 
 FEHLERGRUND = {"LimitErreicht": "limit", "Pausiert": "pausiert", "Zeitueberschreitung": "zeit",
-               "LaeuftSchon": "laeuft_schon", "KeinPlatz": "kein_platz", "KeinKonto": "konto"}
+               "LaeuftSchon": "laeuft_schon", "KeinPlatz": "kein_platz", "KeinKonto": "konto",
+               "Zurueckgezogen": "zurueckgezogen"}
 
 
 def laufen(
@@ -323,12 +353,15 @@ def laufen(
     slot_dir: Path | None = None,
     protokoll: Path | None = None,
     ereignis_dir: Path | None = None,
+    auftrag_basis: Path | None = None,
 ) -> Ergebnis:
     """Führt einen claude-Lauf aus. art: "routine" oder "anspruchsvoll".
 
     lernsitzung=True legt eine neue Sitzung mit fester ID an (Ergebnis.sitzung),
     die später mit sitzung_fortsetzen weitergeführt werden kann (auch am PC).
     Schreibt Ereignisse (agentkit.ereignis): lauf.gestartet, werkzeug (live), lauf.beendet, lauf.fehler.
+    Mit auftrag_id endet der Lauf, sobald der Auftrag zurückgezogen wird (Zurueckgezogen); auftrag_basis ist
+    die Warteschlange (Standard wie agentkit.auftraege).
     """
     lauf_id = uuid.uuid4().hex[:12]
 
@@ -337,14 +370,14 @@ def laufen(
 
     try:
         return _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-                       cfg, slot_dir, protokoll, lauf_id, ev)
+                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis)
     except Exception as f:
         ev("lauf.fehler", grund=FEHLERGRUND.get(type(f).__name__, "technik"))
         raise
 
 
 def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-            cfg, slot_dir, protokoll, lauf_id, ev) -> Ergebnis:
+            cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None) -> Ergebnis:
     cfg = cfg or einstellungen.lade()
     agent_dir = Path(agent_dir)
     stufe = verbrauch.stufe(verbrauch.letzter_stand(protokoll), cfg)
@@ -373,8 +406,14 @@ def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_f
             ev("lauf.gestartet", modell=modell, stufe=stufe, konto=quelle, art=art, zeitgesteuert=zeitgesteuert,
                fortsetzung=bool(sitzung_fortsetzen), pid=os.getpid())
             start = time.monotonic()
-            ausgabe, abgelaufen = ausfuehren(cmd, agent_dir, env, cfg["lauf"]["max_minuten"] * 60, bei_zeile)
-            if abgelaufen:
+            abbrechen = None
+            if auftrag_id and _ablage_id(auftrag_id):
+                def abbrechen():
+                    return auftraege.zurueckgezogen(auftrag_id, auftrag_basis)
+            ausgabe, abbruch = ausfuehren(cmd, agent_dir, env, cfg["lauf"]["max_minuten"] * 60, bei_zeile, abbrechen)
+            if abbruch == "abbruch":
+                ergebnis = Ergebnis(text="Zurückgezogen", sitzung=sitzung_neu or sitzung_fortsetzen, ok=False)
+            elif abbruch == "zeit":
                 ergebnis = Ergebnis(text="Zeitlimit überschritten", sitzung=sitzung_neu or sitzung_fortsetzen, ok=False)
             else:
                 ergebnis = auswerten(ausgabe)
@@ -393,6 +432,8 @@ def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_f
         "verweigert": len(ergebnis.verweigert), "auslastung": ergebnis.auslastung,
     }, protokoll)
 
+    if abbruch == "abbruch":
+        raise Zurueckgezogen(f"{agent}: Auftrag {auftrag_id} zurückgezogen, Lauf beendet")
     if ergebnis.text == "Zeitlimit überschritten":
         raise Zeitueberschreitung(f"{agent}: Lauf nach {cfg['lauf']['max_minuten']} Minuten abgebrochen")
     if ergebnis.auslastung and verbrauch.gesperrt(ergebnis.auslastung.get("status")):
