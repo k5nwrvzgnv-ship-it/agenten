@@ -241,11 +241,10 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
 8. Aufträge, die inhaltlich eine neue Fassung sind, aber als neuer Material-Auftrag mit Datei kamen (93e29e,
    03b145 zur Theater-Fassung), haben kein `bezug` und stehen einzeln. Nicht geraten; Jan gefragt, ob so etwas
    zusammengehören soll (sauber wäre ein Änderungswunsch mit Datei aus der Ergebnis-Ansicht, Bauschritt 4).
-1. lia.meldro.de (Jan als root, 30.10. vorbereitet): DNS bei INWX A `84.247.188.205` und AAAA
-   `2a02:c207:3020:9076::1` (wie kcal), dann `data/caddy-lia.txt` an /etc/caddy/Caddyfile anhängen (kcal-Block
-   bleibt), `caddy validate --config /etc/caddy/Caddyfile`, `systemctl reload caddy`. Danach prüfen: ohne Passwort
-   401, mit Passwort 200, Formulare (Origin = Host lia.meldro.de). Passwortschutz ist Übergang bis Bauschritt 2
-   (Passkey); Klärung K1 (Schule/Datenschutz) offen, Jan hat „Weg 2“ trotzdem entschieden.
+1. lia.meldro.de läuft (30.10. abends): DNS A/AAAA bei INWX, Caddy-Block aus `data/caddy-lia.txt` eingetragen.
+   Geprüft von außen: ohne Passwort 401, mit Passwort 200 (IPv4 und IPv6), HSTS und CSP gesetzt, Formular mit
+   Origin lia.meldro.de angenommen, fremde Herkunft 403, kcal unverändert. Passwortschutz ist Übergang bis
+   Bauschritt 2 (Passkey); Klärung K1 (Schule/Datenschutz) offen, Jan hat „Weg 2“ trotzdem entschieden.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
 4. Material-Ansicht: Stunden (ohne Datei), Varianten-Zuordnung und Entwurf-Entscheidungen liegen nur in der
