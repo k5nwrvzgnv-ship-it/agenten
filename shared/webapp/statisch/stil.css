@@ -244,3 +244,29 @@ summary.schritt-kopf:hover b { color: var(--akzent); }
 .formular input[type=file] { font: inherit; font-size: 15px; padding: 10px 0; border-top: 1px solid var(--schwarz); }
 .fehler { padding-left: 12px; border-left: 3px solid var(--akzent); color: var(--akzent); font-weight: 700; }
 .fehler p { margin: 0 0 4px; }
+/* Ordnung nach Fach und Reihe: Chips über "Heute", Reihen in "Unterricht" */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chips a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--schwarz);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.chips a[aria-current] { background: var(--schwarz); color: var(--weiss); }
+.chips a.verweis { border: 0; padding: 0 4px; margin-left: auto; }
+.reihe-kopf { display: flex; flex-direction: column; gap: 4px; padding: 14px 0 10px; }
+.reihe-kopf h3 { margin: 0; font-size: 18px; }
+.reihe-kopf .grau { font-weight: 500; }
+.formular select {
+  font: inherit;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--schwarz);
+  border-radius: 0;
+  background: var(--weiss);
+  color: var(--schwarz);
+}

@@ -1,5 +1,5 @@
-{#- Neuer Auftrag (Board ModNeu), nur Material. Ohne Auswahl der Art, Reihe und „Das beachte ich“: gibt es noch
-    nicht. Formular ohne JavaScript, Schutz über Origin-Prüfung und Token (app.py). -#}
+{#- Neuer Auftrag (Board ModNeu), nur Material, mit Auswahl der Reihe (laufende Reihen). Ohne Auswahl der Art
+    und „Das beachte ich“: gibt es noch nicht. Formular ohne JavaScript, Schutz über Origin-Prüfung und Token (app.py). -#}
 {% extends "basis.html" %}
 {% block inhalt %}
 {%- if modus == "test" %}
@@ -18,8 +18,20 @@
               placeholder="Zum Beispiel: Arbeitsblatt zum kategorischen Imperativ, Klasse 10, 45 Minuten, mit Fallbeispiel">{{ text }}</textarea>
     <span class="unter">Material: Arbeitsblatt, Folien oder Arbeitsmappe. Lieber sprechen? Tipp auf das Mikrofon deiner Tastatur.</span>
   </section>
+  {%- if reihen %}
   <section>
-    <h2><span class="akzent">02</span><label for="dateien">Datei, wenn du magst</label></h2>
+    <h2><span class="akzent">02</span><label for="reihe">Für welche Reihe?</label></h2>
+    <select id="reihe" name="reihe">
+      <option value="">keine Reihe</option>
+      {%- for r in reihen %}
+      <option value="{{ r.id }}"{% if r.id == reihe %} selected{% endif %}>{{ r.text }}</option>
+      {%- endfor %}
+    </select>
+    <span class="unter">Ordnet den Auftrag in deiner Übersicht ein und sagt deiner Assistenz, zu welcher Reihe er gehört.</span>
+  </section>
+  {%- endif %}
+  <section>
+    <h2><span class="akzent">{{ "03" if reihen else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
     <input id="dateien" name="dateien" type="file" multiple accept="{{ endungen }},image/*">
     <span class="unter">Zum Beispiel ein altes Arbeitsblatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.</span>
     <p class="hinweis"><b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p>

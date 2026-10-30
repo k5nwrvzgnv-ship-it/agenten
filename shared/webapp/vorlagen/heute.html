@@ -8,7 +8,7 @@
 <script src="/statisch/htmx-2.0.4.min.js" defer></script>
 </head>
 <body>
-<main id="heute" hx-get="/teile/heute" hx-trigger="every 60s" hx-swap="innerHTML">
+<main id="heute" hx-get="/teile/heute{% if h.filter %}?ordnung={{ h.filter|urlencode }}{% endif %}" hx-trigger="every 60s" hx-swap="innerHTML">
 {% include "_heute.html" %}
 </main>
 </body>

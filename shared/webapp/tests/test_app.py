@@ -320,6 +320,97 @@ class TestNeuerAuftrag(Aufbau):
         start.assert_not_called()
 
 
+REIHEN = """
+[[reihe]]
+id = "strafe"
+fach = "Ethik"
+klasse = "8"
+titel = "Straftheorien"
+reihenfrage = "Wozu <strafen> wir?"
+behandelt = ["Kant", "Bentham"]
+agenten = ["examen"]
+
+[[reihe]]
+fach = "Theater"
+klasse = "Kurs 11"
+titel = "Der nackte Wahnsinn"
+agenten = ["theater"]
+"""
+
+
+class TestOrdnung(Aufbau):
+    """Fach, Klasse und Reihe über den echten Server (reihen.toml in der Instanz)."""
+
+    def setUp(self):
+        super().setUp()
+        (self.instanz / "reihen.toml").write_text(REIHEN, encoding="utf-8")
+        for name, wert in (("EINGANG", self.tmp / "eingang"), ("NEUER_AUFTRAG", "test")):
+            patch = mock.patch.object(app, name, wert)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def test_heute_mit_chips_und_filter(self):
+        _, html = self.hole("/")
+        for text in ('href="/?ordnung=fach%3Aethik"', ">Theater</a>", ">Ohne Reihe</a>", 'href="/unterricht"',
+                     "Ethik · Klasse 8 · Straftheorien"):
+            self.assertIn(text, html)
+        self.assertIn('aria-current="true">Alle</a>', html)
+        _, html = self.hole("/?ordnung=fach%3Atheater")
+        self.assertIn('aria-current="true">Theater</a>', html)
+        self.assertNotIn("Umfrage vor der Reihe", html)  # Entwurf aus examen gehört zu Ethik
+        self.assertIn('hx-get="/teile/heute?ordnung=fach%3Atheater"', html)
+        self.assertNotIn("Gerade wartet nichts", html)  # Begrüßung zählt trotzdem alles
+        _, html = self.hole("/teile/heute?ordnung=fach%3Aethik")
+        self.assertIn("Umfrage vor der Reihe", html)
+        self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", html)  # Material ohne Reihe
+        _, html = self.hole("/?ordnung=ohne")
+        self.assertIn("Arbeitsblatt &lt;Kant&gt;", html)
+        self.assertNotIn("Umfrage vor der Reihe", html)
+        _, html = self.hole("/?ordnung=%3Cboese%3E")  # unbekannter Filter: alles
+        self.assertIn("Umfrage vor der Reihe", html)
+        self.assertNotIn("boese", html)
+
+    def test_unterricht(self):
+        r, html = self.hole("/unterricht")
+        self.assertEqual(r.status, 200)
+        for text in ("Ethik", "Straftheorien", "Klasse 8", "Wozu &lt;strafen&gt; wir?", "Kant; Bentham", "Theater",
+                     "Kurs 11", "Noch keine Aufträge zu dieser Reihe.", "Ohne Reihe",
+                     'href="/ergebnis/20261030-140944-unterricht-93e29e"', "Umfrage vor der Reihe"):
+            self.assertIn(text, html)
+        self.assertNotIn("20261030", self.sichtbar(html))
+
+    def test_unterricht_ohne_reihen_und_kaputte_datei(self):
+        (self.instanz / "reihen.toml").write_text("[[reihe]\n")
+        with self.assertLogs("webapp", "ERROR"):
+            _, html = self.hole("/unterricht")
+        self.assertIn("Noch keine Reihen eingetragen.", html)
+        _, html = self.hole("/")
+        self.assertNotIn("Ohne Reihe", html)  # ohne Reihen keine Chips
+
+    def schicke(self, text="Arbeitsblatt Kant", reihe=""):
+        body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "text": text, "reihe": reihe}, [])
+        return self.hole("/neu", "POST", body=body,
+                         kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
+
+    def test_neuer_auftrag_mit_reihe(self):
+        _, html = self.hole("/neu")
+        self.assertIn('<option value="strafe">Straftheorien (Ethik, Klasse 8)</option>', html)
+        self.assertEqual(self.schicke(reihe="strafe")[0].status, 303)
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertEqual((a["reihe"], a["text"]), ("strafe", "Arbeitsblatt Kant\n\nReihe: Straftheorien (Ethik, Klasse 8)"))
+        _, html = self.hole("/?ordnung=reihe%3Astrafe")
+        self.assertIn("Arbeitsblatt Kant", html.split("Läuft gerade</h2>")[1])
+
+    def test_neuer_auftrag_ohne_und_mit_falscher_reihe(self):
+        self.assertEqual(self.schicke()[0].status, 303)
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertNotIn("reihe", a)
+        r, html = self.schicke(reihe="gibt-es-nicht")
+        self.assertEqual(r.status, 400)
+        self.assertIn("Diese Reihe gibt es nicht (mehr).", html)
+        self.assertEqual(len(app.auftraege.neue(basis=self.instanz / "auftraege")), 1)
+
+
 class TestHtmx(unittest.TestCase):
     def test_pruefsumme(self):
         import hashlib

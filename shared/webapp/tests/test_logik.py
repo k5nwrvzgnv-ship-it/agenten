@@ -473,13 +473,15 @@ class TestReihen(unittest.TestCase):
         material = auftrag("20261030-123903-unterricht-ef0a90", text="Notentabelle")
         mit_reihe = auftrag("20261030-140000-unterricht-aaaaaa", text="Arbeitsblatt Kant", status="neu",
                             abgeschlossen=None, reihe="ethik-8-straftheorien")
-        u = logik.unterricht(reihen(), [alt, fb, nb, material, mit_reihe], JETZT)
+        entwurf = {"id": "20261025-003745-examen-0c44bf", "agent": "examen", "typ": "entwurf", "titel": "Umfrage",
+                   "erstellt": "2026-10-25T00:37:45+02:00"}
+        u = logik.unterricht(reihen(), [alt, fb, nb, material, mit_reihe], JETZT, [entwurf])
         self.assertEqual([f["name"] for f in u["faecher"]], ["Ethik", "Theater"])
         ethik = u["faecher"][0]["gruppen"][0]
         self.assertEqual((ethik["name"], ethik["reihen"][0]["behandelt"]), ("Klasse 8", "Kant; Bentham"))
         self.assertEqual([(z["titel"], z["marke"]) for z in ethik["reihen"][0]["zeilen"]],
-                         [("Arbeitsblatt Kant", "Läuft")])
-        self.assertEqual(ethik["reihen"][0]["zeilen"][0]["link"], "")  # läuft noch, keine Ergebnis-Ansicht
+                         [("Umfrage", "Offen"), ("Arbeitsblatt Kant", "Läuft")])
+        self.assertEqual(ethik["reihen"][0]["zeilen"][1]["link"], "")  # läuft noch, keine Ergebnis-Ansicht
         theater = u["faecher"][1]["gruppen"][0]["reihen"][0]
         self.assertEqual(len(theater["zeilen"]), 1)  # Kette mit Rückmeldung ist eine Zeile
         self.assertEqual(theater["zeilen"][0]["link"], f"/ergebnis/{ALT_ID}")

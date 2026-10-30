@@ -583,10 +583,20 @@ def reihe_pruefen(wert: str | None, reihen: list[dict]) -> tuple[str | None, lis
     return None, ["Diese Reihe gibt es nicht (mehr). Bitte wähl sie neu."]
 
 
-def unterricht(reihen: list[dict], auftraege_: list[dict], jetzt: datetime) -> dict:
-    """Ansicht "Unterricht": Fach, Klasse oder Kurs, Reihe, je mit ihren Aufträgen (neueste zuerst), darunter die
-    Aufträge ohne Reihe. Je Kette eine Zeile wie in "Heute"."""
+def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict]) -> str:
+    """Auftragstext für den Agenten: Die gewählte Reihe steht am Ende, damit er sie ohne eigenen Code im Prompt hat
+    (Lias Reihen kennt er aus reihen.toml)."""
+    r = next((x for x in reihen if x["id"] == reihe_id), None)
+    return f"{text}\n\nReihe: {r['titel']} ({r['fach']}, {r['gruppe']})" if r else text
+
+
+def unterricht(reihen: list[dict], auftraege_: list[dict], jetzt: datetime, entwuerfe: list[dict] | None = None) -> dict:
+    """Ansicht "Unterricht": Fach, Klasse oder Kurs, Reihe, je mit offenen Entwürfen und ihren Aufträgen (neueste
+    zuerst), darunter alles ohne Reihe. Je Kette eine Zeile wie in "Heute"."""
     zeilen_je: dict[str, list] = {}
+    for e in sorted(entwuerfe or [], key=lambda e: e.get("erstellt") or "", reverse=True):
+        r = reihe_von(e, reihen)
+        zeilen_je.setdefault(r["id"] if r else OHNE_REIHE, []).append(entwurf_zeile(e, jetzt))
     for kette in sorted((k for k in ketten(auftraege_) if fassungen(k)),
                         key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True):
         r = reihe_von(kopf(kette), reihen)

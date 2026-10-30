@@ -18,6 +18,8 @@ GET:
   /ergebnis/<id>/datei/<n>/pdf          PDF aus der Vorschau des Renderers
   /ergebnis/<id>/datei/<n>/seite/<m>    Seitenbild m (ab 1) der Vorschau
   /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
+  /unterricht                           Fach, Klasse oder Kurs, Reihe mit ihren Aufträgen (ordnung.py, nur lesend)
+  /?ordnung=<filter>                    Heute nur für ein Fach, eine Klasse, eine Reihe oder "ohne" Reihe
   /statisch/...                         CSS, htmx
   /neu                                  Formular Neuer Auftrag (nur Material), nur wenn eingeschaltet
 POST, die einzige Route mit Wirkung:
@@ -58,6 +60,7 @@ from agentkit._ablage import AblageFehler, pruefe_id
 
 import dateien
 import logik
+import ordnung
 
 HIER = Path(__file__).resolve().parent
 SOCKET = Path(os.environ.get("WEBAPP_SOCKET") or HIER / "data" / "webapp.sock")
@@ -106,12 +109,26 @@ async def kopfzeilen(request: Request, call_next):
     return antwort
 
 
-def heute_daten(instanz: Path | None = None) -> dict:
-    instanz = instanz or INSTANZ
-    return logik.heute(auftraege.neue(basis=instanz / "auftraege"),
-                       auftraege.erledigte(basis=instanz / "auftraege"),
-                       freigabe.offene(basis=instanz / "freigabe"),
-                       datetime.now(ZONE), config.person(instanz))
+_reihen_fehler: list[str] = []  # zuletzt geloggte Fehler: nicht bei jedem Neuladen (jede Minute) wieder
+
+
+def reihen_laden() -> list[dict]:
+    """Lias Reihen; Fehler in reihen.toml stehen im Log, die App zeigt dann ohne die fehlerhaften Reihen."""
+    reihen, fehler = ordnung.laden(INSTANZ)
+    if fehler != _reihen_fehler:
+        for f in fehler:
+            logger.error("Reihen: %s", f)
+        _reihen_fehler[:] = fehler
+    return reihen
+
+
+def heute_daten(filter_: str | None = None) -> dict:
+    reihen = reihen_laden()
+    return logik.heute(auftraege.neue(basis=INSTANZ / "auftraege"),
+                       auftraege.erledigte(basis=INSTANZ / "auftraege"),
+                       freigabe.offene(basis=INSTANZ / "freigabe"),
+                       datetime.now(ZONE), config.person(INSTANZ),
+                       reihen, logik.filter_gueltig(filter_, reihen))
 
 
 def neu_modus() -> str:
@@ -126,18 +143,31 @@ def neu_modus() -> str:
 @app.get("/", response_class=HTMLResponse)
 def seite_heute(request: Request):
     return vorlagen.TemplateResponse(request, "heute.html", {
-        "h": heute_daten(), "neu": neu_modus(), "abgeschickt": request.query_params.get("abgeschickt") == "1"})
+        "h": heute_daten(request.query_params.get("ordnung")), "neu": neu_modus(),
+        "abgeschickt": request.query_params.get("abgeschickt") == "1"})
 
 
 @app.get("/teile/heute", response_class=HTMLResponse)
 def teil_heute(request: Request):
-    return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus()})
+    return vorlagen.TemplateResponse(request, "_heute.html", {
+        "h": heute_daten(request.query_params.get("ordnung")), "neu": neu_modus()})
 
 
-def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200):
+@app.get("/unterricht", response_class=HTMLResponse)
+def seite_unterricht(request: Request):
+    basis = INSTANZ / "auftraege"
+    u = logik.unterricht(reihen_laden(), [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
+                         datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"))
+    return vorlagen.TemplateResponse(request, "unterricht.html", {
+        "e": {"titel": "Unterricht", "unter": "Nach Fach, Klasse und Reihe"}, "u": u})
+
+
+def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200,
+              reihe: str = ""):
     return vorlagen.TemplateResponse(request, "neu.html", {
         "e": {"titel": "Neuer Auftrag", "unter": "Auftrag an deine Assistenz"},
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
+        "reihen": logik.reihen_auswahl(reihen_laden()), "reihe": reihe,
         "text_max": logik.NEU_TEXT_MAX, "max_mb": logik.NEU_DATEI_MAX_MB, "endungen": ",".join(logik.NEU_ENDUNGEN),
     }, status_code=status)
 
@@ -178,14 +208,16 @@ async def neu_abschicken(request: Request):
     except Exception:  # kaputtes oder zu großes Formular (MultiPartException u. a.)
         logger.warning("Neuer Auftrag: Formular nicht lesbar")
         raise HTTPException(400) from None
-    text = str(form.get("text") or "")
+    text, gewaehlt = str(form.get("text") or ""), str(form.get("reihe") or "")
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
         return _formular(request, text, ["Die Seite war veraltet. Bitte wähle die Dateien neu und schick es noch "
-                                         "einmal ab."], 400)
+                                         "einmal ab."], 400, gewaehlt)
     dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
     text, fehler = logik.neuer_auftrag_pruefen(text, [(d.filename, d.size or 0) for d in dateien_])
-    if fehler:
-        return _formular(request, text, fehler, 400)
+    reihen = reihen_laden()
+    reihe, fehler_reihe = logik.reihe_pruefen(gewaehlt, reihen)
+    if fehler or fehler_reihe:
+        return _formular(request, text, fehler + fehler_reihe, 400, reihe or "")
     EINGANG.mkdir(parents=True, exist_ok=True)
     ablage = Path(tempfile.mkdtemp(dir=EINGANG))
     try:
@@ -196,9 +228,9 @@ async def neu_abschicken(request: Request):
             with pfad.open("wb") as ziel:
                 shutil.copyfileobj(d.file, ziel)
             pfade.append(pfad)
-        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, text, quelle=logik.NEU_QUELLE, dateien=pfade,
-                                      basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
-                                      absender=config.person(INSTANZ))
+        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, logik.text_mit_reihe(text, reihe, reihen),
+                                      quelle=logik.NEU_QUELLE, dateien=pfade, basis=INSTANZ / "auftraege",
+                                      agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe)
     except (auftraege.AuftragFehler, OSError) as fehler_:
         logger.error("Neuer Auftrag nicht angelegt: %s", fehler_)
         return _formular(request, text, [logik.FEHLGESCHLAGEN], 500)
@@ -206,7 +238,8 @@ async def neu_abschicken(request: Request):
         shutil.rmtree(ablage, ignore_errors=True)
         for d in dateien_:
             await d.close()
-    logger.info("Auftrag %s angelegt (%s, %d Dateien, %s)", aid, logik.NEU_AGENT, len(pfade), modus)
+    logger.info("Auftrag %s angelegt (%s, %d Dateien, Reihe %s, %s)", aid, logik.NEU_AGENT, len(pfade),
+                reihe or "keine", modus)
     if modus == "echt":
         agent_starten(logik.NEU_AGENT)
     return RedirectResponse("/?abgeschickt=1", status_code=303)

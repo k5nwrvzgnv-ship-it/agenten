@@ -1,0 +1,14 @@
+{#- Eine Zeile in Heute und Unterricht. link führt zur Ergebnis- bzw. Entwurf-Ansicht (nur lesend). -#}
+{%- macro zeile(z, offen=false) -%}
+<li>{% if z.link %}<a class="zeile" href="{{ z.link }}">{% else %}<div class="zeile">{% endif %}
+  <span class="punkt{% if offen %} punkt-offen{% endif %}" aria-hidden="true"></span>
+  <span class="text">
+    <span class="titel">{{ z.titel }}</span>
+    <span class="unter">{{ z.unter }}</span>
+    {%- if z.reihe %}<span class="unter reihe">{{ z.reihe }}</span>{% endif %}
+    {%- if z.hinweis %}<span class="unter">{{ z.hinweis }}</span>{% endif %}
+    {%- if z.grund %}<span class="grund">{{ z.grund }}</span>{% endif %}
+  </span>
+  {%- if z.marke %}<span class="marke">{{ z.marke }}</span>{% endif %}
+{% if z.link %}</a>{% else %}</div>{% endif %}</li>
+{%- endmacro -%}
