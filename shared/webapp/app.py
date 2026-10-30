@@ -2,7 +2,7 @@
 
 Kein Port: Uvicorn hört auf einem Unix-Socket in data/ (Ordner nur für User agent), wie der Leitstand.
 Zugriff zum Test per SSH-Tunnel:
-  ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agent@<server>
+  ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agents-user
 und dann http://localhost:8792 im Browser.
 
 Daten: Warteschlangen der Instanz WEBAPP_INSTANZ (Standard lia/instanz) über agentkit mit basis=.

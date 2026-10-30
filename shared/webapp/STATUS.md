@@ -29,8 +29,8 @@ Bauschritt 1 fertig und committet, `./pruefen.sh` grün (Web-App: 18 Tests).
 - Tests ohne httpx (nicht freigegeben): echter Uvicorn auf einem Socket im Temp-Ordner, Anfragen mit http.client.
 
 ## Starten und ansehen (zum Test, kein Dienst)
-Auf dem Server: `cd ~/agenten/shared/webapp && .venv/bin/python app.py` (Strg+C beendet).
-Auf Jans Rechner: `ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agent@<server>`, dann
+Auf dem Server (vom Mac aus `ssh agents-user`): `cd ~/agenten/shared/webapp && .venv/bin/python app.py` (Strg+C beendet).
+Auf Jans Mac (Kurzname aus seiner ~/.ssh/config): `ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agents-user`, dann
 http://localhost:8792. Andere Instanz: `WEBAPP_INSTANZ=/pfad`, anderer Socket: `WEBAPP_SOCKET=/pfad`.
 Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start löscht sie.
 
