@@ -62,13 +62,13 @@
     <span class="unter">Ordnet den Auftrag in deiner Übersicht ein und sagt deiner Assistenz, zu welcher Reihe er gehört.</span>
   </section>
   {%- endif %}
-  {%- if art == "arbeitsblatt" %}
+  {%- if vorlage.varianten %}
   <fieldset class="auswahl">
     <legend>Auch als</legend>
     {%- for k, v in varianten.items() %}
     <label><input type="checkbox" name="varianten" value="{{ k }}"> {{ v.name }}</label>
     {%- endfor %}
-    <span class="unter">Erst kommt das normale Blatt. Die Varianten forderst du dann mit einem Klick an.</span>
+    <span class="unter">Deine Assistenz baut sie gleich mit, als eigene Dateien neben dem normalen Blatt.</span>
   </fieldset>
   {%- endif %}
   <section>

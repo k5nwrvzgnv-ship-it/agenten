@@ -705,13 +705,28 @@ class TestOrdnung(Aufbau):
             self.assertIn("Schreib kurz deine Frage.", self.hole("/?fragefehler=leer")[1])
             self.assertEqual(self.hole("/teile/frage/../../x")[0].status, 404)
 
+    def test_zurueckziehen(self):
+        self.assertEqual(self.post("/neu", {"text": "Blatt", "art": "arbeitsblatt"})[0].status, 303)
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        _, html = self.hole("/")
+        self.assertIn(f'action="/auftrag/{a["id"]}/zurueckziehen"', html)
+        self.assertNotIn(a["id"], self.sichtbar(html))
+        r, _ = self.post(f"/auftrag/{a['id']}/zurueckziehen", {})
+        self.assertEqual((r.status, r.getheader("location")), (303, "/?erledigt=zurueckgezogen"))
+        self.assertEqual(app.auftraege.neue(basis=self.instanz / "auftraege"), [])
+        _, html = self.hole("/?erledigt=zurueckgezogen")
+        self.assertIn("Zurückgezogen.", html)
+        self.assertNotIn("Blatt", html)
+        self.assertEqual(self.post(f"/auftrag/{a['id']}/zurueckziehen", {})[0].status, 404)  # nicht mehr offen
+        self.assertEqual(self.post("/auftrag/../x/zurueckziehen", {})[0].status, 404)
+
     def test_auch_als_im_formular(self):
         self.assertIn('name="varianten" value="hilfekarten"', self.hole("/neu?art=arbeitsblatt")[1])
         self.assertNotIn('name="varianten"', self.hole("/neu?art=tabelle")[1])
         r, _ = self.post("/neu", {"text": "Blatt", "art": "arbeitsblatt", "varianten": ["hilfekarten", "tuerkisch", "einfach"]})
         self.assertEqual(r.status, 303)
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
-        self.assertEqual(app.zustand_().lesen()["varianten_wunsch"], {a["id"]: ["einfach", "hilfekarten"]})
+        self.assertEqual(a["text"], "Arbeitsblatt: Blatt\nAuch als: einfach, mit Hilfekarten")  # baut der Agent mit
 
     def test_neuer_auftrag_ohne_und_mit_falscher_reihe(self):
         self.assertEqual(self.schicke()[0].status, 303)

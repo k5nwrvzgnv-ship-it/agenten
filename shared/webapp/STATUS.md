@@ -11,8 +11,9 @@ Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
 Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen Aufbaus „Desktop zuerst“
 (Jans Okay 30.10.), Seitengalerie statt aller Seitenbilder und Material-Ansicht wie Board „Desktop“ (Jans Wunsch 30.10.),
-Block A und B aus dem Abgleich mit dem Board (Jans Wahl 30.10.: „Block A, dann B“, Abschnitt „Abgleich Board“ unten),
-`./pruefen.sh` grün (Web-App: 101 Tests).
+Block A und B aus dem Abgleich mit dem Board (Jans Wahl 30.10.: „Block A, dann B“) und danach „alle Funktionen des
+Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komplett“ unten), `./pruefen.sh` grün
+(Web-App: 113 Tests).
 - Rahmen (Plan `../../docs/webapp-aufbau.md` 4.1, Board „Desktop“): drei Spalten Baum (260 px) | Inhalt mit
   Brotkrumen (bis 840 px) | „Fragen“ (320 px, nur Platzhalter „Kommt bald“, kein Chat, kein Claude-Aufruf). Alle
   Seiten (auch 404) über `vorlagen/basis.html`. Im HTML steht der Inhalt vorn. Unter 1100 px rutscht „Fragen“
@@ -45,14 +46,12 @@ Block A und B aus dem Abgleich mit dem Board (Jans Wahl 30.10.: „Block A, dann
   (Schrift, Größe, farbige Kästen, Folienschrift), Arten der Galerie, Muster und eigene Formatvorlage als leere
   Zustände. Ich: Regeln aus `<instanz>/regeln.md` („Für alles“) und den „Gelernten Regeln“ der STATUS.md von
   unterricht, theater, examen, recherche („Für Material“ usw.), ohne Feedback-IDs, Datum und Anlass darunter.
-- Varianten (Block B, Regel R2): Leiste „Varianten: normal · einfach · Türkisch“ in der Material-Ansicht,
-  „+ Variante“ (einfach, Türkisch, mit Hilfekarten, dazu freier Text) legt einen eigenen Auftrag an unterricht
-  an: Text „Variante „Türkisch“ von „Titel“: …“, Anhang = Kopie der finalen Fassung (auch Lias eigene) bzw.
-  der Datei oben (nur docx/pptx, nur Material von unterricht). Die Web-App merkt sich die Zuordnung
-  (`zustand.py`: `varianten`); die Variante hat eine eigene Ansicht mit Brotkrume „Original“, keine Variante
-  einer Variante. „Auch als“ im Formular Arbeitsblatt merkt sich den Wunsch (`varianten_wunsch`); am fertigen
-  Blatt steht dann „Türkisch anfordern“. Nur test/echt. Kostet je Variante einen ganzen Material-Lauf
-  (Bedarf e in Punkt 24). Noch nie echt gelaufen.
+- Varianten (Regel R2; Türkisch entfällt, Jan 30.10.): „Auch als“ (einfach, mit Hilfekarten, Level 1–3) im Formular
+  Arbeitsblatt und Lernerfolgskontrolle wird die Zeile „Auch als: …“ im Auftragstext; lia/unterricht baut die
+  Varianten im selben Lauf als weitere Dateien. Nachträglich: Leiste „Varianten: normal · einfach“ mit
+  „+ Variante“ legt einen eigenen Auftrag an unterricht an (Text „Variante „einfach“ von „Titel“: …“, Anhang =
+  Kopie der finalen bzw. oberen Datei, nur docx/pptx); die Web-App merkt sich die Zuordnung (`zustand.py`:
+  `varianten`), die Variante hat eine eigene Ansicht mit Brotkrume „Original“. Nur test/echt. Noch nie echt.
 - „Heute“ in der Mitte, Inhalt wie bisher, jede Zeile mit Reihe nennt ihren Ort („Ethik › Klasse 8 ›
   Straftheorien“). Chips, `?ordnung=`, Seite `/unterricht` und „Unterricht →“ sind weg; `/unterricht` leitet mit
   301 auf `/` um. Aufträge ohne Reihe stehen nur in „Heute“.
@@ -86,14 +85,15 @@ Block A und B aus dem Abgleich mit dem Board (Jans Wahl 30.10.: „Block A, dann
   Aktion 303 auf `?erledigt=…` mit Hinweis oben. Varianten siehe oben.
   - Als final markieren (`POST …/final`, nur Fassungen aus `logik.final_erlaubt`, je Auftrag höchstens eine) und
     Eigene Fassung hochladen (`POST …/eigene`, Word/PowerPoint/Excel/PDF bis 20 MB, Download `…/eigene/<n>`)
-    speichert die Web-App selbst (`zustand.py`: `data/zustand/<schlüssel>.json`, Dateien `data/eigene/`, je
-    Instanz). Nichts davon liegt in Lias Instanz, die Agenten sehen es nicht (Bedarf b und d in Punkt 24); darum
-    geht es auch auf lia/instanz. Final nimmt den Auftrag aus „Wartet auf dich“, unter Fertig steht „Final“.
-  - Rückmeldung geben (`POST …/rueckmeldung`): Text (Pflicht), Datei mit Kommentaren (wird Lias eigene Fassung
-    „mit deinen Kommentaren“, der Text nennt sie). Legt wie Telegram einen Auftrag an `feedback` an (quelle
-    feedback, bezug = neueste fertige Fassung des Assistenten). Nur wenn `WEBAPP_NEUER_AUFTRAG` gilt: test (nicht
-    auf lia/instanz, kein Agent) bzw. echt (startet lia-feedback.service). Sonst steht dort „Rückmeldungen gehen
-    im Moment noch über Telegram“.
+    speichert seit 30.10. abends `agentkit.fassungen` (`<instanz>/fassungen/<ursprung>.json`, Datei im
+    Agent-Ordner unter `data/eingang/<ursprung>/eigene-<n>/`; Jans Entscheidung: die Agenten sehen es). Das
+    schreibt also auch in lia/instanz und startet keinen Lauf; darum geht es immer. `zustand.py` liest es zum
+    Anzeigen mit. Final nimmt den Auftrag aus „Wartet auf dich“, unter Fertig steht „Final“.
+  - Rückmeldung geben (`POST …/rueckmeldung`): Text (Pflicht), Datei mit Kommentaren. Über
+    `agentkit.fassungen.rueckmeldung`: die Datei wird eigene Fassung, dann ein Auftrag an `feedback` (bezug =
+    neueste fertige Fassung bzw. die Fassung der Datei, siehe „Rückmeldung je Datei“); der Feedback-Dienst liest
+    die Word-Kommentare und hängt die Datei an die Nachbesserung. Nur mit `WEBAPP_NEUER_AUFTRAG` test bzw. echt
+    (startet lia-feedback.service). Sonst „Rückmeldungen gehen im Moment noch über Telegram“.
   - Alle POSTs mit Herkunftsprüfung und Token (`app.formular_lesen`), Aktionen nur an der ID des Ursprungs.
   - Echter Lauf 30.10. (nur lesend): alle 5 Ergebnisse 200, nichts gespeichert.
 - Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, zurückgezogene 404; IDs
@@ -159,20 +159,41 @@ Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt docx/pptx 
 - Die Reihen-Auswahl im Formular bleibt nur für „Neu“ ohne Ort (aus „Heute“). Die Art „Theater“ (Agent theater)
   heißt in den Zeilen noch so; im Board „Spielfassung“.
 
-## Abgleich Board „Desktop“ gegen App (30.10.2026)
-Gebaut (A1 bis A5, B, siehe Stand). Nicht gebaut und warum: „+ Reihe“ (schreibt reihen.toml, Lias Instanz bzw.
-lia/unterricht, braucht Jans Okay), Archiv und Kurs 11 (stehen in keiner Datei), Fach-Material und Material aus
-Lias Ablage (Jan fragen, ob Lias Ablage in die App soll), Stunden im Baum, Datei in eine Stunde ziehen (braucht
-JavaScript), Entwurf-Knöpfe und „Nochmal“ (Freigabe bzw. neuer Auftrag, später), Fragen/Chat (kein Agent),
-eigene Formatvorlage (Renderer kann .dotx/.potx, unterricht nutzt sie nicht), Muster. Reihenentwurf, LEK,
-Spielfassung und Szenenaufgabe fehlen in der Galerie, bis ein Agent sie baut.
-Vorschlag an Jan, noch nicht entschieden: Rückmeldung je Datei statt je Ergebnis (Knopf an jeder Datei-Karte und
-im Seiten-Betrachter, Text beginnt „Zur Datei …, Seite n:“, bezug = Fassung der Datei). Der Feedback-Dienst
-braucht dafür nichts (er gibt nur den Text weiter; Nachbesserungen setzen auf der Fassung im bezug auf).
+## Board komplett (Jan 30.10.2026 abends, Plan `board-plan.md`)
+Jans Auftrag: „alle Funktionen aus dem Board zum Laufen bekommen“, je Ordner ein Chat (lia/unterricht, lia/theater,
+lia/chat neu, Hauptordner/agentkit). In der Web-App gebaut, je mit Tests:
+- Reihen aus `lia/instanz/reihen.toml` (eine Datei für App und Agenten) mit `schuljahr`: abgeschlossene Reihen
+  eines Schuljahrs sind Archiv („Archiv: Klasse 7 · 2025/26“, im Baum eingeklappt, eigene Klassen-Kennung mit
+  Jahr). `[[reihe.stunde]]` (nr 1 bis n, thema, marke UB/Prüfung) gewinnt gegen die Stunden der Web-App; dann
+  kein „+ Stunde“ und kein „Thema ändern“ (die Datei pflegt der unterricht-Chat bzw. Jan).
+- Fach-Ansicht `/fach/<kennung>` (Klassen mit laufenden Reihen, „Zum ganzen Fach“ leer), Fach in Baum und
+  Brotkrumen verlinkt; die gezeigte Reihe klappt im Baum ihre Stunden aus.
+- Rückmeldung je Datei: Knopf „Rückmeldung“ an jeder Datei-Karte, „Rückmeldung zu dieser Seite“ im Betrachter;
+  Text beginnt „Zur Datei „Name.docx“, Seite n:“, bezug = die Fassung, aus der die Datei stammt.
+- Entwurf (Typ entwurf): „Setze ich selbst ein“ / „Brauche ich nicht“ / Rückgängig, gespeichert in `zustand.py`
+  (`entwuerfe`), nicht in der Freigabe (Jans Freigabe bleibt unberührt, examen liest Entscheidungen nicht).
+  Entschiedene warten nicht mehr in „Heute“. Ändern eines Entwurfs geht weiter über Jan.
+- „Nochmal“ bei Fehlschlag (nur Material ohne Anhänge, nur test/echt): neuer Auftrag mit Text, quelle, bezug,
+  sitzung des letzten Versuchs; ein ersetzter Ursprung verschwindet aus „Hat nicht geklappt“ (`ersetzt`).
+- „Zurückziehen“ unter „Läuft gerade“ (`agentkit.auftraege.zurueckziehen`, ein laufender claude-Lauf endet).
+- Galerie: dazu Reihenentwurf und Lernerfolgskontrolle (nur Ethik, unterricht), Spielfassung (Kürzung) und
+  Szenenaufgabe (nur Darstellendes Spiel, Agent theater, quelle portal-theater, weitere Felder Länge,
+  Spieler*innen, Was bleiben muss bzw. Methode, Szene, Material). Spielfassung = ganze Runde, bis 3 Stunden,
+  etwa 7 USD, nur „Der nackte Wahnsinn“.
+- Spalte „Fragen“ an den Chat-Agenten `lia/chat` (Schnittstelle `schnittstelle.py`, Warteschlange in
+  lia/chat/data): nur mit `WEBAPP_CHAT=an` (jede Frage läuft über Lias Kontingent, ca. 0,03 USD). „Ich weiß:
+  Ort“ (Reihe, auf Stundenseiten mit Stunde), „ohne Ort fragen“, „gründlich“, Antwort per htmx alle 2 s
+  (`/teile/frage/<id>`), die letzten 6 Fragen mit Trennlinie bei Ortswechsel, Markdown nur fett und Listen,
+  „Daraus Auftrag machen“ öffnet Neu mit Frage und Antwort am Ort. Noch nie aus der Web-App echt gefragt.
+Nicht gebaut: „+ Reihe“ in der App (schreibt reihen.toml; Jan bzw. unterricht-Chat), Fach-Material und Lias
+Ablage (Jan fragen), Datei in eine Stunde ziehen (JavaScript), Muster, eigene Formatvorlage hochladen (unterricht
+nutzt jetzt Vorlagen aus seinem data/vorlagen/, ein Upload fehlt), Konten.
 
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
-  `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`), getestet. `ordnung.py`: Reihen-Dateien lesen. `zustand.py`: final und eigene Fassungen in data/. `dateien.py`: Pfade der
+  `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`, Stunden, Varianten,
+  Fragen), getestet. `ordnung.py`: Reihen-Dateien, Profil und Regeln lesen. `zustand.py`: was die Web-App selbst
+  in data/ speichert (Stunden, Zuordnungen, Entwurf-Entscheidungen, Nochmal), liest final/eigene aus agentkit. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
   kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
   `ergebnis_dateien`, nie einen Pfad. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
@@ -190,6 +211,8 @@ braucht dafür nichts (er gibt nur den Text weiter; Nachbesserungen setzen auf d
 Auf dem Server (vom Mac aus `ssh agents-user`): `cd ~/agenten/shared/webapp && .venv/bin/python app.py` (Strg+C beendet).
 Mit „Neuer Auftrag“ im Testbetrieb: `cd ~/agenten/shared/webapp && WEBAPP_INSTANZ=$PWD/data/test/instanz
 WEBAPP_NEUER_AUFTRAG=test .venv/bin/python app.py` (zeigt dann die Test-Instanz, nicht Lias Aufträge).
+Mit der Spalte „Fragen“ zusätzlich `WEBAPP_CHAT=an` davor (Lias Kontingent). Alles echt auf Lias Daten:
+`WEBAPP_NEUER_AUFTRAG=echt WEBAPP_CHAT=an .venv/bin/python app.py` (nur mit Jans Okay, siehe Offene Punkte 0).
 Auf Jans Mac (Kurzname aus seiner ~/.ssh/config): `ssh -N -L 8792:/home/agent/agenten/shared/webapp/data/webapp.sock agents-user`, dann
 http://localhost:8792. Nach einer Code-Änderung die laufende App mit Strg+C beenden und neu starten. Andere Instanz: `WEBAPP_INSTANZ=/pfad`, anderer Socket: `WEBAPP_SOCKET=/pfad`.
 Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start löscht sie.
@@ -200,11 +223,11 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-0. Neuer Auftrag echt (`WEBAPP_NEUER_AUFTRAG=echt` auf lia/instanz): erst mit Bauschritt 2 (Konten) und Jans
-   Okay. Theater als Art erst, wenn der Theater-Agent neue Aufträge annimmt (bisher nur Nachbesserungen, neue
-   Runden mit `runde.py` von Hand; Bedarf an den lia/theater-Chat). Zurücknehmen (10 s) fehlt noch.
-9. Reihen: lia/instanz/reihen.toml legt der lia/unterricht-Chat an (Bedarf in Punkt 24 der Haupt-STATUS); bis
-   dahin der Ersatz aus den Agent-Ordnern. Pflege durch Lia in der App (Neue Reihe, Behandeltes ergänzen) und
+0. Echt (`WEBAPP_NEUER_AUFTRAG=echt` auf lia/instanz: Neu, Variante, Rückmeldung, Nochmal, Zurückziehen starten
+   Läufe auf Lias Kontingent, Ergebnisse gehen auch per Telegram an Lia): Jan entscheidet, ob vor den Konten.
+   Bis dahin nur Testbetrieb (Test-Instanz ohne Ergebnisse und ohne Agent).
+9. Reihen: lia/instanz/reihen.toml gibt es (30.10.); der Ersatz aus den Agent-Ordnern greift nur noch ohne sie.
+   Pflege durch Lia in der App (Neue Reihe, Behandeltes ergänzen) und
    „Reihe zuordnen“ für alte Aufträge (schreibt in Lias Instanz) erst mit Konten. Weitere Klassen von Lia sind
    nicht bekannt; Jan trägt sie ein, sobald Lia sie nennt.
 8. Aufträge, die inhaltlich eine neue Fassung sind, aber als neuer Material-Auftrag mit Datei kamen (93e29e,
@@ -214,14 +237,10 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
    Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
-4. Material-Ansicht: Lias eigene Fassungen, Stunden und Varianten-Zuordnung liegen nur in der Web-App; die nächste
-   Runde des Agenten setzt nicht darauf auf (Bedarf b). Final liegt nur in der Web-App (Bedarf d bzw. Konten).
-   Rückmeldung auf lia/instanz erst mit `echt` und Jans Okay (Lauf auf Lias Kontingent, Antwort auch per
-   Telegram). Die Test-Instanz hat keine Ergebnisse: Zum Ausprobieren der Rückmeldung müsste dort eines liegen
-   (z. B. Kopie eines echten Ergebnisses). Noch offen: Nochmal bei Fehlschlag, Auftrag zurückziehen (agentkit),
-   Entwurf Setze ich selbst ein/Ändern/Ablehnen (Freigabe), Anmerkungen an einer Stelle (Renderer).
-   Neu, Variante und Rückmeldung lassen sich nur in der Test-Instanz ausprobieren, dort gibt es weder Ergebnisse
-   noch einen Agenten. Echt auf lia/instanz vor den Konten: Jan entscheidet (Lias Kontingent).
+4. Material-Ansicht: Stunden (ohne Datei), Varianten-Zuordnung und Entwurf-Entscheidungen liegen nur in der
+   Web-App. Die Test-Instanz hat keine Ergebnisse: Zum Ausprobieren von Rückmeldung, Variante und Nochmal müsste
+   dort eines liegen (z. B. Kopie eines echten Ergebnisses). Offen: Entwurf ändern (examen müsste Änderungen
+   lesen), Anmerkungen an einer Stelle (Renderer).
    Telegram-Feedback-Knöpfe nicht übernehmen (Jan 30.10.: „die im tg sind quatsch“).
 7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
    Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.

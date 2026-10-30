@@ -614,10 +614,13 @@ class TestReihen(unittest.TestCase):
 
     def test_neu_galerie_und_text(self):
         ethik, theater = reihen()
-        self.assertEqual([g["link"] for g in logik.galerie(ethik["id"], 3, "Ethik")], [
-            "/neu?art=arbeitsblatt&reihe=ethik-8-straftheorien&stunde=3",
-            "/neu?art=praesentation&reihe=ethik-8-straftheorien&stunde=3",
-            "/neu?art=tabelle&reihe=ethik-8-straftheorien&stunde=3"])
+        self.assertEqual([g["art"] for g in logik.galerie(ethik["id"], 3, "Ethik")],
+                         ["arbeitsblatt", "praesentation", "tabelle", "reihenentwurf", "lek"])
+        self.assertEqual(logik.galerie(ethik["id"], 3, "Ethik")[0]["link"],
+                         "/neu?art=arbeitsblatt&reihe=ethik-8-straftheorien&stunde=3")
+        self.assertEqual(logik.text_mit_reihe("Kant", None, [], None, "lek", None, ["einfach", "level"]),
+                         "Lernerfolgskontrolle: Kant\nAuch als: einfach, Level")
+        self.assertEqual(logik.text_mit_reihe("Kant", None, [], None, "tabelle", None, ["einfach"]), "Tabelle: Kant")
         self.assertEqual(logik.neu_link(), "/neu")
         self.assertEqual(logik.neu_link("", 3), "/neu")  # Stunde nur mit Reihe
         self.assertEqual(logik.ort_text(theater, (2, "Akt 1")), "Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn › Probe 2")

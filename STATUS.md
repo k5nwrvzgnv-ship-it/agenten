@@ -565,15 +565,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      „Desktop“ ausprobieren: gebaut (Knopf-Spalte, Fassungen-Liste, final, eigene Fassung, Rückmeldung). Final und
      eigene Fassungen speichert die Web-App vorerst selbst in shared/webapp/data/ (nicht in Lias Instanz, Agenten
      sehen sie nicht: Bedarf b und d bleiben); Rückmeldung nur im Testbetrieb, echt erst mit Jans Okay.
-     Abgleich Board gegen App 30.10. (Jans Wunsch, „es fehlen noch Funktionen aus dem Board“), Jan wählte Block A,
-     dann B, gebaut und committet: Reihe zeigt Material mit Stand (Final, Läuft, Fassung n), Klasse/Kurs als
-     Ansicht, Stunden bzw. Proben (speichert die Web-App selbst in data/, Agenten sehen sie nur als Zeile
-     „Stunde n: Thema“ im Auftragstext), Material einer Stunde zuordnen, „+ Neu hier“ mit Galerie (Arbeitsblatt,
-     Präsentation, Tabelle) und Ort vorbelegt, Vorlagen und Ich (nur lesend), Varianten (einfach, Türkisch,
-     mit Hilfekarten) als eigene Aufträge an unterricht mit der Datei des Originals als Anhang. Neues mit Wirkung
-     (Neu, Variante, Rückmeldung) weiter nur im Testbetrieb; die Test-Instanz hat keine Ergebnisse und keinen
-     Agenten. Offen bei Jan: Rückmeldung je Datei (Vorschlag liegt vor), echter Betrieb auf lia/instanz vor den
-     Konten. Fehlt weiter: Chat (Bedarf c), + Reihe, Archiv, Kurs 11 (keine Datei), Entwurf-Knöpfe, Nochmal.
+     Board komplett (Jan 30.10. abends: „alle Funktionen aus dem Board zum Laufen bekommen“, Plan
+     shared/webapp/board-plan.md, Chats lia/unterricht, lia/theater, lia/chat, Hauptordner): In der Web-App gebaut
+     und committet: Klasse, Fach, Reihe mit Material-Stand, Stunden (aus reihen.toml oder in der App), Archiv
+     (schuljahr), Galerie (Arbeitsblatt, Präsentation, Tabelle, Reihenentwurf, LEK; Spielfassung, Szenenaufgabe)
+     mit Ort, Auch als (einfach, Hilfekarten, Level) im selben Lauf, Varianten nachträglich, Rückmeldung je
+     Datei/Seite, final und eigene Fassung über agentkit.fassungen, Entwurf selbst einsetzen, Nochmal,
+     Zurückziehen, Vorlagen und Ich (lesend), Spalte „Fragen“ an lia/chat (nur mit WEBAPP_CHAT=an). Einzelheiten
+     shared/webapp/STATUS.md „Board komplett“. Offen bei Jan: echt auf lia/instanz vor den Konten (Läufe auf Lias
+     Kontingent), erster echter Lauf Spielfassung (ca. 7 USD), ob Lias Ablage in die App soll. Nicht gebaut:
+     „+ Reihe“ in der App, Konten.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit
@@ -581,7 +582,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      b) alle Material-Agenten: Nachbesserung auf Grundlage einer von Lia hochgeladenen Fassung (Word mit
         Kommentaren) als Fassung desselben Auftrags (bezug), nicht als neuer Auftrag.
      c) Erledigt 30.10. (Jans Okay): Agent lia/chat, läuft (Dienste lia-chat.path, lia-chat-aufraeumen.timer),
-        echter Test 8–14 s je schnelle Frage. Bedarf shared/webapp: Spalte „Fragen“ anschließen. Schnittstelle
+        echter Test 8–14 s je schnelle Frage. Spalte „Fragen“ der Web-App ist angeschlossen (WEBAPP_CHAT=an). Schnittstelle
         (Einzelheiten lia/chat/STATUS.md, Abschnitt „Schnittstelle“): lia/chat in sys.path, `import schnittstelle`
         (nur Bordmittel); `frage_stellen(text, ort=None, gruendlich=False) -> id`, ort = {"reihe": kennung,
         "stunde": n, "chip": "Ethik › 8 › …", "stunde_thema", "materialien": [Titel]} (nur reihe Pflicht);
@@ -589,7 +590,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         technik/ungueltig, "wieder_frei", "chip"}, bei Fehler Satz für Lia in text); `verlauf()` für die Spalte
         (30 Tage, Trennlinie bei Wechsel von reihe). Ungültige Frage: FrageFehler mit Satz für Lia. Hinweis
         „Bitte keine Namen von Schüler*innen“ unter dem Feld und „Daraus Auftrag machen“ baut die Web-App.
-     d) Erledigt 30.10. in agentkit.fassungen (siehe „Vom Hauptordner-Chat“ unten), Umstellung der Web-App offen.
+     d) Erledigt 30.10. in agentkit.fassungen; die Web-App nutzt es seit 30.10. abends.
      e) lia/unterricht (später, nach Jans Okay): Varianten in einem Lauf bauen (einfach/Türkisch/Hilfekarten aus
         derselben Beschreibung), statt je Variante ein eigener Lauf mit der fertigen Datei als Anhang (heute in
         der Web-App, kostet je Variante einen ganzen Material-Lauf). Ein echter Lauf mit Anhang fehlt noch.
@@ -601,6 +602,44 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         Umstellung ein Symlink auf ../instanz/reihen.toml; bitte auf lia/instanz/reihen.toml umstellen (oder
         config.SHARED_DIR), dann löscht der unterricht-Chat den Symlink. Achtung: reihe_text gibt alle Felder aus,
         künftig auch id, agenten und [[reihe.stunde]].
+     2. Erledigt (Jan 30.10.): neuer Kurs 11 (2026/27, laufend, noch ohne Einheiten), Archiv Klasse 7 (5 Reihen)
+        und Kurs 11 2025/26 (6 Einheiten aus Lias Ordnern), alle mit schuljahr "2025/26", stand "abgeschlossen".
+        Die Web-App liest schuljahr und Stunden aus der Datei (7e4d73b). Variante „Türkisch“ braucht Jan nicht
+        mehr (30.10.).
+     3. Erledigt: Stunden je Reihe als [[reihe.stunde]] (nr, thema, marke "UB"/"Prüfung") in reihen.toml; unterricht
+        gibt sie mit, die Reihe aus dem Feld reihe des Auftrags steht im Prompt zuerst und markiert. Die Stunde
+        selbst liest Claude aus der Zeile „Stunde n: Thema“ im Auftragstext. Die Web-App liest die Stunden schon
+        aus der Datei (7e4d73b); eingetragen sind noch keine.
+     4./5. Erledigt (Jans Okay 30.10.): Text beginnt mit „Reihenentwurf:“ bzw. „Lernerfolgskontrolle:“. Zur LEK
+        kommt immer ein Erwartungshorizont als eigene Datei (Jan 30.10., Leitfaden angepasst). Varianten in
+        einem Lauf: Zeile „Varianten: einfach, Hilfekarten, Level“ (oder „Auch als: …“). Neues Material bekommt
+        sie gleich mit; zu fertigem Material als Auftrag mit bezug (und sitzung) auf das Original, dann nur
+        die neuen Dateien dazu. Ein Ergebnis kann bis zu 6 Dateien haben (ergebnis_dateien, Hauptdatei zuerst,
+        z. B. „Arbeitsblatt Titel (Niveau 1).docx“). Level = Niveau 1 bis 3. Türkisch entfällt (Jan 30.10.).
+        Bedarf shared/webapp: Varianten nicht mehr als eigene Aufträge mit Datei-Anhang, sondern so; Arten
+        Reihenentwurf und LEK in der Galerie. Bedarf shared/renderer (später): Art „dokument“ ohne Name/Datum
+        im Kopf für Reihenentwurf und Erwartungshorizont (heute Arbeitsblatt-Kopf).
+     6. Erledigt: Nachbesserung mit Lias eigener Fassung (Anhang aus dem Feedback-Dienst) baut auf ihr auf,
+        auch beim Fortsetzen der Sitzung; Word-Kommentare stehen mit Stelle im Prompt (agentkit.textfassung).
+        Offen bei unterricht: claude_lauf.Zurueckgezogen fangen (Bedarf 2 des Hauptordner-Chats).
+     7. Erledigt: Liegt in lia/unterricht/data/vorlagen/ eine .dotx/.docx bzw. .potx/.pptx, baut der Renderer
+        Arbeitsblätter bzw. Folien darauf (neueste gilt). Kaputte Vorlage: ohne sie, Jan bekommt eine Meldung.
+        Noch keine echte Vorlage dort.
+     Alles nur mit Tests geprüft, kein echter Lauf auf Lias Kontingent. Hinweis Git: Die Commits e4a025d und
+     4df5b9f3 tragen eine Nachricht von lia/unterricht, enthalten aber STATUS.md anderer Chats (gleichzeitige
+     Commits, Nachricht über .git/COMMIT_EDITMSG vertauscht); der richtige Commit ist 923932b.
+   - Vom lia/theater-Chat (30.10., board-plan.md 8, Jans Okay 30.10.): theater nimmt neue Aufträge an. Für die
+     Web-App: agent "theater", quelle "portal-theater", Feld reihe, danach agent_starten("theater") (Dienst
+     lia-theater). Text, erste Zeile entscheidet:
+     - „Spielfassung: <Stück>“, darunter „Länge: 35–40 Minuten“ (oder eine Zahl, dann ±2), „Spieler*innen: 18“,
+       „Was bleiben muss: …“ (auch mehrzeilig, höchstens 1500 Zeichen). Fehlt eine Zeile, gilt theater.toml. Nur
+       „Der nackte Wahnsinn“ (auch „Noises Off“); ein anderes Stück startet keinen Lauf, Lia bekommt „Für dieses
+       Stück habe ich den Text noch nicht“, Jan eine Meldung. Ergebnis: vier docx (Szenenkarte, Ablauf,
+       Spielfassung, Stück im Stück), eine ganze Runde, bis zu 3 Stunden, Kosten etwa wie 29.10. (rund 7 USD).
+     - „Szenenaufgabe: <Thema>“, darunter z. B. „Methode: …“, „Szene: …“ (Baustein B.. oder Stelle), „Material:
+       …“, optional „Gruppe: …“; Anhänge (pdf, docx, Bilder) im Feld dateien werden gelesen. Ergebnis: eine docx.
+       Rückmeldung mit bezug auf den Auftrag überarbeitet die Szenenaufgabe.
+     Weitere Zeilen (z. B. „Reihe: …“) stören nicht. Kein echter Lauf bisher, nur Tests.
    - Vom Hauptordner-Chat (30.10., board-plan.md 10, Jans Entscheidung 30.10.: agentkit speichert, laufender
      Lauf wird abgebrochen). Gebaut und getestet, Bedarf b und d damit auf agentkit-Seite erledigt:
      Alle Aufrufe mit basis=<instanz>/auftraege und agenten_dir=<instanz>.parent (Web-App: INSTANZ).

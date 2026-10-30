@@ -251,11 +251,13 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
     for kette in sorted(laufend, key=lambda k: _zeitpunkt(next(a for a in k if a.get("status") == "neu"))):
         k = kopf(kette)
         start = next(a for a in kette if a.get("status") == "neu").get("erstellt")
-        laeuft.append(mit_reihe(_zeile(titel(k, {a["id"]: a for a in kette}),
-                                       art(k) if k.get("agent") != "feedback" else "Rückmeldung",
-                                       "seit " + zeit_text(start, jetzt) if start else "",
-                                       hinweis="Arbeitet an deiner Rückmeldung" if len(kette) > 1 else "",
-                                       link=ergebnis_link(k) if zeigbar(k) else ""), k))
+        laufend_ = next(a for a in kette if a.get("status") == "neu")
+        laeuft.append({**mit_reihe(_zeile(titel(k, {a["id"]: a for a in kette}),
+                                          art(k) if k.get("agent") != "feedback" else "Rückmeldung",
+                                          "seit " + zeit_text(start, jetzt) if start else "",
+                                          hinweis="Arbeitet an deiner Rückmeldung" if len(kette) > 1 else "",
+                                          link=ergebnis_link(k) if zeigbar(k) else ""), k),
+                       "zurueck_id": laufend_["id"]})  # nur im Formular „Zurückziehen“, nie sichtbar
     rest = [mit_reihe(ketten_zeile(k, jetzt, "Final" if kopf(k)["id"] in finale else ""), kopf(k))
             for k in ergebnisse if k not in neu]
     fehlgeschlagen = [mit_reihe({**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1]), 300)},
@@ -488,6 +490,7 @@ HINWEISE = {
     "stunde": "Angelegt. Mit „Gehört zu“ in einem Material ordnest du es hier ein.",
     "thema": "Thema geändert.",
     "zugeordnet": "Eingeordnet.",
+    "zurueckgezogen": "Zurückgezogen. Deine Assistenz hört damit auf.",
     "nochmal": "Läuft noch einmal. Das Ergebnis erscheint in „Heute“.",
     "nochmal-test": "Noch einmal angelegt (Testbetrieb, es startet kein Agent).",
     "entwurf-selbst": "Erledigt: Du setzt den Entwurf selbst ein. Er wartet nicht mehr in „Heute“.",
@@ -632,17 +635,23 @@ _UNERLAUBT = re.compile(r'[\\/:*?"<>|\x00-\x1f\x7f]')
 
 
 # Vorlagen der Galerie „Neu“ (Board „Desktop“): nur Arten, die ein Agent wirklich baut. unterricht: Arbeitsblatt
-# (docx), Folien (pptx), Arbeitsmappe (xlsx); theater (30.10., nur Darstellendes Spiel): Spielfassung (ganze Runde,
-# nur „Der nackte Wahnsinn“) und Szenenaufgabe. Reihenentwurf und LEK fehlen, bis unterricht sie kann.
+# (docx), Folien (pptx), Arbeitsmappe (xlsx), Reihenentwurf und Lernerfolgskontrolle mit Erwartungshorizont (30.10.,
+# nur Ethik); theater (30.10., nur Darstellendes Spiel): Spielfassung (ganze Runde, nur „Der nackte Wahnsinn“)
+# und Szenenaufgabe. varianten: Formular zeigt „Auch als“ (der Agent baut sie im selben Lauf).
 # fach: nur in Reihen dieses Fachs ("" = alle). extra: weitere Felder (Name, Frage, Platzhalter, lang, Zeilenanfang
 # im Auftragstext, wie der Agent ihn liest).
 VORLAGEN = {
     "arbeitsblatt": {"name": "Arbeitsblatt", "text": "Text, Merksatz, Aufgaben", "bild": "ab",
-                     "frage": "Was soll drauf?", "hint": "Thema, Position, Fall, Dauer …"},
+                     "frage": "Was soll drauf?", "hint": "Thema, Position, Fall, Dauer …", "varianten": True},
     "praesentation": {"name": "Präsentation", "text": "Folien für eine Stunde", "bild": "folie",
                       "frage": "Wofür?", "hint": "Ablauf der Stunde, Leitfrage …"},
     "tabelle": {"name": "Tabelle", "text": "Notentabelle, Liste (Excel), ohne Namen", "bild": "tabelle",
                 "frage": "Welche Spalten?", "hint": "Nr., Note 1–5, Durchschnitt …"},
+    "reihenentwurf": {"name": "Reihenentwurf", "text": "Reihenfrage, Stunden, Ziele", "bild": "tabelle",
+                      "fach": "Ethik", "frage": "Thema und Reihenfrage", "hint": "oder: Reihenfrage noch offen"},
+    "lek": {"name": "Lernerfolgskontrolle", "kopf": "Lernerfolgskontrolle", "text": "mit Erwartungshorizont",
+            "bild": "ab", "fach": "Ethik", "frage": "Was wird geprüft?", "hint": "Positionen, Operatoren …",
+            "varianten": True},
     "spielfassung": {"name": "Spielfassung (Kürzung)", "kopf": "Spielfassung", "text": "Stück auf eure Länge kürzen",
                      "bild": "skript", "agent": "theater", "quelle": "portal-theater", "fach": "Darstellendes Spiel",
                      "frage": "Welches Stück?", "hint": "Der nackte Wahnsinn", "kurz": True,
@@ -890,7 +899,7 @@ def reihe_pruefen(wert: str | None, reihen: list[dict]) -> tuple[str | None, lis
 
 
 def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict], stunde: tuple[int, str] | None = None,
-                   art_: str = "", extra: dict[str, str] | None = None) -> str:
+                   art_: str = "", extra: dict[str, str] | None = None, auch_als: list[str] = ()) -> str:
     """Auftragstext für den Agenten: Art vorn („Arbeitsblatt: …“, „Spielfassung: …“), weitere Felder als Zeilen
     („Länge: …“), gewählte Reihe und Stunde (Nummer, Thema) am Ende, damit er sie ohne eigenen Code im Prompt hat."""
     vorlage = VORLAGEN.get(art_)
@@ -899,6 +908,8 @@ def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict], stunde: 
         for name, _, _, _, anfang in vorlage.get("extra", []):
             if (extra or {}).get(name):
                 text += f"\n{anfang}: {extra[name]}"
+        if auch_als and vorlage.get("varianten"):  # Zeile, die lia/unterricht liest (material.VARIANTEN_ZEILE)
+            text += "\nAuch als: " + ", ".join(VARIANTEN[v]["wort"] for v in auch_als if v in VARIANTEN)
     r = next((x for x in reihen if x["id"] == reihe_id), None)
     if not r:
         return text
@@ -1226,10 +1237,12 @@ def regeln_aus(texte: list[tuple[str, str]]) -> list[dict]:
 # den Material-Agenten mit der Datei des Originals als Anhang; die Web-App merkt sich, was zusammengehört
 # (zustand.py: varianten, varianten_wunsch). Türkisch braucht Jan nicht (30.10., Leitfaden: eingestellt).
 VARIANTEN = {
-    "einfach": {"name": "einfach",
+    "einfach": {"name": "einfach", "wort": "einfach",
                 "auftrag": "sprachlich einfacher: kürzere Sätze, schwierige Wörter erklärt, gleiche Inhalte und Aufgaben"},
-    "hilfekarten": {"name": "mit Hilfekarten",
+    "hilfekarten": {"name": "mit Hilfekarten", "wort": "mit Hilfekarten",
                     "auftrag": "mit Hilfekarten: gleiche Aufgaben, dazu gestufte Hilfen je Aufgabe"},
+    "level": {"name": "Level 1–3", "wort": "Level",
+              "auftrag": "in drei Niveaus (Level 1 bis 3): gleiche Inhalte, unterschiedlich schwer"},
 }
 VARIANTE_ENDUNGEN = (".docx", ".pptx")  # Varianten von Blättern und Folien, nicht von Tabellen oder PDFs
 VARIANTE_EXTRA_MAX = 500

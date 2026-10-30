@@ -526,3 +526,4 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .fragen-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .fragen-form textarea { font: inherit; padding: 8px; border: 2px solid var(--schwarz); border-radius: 0; }
 .fragen-ort { margin: 0; font-weight: 700; }
+.zeile-aktion { display: flex; justify-content: flex-end; padding: 0 0 10px; border-top: 0; }

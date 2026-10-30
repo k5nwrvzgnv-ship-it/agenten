@@ -12,6 +12,7 @@
 {%- if abgeschickt %}
 <p class="hinweis">Dein Auftrag ist unterwegs. Er steht unter „Läuft gerade“.</p>
 {%- endif %}
+{%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
 
 {#- (Name, Zeilen, Punkt offen, Text wenn leer; ohne Text fehlt der leere Abschnitt) #}
 {%- set abschnitte = [("Wartet auf dich", h.wartet, false, "Nichts offen."),
@@ -23,7 +24,13 @@
 <section aria-labelledby="ab{{ nummer.n }}">
   <h2 id="ab{{ nummer.n }}"><span class="akzent">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
   {%- if zeilen %}
-  <ul>{% for z in zeilen %}{{ zeile(z, offen) }}{% endfor %}</ul>
+  <ul>{% for z in zeilen %}{{ zeile(z, offen) }}
+    {%- if z.zurueck_id and neu %}
+    <li class="zeile-aktion"><form class="final-form" method="post" action="/auftrag/{{ z.zurueck_id }}/zurueckziehen">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button class="knopf knopf-klein" type="submit">Zurückziehen</button>
+    </form></li>
+    {%- endif %}{% endfor %}</ul>
   {%- if name == "Fertig" and h.fertig_weitere %}<p class="leer">und {{ h.fertig_weitere }} ältere</p>{% endif %}
   {%- else %}
   <p class="leer">{{ leer }}</p>

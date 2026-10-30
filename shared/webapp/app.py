@@ -43,6 +43,7 @@ POST:
   /ergebnis/<id>/final                  Fassung als final markieren oder zurücknehmen (agentkit.fassungen)
   /ergebnis/<id>/eigene                 eigene Fassung hochladen (agentkit.fassungen, Datei in den Agent-Ordner)
   /entwurf/<id>                         Lias Entscheidung „Setze ich selbst ein“/„Brauche ich nicht“/rückgängig (data/)
+  /auftrag/<id>/zurueckziehen           laufenden Auftrag zurückziehen (agentkit, nur test/echt)
   /ergebnis/<id>/nochmal                fehlgeschlagenen letzten Versuch noch einmal anlegen (nur test/echt)
   /ergebnis/<id>/stunde                 Material einer Stunde der Reihe zuordnen (nur in data/)
   /ergebnis/<id>/variante               Variante anfordern: neuer Auftrag an den Material-Agenten mit der Datei als
@@ -238,12 +239,15 @@ def seite_heute(request: Request):
     h = heute_daten(reihen)
     return vorlagen.TemplateResponse(request, "heute.html", {
         "h": h, "neu": neu_modus(), "abgeschickt": request.query_params.get("abgeschickt") == "1",
+        "token": logik.formular_token(GEHEIM),
+        "hinweis": logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
         **rahmen(reihen, logik.krumen(), "heute", h["anzahl_wartet"])})
 
 
 @app.get("/teile/heute", response_class=HTMLResponse)
 def teil_heute(request: Request):
-    return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus()})
+    return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus(),
+                                                               "token": logik.formular_token(GEHEIM)})
 
 
 @app.post("/fragen")
@@ -551,13 +555,16 @@ async def neu_abschicken(request: Request):
                          extra)
     agent, quelle = logik.vorlage_agent(art)
     _, stunde = _ort(reihen, reihe or "", stunde_text)
+    # „Auch als“: der Material-Agent baut die Varianten im selben Lauf (Zeile im Auftragstext, lia/unterricht)
+    auch_als = logik.varianten_waehlen([str(w) for w in form.getlist("varianten")]) \
+        if (logik.VORLAGEN.get(art) or {}).get("varianten") else []
     EINGANG.mkdir(parents=True, exist_ok=True)
     ablage = Path(tempfile.mkdtemp(dir=EINGANG))
     try:
         pfade = []
         for nr, d in enumerate(dateien_):  # je Datei ein Unterordner: gleiche Namen überschreiben sich nicht
             pfade.append(datei_ablegen(d, ablage / str(nr)))
-        aid = auftraege.neuer_auftrag(agent, logik.text_mit_reihe(text, reihe, reihen, stunde, art, extra),
+        aid = auftraege.neuer_auftrag(agent, logik.text_mit_reihe(text, reihe, reihen, stunde, art, extra, auch_als),
                                       quelle=quelle, dateien=pfade, basis=INSTANZ / "auftraege",
                                       agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe)
     except (auftraege.AuftragFehler, OSError) as fehler_:
@@ -569,16 +576,12 @@ async def neu_abschicken(request: Request):
             await d.close()
     logger.info("Auftrag %s angelegt (%s, %d Dateien, Reihe %s, Stunde %s, %s)", aid, agent, len(pfade),
                 reihe or "keine", stunde[0] if stunde else "keine", modus)
-    wunsch = logik.varianten_waehlen([str(w) for w in form.getlist("varianten")]) if art == "arbeitsblatt" else []
-    if stunde or wunsch:  # die Web-App merkt sich Stunde und „Auch als“ (zustand.py), die Agenten kennen beides nicht
+    if stunde:  # die Web-App merkt sich, zu welcher Stunde der Auftrag gehört (zustand.py)
         try:
             z_ = zustand_()
-            z = z_.lesen()
-            if stunde:
-                z = logik.stunde_zuordnen(z, aid, reihe, stunde[0])
-            z_.schreiben(logik.wunsch_setzen(z, aid, wunsch))
+            z_.schreiben(logik.stunde_zuordnen(z_.lesen(), aid, reihe, stunde[0]))
         except OSError as fehler_:
-            logger.error("Stunde/Varianten von %s nicht gespeichert: %s", aid, fehler_)
+            logger.error("Stunde von %s nicht gespeichert: %s", aid, fehler_)
     if modus == "echt":
         agent_starten(agent)
     erledigt = "auftrag" if modus == "echt" else "auftrag-test"
@@ -789,6 +792,30 @@ async def ergebnis_variante(request: Request, eintrag_id: str):
     if modus == "echt":
         agent_starten(logik.NEU_AGENT)
     return _fertig(kopf, "variante" if modus == "echt" else "variante-test")
+
+
+@app.post("/auftrag/{eintrag_id}/zurueckziehen")
+async def auftrag_zurueckziehen(request: Request, eintrag_id: str):
+    """Laufenden oder wartenden Auftrag zurückziehen (agentkit.auftraege.zurueckziehen; ein laufender claude-Lauf
+    endet binnen Sekunden). Wie Neuer Auftrag nur im Testbetrieb oder echt."""
+    if not neu_modus():
+        raise HTTPException(404)
+    try:
+        pruefe_id(eintrag_id)
+    except AblageFehler:
+        raise HTTPException(404) from None
+    if not any(a.get("id") == eintrag_id for a in auftraege.neue(basis=INSTANZ / "auftraege")):
+        raise HTTPException(404)
+    form = await formular_lesen(request, "Zurückziehen", 0)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return RedirectResponse("/", status_code=303)
+    try:
+        auftraege.zurueckziehen(eintrag_id, "Von Lia in der Web-App zurückgezogen.", basis=INSTANZ / "auftraege")
+    except (auftraege.AuftragFehler, OSError) as fehler_:
+        logger.error("Zurückziehen von %s fehlgeschlagen: %s", eintrag_id, fehler_)
+        raise HTTPException(409) from None
+    logger.info("Auftrag %s zurückgezogen", eintrag_id)
+    return RedirectResponse("/?erledigt=zurueckgezogen", status_code=303)
 
 
 @app.post("/ergebnis/{eintrag_id}/nochmal", response_class=HTMLResponse)
