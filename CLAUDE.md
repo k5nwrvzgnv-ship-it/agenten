@@ -27,7 +27,9 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - Nie automatisch, sondern als Vorschlag an Jan: alles, was nach außen handelt, Käufe, Limits und die Freigabe
   berührt; Schülerdaten und Datenschutz; Löschen oder Ändern bestehender Regeln (Feedback fügt nur hinzu);
   Regeln, die einer bestehenden Regel oder dieser Datei widersprechen; Lias Feedback zu Jans Agenten oder
-  shared/regeln.md; mehr als eine Nachbesserung je Ergebnis oder eine, deren Lauf mehr als 1 USD kosten dürfte.
+  shared/regeln.md; mehr als eine Nachbesserung je Ergebnis oder eine, deren Lauf mehr als 1 USD kosten dürfte Diese
+  beiden Grenzen gelten nur für Jans Agenten: Lias Aufträge und Nachbesserungen laufen ohne Jans Okay, egal wie
+  oft und wie teuer (Jan 30.10.2026). Jan behält den Stopp-Knopf.
 - Korrekturen an Entwürfen in der Freigabe (Ändern, Ablehnen) laufen wie bisher: Die Regel dahinter wird
   vorgeschlagen und erst nach Jans Okay eingetragen. Agenten lesen die Regeldateien bei jedem Lauf.
 

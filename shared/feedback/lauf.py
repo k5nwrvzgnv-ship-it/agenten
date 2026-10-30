@@ -148,7 +148,7 @@ def feedback_bearbeiten(ort: Ort, a: dict, laufen=claude_lauf.laufen) -> None:
         auftraege.abschliessen(fid, "Danke, ist angekommen. Jan schaut es sich an.", basis=ort.auftraege)
         return
     lage = fb.Lage(nachbesserungen_bisher(ort, alt["id"]), verbrauch.kosten(alt["id"]),
-                   (UNIT_DIR / f"{ort.dienst(agent)}.service").exists())
+                   (UNIT_DIR / f"{ort.dienst(agent)}.service").exists(), grenzen=ort.ist_jan)
     ok, grund = fb.entscheiden(z, lage)
     ziel = fb.ziel_datei(z, ort.instanz, ort.agenten_dir, REPO)
     zeile, nb = anwenden(ort, fid, z, ziel, alt) if ok else (None, None)

@@ -96,20 +96,30 @@ class TestLauf(unittest.TestCase):
                          "Gestoppt. Die überarbeitete Fassung kommt nicht. Lia weiß Bescheid.")
         self.assertEqual(auftraege.erledigter(nb["id"], basis=self.basis)["status"], "zurueckgezogen")
 
-    def test_zweite_nachbesserung_wird_vorschlag_und_jan_uebernimmt(self):
+    def test_lia_ohne_grenzen_zweite_und_teure_nachbesserung_laufen(self):
+        """Jan 30.10.: Lias Nachbesserungen laufen ohne Kosten- und Anzahlgrenze, Jan behält den Stopp."""
         (self.units / "lia-recherche.service").write_text("")
-        with mock.patch.object(verbrauch, "kosten", return_value=0.4):
+        with mock.patch.object(verbrauch, "kosten", return_value=None):
             self.feedback("zu lang", zuordnung(art="nachbesserung", auftrag="Kürzer."))
-            auftraege.abschliessen(auftraege.neue("recherche", basis=self.basis)[0]["id"], "kürzer", basis=self.basis)
+        auftraege.abschliessen(auftraege.neue("recherche", basis=self.basis)[0]["id"], "kürzer", basis=self.basis)
+        with mock.patch.object(verbrauch, "kosten", return_value=2.5):
             f = self.feedback("noch kürzer", zuordnung(art="nachbesserung", auftrag="Noch kürzer."))
+        self.assertEqual(f["daten"]["stand"], "uebernommen")
+        self.assertIn("Noch kürzer.", auftraege.neue("recherche", basis=self.basis)[0]["text"])
+        self.assertEqual(self.starts, ["lia-recherche", "lia-recherche"])
+        self.assertEqual(self.jan_meldung(f)["knoepfe"], [["Stopp"]])
+
+    def test_agent_ohne_dienst_wird_vorschlag_und_jan_uebernimmt(self):
+        with mock.patch.object(verbrauch, "kosten", return_value=0.4):
+            f = self.feedback("zu lang", zuordnung(art="nachbesserung", auftrag="Kürzer."))
         self.assertEqual(f["daten"]["stand"], "vorschlag")
         self.assertIn("Jan zur Entscheidung", f["ergebnis"])
         self.assertEqual(auftraege.neue("recherche", basis=self.basis), [])
         m = self.jan_meldung(f)
         self.assertEqual(m["knoepfe"], [["Übernehmen", "Verwerfen"]])
-        self.assertIn("schon eine überarbeitete Fassung", m["text"])
+        self.assertIn("nicht eingerichtet", m["text"])
         self.assertEqual(self.klick(m, "Übernehmen")["ergebnis"], "Übernommen. Lia weiß Bescheid.")
-        self.assertIn("Noch kürzer.", auftraege.neue("recherche", basis=self.basis)[0]["text"])
+        self.assertIn("Kürzer.", auftraege.neue("recherche", basis=self.basis)[0]["text"])
         self.assertIn("angenommen", meldungen.neue(basis=self.instanz / "meldungen")[-1]["text"])
 
     def test_heikel_verwerfen(self):

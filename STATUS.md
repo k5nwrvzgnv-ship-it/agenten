@@ -91,7 +91,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   fort. Feedback = Auftrag an „feedback“ (quelle feedback, bezug = Ergebnis); Dienste feedback und lia-feedback
   (shared/feedback/lauf.py, eingerichtet 27.10.), die Zentralen starten sie. Claude (routine, nur Read) ordnet zu:
   nachbesserung, regel, notiz oder keine; agentkit.feedback.entscheiden prüft die Nie-automatisch-Liste (heikel,
-  Widerspruch, zweite Nachbesserung, Kosten über 1 USD oder unbekannt, Agent ohne Dienst). Regel/Notiz: Zeile mit
+  Widerspruch, Agent ohne Dienst; nur bei Jans Agenten auch zweite Nachbesserung und Kosten über 1 USD oder
+  unbekannt, Lage.grenzen, Jan 30.10.). Regel/Notiz: Zeile mit
   „(Feedback <id>)“ in <instanz>/regeln.md bzw. „Gelernte Regeln“ oder „Wünsche aus Feedback“ einer STATUS.md
   (Oberfläche: diese Datei); der Dienst committet genau diese Datei. Jan bekommt je Fall eine Meldung „Feedback“
   mit Stopp (Vorschlag: Übernehmen/Verwerfen; eigenes Feedback: Rückgängig). Klick -> feedback.service, der Fall
@@ -226,6 +227,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        17 Aufträge also ~10 USD Kontingent). Danach in lia/auswertung: auswertung.py vergleichsbogen <ordner>.
      - 11 Regelvorschläge in lia/auswertung/STATUS.md, warten auf Freigabe.
      - Bewertung (Bögen, Noten, Mitarbeit) wäre ein eigener Agent, erst nach Klärung Schülerdaten (lia-architektur Abschnitt 0).
+   - Bedarf an lia/theater (30.10., Jan): theater braucht einen Dienst lia-theater, der Aufträge aus
+     lia/instanz/auftraege/neu abarbeitet (wie lia-unterricht), sonst bleiben Lias Nachbesserungen liegen und gehen
+     als „nicht eingerichtet“ an Jan. Wartet schon: 20261030-111155-theater-5d88d5 (Lia fragt, wie viele Minuten
+     die Fassung dauert; Jan hat übernommen).
    - Bedarf aus lia/ (29.10., Jan, Renderer-Chat): Excel (.xlsx) als neue Art im Renderer, damit Lias Agenten
      Tabellen ausgeben können (Anlass: Lia wünscht vom Agenten eine Notentabelle). Nötig: Spalten, Kopf, Formeln,
      Eingabeprüfung (z. B. ganze Zahlen 0-15), Zahlenformat, Druck A4 quer. xlsxwriter steht schon in

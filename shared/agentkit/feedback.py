@@ -31,8 +31,8 @@ REGEL_ABSCHNITT_ALLE = "## Regeln"
 REGEL_ABSCHNITT_AGENT = "## Gelernte Regeln"
 NOTIZ_ABSCHNITT = "## Wünsche aus Feedback"
 MAX_REGEL = 400
-MAX_KOSTEN_USD = 1.0  # CLAUDE.md: teurere Nachbesserungen sind ein Vorschlag an Jan
-MAX_NACHBESSERUNGEN = 1  # je Ergebnis automatisch
+MAX_KOSTEN_USD = 1.0  # CLAUDE.md: teurere Nachbesserungen sind ein Vorschlag an Jan (nicht für Lia)
+MAX_NACHBESSERUNGEN = 1  # je Ergebnis automatisch (nicht für Lia)
 KNOPF_STOPP = "Stopp"
 KNOPF_UEBERNEHMEN = "Übernehmen"
 KNOPF_VERWERFEN = "Verwerfen"
@@ -136,6 +136,7 @@ class Lage:
     nachbesserungen_bisher: int = 0  # übernommene Nachbesserungen zum selben Ergebnis
     kosten_usd: float | None = None  # Kosten des ursprünglichen Laufs, None = unbekannt
     dienst_da: bool = False  # Agent hat einen Dienst, der den neuen Auftrag abholt
+    grenzen: bool = True  # Kosten- und Anzahlgrenze für Nachbesserungen (Jan 30.10.: für Lia keine)
 
 
 def entscheiden(z: dict, lage: Lage) -> tuple[bool, str]:
@@ -145,11 +146,11 @@ def entscheiden(z: dict, lage: Lage) -> tuple[bool, str]:
     if z["art"] == "regel" and z["widerspricht"]:
         return False, f"es widerspricht dem, was schon gilt: „{kurz(z['widerspricht'], 200)}“"
     if z["art"] == "nachbesserung":
-        if lage.nachbesserungen_bisher >= MAX_NACHBESSERUNGEN:
+        if lage.grenzen and lage.nachbesserungen_bisher >= MAX_NACHBESSERUNGEN:
             return False, "zu diesem Ergebnis gab es schon eine überarbeitete Fassung"
-        if lage.kosten_usd is None:
+        if lage.grenzen and lage.kosten_usd is None:
             return False, "ich weiß nicht, wie viel Rechenzeit das braucht"
-        if lage.kosten_usd > MAX_KOSTEN_USD:
+        if lage.grenzen and lage.kosten_usd > MAX_KOSTEN_USD:
             return False, "das braucht mehr Rechenzeit, als ich allein freigeben darf"
         if not lage.dienst_da:
             return False, "der Agent ist noch nicht eingerichtet"

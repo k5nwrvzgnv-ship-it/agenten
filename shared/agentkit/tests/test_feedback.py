@@ -63,6 +63,22 @@ class TestEntscheiden(unittest.TestCase):
                 self.assertFalse(ok)
                 self.assertIn(grund, text)
 
+    def test_ohne_grenzen_fuer_lia(self):
+        nb = antwort(art="nachbesserung", auftrag="kürzer")
+        for lage in (fb.Lage(nachbesserungen_bisher=3, kosten_usd=2.1, dienst_da=True, grenzen=False),
+                     fb.Lage(kosten_usd=None, dienst_da=True, grenzen=False)):
+            self.assertEqual(fb.entscheiden(nb, lage), (True, ""))
+        faelle = [
+            (nb, fb.Lage(dienst_da=False, grenzen=False), "nicht eingerichtet"),
+            (antwort(heikel=True, heikel_grund="Schülerdaten"), fb.Lage(grenzen=False), "Schülerdaten"),
+            (antwort(widerspricht="Lieber kurz"), fb.Lage(grenzen=False), "widerspricht"),
+        ]
+        for z, lage, grund in faelle:
+            with self.subTest(grund=grund):
+                ok, text = fb.entscheiden(z, lage)
+                self.assertFalse(ok)
+                self.assertIn(grund, text)
+
 
 class TestTexte(unittest.TestCase):
     def setUp(self):
