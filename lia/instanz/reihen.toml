@@ -44,3 +44,106 @@ fach = "Darstellendes Spiel"
 klasse = "Kurs 12"
 titel = "Der nackte Wahnsinn"
 agenten = ["theater"]
+
+# Jan 30.10.2026: neuer Kurs 11 im Schuljahr 2026/27, Einheiten noch nicht eingetragen.
+[[reihe]]
+id = "darstellendes-spiel-kurs-11"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 11"
+
+# Archiv (Jan 30.10.2026). Klasse 7 aus 2025/26 ist jetzt Lias Klasse 8; Titel und Reihenfragen wie oben in
+# bisherige_reihen (Lias Angaben 23.10.2026), Reihen aus ihren Ablage-Ordnern (Ethik/7. Klasse).
+[[reihe]]
+id = "ethik-7-luege-und-wahrheit"
+fach = "Ethik"
+klasse = "7"
+titel = "Lüge und Wahrheit"
+reihenfrage = "Sollte ich lügen, um einen Freund zu schützen?"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-gerechtes-verteilen"
+fach = "Ethik"
+klasse = "7"
+titel = "Gerechtes Verteilen"
+reihenfrage = "Wie verteilt man gerecht, wenn nicht genug für alle da ist?"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-freundschaft"
+fach = "Ethik"
+klasse = "7"
+titel = "Freundschaft"
+reihenfrage = "Wie erkenne ich einen guten Freund?"
+notizen = "Mit Operatorentraining (Ordner „Reihe Freundschaft + Operatoren“)."
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-tiere-toeten"
+fach = "Ethik"
+klasse = "7"
+titel = "Tiere töten"
+reihenfrage = "Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-glueckliches-leben"
+fach = "Ethik"
+klasse = "7"
+titel = "Glückliches Leben"
+reihenfrage = "Wie führe ich ein glückliches Leben?"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+# Kurs 11 aus 2025/26 (Kurse 11.1 und 11.2), Einheiten nach Lias Ordnern (theater/data/entpackt/klasse/k11/).
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 11"
+titel = "Grundlagen Körper"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 11"
+titel = "Grundlagen Stimme"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 11"
+titel = "Schauspielgrundlagen"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 11"
+titel = "Gegenstand und Material"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 11"
+titel = "Kompositionsmethoden"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 11"
+titel = "Proben + Feedbackphase"
+schuljahr = "2025/26"
+stand = "abgeschlossen"
