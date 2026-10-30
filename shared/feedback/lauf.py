@@ -4,6 +4,8 @@ Zwei Arten von Aufträgen (Logik in agentkit.feedback):
 - Feedback zu einem Ergebnis (quelle "feedback", bezug = Ergebnis-Auftrag): Claude ordnet zu, Python prüft,
   übernimmt (Regel/Notiz eintragen und committen, Nachbesserung als Auftrag) oder macht einen Vorschlag.
   Jan bekommt eine Meldung mit Knopf, die Person die Bestätigung als Ergebnis dieses Auftrags.
+  Hat die Person eine eigene Fassung hochgeladen (agentkit.fassungen, z. B. Word mit Kommentaren an der
+  Rückmeldung), gehen ihre Kommentare in die Zuordnung und die Datei als Kopie an die Nachbesserung.
 - Jans Klick auf diese Meldung (Feld meldung, nur in Jans Instanz): Stopp/Rückgängig nimmt zurück,
   Übernehmen/Verwerfen entscheidet einen Vorschlag. Der Fall kann in einer anderen Instanz liegen (Lia),
   der Index data/meldungen.json sagt, wo.
@@ -20,7 +22,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from agentkit import auftraege, claude_lauf, config, log, meldungen, regeln, verbrauch
+from agentkit import auftraege, claude_lauf, config, fassungen, log, meldungen, regeln, textfassung, verbrauch
 from agentkit import feedback as fb
 
 HIER = Path(__file__).resolve().parent
@@ -99,6 +101,22 @@ def person_melden(ort: Ort, text: str) -> None:
 
 # ---------- Feedback zu einem Ergebnis ----------
 
+def eigene_fassung(ort: Ort, alt: dict) -> tuple[dict | None, list[dict]]:
+    """Neueste eigene Fassung der Person nach dem letzten Ergebnis (sonst None) und ihre Word-Kommentare."""
+    try:
+        eigene = fassungen.grundlage(alt["id"], basis=ort.auftraege)
+    except fassungen.FassungFehler as f:
+        logger.error("Eigene Fassung zu %s nicht lesbar: %s", alt["id"], f)
+        return None, []
+    if eigene is None:
+        return None, []
+    try:
+        return eigene, textfassung.word_kommentare(ort.agenten_dir / alt["agent"] / eigene["datei"])
+    except (OSError, ValueError) as f:
+        logger.error("Kommentare in %s nicht lesbar: %s", eigene["datei"], f)
+        return eigene, []
+
+
 def anwenden(ort: Ort, fid: str, z: dict, ziel: tuple[Path, str] | None, alt: dict) -> tuple[str | None, str | None]:
     """Übernimmt die Zuordnung. Gibt (geschriebene Zeile, ID der Nachbesserung) zurück."""
     if z["art"] in ("regel", "notiz"):
@@ -110,10 +128,14 @@ def anwenden(ort: Ort, fid: str, z: dict, ziel: tuple[Path, str] | None, alt: di
             jan_melden("Ein Feedback gilt jetzt, ist aber nicht gesichert. Einzelheiten am PC.")
         return zeile, None
     if z["art"] == "nachbesserung":
-        nb = auftraege.neuer_auftrag(alt["agent"], fb.nachbesserung_text(z, alt), quelle=alt.get("quelle") or "telegram",
-                                     modus=alt.get("modus") or "erledigen", bezug=alt["id"], sitzung=alt.get("sitzung"),
-                                     basis=ort.auftraege, agenten_dir=ort.agenten_dir)
-        logger.info("Feedback %s: Nachbesserung %s an %s", fid, nb, alt["agent"])
+        eigene, _ = eigene_fassung(ort, alt)
+        dateien = [ort.agenten_dir / alt["agent"] / eigene["datei"]] if eigene else []
+        nb = auftraege.neuer_auftrag(alt["agent"], fb.nachbesserung_text(z, alt, eigene, ort.person()),
+                                     quelle=alt.get("quelle") or "telegram", modus=alt.get("modus") or "erledigen",
+                                     bezug=alt["id"], sitzung=alt.get("sitzung"), dateien=dateien, kopieren=True,
+                                     absender=ort.person(), basis=ort.auftraege, agenten_dir=ort.agenten_dir)
+        logger.info("Feedback %s: Nachbesserung %s an %s%s", fid, nb, alt["agent"],
+                    f" auf Grundlage von eigene-{eigene['n']}" if eigene else "")
         starten(ort.dienst(alt["agent"]))
         return None, nb
     return None, None
@@ -136,8 +158,10 @@ def feedback_bearbeiten(ort: Ort, a: dict, laufen=claude_lauf.laufen) -> None:
         return
     agent, person = alt["agent"], ort.person()
     agenten_liste = fb.agenten(ort.agenten_dir)
+    eigene, kommentare = eigene_fassung(ort, alt)
     e = laufen(fb.AGENT, HIER / "data" / (config.INSTANZ_NAME or "jan"),
-               fb.prompt(person, agent, alt, a["text"], regeln.regeln_als_text(ort.agenten_dir / agent), agenten_liste),
+               fb.prompt(person, agent, alt, a["text"], regeln.regeln_als_text(ort.agenten_dir / agent), agenten_liste,
+                         fb.fassung_abschnitt(person, eigene, kommentare)),
                art="routine", auftrag_id=fid)
     try:
         z = fb.zuordnung_lesen(e.text if e.ok else "", agenten_liste)

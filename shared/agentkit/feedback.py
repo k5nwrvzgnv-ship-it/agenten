@@ -64,7 +64,7 @@ PROMPT = """Du ordnest Feedback zu einem Ergebnis eines Agenten zu. Du änderst 
 
 # Feedback von {person}
 {feedback}
-
+{fassung}
 # Regeln, die schon gelten
 {regeln}
 
@@ -93,11 +93,37 @@ Leere Felder als "". Schreib deutsch, kurz und klar.
 """
 
 
-def prompt(person: str, agent: str, auftrag: dict, feedback_text: str, regeln_text: str, agenten_liste: list[str]) -> str:
+MAX_KOMMENTARE = 4000
+
+
+def fassung_abschnitt(person: str, eigene: dict | None, kommentare: list[dict]) -> str:
+    """Abschnitt im Prompt, wenn die Person eine eigene Fassung (Datei) mitgeschickt hat (agentkit.fassungen)."""
+    if not eigene:
+        return ""
+    zeilen = [f"\n# Eigene Fassung von {person}",
+              f"{person} hat dazu eine eigene Fassung hochgeladen ({eigene['name']}). Eine Nachbesserung baut auf ihr auf."]
+    if eigene.get("notiz"):
+        zeilen.append(f"Notiz: {eigene['notiz']}")
+    if kommentare:
+        zeilen.append("Kommentare darin (Stelle -> Kommentar), sie betreffen meist nur dieses Ergebnis:")
+        zeilen += [f"- „{kurz(k['stelle'], 150)}“ -> {kurz(k['kommentar'], 400)}" if k["stelle"]
+                   else f"- {kurz(k['kommentar'], 400)}" for k in kommentare]
+    return kurz_zeilen("\n".join(zeilen), MAX_KOMMENTARE) + "\n"
+
+
+def kurz_zeilen(text: str, laenge: int) -> str:
+    """Wie kurz(), aber Zeilen bleiben erhalten."""
+    return text if len(text) <= laenge else text[: laenge - 1] + "…"
+
+
+def prompt(person: str, agent: str, auftrag: dict, feedback_text: str, regeln_text: str, agenten_liste: list[str],
+           fassung: str = "") -> str:
+    """fassung: fassung_abschnitt(), wenn eine eigene Fassung mitkam."""
     return PROMPT.format(
         person=person, agent=agent, auftrag=kurz(auftrag.get("text", ""), 1500),
         ergebnis=kurz(auftrag.get("ergebnis", ""), 3000) or "(kein Text, nur Dateien)",
-        feedback=feedback_text.strip(), regeln=regeln_text.strip() or "(keine)",
+        feedback=feedback_text.strip() or "(kein Text, nur die Datei unten)", fassung=fassung,
+        regeln=regeln_text.strip() or "(keine)",
         alle=ALLE, oberflaeche=OBERFLAECHE, agenten=", ".join(agenten_liste) or "(keine)",
     )
 
@@ -174,9 +200,14 @@ def notiz_text(z: dict, person: str, agent: str) -> str:
     return f"{person} zu {agent}: {z['notiz']}"
 
 
-def nachbesserung_text(z: dict, auftrag: dict) -> str:
-    return (f"Nachbesserung zu deinem Ergebnis für den Auftrag „{kurz(auftrag.get('text', ''), 200)}“ "
+def nachbesserung_text(z: dict, auftrag: dict, eigene: dict | None = None, person: str = "Lia") -> str:
+    """eigene: Eintrag der eigenen Fassung (agentkit.fassungen), die als Datei am Auftrag hängt."""
+    text = (f"Nachbesserung zu deinem Ergebnis für den Auftrag „{kurz(auftrag.get('text', ''), 200)}“ "
             f"(Auftrag {auftrag['id']}):\n\n{z['auftrag']}")
+    if eigene:
+        text += (f"\n\nGrundlage ist {person}s eigene Fassung {eigene['name']} (angehängt), nicht dein letztes "
+                 f"Ergebnis. Übernimm ihre Änderungen, setze ihre Kommentare um und entferne die Kommentare.")
+    return text
 
 
 def agent_name(agent: str) -> str:

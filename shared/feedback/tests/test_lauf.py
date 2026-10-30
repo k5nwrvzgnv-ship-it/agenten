@@ -4,10 +4,11 @@ import json
 import os
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest import mock
 
-from agentkit import auftraege, claude_lauf, meldungen, verbrauch
+from agentkit import auftraege, claude_lauf, fassungen, meldungen, verbrauch
 import lauf
 
 LIA_STATUS = "# Status: Agent recherche\n\n## Gelernte Regeln\n- (noch keine)\n"
@@ -95,6 +96,40 @@ class TestLauf(unittest.TestCase):
         self.assertEqual(self.klick(self.jan_meldung(f), "Stopp")["ergebnis"],
                          "Gestoppt. Die überarbeitete Fassung kommt nicht. Lia weiß Bescheid.")
         self.assertEqual(auftraege.erledigter(nb["id"], basis=self.basis)["status"], "zurueckgezogen")
+
+    def test_rueckmeldung_mit_word_datei(self):
+        """Lias Word-Datei mit Kommentaren: Kommentare gehen in die Zuordnung, die Datei an die Nachbesserung."""
+        (self.units / "lia-recherche.service").write_text("")
+        lia = self.instanz.parent
+        datei = lia / "Blatt.docx"
+        w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+        with zipfile.ZipFile(datei, "w") as z:
+            z.writestr("word/document.xml", f'<w:document {w}><w:body><w:p><w:commentRangeStart w:id="1"/>'
+                       '<w:r><w:t>Absatz drei</w:t></w:r><w:commentRangeEnd w:id="1"/></w:p></w:body></w:document>')
+            z.writestr("word/comments.xml", f'<w:comments {w}><w:comment w:id="1" w:author="Lia"><w:p><w:r>'
+                       '<w:t>bitte kürzen</w:t></w:r></w:p></w:comment></w:comments>')
+        fid, eigene = fassungen.rueckmeldung(self.ergebnis["id"], "", datei, basis=self.basis, agenten_dir=lia)
+        prompts = []
+
+        def laufen(agent, ordner, prompt, **k):
+            prompts.append(prompt)
+            return zuordnung(art="nachbesserung", auftrag="Kürze Absatz drei.")
+        lauf.feedback_bearbeiten(self.ort, auftraege.neue("feedback", basis=self.basis)[0], laufen=laufen)
+        self.assertIn("„Absatz drei“ -> bitte kürzen", prompts[0])
+        self.assertIn("eigene Fassung hochgeladen (Blatt.docx)", prompts[0])
+        nb = auftraege.neue("recherche", basis=self.basis)[0]
+        self.assertEqual(nb["dateien"], [f"data/eingang/{nb['id']}/Blatt.docx"])
+        self.assertIn("Grundlage ist Lias eigene Fassung Blatt.docx", nb["text"])
+        self.assertIn("Angehängte Dateien von Lia", nb["text"])
+        self.assertTrue((lia / "recherche" / eigene["datei"]).exists())  # Kopie, die eigene Fassung bleibt
+        self.assertEqual(auftraege.erledigter(fid, basis=self.basis)["daten"]["nachbesserung"], nb["id"])
+
+    def test_ohne_eigene_fassung_keine_datei(self):
+        (self.units / "lia-recherche.service").write_text("")
+        self.feedback("zu lang", zuordnung(art="nachbesserung", auftrag="Kürzer."))
+        nb = auftraege.neue("recherche", basis=self.basis)[0]
+        self.assertEqual(nb["dateien"], [])
+        self.assertNotIn("eigene Fassung", nb["text"])
 
     def test_lia_ohne_grenzen_zweite_und_teure_nachbesserung_laufen(self):
         """Jan 30.10.: Lias Nachbesserungen laufen ohne Kosten- und Anzahlgrenze, Jan behält den Stopp."""
