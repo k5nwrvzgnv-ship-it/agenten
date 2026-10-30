@@ -84,8 +84,8 @@ def material_auftrag(a: dict, bearbeiten=material.bearbeiten) -> None:
         return
     hinweis = f", Hinweise: {'; '.join(f.hinweise)}" if f.hinweise else ""
     logger.info("Auftrag %s fertig: %s, %d Läufe, %.2f USD, %d Tokens%s", a["id"],
-                f.datei.name if f.datei else "ohne Datei", f.laeufe, f.usd, f.tokens, hinweis)
-    auftraege.abschliessen(a["id"], f.begleittext, sitzung=f.sitzung, dateien=[f.datei] if f.datei else [])
+                ", ".join(d.name for d in f.dateien) or "ohne Datei", f.laeufe, f.usd, f.tokens, hinweis)
+    auftraege.abschliessen(a["id"], f.begleittext, sitzung=f.sitzung, dateien=f.dateien)
 
 
 def auftraege_abarbeiten() -> None:

@@ -40,7 +40,7 @@ class AgentTest(unittest.TestCase):
         datei = self.hier / "data" / "arbeit" / "x" / "Arbeitsblatt Kant.docx"
         datei.parent.mkdir(parents=True)
         datei.write_bytes(b"docx")
-        fertig = material.Fertig(datei, "Hier ist dein Blatt.", "s1", 2, 1.2, 5000, [])
+        fertig = material.Fertig([datei], "Hier ist dein Blatt.", "s1", 2, 1.2, 5000, [])
         auftraege.neuer_auftrag("unterricht", "Arbeitsblatt Kant", quelle="portal-material")
         bearbeiten = mock.Mock(return_value=fertig)
         with mock.patch.object(agent.material_auftrag, "__defaults__", (bearbeiten,)):
@@ -52,7 +52,7 @@ class AgentTest(unittest.TestCase):
         self.assertEqual(self.gemeldet, [])
 
     def test_nachbesserung_ohne_datei(self):
-        fertig = material.Fertig(None, "Aufgabe 1 bleibt so.", "s2", 1, 0.3, 900, [])
+        fertig = material.Fertig([], "Aufgabe 1 bleibt so.", "s2", 1, 0.3, 900, [])
         auftraege.neuer_auftrag("unterricht", "Nachbesserung ...", quelle="portal-material", bezug="20261030-100000-unterricht-abcdef", sitzung="s1")
         with mock.patch.object(agent.material_auftrag, "__defaults__", (mock.Mock(return_value=fertig),)):
             agent.auftraege_abarbeiten()

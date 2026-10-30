@@ -22,6 +22,14 @@ Claude die alte Sitzung fort (kennt Reihen, Katalog und gelesene Beispiele schon
 scheitert ein neuer Lauf mit dem vollen Startprompt. Claude ändert nur, was Lia will; danach Bauen und Kontrolle wie
 oben. Lässt Claude die Beschreibung unverändert (Lia hat nur gefragt), bekommt Lia nur die Antwort, ohne Datei.
 
+Mehrere Dateien in einem Lauf (board-plan.md 4 und 5, Jans Okay 30.10.2026): Neben beschreibung.json darf Claude
+beschreibung-<name>.json schreiben (z. B. -erwartungshorizont zur Lernerfolgskontrolle, -einfach, -hilfekarten,
+-niveau-1 bis -3 für Varianten). Python baut alle, die Kontrolle sieht alle, Lia bekommt alle Dateien in einem
+Ergebnis („Arbeitsblatt Titel (Einfach).docx“). Die Art steht vorn im Wunsch („Reihenentwurf: …“,
+„Lernerfolgskontrolle: …“), gewünschte Varianten in einer Zeile „Varianten: …“ oder „Auch als: …“. Varianten zu
+fertigem Material sind eine Nachbesserung (bezug): Python kopiert alle Beschreibungen, Claude schreibt nur die
+neuen Dateien dazu.
+
 Claude und der Renderer werden übergeben (laufen, bauen), damit die Logik ohne Netz testbar ist.
 """
 
@@ -40,7 +48,7 @@ from renderer import BeschreibungUngueltig
 from renderer import vorschau as renderer_vorschau
 
 SKILL = "einzelmaterial"
-SKILL_VERSION = 2
+SKILL_VERSION = 3
 SKILL_DATEI = Path(__file__).resolve().parent / "skills" / SKILL / "SKILL.md"
 FORMAT_DATEI = Path(__file__).resolve().parents[2] / "shared" / "renderer" / "FORMAT.md"
 ARTEN = {"arbeitsblatt": ".docx", "folien": ".pptx", "arbeitsmappe": ".xlsx"}
@@ -53,6 +61,21 @@ STANDARD_BEGLEITTEXT = "Hier ist dein Material."
 BILD_ENDUNGEN = (".jpg", ".jpeg", ".png", ".gif", ".webp")
 SEITEN_ENDUNGEN = (".pdf", ".docx", ".pptx")  # Textfassung und Seitenbilder
 MAX_SEITENBILDER = 8  # je Datei; mehr kostet viele Tokens, der Rest steht in der Textfassung
+HAUPT = "beschreibung.json"
+ZUSATZ = re.compile(r"beschreibung-([a-z0-9]+(?:-[a-z0-9]+)*)\.json")  # weitere Dateien desselben Ergebnisses
+MAX_DATEIEN = 6  # Haupt- und Zusatzdateien zusammen
+# Art vorn im Wunsch (Web-App, board-plan.md „Schnittstellen“) -> Hinweis im Prompt; die Regeln stehen im Skill
+WUNSCH_ARTEN = {
+    "Reihenentwurf": "Lia wünscht einen Reihenentwurf (Abschnitt „Reihenentwurf“ im Skill), ein Dokument für sie "
+                     "selbst, als arbeitsblatt in beschreibung.json.",
+    "Lernerfolgskontrolle": "Lia wünscht eine Lernerfolgskontrolle (Abschnitt „Lernerfolgskontrolle“ im Skill): "
+                            "die LEK in beschreibung.json, den Erwartungshorizont immer dazu in "
+                            "beschreibung-erwartungshorizont.json.",
+}
+VARIANTEN_ZEILE = re.compile(r"^(?:Varianten|Auch als):\s*(.+)$", re.M | re.I)
+# Bekannte Varianten (Jan 30.10.2026, Türkisch entfällt) -> Dateinamen
+VARIANTEN = {"einfach": ["einfach"], "hilfekarten": ["hilfekarten"], "mit hilfekarten": ["hilfekarten"],
+             "level": ["niveau-1", "niveau-2", "niveau-3"], "niveaus": ["niveau-1", "niveau-2", "niveau-3"]}
 
 
 class MaterialFehler(Exception):
@@ -65,13 +88,18 @@ class _Korrektur(Exception):
 
 @dataclass
 class Fertig:
-    datei: Path | None  # None: Nachbesserung ohne Änderung, Lia bekommt nur den Text
+    dateien: list[Path]  # leer: Nachbesserung ohne Änderung, Lia bekommt nur den Text
     begleittext: str
     sitzung: str | None
     laeufe: int
     usd: float
     tokens: int
     hinweise: list[str]
+
+    @property
+    def datei(self) -> Path | None:
+        """Hauptdatei (beschreibung.json), None ohne Dateien."""
+        return self.dateien[0] if self.dateien else None
 
 
 def format_abschnitte(text: str) -> str:
@@ -86,14 +114,48 @@ def format_abschnitte(text: str) -> str:
     return "".join(behalten).strip()
 
 
-def dateiname(beschreibung: dict) -> str:
-    """z. B. 'Arbeitsblatt Kategorischer Imperativ.docx' (Titel gekürzt, ohne Sonderzeichen)."""
+def dateiname(beschreibung: dict, zusatz: str = "") -> str:
+    """z. B. 'Arbeitsblatt Kategorischer Imperativ.docx' (Titel gekürzt, ohne Sonderzeichen), mit zusatz
+    (Name einer Zusatzdatei) 'Arbeitsblatt Kategorischer Imperativ (Niveau 1).docx'."""
     art = beschreibung["art"]
     titel = re.sub(r"[^\w\s-]", "", beschreibung.get("titel", ""))
     titel = re.sub(r"\s+", " ", titel).strip()
     if len(titel) > 60:  # am Wortende kürzen
         titel = titel[:61].rsplit(" ", 1)[0] if " " in titel[:61] else titel[:60]
-    return f"{art.capitalize()} {titel}".strip() + ARTEN[art]
+    name = f"{art.capitalize()} {titel}".strip()
+    if zusatz:
+        name += f" ({zusatz.replace('-', ' ').capitalize()})"
+    return name + ARTEN[art]
+
+
+def beschreibungen(ordner: Path) -> list[tuple[str, Path]]:
+    """(Zusatzname, Pfad) aller Beschreibungen im Arbeitsordner, die Hauptdatei zuerst (Zusatzname "")."""
+    zusatz = sorted((m.group(1), p) for p in ordner.glob("beschreibung-*.json") if (m := ZUSATZ.fullmatch(p.name)))
+    return ([("", ordner / HAUPT)] if (ordner / HAUPT).exists() else []) + zusatz
+
+
+def stand(ordner: Path) -> dict[str, bytes]:
+    """Inhalt aller Beschreibungen, um Änderungen durch Claude zu erkennen."""
+    return {p.name: p.read_bytes() for _, p in beschreibungen(ordner)}
+
+
+def prompt_wunsch_art(wunsch: str) -> str:
+    """Hinweise zu Art und Varianten aus dem Wunschtext, leer ohne beides."""
+    zeilen = []
+    for art, hinweis in WUNSCH_ARTEN.items():
+        if re.match(rf"\s*{art}\s*:", wunsch, re.I):
+            zeilen.append(hinweis)
+    gefunden = VARIANTEN_ZEILE.search(wunsch)
+    if gefunden:
+        namen = []
+        for v in (x.strip().lower() for x in re.split(r"[,;]| und ", gefunden.group(1)) if x.strip()):
+            namen += VARIANTEN.get(v, [re.sub(r"[^a-z0-9]+", "-", v).strip("-") or "variante"])
+        dateien = ", ".join(f"beschreibung-{n}.json" for n in dict.fromkeys(namen))
+        zeilen.append(f"Lia wünscht Varianten (Abschnitt „Varianten“ im Skill). Schreibe sie aus derselben "
+                      f"Beschreibung in diese Dateien neben beschreibung.json: {dateien}.")
+    if not zeilen:
+        return ""
+    return "## Art des Auftrags\n" + "\n".join(f"- {z}" for z in zeilen) + "\n\n"
 
 
 def _beschreibung_lesen(pfad: Path, rel: str) -> dict:
@@ -114,7 +176,7 @@ def vorherige_beschreibung(hier: Path, auftrag: dict) -> Path | None:
     bezug = auftrag.get("bezug")
     if not bezug:
         return None
-    pfad = hier / "data" / "arbeit" / bezug / "beschreibung.json"
+    pfad = hier / "data" / "arbeit" / bezug / HAUPT
     if not pfad.is_file():
         raise MaterialFehler(f"Nachbesserung zu {bezug}: keine Beschreibung unter {pfad.relative_to(hier)}")
     return pfad
@@ -167,7 +229,9 @@ def prompt_anhaenge(zeilen: list[str]) -> str:
 
 
 NACHBESSERUNG_REGELN = """- Will Lia etwas geändert haben: Ändere nur das, was sie will, alles andere bleibt wie es ist. Schreibe
-  danach die vollständige Beschreibung neu in dieselbe Datei.
+  danach die vollständige Beschreibung neu in dieselbe Datei. Gibt es weitere Dateien beschreibung-<name>.json
+  im selben Ordner (z. B. Erwartungshorizont, Varianten), lies sie mit und passe sie an, wenn die Änderung sie
+  betrifft. Wünscht Lia Varianten, schreibe sie als neue Dateien dazu und lass die übrigen unverändert.
 - Fragt sie nur etwas oder ist keine Änderung nötig: Lass die Datei unverändert und antworte nur.
 - Deine letzte Antwort geht wörtlich an Lia: zwei bis vier Sätze, was du geändert hast (oder deine Antwort auf
   ihre Frage). Reiner Text ohne Markdown, ohne Dateinamen oder Technik."""
@@ -176,8 +240,9 @@ NACHBESSERUNG_REGELN = """- Will Lia etwas geändert haben: Ändere nur das, was
 def prompt_vorher(rel: str) -> str:
     """Abschnitt im Startprompt einer Nachbesserung ohne alte Sitzung."""
     return ("## Lias bisheriges Material\n"
-            f"Lia hat zu diesem Wunsch schon Material bekommen. Seine Beschreibung liegt in {rel}. Lies sie zuerst "
-            "mit Read. Ihr Wunsch oben ist eine Rückmeldung dazu.\n" + NACHBESSERUNG_REGELN + "\n\n")
+            f"Lia hat zu diesem Wunsch schon Material bekommen. Seine Beschreibung liegt in {rel} (weitere Dateien "
+            "desselben Ergebnisses daneben als beschreibung-<name>.json). Lies sie zuerst mit Read. Ihr Wunsch oben "
+            "ist eine Rückmeldung dazu.\n" + NACHBESSERUNG_REGELN + "\n\n")
 
 
 def prompt_nachbesserung(wunsch: str, rel: str) -> str:
@@ -187,7 +252,8 @@ def prompt_nachbesserung(wunsch: str, rel: str) -> str:
 {wunsch}
 ---
 
-Die aktuelle Beschreibung liegt jetzt in {rel} (eine Kopie, arbeite nur noch mit dieser Datei). Lies sie mit Read.
+{prompt_wunsch_art(wunsch)}Die aktuelle Beschreibung liegt jetzt in {rel} (eine Kopie, arbeite nur noch mit dieser Datei und den
+Dateien beschreibung-<name>.json daneben). Lies sie mit Read.
 Es gelten dieselben Regeln, derselbe Skill und dasselbe Format wie bisher.
 {NACHBESSERUNG_REGELN}"""
 
@@ -199,10 +265,13 @@ def prompt_start(wunsch: str, fach: str, rel: str, skill: str, format_text: str,
 {wunsch}
 ---
 
-{vorher}{reihen}{anhaenge}{wissen}{leitfaden}{skill}
+{prompt_wunsch_art(wunsch)}{vorher}{reihen}{anhaenge}{wissen}{leitfaden}{skill}
 
 ## So lieferst du das Material
-- Schreibe die Beschreibung als JSON mit dem Werkzeug Write in die Datei {rel}. Schreibe keine anderen Dateien.
+- Schreibe die Beschreibung als JSON mit dem Werkzeug Write in die Datei {rel}. Gehören weitere Dateien zum
+  Ergebnis (Erwartungshorizont, Varianten), schreibe jede als eigene Beschreibung daneben nach
+  beschreibung-<name>.json (name aus Kleinbuchstaben, Ziffern, Bindestrichen, höchstens {MAX_DATEIEN} Dateien
+  zusammen). Schreibe keine anderen Dateien.
 - Python baut daraus die Datei. Ist etwas ungültig, bekommst du die Fehler zurück.
 - Deine letzte Antwort geht wörtlich an Lia: zwei bis vier Sätze, was das Material enthält und worauf sie achten
   sollte (z. B. Annahmen zu Klasse oder Dauer). Reiner Text ohne Markdown, ohne Dateinamen oder Technik.
@@ -217,6 +286,7 @@ def prompt_korrektur(rel: str, fehler: str) -> str:
 
 
 def prompt_kontrolle(rel: str, kontrolltext: str, bilder: list[str], hinweise: list[str]) -> str:
+    """kontrolltext: bei mehreren Dateien je Datei ein Abschnitt „=== <Beschreibung> ===“."""
     if bilder:
         vorschau = ("Vorschaubilder, je Seite bzw. Folie ein PNG. Öffne jedes mit Read:\n"
                     + "\n".join(f"- {b}" for b in bilder)
@@ -237,7 +307,8 @@ Kontrolltext (Inhalt in Lesereihenfolge):
 
 Achte auf abgeschnittenen oder überlappenden Text, überfüllte oder fast leere Seiten und Folien, Tippfehler,
 fachliche Fehler und ob alles zu Lias Wunsch passt (Klasse, Dauer, Thema).
-Passt alles, ändere nichts. Sonst schreibe die vollständige, verbesserte Beschreibung neu nach {rel}.
+Passt alles, ändere nichts. Sonst schreibe die vollständige, verbesserte Beschreibung neu nach {rel}
+(bzw. in die betroffene Datei beschreibung-<name>.json).
 Antworte am Ende wieder nur mit dem Begleittext für Lia."""
 
 
@@ -259,11 +330,21 @@ def bearbeiten(
     Fehler von claude_lauf (z. B. LimitErreicht) gehen unverändert weiter."""
     ordner = hier / "data" / "arbeit" / auftrag["id"]
     ordner.mkdir(parents=True, exist_ok=True)
-    json_pfad = ordner / "beschreibung.json"
+    json_pfad = ordner / HAUPT
     rel = str(json_pfad.relative_to(hier))
     vorher = vorherige_beschreibung(hier, auftrag)
-    if vorher is not None and vorher != json_pfad:
-        json_pfad.write_bytes(vorher.read_bytes())
+    alt = {}  # Beschreibungen des Ergebnisses, auf das sich eine Nachbesserung bezieht
+
+    def alte_kopieren():
+        for p in ordner.glob("beschreibung*.json"):
+            p.unlink()
+        for name, inhalt in alt.items():
+            (ordner / name).write_bytes(inhalt)
+
+    if vorher is not None:
+        alt = stand(vorher.parent)
+        if vorher != json_pfad:
+            alte_kopieren()
     start = uhr()
     laeufe = []
     hinweise = []
@@ -277,14 +358,37 @@ def bearbeiten(
             raise MaterialFehler(f"Claude-Lauf {len(laeufe)} fehlgeschlagen: {e.text[:500]}")
         return e
 
+    def alle_bauen():
+        """Baut Haupt- und Zusatzdateien. _Korrektur mit den Fehlern aller Dateien auf einmal."""
+        dateien = beschreibungen(ordner)
+        if len(dateien) > MAX_DATEIEN:  # Claude kann nichts löschen: nur die ersten bauen, Jan sieht es im Log
+            hinweise.append("nicht gebaut: " + ", ".join(p.name for _, p in dateien[MAX_DATEIEN:]))
+            dateien = dateien[:MAX_DATEIEN]
+        if not dateien or dateien[0][0]:
+            raise _Korrektur(f"Die Datei {rel} fehlt. Schreibe die Beschreibung mit Write genau dorthin.")
+        ergebnisse, fehler, namen = [], [], set()
+        for zusatz, pfad in dateien:
+            prel = str(pfad.relative_to(hier))
+            try:
+                beschreibung = _beschreibung_lesen(pfad, prel)
+                name = dateiname(beschreibung, zusatz)
+                if name in namen:
+                    raise _Korrektur(f"{prel}: ergibt denselben Dateinamen wie eine andere Beschreibung")
+                namen.add(name)
+                try:
+                    ergebnisse.append(bauen(beschreibung, ordner / name, profil=profil))
+                except BeschreibungUngueltig as f:
+                    raise _Korrektur(str(f)) from None
+            except _Korrektur as f:
+                fehler.append(f"{prel}: {f}" if len(dateien) > 1 else str(f))
+        if fehler:
+            raise _Korrektur("\n".join(fehler))
+        return ergebnisse
+
     def bauen_mit_korrektur(e):
         for runde in range(MAX_KORREKTUREN + 1):
             try:
-                beschreibung = _beschreibung_lesen(json_pfad, rel)
-                try:
-                    return bauen(beschreibung, ordner / dateiname(beschreibung), profil=profil), e
-                except BeschreibungUngueltig as f:
-                    raise _Korrektur(str(f)) from None
+                return alle_bauen(), e
             except _Korrektur as f:
                 if runde == MAX_KORREKTUREN:
                     raise MaterialFehler(f"Beschreibung nach {MAX_KORREKTUREN} Korrekturen ungültig: {f}") from None
@@ -300,32 +404,37 @@ def bearbeiten(
         e = claude(prompt_nachbesserung(auftrag["text"], rel), auftrag["sitzung"], pruefen=False)
         if not e.ok:  # z. B. Sitzung nicht mehr da: neu anfangen, mit der alten Beschreibung
             hinweise.append(f"alte Sitzung nicht fortgesetzt: {e.text[:200]}")
-            json_pfad.write_bytes(vorher.read_bytes())
+            alte_kopieren()
             e = None
     if e is None:
         e = claude(prompt_start(auftrag["text"], fach, rel, skill, format_text, anhaenge,
                                 reihen_modul.prompt_reihen(reihen or [], fach, auftrag.get("reihe")), wissen_modul.prompt_wissen(katalog),
                                 leitfaden_modul.prompt_leitfaden(leitfaden),
                                 prompt_vorher(rel) if vorher is not None else ""))
-    if vorher is not None and json_pfad.read_bytes() == vorher.read_bytes():
+    if vorher is not None and stand(ordner) == alt:
         hinweise.append("Nachbesserung ohne Änderung, nur Antwort")
-        return Fertig(datei=None, begleittext=e.text.strip() or STANDARD_BEGLEITTEXT, sitzung=e.sitzung,
+        return Fertig(dateien=[], begleittext=e.text.strip() or STANDARD_BEGLEITTEXT, sitzung=e.sitzung,
                       laeufe=len(laeufe), usd=sum(x.usd for x in laeufe), tokens=sum(x.tokens for x in laeufe),
                       hinweise=hinweise)
-    ergebnis, e = bauen_mit_korrektur(e)
+    ergebnisse, e = bauen_mit_korrektur(e)
 
-    stand = json_pfad.read_bytes()
-    bilder = [str(Path(b).relative_to(hier)) if Path(b).is_relative_to(hier) else str(b) for b in ergebnis.bilder]
-    e = claude(prompt_kontrolle(rel, ergebnis.kontrolltext, bilder, ergebnis.hinweise), e.sitzung)
-    if json_pfad.read_bytes() != stand:
-        ergebnis, e = bauen_mit_korrektur(e)
+    gebaut = stand(ordner)
+    bilder = [str(Path(b).relative_to(hier)) if Path(b).is_relative_to(hier) else str(b)
+              for x in ergebnisse for b in x.bilder]
+    if len(ergebnisse) == 1:
+        kontrolltext = ergebnisse[0].kontrolltext
+    else:
+        kontrolltext = "\n\n".join(f"=== {x.pfad.name} ===\n{x.kontrolltext}" for x in ergebnisse)
+    e = claude(prompt_kontrolle(rel, kontrolltext, bilder, [h for x in ergebnisse for h in x.hinweise]), e.sitzung)
+    if stand(ordner) != gebaut:
+        ergebnisse, e = bauen_mit_korrektur(e)
 
     return Fertig(
-        datei=ergebnis.pfad,
+        dateien=[x.pfad for x in ergebnisse],
         begleittext=e.text.strip() or STANDARD_BEGLEITTEXT,
         sitzung=e.sitzung,
         laeufe=len(laeufe),
         usd=sum(x.usd for x in laeufe),
         tokens=sum(x.tokens for x in laeufe),
-        hinweise=hinweise + list(ergebnis.hinweise),
+        hinweise=hinweise + [h for x in ergebnisse for h in x.hinweise],
     )

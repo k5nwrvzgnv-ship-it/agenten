@@ -44,7 +44,10 @@ class FalscherClaude:
         self.prompts.append(prompt)
         self.sitzungen.append(sitzung)
         inhalt, text = self.schritte.pop(0)
-        if inhalt is not None:
+        if isinstance(inhalt, dict) and all(k.startswith("beschreibung") and k.endswith(".json") for k in inhalt):
+            for name, b in inhalt.items():  # mehrere Dateien in einem Schritt
+                (self.pfad.parent / name).write_text(json.dumps(b), encoding="utf-8")
+        elif inhalt is not None:
             self.pfad.write_text(inhalt if isinstance(inhalt, str) else json.dumps(inhalt), encoding="utf-8")
         return Ergebnis(text=text, sitzung="s1", ok=True, usd=0.5, tokens=1000)
 
@@ -179,7 +182,7 @@ class MaterialTest(unittest.TestCase):
     def nachbesserung(self, schritte, sitzung="alt", ok=True):
         """Altes Ergebnis anlegen, dann eine Nachbesserung dazu bearbeiten."""
         alt = self.hier / "data" / "arbeit" / "alt-auftrag"
-        alt.mkdir(parents=True)
+        alt.mkdir(parents=True, exist_ok=True)
         (alt / "beschreibung.json").write_text(json.dumps(BLATT), encoding="utf-8")
         self.auftrag.update(bezug="alt-auftrag", sitzung=sitzung,
                             text="Nachbesserung zu deinem Ergebnis: Aufgabe 1 leichter")
@@ -226,6 +229,62 @@ class MaterialTest(unittest.TestCase):
         self.assertEqual(f.laeufe, 3)
         self.assertTrue(any("nicht fortgesetzt" in h for h in f.hinweise))
         self.assertEqual(f.datei.name, "Arbeitsblatt Neu.docx")
+
+    # Mehrere Dateien in einem Lauf (board-plan.md 4 und 5)
+    def test_prompt_wunsch_art(self):
+        self.assertEqual(material.prompt_wunsch_art("Arbeitsblatt Kant"), "")
+        self.assertIn("Reihenentwurf", material.prompt_wunsch_art("Reihenentwurf: Straftheorien, Klasse 8"))
+        lek = material.prompt_wunsch_art("Lernerfolgskontrolle: Straftheorien")
+        self.assertIn("beschreibung-erwartungshorizont.json", lek)
+        v = material.prompt_wunsch_art("Arbeitsblatt Kant\nVarianten: einfach, Level und Comic-Fassung")
+        self.assertIn("beschreibung-einfach.json, beschreibung-niveau-1.json, beschreibung-niveau-2.json, "
+                      "beschreibung-niveau-3.json, beschreibung-comic-fassung.json.", v)
+        self.assertIn("beschreibung-hilfekarten.json", material.prompt_wunsch_art("Auch als: mit Hilfekarten"))
+
+    def test_dateiname_mit_zusatz(self):
+        self.assertEqual(material.dateiname(BLATT, "niveau-1"), "Arbeitsblatt Der kategorische Imperativ (Niveau 1).docx")
+
+    def test_lek_mit_erwartungshorizont(self):
+        self.auftrag["text"] = "Lernerfolgskontrolle: Kant, Klasse 10"
+        eh = dict(BLATT, titel="Der kategorische Imperativ")
+        f, claude = self.bearbeiten([({"beschreibung.json": BLATT, "beschreibung-erwartungshorizont.json": eh},
+                                      "Entwurf"), (None, "LEK und Erwartungshorizont.")])
+        self.assertEqual([d.name for d in f.dateien], ["Arbeitsblatt Der kategorische Imperativ.docx",
+                                                       "Arbeitsblatt Der kategorische Imperativ (Erwartungshorizont).docx"])
+        self.assertTrue(all(d.is_file() for d in f.dateien))
+        self.assertEqual(f.datei, f.dateien[0])
+        self.assertIn("## Art des Auftrags", claude.prompts[0])
+        self.assertIn("=== Arbeitsblatt Der kategorische Imperativ (Erwartungshorizont).docx ===", claude.prompts[1])
+
+    def test_fehler_in_zusatzdatei(self):
+        kaputt = dict(BLATT, bloecke=[{"typ": "gibtsnicht"}])
+        f, claude = self.bearbeiten([({"beschreibung.json": BLATT, "beschreibung-einfach.json": kaputt}, "a"),
+                                     ({"beschreibung-einfach.json": BLATT}, "b"), (None, "Fertig.")])
+        self.assertIn("beschreibung-einfach.json: ", claude.prompts[1])
+        self.assertNotIn("beschreibung.json: ", claude.prompts[1])
+        self.assertEqual(len(f.dateien), 2)
+
+    def test_zu_viele_dateien(self):
+        viele = {f"beschreibung-v{i}.json": dict(BLATT, titel=f"V{i}") for i in range(material.MAX_DATEIEN)}
+        f, _ = self.bearbeiten([({"beschreibung.json": BLATT, **viele}, "a"), (None, "Fertig.")])
+        self.assertEqual(len(f.dateien), material.MAX_DATEIEN)
+        self.assertTrue(any(h.startswith("nicht gebaut: ") for h in f.hinweise))
+
+    def test_varianten_zu_fertigem_material(self):
+        varianten = {f"beschreibung-niveau-{i}.json": dict(BLATT, titel=f"Kant {i}") for i in (1, 2, 3)}
+        f, claude = self.nachbesserung([(varianten, "Drei Niveaus."), (None, "Drei Niveaus dazu.")])
+        self.assertIn("beschreibung-<name>.json", claude.prompts[0])
+        self.assertEqual(len(f.dateien), 4)
+        self.assertEqual(f.dateien[0].name, "Arbeitsblatt Der kategorische Imperativ.docx")
+        self.assertEqual(f.dateien[1].name, "Arbeitsblatt Kant 1 (Niveau 1).docx")
+
+    def test_nachbesserung_kopiert_zusatzdateien(self):
+        alt = self.hier / "data" / "arbeit" / "alt-auftrag"
+        alt.mkdir(parents=True)
+        (alt / "beschreibung-erwartungshorizont.json").write_text(json.dumps(BLATT), encoding="utf-8")
+        f, claude = self.nachbesserung([(None, "Passt schon.")])
+        self.assertEqual(f.dateien, [])
+        self.assertTrue((self.ordner / "beschreibung-erwartungshorizont.json").is_file())
 
     def test_nachbesserung_ohne_altes_material(self):
         self.auftrag["bezug"] = "gibt-es-nicht"
