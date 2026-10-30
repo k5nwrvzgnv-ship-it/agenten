@@ -79,5 +79,7 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 ## Fertig heißt
 - `./pruefen.sh` zeigt ALLES GRÜN (Tests aller Ordner, Linter). Der Git-Hook githooks/pre-commit
   bricht sonst jeden Commit ab. `--no-verify` nur mit Jans Okay.
+- Committen nur mit `~/agenten/commit.sh "Nachricht" <pfade>` (Pfade relativ zum Hauptordner), nie mit
+  `git add` und `git commit` von Hand: Alle Chats teilen sich den Index, das Skript committet nacheinander.
 - Neue Logik hat Tests. Neue Testordner werden in pruefen.sh eingetragen.
 - STATUS.md beschreibt den aktuellen Stand, keinen Verlauf (der steht in Git).
