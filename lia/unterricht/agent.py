@@ -72,7 +72,7 @@ def material_auftrag(a: dict, bearbeiten=material.bearbeiten) -> None:
         f = bearbeiten(a, HIER, profil_laden(), laufen=claude_laufen(a["id"]), bauen=renderer.bauen,
                        reihen=reihen_laden(), katalog=wissen.katalog_laden(HIER / "data" / "wissen" / "katalog.md"),
                        leitfaden=leitfaden.laden(HIER / "leitfaden.md"),
-                       vorlagen=lambda endung: formatvorlage.waehlen(HIER, endung))
+                       vorlagen=lambda endung, art="": formatvorlage.waehlen(HIER, endung, art))
     except claude_lauf.LimitErreicht as e:
         logger.warning("Auftrag %s: %s", a["id"], e)
         auftraege.abschliessen(a["id"], LIMIT.format(zeit=verbrauch.zeit_text(e.reset)),

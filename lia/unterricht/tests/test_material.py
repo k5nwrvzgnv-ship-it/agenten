@@ -334,13 +334,23 @@ class MaterialTest(unittest.TestCase):
             return BAUEN(b, ziel, profil=profil, vorlage=vorlage)
         claude = FalscherClaude(self.ordner, [(BLATT, "a"), (None, "Fertig.")])
         f = material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=bauen,
-                                vorlagen=lambda endung: (vorlage, ["Vorlage vorlage.dotx"]) if endung == ".docx" else (None, []))
+                                vorlagen=lambda endung, art: (vorlage, ["Vorlage vorlage.dotx"]) if endung == ".docx" else (None, []))
         self.assertEqual(gebaut, [vorlage])
         self.assertTrue(f.datei.is_file())
         self.assertEqual(f.hinweise.count("Vorlage vorlage.dotx"), 1)
 
+    def test_vorlage_nach_art(self):
+        gefragt = []
+        def vorlagen(endung, art):
+            gefragt.append((endung, art))
+            return None, []
+        self.auftrag["text"] = "Reihenentwurf: Strafe"
+        claude = FalscherClaude(self.ordner, [(BLATT, "a"), (None, "Fertig.")])
+        material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN, vorlagen=vorlagen)
+        self.assertEqual(gefragt, [(".docx", "reihenentwurf")])
+
     def test_kaputte_formatvorlage_ohne_sie(self):
-        def kaputt(endung):
+        def kaputt(endung, art):
             raise ValueError("Vorlage x.dotx: kein zip")
         claude = FalscherClaude(self.ordner, [(BLATT, "a"), (None, "Fertig.")])
         f = material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN, vorlagen=kaputt)
@@ -355,7 +365,7 @@ class MaterialTest(unittest.TestCase):
             return BAUEN(b, ziel, profil=profil)
         claude = FalscherClaude(self.ordner, [(BLATT, "a"), (None, "Fertig.")])
         f = material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=bauen,
-                                vorlagen=lambda e: (Path("v.pptx"), []))
+                                vorlagen=lambda e, art: (Path("v.pptx"), []))
         self.assertEqual(aufrufe, [Path("v.pptx"), None])
         self.assertIn("Vorlage nicht nutzbar: v.pptx: falsche Endung", f.hinweise)
 

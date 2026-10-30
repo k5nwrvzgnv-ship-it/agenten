@@ -95,7 +95,10 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   (dateien). Sie ist dann die Grundlage; Textfassung, Seitenbilder und Word-Kommentare (agentkit.textfassung,
   mit kommentierter Stelle) stehen im Prompt, auch beim Fortsetzen der Sitzung.
 - Formatvorlage (formatvorlage.py, board-plan.md 7): .dotx/.docx für Arbeitsblätter, .potx/.pptx für Folien in
-  data/vorlagen/, die neueste gilt (Hinweis im Log nennt die anderen); .dotx/.potx wandelt der Renderer nach
+  data/vorlagen/, die neueste gilt (Hinweis im Log nennt die anderen). Für Reihenentwurf und LEK (auch
+  Erwartungshorizont) gehen data/vorlagen/reihenentwurf/ bzw. lernerfolgskontrolle/ vor (Jan 30.10.: Lia soll
+  Vorlagen später selbst in der Web-App hochladen, Bedarf in Punkt 24). Die Name/Datum-Tabelle bleibt auch mit
+  Vorlage (Renderer-Bedarf); .dotx/.potx wandelt der Renderer nach
   data/vorlagen/umgewandelt/ um. Kaputte Vorlage: ohne sie bauen, Jan bekommt eine Meldung.
 - Nachbesserungen (30.10., aus Lias Feedback, Auftrag mit bezug und sitzung, quelle wie das Original): Python
   kopiert alle Beschreibungen aus data/arbeit/<bezug>/ in den neuen Arbeitsordner. Mit sitzung setzt Claude die alte

@@ -626,7 +626,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         Offen bei unterricht: claude_lauf.Zurueckgezogen fangen (Bedarf 2 des Hauptordner-Chats).
      7. Erledigt: Liegt in lia/unterricht/data/vorlagen/ eine .dotx/.docx bzw. .potx/.pptx, baut der Renderer
         Arbeitsblätter bzw. Folien darauf (neueste gilt). Kaputte Vorlage: ohne sie, Jan bekommt eine Meldung.
-        Noch keine echte Vorlage dort.
+        Noch keine echte Vorlage dort. Vorlage je Art (Jan 30.10.): data/vorlagen/reihenentwurf/ und
+        data/vorlagen/lernerfolgskontrolle/ (auch Erwartungshorizont) gehen vor, sonst die allgemeine.
+        Bedarf shared/webapp (Jan 30.10.: „Lia soll selbst eine neue Vorlage hochladen können“): auf der Seite
+        Vorlagen Upload einer .dotx/.docx/.potx/.pptx nach lia/unterricht/data/vorlagen/ bzw. in den Unterordner
+        der Art (reihenentwurf, lernerfolgskontrolle), Name ohne Pfadteile; bestehende anzeigen und entfernen.
+        Bedarf shared/renderer: Die Kopf-Tabelle mit Name/Datum setzt der Renderer immer, auch mit Vorlage. Für
+        Dokumente an Lia (Reihenentwurf, Erwartungshorizont) eine Möglichkeit ohne sie (Feld oder Art „dokument“),
+        sonst ändert Lias Vorlage nur Kopf-/Fußzeile, Logo und Ränder.
      Alles nur mit Tests geprüft, kein echter Lauf auf Lias Kontingent. Hinweis Git: Die Commits e4a025d und
      4df5b9f3 tragen eine Nachricht von lia/unterricht, enthalten aber STATUS.md anderer Chats (gleichzeitige
      Commits, Nachricht über .git/COMMIT_EDITMSG vertauscht); der richtige Commit ist 923932b.

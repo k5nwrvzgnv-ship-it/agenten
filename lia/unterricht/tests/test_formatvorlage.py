@@ -43,6 +43,17 @@ class FormatvorlageTest(unittest.TestCase):
         self.assertEqual(hinweise, ["Vorlage Schule.dotx", "weitere Vorlagen nicht genutzt: alt.docx"])
         self.assertEqual(formatvorlage.waehlen(self.hier, ".pptx"), (None, []))
 
+    def test_vorlage_je_art(self):
+        (self.ordner / "reihenentwurf").mkdir(parents=True)
+        docx.Document().save(self.ordner / "allgemein.docx")
+        self.assertEqual(formatvorlage.waehlen(self.hier, ".docx", "reihenentwurf")[0], self.ordner / "allgemein.docx")
+        docx.Document().save(self.ordner / "reihenentwurf" / "entwurf.docx")
+        vorlage, hinweise = formatvorlage.waehlen(self.hier, ".docx", "reihenentwurf")
+        self.assertEqual(vorlage, self.ordner / "reihenentwurf" / "entwurf.docx")
+        self.assertEqual(formatvorlage.waehlen(self.hier, ".docx")[0], self.ordner / "allgemein.docx")
+        self.assertEqual(formatvorlage.waehlen(self.hier, ".docx", "lernerfolgskontrolle")[0],
+                         self.ordner / "allgemein.docx")
+
     def test_kaputte_vorlage(self):
         self.ordner.mkdir(parents=True)
         (self.ordner / "kaputt.dotx").write_bytes(b"kein zip")

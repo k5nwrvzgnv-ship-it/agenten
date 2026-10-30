@@ -366,11 +366,11 @@ def bearbeiten(
     reihen: list[dict] | None = None,
     katalog: str = "",
     leitfaden: str = "",
-    vorlagen: Callable[[str], tuple[Path | None, list[str]]] | None = None,
+    vorlagen: Callable[..., tuple[Path | None, list[str]]] | None = None,
 ) -> Fertig:
     """Erstellt das Material zu einem Auftrag. laufen(prompt, sitzung) -> claude_lauf.Ergebnis,
     bauen(beschreibung, ziel, profil=..., vorlage=...) -> renderer.Ergebnis, reihen aus reihen.laden(),
-    vorlagen(endung) -> (Vorlage oder None, Hinweise) aus formatvorlage.waehlen (Lias eigene Formatvorlage), katalog aus wissen.katalog_laden(), leitfaden aus leitfaden.laden().
+    vorlagen(endung, art) -> (Vorlage oder None, Hinweise) aus formatvorlage.waehlen (Lias eigene Formatvorlage), katalog aus wissen.katalog_laden(), leitfaden aus leitfaden.laden().
     MaterialFehler, wenn nichts entsteht;
     Fehler von claude_lauf (z. B. LimitErreicht) gehen unverändert weiter."""
     ordner = hier / "data" / "arbeit" / auftrag["id"]
@@ -411,7 +411,8 @@ def bearbeiten(
         vorlage = None
         if vorlagen:
             try:
-                vorlage, h = vorlagen(ziel.suffix)
+                art = art_name.lower() if beschreibung["art"] == "arbeitsblatt" else ""
+                vorlage, h = vorlagen(ziel.suffix, art)
                 hinweise.extend(h)
             except ValueError as f:
                 hinweise.append(f"Vorlage nicht nutzbar: {f}")
