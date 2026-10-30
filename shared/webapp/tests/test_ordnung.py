@@ -37,7 +37,7 @@ class TestLaden(unittest.TestCase):
         self.assertEqual(fehler, [])
         self.assertEqual([(r["id"], r["fach"], r["gruppe"], r["agenten"]) for r in reihen], [
             ("ethik-8-straftheorien", "Ethik", "Klasse 8", ["examen"]),
-            ("theater-kurs-11-der-nackte-wahnsinn", "Theater", "Kurs 11", ["theater"])])
+            ("darstellendes-spiel-kurs-12-der-nackte-wahnsinn", "Darstellendes Spiel", "Kurs 12", ["theater"])])
 
     def test_fach_aus_dem_profil(self):
         self.schreiben("unterricht/reihen.toml", '[[reihe]]\nklasse = "7"\ntitel = "Glück"\n')

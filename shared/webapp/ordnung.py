@@ -10,7 +10,7 @@ merksaetze, bisherige_reihen), dazu freiwillig:
 Bis die Datei dort liegt (Umzug macht der lia/unterricht-Chat), setzt die App sie aus dem Bestand zusammen:
   <agenten>/unterricht/reihen.toml        Reihen, fach ohne Angabe aus unterricht/profil.toml
   <agenten>/examen/examen.toml            [reihe] titel_in_reihen_toml: Reihe der Examensaufträge
-  <agenten>/theater/theater.toml          [stueck] titel: Reihe des Theater-Agenten, Fach Theater, THEATER_KURS
+  <agenten>/theater/theater.toml          [stueck] titel: Reihe des Theater-Agenten, THEATER_FACH, THEATER_KURS
 """
 
 import tomllib
@@ -19,8 +19,8 @@ from pathlib import Path
 import logik
 
 DATEI = "reihen.toml"
-THEATER_FACH = "Theater"   # Jan 30.10.2026: in der App „Theater“, nicht „Darstellendes Spiel“
-THEATER_KURS = "Kurs 11"   # Jan 30.10.2026, steht noch in keiner Datei des Theater-Agenten
+THEATER_FACH = "Darstellendes Spiel"   # Jan 30.10.2026: so heißt das Fach (nicht „Theater“)
+THEATER_KURS = "Kurs 12"   # Jan 30.10.2026: das Stück gehört zu Kurs 12, steht in keiner Datei des Theater-Agenten
 
 
 def _toml(pfad: Path) -> dict:

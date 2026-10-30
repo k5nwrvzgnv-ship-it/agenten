@@ -331,8 +331,8 @@ behandelt = ["Kant", "Bentham"]
 agenten = ["examen"]
 
 [[reihe]]
-fach = "Theater"
-klasse = "Kurs 11"
+fach = "Darstellendes Spiel"
+klasse = "Kurs 12"
 titel = "Der nackte Wahnsinn"
 agenten = ["theater"]
 """
@@ -351,14 +351,14 @@ class TestOrdnung(Aufbau):
 
     def test_heute_mit_chips_und_filter(self):
         _, html = self.hole("/")
-        for text in ('href="/?ordnung=fach%3Aethik"', ">Theater</a>", ">Ohne Reihe</a>", 'href="/unterricht"',
+        for text in ('href="/?ordnung=fach%3Aethik"', ">Darstellendes Spiel</a>", ">Ohne Reihe</a>", 'href="/unterricht"',
                      "Ethik · Klasse 8 · Straftheorien"):
             self.assertIn(text, html)
         self.assertIn('aria-current="true">Alle</a>', html)
-        _, html = self.hole("/?ordnung=fach%3Atheater")
-        self.assertIn('aria-current="true">Theater</a>', html)
+        _, html = self.hole("/?ordnung=fach%3Adarstellendes-spiel")
+        self.assertIn('aria-current="true">Darstellendes Spiel</a>', html)
         self.assertNotIn("Umfrage vor der Reihe", html)  # Entwurf aus examen gehört zu Ethik
-        self.assertIn('hx-get="/teile/heute?ordnung=fach%3Atheater"', html)
+        self.assertIn('hx-get="/teile/heute?ordnung=fach%3Adarstellendes-spiel"', html)
         self.assertNotIn("Gerade wartet nichts", html)  # Begrüßung zählt trotzdem alles
         _, html = self.hole("/teile/heute?ordnung=fach%3Aethik")
         self.assertIn("Umfrage vor der Reihe", html)
@@ -373,8 +373,8 @@ class TestOrdnung(Aufbau):
     def test_unterricht(self):
         r, html = self.hole("/unterricht")
         self.assertEqual(r.status, 200)
-        for text in ("Ethik", "Straftheorien", "Klasse 8", "Wozu &lt;strafen&gt; wir?", "Kant; Bentham", "Theater",
-                     "Kurs 11", "Noch keine Aufträge zu dieser Reihe.", "Ohne Reihe",
+        for text in ("Ethik", "Straftheorien", "Klasse 8", "Wozu &lt;strafen&gt; wir?", "Kant; Bentham", "Darstellendes Spiel",
+                     "Kurs 12", "Noch keine Aufträge zu dieser Reihe.", "Ohne Reihe",
                      'href="/ergebnis/20261030-140944-unterricht-93e29e"', "Umfrage vor der Reihe"):
             self.assertIn(text, html)
         self.assertNotIn("20261030", self.sichtbar(html))
