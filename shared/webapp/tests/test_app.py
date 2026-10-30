@@ -494,12 +494,28 @@ class TestOrdnung(Aufbau):
         # Material ohne Reihe hat nichts zum Einordnen
         self.assertEqual(self.post("/ergebnis/20261030-140944-unterricht-93e29e/stunde", {"nr": "1"})[0].status, 404)
 
+    def test_vorlagen_und_ich(self):
+        (self.tmp / "unterricht" / "profil.toml").write_text('schrift = "Calibri"\nschriftgroesse_pt = 11\n')
+        (self.instanz / "regeln.md").write_text("## Regeln\n- 30.10.2026: Immer <Du> (Feedback 20261030-110916-feedback-1c1e7e)\n")
+        r, html = self.hole("/vorlagen")
+        self.assertEqual(r.status, 200)
+        for text in ("Calibri 11 pt", "Arbeitsblatt", "Präsentation", "Tabelle", "Muster", 'href="/vorlagen" aria-current="page"'):
+            self.assertIn(text, html)
+        r, html = self.hole("/ich")
+        self.assertEqual(r.status, 200)
+        self.assertIn("Immer &lt;Du&gt;", html)
+        self.assertIn("Für alles", html)
+        self.assertNotIn("feedback", self.sichtbar(html))
+        (self.tmp / "unterricht" / "profil.toml").write_text("kaputt = [")
+        with self.assertLogs("webapp", "ERROR"):
+            self.assertEqual(self.hole("/vorlagen")[0].status, 200)
+
     def test_ohne_reihen_und_kaputte_datei(self):
         (self.instanz / "reihen.toml").write_text("[[reihe]\n")
         with self.assertLogs("webapp", "ERROR"):
             r, html = self.hole("/")
         self.assertEqual(r.status, 200)
-        self.assertNotIn("baum-fach", html)
+        self.assertNotIn('baum-fach">Ethik', html)
         self.assertIn('<span class="baum-zahl">', html)
         self.assertEqual(self.hole("/reihe/strafe")[0].status, 404)
 

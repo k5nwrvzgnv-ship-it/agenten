@@ -579,6 +579,9 @@ class TestReihen(unittest.TestCase):
     def test_baum(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"})
         b = logik.baum(r, 2, "heute")
+        self.assertEqual([(e["text"], e.get("link", "")) for e in b[-3:]], [("Mehr", ""), ("Vorlagen", "/vorlagen"),
+                                                                           ("Ich", "/ich")])
+        b = b[:-3]
         self.assertEqual([(e["art"], e["text"], e.get("link", ""), e.get("tiefe")) for e in b], [
             ("eintrag", "Heute", "/", 0), ("fach", "Ethik", "", None), ("gruppe", "Klasse 8", "/klasse/ethik-8", 0),
             ("eintrag", "Straftheorien (in Planung)", "/reihe/ethik-8-straftheorien", 1),
@@ -588,7 +591,7 @@ class TestReihen(unittest.TestCase):
         self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), (2, True, False))
         b = logik.baum(r, 0, "ethik-8-straftheorien")
         self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), ("", False, True))
-        self.assertEqual(logik.baum([], 1), [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0,
+        self.assertEqual(logik.baum([], 1)[:1], [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0,
                                               "zahl": 1, "aktiv": False}])
 
     def test_stunden(self):
@@ -637,6 +640,22 @@ class TestReihen(unittest.TestCase):
                          "Arbeitsblatt: Fall Tim\n\nReihe: Straftheorien (in Planung) (Ethik, Klasse 8)\n"
                          "Stunde 3: Anwendung Kant")
         self.assertEqual(logik.text_mit_reihe("Fall Tim", None, r, (3, "x"), "quatsch"), "Fall Tim")
+
+    def test_gestaltung_und_regeln(self):
+        profil = {"schrift": "Calibri", "schriftgroesse_pt": 11, "folien_schrift": "Aptos",
+                  "farben": {"thema": "FFD873", "merksatz": "F2CEED", "akzent": "C00000"}}
+        self.assertEqual([(z["titel"], z["unter"]) for z in logik.gestaltung(profil)], [
+            ("Arbeitsblatt", "Calibri 11 pt, farbig hinterlegt: Thema, Merksatz"),
+            ("Präsentation", "Aptos, mit Akzentfarbe")])
+        self.assertEqual(logik.gestaltung({}), [])
+        allgemein = "# Regeln\n\n## Regeln\n- (noch keine)\n"
+        status = ("## Stand\n- kein Regel\n## Gelernte Regeln\n- 23.10.2026: Belege nennen. (Anlass: Auswertung)\n"
+                  "- 30.10.2026: Kurze Sätze (Feedback 20261030-110916-feedback-1c1e7e)\n## Aufbau\n- nein\n")
+        g = logik.regeln_aus([("", allgemein), ("unterricht", status), ("theater", "## Gelernte Regeln\n- (noch keine)\n")])
+        self.assertEqual(g, [{"titel": "Für Material", "regeln": [
+            {"titel": "Belege nennen.", "unter": "23.10.2026 · Auswertung"},
+            {"titel": "Kurze Sätze", "unter": "30.10.2026"}]}])
+        self.assertEqual(logik.regel("Ohne Datum"), {"titel": "Ohne Datum", "unter": ""})
 
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})

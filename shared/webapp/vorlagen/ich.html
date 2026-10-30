@@ -1,0 +1,15 @@
+{#- Ich (nur lesend): Lias Regeln aus regeln.md und den gelernten Regeln der Agenten. Ändern geht über Rückmeldungen. -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{% block inhalt %}
+{%- for g in gruppen %}
+<section aria-labelledby="ab{{ loop.index }}">
+  <h2 id="ab{{ loop.index }}"><span class="akzent">{{ "%02d" | format(loop.index) }}</span>{{ g.titel }}</h2>
+  <ul>{% for r in g.regeln %}{{ zeile(r) }}{% endfor %}</ul>
+</section>
+{%- else %}
+<p class="leer">Noch keine Regeln.</p>
+{%- endfor %}
+<p class="absatz unter">Neue Regeln entstehen aus deinen Rückmeldungen. Soll eine Regel weg oder anders sein, sag
+  Jan Bescheid.</p>
+{% endblock %}

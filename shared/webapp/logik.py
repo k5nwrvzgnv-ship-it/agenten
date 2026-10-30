@@ -866,8 +866,8 @@ def klasse_ansicht(gruppe_id: str, reihen: list[dict], zeilen_je: dict[str, list
 
 
 def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
-    """Linke Spalte: oben "Heute" mit der Zahl, was wartet, dann je Fach die Klassen/Kurse und ihre Reihen.
-    aktiv: "heute", die Kennung der gezeigten Reihe oder klasse_aktiv(…). art: "eintrag" (Link), "fach"
+    """Linke Spalte: oben "Heute" mit der Zahl, was wartet, dann je Fach die Klassen/Kurse und ihre Reihen, unten
+    „Mehr“ mit Vorlagen und Ich. aktiv: "heute", "vorlagen", "ich", die Kennung der gezeigten Reihe oder klasse_aktiv(…). art: "eintrag" (Link), "fach"
     (Überschrift) oder "gruppe" (Klasse/Kurs, Link zur Klassen-Ansicht)."""
     eintraege = [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0, "zahl": anzahl_wartet or "",
                   "aktiv": aktiv == "heute"}]
@@ -882,6 +882,10 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
             eintraege += [{"art": "eintrag", "text": r["titel"] + ("" if r["laufend"] else " (abgeschlossen)"),
                            "link": reihe_link(r), "tiefe": 1, "zahl": "", "aktiv": aktiv == r["id"]}
                           for r in reihen_]
+    eintraege += [{"art": "fach", "text": "Mehr"},
+                  {"art": "eintrag", "text": "Vorlagen", "link": "/vorlagen", "tiefe": 0, "zahl": "",
+                   "aktiv": aktiv == "vorlagen"},
+                  {"art": "eintrag", "text": "Ich", "link": "/ich", "tiefe": 0, "zahl": "", "aktiv": aktiv == "ich"}]
     return eintraege
 
 
@@ -981,3 +985,63 @@ def stunden_auswahl(reihe: dict, stunden_: list[dict]) -> list[dict]:
     einzahl, _ = stunden_wort(reihe)
     return [{"nr": 0, "text": "zur ganzen Reihe"}] + [
         {"nr": nr, "text": f"{einzahl} {nr}: {s['thema']}"} for nr, s in enumerate(stunden_, 1)]
+
+
+# Seiten „Vorlagen“ und „Ich“ (Board „Desktop“), nur lesend
+_FEEDBACK_HERKUNFT = re.compile(r"\s*\(Feedback [^)]*\)")
+_ANLASS = re.compile(r"\s*\(Anlass:\s*([^)]*)\)\s*$")
+_REGEL_DATUM = re.compile(r"^(\d{1,2}\.\d{1,2}\.\d{4}):\s*")
+
+
+def gestaltung(profil_: dict) -> list[dict]:
+    """Zeilen „Gestaltung“ aus dem Profil des Material-Agenten (Schrift, Größe, farbige Kästen, Folien)."""
+    if not profil_:
+        return []
+    farben = profil_.get("farben") or {}
+    kaesten = [n for k, n in (("thema", "Thema"), ("merksatz", "Merksatz"), ("material", "Material")) if k in farben]
+    blatt = [x for x in (profil_.get("schrift"),
+                         f"{profil_['schriftgroesse_pt']} pt" if profil_.get("schriftgroesse_pt") else "") if x]
+    zeilen = []
+    if blatt or kaesten:
+        zeilen.append({"titel": "Arbeitsblatt", "marke": "alle Fächer", "unter": " ".join(blatt) + (
+            (", farbig hinterlegt: " if blatt else "Farbig hinterlegt: ") + ", ".join(kaesten) if kaesten else "")})
+    if profil_.get("folien_schrift"):
+        zeilen.append({"titel": "Präsentation", "marke": "alle Fächer", "unter": str(profil_["folien_schrift"])
+                       + (", mit Akzentfarbe" if "akzent" in farben else "")})
+    return zeilen
+
+
+def _regel_zeilen(text: str, ueberschrift: str) -> list[str]:
+    """Listenzeilen ("- …") unter einer Überschrift "## …" bis zur nächsten."""
+    zeilen, drin = [], False
+    for z in text.splitlines():
+        if z.startswith("## "):
+            drin = z[3:].strip() == ueberschrift
+        elif drin and z.startswith("- "):
+            zeilen.append(z[2:].strip())
+    return zeilen
+
+
+def regel(zeile: str) -> dict | None:
+    """Eine Regelzeile für Lia: Text, darunter Datum und Anlass; ohne Feedback-ID. Platzhalter: None."""
+    zeile = _FEEDBACK_HERKUNFT.sub("", zeile).strip()
+    if not zeile or zeile.startswith("("):
+        return None
+    datum = _REGEL_DATUM.match(zeile)
+    zeile = zeile[datum.end():] if datum else zeile
+    anlass = _ANLASS.search(zeile)
+    text = zeile[:anlass.start()] if anlass else zeile
+    return {"titel": ohne_ids(text), "unter": " · ".join(x for x in (
+        datum.group(1) if datum else "", ohne_ids(anlass.group(1)) if anlass else "") if x)}
+
+
+def regeln_aus(texte: list[tuple[str, str]]) -> list[dict]:
+    """Gruppen für „Ich“: allgemeine Regeln (regeln.md, Abschnitt Regeln), dann je Agent die gelernten Regeln
+    (STATUS.md, Abschnitt Gelernte Regeln) unter Lias Wort für die Art („Für Material“)."""
+    gruppen = []
+    for agent, text in texte:
+        zeilen = [r for r in map(regel, _regel_zeilen(text, "Gelernte Regeln" if agent else "Regeln")) if r]
+        if zeilen:
+            name = "Für alles" if not agent else "Für " + ARTEN_NACH_AGENT.get(agent, "Weiteres")
+            gruppen.append({"titel": name, "regeln": zeilen})
+    return gruppen

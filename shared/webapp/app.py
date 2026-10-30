@@ -27,6 +27,8 @@ GET:
   /reihe/<kennung>                      Reihe mit Reihenfrage und ihren Aufträgen (ordnung.py, nur lesend)
   /reihe/<kennung>/stunde/<n>           Stunde (bzw. Probe) n mit Thema und Material (Stunden speichert die Web-App)
   /klasse/<kennung>                     Klasse/Kurs mit ihren Reihen (nur lesend)
+  /vorlagen                             Gestaltung (Profil des Material-Agenten) und Arten, nur lesend
+  /ich                                  Lias Regeln (regeln.md, Gelernte Regeln der Agenten), nur lesend
   /unterricht                           alte Seite, leitet auf / um
   /statisch/...                         CSS, htmx
   /neu                                  Galerie der Vorlagen bzw. Formular (?art=…), Ort vorbelegt (?reihe=…&stunde=n),
@@ -304,6 +306,30 @@ def seite_klasse(request: Request, gruppe_id: str):
         raise HTTPException(404)
     return vorlagen.TemplateResponse(request, "klasse.html", {
         "e": e, **rahmen(reihen, logik.krumen_klasse(e["reihe"]), logik.klasse_aktiv(gruppe_id))})
+
+
+_lese_fehler: list[str] = []  # wie _reihen_fehler: Fehler im Profil nur einmal loggen
+
+
+@app.get("/vorlagen", response_class=HTMLResponse)
+def seite_vorlagen(request: Request):
+    profil, fehler = ordnung.profil(INSTANZ)
+    if fehler != _lese_fehler:
+        for f in fehler:
+            logger.error("Profil: %s", f)
+        _lese_fehler[:] = fehler
+    return vorlagen.TemplateResponse(request, "vorlagen.html", {
+        "e": {"titel": "Vorlagen", "unter": "Gilt für alles, was deine Assistenz für dich baut."},
+        "gestaltung": logik.gestaltung(profil), "arten": list(logik.VORLAGEN.values()),
+        **rahmen(reihen_laden(), logik.krumen("Vorlagen"), "vorlagen")})
+
+
+@app.get("/ich", response_class=HTMLResponse)
+def seite_ich(request: Request):
+    return vorlagen.TemplateResponse(request, "ich.html", {
+        "e": {"titel": "Ich", "unter": "Was deine Assistenz über deine Wünsche weiß."},
+        "gruppen": logik.regeln_aus(ordnung.regeltexte(INSTANZ)),
+        **rahmen(reihen_laden(), logik.krumen("Ich"), "ich")})
 
 
 def _ort(reihen: list[dict], reihe_id: str, stunde_text: str) -> tuple[dict | None, tuple[int, str] | None]:

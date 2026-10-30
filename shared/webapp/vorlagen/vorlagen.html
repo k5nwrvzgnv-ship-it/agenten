@@ -1,0 +1,25 @@
+{#- Vorlagen (Board „Desktop“): Gestaltung, Arten, Muster. Nur lesend: Die Gestaltung steht im Profil des
+    Material-Agenten, eigene Formatvorlagen und Muster gibt es noch nicht (leere Zustände). -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{% block inhalt %}
+<section aria-labelledby="ab1">
+  <h2 id="ab1"><span class="akzent">01</span>Gestaltung</h2>
+  {%- if gestaltung %}
+  <ul>{% for z in gestaltung %}{{ zeile(z) }}{% endfor %}</ul>
+  {%- else %}
+  <p class="leer">Noch keine Gestaltung hinterlegt.</p>
+  {%- endif %}
+  <p class="leer">Eigene Word- oder PowerPoint-Vorlage mit Kopfzeile und Logo: kommt, sobald deine Assistenz sie
+    nutzen kann. Bis dahin schick sie Jan.</p>
+</section>
+<section aria-labelledby="ab2">
+  <h2 id="ab2"><span class="akzent">02</span>Arten</h2>
+  <ul>{% for v in arten %}{{ zeile({"titel": v.name, "unter": v.text, "marke": "alle Fächer"}) }}{% endfor %}</ul>
+</section>
+<section aria-labelledby="ab3">
+  <h2 id="ab3"><span class="akzent">03</span>Muster</h2>
+  <p class="leer">Noch keine. Später: gelungene Blätter, die deine Assistenz als Anregung nimmt. Sie schlägt dir
+    welche vor, wenn du etwas als final markierst.</p>
+</section>
+{% endblock %}
