@@ -1,0 +1,13 @@
+# Vorlage: nach ~/.config/systemd/user/lia-chat.path kopieren, daemon-reload, dann
+# systemctl --user enable --now lia-chat.path
+# Startet lia-chat.service, sobald in data/fragen/ eine Datei liegt (die Web-App legt sie dort ab).
+[Unit]
+Description=Wartende Fragen an Lias Agent chat
+
+[Path]
+DirectoryNotEmpty=/home/agent/agenten/lia/chat/data/fragen
+MakeDirectory=yes
+Unit=lia-chat.service
+
+[Install]
+WantedBy=default.target

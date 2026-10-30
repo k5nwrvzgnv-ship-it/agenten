@@ -1,0 +1,12 @@
+# Vorlage: nach ~/.config/systemd/user/ kopieren. Löscht Verlauf und Antworten älter als 30 Tage
+# und liegengebliebene claude-Sitzungen des Chats (agent.py --aufraeumen). Gestartet vom Timer.
+[Unit]
+Description=Aufräumen für Lias Agent chat
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
+WorkingDirectory=/home/agent/agenten/lia/chat
+ExecStart=/home/agent/agenten/lia/chat/.venv/bin/python agent.py --aufraeumen
+TimeoutStartSec=5min

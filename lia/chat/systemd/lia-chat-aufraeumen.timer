@@ -1,0 +1,11 @@
+# Vorlage: nach ~/.config/systemd/user/ kopieren, daemon-reload, dann
+# systemctl --user enable --now lia-chat-aufraeumen.timer
+[Unit]
+Description=Täglich aufräumen für Lias Agent chat
+
+[Timer]
+OnCalendar=*-*-* 03:40
+Persistent=true
+
+[Install]
+WantedBy=timers.target

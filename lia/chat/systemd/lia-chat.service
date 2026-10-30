@@ -1,0 +1,17 @@
+# Vorlage: nach ~/.config/systemd/user/lia-chat.service kopieren, dann systemctl --user daemon-reload.
+# Agent chat für Lia (Spalte „Fragen“ der Web-App). Gestartet von lia-chat.path, sobald eine Frage wartet.
+[Unit]
+Description=Lias Agent chat (Fragen der Web-App)
+# Bei Ausfall Meldung an Jan (ausfall@ läuft ohne AGENTKIT_INSTANZ, also in Jans Instanz)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=10min
+StartLimitBurst=30
+
+[Service]
+Type=oneshot
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
+WorkingDirectory=/home/agent/agenten/lia/chat
+ExecStart=/home/agent/agenten/lia/chat/.venv/bin/python agent.py
+# Mehrere Fragen nacheinander, je höchstens 5 min (gründlich) plus 1 min Warten auf einen Platz
+TimeoutStartSec=30min
+MemoryMax=500M
