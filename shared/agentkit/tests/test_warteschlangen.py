@@ -335,6 +335,17 @@ class TestWeitergabe(unittest.TestCase):
         self.assertTrue(quelle.exists())  # uni behält seine Datei
         self.assertIn("Angehängte Dateien von uni", a["text"])
 
+    def test_neuer_auftrag_mit_absender_fuer_andere_instanz(self):
+        datei = Path(tempfile.mkdtemp()) / "Vorlage.docx"
+        datei.write_text("x")
+        (self.agenten / "unterricht").mkdir(exist_ok=True)
+        aid = auftraege.neuer_auftrag("unterricht", "Arbeitsblatt", quelle="portal-material", dateien=[datei],
+                                      basis=self.basis, agenten_dir=self.agenten, absender="Lia")
+        a = auftraege.neue(basis=self.basis)[0]
+        self.assertEqual(a["dateien"], [f"data/eingang/{aid}/Vorlage.docx"])
+        self.assertIn("Angehängte Dateien von Lia (im Agent-Ordner)", a["text"])
+        self.assertFalse(datei.exists())  # verschoben
+
     def test_dateien_nur_aus_dem_eigenen_ordner(self):
         (self.agenten / "uni" / ".env").write_text("GEHEIM=1")
         (self.agenten / "einkauf" / "x.txt").write_text("x")

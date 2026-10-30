@@ -64,6 +64,7 @@ def neuer_auftrag(
     dienst: str | None = None,
     basis: Path | None = None,
     agenten_dir: Path | None = None,
+    absender: str | None = None,
 ) -> str:
     """Legt einen Auftrag an und gibt seine ID zurück.
 
@@ -71,6 +72,8 @@ def neuer_auftrag(
     sitzung: Claude-Sitzung, die der Agent fortsetzen soll.
     dateien: werden in den Agent-Ordner verschoben (siehe oben).
     meldung, dienst: Antwort auf eine Meldung (siehe oben).
+    absender: Name im Satz über angehängte Dateien; Standard config.person() der eigenen Instanz. Für Programme,
+    die mit basis= für eine andere Instanz anlegen (Web-App für Lia).
     """
     if modus not in MODI:
         raise AuftragFehler(f"Unbekannter Modus: {modus!r}")
@@ -81,7 +84,7 @@ def neuer_auftrag(
     _ablage.pruefe_dienst(agent, dienst)
     felder = {"quelle": quelle, "modus": modus, "bezug": bezug, "sitzung": sitzung, "meldung": meldung,
               "dienst": dienst}
-    return _anlegen(agent, text, felder, dateien or [], shutil.move, person(), basis, agenten_dir)
+    return _anlegen(agent, text, felder, dateien or [], shutil.move, absender or person(), basis, agenten_dir)
 
 
 def weitergeben(
