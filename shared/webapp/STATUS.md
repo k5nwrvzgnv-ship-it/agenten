@@ -90,9 +90,12 @@ final, Mustertabelle, Heuristik-Review, Test mit 7 Aufgaben, Empfehlung). Klickb
   `ordnung.py`; umstellen mit dem ersten Bauschritt), DS-Kurs 12 gibt es (in keiner Datei, Reihen offen),
   Notentabelle gehört zu Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt
   docx/pptx und PDF.
-- Jan hat das Desktop-Board am 30.10. durchgeklickt: sieht gut aus, alles klappt. Nächster Schritt: Test mit Lia
-  am PC (Plan Abschnitt 6, Bogen `data/ia/testbogen.csv`), Canvas dafür über „Teilen“ freigeben oder an Jans
-  Rechner testen. Danach Auswertung hier eintragen, dann Jans Okay für Bauschritt 1 des neuen Aufbaus. Gebaut wird erst nach Test und Jans Okay, in den
+- Jan hat das Desktop-Board am 30.10. durchgeklickt: sieht gut aus, alles klappt.
+- Test mit Lia 30.10. (Jan): Lia findet es gut, die Ebene Stunde will sie. Das Stück „Der nackte Wahnsinn“
+  gehört zu Kurs 12, nicht zu Kurs 11 (im Board korrigiert; im Code noch `THEATER_KURS = "Kurs 11"` in
+  `ordnung.py` und in den Tests). Zahlen je Aufgabe nicht erhoben.
+- Nächster Schritt: Jans Okay für Bauschritt 1 des neuen Aufbaus (Plan Abschnitt 5), dabei Fach „Darstellendes
+  Spiel“ und Kurs 12 im Code umstellen. Gebaut wird erst nach Test und Jans Okay, in den
   Bauschritten aus Abschnitt 5 des Plans.
 
 ## Technik

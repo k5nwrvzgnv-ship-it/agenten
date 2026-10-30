@@ -559,8 +559,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      (7 Aufgaben, Ziel 6 von 7 ohne Hilfe, Jan leitet) und Jans Okay. Geklärt (Jan 30.10.): Fach heißt
      „Darstellendes Spiel“ (ersetzt „Theater“), es gibt DS-Kurs 12 (Reihen offen), Notentabelle gehört zu
      Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform (Ausgabe docx/pptx und PDF).
-     Bedarf an den lia/unterricht-Chat dazu: beim Theater-Eintrag in lia/instanz/reihen.toml fach
-     „Darstellendes Spiel“ statt „Theater“; Kurs 12 eintragen, sobald Lia die Reihen nennt.
+     Test mit Lia 30.10.: Aufbau gefällt, Ebene Stunde gewünscht; das Stück „Der nackte Wahnsinn“ gehört zu
+     Kurs 12 (nicht Kurs 11). Bedarf an den lia/unterricht-Chat dazu: Theater-Eintrag in lia/instanz/reihen.toml
+     mit fach „Darstellendes Spiel“ und klasse „Kurs 12“ (statt „Theater“, „Kurs 11“ weiter oben).
+     Nächster Schritt: Jans Okay für Bauschritt 1 des neuen Aufbaus.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext.

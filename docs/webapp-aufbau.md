@@ -53,7 +53,8 @@ Feedbackweg, nicht Knöpfe. Heute entsteht dabei ein neuer, unverbundener Auftra
 - Geklärt mit Jan (30.10.):
   - Das Fach heißt „Darstellendes Spiel“ (Kurzform DS), nicht mehr „Theater“. Die gebaute App sagt noch
     „Theater“ (`ordnung.py`); umgestellt wird mit dem ersten Bauschritt.
-  - Es gibt einen DS-Kurs 12 neben Kurs 11. Er steht in keiner Datei; Reihen und Lerngruppe erfragt Jan bei Lia.
+  - Es gibt einen DS-Kurs 12 neben Kurs 11. Das Theaterstück „Der nackte Wahnsinn“ gehört zu Kurs 12 (Jan 30.10.
+    nach Lias Test), nicht zu Kurs 11 wie bisher in der App. Kurs 11 behält seine Einheiten aus dem Ordner k11.
   - Die Notentabelle (ef0a90) gehört zu Ethik 8 (R4).
   - Lia arbeitet am Mac mit Word und Pages/Keynote und stellt Material in eine Schulplattform
     (Lernraum/Moodle/IServ). Kein OneDrive/iCloud genannt. Folgen: Hauptweg zum Bearbeiten ist „Herunterladen,
@@ -176,7 +177,7 @@ seit Jahren bewährt.
   gelöscht (Vorschlag, Jan entscheidet), keine Übernahme von Chat-Inhalten in Regeln ohne Lias Klick.
 - **„Daraus Auftrag machen“:** öffnet die Vorlagengalerie mit Text und Ort vorbelegt. Ein Chat startet nie selbst
   einen Auftrag und handelt nie nach außen.
-- **Ein Chat, nicht viele:** ein Verlauf, Trennlinie bei Ortswechsel („jetzt: Kurs 11 › Der nackte Wahnsinn“).
+- **Ein Chat, nicht viele:** ein Verlauf, Trennlinie bei Ortswechsel („jetzt: Kurs 12 › Der nackte Wahnsinn“).
   Ältere Verläufe je Ort sind eine spätere Frage, erst nach dem Test.
 - **Bedarf:** ein Chat-Agent (`lia/chat/` oder Teil von lia/unterricht) mit Ortskontext. In Punkt 24 notiert.
 
@@ -190,7 +191,7 @@ Im Canvas, Variante Modernist (Inter, schwarz auf weiß, ein rotes Akzent):
   stehen und zeigt den Ort.
 - **Handy-Prüfung 390**: dieselbe Stunde als Drilldown mit Brotkrumen, Chat als Knopf unten.
 
-Inhalte sind Lias echte Orte (Ethik 8 Straftheorien, Kurs 11 Der nackte Wahnsinn, Archiv Klasse 7). Die Stunden
+Inhalte sind Lias echte Orte (Ethik 8 Straftheorien, Kurs 12 Der nackte Wahnsinn, Kurs 11 Kompositionsmethoden, Archiv Klasse 7). Die Stunden
 der Reihe Strafe sind **Beispiele** (es gibt in keiner Datei Stunden), angelehnt an `reihen.toml` und
 `examen.toml` (Kant, von Liszt, Prüfungsstunde). Keine Schülernamen, kein Name der Lehrkraft.
 
@@ -206,7 +207,7 @@ der Reihe Strafe sind **Beispiele** (es gibt in keiner Datei Stunden), angelehnt
 │   + Reihe    │  Reihenentwurf      Fassung 2 · wartet   │                  │
 │  Archiv      │  Umfrage vor der Reihe   wartet          │                  │
 │ DARST. SPIEL │  Fallsammlung       final                │ [Frage …      ]  │
-│  Kurs 11     │ Stunden                                  │ Keine Namen von  │
+│  Kurs 12     │ Stunden                                  │ Keine Namen von  │
 │   Der nackte │  1 Einstieg …                            │ Schüler*innen.   │
 │   Komposit…  │  2 Kant …            Präsentation · fin. │                  │
 │ Vorlagen     │  3 Anwendung Kant    Arbeitsblatt läuft  │                  │
@@ -271,7 +272,7 @@ manches geht nicht wirklich.“
 | 2 | „Für die dritte Stunde der Strafe-Reihe brauchst du noch ein Arbeitsblatt. Gib es in Auftrag.“ | Galerie aus Stunde 3, Vorlage Arbeitsblatt, abgeschickt | Baum/Reihe: Stunde 3 |
 | 3 | „Die Präsentation für Stunde 2 passt jetzt so. Halte fest, dass das die Fassung ist, die du nimmst.“ | „Als final markieren“ an der Präsentation | Stunde 2 bzw. Präsentation |
 | 4 | „Du weißt nicht genau, was ‚Vergeltung‘ einfach erklärt heißt. Finde es heraus.“ | Frage im Chat abgeschickt | Chat-Eingabefeld |
-| 5 | „Für den Theaterkurs willst du eine gekürzte Spielfassung von einem Stück. Fang damit an.“ | Vorlage „Spielfassung (Kürzung)“ im Kurs 11 gewählt | Baum: Kurs 11 bzw. „+ Neu“ dort |
+| 5 | „Für den Theaterkurs willst du eine gekürzte Spielfassung von einem Stück. Fang damit an.“ | Vorlage „Spielfassung (Kürzung)“ im Kurs 12 gewählt | Baum: Kurs 12 bzw. „+ Neu“ dort |
 | 6 | „Du hast das Arbeitsblatt in Word korrigiert. Gib es zurück, damit eine bessere Fassung entsteht.“ | „Rückmeldung mit Datei“ oder „Eigene Fassung hochladen“ gewählt | Material öffnen (Heute oder Baum) |
 | 7 | „Was wartet gerade auf dich? Mach das Neueste auf.“ | erste Zeile in Heute geöffnet | Heute |
 
@@ -288,6 +289,10 @@ dabei offen (Word, Pages, OneDrive, Lernraum)?“
 **Auswertung:** Was 2-mal falsch angeklickt wird, wird geändert, bevor gebaut wird. Bei unter 6 von 7: Board
 ändern, zweiter Test.
 
+**Ergebnis 30.10. (Jan):** Lia findet den Aufbau gut, die Ebene Stunde will sie. Das Stück gehört zu Kurs 12.
+Zahlen je Aufgabe (erster Klick, Zeit) wurden nicht erhoben; es gab keine Stelle, an der Jan Änderungsbedarf
+meldete.
+
 ---
 
 ## 7. Empfehlung an Jan
@@ -295,7 +300,7 @@ dabei offen (Word, Pages, OneDrive, Lernraum)?“
 1. **Aufbau übernehmen:** drei Spalten, Baum Fach → Klasse/Kurs → Reihe → Stunde, „Heute“ als oberster
    Eintrag, Chat rechts, „+ Neu“ am Ort mit Vorlagengalerie. Chips und `/unterricht` entfallen.
 2. **Stunde als leichte Ebene:** nummerierte Liste in der Reihe, nie Pflicht. Lia ordnet heute nach Reihe und Art,
-   Stunden nur über Dateinamen, die verrutschen. Der Test fragt nach, ob sie die Ebene will.
+   Stunden nur über Dateinamen, die verrutschen. Im Test bestätigt: Lia will die Ebene Stunde.
 3. **Final setzt Lia, eigene Fassung hochladen** ist der Hauptweg für Rückmeldungen (ihr echter Weg), Knöpfe sind
    Zusatz.
 4. **Vorlagen in drei Teilen:** Gestaltung, Muster, Arbeitsweise; Geltung vererbt. Zuerst nur die Arten, die
@@ -304,4 +309,4 @@ dabei offen (Word, Pages, OneDrive, Lernraum)?“
 5. **Chat erst nach dem Test bauen**, aber im Test zeigen: er ist die schnellste Hilfe für Lias häufigste kleine
    Fragen und ersetzt das Reinkopieren von Kontext.
 6. **Geklärt (Jan 30.10.):** Fach „Darstellendes Spiel“, Kurs 12 kommt in den Baum, Notentabelle bei Ethik 8,
-   Lia nutzt Word, Pages/Keynote und die Schulplattform (Abschnitt 1). Offen für den Test: Reihen von Kurs 12.
+   Lia nutzt Word, Pages/Keynote und die Schulplattform (Abschnitt 1). Das Stück gehört zu Kurs 12.
