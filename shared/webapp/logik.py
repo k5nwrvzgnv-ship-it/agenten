@@ -649,8 +649,11 @@ NEU_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
 _UNERLAUBT = re.compile(r'[\\/:*?"<>|\x00-\x1f\x7f]')
 
 
-# Vorlagen der Galerie „Neu“ (Board „Desktop“): nur Arten, die der Agent wirklich baut (Arbeitsblatt docx, Folien
-# pptx, Arbeitsmappe xlsx). Reihenentwurf, LEK, Spielfassung und Szenenaufgabe fehlen, bis ein Agent sie kann.
+# Vorlagen der Galerie „Neu“ (Board „Desktop“): nur Arten, die ein Agent wirklich baut. unterricht: Arbeitsblatt
+# (docx), Folien (pptx), Arbeitsmappe (xlsx); theater (30.10., nur Darstellendes Spiel): Spielfassung (ganze Runde,
+# nur „Der nackte Wahnsinn“) und Szenenaufgabe. Reihenentwurf und LEK fehlen, bis unterricht sie kann.
+# fach: nur in Reihen dieses Fachs ("" = alle). extra: weitere Felder (Name, Frage, Platzhalter, lang, Zeilenanfang
+# im Auftragstext, wie der Agent ihn liest).
 VORLAGEN = {
     "arbeitsblatt": {"name": "Arbeitsblatt", "text": "Text, Merksatz, Aufgaben", "bild": "ab",
                      "frage": "Was soll drauf?", "hint": "Thema, Position, Fall, Dauer …"},
@@ -658,7 +661,41 @@ VORLAGEN = {
                       "frage": "Wofür?", "hint": "Ablauf der Stunde, Leitfrage …"},
     "tabelle": {"name": "Tabelle", "text": "Notentabelle, Liste (Excel), ohne Namen", "bild": "tabelle",
                 "frage": "Welche Spalten?", "hint": "Nr., Note 1–5, Durchschnitt …"},
+    "spielfassung": {"name": "Spielfassung (Kürzung)", "kopf": "Spielfassung", "text": "Stück auf eure Länge kürzen",
+                     "bild": "skript", "agent": "theater", "quelle": "portal-theater", "fach": "Darstellendes Spiel",
+                     "frage": "Welches Stück?", "hint": "Der nackte Wahnsinn", "kurz": True,
+                     "hinweis": "Dauert bis zu drei Stunden. Bisher kennt deine Assistenz nur den Text von "
+                                "„Der nackte Wahnsinn“.",
+                     "extra": [("laenge", "Länge", "z. B. 35–40 Minuten", False, "Länge"),
+                               ("spieler", "Spieler*innen", "z. B. 18", False, "Spieler*innen"),
+                               ("bleiben", "Was muss bleiben?", "Szenen, Figuren, Ideen", True, "Was bleiben muss")]},
+    "szene": {"name": "Szenenaufgabe", "kopf": "Szenenaufgabe", "text": "Aufgabe für eine Gruppe", "bild": "ab",
+              "agent": "theater", "quelle": "portal-theater", "fach": "Darstellendes Spiel",
+              "frage": "Worum geht es?", "hint": "Thema der Szene", "kurz": True,
+              "extra": [("methode", "Methode", "z. B. Standbild, Chor", False, "Methode"),
+                        ("szene", "Szene", "Baustein oder Stelle im Stück", False, "Szene"),
+                        ("material", "Material", "Requisiten, Texte, Musik", True, "Material")]},
 }
+EXTRA_MAX = 1500
+
+
+def vorlage_agent(art_: str) -> tuple[str, str]:
+    """(Agent, quelle) einer Vorlage; ohne Vorlage der Material-Agent."""
+    v = VORLAGEN.get(art_) or {}
+    return v.get("agent") or NEU_AGENT, v.get("quelle") or NEU_QUELLE
+
+
+def extra_werte(art_: str, form_wert) -> tuple[dict[str, str], list[str]]:
+    """Weitere Felder einer Vorlage aus dem Formular (form_wert(name) -> str), bereinigt, mit Fehlern."""
+    werte, fehler = {}, []
+    for name, frage, _, lang, _ in (VORLAGEN.get(art_) or {}).get("extra", []):
+        wert = (form_wert(name) or "").replace("\r\n", "\n").strip()
+        if not lang:
+            wert = " ".join(wert.split())
+        if len(wert) > EXTRA_MAX:
+            fehler.append(f"„{frage}“ ist zu lang (höchstens {EXTRA_MAX} Zeichen).")
+        werte[name] = wert
+    return werte, fehler
 
 
 # Formular ohne Vorlage (Freitext wie bisher), wenn ein Auftrag ohne Art nicht angenommen wurde
@@ -674,8 +711,10 @@ def neu_link(reihe_id: str = "", stunde: int | None = None, art_: str = "") -> s
     return "/neu" + ("?" + "&".join(teile) if teile else "")
 
 
-def galerie(reihe_id: str = "", stunde: int | None = None) -> list[dict]:
-    return [{"art": k, **v, "link": neu_link(reihe_id, stunde, k)} for k, v in VORLAGEN.items()]
+def galerie(reihe_id: str = "", stunde: int | None = None, fach: str = "") -> list[dict]:
+    """Vorlagen für einen Ort: alle für alle Fächer, dazu die des Fachs der Reihe (ohne Ort: alle)."""
+    return [{"art": k, **v, "link": neu_link(reihe_id, stunde, k)} for k, v in VORLAGEN.items()
+            if not v.get("fach") or not fach or v["fach"] == fach]
 
 
 def ort_text(reihe: dict | None, stunde: tuple[int, str] | None = None) -> str:
@@ -860,12 +899,15 @@ def reihe_pruefen(wert: str | None, reihen: list[dict]) -> tuple[str | None, lis
 
 
 def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict], stunde: tuple[int, str] | None = None,
-                   art_: str = "") -> str:
-    """Auftragstext für den Agenten: Art vorn, gewählte Reihe und Stunde (Nummer, Thema) am Ende, damit er sie
-    ohne eigenen Code im Prompt hat (Lias Reihen kennt er aus reihen.toml, Stunden kennt er nicht)."""
+                   art_: str = "", extra: dict[str, str] | None = None) -> str:
+    """Auftragstext für den Agenten: Art vorn („Arbeitsblatt: …“, „Spielfassung: …“), weitere Felder als Zeilen
+    („Länge: …“), gewählte Reihe und Stunde (Nummer, Thema) am Ende, damit er sie ohne eigenen Code im Prompt hat."""
     vorlage = VORLAGEN.get(art_)
     if vorlage:
-        text = f"{vorlage['name']}: {text}"
+        text = f"{vorlage.get('kopf') or vorlage['name']}: {text}"
+        for name, _, _, _, anfang in vorlage.get("extra", []):
+            if (extra or {}).get(name):
+                text += f"\n{anfang}: {extra[name]}"
     r = next((x for x in reihen if x["id"] == reihe_id), None)
     if not r:
         return text

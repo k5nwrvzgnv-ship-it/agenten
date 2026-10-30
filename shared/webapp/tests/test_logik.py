@@ -627,7 +627,7 @@ class TestReihen(unittest.TestCase):
 
     def test_neu_galerie_und_text(self):
         ethik, theater = reihen()
-        self.assertEqual([g["link"] for g in logik.galerie(ethik["id"], 3)], [
+        self.assertEqual([g["link"] for g in logik.galerie(ethik["id"], 3, "Ethik")], [
             "/neu?art=arbeitsblatt&reihe=ethik-8-straftheorien&stunde=3",
             "/neu?art=praesentation&reihe=ethik-8-straftheorien&stunde=3",
             "/neu?art=tabelle&reihe=ethik-8-straftheorien&stunde=3"])

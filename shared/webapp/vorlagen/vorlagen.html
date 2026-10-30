@@ -15,7 +15,7 @@
 </section>
 <section aria-labelledby="ab2">
   <h2 id="ab2"><span class="akzent">02</span>Arten</h2>
-  <ul>{% for v in arten %}{{ zeile({"titel": v.name, "unter": v.text, "marke": "alle Fächer"}) }}{% endfor %}</ul>
+  <ul>{% for v in arten %}{{ zeile({"titel": v.name, "unter": v.text, "marke": v.fach or "alle Fächer"}) }}{% endfor %}</ul>
 </section>
 <section aria-labelledby="ab3">
   <h2 id="ab3"><span class="akzent">03</span>Muster</h2>

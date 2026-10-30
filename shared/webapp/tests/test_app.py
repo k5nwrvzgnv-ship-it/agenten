@@ -650,6 +650,22 @@ class TestOrdnung(Aufbau):
         self.assertEqual(self.post(f"/ergebnis/{alt}/nochmal", {})[0].status, 404)  # nicht doppelt
         self.assertEqual(self.post("/ergebnis/20261030-140944-unterricht-93e29e/nochmal", {})[0].status, 404)
 
+    def test_theater_vorlagen(self):
+        wahnsinn = "darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+        _, html = self.hole(f"/neu?reihe={wahnsinn}")
+        self.assertIn("Spielfassung (Kürzung)", html)
+        self.assertNotIn("Spielfassung", self.hole("/neu?reihe=strafe")[1])  # nur Darstellendes Spiel
+        _, html = self.hole(f"/neu?art=spielfassung&reihe={wahnsinn}")
+        for text in ('name="laenge"', 'name="bleiben"', "Dauert bis zu drei Stunden"):
+            self.assertIn(text, html)
+        r, _ = self.post("/neu", {"art": "spielfassung", "reihe": wahnsinn, "text": "Der nackte Wahnsinn",
+                                  "laenge": "35–40 Minuten", "spieler": "18", "bleiben": "Akt 1\r\nTreppe"})
+        self.assertEqual(r.status, 303)
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertEqual((a["agent"], a["quelle"], a["reihe"]), ("theater", "portal-theater", wahnsinn))
+        self.assertEqual(a["text"], "Spielfassung: Der nackte Wahnsinn\nLänge: 35–40 Minuten\nSpieler*innen: 18\n"
+                                    "Was bleiben muss: Akt 1\nTreppe\n\nReihe: Der nackte Wahnsinn (Darstellendes Spiel, Kurs 12)")
+
     def test_auch_als_im_formular(self):
         self.assertIn('name="varianten" value="hilfekarten"', self.hole("/neu?art=arbeitsblatt")[1])
         self.assertNotIn('name="varianten"', self.hole("/neu?art=tabelle")[1])

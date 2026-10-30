@@ -379,7 +379,7 @@ def _ort(reihen: list[dict], reihe_id: str, stunde_text: str) -> tuple[dict | No
 
 
 def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200,
-              reihe: str = "", art: str = "", stunde: str = ""):
+              reihe: str = "", art: str = "", stunde: str = "", extra: dict | None = None):
     """Galerie (ohne art) bzw. Formular einer Vorlage, Ort aus reihe und stunde vorbelegt."""
     reihen = reihen_laden()
     ort_reihe, ort_stunde = _ort(reihen, reihe, stunde)
@@ -389,7 +389,8 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
               "unter": "für " + logik.ort_text(ort_reihe, ort_stunde) if ort_reihe else "Auftrag an deine Assistenz"},
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
         "art": art if vorlage else "", "vorlage": vorlage, "varianten": logik.VARIANTEN,
-        "galerie": logik.galerie(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
+        "galerie": logik.galerie(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None,
+                                 ort_reihe["fach"] if ort_reihe else ""), "extra": extra or {},
         "andere": logik.neu_link(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
         "reihen": [] if ort_reihe else logik.reihen_auswahl(reihen), "reihe": ort_reihe["id"] if ort_reihe else reihe,
         "ort_fest": bool(ort_reihe), "stunde": ort_stunde[0] if ort_stunde else "",
@@ -454,14 +455,17 @@ async def neu_abschicken(request: Request):
     art, stunde_text = str(form.get("art") or ""), str(form.get("stunde") or "")
     if art not in logik.VORLAGEN:
         art = ""
+    extra, fehler_extra = logik.extra_werte(art, lambda name: str(form.get(name) or ""))
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
-        return _formular(request, text, [logik.VERALTET], 400, gewaehlt, art, stunde_text)
+        return _formular(request, text, [logik.VERALTET], 400, gewaehlt, art, stunde_text, extra)
     dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
     text, fehler = logik.neuer_auftrag_pruefen(text, [(d.filename, d.size or 0) for d in dateien_])
     reihen = reihen_laden()
     reihe, fehler_reihe = logik.reihe_pruefen(gewaehlt, reihen)
-    if fehler or fehler_reihe:
-        return _formular(request, text, fehler + fehler_reihe, 400, reihe or "", art, stunde_text)
+    if fehler or fehler_reihe or fehler_extra:
+        return _formular(request, text, fehler + fehler_reihe + fehler_extra, 400, reihe or "", art, stunde_text,
+                         extra)
+    agent, quelle = logik.vorlage_agent(art)
     _, stunde = _ort(reihen, reihe or "", stunde_text)
     EINGANG.mkdir(parents=True, exist_ok=True)
     ablage = Path(tempfile.mkdtemp(dir=EINGANG))
@@ -469,17 +473,17 @@ async def neu_abschicken(request: Request):
         pfade = []
         for nr, d in enumerate(dateien_):  # je Datei ein Unterordner: gleiche Namen überschreiben sich nicht
             pfade.append(datei_ablegen(d, ablage / str(nr)))
-        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, logik.text_mit_reihe(text, reihe, reihen, stunde, art),
-                                      quelle=logik.NEU_QUELLE, dateien=pfade, basis=INSTANZ / "auftraege",
+        aid = auftraege.neuer_auftrag(agent, logik.text_mit_reihe(text, reihe, reihen, stunde, art, extra),
+                                      quelle=quelle, dateien=pfade, basis=INSTANZ / "auftraege",
                                       agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe)
     except (auftraege.AuftragFehler, OSError) as fehler_:
         logger.error("Neuer Auftrag nicht angelegt: %s", fehler_)
-        return _formular(request, text, [logik.FEHLGESCHLAGEN], 500, reihe or "", art, stunde_text)
+        return _formular(request, text, [logik.FEHLGESCHLAGEN], 500, reihe or "", art, stunde_text, extra)
     finally:
         shutil.rmtree(ablage, ignore_errors=True)
         for d in dateien_:
             await d.close()
-    logger.info("Auftrag %s angelegt (%s, %d Dateien, Reihe %s, Stunde %s, %s)", aid, logik.NEU_AGENT, len(pfade),
+    logger.info("Auftrag %s angelegt (%s, %d Dateien, Reihe %s, Stunde %s, %s)", aid, agent, len(pfade),
                 reihe or "keine", stunde[0] if stunde else "keine", modus)
     wunsch = logik.varianten_waehlen([str(w) for w in form.getlist("varianten")]) if art == "arbeitsblatt" else []
     if stunde or wunsch:  # die Web-App merkt sich Stunde und „Auch als“ (zustand.py), die Agenten kennen beides nicht
@@ -492,7 +496,7 @@ async def neu_abschicken(request: Request):
         except OSError as fehler_:
             logger.error("Stunde/Varianten von %s nicht gespeichert: %s", aid, fehler_)
     if modus == "echt":
-        agent_starten(logik.NEU_AGENT)
+        agent_starten(agent)
     erledigt = "auftrag" if modus == "echt" else "auftrag-test"
     if reihe:
         r = next(x for x in reihen if x["id"] == reihe)

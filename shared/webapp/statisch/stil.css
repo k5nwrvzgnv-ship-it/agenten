@@ -509,3 +509,6 @@ button.knopf { font-family: inherit; cursor: pointer; }
 a.baum-fach { display: block; text-decoration: none; }
 a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .baum-eintrag.tiefe-2 { padding-left: 42px; font-weight: 400; font-size: 14px; }
+.bild-skript { background: repeating-linear-gradient(#fff 0 6px, #d0d0d0 6px 8px, #fff 8px 12px, var(--schwarz) 12px 13px); }
+.formular .feld { min-height: 44px; padding: 0 10px; font: inherit; border: 2px solid var(--schwarz); border-radius: 0; }
+.feld-titel { font-weight: 700; margin-top: 8px; }

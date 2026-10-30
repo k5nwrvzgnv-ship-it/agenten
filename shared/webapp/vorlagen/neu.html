@@ -21,7 +21,7 @@
   </a>
   {%- endfor %}
 </div>
-<p class="unter">Mehr Arten (Reihenentwurf, Lernerfolgskontrolle, Spielfassung) kommen, sobald deine Assistenz sie bauen kann.
+<p class="unter">Mehr Arten (Reihenentwurf, Lernerfolgskontrolle) kommen, sobald deine Assistenz sie bauen kann.
   {%- if not ort_fest %} Tipp: Mit „+ Neu hier“ in einer Reihe oder Stunde ist der Ort schon eingetragen.{% endif %}</p>
 {%- else %}
 <form class="formular" method="post" action="/neu" enctype="multipart/form-data">
@@ -33,9 +33,22 @@
   {%- endif %}
   <section>
     <h2><span class="akzent">01</span><label for="wunsch">{{ vorlage.frage }}</label></h2>
+    {%- if vorlage.kurz %}
+    <input class="feld" id="wunsch" name="text" type="text" maxlength="300" required placeholder="{{ vorlage.hint }}" value="{{ text }}">
+    {%- else %}
     <textarea id="wunsch" name="text" rows="6" maxlength="{{ text_max }}" required
               placeholder="{{ vorlage.hint }}">{{ text }}</textarea>
     <span class="unter">Lieber sprechen? Tipp auf das Mikrofon deiner Tastatur.</span>
+    {%- endif %}
+    {%- for name, frage, hint, lang, _ in vorlage.extra or [] %}
+    <label class="feld-titel" for="f-{{ name }}">{{ frage }}</label>
+    {%- if lang %}
+    <textarea id="f-{{ name }}" name="{{ name }}" rows="3" maxlength="1500" placeholder="{{ hint }}">{{ extra.get(name, "") }}</textarea>
+    {%- else %}
+    <input class="feld" id="f-{{ name }}" name="{{ name }}" type="text" maxlength="200" placeholder="{{ hint }}" value="{{ extra.get(name, "") }}">
+    {%- endif %}
+    {%- endfor %}
+    {%- if vorlage.hinweis %}<p class="hinweis">{{ vorlage.hinweis }}</p>{% endif %}
   </section>
   {%- if reihen %}
   <section>
