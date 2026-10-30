@@ -273,9 +273,38 @@ class TestApp(Aufbau):
         self.assertIn("Kurze Umfrage\n\n1. Frage\n   [ ] ja   [ ] nein\n" + "Ende " * 99, html)  # ganz
         self.assertIn("<dt>Einsatz</dt><dd>Lia selbst, auf Papier</dd>", html)
         self.assertIn("Setzt du selbst ein", html)
-        for verboten in ("impuls.md", "0c44bf", "examen", "<button", "<form"):
+        for verboten in ("impuls.md", "0c44bf", "examen"):
             self.assertNotIn(verboten, self.sichtbar(html))
-        self.assertEqual(self.hole("/entwurf/20261025-003745-examen-0c44bf", "POST")[0].status, 405)
+        self.assertIn("Setze ich selbst ein</button>", html)
+
+    def test_entwurf_entscheiden(self):
+        url = "/entwurf/20261025-003745-examen-0c44bf"
+
+        def post(stand, token=None):
+            body, art = multipart({"token": token or app.logik.formular_token(app.GEHEIM), "stand": stand}, [])
+            return self.hole(url, "POST", body=body,
+                             kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
+        self.assertIn("Umfrage vor der Reihe", self.hole("/")[1])
+        self.assertEqual(post("selbst", "falsch")[0].status, 400)
+        self.assertEqual(post("quatsch")[0].status, 400)
+        r, _ = post("selbst")
+        self.assertEqual((r.status, r.getheader("location")), (303, url + "?erledigt=entwurf-selbst"))
+        _, html = self.hole(url + "?erledigt=entwurf-selbst")
+        self.assertIn("Erledigt: Du setzt den Entwurf selbst ein.", html)
+        self.assertIn("Rückgängig</button>", html)
+        self.assertNotIn("Umfrage vor der Reihe", self.hole("/")[1].split("Läuft gerade")[0])  # wartet nicht mehr
+        self.assertTrue((self.instanz / "freigabe" / "offen" / "20261025-003745-examen-0c44bf.json").exists())
+        self.assertEqual(post("")[0].status, 303)
+        self.assertIn("Umfrage vor der Reihe", self.hole("/")[1])
+        # Entwürfe nach außen entscheidet Jan
+        schreibe(self.instanz / "freigabe" / "offen" / "20261025-003745-examen-aaaaaa.json", {
+            "id": "20261025-003745-examen-aaaaaa", "agent": "examen", "typ": "mail", "titel": "Mail",
+            "erstellt": "2026-10-25T00:37:45+02:00", "status": "offen", "inhalt": "x"})
+        self.assertNotIn("<button", self.hole("/entwurf/20261025-003745-examen-aaaaaa")[1])
+        body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "stand": "selbst"}, [])
+        r, _ = self.hole("/entwurf/20261025-003745-examen-aaaaaa", "POST", body=body,
+                         kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
+        self.assertEqual(r.status, 404)
 
     def test_socket_ordner_nur_fuer_agent(self):
         self.assertEqual(stat.S_IMODE(self.sock.parent.stat().st_mode), 0o700)
@@ -410,10 +439,10 @@ class TestOrdnung(Aufbau):
 
     def test_baum_und_ort_in_heute(self):
         _, html = self.hole("/")
-        for text in ('<li class="baum-fach">Ethik</li>',
+        for text in ('<a class="baum-fach" href="/fach/ethik">Ethik</a>',
                      '<a class="baum-eintrag baum-gruppe" href="/klasse/ethik-8"><span>Klasse 8</span></a>',
                      '<a class="baum-eintrag tiefe-1" href="/reihe/strafe"><span>Straftheorien</span></a>',
-                     '<li class="baum-fach">Darstellendes Spiel</li>', '<span>Kurs 12</span>',
+                     '<a class="baum-fach" href="/fach/darstellendes-spiel">Darstellendes Spiel</a>', '<span>Kurs 12</span>',
                      "Ethik › Klasse 8 › Straftheorien"):
             self.assertIn(text, html)
         self.assertNotIn("Theater</", html)
@@ -423,7 +452,7 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.status, 200)
         for text in ("Straftheorien", "Ethik · Klasse 8", "Wozu &lt;strafen&gt; wir?", "Kant; Bentham",
                      "Zur ganzen Reihe", "Umfrage vor der Reihe", 'aria-current="page"><span>Straftheorien</span>',
-                     '<li><span>Ethik</span>', '<a href="/klasse/ethik-8">Klasse 8</a>',
+                     '<li><a href="/fach/ethik">Ethik</a>', '<a href="/klasse/ethik-8">Klasse 8</a>',
                      '<li aria-current="page">Straftheorien</li>'):
             self.assertIn(text, html)
         self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", html)  # Material ohne Reihe steht nur in Heute
@@ -438,7 +467,7 @@ class TestOrdnung(Aufbau):
     def test_klasse(self):
         r, html = self.hole("/klasse/ethik-8")
         self.assertEqual(r.status, 200)
-        for text in ('<li aria-current="page">Klasse 8</li>', '<li><span>Ethik</span>',
+        for text in ('<li aria-current="page">Klasse 8</li>', '<li><a href="/fach/ethik">Ethik</a>',
                      'aria-current="page"><span>Klasse 8</span>', '<a class="zeile" href="/reihe/strafe">',
                      "Wozu &lt;strafen&gt; wir?", "1 Sache", "Zur ganzen Klasse"):
             self.assertIn(text, html)
@@ -510,12 +539,27 @@ class TestOrdnung(Aufbau):
         with self.assertLogs("webapp", "ERROR"):
             self.assertEqual(self.hole("/vorlagen")[0].status, 200)
 
+    def test_fach_und_stunden_im_baum(self):
+        r, html = self.hole("/fach/ethik")
+        self.assertEqual(r.status, 200)
+        for text in ('<a class="baum-fach" href="/fach/ethik" aria-current="page">Ethik</a>', "Klasse 8",
+                     "Läuft: Straftheorien", "1 Reihe · 1 Sache", "Zum ganzen Fach"):
+            self.assertIn(text, html)
+        self.assertEqual(self.hole("/fach/mathe")[0].status, 404)
+        self.post("/reihe/strafe/stunden", {"thema": "Einstieg"})
+        self.assertNotIn("Einstieg", self.hole("/")[1])  # Stunden nur unter der gezeigten Reihe
+        _, html = self.hole("/reihe/strafe")
+        self.assertIn('<a class="baum-eintrag tiefe-2" href="/reihe/strafe/stunde/1"><span>1  Einstieg</span></a>', html)
+        _, html = self.hole("/reihe/strafe/stunde/1")
+        self.assertIn('href="/reihe/strafe/stunde/1" aria-current="page"><span>1  Einstieg</span>', html)
+        self.assertIn('<a class="baum-eintrag tiefe-1" href="/reihe/strafe"><span>', html)  # Reihe nicht markiert
+
     def test_ohne_reihen_und_kaputte_datei(self):
         (self.instanz / "reihen.toml").write_text("[[reihe]\n")
         with self.assertLogs("webapp", "ERROR"):
             r, html = self.hole("/")
         self.assertEqual(r.status, 200)
-        self.assertNotIn('baum-fach">Ethik', html)
+        self.assertNotIn('>Ethik</a>', html)
         self.assertIn('<span class="baum-zahl">', html)
         self.assertEqual(self.hole("/reihe/strafe")[0].status, 404)
 
@@ -589,6 +633,22 @@ class TestOrdnung(Aufbau):
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
             self.assertNotIn("+ Variante", self.hole(f"/ergebnis/{original}")[1])
             self.assertEqual(self.post(f"/ergebnis/{original}/variante", {"art": "einfach"})[0].status, 404)
+
+    def test_nochmal(self):
+        alt = "20261022-232618-unterricht-67ba47"
+        _, html = self.hole(f"/ergebnis/{alt}")
+        self.assertIn("Nochmal</button>", html)
+        self.assertIn("formatvorlage anwenden", self.hole("/")[1].split("Hat nicht geklappt")[1].lower())
+        r, _ = self.post(f"/ergebnis/{alt}/nochmal", {})
+        self.assertEqual((r.status, r.getheader("location")), (303, f"/ergebnis/{alt}?erledigt=nochmal-test"))
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertEqual((a["text"], a.get("bezug")), ("formatvorlage anwenden", None))
+        self.assertEqual(app.zustand_().lesen()["ersetzt"], {alt: a["id"]})
+        _, html = self.hole("/")
+        self.assertNotIn("Hat nicht geklappt", html)
+        self.assertIn("Formatvorlage anwenden", html.split("Läuft gerade")[1])
+        self.assertEqual(self.post(f"/ergebnis/{alt}/nochmal", {})[0].status, 404)  # nicht doppelt
+        self.assertEqual(self.post("/ergebnis/20261030-140944-unterricht-93e29e/nochmal", {})[0].status, 404)
 
     def test_auch_als_im_formular(self):
         self.assertIn('name="varianten" value="tuerkisch"', self.hole("/neu?art=arbeitsblatt")[1])

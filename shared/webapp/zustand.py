@@ -11,7 +11,9 @@ Format:
    "stunden": {"<reihe-id>": [{"thema": "Kant: Vergeltung", "zeit": "<iso>"}]},   Nummer = Platz in der Liste (ab 1)
    "stunde_von": {"<ursprung-id>": {"reihe": "<reihe-id>", "nr": 2}},
    "varianten": {"<ursprung-id>": [{"art": "einfach", "auftrag": "<auftrags-id der variante>", "zeit": "<iso>"}]},
-   "varianten_wunsch": {"<ursprung-id>": ["tuerkisch"]}}   Lias „Auch als“, bis die Variante angefordert ist
+   "varianten_wunsch": {"<ursprung-id>": ["tuerkisch"]},   Lias „Auch als“, bis die Variante angefordert ist
+   "entwuerfe": {"<entwurf-id>": {"stand": "selbst" | "nein", "zeit": "<iso>"}},   Lias Entscheidung (logik)
+   "ersetzt": {"<fehlgeschlagener ursprung>": "<auftrags-id von Nochmal>"}}
 Die reine Logik dazu steht in logik.py (final_setzen, eigene_dazu, stunde_dazu, stunde_zuordnen).
 Stunden kennen die Agenten nicht; ein Auftrag aus einer Stunde nennt sie im Text (logik.text_mit_reihe).
 """
@@ -26,7 +28,7 @@ from pathlib import Path
 logger = logging.getLogger("webapp")
 
 
-FELDER = ("final", "eigene", "stunden", "stunde_von", "varianten", "varianten_wunsch")
+FELDER = ("final", "eigene", "stunden", "stunde_von", "varianten", "varianten_wunsch", "entwuerfe", "ersetzt")
 
 
 def leer() -> dict:

@@ -126,9 +126,36 @@ def entwurf_titel(entwurf: dict) -> str:
     return kurz(ohne_ids(entwurf.get("titel") or "Entwurf"), 80) or "Entwurf"
 
 
+# Lias Entscheidung zu einem Entwurf, den sie selbst einsetzt (typ "entwurf"). Speichert die Web-App (zustand.py,
+# "entwuerfe"), nicht die Freigabe: Entscheidungen der Freigabe trifft nach CLAUDE.md Jan, und kein Agent liest sie
+# für diesen Typ. Entwürfe, die nach außen gehen (Mail usw.), bleiben bei Jan.
+ENTWURF_ENTSCHEIDUNGEN = {"selbst": "Setzt du selbst ein", "nein": "Brauchst du nicht"}
+
+
+def entwurf_lia_darf(entwurf: dict) -> bool:
+    return entwurf.get("typ") == "entwurf"
+
+
 def entwurf_zeile(entwurf: dict, jetzt: datetime) -> dict:
-    return _zeile(entwurf_titel(entwurf), "Entwurf", zeit_text(entwurf.get("erstellt"), jetzt), "Offen",
-                  entwurf_hinweis(entwurf), entwurf_link(entwurf))
+    entschieden = ENTWURF_ENTSCHEIDUNGEN.get(entwurf.get("lia_entscheidung") or "")
+    return _zeile(entwurf_titel(entwurf), "Entwurf", zeit_text(entwurf.get("erstellt"), jetzt),
+                  "Erledigt" if entschieden else "Offen", entschieden or entwurf_hinweis(entwurf),
+                  entwurf_link(entwurf))
+
+
+def entwuerfe_mit_entscheidung(entwuerfe: list[dict], entscheidungen: dict[str, dict]) -> list[dict]:
+    """Offene Entwürfe der Freigabe mit Lias Entscheidung aus der Web-App (Feld lia_entscheidung)."""
+    return [{**e, "lia_entscheidung": (entscheidungen.get(e.get("id") or "") or {}).get("stand", "")}
+            if entwurf_lia_darf(e) else e for e in entwuerfe]
+
+
+def entwurf_entscheiden(zustand_: dict, entwurf_id: str, stand: str, zeit: str) -> dict:
+    """Neuer Zustand mit Lias Entscheidung (stand aus ENTWURF_ENTSCHEIDUNGEN) bzw. ohne (stand "")."""
+    ent = dict(zustand_.get("entwuerfe") or {})
+    ent.pop(entwurf_id, None)
+    if stand:
+        ent[entwurf_id] = {"stand": stand, "zeit": zeit}
+    return {**zustand_, "entwuerfe": ent}
 
 
 def ist_neu(auftrag: dict, jetzt: datetime) -> bool:
@@ -193,13 +220,15 @@ def ketten_zeile(kette: list[dict], jetzt: datetime, marke: str = "") -> dict:
 
 
 def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt: datetime,
-          person: str = "Lia", reihen: list[dict] | None = None, finale: set[str] | None = None) -> dict:
+          person: str = "Lia", reihen: list[dict] | None = None, finale: set[str] | None = None,
+          ersetzt: set[str] = frozenset()) -> dict:
     """Ansichtsdaten für "Heute". neue/erledigte: agentkit.auftraege, entwuerfe: agentkit.freigabe.offene().
 
     Je Kette eine Zeile. Abschnitt, Zeit und "Neu" richten sich nach der jüngsten Fassung; läuft etwas in der
     Kette (Nachbesserung oder Rückmeldung), steht sie unter "Läuft gerade".
     reihen (reihen_aus): jede Zeile nennt ihren Ort als Brotkrume (Fach › Klasse › Reihe).
-    finale: IDs der Ursprünge, die Lia als final markiert hat: Sie warten nicht mehr, stehen unter Fertig."""
+    finale: IDs der Ursprünge, die Lia als final markiert hat: Sie warten nicht mehr, stehen unter Fertig.
+    ersetzt: fehlgeschlagene Ursprünge, die Lia mit „Nochmal“ neu gestartet hat (stehen nicht mehr unter 04)."""
     reihen, finale = reihen or [], finale or set()
 
     def mit_reihe(zeile: dict, eintrag: dict) -> dict:
@@ -215,7 +244,8 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
     ergebnisse = [k for k in fertige if fassungen(k)[-1].get("status") == "erledigt"]
     neu = [k for k in ergebnisse if ist_neu(fassungen(k)[-1], jetzt) and kopf(k)["id"] not in finale]
     wartet = ([mit_reihe(entwurf_zeile(e, jetzt), e)
-               for e in sorted(entwuerfe, key=lambda e: e.get("erstellt") or "", reverse=True)]
+               for e in sorted(entwuerfe, key=lambda e: e.get("erstellt") or "", reverse=True)
+               if not e.get("lia_entscheidung")]
               + [mit_reihe(ketten_zeile(k, jetzt, "Neu"), kopf(k)) for k in neu])
     laeuft = []
     for kette in sorted(laufend, key=lambda k: _zeitpunkt(next(a for a in k if a.get("status") == "neu"))):
@@ -230,7 +260,8 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
             for k in ergebnisse if k not in neu]
     fehlgeschlagen = [mit_reihe({**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1]), 300)},
                                 kopf(k))
-                      for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"]
+                      for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"
+                      and kopf(k)["id"] not in ersetzt]
     n = len(wartet)
     return {
         "datum": datum_text(jetzt),
@@ -457,6 +488,11 @@ HINWEISE = {
     "stunde": "Angelegt. Mit „Gehört zu“ in einem Material ordnest du es hier ein.",
     "thema": "Thema geändert.",
     "zugeordnet": "Eingeordnet.",
+    "nochmal": "Läuft noch einmal. Das Ergebnis erscheint in „Heute“.",
+    "nochmal-test": "Noch einmal angelegt (Testbetrieb, es startet kein Agent).",
+    "entwurf-selbst": "Erledigt: Du setzt den Entwurf selbst ein. Er wartet nicht mehr in „Heute“.",
+    "entwurf-nein": "Erledigt: Du brauchst den Entwurf nicht.",
+    "entwurf-offen": "Wieder offen.",
     "variante": "Die Variante ist unterwegs. Sie erscheint hier unter „Varianten“ und in „Heute“.",
     "variante-test": "Variante angelegt (Testbetrieb, es startet kein Agent).",
     "auftrag": "Dein Auftrag ist unterwegs. Er steht hier und in „Heute“.",
@@ -586,7 +622,8 @@ def betrachter(kette: list[dict], auftrag_id: str, datei: dict, seite: str | Non
 
 
 def entwurf(eintrag: dict, jetzt: datetime) -> dict:
-    """Ansicht eines offenen Entwurfs: ganzer Text, Details aus ENTWURF_DETAILS, keine Knöpfe."""
+    """Ansicht eines offenen Entwurfs: ganzer Text, Details aus ENTWURF_DETAILS. lia_darf: Lia kann selbst
+    entscheiden (typ entwurf), entschieden: ihre Entscheidung als Text."""
     daten = eintrag.get("daten") or {}
     details = [(name, ohne_ids(str(daten[schluessel]))) for schluessel, name in ENTWURF_DETAILS.items()
                if daten.get(schluessel)]
@@ -596,6 +633,8 @@ def entwurf(eintrag: dict, jetzt: datetime) -> dict:
         "inhalt": ohne_ids_lang(eintrag.get("inhalt") or "").strip("\n"),
         "details": details,
         "hinweis": entwurf_hinweis(eintrag),
+        "lia_darf": entwurf_lia_darf(eintrag),
+        "entschieden": ENTWURF_ENTSCHEIDUNGEN.get(eintrag.get("lia_entscheidung") or "", ""),
     }
 
 
@@ -873,6 +912,31 @@ def klasse_link(reihe: dict) -> str:
     return f"/klasse/{reihe['gruppe_id']}"
 
 
+def fach_aktiv(fach_id: str) -> str:
+    return "fach:" + fach_id
+
+
+def fach_ansicht(fach_id: str, reihen: list[dict], zeilen_je: dict[str, list[dict]]) -> dict | None:
+    """Ansicht eines Fachs (nur lesend): Klassen/Kurse mit Zahl der Reihen. Fach-Material (RLP, Operatoren,
+    Referendariat, Regel R3/R6) steht in keiner Datei. Unbekannt: None."""
+    eigene = [r for r in reihen if r["fach_id"] == fach_id]
+    if not eigene:
+        return None
+    gruppen: dict[str, list[dict]] = {}
+    for r in eigene:
+        gruppen.setdefault(r["gruppe_id"], []).append(r)
+    zeilen = []
+    for rs in gruppen.values():
+        laufend = [r["titel"] for r in rs if r["laufend"]]
+        n = sum(len(zeilen_je.get(r["id"], [])) for r in rs)
+        zeilen.append({"titel": rs[0]["gruppe"], "link": klasse_link(rs[0]),
+                       "unter": ("Läuft: " + ", ".join(laufend)) if laufend else "keine laufende Reihe",
+                       "hinweis": f"{len(rs)} {'Reihe' if len(rs) == 1 else 'Reihen'} · "
+                                  + ("noch nichts" if n == 0 else "1 Sache" if n == 1 else f"{n} Sachen"),
+                       "marke": ""})
+    return {"titel": eigene[0]["fach"], "unter": "Fach", "zeilen": zeilen}
+
+
 def klasse_aktiv(gruppe_id: str) -> str:
     """Wert für baum(aktiv=…) in der Klassen-Ansicht (getrennt von Reihen-Kennungen)."""
     return "klasse:" + gruppe_id
@@ -893,9 +957,12 @@ def klasse_ansicht(gruppe_id: str, reihen: list[dict], zeilen_je: dict[str, list
     return {"titel": eigene[0]["gruppe"], "unter": eigene[0]["fach"], "zeilen": zeilen, "reihe": eigene[0]}
 
 
-def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
+def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[str, list[dict]] | None = None,
+         aktiv_stunde: int | None = None) -> list[dict]:
     """Linke Spalte: oben "Heute" mit der Zahl, was wartet, dann je Fach die Klassen/Kurse und ihre Reihen, unten
-    „Mehr“ mit Vorlagen und Ich. aktiv: "heute", "vorlagen", "ich", die Kennung der gezeigten Reihe oder klasse_aktiv(…). art: "eintrag" (Link), "fach"
+    „Mehr“ mit Vorlagen und Ich. Die gezeigte Reihe klappt ihre Stunden aus (stunden: je Reihen-Kennung, aus
+    zustand.py; aktiv_stunde: die gezeigte Stunde). Fach-Überschriften verlinken auf die Fach-Ansicht.
+    aktiv: "heute", "vorlagen", "ich", fach_aktiv(…), die Kennung der gezeigten Reihe oder klasse_aktiv(…). art: "eintrag" (Link), "fach"
     (Überschrift) oder "gruppe" (Klasse/Kurs, Link zur Klassen-Ansicht)."""
     eintraege = [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0, "zahl": anzahl_wartet or "",
                   "aktiv": aktiv == "heute"}]
@@ -903,13 +970,19 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
     for r in reihen:
         faecher.setdefault(r["fach"], {}).setdefault(r["gruppe"], []).append(r)
     for fach, gruppen in faecher.items():
-        eintraege.append({"art": "fach", "text": fach})
+        fid = next(iter(gruppen.values()))[0]["fach_id"]
+        eintraege.append({"art": "fach", "text": fach, "link": f"/fach/{fid}", "aktiv": aktiv == fach_aktiv(fid)})
         for gruppe, reihen_ in gruppen.items():
             eintraege.append({"art": "gruppe", "text": gruppe, "tiefe": 0, "link": klasse_link(reihen_[0]),
                               "aktiv": aktiv == klasse_aktiv(reihen_[0]["gruppe_id"])})
-            eintraege += [{"art": "eintrag", "text": r["titel"] + ("" if r["laufend"] else " (abgeschlossen)"),
-                           "link": reihe_link(r), "tiefe": 1, "zahl": "", "aktiv": aktiv == r["id"]}
-                          for r in reihen_]
+            for r in reihen_:
+                eintraege.append({"art": "eintrag", "text": r["titel"] + ("" if r["laufend"] else " (abgeschlossen)"),
+                                  "link": reihe_link(r), "tiefe": 1, "zahl": "",
+                                  "aktiv": aktiv == r["id"] and not aktiv_stunde})
+                if aktiv == r["id"]:
+                    eintraege += [{"art": "eintrag", "text": f"{nr}  {s['thema']}", "link": stunde_link(r, nr),
+                                   "tiefe": 2, "zahl": "", "aktiv": aktiv_stunde == nr}
+                                  for nr, s in enumerate((stunden or {}).get(r["id"]) or [], 1)]
     eintraege += [{"art": "fach", "text": "Mehr"},
                   {"art": "eintrag", "text": "Vorlagen", "link": "/vorlagen", "tiefe": 0, "zahl": "",
                    "aktiv": aktiv == "vorlagen"},
@@ -918,7 +991,7 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
 
 
 def krumen(hier: str = "", reihe: dict | None = None, ueber: dict | None = None) -> dict:
-    """Brotkrumen über dem Inhalt: Teile mit Link (Fach ohne, es hat keine eigene Ansicht), dann die Seite selbst.
+    """Brotkrumen über dem Inhalt: Teile mit Link (Fach, Klasse, Reihe), dann die Seite selbst.
     Ohne Angaben "Heute"; nur reihe: die Reihen-Ansicht; reihe und hier: eine Seite in der Reihe; nur hier: eine
     Seite ohne Reihe unter "Heute". ueber ({"text", "link"}): eine Seite dazwischen, z. B. das Ergebnis über dem
     Seiten-Betrachter."""
@@ -926,7 +999,8 @@ def krumen(hier: str = "", reihe: dict | None = None, ueber: dict | None = None)
     extra = [{"text": kurz(ueber["text"], KRUME_LANG), "link": ueber["link"]}] if ueber and hier else []
     if reihe is None:
         return {"teile": [{"text": "Heute", "link": "/"}, *extra] if hier else [], "hier": hier or "Heute"}
-    teile = [{"text": reihe["fach"], "link": ""}, {"text": reihe["gruppe"], "link": klasse_link(reihe)}]
+    teile = [{"text": reihe["fach"], "link": f"/fach/{reihe['fach_id']}"},
+             {"text": reihe["gruppe"], "link": klasse_link(reihe)}]
     if not hier:
         return {"teile": teile, "hier": reihe["titel"]}
     return {"teile": [*teile, {"text": reihe["titel"], "link": reihe_link(reihe)}, *extra], "hier": hier}
@@ -934,7 +1008,7 @@ def krumen(hier: str = "", reihe: dict | None = None, ueber: dict | None = None)
 
 def krumen_klasse(reihe: dict) -> dict:
     """Brotkrumen der Klassen-Ansicht: Fach › Klasse (reihe: irgendeine Reihe der Klasse)."""
-    return {"teile": [{"text": reihe["fach"], "link": ""}], "hier": reihe["gruppe"]}
+    return {"teile": [{"text": reihe["fach"], "link": f"/fach/{reihe['fach_id']}"}], "hier": reihe["gruppe"]}
 
 
 # Stunden (Board "Desktop", Jan 30.10.: Lia will die Ebene Stunde). Die Web-App speichert sie selbst (zustand.py),
@@ -1160,3 +1234,21 @@ def varianten_leiste(zustand_: dict, kopf_id: str, auftraege_: list[dict], jetzt
     gewuenscht = [{"art": w, "name": VARIANTEN[w]["name"]}
                   for w in (zustand_.get("varianten_wunsch") or {}).get(kopf_id) or [] if w in VARIANTEN]
     return {"gemacht": gemacht, "gewuenscht": gewuenscht}
+
+
+# „Nochmal“ bei einem Fehlschlag (Board „Desktop“, Heute 03): derselbe Auftrag noch einmal, nur für den
+# Material-Agenten und nur ohne Anhänge (die liegen nach dem ersten Versuch im Agent-Ordner, nicht mehr hier).
+def nochmal_moeglich(kette: list[dict]) -> bool:
+    f = fassungen(kette)
+    letzte = f[-1] if f else {}
+    return (letzte.get("status") == "fehlgeschlagen" and letzte.get("agent") == NEU_AGENT
+            and not letzte.get("dateien") and not any(a.get("status") == "neu" for a in kette))
+
+
+def nochmal_felder(kette: list[dict]) -> dict:
+    """Felder für agentkit.auftraege.neuer_auftrag: Text, quelle, bezug und sitzung des letzten Versuchs, Reihe
+    des Ursprungs. Ein fehlgeschlagener Ursprung bekommt keinen bezug (sonst hielte ihn der Agent für eine
+    Nachbesserung); die Web-App merkt sich dann, dass der neue Auftrag ihn ersetzt (zustand.py: ersetzt)."""
+    letzte, k = fassungen(kette)[-1], kopf(kette)
+    return {"text": letzte.get("text") or "", "quelle": letzte.get("quelle") or NEU_QUELLE,
+            "bezug": letzte.get("bezug"), "sitzung": letzte.get("sitzung"), "reihe": k.get("reihe")}

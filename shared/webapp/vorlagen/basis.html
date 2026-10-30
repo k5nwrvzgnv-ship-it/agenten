@@ -35,7 +35,9 @@
   <a class="baum-name" href="/">Deine Assistenz</a>
   <ul>
     {%- for b in baum %}
-    {%- if b.art == "fach" %}
+    {%- if b.art == "fach" and b.link %}
+    <li><a class="baum-fach" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}>{{ b.text }}</a></li>
+    {%- elif b.art == "fach" %}
     <li class="baum-fach">{{ b.text }}</li>
     {%- elif b.art == "gruppe" %}
     <li><a class="baum-eintrag baum-gruppe" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}><span>{{ b.text }}</span></a></li>

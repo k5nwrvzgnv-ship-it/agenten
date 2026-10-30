@@ -110,13 +110,22 @@
 {%- endif %}
 {%- if e.laeuft %}<p class="hinweis">{{ e.laeuft }}</p>{% endif %}
 
+{%- macro nochmal_knopf() %}
+{%- if nochmal %}
+<form class="final-form" method="post" action="{{ basis_url }}/nochmal">
+  <input type="hidden" name="token" value="{{ token }}">
+  <button class="knopf knopf-voll" type="submit">Nochmal</button>
+</form>
+{%- endif %}
+{%- endmacro %}
 {%- if e.fehlgeschlagen %}
 <section>
   <h2>Hat nicht geklappt</h2>
   <p class="hinweis">{{ e.grund }}</p>
+  {{ nochmal_knopf() }}
 </section>
 {%- else %}
-{%- if e.zuletzt_fehlgeschlagen %}<p class="hinweis">Deine letzte Rückmeldung hat nicht geklappt: {{ e.zuletzt_fehlgeschlagen }}</p>{% endif %}
+{%- if e.zuletzt_fehlgeschlagen %}<p class="hinweis">Deine letzte Rückmeldung hat nicht geklappt: {{ e.zuletzt_fehlgeschlagen }}</p>{{ nochmal_knopf() }}{% endif %}
 {%- set einzeln = e.dateien | length == 1 and e.dateien[0].seiten %}
 <div class="material">
   <div class="material-links{% if einzeln %} material-seiten{% endif %}">

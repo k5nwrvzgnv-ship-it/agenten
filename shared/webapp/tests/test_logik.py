@@ -583,10 +583,10 @@ class TestReihen(unittest.TestCase):
                                                                            ("Ich", "/ich")])
         b = b[:-3]
         self.assertEqual([(e["art"], e["text"], e.get("link", ""), e.get("tiefe")) for e in b], [
-            ("eintrag", "Heute", "/", 0), ("fach", "Ethik", "", None), ("gruppe", "Klasse 8", "/klasse/ethik-8", 0),
+            ("eintrag", "Heute", "/", 0), ("fach", "Ethik", "/fach/ethik", None), ("gruppe", "Klasse 8", "/klasse/ethik-8", 0),
             ("eintrag", "Straftheorien (in Planung)", "/reihe/ethik-8-straftheorien", 1),
             ("eintrag", "Helfen (abgeschlossen)", "/reihe/ethik-8-helfen", 1),
-            ("fach", "Darstellendes Spiel", "", None), ("gruppe", "Kurs 12", "/klasse/darstellendes-spiel-kurs-12", 0),
+            ("fach", "Darstellendes Spiel", "/fach/darstellendes-spiel", None), ("gruppe", "Kurs 12", "/klasse/darstellendes-spiel-kurs-12", 0),
             ("eintrag", "Der nackte Wahnsinn", "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn", 1)])
         self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), (2, True, False))
         b = logik.baum(r, 0, "ethik-8-straftheorien")
@@ -697,6 +697,46 @@ class TestReihen(unittest.TestCase):
             self.assertIsNone(logik.rueckmeldung_ziel([alt, fb, nb], *args), args)
         self.assertEqual(logik.rueckmeldung_text("Kürzer", ziel=z), "Zur Datei „2 Ablauf.docx“, Seite 3: Kürzer")
 
+    def test_entwurf_entscheidung(self):
+        e = {"id": "E", "typ": "entwurf", "titel": "Umfrage", "erstellt": "2026-10-25T00:37:45+02:00"}
+        mail = {"id": "M", "typ": "mail", "titel": "Mail"}
+        z = logik.entwurf_entscheiden({}, "E", "selbst", "t")
+        self.assertEqual(z["entwuerfe"], {"E": {"stand": "selbst", "zeit": "t"}})
+        mit = logik.entwuerfe_mit_entscheidung([e, mail], {**z["entwuerfe"], "M": {"stand": "selbst"}})
+        self.assertEqual((mit[0]["lia_entscheidung"], "lia_entscheidung" in mit[1]), ("selbst", False))
+        self.assertEqual(logik.heute([], [], mit, JETZT)["wartet"][0]["titel"], "Mail")  # nur der offene
+        zeile = logik.entwurf_zeile(mit[0], JETZT)
+        self.assertEqual((zeile["marke"], zeile["hinweis"]), ("Erledigt", "Setzt du selbst ein"))
+        self.assertEqual(logik.entwurf_entscheiden(z, "E", "", "t")["entwuerfe"], {})
+        self.assertTrue(logik.entwurf(e, JETZT)["lia_darf"])
+        self.assertFalse(logik.entwurf(mail, JETZT)["lia_darf"])
+
+    def test_nochmal(self):
+        kaputt = auftrag("20261022-232618-unterricht-67ba47", status="fehlgeschlagen", text="AB", quelle="portal-material",
+                         reihe="r")
+        self.assertTrue(logik.nochmal_moeglich([kaputt]))
+        self.assertEqual(logik.nochmal_felder([kaputt]),
+                         {"text": "AB", "quelle": "portal-material", "bezug": None, "sitzung": None, "reihe": "r"})
+        self.assertFalse(logik.nochmal_moeglich([{**kaputt, "dateien": ["a.pdf"]}]))
+        self.assertFalse(logik.nochmal_moeglich([{**kaputt, "agent": "theater"}]))
+        self.assertFalse(logik.nochmal_moeglich([{**kaputt, "status": "erledigt"}]))
+        gut = auftrag("20261022-200000-unterricht-aaaaaa")
+        nb = auftrag("20261022-210000-unterricht-bbbbbb", status="fehlgeschlagen", bezug=gut["id"], sitzung="s",
+                     text="Nachbesserung zu deinem Ergebnis")
+        self.assertEqual(logik.nochmal_felder([gut, nb])["bezug"], gut["id"])
+        self.assertEqual(logik.nochmal_felder([gut, nb])["sitzung"], "s")
+        h = logik.heute([], [kaputt], [], JETZT, ersetzt={kaputt["id"]})
+        self.assertEqual(h["fehlgeschlagen"], [])
+
+    def test_fach_ansicht(self):
+        r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"},
+                   {**ETHIK, "klasse": "7", "titel": "Tierethik", "stand": "abgeschlossen"})
+        e = logik.fach_ansicht("ethik", r, {"ethik-8-helfen": [{}]})
+        self.assertEqual([(z["titel"], z["unter"], z["hinweis"], z["link"]) for z in e["zeilen"]], [
+            ("Klasse 8", "Läuft: Straftheorien (in Planung)", "2 Reihen · 1 Sache", "/klasse/ethik-8"),
+            ("Klasse 7", "keine laufende Reihe", "1 Reihe · noch nichts", "/klasse/ethik-7")])
+        self.assertIsNone(logik.fach_ansicht("mathe", r, {}))
+
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
         e = logik.klasse_ansicht("ethik-8", r, {"ethik-8-helfen": [{}, {}], "ethik-8-straftheorien": [{}]})
@@ -706,7 +746,7 @@ class TestReihen(unittest.TestCase):
             ("Helfen", "2 Sachen", "Abgeschlossen", "/reihe/ethik-8-helfen")])
         self.assertEqual(e["zeilen"][1]["unter"], "Wem helfen?")
         self.assertIsNone(logik.klasse_ansicht("ethik-9", r, {}))
-        self.assertEqual(logik.krumen_klasse(r[0]), {"teile": [{"text": "Ethik", "link": ""}], "hier": "Klasse 8"})
+        self.assertEqual(logik.krumen_klasse(r[0]), {"teile": [{"text": "Ethik", "link": "/fach/ethik"}], "hier": "Klasse 8"})
         b = logik.baum(r, 0, logik.klasse_aktiv("ethik-8"))
         self.assertEqual([e["text"] for e in b if e.get("aktiv")], ["Klasse 8"])
 
@@ -715,7 +755,7 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.krumen(), {"teile": [], "hier": "Heute"})
         self.assertEqual(logik.krumen("Neuer Auftrag"),
                          {"teile": [{"text": "Heute", "link": "/"}], "hier": "Neuer Auftrag"})
-        self.assertEqual(logik.krumen(reihe=ethik), {"teile": [{"text": "Ethik", "link": ""},
+        self.assertEqual(logik.krumen(reihe=ethik), {"teile": [{"text": "Ethik", "link": "/fach/ethik"},
                                                                {"text": "Klasse 8", "link": "/klasse/ethik-8"}],
                                                      "hier": "Straftheorien (in Planung)"})
         k = logik.krumen("Umfrage", ethik)
