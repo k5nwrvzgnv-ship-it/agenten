@@ -71,7 +71,7 @@ class TestNotentabelle(unittest.TestCase):
         self.assertIn('<pane xSplit="2" ySplit="4" topLeftCell="C5" activePane="bottomRight" state="frozen"/>',
                       self.blatt)
         self.assertIn('<pageSetUpPr fitToPage="1"/>', self.blatt)
-        self.assertIn('<pageSetup paperSize="9" fitToHeight="0" orientation="landscape"/>', self.blatt)
+        self.assertTrue('<pageSetup paperSize="9" orientation="landscape"/>' in self.blatt)  # eine Seite
         self.assertIn('<oddFooter>&amp;CSeite &amp;P von &amp;N</oddFooter>', self.blatt)
         mappe = self.teile["xl/workbook.xml"]
         self.assertIn("<definedName name=\"_xlnm.Print_Titles\" localSheetId=\"0\">Noten!$1:$4</definedName>", mappe)
@@ -101,7 +101,7 @@ class TestEinzelheiten(unittest.TestCase):
         blatt = teile["xl/worksheets/sheet1.xml"]
         self.assertIn("<v>0</v>", zelle(blatt, "A1"))  # Kopf in Zeile 1 (erster gemeinsamer Text)
         self.assertIn('ySplit="1" topLeftCell="A2"', blatt)
-        self.assertIn('<pageSetup paperSize="9" fitToHeight="0" orientation="portrait"/>', blatt)
+        self.assertTrue('<pageSetup paperSize="9" orientation="portrait"/>' in blatt)
         self.assertNotIn("mergeCell", blatt)
 
     def test_pruefregeln(self):
@@ -155,6 +155,19 @@ class TestEinzelheiten(unittest.TestCase):
         self.assertEqual(arbeitsmappe.proben(lesen(self.blatt())), "")  # ohne Rechnung keine Probe
         ohne_eingabe = self.blatt(spalten=[{"id": "a", "kopf": "A", "art": "rechnung", "formel": "1/3"}])
         self.assertIn("keine Eingaben -> A 0,33", arbeitsmappe.proben(lesen(ohne_eingabe)))
+
+    def test_lange_liste_auf_seitenbreite(self):
+        blatt = bauen(self.blatt(zeilen=60))["xl/worksheets/sheet1.xml"]
+        self.assertTrue('<pageSetup paperSize="9" fitToHeight="0" orientation="landscape"/>' in blatt)
+
+    def test_massstab_eine_seite(self):
+        kopf = [21, 13.5, 13.5, 15, 30]  # Lias Notentabelle: Titel, 2 Hinweise, Abstand, Kopf
+        breiten = [5, 28, 9, 9, 9, 9, 9, 12, 9, 12]
+        self.assertAlmostEqual(arbeitsmappe.massstab_eine_seite(kopf + [15] * 35, breiten, False), 0.80, delta=0.01)
+        self.assertLess(arbeitsmappe.massstab_eine_seite(kopf + [15] * 60, breiten, False), arbeitsmappe.MIN_MASSSTAB)
+        self.assertEqual(arbeitsmappe.massstab_eine_seite([15] * 3, [10], False), 1.0)
+        # Hochformat: zu breit für eine Seite, die Breite bestimmt den Maßstab
+        self.assertLess(arbeitsmappe.massstab_eine_seite([15] * 3, breiten, True), 0.9)
 
     def test_keine_vorlage(self):
         with self.assertRaisesRegex(ValueError, "Vorlagen gibt es für xlsx nicht"):

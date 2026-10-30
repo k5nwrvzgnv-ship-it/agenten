@@ -2,7 +2,8 @@
 
 Je Blatt: Titel, Hinweise, Kopfzeile, dann `zeilen` leere Zeilen. Eingabefelder mit Datenüberprüfung (Excel weist
 falsche Werte mit deutscher Meldung ab), Rechenfelder grau mit Formeln aus rechnung.py, kein Blattschutz (Jan
-29.10.). Kopf fixiert, Druck A4 quer auf Seitenbreite, Titel bis Kopfzeile auf jeder Seite, unten Seitenzahl.
+29.10.). Kopf fixiert, Druck A4 quer auf eine Seite, wenn höchstens auf MIN_MASSSTAB verkleinert werden muss (Jan
+29.10.), sonst auf Seitenbreite über mehrere Seiten; Titel bis Kopfzeile auf jeder Seite, unten Seitenzahl.
 Texte von Claude werden nie als Formel gelesen (strings_to_formulas aus), Formeln entstehen nur aus dem Baum.
 """
 
@@ -18,6 +19,9 @@ STANDARD_BREITE = {"nummer": 5, "text": 25, "zahl": 9, "rechnung": 12}  # Zeiche
 TITEL_PT = 14
 HINWEIS_PT = 10
 ZEILE_PT = 15  # Höhe einer Textzeile bei 11 pt
+A4_PT = (595, 842)
+RAND_ZOLL = {"left": 0.6, "right": 0.6, "top": 0.6, "bottom": 0.75}
+MIN_MASSSTAB = 0.7  # kleiner als 70 % wird nicht auf eine Seite gezwungen
 
 
 def bauen(beschreibung: dict, ziel: Path, profil: dict | None = None, vorlage: Path | None = None) -> Path:
@@ -98,6 +102,16 @@ def _zeigen(wert, stellen: int | None) -> str:
     return f"{wert:.{stellen}f}".replace(".", ",")
 
 
+def massstab_eine_seite(hoehen_pt: list[float], breiten: list[float], hochformat: bool) -> float:
+    """Geschätzter Maßstab, mit dem das Blatt auf eine Seite passt (1: ohne Verkleinerung).
+    Spaltenbreite in Zeichen wie in Excel: etwa 7 Pixel je Zeichen plus 5, ein Pixel 0,75 pt."""
+    seite_breit, seite_hoch = A4_PT if hochformat else A4_PT[::-1]
+    nutz_breit = seite_breit - 72 * (RAND_ZOLL["left"] + RAND_ZOLL["right"])
+    nutz_hoch = seite_hoch - 72 * (RAND_ZOLL["top"] + RAND_ZOLL["bottom"])
+    breite_pt = sum((b * 7 + 5) * 0.75 for b in breiten)
+    return min(1.0, nutz_breit / breite_pt, nutz_hoch / sum(hoehen_pt))
+
+
 def zahlformat(spalte: dict) -> str | None:
     """Excel-Zahlformat einer Spalte, None: Standard."""
     if spalte["art"] == "nummer" or spalte["ganz"]:
@@ -174,21 +188,23 @@ def _blatt(ws, blatt: dict, formate: dict):
     for nr, breite in enumerate(breiten):
         ws.set_column(nr, nr, breite)
 
-    zeile = 0
+    hoehen = []  # Zeilenhöhen in pt, für den Druck auf eine Seite
     if blatt["titel"]:
-        _ueber_alle(ws, zeile, letzte, blatt["titel"], formate["titel"])
-        ws.set_row(zeile, TITEL_PT * 1.5)
-        zeile += 1
+        _ueber_alle(ws, len(hoehen), letzte, blatt["titel"], formate["titel"])
+        hoehen.append(TITEL_PT * 1.5)
+        ws.set_row(len(hoehen) - 1, hoehen[-1])
     for hinweis in blatt["hinweise"]:
-        _ueber_alle(ws, zeile, letzte, hinweis, formate["hinweis"])
-        ws.set_row(zeile, _hoehe(hinweis, sum(breiten) * 11 / HINWEIS_PT, HINWEIS_PT * 1.35))
-        zeile += 1
-    if zeile:
-        zeile += 1  # eine Zeile Abstand zur Tabelle
-    kopf = zeile
+        _ueber_alle(ws, len(hoehen), letzte, hinweis, formate["hinweis"])
+        hoehen.append(_hoehe(hinweis, sum(breiten) * 11 / HINWEIS_PT, HINWEIS_PT * 1.35))
+        ws.set_row(len(hoehen) - 1, hoehen[-1])
+    if hoehen:
+        hoehen.append(ZEILE_PT)  # eine Zeile Abstand zur Tabelle
+    kopf = len(hoehen)
     for nr, s in enumerate(spalten):
         ws.write_string(kopf, nr, s["kopf"], formate["kopf"])
-    ws.set_row(kopf, max(_hoehe(s["kopf"], breiten[nr], ZEILE_PT) for nr, s in enumerate(spalten)))
+    hoehen.append(max(_hoehe(s["kopf"], breiten[nr], ZEILE_PT) for nr, s in enumerate(spalten)))
+    ws.set_row(kopf, hoehen[-1])
+    hoehen += [ZEILE_PT] * blatt["zeilen"]
 
     erste, letzte_zeile = kopf + 1, kopf + blatt["zeilen"]
     formeln = {s["id"]: s["baum"] for s in spalten if s["art"] == "rechnung"}
@@ -212,10 +228,13 @@ def _blatt(ws, blatt: dict, formate: dict):
     ws.set_paper(9)  # A4
     if not blatt["hochformat"]:
         ws.set_landscape()
-    ws.fit_to_pages(1, 0)  # Seitenbreite, Höhe beliebig
+    if massstab_eine_seite(hoehen, breiten, blatt["hochformat"]) >= MIN_MASSSTAB:
+        ws.fit_to_pages(1, 1)
+    else:
+        ws.fit_to_pages(1, 0)  # Seitenbreite, Höhe beliebig
     ws.repeat_rows(0, kopf)
     ws.print_area(0, 0, letzte_zeile, letzte)
-    ws.set_margins(left=0.6, right=0.6, top=0.6, bottom=0.75)
+    ws.set_margins(**RAND_ZOLL)
     ws.center_horizontally()
     ws.set_footer("&CSeite &P von &N")
 

@@ -230,7 +230,8 @@ Punkte und zentrierte Absätze höchstens 300 Zeichen.
 Für Tabellen zum Ausfüllen, in denen Excel rechnet, z. B. eine Notentabelle. Du beschreibst nur leere Vorlagen:
 Spalten, Zeilenzahl, Eingabeprüfung und Rechnungen. Werte trägt später die Lehrkraft ein. Jedes Blatt hat oben
 den Titel und die Hinweise, darunter die Kopfzeile und die Zeilen. Die Kopfzeile bleibt beim Blättern stehen,
-gedruckt wird A4 quer auf Seitenbreite mit Seitenzahl. Rechenfelder sind grau hinterlegt.
+gedruckt wird A4 quer mit Seitenzahl: auf eine Seite, wenn das Blatt dafür höchstens auf 70 % verkleinert werden
+muss, sonst auf Seitenbreite über mehrere Seiten. Rechenfelder sind grau hinterlegt.
 
 ```json
 {

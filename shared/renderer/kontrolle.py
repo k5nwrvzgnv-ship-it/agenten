@@ -213,9 +213,11 @@ def _xlsx_blatt(name: str, ws, texte: list[str], stile: list) -> list[str]:
     einrichtung = ws.find(f"{_M}pageSetup")
     druck = ["A4" if einrichtung is not None and einrichtung.get("paperSize") == "9" else "Papier unbekannt",
              "quer" if einrichtung is not None and einrichtung.get("orientation") == "landscape" else "hoch"]
-    seitenbreite = ws.find(f".//{_M}pageSetUpPr")
-    if seitenbreite is not None and seitenbreite.get("fitToPage") == "1" and einrichtung.get("fitToHeight") == "0":
-        druck.append("auf Seitenbreite")
+    einpassen = ws.find(f".//{_M}pageSetUpPr")
+    if einpassen is not None and einpassen.get("fitToPage") == "1" and einrichtung is not None:
+        hoch, breit = einrichtung.get("fitToHeight", "1"), einrichtung.get("fitToWidth", "1")
+        druck.append("auf eine Seite" if (hoch, breit) == ("1", "1") else
+                     "auf Seitenbreite" if (hoch, breit) == ("0", "1") else f"auf {breit} x {hoch} Seiten")
     fixiert = f"bis Zeile {kopf}" + (f" und Spalte {rechnung.spaltenbuchstabe(fixiert_links - 1)}"
                                       if fixiert_links else "")
     zeilen = [f"=== Blatt „{name}“ ({' '.join(druck)}, fixiert {fixiert}, "

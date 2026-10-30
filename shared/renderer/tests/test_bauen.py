@@ -70,7 +70,7 @@ class TestBauen(unittest.TestCase):
         zeilen = e.kontrolltext.split("\n")
         pruefung = "Eingabe, Prüfung ganze Zahl 0 bis 15, Meldung „Bitte eine ganze Zahl von 0 bis 15 eintragen.“, Format 0"
         self.assertEqual(zeilen[:7], [
-            "=== Blatt „Noten“ (A4 quer auf Seitenbreite, fixiert bis Zeile 4 und Spalte B, 35 Zeilen zum Ausfüllen "
+            "=== Blatt „Noten“ (A4 quer auf eine Seite, fixiert bis Zeile 4 und Spalte B, 35 Zeilen zum Ausfüllen "
             "ab Zeile 5)",
             "Zeile 1: Notenübersicht Ethik",
             "Zeile 2: Notenpunkte 0 bis 15 eintragen.",
@@ -131,7 +131,7 @@ class TestBauen(unittest.TestCase):
     def test_mit_vorschau_arbeitsmappe(self):
         e = bauen(NOTEN, self.tmp / "noten.xlsx")
         self.assertEqual(e.hinweise, [])
-        self.assertEqual([b.name for b in e.bilder], ["noten-seite-01.png", "noten-seite-02.png"])  # 35 Zeilen
+        self.assertEqual([b.name for b in e.bilder], ["noten-seite-01.png"])  # 35 Zeilen auf einer Seite
         self.assertTrue(e.pdf.is_file())
 
 

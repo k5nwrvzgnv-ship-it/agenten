@@ -6,8 +6,8 @@ Gemeinsame Bibliothek für Jan und Lia: Claude schreibt eine JSON-Beschreibung, 
 (xlsx, Tabellen zum Ausfüllen mit Rechnungen), mit Kontrolltext und Vorschaubildern für Claude. Claude führt nie Code aus. Nutzer: Lias Material-Agent (Übergabe
 `../../docs/uebergabe-lia-dokumente.md`) und Jans dokumente-Agent (Zusammenfassungen, Hauptordner-STATUS Punkt 3a). Grundlage: `../../docs/lia-architektur.md`, Abschnitt 2.1 (Rolle material).
 
-## Stand (29.10.2026)
-Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 153 Tests). lia/unterricht nutzt Arbeitsblatt
+## Stand (30.10.2026)
+Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 155 Tests). lia/unterricht nutzt Arbeitsblatt
 und Folien.
 Art `arbeitsmappe` (Excel) fertig (29.10.): Lias Notentabelle gebaut (`data/nachbau/notentabelle/`, Vorschau
 angesehen, Calc rechnet wie Python). Offen: Jan öffnet sie in Excel, Vergleich mit der Handvorlage, lia/unterricht
@@ -124,14 +124,17 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
   leere Rechnung "" enthält; COUNT übergeht auch Fehler (#DIV/0!), `ausrechnen()` genauso.
 - Bau (`arbeitsmappe.py`, xlsxwriter): `strings_to_formulas`/`_urls` aus (Text mit `=` bleibt Text), Datenüberprüfung
   mit deutscher Meldung, Zahlformate nur `0`/`0.00`, Rechenfelder `farben.rechenfeld`, Kopf `farben.tabellenkopf`,
-  kein Blattschutz, Kopf fixiert, A4 quer auf Seitenbreite, Titel bis Kopf auf jeder Seite, „Seite x von y“.
+  kein Blattschutz, Kopf fixiert, A4 quer auf eine Seite, wenn dafür höchstens auf 70 % verkleinert wird
+  (`MIN_MASSSTAB`, Schätzung `massstab_eine_seite`), sonst auf Seitenbreite; Titel bis Kopf auf jeder Seite,
+  „Seite x von y“.
   Gespeicherte Werte = Werte einer leeren Zeile (sonst zeigen Programme ohne Neuberechnung 0).
 - Calc rechnet xlsx beim Laden nur neu mit `OOXMLRecalcMode` = 0 im Profil; `vorschau.umwandeln` schreibt das in jedes
   frische Profil. CSV-Ausgabe (`umwandeln(.., "csv")`) zeigt volle Genauigkeit, nur das erste Blatt.
 - Entscheidungen Jan 29.10.: Calc installiert, kein Blattschutz, Nachkommastellen nur Anzeige, ohne LEK zählt der
   Durchschnitt (per `wenn_leer`).
 - Offen: Jan öffnet `data/nachbau/notentabelle/Notentabelle.xlsx` in Excel (Eingabeprüfung, Rechnung, Druck).
-  Handvorlage des lia-Chats zum Vergleich fehlt auf dem Server. 35 Zeilen ergeben 2 Druckseiten (26 + 9).
+  Handvorlage des lia-Chats zum Vergleich fehlt auf dem Server. 35 Zeilen passen auf eine Druckseite (Maßstab
+  etwa 80 %, Vorschau 30.10. neu gebaut und angesehen).
 
 ## Offene Punkte
 1. Logo der HNEE: liegt bisher nur weiß als SVG vor (für dunklen Grund). Besser eine offizielle grüne Logo-Datei
