@@ -17,6 +17,7 @@ import hmac
 import re
 import unicodedata
 from datetime import datetime, timedelta
+from pathlib import Path
 from urllib.parse import urlsplit
 
 NEU_STUNDEN = 48
@@ -29,6 +30,9 @@ ARTEN_NACH_AGENT = {"unterricht": "Material", "theater": "Theater", "recherche":
 DATEIARTEN = {".pdf": ("PDF", "PDFs"), ".docx": ("Word-Datei", "Word-Dateien"),
               ".pptx": ("PowerPoint-Datei", "PowerPoint-Dateien"), ".xlsx": ("Excel-Datei", "Excel-Dateien")}
 DATEIKNOEPFE = {".pdf": "PDF", ".docx": "Word", ".pptx": "PowerPoint", ".xlsx": "Excel"}
+# Knöpfe der Material-Ansicht (Board "Desktop"): lange Fassung der Dateiknöpfe
+OEFFNEN = {".pdf": "PDF zum Drucken", ".docx": "In Word öffnen", ".pptx": "In PowerPoint öffnen",
+           ".xlsx": "In Excel öffnen"}
 TITEL_LANG = 300  # Überschrift in der Ergebnis-Ansicht (in "Heute" 80 Zeichen)
 WOCHENTAGE = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 # Felder aus daten eines Entwurfs, die Lia sieht. Nur diese: andere (z. B. "datei") sind interne Pfade.
@@ -189,13 +193,14 @@ def ketten_zeile(kette: list[dict], jetzt: datetime, marke: str = "") -> dict:
 
 
 def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt: datetime,
-          person: str = "Lia", reihen: list[dict] | None = None) -> dict:
+          person: str = "Lia", reihen: list[dict] | None = None, finale: set[str] | None = None) -> dict:
     """Ansichtsdaten für "Heute". neue/erledigte: agentkit.auftraege, entwuerfe: agentkit.freigabe.offene().
 
     Je Kette eine Zeile. Abschnitt, Zeit und "Neu" richten sich nach der jüngsten Fassung; läuft etwas in der
     Kette (Nachbesserung oder Rückmeldung), steht sie unter "Läuft gerade".
-    reihen (reihen_aus): jede Zeile nennt ihren Ort als Brotkrume (Fach › Klasse › Reihe)."""
-    reihen = reihen or []
+    reihen (reihen_aus): jede Zeile nennt ihren Ort als Brotkrume (Fach › Klasse › Reihe).
+    finale: IDs der Ursprünge, die Lia als final markiert hat: Sie warten nicht mehr, stehen unter Fertig."""
+    reihen, finale = reihen or [], finale or set()
 
     def mit_reihe(zeile: dict, eintrag: dict) -> dict:
         return {**zeile, "reihe": reihe_text(reihe_von(eintrag, reihen))}
@@ -208,7 +213,7 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
             fertige.append(kette)
     fertige.sort(key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True)
     ergebnisse = [k for k in fertige if fassungen(k)[-1].get("status") == "erledigt"]
-    neu = [k for k in ergebnisse if ist_neu(fassungen(k)[-1], jetzt)]
+    neu = [k for k in ergebnisse if ist_neu(fassungen(k)[-1], jetzt) and kopf(k)["id"] not in finale]
     wartet = ([mit_reihe(entwurf_zeile(e, jetzt), e)
                for e in sorted(entwuerfe, key=lambda e: e.get("erstellt") or "", reverse=True)]
               + [mit_reihe(ketten_zeile(k, jetzt, "Neu"), kopf(k)) for k in neu])
@@ -221,7 +226,8 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
                                        "seit " + zeit_text(start, jetzt) if start else "",
                                        hinweis="Arbeitet an deiner Rückmeldung" if len(kette) > 1 else "",
                                        link=ergebnis_link(k) if zeigbar(k) else ""), k))
-    rest = [mit_reihe(ketten_zeile(k, jetzt), kopf(k)) for k in ergebnisse if k not in neu]
+    rest = [mit_reihe(ketten_zeile(k, jetzt, "Final" if kopf(k)["id"] in finale else ""), kopf(k))
+            for k in ergebnisse if k not in neu]
     fehlgeschlagen = [mit_reihe({**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1]), 300)},
                                 kopf(k))
                       for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"]
@@ -285,8 +291,9 @@ def dateien_ansicht(pfade: list[str], vorschauen: list[tuple[bool, bool, int]]) 
         endung = "." + pfad.rsplit(".", 1)[-1].lower() if "." in pfad else ""
         knoepfe = []
         if hat_pdf and endung != ".pdf":
-            knoepfe.append({"text": "PDF", "pfad": "/pdf"})
-        knoepfe.append({"text": DATEIKNOEPFE.get(endung, "Datei"), "pfad": ""})
+            knoepfe.append({"text": "PDF", "lang": OEFFNEN[".pdf"], "pfad": "/pdf"})
+        knoepfe.append({"text": DATEIKNOEPFE.get(endung, "Datei"), "lang": OEFFNEN.get(endung, "Herunterladen"),
+                        "pfad": ""})
         ansicht.append({"nr": nr, "name": datei_name(pfad), "knoepfe": knoepfe, "seiten": seiten,
                         "seiten_text": seiten_text(seiten) if seiten else ""})
     return ansicht
@@ -312,27 +319,54 @@ def _dateien(auftrag: dict | None, vorschauen: dict[str, list[tuple[bool, bool, 
             for d in dateien_ansicht(pfade, vorschauen.get(auftrag["id"]) or [(False, False, 0)] * len(pfade))]
 
 
-def fassung_namen(kette: list[dict]) -> dict[str, str]:
-    """Name jeder Fassung der Kette: "Fassung n" (n zählt den Ursprung und Fassungen mit Dateien), sonst "Antwort"."""
+def eigene_ref(n: int) -> str:
+    """Kennung der n-ten eigenen Fassung von Lia (ab 1), wie eine Auftrags-ID für die Fassungen."""
+    return f"eigene-{n}"
+
+
+def zeitfolge(kette: list[dict], eigene: list[dict] = ()) -> list[tuple[str, dict]]:
+    """Schritte der Kette und Lias eigene Fassungen (Einträge mit zeit, siehe zustand.py) zeitlich gemischt.
+    Gibt (ref, eintrag) zurück: ref ist die Auftrags-ID bzw. eigene_ref(n); eigene Einträge tragen eigene=True."""
+    folge = [(_zeitpunkt(a), a["id"], a) for a in kette]
+    folge += [(_zeitpunkt({"erstellt": e.get("zeit")}), eigene_ref(n), {**e, "eigene": True})
+              for n, e in enumerate(eigene, 1)]
+    return [(ref, x) for _, ref, x in sorted(folge, key=lambda t: t[0])]
+
+
+def fassung_namen(kette: list[dict], eigene: list[dict] = ()) -> dict[str, str]:
+    """Name jeder Fassung: "Fassung n" (n zählt den Ursprung, Fassungen mit Dateien und Lias eigene Fassungen),
+    sonst "Antwort". Schlüssel: Auftrags-ID bzw. eigene_ref(n)."""
     namen, nummer = {}, 0
-    for a in fassungen(kette):
-        if nummer == 0 or a.get("ergebnis_dateien"):
+    for ref, a in zeitfolge(kette, eigene):
+        if a.get("agent") == "feedback":
+            continue
+        if nummer == 0 or a.get("ergebnis_dateien") or a.get("eigene"):
             nummer += 1
-            namen[a["id"]] = f"Fassung {nummer}"
+            namen[ref] = f"Fassung {nummer}"
         else:
-            namen[a["id"]] = "Antwort"
+            namen[ref] = "Antwort"
     return namen
 
 
 def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[tuple[bool, bool, int]]],
-            jetzt: datetime) -> list[dict]:
-    """Schritte der Kette in zeitlicher Folge: Fassungen (bzw. Antworten ohne Dateien) und Lias Rückmeldungen.
+            jetzt: datetime, eigene: list[dict] = (), final_ref: str = "") -> list[dict]:
+    """Schritte der Kette in zeitlicher Folge: Fassungen (bzw. Antworten ohne Dateien), Lias Rückmeldungen und
+    Lias eigene Fassungen.
 
-    art: "fassung" oder "rueckmeldung". aktuell: diese Fassung steht oben in der Ansicht."""
+    art: "fassung", "eigene" oder "rueckmeldung". aktuell: diese Fassung steht oben in der Ansicht.
+    ref: Kennung für "final" (Auftrags-ID bzw. eigene_ref); finalbar: Lia kann sie als final markieren."""
     beantwortet = {a["id"] for a in kette if a.get("agent") != "feedback"}
-    namen = fassung_namen(kette)
+    namen = fassung_namen(kette, eigene)
     schritte = []
-    for a in kette:
+    for ref, a in zeitfolge(kette, eigene):
+        if a.get("eigene"):
+            schritte.append({
+                "art": "eigene", "name": namen[ref], "ref": ref, "von": "von dir", "aktuell": False,
+                "zeit": zeit_text(a.get("zeit"), jetzt), "beschreibung": a.get("notiz") or "",
+                "datei": {"name": datei_name(a.get("name") or ""), "nr": int(ref.rsplit("-", 1)[1]),
+                          "knopf": DATEIKNOEPFE.get(Path(a.get("name") or "").suffix.lower(), "Datei")},
+                "final": ref == final_ref, "finalbar": True})
+            continue
         if a.get("agent") == "feedback":
             nb = (a.get("daten") or {}).get("nachbesserung")
             notiz = ("Wird gerade bearbeitet." if a.get("status") == "neu"
@@ -342,21 +376,27 @@ def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[
                              "notiz": notiz})
             continue
         status = a.get("status")
+        teile = inhalt(a)
         schritte.append({
-            "art": "fassung", "name": namen[a["id"]], "id": a["id"], "aktuell": a is aktuell,
+            "art": "fassung", "name": namen[a["id"]], "id": a["id"], "ref": a["id"], "aktuell": a is aktuell,
+            "von": "vom Assistenten", "beschreibung": kurz(teile["kern"] or next(iter(teile["punkte"]), ""), 120),
+            "final": a["id"] == final_ref,
+            "finalbar": status == "erledigt" and namen[a["id"]] != "Antwort",
             "zeit": ("seit " + zeit_text(a.get("erstellt"), jetzt) if status == "neu"
                      else zeit_text(a.get("abgeschlossen"), jetzt)),
             "notiz": ("Läuft gerade." if status == "neu"
                       else "Hat nicht geklappt: " + grund(a) if status == "fehlgeschlagen" else ""),
-            **inhalt(a),
+            **teile,
             "dateien": _dateien(a, vorschauen) if status == "erledigt" else [],
         })
     return schritte
 
 
-def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int]]], jetzt: datetime) -> dict:
-    """Ansicht eines Auftrags samt Feedback-Schleife (kette aus ketten()): neueste Fassung oben, darunter der
-    Verlauf. vorschauen: je Auftrags-ID die Vorschau-Infos seiner Ergebnisdateien (siehe dateien_ansicht)."""
+def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int]]], jetzt: datetime,
+             eigene: list[dict] = (), final_ref: str = "") -> dict:
+    """Material-Ansicht eines Auftrags samt Feedback-Schleife (kette aus ketten(), Board "Desktop"): neueste
+    Fassung des Assistenten oben, darunter die Fassungen. vorschauen: je Auftrags-ID die Vorschau-Infos seiner
+    Ergebnisdateien (siehe dateien_ansicht). eigene, final_ref: was die Web-App selbst speichert (zustand.py)."""
     nach_id = {a["id"]: a for a in kette}
     k, f = kopf(kette), fassungen(kette)
     fertig = [a for a in f if a.get("status") in ("erledigt", "fehlgeschlagen")]
@@ -366,9 +406,29 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
     dateien_von = _aktuelle_dateien(f)
     laufend = next((a for a in kette if a.get("status") == "neu"), None)
     fehlgeschlagen = aktuell is None
-    schritte = verlauf(kette, aktuell, vorschauen, jetzt)
+    schritte = verlauf(kette, aktuell, vorschauen, jetzt, eigene, final_ref)
+    final = next((x for x in schritte if x.get("final") and x.get("finalbar")), None)
+    oben = (dateien_von or aktuell or {}).get("id") or ""
     dateien_ = _dateien(dateien_von, vorschauen)
+    if final:
+        marke = "Final"
+    elif laufend:
+        marke = "Läuft"
+    elif aktuell is not None and ist_neu(juengste, jetzt):
+        marke = "Neu · wartet"
+    else:
+        marke = ""
+    if len(dateien_) == 1:
+        dateiart = DATEIKNOEPFE.get(Path(dateien_von["ergebnis_dateien"][dateien_[0]["nr"]]).suffix.lower(), "")
+    else:
+        dateiart = dateien_text([dateien_von["ergebnis_dateien"][d["nr"]] for d in dateien_])
     return {
+        "art_zeile": " · ".join(x for x in (art(k), dateiart) if x),
+        "marke": marke,
+        "final_name": final["name"] if final else "",
+        # Knopf "Als final markieren" in der Spalte gilt für die Fassung, deren Dateien oben stehen
+        "aktuell_ref": oben if final_erlaubt(oben, schritte) else "",
+        "aktuell_final": bool(final) and final["ref"] == oben,
         "titel": titel(k, nach_id, TITEL_LANG),
         "unter": " · ".join(x for x in (art(k), zeit_text(juengste.get("abgeschlossen"), jetzt)) if x),
         "fehlgeschlagen": fehlgeschlagen,
@@ -383,15 +443,91 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
         # Die neueste Antwort hat keine Dateien: Sie stammen aus einer früheren Fassung
         "dateien_aus": (next(x["name"] for x in schritte if x.get("id") == dateien_von["id"])
                         if dateien_ and dateien_von is not aktuell else ""),
-        "verlauf": schritte if len(kette) > 1 else [],
+        "verlauf": schritte,
     }
+
+
+VERALTET = "Die Seite war veraltet. Bitte wähle die Dateien neu und schick es noch einmal ab."
+HINWEISE = {
+    "final": "Final. Diese Fassung ist jetzt die, die du nimmst.",
+    "nicht-final": "Nicht mehr final.",
+    "eigene": "Deine Datei ist jetzt die neueste Fassung.",
+    "rueckmeldung": "Rückmeldung ist unterwegs. Die neue Fassung erscheint hier und in „Heute“.",
+    "rueckmeldung-test": "Rückmeldung angelegt (Testbetrieb, es startet kein Agent).",
+}
+
+
+def hinweis_nach(aktion: str, ort: str = "") -> str:
+    """Hinweis oben in der Material-Ansicht nach einer Aktion (?erledigt=…); unbekannt: nichts."""
+    if aktion == "final" and ort:
+        return f"Final. Diese Fassung steht jetzt bei {ort}."
+    return HINWEISE.get(aktion, "")
+
+
+def final_erlaubt(ref: str, schritte: list[dict]) -> bool:
+    """Darf diese Fassung (ref aus verlauf) als final markiert werden?"""
+    return any(x.get("ref") == ref and x.get("finalbar") for x in schritte)
+
+
+def final_setzen(zustand_: dict, kopf_id: str, ref: str, an: bool, zeit: str) -> dict:
+    """Neuer Zustand (zustand.py) mit final an bzw. aus. Je Auftrag ist höchstens eine Fassung final."""
+    final = dict(zustand_.get("final") or {})
+    if an:
+        final[kopf_id] = {"fassung": ref, "zeit": zeit}
+    elif (final.get(kopf_id) or {}).get("fassung") == ref:
+        del final[kopf_id]
+    return {**zustand_, "final": final}
+
+
+def eigene_dazu(zustand_: dict, kopf_id: str, eintrag: dict) -> tuple[dict, int]:
+    """Neuer Zustand mit einer eigenen Fassung mehr und ihre Nummer (ab 1)."""
+    eigene = {k: list(v) for k, v in (zustand_.get("eigene") or {}).items()}
+    eigene.setdefault(kopf_id, []).append(eintrag)
+    return {**zustand_, "eigene": eigene}, len(eigene[kopf_id])
+
+
+EIGENE_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx")
+RUECK_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
+
+
+def datei_pruefen(name: str, groesse: int, endungen: tuple[str, ...]) -> list[str]:
+    """Fehler für eine hochgeladene Datei (eigene Fassung oder Anhang einer Rückmeldung), sonst leer."""
+    if Path(name).suffix.lower() not in endungen:
+        arten = ", ".join(sorted({DATEIKNOEPFE.get(e, "Foto") for e in endungen}))
+        return [f"Diese Datei geht nicht. Möglich sind: {arten}."]
+    if groesse > NEU_DATEI_MAX_MB * 1024 * 1024:
+        return [f"Die Datei ist zu groß (höchstens {NEU_DATEI_MAX_MB} MB)."]
+    return []
+
+
+def rueckmeldung_pruefen(text: str, datei: tuple[str, int] | None) -> tuple[str, list[str]]:
+    """Rückmeldung aus der Material-Ansicht: Text ist Pflicht, eine Datei mit Kommentaren darf dazu."""
+    text = (text or "").strip()
+    fehler = []
+    if not text:
+        fehler.append("Schreib kurz, was anders werden soll.")
+    elif len(text) > NEU_TEXT_MAX:
+        fehler.append(f"Der Text ist zu lang (höchstens {NEU_TEXT_MAX} Zeichen).")
+    if datei:
+        fehler += datei_pruefen(*datei, RUECK_ENDUNGEN)
+    return text, fehler
+
+
+def rueckmeldung_text(text: str, datei_name_: str = "", fassung: str = "") -> str:
+    """Text des Auftrags an den Feedback-Dienst. Eine angehängte Datei liegt als eigene Fassung in der Web-App
+    (die Agenten können sie noch nicht lesen, Bedarf b in Punkt 24 der Haupt-STATUS)."""
+    if not datei_name_:
+        return text
+    return (f"{text}\n\nDazu gibt es eine Datei mit Kommentaren ({datei_name_}, {fassung}). Sie liegt bisher nur in "
+            "der Web-App.")
 
 
 def seiten_text(anzahl: int) -> str:
     return "1 Seite" if anzahl == 1 else f"{anzahl} Seiten"
 
 
-def betrachter(kette: list[dict], auftrag_id: str, datei: dict, seite: str | None) -> dict | None:
+def betrachter(kette: list[dict], auftrag_id: str, datei: dict, seite: str | None,
+               eigene: list[dict] = ()) -> dict | None:
     """Seiten-Betrachter für eine Datei einer Fassung: eine Seite groß, Vor/Zurück, Rückweg zum Ergebnis.
 
     datei aus dateien_ansicht (nr, name, knoepfe, seiten) der Fassung auftrag_id; seite aus ?seite= (Standard 1).
@@ -402,7 +538,7 @@ def betrachter(kette: list[dict], auftrag_id: str, datei: dict, seite: str | Non
         return None
     m = int(wert)
     k = kopf(kette)
-    namen = fassung_namen(kette)
+    namen = fassung_namen(kette, eigene)
     basis = f"/ergebnis/{auftrag_id}/datei/{datei['nr']}"
     seiten = [{"nr": n, "link": f"{basis}/ansehen?seite={n}", "aktiv": n == m} for n in range(1, anzahl + 1)]
     return {

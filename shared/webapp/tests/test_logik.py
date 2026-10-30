@@ -191,9 +191,14 @@ class TestErgebnis(unittest.TestCase):
         self.assertFalse(e["fehlgeschlagen"])
         d1, d2 = e["dateien"]
         self.assertEqual((d1["nr"], d1["name"], d1["seiten"], d1["auftrag"]), (0, "1 Szenenkarte", 17, "A"))
-        self.assertEqual((e["verlauf"], e["dateien_aus"], e["laeuft"]), ([], "", ""))  # ohne Schleife kein Verlauf
-        self.assertEqual(d1["knoepfe"], [{"text": "PDF", "pfad": "/pdf"}, {"text": "Word", "pfad": ""}])
-        self.assertEqual(d2["knoepfe"], [{"text": "Word", "pfad": ""}])
+        self.assertEqual((e["dateien_aus"], e["laeuft"]), ("", ""))
+        self.assertEqual([(x["name"], x["von"], x["aktuell"]) for x in e["verlauf"]],
+                         [("Fassung 1", "vom Assistenten", True)])  # Fassungen auch ohne Schleife
+        self.assertEqual(d1["knoepfe"], [{"text": "PDF", "lang": "PDF zum Drucken", "pfad": "/pdf"},
+                                         {"text": "Word", "lang": "In Word öffnen", "pfad": ""}])
+        self.assertEqual(d2["knoepfe"], [{"text": "Word", "lang": "In Word öffnen", "pfad": ""}])
+        self.assertEqual((e["art_zeile"], e["marke"], e["aktuell_ref"], e["aktuell_final"]),
+                         ("Theater · 2 Word-Dateien", "Neu · wartet", "A", False))
 
     def test_ohne_daten_ganzer_text_in_bloecken(self):
         a = auftrag("A", ergebnis="Erster Absatz.\n\nZweiter.\n- eins\n- zwei\nDanach (Auftrag 20261030-140944-unterricht-93e29e)")
@@ -242,7 +247,7 @@ class TestErgebnis(unittest.TestCase):
         # Sichtbare Texte ohne IDs und Agentennamen (nur "id"/"auftrag" für Links dürfen IDs tragen)
         def ohne_links(x):
             if isinstance(x, dict):
-                return {k: ohne_links(w) for k, w in x.items() if k not in ("id", "auftrag")}
+                return {k: ohne_links(w) for k, w in x.items() if k not in ("id", "auftrag", "ref", "aktuell_ref")}
             return [ohne_links(w) for w in x] if isinstance(x, list) else x
         sichtbar = repr(ohne_links(e))
         for verboten in ("2026102", "theater", "feedback", "runde-"):
@@ -293,7 +298,7 @@ class TestErgebnis(unittest.TestCase):
         d = logik.dateien_ansicht(["a/F.pdf", "a/weg.docx", "a/M.xlsx", "a/D.pptx"],
                                   [(True, True, 2), (False, True, 3), (True, True, 1), (True, False, 0)])
         self.assertEqual([x["nr"] for x in d], [0, 2, 3])  # fehlende Datei fehlt, Nummern bleiben
-        self.assertEqual(d[0]["knoepfe"], [{"text": "PDF", "pfad": ""}])  # PDF nicht doppelt
+        self.assertEqual(d[0]["knoepfe"], [{"text": "PDF", "lang": "PDF zum Drucken", "pfad": ""}])  # nicht doppelt
         self.assertEqual([k["text"] for k in d[1]["knoepfe"]], ["PDF", "Excel"])
         self.assertEqual([k["text"] for k in d[2]["knoepfe"]], ["PowerPoint"])
 
@@ -327,6 +332,74 @@ class TestErgebnis(unittest.TestCase):
 
     def test_seiten_text(self):
         self.assertEqual((logik.seiten_text(1), logik.seiten_text(4)), ("1 Seite", "4 Seiten"))
+
+
+class TestMaterial(unittest.TestCase):
+    """Material-Ansicht wie Board "Desktop": Fassungen samt eigener Fassungen, final, Rückmeldung."""
+
+    def test_eigene_fassung_zeitlich_eingereiht(self):
+        alt, fb, nb = theater_kette()
+        nb = {**nb, "ergebnis_dateien": ["d/neu.docx"]}
+        eigene = [{"name": "Spielfassung.docx", "zeit": "2026-10-30T10:00:00+01:00", "notiz": "mit deinen Kommentaren"}]
+        self.assertEqual(logik.fassung_namen([alt, fb, nb], eigene),
+                         {ALT_ID: "Fassung 1", "eigene-1": "Fassung 2", NB_ID: "Fassung 3"})
+        v = logik.verlauf([alt, fb, nb], nb, {}, JETZT, eigene, "eigene-1")
+        self.assertEqual([(x["art"], x["name"]) for x in v],
+                         [("fassung", "Fassung 1"), ("eigene", "Fassung 2"), ("rueckmeldung", "Deine Rückmeldung"),
+                          ("fassung", "Fassung 3")])
+        self.assertEqual((v[1]["von"], v[1]["beschreibung"], v[1]["datei"], v[1]["final"], v[1]["finalbar"]),
+                         ("von dir", "mit deinen Kommentaren", {"name": "Spielfassung", "nr": 1, "knopf": "Word"},
+                          True, True))
+        self.assertEqual((v[0]["von"], v[0]["beschreibung"], v[0]["final"]),
+                         ("vom Assistenten", "19 Bausteine für 38 Minuten.", False))
+
+    def test_final_und_marke(self):
+        alt, fb, nb = theater_kette()
+        e = logik.ergebnis([alt, fb, nb], {}, JETZT, final_ref=ALT_ID)
+        # Die Antwort ohne Dateien ist keine Fassung zum Markieren; der Knopf gilt für Fassung 1 mit den Dateien
+        self.assertEqual((e["marke"], e["final_name"], e["aktuell_ref"], e["aktuell_final"]),
+                         ("Final", "Fassung 1", ALT_ID, True))
+        self.assertFalse(logik.final_erlaubt(NB_ID, e["verlauf"]))
+        self.assertTrue(logik.final_erlaubt(ALT_ID, e["verlauf"]))
+        self.assertFalse(logik.final_erlaubt("eigene-1", e["verlauf"]))
+        e = logik.ergebnis([alt, fb, nb], {}, JETZT, final_ref=NB_ID)  # ungültig gespeichert: nicht final
+        self.assertEqual((e["marke"], e["aktuell_final"]), ("Neu · wartet", False))
+        laeuft = {**nb, "status": "neu", "abgeschlossen": None}
+        self.assertEqual(logik.ergebnis([alt, fb, laeuft], {}, JETZT)["marke"], "Läuft")
+        alt_alt = {**alt, "abgeschlossen": "2026-10-20T10:00:00+02:00"}
+        self.assertEqual(logik.ergebnis([alt_alt], {}, JETZT)["marke"], "")
+
+    def test_final_setzen_und_eigene_dazu(self):
+        z = {"final": {}, "eigene": {}}
+        z1 = logik.final_setzen(z, "K", "A", True, "t1")
+        self.assertEqual(z1["final"], {"K": {"fassung": "A", "zeit": "t1"}})
+        self.assertEqual(z["final"], {})  # nichts verändert
+        self.assertEqual(logik.final_setzen(z1, "K", "B", True, "t2")["final"]["K"]["fassung"], "B")  # nur eine
+        self.assertEqual(logik.final_setzen(z1, "K", "B", False, "t2")["final"], z1["final"])  # andere bleibt
+        self.assertEqual(logik.final_setzen(z1, "K", "A", False, "t2")["final"], {})
+        z2, n = logik.eigene_dazu(z1, "K", {"name": "a.docx"})
+        z3, n3 = logik.eigene_dazu(z2, "K", {"name": "b.pdf"})
+        self.assertEqual((n, n3, len(z2["eigene"]["K"]), len(z3["eigene"]["K"])), (1, 2, 1, 2))
+
+    def test_heute_final_wartet_nicht(self):
+        a = auftrag("A", abgeschlossen="2026-10-30T14:00:00+01:00")
+        self.assertEqual(logik.heute([], [a], [], JETZT)["anzahl_wartet"], 1)
+        h = logik.heute([], [a], [], JETZT, finale={"A"})
+        self.assertEqual((h["anzahl_wartet"], [z["marke"] for z in h["fertig"]]), (0, ["Final"]))
+
+    def test_rueckmeldung_und_dateien_pruefen(self):
+        self.assertEqual(logik.rueckmeldung_pruefen("  kürzer  ", None), ("kürzer", []))
+        self.assertEqual(logik.rueckmeldung_pruefen(" ", None)[1], ["Schreib kurz, was anders werden soll."])
+        self.assertEqual(len(logik.rueckmeldung_pruefen("x" * 5001, None)[1]), 1)
+        self.assertEqual(logik.rueckmeldung_pruefen("x", ("Foto.JPG", 10))[1], [])
+        self.assertIn("geht nicht", logik.rueckmeldung_pruefen("x", ("a.exe", 10))[1][0])
+        self.assertIn("zu groß", logik.datei_pruefen("a.docx", 21 * 1024 * 1024, logik.EIGENE_ENDUNGEN)[0])
+        self.assertEqual(logik.datei_pruefen("a.png", 1, logik.EIGENE_ENDUNGEN),
+                         ["Diese Datei geht nicht. Möglich sind: Excel, PDF, PowerPoint, Word."])
+        self.assertEqual(logik.rueckmeldung_text("kürzer"), "kürzer")
+        self.assertEqual(logik.rueckmeldung_text("kürzer", "Blatt.docx", "Fassung 2"),
+                         "kürzer\n\nDazu gibt es eine Datei mit Kommentaren (Blatt.docx, Fassung 2). Sie liegt bisher "
+                         "nur in der Web-App.")
 
 
 class TestEntwurf(unittest.TestCase):

@@ -20,6 +20,7 @@ GET:
   /ergebnis/<id>/datei/<n>              Download der n-ten Ergebnisdatei
   /ergebnis/<id>/datei/<n>/pdf          PDF aus der Vorschau des Renderers
   /ergebnis/<id>/datei/<n>/seite/<m>    Seitenbild m (ab 1) der Vorschau
+  /ergebnis/<id>/eigene/<n>             Download von Lias n-ter eigener Fassung (zustand.py)
   /ergebnis/<id>/datei/<n>/ansehen      Seiten-Betrachter (?seite=m, Standard 1): eine Seite groß, Vor/Zurück,
                                         ohne JavaScript; <id> ist die Fassung, aus der die Datei stammt
   /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
@@ -27,13 +28,19 @@ GET:
   /unterricht                           alte Seite, leitet auf / um
   /statisch/...                         CSS, htmx
   /neu                                  Formular Neuer Auftrag (nur Material), nur wenn eingeschaltet
-POST, die einzige Route mit Wirkung:
+POST:
   /neu                                  legt einen Auftrag an (agentkit.auftraege.neuer_auftrag mit basis=)
+  /ergebnis/<id>/rueckmeldung           Rückmeldung an den Feedback-Dienst (Auftrag an feedback, bezug = Fassung),
+                                        wie Neuer Auftrag nur im Testbetrieb oder echt; eine Datei wird eigene Fassung
+  /ergebnis/<id>/final                  Fassung als final markieren oder zurücknehmen (nur in data/, zustand.py)
+  /ergebnis/<id>/eigene                 eigene Fassung hochladen (nur in data/, die Agenten sehen sie nicht)
 
-Neuer Auftrag ist ausgeschaltet, bis WEBAPP_NEUER_AUFTRAG gesetzt ist:
+Neuer Auftrag und Rückmeldung sind ausgeschaltet, bis WEBAPP_NEUER_AUFTRAG gesetzt ist:
   test  nur mit einer anderen Instanz als lia/instanz (WEBAPP_INSTANZ), kein Agent startet
-  echt  jede Instanz, danach startet lia-unterricht.service (Ergebnis kommt auch per Telegram, Lias Kontingent)
-Ohne Konten schützt sich das Formular vor fremden Seiten im selben Browser (CSRF): Origin muss zum Host passen
+  echt  jede Instanz, danach startet lia-unterricht.service bzw. lia-feedback.service (Ergebnis kommt auch per
+        Telegram, Lias Kontingent)
+Final und eigene Fassung schreiben nur in data/ der Web-App (nicht in Lias Instanz) und gehen darum immer.
+Ohne Konten schützen sich die Formulare vor fremden Seiten im selben Browser (CSRF): Origin muss zum Host passen
 und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
 ergebnis_dateien, nie über einen Pfad aus der URL; jeder Pfad wird gegen den Agent-Ordner geprüft (dateien.py).
@@ -66,13 +73,15 @@ from agentkit._ablage import AblageFehler, pruefe_id
 import dateien
 import logik
 import ordnung
+import zustand
 
 HIER = Path(__file__).resolve().parent
 SOCKET = Path(os.environ.get("WEBAPP_SOCKET") or HIER / "data" / "webapp.sock")
 ECHTE_INSTANZ = HIER.parent.parent / "lia" / "instanz"
 INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or ECHTE_INSTANZ)
 NEUER_AUFTRAG = os.environ.get("WEBAPP_NEUER_AUFTRAG", "")  # "", "test" oder "echt" (siehe oben)
-EINGANG = HIER / "data" / "eingang"  # Uploads, bis agentkit sie in den Agent-Ordner verschiebt
+DATEN = HIER / "data"
+EINGANG = DATEN / "eingang"  # Uploads, bis agentkit sie in den Agent-Ordner verschiebt
 UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 GEHEIM = secrets.token_bytes(32)  # für das Formular-Token, neu bei jedem Start
 ZONE = ZoneInfo("Europe/Berlin")
@@ -121,12 +130,17 @@ def reihen_laden() -> list[dict]:
     return reihen
 
 
+def zustand_() -> zustand.Zustand:
+    """Was die Web-App selbst speichert (final, eigene Fassungen), je Instanz."""
+    return zustand.Zustand(DATEN, INSTANZ)
+
+
 def heute_daten(reihen: list[dict] | None = None) -> dict:
     return logik.heute(auftraege.neue(basis=INSTANZ / "auftraege"),
                        auftraege.erledigte(basis=INSTANZ / "auftraege"),
                        freigabe.offene(basis=INSTANZ / "freigabe"),
                        datetime.now(ZONE), config.person(INSTANZ),
-                       reihen if reihen is not None else reihen_laden())
+                       reihen if reihen is not None else reihen_laden(), zustand_().finale())
 
 
 def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int | None = None) -> dict:
@@ -209,27 +223,40 @@ def agent_starten(agent: str) -> None:
         logger.error("Start von %s.service fehlgeschlagen: %s", dienst, lauf.stderr.strip())
 
 
+async def formular_lesen(request: Request, wofuer: str, max_dateien: int):
+    """Formular einer Route mit Wirkung: Herkunft prüfen (403), Größe begrenzen (413), lesen (400)."""
+    if not logik.herkunft_passt(request.headers.get("origin"), request.headers.get("host"),
+                                request.headers.get("sec-fetch-site")):
+        logger.warning("%s abgewiesen: fremde Herkunft", wofuer)
+        raise HTTPException(403)
+    grenze = (max_dateien * logik.NEU_DATEI_MAX_MB + 1) * 1024 * 1024
+    if int(request.headers.get("content-length") or 0) > grenze:
+        raise HTTPException(413)
+    try:
+        return await request.form(max_files=max_dateien + 1, max_fields=5, max_part_size=64 * 1024)
+    except Exception:  # kaputtes oder zu großes Formular (MultiPartException u. a.)
+        logger.warning("%s: Formular nicht lesbar", wofuer)
+        raise HTTPException(400) from None
+
+
+def datei_ablegen(upload: UploadFile, ordner: Path) -> Path:
+    """Hochgeladene Datei mit bereinigtem Namen in einen neuen Ordner schreiben."""
+    pfad = ordner / logik.dateiname_bereinigen(upload.filename)
+    ordner.mkdir(parents=True)
+    with pfad.open("wb") as ziel:
+        shutil.copyfileobj(upload.file, ziel)
+    return pfad
+
+
 @app.post("/neu", response_class=HTMLResponse)
 async def neu_abschicken(request: Request):
     modus = neu_modus()
     if not modus:
         raise HTTPException(404)
-    if not logik.herkunft_passt(request.headers.get("origin"), request.headers.get("host"),
-                                request.headers.get("sec-fetch-site")):
-        logger.warning("Neuer Auftrag abgewiesen: fremde Herkunft")
-        raise HTTPException(403)
-    grenze = (logik.NEU_DATEIEN_MAX * logik.NEU_DATEI_MAX_MB + 1) * 1024 * 1024
-    if int(request.headers.get("content-length") or 0) > grenze:
-        raise HTTPException(413)
-    try:
-        form = await request.form(max_files=logik.NEU_DATEIEN_MAX + 1, max_fields=5, max_part_size=64 * 1024)
-    except Exception:  # kaputtes oder zu großes Formular (MultiPartException u. a.)
-        logger.warning("Neuer Auftrag: Formular nicht lesbar")
-        raise HTTPException(400) from None
+    form = await formular_lesen(request, "Neuer Auftrag", logik.NEU_DATEIEN_MAX)
     text, gewaehlt = str(form.get("text") or ""), str(form.get("reihe") or "")
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
-        return _formular(request, text, ["Die Seite war veraltet. Bitte wähle die Dateien neu und schick es noch "
-                                         "einmal ab."], 400, gewaehlt)
+        return _formular(request, text, [logik.VERALTET], 400, gewaehlt)
     dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
     text, fehler = logik.neuer_auftrag_pruefen(text, [(d.filename, d.size or 0) for d in dateien_])
     reihen = reihen_laden()
@@ -241,11 +268,7 @@ async def neu_abschicken(request: Request):
     try:
         pfade = []
         for nr, d in enumerate(dateien_):  # je Datei ein Unterordner: gleiche Namen überschreiben sich nicht
-            pfad = ablage / str(nr) / logik.dateiname_bereinigen(d.filename)
-            pfad.parent.mkdir()
-            with pfad.open("wb") as ziel:
-                shutil.copyfileobj(d.file, ziel)
-            pfade.append(pfad)
+            pfade.append(datei_ablegen(d, ablage / str(nr)))
         aid = auftraege.neuer_auftrag(logik.NEU_AGENT, logik.text_mit_reihe(text, reihe, reihen),
                                       quelle=logik.NEU_QUELLE, dateien=pfade, basis=INSTANZ / "auftraege",
                                       agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe)
@@ -290,8 +313,8 @@ def _ausliefern(pfad: Path | None, herunterladen: bool = True) -> FileResponse:
     return FileResponse(pfad, filename=pfad.name if herunterladen else None)
 
 
-@app.get("/ergebnis/{eintrag_id}", response_class=HTMLResponse)
-def seite_ergebnis(request: Request, eintrag_id: str):
+def _kette(eintrag_id: str) -> tuple[list[dict], dict]:
+    """Kette und Kopf zu einer ID aus der Instanz (auch Nachbesserung oder Rückmeldung); sonst 404."""
     try:
         auftrag = auftraege.erledigter(eintrag_id, basis=INSTANZ / "auftraege")  # prüft die ID (pruefe_id)
     except AblageFehler:
@@ -303,16 +326,164 @@ def seite_ergebnis(request: Request, eintrag_id: str):
     kopf = logik.kopf(kette)
     if not logik.zeigbar(kopf):  # z. B. Rückmeldung zu einem unbekannten Ergebnis
         raise HTTPException(404)
-    if kopf["id"] != eintrag_id:
-        return RedirectResponse(f"/ergebnis/{kopf['id']}", status_code=303)
+    return kette, kopf
+
+
+def _material(kette: list[dict], kopf: dict) -> tuple[dict, list[dict], dict]:
+    """Ansicht des Materials samt dem, was die Web-App selbst gespeichert hat: (Ansicht, eigene Fassungen, Zustand)."""
+    z = zustand_().lesen()
+    eigene = list(z["eigene"].get(kopf["id"]) or [])
     vorschauen = {a["id"]: dateien.vorschau_info(dateien.agent_ordner(INSTANZ, a.get("agent")),
                                                  a.get("ergebnis_dateien") or [])
                   for a in logik.fassungen(kette) if a.get("status") == "erledigt"}
-    e = logik.ergebnis(kette, vorschauen, datetime.now(ZONE))
+    final_ref = (z["final"].get(kopf["id"]) or {}).get("fassung") or ""
+    return logik.ergebnis(kette, vorschauen, datetime.now(ZONE), eigene, final_ref), eigene, z
+
+
+def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str = "", hinweis: str = "",
+                    fehler: list[str] | None = None, text: str = "", status: int = 200):
+    e, _, _ = _material(kette, kopf)
     reihen = reihen_laden()
     reihe = logik.reihe_von(kopf, reihen)
     return vorlagen.TemplateResponse(request, "ergebnis.html", {
-        "e": e, **rahmen(reihen, logik.krumen(e["titel"], reihe), reihe["id"] if reihe else "")})
+        "e": e, "kopf_id": kopf["id"], "basis_url": logik.ergebnis_link(kopf), "token": logik.formular_token(GEHEIM),
+        "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene") else "",
+        "hinweis": hinweis, "fehler": fehler or [], "text": text, "text_max": logik.NEU_TEXT_MAX,
+        "rueck_endungen": ",".join(logik.RUECK_ENDUNGEN), "eigene_endungen": ",".join(logik.EIGENE_ENDUNGEN),
+        **rahmen(reihen, logik.krumen(e["titel"], reihe), reihe["id"] if reihe else "")}, status_code=status)
+
+
+@app.get("/ergebnis/{eintrag_id}", response_class=HTMLResponse)
+def seite_ergebnis(request: Request, eintrag_id: str):
+    kette, kopf = _kette(eintrag_id)
+    if kopf["id"] != eintrag_id:
+        return RedirectResponse(f"/ergebnis/{kopf['id']}", status_code=303)
+    reihe = logik.reihe_von(kopf, reihen_laden())
+    hinweis = logik.hinweis_nach(request.query_params.get("erledigt") or "", logik.reihe_text(reihe))
+    return _ergebnis_seite(request, kette, kopf, request.query_params.get("offen") or "", hinweis)
+
+
+def _kopf_fuer_post(eintrag_id: str) -> tuple[list[dict], dict]:
+    """Aktionen gehen nur an die Ansicht selbst (ID des Ursprungs), sonst 404."""
+    kette, kopf = _kette(eintrag_id)
+    if kopf["id"] != eintrag_id:
+        raise HTTPException(404)
+    return kette, kopf
+
+
+def _fertig(kopf: dict, was: str) -> RedirectResponse:
+    return RedirectResponse(f"{logik.ergebnis_link(kopf)}?erledigt={was}", status_code=303)
+
+
+@app.post("/ergebnis/{eintrag_id}/final", response_class=HTMLResponse)
+async def ergebnis_final(request: Request, eintrag_id: str):
+    kette, kopf = _kopf_fuer_post(eintrag_id)
+    form = await formular_lesen(request, "Final", 0)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return _ergebnis_seite(request, kette, kopf, hinweis=logik.VERALTET, status=400)
+    e, _, z = _material(kette, kopf)
+    ref, an = str(form.get("ref") or ""), form.get("an") == "1"
+    if not logik.final_erlaubt(ref, e["verlauf"]):
+        raise HTTPException(404)
+    try:
+        zustand_().schreiben(logik.final_setzen(z, kopf["id"], ref, an, datetime.now(ZONE).isoformat()))
+    except OSError as fehler_:
+        logger.error("Final nicht gespeichert: %s", fehler_)
+        return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
+    logger.info("Final %s: %s (%s)", "an" if an else "aus", kopf["id"], ref)
+    return _fertig(kopf, "final" if an else "nicht-final")
+
+
+def _eigene_speichern(kette: list[dict], kopf: dict, upload: UploadFile, notiz: str) -> tuple[str, str]:
+    """Lias Datei als nächste eigene Fassung ablegen und im Zustand eintragen: (Dateiname, Name der Fassung)."""
+    z_ = zustand_()
+    z = z_.lesen()
+    n = len(z["eigene"].get(kopf["id"]) or []) + 1
+    ordner = z_.ordner_eigene(kopf["id"], n)
+    shutil.rmtree(ordner, ignore_errors=True)  # Rest eines abgebrochenen Versuchs
+    pfad = datei_ablegen(upload, ordner)
+    eintrag = {"name": pfad.name, "datei": f"{n}/{pfad.name}", "zeit": datetime.now(ZONE).isoformat(), "notiz": notiz}
+    neu, n = logik.eigene_dazu(z, kopf["id"], eintrag)
+    try:
+        z_.schreiben(neu)
+    except OSError:
+        shutil.rmtree(ordner, ignore_errors=True)
+        raise
+    return pfad.name, logik.fassung_namen(kette, neu["eigene"][kopf["id"]])[logik.eigene_ref(n)]
+
+
+@app.post("/ergebnis/{eintrag_id}/eigene", response_class=HTMLResponse)
+async def ergebnis_eigene(request: Request, eintrag_id: str):
+    kette, kopf = _kopf_fuer_post(eintrag_id)
+    form = await formular_lesen(request, "Eigene Fassung", 1)
+    datei = form.get("datei")
+    try:
+        if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+            return _ergebnis_seite(request, kette, kopf, "eigene", fehler=[logik.VERALTET], status=400)
+        if not isinstance(datei, UploadFile) or not datei.filename:
+            return _ergebnis_seite(request, kette, kopf, "eigene", fehler=["Wähle eine Datei aus."], status=400)
+        fehler = logik.datei_pruefen(datei.filename, datei.size or 0, logik.EIGENE_ENDUNGEN)
+        if fehler:
+            return _ergebnis_seite(request, kette, kopf, "eigene", fehler=fehler, status=400)
+        try:
+            _eigene_speichern(kette, kopf, datei, "")
+        except OSError as fehler_:
+            logger.error("Eigene Fassung nicht gespeichert: %s", fehler_)
+            return _ergebnis_seite(request, kette, kopf, "eigene", fehler=[logik.FEHLGESCHLAGEN], status=500)
+    finally:
+        if isinstance(datei, UploadFile):
+            await datei.close()
+    logger.info("Eigene Fassung zu %s gespeichert", kopf["id"])
+    return _fertig(kopf, "eigene")
+
+
+@app.post("/ergebnis/{eintrag_id}/rueckmeldung", response_class=HTMLResponse)
+async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
+    modus = neu_modus()
+    if not modus:
+        raise HTTPException(404)
+    kette, kopf = _kopf_fuer_post(eintrag_id)
+    form = await formular_lesen(request, "Rückmeldung", 1)
+    datei = form.get("datei")
+    datei = datei if isinstance(datei, UploadFile) and datei.filename else None
+    text = str(form.get("text") or "")
+    try:
+        if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+            return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[logik.VERALTET], text=text,
+                                   status=400)
+        text, fehler = logik.rueckmeldung_pruefen(text, (datei.filename, datei.size or 0) if datei else None)
+        # wie in Telegram: die Rückmeldung gilt der neuesten fertigen Fassung des Assistenten
+        bezug = next((a["id"] for a in reversed(logik.fassungen(kette)) if a.get("status") == "erledigt"), "")
+        if not bezug:
+            raise HTTPException(404)
+        if fehler:
+            return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=fehler, text=text, status=400)
+        try:
+            name, fassung = _eigene_speichern(kette, kopf, datei, "mit deinen Kommentaren") if datei else ("", "")
+            fid = auftraege.neuer_auftrag("feedback", logik.rueckmeldung_text(text, name, fassung),
+                                          quelle="feedback", bezug=bezug, basis=INSTANZ / "auftraege")
+        except (auftraege.AuftragFehler, OSError) as fehler_:
+            logger.error("Rückmeldung nicht angelegt: %s", fehler_)
+            return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[logik.FEHLGESCHLAGEN], text=text,
+                                   status=500)
+    finally:
+        if datei:
+            await datei.close()
+    logger.info("Rückmeldung %s zu %s angelegt (%s, Datei: %s)", fid, bezug, modus, "ja" if datei else "nein")
+    if modus == "echt":
+        agent_starten("feedback")
+    return _fertig(kopf, "rueckmeldung" if modus == "echt" else "rueckmeldung-test")
+
+
+@app.get("/ergebnis/{eintrag_id}/eigene/{nr:int}")
+def eigene_datei(eintrag_id: str, nr: int):
+    _, kopf = _kopf_fuer_post(eintrag_id)
+    z_ = zustand_()
+    eigene = z_.lesen()["eigene"].get(kopf["id"]) or []
+    if not 1 <= nr <= len(eigene):
+        raise HTTPException(404)
+    return _ausliefern(dateien.sicher(z_.ablage / kopf["id"], str(eigene[nr - 1].get("datei") or ""),
+                                      set(logik.RUECK_ENDUNGEN)))
 
 
 @app.get("/ergebnis/{eintrag_id}/datei/{nr:int}")
@@ -342,7 +513,8 @@ def seite_ansehen(request: Request, eintrag_id: str, nr: int, seite: str | None 
                  None)
     basis = INSTANZ / "auftraege"
     kette = logik.kette_von(eintrag_id, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)])
-    e = logik.betrachter(kette, eintrag_id, datei, seite) if datei else None
+    eigene = zustand_().lesen()["eigene"].get(logik.kopf(kette).get("id"), []) if kette else []
+    e = logik.betrachter(kette, eintrag_id, datei, seite, eigene) if datei else None
     if e is None:
         raise HTTPException(404)
     reihen = reihen_laden()

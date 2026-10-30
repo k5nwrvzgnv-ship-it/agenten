@@ -331,15 +331,6 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 .details dd { margin: 0; }
 
 /* Verlauf eines Auftrags mit Feedback-Schleife: Fassungen und Lias Rückmeldungen, frühere Fassungen aufklappbar */
-.verlauf { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--schwarz); }
-.schritt { display: flex; flex-direction: column; gap: 6px; padding: 12px 0 12px 16px; border-left: 3px solid var(--schwarz); }
-.schritt-rueckmeldung { border-left-color: var(--akzent); }
-.schritt-kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-height: 24px; }
-summary.schritt-kopf { cursor: pointer; list-style: none; }
-summary.schritt-kopf::-webkit-details-marker { display: none; }
-summary.schritt-kopf::before { content: "+"; font-weight: 700; width: 12px; }
-details[open] > summary.schritt-kopf::before { content: "–"; }
-summary.schritt-kopf:hover b { color: var(--akzent); }
 .schritt-inhalt { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
 .zitat { margin: 0; font-size: 16px; }
 
@@ -386,4 +377,82 @@ summary.schritt-kopf:hover b { color: var(--akzent); }
   border-radius: 0;
   background: var(--weiss);
   color: var(--schwarz);
+}
+
+/* Material-Ansicht (Board "Desktop"): Kopf, Seiten | Knöpfe, Tafel für Rückmeldung, Fassungen */
+.material-kopf {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 3px solid var(--schwarz);
+  padding-bottom: 12px;
+}
+.material-art { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--grau); }
+.material-marke { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--akzent); }
+.marke-final { align-self: flex-start; padding: 2px 8px; background: var(--schwarz); color: var(--weiss); }
+
+.material { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.material-seiten { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.blatt { display: block; }
+.blatt img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 210 / 297;
+  object-fit: contain;
+  border: 1px solid var(--schwarz);
+  background: var(--weiss);
+}
+.blatt:hover img, .blatt:focus-visible img { border-color: var(--akzent); outline: 1px solid var(--akzent); }
+.material-text { display: flex; flex-direction: column; gap: 10px; }
+.material-knoepfe { display: flex; flex-direction: column; gap: 8px; }
+.final-form { display: contents; }
+.knopf-spalte {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--schwarz);
+  background: var(--weiss);
+  color: var(--schwarz);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.knopf-spalte:hover, .knopf-spalte:focus-visible { border-color: var(--akzent); color: var(--akzent); }
+.knopf-spalte.ist-final, .knopf-spalte.ist-offen { background: var(--schwarz); color: var(--weiss); }
+.knopf-spalte.ist-final:hover, .knopf-spalte.ist-offen:hover { background: var(--akzent); border-color: var(--akzent); color: var(--weiss); }
+.knopf-klein { min-height: 32px; padding: 0 10px; font-size: 13px; align-self: flex-start; cursor: pointer; font-family: inherit; }
+button.knopf { font-family: inherit; cursor: pointer; }
+.hinweis-erledigt { font-weight: 700; }
+
+.tafel { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 2px solid var(--schwarz); }
+.tafel .formular { gap: 10px; }
+.tafel-titel { font-weight: 700; }
+.datei-wahl { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.tafel .knopf { align-self: flex-start; }
+
+.fassung-zeile {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--schwarz);
+  align-items: baseline;
+}
+.fassungen .fassung-zeile:last-child { border-bottom: 1px solid var(--schwarz); }
+.fassung-name { font-weight: 700; }
+.fassung-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fassung-rueckmeldung .fassung-name { color: var(--akzent); }
+.fassung-marke { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.fassung-text summary { cursor: pointer; font-size: 14px; font-weight: 700; }
+.fassung-text summary:hover { color: var(--akzent); }
+
+@media (max-width: 760px) {
+  .material { grid-template-columns: minmax(0, 1fr); }
+  .fassung-zeile { grid-template-columns: minmax(0, 1fr) auto; }
+  .fassung-name { grid-column: 1 / -1; }
 }

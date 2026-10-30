@@ -82,9 +82,10 @@ class Aufbau(unittest.TestCase):
             "ergebnis": "Gerade ist das gemeinsame Kontingent aufgebraucht.", "ergebnis_dateien": []})
         (self.instanz / ".env").write_text("PERSON=Lia\n")
         (self.instanz / ".env").chmod(0o600)
-        patch = mock.patch.object(app, "INSTANZ", self.instanz)
-        patch.start()
-        self.addCleanup(patch.stop)
+        for name, wert in (("INSTANZ", self.instanz), ("DATEN", self.tmp / "webdaten")):
+            patch = mock.patch.object(app, name, wert)
+            patch.start()
+            self.addCleanup(patch.stop)
 
         self.sock = self.tmp / "data" / "webapp.sock"
         app.socket_vorbereiten(self.sock)
@@ -111,8 +112,8 @@ class Aufbau(unittest.TestCase):
         return r, inhalt if roh else inhalt.decode("utf-8")
 
     def sichtbar(self, html):
-        """HTML ohne Links: IDs dürfen nur in href stehen."""
-        return re.sub(r'(href|src)="[^"]*"', "", html)
+        """HTML ohne Links und versteckte Formularwerte: IDs dürfen nur dort stehen."""
+        return re.sub(r'(href|src|action|value)="[^"]*"', "", html)
 
 
 class TestApp(Aufbau):
@@ -171,19 +172,25 @@ class TestApp(Aufbau):
     def test_ergebnis(self):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
         self.assertEqual(r.status, 200)
-        for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · heute 14:40", "Ein Arbeitsblatt zu Kant.",
-                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "2 Seiten · ansehen", "Dateien",
-                     '<a href="/">Heute</a>',
-                     "Etwa zwei Seiten, passt in eine Stunde.", "Aus Fassung 1", "Verlauf", "Deine Rückmeldung",
-                     "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>"):
+        # Material-Ansicht wie Board "Desktop": Kopf, zwei Seiten, Knopf-Spalte, Das Wichtigste, Fassungen
+        for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · Word", "Neu · wartet",
+                     "Ein Arbeitsblatt zu Kant.", "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste",
+                     '<a href="/">Heute</a>', "Etwa zwei Seiten, passt in eine Stunde.", "aus Fassung 1",
+                     "Fassungen", "Deine Rückmeldung", "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>",
+                     ">In Word öffnen<", ">PDF zum Drucken<", ">Als final markieren<", ">Rückmeldung geben<",
+                     ">Eigene Fassung hochladen<", "vom Assistenten, heute 14:16", "2 Seiten · ansehen"):
             self.assertIn(text, html)
         basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
-        self.assertIn(f'href="{basis}/pdf"', html)
-        self.assertIn(f'href="{basis}"', html)
-        # je Datei eine Karte mit der ersten Seite klein, auch an der früheren Fassung im Verlauf
-        self.assertEqual(html.count(f'src="{basis}/seite/1"'), 2)
-        self.assertEqual(html.count(f'<a class="dateiname" href="{basis}/ansehen">Arbeitsblatt</a>'), 2)
-        self.assertNotIn(f"{basis}/seite/2", html)
+        self.assertIn(f'href="{basis}/pdf" download>PDF zum Drucken', html)
+        self.assertIn(f'href="{basis}" download>In Word öffnen', html)
+        # oben die ersten zwei Seiten zum Durchblättern, an der früheren Fassung die Karte
+        for m in (1, 2):
+            self.assertIn(f'href="{basis}/ansehen?seite={m}"', html)
+            self.assertIn(f'src="{basis}/seite/{m}"', html)
+        self.assertEqual(html.count(f'<a class="dateiname" href="{basis}/ansehen">Arbeitsblatt</a>'), 1)
+        self.assertLess(html.index("vom Assistenten, heute 14:40"), html.index("vom Assistenten, heute 14:16"))
+        self.assertNotIn("<script", html)
+        self.assertNotIn('id="rueck-text"', html)  # Rückmeldung erst nach Klick
         for verboten in ("93e29e", "unterricht", "data/arbeit", "Wie ist es", "Anmerk"):
             self.assertNotIn(verboten, self.sichtbar(html))
 
@@ -460,3 +467,107 @@ class TestHtmx(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMaterial(Aufbau):
+    """Aktionen der Material-Ansicht: final, eigene Fassung, Rückmeldung."""
+
+    URL = "/ergebnis/20261030-140944-unterricht-93e29e"
+    F1 = "20261030-140944-unterricht-93e29e"
+
+    def sende(self, pfad, felder, dateien=(), feld="datei", token=None, origin="http://localhost"):
+        felder = {"token": token or app.logik.formular_token(app.GEHEIM), **felder}
+        body, art = multipart(felder, list(dateien))
+        body = body.replace(b'name="dateien"', f'name="{feld}"'.encode())
+        kopf = {"Content-Type": art, "Content-Length": str(len(body))}
+        if origin:
+            kopf |= {"Origin": origin, "Host": "localhost", "Sec-Fetch-Site": "same-origin"}
+        return self.hole(self.URL + pfad, "POST", body=body, kopf=kopf)
+
+    def neue(self):
+        ordner = self.instanz / "auftraege" / "neu"
+        return [json.loads(p.read_text()) for p in sorted(ordner.glob("*.json"))] if ordner.exists() else []
+
+    def test_final_an_und_aus(self):
+        r, _ = self.sende("/final", {"ref": self.F1, "an": "1"})
+        self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=final"))
+        _, html = self.hole(self.URL + "?erledigt=final")
+        for text in ("Final. Diese Fassung ist jetzt die, die du nimmst.", ">Final · rückgängig<",
+                     '<span class="material-marke marke-final">Final</span>'):
+            self.assertIn(text, html)
+        _, heute = self.hole("/")
+        self.assertIn('<span class="baum-zahl">1</span>', heute)  # final wartet nicht mehr, nur der Entwurf
+        self.assertIn(">Final<", heute)
+        self.assertEqual(self.sende("/final", {"ref": self.F1, "an": "0"})[0].status, 303)
+        self.assertNotIn("Final · rückgängig", self.hole(self.URL)[1])
+        self.assertEqual(self.neue(), [])  # nichts in Lias Instanz
+
+    def test_final_nur_gueltig_und_geschuetzt(self):
+        self.assertEqual(self.sende("/final", {"ref": NB, "an": "1"})[0].status, 404)  # Antwort ohne Dateien
+        self.assertEqual(self.sende("/final", {"ref": "../x", "an": "1"})[0].status, 404)
+        self.assertEqual(self.sende("/final", {"ref": self.F1, "an": "1"}, origin=None)[0].status, 403)
+        r, html = self.sende("/final", {"ref": self.F1, "an": "1"}, token="falsch")
+        self.assertEqual(r.status, 400)
+        self.assertIn("Die Seite war veraltet", html)
+        self.assertNotIn("Final · rückgängig", self.hole(self.URL)[1])
+        # Aktionen nur an der Ansicht selbst, nicht über die ID einer Nachbesserung
+        self.URL = f"/ergebnis/{NB}"
+        self.assertEqual(self.sende("/final", {"ref": self.F1, "an": "1"})[0].status, 404)
+
+    def test_eigene_fassung(self):
+        _, html = self.hole(self.URL + "?offen=eigene")
+        self.assertIn("Als neue Fassung hochladen", html)
+        r, _ = self.sende("/eigene", {}, [("../Mein Blatt.docx", b"MEINS")])
+        self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=eigene"))
+        _, html = self.hole(self.URL + "?erledigt=eigene")
+        for text in ("Deine Datei ist jetzt die neueste Fassung.", "Fassung 2", "von dir, heute",
+                     f'href="{self.URL}/eigene/1" download>Word<'):
+            self.assertIn(text, html)
+        self.assertLess(html.index("von dir, heute"), html.index("vom Assistenten, heute 14:40"))
+        r, inhalt = self.hole(self.URL + "/eigene/1", roh=True)
+        self.assertEqual((r.status, inhalt), (200, b"MEINS"))
+        self.assertIn("Mein%20Blatt.docx", r.getheader("Content-Disposition"))
+        for falsch in ("/eigene/0", "/eigene/2"):
+            self.assertEqual(self.hole(self.URL + falsch)[0].status, 404)
+        # eigene Fassung kann final werden
+        self.assertEqual(self.sende("/final", {"ref": "eigene-1", "an": "1"})[0].status, 303)
+        self.assertIn("marke-final", self.hole(self.URL)[1])
+        self.assertEqual(self.neue(), [])
+        self.assertFalse((self.instanz / "eigene").exists())
+
+    def test_eigene_fassung_falsche_datei(self):
+        r, html = self.sende("/eigene", {}, [("bild.exe", b"x")])
+        self.assertEqual(r.status, 400)
+        self.assertIn("Diese Datei geht nicht", html)
+        r, html = self.sende("/eigene", {})
+        self.assertEqual(r.status, 400)
+        self.assertIn("Wähle eine Datei aus.", html)
+
+    def test_rueckmeldung_aus_ohne_einstellung(self):
+        _, html = self.hole(self.URL + "?offen=rueckmeldung")
+        self.assertIn("Rückmeldungen gehen im Moment noch über Telegram", html)
+        self.assertNotIn('id="rueck-text"', html)
+        self.assertEqual(self.sende("/rueckmeldung", {"text": "kürzer"})[0].status, 404)
+        self.assertEqual(self.neue(), [])
+
+    def test_rueckmeldung_im_testbetrieb(self):
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten") as start:
+            _, html = self.hole(self.URL + "?offen=rueckmeldung")
+            for text in ("Was soll anders werden?", "Datei mit Kommentaren anhängen", "Neue Fassung anfordern",
+                         "Testbetrieb", "Bitte keine Namen"):
+                self.assertIn(text, html)
+            r, html = self.sende("/rueckmeldung", {"text": " "})
+            self.assertEqual(r.status, 400)
+            self.assertIn("Schreib kurz, was anders werden soll.", html)
+            r, _ = self.sende("/rueckmeldung", {"text": "Bitte kürzer"}, [("Kommentare.docx", b"KOMM")])
+            self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=rueckmeldung-test"))
+            start.assert_not_called()
+        (a,) = self.neue()
+        # gilt der neuesten fertigen Fassung (wie in Telegram), die Datei ist Lias eigene Fassung
+        self.assertEqual((a["agent"], a["quelle"], a["bezug"]), ("feedback", "feedback", NB))
+        self.assertTrue(a["text"].startswith("Bitte kürzer\n\nDazu gibt es eine Datei mit Kommentaren "
+                                             "(Kommentare.docx, Fassung 2)"))
+        r, inhalt = self.hole(self.URL + "/eigene/1", roh=True)
+        self.assertEqual(inhalt, b"KOMM")
+        _, html = self.hole(self.URL)
+        self.assertIn("mit deinen Kommentaren", html)
