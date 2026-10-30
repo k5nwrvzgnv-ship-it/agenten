@@ -2,7 +2,8 @@
 
 ## Zweck
 Material auf Zuruf für Lia (docs/lia-architektur.md, Schritt 1): Lia tippt in ihrer Zentrale „Neues Material“,
-beschreibt ihren Wunsch und bekommt ein Arbeitsblatt (docx) oder Folien (pptx) in ihrem Stil mit Begleittext.
+beschreibt ihren Wunsch und bekommt ein Arbeitsblatt (docx), Folien (pptx) oder eine Arbeitsmappe (xlsx, z. B.
+Notentabelle) in ihrem Stil mit Begleittext.
 Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
 ## Stand (30.10.2026)
@@ -32,12 +33,16 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Satzanfängen und Hilfen, Tabelle quer). Inhalt fachlich ordentlich, Jan hat die Datei noch nicht angesehen:
   data/arbeit/20261022-231000-unterricht-a1b2c3/.
 - Folien sind nur mit Tests geprüft, noch nicht im echten Lauf.
+- Arbeitsmappe (Excel) freigeschaltet 30.10.: Skill Version 2 (Art wählen, nur leere Vorlagen ohne Schülerdaten),
+  FORMAT-Abschnitt Arbeitsmappe im Prompt, Kontrolle mit Vorschau (Calc) und Hinweis auf die Probe-Zeilen des
+  Renderers (Python rechnet die Formeln an Beispielwerten nach). Echt gebaut mit Lias Profil (Notentabelle, eine
+  Seite, Proben stimmen), noch kein Claude-Lauf. Jan hat die Notentabelle des Renderers noch nicht in Excel geprüft.
 - Angehängte Dateien (22.10.): Lias Zentrale nimmt Dateien und Fotos an, sie kommen im Feld dateien mit.
   Aufbereitung mit echtem LibreOffice geprüft, ein echter Claude-Lauf mit Anhang fehlt noch.
 
 ## Ablauf (material.py)
 1. Prompt = Lias Wunsch + laufende Reihen (reihen.toml) + Anhänge + Katalog (data/wissen/katalog.md) +
-   Leitfaden (leitfaden.md) + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien aus
+   Leitfaden (leitfaden.md) + skills/einzelmaterial/SKILL.md + Abschnitte Allgemein/Arbeitsblatt/Folien/Arbeitsmappe aus
    shared/renderer/FORMAT.md (zur Laufzeit gelesen, bleibt aktuell). Claude schreibt mit Write
    data/arbeit/<auftrag>/beschreibung.json.
 2. Python baut mit renderer.bauen (Profil profil.toml). Fehler (Datei fehlt, kein JSON, falsche art,
@@ -77,7 +82,7 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 - Wissen: data/wissen/eingang/ (Lias Dateien), text/ (Textfassungen), katalog.md, alles nicht im Repo.
   Nach neuen Dateien von Hand: .venv/bin/python wissen.py (liest nur Neues, entfernt Textfassungen gelöschter
   Quellen; ca. 2 min beim ersten Mal). Neue Dateien vorher auf Schülerdaten prüfen.
-- Skill: skills/einzelmaterial/SKILL.md (Version 1, Art wählen, Qualitätskriterien). Version steht in material.py.
+- Skill: skills/einzelmaterial/SKILL.md (Version 2, Art wählen, Qualitätskriterien). Version steht in material.py.
 - Profil: profil.toml (Kopie von shared/renderer/beispiele/profil-lia-stil.toml, Ethik, Frau Pohlmann)
 - .venv: Pakete aus requirements.txt (Versionen wie shared/renderer), agentkit und renderer per agentkit.pth
 - Dienst: lia-unterricht.service (oneshot, Vorlage systemd/, MemoryMax 1500M), gestartet von Lias Zentrale.

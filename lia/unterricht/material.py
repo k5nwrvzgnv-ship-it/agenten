@@ -40,12 +40,12 @@ from renderer import BeschreibungUngueltig
 from renderer import vorschau as renderer_vorschau
 
 SKILL = "einzelmaterial"
-SKILL_VERSION = 1
+SKILL_VERSION = 2
 SKILL_DATEI = Path(__file__).resolve().parent / "skills" / SKILL / "SKILL.md"
 FORMAT_DATEI = Path(__file__).resolve().parents[2] / "shared" / "renderer" / "FORMAT.md"
-ARTEN = {"arbeitsblatt": ".docx", "folien": ".pptx"}
+ARTEN = {"arbeitsblatt": ".docx", "folien": ".pptx", "arbeitsmappe": ".xlsx"}
 # Abschnitte aus FORMAT.md, die Claude bekommt (Überschriften "## ..."), dazu immer der Text davor
-ABSCHNITTE = ("Allgemein", "Arbeitsblatt", "Folien")
+ABSCHNITTE = ("Allgemein", "Arbeitsblatt", "Folien", "Arbeitsmappe")
 MAX_KORREKTUREN = 3
 # Danach kein neuer Claude-Lauf mehr; der Dienst bricht nach 25 Minuten ab (TimeoutStartSec)
 ZEIT_BUDGET_S = 18 * 60
@@ -104,7 +104,7 @@ def _beschreibung_lesen(pfad: Path, rel: str) -> dict:
     except json.JSONDecodeError as e:
         raise _Korrektur(f"{rel} ist kein gültiges JSON: {e}") from None
     if not isinstance(beschreibung, dict) or beschreibung.get("art") not in ARTEN:
-        raise _Korrektur(f"art: muss \"arbeitsblatt\" oder \"folien\" sein, ist {beschreibung.get('art')!r}"
+        raise _Korrektur(f"art: muss {' oder '.join(json.dumps(a) for a in ARTEN)} sein, ist {beschreibung.get('art')!r}"
                          if isinstance(beschreibung, dict) else "Die Beschreibung muss ein JSON-Objekt sein.")
     return beschreibung
 
@@ -222,7 +222,10 @@ def prompt_kontrolle(rel: str, kontrolltext: str, bilder: list[str], hinweise: l
                     + "\n".join(f"- {b}" for b in bilder)
                     + "\nDie Vorschau nutzt Ersatzschriften, leicht andere Zeilenumbrüche sind normal.")
     else:
-        vorschau = f"Vorschaubilder gibt es diesmal nicht ({'; '.join(hinweise)}). Prüfe den Kontrolltext."
+        vorschau = f"Vorschaubilder gibt es diesmal nicht ({'; '.join(hinweise) or 'kein Grund genannt'}). Prüfe den Kontrolltext."
+    if "\nProbe " in kontrolltext:  # Arbeitsmappe: Python hat die Rechnungen an Beispielwerten nachgerechnet
+        vorschau += ("\nPrüfe die Probe-Zeilen am Ende des Kontrolltexts: Rechnet die Tabelle so, wie Lia es will "
+                     "(Gewichtung, leere Felder, Rundung)? Wenn nicht, korrigiere die Formeln.")
     return f"""Die Datei ist gebaut. Prüfe sie, bevor sie an Lia geht.
 
 Kontrolltext (Inhalt in Lesereihenfolge):

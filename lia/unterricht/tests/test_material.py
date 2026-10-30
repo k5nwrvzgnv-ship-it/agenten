@@ -21,6 +21,16 @@ FOLIEN = {"art": "folien", "titel": "Kant für Einsteiger", "untertitel": "Ethik
     {"titel": "Ziel für heute", "inhalt": [{"typ": "zentriert", "absaetze": ["Wir lernen Kants Pflichtethik."]}]},
 ]}
 
+MAPPE = {"art": "arbeitsmappe", "titel": "Notenübersicht", "blaetter": [{
+    "name": "Noten", "titel": "Notenübersicht", "zeilen": 30, "hinweise": ["Endnote = 2/3 Schnitt + 1/3 LEK."],
+    "spalten": [{"id": "nr", "kopf": "Nr.", "art": "nummer"}, {"id": "name", "kopf": "Name", "art": "text"},
+                {"id": "n1", "kopf": "Note 1", "art": "zahl", "ganz": True, "min": 0, "max": 15},
+                {"id": "n2", "kopf": "Note 2", "art": "zahl", "ganz": True, "min": 0, "max": 15},
+                {"id": "schnitt", "kopf": "Durchschnitt", "art": "rechnung", "formel": "mittelwert(n1:n2)"},
+                {"id": "lek", "kopf": "LEK", "art": "zahl", "ganz": True, "min": 0, "max": 15},
+                {"id": "end", "kopf": "Endnote", "art": "rechnung", "formel": "wenn_leer(2/3 * schnitt + 1/3 * lek, schnitt)"}],
+}]}
+
 
 class FalscherClaude:
     """Spielt Claude: jeder Schritt schreibt (oder nicht) die Beschreibung und antwortet mit einem Text."""
@@ -117,6 +127,16 @@ class MaterialTest(unittest.TestCase):
         self.assertLess(start.index("## Lias Material aus früheren Reihen"), start.index("## So unterrichtet Lia"))
         self.assertLess(start.index("## So unterrichtet Lia"), start.index("Skill einzelmaterial"))
         self.assertNotIn("So unterrichtet Lia", claude.prompts[1])
+
+    def test_arbeitsmappe(self):
+        f, claude = self.bearbeiten([(MAPPE, "Entwurf"), (None, "Deine Notentabelle.")])
+        self.assertEqual(f.datei, self.ordner / "Arbeitsmappe Notenübersicht.xlsx")
+        self.assertTrue(f.datei.is_file())
+        self.assertIn("## Arbeitsmappe", claude.prompts[0])
+        self.assertIn("arbeitsmappe", material.SKILL_DATEI.read_text(encoding="utf-8"))
+        self.assertIn("\nProbe ", claude.prompts[1])
+        self.assertIn("Prüfe die Probe-Zeilen", claude.prompts[1])
+        self.assertNotIn("Prüfe die Probe-Zeilen", material.prompt_kontrolle("x", "Merksatz", [], []))
 
     def test_fehler_gehen_an_claude_zurueck(self):
         falsch = dict(BLATT, farbe="rot")

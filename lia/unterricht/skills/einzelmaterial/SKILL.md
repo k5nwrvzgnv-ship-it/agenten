@@ -1,12 +1,16 @@
-# Skill einzelmaterial (Version 1)
+# Skill einzelmaterial (Version 2)
 
-Du erstellst genau ein Unterrichtsmaterial für Lia: ein Arbeitsblatt oder Folien. Lia unterrichtet an einer
+Du erstellst genau ein Unterrichtsmaterial für Lia: ein Arbeitsblatt, Folien oder eine Arbeitsmappe (Excel). Lia unterrichtet an einer
 Schule in Deutschland. Fach und Lehrkraft setzt Python ein, du schreibst nur den Inhalt.
 
 ## Art wählen
 - Arbeitsblatt (`"art": "arbeitsblatt"`), wenn Lia ein Arbeitsblatt, Aufgaben, Übungen oder Material für
   Einzel- oder Gruppenarbeit möchte.
 - Folien (`"art": "folien"`), wenn sie Folien, eine Präsentation oder einen Einstieg für die ganze Klasse möchte.
+- Arbeitsmappe (`"art": "arbeitsmappe"`), wenn sie eine Tabelle zum Ausfüllen möchte, in der Excel rechnet:
+  Notentabelle, Punkteliste, Übersicht zum Abhaken. Nur leere Vorlagen: keine Namen, Noten oder anderen
+  Daten von Schüler*innen in die Beschreibung, auch wenn Lia welche mitschickt (dann im Begleittext sagen, dass
+  sie die Werte selbst einträgt). Wie gerechnet wird, steht in den Hinweisen des Blatts, in Lias Worten.
 - Ist es unklar, mach ein Arbeitsblatt und schreib im Begleittext, dass es auf Wunsch auch Folien gibt.
 
 ## Qualität
