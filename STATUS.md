@@ -540,6 +540,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      agentkit.auftraege.neuer_auftrag hat dafür den Parameter absender. Nächster Schritt: Bauschritt 2 (Konten,
      Einladung, Passkey).
      Dienst webapp.service: Okay Jan.
+   - Ordnung nach Fach, Klasse und Reihe (Jans Wunsch und Okay 30.10., gebaut): „Heute“ mit Chips Alle, Ethik,
+     Theater, Ohne Reihe; Ansicht /unterricht (Fach, Klasse oder Kurs, Reihe mit Entwürfen und Aufträgen);
+     Auswahl der Reihe beim Neuen Auftrag (Testbetrieb). Zuordnung nur über das neue optionale Feld reihe in
+     agentkit.auftraege.neuer_auftrag oder den Agenten (theater -> Theater Kurs 11, examen -> Ethik 8
+     Straftheorien), sonst „ohne Reihe“. Entschieden: Fach heißt „Theater“, Theater-Reihe „Der nackte Wahnsinn“,
+     Kurs 11; Reihen pflegt vorerst Jan, Lia erst mit Konten.
+   - Bedarf an den lia/unterricht-Chat (Jan 30.10.): EINE Datei lia/instanz/reihen.toml für App und Agenten. Bitte
+     lia/unterricht/reihen.toml dorthin verschieben, reihen.py und lia/examen (titel_in_reihen_toml) umstellen,
+     Felder id, stand (laufend/abgeschlossen) und agenten erlauben und den Theater-Kurs eintragen
+     (fach "Theater", klasse "Kurs 11", titel "Der nackte Wahnsinn", agenten ["theater"]); Format in
+     shared/webapp/ordnung.py. Bis dahin setzt die App die Reihen aus unterricht/examen/theater zusammen.
+     Später: Feld reihe des Auftrags bevorzugt nutzen, statt selbst eine Reihe zu wählen (heute steht sie als
+     Zeile „Reihe: …“ am Ende des Auftragstexts).
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 

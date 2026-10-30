@@ -9,7 +9,7 @@ https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 ## Stand (30.10.2026)
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
-`./pruefen.sh` grün (Web-App: 53 Tests).
+Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), `./pruefen.sh` grün (Web-App: 73 Tests).
 - Seite „Heute“, nur lesend, ohne Anmeldung, aus `lia/instanz` über agentkit (`auftraege.neue/erledigte`,
   `freigabe.offene`, je mit `basis=`). Die App selbst läuft ohne `AGENTKIT_INSTANZ`.
 - Abschnitte: 01 Wartet auf dich (offene Entwürfe, Ergebnisse der letzten 48 h als „Neu“), 02 Läuft gerade,
@@ -54,18 +54,37 @@ als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Ma
   Anlegen über `agentkit.auftraege.neuer_auftrag(..., basis=, agenten_dir=<instanz>/.., absender=PERSON)`;
   Uploads liegen kurz in `data/eingang/` und werden von agentkit nach `<agent>/data/eingang/<id>/` verschoben.
   Schutz ohne Konten: Origin muss zum Host passen (Sec-Fetch-Site same-origin), sonst 403; Token im Formular
-  (HMAC, geheim je Start der App), nach einem Neustart „Die Seite war veraltet“. Ohne Zurücknehmen, ohne Reihe,
+  (HMAC, geheim je Start der App), nach einem Neustart „Die Seite war veraltet“. Ohne Zurücknehmen,
   ohne „Das beachte ich“, keine Auswahl der Art (gibt es noch nicht).
+- Ordnung nach Fach, Klasse und Reihe (Jans Wunsch und Okay 30.10.):
+  - Reihen aus `<instanz>/reihen.toml` (Format in `ordnung.py`: wie lia/unterricht/reihen.toml plus `id`,
+    `stand`, `agenten`). Gibt es sie nicht (heute), setzt `ordnung.py` sie zusammen: Reihen aus
+    `lia/unterricht/reihen.toml` (Fach aus profil.toml), Examensaufträge zur Reihe aus `examen.toml`
+    (`titel_in_reihen_toml`), Theater aus `theater.toml` als Fach „Theater“, „Kurs 11“ (Jan 30.10., steht in
+    keiner Datei, `THEATER_KURS`). Kaputte Dateien: Fehler im Log (nur bei Änderung), App zeigt ohne Reihen.
+  - Zuordnung (`logik.reihe_von`): Feld `reihe` des Auftrags, sonst der Agent, wenn er in genau einer Reihe unter
+    `agenten` steht. Nichts aus dem Text geraten, sonst „ohne Reihe“. Bei Ketten zählt der Ursprung.
+    Echte Daten 30.10.: Theater-Fassung 0baec0 -> Theater; Entwurf examen-0c44bf -> Ethik 8 Straftheorien;
+    alle Material-Aufträge, Recherche und der Fehlschlag ohne Reihe.
+  - „Heute“: Chips Alle, je Fach, je Klasse (nur bei mehreren Klassen eines Fachs), Ohne Reihe, als Links
+    `/?ordnung=fach:ethik|gruppe:…|reihe:…|ohne` (unbekannte Werte: alle); htmx lädt mit demselben Filter nach.
+    Jede Zeile nennt ihre Reihe. Die Begrüßung zählt alles, was wartet, auch bei Filter. Ohne Reihen keine Chips.
+  - `/unterricht` (nur lesend): je Fach, Klasse/Kurs und Reihe Reihenfrage, „Schon behandelt“, offene Entwürfe
+    und Aufträge (Marke Offen, Läuft, Hat nicht geklappt), darunter „Ohne Reihe“. Kein Anlegen/Ändern.
+  - Neuer Auftrag: Auswahl „Für welche Reihe?“ (laufende Reihen, Standard keine). Der Auftrag trägt `reihe`
+    (agentkit, neues optionales Feld) und am Textende „Reihe: Titel (Fach, Klasse)“ für den Agenten.
 - Test-Instanz für Jan: `data/test/instanz` (`.env` mit PERSON=Lia, 0600) und Agent-Ordner `data/test/unterricht`,
   nicht im Repo. Probelauf 30.10.: Auftrag mit PDF angelegt, Datei verschoben, ohne Origin 403; danach gelöscht.
 
 ## Technik
-- `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`), getestet. `dateien.py`: Pfade der
+- `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
+  `reihe_von()`, `filter_chips()`, `unterricht()`), getestet. `ordnung.py`: Reihen-Dateien lesen. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
   kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
   `ergebnis_dateien`, nie einen Pfad. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
   `data/webapp.sock` (Ordner 0700; Uvicorn setzt den Socket selbst auf 0666, der Ordner schützt).
-- `vorlagen/heute.html` (Seite), `vorlagen/_heute.html` (Inhalt, auch für htmx), `vorlagen/basis.html` (Kopf mit
+- `vorlagen/heute.html` (Seite), `vorlagen/_heute.html` (Inhalt, auch für htmx), `_zeile.html` (Zeile für Heute
+  und Unterricht), `unterricht.html`, `vorlagen/basis.html` (Kopf mit
   Zurück für Einzelansichten), `ergebnis.html`, `entwurf.html`, `statisch/stil.css`. 404 als lesbare Seite.
 - `statisch/htmx-2.0.4.min.js` mit `.sha256` (von unpkg und jsdelivr geladen, beide gleich; Test prüft die Summe).
 - `requirements.txt`: feste Versionen (pip freeze) von fastapi, uvicorn (ohne [standard]), jinja2,
@@ -89,6 +108,10 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
 0. Neuer Auftrag echt (`WEBAPP_NEUER_AUFTRAG=echt` auf lia/instanz): erst mit Bauschritt 2 (Konten) und Jans
    Okay. Theater als Art erst, wenn der Theater-Agent neue Aufträge annimmt (bisher nur Nachbesserungen, neue
    Runden mit `runde.py` von Hand; Bedarf an den lia/theater-Chat). Zurücknehmen (10 s) fehlt noch.
+9. Reihen: lia/instanz/reihen.toml legt der lia/unterricht-Chat an (Bedarf in Punkt 24 der Haupt-STATUS); bis
+   dahin der Ersatz aus den Agent-Ordnern. Pflege durch Lia in der App (Neue Reihe, Behandeltes ergänzen) und
+   „Reihe zuordnen“ für alte Aufträge (schreibt in Lias Instanz) erst mit Konten. Weitere Klassen von Lia sind
+   nicht bekannt; Jan trägt sie ein, sobald Lia sie nennt.
 8. Aufträge, die inhaltlich eine neue Fassung sind, aber als neuer Material-Auftrag mit Datei kamen (93e29e,
    03b145 zur Theater-Fassung), haben kein `bezug` und stehen einzeln. Nicht geraten; Jan gefragt, ob so etwas
    zusammengehören soll (sauber wäre ein Änderungswunsch mit Datei aus der Ergebnis-Ansicht, Bauschritt 4).
