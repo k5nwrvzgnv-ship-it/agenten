@@ -1,0 +1,15 @@
+{#- Klasse/Kurs (nur lesend): ihre Reihen. Material, das nur zur Klasse gehört (Notentabelle, Sitzplan), steht in
+    noch keiner Datei: dafür der leere Zustand. -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{% block inhalt %}
+<section aria-labelledby="ab1">
+  <h2 id="ab1"><span class="akzent">01</span>Reihen</h2>
+  <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
+</section>
+<section aria-labelledby="ab2">
+  <h2 id="ab2"><span class="akzent">02</span>Zur ganzen Klasse</h2>
+  <p class="leer">Noch nichts. Hier steht später, was zu keiner Reihe gehört, zum Beispiel eine Notentabelle.
+    Bis dahin findest du es in „Heute“.</p>
+</section>
+{% endblock %}

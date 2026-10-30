@@ -402,9 +402,10 @@ class TestOrdnung(Aufbau):
 
     def test_baum_und_ort_in_heute(self):
         _, html = self.hole("/")
-        for text in ('<li class="baum-fach">Ethik</li>', '<li class="baum-gruppe">Klasse 8</li>',
+        for text in ('<li class="baum-fach">Ethik</li>',
+                     '<a class="baum-eintrag baum-gruppe" href="/klasse/ethik-8"><span>Klasse 8</span></a>',
                      '<a class="baum-eintrag tiefe-1" href="/reihe/strafe"><span>Straftheorien</span></a>',
-                     '<li class="baum-fach">Darstellendes Spiel</li>', '<li class="baum-gruppe">Kurs 12</li>',
+                     '<li class="baum-fach">Darstellendes Spiel</li>', '<span>Kurs 12</span>',
                      "Ethik › Klasse 8 › Straftheorien"):
             self.assertIn(text, html)
         self.assertNotIn("Theater</", html)
@@ -414,7 +415,8 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.status, 200)
         for text in ("Straftheorien", "Ethik · Klasse 8", "Wozu &lt;strafen&gt; wir?", "Kant; Bentham",
                      "Zur ganzen Reihe", "Umfrage vor der Reihe", 'aria-current="page"><span>Straftheorien</span>',
-                     '<li><span>Ethik</span>', '<li aria-current="page">Straftheorien</li>'):
+                     '<li><span>Ethik</span>', '<a href="/klasse/ethik-8">Klasse 8</a>',
+                     '<li aria-current="page">Straftheorien</li>'):
             self.assertIn(text, html)
         self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", html)  # Material ohne Reihe steht nur in Heute
         self.assertNotIn("20261030", self.sichtbar(html))
@@ -423,6 +425,16 @@ class TestOrdnung(Aufbau):
         self.assertIn("Noch keine Aufträge zu dieser Reihe.", html)
         _, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")  # Ort als Brotkrume mit Link zur Reihe
         self.assertIn('<a href="/reihe/strafe">Straftheorien</a>', html)
+
+    def test_klasse(self):
+        r, html = self.hole("/klasse/ethik-8")
+        self.assertEqual(r.status, 200)
+        for text in ('<li aria-current="page">Klasse 8</li>', '<li><span>Ethik</span>',
+                     'aria-current="page"><span>Klasse 8</span>', '<a class="zeile" href="/reihe/strafe">',
+                     "Wozu &lt;strafen&gt; wir?", "1 Sache", "Zur ganzen Klasse"):
+            self.assertIn(text, html)
+        self.assertEqual(self.hole("/klasse/ethik-9")[0].status, 404)
+        self.assertEqual(self.hole("/klasse/darstellendes-spiel-kurs-12")[0].status, 200)
 
     def test_ohne_reihen_und_kaputte_datei(self):
         (self.instanz / "reihen.toml").write_text("[[reihe]\n")

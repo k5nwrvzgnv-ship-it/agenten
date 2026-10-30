@@ -731,10 +731,27 @@ def text_mit_reihe(text: str, reihe_id: str | None, reihen: list[dict]) -> str:
     return f"{text}\n\nReihe: {r['titel']} ({r['fach']}, {r['gruppe']})" if r else text
 
 
+def material_marke(kette: list[dict], jetzt: datetime, finale: set[str] = frozenset(),
+                   eigene: list[dict] = ()) -> str:
+    """Stand eines Materials an seinem Ort (Board "Desktop"): Läuft, Final, Hat nicht geklappt, sonst die Zahl
+    der Fassungen („Fassung 2“, mit „· neu“ in den ersten NEU_STUNDEN). eigene: Lias eigene Fassungen."""
+    letzte = fassungen(kette)[-1]
+    if any(a.get("status") == "neu" for a in kette):
+        return "Läuft"
+    if kopf(kette)["id"] in finale:
+        return "Final"
+    if letzte.get("status") == "fehlgeschlagen":
+        return "Hat nicht geklappt"
+    nummer = sum(1 for n in fassung_namen(kette, eigene).values() if n.startswith("Fassung"))
+    return f"Fassung {nummer}" + (" · neu" if ist_neu(letzte, jetzt) else "")
+
+
 def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
-                    entwuerfe: list[dict] | None = None) -> dict[str, list[dict]]:
+                    entwuerfe: list[dict] | None = None, finale: set[str] = frozenset(),
+                    eigene: dict[str, list[dict]] | None = None) -> dict[str, list[dict]]:
     """Zeilen je Reihen-Kennung (OHNE_REIHE für den Rest): offene Entwürfe, dann je Kette eine Zeile wie in
-    "Heute" (neueste zuerst), mit Marke Offen, Läuft oder Hat nicht geklappt."""
+    "Heute" (neueste zuerst), mit Marke Offen bzw. dem Stand des Materials (material_marke).
+    finale, eigene: was die Web-App selbst speichert (zustand.py)."""
     zeilen_je: dict[str, list] = {}
     for e in sorted(entwuerfe or [], key=lambda e: e.get("erstellt") or "", reverse=True):
         r = reihe_von(e, reihen)
@@ -742,9 +759,7 @@ def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
     for kette in sorted((k for k in ketten(auftraege_) if fassungen(k)),
                         key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True):
         r = reihe_von(kopf(kette), reihen)
-        letzte = fassungen(kette)[-1]
-        marke = ("Läuft" if any(a.get("status") == "neu" for a in kette)
-                 else "Hat nicht geklappt" if letzte.get("status") == "fehlgeschlagen" else "")
+        marke = material_marke(kette, jetzt, finale, (eigene or {}).get(kopf(kette)["id"], []))
         zeile = ketten_zeile(kette, jetzt, marke)
         if not zeigbar(kopf(kette)):
             zeile["link"] = ""
@@ -753,23 +768,49 @@ def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
 
 
 def reihe_ansicht(reihe: dict, reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
-                  entwuerfe: list[dict] | None = None) -> dict:
+                  entwuerfe: list[dict] | None = None, finale: set[str] = frozenset(),
+                  eigene: dict[str, list[dict]] | None = None) -> dict:
     """Ansicht einer Reihe (nur lesend): Reihenfrage, schon Behandeltes, offene Entwürfe und Aufträge der Reihe.
     Stunden gibt es noch in keiner Datei (Bauschritt 3)."""
     return {"titel": reihe["titel"], "unter": f"{reihe['fach']} · {reihe['gruppe']}"
                                               + ("" if reihe["laufend"] else " · abgeschlossen"),
             "reihenfrage": reihe["reihenfrage"], "behandelt": "; ".join(reihe["behandelt"]),
-            "zeilen": zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe).get(reihe["id"], [])}
+            "zeilen": zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe, finale, eigene).get(reihe["id"], [])}
 
 
 def reihe_link(reihe: dict) -> str:
     return f"/reihe/{reihe['id']}"
 
 
+def klasse_link(reihe: dict) -> str:
+    """Link zur Klasse/zum Kurs einer Reihe (Kennung aus Fach und Klasse)."""
+    return f"/klasse/{reihe['gruppe_id']}"
+
+
+def klasse_aktiv(gruppe_id: str) -> str:
+    """Wert für baum(aktiv=…) in der Klassen-Ansicht (getrennt von Reihen-Kennungen)."""
+    return "klasse:" + gruppe_id
+
+
+def klasse_ansicht(gruppe_id: str, reihen: list[dict], zeilen_je: dict[str, list[dict]]) -> dict | None:
+    """Ansicht einer Klasse/eines Kurses (nur lesend): ihre Reihen mit Reihenfrage und Zahl der Materialien.
+    zeilen_je aus zeilen_je_reihe. Material, das nur zur Klasse gehört, kennt noch keine Datei. Unbekannt: None."""
+    eigene = [r for r in reihen if r["gruppe_id"] == gruppe_id]
+    if not eigene:
+        return None
+    zeilen = []
+    for r in sorted(eigene, key=lambda r: not r["laufend"]):  # laufende zuerst, sonst Reihenfolge der Datei
+        n = len(zeilen_je.get(r["id"], []))
+        zeilen.append({"titel": r["titel"], "unter": r["reihenfrage"] or "Reihenfrage noch offen",
+                       "hinweis": "Noch nichts" if n == 0 else "1 Sache" if n == 1 else f"{n} Sachen",
+                       "marke": "" if r["laufend"] else "Abgeschlossen", "link": reihe_link(r)})
+    return {"titel": eigene[0]["gruppe"], "unter": eigene[0]["fach"], "zeilen": zeilen, "reihe": eigene[0]}
+
+
 def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
     """Linke Spalte: oben "Heute" mit der Zahl, was wartet, dann je Fach die Klassen/Kurse und ihre Reihen.
-    aktiv: "heute" oder die Kennung der gezeigten Reihe. art: "eintrag" (Link), "fach" (Überschrift) oder
-    "gruppe" (Klasse/Kurs, ohne eigene Ansicht bis Bauschritt 2)."""
+    aktiv: "heute", die Kennung der gezeigten Reihe oder klasse_aktiv(…). art: "eintrag" (Link), "fach"
+    (Überschrift) oder "gruppe" (Klasse/Kurs, Link zur Klassen-Ansicht)."""
     eintraege = [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0, "zahl": anzahl_wartet or "",
                   "aktiv": aktiv == "heute"}]
     faecher: dict[str, dict[str, list[dict]]] = {}
@@ -778,7 +819,8 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
     for fach, gruppen in faecher.items():
         eintraege.append({"art": "fach", "text": fach})
         for gruppe, reihen_ in gruppen.items():
-            eintraege.append({"art": "gruppe", "text": gruppe, "tiefe": 0})
+            eintraege.append({"art": "gruppe", "text": gruppe, "tiefe": 0, "link": klasse_link(reihen_[0]),
+                              "aktiv": aktiv == klasse_aktiv(reihen_[0]["gruppe_id"])})
             eintraege += [{"art": "eintrag", "text": r["titel"] + ("" if r["laufend"] else " (abgeschlossen)"),
                            "link": reihe_link(r), "tiefe": 1, "zahl": "", "aktiv": aktiv == r["id"]}
                           for r in reihen_]
@@ -786,7 +828,7 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "") -> list[dict]:
 
 
 def krumen(hier: str = "", reihe: dict | None = None, ueber: dict | None = None) -> dict:
-    """Brotkrumen über dem Inhalt: Teile mit Link (Fach und Klasse noch ohne, Bauschritt 2), dann die Seite selbst.
+    """Brotkrumen über dem Inhalt: Teile mit Link (Fach ohne, es hat keine eigene Ansicht), dann die Seite selbst.
     Ohne Angaben "Heute"; nur reihe: die Reihen-Ansicht; reihe und hier: eine Seite in der Reihe; nur hier: eine
     Seite ohne Reihe unter "Heute". ueber ({"text", "link"}): eine Seite dazwischen, z. B. das Ergebnis über dem
     Seiten-Betrachter."""
@@ -794,7 +836,12 @@ def krumen(hier: str = "", reihe: dict | None = None, ueber: dict | None = None)
     extra = [{"text": kurz(ueber["text"], KRUME_LANG), "link": ueber["link"]}] if ueber and hier else []
     if reihe is None:
         return {"teile": [{"text": "Heute", "link": "/"}, *extra] if hier else [], "hier": hier or "Heute"}
-    teile = [{"text": reihe["fach"], "link": ""}, {"text": reihe["gruppe"], "link": ""}]
+    teile = [{"text": reihe["fach"], "link": ""}, {"text": reihe["gruppe"], "link": klasse_link(reihe)}]
     if not hier:
         return {"teile": teile, "hier": reihe["titel"]}
     return {"teile": [*teile, {"text": reihe["titel"], "link": reihe_link(reihe)}, *extra], "hier": hier}
+
+
+def krumen_klasse(reihe: dict) -> dict:
+    """Brotkrumen der Klassen-Ansicht: Fach › Klasse (reihe: irgendeine Reihe der Klasse)."""
+    return {"teile": [{"text": reihe["fach"], "link": ""}], "hier": reihe["gruppe"]}

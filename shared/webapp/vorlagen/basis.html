@@ -35,7 +35,7 @@
     {%- if b.art == "fach" %}
     <li class="baum-fach">{{ b.text }}</li>
     {%- elif b.art == "gruppe" %}
-    <li class="baum-gruppe">{{ b.text }}</li>
+    <li><a class="baum-eintrag baum-gruppe" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}><span>{{ b.text }}</span></a></li>
     {%- else %}
     <li><a class="baum-eintrag tiefe-{{ b.tiefe }}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}><span>{{ b.text }}</span>
       {%- if b.zahl %}<span class="baum-zahl">{{ b.zahl }}</span>{% endif %}</a></li>

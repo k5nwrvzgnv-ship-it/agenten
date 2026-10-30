@@ -68,7 +68,7 @@ body {
   text-transform: uppercase;
   color: var(--grau);
 }
-.baum-gruppe { padding: 6px 10px; font-weight: 600; }
+.baum-gruppe { font-weight: 600; }
 .baum-eintrag {
   display: flex;
   justify-content: space-between;

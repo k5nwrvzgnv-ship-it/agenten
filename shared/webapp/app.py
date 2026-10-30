@@ -25,6 +25,7 @@ GET:
                                         ohne JavaScript; <id> ist die Fassung, aus der die Datei stammt
   /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
   /reihe/<kennung>                      Reihe mit Reihenfrage und ihren Aufträgen (ordnung.py, nur lesend)
+  /klasse/<kennung>                     Klasse/Kurs mit ihren Reihen (nur lesend)
   /unterricht                           alte Seite, leitet auf / um
   /statisch/...                         CSS, htmx
   /neu                                  Formular Neuer Auftrag (nur Material), nur wenn eingeschaltet
@@ -186,10 +187,25 @@ def seite_reihe(request: Request, reihe_id: str):
     if reihe is None:
         raise HTTPException(404)
     basis = INSTANZ / "auftraege"
+    z = zustand_().lesen()
     e = logik.reihe_ansicht(reihe, reihen, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
-                            datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"))
+                            datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]),
+                            z["eigene"])
     return vorlagen.TemplateResponse(request, "reihe.html", {
         "e": e, **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"])})
+
+
+@app.get("/klasse/{gruppe_id}", response_class=HTMLResponse)
+def seite_klasse(request: Request, gruppe_id: str):
+    reihen = reihen_laden()
+    basis = INSTANZ / "auftraege"
+    zeilen_je = logik.zeilen_je_reihe(reihen, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
+                                      datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"))
+    e = logik.klasse_ansicht(gruppe_id, reihen, zeilen_je)
+    if e is None:
+        raise HTTPException(404)
+    return vorlagen.TemplateResponse(request, "klasse.html", {
+        "e": e, **rahmen(reihen, logik.krumen_klasse(e["reihe"]), logik.klasse_aktiv(gruppe_id))})
 
 
 def _formular(request: Request, text: str = "", fehler: list[str] | None = None, status: int = 200,
