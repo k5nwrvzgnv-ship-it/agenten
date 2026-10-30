@@ -245,17 +245,42 @@ class MaterialTest(unittest.TestCase):
     def test_dateiname_mit_zusatz(self):
         self.assertEqual(material.dateiname(BLATT, "niveau-1"), "Arbeitsblatt Der kategorische Imperativ (Niveau 1).docx")
 
+    def test_dateiname_nach_art(self):
+        lek = dict(BLATT, titel="Lernerfolgskontrolle: Sollte Tim ins Gefängnis?")
+        self.assertEqual(material.dateiname(lek, "", "Lernerfolgskontrolle"),
+                         "Lernerfolgskontrolle Sollte Tim ins Gefängnis.docx")
+        self.assertEqual(material.dateiname(lek, "erwartungshorizont", "Lernerfolgskontrolle"),
+                         "Lernerfolgskontrolle Sollte Tim ins Gefängnis (Erwartungshorizont).docx")
+        self.assertEqual(material.dateiname(BLATT, "", "Reihenentwurf"), "Reihenentwurf Der kategorische Imperativ.docx")
+        self.assertEqual(material.dateiname(FOLIEN, "", "Reihenentwurf"), "Folien Kant für Einsteiger.pptx")
+        self.assertEqual(material.wunsch_art("reihenentwurf: Strafe"), "Reihenentwurf")
+        self.assertEqual(material.wunsch_art("Arbeitsblatt Reihenentwurf"), "")
+        ordner = self.hier / "alt"
+        ordner.mkdir()
+        self.assertEqual(material.art_aus_ordner(ordner), "")
+        (ordner / "Lernerfolgskontrolle X.docx").write_bytes(b"x")
+        self.assertEqual(material.art_aus_ordner(ordner), "Lernerfolgskontrolle")
+
+    def test_varianten_zu_lang(self):
+        self.assertEqual(material.zu_lang([("A.docx", 1)]), [])
+        self.assertEqual(material.zu_lang([("A.docx", 1), ("A (Einfach).docx", 2), ("A (Niveau 1).docx", 1),
+                                           ("A (Erwartungshorizont).docx", 3)]),
+                         ["A (Einfach).docx hat 2 Seiten, das Original 1"])
+        prompt = material.prompt_kontrolle("x.json", "Text", ["s1.png"], [], ["A (Einfach).docx hat 2 Seiten, das Original 1"])
+        self.assertIn("Zu lang: A (Einfach).docx hat 2 Seiten", prompt)
+        self.assertNotIn("Zu lang", material.prompt_kontrolle("x.json", "Text", ["s1.png"], []))
+
     def test_lek_mit_erwartungshorizont(self):
         self.auftrag["text"] = "Lernerfolgskontrolle: Kant, Klasse 10"
         eh = dict(BLATT, titel="Der kategorische Imperativ")
         f, claude = self.bearbeiten([({"beschreibung.json": BLATT, "beschreibung-erwartungshorizont.json": eh},
                                       "Entwurf"), (None, "LEK und Erwartungshorizont.")])
-        self.assertEqual([d.name for d in f.dateien], ["Arbeitsblatt Der kategorische Imperativ.docx",
-                                                       "Arbeitsblatt Der kategorische Imperativ (Erwartungshorizont).docx"])
+        self.assertEqual([d.name for d in f.dateien], ["Lernerfolgskontrolle Der kategorische Imperativ.docx",
+                                                       "Lernerfolgskontrolle Der kategorische Imperativ (Erwartungshorizont).docx"])
         self.assertTrue(all(d.is_file() for d in f.dateien))
         self.assertEqual(f.datei, f.dateien[0])
         self.assertIn("## Art des Auftrags", claude.prompts[0])
-        self.assertIn("=== Arbeitsblatt Der kategorische Imperativ (Erwartungshorizont).docx ===", claude.prompts[1])
+        self.assertIn("=== Lernerfolgskontrolle Der kategorische Imperativ (Erwartungshorizont).docx ===", claude.prompts[1])
 
     def test_fehler_in_zusatzdatei(self):
         kaputt = dict(BLATT, bloecke=[{"typ": "gibtsnicht"}])

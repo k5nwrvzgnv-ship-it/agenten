@@ -1,4 +1,4 @@
-# Skill einzelmaterial (Version 3)
+# Skill einzelmaterial (Version 4)
 
 Du erstellst ein Unterrichtsmaterial für Lia: ein Arbeitsblatt, Folien, eine Arbeitsmappe (Excel), einen
 Reihenentwurf oder eine Lernerfolgskontrolle, auf Wunsch mit Varianten. Lia unterrichtet an einer
@@ -32,6 +32,8 @@ Kein Merksatz-Kasten, keine Aufgaben mit Antwortlinien. Sprache wie in Lias Entw
 ## Lernerfolgskontrolle
 - Die LEK (`beschreibung.json`) stellt die Reihenfrage; AFB II kommt zuerst, dann AFB III. Nicht zu schwer
   (Leitfaden). Punkte je Aufgabe in den Aufgabentext („(4 P.)“), Dauer wie gewünscht, sonst 45 Minuten.
+- Fälle in LEK und Erwartungshorizont halten die Regeln für Fallbeispiele ein: keine Gewalt, auch kein
+  Schubsen, Schlagen oder Verletzen; besser Diebstahl, Sachschaden, Betrug, Lügen.
 - Dazu immer ein Erwartungshorizont als eigene Datei `beschreibung-erwartungshorizont.json` (Jan 30.10.2026),
   für Lia, nicht zum Austeilen: gleicher Titel, je Aufgabe die erwarteten Inhalte als Liste, Punkte, Hinweise
   zur Bewertung; als Tabelle Aufgabe | Erwartung | Punkte. Keine Namen von Schüler*innen.
@@ -39,7 +41,8 @@ Kein Merksatz-Kasten, keine Aufgaben mit Antwortlinien. Sprache wie in Lias Entw
 ## Varianten
 Steht im Wunsch eine Zeile „Varianten: …“ oder „Auch als: …“, schreibst du jede Variante aus derselben
 Beschreibung als eigene Datei (Namen nennt dir der Abschnitt „Art des Auftrags“). Alle Varianten behandeln
-denselben Inhalt mit derselben Reihenfrage, damit alle am selben Thema arbeiten:
+denselben Inhalt mit derselben Reihenfrage, damit alle am selben Thema arbeiten. Keine Variante ist länger als
+das Original (Lias Regel: ein Arbeitsblatt passt auf eine Seite); Hilfen ersetzen Text, statt ihn zu ergänzen.
 - einfach: kürzere Sätze, weniger Text, mehr Hilfen (Satzanfänge, vorgegebene Teile), gleiche Aufgaben.
 - hilfekarten: Karten zum Ausschneiden, je Aufgabe eine Karte mit einem gestuften Tipp, nicht der Lösung.
 - niveau-1 bis niveau-3: wie die Regel zu drei Niveaus (einfach, mittel, schwer). Unterschieden wird über die

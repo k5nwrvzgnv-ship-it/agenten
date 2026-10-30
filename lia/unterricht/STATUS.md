@@ -79,8 +79,11 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
    (erwartungshorizont, einfach, hilfekarten, niveau-1 bis -3; höchstens 6 Dateien, mehr baut Python nicht).
 2. Python baut alle mit renderer.bauen (Profil profil.toml, Vorlage aus data/vorlagen/, falls da). Fehler (Datei
    fehlt, kein JSON, falsche art, BeschreibungUngueltig) gehen gesammelt je Datei in derselben Sitzung an Claude
-   zurück, höchstens 3 Korrekturen. Dateiname „Arbeitsblatt Titel (Niveau 1).docx“.
-3. Kontrolle: Claude sieht Kontrolltext (je Datei ein Abschnitt) und alle Vorschau-PNGs. Ändert Claude die Beschreibung, baut Python neu
+   zurück, höchstens 3 Korrekturen. Dateiname „Arbeitsblatt Titel (Niveau 1).docx“, bei Reihenentwurf und LEK
+  „Lernerfolgskontrolle Titel (Erwartungshorizont).docx“ (Art aus dem Wunsch, bei Nachbesserungen aus den
+  Dateinamen des alten Ergebnisses).
+3. Kontrolle: Claude sieht Kontrolltext (je Datei ein Abschnitt) und alle Vorschau-PNGs. Hat eine Variante mehr
+   Seiten als die Hauptdatei (Erwartungshorizont ausgenommen), steht das als „Zu lang“ im Kontrollprompt. Ändert Claude die Beschreibung, baut Python neu
    (eine Kontrollrunde, die neue Vorschau sieht Claude nicht mehr).
 4. Claudes letzte Antwort ist der Begleittext, die Dateien (Hauptdatei zuerst) gehen über
    auftraege.abschliessen(..., dateien=).
@@ -131,7 +134,7 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 - Wissen: data/wissen/eingang/ (Lias Dateien), text/ (Textfassungen), katalog.md, alles nicht im Repo.
   Nach neuen Dateien von Hand: .venv/bin/python wissen.py (liest nur Neues, entfernt Textfassungen gelöschter
   Quellen; ca. 2 min beim ersten Mal). Neue Dateien vorher auf Schülerdaten prüfen.
-- Skill: skills/einzelmaterial/SKILL.md (Version 3: Art wählen, Reihenentwurf, Lernerfolgskontrolle, Varianten,
+- Skill: skills/einzelmaterial/SKILL.md (Version 4: Art wählen, Reihenentwurf, Lernerfolgskontrolle, Varianten,
   Qualitätskriterien). Version steht in material.py.
 - Profil: profil.toml (Kopie von shared/renderer/beispiele/profil-lia-stil.toml, Ethik, Frau Pohlmann)
 - .venv: Pakete aus requirements.txt (Versionen wie shared/renderer), agentkit und renderer per agentkit.pth
@@ -238,9 +241,9 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
    Die Datei von 23:15 (22.10.) wurde noch abgelehnt und muss neu geschickt werden.
 5. Ausbau des Skills nach Architektur 2.5 (beispiele/, evals/), sobald Lia Ergebnisse abgenommen hat.
 6. Woche und Frage: noch Platzhalter. Dateien an einer Frage werden bisher nur bestätigt.
-7. Aus den Probeläufen 30.10. (Vorschläge, noch nicht gebaut): Dateiname nach der Art aus dem Wunsch
-   („Reihenentwurf …“, „Lernerfolgskontrolle …“); Varianten auf eine Seite halten; Fälle in LEKs an die
-   Gewalt-Regel binden. Jan/Lia sehen die vier Ergebnisse an.
+7. Jan/Lia sehen die vier Probe-Ergebnisse vom 30.10. an. Die drei Schwächen daraus sind gebaut (Jans Okay
+   30.10., nur mit Tests geprüft): Dateiname nach der Art, Varianten nicht länger als das Original (Skill und
+   Hinweis in der Kontrolle), LEK-Fälle ohne Gewalt (Skill); Begleittext mit du.
 8. claude_lauf.Zurueckgezogen (Auftrag von Lia zurückgezogen) in agent.py vor LaufFehler fangen, nur loggen,
    keine Meldung an Jan (Bedarf des Hauptordner-Chats, Punkt 24).
 9. Symlink reihen.toml löschen, sobald lia/examen lia/instanz/reihen.toml liest (Bedarf in Punkt 24).

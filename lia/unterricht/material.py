@@ -48,7 +48,7 @@ from renderer import BeschreibungUngueltig
 from renderer import vorschau as renderer_vorschau
 
 SKILL = "einzelmaterial"
-SKILL_VERSION = 3
+SKILL_VERSION = 4
 SKILL_DATEI = Path(__file__).resolve().parent / "skills" / SKILL / "SKILL.md"
 FORMAT_DATEI = Path(__file__).resolve().parents[2] / "shared" / "renderer" / "FORMAT.md"
 ARTEN = {"arbeitsblatt": ".docx", "folien": ".pptx", "arbeitsmappe": ".xlsx"}
@@ -114,15 +114,28 @@ def format_abschnitte(text: str) -> str:
     return "".join(behalten).strip()
 
 
-def dateiname(beschreibung: dict, zusatz: str = "") -> str:
+def wunsch_art(text: str) -> str:
+    """„Reihenentwurf“ oder „Lernerfolgskontrolle“, wenn der Wunsch damit beginnt, sonst ""."""
+    return next((a for a in WUNSCH_ARTEN if re.match(rf"\s*{a}\s*:", text, re.I)), "")
+
+
+def art_aus_ordner(ordner: Path) -> str:
+    """Art eines früheren Ergebnisses aus seinen Dateinamen (für Nachbesserungen, deren Text die Art nicht nennt)."""
+    return next((a for a in WUNSCH_ARTEN for p in ordner.glob(f"{a} *")), "")
+
+
+def dateiname(beschreibung: dict, zusatz: str = "", art_name: str = "") -> str:
     """z. B. 'Arbeitsblatt Kategorischer Imperativ.docx' (Titel gekürzt, ohne Sonderzeichen), mit zusatz
-    (Name einer Zusatzdatei) 'Arbeitsblatt Kategorischer Imperativ (Niveau 1).docx'."""
+    (Name einer Zusatzdatei) 'Arbeitsblatt Kategorischer Imperativ (Niveau 1).docx'. art_name ersetzt bei
+    Arbeitsblättern das Wort vorn („Lernerfolgskontrolle …“), steht es schon im Titel, nur einmal."""
     art = beschreibung["art"]
-    titel = re.sub(r"[^\w\s-]", "", beschreibung.get("titel", ""))
+    vorn = art_name if art_name and art == "arbeitsblatt" else art.capitalize()
+    titel = re.sub(rf"^\s*{re.escape(vorn)}\s*:?\s*", "", beschreibung.get("titel", ""), flags=re.I)
+    titel = re.sub(r"[^\w\s-]", "", titel)
     titel = re.sub(r"\s+", " ", titel).strip()
     if len(titel) > 60:  # am Wortende kürzen
         titel = titel[:61].rsplit(" ", 1)[0] if " " in titel[:61] else titel[:60]
-    name = f"{art.capitalize()} {titel}".strip()
+    name = f"{vorn} {titel}".strip()
     if zusatz:
         name += f" ({zusatz.replace('-', ' ').capitalize()})"
     return name + ARTEN[art]
@@ -290,8 +303,8 @@ def prompt_start(wunsch: str, fach: str, rel: str, skill: str, format_text: str,
   beschreibung-<name>.json (name aus Kleinbuchstaben, Ziffern, Bindestrichen, höchstens {MAX_DATEIEN} Dateien
   zusammen). Schreibe keine anderen Dateien.
 - Python baut daraus die Datei. Ist etwas ungültig, bekommst du die Fehler zurück.
-- Deine letzte Antwort geht wörtlich an Lia: zwei bis vier Sätze, was das Material enthält und worauf sie achten
-  sollte (z. B. Annahmen zu Klasse oder Dauer). Reiner Text ohne Markdown, ohne Dateinamen oder Technik.
+- Deine letzte Antwort geht wörtlich an Lia, mit du: zwei bis vier Sätze, was das Material enthält und worauf
+  sie achten sollte (z. B. Annahmen zu Klasse oder Dauer). Reiner Text ohne Markdown, ohne Dateinamen oder Technik.
 
 {format_text}"""
 
@@ -302,14 +315,27 @@ def prompt_korrektur(rel: str, fehler: str) -> str:
             "Antworte danach wieder nur mit dem Begleittext für Lia.")
 
 
-def prompt_kontrolle(rel: str, kontrolltext: str, bilder: list[str], hinweise: list[str]) -> str:
-    """kontrolltext: bei mehreren Dateien je Datei ein Abschnitt „=== <Beschreibung> ===“."""
+def zu_lang(seiten: list[tuple[str, int]]) -> list[str]:
+    """Varianten mit mehr Seiten als die Hauptdatei (seiten: (Dateiname, Seitenzahl), Hauptdatei zuerst).
+    Der Erwartungshorizont zählt nicht, er ist keine Variante."""
+    if len(seiten) < 2 or not seiten[0][1]:
+        return []
+    return [f"{name} hat {n} Seiten, das Original {seiten[0][1]}" for name, n in seiten[1:]
+            if n > seiten[0][1] and "(Erwartungshorizont)" not in name]
+
+
+def prompt_kontrolle(rel: str, kontrolltext: str, bilder: list[str], hinweise: list[str],
+                     laenge: list[str] = ()) -> str:
+    """kontrolltext: bei mehreren Dateien je Datei ein Abschnitt „=== <Beschreibung> ===“. laenge: zu_lang()."""
     if bilder:
         vorschau = ("Vorschaubilder, je Seite bzw. Folie ein PNG. Öffne jedes mit Read:\n"
                     + "\n".join(f"- {b}" for b in bilder)
                     + "\nDie Vorschau nutzt Ersatzschriften, leicht andere Zeilenumbrüche sind normal.")
     else:
         vorschau = f"Vorschaubilder gibt es diesmal nicht ({'; '.join(hinweise) or 'kein Grund genannt'}). Prüfe den Kontrolltext."
+    if laenge:
+        vorschau += ("\nZu lang: " + "; ".join(laenge) + ". Varianten sind nicht länger als das Original (Lias "
+                     "Regel: ein Arbeitsblatt passt auf eine Seite). Kürze Text, statt Hilfen anzuhängen.")
     if "\nProbe " in kontrolltext:  # Arbeitsmappe: Python hat die Rechnungen an Beispielwerten nachgerechnet
         vorschau += ("\nPrüfe die Probe-Zeilen am Ende des Kontrolltexts: Rechnet die Tabelle so, wie Lia es will "
                      "(Gewichtung, leere Felder, Rundung)? Wenn nicht, korrigiere die Formeln.")
@@ -360,8 +386,10 @@ def bearbeiten(
         for name, inhalt in alt.items():
             (ordner / name).write_bytes(inhalt)
 
+    art_name = wunsch_art(auftrag["text"])
     if vorher is not None:
         alt = stand(vorher.parent)
+        art_name = art_name or art_aus_ordner(vorher.parent)
         if vorher != json_pfad:
             alte_kopieren()
     start = uhr()
@@ -410,7 +438,7 @@ def bearbeiten(
             prel = str(pfad.relative_to(hier))
             try:
                 beschreibung = _beschreibung_lesen(pfad, prel)
-                name = dateiname(beschreibung, zusatz)
+                name = dateiname(beschreibung, zusatz, art_name)
                 if name in namen:
                     raise _Korrektur(f"{prel}: ergibt denselben Dateinamen wie eine andere Beschreibung")
                 namen.add(name)
@@ -464,7 +492,9 @@ def bearbeiten(
         kontrolltext = ergebnisse[0].kontrolltext
     else:
         kontrolltext = "\n\n".join(f"=== {x.pfad.name} ===\n{x.kontrolltext}" for x in ergebnisse)
-    e = claude(prompt_kontrolle(rel, kontrolltext, bilder, [h for x in ergebnisse for h in x.hinweise]), e.sitzung)
+    laenge = zu_lang([(x.pfad.name, len(x.bilder)) for x in ergebnisse])
+    e = claude(prompt_kontrolle(rel, kontrolltext, bilder, [h for x in ergebnisse for h in x.hinweise], laenge),
+               e.sitzung)
     if stand(ordner) != gebaut:
         ergebnisse, e = bauen_mit_korrektur(e)
 
