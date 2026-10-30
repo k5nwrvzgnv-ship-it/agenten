@@ -189,11 +189,19 @@ def ketten_zeile(kette: list[dict], jetzt: datetime, marke: str = "") -> dict:
 
 
 def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt: datetime,
-          person: str = "Lia") -> dict:
+          person: str = "Lia", reihen: list[dict] | None = None, filter_: str = "") -> dict:
     """Ansichtsdaten für "Heute". neue/erledigte: agentkit.auftraege, entwuerfe: agentkit.freigabe.offene().
 
     Je Kette eine Zeile. Abschnitt, Zeit und "Neu" richten sich nach der jüngsten Fassung; läuft etwas in der
-    Kette (Nachbesserung oder Rückmeldung), steht sie unter "Läuft gerade"."""
+    Kette (Nachbesserung oder Rückmeldung), steht sie unter "Läuft gerade".
+    reihen (reihen_aus): jede Zeile nennt ihre Reihe; filter_ (filter_gueltig) zeigt nur passende Zeilen. Die
+    Zahl in der Begrüßung zählt immer alles, was wartet."""
+    reihen = reihen or []
+
+    def mit_reihe(zeile: dict, eintrag: dict) -> dict:
+        r = reihe_von(eintrag, reihen)
+        return {**zeile, "reihe": reihe_text(r), "_passt": reihe_passt(r, filter_)}
+
     laufend, fertige = [], []
     for kette in ketten([*neue, *erledigte]):
         if any(a.get("status") == "neu" for a in kette):
@@ -203,33 +211,41 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
     fertige.sort(key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True)
     ergebnisse = [k for k in fertige if fassungen(k)[-1].get("status") == "erledigt"]
     neu = [k for k in ergebnisse if ist_neu(fassungen(k)[-1], jetzt)]
-    wartet = ([entwurf_zeile(e, jetzt) for e in sorted(entwuerfe, key=lambda e: e.get("erstellt") or "",
-                                                       reverse=True)]
-              + [ketten_zeile(k, jetzt, "Neu") for k in neu])
+    wartet = ([mit_reihe(entwurf_zeile(e, jetzt), e)
+               for e in sorted(entwuerfe, key=lambda e: e.get("erstellt") or "", reverse=True)]
+              + [mit_reihe(ketten_zeile(k, jetzt, "Neu"), kopf(k)) for k in neu])
     laeuft = []
     for kette in sorted(laufend, key=lambda k: _zeitpunkt(next(a for a in k if a.get("status") == "neu"))):
         k = kopf(kette)
         start = next(a for a in kette if a.get("status") == "neu").get("erstellt")
-        laeuft.append(_zeile(titel(k, {a["id"]: a for a in kette}),
-                             art(k) if k.get("agent") != "feedback" else "Rückmeldung",
-                             "seit " + zeit_text(start, jetzt) if start else "",
-                             hinweis="Arbeitet an deiner Rückmeldung" if len(kette) > 1 else "",
-                             link=ergebnis_link(k) if zeigbar(k) else ""))
-    rest = [k for k in ergebnisse if k not in neu]
-    fehlgeschlagen = [{**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1]), 300)}
+        laeuft.append(mit_reihe(_zeile(titel(k, {a["id"]: a for a in kette}),
+                                       art(k) if k.get("agent") != "feedback" else "Rückmeldung",
+                                       "seit " + zeit_text(start, jetzt) if start else "",
+                                       hinweis="Arbeitet an deiner Rückmeldung" if len(kette) > 1 else "",
+                                       link=ergebnis_link(k) if zeigbar(k) else ""), k))
+    rest = [mit_reihe(ketten_zeile(k, jetzt), kopf(k)) for k in ergebnisse if k not in neu]
+    fehlgeschlagen = [mit_reihe({**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1]), 300)},
+                                kopf(k))
                       for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"]
     n = len(wartet)
+
+    def gefiltert(zeilen: list[dict]) -> list[dict]:
+        return [{k: v for k, v in z.items() if k != "_passt"} for z in zeilen if z["_passt"]]
+
+    rest = gefiltert(rest)
     return {
         "datum": datum_text(jetzt),
         "begruessung": f"Hallo {person}.",
         "anzahl_wartet": n,
         "wartet_text": ("Gerade wartet nichts auf dich." if n == 0
                         else "Sache wartet auf dich." if n == 1 else "Sachen warten auf dich."),
-        "wartet": wartet,
-        "laeuft": laeuft,
-        "fertig": [ketten_zeile(k, jetzt) for k in rest[:FERTIG_ANZAHL]],
+        "wartet": gefiltert(wartet),
+        "laeuft": gefiltert(laeuft),
+        "fertig": rest[:FERTIG_ANZAHL],
         "fertig_weitere": max(0, len(rest) - FERTIG_ANZAHL),
-        "fehlgeschlagen": fehlgeschlagen,
+        "fehlgeschlagen": gefiltert(fehlgeschlagen),
+        "chips": filter_chips(reihen, filter_),
+        "filter": filter_,
     }
 
 
@@ -444,3 +460,149 @@ def formular_token(geheim: bytes) -> str:
 
 def token_passt(geheim: bytes, token: str | None) -> bool:
     return bool(token) and hmac.compare_digest(formular_token(geheim), token)
+
+
+# Ordnung nach Fach, Klasse oder Kurs und Reihe (Jan 30.10.2026). Eine Reihe kommt aus reihen.toml (ordnung.py);
+# ein Auftrag gehört zu ihr, wenn er ihre Kennung im Feld "reihe" trägt (Neuer Auftrag) oder sein Agent in ihrer
+# Liste "agenten" steht und in keiner anderen (theater, examen). Was nicht sicher passt, ist "ohne Reihe": Am
+# Auftragstext wird nichts geraten.
+REIHE_TEXTE = ("id", "fach", "klasse", "titel", "reihenfrage", "lerngruppe", "notizen", "stand")
+REIHE_LISTEN = ("behandelt", "merksaetze", "bisherige_reihen", "agenten")
+REIHE_STAENDE = ("laufend", "abgeschlossen")
+OHNE_REIHE = "ohne"
+_UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
+_KLAMMER = re.compile(r"\s*\([^)]*\)")
+
+
+def kennung(*teile: str) -> str:
+    """Kennung aus Fach, Klasse und Titel: Kleinbuchstaben, Ziffern, Bindestriche (agentkit REIHE_MUSTER).
+    Klammern im Titel zählen nicht mit („Straftheorien (in Planung)“ bleibt ethik-8-straftheorien)."""
+    text = " ".join(_KLAMMER.sub("", t) for t in teile).lower().translate(_UMLAUTE)
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")[:80].rstrip("-")
+
+
+def gruppe_name(klasse: str) -> str:
+    """'8' -> 'Klasse 8', 'Kurs 11' bleibt."""
+    return f"Klasse {klasse}" if klasse.isdigit() else klasse
+
+
+def reihen_aus(eintraege: list, standard_fach: str = "") -> tuple[list[dict], list[str]]:
+    """Reihen aus den [[reihe]]-Blöcken einer reihen.toml, geprüft. Gibt (Reihen, Fehlertexte für Jan) zurück;
+    fehlerhafte Reihen fehlen. Pflicht: klasse und fach (ohne Angabe standard_fach)."""
+    reihen, fehler, ids = [], [], set()
+    for nr, e in enumerate(eintraege, 1):
+        if not isinstance(e, dict):
+            fehler.append(f"Reihe {nr}: kein Block [[reihe]]")
+            continue
+        falsch = sorted(k for k in e if k not in REIHE_TEXTE + REIHE_LISTEN
+                        or (k in REIHE_TEXTE and not isinstance(e[k], str))
+                        or (k in REIHE_LISTEN and not (isinstance(e[k], list)
+                                                       and all(isinstance(x, str) for x in e[k]))))
+        fach = (e.get("fach") if isinstance(e.get("fach"), str) else "").strip() or standard_fach
+        klasse = (e.get("klasse") if isinstance(e.get("klasse"), str) else "").strip()
+        titel_ = (e.get("titel") if isinstance(e.get("titel"), str) else "").strip()
+        rid = (e.get("id") if isinstance(e.get("id"), str) else "").strip() or kennung(fach, klasse, titel_)
+        stand = e.get("stand") or "laufend"
+        if falsch:
+            fehler.append(f"Reihe {nr}: unbekannte oder falsche Felder {falsch}")
+        elif not fach or not klasse:
+            fehler.append(f"Reihe {nr}: {'fach' if not fach else 'klasse'} fehlt")
+        elif rid != kennung(rid) or not rid:
+            fehler.append(f"Reihe {nr}: id {rid!r} nur aus Kleinbuchstaben, Ziffern und Bindestrichen")
+        elif rid in ids:
+            fehler.append(f"Reihe {nr}: id {rid!r} gibt es doppelt")
+        elif stand not in REIHE_STAENDE:
+            fehler.append(f"Reihe {nr}: stand {stand!r}, erlaubt {list(REIHE_STAENDE)}")
+        else:
+            ids.add(rid)
+            reihen.append({
+                "id": rid, "fach": fach, "fach_id": kennung(fach), "klasse": klasse, "gruppe": gruppe_name(klasse),
+                "gruppe_id": kennung(fach, klasse), "titel": titel_ or gruppe_name(klasse),
+                "reihenfrage": (e.get("reihenfrage") or "").strip(), "behandelt": list(e.get("behandelt") or []),
+                "laufend": stand == "laufend", "agenten": list(e.get("agenten") or []),
+            })
+    return reihen, fehler
+
+
+def reihe_von(eintrag: dict, reihen: list[dict]) -> dict | None:
+    """Reihe eines Auftrags oder Entwurfs: Feld "reihe", sonst der Agent, wenn er zu genau einer Reihe gehört."""
+    gesetzt = eintrag.get("reihe")
+    if gesetzt:
+        return next((r for r in reihen if r["id"] == gesetzt), None)
+    treffer = [r for r in reihen if eintrag.get("agent") and eintrag["agent"] in r["agenten"]]
+    return treffer[0] if len(treffer) == 1 else None
+
+
+def reihe_text(reihe: dict | None) -> str:
+    return f"{reihe['fach']} · {reihe['gruppe']} · {reihe['titel']}" if reihe else ""
+
+
+def reihe_passt(reihe: dict | None, filter_: str) -> bool:
+    """filter_: "" (alle), "ohne", "fach:<id>", "gruppe:<id>" oder "reihe:<id>"."""
+    if not filter_:
+        return True
+    if filter_ == OHNE_REIHE:
+        return reihe is None
+    art_, _, wert = filter_.partition(":")
+    return reihe is not None and reihe.get({"fach": "fach_id", "gruppe": "gruppe_id", "reihe": "id"}.get(art_, "")) == wert
+
+
+def filter_chips(reihen: list[dict], aktiv: str) -> list[dict]:
+    """Auswahl über "Heute": Alle, je Fach, je Klasse (nur wenn ein Fach mehrere hat), Ohne Reihe. Ohne Reihen leer."""
+    if not reihen:
+        return []
+    chips = [("Alle", "")]
+    for fach_id in dict.fromkeys(r["fach_id"] for r in reihen):
+        im_fach = [r for r in reihen if r["fach_id"] == fach_id]
+        chips.append((im_fach[0]["fach"], f"fach:{fach_id}"))
+        gruppen = {r["gruppe_id"]: r for r in im_fach}
+        if len(gruppen) > 1:
+            chips += [(f"{r['fach']} {r['klasse']}", f"gruppe:{gid}") for gid, r in gruppen.items()]
+    chips.append(("Ohne Reihe", OHNE_REIHE))
+    return [{"text": t, "wert": w, "aktiv": w == aktiv} for t, w in chips]
+
+
+def filter_gueltig(wert: str | None, reihen: list[dict]) -> str:
+    """Der Filter aus der URL, wenn es ihn als Chip oder Reihe gibt; sonst "" (alle)."""
+    erlaubt = {c["wert"] for c in filter_chips(reihen, "")} | {f"reihe:{r['id']}" for r in reihen}
+    return wert if wert in erlaubt else ""
+
+
+def reihen_auswahl(reihen: list[dict]) -> list[dict]:
+    """Laufende Reihen für "Neuer Auftrag": Kennung und Text wie „Straftheorien (Ethik, Klasse 8)“."""
+    return [{"id": r["id"], "text": f"{r['titel']} ({r['fach']}, {r['gruppe']})"} for r in reihen if r["laufend"]]
+
+
+def reihe_pruefen(wert: str | None, reihen: list[dict]) -> tuple[str | None, list[str]]:
+    """Gewählte Reihe aus dem Formular: Kennung oder None (keine Reihe), sonst ein Fehlertext."""
+    if not wert:
+        return None, []
+    if wert in {r["id"] for r in reihen_auswahl(reihen)}:
+        return wert, []
+    return None, ["Diese Reihe gibt es nicht (mehr). Bitte wähl sie neu."]
+
+
+def unterricht(reihen: list[dict], auftraege_: list[dict], jetzt: datetime) -> dict:
+    """Ansicht "Unterricht": Fach, Klasse oder Kurs, Reihe, je mit ihren Aufträgen (neueste zuerst), darunter die
+    Aufträge ohne Reihe. Je Kette eine Zeile wie in "Heute"."""
+    zeilen_je: dict[str, list] = {}
+    for kette in sorted((k for k in ketten(auftraege_) if fassungen(k)),
+                        key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True):
+        r = reihe_von(kopf(kette), reihen)
+        letzte = fassungen(kette)[-1]
+        marke = ("Läuft" if any(a.get("status") == "neu" for a in kette)
+                 else "Hat nicht geklappt" if letzte.get("status") == "fehlgeschlagen" else "")
+        zeile = ketten_zeile(kette, jetzt, marke)
+        if not zeigbar(kopf(kette)):
+            zeile["link"] = ""
+        zeilen_je.setdefault(r["id"] if r else OHNE_REIHE, []).append(zeile)
+    faecher: dict[str, dict] = {}
+    for r in reihen:
+        fach = faecher.setdefault(r["fach_id"], {"name": r["fach"], "gruppen": {}})
+        gruppe = fach["gruppen"].setdefault(r["gruppe_id"], {"name": r["gruppe"], "reihen": []})
+        gruppe["reihen"].append({"id": r["id"], "titel": r["titel"], "reihenfrage": r["reihenfrage"],
+                                 "behandelt": "; ".join(r["behandelt"]), "laufend": r["laufend"],
+                                 "zeilen": zeilen_je.get(r["id"], [])})
+    return {"faecher": [{"name": f["name"], "gruppen": list(f["gruppen"].values())} for f in faecher.values()],
+            "ohne": zeilen_je.get(OHNE_REIHE, [])}

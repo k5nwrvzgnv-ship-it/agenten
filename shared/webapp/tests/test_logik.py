@@ -362,3 +362,125 @@ class TestNeuerAuftrag(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+ETHIK = {"fach": "Ethik", "klasse": "8", "titel": "Straftheorien (in Planung)", "reihenfrage": "",
+         "behandelt": ["Kant", "Bentham"], "agenten": ["examen"]}
+THEATER = {"fach": "Theater", "klasse": "Kurs 11", "titel": "Der nackte Wahnsinn", "agenten": ["theater"]}
+
+
+def reihen(*eintraege):
+    ergebnis, fehler = logik.reihen_aus(list(eintraege or (ETHIK, THEATER)))
+    assert not fehler, fehler
+    return ergebnis
+
+
+class TestReihen(unittest.TestCase):
+    def test_kennung(self):
+        self.assertEqual(logik.kennung("Ethik", "8", "Straftheorien (in Planung)"), "ethik-8-straftheorien")
+        self.assertEqual(logik.kennung("Theater", "Kurs 11", "Der nackte Wahnsinn"),
+                         "theater-kurs-11-der-nackte-wahnsinn")
+        self.assertEqual(logik.kennung("Ethik", "7", "Glückliches Leben: Wie?"), "ethik-7-glueckliches-leben-wie")
+
+    def test_reihen_aus(self):
+        ethik, theater = reihen()
+        self.assertEqual((ethik["id"], ethik["gruppe"], ethik["gruppe_id"], ethik["laufend"]),
+                         ("ethik-8-straftheorien", "Klasse 8", "ethik-8", True))
+        self.assertEqual((theater["gruppe"], theater["fach_id"]), ("Kurs 11", "theater"))
+
+    def test_reihen_aus_fehler(self):
+        faelle = [({"klasse": "8"}, "fach fehlt"), ({"fach": "Ethik"}, "klasse fehlt"),
+                  ({**ETHIK, "farbe": "rot"}, "farbe"), ({**ETHIK, "behandelt": "Kant"}, "behandelt"),
+                  ({**ETHIK, "id": "Ethik 8"}, "id"), ({**ETHIK, "stand": "fertig"}, "stand"), ("x", "kein Block")]
+        for eintrag, text in faelle:
+            with self.subTest(eintrag=eintrag):
+                gut, fehler = logik.reihen_aus([eintrag])
+                self.assertEqual(gut, [])
+                self.assertIn(text, fehler[0])
+        gut, fehler = logik.reihen_aus([ETHIK, ETHIK])
+        self.assertEqual((len(gut), "doppelt" in fehler[0]), (1, True))
+        self.assertEqual(logik.reihen_aus([{"klasse": "8"}], "Ethik")[0][0]["fach"], "Ethik")
+
+    def test_reihe_von(self):
+        r = reihen()
+        self.assertEqual(logik.reihe_von({"agent": "theater"}, r)["fach"], "Theater")
+        self.assertEqual(logik.reihe_von({"agent": "examen"}, r)["fach"], "Ethik")
+        self.assertIsNone(logik.reihe_von({"agent": "unterricht"}, r))  # nichts geraten
+        self.assertEqual(logik.reihe_von({"agent": "unterricht", "reihe": "ethik-8-straftheorien"}, r)["klasse"], "8")
+        self.assertIsNone(logik.reihe_von({"agent": "theater", "reihe": "gibt-es-nicht"}, r))
+        zweimal = reihen(ETHIK, {**ETHIK, "titel": "Helfen"})  # examen in zwei Reihen: nicht sicher
+        self.assertIsNone(logik.reihe_von({"agent": "examen"}, zweimal))
+
+    def test_filter(self):
+        ethik, theater = reihen()
+        self.assertTrue(logik.reihe_passt(None, ""))
+        self.assertTrue(logik.reihe_passt(None, "ohne"))
+        self.assertFalse(logik.reihe_passt(ethik, "ohne"))
+        self.assertTrue(logik.reihe_passt(ethik, "fach:ethik"))
+        self.assertFalse(logik.reihe_passt(theater, "fach:ethik"))
+        self.assertTrue(logik.reihe_passt(ethik, "gruppe:ethik-8"))
+        self.assertTrue(logik.reihe_passt(ethik, "reihe:ethik-8-straftheorien"))
+        self.assertFalse(logik.reihe_passt(None, "fach:ethik"))
+
+    def test_chips(self):
+        self.assertEqual(logik.filter_chips([], ""), [])
+        r = reihen()
+        self.assertEqual([(c["text"], c["wert"], c["aktiv"]) for c in logik.filter_chips(r, "fach:theater")], [
+            ("Alle", "", False), ("Ethik", "fach:ethik", False), ("Theater", "fach:theater", True),
+            ("Ohne Reihe", "ohne", False)])
+        mehr = reihen(ETHIK, {**ETHIK, "klasse": "7", "titel": "Glück", "agenten": []})
+        self.assertIn(("Ethik 7", "gruppe:ethik-7"), [(c["text"], c["wert"]) for c in logik.filter_chips(mehr, "")])
+        self.assertEqual(logik.filter_gueltig("fach:theater", r), "fach:theater")
+        self.assertEqual(logik.filter_gueltig("reihe:ethik-8-straftheorien", r), "reihe:ethik-8-straftheorien")
+        self.assertEqual(logik.filter_gueltig("fach:mathe", r), "")
+        self.assertEqual(logik.filter_gueltig(None, r), "")
+
+    def test_auswahl_und_pruefen(self):
+        r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"})
+        self.assertEqual(logik.reihen_auswahl(r), [
+            {"id": "ethik-8-straftheorien", "text": "Straftheorien (in Planung) (Ethik, Klasse 8)"},
+            {"id": "theater-kurs-11-der-nackte-wahnsinn", "text": "Der nackte Wahnsinn (Theater, Kurs 11)"}])
+        self.assertEqual(logik.reihe_pruefen("", r), (None, []))
+        self.assertEqual(logik.reihe_pruefen("ethik-8-straftheorien", r), ("ethik-8-straftheorien", []))
+        self.assertEqual(logik.reihe_pruefen("ethik-8-helfen", r)[0], None)  # abgeschlossen
+        self.assertTrue(logik.reihe_pruefen("../x", r)[1])
+
+    def test_heute_mit_reihe_und_filter(self):
+        alt, fb, nb = theater_kette()
+        material = auftrag("20261030-123903-unterricht-ef0a90", text="Notentabelle",
+                           abgeschlossen="2026-10-27T12:00:00+01:00")
+        entwurf = {"id": "20261025-003745-examen-0c44bf", "agent": "examen", "typ": "entwurf",
+                   "titel": "Umfrage", "erstellt": "2026-10-25T00:37:45+02:00"}
+        r = reihen()
+        h = logik.heute([], [alt, fb, nb, material], [entwurf], JETZT, reihen=r)
+        self.assertEqual([z["reihe"] for z in h["wartet"]],
+                         ["Ethik · Klasse 8 · Straftheorien (in Planung)", "Theater · Kurs 11 · Der nackte Wahnsinn"])
+        self.assertEqual(h["fertig"][0]["reihe"], "")
+        self.assertEqual(len(h["chips"]), 4)
+        h = logik.heute([], [alt, fb, nb, material], [entwurf], JETZT, reihen=r, filter_="fach:theater")
+        self.assertEqual([z["titel"] for z in h["wartet"]], ["Fassung Der nackte Wahnsinn"])
+        self.assertEqual((h["fertig"], h["anzahl_wartet"]), ([], 2))  # die Begrüßung zählt alles
+        h = logik.heute([], [alt, fb, nb, material], [entwurf], JETZT, reihen=r, filter_="ohne")
+        self.assertEqual(([z["titel"] for z in h["fertig"]], h["wartet"]), (["Notentabelle"], []))
+        self.assertNotIn("_passt", h["fertig"][0])
+
+    def test_heute_ohne_reihen_wie_bisher(self):
+        h = logik.heute([], [auftrag("20261030-123903-unterricht-ef0a90")], [], JETZT)
+        self.assertEqual((h["chips"], h["wartet"][0]["reihe"]), ([], ""))
+
+    def test_unterricht(self):
+        alt, fb, nb = theater_kette()
+        material = auftrag("20261030-123903-unterricht-ef0a90", text="Notentabelle")
+        mit_reihe = auftrag("20261030-140000-unterricht-aaaaaa", text="Arbeitsblatt Kant", status="neu",
+                            abgeschlossen=None, reihe="ethik-8-straftheorien")
+        u = logik.unterricht(reihen(), [alt, fb, nb, material, mit_reihe], JETZT)
+        self.assertEqual([f["name"] for f in u["faecher"]], ["Ethik", "Theater"])
+        ethik = u["faecher"][0]["gruppen"][0]
+        self.assertEqual((ethik["name"], ethik["reihen"][0]["behandelt"]), ("Klasse 8", "Kant; Bentham"))
+        self.assertEqual([(z["titel"], z["marke"]) for z in ethik["reihen"][0]["zeilen"]],
+                         [("Arbeitsblatt Kant", "Läuft")])
+        self.assertEqual(ethik["reihen"][0]["zeilen"][0]["link"], "")  # läuft noch, keine Ergebnis-Ansicht
+        theater = u["faecher"][1]["gruppen"][0]["reihen"][0]
+        self.assertEqual(len(theater["zeilen"]), 1)  # Kette mit Rückmeldung ist eine Zeile
+        self.assertEqual(theater["zeilen"][0]["link"], f"/ergebnis/{ALT_ID}")
+        self.assertEqual([z["titel"] for z in u["ohne"]], ["Notentabelle"])
