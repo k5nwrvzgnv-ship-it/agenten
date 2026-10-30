@@ -6,11 +6,18 @@ Hilft Lia in ihrem zweiten Fach Theater (Darstellendes Spiel). Erste Aufgabe: au
 sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstellen behalten.
 
 ## Stand (30.10.2026)
-- Neue Aufträge aus Lias Web-App (Jans Okay 30.10., board-plan.md Punkt 8), gebaut und getestet, noch KEIN echter
-  Lauf (Jans Okay nötig, Lias Kontingent): „Spielfassung: …“ ist eine ganze Runde mit Lias Länge, Spieler*innen
+- Neue Aufträge aus Lias Web-App (Jans Okay 30.10., board-plan.md Punkt 8), gebaut und getestet. Spielfassung
+  noch ohne echten Lauf (Jans Okay nötig, Lias Kontingent): „Spielfassung: …“ ist eine ganze Runde mit Lias Länge, Spieler*innen
   und „Was bleiben muss“, Ergebnis direkt an Lia, Meldung mit Kosten an Jan; „Szenenaufgabe: …“ ein Arbeitsblatt
   für eine Gruppe. Format für die Web-App in Punkt 24 der Haupt-STATUS. Die Web-App bietet die Arten noch nicht an.
   Zeitlimit des Dienstes 180 statt 90 Minuten (Unit installiert, daemon-reload, Jans Okay).
+- Probelauf Szenenaufgabe 30.10. (Jans Okay, ohne Zustellung, neuauftrag.bearbeiten direkt, Auftrag
+  probe-20261030, Ordner data/runde-20261029-140740/szenenaufgabe-probe-20261030/): „Sardinen und Türen“, Slow
+  Motion, 5 SuS. 1 Lauf, 0,91 USD, ohne Nachbesserung. 3 Seiten: Situation, Rollen, Hinweise, 5 Arbeitsschritte
+  (45 Min), Originaltext von Python (Einheiten 141–166, 221–237). Lloyds Zitat wörtlich, Kündiger S. 125/127
+  (Haltepunkte, Einatmen) im Auszug nachgeprüft. Schwächen: Rollen nennen die Schauspielerfiguren (Dotty, Garry),
+  der Text darunter die Rollen im Stück im Stück (MRS CLACKETT, ROGER); Frederick ist besetzt, obwohl offen ist,
+  ob er wegfällt; Schreiblinien stehen mitten zwischen den Arbeitsschritten; Dateiname = langer Titel.
 - Dienst lia-theater eingerichtet (Jans Okay 30.10.): agent.py arbeitet Aufträge aus Lias Warteschlange selbst ab,
   vor allem Nachbesserungen aus ihrem Feedback. Erster Auftrag 20261030-111155-theater-5d88d5 (Lias Frage, wie
   lange die Fassung dauert): 2 Läufe, 0,55 USD, Antwort 38 Min, davon gut 11 Min neue Szenen, etwa 15 Min Text aus
