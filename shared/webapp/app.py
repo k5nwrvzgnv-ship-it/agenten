@@ -1,4 +1,4 @@
-"""Web-App für Lia, Bauschritt 1: Seite "Heute", nur lesend, ohne Anmeldung.
+"""Web-App für Lia: Seite "Heute" mit Ergebnis- und Entwurf-Ansicht, nur lesend, ohne Anmeldung.
 
 Kein Port: Uvicorn hört auf einem Unix-Socket in data/ (Ordner nur für User agent), wie der Leitstand.
 Zugriff zum Test per SSH-Tunnel:
@@ -9,9 +9,16 @@ Daten: Warteschlangen der Instanz WEBAPP_INSTANZ (Standard lia/instanz) über ag
 Die App selbst läuft ohne AGENTKIT_INSTANZ. Logik in logik.py (getestet), hier nur Dateien und HTTP.
 
 Nur GET:
-  /              Seite Heute
-  /teile/heute   Inhalt von Heute (htmx lädt ihn jede Minute neu)
-  /statisch/...  CSS, htmx
+  /                                     Seite Heute
+  /teile/heute                          Inhalt von Heute (htmx lädt ihn jede Minute neu)
+  /ergebnis/<id>                        Ergebnis (auch fehlgeschlagene Aufträge mit Grund)
+  /ergebnis/<id>/datei/<n>              Download der n-ten Ergebnisdatei
+  /ergebnis/<id>/datei/<n>/pdf          PDF aus der Vorschau des Renderers
+  /ergebnis/<id>/datei/<n>/seite/<m>    Seitenbild m (ab 1) der Vorschau
+  /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
+  /statisch/...                         CSS, htmx
+IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
+ergebnis_dateien, nie über einen Pfad aus der URL; jeder Pfad wird gegen den Agent-Ordner geprüft (dateien.py).
 
 Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET)
 """
@@ -23,13 +30,17 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from agentkit import auftraege, config, freigabe
+from agentkit._ablage import AblageFehler, pruefe_id
 
+import dateien
 import logik
 
 HIER = Path(__file__).resolve().parent
@@ -49,6 +60,21 @@ KOPFZEILEN = {
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/statisch", StaticFiles(directory=HIER / "statisch"), name="statisch")
 vorlagen = Jinja2Templates(directory=HIER / "vorlagen")
+
+
+NICHT_GEFUNDEN = ('<!doctype html><html lang="de"><head><meta charset="utf-8">'
+                  '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Nicht gefunden</title>'
+                  '<link rel="stylesheet" href="/statisch/stil.css"></head><body><main class="einzeln">'
+                  '<header class="kopf"><a class="zurueck" href="/"><span aria-hidden="true">←</span>Zurück</a>'
+                  '<h1 class="titel-gross">Nicht gefunden</h1></header>'
+                  '<p class="absatz">Das gibt es hier nicht (mehr).</p></main></body></html>')
+
+
+@app.exception_handler(StarletteHTTPException)
+async def fehlerseite(request: Request, fehler: StarletteHTTPException):
+    if fehler.status_code == 404:
+        return HTMLResponse(NICHT_GEFUNDEN, status_code=404)
+    return await http_exception_handler(request, fehler)
 
 
 @app.middleware("http")
@@ -75,6 +101,74 @@ def seite_heute(request: Request):
 @app.get("/teile/heute", response_class=HTMLResponse)
 def teil_heute(request: Request):
     return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten()})
+
+
+def _auftrag(eintrag_id: str) -> dict:
+    """Abgeschlossener Auftrag aus der Instanz, der eine Ergebnis-Ansicht hat; sonst 404."""
+    try:
+        auftrag = auftraege.erledigter(eintrag_id, basis=INSTANZ / "auftraege")  # prüft die ID (pruefe_id)
+    except AblageFehler:
+        raise HTTPException(404) from None
+    if not logik.zeigbar(auftrag):
+        raise HTTPException(404)
+    return auftrag
+
+
+def _ergebnisdatei(eintrag_id: str, nr: int) -> tuple[Path, str]:
+    """Agent-Ordner und relativer Pfad der nr-ten Ergebnisdatei; sonst 404."""
+    auftrag = _auftrag(eintrag_id)
+    pfade = auftrag.get("ergebnis_dateien") or []
+    wurzel = dateien.agent_ordner(INSTANZ, auftrag.get("agent"))
+    if auftrag.get("status") != "erledigt" or wurzel is None or not 0 <= nr < len(pfade):
+        raise HTTPException(404)
+    return wurzel, pfade[nr]
+
+
+def _ausliefern(pfad: Path | None, herunterladen: bool = True) -> FileResponse:
+    if pfad is None:
+        raise HTTPException(404)
+    return FileResponse(pfad, filename=pfad.name if herunterladen else None)
+
+
+@app.get("/ergebnis/{eintrag_id}", response_class=HTMLResponse)
+def seite_ergebnis(request: Request, eintrag_id: str):
+    auftrag = _auftrag(eintrag_id)
+    pfade = auftrag.get("ergebnis_dateien") or []
+    wurzel = dateien.agent_ordner(INSTANZ, auftrag.get("agent"))
+    e = logik.ergebnis(auftrag, auftraege.erledigte(basis=INSTANZ / "auftraege"),
+                       dateien.vorschau_info(wurzel, pfade), datetime.now(ZONE))
+    return vorlagen.TemplateResponse(request, "ergebnis.html", {"e": e, "id": eintrag_id})
+
+
+@app.get("/ergebnis/{eintrag_id}/datei/{nr:int}")
+def datei_original(eintrag_id: str, nr: int):
+    wurzel, relativ = _ergebnisdatei(eintrag_id, nr)
+    return _ausliefern(dateien.sicher(wurzel, relativ, dateien.DOWNLOAD_ENDUNGEN))
+
+
+@app.get("/ergebnis/{eintrag_id}/datei/{nr:int}/pdf")
+def datei_pdf(eintrag_id: str, nr: int):
+    wurzel, relativ = _ergebnisdatei(eintrag_id, nr)
+    return _ausliefern(dateien.vorschau_pdf(wurzel, relativ))
+
+
+@app.get("/ergebnis/{eintrag_id}/datei/{nr:int}/seite/{seite:int}")
+def datei_seite(eintrag_id: str, nr: int, seite: int):
+    wurzel, relativ = _ergebnisdatei(eintrag_id, nr)
+    seiten = dateien.vorschau_seiten(wurzel, relativ)
+    return _ausliefern(seiten[seite - 1] if 1 <= seite <= len(seiten) else None, herunterladen=False)
+
+
+@app.get("/entwurf/{eintrag_id}", response_class=HTMLResponse)
+def seite_entwurf(request: Request, eintrag_id: str):
+    try:
+        pruefe_id(eintrag_id)
+    except AblageFehler:
+        raise HTTPException(404) from None
+    eintrag = next((e for e in freigabe.offene(basis=INSTANZ / "freigabe") if e.get("id") == eintrag_id), None)
+    if eintrag is None:
+        raise HTTPException(404)
+    return vorlagen.TemplateResponse(request, "entwurf.html", {"e": logik.entwurf(eintrag, datetime.now(ZONE))})
 
 
 def socket_vorbereiten(socket_pfad: Path = SOCKET) -> None:

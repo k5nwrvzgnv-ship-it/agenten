@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ e.titel }}</title>
+<link rel="stylesheet" href="/statisch/stil.css">
+</head>
+<body>
+<main class="einzeln">
+<header class="kopf">
+  <a class="zurueck" href="/"><span aria-hidden="true">←</span>Zurück</a>
+  <span class="datum grau">{{ e.unter }}</span>
+  <h1 class="titel-gross">{{ e.titel }}</h1>
+</header>
+{% block inhalt %}{% endblock %}
+</main>
+</body>
+</html>

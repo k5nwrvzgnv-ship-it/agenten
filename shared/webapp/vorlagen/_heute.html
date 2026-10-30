@@ -1,6 +1,6 @@
-{#- Inhalt von Heute. Nur Elemente, die es schon gibt: keine Links auf Ergebnis/Entwurf (Bauschritt 3 und 5). -#}
+{#- Inhalt von Heute. Zeilen mit link führen zur Ergebnis- bzw. Entwurf-Ansicht (nur lesend). -#}
 {%- macro zeile(z, offen=false) -%}
-<li class="zeile">
+<li>{% if z.link %}<a class="zeile" href="{{ z.link }}">{% else %}<div class="zeile">{% endif %}
   <span class="punkt{% if offen %} punkt-offen{% endif %}" aria-hidden="true"></span>
   <span class="text">
     <span class="titel">{{ z.titel }}</span>
@@ -9,7 +9,7 @@
     {%- if z.grund %}<span class="grund">{{ z.grund }}</span>{% endif %}
   </span>
   {%- if z.marke %}<span class="marke">{{ z.marke }}</span>{% endif %}
-</li>
+{% if z.link %}</a>{% else %}</div>{% endif %}</li>
 {%- endmacro -%}
 <header class="kopf">
   <span class="datum">{{ h.datum }}</span>

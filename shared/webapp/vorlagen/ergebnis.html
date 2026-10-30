@@ -1,0 +1,90 @@
+{#- Ergebnis, nur lesend (Board ModErgebnis). Keine Feedback-Knöpfe, keine Anmerkungen: gibt es noch nicht. -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+{%- set nummer = namespace(n=0) %}
+{%- macro kopf(name) %}{% set nummer.n = nummer.n + 1 %}
+<h2><span class="akzent">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
+{%- endmacro %}
+
+{%- if e.fehlgeschlagen %}
+<section>
+  {{ kopf("Hat nicht geklappt") }}
+  <p class="hinweis">{{ e.grund }}</p>
+</section>
+{%- elif e.kern or e.bloecke or e.pruefen %}
+<section>
+  {{ kopf("Das Wichtigste") }}
+  {%- if e.kern %}<p class="absatz">{{ e.kern }}</p>{% endif %}
+  {%- if e.punkte %}
+  <ol class="punkte">{% for p in e.punkte %}<li><span class="nr">{{ loop.index }}</span>{{ p }}</li>{% endfor %}</ol>
+  {%- endif %}
+  {%- for b in e.bloecke %}
+  {%- if b.punkte %}
+  <ul class="punkte">{% for p in b.punkte %}<li><span class="nr" aria-hidden="true">–</span>{{ p }}</li>{% endfor %}</ul>
+  {%- else %}
+  <p class="absatz">{{ b.absatz }}</p>
+  {%- endif %}
+  {%- endfor %}
+  {%- if e.pruefen %}<p class="hinweis"><b>Bitte prüfen:</b> {{ e.pruefen }}</p>{% endif %}
+</section>
+{%- endif %}
+
+{%- if e.rueckmeldung or e.bezug %}
+<section>
+  {{ kopf("Deine Rückmeldung") }}
+  {%- if e.rueckmeldung %}<p class="hinweis">„{{ e.rueckmeldung }}“</p>{% endif %}
+  {%- if e.bezug %}<a class="verweis" href="{{ e.bezug.link }}">Zum ursprünglichen Ergebnis: {{ e.bezug.titel }}</a>{% endif %}
+</section>
+{%- endif %}
+
+{%- set mit_seiten = e.dateien | selectattr("seiten") | list %}
+{%- if mit_seiten %}
+<section>
+  {{ kopf("Seiten") }}
+  {%- for d in mit_seiten %}
+  {%- if e.dateien | length > 1 %}<h3>{{ d.name }}</h3>{% endif %}
+  <div class="seiten">
+    {%- for m in range(1, d.seiten + 1) %}
+    <a href="/ergebnis/{{ id }}/datei/{{ d.nr }}/seite/{{ m }}" aria-label="{{ d.name }}, Seite {{ m }} groß ansehen">
+      <img src="/ergebnis/{{ id }}/datei/{{ d.nr }}/seite/{{ m }}" alt="{{ d.name }}, Seite {{ m }}" loading="lazy">
+      <span class="seitenzahl">{{ m }}/{{ d.seiten }}</span>
+    </a>
+    {%- endfor %}
+  </div>
+  {%- endfor %}
+  <span class="unter">Tipp auf eine Seite, um sie groß zu sehen.</span>
+</section>
+{%- endif %}
+
+{%- if e.dateien %}
+<section>
+  {{ kopf("Dateien") }}
+  <div class="dateien">
+    {%- for d in e.dateien %}
+    <div class="datei">
+      <span class="dateiname">{{ d.name }}</span>
+      <span class="knoepfe">
+      {%- for k in d.knoepfe %}
+        <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="/ergebnis/{{ id }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
+      {%- endfor %}
+      </span>
+    </div>
+    {%- endfor %}
+  </div>
+</section>
+{%- endif %}
+
+{%- if e.antworten %}
+<section>
+  {{ kopf("Später dazu") }}
+  <ul>
+    {%- for a in e.antworten %}
+    <li><a class="zeile" href="{{ a.link }}">
+      <span class="punkt" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ a.titel }}</span><span class="unter">{{ a.unter }}</span></span>
+    </a></li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- endif %}
+{% endblock %}

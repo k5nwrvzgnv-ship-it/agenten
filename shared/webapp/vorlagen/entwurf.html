@@ -1,0 +1,19 @@
+{#- Offener Entwurf, nur lesend. Abschließen, Ändern, Ablehnen: Bauschritt 5. -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+<p class="hinweis">{{ e.hinweis }}.</p>
+<section>
+  <h2><span class="akzent">01</span>Text</h2>
+  <div class="entwurf">{{ e.inhalt }}</div>
+</section>
+{%- if e.details %}
+<section>
+  <h2><span class="akzent">02</span>Details</h2>
+  <dl class="details">
+    {%- for name, wert in e.details %}
+    <div><dt>{{ name }}</dt><dd>{{ wert }}</dd></div>
+    {%- endfor %}
+  </dl>
+</section>
+{%- endif %}
+{% endblock %}

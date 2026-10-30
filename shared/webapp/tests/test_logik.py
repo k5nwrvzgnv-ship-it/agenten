@@ -89,6 +89,11 @@ class TestHeute(unittest.TestCase):
                          [("Fallsuche Straftheorien: Dossier", "Recherche · Di 27.10.", "1 PDF")])
         self.assertEqual(len(h["fehlgeschlagen"]), 1)
         self.assertEqual(h["fehlgeschlagen"][0]["grund"], "Gerade ist das gemeinsame Kontingent aufgebraucht.")
+        # Zeilen verlinken auf die Einzelansichten, laufende Aufträge (noch) nicht
+        self.assertEqual((e["link"], n["link"]), ("/entwurf/E", "/ergebnis/N"))
+        self.assertEqual(h["fertig"][0]["link"], "/ergebnis/O")
+        self.assertEqual(h["fehlgeschlagen"][0]["link"], "/ergebnis/K")
+        self.assertEqual(h["laeuft"][0]["link"], "")
 
     def test_keine_ids_und_agentennamen_in_der_ansicht(self):
         a = auftrag("20261030-111155-theater-5d88d5", agent="theater", bezug="20261029-150107-theater-0baec0",
@@ -97,7 +102,9 @@ class TestHeute(unittest.TestCase):
                     text="Fassung Der nackte Wahnsinn: Runde runde-20261029-140740")
         k = auftrag("20261022-232618-unterricht-67ba47", status="fehlgeschlagen", ergebnis="")
         h = logik.heute([], [a, b, k], [], JETZT)
-        alles = repr(h)
+        # IDs nur in Links, nie im sichtbaren Text
+        alles = repr([{k: v for k, v in z.items() if k != "link"} for z in [*h["wartet"], *h["fehlgeschlagen"]]])
+        self.assertTrue(all(z["link"].startswith("/ergebnis/2026") for z in [*h["wartet"], *h["fehlgeschlagen"]]))
         for verboten in ("2026102", "theater-", "unterricht", "feedback", "runde-"):
             self.assertNotIn(verboten, alles)
         self.assertEqual(h["fehlgeschlagen"][0]["grund"], logik.FEHLGESCHLAGEN)
@@ -118,6 +125,104 @@ class TestHeute(unittest.TestCase):
     def test_eine_sache(self):
         h = logik.heute([], [auftrag("N")], [], JETZT)
         self.assertEqual(h["wartet_text"], "Sache wartet auf dich.")
+
+
+
+class TestErgebnis(unittest.TestCase):
+    def test_kern_punkte_pruefen_und_dateien(self):
+        a = auftrag("A", agent="theater", text="Fassung Der nackte Wahnsinn: Runde runde-20261029-140740",
+                    ergebnis="langer Telegram-Text", ergebnis_dateien=["d/1 Szenenkarte.docx", "d/2 Ablauf.docx"],
+                    daten={"kern": "19 Bausteine.", "punkte": ["Szenenkarte", "Ablauf"], "pruefen": "Frederick?",
+                           "knoepfe": "nur_antwort"})
+        e = logik.ergebnis(a, [a], [(True, True, 17), (True, False, 0)], JETZT)
+        self.assertEqual((e["titel"], e["unter"]), ("Fassung Der nackte Wahnsinn", "Theater · heute 14:16"))
+        self.assertEqual((e["kern"], e["punkte"], e["pruefen"]), ("19 Bausteine.", ["Szenenkarte", "Ablauf"],
+                                                                  "Frederick?"))
+        self.assertEqual(e["bloecke"], [])  # mit Kern kein zweites Mal der ganze Text
+        self.assertFalse(e["fehlgeschlagen"])
+        d1, d2 = e["dateien"]
+        self.assertEqual((d1["nr"], d1["name"], d1["seiten"]), (0, "1 Szenenkarte", 17))
+        self.assertEqual(d1["knoepfe"], [{"text": "PDF", "pfad": "/pdf"}, {"text": "Word", "pfad": ""}])
+        self.assertEqual(d2["knoepfe"], [{"text": "Word", "pfad": ""}])
+
+    def test_ohne_daten_ganzer_text_in_bloecken(self):
+        a = auftrag("A", ergebnis="Erster Absatz.\n\nZweiter.\n- eins\n- zwei\nDanach (Auftrag 20261030-140944-unterricht-93e29e)")
+        e = logik.ergebnis(a, [a], [], JETZT)
+        self.assertEqual(e["bloecke"], [{"absatz": "Erster Absatz."}, {"absatz": "Zweiter."},
+                                        {"punkte": ["eins", "zwei"]}, {"absatz": "Danach"}])
+        self.assertEqual((e["kern"], e["punkte"], e["dateien"]), ("", [], []))
+
+    def test_titel_in_der_ansicht_lang(self):
+        a = auftrag("A", text="x" * 150)
+        self.assertEqual(logik.ergebnis(a, [a], [], JETZT)["titel"], "X" + "x" * 149)
+
+    def test_fehlgeschlagen_zeigt_grund_ohne_dateien(self):
+        a = auftrag("K", status="fehlgeschlagen", ergebnis="Kontingent aufgebraucht.",
+                    ergebnis_dateien=["d/x.docx"], daten={"kern": "alt"})
+        e = logik.ergebnis(a, [a], [], JETZT)
+        self.assertTrue(e["fehlgeschlagen"])
+        self.assertEqual(e["grund"], "Kontingent aufgebraucht.")
+        self.assertEqual((e["kern"], e["dateien"]), ("", []))
+        leer = auftrag("K", status="fehlgeschlagen", ergebnis="")
+        self.assertEqual(logik.ergebnis(leer, [leer], [], JETZT)["grund"], logik.FEHLGESCHLAGEN)
+
+    def test_nachbesserung_verweist_auf_ursprung_und_rueckmeldung(self):
+        alt_id, nb_id = "20261029-150107-theater-0baec0", "20261030-111155-theater-5d88d5"
+        alt = auftrag(alt_id, agent="theater", text="Fassung Der nackte Wahnsinn: Runde runde-20261029-140740")
+        nb = auftrag(nb_id, agent="theater", bezug=alt_id, abgeschlossen="2026-10-30T12:19:06+01:00",
+                     text=f"Nachbesserung zu deinem Ergebnis (Auftrag {alt_id}):\n\nBeantworte Lias Frage")
+        fb = auftrag("20261030-110916-feedback-1c1e7e", agent="feedback", bezug=alt_id,
+                     text="wieviele minuten ist das etwa lang?", daten={"nachbesserung": nb_id})
+        alle = [alt, nb, fb]
+        e = logik.ergebnis(nb, alle, [], JETZT)
+        self.assertEqual(e["titel"], "Antwort auf deine Rückmeldung zu „Fassung Der nackte Wahnsinn“")
+        self.assertEqual(e["bezug"], {"titel": "Fassung Der nackte Wahnsinn", "link": f"/ergebnis/{alt_id}"})
+        self.assertEqual(e["rueckmeldung"], "wieviele minuten ist das etwa lang?")
+        self.assertEqual(e["antworten"], [])
+        # Das ursprüngliche Ergebnis zeigt die Antwort, aber nicht die Feedback-Bestätigung
+        u = logik.ergebnis(alt, alle, [], JETZT)
+        self.assertEqual(u["antworten"], [{"titel": "Antwort auf deine Rückmeldung zu „Fassung Der nackte Wahnsinn“",
+                                           "unter": "heute 12:19", "link": f"/ergebnis/{nb_id}"}])
+        self.assertEqual((u["bezug"], u["rueckmeldung"]), (None, ""))
+        # Sichtbare Texte ohne IDs und Agentennamen (Links dürfen IDs tragen)
+        for ansicht in (e, u):
+            sichtbar = repr({k: v for k, v in ansicht.items() if k not in ("bezug", "antworten")}
+                            ) + repr([x["titel"] for x in ansicht["antworten"]])
+            for verboten in ("2026102", "theater", "feedback", "runde-"):
+                self.assertNotIn(verboten, sichtbar)
+
+    def test_zeigbar(self):
+        self.assertTrue(logik.zeigbar(auftrag("A")))
+        self.assertTrue(logik.zeigbar(auftrag("A", status="fehlgeschlagen")))
+        self.assertFalse(logik.zeigbar(auftrag("A", agent="feedback")))
+        self.assertFalse(logik.zeigbar(auftrag("A", status="zurueckgezogen")))
+        self.assertFalse(logik.zeigbar(auftrag("A", status="neu")))
+
+    def test_dateien_ansicht(self):
+        d = logik.dateien_ansicht(["a/F.pdf", "a/weg.docx", "a/M.xlsx", "a/D.pptx"],
+                                  [(True, True, 2), (False, True, 3), (True, True, 1), (True, False, 0)])
+        self.assertEqual([x["nr"] for x in d], [0, 2, 3])  # fehlende Datei fehlt, Nummern bleiben
+        self.assertEqual(d[0]["knoepfe"], [{"text": "PDF", "pfad": ""}])  # PDF nicht doppelt
+        self.assertEqual([k["text"] for k in d[1]["knoepfe"]], ["PDF", "Excel"])
+        self.assertEqual([k["text"] for k in d[2]["knoepfe"]], ["PowerPoint"])
+
+
+class TestEntwurf(unittest.TestCase):
+    def test_ganzer_text_und_nur_bekannte_details(self):
+        inhalt = "Kurze Umfrage\n\n1. Frage\n   [ ] in der Schule   [ ] zu Hause\n" + "lang " * 200
+        e = logik.entwurf({"id": "20261025-003745-examen-0c44bf", "agent": "examen", "typ": "entwurf",
+                           "titel": "Examensreihe Strafe: anonyme Umfrage", "inhalt": inhalt,
+                           "daten": {"einsatz": "Lia selbst, auf Papier", "datei": "lia/examen/impuls.md"},
+                           "erstellt": "2026-10-25T00:37:45+02:00"}, JETZT)
+        self.assertEqual(e["inhalt"], inhalt.strip("\n"))  # keine Kürzung, Einrückung bleibt
+        self.assertEqual(e["details"], [("Einsatz", "Lia selbst, auf Papier")])
+        self.assertEqual((e["titel"], e["unter"], e["hinweis"]),
+                         ("Examensreihe Strafe: anonyme Umfrage", "Entwurf · So 25.10.", "Setzt du selbst ein"))
+        self.assertNotIn("examen", repr(e))
+
+    def test_anderer_typ(self):
+        e = logik.entwurf({"typ": "mail", "titel": "Mail", "inhalt": "Text"}, JETZT)
+        self.assertEqual((e["hinweis"], e["details"]), ("Wartet auf deine Entscheidung", []))
 
 
 if __name__ == "__main__":

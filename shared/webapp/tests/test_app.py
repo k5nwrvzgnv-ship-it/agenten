@@ -1,5 +1,6 @@
 import http.client
 import json
+import re
 import shutil
 import socket
 import stat
@@ -39,10 +40,34 @@ class TestApp(unittest.TestCase):
             "id": "20261030-140944-unterricht-93e29e", "agent": "unterricht", "quelle": "portal-material",
             "text": "Arbeitsblatt <Kant> & Strafe", "status": "erledigt",
             "erstellt": "2026-10-30T14:09:44+01:00", "abgeschlossen": "2026-10-30T14:16:49+01:00",
-            "ergebnis": "", "ergebnis_dateien": ["data/arbeit/x/Arbeitsblatt.docx"]})
+            "ergebnis": "", "ergebnis_dateien": ["data/arbeit/x/Arbeitsblatt.docx"],
+            "daten": {"kern": "Ein Arbeitsblatt zu Kant.", "punkte": ["Fall", "Aufgabe"], "pruefen": "Passt der Fall?"}})
         schreibe(self.instanz / "freigabe" / "offen" / "20261025-003745-examen-0c44bf.json", {
             "id": "20261025-003745-examen-0c44bf", "agent": "examen", "typ": "entwurf",
-            "titel": "Umfrage vor der Reihe", "erstellt": "2026-10-25T00:37:45+02:00", "status": "offen"})
+            "titel": "Umfrage vor der Reihe", "erstellt": "2026-10-25T00:37:45+02:00", "status": "offen",
+            "inhalt": "Kurze Umfrage\n\n1. Frage\n   [ ] ja   [ ] nein\n" + "Ende " * 100,
+            "daten": {"einsatz": "Lia selbst, auf Papier", "datei": "lia/examen/impuls.md"}})
+        # Agent-Ordner neben der Instanz: Ergebnisdatei mit Vorschau des Renderers
+        arbeit = self.tmp / "unterricht" / "data" / "arbeit" / "x"
+        (arbeit / "Arbeitsblatt-vorschau").mkdir(parents=True)
+        (arbeit / "Arbeitsblatt.docx").write_bytes(b"DOCX-INHALT")
+        (arbeit / "Arbeitsblatt-vorschau" / "Arbeitsblatt.pdf").write_bytes(b"%PDF-1.7 vorschau")
+        for n in (1, 2):
+            (arbeit / "Arbeitsblatt-vorschau" / f"Arbeitsblatt-seite-0{n}.png").write_bytes(b"PNG" + bytes([n]))
+        (self.tmp / "geheim.pdf").write_bytes(b"%PDF geheim")  # außerhalb jedes Agent-Ordners
+        (self.tmp / "unterricht" / ".env").write_text("TOKEN=x\n")
+        schreibe(self.instanz / "auftraege" / "erledigt" / "20261030-150000-unterricht-aaaaaa.json", {
+            "id": "20261030-150000-unterricht-aaaaaa", "agent": "unterricht", "text": "Böse Pfade",
+            "status": "erledigt", "abgeschlossen": "2026-10-01T10:00:00+02:00", "ergebnis": "x",
+            "ergebnis_dateien": ["../geheim.pdf", str(self.tmp / "geheim.pdf"), ".env",
+                                 "data/arbeit/x/../../../../geheim.pdf"]})
+        schreibe(self.instanz / "auftraege" / "erledigt" / "20261030-110916-feedback-1c1e7e.json", {
+            "id": "20261030-110916-feedback-1c1e7e", "agent": "feedback", "text": "zu lang", "status": "erledigt",
+            "bezug": "20261030-140944-unterricht-93e29e", "abgeschlossen": "2026-10-30T11:09:25+01:00"})
+        schreibe(self.instanz / "auftraege" / "erledigt" / "20261022-232618-unterricht-67ba47.json", {
+            "id": "20261022-232618-unterricht-67ba47", "agent": "unterricht", "text": "formatvorlage anwenden",
+            "status": "fehlgeschlagen", "abgeschlossen": "2026-10-22T23:27:02+02:00",
+            "ergebnis": "Gerade ist das gemeinsame Kontingent aufgebraucht.", "ergebnis_dateien": []})
         (self.instanz / ".env").write_text("PERSON=Lia\n")
         (self.instanz / ".env").chmod(0o600)
         patch = mock.patch.object(app, "INSTANZ", self.instanz)
@@ -65,13 +90,17 @@ class TestApp(unittest.TestCase):
             faden.join(5)
         self.addCleanup(stoppen)
 
-    def hole(self, pfad, methode="GET"):
+    def hole(self, pfad, methode="GET", roh=False):
         v = UnixVerbindung(str(self.sock))
         v.request(methode, pfad)
         r = v.getresponse()
-        inhalt = r.read().decode("utf-8")
+        inhalt = r.read()
         v.close()
-        return r, inhalt
+        return r, inhalt if roh else inhalt.decode("utf-8")
+
+    def sichtbar(self, html):
+        """HTML ohne Links: IDs dürfen nur in href stehen."""
+        return re.sub(r'(href|src)="[^"]*"', "", html)
 
     def test_heute_zeigt_echte_eintraege_ohne_ids(self):
         r, html = self.hole("/")
@@ -82,7 +111,10 @@ class TestApp(unittest.TestCase):
         self.assertIn("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", html)  # Jinja maskiert
         self.assertIn("1 Word-Datei", html)
         for verboten in ("0c44bf", "93e29e", "unterricht", "examen"):
-            self.assertNotIn(verboten, html)
+            self.assertNotIn(verboten, self.sichtbar(html))
+        self.assertIn('href="/entwurf/20261025-003745-examen-0c44bf"', html)
+        self.assertIn('href="/ergebnis/20261030-140944-unterricht-93e29e"', html)
+        self.assertIn('href="/ergebnis/20261022-232618-unterricht-67ba47"', html)
         self.assertIn('src="/statisch/htmx-2.0.4.min.js"', html)
 
     def test_teil_und_kopfzeilen(self):
@@ -103,6 +135,70 @@ class TestApp(unittest.TestCase):
         self.assertEqual(r.status, 200)
         self.assertIn("--akzent: #d4290f", css)
         self.assertEqual(self.hole("/statisch/../app.py")[0].status, 404)
+
+    def test_ergebnis(self):
+        r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
+        self.assertEqual(r.status, 200)
+        for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · ", "Ein Arbeitsblatt zu Kant.",
+                     "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste", "Seiten", "Dateien", "Zurück"):
+            self.assertIn(text, html)
+        basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
+        self.assertIn(f'href="{basis}/pdf"', html)
+        self.assertIn(f'href="{basis}"', html)
+        self.assertIn(f'src="{basis}/seite/2"', html)
+        self.assertNotIn(f"{basis}/seite/3", html)
+        for verboten in ("93e29e", "unterricht", "data/arbeit", "Wie ist es", "Anmerk"):
+            self.assertNotIn(verboten, self.sichtbar(html))
+
+    def test_downloads_und_seiten(self):
+        basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
+        r, inhalt = self.hole(basis, roh=True)
+        self.assertEqual((r.status, inhalt), (200, b"DOCX-INHALT"))
+        self.assertIn("attachment", r.getheader("Content-Disposition"))
+        self.assertIn("Arbeitsblatt.docx", r.getheader("Content-Disposition"))
+        r, inhalt = self.hole(basis + "/pdf", roh=True)
+        self.assertEqual((r.status, r.getheader("Content-Type"), inhalt),
+                         (200, "application/pdf", b"%PDF-1.7 vorschau"))
+        r, inhalt = self.hole(basis + "/seite/2", roh=True)
+        self.assertEqual((r.status, r.getheader("Content-Type"), inhalt), (200, "image/png", b"PNG\x02"))
+        for falsch in (basis + "/seite/0", basis + "/seite/3", basis[:-1] + "1", basis[:-1] + "x",
+                       basis + "/../../../../.env"):
+            self.assertEqual(self.hole(falsch)[0].status, 404, falsch)
+
+    def test_pfad_ausserhalb_des_agent_ordners_404(self):
+        r, html = self.hole("/ergebnis/20261030-150000-unterricht-aaaaaa")
+        self.assertEqual(r.status, 200)
+        self.assertNotIn("/datei/", html)  # keine Knöpfe für unerlaubte Dateien
+        for nr in range(4):  # ../, absolut, versteckt, .. mitten im Pfad
+            r, inhalt = self.hole(f"/ergebnis/20261030-150000-unterricht-aaaaaa/datei/{nr}", roh=True)
+            self.assertEqual(r.status, 404, nr)
+            self.assertNotIn(b"geheim", inhalt)
+            self.assertEqual(self.hole(f"/ergebnis/20261030-150000-unterricht-aaaaaa/datei/{nr}/pdf")[0].status, 404)
+
+    def test_fehlgeschlagen_zeigt_grund(self):
+        r, html = self.hole("/ergebnis/20261022-232618-unterricht-67ba47")
+        self.assertEqual(r.status, 200)
+        self.assertIn("Hat nicht geklappt", html)
+        self.assertIn("Gerade ist das gemeinsame Kontingent aufgebraucht.", html)
+
+    def test_unbekannt_und_ungueltig_404(self):
+        for pfad in ("/ergebnis/20261030-110916-feedback-1c1e7e",  # Feedback-Bestätigung ist kein Ergebnis
+                     "/ergebnis/20261030-999999-unterricht-ffffff", "/ergebnis/..%2F..%2Fapp",
+                     "/ergebnis/nicht-gueltig", "/entwurf/20261030-140944-unterricht-93e29e",
+                     "/entwurf/20261025-003745-examen-0c44bf.json"):
+            r, html = self.hole(pfad)
+            self.assertEqual(r.status, 404, pfad)
+            self.assertIn("Nicht gefunden", html)
+
+    def test_entwurf(self):
+        r, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")
+        self.assertEqual(r.status, 200)
+        self.assertIn("Kurze Umfrage\n\n1. Frage\n   [ ] ja   [ ] nein\n" + "Ende " * 99, html)  # ganz
+        self.assertIn("<dt>Einsatz</dt><dd>Lia selbst, auf Papier</dd>", html)
+        self.assertIn("Setzt du selbst ein", html)
+        for verboten in ("impuls.md", "0c44bf", "examen", "<button", "<form"):
+            self.assertNotIn(verboten, self.sichtbar(html))
+        self.assertEqual(self.hole("/entwurf/20261025-003745-examen-0c44bf", "POST")[0].status, 405)
 
     def test_socket_ordner_nur_fuer_agent(self):
         self.assertEqual(stat.S_IMODE(self.sock.parent.stat().st_mode), 0o700)
