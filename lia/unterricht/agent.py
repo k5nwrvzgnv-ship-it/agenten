@@ -5,7 +5,8 @@ Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal
   pptx-Datei mit Begleittext. Scheitert es, erfährt Jan die Ursache als Meldung in seiner Zentrale.
   Lias laufende Reihen (reihen.toml) gehen mit; ist die Datei fehlerhaft, läuft er ohne sie und Jan erfährt es.
   Ebenso der Katalog von Lias früherem Material (data/wissen/katalog.md, wissen.py) und der Leitfaden
-  (leitfaden.md), falls vorhanden.
+  (leitfaden.md), falls vorhanden. Nachbesserungen aus Lias Feedback (bezug, sitzung) überarbeiten das alte
+  Material; ändert Claude nichts, bekommt Lia nur die Antwort.
 - alles andere: Platzhalter, bestätigt mit "kommt bald", ohne Claude.
 """
 
@@ -81,9 +82,9 @@ def material_auftrag(a: dict, bearbeiten=material.bearbeiten) -> None:
         jan_melden(f"Materialwunsch {a['id']} fehlgeschlagen: {e}")
         return
     hinweis = f", Hinweise: {'; '.join(f.hinweise)}" if f.hinweise else ""
-    logger.info("Auftrag %s fertig: %s, %d Läufe, %.2f USD, %d Tokens%s",
-                a["id"], f.datei.name, f.laeufe, f.usd, f.tokens, hinweis)
-    auftraege.abschliessen(a["id"], f.begleittext, sitzung=f.sitzung, dateien=[f.datei])
+    logger.info("Auftrag %s fertig: %s, %d Läufe, %.2f USD, %d Tokens%s", a["id"],
+                f.datei.name if f.datei else "ohne Datei", f.laeufe, f.usd, f.tokens, hinweis)
+    auftraege.abschliessen(a["id"], f.begleittext, sitzung=f.sitzung, dateien=[f.datei] if f.datei else [])
 
 
 def auftraege_abarbeiten() -> None:

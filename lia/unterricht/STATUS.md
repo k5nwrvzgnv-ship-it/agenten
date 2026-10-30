@@ -5,7 +5,7 @@ Material auf Zuruf für Lia (docs/lia-architektur.md, Schritt 1): Lia tippt in i
 beschreibt ihren Wunsch und bekommt ein Arbeitsblatt (docx) oder Folien (pptx) in ihrem Stil mit Begleittext.
 Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
-## Stand (23.10.2026)
+## Stand (30.10.2026)
 - Reihenkontext (23.10., Schritt 1 aus der Auswertung): reihen.toml wird gelesen und jedem Material-Lauf
   mitgegeben. Eingetragen nach Lias Angaben (23.10.): Ethik Klasse 8, Lerngruppe, frühere Reihen aus Kl. 7/8,
   behandelte Philosoph*innen, nächste Reihe Straftheorien (Reihenfrage noch offen). Merksätze fehlen noch.
@@ -45,6 +45,13 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 3. Kontrolle: Claude sieht Kontrolltext und Vorschau-PNGs. Ändert Claude die Beschreibung, baut Python neu
    (eine Kontrollrunde, die neue Vorschau sieht Claude nicht mehr).
 4. Claudes letzte Antwort ist der Begleittext, die Datei geht über auftraege.abschliessen(..., dateien=).
+- Nachbesserungen (30.10., aus Lias Feedback, Auftrag mit bezug und sitzung, quelle wie das Original): Python
+  kopiert data/arbeit/<bezug>/beschreibung.json in den neuen Arbeitsordner. Mit sitzung setzt Claude die alte
+  Sitzung fort (kurzer Prompt: Rückmeldung, Pfad der Kopie, nur ändern, was Lia will); ohne sitzung oder wenn das
+  Fortsetzen scheitert ein neuer Lauf mit vollem Startprompt und Abschnitt „Lias bisheriges Material“. Danach
+  Bauen und Kontrolle wie oben. Bleibt die Beschreibung unverändert (Lia hat nur gefragt), bekommt Lia nur den
+  Text, ohne Datei. Fehlt die alte Beschreibung: MaterialFehler, Jan bekommt eine Meldung. Kein Kostenlimit
+  (Jan 30.10.: Lias Nachbesserungen ohne Grenzen). Nur mit Tests geprüft, noch kein echter Lauf.
 - Anhänge (Vorlage für genau diesen Auftrag, Jan 22.10.): anhaenge_vorbereiten legt für pdf/docx/pptx neben die
   Datei eine Textfassung (<datei>.txt, agentkit.textfassung, pypdf) und Seitenbilder (<datei>-seiten/, über
   renderer.vorschau, auch für Scans; höchstens 8 je Datei im Prompt). Grund: Claudes Read öffnet PDFs auf dem
@@ -129,7 +136,7 @@ D. Prüfsatz aus Lias echten Stunden (Reihenplanung + Stundenthema -> Blatt, bli
    „nicht wieder vorschlagen“). Eingetragen 24.10.: 3–10 (Lia). Offen: 11 (Bewertung, gehört nicht zu unterricht). Freigegebene in „Gelernte Regeln“ (gehen über claude_lauf in jeden Lauf). Für Material wichtig: 3, 4, 5, 6, 9, 10; für
    Fragen: 1, 2, 7, 8; 11 (Bewertung) gehört nicht hierher.
 3. „Frage stellen“ als Fachfragen mit Belegpflicht (eigener Ablauf und Skill, Reihenkontext mit).
-4. Änderungswünsche (offener Punkt 2): Sitzung fortsetzen; Bedarf an Lias Zentrale in die Haupt-STATUS.
+4. Änderungswünsche: gebaut 30.10. über die Nachbesserung aus Lias Feedback (siehe Ablauf).
 5. Profil für Darstellendes Spiel (zweites Profil, Wahl über die Reihe).
 Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 - Vorgaben ihrer Seminarleitung, was eine gute Reihenfrage ausmacht, und Schulvorgaben (schulinternes
@@ -164,13 +171,9 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
 
 ## Offene Punkte
 1. Handtest: Lia tippt „Neues Material“ und schickt einen Wunsch, einmal Arbeitsblatt, einmal Folien.
-2. Wünsche nach Änderung („mach Aufgabe 3 leichter“): Bedarf aus der Feedbackschleife (Hauptordner, 27.10.).
-   Lias Zentrale nimmt Feedback jetzt an (Knöpfe unter dem Ergebnis, Antwort darauf). Ordnet der Feedback-Dienst es
-   als Nachbesserung ein, kommt ein Auftrag an unterricht mit derselben quelle, bezug = altes Ergebnis, sitzung =
-   dessen Sitzung, Text „Nachbesserung zu deinem Ergebnis …“. Bitte: bei sitzung die Sitzung fortsetzen und die
-   Beschreibung überarbeiten statt neu anzufangen. Automatisch nur bei bekannten Kosten bis 1 USD (verbrauch je
-   Auftrag) und mit Dienst lia-unterricht. Außerdem neu: Regeln aus Lias Feedback landen mit „(Feedback <id>)“ in
-   „Gelernte Regeln“ hier oder in lia/instanz/regeln.md; Wünsche an den Agenten unter „Wünsche aus Feedback“.
+2. Nachbesserungen sind gebaut (30.10., siehe Ablauf). Offen: echter Handtest (Lia gibt Feedback zu einem
+   Ergebnis, z. B. „mach Aufgabe 3 leichter“). Regeln aus Lias Feedback landen mit „(Feedback <id>)“ in „Gelernte
+   Regeln“ hier oder in lia/instanz/regeln.md; Wünsche an den Agenten unter „Wünsche aus Feedback“.
    Optional: abschliessen(..., daten={"kern": "1-2 Sätze", "punkte": [...], "pruefen": "..."}) für die Vorlage
    (shared/telegram/vorlagen.py).
 3. Dauerhafte Schulvorlage: zurückgestellt (Lia 25.10.: die bisherigen Vorlagen für ABs und Folien passen,

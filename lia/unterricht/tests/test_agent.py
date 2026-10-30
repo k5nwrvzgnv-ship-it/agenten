@@ -50,6 +50,16 @@ class AgentTest(unittest.TestCase):
         self.assertEqual(a["ergebnis_dateien"], ["data/arbeit/x/Arbeitsblatt Kant.docx"])
         self.assertEqual(self.gemeldet, [])
 
+    def test_nachbesserung_ohne_datei(self):
+        fertig = material.Fertig(None, "Aufgabe 1 bleibt so.", "s2", 1, 0.3, 900, [])
+        auftraege.neuer_auftrag("unterricht", "Nachbesserung ...", quelle="portal-material", bezug="20261030-100000-unterricht-abcdef", sitzung="s1")
+        with mock.patch.object(agent.material_auftrag, "__defaults__", (mock.Mock(return_value=fertig),)):
+            agent.auftraege_abarbeiten()
+        a = self.erledigt()["portal-material"]
+        self.assertEqual((a["status"], a["ergebnis"]), ("erledigt", "Aufgabe 1 bleibt so."))
+        self.assertFalse(a.get("ergebnis_dateien"))
+        self.assertEqual(self.gemeldet, [])
+
     def material_scheitert(self, fehler):
         auftraege.neuer_auftrag("unterricht", "Folien Kant", quelle="portal-material")
         with mock.patch.object(agent.material_auftrag, "__defaults__", (mock.Mock(side_effect=fehler),)):

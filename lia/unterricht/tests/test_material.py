@@ -145,6 +145,62 @@ class MaterialTest(unittest.TestCase):
         self.assertEqual(f.begleittext, "Überarbeitet.")
         self.assertEqual(f.laeufe, 2)
 
+    def nachbesserung(self, schritte, sitzung="alt", ok=True):
+        """Altes Ergebnis anlegen, dann eine Nachbesserung dazu bearbeiten."""
+        alt = self.hier / "data" / "arbeit" / "alt-auftrag"
+        alt.mkdir(parents=True)
+        (alt / "beschreibung.json").write_text(json.dumps(BLATT), encoding="utf-8")
+        self.auftrag.update(bezug="alt-auftrag", sitzung=sitzung,
+                            text="Nachbesserung zu deinem Ergebnis: Aufgabe 1 leichter")
+        claude = FalscherClaude(self.ordner, schritte)
+        if not ok:  # erster Lauf (Fortsetzen) scheitert
+            echt = claude.__call__
+            def laufen(prompt, sitzung=None):
+                e = echt(prompt, sitzung)
+                return Ergebnis(text="Sitzung nicht gefunden", sitzung=None, ok=False) if len(claude.prompts) == 1 else e
+            return material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=laufen, bauen=BAUEN), claude
+        return material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN), claude
+
+    def test_nachbesserung_setzt_sitzung_fort(self):
+        leichter = dict(BLATT, titel="Kant leicht")
+        f, claude = self.nachbesserung([(leichter, "Aufgabe 1 hat jetzt Satzanfänge."), (None, "Leichter gemacht.")])
+        self.assertEqual(claude.sitzungen, ["alt", "s1"])
+        self.assertIn("Aufgabe 1 leichter", claude.prompts[0])
+        self.assertIn("data/arbeit/20261022-120000-unterricht-abcdef/beschreibung.json", claude.prompts[0])
+        self.assertNotIn("Skill einzelmaterial", claude.prompts[0])  # kennt Claude aus der Sitzung
+        self.assertIn("Kontrolltext", claude.prompts[1])
+        self.assertEqual(f.datei.name, "Arbeitsblatt Kant leicht.docx")
+        self.assertEqual(f.begleittext, "Leichter gemacht.")
+        # das alte Ergebnis bleibt, wie es war
+        self.assertEqual(json.loads((self.hier / "data/arbeit/alt-auftrag/beschreibung.json").read_text()), BLATT)
+
+    def test_nachbesserung_ohne_aenderung_nur_antwort(self):
+        f, claude = self.nachbesserung([(None, "Aufgabe 1 ist schon die leichteste.")])
+        self.assertIsNone(f.datei)
+        self.assertEqual((f.begleittext, f.laeufe), ("Aufgabe 1 ist schon die leichteste.", 1))
+        self.assertIn("Nachbesserung ohne Änderung, nur Antwort", f.hinweise)
+        self.assertTrue((self.ordner / "beschreibung.json").is_file())  # Grundlage für die nächste Nachbesserung
+
+    def test_nachbesserung_ohne_sitzung_neuer_lauf(self):
+        f, claude = self.nachbesserung([(dict(BLATT, titel="Neu"), "a"), (None, "Fertig.")], sitzung=None)
+        self.assertEqual(claude.sitzungen, [None, "s1"])
+        self.assertIn("Skill einzelmaterial", claude.prompts[0])
+        self.assertIn("## Lias bisheriges Material", claude.prompts[0])
+        self.assertEqual(f.datei.name, "Arbeitsblatt Neu.docx")
+
+    def test_nachbesserung_fortsetzen_scheitert(self):
+        f, claude = self.nachbesserung([("{kaputt", "x"), (dict(BLATT, titel="Neu"), "a"), (None, "Fertig.")], ok=False)
+        self.assertEqual(claude.sitzungen, ["alt", None, "s1"])
+        self.assertIn("## Lias bisheriges Material", claude.prompts[1])
+        self.assertEqual(f.laeufe, 3)
+        self.assertTrue(any("nicht fortgesetzt" in h for h in f.hinweise))
+        self.assertEqual(f.datei.name, "Arbeitsblatt Neu.docx")
+
+    def test_nachbesserung_ohne_altes_material(self):
+        self.auftrag["bezug"] = "gibt-es-nicht"
+        with self.assertRaises(material.MaterialFehler):
+            self.bearbeiten([])
+
     def test_lauf_fehlgeschlagen(self):
         def laufen(prompt, sitzung=None):
             return Ergebnis(text="kaputt", sitzung=None, ok=False)

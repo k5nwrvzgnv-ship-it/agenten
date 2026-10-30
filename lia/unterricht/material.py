@@ -16,6 +16,12 @@ Lias laufende Reihen (reihen.toml, reihen.py) stehen nach dem Wunsch im Prompt, 
 Reihenfrage und schon Behandeltes kennt. Danach der Katalog von Lias früherem Material (wissen.py), aus dem
 Claude passende Beispiele mit Read liest, und der von Jan freigegebene Leitfaden „So unterrichtet Lia“ (leitfaden.md).
 
+Nachbesserungen (Auftrag mit bezug, aus Lias Feedback): Python kopiert die Beschreibung des Ergebnisses, auf das
+sich der Auftrag bezieht (data/arbeit/<bezug>/beschreibung.json), in den neuen Arbeitsordner. Mit sitzung setzt
+Claude die alte Sitzung fort (kennt Reihen, Katalog und gelesene Beispiele schon), sonst oder wenn das Fortsetzen
+scheitert ein neuer Lauf mit dem vollen Startprompt. Claude ändert nur, was Lia will; danach Bauen und Kontrolle wie
+oben. Lässt Claude die Beschreibung unverändert (Lia hat nur gefragt), bekommt Lia nur die Antwort, ohne Datei.
+
 Claude und der Renderer werden übergeben (laufen, bauen), damit die Logik ohne Netz testbar ist.
 """
 
@@ -59,7 +65,7 @@ class _Korrektur(Exception):
 
 @dataclass
 class Fertig:
-    datei: Path
+    datei: Path | None  # None: Nachbesserung ohne Änderung, Lia bekommt nur den Text
     begleittext: str
     sitzung: str | None
     laeufe: int
@@ -101,6 +107,17 @@ def _beschreibung_lesen(pfad: Path, rel: str) -> dict:
         raise _Korrektur(f"art: muss \"arbeitsblatt\" oder \"folien\" sein, ist {beschreibung.get('art')!r}"
                          if isinstance(beschreibung, dict) else "Die Beschreibung muss ein JSON-Objekt sein.")
     return beschreibung
+
+
+def vorherige_beschreibung(hier: Path, auftrag: dict) -> Path | None:
+    """Beschreibung des Ergebnisses, auf das sich eine Nachbesserung bezieht; None, wenn kein bezug."""
+    bezug = auftrag.get("bezug")
+    if not bezug:
+        return None
+    pfad = hier / "data" / "arbeit" / bezug / "beschreibung.json"
+    if not pfad.is_file():
+        raise MaterialFehler(f"Nachbesserung zu {bezug}: keine Beschreibung unter {pfad.relative_to(hier)}")
+    return pfad
 
 
 def anhaenge_vorbereiten(hier: Path, dateien: list[str], vorschau: Callable = renderer_vorschau.vorschau) -> list[str]:
@@ -149,14 +166,40 @@ def prompt_anhaenge(zeilen: list[str]) -> str:
             + "\n".join(zeilen) + "\n\n")
 
 
+NACHBESSERUNG_REGELN = """- Will Lia etwas geändert haben: Ändere nur das, was sie will, alles andere bleibt wie es ist. Schreibe
+  danach die vollständige Beschreibung neu in dieselbe Datei.
+- Fragt sie nur etwas oder ist keine Änderung nötig: Lass die Datei unverändert und antworte nur.
+- Deine letzte Antwort geht wörtlich an Lia: zwei bis vier Sätze, was du geändert hast (oder deine Antwort auf
+  ihre Frage). Reiner Text ohne Markdown, ohne Dateinamen oder Technik."""
+
+
+def prompt_vorher(rel: str) -> str:
+    """Abschnitt im Startprompt einer Nachbesserung ohne alte Sitzung."""
+    return ("## Lias bisheriges Material\n"
+            f"Lia hat zu diesem Wunsch schon Material bekommen. Seine Beschreibung liegt in {rel}. Lies sie zuerst "
+            "mit Read. Ihr Wunsch oben ist eine Rückmeldung dazu.\n" + NACHBESSERUNG_REGELN + "\n\n")
+
+
+def prompt_nachbesserung(wunsch: str, rel: str) -> str:
+    """Fortsetzung der alten Sitzung."""
+    return f"""Lia hat das Material bekommen und schickt eine Rückmeldung dazu:
+---
+{wunsch}
+---
+
+Die aktuelle Beschreibung liegt jetzt in {rel} (eine Kopie, arbeite nur noch mit dieser Datei). Lies sie mit Read.
+Es gelten dieselben Regeln, derselbe Skill und dasselbe Format wie bisher.
+{NACHBESSERUNG_REGELN}"""
+
+
 def prompt_start(wunsch: str, fach: str, rel: str, skill: str, format_text: str, anhaenge: str = "",
-                 reihen: str = "", wissen: str = "", leitfaden: str = "") -> str:
+                 reihen: str = "", wissen: str = "", leitfaden: str = "", vorher: str = "") -> str:
     return f"""Lia unterrichtet {fach} und wünscht sich Material. Ihr Wunsch:
 ---
 {wunsch}
 ---
 
-{reihen}{anhaenge}{wissen}{leitfaden}{skill}
+{vorher}{reihen}{anhaenge}{wissen}{leitfaden}{skill}
 
 ## So lieferst du das Material
 - Schreibe die Beschreibung als JSON mit dem Werkzeug Write in die Datei {rel}. Schreibe keine anderen Dateien.
@@ -215,15 +258,19 @@ def bearbeiten(
     ordner.mkdir(parents=True, exist_ok=True)
     json_pfad = ordner / "beschreibung.json"
     rel = str(json_pfad.relative_to(hier))
+    vorher = vorherige_beschreibung(hier, auftrag)
+    if vorher is not None and vorher != json_pfad:
+        json_pfad.write_bytes(vorher.read_bytes())
     start = uhr()
     laeufe = []
+    hinweise = []
 
-    def claude(prompt: str, sitzung: str | None = None):
+    def claude(prompt: str, sitzung: str | None = None, pruefen: bool = True):
         if laeufe and uhr() - start > ZEIT_BUDGET_S:
             raise MaterialFehler(f"Zeitbudget ({ZEIT_BUDGET_S // 60} min) nach {len(laeufe)} Läufen überschritten")
         e = laufen(prompt, sitzung)
         laeufe.append(e)
-        if not e.ok:
+        if pruefen and not e.ok:
             raise MaterialFehler(f"Claude-Lauf {len(laeufe)} fehlgeschlagen: {e.text[:500]}")
         return e
 
@@ -245,9 +292,23 @@ def bearbeiten(
     format_text = format_abschnitte(FORMAT_DATEI.read_text(encoding="utf-8"))
     anhaenge = prompt_anhaenge(anhaenge_vorbereiten(hier, auftrag.get("dateien") or [], vorschau))
     fach = profil.get("fach") or "an einer Schule"
-    e = claude(prompt_start(auftrag["text"], fach, rel, skill, format_text, anhaenge,
-                            reihen_modul.prompt_reihen(reihen or [], fach), wissen_modul.prompt_wissen(katalog),
-                            leitfaden_modul.prompt_leitfaden(leitfaden)))
+    e = None
+    if vorher is not None and auftrag.get("sitzung"):
+        e = claude(prompt_nachbesserung(auftrag["text"], rel), auftrag["sitzung"], pruefen=False)
+        if not e.ok:  # z. B. Sitzung nicht mehr da: neu anfangen, mit der alten Beschreibung
+            hinweise.append(f"alte Sitzung nicht fortgesetzt: {e.text[:200]}")
+            json_pfad.write_bytes(vorher.read_bytes())
+            e = None
+    if e is None:
+        e = claude(prompt_start(auftrag["text"], fach, rel, skill, format_text, anhaenge,
+                                reihen_modul.prompt_reihen(reihen or [], fach), wissen_modul.prompt_wissen(katalog),
+                                leitfaden_modul.prompt_leitfaden(leitfaden),
+                                prompt_vorher(rel) if vorher is not None else ""))
+    if vorher is not None and json_pfad.read_bytes() == vorher.read_bytes():
+        hinweise.append("Nachbesserung ohne Änderung, nur Antwort")
+        return Fertig(datei=None, begleittext=e.text.strip() or STANDARD_BEGLEITTEXT, sitzung=e.sitzung,
+                      laeufe=len(laeufe), usd=sum(x.usd for x in laeufe), tokens=sum(x.tokens for x in laeufe),
+                      hinweise=hinweise)
     ergebnis, e = bauen_mit_korrektur(e)
 
     stand = json_pfad.read_bytes()
@@ -263,5 +324,5 @@ def bearbeiten(
         laeufe=len(laeufe),
         usd=sum(x.usd for x in laeufe),
         tokens=sum(x.tokens for x in laeufe),
-        hinweise=list(ergebnis.hinweise),
+        hinweise=hinweise + list(ergebnis.hinweise),
     )
