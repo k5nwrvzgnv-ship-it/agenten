@@ -454,6 +454,9 @@ HINWEISE = {
     "eigene": "Deine Datei ist jetzt die neueste Fassung.",
     "rueckmeldung": "Rückmeldung ist unterwegs. Die neue Fassung erscheint hier und in „Heute“.",
     "rueckmeldung-test": "Rückmeldung angelegt (Testbetrieb, es startet kein Agent).",
+    "stunde": "Angelegt. Mit „Gehört zu“ in einem Material ordnest du es hier ein.",
+    "thema": "Thema geändert.",
+    "zugeordnet": "Eingeordnet.",
 }
 
 
@@ -760,7 +763,7 @@ def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
                         key=lambda k: _zeitpunkt(fassungen(k)[-1]), reverse=True):
         r = reihe_von(kopf(kette), reihen)
         marke = material_marke(kette, jetzt, finale, (eigene or {}).get(kopf(kette)["id"], []))
-        zeile = ketten_zeile(kette, jetzt, marke)
+        zeile = {**ketten_zeile(kette, jetzt, marke), "id": kopf(kette)["id"]}  # id nur zum Zuordnen, nie sichtbar
         if not zeigbar(kopf(kette)):
             zeile["link"] = ""
         zeilen_je.setdefault(r["id"] if r else OHNE_REIHE, []).append(zeile)
@@ -769,13 +772,21 @@ def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
 
 def reihe_ansicht(reihe: dict, reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
                   entwuerfe: list[dict] | None = None, finale: set[str] = frozenset(),
-                  eigene: dict[str, list[dict]] | None = None) -> dict:
-    """Ansicht einer Reihe (nur lesend): Reihenfrage, schon Behandeltes, offene Entwürfe und Aufträge der Reihe.
-    Stunden gibt es noch in keiner Datei (Bauschritt 3)."""
+                  eigene: dict[str, list[dict]] | None = None, stunden_: list[dict] = (),
+                  stunde_von: dict[str, dict] | None = None) -> dict:
+    """Ansicht einer Reihe: Reihenfrage, schon Behandeltes, Material und Entwürfe zur ganzen Reihe, darunter die
+    Stunden (bzw. Proben) mit ihrem Material. stunden_, stunde_von: aus zustand.py (die Web-App speichert sie)."""
+    zeilen = zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe, finale, eigene).get(reihe["id"], [])
+    je_stunde = material_je_stunde(reihe["id"], zeilen, stunde_von or {}, len(stunden_))
+    einzahl, mehrzahl = stunden_wort(reihe)
     return {"titel": reihe["titel"], "unter": f"{reihe['fach']} · {reihe['gruppe']}"
                                               + ("" if reihe["laufend"] else " · abgeschlossen"),
             "reihenfrage": reihe["reihenfrage"], "behandelt": "; ".join(reihe["behandelt"]),
-            "zeilen": zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe, finale, eigene).get(reihe["id"], [])}
+            "zeilen": je_stunde.get(0, []), "wort": einzahl, "wort_mehrzahl": mehrzahl,
+            "stunden_neu": reihe_link(reihe) + "/stunden",
+            "stunden": [{"nr": nr, "titel": s["thema"], "link": stunde_link(reihe, nr),
+                         "unter": ", ".join(z["titel"] for z in je_stunde.get(nr, [])) or "noch leer"}
+                        for nr, s in enumerate(stunden_, 1)]}
 
 
 def reihe_link(reihe: dict) -> str:
@@ -845,3 +856,81 @@ def krumen(hier: str = "", reihe: dict | None = None, ueber: dict | None = None)
 def krumen_klasse(reihe: dict) -> dict:
     """Brotkrumen der Klassen-Ansicht: Fach › Klasse (reihe: irgendeine Reihe der Klasse)."""
     return {"teile": [{"text": reihe["fach"], "link": ""}], "hier": reihe["gruppe"]}
+
+
+# Stunden (Board "Desktop", Jan 30.10.: Lia will die Ebene Stunde). Die Web-App speichert sie selbst (zustand.py),
+# die Agenten kennen sie nicht. Nummer = Platz in der Liste (ab 1), keine Pflicht (Regel R1).
+STUNDE_THEMA_MAX = 120
+
+
+def stunden_wort(reihe: dict) -> tuple[str, str]:
+    """„Stunde“ bzw. „Probe“ für eine Inszenierung (Reihe des Theater-Agenten, Regel R7)."""
+    return ("Probe", "Proben") if "theater" in reihe["agenten"] else ("Stunde", "Stunden")
+
+
+def stunde_link(reihe: dict, nr: int) -> str:
+    return f"/reihe/{reihe['id']}/stunde/{nr}"
+
+
+def stunde_pruefen(thema: str) -> tuple[str, list[str]]:
+    thema = " ".join((thema or "").split())
+    if not thema:
+        return "", ["Schreib kurz das Thema dazu."]
+    if len(thema) > STUNDE_THEMA_MAX:
+        return thema, [f"Das Thema ist zu lang (höchstens {STUNDE_THEMA_MAX} Zeichen)."]
+    return thema, []
+
+
+def stunde_dazu(zustand_: dict, reihe_id: str, thema: str, zeit: str) -> tuple[dict, int]:
+    """Neuer Zustand mit einer Stunde mehr am Ende der Reihe und ihre Nummer."""
+    stunden = dict(zustand_.get("stunden") or {})
+    stunden[reihe_id] = [*(stunden.get(reihe_id) or []), {"thema": thema, "zeit": zeit}]
+    return {**zustand_, "stunden": stunden}, len(stunden[reihe_id])
+
+
+def stunde_aendern(zustand_: dict, reihe_id: str, nr: int, thema: str) -> dict:
+    """Neuer Zustand mit neuem Thema der Stunde nr (die Stunde muss es geben)."""
+    liste = [dict(s) for s in (zustand_.get("stunden") or {}).get(reihe_id) or []]
+    liste[nr - 1]["thema"] = thema
+    return {**zustand_, "stunden": {**(zustand_.get("stunden") or {}), reihe_id: liste}}
+
+
+def stunde_zuordnen(zustand_: dict, kopf_id: str, reihe_id: str, nr: int | None) -> dict:
+    """Neuer Zustand: Material kopf_id gehört zu Stunde nr der Reihe, bei None zur ganzen Reihe."""
+    von = dict(zustand_.get("stunde_von") or {})
+    von.pop(kopf_id, None)
+    if nr:
+        von[kopf_id] = {"reihe": reihe_id, "nr": nr}
+    return {**zustand_, "stunde_von": von}
+
+
+def stunde_nummer(wert: str | None, anzahl: int) -> int | None:
+    """Nummer aus Formular oder URL: 1 bis anzahl, sonst None."""
+    return int(wert) if wert and wert.isdigit() and 1 <= int(wert) <= anzahl else None
+
+
+def material_je_stunde(reihe_id: str, zeilen: list[dict], stunde_von: dict[str, dict],
+                       anzahl: int) -> dict[int, list[dict]]:
+    """Zeilen einer Reihe je Stunde; 0 = zur ganzen Reihe (auch Entwürfe und Zuordnungen zu Stunden, die es nicht
+    mehr gibt)."""
+    je: dict[int, list[dict]] = {}
+    for z in zeilen:
+        ort = stunde_von.get(z.get("id") or "") or {}
+        nr = ort.get("nr") if ort.get("reihe") == reihe_id and isinstance(ort.get("nr"), int) else 0
+        je.setdefault(nr if 1 <= nr <= anzahl else 0, []).append(z)
+    return je
+
+
+def stunde_ansicht(reihe: dict, nr: int, stunden_: list[dict], zeilen: list[dict],
+                   stunde_von: dict[str, dict]) -> dict:
+    """Ansicht einer Stunde: Thema und ihr Material (zeilen: Zeilen der Reihe aus zeilen_je_reihe)."""
+    einzahl, _ = stunden_wort(reihe)
+    return {"titel": stunden_[nr - 1]["thema"], "unter": f"{einzahl} {nr}", "nr": nr, "wort": einzahl,
+            "zeilen": material_je_stunde(reihe["id"], zeilen, stunde_von, len(stunden_)).get(nr, [])}
+
+
+def stunden_auswahl(reihe: dict, stunden_: list[dict]) -> list[dict]:
+    """Auswahl „Gehört zu“ in der Material-Ansicht: ganze Reihe, dann die Stunden."""
+    einzahl, _ = stunden_wort(reihe)
+    return [{"nr": 0, "text": "zur ganzen Reihe"}] + [
+        {"nr": nr, "text": f"{einzahl} {nr}: {s['thema']}"} for nr, s in enumerate(stunden_, 1)]

@@ -1,5 +1,5 @@
-{#- Reihe (nur lesend): Reihenfrage, schon Behandeltes, Entwürfe und Aufträge der Reihe. Stunden kommen mit
-    Bauschritt 3, Ansichten für Fach und Klasse mit Bauschritt 2. -#}
+{#- Reihe: Reihenfrage, schon Behandeltes, Material zur ganzen Reihe, darunter die Stunden (bzw. Proben) mit
+    ihrem Material. Stunden speichert die Web-App selbst (zustand.py), „+ Stunde“ ohne JavaScript. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
 {% block seitenkopf %}
@@ -16,7 +16,30 @@
   {%- if e.zeilen %}
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
   {%- else %}
-  <p class="leer">Noch keine Aufträge zu dieser Reihe.</p>
+  <p class="leer">Noch nichts zur ganzen Reihe.</p>
   {%- endif %}
+</section>
+<section aria-labelledby="ab2" id="stunden">
+  <h2 id="ab2"><span class="akzent">02</span>{{ e.wort_mehrzahl }}</h2>
+  {%- if e.stunden %}
+  <ul>
+    {%- for s in e.stunden %}
+    <li><a class="zeile zeile-stunde" href="{{ s.link }}">
+      <span class="stunde-nr">{{ s.nr }}</span>
+      <span class="text"><span class="titel">{{ s.titel }}</span><span class="unter">{{ s.unter }}</span></span>
+    </a></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="leer">Noch keine {{ e.wort_mehrzahl }}. Leg sie an, wenn du magst; Material kann auch bei der ganzen Reihe bleiben.</p>
+  {%- endif %}
+  {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
+  <form class="zeile-form" method="post" action="{{ e.stunden_neu }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label class="unsichtbar" for="thema">Thema der neuen {{ e.wort }}</label>
+    <input id="thema" name="thema" type="text" maxlength="{{ thema_max }}" value="{{ thema }}" required
+           placeholder="Thema">
+    <button class="knopf" type="submit">+ {{ e.wort }}</button>
+  </form>
 </section>
 {% endblock %}

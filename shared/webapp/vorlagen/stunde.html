@@ -1,0 +1,25 @@
+{#- Stunde (bzw. Probe) einer Reihe: Thema und Material. Material ordnet Lia in seiner Ansicht zu („Gehört zu“). -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{% block inhalt %}
+{%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
+<section aria-labelledby="ab1">
+  <h2 id="ab1"><span class="akzent">01</span>Material</h2>
+  {%- if e.zeilen %}
+  <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
+  {%- else %}
+  <p class="leer">Noch kein Material für diese {{ e.wort }}. Öffne ein Material der Reihe und wähl dort
+    „Gehört zu: {{ e.wort }} {{ e.nr }}“.</p>
+  {%- endif %}
+</section>
+<details class="tafel"{% if fehler %} open{% endif %}>
+  <summary>Thema ändern</summary>
+  {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
+  <form class="zeile-form" method="post" action="{{ request.url.path }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label class="unsichtbar" for="thema">Thema</label>
+    <input id="thema" name="thema" type="text" maxlength="{{ thema_max }}" value="{{ thema }}" required>
+    <button class="knopf" type="submit">Speichern</button>
+  </form>
+</details>
+{% endblock %}

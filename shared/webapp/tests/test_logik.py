@@ -591,6 +591,37 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.baum([], 1), [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0,
                                               "zahl": 1, "aktiv": False}])
 
+    def test_stunden(self):
+        ethik, theater = reihen()
+        self.assertEqual(logik.stunden_wort(ethik), ("Stunde", "Stunden"))
+        self.assertEqual(logik.stunden_wort(theater), ("Probe", "Proben"))
+        self.assertEqual(logik.stunde_pruefen("  Kant   Vergeltung "), ("Kant Vergeltung", []))
+        self.assertTrue(logik.stunde_pruefen("")[1])
+        self.assertTrue(logik.stunde_pruefen("x" * 121)[1])
+        z, nr = logik.stunde_dazu({"final": {}}, "r", "Einstieg", "t1")
+        z, nr2 = logik.stunde_dazu(z, "r", "Kant", "t2")
+        self.assertEqual((nr, nr2, z["final"]), (1, 2, {}))
+        z = logik.stunde_aendern(z, "r", 1, "Einstieg neu")
+        self.assertEqual([s["thema"] for s in z["stunden"]["r"]], ["Einstieg neu", "Kant"])
+        self.assertEqual([logik.stunde_nummer(w, 2) for w in ("1", "2", "3", "0", "x", "", None, "-1")],
+                         [1, 2, None, None, None, None, None, None])
+        z = logik.stunde_zuordnen(z, "K", "r", 2)
+        self.assertEqual(z["stunde_von"], {"K": {"reihe": "r", "nr": 2}})
+        zeilen = [{"id": "K", "titel": "AB"}, {"id": "L", "titel": "Folien"}, {"titel": "Entwurf"}]
+        je = logik.material_je_stunde("r", zeilen, z["stunde_von"], 2)
+        self.assertEqual(({k: [x["titel"] for x in v] for k, v in je.items()}), {2: ["AB"], 0: ["Folien", "Entwurf"]})
+        self.assertEqual(list(logik.material_je_stunde("r", zeilen, z["stunde_von"], 1)), [0])  # Stunde 2 fehlt
+        self.assertEqual(list(logik.material_je_stunde("x", zeilen, z["stunde_von"], 2)), [0])  # andere Reihe
+        self.assertEqual(logik.stunde_zuordnen(z, "K", "r", None)["stunde_von"], {})
+        st = logik.stunde_ansicht(ethik, 2, z["stunden"]["r"], zeilen, {"K": {"reihe": ethik["id"], "nr": 2}})
+        self.assertEqual((st["titel"], st["unter"], [x["titel"] for x in st["zeilen"]]), ("Kant", "Stunde 2", ["AB"]))
+        self.assertEqual([s["text"] for s in logik.stunden_auswahl(theater, z["stunden"]["r"])],
+                         ["zur ganzen Reihe", "Probe 1: Einstieg neu", "Probe 2: Kant"])
+        a = logik.reihe_ansicht(ethik, [ethik], [], JETZT, stunden_=z["stunden"]["r"])
+        self.assertEqual([(s["nr"], s["titel"], s["unter"], s["link"]) for s in a["stunden"]], [
+            (1, "Einstieg neu", "noch leer", "/reihe/ethik-8-straftheorien/stunde/1"),
+            (2, "Kant", "noch leer", "/reihe/ethik-8-straftheorien/stunde/2")])
+
     def test_klasse_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
         e = logik.klasse_ansicht("ethik-8", r, {"ethik-8-helfen": [{}, {}], "ethik-8-straftheorien": [{}]})

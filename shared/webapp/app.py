@@ -25,6 +25,7 @@ GET:
                                         ohne JavaScript; <id> ist die Fassung, aus der die Datei stammt
   /entwurf/<id>                         offener Entwurf, ganzer Text, keine Knöpfe
   /reihe/<kennung>                      Reihe mit Reihenfrage und ihren Aufträgen (ordnung.py, nur lesend)
+  /reihe/<kennung>/stunde/<n>           Stunde (bzw. Probe) n mit Thema und Material (Stunden speichert die Web-App)
   /klasse/<kennung>                     Klasse/Kurs mit ihren Reihen (nur lesend)
   /unterricht                           alte Seite, leitet auf / um
   /statisch/...                         CSS, htmx
@@ -35,12 +36,15 @@ POST:
                                         wie Neuer Auftrag nur im Testbetrieb oder echt; eine Datei wird eigene Fassung
   /ergebnis/<id>/final                  Fassung als final markieren oder zurücknehmen (nur in data/, zustand.py)
   /ergebnis/<id>/eigene                 eigene Fassung hochladen (nur in data/, die Agenten sehen sie nicht)
+  /ergebnis/<id>/stunde                 Material einer Stunde der Reihe zuordnen (nur in data/)
+  /reihe/<kennung>/stunden              neue Stunde am Ende der Reihe (nur in data/)
+  /reihe/<kennung>/stunde/<n>           Thema der Stunde ändern (nur in data/)
 
 Neuer Auftrag und Rückmeldung sind ausgeschaltet, bis WEBAPP_NEUER_AUFTRAG gesetzt ist:
   test  nur mit einer anderen Instanz als lia/instanz (WEBAPP_INSTANZ), kein Agent startet
   echt  jede Instanz, danach startet lia-unterricht.service bzw. lia-feedback.service (Ergebnis kommt auch per
         Telegram, Lias Kontingent)
-Final und eigene Fassung schreiben nur in data/ der Web-App (nicht in Lias Instanz) und gehen darum immer.
+Final, eigene Fassung und Stunden schreiben nur in data/ der Web-App (nicht in Lias Instanz) und gehen darum immer.
 Ohne Konten schützen sich die Formulare vor fremden Seiten im selben Browser (CSRF): Origin muss zum Host passen
 und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
@@ -180,27 +184,109 @@ def alte_seite_unterricht():
     return RedirectResponse("/", status_code=301)
 
 
-@app.get("/reihe/{reihe_id}", response_class=HTMLResponse)
-def seite_reihe(request: Request, reihe_id: str):
+def _reihe(reihe_id: str) -> tuple[list[dict], dict]:
+    """Alle Reihen und die gesuchte; unbekannt: 404."""
     reihen = reihen_laden()
     reihe = next((r for r in reihen if r["id"] == reihe_id), None)
     if reihe is None:
         raise HTTPException(404)
+    return reihen, reihe
+
+
+def _alle_auftraege() -> list[dict]:
     basis = INSTANZ / "auftraege"
+    return [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)]
+
+
+@app.get("/reihe/{reihe_id}", response_class=HTMLResponse)
+def seite_reihe(request: Request, reihe_id: str):
+    reihen, reihe = _reihe(reihe_id)
     z = zustand_().lesen()
-    e = logik.reihe_ansicht(reihe, reihen, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
-                            datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]),
-                            z["eigene"])
+    e = logik.reihe_ansicht(reihe, reihen, _alle_auftraege(), datetime.now(ZONE),
+                            freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]), z["eigene"],
+                            z["stunden"].get(reihe_id) or [], z["stunde_von"])
     return vorlagen.TemplateResponse(request, "reihe.html", {
-        "e": e, **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"])})
+        "e": e, "token": logik.formular_token(GEHEIM), "fehler": [], "thema": "",
+        "thema_max": logik.STUNDE_THEMA_MAX, **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"])})
+
+
+def _stunde_seite(request: Request, reihe_id: str, nr_text: str, hinweis: str = "", fehler: list[str] | None = None,
+                  thema: str = "", status: int = 200):
+    reihen, reihe = _reihe(reihe_id)
+    z = zustand_().lesen()
+    stunden = z["stunden"].get(reihe_id) or []
+    nr = logik.stunde_nummer(nr_text, len(stunden))
+    if nr is None:
+        raise HTTPException(404)
+    zeilen = logik.zeilen_je_reihe(reihen, _alle_auftraege(), datetime.now(ZONE),
+                                   freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]),
+                                   z["eigene"]).get(reihe_id, [])
+    e = logik.stunde_ansicht(reihe, nr, stunden, zeilen, z["stunde_von"])
+    return vorlagen.TemplateResponse(request, "stunde.html", {
+        "e": e, "reihe": reihe, "token": logik.formular_token(GEHEIM), "hinweis": hinweis, "fehler": fehler or [],
+        "thema": thema or e["titel"], "thema_max": logik.STUNDE_THEMA_MAX,
+        **rahmen(reihen, logik.krumen(e["unter"], reihe), reihe["id"])}, status_code=status)
+
+
+@app.get("/reihe/{reihe_id}/stunde/{nr}", response_class=HTMLResponse)
+def seite_stunde(request: Request, reihe_id: str, nr: str):
+    hinweis = logik.HINWEISE.get(request.query_params.get("erledigt") or "", "")
+    return _stunde_seite(request, reihe_id, nr, hinweis)
+
+
+@app.post("/reihe/{reihe_id}/stunden", response_class=HTMLResponse)
+async def stunde_anlegen(request: Request, reihe_id: str):
+    reihen, reihe = _reihe(reihe_id)
+    form = await formular_lesen(request, "Stunde", 0)
+    thema, fehler = logik.stunde_pruefen(str(form.get("thema") or ""))
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        fehler = [logik.VERALTET]
+    if fehler:
+        z = zustand_().lesen()
+        e = logik.reihe_ansicht(reihe, reihen, _alle_auftraege(), datetime.now(ZONE),
+                                freigabe.offene(basis=INSTANZ / "freigabe"), set(z["final"]), z["eigene"],
+                                z["stunden"].get(reihe_id) or [], z["stunde_von"])
+        return vorlagen.TemplateResponse(request, "reihe.html", {
+            "e": e, "token": logik.formular_token(GEHEIM), "fehler": fehler, "thema": thema,
+            "thema_max": logik.STUNDE_THEMA_MAX, **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"])},
+            status_code=400)
+    z_ = zustand_()
+    try:
+        neu, nr = logik.stunde_dazu(z_.lesen(), reihe_id, thema, datetime.now(ZONE).isoformat())
+        z_.schreiben(neu)
+    except OSError as fehler_:
+        logger.error("Stunde nicht gespeichert: %s", fehler_)
+        raise HTTPException(500) from None
+    logger.info("Stunde %d in %s angelegt", nr, reihe_id)
+    return RedirectResponse(f"{logik.stunde_link(reihe, nr)}?erledigt=stunde", status_code=303)
+
+
+@app.post("/reihe/{reihe_id}/stunde/{nr}", response_class=HTMLResponse)
+async def stunde_aendern(request: Request, reihe_id: str, nr: str):
+    _, reihe = _reihe(reihe_id)
+    z_ = zustand_()
+    nummer = logik.stunde_nummer(nr, len(z_.lesen()["stunden"].get(reihe_id) or []))
+    if nummer is None:
+        raise HTTPException(404)
+    form = await formular_lesen(request, "Stunde", 0)
+    thema, fehler = logik.stunde_pruefen(str(form.get("thema") or ""))
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        fehler = [logik.VERALTET]
+    if fehler:
+        return _stunde_seite(request, reihe_id, nr, fehler=fehler, thema=thema, status=400)
+    try:
+        z_.schreiben(logik.stunde_aendern(z_.lesen(), reihe_id, nummer, thema))
+    except OSError as fehler_:
+        logger.error("Stunde nicht gespeichert: %s", fehler_)
+        raise HTTPException(500) from None
+    return RedirectResponse(f"{logik.stunde_link(reihe, nummer)}?erledigt=thema", status_code=303)
 
 
 @app.get("/klasse/{gruppe_id}", response_class=HTMLResponse)
 def seite_klasse(request: Request, gruppe_id: str):
     reihen = reihen_laden()
-    basis = INSTANZ / "auftraege"
-    zeilen_je = logik.zeilen_je_reihe(reihen, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
-                                      datetime.now(ZONE), freigabe.offene(basis=INSTANZ / "freigabe"))
+    zeilen_je = logik.zeilen_je_reihe(reihen, _alle_auftraege(), datetime.now(ZONE),
+                                      freigabe.offene(basis=INSTANZ / "freigabe"))
     e = logik.klasse_ansicht(gruppe_id, reihen, zeilen_je)
     if e is None:
         raise HTTPException(404)
@@ -358,15 +444,21 @@ def _material(kette: list[dict], kopf: dict) -> tuple[dict, list[dict], dict]:
 
 def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str = "", hinweis: str = "",
                     fehler: list[str] | None = None, text: str = "", status: int = 200):
-    e, _, _ = _material(kette, kopf)
+    e, _, z = _material(kette, kopf)
     reihen = reihen_laden()
     reihe = logik.reihe_von(kopf, reihen)
+    stunden = (z["stunden"].get(reihe["id"]) or []) if reihe else []
+    ort = z["stunde_von"].get(kopf["id"]) or {}
+    nr = ort.get("nr") if reihe and ort.get("reihe") == reihe["id"] else None
+    nr = nr if isinstance(nr, int) and 1 <= nr <= len(stunden) else None
+    ueber = {"text": f"{logik.stunden_wort(reihe)[0]} {nr}", "link": logik.stunde_link(reihe, nr)} if nr else None
     return vorlagen.TemplateResponse(request, "ergebnis.html", {
+        "stunden": logik.stunden_auswahl(reihe, stunden) if stunden else [], "stunde_nr": nr or 0,
         "e": e, "kopf_id": kopf["id"], "basis_url": logik.ergebnis_link(kopf), "token": logik.formular_token(GEHEIM),
         "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene") else "",
         "hinweis": hinweis, "fehler": fehler or [], "text": text, "text_max": logik.NEU_TEXT_MAX,
         "rueck_endungen": ",".join(logik.RUECK_ENDUNGEN), "eigene_endungen": ",".join(logik.EIGENE_ENDUNGEN),
-        **rahmen(reihen, logik.krumen(e["titel"], reihe), reihe["id"] if reihe else "")}, status_code=status)
+        **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "")}, status_code=status)
 
 
 @app.get("/ergebnis/{eintrag_id}", response_class=HTMLResponse)
@@ -408,6 +500,29 @@ async def ergebnis_final(request: Request, eintrag_id: str):
         return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
     logger.info("Final %s: %s (%s)", "an" if an else "aus", kopf["id"], ref)
     return _fertig(kopf, "final" if an else "nicht-final")
+
+
+@app.post("/ergebnis/{eintrag_id}/stunde", response_class=HTMLResponse)
+async def ergebnis_stunde(request: Request, eintrag_id: str):
+    kette, kopf = _kopf_fuer_post(eintrag_id)
+    reihe = logik.reihe_von(kopf, reihen_laden())
+    if reihe is None:
+        raise HTTPException(404)
+    form = await formular_lesen(request, "Stunde zuordnen", 0)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return _ergebnis_seite(request, kette, kopf, hinweis=logik.VERALTET, status=400)
+    z_ = zustand_()
+    z = z_.lesen()
+    wert = str(form.get("nr") or "")
+    nr = logik.stunde_nummer(wert, len(z["stunden"].get(reihe["id"]) or []))
+    if nr is None and wert != "0":
+        raise HTTPException(404)
+    try:
+        z_.schreiben(logik.stunde_zuordnen(z, kopf["id"], reihe["id"], nr))
+    except OSError as fehler_:
+        logger.error("Zuordnung nicht gespeichert: %s", fehler_)
+        return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
+    return _fertig(kopf, "zugeordnet")
 
 
 def _eigene_speichern(kette: list[dict], kopf: dict, upload: UploadFile, notiz: str) -> tuple[str, str]:

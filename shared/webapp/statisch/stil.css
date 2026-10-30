@@ -456,3 +456,25 @@ button.knopf { font-family: inherit; cursor: pointer; }
   .fassung-zeile { grid-template-columns: minmax(0, 1fr) auto; }
   .fassung-name { grid-column: 1 / -1; }
 }
+
+/* Stunden in der Reihe, „+ Stunde“, „Gehört zu“ (kleine Formulare in einer Zeile) */
+.zeile-stunde { grid-template-columns: 28px minmax(0, 1fr) auto; }
+.zeile .stunde-nr { font-family: var(--titelschrift); font-size: 18px; font-weight: 800; line-height: 1.25; }
+.zeile-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 0; }
+.zeile-form input[type="text"], .zeile-form select {
+  flex: 1 1 220px;
+  min-height: 44px;
+  padding: 0 10px;
+  font: inherit;
+  border: 2px solid var(--schwarz);
+  border-radius: 0;
+  background: var(--weiss);
+}
+.unsichtbar {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

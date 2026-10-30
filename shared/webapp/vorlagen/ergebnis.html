@@ -139,6 +139,19 @@
 {%- endif %}
 {%- endif %}
 
+{%- if stunden %}
+<form class="zeile-form" method="post" action="{{ basis_url }}/stunde">
+  <input type="hidden" name="token" value="{{ token }}">
+  <label for="stunde-wahl"><b>Gehört zu</b></label>
+  <select id="stunde-wahl" name="nr">
+    {%- for s in stunden %}
+    <option value="{{ s.nr }}"{% if s.nr == stunde_nr %} selected{% endif %}>{{ s.text }}</option>
+    {%- endfor %}
+  </select>
+  <button class="knopf" type="submit">Einordnen</button>
+</form>
+{%- endif %}
+
 {%- if e.verlauf %}
 <section class="fassungen">
   <h2>Fassungen</h2>

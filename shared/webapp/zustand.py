@@ -1,4 +1,5 @@
-"""Was die Web-App selbst speichert, bis Konten oder agentkit es können: "final" je Auftrag und Lias eigene Fassungen.
+"""Was die Web-App selbst speichert, bis Konten oder agentkit es können: "final" je Auftrag, Lias eigene Fassungen,
+die Stunden einer Reihe und welches Material zu welcher Stunde gehört.
 
 Je Instanz eine JSON-Datei data/zustand/<schluessel>.json, die Dateien der eigenen Fassungen unter
 data/eigene/<schluessel>/<ursprung-id>/<n>/<name>. Nichts davon liegt in Lias Instanz, die Agenten sehen es nicht
@@ -6,8 +7,11 @@ data/eigene/<schluessel>/<ursprung-id>/<n>/<name>. Nichts davon liegt in Lias In
 
 Format:
   {"final":  {"<ursprung-id>": {"fassung": "<auftrags-id oder eigene-n>", "zeit": "<iso>"}},
-   "eigene": {"<ursprung-id>": [{"name": "Blatt.docx", "datei": "1/Blatt.docx", "zeit": "<iso>", "notiz": ""}]}}
-Die reine Logik dazu steht in logik.py (final_setzen, eigene_dazu).
+   "eigene": {"<ursprung-id>": [{"name": "Blatt.docx", "datei": "1/Blatt.docx", "zeit": "<iso>", "notiz": ""}]},
+   "stunden": {"<reihe-id>": [{"thema": "Kant: Vergeltung", "zeit": "<iso>"}]},   Nummer = Platz in der Liste (ab 1)
+   "stunde_von": {"<ursprung-id>": {"reihe": "<reihe-id>", "nr": 2}}}
+Die reine Logik dazu steht in logik.py (final_setzen, eigene_dazu, stunde_dazu, stunde_zuordnen).
+Stunden kennen die Agenten nicht; ein Auftrag aus einer Stunde nennt sie im Text (logik.text_mit_reihe).
 """
 
 import hashlib
@@ -20,8 +24,11 @@ from pathlib import Path
 logger = logging.getLogger("webapp")
 
 
+FELDER = ("final", "eigene", "stunden", "stunde_von")
+
+
 def leer() -> dict:
-    return {"final": {}, "eigene": {}}
+    return {f: {} for f in FELDER}
 
 
 class Zustand:
@@ -43,7 +50,7 @@ class Zustand:
         if not isinstance(daten, dict):
             logger.error("Zustand %s ist kein Objekt", self.datei)
             return {**leer(), "kaputt": True}
-        return {"final": dict(daten.get("final") or {}), "eigene": dict(daten.get("eigene") or {})}
+        return {f: dict(daten.get(f) or {}) for f in FELDER}
 
     def schreiben(self, daten: dict) -> None:
         """Ganz oder gar nicht (temporäre Datei, dann umbenennen). Eine kaputte Datei wird nie überschrieben."""
@@ -54,7 +61,7 @@ class Zustand:
         fd, tmp = tempfile.mkstemp(dir=self.datei.parent, suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump({"final": daten["final"], "eigene": daten["eigene"]}, f, ensure_ascii=False, indent=1)
+                json.dump({feld: daten.get(feld) or {} for feld in FELDER}, f, ensure_ascii=False, indent=1)
             os.replace(tmp, self.datei)
         except BaseException:
             Path(tmp).unlink(missing_ok=True)

@@ -422,7 +422,8 @@ class TestOrdnung(Aufbau):
         self.assertNotIn("20261030", self.sichtbar(html))
         r, html = self.hole("/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn")
         self.assertEqual(r.status, 200)
-        self.assertIn("Noch keine Aufträge zu dieser Reihe.", html)
+        self.assertIn("Noch nichts zur ganzen Reihe.", html)
+        self.assertIn("+ Probe", html)  # Reihe des Theater-Agenten: Proben statt Stunden
         _, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")  # Ort als Brotkrume mit Link zur Reihe
         self.assertIn('<a href="/reihe/strafe">Straftheorien</a>', html)
 
@@ -435,6 +436,55 @@ class TestOrdnung(Aufbau):
             self.assertIn(text, html)
         self.assertEqual(self.hole("/klasse/ethik-9")[0].status, 404)
         self.assertEqual(self.hole("/klasse/darstellendes-spiel-kurs-12")[0].status, 200)
+
+    def post(self, pfad, felder, token=True):
+        body, art = multipart({**({"token": app.logik.formular_token(app.GEHEIM)} if token else {}), **felder}, [])
+        return self.hole(pfad, "POST", body=body,
+                         kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
+
+    def test_stunden(self):
+        schreibe(self.instanz / "auftraege" / "erledigt" / "20261030-160000-unterricht-cccccc.json", {
+            "id": "20261030-160000-unterricht-cccccc", "agent": "unterricht", "text": "Arbeitsblatt Vergeltung",
+            "status": "erledigt", "reihe": "strafe", "erstellt": "2026-10-30T15:00:00+01:00",
+            "abgeschlossen": "2026-10-30T15:10:00+01:00", "ergebnis": "x", "ergebnis_dateien": []})
+        _, html = self.hole("/reihe/strafe")
+        self.assertIn("Noch keine Stunden.", html)
+        self.assertNotIn("Gehört zu", self.hole("/ergebnis/20261030-160000-unterricht-cccccc")[1])
+        r, _ = self.post("/reihe/strafe/stunden", {"thema": "  Einstieg  "})
+        self.assertEqual((r.status, r.getheader("location")), (303, "/reihe/strafe/stunde/1?erledigt=stunde"))
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant <Vergeltung>"})[0].status, 303)
+        r, html = self.hole("/reihe/strafe/stunde/2")
+        self.assertEqual(r.status, 200)
+        for text in ("Kant &lt;Vergeltung&gt;", "Stunde 2", '<a href="/reihe/strafe">Straftheorien</a>',
+                     "Noch kein Material für diese Stunde."):
+            self.assertIn(text, html)
+        for falsch in ("/reihe/strafe/stunde/3", "/reihe/strafe/stunde/0", "/reihe/strafe/stunde/x",
+                       "/reihe/gibts-nicht/stunde/1"):
+            self.assertEqual(self.hole(falsch)[0].status, 404, falsch)
+        r, html = self.post("/reihe/strafe/stunden", {"thema": " "})
+        self.assertEqual(r.status, 400)
+        self.assertIn("Schreib kurz das Thema dazu.", html)
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "x"}, token=False)[0].status, 400)
+        self.assertEqual(self.post("/reihe/strafe/stunde/1", {"thema": "Einstieg: Gefängnis"})[0].status, 303)
+        # Material einordnen
+        r, html = self.hole("/ergebnis/20261030-160000-unterricht-cccccc")
+        self.assertIn('<option value="2">Stunde 2: Kant &lt;Vergeltung&gt;</option>', html)
+        r, _ = self.post("/ergebnis/20261030-160000-unterricht-cccccc/stunde", {"nr": "2"})
+        self.assertEqual(r.status, 303)
+        _, html = self.hole("/ergebnis/20261030-160000-unterricht-cccccc")
+        self.assertIn('<option value="2" selected>', html)
+        self.assertIn('<a href="/reihe/strafe/stunde/2">Stunde 2</a>', html)
+        _, html = self.hole("/reihe/strafe/stunde/2")
+        self.assertIn("Arbeitsblatt Vergeltung", html)
+        _, html = self.hole("/reihe/strafe")
+        self.assertIn("Einstieg: Gefängnis", html)
+        self.assertNotIn("Arbeitsblatt Vergeltung", html.split("Zur ganzen Reihe")[1].split("Stunden</h2>")[0])
+        self.assertEqual(self.post("/ergebnis/20261030-160000-unterricht-cccccc/stunde", {"nr": "9"})[0].status, 404)
+        self.assertEqual(self.post("/ergebnis/20261030-160000-unterricht-cccccc/stunde", {"nr": "0"})[0].status, 303)
+        _, html = self.hole("/reihe/strafe")
+        self.assertIn("Arbeitsblatt Vergeltung", html.split("Zur ganzen Reihe")[1].split("Stunden</h2>")[0])
+        # Material ohne Reihe hat nichts zum Einordnen
+        self.assertEqual(self.post("/ergebnis/20261030-140944-unterricht-93e29e/stunde", {"nr": "1"})[0].status, 404)
 
     def test_ohne_reihen_und_kaputte_datei(self):
         (self.instanz / "reihen.toml").write_text("[[reihe]\n")
