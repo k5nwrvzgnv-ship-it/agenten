@@ -50,12 +50,15 @@ Feedbackweg, nicht Knöpfe. Heute entsteht dabei ein neuer, unverbundener Auftra
 
 **Was fehlt bzw. offen ist.**
 - Es gibt keine Stunden in irgendeiner Datei der Agenten (`reihen.toml` kennt Reihen, nicht Stunden).
-- Fachname: Lias Ordner und `profil.toml` sagen „Darstellendes Spiel“/„DS“, die App sagt „Theater“ (Jan 30.10.).
-  Vorschlag: „Darstellendes Spiel“ wie bei Lia, Kurzform DS. **Jan fragen.**
-- Ein Chat erwähnt eine 12. DS-Klasse; in keiner Datei. Für die Notentabelle (ef0a90) ist die Klasse unbekannt.
-- **Offene Frage an Jan:** Welche Programme nutzt Lia am PC (Word oder Pages, OneDrive/iCloud, Lernraum/Moodle,
-  IServ)? Davon hängt ab, ob „In Word öffnen“ oder „Herunterladen“ der Hauptweg zum Bearbeiten ist. Die Ablage
-  enthält `.pages`-Dateien: vermutlich Mac mit Pages und Word.
+- Geklärt mit Jan (30.10.):
+  - Das Fach heißt „Darstellendes Spiel“ (Kurzform DS), nicht mehr „Theater“. Die gebaute App sagt noch
+    „Theater“ (`ordnung.py`); umgestellt wird mit dem ersten Bauschritt.
+  - Es gibt einen DS-Kurs 12 neben Kurs 11. Er steht in keiner Datei; Reihen und Lerngruppe erfragt Jan bei Lia.
+  - Die Notentabelle (ef0a90) gehört zu Ethik 8 (R4).
+  - Lia arbeitet am Mac mit Word und Pages/Keynote und stellt Material in eine Schulplattform
+    (Lernraum/Moodle/IServ). Kein OneDrive/iCloud genannt. Folgen: Hauptweg zum Bearbeiten ist „Herunterladen,
+    in Word öffnen“ (Pages öffnet docx); die App liefert immer docx/pptx und PDF, kein Pages-Format. Für die
+    Schulplattform reicht das PDF. Eine Anbindung an die Plattform ist nicht geplant (fremder Dienst).
 
 ### 1.1 Abdeckung und Regeln für Grenzfälle
 
@@ -300,5 +303,5 @@ dabei offen (Word, Pages, OneDrive, Lernraum)?“
    annimmt).
 5. **Chat erst nach dem Test bauen**, aber im Test zeigen: er ist die schnellste Hilfe für Lias häufigste kleine
    Fragen und ersetzt das Reinkopieren von Kontext.
-6. **Vor dem Test zu klären (Jan):** Fachname „Darstellendes Spiel“ statt „Theater“? Welche Programme nutzt Lia?
-   Gibt es Kurs 12 und für welche Klasse ist die Notentabelle?
+6. **Geklärt (Jan 30.10.):** Fach „Darstellendes Spiel“, Kurs 12 kommt in den Baum, Notentabelle bei Ethik 8,
+   Lia nutzt Word, Pages/Keynote und die Schulplattform (Abschnitt 1). Offen für den Test: Reihen von Kurs 12.

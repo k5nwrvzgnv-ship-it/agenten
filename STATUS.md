@@ -556,9 +556,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Neuplanung Desktop zuerst (Jan 30.10., nur Plan): docs/webapp-aufbau.md, klickbares Board „Desktop“ und
      „Handy-Prüfung“ im Canvas. Drei Spalten Baum | Inhalt | Fragen (Chat), Vorlagengalerie am Ort, final setzt
      Lia, eigene Fassung hochladen. Chips und /unterricht sollen entfallen. Gebaut wird erst nach Lias Test
-     (7 Aufgaben, Ziel 6 von 7 ohne Hilfe, Jan leitet) und Jans Okay. Jan klärt vorher: Fachname „Darstellendes
-     Spiel“ statt „Theater“? Welche Programme nutzt Lia am PC? Gibt es Kurs 12, für welche Klasse ist die
-     Notentabelle?
+     (7 Aufgaben, Ziel 6 von 7 ohne Hilfe, Jan leitet) und Jans Okay. Geklärt (Jan 30.10.): Fach heißt
+     „Darstellendes Spiel“ (ersetzt „Theater“), es gibt DS-Kurs 12 (Reihen offen), Notentabelle gehört zu
+     Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform (Ausgabe docx/pptx und PDF).
+     Bedarf an den lia/unterricht-Chat dazu: beim Theater-Eintrag in lia/instanz/reihen.toml fach
+     „Darstellendes Spiel“ statt „Theater“; Kurs 12 eintragen, sobald Lia die Reihen nennt.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext.

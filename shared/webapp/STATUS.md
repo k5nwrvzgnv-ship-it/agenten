@@ -86,8 +86,12 @@ final, Mustertabelle, Heuristik-Review, Test mit 7 Aufgaben, Empfehlung). Klickb
   Ort als Kontext. „Heute“ ist oberster Eintrag im Baum. „+ Neu hier“ öffnet eine Vorlagengalerie mit
   vorbelegtem Ort. Material zeigt Fassungen, „Als final markieren“ (nur Lia), „Rückmeldung geben“ (auch mit Datei),
   „Eigene Fassung hochladen“ (Lias echter Weg, löst offenen Punkt 8). Stunde ist leichte, nie verpflichtende Ebene.
-- Nächster Schritt: Jan klickt das Board durch (nicht geprüft, ob es im Canvas fehlerfrei läuft), klärt die drei
-  Fragen aus Abschnitt 7 des Plans und macht den Test mit Lia. Gebaut wird erst nach Test und Jans Okay, in den
+- Geklärt (Jan 30.10.): Fach heißt „Darstellendes Spiel“ (App sagt noch „Theater“, `THEATER_KURS` in
+  `ordnung.py`; umstellen mit dem ersten Bauschritt), DS-Kurs 12 gibt es (in keiner Datei, Reihen offen),
+  Notentabelle gehört zu Ethik 8, Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt
+  docx/pptx und PDF.
+- Nächster Schritt: Jan klickt das Board durch (nicht geprüft, ob es im Canvas fehlerfrei läuft) und macht den
+  Test mit Lia. Gebaut wird erst nach Test und Jans Okay, in den
   Bauschritten aus Abschnitt 5 des Plans.
 
 ## Technik
