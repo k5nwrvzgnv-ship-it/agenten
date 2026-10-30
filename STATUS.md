@@ -565,11 +565,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      „Desktop“ ausprobieren: gebaut (Knopf-Spalte, Fassungen-Liste, final, eigene Fassung, Rückmeldung). Final und
      eigene Fassungen speichert die Web-App vorerst selbst in shared/webapp/data/ (nicht in Lias Instanz, Agenten
      sehen sie nicht: Bedarf b und d bleiben); Rückmeldung nur im Testbetrieb, echt erst mit Jans Okay.
-     Nächster Schritt: Jan probiert die Material-Ansicht im Tunnel; sonst Bauschritt 2 des neuen Aufbaus (Orts-Ansichten
-     Fach/Klasse, Material mit Marke; Konten sind dort Bauschritt 5). Stunden erst mit Bedarf a) unten.
+     Abgleich Board gegen App 30.10. (Jans Wunsch, „es fehlen noch Funktionen aus dem Board“), Jan wählte Block A,
+     dann B, gebaut und committet: Reihe zeigt Material mit Stand (Final, Läuft, Fassung n), Klasse/Kurs als
+     Ansicht, Stunden bzw. Proben (speichert die Web-App selbst in data/, Agenten sehen sie nur als Zeile
+     „Stunde n: Thema“ im Auftragstext), Material einer Stunde zuordnen, „+ Neu hier“ mit Galerie (Arbeitsblatt,
+     Präsentation, Tabelle) und Ort vorbelegt, Vorlagen und Ich (nur lesend), Varianten (einfach, Türkisch,
+     mit Hilfekarten) als eigene Aufträge an unterricht mit der Datei des Originals als Anhang. Neues mit Wirkung
+     (Neu, Variante, Rückmeldung) weiter nur im Testbetrieb; die Test-Instanz hat keine Ergebnisse und keinen
+     Agenten. Offen bei Jan: Rückmeldung je Datei (Vorschlag liegt vor), echter Betrieb auf lia/instanz vor den
+     Konten. Fehlt weiter: Chat (Bedarf c), + Reihe, Archiv, Kurs 11 (keine Datei), Entwurf-Knöpfe, Nochmal.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
-        Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext.
+        Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit
+        30.10.: Die Web-App speichert Stunden selbst (shared/webapp/zustand.py) und schreibt sie in den Text.
      b) alle Material-Agenten: Nachbesserung auf Grundlage einer von Lia hochgeladenen Fassung (Word mit
         Kommentaren) als Fassung desselben Auftrags (bezug), nicht als neuer Auftrag.
      c) Chat-Agent für Lia (eigener Ordner lia/chat/ oder Teil von unterricht): kurze Antworten über
@@ -577,6 +585,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         kleines Modell für schnelle Fragen, kein Starten von Aufträgen, keine Schülernamen, Verlauf befristet.
      d) agentkit: Zustand „final“ einer Fassung und „eigene Fassung“ (oder die Web-App speichert es selbst nach
         den Konten), Entscheidung im Hauptordner-Chat.
+     e) lia/unterricht (später, nach Jans Okay): Varianten in einem Lauf bauen (einfach/Türkisch/Hilfekarten aus
+        derselben Beschreibung), statt je Variante ein eigener Lauf mit der fertigen Datei als Anhang (heute in
+        der Web-App, kostet je Variante einen ganzen Material-Lauf). Ein echter Lauf mit Anhang fehlt noch.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
 

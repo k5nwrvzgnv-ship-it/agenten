@@ -11,19 +11,48 @@ Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
 Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen Aufbaus „Desktop zuerst“
 (Jans Okay 30.10.), Seitengalerie statt aller Seitenbilder und Material-Ansicht wie Board „Desktop“ (Jans Wunsch 30.10.),
-`./pruefen.sh` grün (Web-App: 89 Tests).
+Block A und B aus dem Abgleich mit dem Board (Jans Wahl 30.10.: „Block A, dann B“, Abschnitt „Abgleich Board“ unten),
+`./pruefen.sh` grün (Web-App: 101 Tests).
 - Rahmen (Plan `../../docs/webapp-aufbau.md` 4.1, Board „Desktop“): drei Spalten Baum (260 px) | Inhalt mit
   Brotkrumen (bis 840 px) | „Fragen“ (320 px, nur Platzhalter „Kommt bald“, kein Chat, kein Claude-Aufruf). Alle
   Seiten (auch 404) über `vorlagen/basis.html`. Im HTML steht der Inhalt vorn. Unter 1100 px rutscht „Fragen“
   unter den Inhalt, unter 640 px alles untereinander: Inhalt, Baum, Fragen (einfacher als der Drilldown aus 4.2,
   die Brotkrumen führen zu „Heute“ zurück).
-- Baum (`logik.baum`): oben „Heute“ mit der Zahl, was wartet, dann je Fach (Überschrift) die Klassen/Kurse (ohne
-  Link, Ansicht kommt in Bauschritt 2) und deren Reihen (Link `/reihe/<kennung>`, abgeschlossene mit Zusatz).
-  Die gezeigte Seite ist markiert. Stunden gibt es in keiner Datei: nicht angezeigt.
-- Brotkrumen (`logik.krumen`): Heute; Reihe: Fach › Klasse; Seite in einer Reihe (Ergebnis, Entwurf mit Reihe):
-  Fach › Klasse › Reihe (Link) › Titel (gekürzt auf 60 Zeichen); sonst Heute › Titel.
-- Reihe `/reihe/<kennung>` (`logik.reihe_ansicht`, nur lesend): Fach · Klasse, Reihenfrage, „Schon behandelt“,
-  „Zur ganzen Reihe“ mit offenen Entwürfen und Aufträgen (Marke Offen, Läuft, Hat nicht geklappt). Unbekannt: 404.
+- Baum (`logik.baum`): oben „Heute“ mit der Zahl, was wartet, dann je Fach (Überschrift) die Klassen/Kurse (Link
+  `/klasse/<kennung>`) und deren Reihen (Link `/reihe/<kennung>`, abgeschlossene mit Zusatz), unten „Mehr“ mit
+  Vorlagen und Ich. Die gezeigte Seite ist markiert. Stunden stehen nicht im Baum, nur in der Reihe.
+- Brotkrumen (`logik.krumen`): Heute; Reihe: Fach › Klasse (Link); Seite in einer Reihe (Ergebnis, Entwurf mit
+  Reihe): Fach › Klasse › Reihe (Link) › [Stunde n bzw. Original] › Titel (gekürzt auf 60 Zeichen); sonst Heute ›
+  Titel. Rechts daneben „+ Neu hier“ an Reihe, Stunde und Material (nur laufende Reihen, nur wenn Neu eingeschaltet).
+- Reihe `/reihe/<kennung>` (`logik.reihe_ansicht`): Fach · Klasse, Reihenfrage, „Schon behandelt“, 01 „Zur ganzen
+  Reihe“ (Entwürfe Offen; Material mit Stand `logik.material_marke`: Läuft, Final, Hat nicht geklappt, sonst
+  „Fassung n“, in den ersten 48 h „· neu“), 02 Stunden (beim Theater-Agenten „Proben“) mit Nummer, Thema und
+  Material, leer mit Hinweis, Formular „+ Stunde“. Varianten stehen nicht einzeln da. Unbekannt: 404.
+- Klasse/Kurs `/klasse/<kennung>` (`logik.klasse_ansicht`, nur lesend): Reihen (laufende zuerst) mit Reihenfrage
+  bzw. „Reihenfrage noch offen“, Zahl der Sachen, Marke Abgeschlossen; „Zur ganzen Klasse“ leer mit Hinweis
+  (Material der Klasse steht in keiner Datei).
+- Stunden (`/reihe/<kennung>/stunde/<n>`, Jan 30.10. Block A3): speichert die Web-App selbst (`zustand.py`:
+  `stunden`, `stunde_von`), Nummer = Platz in der Liste, Thema bis 120 Zeichen, ändern ja, löschen und
+  umsortieren nein. Ansicht mit Material der Stunde und „Thema ändern“. In der Material-Ansicht „Gehört zu“
+  (ganze Reihe oder Stunde n). Ein Auftrag aus einer Stunde nennt sie im Text („Stunde 3: Thema“); die Agenten
+  kennen keine Stunden (Bedarf a in Punkt 24).
+- Neu (`/neu`, Block A4): ohne `?art=` die Galerie (Arbeitsblatt, Präsentation, Tabelle: was unterricht baut),
+  mit Art ein kurzes Formular (eigene Frage und Platzhalter je Art), Ort aus `?reihe=…&stunde=n` vorbelegt und
+  oben genannt („für Ethik › Klasse 8 › Straftheorien › Stunde 1“), sonst Auswahl der Reihe. Text an den Agenten:
+  „Arbeitsblatt: …“ + Reihe + Stunde. Danach zurück an den Ort mit Hinweis. Bei Fehlern ohne Art das Freitext-
+  Formular wie bisher. Weiter nur `WEBAPP_NEUER_AUFTRAG=test|echt`.
+- Vorlagen (`/vorlagen`) und Ich (`/ich`), Block A5, nur lesend: Gestaltung aus `<agenten>/unterricht/profil.toml`
+  (Schrift, Größe, farbige Kästen, Folienschrift), Arten der Galerie, Muster und eigene Formatvorlage als leere
+  Zustände. Ich: Regeln aus `<instanz>/regeln.md` („Für alles“) und den „Gelernten Regeln“ der STATUS.md von
+  unterricht, theater, examen, recherche („Für Material“ usw.), ohne Feedback-IDs, Datum und Anlass darunter.
+- Varianten (Block B, Regel R2): Leiste „Varianten: normal · einfach · Türkisch“ in der Material-Ansicht,
+  „+ Variante“ (einfach, Türkisch, mit Hilfekarten, dazu freier Text) legt einen eigenen Auftrag an unterricht
+  an: Text „Variante „Türkisch“ von „Titel“: …“, Anhang = Kopie der finalen Fassung (auch Lias eigene) bzw.
+  der Datei oben (nur docx/pptx, nur Material von unterricht). Die Web-App merkt sich die Zuordnung
+  (`zustand.py`: `varianten`); die Variante hat eine eigene Ansicht mit Brotkrume „Original“, keine Variante
+  einer Variante. „Auch als“ im Formular Arbeitsblatt merkt sich den Wunsch (`varianten_wunsch`); am fertigen
+  Blatt steht dann „Türkisch anfordern“. Nur test/echt. Kostet je Variante einen ganzen Material-Lauf
+  (Bedarf e in Punkt 24). Noch nie echt gelaufen.
 - „Heute“ in der Mitte, Inhalt wie bisher, jede Zeile mit Reihe nennt ihren Ort („Ethik › Klasse 8 ›
   Straftheorien“). Chips, `?ordnung=`, Seite `/unterricht` und „Unterricht →“ sind weg; `/unterricht` leitet mit
   301 auf `/` um. Aufträge ohne Reihe stehen nur in „Heute“.
@@ -54,7 +83,7 @@ Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen A
   „Das Wichtigste“ und „Fassungen“ (neueste oben: Name, „vom Assistenten/von dir, Zeit“, Kurztext, Marke Final,
   ältere zum Aufklappen, kleiner Knopf „Als final markieren“ an jeder Fassung mit Dateien und an eigenen).
   Ohne JavaScript: Rückmeldung und eigene Fassung öffnen sich über `?offen=rueckmeldung|eigene`, nach einer
-  Aktion 303 auf `?erledigt=…` mit Hinweis oben. Varianten fehlen (kein Agent liefert welche).
+  Aktion 303 auf `?erledigt=…` mit Hinweis oben. Varianten siehe oben.
   - Als final markieren (`POST …/final`, nur Fassungen aus `logik.final_erlaubt`, je Auftrag höchstens eine) und
     Eigene Fassung hochladen (`POST …/eigene`, Word/PowerPoint/Excel/PDF bis 20 MB, Download `…/eigene/<n>`)
     speichert die Web-App selbst (`zustand.py`: `data/zustand/<schlüssel>.json`, Dateien `data/eigene/`, je
@@ -125,11 +154,21 @@ Lias Test 30.10. (Jan): gefällt, Ebene Stunde gewünscht. Geklärt (Jan 30.10.)
 Stück gehört zu Kurs 12, Kurs 11 mit Kompositionsmethoden (laut Plan 4 ein echter Ort)
 steht in keiner Datei und fehlt daher im Baum, Notentabelle gehört zu Ethik 8,
 Lia nutzt Word, Pages/Keynote und eine Schulplattform: Ausgabe bleibt docx/pptx und PDF.
-- Bauschritt 1 gebaut (siehe Stand). Nächste: 2 Orts-Ansichten Fach/Klasse, Material mit Marke statt
-  Ergebnisliste; 3 Stunden (braucht Datei, Bedarf lia/unterricht); 4 Vorlagengalerie; 5 mit Konten final,
-  eigene Fassung, Rückmeldung; 6 Chat-Spalte (braucht Chat-Agent).
-- Laut Plan 5 entfällt die Reihen-Auswahl im Formular; sie bleibt, bis „+ Neu hier“ den Ort vorbelegt
-  (Bauschritt 4). Die Art „Theater“ (Agent theater) heißt in den Zeilen noch so; im Board „Spielfassung“.
+- Bauschritte 1 bis 4 gebaut (Stunden ohne Datei der Agenten, in data/), dazu final, eigene Fassung,
+  Rückmeldung (Testbetrieb) ohne Konten. Fehlt: Fach-Ansicht, Konten (5), Chat-Spalte (6, braucht Chat-Agent).
+- Die Reihen-Auswahl im Formular bleibt nur für „Neu“ ohne Ort (aus „Heute“). Die Art „Theater“ (Agent theater)
+  heißt in den Zeilen noch so; im Board „Spielfassung“.
+
+## Abgleich Board „Desktop“ gegen App (30.10.2026)
+Gebaut (A1 bis A5, B, siehe Stand). Nicht gebaut und warum: „+ Reihe“ (schreibt reihen.toml, Lias Instanz bzw.
+lia/unterricht, braucht Jans Okay), Archiv und Kurs 11 (stehen in keiner Datei), Fach-Material und Material aus
+Lias Ablage (Jan fragen, ob Lias Ablage in die App soll), Stunden im Baum, Datei in eine Stunde ziehen (braucht
+JavaScript), Entwurf-Knöpfe und „Nochmal“ (Freigabe bzw. neuer Auftrag, später), Fragen/Chat (kein Agent),
+eigene Formatvorlage (Renderer kann .dotx/.potx, unterricht nutzt sie nicht), Muster. Reihenentwurf, LEK,
+Spielfassung und Szenenaufgabe fehlen in der Galerie, bis ein Agent sie baut.
+Vorschlag an Jan, noch nicht entschieden: Rückmeldung je Datei statt je Ergebnis (Knopf an jeder Datei-Karte und
+im Seiten-Betrachter, Text beginnt „Zur Datei …, Seite n:“, bezug = Fassung der Datei). Der Feedback-Dienst
+braucht dafür nichts (er gibt nur den Text weiter; Nachbesserungen setzen auf der Fassung im bezug auf).
 
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
@@ -175,12 +214,14 @@ Nach Strg+C bzw. kill bleibt die leere Socket-Datei liegen; der nächste Start l
    Jans Okay (Bauplan Schritt 7). Bis dahin nur von Hand starten.
 2. Bauschritt 2: Konten (SQLite), Einladungslink, Passkey auf localhost, Sitzung, Mandant aus der Sitzung.
 3. „Neu“ ist bisher nur „in den letzten 48 h fertig“. Mit Konten: gesehen/ungelesen je Ergebnis.
-4. Material-Ansicht: Lias eigene Fassungen und Dateien aus Rückmeldungen liegen nur in der Web-App; die nächste
+4. Material-Ansicht: Lias eigene Fassungen, Stunden und Varianten-Zuordnung liegen nur in der Web-App; die nächste
    Runde des Agenten setzt nicht darauf auf (Bedarf b). Final liegt nur in der Web-App (Bedarf d bzw. Konten).
    Rückmeldung auf lia/instanz erst mit `echt` und Jans Okay (Lauf auf Lias Kontingent, Antwort auch per
    Telegram). Die Test-Instanz hat keine Ergebnisse: Zum Ausprobieren der Rückmeldung müsste dort eines liegen
    (z. B. Kopie eines echten Ergebnisses). Noch offen: Nochmal bei Fehlschlag, Auftrag zurückziehen (agentkit),
-   Entwurf Setze ich selbst ein/Ändern/Ablehnen (Freigabe), Varianten, Anmerkungen an einer Stelle (Renderer).
+   Entwurf Setze ich selbst ein/Ändern/Ablehnen (Freigabe), Anmerkungen an einer Stelle (Renderer).
+   Neu, Variante und Rückmeldung lassen sich nur in der Test-Instanz ausprobieren, dort gibt es weder Ergebnisse
+   noch einen Agenten. Echt auf lia/instanz vor den Konten: Jan entscheidet (Lias Kontingent).
    Telegram-Feedback-Knöpfe nicht übernehmen (Jan 30.10.: „die im tg sind quatsch“).
 7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
    Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.
