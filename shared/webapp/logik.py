@@ -44,14 +44,28 @@ _RUNDE = re.compile(r":?\s*Runde\s+runde-\d{8}-\d{6}")
 _ID = re.compile(r"\b(?:runde-)?\d{8}-\d{6}(?:-[a-z]+-[0-9a-f]{6})?\b")
 
 
+# Interne Dateinamen in Texten der Agenten (Chrome-Test Nr. 3): „(rlp_auszug.toml, strafe_problemfragen)“,
+# „in examen.toml unter [impuls]“, „(siehe Lerngruppe in reihen.toml)“. Lia sieht sie nicht: eine Klammer mit
+# Dateinamen fällt ganz weg, sonst der Dateiname samt „in …“ und Abschnitt. Ihre eigenen Dateien (docx, pdf …)
+# bleiben stehen.
+_DATEI = r"[\w./-]+\.(?:toml|json|md|py|txt)\b(?:[ \t]*\[[^\]\n]*\])?"
+_DATEI_KLAMMER = re.compile(r"[ \t]*\([^()\n]*?" + _DATEI + r"[^()\n]*\)")
+_DATEI_WORT = re.compile(r"(?:[ \t]+(?:in|aus|unter|nach|laut|siehe)(?:[ \t]+(?:der|dem|den))?)?[ \t]*" + _DATEI
+                         + r"(?:[ \t]+unter[ \t]+\[[^\]\n]*\])?")
+
+
+def ohne_dateinamen(text: str) -> str:
+    return _DATEI_WORT.sub("", _DATEI_KLAMMER.sub("", text))
+
+
 def ohne_ids(text: str) -> str:
-    text = _ID.sub("", _RUNDE.sub("", _AUFTRAG_KLAMMER.sub("", text)))
+    text = _ID.sub("", _RUNDE.sub("", _AUFTRAG_KLAMMER.sub("", ohne_dateinamen(text))))
     return " ".join(text.split()).strip(" :,-")
 
 
 def ohne_ids_lang(text: str) -> str:
     """Wie ohne_ids, aber Zeilen und Einrückung bleiben (für ganze Entwürfe)."""
-    return _ID.sub("", _RUNDE.sub("", _AUFTRAG_KLAMMER.sub("", text)))
+    return _ID.sub("", _RUNDE.sub("", _AUFTRAG_KLAMMER.sub("", ohne_dateinamen(text))))
 
 
 def kurz(text: str, laenge: int) -> str:

@@ -74,6 +74,21 @@ class TestTexte(unittest.TestCase):
         self.assertEqual(logik.titel(auftrag("A", text=""), {}), "Material")
 
 
+class TestDateinamen(unittest.TestCase):
+    """Interne Dateinamen verschwinden aus Lias Texten (Chrome-Test Nr. 3), ihre eigenen Dateien bleiben."""
+
+    def test_entwurf_und_regeln(self):
+        self.assertEqual(logik.ohne_ids_lang("rechtfertigen?“ (rlp_auszug.toml, strafe_problemfragen).\n- Frage 2"),
+                         "rechtfertigen?“.\n- Frage 2")
+        self.assertEqual(logik.ohne_ids_lang("Ergebnis in examen.toml unter [impuls]."), "Ergebnis.")
+        self.assertEqual(logik.ohne_ids("treffen (siehe Lerngruppe in reihen.toml). Themen"), "treffen. Themen")
+        self.assertEqual(logik.ohne_ids("S. 123 (theater.toml [buch], buch.py), 172.000"), "S. 123, 172.000")
+
+    def test_eigene_dateien_bleiben(self):
+        for t in ("Datei AB4_einfach.pdf und 3 Spielfassung_feedback.docx", "lia.meldro.de", "z. B. 2.5 Stunden"):
+            self.assertEqual(logik.ohne_ids(t), t)
+
+
 class TestGrund(unittest.TestCase):
     """Grenzsatz der Agenten in Lias Worten, Wartezeit nur, solange sie noch läuft (Chrome-Test Nr. 1)."""
     SATZ = "Gerade ist das gemeinsame Kontingent aufgebraucht. Bitte schick den Wunsch ab {} noch einmal."
