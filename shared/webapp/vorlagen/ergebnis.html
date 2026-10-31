@@ -6,6 +6,7 @@
 <header class="material-kopf">
   {%- if e.art_zeile %}<span class="material-art">{{ e.art_zeile }}</span>{% endif %}
   <h1 class="titel-gross">{{ e.titel }}</h1>
+  {%- if e.wunsch %}<p class="absatz unter">Dein Wunsch: „{{ e.wunsch }}“</p>{% endif %}
   {%- if e.marke %}<span class="material-marke{% if e.marke == 'Final' %} marke-final{% endif %}">{{ e.marke }}</span>{% endif %}
 </header>
 {% endblock %}

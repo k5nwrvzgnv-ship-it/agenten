@@ -104,8 +104,28 @@ def titel(auftrag: dict, nach_id: dict[str, dict], laenge: int = 80) -> str:
     text = (auftrag.get("text") or "").strip()
     if auftrag.get("bezug") and text.startswith("Nachbesserung"):
         return "Antwort auf deine Rückmeldung" + bezug_titel
-    erste = ohne_ids(text.split("\n", 1)[0])
+    name = _dateititel(auftrag)
+    if name:
+        return kurz(name, laenge)
+    erste = wunsch(auftrag)
     return kurz(erste[:1].upper() + erste[1:], laenge) if erste else art(auftrag)
+
+
+def wunsch(auftrag: dict) -> str:
+    """Lias Wunsch: erste Zeile des Auftragstexts ohne IDs."""
+    return ohne_ids((auftrag.get("text") or "").strip().split("\n", 1)[0])
+
+
+def _dateititel(auftrag: dict) -> str:
+    """Bei Lias Material-Wünschen ist der Wunschtext oft kein Name („Bitte übernehme die Änderungswünsche …“,
+    Chrome-Test Nr. 6). Der Material-Agent benennt seine Datei nach Art und Thema („Arbeitsblatt Spielfassung
+    Entwurf 3 Der nackte Wahnsinn“): Sie gibt dann den Titel, der Wunsch steht in der Ansicht darunter. Ein Name
+    aus nur einem Wort bleibt ungenutzt."""
+    dateien_ = auftrag.get("ergebnis_dateien") or []
+    if auftrag.get("quelle") != NEU_QUELLE or auftrag.get("status") != "erledigt" or not dateien_:
+        return ""
+    name = " ".join(Path(dateien_[0]).stem.replace("_", " ").split())
+    return name if len(name.split()) > 1 else ""  # nur „Arbeitsblatt“ sagt weniger als der Wunsch
 
 
 def dateien_text(pfade: list[str]) -> str:
@@ -528,6 +548,7 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
         "aktuell_ref": oben if final_erlaubt(oben, schritte) else "",
         "aktuell_final": bool(final) and final["ref"] == oben,
         "titel": titel(k, nach_id, TITEL_LANG),
+        "wunsch": kurz(wunsch(k), TITEL_LANG) if _dateititel(k) else "",
         "unter": " · ".join(x for x in (art(k), zeit_text(juengste.get("abgeschlossen"), jetzt)) if x),
         "fehlgeschlagen": fehlgeschlagen,
         "grund": grund(juengste, jetzt) if fehlgeschlagen else "",

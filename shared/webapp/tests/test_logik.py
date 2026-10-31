@@ -89,6 +89,24 @@ class TestDateinamen(unittest.TestCase):
             self.assertEqual(logik.ohne_ids(t), t)
 
 
+class TestTitelAusDatei(unittest.TestCase):
+    """Lias Wunschtext ist oft kein Name; der Dateiname des Material-Agenten schon (Chrome-Test Nr. 6)."""
+    A = {"id": "20261030-140944-unterricht-93e29e", "agent": "unterricht", "quelle": "portal-material",
+         "status": "erledigt", "text": "Bitte übernehme die Änderungswünsche und schreibe eine neue Fassung damit\n\nx",
+         "ergebnis_dateien": ["data/arbeit/x/Arbeitsblatt Spielfassung Entwurf 2 Der nackte Wahnsinn.docx"]}
+
+    def test_titel_und_wunsch(self):
+        self.assertEqual(logik.titel(self.A, {}), "Arbeitsblatt Spielfassung Entwurf 2 Der nackte Wahnsinn")
+        e = logik.ergebnis([self.A], {}, datetime(2026, 10, 30, 18, tzinfo=ZoneInfo("Europe/Berlin")))
+        self.assertEqual(e["wunsch"], "Bitte übernehme die Änderungswünsche und schreibe eine neue Fassung damit")
+
+    def test_sonst_der_wunsch(self):
+        for anders in ({"ergebnis_dateien": ["data/arbeit/x/Arbeitsblatt.docx"]}, {"ergebnis_dateien": []},
+                       {"quelle": "fallsuche"}, {"status": "fehlgeschlagen"}):
+            with self.subTest(anders=anders):
+                self.assertTrue(logik.titel({**self.A, **anders}, {}).startswith("Bitte übernehme"))
+
+
 class TestGrund(unittest.TestCase):
     """Grenzsatz der Agenten in Lias Worten, Wartezeit nur, solange sie noch läuft (Chrome-Test Nr. 1)."""
     SATZ = "Gerade ist das gemeinsame Kontingent aufgebraucht. Bitte schick den Wunsch ab {} noch einmal."
