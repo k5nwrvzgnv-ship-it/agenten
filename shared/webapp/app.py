@@ -569,7 +569,8 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
         "ort_fest": bool(ort_reihe), "stunde": ort_stunde[0] if ort_stunde else "",
         "beachte": logik.ort_text(ort_reihe, ort_stunde),
         "text_max": logik.NEU_TEXT_MAX, "max_mb": logik.NEU_DATEI_MAX_MB, "endungen": ",".join(logik.NEU_ENDUNGEN),
-        **rahmen(reihen, logik.krumen("Neu", ort_reihe) if ort_reihe else logik.krumen("Neu")),
+        **rahmen(reihen, logik.krumen("Neu", ort_reihe) if ort_reihe else logik.krumen("Neu"),
+                 ort_reihe["id"] if ort_reihe else ""),
     }, status_code=status)
 
 

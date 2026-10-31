@@ -151,9 +151,10 @@
     <a class="knopf-spalte" href="/ergebnis/{{ e.dateien[0].auftrag }}/datei/{{ e.dateien[0].nr }}{{ k.pfad }}" download>{{ k.lang }}</a>
     {%- endfor %}
     {%- endif %}
-    {%- if e.aktuell_ref %}{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf-spalte") }}{% endif %}
     <a class="knopf-spalte{% if offen == 'rueckmeldung' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Rückmeldung geben</a>
     <a class="knopf-spalte{% if offen == 'eigene' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=eigene#eigene">Eigene Fassung hochladen</a>
+    {#- „Final“ abgesetzt am Ende (Chrome-Test Nr. 11); rückgängig machbar, darum ohne Rückfrage #}
+    {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf-spalte") }}</div>{% endif %}
   </div>
 </div>
 {%- if einzeln %}<span class="unter">{{ e.dateien[0].name }} · {{ e.dateien[0].seiten_text }}{% if e.dateien_aus %} · aus {{ e.dateien_aus }}{% endif %}. Tipp auf eine Seite, um sie durchzublättern.</span>

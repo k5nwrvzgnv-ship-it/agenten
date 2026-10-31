@@ -196,7 +196,7 @@ class TestHeute(unittest.TestCase):
         self.assertEqual(h["wartet_text"], "Sachen warten auf dich.")
         e, n = h["wartet"]
         self.assertEqual((e["titel"], e["unter"], e["marke"], e["hinweis"]),
-                         ("Umfrage vor der Reihe", "Entwurf · So 25.10.", "Offen", "Setzt du selbst ein"))
+                         ("Umfrage vor der Reihe", "Entwurf · So 25.10.", "Offen", "Du entscheidest, ob du ihn einsetzt"))
         self.assertEqual((n["titel"], n["unter"], n["marke"], n["hinweis"]),
                          ("Arbeitsblatt Strafe", "Material · heute 14:16", "Neu", "1 Word-Datei"))
         self.assertEqual([x["titel"] for x in h["laeuft"]], ["Folien Kant"])
@@ -495,7 +495,7 @@ class TestEntwurf(unittest.TestCase):
         self.assertEqual(e["inhalt"], inhalt.strip("\n"))  # keine Kürzung, Einrückung bleibt
         self.assertEqual(e["details"], [("Einsatz", "Lia selbst, auf Papier")])
         self.assertEqual((e["titel"], e["unter"], e["hinweis"]),
-                         ("Examensreihe Strafe: anonyme Umfrage", "Entwurf · So 25.10.", "Setzt du selbst ein"))
+                         ("Examensreihe Strafe: anonyme Umfrage", "Entwurf · So 25.10.", "Du entscheidest, ob du ihn einsetzt"))
         self.assertNotIn("examen", repr(e))
 
     def test_anderer_typ(self):
@@ -678,7 +678,8 @@ class TestReihen(unittest.TestCase):
         b = logik.baum(r, 0, "ethik-8-straftheorien")
         self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), ("", False, True))
         self.assertEqual(logik.baum([], 1)[:1], [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0,
-                                              "zahl": 1, "aktiv": False}])
+                                              "zahl": 1, "aktiv": False, "ueber": True}])
+        self.assertFalse(logik.baum([], 1, "vorlagen")[0]["ueber"])  # Seite ohne Reihe: Heute als Ort (Nr. 10)
 
     def test_stunden(self):
         ethik, theater = reihen()

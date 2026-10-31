@@ -136,7 +136,7 @@ class TestApp(Aufbau):
         self.assertEqual(r.status, 200)
         self.assertIn("Hallo Lia.", html)
         self.assertIn("Umfrage vor der Reihe", html)
-        self.assertIn("Setzt du selbst ein", html)
+        self.assertIn("Du entscheidest, ob du ihn einsetzt", html)
         self.assertIn("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", html)  # Jinja maskiert
         self.assertIn("1 Word-Datei", html)
         for verboten in ("0c44bf", "93e29e", "unterricht", "examen"):
@@ -202,6 +202,9 @@ class TestApp(Aufbau):
             self.assertIn(f'src="{basis}/seite/{m}"', html)
         self.assertEqual(html.count(f'<a class="dateiname" href="{basis}/ansehen">Arbeitsblatt</a>'), 1)
         self.assertLess(html.index("vom Assistenten, heute 14:40"), html.index("vom Assistenten, heute 14:16"))
+        # „Als final markieren“ abgesetzt nach den anderen Knöpfen (Chrome-Test Nr. 11)
+        self.assertLess(html.index("Eigene Fassung hochladen<"), html.index('<div class="knopf-abgesetzt">'))
+        self.assertLess(html.index('<div class="knopf-abgesetzt">'), html.index("Als final markieren"))
         self.assertNotIn("<script", html)
         self.assertNotIn('id="rueck-text"', html)  # Rückmeldung erst nach Klick
         for verboten in ("93e29e", "unterricht", "data/arbeit", "Wie ist es", "Anmerk"):
@@ -286,7 +289,9 @@ class TestApp(Aufbau):
         self.assertEqual(r.status, 200)
         self.assertIn("Kurze Umfrage\n\n1. Frage\n   [ ] ja   [ ] nein\n" + "Ende " * 99, html)  # ganz
         self.assertIn("<dt>Einsatz</dt><dd>Lia selbst, auf Papier</dd>", html)
-        self.assertIn("Setzt du selbst ein", html)
+        self.assertIn("Du entscheidest, ob du ihn einsetzt.", html)
+        self.assertNotIn("Setzt du selbst ein", html)  # nicht doppelt mit dem Knopf (Chrome-Test Nr. 12)
+        self.assertIn('href="/" aria-current="location"', html)  # Entwurf ohne Reihe: Heute als Ort
         for verboten in ("impuls.md", "0c44bf", "examen"):
             self.assertNotIn(verboten, self.sichtbar(html))
         self.assertIn("Setze ich selbst ein</button>", html)

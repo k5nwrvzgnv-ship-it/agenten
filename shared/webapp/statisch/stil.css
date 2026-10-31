@@ -423,6 +423,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   cursor: pointer;
 }
 .knopf-spalte:hover, .knopf-spalte:focus-visible { border-color: var(--akzent); color: var(--akzent); }
+.knopf-abgesetzt { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--schwarz); }
 .knopf-spalte.ist-final, .knopf-spalte.ist-offen { background: var(--schwarz); color: var(--weiss); }
 .knopf-spalte.ist-final:hover, .knopf-spalte.ist-offen:hover { background: var(--akzent); border-color: var(--akzent); color: var(--weiss); }
 .knopf-klein { min-height: 32px; padding: 0 10px; font-size: 13px; align-self: flex-start; cursor: pointer; font-family: inherit; }
@@ -527,3 +528,6 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .fragen-form textarea { font: inherit; padding: 8px; border: 2px solid var(--schwarz); border-radius: 0; }
 .fragen-ort { margin: 0; font-weight: 700; }
 .zeile-aktion { display: flex; justify-content: flex-end; padding: 0 0 10px; border-top: 0; }
+
+/* Tastatur: sichtbarer Fokus überall (Chrome-Test Nr. 12) */
+:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }

@@ -153,7 +153,7 @@ def _zeile(titel_: str, art_: str, zeit: str, marke: str = "", hinweis: str = ""
 
 
 def entwurf_hinweis(entwurf: dict) -> str:
-    return "Setzt du selbst ein" if entwurf.get("typ") == "entwurf" else "Wartet auf deine Entscheidung"
+    return "Du entscheidest, ob du ihn einsetzt" if entwurf.get("typ") == "entwurf" else "Wartet auf deine Entscheidung"
 
 
 def entwurf_titel(entwurf: dict) -> str:
@@ -1128,10 +1128,11 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[
     """Linke Spalte: oben "Heute" mit der Zahl, was wartet, dann je Fach die Klassen/Kurse und ihre Reihen, unten
     „Mehr“ mit Vorlagen und Ich. Die gezeigte Reihe klappt ihre Stunden aus (stunden: je Reihen-Kennung, aus
     zustand.py; aktiv_stunde: die gezeigte Stunde). Fach-Überschriften verlinken auf die Fach-Ansicht.
-    aktiv: "heute", "vorlagen", "ich", fach_aktiv(…), die Kennung der gezeigten Reihe oder klasse_aktiv(…). art: "eintrag" (Link), "fach"
+    aktiv: "heute", "vorlagen", "ich", fach_aktiv(…), die Kennung der gezeigten Reihe oder klasse_aktiv(…); "" (Seite
+    ohne Reihe, z. B. Material ohne Ort oder Neu): "Heute" als Ort markiert (ueber). art: "eintrag" (Link), "fach"
     (Überschrift) oder "gruppe" (Klasse/Kurs, Link zur Klassen-Ansicht)."""
     eintraege = [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0, "zahl": anzahl_wartet or "",
-                  "aktiv": aktiv == "heute"}]
+                  "aktiv": aktiv == "heute", "ueber": aktiv == ""}]
     faecher: dict[str, dict[str, list[dict]]] = {}
     for r in reihen:
         faecher.setdefault(r["fach"], {}).setdefault(r["gruppe"], []).append(r)
