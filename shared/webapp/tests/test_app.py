@@ -475,6 +475,8 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.status, 200)
         self.assertIn("Noch nichts zur ganzen Reihe.", html)
         self.assertIn("+ Probe", html)  # Reihe des Theater-Agenten: Proben statt Stunden
+        self.assertIn("Reihenfrage noch offen", html)  # Chrome-Test Nr. 5
+        self.assertNotIn("Reihenfrage noch offen", self.hole("/reihe/strafe")[1])
         _, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")  # Ort als Brotkrume mit Link zur Reihe
         self.assertIn('<a href="/reihe/strafe">Straftheorien</a>', html)
 

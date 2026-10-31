@@ -556,6 +556,9 @@ class TestReihen(unittest.TestCase):
         self.assertEqual((ethik["id"], ethik["gruppe"], ethik["gruppe_id"], ethik["laufend"]),
                          ("ethik-8-straftheorien", "Klasse 8", "ethik-8", True))
         self.assertEqual((theater["gruppe"], theater["fach_id"]), ("Kurs 12", "darstellendes-spiel"))
+        # ohne titel nicht noch einmal der Kursname (Chrome-Test Nr. 9)
+        (ohne,), _ = logik.reihen_aus([{"fach": "Darstellendes Spiel", "klasse": "Kurs 11"}])
+        self.assertEqual((ohne["titel"], ohne["gruppe"]), ("Noch ohne Titel", "Kurs 11"))
 
     def test_reihen_aus_fehler(self):
         faelle = [({"klasse": "8"}, "fach fehlt"), ({"fach": "Ethik"}, "klasse fehlt"),

@@ -866,6 +866,9 @@ def kennung(*teile: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text).strip("-")[:80].rstrip("-")
 
 
+OHNE_TITEL = "Noch ohne Titel"  # Reihe ohne titel in reihen.toml (nicht „Kurs 11 / Kurs 11“, Chrome-Test Nr. 9)
+
+
 def gruppe_name(klasse: str) -> str:
     """'8' -> 'Klasse 8', 'Kurs 11' bleibt."""
     return f"Klasse {klasse}" if klasse.isdigit() else klasse
@@ -909,7 +912,7 @@ def reihen_aus(eintraege: list, standard_fach: str = "") -> tuple[list[dict], li
             reihen.append({
                 "id": rid, "fach": fach, "fach_id": kennung(fach), "klasse": klasse, "gruppe": gruppe,
                 "gruppe_id": kennung(fach, klasse, schuljahr) if archiv else kennung(fach, klasse),
-                "titel": titel_ or gruppe_name(klasse), "schuljahr": schuljahr, "archiv": archiv,
+                "titel": titel_ or OHNE_TITEL, "schuljahr": schuljahr, "archiv": archiv,
                 "reihenfrage": (e.get("reihenfrage") or "").strip(), "behandelt": list(e.get("behandelt") or []),
                 "laufend": stand == "laufend", "agenten": list(e.get("agenten") or []),
                 "stunden": [{"thema": s["thema"].strip(), "marke": s.get("marke", ""), "aus_datei": True}

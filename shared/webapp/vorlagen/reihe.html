@@ -6,7 +6,7 @@
 <header class="kopf">
   <span class="datum grau">{{ e.unter }}</span>
   <h1 class="titel-gross">{{ e.titel }}</h1>
-  {%- if e.reihenfrage %}<p class="absatz">{{ e.reihenfrage }}</p>{% endif %}
+  {%- if e.reihenfrage %}<p class="absatz">{{ e.reihenfrage }}</p>{% else %}<p class="absatz unter">Reihenfrage noch offen</p>{% endif %}
 </header>
 {% endblock %}
 {% block inhalt %}
