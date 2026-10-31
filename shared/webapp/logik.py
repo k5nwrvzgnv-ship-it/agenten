@@ -260,7 +260,7 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
                        "zurueck_id": laufend_["id"]})  # nur im Formular „Zurückziehen“, nie sichtbar
     rest = [mit_reihe(ketten_zeile(k, jetzt, "Final" if kopf(k)["id"] in finale else ""), kopf(k))
             for k in ergebnisse if k not in neu]
-    fehlgeschlagen = [mit_reihe({**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1]), 300)},
+    fehlgeschlagen = [mit_reihe({**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1], jetzt), 300)},
                                 kopf(k))
                       for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"
                       and kopf(k)["id"] not in ersetzt]
@@ -279,9 +279,60 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
     }
 
 
-def grund(auftrag: dict) -> str:
-    """Warum ein Auftrag nicht geklappt hat, aus Sicht des Agenten; ohne Angabe der Standardsatz."""
-    return ohne_ids(auftrag.get("ergebnis") or "") or FEHLGESCHLAGEN
+# Grenzsatz der Agenten (lia/unterricht LIMIT): "Gerade ist das gemeinsame Kontingent aufgebraucht. Bitte schick
+# den Wunsch ab 23.10. 00:00 noch einmal." Lia liest stattdessen "Rechenzeit" (agentkit.sprache, Glossar), und
+# eine Zeit, die schon vorbei ist, steht nicht mehr als Bitte da.
+_GRENZE = re.compile(r"Gerade ist das gemeinsame Kontingent aufgebraucht\.(?:\s*Bitte schick den Wunsch ab "
+                     r"(?P<zeit>.+?) noch einmal\.)?")
+
+
+def _frei_ab(zeit: str, abgeschlossen: str | None) -> datetime | None:
+    """"23.10. 00:00" oder "14:00" als Zeitpunkt nach dem Fehlschlag; unlesbar: None."""
+    if not abgeschlossen:
+        return None
+    try:
+        damals = datetime.fromisoformat(abgeschlossen)
+    except ValueError:
+        return None
+    for muster in ("%d.%m. %H:%M", "%H:%M"):
+        try:
+            t = datetime.strptime(zeit.strip(), muster)
+        except ValueError:
+            continue
+        if muster == "%H:%M":
+            frei = damals.replace(hour=t.hour, minute=t.minute, second=0, microsecond=0)
+            return frei if frei >= damals else frei + timedelta(days=1)
+        frei = damals.replace(month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=0, microsecond=0)
+        return frei if frei >= damals else frei.replace(year=frei.year + 1)
+    return None
+
+
+def _grenze_text(treffer: re.Match, abgeschlossen: str | None, jetzt: datetime | None) -> str:
+    zeit = treffer.group("zeit")
+    if not zeit:
+        return "Die Rechenzeit war aufgebraucht."
+    frei = _frei_ab(zeit, abgeschlossen)
+    if frei is not None and jetzt is not None and jetzt >= frei:
+        return "Die Rechenzeit war aufgebraucht. Jetzt geht es wieder."
+    return f"Die Rechenzeit ist gerade aufgebraucht. Ab {zeit.strip()} geht es wieder."
+
+
+def grund(auftrag: dict, jetzt: datetime | None = None) -> str:
+    """Warum ein Auftrag nicht geklappt hat, aus Sicht des Agenten; ohne Angabe der Standardsatz.
+    Der Grenzsatz der Agenten wird zu „Rechenzeit“; mit jetzt fällt eine abgelaufene Wartezeit weg."""
+    text = ohne_ids(auftrag.get("ergebnis") or "") or FEHLGESCHLAGEN
+    return _GRENZE.sub(lambda m: _grenze_text(m, auftrag.get("abgeschlossen"), jetzt), text)
+
+
+def nochmal_weg(kette: list[dict]) -> str:
+    """Hinweis, wenn „Nochmal“ nicht geht, weil der letzte Versuch Dateien hatte (die liegen nicht mehr hier)."""
+    f = fassungen(kette)
+    letzte = f[-1] if f else {}
+    if letzte.get("status") != "fehlgeschlagen" or any(a.get("status") == "neu" for a in kette):
+        return ""
+    if letzte.get("dateien"):
+        return "Die Datei von damals habe ich nicht mehr. Schick den Wunsch mit der Datei bitte über „Neu“ noch einmal."
+    return "Schick den Wunsch bitte über „Neu“ noch einmal."
 
 
 def zeigbar(auftrag: dict) -> bool:
@@ -418,7 +469,7 @@ def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[
             "zeit": ("seit " + zeit_text(a.get("erstellt"), jetzt) if status == "neu"
                      else zeit_text(a.get("abgeschlossen"), jetzt)),
             "notiz": ("Läuft gerade." if status == "neu"
-                      else "Hat nicht geklappt: " + grund(a) if status == "fehlgeschlagen" else ""),
+                      else "Hat nicht geklappt: " + grund(a, jetzt) if status == "fehlgeschlagen" else ""),
             **teile,
             "dateien": _dateien(a, vorschauen) if status == "erledigt" else [],
         })
@@ -465,9 +516,9 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
         "titel": titel(k, nach_id, TITEL_LANG),
         "unter": " · ".join(x for x in (art(k), zeit_text(juengste.get("abgeschlossen"), jetzt)) if x),
         "fehlgeschlagen": fehlgeschlagen,
-        "grund": grund(juengste) if fehlgeschlagen else "",
+        "grund": grund(juengste, jetzt) if fehlgeschlagen else "",
         # Die letzte Nachbesserung ist fehlgeschlagen, oben steht die Fassung davor
-        "zuletzt_fehlgeschlagen": (grund(juengste) if not fehlgeschlagen and juengste is not aktuell
+        "zuletzt_fehlgeschlagen": (grund(juengste, jetzt) if not fehlgeschlagen and juengste is not aktuell
                                    and juengste.get("status") == "fehlgeschlagen" else ""),
         "laeuft": ("Arbeitet gerade an deiner Rückmeldung (seit " + zeit_text(laufend.get("erstellt"), jetzt) + ")."
                    if laufend else ""),

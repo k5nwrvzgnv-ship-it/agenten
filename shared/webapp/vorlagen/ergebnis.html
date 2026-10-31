@@ -116,6 +116,8 @@
   <input type="hidden" name="token" value="{{ token }}">
   <button class="knopf knopf-voll" type="submit">Nochmal</button>
 </form>
+{%- elif nochmal_weg %}
+<p class="hinweis">{{ nochmal_weg }} <a href="{{ neu_link }}">Zu „Neu“</a></p>
 {%- endif %}
 {%- endmacro %}
 {%- if e.fehlgeschlagen %}

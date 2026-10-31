@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 import uvicorn
+from datetime import datetime
 
 import app
 
@@ -34,10 +35,22 @@ def schreibe(pfad: Path, daten: dict) -> None:
     pfad.write_text(json.dumps(daten, ensure_ascii=False), encoding="utf-8")
 
 
+class FesteZeit(datetime):
+    """Web-App und Ablage sehen immer den Abend des 30.10.2026, damit „heute 14:16“ nicht vom Testtag abhängt."""
+
+    @classmethod
+    def now(cls, tz=None):
+        return datetime(2026, 10, 30, 18, 0, tzinfo=tz)
+
+
 class Aufbau(unittest.TestCase):
     """Echter Uvicorn auf einem Socket im Temp-Ordner, Instanz mit Beispielaufträgen."""
 
     def setUp(self):
+        for zeit in (mock.patch.object(app, "datetime", FesteZeit),
+                     mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T17:59:00+01:00")):
+            zeit.start()
+            self.addCleanup(zeit.stop)
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp)
         self.instanz = self.tmp / "instanz"
@@ -247,7 +260,8 @@ class TestApp(Aufbau):
         r, html = self.hole("/ergebnis/20261022-232618-unterricht-67ba47")
         self.assertEqual(r.status, 200)
         self.assertIn("Hat nicht geklappt", html)
-        self.assertIn("Gerade ist das gemeinsame Kontingent aufgebraucht.", html)
+        self.assertIn("Die Rechenzeit war aufgebraucht.", html)
+        self.assertNotIn("Kontingent", html)
 
     def test_unbekannt_und_ungueltig_404(self):
         for pfad in ("/ergebnis/20261030-999999-unterricht-ffffff", "/ergebnis/..%2F..%2Fapp",
@@ -678,6 +692,17 @@ class TestOrdnung(Aufbau):
         self.assertIn("Formatvorlage anwenden", html.split("Läuft gerade")[1])
         self.assertEqual(self.post(f"/ergebnis/{alt}/nochmal", {})[0].status, 404)  # nicht doppelt
         self.assertEqual(self.post("/ergebnis/20261030-140944-unterricht-93e29e/nochmal", {})[0].status, 404)
+
+    def test_nochmal_mit_datei_zeigt_weg(self):
+        alt = "20261022-232618-unterricht-67ba47"
+        pfad = self.instanz / "auftraege" / "erledigt" / f"{alt}.json"
+        d = json.loads(pfad.read_text())
+        pfad.write_text(json.dumps({**d, "dateien": ["data/eingang/x/AB4_einfach.pdf"]}))
+        _, html = self.hole(f"/ergebnis/{alt}")
+        self.assertNotIn("Nochmal</button>", html)
+        self.assertIn("mit der Datei bitte über „Neu“ noch einmal. <a href=\"/neu\">Zu „Neu“</a>", html)
+        with mock.patch.object(app, "NEUER_AUFTRAG", ""):
+            self.assertNotIn("Zu „Neu“", self.hole(f"/ergebnis/{alt}")[1])
 
     def test_theater_vorlagen(self):
         wahnsinn = "darstellendes-spiel-kurs-12-der-nackte-wahnsinn"

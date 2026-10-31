@@ -74,6 +74,42 @@ class TestTexte(unittest.TestCase):
         self.assertEqual(logik.titel(auftrag("A", text=""), {}), "Material")
 
 
+class TestGrund(unittest.TestCase):
+    """Grenzsatz der Agenten in Lias Worten, Wartezeit nur, solange sie noch läuft (Chrome-Test Nr. 1)."""
+    SATZ = "Gerade ist das gemeinsame Kontingent aufgebraucht. Bitte schick den Wunsch ab {} noch einmal."
+    DAMALS = "2026-10-22T23:27:02+02:00"
+
+    def grund(self, zeit, jetzt):
+        return logik.grund({"ergebnis": self.SATZ.format(zeit), "abgeschlossen": self.DAMALS}, jetzt)
+
+    def test_vorbei_und_noch_offen(self):
+        z = ZoneInfo("Europe/Berlin")
+        self.assertEqual(self.grund("23.10. 00:00", datetime(2026, 10, 31, 9, 0, tzinfo=z)),
+                         "Die Rechenzeit war aufgebraucht. Jetzt geht es wieder.")
+        self.assertEqual(self.grund("23.10. 00:00", datetime(2026, 10, 22, 23, 30, tzinfo=z)),
+                         "Die Rechenzeit ist gerade aufgebraucht. Ab 23.10. 00:00 geht es wieder.")
+        # nur Uhrzeit: der nächste solche Zeitpunkt nach dem Fehlschlag (hier 23.10. 14:00)
+        self.assertEqual(self.grund("14:00", datetime(2026, 10, 23, 13, 0, tzinfo=z)),
+                         "Die Rechenzeit ist gerade aufgebraucht. Ab 14:00 geht es wieder.")
+        self.assertEqual(self.grund("14:00", datetime(2026, 10, 23, 14, 0, tzinfo=z)),
+                         "Die Rechenzeit war aufgebraucht. Jetzt geht es wieder.")
+        # ohne jetzt oder unlesbare Zeit: die Zeit bleibt stehen
+        self.assertIn("Ab 23.10. 00:00", self.grund("23.10. 00:00", None))
+        self.assertIn("Ab bald geht", self.grund("bald", datetime(2027, 1, 1, tzinfo=z)))
+
+    def test_andere_gruende_bleiben(self):
+        self.assertEqual(logik.grund({"ergebnis": "Die Datei war leer."}), "Die Datei war leer.")
+        self.assertEqual(logik.grund({}), logik.FEHLGESCHLAGEN)
+
+    def test_nochmal_weg(self):
+        kaputt = {"id": "20261022-232618-unterricht-67ba47", "agent": "unterricht", "status": "fehlgeschlagen",
+                  "abgeschlossen": self.DAMALS, "dateien": ["data/eingang/x/AB4_einfach.pdf"]}
+        self.assertIn("mit der Datei", logik.nochmal_weg([kaputt]))
+        self.assertEqual(logik.nochmal_weg([{**kaputt, "dateien": []}]),
+                         "Schick den Wunsch bitte über „Neu“ noch einmal.")
+        self.assertEqual(logik.nochmal_weg([{**kaputt, "status": "erledigt"}]), "")
+
+
 class TestHeute(unittest.TestCase):
     def test_leer(self):
         h = logik.heute([], [], [], JETZT)
@@ -108,7 +144,7 @@ class TestHeute(unittest.TestCase):
         self.assertEqual([(x["titel"], x["unter"], x["hinweis"]) for x in h["fertig"]],
                          [("Fallsuche Straftheorien: Dossier", "Recherche · Di 27.10.", "1 PDF")])
         self.assertEqual(len(h["fehlgeschlagen"]), 1)
-        self.assertEqual(h["fehlgeschlagen"][0]["grund"], "Gerade ist das gemeinsame Kontingent aufgebraucht.")
+        self.assertEqual(h["fehlgeschlagen"][0]["grund"], "Die Rechenzeit war aufgebraucht.")
         # Zeilen verlinken auf die Einzelansichten, laufende Aufträge (noch) nicht
         self.assertEqual((e["link"], n["link"]), ("/entwurf/E", "/ergebnis/N"))
         self.assertEqual(h["fertig"][0]["link"], "/ergebnis/O")

@@ -747,13 +747,17 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
         ueber = {"text": "Original", "link": f"/ergebnis/{original[0]}"}
     leiste = logik.varianten_leiste(z, original[0] if original else kopf["id"], _alle_auftraege(),
                                     datetime.now(ZONE), set(z["final"]))
+    nochmal = bool(neu_modus()) and logik.nochmal_moeglich(kette) and kopf["id"] not in z["ersetzt"]
+    # Geht „Nochmal“ nicht (Dateien dabei), zeigt die Seite den Weg über „Neu“ statt einer Sackgasse
+    nochmal_weg = logik.nochmal_weg(kette) if neu_modus() and not nochmal and kopf["id"] not in z["ersetzt"] else ""
     return vorlagen.TemplateResponse(request, "ergebnis.html", {
         "stunden": logik.stunden_auswahl(reihe, stunden) if stunden and not original else [], "stunde_nr": nr or 0,
         "varianten": leiste, "variante_art": logik.VARIANTEN[original[1]]["name"] if original and
         original[1] in logik.VARIANTEN else "", "original_link": f"/ergebnis/{original[0]}" if original else "",
         "variante_moeglich": bool(neu_modus()) and not original and _variante_quelle(kette, kopf, e, z) is not None,
         "variante_arten": logik.VARIANTEN, "extra_max": logik.VARIANTE_EXTRA_MAX,
-        "ziel": ziel, "nochmal": bool(neu_modus()) and logik.nochmal_moeglich(kette) and kopf["id"] not in z["ersetzt"],
+        "ziel": ziel, "nochmal": nochmal, "nochmal_weg": nochmal_weg,
+        "neu_link": logik.neu_link(reihe["id"] if reihe and reihe["laufend"] else ""),
         "e": e, "kopf_id": kopf["id"], "basis_url": logik.ergebnis_link(kopf), "token": logik.formular_token(GEHEIM),
         "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene", "variante") else "",
         "hinweis": hinweis, "fehler": fehler or [], "text": text, "text_max": logik.NEU_TEXT_MAX,
