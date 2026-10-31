@@ -682,6 +682,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         (fassungen.finale) in den Prompt, wenn gewünscht.
    - Bedarf an shared/renderer: Lage jedes Blocks auf der Vorschauseite mitliefern (für Anmerkungen an einer Stelle).
    - Playwright auf dem Server braucht Systembibliotheken (libatk-1.0 fehlt, geprüft 29.10.), also root.
+   - Chrome-Test von lia.meldro.de (31.10., nur lesend): Befunde 1 bis 12 in shared/webapp abgearbeitet (siehe
+     dort). Bedarf außerhalb der Web-App:
+     a) lia/unterricht: Der Grenzsatz LIMIT („Gerade ist das gemeinsame Kontingent aufgebraucht. Bitte schick den
+        Wunsch ab … noch einmal.“) spricht nicht Lias Sprache (Glossar agentkit.sprache: „Rechenzeit“). Die Web-App
+        übersetzt ihn beim Anzeigen (logik.grund), Telegram nicht.
+     b) lia/unterricht, Vorschlag an Jan (Regeln ändern nur mit Okay): Der Anlass der gelernten Regel vom 23.10.
+        („Auswertung von Lias Chats, Regelvorschlag 1, fachlich: 52 Korrekturen; …“) steht so in /ich. Kürzer wäre
+        „aus deinen Chats“.
+     c) Jan: Titel für Kurs 11 in lia/instanz/reihen.toml (zeigt sonst „Noch ohne Titel“), Reihenfragen der
+        laufenden Reihen, sobald Lia sie hat.
+     d) Die Zuordnung „Gehört zu Reihe“ (zustand.py reihe_von) kennt nur die Web-App. Agenten sehen sie nicht, eine
+        Rückmeldung zu 03b145/93e29e (Spielfassung, damals über Neu an unterricht) geht weiter an unterricht, nicht
+        an theater.
 
 ## Gelernte Regeln
 - (noch keine)

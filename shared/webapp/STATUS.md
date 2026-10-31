@@ -6,14 +6,14 @@ Ergebnisse mit Vorschau, Feedback und Entwürfe. Plan: `../../docs/webapp-plan.m
 Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Modernist“ (Board ModHeute im Canvas
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
-## Stand (30.10.2026)
+## Stand (31.10.2026)
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
 Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen Aufbaus „Desktop zuerst“
 (Jans Okay 30.10.), Seitengalerie statt aller Seitenbilder und Material-Ansicht wie Board „Desktop“ (Jans Wunsch 30.10.),
 Block A und B aus dem Abgleich mit dem Board (Jans Wahl 30.10.: „Block A, dann B“) und danach „alle Funktionen des
 Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komplett“ unten), `./pruefen.sh` grün
-(Web-App: 113 Tests).
+(Web-App: 129 Tests).
 - Rahmen (Plan `../../docs/webapp-aufbau.md` 4.1, Board „Desktop“): drei Spalten Baum (260 px) | Inhalt mit
   Brotkrumen (bis 840 px) | „Fragen“ (320 px, nur Platzhalter „Kommt bald“, kein Chat, kein Claude-Aufruf). Alle
   Seiten (auch 404) über `vorlagen/basis.html`. Im HTML steht der Inhalt vorn. Unter 1100 px rutscht „Fragen“
@@ -191,6 +191,21 @@ lia/chat neu, Hauptordner/agentkit). In der Web-App gebaut, je mit Tests:
   formatvorlage.waehlen) bzw. „nicht genutzt“; Entfernen nur für gelistete Dateien (samt umgewandelter Kopie).
   Startet keinen Lauf, geht darum immer. Den Kopf mit Name/Datum setzt der Renderer weiter selbst (Bedarf
   shared/renderer in Punkt 24).
+- Chrome-Test 31.10. (Befunde aus dem lesenden Durchlauf von lia.meldro.de, Jans Okay zur Reihenfolge):
+  Fehlschlag in Lias Worten (`logik.grund`: „Rechenzeit“ statt Kontingent, abgelaufene Wartezeit entfällt) und
+  bei Fehlschlag mit Datei, wo „Nochmal“ nicht geht, ein Weg über „Neu“ (`logik.nochmal_weg`); „Gehört zu Reihe“
+  an Material ohne eigene Reihe (`zustand.py` reihe_von, `logik.mit_zuordnung` beim Laden aller Aufträge,
+  POST `/ergebnis/<id>/reihe`); interne Dateinamen (`*.toml`, `*.md` …) fallen aus Lias Texten
+  (`logik.ohne_dateinamen` in ohne_ids); „Reihenfrage noch offen“ in der Reihe, Reihe ohne Titel heißt „Noch
+  ohne Titel“; Titel von Lias Material aus dem Dateinamen des Ergebnisses (ab zwei Wörtern), ihr Wunsch darunter;
+  Neu mit Stunden-Auswahl bzw. Hinweis „gilt für die ganze Reihe“, unbekannte Stunde aus der URL wird gesagt;
+  Galerie ohne den veralteten Satz zu Reihenentwurf/LEK; Baum markiert „Heute“ als Ort (aria-current=location)
+  bei Seiten ohne Reihe; „Als final markieren“ abgesetzt am Ende der Knöpfe (rückgängig machbar, keine Rückfrage);
+  Entwurf-Hinweis „Du entscheidest, ob du ihn einsetzt“; sichtbarer Fokus (`:focus-visible`). Bewusst gelassen:
+  Inhalt steht im HTML vor dem Baum (schmales Fenster), die Tab-Reihenfolge bleibt darum Inhalt, Baum, Fragen.
+  Tests der App laufen mit fester Zeit (30.10. abends), sonst hingen „heute 14:16“ vom Testtag ab.
+  Offen: Begriffe (Level, Hilfekarten, „Varianten: normal“, „wartet“, Entwurf in drei Bedeutungen) warten auf Jan;
+  Dienst nach diesen Commits noch nicht neu gestartet (Jan fragen).
 Nicht gebaut: „+ Reihe“ in der App (schreibt reihen.toml; Jan bzw. unterricht-Chat), Fach-Material und Lias
 Ablage (Jan fragen), Datei in eine Stunde ziehen (JavaScript), Muster, Konten.
 
@@ -198,7 +213,7 @@ Ablage (Jan fragen), Datei in eine Stunde ziehen (JavaScript), Muster, Konten.
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
   `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`, Stunden, Varianten,
   Fragen), getestet. `ordnung.py`: Reihen-Dateien, Profil und Regeln lesen. `zustand.py`: was die Web-App selbst
-  in data/ speichert (Stunden, Zuordnungen, Entwurf-Entscheidungen, Nochmal), liest final/eigene aus agentkit. `dateien.py`: Pfade der
+  in data/ speichert (Stunden, Zuordnungen zu Stunde und Reihe, Entwurf-Entscheidungen, Nochmal), liest final/eigene aus agentkit. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
   kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
   `ergebnis_dateien`, nie einen Pfad. `app.py`: FastAPI, dünn, Uvicorn auf Unix-Socket
