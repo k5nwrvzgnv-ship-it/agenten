@@ -552,7 +552,12 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
     reihen = reihen_laden()
     ort_reihe, ort_stunde = _ort(reihen, reihe, stunde)
     vorlage = logik.VORLAGEN.get(art) or (logik.VORLAGE_FREI if fehler else None)
+    stunden = logik.reihe_stunden(ort_reihe, zustand_().lesen()) if ort_reihe else []
     return vorlagen.TemplateResponse(request, "neu.html", {
+        # Stunde wählbar, wenn die Reihe welche hat; eine unbekannte aus der URL fällt nicht still weg (Nr. 2)
+        "stunden_wahl": logik.stunden_auswahl(ort_reihe, stunden) if stunden and not ort_stunde else [],
+        "stunde_fehlt": f"{logik.stunden_wort(ort_reihe)[0]} {stunde}" if ort_reihe and stunde and not ort_stunde
+        else "", "reihe_link": logik.reihe_link(ort_reihe) if ort_reihe else "",
         "e": {"titel": vorlage["name"] if vorlage else "Neu",
               "unter": "für " + logik.ort_text(ort_reihe, ort_stunde) if ort_reihe else "Auftrag an deine Assistenz"},
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],

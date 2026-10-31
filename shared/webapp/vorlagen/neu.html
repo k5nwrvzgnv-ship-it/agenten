@@ -50,6 +50,22 @@
     {%- endfor %}
     {%- if vorlage.hinweis %}<p class="hinweis">{{ vorlage.hinweis }}</p>{% endif %}
   </section>
+  {%- if stunde_fehlt %}
+  <p class="hinweis">{{ stunde_fehlt }} gibt es in dieser Reihe noch nicht. Der Auftrag gilt für die ganze Reihe.</p>
+  {%- endif %}
+  {%- if stunden_wahl %}
+  <section>
+    <h2><span class="akzent">02</span><label for="stunde">Für welche Stunde?</label></h2>
+    <select id="stunde" name="stunde">
+      {%- for s in stunden_wahl %}
+      <option value="{{ s.nr }}">{{ s.text }}</option>
+      {%- endfor %}
+    </select>
+  </section>
+  {%- elif ort_fest and not stunde %}
+  <p class="unter">Gilt für die ganze Reihe. Für eine bestimmte Stunde leg sie zuerst in der
+    <a href="{{ reihe_link }}">Reihe</a> an.</p>
+  {%- endif %}
   {%- if reihen %}
   <section>
     <h2><span class="akzent">02</span><label for="reihe">Für welche Reihe?</label></h2>
@@ -59,7 +75,8 @@
       <option value="{{ r.id }}"{% if r.id == reihe %} selected{% endif %}>{{ r.text }}</option>
       {%- endfor %}
     </select>
-    <span class="unter">Ordnet den Auftrag in deiner Übersicht ein und sagt deiner Assistenz, zu welcher Reihe er gehört.</span>
+    <span class="unter">Ordnet den Auftrag in deiner Übersicht ein und sagt deiner Assistenz, zu welcher Reihe er gehört.
+      Er gilt dann für die ganze Reihe; für eine Stunde nimm „+ Neu hier“ in der Stunde.</span>
   </section>
   {%- endif %}
   {%- if vorlage.varianten %}
@@ -72,7 +89,7 @@
   </fieldset>
   {%- endif %}
   <section>
-    <h2><span class="akzent">{{ "03" if reihen else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
+    <h2><span class="akzent">{{ "03" if reihen or stunden_wahl else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
     <input id="dateien" name="dateien" type="file" multiple accept="{{ endungen }},image/*">
     <span class="unter">Zum Beispiel ein altes Blatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.
       Soll etwas, das ich schon gemacht habe, überarbeitet werden? Öffne es unter <a href="/">Heute</a> und

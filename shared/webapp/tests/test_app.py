@@ -676,6 +676,22 @@ class TestOrdnung(Aufbau):
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
             self.assertNotIn("+ Neu hier", self.hole("/reihe/strafe")[1])
 
+    def test_neu_stunde_waehlen(self):  # Chrome-Test Nr. 2
+        _, html = self.hole("/neu?art=arbeitsblatt&reihe=strafe")  # Reihe ohne Stunden
+        self.assertIn("Gilt für die ganze Reihe. Für eine bestimmte Stunde leg sie zuerst in der", html)
+        self.assertNotIn('<select id="stunde"', html)
+        _, html = self.hole("/neu?art=arbeitsblatt&reihe=strafe&stunde=1")  # gibt es nicht: sagen, nicht schlucken
+        self.assertIn("Stunde 1 gibt es in dieser Reihe noch nicht. Der Auftrag gilt für die ganze Reihe.", html)
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+        _, html = self.hole("/neu?art=arbeitsblatt&reihe=strafe")
+        for text in ('<select id="stunde" name="stunde">', '<option value="0">zur ganzen Reihe</option>',
+                     '<option value="1">Stunde 1: Kant</option>'):
+            self.assertIn(text, html)
+        r, _ = self.post("/neu", {"text": "Blatt Kant", "art": "arbeitsblatt", "reihe": "strafe", "stunde": "1"})
+        self.assertEqual(r.getheader("location"), "/reihe/strafe/stunde/1?erledigt=auftrag-test")
+        _, html = self.hole("/neu?art=arbeitsblatt")  # Reihe aus der Auswahl: gilt für die ganze Reihe
+        self.assertIn("für eine Stunde nimm „+ Neu hier“ in der Stunde", html)
+
     def test_varianten(self):
         original = "20261030-140944-unterricht-93e29e"
         _, html = self.hole(f"/ergebnis/{original}")
