@@ -369,6 +369,9 @@ class TestNeuerAuftrag(Aufbau):
         for text in ('href="/neu?art=arbeitsblatt"', 'href="/neu?art=praesentation"', 'href="/neu?art=tabelle"'):
             self.assertIn(text, html)
         self.assertNotIn('type="file"', html)
+        # Reihenentwurf und LEK baut unterricht seit 30.10.: verlinkt und nicht mehr „kommen bald“ (Nr. 8)
+        self.assertIn('href="/neu?art=lek"', html)
+        self.assertNotIn("Lernerfolgskontrolle) kommen", html)
         r, html = self.hole("/neu?art=arbeitsblatt")
         self.assertEqual(r.status, 200)
         self.assertIn("Was soll drauf?", html)
