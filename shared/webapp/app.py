@@ -175,8 +175,8 @@ def _ausblenden(z: dict) -> set[str]:
 
 def heute_daten(reihen: list[dict] | None = None) -> dict:
     z_ = zustand_().lesen()
-    return logik.heute(auftraege.neue(basis=INSTANZ / "auftraege"),
-                       auftraege.erledigte(basis=INSTANZ / "auftraege"),
+    return logik.heute(logik.mit_zuordnung(auftraege.neue(basis=INSTANZ / "auftraege"), z_["reihe_von"]),
+                       logik.mit_zuordnung(auftraege.erledigte(basis=INSTANZ / "auftraege"), z_["reihe_von"]),
                        _entwuerfe(),
                        datetime.now(ZONE), config.person(INSTANZ),
                        reihen if reihen is not None else reihen_laden(), set(z_["final"]),
@@ -309,8 +309,10 @@ def _reihe(reihe_id: str) -> tuple[list[dict], dict]:
 
 
 def _alle_auftraege() -> list[dict]:
+    """Alle Aufträge der Instanz, mit Lias Zuordnung zu Reihen (zustand.py: reihe_von)."""
     basis = INSTANZ / "auftraege"
-    return [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)]
+    return logik.mit_zuordnung([*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)],
+                               zustand_().lesen()["reihe_von"])
 
 
 def _reihe_seite(request: Request, reihe_id: str, fehler: list[str] | None = None, thema: str = "",
@@ -709,8 +711,7 @@ def _kette(eintrag_id: str) -> tuple[list[dict], dict]:
         raise HTTPException(404) from None
     if not (logik.zeigbar(auftrag) or auftrag.get("agent") == "feedback"):
         raise HTTPException(404)
-    basis = INSTANZ / "auftraege"
-    kette = logik.kette_von(eintrag_id, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)])
+    kette = logik.kette_von(eintrag_id, _alle_auftraege())
     kopf = logik.kopf(kette)
     if not logik.zeigbar(kopf):  # z. B. Rückmeldung zu einem unbekannten Ergebnis
         raise HTTPException(404)
@@ -752,6 +753,7 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
     nochmal_weg = logik.nochmal_weg(kette) if neu_modus() and not nochmal and kopf["id"] not in z["ersetzt"] else ""
     return vorlagen.TemplateResponse(request, "ergebnis.html", {
         "stunden": logik.stunden_auswahl(reihe, stunden) if stunden and not original else [], "stunde_nr": nr or 0,
+        "reihe_wahl": [] if original else logik.reihe_wahl(kopf, reihen, z["reihe_von"]),
         "varianten": leiste, "variante_art": logik.VARIANTEN[original[1]]["name"] if original and
         original[1] in logik.VARIANTEN else "", "original_link": f"/ergebnis/{original[0]}" if original else "",
         "variante_moeglich": bool(neu_modus()) and not original and _variante_quelle(kette, kopf, e, z) is not None,
@@ -960,6 +962,28 @@ async def ergebnis_stunde(request: Request, eintrag_id: str):
     return _fertig(kopf, "zugeordnet")
 
 
+@app.post("/ergebnis/{eintrag_id}/reihe", response_class=HTMLResponse)
+async def ergebnis_reihe(request: Request, eintrag_id: str):
+    """Lias Zuordnung eines Auftrags ohne eigene Reihe (Chrome-Test Nr. 4); "" nimmt sie zurück."""
+    kette, kopf = _kopf_fuer_post(eintrag_id)
+    reihen = reihen_laden()
+    z_ = zustand_()
+    z = z_.lesen()
+    wahl = logik.reihe_wahl(kopf, reihen, z["reihe_von"])
+    form = await formular_lesen(request, "Reihe zuordnen", 0)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return _ergebnis_seite(request, kette, kopf, hinweis=logik.VERALTET, status=400)
+    wert = str(form.get("reihe") or "")
+    if not wahl or wert not in {w["id"] for w in wahl}:
+        raise HTTPException(404)
+    try:
+        z_.schreiben(logik.reihe_zuordnen(z, kopf["id"], wert or None))
+    except OSError as fehler_:
+        logger.error("Zuordnung zur Reihe nicht gespeichert: %s", fehler_)
+        return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
+    return _fertig(kopf, "zugeordnet")
+
+
 def _eigene_pfad(kopf: dict, eigene: list[dict], n: int, endungen: set[str]) -> Path | None:
     """Datei der n-ten eigenen Fassung im Agent-Ordner (agentkit.fassungen), gegen den Ordner geprüft."""
     eintrag = next((e for e in eigene if e.get("n") == n), None)
@@ -1092,8 +1116,7 @@ def seite_ansehen(request: Request, eintrag_id: str, nr: int, seite: str | None 
     pfade = _auftrag(eintrag_id).get("ergebnis_dateien") or []
     datei = next((d for d in logik.dateien_ansicht(pfade, dateien.vorschau_info(wurzel, pfade)) if d["nr"] == nr),
                  None)
-    basis = INSTANZ / "auftraege"
-    kette = logik.kette_von(eintrag_id, [*auftraege.neue(basis=basis), *auftraege.erledigte(basis=basis)])
+    kette = logik.kette_von(eintrag_id, _alle_auftraege())
     eigene = zustand_().lesen()["eigene"].get(logik.kopf(kette).get("id"), []) if kette else []
     e = logik.betrachter(kette, eintrag_id, datei, seite, eigene) if datei else None
     if e is None:

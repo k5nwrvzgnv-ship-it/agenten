@@ -110,6 +110,33 @@ class TestGrund(unittest.TestCase):
         self.assertEqual(logik.nochmal_weg([{**kaputt, "status": "erledigt"}]), "")
 
 
+class TestReiheZuordnen(unittest.TestCase):
+    REIHEN = [{"id": "r", "fach": "Ethik", "gruppe": "Klasse 8", "titel": "Strafe", "laufend": True, "agenten": []},
+              {"id": "t", "fach": "DS", "gruppe": "Kurs 12", "titel": "Stück", "laufend": True, "agenten": ["theater"]},
+              {"id": "alt", "fach": "Ethik", "gruppe": "7", "titel": "Alt", "laufend": False, "agenten": []}]
+
+    def test_zuordnen_und_zuruecknehmen(self):
+        z = {"stunde_von": {"K": {"reihe": "r", "nr": 1}}}
+        z = logik.reihe_zuordnen(z, "K", "r")
+        self.assertEqual((z["reihe_von"], z["stunde_von"]), ({"K": "r"}, {"K": {"reihe": "r", "nr": 1}}))
+        z = logik.reihe_zuordnen(z, "K", None)  # andere Reihe bzw. keine: die Stunde fällt weg
+        self.assertEqual((z["reihe_von"], z["stunde_von"]), ({}, {}))
+
+    def test_mit_zuordnung(self):
+        a = [{"id": "K", "agent": "unterricht"}, {"id": "L", "reihe": "t"}, {"id": "M"}]
+        b = logik.mit_zuordnung(a, {"K": "r", "L": "r"})
+        self.assertEqual([x.get("reihe") for x in b], ["r", "t", None])  # eigene Reihe geht vor
+        self.assertNotIn("reihe", a[0])  # Original unverändert
+
+    def test_wahl_nur_ohne_eigene_reihe(self):
+        wahl = logik.reihe_wahl({"id": "K", "agent": "unterricht"}, self.REIHEN, {})
+        self.assertEqual([(w["id"], w["gewaehlt"]) for w in wahl], [("", True), ("r", False), ("t", False)])
+        wahl = logik.reihe_wahl({"id": "K", "agent": "unterricht", "reihe": "r"}, self.REIHEN, {"K": "r"})
+        self.assertEqual([w["id"] for w in wahl if w["gewaehlt"]], ["r"])
+        self.assertEqual(logik.reihe_wahl({"id": "T", "agent": "theater"}, self.REIHEN, {}), [])
+        self.assertEqual(logik.reihe_wahl({"id": "K", "reihe": "r"}, self.REIHEN, {}), [])
+
+
 class TestHeute(unittest.TestCase):
     def test_leer(self):
         h = logik.heute([], [], [], JETZT)

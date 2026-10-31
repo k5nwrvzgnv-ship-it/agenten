@@ -537,6 +537,34 @@ class TestOrdnung(Aufbau):
         # Material ohne Reihe hat nichts zum Einordnen
         self.assertEqual(self.post("/ergebnis/20261030-140944-unterricht-93e29e/stunde", {"nr": "1"})[0].status, 404)
 
+    def test_reihe_zuordnen(self):
+        aid = "20261030-140944-unterricht-93e29e"  # Material ohne Reihe (Chrome-Test Nr. 4)
+        _, html = self.hole(f"/ergebnis/{aid}")
+        self.assertIn('<option value="" selected>keine Reihe</option>', html)
+        self.assertIn('<option value="strafe">Straftheorien (Ethik, Klasse 8)</option>', html)
+        self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", self.hole("/reihe/strafe")[1])
+        self.assertEqual(self.post(f"/ergebnis/{aid}/reihe", {"reihe": "gibts-nicht"})[0].status, 404)
+        self.assertEqual(self.post(f"/ergebnis/{aid}/reihe", {"reihe": "strafe"}, token=False)[0].status, 400)
+        r, _ = self.post(f"/ergebnis/{aid}/reihe", {"reihe": "strafe"})
+        self.assertEqual((r.status, r.getheader("location")), (303, f"/ergebnis/{aid}?erledigt=zugeordnet"))
+        _, html = self.hole(f"/ergebnis/{aid}")
+        for text in ('<option value="strafe" selected>', '<a href="/reihe/strafe">Straftheorien</a>',
+                     'href="/neu?reihe=strafe">+ Neu hier'):
+            self.assertIn(text, html)
+        self.assertIn("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", self.hole("/reihe/strafe")[1])
+        self.assertIn("Ethik › Klasse 8 › Straftheorien", self.hole("/")[1].split("Arbeitsblatt &lt;Kant&gt;")[1][:400])
+        # zurücknehmen
+        self.assertEqual(self.post(f"/ergebnis/{aid}/reihe", {"reihe": ""})[0].status, 303)
+        self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", self.hole("/reihe/strafe")[1])
+        # Aufträge mit eigener Reihe haben keine Auswahl (logik: TestReiheZuordnen)
+        schreibe(self.instanz / "auftraege" / "erledigt" / "20261030-160000-unterricht-cccccc.json", {
+            "id": "20261030-160000-unterricht-cccccc", "agent": "unterricht", "text": "Arbeitsblatt Vergeltung",
+            "reihe": "strafe", "status": "erledigt", "erstellt": "2026-10-30T16:00:00+01:00",
+            "abgeschlossen": "2026-10-30T16:05:00+01:00", "ergebnis": "x", "ergebnis_dateien": []})
+        self.assertEqual(self.hole("/ergebnis/20261030-160000-unterricht-cccccc")[0].status, 200)
+        self.assertNotIn('name="reihe"', self.hole("/ergebnis/20261030-160000-unterricht-cccccc")[1])
+        self.assertEqual(self.post("/ergebnis/20261030-160000-unterricht-cccccc/reihe", {"reihe": ""})[0].status, 404)
+
     def test_vorlagen_und_ich(self):
         (self.tmp / "unterricht" / "profil.toml").write_text('schrift = "Calibri"\nschriftgroesse_pt = 11\n')
         (self.instanz / "regeln.md").write_text("## Regeln\n- 30.10.2026: Immer <Du> (Feedback 20261030-110916-feedback-1c1e7e)\n")

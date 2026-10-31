@@ -205,6 +205,18 @@
 {%- endif %}
 {%- endif %}
 
+{%- if reihe_wahl %}
+<form class="zeile-form" method="post" action="{{ basis_url }}/reihe">
+  <input type="hidden" name="token" value="{{ token }}">
+  <label for="reihe-wahl"><b>Gehört zu Reihe</b></label>
+  <select id="reihe-wahl" name="reihe">
+    {%- for r in reihe_wahl %}
+    <option value="{{ r.id }}"{% if r.gewaehlt %} selected{% endif %}>{{ r.text }}</option>
+    {%- endfor %}
+  </select>
+  <button class="knopf" type="submit">Zuordnen</button>
+</form>
+{%- endif %}
 {%- if stunden %}
 <form class="zeile-form" method="post" action="{{ basis_url }}/stunde">
   <input type="hidden" name="token" value="{{ token }}">

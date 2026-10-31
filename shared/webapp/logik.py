@@ -1191,6 +1191,37 @@ def stunde_zuordnen(zustand_: dict, kopf_id: str, reihe_id: str, nr: int | None)
     return {**zustand_, "stunde_von": von}
 
 
+def reihe_zuordnen(zustand_: dict, kopf_id: str, reihe_id: str | None) -> dict:
+    """Neuer Zustand: Auftrag kopf_id (ohne eigene Reihe) gehört zur Reihe reihe_id, bei None zu keiner.
+    Eine Stunde aus einer anderen Reihe passt dann nicht mehr und fällt weg."""
+    von = dict(zustand_.get("reihe_von") or {})
+    von.pop(kopf_id, None)
+    if reihe_id:
+        von[kopf_id] = reihe_id
+    stunde_von = dict(zustand_.get("stunde_von") or {})
+    if (stunde_von.get(kopf_id) or {}).get("reihe") != reihe_id:
+        stunde_von.pop(kopf_id, None)
+    return {**zustand_, "reihe_von": von, "stunde_von": stunde_von}
+
+
+def mit_zuordnung(auftraege_: list[dict], zuordnung: dict[str, str]) -> list[dict]:
+    """Aufträge mit Lias Zuordnung (zustand.py: reihe_von) im Feld "reihe", wenn der Auftrag selbst keine hat.
+    Danach finden reihe_von(), heute() und die Reihen-Ansicht sie wie Aufträge mit Reihe."""
+    return [{**a, "reihe": zuordnung[a["id"]]} if not a.get("reihe") and a.get("id") in zuordnung else a
+            for a in auftraege_]
+
+
+def reihe_wahl(kopf_: dict, reihen: list[dict], zuordnung: dict[str, str]) -> list[dict]:
+    """Auswahl „Gehört zu Reihe“ in der Material-Ansicht: nur für Aufträge, die von sich aus keine Reihe haben
+    (weder im Auftrag noch über den Agenten). Erste Zeile „keine Reihe“; gewählt die aktuelle Zuordnung."""
+    eigen = {k: v for k, v in kopf_.items() if not (k == "reihe" and kopf_.get("id") in zuordnung)}
+    if reihe_von(eigen, reihen) is not None:
+        return []
+    jetzt_ = zuordnung.get(kopf_.get("id") or "", "")
+    return [{"id": "", "text": "keine Reihe", "gewaehlt": not jetzt_}] + [
+        {**r, "gewaehlt": r["id"] == jetzt_} for r in reihen_auswahl(reihen)]
+
+
 def stunde_nummer(wert: str | None, anzahl: int) -> int | None:
     """Nummer aus Formular oder URL: 1 bis anzahl, sonst None."""
     return int(wert) if wert and wert.isdigit() and 1 <= int(wert) <= anzahl else None

@@ -74,7 +74,9 @@
   <section>
     <h2><span class="akzent">{{ "03" if reihen else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
     <input id="dateien" name="dateien" type="file" multiple accept="{{ endungen }},image/*">
-    <span class="unter">Zum Beispiel ein altes Blatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.</span>
+    <span class="unter">Zum Beispiel ein altes Blatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.
+      Soll etwas, das ich schon gemacht habe, überarbeitet werden? Öffne es unter <a href="/">Heute</a> und
+      gib dort eine Rückmeldung, auch mit deiner Datei mit Kommentaren.</span>
   </section>
   <p class="hinweis">Beachtet: {% if beachte %}{{ beachte }}, {% endif %}deine Gestaltung und deine Regeln.
     <b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p>
