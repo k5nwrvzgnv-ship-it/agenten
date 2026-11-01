@@ -169,6 +169,7 @@ class TestApp(Aufbau):
         self.assertNotIn("<html", html)
         self.assertIn("Wartet auf dich", html)
         self.assertIn("default-src 'self'", r.getheader("Content-Security-Policy"))
+        self.assertEqual(r.getheader("Referrer-Policy"), "same-origin")  # no-referrer machte Origin zu null: 403
         self.assertEqual(r.getheader("Cache-Control"), "no-store")
 
     def test_nur_lesen_und_keine_doku(self):

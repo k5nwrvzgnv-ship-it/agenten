@@ -117,7 +117,7 @@ logger = logging.getLogger("webapp")
 KOPFZEILEN = {
     "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
+    "Referrer-Policy": "same-origin",  # nicht no-referrer: Browser schicken damit bei Formularen Origin: null (403)
     "Cache-Control": "no-store",
 }
 
