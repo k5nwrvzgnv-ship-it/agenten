@@ -130,7 +130,9 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
   Excel/JPG/PNG, Namen bereinigt), Hinweis „Bitte keine Namen“; Fehler zeigt das Formular mit Text wieder (400).
   Anlegen über `agentkit.auftraege.neuer_auftrag(..., basis=, agenten_dir=<instanz>/.., absender=PERSON)`;
   Uploads liegen kurz in `data/eingang/` und werden von agentkit nach `<agent>/data/eingang/<id>/` verschoben.
-  Schutz ohne Konten: Origin muss zum Host passen (Sec-Fetch-Site same-origin), sonst 403; Token im Formular
+  Schutz ohne Konten: Origin muss zum Host passen (Sec-Fetch-Site same-origin), sonst 403 (dafür
+  `Referrer-Policy: same-origin`, mit `no-referrer` schicken Browser `Origin: null`; Abschicken aus einem echten
+  Browser nach dem Fix vom 01.11. noch nicht bestätigt); Token im Formular
   (HMAC, geheim je Start der App), nach einem Neustart „Die Seite war veraltet“. Ohne Zurücknehmen,
   ohne „Das beachte ich“, keine Auswahl der Art (gibt es noch nicht).
 - Ordnung nach Fach, Klasse und Reihe (Jans Wunsch und Okay 30.10.):
