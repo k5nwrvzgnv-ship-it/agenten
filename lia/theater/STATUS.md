@@ -16,6 +16,9 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Stichpunkte, ohne Seitenzahlen und ohne Bezug auf die Vorlage, nur Spielfassung vom 01.11. und „Sturmfrei“. Das Skript
   prüft jedes Zitat gegen spielfassung.txt und sucht nach Namen der Vorlage. Mit Jans Okay an Lia (Auftrag
   20261101-193557-theater-1d2ad7, 19:36 zugestellt), Lias Antwort läuft wie bei der ersten Version auf ablauf-3.json.
+  Dritte Version (Lia über Jan, 01.11. abends, von Hand): Rollen in der Fassung, Stichpunkte.docx und rollen_stichpunkte.py,
+  nur knappe Eigenschaften ohne Zitate, Skript prüft auf Anführungszeichen und vier Wörter in Folge aus spielfassung.txt.
+  Noch nicht an Lia, wartet auf Jans Okay.
 - Lias Anhänge in Nachbesserungen: nachbesserung.anhaenge (auch für die Szenenaufgabe) legt je Datei eine Textfassung
   daneben, Word-Kommentare stehen an deren Ende, der Prompt nennt sie. Vorher sah eine Nachbesserung Anhänge nicht
   (Auftrag 7c35eb, Absage an Lia). Echter Lauf 20261101-165406-theater-ea89ad von Jan veranlasst, Ablauf und
@@ -195,4 +198,5 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
    - Lias Nachricht nennt 37,5 Minuten, der Ablauf 37,75: Der Antworttext entsteht vor dem Prüfschritt.
 
 ## Gelernte Regeln
-- (noch keine)
+- Lia über Jan, 01.11.2026: Rollentabellen enthalten keine direkten Zitate aus dem Stück, nur Stichpunkte zu den
+  Charaktereigenschaften.
