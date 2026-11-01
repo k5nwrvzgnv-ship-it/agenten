@@ -6,6 +6,12 @@ Hilft Lia in ihrem zweiten Fach Theater (Darstellendes Spiel). Erste Aufgabe: au
 sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstellen behalten.
 
 ## Stand (01.11.2026)
+- Rollentabelle für Lia (ihr Wunsch vom 01.11. über Jan): von Hand im Chat gebaut, weil Jan das Produkt zuerst wollte, kein
+  Agentenlauf. data/rollentabelle/: Rollen und Charaktereigenschaften.docx und rollen.py (Inhalt, Belegprüfung, Bau).
+  9 Rollen und 7 Rollen des Stücks im Stück, 89 Seitenbelege per Skript gegen den Text geprüft. Mit Jans Okay an Lia
+  (Auftrag 20261101-182457-theater-47a344, 18:25 zugestellt). Lias Antwort darauf läuft als Nachbesserung auf den Ablauf
+  (Ordner nachbesserung-<auftrag>/stand.json zeigt auf ablauf-3.json); die Tabelle selbst kann der Agent noch nicht
+  überarbeiten. Als Auftragsart für die Web-App noch nicht gebaut.
 - Lias Anhänge in Nachbesserungen: nachbesserung.anhaenge (auch für die Szenenaufgabe) legt je Datei eine Textfassung
   daneben, Word-Kommentare stehen an deren Ende, der Prompt nennt sie. Vorher sah eine Nachbesserung Anhänge nicht
   (Auftrag 7c35eb, Absage an Lia). Echter Lauf 20261101-165406-theater-ea89ad von Jan veranlasst, Ablauf und
