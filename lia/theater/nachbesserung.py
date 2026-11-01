@@ -25,7 +25,7 @@ import karte
 import kritik
 import runde as runde_mod
 import stueck
-from agentkit import sprache
+from agentkit import sprache, textfassung
 
 ARTEN = ("antwort", "ueberarbeitung")
 MAX = {"kern": 400, "punkt": 250, "pruefen": 200}
@@ -33,6 +33,7 @@ MAX_PUNKTE = 3
 WOERTER_JE_MINUTE = 130  # wie stueck.sprechminuten
 RUNDE_MUSTER = re.compile(r"runde-\d{8}-\d{6}")
 DOKUMENTE = ("2 Ablauf und Varianten.docx", "3 Spielfassung.docx")
+BILD_ENDUNGEN = (".jpg", ".jpeg", ".png")
 
 
 class NachbesserungFehler(Exception):
@@ -128,9 +129,46 @@ def kennzahlen(ablauf: dict, einheiten: list[stueck.Einheit], rahmen: dict) -> s
     return "\n".join(zeilen) + "\n"
 
 
-def prompt(auftrag: dict, ordner: str, ablauf: str, spielfassung: str, kennzahlen_datei: str, lesen: list[str]) -> str:
-    """Erster Lauf (neue Sitzung). ordner, ablauf, ... relativ zum Agent-Ordner. Lias Regeln gibt claude_lauf mit."""
+def anhaenge(hier: Path, dateien: list[str]) -> list[str]:
+    """Zeilen für den Prompt; Office und PDF bekommen eine Textfassung daneben (agentkit.textfassung), Word-Kommentare
+    stehen an deren Ende."""
+    zeilen = []
+    for rel in dateien:
+        pfad = hier / rel
+        if pfad.suffix.lower() in BILD_ENDUNGEN:
+            zeilen.append(f"{rel} (Bild, mit Read öffnen)")
+            continue
+        try:
+            text = textfassung.als_text(pfad)
+            kommentare = textfassung.word_kommentare(pfad)
+        except Exception as e:  # kaputte Datei: Claude arbeitet ohne, Lia sieht es im Blatt nicht
+            zeilen.append(f"{rel} (Text nicht lesbar: {type(e).__name__})")
+            continue
+        if text:
+            if kommentare:
+                text += "\n\n--- Kommentare in der Datei\n" + "\n".join(
+                    f"- Zu „{k['stelle']}“: {k['kommentar']}" if k["stelle"] else f"- {k['kommentar']}"
+                    for k in kommentare)
+            txt = pfad.with_name(pfad.name + ".txt")
+            txt.write_text(text, encoding="utf-8")
+            zeilen.append(f"{rel} (Textfassung: {txt.relative_to(hier)})")
+        else:
+            zeilen.append(f"{rel} (Format ohne Textfassung, versuche Read)")
+    return zeilen
+
+
+def prompt(auftrag: dict, ordner: str, ablauf: str, spielfassung: str, kennzahlen_datei: str, lesen: list[str],
+           anhang: list[str]) -> str:
+    """Erster Lauf (neue Sitzung). ordner, ablauf, ... relativ zum Agent-Ordner. Lias Regeln gibt claude_lauf mit.
+    anhang: Zeilen aus anhaenge(), Lias Dateien zu diesem Auftrag."""
     dateien = "\n".join(f"- {d}" for d in lesen)
+    anhang_text = ""
+    if anhang:
+        zeilen = "\n".join(f"- {d}" for d in anhang)
+        anhang_text = f"""
+Lia hat dazu Dateien geschickt. Sie gehören zu ihrer Anfrage, lies sie vor allem anderen (bei Textfassung diese):
+{zeilen}
+"""
     return f"""Du bist Lias Helfer für ihr Fach Darstellendes Spiel. Für ihren Kurs gibt es eine Fassung von
 „Der nackte Wahnsinn“: einen Ablauf aus Bausteinen und eine Spielfassung. Lia hat sie bekommen und jetzt
 eine Anfrage dazu geschickt.
@@ -139,7 +177,7 @@ Lias Anfrage:
 <<<
 {auftrag['text'].strip()}
 >>>
-
+{anhang_text}
 Lies zuerst:
 - {ablauf} (der aktuelle Ablauf, Bausteine mit Minuten, Originalstellen als Nummern, neuer Text)
 - {spielfassung} (die Spielfassung als Text)
@@ -267,7 +305,7 @@ def bearbeiten(auftrag: dict, u: Umgebung) -> Ergebnis:
         return r
 
     r = lauf(prompt(auftrag, rel(ordner), rel(alt), rel(ordner / "spielfassung-vorher.txt"),
-                    rel(ordner / "kennzahlen.md"), lesen), None)
+                    rel(ordner / "kennzahlen.md"), lesen, anhaenge(u.hier, auftrag.get("dateien") or [])), None)
     erg.sitzung = r.sitzung
     antwort, neu, fehler, befunde = _pruefen_alles(ordner, einheiten, v)
     if fehler or befunde:

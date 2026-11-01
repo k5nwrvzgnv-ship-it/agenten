@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+import docx
+
 import agent
 import nachbesserung
 import stueck
@@ -121,6 +123,49 @@ class Antwort(unittest.TestCase):
         self.assertEqual(nachbesserung.text_fuer_lia(a).splitlines()[-1], "Passt das so?")
         self.assertEqual(nachbesserung.daten_fuer_lia(a)["pruefen"], "Passt das so?")
         self.assertNotIn("pruefen", nachbesserung.daten_fuer_lia(GUT))
+
+
+class Anhaenge(Grundlage):
+    def datei(self, name="feedback stück.docx", kommentar=None) -> str:
+        """Word-Datei wie von Lia im Eingang des Auftrags, Rückgabe relativ zum Agent-Ordner."""
+        rel = f"data/eingang/a1/{name}"
+        (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+        d = docx.Document()
+        absatz = d.add_paragraph("Valium Text von Lloyd soll raus.")
+        if kommentar:
+            d.add_comment(absatz.runs, text=kommentar, author="Lia")
+        d.save(self.tmp / rel)
+        return rel
+
+    def test_anhang_landet_im_prompt(self):
+        a = dict(auftrag(), dateien=[self.datei()])
+        claude = Claude(self.tmp, a["id"], [{"antwort.json": GUT}])
+        nachbesserung.bearbeiten(a, self.umgebung(claude))
+        prompt = claude.prompts[0][0]
+        self.assertIn("Lia hat dazu Dateien geschickt", prompt)
+        self.assertIn("data/eingang/a1/feedback stück.docx.txt", prompt)
+        text = (self.tmp / "data/eingang/a1/feedback stück.docx.txt").read_text(encoding="utf-8")
+        self.assertIn("Valium Text von Lloyd soll raus.", text)
+
+    def test_ohne_anhang_kein_hinweis(self):
+        a = auftrag()
+        claude = Claude(self.tmp, a["id"], [{"antwort.json": GUT}])
+        nachbesserung.bearbeiten(a, self.umgebung(claude))
+        self.assertNotIn("Dateien geschickt", claude.prompts[0][0])
+
+    def test_kommentare_stehen_in_der_textfassung(self):
+        rel = self.datei(kommentar="Kürzer bitte")
+        nachbesserung.anhaenge(self.tmp, [rel])
+        text = (self.tmp / f"{rel}.txt").read_text(encoding="utf-8")
+        self.assertIn("Valium Text von Lloyd soll raus.", text)
+        self.assertIn("Zu „Valium Text von Lloyd soll raus.“: Kürzer bitte", text)
+
+    def test_bild_und_kaputte_datei(self):
+        (self.tmp / "foto.png").write_bytes(b"x")
+        (self.tmp / "kaputt.docx").write_bytes(b"keine Word-Datei")
+        zeilen = nachbesserung.anhaenge(self.tmp, ["foto.png", "kaputt.docx"])
+        self.assertEqual(zeilen[0], "foto.png (Bild, mit Read öffnen)")
+        self.assertIn("Text nicht lesbar", zeilen[1])
 
 
 class Bearbeiten(Grundlage):

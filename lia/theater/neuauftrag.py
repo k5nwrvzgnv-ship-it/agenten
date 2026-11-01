@@ -21,10 +21,8 @@ import nachbesserung
 import runde
 import stueck
 import wunsch
-from agentkit import textfassung
 
 AUFTRAG_MUSTER = re.compile(r"\d{8}-\d{6}-")  # echte Auftrags-IDs (nicht „probe-…“)
-BILD_ENDUNGEN = (".jpg", ".jpeg", ".png")
 NEUES_STUECK_LIA = "Für dieses Stück habe ich den Text noch nicht. Jan kümmert sich darum."
 
 
@@ -93,28 +91,6 @@ def aktuelle_runde(data: Path) -> Path:
     return max(zustellungen)[1]
 
 
-def anhaenge(hier: Path, dateien: list[str]) -> list[str]:
-    """Zeilen für den Prompt; Office und PDF bekommen eine Textfassung daneben (agentkit.textfassung)."""
-    zeilen = []
-    for rel in dateien:
-        pfad = hier / rel
-        if pfad.suffix.lower() in BILD_ENDUNGEN:
-            zeilen.append(f"{rel} (Bild, mit Read öffnen)")
-            continue
-        try:
-            text = textfassung.als_text(pfad)
-        except Exception as e:  # kaputte Datei: Claude arbeitet ohne, Lia sieht es im Blatt nicht
-            zeilen.append(f"{rel} (Text nicht lesbar: {type(e).__name__})")
-            continue
-        if text:
-            txt = pfad.with_name(pfad.name + ".txt")
-            txt.write_text(text, encoding="utf-8")
-            zeilen.append(f"{rel} (Textfassung: {txt.relative_to(hier)})")
-        else:
-            zeilen.append(f"{rel} (Format ohne Textfassung, versuche Read)")
-    return zeilen
-
-
 def dateiname(titel: str) -> str:
     name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', " ", titel)
     return " ".join(name.split())[:80] or "Szenenaufgabe"
@@ -149,7 +125,8 @@ def szenenaufgabe(auftrag: dict, u: nachbesserung.Umgebung, vorher: Path | None 
     x = lauf(aufgabe.szenen_prompt(
         rel(ausgabe), auftrag["text"], rel(kontext / "vorgaben.md"), rel(kontext / "grundlagen.md"),
         [rel(p) for p in sorted(kontext.glob("stueck-teil-*.txt"))], aufgabe.ablauf_kurz(ablauf),
-        rel(ordner / "spielfassung.txt"), anhaenge(u.hier, auftrag.get("dateien") or []), aufgabe.format_abschnitte(),
+        rel(ordner / "spielfassung.txt"), nachbesserung.anhaenge(u.hier, auftrag.get("dateien") or []),
+        aufgabe.format_abschnitte(),
         [rel(p) for p in sorted(kontext.glob("buch-teil-*.md"))], rel(alt[0]) if alt else None), None)
     erg.sitzung = x.sitzung
 
