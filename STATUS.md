@@ -703,8 +703,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      b) Speicher: Ruhende Claude-Code-Chats behalten ihren Prozess (je etwa 150 MB). Am 01.11. um 16:47 waren es 47
         Prozesse und rund 7,2 GB, der OOM-Killer beendete webapp, agentenzentrale, lia-zentrale, vinted-bot und
         lia-theater. Dienste starteten neu, ein Auftrag blieb ohne Nachricht an Lia in neu/ liegen. Archivieren von 25
-        Chats gab 3,5 GB frei, danach 22 Prozesse (14 davon über 3 Tage alt, Herkunft nicht geklärt). Offen: Dauerlösung
-        (regelmäßig archivieren, Swap), und ob ein Abbruch durch den OOM-Killer Lia eine Nachricht geben soll.
+        Chats gab 3,5 GB frei. Befund (01.11., nur gelesen, nichts beendet):
+        - Jeder Chat hat einen Prozess, der bleibt, bis die App ihn beendet (Log: Exit 143 „asked to end“). Eine
+          Zeitgrenze gibt es nicht, auto_archive_inactive_days steht auf 0 (nie).
+        - Die 14 alten Prozesse (PSS 2,07 GB) gehören zu Chats, die diese SSH-Verbindung der App nicht kennt: 11 unter
+          Dienst 1223 (App 3.6556.2, Start 27.10., letzte Aktivität 27.–29.10.), 3 unter eigenem Dienst 1621748 (App
+          4.29.0, Start 29.10., seit 30.10. ohne Verbindung). Ob eine andere App-Installation sie noch führt, ist offen.
+        - Unsere Dienste haben oom_score_adj 200, die Chats 0. Der OOM-Killer trifft darum zuerst die kleinen Dienste.
+        - Ein hart beendeter Auftrag (OOM, Signal, Timeout) umgeht das except im Agenten: Jan bekommt die Ausfallmeldung,
+          Lia nichts, der Auftrag bleibt in neu/ bis zum nächsten Dienststart.
+        Plan liegt bei Jan, Umsetzung erst nach seinem Okay: 14 Prozesse beenden, automatisch archivieren, Swap,
+        Speicher-Wächter, einmaliger Neustart abgebrochener Lia-Aufträge.
 
 ## Gelernte Regeln
 - (noch keine)
