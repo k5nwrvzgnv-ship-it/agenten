@@ -5,7 +5,12 @@ Hilft Lia in ihrem zweiten Fach Theater (Darstellendes Spiel). Erste Aufgabe: au
 (Michael Frayn, Noises Off) eine eigene Fassung für ihren DS-Kurs entwickeln. Lia will nicht klassisch kürzen,
 sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstellen behalten.
 
-## Stand (30.10.2026)
+## Stand (01.11.2026)
+- Lias Anhänge in Nachbesserungen: nachbesserung.anhaenge (auch für die Szenenaufgabe) legt je Datei eine Textfassung
+  daneben, Word-Kommentare stehen an deren Ende, der Prompt nennt sie. Vorher sah eine Nachbesserung Anhänge nicht
+  (Auftrag 7c35eb, Absage an Lia). Echter Lauf 20261101-165406-theater-ea89ad von Jan veranlasst, Ablauf und
+  Spielfassung um 17:31 an Lia: 8 Läufe, 16,80 USD, gilt ablauf-3.json, nach 2 Überarbeitungen noch unter „gut“: komik,
+  zeit. Von Hand gegen Lias 9 Anmerkungen geprüft: umgesetzt. Offene Punkte dazu unter Offene Punkte, Nr. 5.
 - Neue Aufträge aus Lias Web-App (Jans Okay 30.10., board-plan.md Punkt 8), gebaut und getestet. Spielfassung
   noch ohne echten Lauf (Jans Okay nötig, Lias Kontingent): „Spielfassung: …“ ist eine ganze Runde mit Lias Länge, Spieler*innen
   und „Was bleiben muss“, Ergebnis direkt an Lia, Meldung mit Kosten an Jan; „Szenenaufgabe: …“ ein Arbeitsblatt
@@ -173,6 +178,11 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 4. Neue Aufträge: Ist Lias Kontingent mitten in einer Spielfassung voll, startet ein erneuter Auftrag eine neue
    Runde (die alte ließe sich nur von Hand mit runde.py <ordner> fortsetzen). Erster echter Lauf je Art steht aus.
    Gibt Lia nur eine Länge (eine Zahl), gilt ±2 Minuten (Annahme, nicht mit Lia geklärt).
+5. Fassung vom 01.11., Fragen an Lia (über Jan), sie hat sie noch nicht in dieser Form bekommen:
+   - B04: Lloyd holt Selsdon B vor der Premiere mit der Handylampe aus den Reihen, für das Publikum wirkt es wie ein
+     Zuschauer. Lia wollte den Bruch der 4. Wand erst bei der Premiere. Der Agent nennt die Lösung im Ablauf-Dokument.
+   - B13: Die erste Heraustreten-Runde steht per Gong im Mini-Stück. Lia wollte das Heraustreten danach.
+   - Lias Nachricht nennt 37,5 Minuten, der Ablauf 37,75: Der Antworttext entsteht vor dem Prüfschritt.
 
 ## Gelernte Regeln
 - (noch keine)

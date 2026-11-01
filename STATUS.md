@@ -695,6 +695,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      d) Die Zuordnung „Gehört zu Reihe“ (zustand.py reihe_von) kennt nur die Web-App. Agenten sehen sie nicht, eine
         Rückmeldung zu 03b145/93e29e (Spielfassung, damals über Neu an unterricht) geht weiter an unterricht, nicht
         an theater.
+25. Bedarf aus dem Lia-Chat (01.11.2026, Lias Rückmeldung mit Datei zur Spielfassung):
+     a) Feedback-Dienst und Web-App: Eine angehängte Datei gilt immer als „eigene Fassung“ („mit deinen Kommentaren“,
+        „Grundlage ist Lias eigene Fassung, nicht dein letztes Ergebnis“). Lias Datei war eine Liste mit 9 Anmerkungen,
+        ohne Word-Kommentare und ohne Stücktext. Der Auftragstext stimmte deshalb nicht, ich habe ihn für den zweiten
+        Lauf (ea89ad) von Hand korrigiert. Für die nächste solche Datei fehlt die Unterscheidung noch.
+     b) Speicher: Ruhende Claude-Code-Chats behalten ihren Prozess (je etwa 150 MB). Am 01.11. um 16:47 waren es 47
+        Prozesse und rund 7,2 GB, der OOM-Killer beendete webapp, agentenzentrale, lia-zentrale, vinted-bot und
+        lia-theater. Dienste starteten neu, ein Auftrag blieb ohne Nachricht an Lia in neu/ liegen. Archivieren von 25
+        Chats gab 3,5 GB frei, danach 22 Prozesse (14 davon über 3 Tage alt, Herkunft nicht geklärt). Offen: Dauerlösung
+        (regelmäßig archivieren, Swap), und ob ein Abbruch durch den OOM-Killer Lia eine Nachricht geben soll.
 
 ## Gelernte Regeln
 - (noch keine)
