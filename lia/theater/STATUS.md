@@ -18,7 +18,7 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   20261101-193557-theater-1d2ad7, 19:36 zugestellt), Lias Antwort läuft wie bei der ersten Version auf ablauf-3.json.
   Dritte Version (Lia über Jan, 01.11. abends, von Hand): Rollen in der Fassung, Stichpunkte.docx und rollen_stichpunkte.py,
   nur knappe Eigenschaften ohne Zitate, Skript prüft auf Anführungszeichen und vier Wörter in Folge aus spielfassung.txt.
-  Noch nicht an Lia, wartet auf Jans Okay.
+  Mit Jans Okay an Lia (Auftrag 20261101-200249-theater-5587d2), Lias Antwort läuft wie zuvor auf ablauf-3.json.
 - Lias Anhänge in Nachbesserungen: nachbesserung.anhaenge (auch für die Szenenaufgabe) legt je Datei eine Textfassung
   daneben, Word-Kommentare stehen an deren Ende, der Prompt nennt sie. Vorher sah eine Nachbesserung Anhänge nicht
   (Auftrag 7c35eb, Absage an Lia). Echter Lauf 20261101-165406-theater-ea89ad von Jan veranlasst, Ablauf und
