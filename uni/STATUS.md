@@ -164,7 +164,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Kostengrenze GRENZE_USD = 50 je Recherche (Jan 02.11.), ein Fenster startet nur,
   wenn danach 5 USD Reserve frei sind. stand.json hält Kosten und fertige Stufen: Ein neuer Anlauf (Kontingent,
   Lauffehler) setzt fort und bezahlt nichts doppelt. Scheitert die Recherche ganz, kein Exposé (fehlgeschlagen).
-  Dauer: bis zu etwa 20 Läufe zu je höchstens 15 Minuten, in der Zeit blockiert der uni-Lauf (Fristen, Post).
+  Dauer: bis zu etwa 20 Läufe zu je höchstens 15 Minuten, nacheinander (2,5 bis 4 Stunden), in der Zeit
+  blockiert der uni-Lauf (Fristen, Post). Deshalb TimeoutStartSec=8h in uni/systemd/uni.service (Jan 02.11.).
   Echt geprüft: Crossref-Abgleich (10.1038/nature14539) und PDF-Zitat von arxiv.org. Sonst nur Unit-Tests.
 - WebFetch für uni und [webfetch] uni (36 Domains: Literatur, Verlage, Daten, Förderung, Weinig, Microtec) stehen
   seit 02.11. in shared/einstellungen.toml (../STATUS.md Punkt 27). Python prüft Belege nur auf diesen Domains,
