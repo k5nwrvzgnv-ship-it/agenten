@@ -89,10 +89,12 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
     Agent-Ordner unter `data/eingang/<ursprung>/eigene-<n>/`; Jans Entscheidung: die Agenten sehen es). Das
     schreibt also auch in lia/instanz und startet keinen Lauf; darum geht es immer. `zustand.py` liest es zum
     Anzeigen mit. Final nimmt den Auftrag aus „Wartet auf dich“, unter Fertig steht „Final“.
-  - Rückmeldung geben (`POST …/rueckmeldung`): Text (Pflicht), Datei mit Kommentaren. Über
-    `agentkit.fassungen.rueckmeldung`: die Datei wird eigene Fassung, dann ein Auftrag an `feedback` (bezug =
-    neueste fertige Fassung bzw. die Fassung der Datei, siehe „Rückmeldung je Datei“); der Feedback-Dienst liest
-    die Word-Kommentare und hängt die Datei an die Nachbesserung. Nur mit `WEBAPP_NEUER_AUFTRAG` test bzw. echt
+  - Rückmeldung geben (`POST …/rueckmeldung`): Text (Pflicht), optional eine Datei. Über
+    `agentkit.fassungen.rueckmeldung`: die Datei kommt mit ihrer Art in die Kette (fassung, anmerkungen, unklar),
+    dann ein Auftrag an `feedback` (bezug = neueste fertige Fassung bzw. die Fassung der Datei, siehe „Rückmeldung
+    je Datei“); der Feedback-Dienst richtet Zuordnung und Auftrag nach der Art aus und hängt die Datei an die
+    Nachbesserung. Im Verlauf: Fassung n, „Deine Anmerkungen“ bzw. „Deine Datei“ (ohne Nummer, nicht final
+    markierbar). Eine Fassung lädt Lia sonst über „Eigene Fassung“ hoch. Nur mit `WEBAPP_NEUER_AUFTRAG` test bzw. echt
     (startet lia-feedback.service). Sonst „Rückmeldungen gehen im Moment noch über Telegram“.
   - Alle POSTs mit Herkunftsprüfung und Token (`app.formular_lesen`), Aktionen nur an der ID des Ursprungs.
   - Echter Lauf 30.10. (nur lesend): alle 5 Ergebnisse 200, nichts gespeichert.
