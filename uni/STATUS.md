@@ -149,8 +149,28 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Zeitmarke, Offen/uneinig, eigene Ergänzungen, Prüfschritte). Python prüft (expose.pruefen), eine Nachbesserung in
   derselben Sitzung, und hängt data/expose/<kette>/fassung/<Titel>.md an. Antworten auf das Ergebnis überarbeiten
   dasselbe Exposé (Nachtrag im Protokoll). Übergangsweise .md, weil der Renderer keine Art "expose" hat; docx/PDF
-  und Mail mit Anhang an Böhme stehen als Bedarf in ../STATUS.md Punkt 26. Nur Unit-Tests, erster echter Lauf
-  mit dem Teams-Transkript vom 02.11. (Jan, Felix, Henri) steht aus.
+  und Mail mit Anhang an Böhme stehen als Bedarf in ../STATUS.md Punkt 26.
+  Umfang (Jan 02.11.: 2 bis 4 Seiten, kurz und knapp): expose.umfang, 650 bis 1500 Wörter in den Blöcken,
+  höchstens 12 Literaturangaben, höchstens 6 Überschriften Ebene 2; sonst Nachbesserung.
+- Recherche vor dem Exposé (recherche.py, 02.11., Jan: "aufwendig, Ergebnis verlässlich"), nur beim ersten
+  Auftrag der Kette, Ablage data/expose/<kette>/recherche/: eckpunkte.json (Claude stellt Fragen aus Transkript und
+  Mails, je Frage ein Suchfenster: literatur, methoden, daten, projekte, markt, regelwerk), je Fenster eigene
+  Opus-Sitzung mit zwei Durchgängen (<fenster>.json), Python prüft jeden Beleg (Zitat wörtlich nach NFKC auf der
+  Seite bzw. im PDF über agentkit.abruf, lokale Dateien unter data/ seitengenau, DOI gegen Crossref), eine
+  Nachbesserung, dann gegenpruefung.json (neue Sitzung: trägt das Zitat die Aussage?), geprueft.json und
+  Recherchebericht.md (hängt am Ergebnis). Status je Aussage: gesichert, teilweise, verworfen, unbelegt,
+  einschaetzung. Das Exposé darf nur Gesichertes als Tatsache nennen, Literatur nur zitierfähige Quellen mit DOI
+  oder Adresse bzw. verwendete Normen (recherche.literatur_pruefen, sonst Nachbesserung).
+  Kostengrenze GRENZE_USD = 20 je Recherche (Vorschlag, von Jan noch nicht bestätigt), ein Fenster startet nur,
+  wenn danach 5 USD Reserve frei sind. stand.json hält Kosten und fertige Stufen: Ein neuer Anlauf (Kontingent,
+  Lauffehler) setzt fort und bezahlt nichts doppelt. Scheitert die Recherche ganz, kein Exposé (fehlgeschlagen).
+  Dauer: bis zu etwa 20 Läufe zu je höchstens 15 Minuten, in der Zeit blockiert der uni-Lauf (Fristen, Post).
+  Echt geprüft: Crossref-Abgleich (10.1038/nature14539) und PDF-Zitat von arxiv.org. Sonst nur Unit-Tests.
+- Voraussetzung für den echten Lauf: ../STATUS.md Punkt 27 (WebFetch für uni und [webfetch] uni in
+  shared/einstellungen.toml). Ohne WebFetch sieht Claude nur Suchschnipsel. Ohne [webfetch]-Eintrag prüft Python
+  jede https-Adresse. Normen für den Lauf fehlen lokal vermutlich: DIN EN 14081-1, DIN EN 14080, DIN 4074-3/-4
+  (vorhanden: DIN 4074-1, DIN 4074-5, DIN EN 338). Erster echter Lauf mit dem Teams-Transkript vom 02.11. (Jan,
+  Felix, Henri, Auftrag "Exposé: ...") steht aus, Versand an Böhme war für Mittwoch 04.11. geplant.
 - Tests mit Meldungen: von OhneTelegram (tests/test_agent.py) erben, sonst landen sie echt in Telegram
   (passiert am 27.10. mit zwei Testnachrichten).
 - Tests schreiben nicht ins echte logs/*.log: tests/__init__.py richtet die Logger uni, uni-lernen und
