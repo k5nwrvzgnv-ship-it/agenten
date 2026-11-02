@@ -106,6 +106,7 @@ class Prompt(unittest.TestCase):
     def test_ohne_ort_und_gruendlich(self):
         p = kontext.prompt("Teilzeitantrag?", "", [], gruendlich=True)
         self.assertIn("keinen Ort", p)
+        self.assertIn("ganz allgemein sein", p)
         self.assertIn("gründlich", p)
         self.assertNotIn("Bisheriger Verlauf", p)
 
