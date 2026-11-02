@@ -172,7 +172,12 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Lauffehler) setzt fort und bezahlt nichts doppelt. Scheitert die Recherche ganz, kein Exposé (fehlgeschlagen).
   Dauer: bis zu etwa 20 Läufe zu je höchstens 15 Minuten, nacheinander (2,5 bis 4 Stunden), in der Zeit
   blockiert der uni-Lauf (Fristen, Post). Deshalb TimeoutStartSec=8h in uni/systemd/uni.service (Jan 02.11.).
-  Echt geprüft: Crossref-Abgleich (10.1038/nature14539) und PDF-Zitat von arxiv.org. Sonst nur Unit-Tests.
+  Erster echter Lauf 02.11. (Auftrag 20261102-165741-uni-ac9dcc, Transkript Jan/Felix/Henri): 24 Fragen, 163
+  Aussagen (36 gesichert, 87 teilweise, 1 verworfen, 9 unbelegt), 89 zitierfähige Quellen, mit Scopus 35,23 USD,
+  zweimal vom Kontingent unterbrochen (17:30, 19:20) und fortgesetzt. Exposé-Lauf endete an der Schrittgrenze
+  (30) nach dem Schreiben: seitdem wird eine geschriebene Fassung trotzdem gebaut. Überarbeitung nach Vorlage
+  (Auftrag 20261102-232434-uni-e64053): 1190 Wörter, 12 Quellen aus der Recherche, 13 [OFFEN] (u. a. Felix'
+  Matrikelnummer, Forschungsprojekt 1 oder 2, fehlende APA-Angaben bei 7 Quellen).
 - Scopus (scopus.py, 02.11.): Keine API (die Uni gibt kein Institutional Token heraus). Jan sucht selbst in Scopus
   (Claude in Chrome auf dem Mac, Prompt mit Suchstrings S1.., Export CSV mit Abstract, höchstens 300 je Suche,
   Protokoll "S1 | Treffer | exportiert | Datei | Vermerk"). Ablage recherche/scopus/ (*.csv, suchen.json,
