@@ -635,6 +635,12 @@ class TestExpose(OhneTelegram):
         self.aufrufe = []
         from tests.test_expose import GUELTIG
         self.gueltig = GUELTIG
+        r = self.hier / "data" / "expose" / ID / "recherche"
+        self.recherche = agent.recherche.Ergebnis(geprueft=r / "geprueft.json", bericht=r / "Recherchebericht.md",
+                                                  usd=7.0, zeilen=["Recherche: 2 Fragen"])
+        p = mock.patch.object(agent.recherche, "durchfuehren", return_value=self.recherche)
+        self.durchfuehren = p.start()
+        self.addCleanup(p.stop)
 
     def claude(self, *fassungen, ok=True):
         fassungen = list(fassungen)
@@ -649,31 +655,54 @@ class TestExpose(OhneTelegram):
 
     def test_erster_lauf_haengt_fassung_an(self):
         a = {"id": ID, "text": "Exposé: Lamellen\n\nAngehängte Dateien von Jan: ...", "modus": "erledigen"}
-        agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig))
+        agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig), netz=("s", "m"))
+        self.assertEqual(self.durchfuehren.call_args.args[1:], (self.hier / "data" / "expose" / ID, a,
+                                                                self.durchfuehren.call_args.args[3], "s", "m"))
         prompt, kw = self.aufrufe[0]
         self.assertIn(f"data/expose/{ID}/expose.json", prompt)
+        self.assertIn(f"data/expose/{ID}/recherche/geprueft.json", prompt)
         self.assertIn('"art": "expose"', prompt)
         self.assertIn(f"protokolle/{ID}.md", prompt)
         self.assertIsNone(kw["sitzung_fortsetzen"])
         args, kw = self.abschliessen.call_args
-        self.assertEqual((args[1], kw["sitzung"]), ("Lauf 1", "s1"))
-        self.assertEqual(kw["dateien"], [self.hier / "data" / "expose" / ID / "fassung" / "Fehlstellen - Holzlamellen.md"])
+        self.assertEqual((args[1], kw["sitzung"]), ("Lauf 1\n\nRecherche: 2 Fragen", "s1"))
+        self.assertEqual(kw["dateien"], [self.hier / "data" / "expose" / ID / "fassung" / "Fehlstellen - Holzlamellen.md",
+                                         self.recherche.bericht])
+
+    def test_recherche_gescheitert_kein_expose(self):
+        a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        self.durchfuehren.side_effect = agent.recherche.RechercheFehler("kein Suchfenster mit Ergebnis")
+        agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig), netz=("s", "m"))
+        self.assertEqual(self.aufrufe, [])
+        args, kw = self.abschliessen.call_args
+        self.assertIn("Recherche gescheitert, kein Exposé geschrieben", args[1])
+        self.assertEqual(kw["status"], "fehlgeschlagen")
+
+    def test_literatur_nicht_aus_recherche_wird_nachgebessert(self):
+        a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        self.recherche.geprueft.parent.mkdir(parents=True)
+        self.recherche.geprueft.write_text(json.dumps({"quellen": [{"url": "https://doi.org/10.1/x", "doi": "10.1/x",
+                                                                    "zitierfaehig": True}], "aussagen": []}))
+        ok = {**self.gueltig, "literatur": ["Muster, A. (2020): Titel. https://doi.org/10.1/x"]}
+        agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig, ok), netz=("s", "m"))
+        self.assertIn("ist keine geprüfte Quelle der Recherche", self.aufrufe[1][0])
+        self.assertEqual(len(self.abschliessen.call_args.kwargs["dateien"]), 2)
 
     def test_ungueltig_eine_nachbesserung(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
-        agent.expose_auftrag(a, a, laufen=self.claude({**self.gueltig, "datum": "x"}, self.gueltig))
+        agent.expose_auftrag(a, a, laufen=self.claude({**self.gueltig, "datum": "x"}, self.gueltig), netz=("s", "m"))
         self.assertIn("- datum:", self.aufrufe[1][0])
         self.assertEqual(self.aufrufe[1][1]["sitzung_fortsetzen"], "s1")
         _, kw = self.abschliessen.call_args
-        self.assertEqual((kw["sitzung"], len(kw["dateien"])), ("s2", 1))
+        self.assertEqual((kw["sitzung"], len(kw["dateien"])), ("s2", 2))  # Exposé und Recherchebericht
 
     def test_bleibt_ungueltig_steht_im_ergebnis(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
         kaputt = {**self.gueltig, "datum": "x"}
-        agent.expose_auftrag(a, a, laufen=self.claude(kaputt, kaputt))
+        agent.expose_auftrag(a, a, laufen=self.claude(kaputt, kaputt), netz=("s", "m"))
         args, kw = self.abschliessen.call_args
         self.assertIn("Exposé nicht übernommen", args[1])
-        self.assertEqual(kw["dateien"], [])
+        self.assertEqual(kw["dateien"], [self.recherche.bericht])  # der Bericht geht trotzdem an Jan
 
     def test_antwort_ueberarbeitet_expose_der_kette(self):
         start = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
@@ -686,7 +715,7 @@ class TestExpose(OhneTelegram):
 
     def test_ohne_expose_hinweis(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
-        agent.expose_auftrag(a, a, laufen=self.claude())
+        agent.expose_auftrag(a, a, laufen=self.claude(), netz=("s", "m"))
         self.assertIn("Es liegt noch kein Exposé vor.", self.abschliessen.call_args[0][1])
 
     def test_vor_mail_erkennung_und_auch_fuer_antworten(self):

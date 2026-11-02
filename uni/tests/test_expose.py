@@ -12,6 +12,7 @@ GUELTIG = {
     "bloecke": [
         {"typ": "ueberschrift", "text": "Problemstellung"},
         {"typ": "absatz", "text": "Fehlstellen | Äste"},
+        {"typ": "absatz", "text": " ".join(["Wort"] * 700)},  # Umfang: mindestens 650 Wörter
         {"typ": "ueberschrift", "text": "Daten", "ebene": 2},
         {"typ": "liste", "punkte": ["Kamera", "Licht"], "nummeriert": True},
         {"typ": "ueberschrift", "text": "Zeitplan"},
@@ -45,6 +46,17 @@ class TestPruefen(unittest.TestCase):
                      "bloecke[1].quellen: unbekanntes Feld", "bloecke[2].zeilen[0]: 1 Zellen, erwartet 2",
                      "bloecke[3].typ"):
             self.assertIn(teil, fehler)
+
+    def test_umfang_zwei_bis_vier_seiten(self):
+        lang = {**GUELTIG, "bloecke": GUELTIG["bloecke"] + [{"typ": "absatz", "text": " ".join(["x"] * 800)}]}
+        self.assertIn("sind 1513: kürzen", expose.pruefen(json.dumps(lang))[0])
+        kurz = {**GUELTIG, "bloecke": [b for b in GUELTIG["bloecke"] if len(b.get("text", "")) < 100]}
+        self.assertIn("sind 13: ausführen", expose.pruefen(json.dumps(kurz))[0])
+        viel = {**GUELTIG, "literatur": ["A (2020): T."] * 13,
+                "bloecke": GUELTIG["bloecke"] + [{"typ": "ueberschrift", "text": "U", "ebene": 2}] * 6}
+        fehler = "\n".join(expose.pruefen(json.dumps(viel)))
+        self.assertIn("literatur: höchstens 12 Angaben, sind 13", fehler)
+        self.assertIn("höchstens 6 Überschriften der Ebene 2, sind 7", fehler)
 
     def test_kein_json(self):
         self.assertTrue(expose.pruefen("{kaputt")[0].startswith("kein gültiges JSON"))
@@ -85,6 +97,12 @@ class TestBauen(unittest.TestCase):
         self.assertEqual(b.dateien, [])
         self.assertIn("- datum:", b.ungueltig)
         self.assertFalse((self.ordner / "fassung").exists())
+
+    def test_weitere_pruefung_nur_bei_gueltiger_beschreibung(self):
+        (self.ordner / "expose.json").write_text(json.dumps(GUELTIG))
+        b = expose.bauen(self.ordner, weitere=lambda d: [f"literatur[0]: {d['literatur'][0]} nicht geprüft"])
+        self.assertEqual((b.dateien, b.ungueltig), ([], "- literatur[0]: Muster, A. (2020): Titel. Verlag. nicht geprüft"))
+        self.assertEqual(len(expose.bauen(self.ordner, weitere=lambda d: []).dateien), 1)
 
 
 if __name__ == "__main__":

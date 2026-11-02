@@ -23,6 +23,11 @@ DATEI = "expose.json"
 STAND = ".gebaut.json"
 AUSLOESER = re.compile(r"^\s*expos[eé]\s*:", re.IGNORECASE)
 DATUM = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
+# Umfang (Jan 02.11.2026: 2 bis 4 Seiten, kurz und knapp; Henri: wenige Unterpunkte). Gezählt werden die Wörter
+# der Blöcke ohne Kopf und Literatur, A4 mit 11 pt fasst etwa 450 Wörter.
+WOERTER = (650, 1500)
+LITERATUR_MAX = 12
+UNTERPUNKTE_MAX = 6
 
 FORMAT = """Format der Beschreibung (JSON, reiner Text ohne Markdown, Zeilenumbruch \\n erlaubt):
 {
@@ -45,8 +50,10 @@ FORMAT = """Format der Beschreibung (JSON, reiner Text ohne Markdown, Zeilenumbr
 }
 Regeln: Pflicht sind art, titel, autoren, einrichtung, datum, bloecke. Überschriften ohne Nummer (Python
 nummeriert). Vor der ersten Ebene 2 steht eine Ebene 1. Tabellen: höchstens 8 Spalten, jede Zeile gleich viele
-Zellen wie der Kopf. Keine Quellenangaben wie "Transkript" oder Zeitmarken im Exposé, die gehören ins Protokoll.
-Andere Felder sind Fehler."""
+Zellen wie der Kopf. Umfang 2 bis 4 Seiten: {wmin} bis {wmax} Wörter in den Blöcken, höchstens {lit}
+Literaturangaben, höchstens {unter} Überschriften der Ebene 2. Keine Quellenangaben wie "Transkript" oder Zeitmarken im Exposé, die gehören ins Protokoll.
+Andere Felder sind Fehler.""".replace("{wmin}", str(WOERTER[0])).replace("{wmax}", str(WOERTER[1])) \
+    .replace("{lit}", str(LITERATUR_MAX)).replace("{unter}", str(UNTERPUNKTE_MAX))
 
 _FELDER = {"art", "titel", "untertitel", "autoren", "betreuung", "einrichtung", "rahmen", "datum", "bloecke",
            "literatur"}
@@ -156,6 +163,34 @@ def pruefen(text: str) -> list[str]:
             ebene1 = _block(b, f"bloecke[{i}]", fehler, ebene1)
     if "literatur" in d:
         _textliste(d["literatur"], "literatur", fehler, pflicht=False)
+    if not fehler:
+        fehler += umfang(d)
+    return fehler
+
+
+def woerter(d: dict) -> int:
+    """Wörter aller Blöcke (Überschriften, Absätze, Listen, Tabellen), ohne Kopf und Literatur."""
+    texte = []
+    for b in d["bloecke"]:
+        texte += [b.get("text", ""), b.get("titel", "")] + b.get("punkte", []) + b.get("kopf", [])
+        texte += [z for zeile in b.get("zeilen", []) for z in zeile]
+    return sum(len(t.split()) for t in texte)
+
+
+def umfang(d: dict) -> list[str]:
+    """Fehler, wenn das Exposé nicht in 2 bis 4 Seiten passt (Beschreibung ist sonst gültig)."""
+    fehler = []
+    n = woerter(d)
+    if not WOERTER[0] <= n <= WOERTER[1]:
+        richtung = "kürzen" if n > WOERTER[1] else "ausführen"
+        fehler.append(f"Umfang: {WOERTER[0]} bis {WOERTER[1]} Wörter in den Blöcken (2 bis 4 Seiten), sind {n}: "
+                      f"{richtung}")
+    if len(d.get("literatur", [])) > LITERATUR_MAX:
+        fehler.append(f"literatur: höchstens {LITERATUR_MAX} Angaben, sind {len(d['literatur'])}")
+    unter = sum(1 for b in d["bloecke"] if b["typ"] == "ueberschrift" and b.get("ebene", 1) == 2)
+    if unter > UNTERPUNKTE_MAX:
+        fehler.append(f"bloecke: höchstens {UNTERPUNKTE_MAX} Überschriften der Ebene 2, sind {unter} "
+                      "(vorläufige Gliederung, wenige Unterpunkte)")
     return fehler
 
 
@@ -205,8 +240,11 @@ def dateiname(titel: str) -> str:
     return kurse.sicherer_name(re.sub(r"\s*:\s*", " - ", titel))
 
 
-def bauen(exposeordner: Path) -> Bericht:
-    """Baut expose.json als <Titel>.md, wenn es neu oder geändert ist. Ungültig: Fehler für Claude."""
+def bauen(exposeordner: Path, weitere=None) -> Bericht:
+    """Baut expose.json als <Titel>.md, wenn es neu oder geändert ist. Ungültig: Fehler für Claude.
+
+    weitere(d) -> list[str]: zusätzliche Prüfung einer sonst gültigen Beschreibung (z. B. Literatur gegen die
+    geprüfte Recherche)."""
     bericht = Bericht()
     datei = exposeordner / DATEI
     if not datei.is_file():
@@ -218,7 +256,10 @@ def bauen(exposeordner: Path) -> Bericht:
     if stand.get(DATEI) == summe:
         return bericht
     text = roh.decode("utf-8", errors="replace")
-    if fehler := pruefen(text):
+    fehler = pruefen(text)
+    if not fehler and weitere:
+        fehler = weitere(json.loads(text))
+    if fehler:
         bericht.ungueltig = "\n".join(f"- {f}" for f in fehler)
         return bericht
     d = json.loads(text)
