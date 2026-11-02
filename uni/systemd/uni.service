@@ -10,5 +10,6 @@ OnFailure=ausfall@%n.service
 Type=oneshot
 WorkingDirectory=/home/agent/agenten/uni
 ExecStart=/home/agent/agenten/uni/.venv/bin/python agent.py
-TimeoutStartSec=45min
+# 8h statt 45min: die Exposé-Recherche läuft mehrere Stunden am Stück (Jan 02.11.2026)
+TimeoutStartSec=8h
 MemoryMax=1G
