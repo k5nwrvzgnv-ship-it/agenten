@@ -873,7 +873,8 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
             domains = einstellungen.webfetch_domains(einstellungen.lade(), AGENT)
             roh = ordner / recherche.ORDNER / "roh"
             netz = (recherche.seitentext_laden(domains, roh), recherche.crossref_laden(domains, roh))
-        return recherche.durchfuehren(HIER, ordner, a, laufen, *netz)
+        return recherche.durchfuehren(HIER, ordner, a, laufen, *netz, melden=lambda text, datei: melden(text, [datei]),
+                                      eingang=HIER / "data" / scopus.ORDNER)
 
     if a.get("sitzung"):
         eingang = [HIER / p for p in a.get("dateien") or []] + sorted((HIER / "data" / scopus.ORDNER).glob("*"))

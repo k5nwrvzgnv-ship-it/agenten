@@ -7,7 +7,9 @@ die Belegprüfung und die Beschreibung der Suche für Recherchebericht und Expos
 
 Ablage in data/expose/<kette>/recherche/scopus/:
 - *.csv: Export aus Scopus (Feldgruppen Citation, Bibliographical, Abstract & keywords)
-- suchen.json: {"S1": {"titel": "...", "suchstring": "TITLE-ABS-KEY(...)"}} (optional)
+- suchen.json: {"S1": {"titel": "...", "fragen": ["F7"], "suchstring": "TITLE-ABS-KEY(...)"}}, von Claude nach den
+  Eckpunkten vorgeschlagen und von suchen_pruefen geprüft. Daraus baut chrome_prompt den Prompt für Jan.
+- chrome-prompt.txt: dieser Prompt (geht als Datei mit der Meldung an Jan)
 - protokoll.txt: Protokoll aus Chrome, Zeilen "S1 | Treffer gesamt | exportiert | Dateiname | Vermerk" und
   "Scopus-Export, Datum: ..." (optional; ohne Zuordnung zählt jede Datei als eigene Suche)
 """
@@ -22,6 +24,12 @@ from pathlib import Path
 ORDNER = "scopus"
 PROTOKOLL = "protokoll.txt"
 SUCHEN = "suchen.json"
+PROMPT = "chrome-prompt.txt"
+SUCHEN_ANZAHL = (3, 10)
+SUCHSTRING_MAX = 1000
+EXPORT_MAX = 300
+FELDCODES = {"TITLE-ABS-KEY", "DOCTYPE"}
+OPERATOREN = {"AND", "OR", "NOT"}
 PFLICHT = ("EID", "Title", "Abstract")
 NEU_AB = 2020  # Spalte "seit 2020" in der Übersicht
 
@@ -198,6 +206,103 @@ def uebersicht_md(export: Export, verwendet: set[str] | None = None) -> list[str
         genutzt = [t for t in export.treffer if schluessel(t["url"]) in verwendet]
         z += ["", f"In der Recherche als Quelle verwendet: {len(genutzt)} Arbeiten aus dem Export."]
     return z
+
+
+# --- Suchen vorschlagen und Prompt für Claude in Chrome ---
+
+def suchstring_fehler(s: str) -> list[str]:
+    """Grobe Syntaxprüfung: Klammern und Anführungszeichen paarig, nur TITLE-ABS-KEY und DOCTYPE als Feldcodes."""
+    fehler = []
+    if not s.startswith("TITLE-ABS-KEY("):
+        fehler.append("muss mit TITLE-ABS-KEY( beginnen")
+    if s.count('"') % 2:
+        fehler.append("Anführungszeichen nicht paarig")
+    ohne_phrasen = re.sub(r'"[^"]*"', "", s)
+    tiefe = 0
+    for z in ohne_phrasen:
+        tiefe += {"(": 1, ")": -1}.get(z, 0)
+        if tiefe < 0:
+            break
+    if tiefe:
+        fehler.append("Klammern nicht paarig")
+    if fremd := sorted(set(re.findall(r"\b([A-Z][A-Z-]+)\s*\(", ohne_phrasen)) - FELDCODES - OPERATOREN):
+        fehler.append(f"nur TITLE-ABS-KEY und DOCTYPE, nicht {', '.join(fremd)}")
+    if len(s) > SUCHSTRING_MAX:
+        fehler.append(f"höchstens {SUCHSTRING_MAX} Zeichen")
+    return fehler
+
+
+def suchen_pruefen(d, fragen_ids: set[str]) -> list[str]:
+    """suchen.json von Claude: S1, S2, ... ohne Lücken, je Suche titel, fragen und ein gültiger suchstring."""
+    if not isinstance(d, dict) or not SUCHEN_ANZAHL[0] <= len(d) <= SUCHEN_ANZAHL[1]:
+        return [f"Objekt mit {SUCHEN_ANZAHL[0]} bis {SUCHEN_ANZAHL[1]} Suchen nötig"]
+    fehler = []
+    for i, (nr, x) in enumerate(d.items(), 1):
+        if nr != f"S{i}":
+            fehler.append(f"{nr}: Schlüssel muss S{i} sein")
+        if not isinstance(x, dict) or set(x) - {"titel", "fragen", "suchstring"}:
+            fehler.append(f"{nr}: Objekt mit titel, fragen, suchstring nötig")
+            continue
+        if not isinstance(x.get("titel"), str) or not x["titel"].strip():
+            fehler.append(f"{nr}.titel: Text nötig")
+        if not isinstance(x.get("fragen"), list) or not x["fragen"] or set(x["fragen"]) - fragen_ids:
+            fehler.append(f"{nr}.fragen: Liste aus {', '.join(sorted(fragen_ids))}")
+        if not isinstance(x.get("suchstring"), str):
+            fehler.append(f"{nr}.suchstring: Text nötig")
+        else:
+            fehler += [f"{nr}.suchstring: {f}" for f in suchstring_fehler(x["suchstring"].strip())]
+    return fehler
+
+
+def chrome_prompt(thema: str, suchen: dict[str, dict]) -> str:
+    """Prompt für Claude in Chrome auf Jans Mac: Suchen ausführen, als CSV exportieren, Protokoll ausgeben."""
+    teile = [f"{nr} {x['titel']}\n{x['suchstring'].strip()}\n" for nr, x in suchen.items()]
+    return f"""Du arbeitest in meinem Chrome-Browser auf scopus.com. Ich bin bereits über meine Universität angemeldet. \
+Gib niemals Zugangsdaten ein. Wenn eine Anmeldung, ein CAPTCHA oder eine Fehlermeldung zum Zugang erscheint: anhalten \
+und mir Bescheid sagen.
+
+Ziel: Für eine Literaturrecherche (Stand der Forschung eines Exposés: {thema}) führst du die {len(suchen)} Suchen unten \
+aus und exportierst die Treffer jeweils als CSV-Datei. Nutze ausschließlich die normale Such- und Exportfunktion von \
+Scopus. Lade keine Volltexte oder PDFs herunter.
+
+Vorgehen für JEDE Suche, in der Reihenfolge {next(iter(suchen))} bis {list(suchen)[-1]}:
+1. Öffne die erweiterte Suche ("Advanced document search").
+2. Füge den Suchstring exakt so ein, wie er unten steht, und starte die Suche.
+3. Notiere die Gesamtzahl der Treffer.
+4. Sortiere nach "Cited by (highest)".
+5. Hat die Suche mehr als {EXPORT_MAX} Treffer, exportiere nur die ersten {EXPORT_MAX} (im Exportdialog den Bereich \
+1 bis {EXPORT_MAX} angeben). Sonst alle.
+6. Export als CSV. Im Exportdialog diese Feldgruppen vollständig anhaken: "Citation information", "Bibliographical \
+information", "Abstract & keywords". "Include references" NICHT anhaken.
+7. Notiere den Namen der heruntergeladenen Datei.
+8. Prüfe kurz, ob unter den ersten 10 Treffern überwiegend Arbeiten zum Thema sind. Wenn nicht, vermerke das im \
+Protokoll. Ändere den Suchstring aber NICHT eigenmächtig.
+
+Suchen:
+
+{chr(10).join(teile)}
+
+Wenn du fertig bist, gib mir dieses Protokoll als reinen Text aus, ohne weitere Erklärungen davor oder danach:
+
+Scopus-Export, Datum: <heutiges Datum als TT.MM.JJJJ>
+<Nr> | <Trefferzahl gesamt> | <Anzahl exportiert> | <Dateiname> | <Vermerk>
+(eine Zeile je Suche, z. B. "S1 | 1234 | 300 | scopus_export_....csv | viele themenfremde Treffer")
+
+Schlägt eine Suche fehl (Syntaxfehler, Export klappt nicht), versuche es höchstens einmal neu. Danach vermerke den \
+Fehler im Protokoll und mach mit der nächsten Suche weiter.
+"""
+
+
+def anleitung(thema: str, anzahl: int) -> str:
+    """Meldung an Jan zum Chrome-Prompt (Telegram, kurz)."""
+    return (f"Exposé „{thema[:80]}“: Die Recherche läuft. Für den Stand der Forschung bitte {anzahl} Suchen in Scopus "
+            "machen, der Prompt für Claude in Chrome hängt an.\n"
+            "1. Alte scopus_export-Dateien aus Downloads wegräumen, bei Scopus anmelden, Prompt in Chrome einfügen.\n"
+            "2. Protokoll am Ende kopieren, dann im Terminal des Mac: pbpaste > ~/Downloads/scopus_protokoll.txt\n"
+            "3. Hochladen (Mac): scp ~/Downloads/scopus_export*.csv ~/Downloads/scopus_protokoll.txt "
+            "agents-user:~/agenten/uni/data/scopus/\n"
+            "Sind die Dateien vor dem Scopus-Schritt da (nach etwa 2 bis 3 Stunden), wertet die Recherche sie gleich "
+            "aus. Sonst nach dem Exposé darauf antworten: „Scopus einbauen“.")
 
 
 def uebernehmen(quellen: list[Path], text: str, ziel: Path) -> list[Path]:

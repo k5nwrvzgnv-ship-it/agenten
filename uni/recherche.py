@@ -7,7 +7,8 @@ Grundsatz wie bei lia/recherche: Claude sucht, Python prüft jeden Beleg. Ablauf
    Durchgänge (suchen, dann Lücken, Gegenpositionen, Primärquellen). Python prüft danach jeden Beleg: Zitat
    wörtlich auf der Seite bzw. im PDF oder auf der Seite der lokalen Datei, DOI gegen Crossref. Durchgefallenes
    geht einmal zurück in dieselbe Sitzung. Ergebnis <fenster>-geprueft.json.
-   Liegt Jans Scopus-Export in recherche/scopus/ (scopus.py), folgt eine eigene Sitzung für die Fragen aus
+   Nach den Eckpunkten schlägt Claude Suchen für Scopus vor (scopus/suchen.json), Python prüft sie und schickt Jan
+   den Prompt für Claude in Chrome. Liegt Jans Scopus-Export in recherche/scopus/ (scopus.py), folgt eine eigene Sitzung für die Fragen aus
    Literatur, Methoden und Daten mit der Kandidatenliste scopus.md. Zitate aus einem Abstract prüft Python gegen
    den Export. Kommt der Export erst nach der Gegenprüfung, läuft sie danach noch einmal (Nachtrag).
 3. gegenpruefung.json: neue Sitzung, je belegter Aussage "trägt das Zitat die Aussage?" (ja, teilweise, nein),
@@ -170,6 +171,24 @@ Du hast höchstens etwa 25 Arbeitsschritte. Schreib {pfad} früh (nach etwa 12 S
 danach, damit nichts verloren geht:
 {format}
 Antworte danach mit einem Satz (Zahl der Aussagen und Lücken)."""
+
+PROMPT_SCOPUS_SUCHEN = """Für die Recherche zu einem Exposé sucht Jan zusätzlich selbst in Scopus (erweiterte Suche)
+und exportiert die Treffer. Daraus entsteht der Stand der Forschung. Thema: {thema}
+
+Fragen, die die Literatursuche beantworten soll:
+{fragen}
+
+Formuliere {min} bis {max} Suchen in Scopus-Syntax, die zusammen den Stand der Forschung zu diesen Fragen abdecken:
+- Je Suche ein Strang (z. B. Verfahren, Übersichtsarbeiten, Datensätze, Vergleich mit dem Menschen, Anwendung),
+  englische Fachbegriffe mit Synonymen und Trunkierung (*), Phrasen in "...".
+- Nur TITLE-ABS-KEY(...) mit AND, OR, AND NOT, bei Bedarf AND PUBYEAR > JJJJ und AND DOCTYPE(re) für eine Suche nach
+  Übersichtsarbeiten. Keine anderen Feldcodes.
+- Mehrdeutige Begriffe (z. B. board, inspection, grading) nur zusammen mit dem Fachgebiet, sonst kommen viele
+  fachfremde Treffer (Medizin, Elektronik).
+- Je Suche sollen etwa 50 bis 500 Treffer zu erwarten sein: zu breite Suchen eingrenzen.
+Schreib {pfad}:
+{{"S1": {{"titel": "kurzer deutscher Titel", "fragen": ["F7"], "suchstring": "TITLE-ABS-KEY(...) AND PUBYEAR > 2017"}}}}
+Schlüssel S1, S2, ... ohne Lücken. Antworte danach mit einem Satz."""
 
 PROMPT_WEITER = """Zweiter Durchgang für dasselbe Suchfenster. Lies {pfad} und such gezielt weiter:
 - Fragen ohne oder mit nur einer Quelle, und was unter luecken steht.
@@ -598,11 +617,13 @@ def _fragen_text(fragen: list[dict]) -> str:
 
 
 def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, metadaten,
-                 grenze_usd: float = GRENZE_USD) -> Ergebnis:
+                 grenze_usd: float = GRENZE_USD, melden=None, eingang: Path | None = None) -> Ergebnis:
     """Ganze Recherche für einen Exposé-Auftrag (setzt fort, was in ordner/recherche schon fertig ist).
 
     laufen wie agentkit.claude_lauf.laufen; Kontingent- und Lauffehler gehen an den Aufrufer (Auftrag bleibt
     offen, der nächste Anlauf setzt fort). Ein Suchfenster, das scheitert, hält die anderen nicht auf.
+    melden(text, datei): schickt Jan den Chrome-Prompt für Scopus (ohne melden kein Vorschlag).
+    eingang: Ordner, in den Jan Scopus-Exporte legt (data/scopus/), vor dem Scopus-Schritt übernommen.
     """
     r = ordner / ORDNER
     r.mkdir(parents=True, exist_ok=True)
@@ -634,6 +655,11 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
         fertig("eckpunkte")
     eck = _lies(eck_pfad)
 
+    # 1b. Suchen für Scopus vorschlagen, Jan bekommt den Prompt für Claude in Chrome
+    if melden and "scopus_suchen" not in stand["fertig"] and not (r / scopus.ORDNER / scopus.SUCHEN).exists():
+        _scopus_suchen(hier, r, eck, erg, lauf, melden)
+        fertig("scopus_suchen")
+
     # 2. Suchfenster
     geprueft_fenster = {}
     for name, (titel, hinweis) in FENSTER.items():
@@ -661,6 +687,9 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
         fertig(name)
 
     # 2b. Systematische Literatursuche aus Jans Scopus-Export (nur, wenn er vorliegt)
+    if eingang and eingang.is_dir() and scopus.uebernehmen(sorted(eingang.glob("*")), "", r / scopus.ORDNER) \
+            and SCOPUS in stand["fertig"]:
+        stand["fertig"].remove(SCOPUS)  # neuer Export: noch einmal auswerten
     export = None
     try:
         export = scopus.einlesen(r / scopus.ORDNER) if (r / scopus.ORDNER).is_dir() else None
@@ -726,6 +755,34 @@ def _datei_fehler(pfad: Path, pruefen) -> list[str]:
         return pruefen(_lies(pfad))
     except RechercheFehler as f:
         return [str(f)]
+
+
+def _scopus_suchen(hier, r, eck, erg, lauf, melden):
+    """Claude schlägt Suchen vor, Python prüft sie (eine Nachbesserung) und schickt Jan den Chrome-Prompt."""
+    fragen = [f for f in eck["fragen"] if f["fenster"] in SCOPUS_FUER]
+    if not fragen:
+        return
+    pfad = r / scopus.ORDNER / scopus.SUCHEN
+    pfad.parent.mkdir(exist_ok=True)
+    ids = {f["id"] for f in fragen}
+    pruef = lambda d: scopus.suchen_pruefen(d, ids)  # noqa: E731
+    e = lauf(PROMPT_SCOPUS_SUCHEN.format(thema=eck["thema"], fragen=_fragen_text(fragen), min=scopus.SUCHEN_ANZAHL[0],
+                                         max=scopus.SUCHEN_ANZAHL[1], pfad=pfad.relative_to(hier)))
+    fehler = _datei_fehler(pfad, pruef)
+    if fehler and e.sitzung:
+        lauf(PROMPT_DATEI_NACHBESSERN.format(pfad=pfad.relative_to(hier), fehler="\n".join(fehler)), e.sitzung)
+        fehler = _datei_fehler(pfad, pruef)
+    if fehler:
+        pfad.unlink(missing_ok=True)
+        erg.zeilen.append("Keine Scopus-Suchen vorgeschlagen (ungültig): " + "; ".join(fehler[:5]))
+        return
+    suchen = _lies(pfad)
+    prompt = r / scopus.ORDNER / scopus.PROMPT
+    prompt.write_text(scopus.chrome_prompt(eck["thema"], suchen), encoding="utf-8")
+    try:
+        melden(scopus.anleitung(eck["thema"], len(suchen)), prompt)
+    except Exception as f:  # noqa: BLE001 – ohne Meldung geht die Recherche weiter, Jan erfährt es im Ergebnis
+        erg.zeilen.append(f"Scopus-Prompt nicht gemeldet ({f}), liegt unter {prompt.relative_to(hier)}")
 
 
 def _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, seitentext, metadaten, grenze_usd):

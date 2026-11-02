@@ -93,6 +93,42 @@ class Einlesen(unittest.TestCase):
             scopus.einlesen(self.o)
 
 
+class Vorschlag(unittest.TestCase):
+    def test_suchstring(self):
+        self.assertEqual(scopus.suchstring_fehler('TITLE-ABS-KEY(a AND NOT ("b (c" OR d*)) AND PUBYEAR > 2017 '
+                                                  'AND DOCTYPE(re)'), [])
+        fehler = "\n".join(scopus.suchstring_fehler('knot AND AUTHOR(x) AND "offen'))
+        for teil in ("muss mit TITLE-ABS-KEY(", "Anführungszeichen", "nicht AUTHOR"):
+            self.assertIn(teil, fehler)
+        self.assertIn("Klammern", scopus.suchstring_fehler("TITLE-ABS-KEY((a OR b)")[0])
+
+    def test_suchen_pruefen(self):
+        gut = {"S1": {"titel": "A", "fragen": ["F7"], "suchstring": "TITLE-ABS-KEY(a)"},
+               "S2": {"titel": "B", "fragen": ["F8"], "suchstring": "TITLE-ABS-KEY(b)"},
+               "S3": {"titel": "C", "fragen": ["F7", "F8"], "suchstring": "TITLE-ABS-KEY(c)"}}
+        self.assertEqual(scopus.suchen_pruefen(gut, {"F7", "F8"}), [])
+        self.assertIn("3 bis 10", scopus.suchen_pruefen({"S1": gut["S1"]}, {"F7"})[0])
+        schlecht = {"S1": gut["S1"], "S3": {**gut["S2"], "fragen": ["F1"]}, "S4": {"titel": "", "suchstring": 1}}
+        fehler = "\n".join(scopus.suchen_pruefen(schlecht, {"F7", "F8"}))
+        for teil in ("S3: Schlüssel muss S2", "S3.fragen", "S4.titel", "S4.suchstring: Text"):
+            self.assertIn(teil, fehler)
+
+    def test_chrome_prompt_und_anleitung(self):
+        suchen = {"S1": {"titel": "Äste", "suchstring": "TITLE-ABS-KEY(knot*)"},
+                  "S2": {"titel": "Reviews", "suchstring": "TITLE-ABS-KEY(wood) AND DOCTYPE(re)"}}
+        p = scopus.chrome_prompt("Fehlstellen an Lamellen", suchen)
+        for teil in ("Gib niemals Zugangsdaten ein", "Exposés: Fehlstellen an Lamellen", "Reihenfolge S1 bis S2",
+                     "S1 Äste\nTITLE-ABS-KEY(knot*)", "die ersten 300", "<Nr> | <Trefferzahl gesamt>",
+                     "Lade keine Volltexte"):
+            self.assertIn(teil, p)
+        a = scopus.anleitung("Fehlstellen", 2)
+        self.assertIn("2 Suchen in Scopus", a)
+        self.assertIn("agents-user:~/agenten/uni/data/scopus/", a)
+        # Protokoll, wie Chrome es ausgeben soll, liest protokoll_lesen
+        self.assertEqual(scopus.protokoll_lesen("S1 | 1234 | 300 | scopus_export_a.csv | viele fremde")[1]["S1"]
+                         ["datei"], "scopus_export_a.csv")
+
+
 class Uebernehmen(unittest.TestCase):
     def test_csv_und_protokoll(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -36,6 +36,8 @@ SC = {"aussagen": [{"frage": "F1", "art": "tatsache", "text": "Äste in Lamellen
       "quellen": [{"url": "https://doi.org/10.1234/abc", "titel": "Knot detection with YOLO", "autoren": ["Muster, A."],
                    "jahr": 2023, "doi": "10.1234/ABC", "art": "artikel"}],
       "luecken": ["Keine Studie mit Smartphones"]}
+SUCHEN = {f"S{i}": {"titel": f"Suche {i}", "fragen": ["F1"], "suchstring": f'TITLE-ABS-KEY(knot* AND "wood {i}")'}
+          for i in (1, 2, 3)}
 
 
 def seitentext(url):
@@ -175,7 +177,7 @@ class TestDurchfuehren(Ordner):
     def claude(self, antworten: dict, usd=1.0):
         def laufen(agent, hier, prompt, **kw):
             self.aufrufe.append((prompt, kw))
-            name = re.search(r"recherche/(\w+)\.json", prompt).group(1)
+            name = re.search(r"recherche/([\w/]+)\.json", prompt).group(1)
             if antworten.get(name):
                 (self.ordner / "recherche" / f"{name}.json").write_text(json.dumps(antworten[name].pop(0)))
             return Ergebnis(text="ok", sitzung=f"s{len(self.aufrufe)}", ok=True, usd=usd)
@@ -251,6 +253,63 @@ class TestDurchfuehren(Ordner):
         self.assertFalse(recherche.scopus_nachtrag(self.ordner))  # schon ausgewertet
         self.assertTrue(recherche.scopus_nachtrag(self.ordner, neu=True))  # neue Dateien: noch einmal
         self.assertEqual(json.loads((r / "stand.json").read_text())["fertig"], ["eckpunkte"])
+
+    def test_scopus_suchen_gehen_als_chrome_prompt_an_jan(self):
+        gemeldet = []
+        antworten = {"eckpunkte": [ECK], "scopus/suchen": [SUCHEN], "literatur": [LIT, LIT], "regelwerk": [REG, REG],
+                     "gegenpruefung": [self.gegen()]}
+        erg = recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"},
+                                     self.claude(antworten), seitentext, lambda d: META,
+                                     melden=lambda text, datei: gemeldet.append((text, datei)))
+        self.assertIn("F1 (literatur)", self.aufrufe[1][0])
+        self.assertNotIn("F2 (regelwerk)", self.aufrufe[1][0])
+        self.assertEqual(len(self.aufrufe), 7)
+        (text, datei), = gemeldet
+        self.assertIn("3 Suchen in Scopus", text)
+        self.assertIn('S2 Suche 2\nTITLE-ABS-KEY(knot* AND "wood 2")', datei.read_text())
+        self.assertNotIn("Scopus", erg.bericht.read_text())  # ohne Export kein Abschnitt
+        self.aufrufe.clear()
+        recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"}, self.claude({}), seitentext,
+                               lambda d: META, melden=lambda text, datei: gemeldet.append((text, datei)))
+        self.assertEqual((self.aufrufe, len(gemeldet)), ([], 1))  # neuer Anlauf: nicht noch einmal
+
+    def test_ungueltige_scopus_suchen_keine_meldung(self):
+        gemeldet = []
+        kaputt = {"S1": {"titel": "x", "fragen": ["F1"], "suchstring": "AUTHOR(x)"}}
+        antworten = {"eckpunkte": [ECK], "scopus/suchen": [kaputt, kaputt], "literatur": [LIT, LIT],
+                     "regelwerk": [REG, REG], "gegenpruefung": [self.gegen()]}
+        erg = recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"},
+                                     self.claude(antworten), seitentext, lambda d: META,
+                                     melden=lambda text, datei: gemeldet.append((text, datei)))
+        self.assertEqual(gemeldet, [])
+        self.assertIn("Keine Scopus-Suchen vorgeschlagen", "\n".join(erg.zeilen))
+        self.assertFalse((self.ordner / "recherche" / "scopus" / "suchen.json").exists())
+
+    def test_meldung_scheitert_recherche_laeuft_weiter(self):
+        def melden(text, datei):
+            raise OSError("Zentrale weg")
+        antworten = {"eckpunkte": [ECK], "scopus/suchen": [SUCHEN], "literatur": [LIT, LIT], "regelwerk": [REG, REG],
+                     "gegenpruefung": [self.gegen()]}
+        erg = recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"},
+                                     self.claude(antworten), seitentext, lambda d: META, melden=melden)
+        self.assertIn("Scopus-Prompt nicht gemeldet (Zentrale weg), liegt unter data/expose/k1/recherche/scopus/"
+                      "chrome-prompt.txt", "\n".join(erg.zeilen))
+
+    def test_export_im_eingang_wird_im_ersten_durchgang_ausgewertet(self):
+        eingang = self.hier / "data" / "scopus"
+        eingang.mkdir(parents=True)
+        (eingang / "eins.csv").write_text(SCOPUS_CSV)
+        (eingang / "scopus_protokoll.txt").write_text("Scopus-Export, Datum: 03.11.2026\nS1 | 57 | 1 | eins.csv |\n")
+        gegen = self.gegen()
+        gegen["urteile"].append({"id": "scopus-1", "traegt": "ja", "fehlt": ""})
+        antworten = {"eckpunkte": [ECK], "literatur": [LIT, LIT], "regelwerk": [REG, REG], "scopus": [SC, SC],
+                     "gegenpruefung": [gegen]}
+        erg = recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"},
+                                     self.claude(antworten), seitentext, lambda d: META, eingang=eingang)
+        self.assertEqual(list(eingang.iterdir()), [])
+        md = erg.bericht.read_text()
+        self.assertIn("Suche in Scopus am 03.11.2026", md)
+        self.assertIn("| S1 | eins.csv | 57 | 1 |", md)
 
     def test_kostengrenze_und_gescheitertes_fenster(self):
         antworten = {"eckpunkte": [ECK], "literatur": [{"kaputt": 1}], "gegenpruefung": []}

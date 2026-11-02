@@ -658,6 +658,10 @@ class TestExpose(OhneTelegram):
         agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig), netz=("s", "m"))
         self.assertEqual(self.durchfuehren.call_args.args[1:], (self.hier / "data" / "expose" / ID, a,
                                                                 self.durchfuehren.call_args.args[3], "s", "m"))
+        self.assertEqual(self.durchfuehren.call_args.kwargs["eingang"], self.hier / "data" / "scopus")
+        with mock.patch.object(agent.meldungen, "melden") as m:
+            self.durchfuehren.call_args.kwargs["melden"]("Bitte in Scopus suchen", Path("p.txt"))
+        self.assertEqual(m.call_args.kwargs["dateien"], [Path("p.txt")])
         prompt, kw = self.aufrufe[0]
         self.assertIn(f"data/expose/{ID}/expose.json", prompt)
         self.assertIn(f"data/expose/{ID}/recherche/geprueft.json", prompt)
