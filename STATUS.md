@@ -723,6 +723,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
           Lia nichts, der Auftrag bleibt in neu/ bis zum nächsten Dienststart.
         Plan liegt bei Jan, Umsetzung erst nach seinem Okay: 14 Prozesse beenden, automatisch archivieren, Swap,
         Speicher-Wächter, einmaliger Neustart abgebrochener Lia-Aufträge.
+26. Bedarf aus uni (02.11.2026, Plan von Jan freigegeben): Exposé für das Forschungsprojekt (Fehlstellenerkennung
+    an Holzlamellen, Betreuung Prof. Böhme) aus einem Teams-Transkript. uni-Teil gebaut (uni/expose.py): Claude
+    schreibt data/expose/<kette>/expose.json, uni prüft selbst und schickt bis auf Weiteres eine .md-Fassung.
+    a) shared/renderer (Renderer-Chat): neue Art "expose" (docx A4 und PDF) mit genau dem Format aus
+       uni/expose.py (FORMAT, pruefen): Titelblatt mit titel, untertitel, autoren, betreuung, einrichtung, rahmen,
+       datum; bloecke ueberschrift (ebene 1/2, automatisch nummeriert), absatz, liste (nummeriert), tabelle (titel,
+       kopf, zeilen, höchstens 8 Spalten); literatur als Verzeichnis am Ende. Ausdrücklich ohne quellen und
+       kennzeichnung (das Exposé geht an den Professor, Belege stehen nur im Protokoll). Stellen "[OFFEN: ...]"
+       im Text gut sichtbar hervorheben (Jan muss sie vor dem Versand füllen). Kopf/Fußzeile ohne „Vorlesung
+       vom“. Danach baut uni mit renderer.bauen wie bei Lernblättern (eigenes Profil, eigener Chat).
+    b) agentkit.mail (Hauptordner-Chat): Anhänge beim Senden (Entwurf nennt Dateien aus dem Agent-Ordner, Python
+       prüft Pfad und Größe, die Freigabe zeigt die Anhänge). Dann kann uni die Mail an Böhme mit Exposé zur
+       Freigabe vorlegen; bis dahin schickt Jan selbst.
 
 ## Gelernte Regeln
 - (noch keine)
