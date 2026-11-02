@@ -707,6 +707,20 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
     return erg
 
 
+def scopus_nachtrag(ordner: Path, neu: bool = False) -> bool:
+    """Wartet ein Scopus-Export der Kette auf Auswertung? Nur nach einer ersten Recherche (sonst wertet sie ihn
+    ohnehin aus). neu: gerade neue Dateien abgelegt, dann wird er auch nach einer früheren Auswertung neu bewertet."""
+    r = ordner / ORDNER
+    stand_pfad = r / "stand.json"
+    if not stand_pfad.exists() or not any((r / scopus.ORDNER).glob("*.csv")):
+        return False
+    stand = json.loads(stand_pfad.read_text())
+    if neu and SCOPUS in stand["fertig"]:
+        stand["fertig"].remove(SCOPUS)
+        _schreib(stand_pfad, stand)
+    return SCOPUS not in stand["fertig"]
+
+
 def _datei_fehler(pfad: Path, pruefen) -> list[str]:
     try:
         return pruefen(_lies(pfad))

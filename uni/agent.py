@@ -47,6 +47,7 @@ import literatur
 import normen
 import postfach
 import recherche
+import scopus
 import termine
 import transkripte
 import weitergabe
@@ -798,6 +799,8 @@ Quellen, in dieser Reihenfolge:
   Widersprüche). Aussagen mit status "gesichert" darfst du als Tatsache schreiben, "teilweise" nur vorsichtig
   und ohne das, was unter fehlt steht, "einschaetzung" nur als Einschätzung. "unbelegt" und "verworfen" nicht
   verwenden. Offene Fragen und Lücken der Recherche gehören als [OFFEN: ...] oder als Arbeitsschritt ins Exposé.
+  Steht dort literatursuche (Scopus), nenn im Stand der Forschung in einem Satz Datenbank, Datum und Umfang der
+  Suche (Zahl der gesichteten Arbeiten).
 - Bisheriger Schriftwechsel zum Projekt: Grep nach Stichworten des Themas und dem Namen der Betreuung in
   data/mails/ und data/mailauftraege/*/kontext.json (dort auch Jans eigene Mails). Fragen der Betreuung
   (Zeitplan, Inhalt) soll das Exposé beantworten. Namen der Gruppe in der Schreibweise der Mails.
@@ -833,9 +836,15 @@ PROMPT_EXPOSE_ANTWORT = """Jan antwortet zum Exposé:
 
 Überarbeite {ordner}/expose.json so, wie Jan es will (gleiches Format, gleiche Regeln: nichts erfinden,
 [OFFEN: ...] für Lücken, 2 bis 4 Seiten, Literatur nur aus {ordner}/recherche/geprueft.json). Neue angehängte
-Dateien (z. B. ein weiteres Transkript) beziehst du ein.
+Dateien (z. B. ein weiteres Transkript) beziehst du ein.{nachtrag}
 Ergänze protokolle/{id}.md um einen Abschnitt "Nachtrag" (was sich geändert hat, Quellen).
 Deine letzte Antwort ist wieder die Kurzfassung für Telegram (höchstens 10 Zeilen), ohne Pfad zum Exposé."""
+
+NACHTRAG_SCOPUS = """
+Die Recherche ist jetzt um die systematische Literatursuche in Scopus ergänzt ({geprueft} ist neu: Aussagen
+scopus-..., neue Gegenprüfung, literatursuche). Arbeite sie in den Stand der Forschung ein, auch wenn Jan das oben
+nicht eigens schreibt, mit denselben Regeln wie beim ersten Exposé (status, zitierfaehig, Literatur nur aus der
+Recherche), und nenn in einem Satz Datenbank, Datum und Umfang der Suche."""
 
 PROMPT_EXPOSE_NACHBESSERN = """Python hat das Exposé nicht übernommen, die Beschreibung ist ungültig:
 {fehler}
@@ -846,7 +855,9 @@ Korrigiere alle genannten Stellen in {ordner}/expose.json und antworte mit einem
 def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -> None:
     """Exposé schreiben (start = a) oder überarbeiten (Antwort in der Kette von start), höchstens eine Nachbesserung.
 
-    Vor dem ersten Exposé läuft die Recherche (recherche.py), sie setzt bei einem neuen Anlauf fort.
+    Vor dem ersten Exposé läuft die Recherche (recherche.py), sie setzt bei einem neuen Anlauf fort. Bringt eine
+    Antwort einen Scopus-Export mit (CSV als Anhang oder in data/scopus/, Protokoll im Text oder als .txt), läuft
+    die Recherche als Nachtrag weiter und das Exposé wird damit überarbeitet.
     netz = (seitentext, metadaten) für die Belegprüfung, Standard: agentkit.abruf mit [webfetch] uni.
     Wirft WARTEN und LaufFehler weiter (wie die übrigen Aufträge in auftrag_bearbeiten).
     """
@@ -855,15 +866,33 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
     (HIER / "protokolle").mkdir(exist_ok=True)
     pfad = ordner.relative_to(HIER)
     zeilen, dateien = [], []
-    if a.get("sitzung"):
-        prompt = PROMPT_EXPOSE_ANTWORT.format(text=a["text"], ordner=pfad, id=start["id"])
-    else:
+
+    def recherchieren() -> recherche.Ergebnis:
+        nonlocal netz
         if netz is None:
             domains = einstellungen.webfetch_domains(einstellungen.lade(), AGENT)
             roh = ordner / recherche.ORDNER / "roh"
             netz = (recherche.seitentext_laden(domains, roh), recherche.crossref_laden(domains, roh))
+        return recherche.durchfuehren(HIER, ordner, a, laufen, *netz)
+
+    if a.get("sitzung"):
+        eingang = [HIER / p for p in a.get("dateien") or []] + sorted((HIER / "data" / scopus.ORDNER).glob("*"))
+        neu = scopus.uebernehmen(eingang, a["text"], ordner / recherche.ORDNER / scopus.ORDNER)
+        nachtrag = ""
+        if recherche.scopus_nachtrag(ordner, neu=bool(neu)):
+            try:
+                r = recherchieren()
+            except recherche.RechercheFehler as f:
+                logger.error("Scopus-Nachtrag zum Exposé %s gescheitert: %s", start["id"], f)
+                zeilen.append(f"Scopus-Nachtrag gescheitert, Exposé ohne Scopus überarbeitet: {f}")
+            else:
+                zeilen += r.zeilen
+                dateien.append(r.bericht)
+                nachtrag = NACHTRAG_SCOPUS.format(geprueft=r.geprueft.relative_to(HIER))
+        prompt = PROMPT_EXPOSE_ANTWORT.format(text=a["text"], ordner=pfad, id=start["id"], nachtrag=nachtrag)
+    else:
         try:
-            r = recherche.durchfuehren(HIER, ordner, a, laufen, *netz)
+            r = recherchieren()
         except recherche.RechercheFehler as f:
             logger.error("Recherche zum Exposé %s gescheitert: %s", start["id"], f)
             auftraege.abschliessen(a["id"], f"Recherche gescheitert, kein Exposé geschrieben:\n{f}",

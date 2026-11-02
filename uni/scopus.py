@@ -201,10 +201,13 @@ def uebersicht_md(export: Export, verwendet: set[str] | None = None) -> list[str
 
 
 def uebernehmen(quellen: list[Path], text: str, ziel: Path) -> list[Path]:
-    """CSV-Dateien nach ziel verschieben, ein Protokoll im Text dazulegen. Gibt die übernommenen Dateien zurück."""
+    """CSV-Dateien nach ziel verschieben, ein Protokoll (im Text oder als .txt unter quellen) dazulegen.
+    Gibt die übernommenen CSV-Dateien zurück. Ohne CSV bleibt alles liegen."""
     csvs = [p for p in quellen if p.suffix.lower() == ".csv" and p.is_file()]
     if not csvs:
         return []
+    protokolle = [p for p in quellen if p.suffix.lower() == ".txt" and p.is_file()
+                  and ist_protokoll(p.read_text(encoding="utf-8", errors="replace"))]
     ziel.mkdir(parents=True, exist_ok=True)
     aus = []
     for p in csvs:
@@ -213,7 +216,11 @@ def uebernehmen(quellen: list[Path], text: str, ziel: Path) -> list[Path]:
             neu = ziel / f"{p.stem}-{len(list(ziel.glob('*.csv')))}{p.suffix}"
         shutil.move(str(p), neu)
         aus.append(neu)
-    if ist_protokoll(text):
-        with open(ziel / PROTOKOLL, "a", encoding="utf-8") as h:
-            h.write(text.rstrip() + "\n")
+    for t in [text] + [p.read_text(encoding="utf-8", errors="replace") for p in protokolle]:
+        if ist_protokoll(t):
+            with open(ziel / PROTOKOLL, "a", encoding="utf-8") as h:
+                h.write(t.rstrip() + "\n")
+    for p in protokolle:
+        if p.resolve() != (ziel / PROTOKOLL).resolve():
+            p.unlink()
     return aus

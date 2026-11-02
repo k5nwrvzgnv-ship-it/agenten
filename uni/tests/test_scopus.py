@@ -106,6 +106,18 @@ class Uebernehmen(unittest.TestCase):
             self.assertIn("S1 | 1.234", (ziel / scopus.PROTOKOLL).read_text())
             self.assertEqual(scopus.uebernehmen([t / "bild.png"], PROTOKOLL, ziel), [])
 
+    def test_protokoll_als_datei(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            t = Path(tmp)
+            (t / "zwei.csv").write_text(KOPF + C, encoding="utf-8")
+            (t / "protokoll.txt").write_text(PROTOKOLL, encoding="utf-8")
+            (t / "notiz.txt").write_text("nur eine Notiz", encoding="utf-8")
+            ziel = t / "kette"
+            scopus.uebernehmen([t / "zwei.csv", t / "protokoll.txt", t / "notiz.txt"], "Scopus einbauen", ziel)
+            self.assertEqual(scopus.einlesen(ziel).suchen["S2"]["gesamt"], 2)
+            self.assertFalse((t / "protokoll.txt").exists())
+            self.assertTrue((t / "notiz.txt").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

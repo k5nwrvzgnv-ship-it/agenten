@@ -241,6 +241,17 @@ class TestDurchfuehren(Ordner):
             self.assertIn(teil, md)
         self.assertEqual(recherche.literatur_pruefen(["Muster (2023). https://doi.org/10.1234/abc"], g), [])
 
+    def test_scopus_nachtrag_offen(self):
+        r = self.ordner / "recherche"
+        (r / "scopus").mkdir(parents=True)
+        self.assertFalse(recherche.scopus_nachtrag(self.ordner))  # noch keine Recherche
+        (r / "stand.json").write_text(json.dumps({"usd": 1.0, "fertig": ["eckpunkte", "scopus"]}))
+        self.assertFalse(recherche.scopus_nachtrag(self.ordner))  # kein Export
+        (r / "scopus" / "eins.csv").write_text(SCOPUS_CSV)
+        self.assertFalse(recherche.scopus_nachtrag(self.ordner))  # schon ausgewertet
+        self.assertTrue(recherche.scopus_nachtrag(self.ordner, neu=True))  # neue Dateien: noch einmal
+        self.assertEqual(json.loads((r / "stand.json").read_text())["fertig"], ["eckpunkte"])
+
     def test_kostengrenze_und_gescheitertes_fenster(self):
         antworten = {"eckpunkte": [ECK], "literatur": [{"kaputt": 1}], "gegenpruefung": []}
         with self.assertRaises(recherche.RechercheFehler) as f:  # kein Fenster mit Ergebnis

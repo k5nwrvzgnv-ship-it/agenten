@@ -713,6 +713,34 @@ class TestExpose(OhneTelegram):
         self.assertIn(f"data/expose/{ID}/expose.json", prompt)
         self.assertEqual((kw["sitzung_fortsetzen"], kw["auftrag_id"]), ("s0", "a2"))
 
+    def test_antwort_mit_scopus_export_recherchiert_nach(self):
+        start = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        r = self.hier / "data" / "expose" / ID / "recherche"
+        r.mkdir(parents=True)
+        (r / "stand.json").write_text(json.dumps({"usd": 30.0, "fertig": ["eckpunkte", "literatur", "gegenpruefung"]}))
+        anhang = self.hier / "data" / "eingang" / "a2" / "export.csv"
+        anhang.parent.mkdir(parents=True)
+        anhang.write_text("EID,Title,Abstract\n2-s2.0-1,T,A\n")
+        a = {"id": "a2", "text": "Scopus einbauen\nS1 | 120 | 120 | export.csv |", "sitzung": "s0", "bezug": ID,
+             "modus": "erledigen", "dateien": ["data/eingang/a2/export.csv"]}
+        agent.expose_auftrag(a, start, laufen=self.claude(self.gueltig), netz=("s", "m"))
+        self.assertTrue((r / "scopus" / "export.csv").exists())
+        self.assertIn("S1 | 120", (r / "scopus" / "protokoll.txt").read_text())
+        self.assertEqual(self.durchfuehren.call_args.args[2], a)
+        prompt, kw = self.aufrufe[0]
+        self.assertIn("um die systematische Literatursuche in Scopus ergänzt", prompt)
+        self.assertEqual(kw["sitzung_fortsetzen"], "s0")
+        args, kw = self.abschliessen.call_args
+        self.assertIn("Recherche: 2 Fragen", args[1])
+        self.assertIn(self.recherche.bericht, kw["dateien"])
+
+    def test_antwort_ohne_scopus_keine_recherche(self):
+        start = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        a = {"id": "a2", "text": "kürzer", "sitzung": "s0", "bezug": ID, "modus": "erledigen"}
+        agent.expose_auftrag(a, start, laufen=self.claude(self.gueltig), netz=("s", "m"))
+        self.durchfuehren.assert_not_called()
+        self.assertNotIn("Scopus", self.aufrufe[0][0])
+
     def test_ohne_expose_hinweis(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
         agent.expose_auftrag(a, a, laufen=self.claude(), netz=("s", "m"))
