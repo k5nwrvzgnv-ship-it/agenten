@@ -181,7 +181,13 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Chrome fehlte, die Zuordnung der Dateien zu S1 bis S9 ist aus dem Inhalt bestimmt, die Trefferzahlen gesamt
   fehlen (stehen als ?). Die Recherche pausierte wegen des Kontingents und wertet Scopus beim Fortsetzen gleich mit
   aus. Noch nicht mit echtem Claude-Lauf geprüft, nur Unit-Tests und Einlesen des echten Exports.
-  Offen: der Agent baut die Suchstrings und den Chrome-Prompt noch nicht selbst (Jan wollte das, 02.11.).
+- Scopus-Suchen vom Agenten (02.11., Jan): Nach den Eckpunkten schlägt Claude 3 bis 10 Suchen vor
+  (recherche/scopus/suchen.json, Lauf "anspruchsvoll"), Python prüft sie grob (scopus.suchstring_fehler: beginnt
+  mit TITLE-ABS-KEY(, Klammern und Anführungszeichen paarig, nur TITLE-ABS-KEY und DOCTYPE), eine Nachbesserung,
+  dann geht chrome-prompt.txt als Meldung mit Anleitung an Jan (pbpaste fürs Protokoll, scp nach data/scopus/).
+  Dateien in data/scopus/ übernimmt schon der erste Durchgang vor dem Scopus-Fenster, später nur eine Antwort aufs
+  Exposé. Läuft nur einmal je Kette (stand "scopus_suchen") und nicht, wenn suchen.json schon da ist (so bei der
+  Kette 20261102-165741-uni-ac9dcc). Ob Scopus die Suchstrings so annimmt, ist erst mit dem nächsten Exposé geprüft.
 - WebFetch für uni und [webfetch] uni (36 Domains: Literatur, Verlage, Daten, Förderung, Weinig, Microtec) stehen
   seit 02.11. in shared/einstellungen.toml (../STATUS.md Punkt 27). Python prüft Belege nur auf diesen Domains,
   andere zählen als ungeprüft: fehlende Herstellerseiten nach dem ersten Lauf ergänzen. Normen für den Lauf fehlen lokal vermutlich: DIN EN 14081-1, DIN EN 14080, DIN 4074-3/-4
