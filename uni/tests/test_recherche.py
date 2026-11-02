@@ -27,6 +27,15 @@ REG = {"aussagen": [{"frage": "F2", "art": "tatsache", "text": "Die Norm begrenz
        "quellen": [], "luecken": []}
 SEITE = "Abstract. YOLO detects knots  with high\nprecision on sawn timber. Uniﬁed detection."
 META = {"titel": "Knot detection with YOLO", "jahr": 2023, "nachnamen": ["Muster"]}
+ABSTRACT = "Only the abstract says that knots in lamellae are found reliably."
+SCOPUS_CSV = ('"Authors","Title","Year","Source title","Cited by","DOI","Link","Abstract","EID"\n'
+              f'"Muster A.","Knot detection with YOLO","2023","Wood Science","12","10.1234/ABC","https://x",'
+              f'"{ABSTRACT}","2-s2.0-1"\n')
+SC = {"aussagen": [{"frage": "F1", "art": "tatsache", "text": "Äste in Lamellen werden zuverlässig erkannt.",
+                    "belege": [{"url": "https://doi.org/10.1234/abc", "zitat": "knots in lamellae are found reliably"}]}],
+      "quellen": [{"url": "https://doi.org/10.1234/abc", "titel": "Knot detection with YOLO", "autoren": ["Muster, A."],
+                   "jahr": 2023, "doi": "10.1234/ABC", "art": "artikel"}],
+      "luecken": ["Keine Studie mit Smartphones"]}
 
 
 def seitentext(url):
@@ -83,6 +92,15 @@ class TestBelege(Ordner):
                          "ungeprueft")
         p = recherche.beleg_pruefen({**b, "url": "https://kaputt.de"}, self.hier, seitentext)
         self.assertEqual((p["status"], p["vermerk"]), ("durchgefallen", "Seite nicht ladbar: HTTP 404"))
+
+    def test_abstract_aus_scopus(self):
+        ab = {"doi:10.1234/abc": ABSTRACT}
+        b = {"url": "https://doi.org/10.1234/ABC", "zitat": "knots in lamellae are found reliably"}
+        p = recherche.beleg_pruefen(b, self.hier, seitentext, ab)
+        self.assertEqual((p["status"], p["vermerk"]), ("bestanden", "Zitat im Abstract laut Scopus-Export gefunden"))
+        p = recherche.beleg_pruefen({**b, "zitat": "YOLO detects knots with high precision"}, self.hier, seitentext, ab)
+        self.assertEqual(p["vermerk"], "Zitat auf der Seite gefunden")  # nicht im Abstract: Seite laden
+        self.assertEqual(recherche.beleg_pruefen(b, self.hier, seitentext)["status"], "durchgefallen")
 
     def test_lokale_datei_seitengenau_und_nur_unter_data(self):
         b = {"datei": NORM, "seite": 2, "zitat": "Äste sind nach Tabelle 1 zu begrenzen"}
@@ -190,6 +208,38 @@ class TestDurchfuehren(Ordner):
         erg2 = recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"},
                                       self.claude({}), seitentext, lambda d: META)
         self.assertEqual((self.aufrufe, erg2.usd), ([], 7.0))
+
+    def test_scopus_als_nachtrag(self):
+        antworten = {"eckpunkte": [ECK], "literatur": [LIT, LIT], "regelwerk": [REG, REG],
+                     "gegenpruefung": [self.gegen()]}
+        recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"}, self.claude(antworten),
+                               seitentext, lambda d: META)
+        export = self.ordner / "recherche" / "scopus"
+        export.mkdir()
+        (export / "eins.csv").write_text(SCOPUS_CSV)
+        self.aufrufe.clear()
+        gegen = self.gegen()
+        gegen["urteile"].append({"id": "scopus-1", "traegt": "ja", "fehlt": ""})
+        erg = recherche.durchfuehren(self.hier, self.ordner, {"id": "k1", "text": "Exposé: x"},
+                                     self.claude({"scopus": [SC, SC], "gegenpruefung": [gegen]}), seitentext,
+                                     lambda d: META)
+        prompts = [p for p, _ in self.aufrufe]
+        self.assertEqual(len(prompts), 3)  # Scopus, weiter, Gegenprüfung noch einmal
+        for teil in ("data/expose/k1/recherche/scopus.md enthält 1 Arbeiten", "recherche/literatur-geprueft.json",
+                     "F1 (literatur)"):
+            self.assertIn(teil, prompts[0])
+        self.assertNotIn("F2 (regelwerk): Was", prompts[0].split("Alle Fragen")[0])
+        self.assertIn("scopus-1: Äste in Lamellen", prompts[2])
+        g = json.loads(erg.geprueft.read_text())
+        a = next(a for a in g["aussagen"] if a["id"] == "scopus-1")
+        self.assertEqual((a["status"], a["belege"][0]["pruefung"]["vermerk"]),
+                         ("gesichert", "Zitat im Abstract laut Scopus-Export gefunden"))
+        self.assertEqual(g["literatursuche"]["arbeiten_ohne_doppelte"], 1)
+        md = erg.bericht.read_text()
+        for teil in ("## Systematische Literatursuche (Scopus)", "als Quelle verwendet: 1 Arbeiten",
+                     "- Systematische Literatursuche (Scopus): Keine Studie mit Smartphones"):
+            self.assertIn(teil, md)
+        self.assertEqual(recherche.literatur_pruefen(["Muster (2023). https://doi.org/10.1234/abc"], g), [])
 
     def test_kostengrenze_und_gescheitertes_fenster(self):
         antworten = {"eckpunkte": [ECK], "literatur": [{"kaputt": 1}], "gegenpruefung": []}

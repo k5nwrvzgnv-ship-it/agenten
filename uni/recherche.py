@@ -7,6 +7,9 @@ Grundsatz wie bei lia/recherche: Claude sucht, Python prüft jeden Beleg. Ablauf
    Durchgänge (suchen, dann Lücken, Gegenpositionen, Primärquellen). Python prüft danach jeden Beleg: Zitat
    wörtlich auf der Seite bzw. im PDF oder auf der Seite der lokalen Datei, DOI gegen Crossref. Durchgefallenes
    geht einmal zurück in dieselbe Sitzung. Ergebnis <fenster>-geprueft.json.
+   Liegt Jans Scopus-Export in recherche/scopus/ (scopus.py), folgt eine eigene Sitzung für die Fragen aus
+   Literatur, Methoden und Daten mit der Kandidatenliste scopus.md. Zitate aus einem Abstract prüft Python gegen
+   den Export. Kommt der Export erst nach der Gegenprüfung, läuft sie danach noch einmal (Nachtrag).
 3. gegenpruefung.json: neue Sitzung, je belegter Aussage "trägt das Zitat die Aussage?" (ja, teilweise, nein),
    dazu Widersprüche zwischen Quellen und unbeantwortete Fragen.
 4. geprueft.json (für das Exposé) und Recherchebericht.md (für Jan und die Gruppe), von Python gebaut.
@@ -27,6 +30,7 @@ from urllib.parse import quote, urlsplit
 from agentkit import abruf, textfassung, wortlaut
 
 import normen
+import scopus
 
 ORDNER = "recherche"
 # Jan 02.11.2026: 50 USD je Recherche. Ein Suchlauf startet nur, wenn danach noch die Reserve für
@@ -66,6 +70,11 @@ FENSTER = {
                   "Zitate, keine langen Auszüge. Fehlt eine nötige Norm, nenne sie als Lücke und gib ihren Inhalt "
                   "nicht aus dem Gedächtnis an. Erläuterungen aus dem Netz (Verbände, Institute) dürfen ergänzen."),
 }
+
+# Systematische Literatursuche aus Jans Scopus-Export (Jan 02.11.2026), als zusätzliches Suchfenster
+SCOPUS = "scopus"
+SCOPUS_TITEL = "Systematische Literatursuche (Scopus)"
+SCOPUS_FUER = ("literatur", "methoden", "daten")
 
 KURZREGELN = """Regeln für Belege (Python prüft jeden):
 - {"url": "https://...", "zitat": "..."}: Das Zitat steht wörtlich auf dieser Seite bzw. in diesem PDF (Python lädt
@@ -124,6 +133,36 @@ Alle Fragen der Recherche (nur zur Einordnung, die anderen bearbeiten andere Sit
 Arbeite gründlich, das Ergebnis muss verlässlich sein: je Frage mehrere Suchanfragen, deutsch und englisch,
 Primärquellen statt Zusammenfassungen Dritter, jede Quelle öffnen, bevor du sie nennst. Widersprechen sich
 Quellen, nenn beide. Findest du nichts Belastbares, ist das ein Ergebnis: schreib es unter luecken.
+
+{regeln}
+
+Du hast höchstens etwa 25 Arbeitsschritte. Schreib {pfad} früh (nach etwa 12 Schritten) und ergänze die Datei
+danach, damit nichts verloren geht:
+{format}
+Antworte danach mit einem Satz (Zahl der Aussagen und Lücken)."""
+
+PROMPT_SCOPUS = """Recherche für ein Exposé. Thema: {thema}
+Suchfenster: {titel}. Jan hat in Scopus gesucht und die Treffer exportiert. {kandidaten} enthält {anzahl} Arbeiten
+ohne Doppelte, nach Zitationen sortiert, je Arbeit Kennung, Suchen, Titel, Autoren, Quelle, DOI, url, Abstract und
+Schlagwörter. Oben stehen die Suchen. Sie sind breit, viele Treffer gehören nicht zum Thema.
+
+Deine Fragen:
+{fragen}
+
+Alle Fragen der Recherche (nur zur Einordnung):
+{alle}
+
+Die Websuche hat diese Fragen schon bearbeitet: {bisher} (nur lesen). Ergänze sie, wiederhole sie nicht.
+Ziel ist ein belastbarer Stand der Forschung:
+- Durchsuch {kandidaten} mit Grep nach Fachbegriffen der Fragen (englisch, Synonyme) und lies passende Einträge
+  ganz. Nimm Übersichtsarbeiten, viel zitierte Arbeiten und neue Arbeiten (seit 2022), nenne je Arbeit
+  Datengrundlage und Ergebnisse so, wie sie im Abstract stehen.
+- Aussagen über die Forschungslandschaft (z. B. "die meisten Arbeiten nutzen ...") nur, wenn du die Einträge
+  dafür gezählt hast, mit der Zahl und als art "einschaetzung".
+- Beleg aus dem Abstract: {{"url": "<url des Eintrags>", "zitat": "..."}}, Zitat wörtlich aus Titel, Abstract oder
+  Schlagwörtern des Eintrags. Python prüft es gegen den Export. Frei zugängliche Volltexte darfst du mit WebFetch
+  öffnen, dann gilt deren Adresse wie sonst auch.
+- quellen: titel, autoren, jahr, doi und url so, wie sie im Eintrag stehen, art "artikel" oder "konferenz".
 
 {regeln}
 
@@ -312,9 +351,10 @@ def steht_in(zitat: str, text: str) -> bool:
     return wortlaut.steht_in(unicodedata.normalize("NFKC", zitat), unicodedata.normalize("NFKC", text))
 
 
-def beleg_pruefen(b: dict, hier: Path, seitentext) -> dict:
+def beleg_pruefen(b: dict, hier: Path, seitentext, abstracts: dict[str, str] | None = None) -> dict:
     """{"status": bestanden|durchgefallen|ungeprueft, "vermerk"}. seitentext(url) -> Text, wirft AbrufFehler;
-    für eine Domain außerhalb der Liste wirft er DomainNichtErlaubt."""
+    für eine Domain außerhalb der Liste wirft er DomainNichtErlaubt. abstracts: scopus.abstracts (Zitate aus dem
+    Abstract gelten ohne Abruf, sonst wird die Seite geladen)."""
     if "datei" in b:
         pfad = _lokale_datei(hier, b["datei"])
         if pfad is None:
@@ -327,6 +367,9 @@ def beleg_pruefen(b: dict, hier: Path, seitentext) -> dict:
         if steht_in(b["zitat"], text):
             return {"status": "bestanden", "vermerk": "Zitat in der lokalen Datei gefunden"}
         return {"status": "durchgefallen", "vermerk": "Zitat steht nicht wörtlich auf dieser Seite der Datei"}
+    abstract = (abstracts or {}).get(scopus.schluessel(b["url"]))
+    if abstract and steht_in(b["zitat"], abstract):
+        return {"status": "bestanden", "vermerk": "Zitat im Abstract laut Scopus-Export gefunden"}
     try:
         text = seitentext(b["url"])
     except DomainNichtErlaubt:
@@ -370,13 +413,13 @@ def doi_pruefen(q: dict, metadaten) -> dict:
     return doi_vergleichen(q, meta)
 
 
-def fenster_belege_pruefen(d: dict, hier: Path, seitentext, metadaten) -> dict:
+def fenster_belege_pruefen(d: dict, hier: Path, seitentext, metadaten, abstracts: dict[str, str] | None = None) -> dict:
     """Setzt "pruefung" an jedem Beleg und jeder Quelle, "belegt" an jeder Aussage."""
     for q in d.get("quellen", []):
         q["pruefung"] = doi_pruefen(q, metadaten)
     for s in d["aussagen"]:
         for b in s.get("belege", []):
-            b["pruefung"] = beleg_pruefen(b, hier, seitentext)
+            b["pruefung"] = beleg_pruefen(b, hier, seitentext, abstracts)
         s["belegt"] = any(b["pruefung"]["status"] == "bestanden" for b in s.get("belege", []))
     return d
 
@@ -433,12 +476,17 @@ def gegen_pruefen(d, ids: set[str]) -> list[str]:
 
 # --- Zusammenführen und Bericht ---
 
+def fenster_titel(name: str) -> str:
+    return SCOPUS_TITEL if name == SCOPUS else FENSTER[name][0]
+
+
 STATUS_TEXT = {"gesichert": "gesichert", "teilweise": "nur teilweise belegt", "verworfen": "verworfen",
                "unbelegt": "nicht belegt", "einschaetzung": "Einschätzung"}
 
 
-def zusammenfuehren(eck: dict, fenster: dict[str, dict], gegen: dict | None) -> dict:
-    """geprueft.json: Aussagen mit status, zitierfähige Quellen, Lücken, Widersprüche, Zahlen."""
+def zusammenfuehren(eck: dict, fenster: dict[str, dict], gegen: dict | None, suche: dict | None = None) -> dict:
+    """geprueft.json: Aussagen mit status, zitierfähige Quellen, Lücken, Widersprüche, Zahlen.
+    suche: scopus.beschreibung, wenn ein Scopus-Export einbezogen ist."""
     urteile = {u["id"]: u for u in (gegen or {}).get("urteile", [])}
     aussagen, quellen, luecken = [], [], []
     for name, d in fenster.items():
@@ -465,7 +513,8 @@ def zusammenfuehren(eck: dict, fenster: dict[str, dict], gegen: dict | None) -> 
     zahlen["quellen_zitierfaehig"] = sum(q["zitierfaehig"] for q in quellen)
     return {"thema": eck["thema"], "fragen": eck["fragen"], "aussagen": aussagen, "quellen": quellen,
             "luecken": luecken, "widersprueche": (gegen or {}).get("widersprueche", []),
-            "offen": (gegen or {}).get("offen", []), "zahlen": zahlen}
+            "offen": (gegen or {}).get("offen", []), "zahlen": zahlen,
+            **({"literatursuche": suche} if suche else {})}
 
 
 def normquellen(geprueft: dict) -> set[str]:
@@ -498,7 +547,7 @@ def literatur_pruefen(literatur: list[str], geprueft: dict) -> list[str]:
     return fehler
 
 
-def bericht(g: dict, usd: float) -> str:
+def bericht(g: dict, usd: float, export: "scopus.Export | None" = None) -> str:
     """Recherchebericht für Jan und die Gruppe (Markdown, alle Belege mit Prüfvermerk)."""
     z = g["zahlen"]
     zeilen = [f"# Recherchebericht: {g['thema']}", "",
@@ -508,6 +557,9 @@ def bericht(g: dict, usd: float) -> str:
               "Gesichert: Zitat wörtlich auf der Quelle gefunden und in der Gegenprüfung als tragend bewertet. "
               "Teilweise: belegt, aber ein Teil der Aussage steht nicht im Zitat (oder nicht gegengeprüft). "
               "Nur Gesichertes steht im Exposé als Tatsache."]
+    if export:
+        verwendet = {scopus.schluessel(q["url"]) for q in g["quellen"] if q["zitierfaehig"]}
+        zeilen += scopus.uebersicht_md(export, verwendet)
     for f in g["fragen"]:
         zeilen += ["", f"## {f['id']}: {f['frage']}", f"*Anlass: {f['anlass']} – Suchfenster: "
                    f"{FENSTER[f['fenster']][0]}*", ""]
@@ -528,7 +580,7 @@ def bericht(g: dict, usd: float) -> str:
         zeilen += [f"- {', '.join(w.get('ids', []))}: {w.get('worum', '')}" for w in g["widersprueche"]]
     if g["luecken"]:
         zeilen += ["", "## Lücken (nicht gefunden)", ""]
-        zeilen += [f"- {FENSTER[x['fenster']][0]}: {x['text']}" for x in g["luecken"]]
+        zeilen += [f"- {fenster_titel(x['fenster'])}: {x['text']}" for x in g["luecken"]]
     zeilen += ["", "## Quellen", ""]
     for q in g["quellen"]:
         autoren = ", ".join(q.get("autoren", [])) or "o. A."
@@ -596,14 +648,26 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
             erg.zeilen.append(f"Suchfenster {titel} nicht gestartet: Kostengrenze {grenze_usd:.0f} USD "
                               f"(bisher {stand['usd']:.2f} USD).")
             continue
+        prompt = PROMPT_SUCHE.format(thema=eck["thema"], titel=titel, hinweis=hinweis, fragen=_fragen_text(fragen),
+                                     alle=_fragen_text(eck["fragen"]), regeln=KURZREGELN,
+                                     pfad=rel(r / f"{name}.json"), format=FORMAT_FENSTER)
         try:
-            geprueft_fenster[name] = _fenster(hier, r, name, titel, hinweis, fragen, eck, lauf, seitentext,
+            geprueft_fenster[name] = _fenster(hier, r, name, prompt, {f["id"] for f in fragen}, lauf, seitentext,
                                               metadaten)
         except RechercheFehler as f:
             erg.zeilen.append(f"Suchfenster {titel} gescheitert: {f}")
             continue
         _schreib(ziel, geprueft_fenster[name])
         fertig(name)
+
+    # 2b. Systematische Literatursuche aus Jans Scopus-Export (nur, wenn er vorliegt)
+    export = None
+    try:
+        export = scopus.einlesen(r / scopus.ORDNER) if (r / scopus.ORDNER).is_dir() else None
+    except scopus.ScopusFehler as f:
+        erg.zeilen.append(f"Scopus-Export nicht lesbar, Recherche ohne Scopus: {f}")
+    if export:
+        _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, seitentext, metadaten, grenze_usd)
     if not geprueft_fenster:
         raise RechercheFehler("kein Suchfenster mit Ergebnis\n" + "\n".join(erg.zeilen))
 
@@ -632,10 +696,10 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
             fertig("gegenpruefung")
 
     # 4. Zusammenführen
-    g = zusammenfuehren(eck, geprueft_fenster, gegen)
+    g = zusammenfuehren(eck, geprueft_fenster, gegen, scopus.beschreibung(export) if export else None)
     erg.geprueft, erg.bericht, erg.usd = r / "geprueft.json", r / "Recherchebericht.md", stand["usd"]
     _schreib(erg.geprueft, g)
-    erg.bericht.write_text(bericht(g, stand["usd"]), encoding="utf-8")
+    erg.bericht.write_text(bericht(g, stand["usd"], export), encoding="utf-8")
     z = g["zahlen"]
     erg.zeilen.insert(0, f"Recherche: {len(g['fragen'])} Fragen, {len(g['aussagen'])} Aussagen ({z['gesichert']} "
                          f"gesichert, {z['teilweise']} teilweise, {z['verworfen']} verworfen, {z['unbelegt']} "
@@ -650,12 +714,45 @@ def _datei_fehler(pfad: Path, pruefen) -> list[str]:
         return [str(f)]
 
 
-def _fenster(hier, r, name, titel, hinweis, fragen, eck, lauf, seitentext, metadaten) -> dict:
+def _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, seitentext, metadaten, grenze_usd):
+    """Suchfenster aus dem Scopus-Export. Kommt es nach der Gegenprüfung dazu, wird sie wiederholt (Nachtrag)."""
+    ziel = r / f"{SCOPUS}-geprueft.json"
+    if SCOPUS in stand["fertig"]:
+        geprueft_fenster[SCOPUS] = _lies(ziel)
+        return
+    fragen = [f for f in eck["fragen"] if f["fenster"] in SCOPUS_FUER]
+    if not fragen:
+        erg.zeilen.append("Scopus-Export nicht ausgewertet: keine Fragen zu Literatur, Methoden oder Daten.")
+        return
+    if stand["usd"] + LAUF_USD + RESERVE_USD > grenze_usd:
+        erg.zeilen.append(f"{SCOPUS_TITEL} nicht gestartet: Kostengrenze {grenze_usd:.0f} USD "
+                          f"(bisher {stand['usd']:.2f} USD).")
+        return
+    kandidaten = r / f"{SCOPUS}.md"
+    kandidaten.write_text(scopus.kandidaten_md(export), encoding="utf-8")
+    bisher = [r / f"{n}-geprueft.json" for n in SCOPUS_FUER if (r / f"{n}-geprueft.json").exists()]
+    prompt = PROMPT_SCOPUS.format(
+        thema=eck["thema"], titel=SCOPUS_TITEL, kandidaten=kandidaten.relative_to(hier), anzahl=len(export.treffer),
+        fragen=_fragen_text(fragen), alle=_fragen_text(eck["fragen"]),
+        bisher=", ".join(str(p.relative_to(hier)) for p in bisher) or "noch nichts", regeln=KURZREGELN,
+        pfad=(r / f"{SCOPUS}.json").relative_to(hier), format=FORMAT_FENSTER)
+    try:
+        d = _fenster(hier, r, SCOPUS, prompt, {f["id"] for f in fragen}, lauf, seitentext, metadaten,
+                     scopus.abstracts(export))
+    except RechercheFehler as f:
+        erg.zeilen.append(f"{SCOPUS_TITEL} gescheitert: {f}")
+        return
+    geprueft_fenster[SCOPUS] = d
+    _schreib(ziel, d)
+    if "gegenpruefung" in stand["fertig"]:
+        stand["fertig"].remove("gegenpruefung")
+    fertig(SCOPUS)
+
+
+def _fenster(hier, r, name, prompt, ids, lauf, seitentext, metadaten, abstracts=None) -> dict:
     pfad = r / f"{name}.json"
     rel = pfad.relative_to(hier)
-    ids = {f["id"] for f in fragen}
-    e = lauf(PROMPT_SUCHE.format(thema=eck["thema"], titel=titel, hinweis=hinweis, fragen=_fragen_text(fragen),
-                                 alle=_fragen_text(eck["fragen"]), regeln=KURZREGELN, pfad=rel, format=FORMAT_FENSTER))
+    e = lauf(prompt)
     sitzung = e.sitzung
     for _ in range(DURCHGAENGE - 1):
         if not sitzung or not pfad.exists():
@@ -663,7 +760,7 @@ def _fenster(hier, r, name, titel, hinweis, fragen, eck, lauf, seitentext, metad
         sitzung = lauf(PROMPT_WEITER.format(pfad=rel, regeln=KURZREGELN), sitzung).sitzung or sitzung
     fehler = _datei_fehler(pfad, lambda d: fenster_pruefen(d, ids))
     if not fehler:
-        d = fenster_belege_pruefen(_lies(pfad), hier, seitentext, metadaten)
+        d = fenster_belege_pruefen(_lies(pfad), hier, seitentext, metadaten, abstracts)
         fehler = durchgefallene(d)
         if not fehler:
             return d
@@ -673,7 +770,7 @@ def _fenster(hier, r, name, titel, hinweis, fragen, eck, lauf, seitentext, metad
     fehler = _datei_fehler(pfad, lambda d: fenster_pruefen(d, ids))
     if fehler:
         raise RechercheFehler("; ".join(fehler[:5]))
-    return fenster_belege_pruefen(_lies(pfad), hier, seitentext, metadaten)  # Durchgefallenes bleibt vermerkt
+    return fenster_belege_pruefen(_lies(pfad), hier, seitentext, metadaten, abstracts)  # Durchgefallenes bleibt vermerkt
 
 
 # --- Netz (dünn) ---
