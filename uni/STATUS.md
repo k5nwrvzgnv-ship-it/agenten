@@ -167,6 +167,21 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Dauer: bis zu etwa 20 Läufe zu je höchstens 15 Minuten, nacheinander (2,5 bis 4 Stunden), in der Zeit
   blockiert der uni-Lauf (Fristen, Post). Deshalb TimeoutStartSec=8h in uni/systemd/uni.service (Jan 02.11.).
   Echt geprüft: Crossref-Abgleich (10.1038/nature14539) und PDF-Zitat von arxiv.org. Sonst nur Unit-Tests.
+- Scopus (scopus.py, 02.11.): Keine API (die Uni gibt kein Institutional Token heraus). Jan sucht selbst in Scopus
+  (Claude in Chrome auf dem Mac, Prompt mit Suchstrings S1.., Export CSV mit Abstract, höchstens 300 je Suche,
+  Protokoll "S1 | Treffer | exportiert | Datei | Vermerk"). Ablage recherche/scopus/ (*.csv, suchen.json,
+  protokoll.txt). Liegt sie vor, läuft nach den Suchfenstern ein Fenster "scopus" für die Fragen aus literatur,
+  methoden, daten mit der Kandidatenliste recherche/scopus.md (ohne Doppelte, nach Zitationen). Zitate aus dem
+  Abstract prüft Python gegen den Export ("Zitat im Abstract laut Scopus-Export"), sonst wie bisher die Seite.
+  geprueft.json bekommt literatursuche, der Recherchebericht den Abschnitt "Systematische Literatursuche".
+  Nachtrag: Eine Antwort auf das Exposé mit CSV-Anhang (oder Dateien in data/scopus/, z. B. per scp; Protokoll im
+  Text oder als .txt) legt sie in die Kette, die Recherche läuft weiter (Gegenprüfung neu) und das Exposé wird
+  überarbeitet. data/scopus/ wird bei jeder Exposé-Antwort geleert, also nur für das laufende Exposé nutzen.
+  Kette 20261102-165741-uni-ac9dcc: Export vom 02.11. (9 Suchen, 1441 Arbeiten) liegt bereit. Das Protokoll aus
+  Chrome fehlte, die Zuordnung der Dateien zu S1 bis S9 ist aus dem Inhalt bestimmt, die Trefferzahlen gesamt
+  fehlen (stehen als ?). Die Recherche pausierte wegen des Kontingents und wertet Scopus beim Fortsetzen gleich mit
+  aus. Noch nicht mit echtem Claude-Lauf geprüft, nur Unit-Tests und Einlesen des echten Exports.
+  Offen: der Agent baut die Suchstrings und den Chrome-Prompt noch nicht selbst (Jan wollte das, 02.11.).
 - WebFetch für uni und [webfetch] uni (36 Domains: Literatur, Verlage, Daten, Förderung, Weinig, Microtec) stehen
   seit 02.11. in shared/einstellungen.toml (../STATUS.md Punkt 27). Python prüft Belege nur auf diesen Domains,
   andere zählen als ungeprüft: fehlende Herstellerseiten nach dem ersten Lauf ergänzen. Normen für den Lauf fehlen lokal vermutlich: DIN EN 14081-1, DIN EN 14080, DIN 4074-3/-4
