@@ -141,6 +141,16 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   es neu. Profil: uni/profil-lernblatt.toml (Kopie von Jans Zusammenfassungs-Profil, HNEE-Farben).
   Abgrenzung: "Dokument:"-Aufträge (zum Weitergeben, mit Belegprüfung in dokumente) bleiben wie sie sind.
   Nur Unit-Tests und ein Probebau mit LibreOffice; echter Lauf steht aus (Offene Punkte 7).
+- Exposé (expose.py, 02.11., Plan von Jan freigegeben): Auftrag beginnt mit "Exposé:" oder "Expose:", dazu das
+  Besprechungstranskript als Datei (Teams: .docx mit Sprechern, Textfassung entsteht vorab; .vtt geht direkt).
+  Läuft vor der Mail-Erkennung. Claude (anspruchsvoll) liest Transkript, Schriftwechsel (data/mails/,
+  data/mailauftraege/*/kontext.json) und Kursmaterial, schreibt data/expose/<kette>/expose.json (Format
+  expose.FORMAT, ohne Quellen, Lücken als [OFFEN: ...]) und protokolle/<kette>.md (Beschlossen mit Sprecher und
+  Zeitmarke, Offen/uneinig, eigene Ergänzungen, Prüfschritte). Python prüft (expose.pruefen), eine Nachbesserung in
+  derselben Sitzung, und hängt data/expose/<kette>/fassung/<Titel>.md an. Antworten auf das Ergebnis überarbeiten
+  dasselbe Exposé (Nachtrag im Protokoll). Übergangsweise .md, weil der Renderer keine Art "expose" hat; docx/PDF
+  und Mail mit Anhang an Böhme stehen als Bedarf in ../STATUS.md Punkt 26. Nur Unit-Tests, erster echter Lauf
+  mit dem Teams-Transkript vom 02.11. (Jan, Felix, Henri) steht aus.
 - Tests mit Meldungen: von OhneTelegram (tests/test_agent.py) erben, sonst landen sie echt in Telegram
   (passiert am 27.10. mit zwei Testnachrichten).
 - Tests schreiben nicht ins echte logs/*.log: tests/__init__.py richtet die Logger uni, uni-lernen und
