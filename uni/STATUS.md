@@ -152,6 +152,12 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   und Mail mit Anhang an Böhme stehen als Bedarf in ../STATUS.md Punkt 26.
   Umfang (Jan 02.11.: 2 bis 4 Seiten, kurz und knapp): expose.umfang, 650 bis 1500 Wörter in den Blöcken,
   höchstens 12 Literaturangaben, höchstens 6 Überschriften Ebene 2; sonst Nachbesserung.
+  Formatvorlage (Jan 02.11. abends): Jans Studienbeleg "Quercus" in data/vorlagen/ (PDF, Logo, Deckblatt-Angaben
+  expose_vorlage.md mit Matrikelnummern; nicht im Repo). expose.VORLAGE_REGELN: Deckblatt (einrichtung =
+  Fachbereich, autoren mit Matr.-Nr., rahmen mehrzeilig bis 400 Zeichen), Zitierweise APA 7 im Text und im
+  Literaturverzeichnis. Gilt im ersten Lauf (FORMAT) und bei jeder Überarbeitung (PROMPT_EXPOSE_ANTWORT).
+  Layout (Arial 11 pt usw.) baut erst der Renderer mit der Art "expose" (../STATUS.md Punkt 26 a, dort die
+  Maße aus der PDF); bis dahin bleibt die Fassung Markdown.
 - Recherche vor dem Exposé (recherche.py, 02.11., Jan: "aufwendig, Ergebnis verlässlich"), nur beim ersten
   Auftrag der Kette, Ablage data/expose/<kette>/recherche/: eckpunkte.json (Claude stellt Fragen aus Transkript und
   Mails, je Frage ein Suchfenster: literatur, methoden, daten, projekte, markt, regelwerk), je Fenster eigene

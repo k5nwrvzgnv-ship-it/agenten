@@ -733,6 +733,18 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        kennzeichnung (das Exposé geht an den Professor, Belege stehen nur im Protokoll). Stellen "[OFFEN: ...]"
        im Text gut sichtbar hervorheben (Jan muss sie vor dem Versand füllen). Kopf/Fußzeile ohne „Vorlesung
        vom“. Danach baut uni mit renderer.bauen wie bei Lernblättern (eigenes Profil, eigener Chat).
+       Formatvorlage (Jan 02.11.2026, abends): Jans Studienbeleg "Quercus" (HNEE, Word/PDFMaker), liegt als
+       uni/data/vorlagen/expose_vorlage_Quercus_Kleinke-vonMulert.pdf, Logo als uni/data/vorlagen/hnee_logo.png
+       (beides nicht im Repo, persönliche Daten). Aus der PDF gemessen: A4; Ränder links und rechts 2,5 cm,
+       oben etwa 3 cm, unten etwa 2,4 cm; Arial 11 pt, Zeilenabstand etwa 1,15 (12,6 pt), Blocksatz mit
+       Silbentrennung; Überschriften beider Ebenen Arial fett 11 pt, nummeriert "1", "1.1", ohne Punkt; Tabellen
+       Arial 10 pt (Kopf fett), Tabellentitel darüber als "Tabelle n: ..."; keine Seitenzahlen sichtbar.
+       Deckblatt: Logo oben links, "Fachbereich ..." (einrichtung) 11 pt, Autorenzeile "Name (Matr.-Nr. ...) |
+       Name (...)" 11 pt, Titel Arial 22 pt linksbündig, untertitel darunter; unten links rahmen in 9 pt, erste
+       Zeile fett ("Exposé | Wintersemester 2026/27"), dann Studiengang, Modul, "Betreuung: ..." (betreuung),
+       datum. Literaturverzeichnis: Überschrift "Literaturverzeichnis" (fett, nicht nummeriert), APA 7 mit
+       hängendem Einzug, DOI als Link. uni liefert rahmen jetzt mehrzeilig (bis 400 Zeichen) und Zitate im Text
+       nach APA (Nachname, Jahr). Besser als die PDF wäre die Word-Datei der Vorlage (renderer.vorlage_umwandeln).
     b) agentkit.mail (Hauptordner-Chat): Anhänge beim Senden (Entwurf nennt Dateien aus dem Agent-Ordner, Python
        prüft Pfad und Größe, die Freigabe zeigt die Anhänge). Dann kann uni die Mail an Böhme mit Exposé zur
        Freigabe vorlegen; bis dahin schickt Jan selbst.

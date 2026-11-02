@@ -58,6 +58,11 @@ class TestPruefen(unittest.TestCase):
         self.assertIn("literatur: höchstens 12 Angaben, sind 13", fehler)
         self.assertIn("höchstens 6 Überschriften der Ebene 2, sind 7", fehler)
 
+    def test_rahmen_mehrzeilig_bis_400_zeichen(self):
+        d = {**GUELTIG, "rahmen": "Exposé | Wintersemester 2026/27\nStudiengang Holzingenieurwesen (M. Sc.)\n" + "x" * 300}
+        self.assertEqual(expose.pruefen(json.dumps(d)), [])
+        self.assertIn("rahmen: höchstens 400 Zeichen", expose.pruefen(json.dumps({**d, "rahmen": "x" * 401}))[0])
+
     def test_kein_json(self):
         self.assertTrue(expose.pruefen("{kaputt")[0].startswith("kein gültiges JSON"))
         self.assertEqual(expose.pruefen("[]"), ["die Beschreibung muss ein JSON-Objekt sein"])

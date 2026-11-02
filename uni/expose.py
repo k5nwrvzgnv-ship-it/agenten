@@ -28,16 +28,24 @@ DATUM = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
 WOERTER = (650, 1500)
 LITERATUR_MAX = 12
 UNTERPUNKTE_MAX = 6
+# Angaben fürs Deckblatt (Matrikelnummern, Modul), persönlich, nicht im Repo
+VORLAGE = Path("data") / "vorlagen" / "expose_vorlage.md"
+
+VORLAGE_REGELN = """Formatvorlage (Jan 02.11.2026, Studienbeleg "Quercus" der HNEE): Deckblatt mit HNEE-Logo, einrichtung als
+Fachbereich, autoren mit Matrikelnummer, rahmen als bis zu vier Zeilen (Art | Semester, Studiengang, Modul).
+Zitierweise APA 7: im Text (Nachname, Jahr), (Nachname & Nachname, Jahr) bzw. (Nachname et al., Jahr), jede im
+Text zitierte Quelle steht in literatur und umgekehrt. literatur alphabetisch nach APA 7 mit DOI als
+https://doi.org/..., Normen wie „DIN 4074-1:2026-05, Titel. DIN Media GmbH.“"""
 
 FORMAT = """Format der Beschreibung (JSON, reiner Text ohne Markdown, Zeilenumbruch \\n erlaubt):
 {
   "art": "expose",
   "titel": "Arbeitstitel (höchstens 200 Zeichen)",
   "untertitel": "optional, höchstens 200 Zeichen",
-  "autoren": ["Vorname Nachname", "..."],
+  "autoren": ["Vorname Nachname (Matr.-Nr. 12345678)", "..."],
   "betreuung": ["Prof. Dr. ..."],
-  "einrichtung": "Hochschule für nachhaltige Entwicklung Eberswalde (HNEE)",
-  "rahmen": "optional: Modul oder Studiengang, z. B. Forschungsprojekt 2, Holzingenieurwesen M.Sc.",
+  "einrichtung": "Fachbereich Holzingenieurwesen",
+  "rahmen": "Exposé | Wintersemester 2026/27\nStudiengang Holzingenieurwesen (M. Sc.)\nModul <Nummer> – <Name>",
   "datum": "TT.MM.JJJJ (Stand)",
   "bloecke": [
     {"typ": "ueberschrift", "text": "Ausgangslage und Problemstellung"},
@@ -46,14 +54,16 @@ FORMAT = """Format der Beschreibung (JSON, reiner Text ohne Markdown, Zeilenumbr
     {"typ": "liste", "punkte": ["...", "..."], "nummeriert": false},
     {"typ": "tabelle", "titel": "optional", "kopf": ["Zeitraum", "Arbeitsschritt"], "zeilen": [["...", "..."]]}
   ],
-  "literatur": ["Nachname, V. (Jahr): Titel. Zeitschrift/Verlag. DOI oder URL"]
+  "literatur": ["Nachname, V., & Nachname, V. (Jahr). Titel. Zeitschrift, Band(Heft), Seiten. https://doi.org/..."]
 }
 Regeln: Pflicht sind art, titel, autoren, einrichtung, datum, bloecke. Überschriften ohne Nummer (Python
 nummeriert). Vor der ersten Ebene 2 steht eine Ebene 1. Tabellen: höchstens 8 Spalten, jede Zeile gleich viele
 Zellen wie der Kopf. Umfang 2 bis 4 Seiten: {wmin} bis {wmax} Wörter in den Blöcken, höchstens {lit}
 Literaturangaben, höchstens {unter} Überschriften der Ebene 2. Keine Quellenangaben wie "Transkript" oder Zeitmarken im Exposé, die gehören ins Protokoll.
+{vorlage_regeln}
 Andere Felder sind Fehler.""".replace("{wmin}", str(WOERTER[0])).replace("{wmax}", str(WOERTER[1])) \
-    .replace("{lit}", str(LITERATUR_MAX)).replace("{unter}", str(UNTERPUNKTE_MAX))
+    .replace("{lit}", str(LITERATUR_MAX)).replace("{unter}", str(UNTERPUNKTE_MAX)) \
+    .replace("{vorlage_regeln}", VORLAGE_REGELN)
 
 _FELDER = {"art", "titel", "untertitel", "autoren", "betreuung", "einrichtung", "rahmen", "datum", "bloecke",
            "literatur"}
@@ -145,9 +155,10 @@ def pruefen(text: str) -> list[str]:
     if d.get("art") != "expose":
         fehler.append(f'art: muss "expose" sein, ist {d.get("art")!r}')
     _text(d.get("titel"), "titel", fehler, laenge=200)
-    for f in ("untertitel", "rahmen"):
-        if f in d:
-            _text(d[f], f, fehler, laenge=200)
+    if "untertitel" in d:
+        _text(d["untertitel"], "untertitel", fehler, laenge=200)
+    if "rahmen" in d:
+        _text(d["rahmen"], "rahmen", fehler, laenge=400)
     _text(d.get("einrichtung"), "einrichtung", fehler, laenge=200)
     _textliste(d.get("autoren"), "autoren", fehler, pflicht=True, laenge=100)
     if "betreuung" in d:

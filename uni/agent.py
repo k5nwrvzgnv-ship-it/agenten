@@ -814,7 +814,8 @@ Inhalt: sachlich, in der Wir-Form der Gruppe, 2 bis 4 Seiten, kurz und knapp. Gl
 oder das Kursmaterial keine andere vorgeben: Ausgangslage und Problemstellung, Stand der Forschung und Technik,
 Zielsetzung und Forschungsfragen, Methodik und Vorgehen, Zeitplan (als Tabelle), Ressourcen und Arbeitsteilung.
 Die Gliederung ist vorläufig: wenige Unterpunkte, nichts vorwegnehmen, was erst erarbeitet wird.
-Autoren sind die Teilnehmenden der Gruppe laut Transkript, die Betreuung laut Schriftwechsel.
+Autoren sind die Teilnehmenden der Gruppe laut Transkript, die Betreuung laut Schriftwechsel. Matrikelnummern,
+Semester und Modul fürs Deckblatt stehen in {vorlage} (fehlt dort etwas: [OFFEN: ...]).
 Erfinde nichts: keine Ergebnisse, Zahlen, Termine oder Zusagen, die nicht in den Quellen stehen. Fehlt etwas,
 das ins Exposé gehört, schreib an der Stelle [OFFEN: was fehlt] in den Text. Literatur nur aus der Recherche:
 Quellen mit zitierfaehig true, jede Angabe mit DOI oder Adresse der Quelle (Python prüft das), Normen mit
@@ -836,7 +837,9 @@ PROMPT_EXPOSE_ANTWORT = """Jan antwortet zum Exposé:
 
 Überarbeite {ordner}/expose.json so, wie Jan es will (gleiches Format, gleiche Regeln: nichts erfinden,
 [OFFEN: ...] für Lücken, 2 bis 4 Seiten, Literatur nur aus {ordner}/recherche/geprueft.json). Neue angehängte
-Dateien (z. B. ein weiteres Transkript) beziehst du ein.{nachtrag}
+Dateien (z. B. ein weiteres Transkript) beziehst du ein. Deckblatt und Zitierweise nach der Formatvorlage
+(Regeln unten, Angaben in {vorlage}), auch wenn die bisherige Fassung anders aussieht:
+{vorlage_regeln}{nachtrag}
 Ergänze protokolle/{id}.md um einen Abschnitt "Nachtrag" (was sich geändert hat, Quellen).
 Deine letzte Antwort ist wieder die Kurzfassung für Telegram (höchstens 10 Zeilen), ohne Pfad zum Exposé."""
 
@@ -890,7 +893,8 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
                 zeilen += r.zeilen
                 dateien.append(r.bericht)
                 nachtrag = NACHTRAG_SCOPUS.format(geprueft=r.geprueft.relative_to(HIER))
-        prompt = PROMPT_EXPOSE_ANTWORT.format(text=a["text"], ordner=pfad, id=start["id"], nachtrag=nachtrag)
+        prompt = PROMPT_EXPOSE_ANTWORT.format(text=a["text"], ordner=pfad, id=start["id"], nachtrag=nachtrag,
+                                              vorlage=expose.VORLAGE, vorlage_regeln=expose.VORLAGE_REGELN)
     else:
         try:
             r = recherchieren()
@@ -902,7 +906,7 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
         zeilen += r.zeilen
         dateien.append(r.bericht)
         prompt = PROMPT_EXPOSE.format(text=a["text"], ordner=pfad, id=start["id"], format=expose.FORMAT,
-                                      geprueft=r.geprueft.relative_to(HIER))
+                                      vorlage=expose.VORLAGE, geprueft=r.geprueft.relative_to(HIER))
     geprueft = ordner / recherche.ORDNER / "geprueft.json"
 
     def literatur(d: dict) -> list[str]:

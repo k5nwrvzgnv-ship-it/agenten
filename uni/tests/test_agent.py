@@ -714,6 +714,8 @@ class TestExpose(OhneTelegram):
         agent.expose_auftrag(a, start, laufen=self.claude(self.gueltig))
         prompt, kw = self.aufrufe[0]
         self.assertTrue(prompt.startswith("Jan antwortet zum Exposé:\nZeitplan bis März"))
+        for teil in ("data/vorlagen/expose_vorlage.md", "Zitierweise APA 7", "Matrikelnummer"):
+            self.assertIn(teil, prompt)  # Formatvorlage gilt auch für die Überarbeitung
         self.assertIn(f"data/expose/{ID}/expose.json", prompt)
         self.assertEqual((kw["sitzung_fortsetzen"], kw["auftrag_id"]), ("s0", "a2"))
 
