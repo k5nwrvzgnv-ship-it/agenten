@@ -87,7 +87,10 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertIn("Read(**/.env)", rechte["deny"])
         for geschuetzt in ("Edit(**/*.py)", "Write(**/*.py)", "Edit(**/STATUS.md)", "Write(**/.venv/**)"):
             self.assertIn(geschuetzt, rechte["deny"])
-        self.assertEqual(rechte["allow"], ["WebSearch"])  # uni hat WebSearch; Write/Edit nie pauschal erlaubt
+        # uni hat WebSearch und WebFetch nur auf [webfetch] uni (02.11.2026); Write/Edit nie pauschal erlaubt
+        self.assertEqual(rechte["allow"][0], "WebSearch")
+        self.assertIn("WebFetch(domain:doi.org)", rechte["allow"])
+        self.assertTrue(all(r.startswith("WebFetch(domain:") for r in rechte["allow"][1:]))
         system = a[a.index("--append-system-prompt") + 1]
         self.assertIn("nie selbst nach außen", system)
         self.assertIn("Quellen mit Seite", system)

@@ -161,14 +161,14 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Recherchebericht.md (hängt am Ergebnis). Status je Aussage: gesichert, teilweise, verworfen, unbelegt,
   einschaetzung. Das Exposé darf nur Gesichertes als Tatsache nennen, Literatur nur zitierfähige Quellen mit DOI
   oder Adresse bzw. verwendete Normen (recherche.literatur_pruefen, sonst Nachbesserung).
-  Kostengrenze GRENZE_USD = 20 je Recherche (Vorschlag, von Jan noch nicht bestätigt), ein Fenster startet nur,
+  Kostengrenze GRENZE_USD = 50 je Recherche (Jan 02.11.), ein Fenster startet nur,
   wenn danach 5 USD Reserve frei sind. stand.json hält Kosten und fertige Stufen: Ein neuer Anlauf (Kontingent,
   Lauffehler) setzt fort und bezahlt nichts doppelt. Scheitert die Recherche ganz, kein Exposé (fehlgeschlagen).
   Dauer: bis zu etwa 20 Läufe zu je höchstens 15 Minuten, in der Zeit blockiert der uni-Lauf (Fristen, Post).
   Echt geprüft: Crossref-Abgleich (10.1038/nature14539) und PDF-Zitat von arxiv.org. Sonst nur Unit-Tests.
-- Voraussetzung für den echten Lauf: ../STATUS.md Punkt 27 (WebFetch für uni und [webfetch] uni in
-  shared/einstellungen.toml). Ohne WebFetch sieht Claude nur Suchschnipsel. Ohne [webfetch]-Eintrag prüft Python
-  jede https-Adresse. Normen für den Lauf fehlen lokal vermutlich: DIN EN 14081-1, DIN EN 14080, DIN 4074-3/-4
+- WebFetch für uni und [webfetch] uni (36 Domains: Literatur, Verlage, Daten, Förderung, Weinig, Microtec) stehen
+  seit 02.11. in shared/einstellungen.toml (../STATUS.md Punkt 27). Python prüft Belege nur auf diesen Domains,
+  andere zählen als ungeprüft: fehlende Herstellerseiten nach dem ersten Lauf ergänzen. Normen für den Lauf fehlen lokal vermutlich: DIN EN 14081-1, DIN EN 14080, DIN 4074-3/-4
   (vorhanden: DIN 4074-1, DIN 4074-5, DIN EN 338). Erster echter Lauf mit dem Teams-Transkript vom 02.11. (Jan,
   Felix, Henri, Auftrag "Exposé: ...") steht aus, Versand an Böhme war für Mittwoch 04.11. geplant.
 - Tests mit Meldungen: von OhneTelegram (tests/test_agent.py) erben, sonst landen sie echt in Telegram

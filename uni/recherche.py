@@ -29,9 +29,9 @@ from agentkit import abruf, textfassung, wortlaut
 import normen
 
 ORDNER = "recherche"
-# Vorschlag an Jan (02.11.2026), noch nicht bestätigt. Ein Suchlauf startet nur, wenn danach noch die Reserve für
+# Jan 02.11.2026: 50 USD je Recherche. Ein Suchlauf startet nur, wenn danach noch die Reserve für
 # Gegenprüfung und Exposé frei ist.
-GRENZE_USD = 20.0
+GRENZE_USD = 50.0
 LAUF_USD = 4.0
 RESERVE_USD = 5.0
 DURCHGAENGE = 2

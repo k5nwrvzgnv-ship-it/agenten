@@ -736,9 +736,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     b) agentkit.mail (Hauptordner-Chat): Anhänge beim Senden (Entwurf nennt Dateien aus dem Agent-Ordner, Python
        prüft Pfad und Größe, die Freigabe zeigt die Anhänge). Dann kann uni die Mail an Böhme mit Exposé zur
        Freigabe vorlegen; bis dahin schickt Jan selbst.
-27. Bedarf aus uni (02.11.2026, Jan: "Recherche aufwendig, Ergebnis verlässlich"): Vor dem Exposé recherchiert uni
-    in Suchfenstern (uni/recherche.py), Python prüft jedes Zitat wörtlich auf der Seite bzw. im PDF und jede DOI
-    gegen Crossref. Dafür in shared/einstellungen.toml (Hauptordner-Chat, Jans Okay):
+27. Erledigt 02.11. (Bedarf aus uni, Jan: "Recherche aufwendig, Ergebnis verlässlich"; mit Jans Okay im uni-Chat
+    eingetragen, Test in agentkit/tests/test_claude_lauf.py angepasst): Vor dem Exposé recherchiert uni in
+    Suchfenstern (uni/recherche.py), Python prüft jedes Zitat wörtlich auf der Seite bzw. im PDF und jede DOI
+    gegen Crossref. Dafür in shared/einstellungen.toml:
     a) [werkzeuge] uni um "WebFetch" ergänzen (bisher nur WebSearch: Claude sieht sonst nur Suchschnipsel).
     b) [webfetch] uni anlegen. Python nimmt dieselbe Liste für agentkit.abruf; ohne Eintrag lädt uni jede
        https-Adresse (wie WebFetch ohne Eintrag). Vorschlag: "doi.org", "api.crossref.org", "api.openalex.org",
@@ -747,7 +748,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        "zenodo.org", "figshare.com", "mendeley.com", "github.com", "huggingface.co", "kaggle.com",
        "ultralytics.com", "europa.eu", "fnr.de", "dfg.de", "bund.de", "thuenen.de", "fraunhofer.de",
        "hnee.de", "uni-bamberg.de", "bfh.ch", "weinig.com", "microtec.eu", "de.wikipedia.org",
-       "en.wikipedia.org". Herstellerseiten (z. B. Dataspree) nach dem ersten Lauf aus dem Recherchebericht
+       "en.wikipedia.org" (so eingetragen). Herstellerseiten (z. B. Dataspree) nach dem ersten Lauf aus dem Recherchebericht
        ergänzen: Belege von fremden Domains zählen dort als "ungeprüft".
     Später (kein Muss): Belegprüfung url+zitat für Webseiten und PDFs als agentkit-Baustein, uni/recherche.py
     und lia/recherche/webpruefung.py würden ihn teilen.

@@ -35,7 +35,8 @@ routine_sparen = "haiku"
 # Werkzeuge, die Claude pro Agent bekommt. Kein Bash: Claude handelt nie selbst nach außen.
 [werkzeuge]
 standard = ["Read", "Write", "Edit", "Glob", "Grep"]
-uni = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch"]
+# uni: WebFetch für die Exposé-Recherche (Jan 02.11.2026), nur auf [webfetch] uni
+uni = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 dokumente = ["Read", "Write", "Edit", "Glob", "Grep"]
 posteingang = ["Read", "Write", "Edit", "Glob", "Grep"]
 einkauf = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
@@ -61,6 +62,22 @@ recherche = [
   "de.wikisource.org", "zeno.org", "korpora.org", "archive.org",
   # Fallsuche (Jan 27.10.2026): Nachrichten, Jugend, Urteile, Orientierung
   "rbb24.de", "deutschlandfunk.de", "funk.net", "stern.de", "openjur.de", "de.wikipedia.org",
+]
+# Exposé-Recherche von uni (Jan 02.11.2026, uni/recherche.py). Belege von anderen Domains zählen als ungeprüft.
+uni = [
+  # Literaturdienste und Metadaten (Crossref prüft jede DOI)
+  "doi.org", "api.crossref.org", "api.openalex.org", "openalex.org", "arxiv.org", "semanticscholar.org",
+  # Verlage
+  "sciencedirect.com", "springer.com", "nature.com", "mdpi.com", "wiley.com", "tandfonline.com",
+  "degruyter.com", "ieee.org", "frontiersin.org", "sagepub.com",
+  # Daten und Modelle
+  "zenodo.org", "figshare.com", "mendeley.com", "github.com", "huggingface.co", "kaggle.com", "ultralytics.com",
+  # Förderung und Forschung
+  "europa.eu", "fnr.de", "dfg.de", "bund.de", "thuenen.de", "fraunhofer.de", "hnee.de", "uni-bamberg.de", "bfh.ch",
+  # Hersteller
+  "weinig.com", "microtec.eu",
+  # Nachschlagen
+  "de.wikipedia.org", "en.wikipedia.org",
 ]
 
 # Aufträge von Agent an Agent (agentkit.auftraege.weitergeben): Absender = [Empfänger].
