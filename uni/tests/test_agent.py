@@ -747,6 +747,23 @@ class TestExpose(OhneTelegram):
         self.durchfuehren.assert_not_called()
         self.assertNotIn("Scopus", self.aufrufe[0][0])
 
+    def test_abbruch_nach_dem_schreiben_wird_trotzdem_gebaut(self):
+        a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig, ok=False), netz=("s", "m"))
+        args, kw = self.abschliessen.call_args
+        self.assertIn("Lauf endete vor der Kurzfassung", args[1])
+        self.assertNotIn("status", kw)
+        self.assertEqual(len(kw["dateien"]), 2)
+
+    def test_abbruch_ohne_neue_fassung_fehlgeschlagen(self):
+        start = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        ordner = self.hier / "data" / "expose" / ID
+        ordner.mkdir(parents=True)
+        (ordner / "expose.json").write_text(json.dumps(self.gueltig))  # alte Fassung, unverändert
+        a = {"id": "a2", "text": "kürzer", "sitzung": "s0", "bezug": ID, "modus": "erledigen"}
+        agent.expose_auftrag(a, start, laufen=self.claude(ok=False), netz=("s", "m"))
+        self.assertEqual(self.abschliessen.call_args.kwargs["status"], "fehlgeschlagen")
+
     def test_ohne_expose_hinweis(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
         agent.expose_auftrag(a, a, laufen=self.claude(), netz=("s", "m"))

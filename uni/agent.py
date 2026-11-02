@@ -806,6 +806,8 @@ Quellen, in dieser Reihenfolge:
   (Zeitplan, Inhalt) soll das Exposé beantworten. Namen der Gruppe in der Schreibweise der Mails.
 - Kursmaterial des Projektmoduls in data/kurse/ (z. B. Forschungsprojekt 2), falls es Vorgaben enthält.
 Such in diesem Schritt nicht im Netz: Was die Recherche nicht belegt, ist [OFFEN: ...].
+Du hast höchstens 30 Arbeitsschritte. geprueft.json ist groß: lies den Recherchebericht daneben oder such mit
+Grep gezielt, statt alles zu öffnen. Schreib expose.json nach spätestens 20 Schritten und überarbeite sie dann.
 
 Schreib das Exposé für die Betreuung (Professor) nach {ordner}/expose.json.
 {format}
@@ -840,7 +842,8 @@ PROMPT_EXPOSE_ANTWORT = """Jan antwortet zum Exposé:
 Dateien (z. B. ein weiteres Transkript) beziehst du ein. Deckblatt und Zitierweise nach der Formatvorlage
 (Regeln unten, Angaben in {vorlage}), auch wenn die bisherige Fassung anders aussieht:
 {vorlage_regeln}{nachtrag}
-Ergänze protokolle/{id}.md um einen Abschnitt "Nachtrag" (was sich geändert hat, Quellen).
+Ergänze protokolle/{id}.md um einen Abschnitt "Nachtrag" (was sich geändert hat, Quellen). Du hast höchstens
+30 Arbeitsschritte: erst expose.json, dann das Protokoll.
 Deine letzte Antwort ist wieder die Kurzfassung für Telegram (höchstens 10 Zeilen), ohne Pfad zum Exposé."""
 
 NACHTRAG_SCOPUS = """
@@ -914,11 +917,18 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
             return []
         return recherche.literatur_pruefen(d.get("literatur", []), json.loads(geprueft.read_text()))
 
+    datei = ordner / expose.DATEI
+    vorher = datei.stat().st_mtime_ns if datei.exists() else None
     e = laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"], sitzung_fortsetzen=a.get("sitzung"))
-    if not e.ok:
+    geschrieben = datei.exists() and datei.stat().st_mtime_ns != vorher
+    if not e.ok and not (geschrieben and e.sitzung):
         auftraege.abschliessen(a["id"], "\n\n".join([f"Fehler: {e.text}", *zeilen]), status="fehlgeschlagen",
                                sitzung=e.sitzung, dateien=dateien)
         return
+    if not e.ok:  # z. B. Grenze der Arbeitsschritte nach dem Schreiben: das Exposé liegt vor, Python prüft es
+        logger.warning("Exposé %s: Lauf endete vorzeitig (%s), geschriebene Fassung wird geprüft", start["id"],
+                       e.text[:200] or "ohne Text")
+        e.text = "Der Lauf endete vor der Kurzfassung (Grenze der Arbeitsschritte), das Exposé ist trotzdem gebaut."
     sitzung, zeilen = e.sitzung, [e.text, *zeilen]
     b = expose.bauen(ordner, weitere=literatur)
     if b.ungueltig and sitzung:
