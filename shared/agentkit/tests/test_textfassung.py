@@ -44,6 +44,12 @@ class TestWordKommentare(unittest.TestCase):
         (self.tmp / "kaputt.docx").write_text("kein zip")
         with self.assertRaises(ValueError):
             textfassung.word_kommentare(self.tmp / "kaputt.docx")
+        with self.assertRaises(ValueError):
+            textfassung.word_absaetze(self.tmp / "kaputt.docx")
+
+    def test_absaetze_ohne_pakete(self):
+        self.assertEqual(textfassung.word_absaetze(self.docx()), ["Aufgabe 1: Erkläre Kants Vergeltung.", "Bild"])
+        self.assertEqual(textfassung.word_absaetze(self.tmp / "x.pdf"), [])
 
 
 if __name__ == "__main__":

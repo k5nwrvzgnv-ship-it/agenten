@@ -40,7 +40,7 @@ POST:
   /fragen                               Frage an den Chat-Agenten (lia/chat), nur mit WEBAPP_CHAT=an
   /neu                                  legt einen Auftrag an (agentkit.auftraege.neuer_auftrag mit basis=)
   /ergebnis/<id>/rueckmeldung           Rückmeldung an den Feedback-Dienst (Auftrag an feedback, bezug = Fassung),
-                                        wie Neuer Auftrag nur im Testbetrieb oder echt; eine Datei wird eigene Fassung
+                                        wie Neuer Auftrag nur im Testbetrieb oder echt; eine Datei wird je nach Art Fassung oder Anmerkung
   /ergebnis/<id>/final                  Fassung als final markieren oder zurücknehmen (agentkit.fassungen)
   /ergebnis/<id>/eigene                 eigene Fassung hochladen (agentkit.fassungen, Datei in den Agent-Ordner)
   /entwurf/<id>                         Lias Entscheidung „Setze ich selbst ein“/„Brauche ich nicht“/rückgängig (data/)
@@ -1069,9 +1069,9 @@ async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=fehler, text=text, status=400,
                                    ziel=ziel)
         pfad = _upload_ablegen(datei) if datei else None
-        try:  # agentkit: die Datei wird eigene Fassung (Agent sieht sie), dann der Auftrag an den Feedback-Dienst
+        try:  # agentkit: die Datei kommt mit ihrer Art in die Kette (Agent sieht sie), dann der Auftrag an den Feedback-Dienst
             fid, _ = fassungen.rueckmeldung(bezug, logik.rueckmeldung_text(text, datei.filename if datei else "", ziel),
-                                            pfad, "mit deinen Kommentaren", basis=INSTANZ / "auftraege",
+                                            pfad, basis=INSTANZ / "auftraege",
                                             agenten_dir=INSTANZ.parent)
         except (fassungen.FassungFehler, auftraege.AuftragFehler, OSError) as fehler_:
             logger.error("Rückmeldung nicht angelegt: %s", fehler_)

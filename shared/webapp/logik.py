@@ -451,12 +451,19 @@ def zeitfolge(kette: list[dict], eigene: list[dict] = ()) -> list[tuple[str, dic
     return [(ref, x) for _, ref, x in sorted(folge, key=lambda t: t[0])]
 
 
+KEINE_FASSUNG = {"anmerkungen": "Deine Anmerkungen", "unklar": "Deine Datei"}  # agentkit.fassungen, Feld art
+
+
 def fassung_namen(kette: list[dict], eigene: list[dict] = ()) -> dict[str, str]:
     """Name jeder Fassung: "Fassung n" (n zählt den Ursprung, Fassungen mit Dateien und Lias eigene Fassungen),
-    sonst "Antwort". Schlüssel: Auftrags-ID bzw. eigene_ref(n)."""
+    sonst "Antwort". Dateien an einer Rückmeldung, die keine Fassung sind, heißen nach ihrer Art und zählen nicht.
+    Schlüssel: Auftrags-ID bzw. eigene_ref(n)."""
     namen, nummer = {}, 0
     for ref, a in zeitfolge(kette, eigene):
         if a.get("agent") == "feedback":
+            continue
+        if a.get("art") in KEINE_FASSUNG:
+            namen[ref] = KEINE_FASSUNG[a["art"]]
             continue
         if nummer == 0 or a.get("ergebnis_dateien") or a.get("eigene"):
             nummer += 1
@@ -483,7 +490,7 @@ def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[
                 "zeit": zeit_text(a.get("zeit"), jetzt), "beschreibung": a.get("notiz") or "",
                 "datei": {"name": datei_name(a.get("name") or ""), "nr": int(ref.rsplit("-", 1)[1]),
                           "knopf": DATEIKNOEPFE.get(Path(a.get("name") or "").suffix.lower(), "Datei")},
-                "final": ref == final_ref, "finalbar": True})
+                "final": ref == final_ref, "finalbar": a.get("art") not in KEINE_FASSUNG})
             continue
         if a.get("agent") == "feedback":
             nb = (a.get("daten") or {}).get("nachbesserung")
@@ -618,7 +625,7 @@ def datei_pruefen(name: str, groesse: int, endungen: tuple[str, ...]) -> list[st
 
 
 def rueckmeldung_pruefen(text: str, datei: tuple[str, int] | None) -> tuple[str, list[str]]:
-    """Rückmeldung aus der Material-Ansicht: Text ist Pflicht, eine Datei mit Kommentaren darf dazu."""
+    """Rückmeldung aus der Material-Ansicht: Text ist Pflicht, eine Datei darf dazu."""
     text = (text or "").strip()
     fehler = []
     if not text:
@@ -649,13 +656,13 @@ def rueckmeldung_ziel(kette: list[dict], fassung_id: str | None, nr_text: str | 
 
 def rueckmeldung_text(text: str, datei_name_: str = "", ziel: dict | None = None) -> str:
     """Text des Auftrags an den Feedback-Dienst. ziel (rueckmeldung_ziel): Der Text beginnt mit Datei und Seite.
-    Eine angehängte Datei wird eigene Fassung (agentkit.fassungen.rueckmeldung); der Feedback-Dienst liest ihre
-    Word-Kommentare und hängt sie an die Nachbesserung."""
+    Was eine angehängte Datei ist, bestimmt agentkit.fassungen.rueckmeldung; der Feedback-Dienst hängt sie an die
+    Nachbesserung."""
     if ziel:
         text = f"Zur Datei {ziel['text']}: {text}"
     if not datei_name_:
         return text
-    return f"{text}\n\nDazu eine Datei mit Kommentaren: {dateiname_bereinigen(datei_name_)}."
+    return f"{text}\n\nDazu eine Datei: {dateiname_bereinigen(datei_name_)}."
 
 
 def seiten_text(anzahl: int) -> str:

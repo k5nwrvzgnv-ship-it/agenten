@@ -449,6 +449,20 @@ class TestMaterial(unittest.TestCase):
         self.assertEqual((v[0]["von"], v[0]["beschreibung"], v[0]["final"]),
                          ("vom Assistenten", "19 Bausteine für 38 Minuten.", False))
 
+    def test_datei_ohne_fassung_zaehlt_nicht(self):
+        alt, fb, nb = theater_kette()
+        nb = {**nb, "ergebnis_dateien": ["d/neu.docx"]}
+        eigene = [{"name": "feedback.docx", "zeit": "2026-10-30T10:00:00+01:00", "notiz": "", "art": "anmerkungen"},
+                  {"name": "Foto.jpg", "zeit": "2026-10-30T10:01:00+01:00", "notiz": "", "art": "unklar"},
+                  {"name": "Meine.docx", "zeit": "2026-10-30T10:02:00+01:00", "notiz": "", "art": "fassung"}]
+        self.assertEqual(logik.fassung_namen([alt, fb, nb], eigene),
+                         {ALT_ID: "Fassung 1", "eigene-1": "Deine Anmerkungen", "eigene-2": "Deine Datei",
+                          "eigene-3": "Fassung 2", NB_ID: "Fassung 3"})
+        v = logik.verlauf([alt, fb, nb], nb, {}, JETZT, eigene)
+        self.assertEqual([x["finalbar"] for x in v if x["art"] == "eigene"], [False, False, True])
+        self.assertFalse(logik.final_erlaubt("eigene-1", v))
+        self.assertTrue(logik.final_erlaubt("eigene-3", v))
+
     def test_final_und_marke(self):
         alt, fb, nb = theater_kette()
         e = logik.ergebnis([alt, fb, nb], {}, JETZT, final_ref=ALT_ID)
@@ -482,7 +496,7 @@ class TestMaterial(unittest.TestCase):
                          ["Diese Datei geht nicht. Möglich sind: Excel, PDF, PowerPoint, Word."])
         self.assertEqual(logik.rueckmeldung_text("kürzer"), "kürzer")
         self.assertEqual(logik.rueckmeldung_text("kürzer", "Blatt.docx"),
-                         "kürzer\n\nDazu eine Datei mit Kommentaren: Blatt.docx.")
+                         "kürzer\n\nDazu eine Datei: Blatt.docx.")
 
 
 class TestEntwurf(unittest.TestCase):

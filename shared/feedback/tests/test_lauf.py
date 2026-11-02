@@ -124,6 +124,50 @@ class TestLauf(unittest.TestCase):
         self.assertTrue((lia / "recherche" / eigene["datei"]).exists())  # Kopie, die eigene Fassung bleibt
         self.assertEqual(auftraege.erledigter(fid, basis=self.basis)["daten"]["nachbesserung"], nb["id"])
 
+    def rueckmeldung_mit_datei(self, datei):
+        """Rückmeldung mit Datei zu einem Ergebnis mit Word-Datei; gibt (Prompt, Nachbesserung) zurück."""
+        (self.units / "lia-recherche.service").write_text("")
+        lia = self.instanz.parent
+        w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+        with zipfile.ZipFile(lia / "recherche" / "Stueck.docx", "w") as z:
+            z.writestr("word/document.xml", f"<w:document {w}><w:body><w:p><w:r><w:t>Szene 1: Der Regisseur ruft in den "
+                       "Saal.</w:t></w:r></w:p></w:body></w:document>")
+        aid = auftraege.neuer_auftrag("recherche", "Spielfassung", basis=self.basis)
+        self.ergebnis = auftraege.abschliessen(aid, "fertig", dateien=["Stueck.docx"], basis=self.basis, agenten_dir=lia)
+        fassungen.rueckmeldung(aid, "Bitte beachten", datei, basis=self.basis, agenten_dir=lia)
+        prompts = []
+
+        def laufen(agent, ordner, prompt, **k):
+            prompts.append(prompt)
+            return zuordnung(art="nachbesserung", auftrag="Setze das Feedback um.")
+        lauf.feedback_bearbeiten(self.ort, auftraege.neue("feedback", basis=self.basis)[0], laufen=laufen)
+        return prompts[0], auftraege.neue("recherche", basis=self.basis)[0]
+
+    def test_rueckmeldung_mit_anmerkungen(self):
+        """Lias Fall vom 01.11.: 9 Anmerkungen ohne Word-Kommentare und ohne Stücktext."""
+        w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+        datei = self.instanz.parent / "feedback stück.docx"
+        absaetze = "".join(f"<w:p><w:r><w:t>Anmerkung {n}: Bitte hier mehr Wiederholungen.</w:t></w:r></w:p>" for n in range(9))
+        with zipfile.ZipFile(datei, "w") as z:
+            z.writestr("word/document.xml", f"<w:document {w}><w:body>{absaetze}</w:body></w:document>")
+        prompt, nb = self.rueckmeldung_mit_datei(datei)
+        self.assertIn("Anmerkung 8: Bitte hier mehr Wiederholungen.", prompt)
+        self.assertNotIn("eigene Fassung", prompt)
+        self.assertIn("Grundlage ist dein letztes Ergebnis.", nb["text"])
+        self.assertIn("feedback stück.docx", nb["text"])
+        self.assertNotIn("eigene Fassung", nb["text"])
+        self.assertNotIn("Kommentare um", nb["text"])
+        self.assertEqual(nb["dateien"], [f"data/eingang/{nb['id']}/feedback stück.docx"])
+
+    def test_rueckmeldung_mit_foto_bleibt_offen(self):
+        datei = self.instanz.parent / "Foto.jpg"
+        datei.write_bytes(b"JPG")
+        prompt, nb = self.rueckmeldung_mit_datei(datei)
+        self.assertIn("ist nicht geprüft", prompt)
+        self.assertIn("Lies sie zuerst.", nb["text"])
+        self.assertNotIn("Grundlage ist", nb["text"])
+        self.assertEqual(len(nb["dateien"]), 1)
+
     def test_ohne_eigene_fassung_keine_datei(self):
         (self.units / "lia-recherche.service").write_text("")
         self.feedback("zu lang", zuordnung(art="nachbesserung", auftrag="Kürzer."))

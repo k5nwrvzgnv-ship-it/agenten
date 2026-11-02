@@ -22,6 +22,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import fassungen
+
 AGENT = "feedback"
 QUELLE = "feedback"
 ARTEN = ("nachbesserung", "regel", "notiz", "keine")
@@ -96,10 +98,21 @@ Leere Felder als "". Schreib deutsch, kurz und klar.
 MAX_KOMMENTARE = 4000
 
 
-def fassung_abschnitt(person: str, eigene: dict | None, kommentare: list[dict]) -> str:
-    """Abschnitt im Prompt, wenn die Person eine eigene Fassung (Datei) mitgeschickt hat (agentkit.fassungen)."""
+def fassung_abschnitt(person: str, eigene: dict | None, kommentare: list[dict], absaetze: list[str] = ()) -> str:
+    """Abschnitt im Prompt, wenn die Person eine Datei mitgeschickt hat, je nach Art (agentkit.fassungen).
+    absaetze: Text der Datei, nur für Anmerkungen."""
     if not eigene:
         return ""
+    if fassungen.art(eigene) == fassungen.ART_ANMERKUNGEN:
+        zeilen = [f"\n# Anmerkungen von {person}",
+                  f"{person} hat dazu eine Datei mit Anmerkungen geschickt ({eigene['name']}). Sie enthält nicht das "
+                  "Ergebnis und keine Word-Kommentare. Eine Nachbesserung baut auf dem letzten Ergebnis auf und setzt "
+                  "diese Anmerkungen um. Text der Datei:", *absaetze]
+        return kurz_zeilen("\n".join(zeilen), MAX_KOMMENTARE) + "\n"
+    if fassungen.art(eigene) == fassungen.ART_UNKLAR:
+        return (f"\n# Datei von {person}\n{person} hat dazu eine Datei geschickt ({eigene['name']}). Ob sie eine "
+                "bearbeitete Fassung des Ergebnisses oder nur Anmerkungen enthält, ist nicht geprüft. Der Agent liest "
+                "sie selbst. Behaupte in \"auftrag\" nichts über ihren Inhalt.\n")
     zeilen = [f"\n# Eigene Fassung von {person}",
               f"{person} hat dazu eine eigene Fassung hochgeladen ({eigene['name']}). Eine Nachbesserung baut auf ihr auf."]
     if eigene.get("notiz"):
@@ -118,7 +131,7 @@ def kurz_zeilen(text: str, laenge: int) -> str:
 
 def prompt(person: str, agent: str, auftrag: dict, feedback_text: str, regeln_text: str, agenten_liste: list[str],
            fassung: str = "") -> str:
-    """fassung: fassung_abschnitt(), wenn eine eigene Fassung mitkam."""
+    """fassung: fassung_abschnitt(), wenn eine Datei mitkam."""
     return PROMPT.format(
         person=person, agent=agent, auftrag=kurz(auftrag.get("text", ""), 1500),
         ergebnis=kurz(auftrag.get("ergebnis", ""), 3000) or "(kein Text, nur Dateien)",
@@ -201,13 +214,20 @@ def notiz_text(z: dict, person: str, agent: str) -> str:
 
 
 def nachbesserung_text(z: dict, auftrag: dict, eigene: dict | None = None, person: str = "Lia") -> str:
-    """eigene: Eintrag der eigenen Fassung (agentkit.fassungen), die als Datei am Auftrag hängt."""
+    """eigene: Eintrag der Datei (agentkit.fassungen), die am Auftrag hängt; ihre Art bestimmt den letzten Absatz."""
     text = (f"Nachbesserung zu deinem Ergebnis für den Auftrag „{kurz(auftrag.get('text', ''), 200)}“ "
             f"(Auftrag {auftrag['id']}):\n\n{z['auftrag']}")
-    if eigene:
-        text += (f"\n\nGrundlage ist {person}s eigene Fassung {eigene['name']} (angehängt), nicht dein letztes "
-                 f"Ergebnis. Übernimm ihre Änderungen, setze ihre Kommentare um und entferne die Kommentare.")
-    return text
+    if not eigene:
+        return text
+    if fassungen.art(eigene) == fassungen.ART_ANMERKUNGEN:
+        return text + (f"\n\nGrundlage ist dein letztes Ergebnis. {person}s Datei {eigene['name']} (angehängt) enthält "
+                       f"ihre Anmerkungen als Text, nicht das Ergebnis und keine Word-Kommentare. Setze die Anmerkungen um.")
+    if fassungen.art(eigene) == fassungen.ART_UNKLAR:
+        return text + (f"\n\n{person} hat die Datei {eigene['name']} angehängt. Lies sie zuerst. Enthält sie das Ergebnis "
+                       f"in bearbeiteter Form, baue darauf auf und übernimm ihre Änderungen. Sonst baue auf deinem "
+                       f"letzten Ergebnis auf und setze sie als Anmerkungen um.")
+    return text + (f"\n\nGrundlage ist {person}s eigene Fassung {eigene['name']} (angehängt), nicht dein letztes "
+                   f"Ergebnis. Übernimm ihre Änderungen, setze ihre Kommentare um und entferne die Kommentare.")
 
 
 def agent_name(agent: str) -> str:

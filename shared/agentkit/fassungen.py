@@ -5,30 +5,64 @@ Auftrag heißt Ursprung. Je Ursprung eine JSON-Datei <instanz>/fassungen/<urspru
   {"ursprung": "<id>", "agent": "unterricht",
    "final": {"fassung": "<auftrags-id aus der Kette>" oder "eigene-<n>", "zeit": "<iso>"} oder null,
    "eigene": [{"n": 1, "name": "Blatt.docx", "datei": "data/eingang/<ursprung>/eigene-1/Blatt.docx",
-               "notiz": "", "zeit": "<iso>"}]}
+               "notiz": "", "zeit": "<iso>", "art": "fassung"}]}
 Die Dateien eigener Fassungen liegen im Ordner des Agenten (datei relativ dazu), dort darf Claude sie lesen.
 
 Wofür:
 - final: Agenten nehmen finale Fassungen als Beispiel (finale(agent)).
 - eigene Fassung: Grundlage der nächsten Nachbesserung (grundlage(auftrag_id)); der Feedback-Dienst hängt sie an.
-Rückmeldung mit Datei (rueckmeldung): Die Datei wird eine eigene Fassung, der Feedback-Dienst liest ihre
-Word-Kommentare und hängt sie als Kopie an die Nachbesserung.
+Rückmeldung mit Datei (rueckmeldung): Die Datei kommt in dieselbe Liste, ihre Art bestimmt art_bestimmen(): "fassung"
+(bearbeitete Fassung des Ergebnisses), "anmerkungen" (nur Anmerkungen als Text) oder "unklar" (nicht prüfbar, etwa
+PDF oder Foto). Der Feedback-Dienst richtet Zuordnung und Nachbesserung danach aus und hängt die Datei als Kopie an.
+Über „Eigene Fassung hochladen“ (eigene_dazu ohne art) ist es immer eine Fassung, ebenso alte Einträge ohne art.
 Schreiben: die Web-App (final_setzen, eigene_dazu, rueckmeldung). Alle Funktionen nehmen basis= wie agentkit.auftraege
 (Warteschlange der Instanz); die Fassungen liegen daneben in basis.parent / "fassungen".
 """
 
 import fcntl
+import logging
 import re
 import shutil
 from contextlib import contextmanager
 from pathlib import Path
 
-from . import _ablage, auftraege
+from . import _ablage, auftraege, textfassung
 from ._ablage import AblageFehler as FassungFehler  # noqa: F401
 from .auftraege import AGENTEN_DIR, BASIS, EINGANG
 
 EIGENE = re.compile(r"eigene-([1-9][0-9]{0,3})")
 MAX_NOTIZ = 2000
+ART_FASSUNG = "fassung"
+ART_ANMERKUNGEN = "anmerkungen"
+ART_UNKLAR = "unklar"
+MIN_ABSATZ = 20  # kürzere Absätze (Überschriften, Namen) sagen beim Vergleich nichts
+FASSUNG_AB = 0.25  # Anteil der Absätze, die auch in einer Fassung der Kette stehen (stark überarbeitet: um 0,2)
+ANMERKUNGEN_BIS = 0.05  # darunter enthält die Datei das Ergebnis nicht; dazwischen bleibt es unklar
+NOTIZ_FASSUNG = "deine bearbeitete Fassung"
+logger = logging.getLogger(__name__)
+
+
+def art(eintrag: dict) -> str:
+    """Art eines Eintrags aus "eigene"; Einträge von vor dieser Unterscheidung gelten als Fassung."""
+    return eintrag.get("art") or ART_FASSUNG
+
+
+def art_bestimmen(hat_kommentare: bool, absaetze: list[str], vergleich: list[str]) -> str:
+    """Was eine Datei an einer Rückmeldung ist. absaetze: ihr Text, vergleich: Text der Fassungen der Kette.
+    Word-Kommentare hängen immer an einem Text, also ist es eine Fassung. Sonst zählt, wie viel vom Ergebnis drinsteht."""
+    if hat_kommentare:
+        return ART_FASSUNG
+    datei, bekannt = _lange_absaetze(absaetze), _lange_absaetze(vergleich)
+    if not datei or not bekannt:
+        return ART_UNKLAR
+    anteil = len(datei & bekannt) / len(datei)
+    if anteil >= FASSUNG_AB:
+        return ART_FASSUNG
+    return ART_ANMERKUNGEN if anteil <= ANMERKUNGEN_BIS else ART_UNKLAR
+
+
+def _lange_absaetze(absaetze: list[str]) -> set[str]:
+    return {t for t in (" ".join(a.split()).casefold() for a in absaetze) if len(t) >= MIN_ABSATZ}
 
 
 def _ordner(basis: Path | None) -> Path:
@@ -114,7 +148,7 @@ def final_setzen(auftrag_id: str, fassung: str | None, basis: Path | None = None
     with _gesperrt(basis) as ordner:
         stand = _lies(ordner, u)
         if fassung is not None and EIGENE.fullmatch(fassung) \
-                and fassung not in {f"eigene-{e['n']}" for e in stand["eigene"]}:
+                and fassung not in {f"eigene-{e['n']}" for e in stand["eigene"] if art(e) == ART_FASSUNG}:
             raise FassungFehler(f"{fassung} gibt es zu {u} nicht")
         stand["final"] = None if fassung is None else {"fassung": fassung, "zeit": _ablage.jetzt()}
         _ablage.schreibe(ordner / f"{u}.json", stand)
@@ -122,9 +156,9 @@ def final_setzen(auftrag_id: str, fassung: str | None, basis: Path | None = None
 
 
 def eigene_dazu(auftrag_id: str, datei: Path, notiz: str = "", basis: Path | None = None,
-                agenten_dir: Path | None = None) -> dict:
+                agenten_dir: Path | None = None, art_: str = ART_FASSUNG) -> dict:
     """Verschiebt eine eigene Fassung (z. B. Word mit Kommentaren) zum Agenten der Kette und trägt sie ein.
-    Gibt den Eintrag zurück ({"n", "name", "datei", "notiz", "zeit"}), Fassung heißt dann "eigene-<n>"."""
+    Gibt den Eintrag zurück ({"n", "name", "datei", "notiz", "zeit", "art"}), Fassung heißt dann "eigene-<n>"."""
     basis = basis or BASIS
     datei = Path(datei)
     if not datei.is_file():
@@ -145,7 +179,7 @@ def eigene_dazu(auftrag_id: str, datei: Path, notiz: str = "", basis: Path | Non
         name = datei.name.lstrip(".") or "fassung"
         shutil.move(datei, ziel / name)
         eintrag = {"n": n, "name": name, "datei": (ziel / name).relative_to(agent_dir).as_posix(),
-                   "notiz": notiz.strip(), "zeit": _ablage.jetzt()}
+                   "notiz": notiz.strip(), "zeit": _ablage.jetzt(), "art": art_}
         stand["eigene"].append(eintrag)
         _ablage.schreibe(ordner / f"{u}.json", stand)
     return eintrag
@@ -153,7 +187,7 @@ def eigene_dazu(auftrag_id: str, datei: Path, notiz: str = "", basis: Path | Non
 
 def grundlage(auftrag_id: str, basis: Path | None = None) -> dict | None:
     """Neueste eigene Fassung, wenn sie nach dem letzten erledigten Ergebnis der Kette kam (sonst None).
-    Eintrag wie bei eigene_dazu; die nächste Nachbesserung soll auf ihr aufbauen."""
+    Eintrag wie bei eigene_dazu; was die nächste Nachbesserung damit tut, hängt von art() ab."""
     basis = basis or BASIS
     stand = lesen(auftrag_id, basis)
     if not stand["eigene"]:
@@ -186,15 +220,42 @@ def finale(agent: str, basis: Path | None = None) -> list[dict]:
     return sorted(ergebnis, key=lambda e: e["zeit"], reverse=True)
 
 
-def rueckmeldung(bezug: str, text: str, datei: Path | None = None, notiz: str = "", basis: Path | None = None,
+def _absaetze(pfad: Path) -> list[str]:
+    try:
+        return textfassung.word_absaetze(pfad)
+    except (OSError, ValueError) as f:
+        logger.warning("Absätze in %s nicht lesbar: %s", pfad, f)
+        return []
+
+
+def datei_art(bezug: str, datei: Path, basis: Path | None = None, agenten_dir: Path | None = None) -> str:
+    """art_bestimmen() für eine Datei zum Ergebnis bezug: Word-Kommentare und Vergleich mit allen Fassungen der Kette
+    (Ergebnisse des Agenten und Lias eigene). Andere Formate als Word sind ohne weitere Pakete nicht prüfbar: unklar."""
+    basis = basis or BASIS
+    try:
+        hat_kommentare = bool(textfassung.word_kommentare(datei))
+    except (OSError, ValueError) as f:
+        logger.warning("Kommentare in %s nicht lesbar: %s", datei, f)
+        return ART_UNKLAR
+    agent_dir = (agenten_dir or AGENTEN_DIR) / bezug.split("-")[2]
+    pfade = [d for a in kette(bezug, basis) for d in a.get("ergebnis_dateien") or []]
+    pfade += [e["datei"] for e in lesen(bezug, basis)["eigene"] if art(e) == ART_FASSUNG]
+    vergleich = [t for p in pfade for t in _absaetze(agent_dir / p)]
+    return art_bestimmen(hat_kommentare, _absaetze(datei), vergleich)
+
+
+def rueckmeldung(bezug: str, text: str, datei: Path | None = None, basis: Path | None = None,
                  agenten_dir: Path | None = None) -> tuple[str, dict | None]:
-    """Feedback zum Ergebnis bezug an den Feedback-Dienst, optional mit Datei (z. B. Word mit Kommentaren).
-    Die Datei wird erst eigene Fassung der Kette (eigene_dazu), dann entsteht der Auftrag an "feedback".
-    Gibt (ID des Feedback-Auftrags, Eintrag der eigenen Fassung oder None) zurück. Den Dienst startet der Aufrufer."""
+    """Feedback zum Ergebnis bezug an den Feedback-Dienst, optional mit Datei.
+    Die Datei kommt erst mit ihrer Art in die Kette (datei_art, eigene_dazu), dann entsteht der Auftrag an "feedback".
+    Gibt (ID des Feedback-Auftrags, Eintrag der Datei oder None) zurück. Den Dienst startet der Aufrufer."""
     basis = basis or BASIS
     if auftraege.erledigter(bezug, basis).get("status") != "erledigt":
         raise FassungFehler(f"{bezug} ist kein fertiges Ergebnis")
-    eintrag = eigene_dazu(bezug, datei, notiz, basis, agenten_dir) if datei is not None else None
+    eintrag = None
+    if datei is not None:
+        art_ = datei_art(bezug, datei, basis, agenten_dir)
+        eintrag = eigene_dazu(bezug, datei, NOTIZ_FASSUNG if art_ == ART_FASSUNG else "", basis, agenten_dir, art_)
     fid = auftraege.neuer_auftrag("feedback", text, quelle="feedback", bezug=bezug, basis=basis,
                                   agenten_dir=agenten_dir)
     return fid, eintrag

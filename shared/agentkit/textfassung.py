@@ -4,7 +4,7 @@ Mit Seiten-, Folien- bzw. Blattangaben ("--- Seite 3"). Alte Formate (doc, ppt, 
 nicht, dafür bräuchte es LibreOffice.
 Die Bibliotheken (pypdf, python-docx, python-pptx, openpyxl) importiert die Funktion
 erst bei Bedarf: Jeder Agent installiert in seiner .venv nur, welche Formate er braucht.
-word_kommentare() kommt ohne Pakete aus (zipfile), z. B. für Lias Word-Datei mit Kommentaren im Feedback-Dienst.
+word_kommentare() und word_absaetze() kommen ohne Pakete aus (zipfile), z. B. für Lias Word-Datei an einer Rückmeldung.
 """
 
 import logging
@@ -59,6 +59,20 @@ def als_text(pfad: Path) -> str | None:
                     teile.append(" | ".join("" if w is None else str(w) for w in reihe))
         return "\n".join(teile)
     return None
+
+
+def word_absaetze(pfad: Path) -> list[str]:
+    """Nicht leere Absätze einer docx-Datei in Reihenfolge (auch aus Tabellen), ohne Kommentare.
+    Andere Formate: []. Kaputte Datei: ValueError."""
+    if Path(pfad).suffix.lower() != ".docx":
+        return []
+    try:
+        with zipfile.ZipFile(pfad) as z:
+            dokument = ElementTree.fromstring(z.read("word/document.xml"))
+    except (zipfile.BadZipFile, KeyError, ElementTree.ParseError) as f:
+        raise ValueError(f"{Path(pfad).name}: {f}") from None
+    absaetze = ("".join(t.text or "" for t in a.iter(f"{W}t")).strip() for a in dokument.iter(f"{W}p"))
+    return [a for a in absaetze if a]
 
 
 def word_kommentare(pfad: Path) -> list[dict]:

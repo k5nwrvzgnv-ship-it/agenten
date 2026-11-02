@@ -966,7 +966,7 @@ class TestMaterial(Aufbau):
     def test_rueckmeldung_im_testbetrieb(self):
         with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten") as start:
             _, html = self.hole(self.URL + "?offen=rueckmeldung")
-            for text in ("Was soll anders werden?", "Datei mit Kommentaren anhängen", "Neue Fassung anfordern",
+            for text in ("Was soll anders werden?", "Datei anhängen", "Neue Fassung anfordern",
                          "Testbetrieb", "Bitte keine Namen"):
                 self.assertIn(text, html)
             r, html = self.sende("/rueckmeldung", {"text": " "})
@@ -976,14 +976,16 @@ class TestMaterial(Aufbau):
             self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=rueckmeldung-test"))
             start.assert_not_called()
         (a,) = self.neue()
-        # gilt der neuesten fertigen Fassung (wie in Telegram), die Datei ist Lias eigene Fassung
+        # gilt der neuesten fertigen Fassung (wie in Telegram), die Datei ist nicht lesbar, also „unklar“
         self.assertEqual((a["agent"], a["quelle"], a["bezug"]), ("feedback", "feedback", NB))
-        self.assertEqual(a["text"], "Bitte kürzer\n\nDazu eine Datei mit Kommentaren: Kommentare.docx.")
-        # agentkit.fassungen: eigene Fassung in der Instanz, Datei im Agent-Ordner (die Agenten sehen sie)
+        self.assertEqual(a["text"], "Bitte kürzer\n\nDazu eine Datei: Kommentare.docx.")
+        # agentkit.fassungen: Eintrag in der Instanz, Datei im Agent-Ordner (die Agenten sehen sie)
         stand = app.fassungen.lesen("20261030-140944-unterricht-93e29e", basis=self.instanz / "auftraege")
         self.assertEqual([e["name"] for e in stand["eigene"]], ["Kommentare.docx"])
         self.assertTrue((self.tmp / "unterricht" / stand["eigene"][0]["datei"]).is_file())
         r, inhalt = self.hole(self.URL + "/eigene/1", roh=True)
         self.assertEqual(inhalt, b"KOMM")
         _, html = self.hole(self.URL)
-        self.assertIn("mit deinen Kommentaren", html)
+        self.assertIn("Deine Datei", html)
+        self.assertNotIn("mit deinen Kommentaren", html)
+        self.assertEqual(stand["eigene"][0]["art"], "unklar")
