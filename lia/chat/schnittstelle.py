@@ -49,7 +49,8 @@ def frage_pruefen(frage) -> dict:
     if len(text) > MAX_ZEICHEN:
         raise FrageFehler(f"Die Frage ist zu lang (höchstens {MAX_ZEICHEN} Zeichen).")
     return {"id": frage["id"], "zeit": str(frage.get("zeit") or ""), "text": text.strip(),
-            "gruendlich": frage.get("gruendlich") is True, "ort": ort_pruefen(frage.get("ort"))}
+            "gruendlich": frage.get("gruendlich") is True, "netz": frage.get("netz") is True,
+            "ort": ort_pruefen(frage.get("ort"))}
 
 
 def _schreiben(ziel: Path, daten: dict) -> None:
@@ -61,10 +62,12 @@ def _schreiben(ziel: Path, daten: dict) -> None:
     os.replace(tmp, ziel)
 
 
-def frage_stellen(text: str, ort: dict | None = None, gruendlich: bool = False, ordner: Path = ORDNER) -> str:
-    """Legt die Frage in die Warteschlange und gibt ihre id zurück. Ungültig: FrageFehler (Text für Lia)."""
+def frage_stellen(text: str, ort: dict | None = None, gruendlich: bool = False, ordner: Path = ORDNER,
+                  netz: bool = False) -> str:
+    """Legt die Frage in die Warteschlange und gibt ihre id zurück. Ungültig: FrageFehler (Text für Lia).
+    netz=True: Claude darf im Netz suchen (Lias Häkchen „Im Netz nachsehen“)."""
     frage = frage_pruefen({"id": uuid.uuid4().hex[:12], "zeit": _verlauf.jetzt().isoformat(timespec="seconds"),
-                           "text": text, "gruendlich": gruendlich, "ort": ort})
+                           "text": text, "gruendlich": gruendlich, "netz": netz, "ort": ort})
     _schreiben(Path(ordner) / "fragen" / f"{frage['id']}.json", frage)
     return frage["id"]
 

@@ -23,7 +23,10 @@ class Schnittstelle(unittest.TestCase):
         fid = schnittstelle.frage_stellen("  Was ist Vergeltung? ", ort, ordner=self.ordner)
         self.assertTrue(schnittstelle.wartet(fid, self.ordner))
         d = json.loads((self.ordner / "fragen" / f"{fid}.json").read_text(encoding="utf-8"))
-        self.assertEqual((d["text"], d["gruendlich"], d["ort"]["stunde"]), ("Was ist Vergeltung?", False, 2))
+        self.assertEqual((d["text"], d["gruendlich"], d["netz"], d["ort"]["stunde"]),
+                         ("Was ist Vergeltung?", False, False, 2))
+        self.assertTrue(schnittstelle.frage_pruefen({"id": fid, "text": "a", "netz": True})["netz"])
+        self.assertFalse(schnittstelle.frage_pruefen({"id": fid, "text": "a", "netz": "ja"})["netz"])
         self.assertEqual(list((self.ordner / "tmp").iterdir()), [])
         self.assertIsNone(schnittstelle.antwort_holen(fid, self.ordner))
         schnittstelle.antwort_schreiben({"id": fid, "ok": True, "text": "Antwort"}, self.ordner)

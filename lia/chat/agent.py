@@ -1,7 +1,7 @@
 """Agent chat in Lias Instanz (AGENTKIT_INSTANZ=lia/instanz), Einstieg des Dienstes lia-chat.
 
 Beantwortet Lias Fragen aus der Spalte „Fragen“ der Web-App: liest data/fragen/<id>.json (schnittstelle.py),
-baut den Kontext des Orts aus Dateien (kontext.py), fragt Claude ohne Werkzeuge und schreibt
+baut den Kontext des Orts aus Dateien (kontext.py), fragt Claude ohne Werkzeuge (auf Lias Wunsch mit Websuche) und schreibt
 data/antworten/<id>.json. Startet nie einen Auftrag und handelt nie nach außen. Plan: plan.md.
 Aufruf: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py [--aufraeumen]
 """
@@ -23,6 +23,8 @@ logger = log.hole_logger(HIER, AGENT)
 # Sitzungen, die claude -p selbst ablegt (Ordnername = Arbeitsordner mit - statt /). Werden gleich gelöscht,
 # der Verlauf steht nur in data/verlauf.jsonl (30 Tage).
 SITZUNGEN = Path.home() / ".claude" / "projects" / str(HIER).replace("/", "-")
+NETZ_DOMAINS_VON = "recherche"  # WebFetch nur auf die Liste von Lias Recherche (einstellungen.toml)
+NETZ_SCHRITTE = 8  # Suchen und Seiten öffnen sind je ein Schritt
 
 TEXTE = {
     "limit": "Gerade ist die Rechenzeit aufgebraucht. Frag bitte ab {zeit} noch einmal.",
@@ -37,17 +39,28 @@ def jan_melden(text: str) -> None:
     meldungen.melden(AGENT, f"Lia, Agent chat: {text}", basis=config.KONTINGENT_DIR / "meldungen")
 
 
-def lauf_einstellungen(gruendlich: bool, cfg: dict | None = None) -> dict:
-    """Einstellungen für einen Chat-Lauf: ohne Werkzeuge (--tools ""), wenige Schritte, kurze Zeit- und Wartegrenzen."""
+def lauf_einstellungen(gruendlich: bool, cfg: dict | None = None, netz: bool = False) -> dict:
+    """Einstellungen für einen Chat-Lauf: ohne Werkzeuge (--tools ""), wenige Schritte, kurze Zeit- und Wartegrenzen.
+
+    netz (Jan 02.11.2026, nur auf Lias Häkchen): WebSearch und WebFetch, WebFetch nur auf die Domains von Lias
+    Recherche ([webfetch] recherche). Fehlt die Liste, nur WebSearch: WebFetch ohne Liste dürfte überall hin.
+    """
     cfg = copy.deepcopy(cfg or einstellungen.lade())
-    cfg["werkzeuge"][AGENT] = [""]
-    cfg["lauf"].update(max_schritte=3, max_minuten=5 if gruendlich else 2, warten_minuten=1)
+    if netz:
+        domains = cfg.get("webfetch", {}).get(NETZ_DOMAINS_VON)
+        cfg["werkzeuge"][AGENT] = ["WebSearch", "WebFetch"] if domains else ["WebSearch"]
+        if domains:
+            cfg["webfetch"][AGENT] = list(domains)
+        cfg["lauf"].update(max_schritte=NETZ_SCHRITTE, max_minuten=6 if gruendlich else 4, warten_minuten=1)
+    else:
+        cfg["werkzeuge"][AGENT] = [""]
+        cfg["lauf"].update(max_schritte=3, max_minuten=5 if gruendlich else 2, warten_minuten=1)
     return cfg
 
 
-def claude_fragen(prompt: str, gruendlich: bool, frage_id: str) -> claude_lauf.Ergebnis:
+def claude_fragen(prompt: str, gruendlich: bool, frage_id: str, netz: bool = False) -> claude_lauf.Ergebnis:
     return claude_lauf.laufen(AGENT, HIER, prompt, art="anspruchsvoll" if gruendlich else "routine",
-                              auftrag_id=f"chat-{frage_id}", cfg=lauf_einstellungen(gruendlich))
+                              auftrag_id=f"chat-{frage_id}", cfg=lauf_einstellungen(gruendlich, netz=netz))
 
 
 def sitzung_loeschen(sitzung: str | None, ordner: Path = SITZUNGEN) -> None:
@@ -58,8 +71,8 @@ def sitzung_loeschen(sitzung: str | None, ordner: Path = SITZUNGEN) -> None:
 def antwort(frage: dict, text: str, ok: bool, fehler: str | None = None, wieder_frei: str | None = None) -> dict:
     ort = frage.get("ort") or {}
     return {"id": frage["id"], "zeit": chatverlauf.jetzt().isoformat(timespec="seconds"), "ok": ok, "text": text,
-            "gruendlich": frage.get("gruendlich", False), "reihe": ort.get("reihe"), "chip": ort.get("chip"),
-            "fehler": fehler, "wieder_frei": wieder_frei}
+            "gruendlich": frage.get("gruendlich", False), "netz": frage.get("netz", False), "reihe": ort.get("reihe"),
+            "chip": ort.get("chip"), "fehler": fehler, "wieder_frei": wieder_frei}
 
 
 def beantworten(frage: dict, instanz: Path, ordner: Path = DATEN, fragen=claude_fragen, melden=jan_melden,
@@ -73,9 +86,10 @@ def beantworten(frage: dict, instanz: Path, ordner: Path = DATEN, fragen=claude_
         melden(f"reihen.toml nicht lesbar, Chat antwortet ohne Reihe: {f}")
         reihe = None
     verlauf = chatverlauf.am_ort(chatverlauf.lesen(ordner), ort["reihe"] if ort else None)
-    prompt = kontext.prompt(frage["text"], kontext.kontext_text(ort, reihe), verlauf, frage["gruendlich"])
+    netz = frage.get("netz", False)
+    prompt = kontext.prompt(frage["text"], kontext.kontext_text(ort, reihe), verlauf, frage["gruendlich"], netz)
     try:
-        e = fragen(prompt, frage["gruendlich"], frage["id"])
+        e = fragen(prompt, frage["gruendlich"], frage["id"], netz=netz)
     except claude_lauf.LimitErreicht as f:
         zeit = verbrauch.zeit_text(f.reset)
         logger.warning("Frage %s: %s", frage["id"], f)
@@ -91,14 +105,18 @@ def beantworten(frage: dict, instanz: Path, ordner: Path = DATEN, fragen=claude_
         melden(f"Frage {frage['id']} fehlgeschlagen: {type(f).__name__}: {f}")
         return antwort(frage, TEXTE["technik"], False, "technik")
     loeschen(e.sitzung)
-    logger.info("Frage %s: %d Zeichen, Ort %s, %s, ok %s, %.1f s, %.3f USD", frage["id"], len(frage["text"]),
-                "ja" if ort else "nein", "gründlich" if frage["gruendlich"] else "schnell", e.ok, e.dauer_s, e.usd)
+    logger.info("Frage %s: %d Zeichen, Ort %s, %s, Netz %s, ok %s, %d Schritte, %.1f s, %.3f USD", frage["id"],
+                len(frage["text"]), "ja" if ort else "nein", "gründlich" if frage["gruendlich"] else "schnell",
+                "ja" if netz else "nein", e.ok, e.schritte, e.dauer_s, e.usd)
+    if e.verweigert:  # z. B. WebFetch auf eine Seite außerhalb der Liste: nur zählen, keine Adressen ins Log
+        logger.info("Frage %s: %d Werkzeug-Aufrufe abgelehnt", frage["id"], len(e.verweigert))
     if not e.ok or not e.text.strip():
         melden(f"Frage {frage['id']}: claude ohne brauchbare Antwort ({e.schritte} Schritte)")
         return antwort(frage, TEXTE["technik"], False, "technik")
     a = antwort(frage, e.text.strip(), True)
     chatverlauf.anhaengen(ordner, {"id": frage["id"], "zeit": a["zeit"], "reihe": a["reihe"], "chip": a["chip"],
-                                   "gruendlich": a["gruendlich"], "frage": frage["text"], "antwort": a["text"]})
+                                   "gruendlich": a["gruendlich"], "netz": a["netz"], "frage": frage["text"],
+                                   "antwort": a["text"]})
     return a
 
 

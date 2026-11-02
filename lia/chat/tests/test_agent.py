@@ -18,8 +18,9 @@ class Fake:
     def __init__(self, text="Kurze Antwort.", fehler=None, ok=True):
         self.text, self.fehler, self.ok, self.prompts = text, fehler, ok, []
 
-    def __call__(self, prompt, gruendlich, frage_id):
+    def __call__(self, prompt, gruendlich, frage_id, netz=False):
         self.prompts.append((prompt, gruendlich))
+        self.netz = netz
         if self.fehler:
             raise self.fehler
         return claude_lauf.Ergebnis(text=self.text, sitzung="sitzung-1", ok=self.ok)
@@ -113,6 +114,36 @@ class Agent(unittest.TestCase):
         cmd = claude_lauf.befehl("chat", Path(self.tmp.name), "p", "sonnet",
                                  dict(neu, modelle={}, lauf=neu["lauf"]))
         self.assertEqual(cmd[cmd.index("--tools") + 1], "")
+
+    def test_netz_nur_auf_wunsch(self):
+        fid = schnittstelle.frage_stellen("Ferien Bayern 2027?", None, ordner=self.ordner, netz=True)
+        fake = Fake()
+        self.abarbeiten(fake)
+        self.assertTrue(fake.netz)
+        self.assertIn("WebSearch", fake.prompts[0][0])
+        self.assertTrue(schnittstelle.antwort_holen(fid, self.ordner)["netz"])
+        self.assertTrue(chatverlauf.lesen(self.ordner)[-1]["netz"])
+        schnittstelle.frage_stellen("Und 2028?", None, ordner=self.ordner)
+        self.abarbeiten(fake)
+        self.assertFalse(fake.netz)
+        self.assertIn("keine Werkzeuge", fake.prompts[1][0])
+
+    def test_lauf_einstellungen_netz(self):
+        cfg = {"werkzeuge": {"standard": ["Read"]}, "lauf": {"max_schritte": 30, "max_minuten": 15,
+                                                             "warten_minuten": 30},
+               "webfetch": {"recherche": ["bpb.de"]}}
+        neu = agent.lauf_einstellungen(False, cfg, netz=True)
+        self.assertEqual(neu["werkzeuge"]["chat"], ["WebSearch", "WebFetch"])
+        self.assertEqual(neu["webfetch"]["chat"], ["bpb.de"])
+        self.assertEqual(neu["lauf"], {"max_schritte": agent.NETZ_SCHRITTE, "max_minuten": 4, "warten_minuten": 1})
+        self.assertEqual(agent.lauf_einstellungen(True, cfg, netz=True)["lauf"]["max_minuten"], 6)
+        self.assertNotIn("chat", cfg["webfetch"])
+        cmd = claude_lauf.befehl("chat", Path(self.tmp.name), "p", "sonnet", dict(neu, modelle={}))
+        rechte = json.loads(cmd[cmd.index("--settings") + 1])["permissions"]["allow"]
+        self.assertEqual(sorted(rechte), ["WebFetch(domain:*.bpb.de)", "WebFetch(domain:bpb.de)", "WebSearch"])
+        # ohne Liste kein WebFetch (sonst dürfte es überall hin)
+        ohne = agent.lauf_einstellungen(False, {k: v for k, v in cfg.items() if k != "webfetch"}, netz=True)
+        self.assertEqual(ohne["werkzeuge"]["chat"], ["WebSearch"])
 
     def test_sitzungen_loeschen(self):
         sitzungen = Path(self.tmp.name) / "projekte"
