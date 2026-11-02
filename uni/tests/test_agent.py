@@ -622,3 +622,79 @@ class TestLernblaetter(OhneTelegram):
         self.assertIn(f"data/lernblaetter/{ID}/blatt_1.json", text)
         self.assertIn("data/lernblaetter/FORMAT.md", text)
         self.assertIn("## Zusammenfassung", (self.hier / "data" / "lernblaetter" / "FORMAT.md").read_text())
+
+
+class TestExpose(OhneTelegram):
+    """Claude schreibt data/expose/<kette>/expose.json, Python prüft und hängt die Fassung an."""
+
+    def setUp(self):
+        super().setUp()
+        p = mock.patch.object(agent.auftraege, "abschliessen")
+        self.abschliessen = p.start()
+        self.addCleanup(p.stop)
+        self.aufrufe = []
+        from tests.test_expose import GUELTIG
+        self.gueltig = GUELTIG
+
+    def claude(self, *fassungen, ok=True):
+        fassungen = list(fassungen)
+
+        def laufen(agent_name, hier, prompt, **kw):
+            self.aufrufe.append((prompt, kw))
+            if fassungen:
+                ordner = self.hier / "data" / "expose" / ID
+                (ordner / "expose.json").write_text(json.dumps(fassungen.pop(0)))
+            return Ergebnis(text=f"Lauf {len(self.aufrufe)}", sitzung=f"s{len(self.aufrufe)}", ok=ok)
+        return laufen
+
+    def test_erster_lauf_haengt_fassung_an(self):
+        a = {"id": ID, "text": "Exposé: Lamellen\n\nAngehängte Dateien von Jan: ...", "modus": "erledigen"}
+        agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig))
+        prompt, kw = self.aufrufe[0]
+        self.assertIn(f"data/expose/{ID}/expose.json", prompt)
+        self.assertIn('"art": "expose"', prompt)
+        self.assertIn(f"protokolle/{ID}.md", prompt)
+        self.assertIsNone(kw["sitzung_fortsetzen"])
+        args, kw = self.abschliessen.call_args
+        self.assertEqual((args[1], kw["sitzung"]), ("Lauf 1", "s1"))
+        self.assertEqual(kw["dateien"], [self.hier / "data" / "expose" / ID / "fassung" / "Fehlstellen - Holzlamellen.md"])
+
+    def test_ungueltig_eine_nachbesserung(self):
+        a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        agent.expose_auftrag(a, a, laufen=self.claude({**self.gueltig, "datum": "x"}, self.gueltig))
+        self.assertIn("- datum:", self.aufrufe[1][0])
+        self.assertEqual(self.aufrufe[1][1]["sitzung_fortsetzen"], "s1")
+        _, kw = self.abschliessen.call_args
+        self.assertEqual((kw["sitzung"], len(kw["dateien"])), ("s2", 1))
+
+    def test_bleibt_ungueltig_steht_im_ergebnis(self):
+        a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        kaputt = {**self.gueltig, "datum": "x"}
+        agent.expose_auftrag(a, a, laufen=self.claude(kaputt, kaputt))
+        args, kw = self.abschliessen.call_args
+        self.assertIn("Exposé nicht übernommen", args[1])
+        self.assertEqual(kw["dateien"], [])
+
+    def test_antwort_ueberarbeitet_expose_der_kette(self):
+        start = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        a = {"id": "a2", "text": "Zeitplan bis März", "sitzung": "s0", "bezug": ID, "modus": "erledigen"}
+        agent.expose_auftrag(a, start, laufen=self.claude(self.gueltig))
+        prompt, kw = self.aufrufe[0]
+        self.assertTrue(prompt.startswith("Jan antwortet zum Exposé:\nZeitplan bis März"))
+        self.assertIn(f"data/expose/{ID}/expose.json", prompt)
+        self.assertEqual((kw["sitzung_fortsetzen"], kw["auftrag_id"]), ("s0", "a2"))
+
+    def test_ohne_expose_hinweis(self):
+        a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        agent.expose_auftrag(a, a, laufen=self.claude())
+        self.assertIn("Es liegt noch kein Exposé vor.", self.abschliessen.call_args[0][1])
+
+    def test_vor_mail_erkennung_und_auch_fuer_antworten(self):
+        start = {"id": ID, "text": "Exposé: für Prof. Böhme", "modus": "erledigen"}
+        antwort = {"id": "a2", "text": "kürzer bitte", "sitzung": "s1", "bezug": ID, "modus": "erledigen"}
+        with mock.patch.object(agent, "expose_auftrag") as ex, mock.patch.object(agent, "mail_auftrag") as ma, \
+                mock.patch.object(agent, "ursprung", return_value=start):
+            self.assertTrue(agent.auftrag_bearbeiten(start))
+            self.assertTrue(agent.auftrag_bearbeiten(antwort))
+        self.assertEqual([c.args for c in ex.call_args_list], [(start, start), (antwort, start)])
+        ma.assert_not_called()

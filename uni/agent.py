@@ -12,6 +12,8 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
    Python prüft die Übergabe (weitergabe.py) und gibt sie an den Agenten dokumente weiter.
    Lernblätter beschreibt Claude als data/lernblaetter/<auftrag>/blatt_<n>.json, Python baut daraus
    ein PDF und hängt es an das Ergebnis (lernblatt.py, lernblaetter_bauen),
+   Aufträge "Exposé: ..." mit Besprechungstranskript: Claude schreibt data/expose/<kette>/expose.json und ein
+   Protokoll, Python prüft und hängt das Exposé an (expose.py, expose_auftrag); Antworten überarbeiten es,
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -33,6 +35,7 @@ from pathlib import Path
 
 from agentkit import auftraege, claude_lauf, config, freigabe, imap, kalender, log, mailauftrag, meldungen, regeln
 
+import expose
 import fristen
 import kurse
 import lernblatt
@@ -781,6 +784,94 @@ def transkript_uebernehmen(a: dict) -> None:
     auftraege.abschliessen(a["id"], text, status="erledigt", sitzung=e.sitzung)
 
 
+PROMPT_EXPOSE = KONTEXT + """
+
+Auftrag von Jan: ein Exposé für ein Forschungsprojekt.
+{text}
+
+Quellen, in dieser Reihenfolge:
+- Das angehängte Besprechungstranskript (z. B. aus Teams, mit Sprechernamen und Zeitmarken; zu .docx und .pdf
+  liegt daneben eine Textfassung .txt). Es ist die Hauptquelle: Was dort beschlossen wurde, gilt.
+- Bisheriger Schriftwechsel zum Projekt: Grep nach Stichworten des Themas und dem Namen der Betreuung in
+  data/mails/ und data/mailauftraege/*/kontext.json (dort auch Jans eigene Mails). Fragen der Betreuung
+  (Zeitplan, Inhalt) soll das Exposé beantworten.
+- Kursmaterial des Projektmoduls in data/kurse/ (z. B. Forschungsprojekt 2), falls es Vorgaben enthält.
+
+Schreib das Exposé für die Betreuung (Professor) nach {ordner}/expose.json.
+{format}
+
+Inhalt: sachlich, in der Wir-Form der Gruppe, etwa 3 bis 5 Seiten. Gliederung, wenn die Besprechung oder
+das Kursmaterial keine andere vorgeben: Ausgangslage und Problemstellung, Stand der Forschung und Technik,
+Zielsetzung und Forschungsfragen, Methodik und Vorgehen, Zeitplan (als Tabelle), Ressourcen und Arbeitsteilung.
+Autoren sind die Teilnehmenden der Gruppe laut Transkript, die Betreuung laut Schriftwechsel.
+Erfinde nichts: keine Ergebnisse, Zahlen, Termine oder Zusagen, die nicht in den Quellen stehen. Fehlt etwas,
+das ins Exposé gehört, schreib an der Stelle [OFFEN: was fehlt] in den Text. Literatur nur, wenn sie in den
+Quellen genannt ist oder du sie per Websuche gefunden und geprüft hast (Autor, Jahr, Titel, DOI oder Adresse
+stimmen überein). Füll den Stand der Forschung nicht mit allgemeinem Wissen ohne Beleg auf.
+
+Schreib danach protokolle/{id}.md für Jan:
+1. Ergebnis (Titel, Gliederung, was noch fehlt)
+2. Beschlossen in der Besprechung (je Punkt Sprecher und Zeitmarke)
+3. Offen oder uneinig (wer was gesagt hat, mit Zeitmarke)
+4. Nicht aus der Besprechung (deine Ergänzungen, Literatur mit Fundweg)
+5. So prüfst du es nach
+
+Deine letzte Antwort ist die Kurzfassung für Telegram: höchstens 10 Zeilen, ohne Markdown-Tabellen, mit der
+Zahl der [OFFEN]-Stellen. Nenn keinen Pfad zum Exposé, es hängt an deiner Antwort."""
+
+PROMPT_EXPOSE_ANTWORT = """Jan antwortet zum Exposé:
+{text}
+
+Überarbeite {ordner}/expose.json so, wie Jan es will (gleiches Format, gleiche Regeln: nichts erfinden,
+[OFFEN: ...] für Lücken). Neue angehängte Dateien (z. B. ein weiteres Transkript) beziehst du ein.
+Ergänze protokolle/{id}.md um einen Abschnitt "Nachtrag" (was sich geändert hat, Quellen).
+Deine letzte Antwort ist wieder die Kurzfassung für Telegram (höchstens 10 Zeilen), ohne Pfad zum Exposé."""
+
+PROMPT_EXPOSE_NACHBESSERN = """Python hat das Exposé nicht übernommen, die Beschreibung ist ungültig:
+{fehler}
+
+Korrigiere alle genannten Stellen in {ordner}/expose.json und antworte mit einem Satz, was du korrigiert hast."""
+
+
+def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen) -> None:
+    """Exposé schreiben (start = a) oder überarbeiten (Antwort in der Kette von start), höchstens eine Nachbesserung.
+
+    Wirft WARTEN und LaufFehler weiter (wie die übrigen Aufträge in auftrag_bearbeiten).
+    """
+    ordner = expose.ordner(HIER, start["id"])
+    ordner.mkdir(parents=True, exist_ok=True)
+    (HIER / "protokolle").mkdir(exist_ok=True)
+    pfad = ordner.relative_to(HIER)
+    if a.get("sitzung"):
+        prompt = PROMPT_EXPOSE_ANTWORT.format(text=a["text"], ordner=pfad, id=start["id"])
+    else:
+        prompt = PROMPT_EXPOSE.format(text=a["text"], ordner=pfad, id=start["id"], format=expose.FORMAT)
+    e = laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"], sitzung_fortsetzen=a.get("sitzung"))
+    if not e.ok:
+        auftraege.abschliessen(a["id"], f"Fehler: {e.text}", status="fehlgeschlagen", sitzung=e.sitzung)
+        return
+    sitzung, zeilen = e.sitzung, [e.text]
+    b = expose.bauen(ordner)
+    if b.ungueltig and sitzung:
+        logger.warning("Exposé %s ungültig, Nachbesserung:\n%s", start["id"], b.ungueltig)
+        try:
+            e2 = laufen(AGENT, HIER, PROMPT_EXPOSE_NACHBESSERN.format(fehler=b.ungueltig, ordner=pfad),
+                        art="anspruchsvoll", auftrag_id=a["id"], sitzung_fortsetzen=sitzung)
+            sitzung = e2.sitzung or sitzung
+            b = expose.bauen(ordner)
+        except (*WARTEN, claude_lauf.LaufFehler) as f:  # der erste Lauf ist bezahlt, Ergebnis trotzdem abgeben
+            logger.error("Nachbesserung Exposé %s fehlgeschlagen: %s", start["id"], f)
+            zeilen.append(f"Nachbesserung des Exposés nicht möglich: {f}")
+    if b.ungueltig:
+        logger.warning("Exposé %s bleibt ungültig:\n%s", start["id"], b.ungueltig)
+        zeilen.append(f"Exposé nicht übernommen, Beschreibung ungültig:\n{b.ungueltig}")
+    elif not (ordner / expose.DATEI).exists():
+        zeilen.append("Es liegt noch kein Exposé vor.")
+    for datei in b.dateien:
+        logger.info("Exposé gebaut: %s", datei.relative_to(HIER))
+    auftraege.abschliessen(a["id"], "\n\n".join(zeilen), sitzung=sitzung, dateien=b.dateien)
+
+
 def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
     """Der erste Auftrag einer Antwortkette (bezug -> bezug -> ...). Fehlt ein Glied, der letzte gefundene."""
     gesehen = {a["id"]}
@@ -925,6 +1016,14 @@ def auftrag_bearbeiten(a: dict) -> bool:
             auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
         return True
     start = ursprung(a) if a.get("sitzung") else a
+    if expose.ist_exposeauftrag(start["text"]):  # vor der Mail-Erkennung: "Exposé für Prof. X" ist keine Mail
+        try:
+            expose_auftrag(a, start)
+        except WARTEN as f:
+            return _warten(a, f)
+        except claude_lauf.LaufFehler as f:
+            auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
+        return True
     lernen = start["modus"] == "lernen"
     if not lernen:
         try:
