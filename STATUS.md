@@ -729,6 +729,25 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        Objekte anbieten (F17), Archivieren immer.
      - Nicht entschieden, vorbelegt nach Plan-Vorschlag: F7 (Reihe kopieren übernimmt nur Struktur, alle Felder außer
        agenten, archiviert, stand, herkunft), F8 (Lerngruppe beim Übernehmen nur mit Häkchen).
+     Bauschritt 5 erledigt 03.11. (shared/webapp, Commit 764fdcd, ALLES GRÜN, 168 Web-App-Tests): Masken für Fach,
+     Klasse/Kurs, Reihe, Stunde, nur über strukturpflege (Einzelheiten shared/webapp/STATUS.md „Struktur pflegen“).
+     Bereit für Abnahme (Plan 12) und Lia-Test (Plan 13):
+     - Testinstanz shared/webapp/data/test/instanz (nicht im Repo): Kopie der echten reihen.toml ohne Bundesland,
+       Straftheorien mit Stunden Einstieg, Kant: Vergeltung, von Liszt, ein Material an Kant, ein Theater-Ergebnis an
+       Der nackte Wahnsinn. Neu aufbauen (vor jedem Durchgang): `cd ~/agenten/shared/webapp && .venv/bin/python
+       data/test/aufbauen.py`. Testbogen: data/ia/testbogen-struktur.csv.
+     - Durchgespielt 03.11. (Test-Socket, curl): Aufgaben 1–6 aus Plan 13 gehen, Wiederherstellungsprobe (Datei und
+       Aufträge byte-gleich), alle Aktionen per „Rückgängig“ zurück, Log ohne Fehler. Nicht im Browser geklickt.
+     - Start für Jan (auf dem Server, als agent; läuft bis Strg+C): `cd ~/agenten/shared/webapp &&
+       WEBAPP_INSTANZ=$PWD/data/test/instanz WEBAPP_NEUER_AUFTRAG=test WEBAPP_PORT=8792 .venv/bin/python app.py`
+       (8792, weil 8791 der echte webapp.service ist), dann auf dem Mac `ssh -L 8792:127.0.0.1:8792 agents-user` und
+       im Browser http://localhost:8792 (geprüft 03.11.). Lias echte Daten bleiben unberührt; Fehler der
+       Testinstanz melden sich bei Jan wie sonst auch.
+     - Offen: Neustart von webapp.service mit Jans Okay (`systemctl --user restart webapp.service`), erst dann sieht
+       Lia die Masken in der echten App.
+     - Bedarf agentkit: `strukturpflege.ausfuehren` mit Commit im Hintergrund. Heute wartet Lia nach dem Speichern bis
+       zu `commit_zeit` = 300 s, wenn gerade ein anderer Chat committet (die App ruft im Thread auf, die Seite hängt
+       trotzdem so lange).
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit

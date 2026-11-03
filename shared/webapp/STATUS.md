@@ -163,7 +163,7 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
 - Test-Instanz für Jan: `data/test/instanz` (`.env` mit PERSON=Lia, 0600) und Agent-Ordner `data/test/unterricht`,
   nicht im Repo. Probelauf 30.10.: Auftrag mit PDF angelegt, Datei verschoben, ohne Origin 403; danach gelöscht.
 
-## Struktur pflegen (Strukturplan Bauschritt 5, gebaut 03.11.2026, noch nicht abgenommen)
+## Struktur pflegen (Strukturplan Bauschritt 5, gebaut 03.11.2026, Commit 764fdcd, noch nicht abgenommen)
 Plan `../../docs/struktur-pflege-plan.md` (2a, 4, 5, 6, 10). Lia pflegt Fach → Klasse/Kurs → Reihe → Stunde mit
 Terminen in der App. Geschrieben wird nur über `agentkit.strukturpflege` (`app.pflegen`, im Faden über
 `run_in_threadpool`, weil der Commit auf commit.sperre wartet); die App schreibt nie selbst in reihen.toml.
@@ -197,12 +197,17 @@ Masken nur im neuen Format (sonst 404, Baum ohne „+ …“).
   über den Socket für jede Maske, Testregeln 24, 25, 32–35, 21 (Lerngruppe nicht im Log), Wiederherstellungsprobe,
   Lia-Test-Aufgaben 1–6; Grundlage `tests/daten/reihen_echt.toml` (Kopie der echten Datei), Ferien aus
   `agentkit/ferien.json`. ALLES GRÜN steht im Commit.
-- Noch nicht getan (nächster Chat in diesem Ordner): Testinstanz `data/test/instanz` mit Kopie von reihen.toml,
-  Beispiel-Stunden in Straftheorien (Kant, von Liszt) und Test-Aufträgen (Material an einer Stunde, ein
-  Theater-Ergebnis) für Plan 12/13; Eintrag in der Haupt-STATUS Punkt 24 (was für Abnahme und Lia-Test bereitliegt;
-  Bedarf agentkit: Commit im Hintergrund, damit Lia nicht bis zu 300 s wartet, wenn ein anderer Chat committet);
-  einmal im Browser durchklicken (Chrome); webapp.service neu starten nur mit Jans Okay
-  (`systemctl --user restart webapp.service`).
+- Testinstanz für Abnahme und Lia-Test (Plan 12/13): `data/test/instanz` (nicht im Repo), Kopie der echten
+  reihen.toml ohne Bundesland, Straftheorien mit Einstieg, Kant: Vergeltung, von Liszt (über strukturpflege), ein
+  Material an Kant (Zuordnung im Zustand der Testinstanz), ein Theater-Ergebnis an Der nackte Wahnsinn. Neu aufbauen
+  vor jedem Durchgang: `.venv/bin/python data/test/aufbauen.py` (löscht auch Zustand und Aktionsablage der
+  Testinstanz, „Letzte Änderungen“ beginnt leer). Testbogen `data/ia/testbogen-struktur.csv`. Startbefehl für Jan
+  (Port 8792, Tunnel) in der Haupt-STATUS Punkt 24.
+- Durchgespielt 03.11. über einen Test-Socket mit curl: Lia-Test-Aufgaben 1–6 gehen (Bundesland wird gefragt, erster
+  Termin der 9 nach den Winterferien, Kopie mit sechs Terminen, Material wandert mit Kant auf Stunde 3, Ausfall rückt
+  nach, Archiv und Zurückholen byte-gleich), alle sieben Aktionen per Rückgängig zurück, Log ohne Fehler.
+- Offen: einmal im Browser durchklicken (Chrome, auch Ziehen); webapp.service neu starten nur mit Jans Okay
+  (`systemctl --user restart webapp.service`); Bedarf agentkit (Commit im Hintergrund) steht in der Haupt-STATUS.
 
 ## Neuer Aufbau „Desktop zuerst“ (Plan 30.10.2026)
 Plan `../../docs/webapp-aufbau.md` (Abschnitt 5: Bauschritte), Boards „Desktop“ und „Handy-Prüfung“ im Canvas.
