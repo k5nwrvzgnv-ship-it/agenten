@@ -1,7 +1,7 @@
 # Plan: Lia pflegt Fach → Klasse/Kurs → Reihe → Stunde selbst
 
 Stand 03.11.2026. Nur Plan, nichts gebaut. Gebaut wird nach Jans Freigabe und Antworten auf die offenen Fragen
-(Abschnitt 9, markiert mit **F1** bis **F19**). Entschieden (Jan 03.11.): F4, F6, F14, F19.
+(Abschnitt 9, markiert mit **F1** bis **F19**). Entschieden (Jan 03.11.): F1 bis F6, F14, F19. Offen: F7 bis F13, F15 bis F18 (betreffen spätere Bauschritte).
 
 Grundlage (selbst gelesen): `git log -p lia/instanz/reihen.toml` (8 Commits, mit der Vorgängerdatei
 `lia/unterricht/reihen.toml`), alle Leser der Datei (`lia/unterricht/reihen.py`, `lia/examen/runde.py`,
@@ -325,7 +325,8 @@ Ordner ein Test rot ist. Dann wäre Lias Änderung geschrieben, aber nicht commi
 Entschieden (Jan 03.11., F4): **b**. Das ist eine Ausnahme vom Hook für genau den Pfad `lia/instanz/reihen.toml`
 und genau dieses Skript. Sie kommt als Zeile unter „Fertig heißt“ in CLAUDE.md (Bauschritt 1). Alle anderen
 Commits laufen weiter über `commit.sh` mit Hook. Autor der Commits: Jan, oder ein eigener Autor „Lia (Web-App)“?
-Eine Adresse dafür erfinde ich nicht (F5).
+Eine Adresse dafür erfinde ich nicht. Entschieden (F5, Jan hatte keine Vorliebe): Autor bleibt Jan
+(git-Einstellung wie heute), die Nachricht nennt „(Lia, Web-App)“. Keine neue Identität, keine erfundene Adresse.
 
 ---
 
@@ -350,11 +351,11 @@ Wo die Web-App Stunden aus der Datei heute sperrt („+ Stunde“ nur ohne Stund
 
 | | Frage | Mein Vorschlag |
 |---|---|---|
-| F1 | Eine Leseschicht `agentkit.struktur` für alle Leser (Hauptordner-Chat)? | ja |
-| F2 | Formatwechsel wie Abschnitt 2 (`[[fach]]`, `[[klasse]]`, `reihe.klasse` = id)? Bricht alle Leser, bis sie umgestellt sind | ja, jetzt (heute hängt fast nichts an den Kennungen) |
-| F3 | Stunden ohne gespeicherte Nummer, Reihenfolge = Reihenfolge in der Datei? | ja |
+| F1 | Eine Leseschicht `agentkit.struktur` für alle Leser (Hauptordner-Chat)? | **entschieden: ja** (Jan 03.11.) |
+| F2 | Formatwechsel wie Abschnitt 2 (`[[fach]]`, `[[klasse]]`, `reihe.klasse` = id)? Bricht alle Leser, bis sie umgestellt sind | **entschieden: ja** (Jan 03.11.); Migration erst nach Bauschritt 2 |
+| F3 | Stunden ohne gespeicherte Nummer, Reihenfolge = Reihenfolge in der Datei? | **entschieden: ja** (Jan 03.11.) |
 | F4 | Commit-Weg a, b oder c (7.3); bei b Ausnahme vom Hook für genau diesen Pfad | **entschieden: b** (Jan 03.11.) |
-| F5 | Autor der App-Commits? | offen |
+| F5 | Autor der App-Commits? | **entschieden:** Jan als Autor, „(Lia, Web-App)“ in der Nachricht (7.3) |
 | F6 | Lerngruppe auslagern (gitignored) oder in reihen.toml lassen? Frist zum Leeren im Archiv? | **entschieden: auslagern** (Jan 03.11.); Frist offen |
 | F7 | Reihe kopieren: nur Struktur, oder auch finale Fassungen als Kopie mit Herkunft (Regel R10)? | erst nur Struktur, Material der alten Reihe als Liste „aus dem Vorjahr“ sichtbar |
 | F8 | Klasse ins nächste Schuljahr: Lerngruppe mitnehmen? | als Häkchen, Standard aus |

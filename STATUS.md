@@ -577,7 +577,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      30.10. abends (401 ohne, 200 mit Passwort, Formulare gehen, kcal unverändert). Offen bei Jan: erster echter Lauf Spielfassung
      (ca. 7 USD), ob Lias Ablage in die App soll. Nicht gebaut:
      „+ Reihe“ in der App, Konten.
-     Plan (03.11., wartet auf Jans Freigabe; entschieden F4, F6, F14, F19, offen die übrigen): Lia pflegt Fach, Klasse, Reihe, Stunde selbst,
+     Plan (03.11., wartet auf Jans Freigabe; entschieden F1–F6, F14, F19; F7–F13, F15–F18 betreffen spätere Schritte): Lia pflegt Fach, Klasse, Reihe, Stunde selbst,
      docs/struktur-pflege-plan.md. Befund dort: lia/examen stürzt ab, sobald die Straftheorien-Reihe Stunden hat.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
