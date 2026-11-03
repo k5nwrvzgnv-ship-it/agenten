@@ -55,12 +55,12 @@
     {%- endfor %}
   </div>
 {%- endmacro %}
-{%- macro final_knopf(ref, ist_final, klasse) %}
+{%- macro final_knopf(ref, ist_final, klasse, name="") %}
 <form class="final-form" method="post" action="{{ basis_url }}/final">
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="ref" value="{{ ref }}">
   <input type="hidden" name="an" value="{{ '0' if ist_final else '1' }}">
-  <button class="{{ klasse }}{% if ist_final %} ist-final{% endif %}" type="submit">{{ "Final · rückgängig" if ist_final else "Als final markieren" }}</button>
+  <button class="{{ klasse }}{% if ist_final %} ist-final{% endif %}" type="submit">{{ "Final · rückgängig" if ist_final else (name ~ " als final markieren" if name else "Als final markieren") }}</button>
 </form>
 {%- endmacro %}
 
@@ -155,11 +155,12 @@
     <a class="knopf-spalte{% if offen == 'rueckmeldung' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Rückmeldung geben</a>
     <a class="knopf-spalte{% if offen == 'eigene' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=eigene#eigene">Eigene Fassung hochladen</a>
     {#- „Final“ abgesetzt am Ende (Chrome-Test Nr. 11); rückgängig machbar, darum ohne Rückfrage #}
-    {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf-spalte") }}</div>{% endif %}
+    {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf-spalte", e.aktuell_name) }}</div>{% endif %}
   </div>
 </div>
 {%- if einzeln %}<span class="unter">{{ e.dateien[0].name }} · {{ e.dateien[0].seiten_text }}{% if e.dateien_aus %} · aus {{ e.dateien_aus }}{% endif %}. Tipp auf eine Seite, um sie durchzublättern.</span>
 {%- elif e.dateien_aus %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
+{%- if e.oben_hinweis %}<p class="hinweis">{{ e.oben_hinweis }}</p>{% endif %}
 
 {%- if offen == "rueckmeldung" %}
 <div class="tafel" id="rueckmeldung">

@@ -467,6 +467,39 @@ class TestMaterial(unittest.TestCase):
         self.assertFalse(logik.final_erlaubt("eigene-1", v))
         self.assertTrue(logik.final_erlaubt("eigene-3", v))
 
+    def test_grosser_knopf_gilt_der_neuesten_fassung(self):
+        alt, fb, nb = theater_kette()
+        eigene = [{"n": 1, "name": "Meins.docx", "zeit": "2026-10-30T13:00:00+01:00"}]
+        # ohne eigene Fassung wie bisher: die mit den Dateien, kein Name, kein Hinweis
+        e = logik.ergebnis([alt, fb, nb], {}, JETZT)
+        self.assertEqual((e["aktuell_ref"], e["aktuell_name"], e["oben_hinweis"]), (ALT_ID, "", ""))
+        # eigene Fassung ist die neueste
+        e = logik.ergebnis([alt, fb, nb], {}, JETZT, eigene)
+        self.assertEqual((e["aktuell_ref"], e["aktuell_name"], e["aktuell_final"]), ("eigene-1", "Fassung 2", False))
+        self.assertTrue(e["oben_hinweis"].startswith("Oben steht noch: Fassung 1. Deine Datei ist Fassung 2"))
+        self.assertTrue(logik.ergebnis([alt, fb, nb], {}, JETZT, eigene, "eigene-1")["aktuell_final"])
+        # Fassung 1 ist final, die neuere eigene noch nicht: Der Knopf bietet die neuere an
+        self.assertFalse(logik.ergebnis([alt, fb, nb], {}, JETZT, eigene, ALT_ID)["aktuell_final"])
+        # Nur Anmerkungen sind keine Fassung: Der Knopf bleibt bei der mit den Dateien
+        e = logik.ergebnis([alt, fb, nb], {}, JETZT, [{**eigene[0], "art": "anmerkungen"}])
+        self.assertEqual((e["aktuell_ref"], e["aktuell_name"], e["oben_hinweis"]), (ALT_ID, "", ""))
+        # Danach kam noch eine Fassung des Assistenten mit Dateien: Die ist wieder die neueste und steht oben
+        neu = {**nb, "ergebnis_dateien": ["data/neu.docx"], "abgeschlossen": "2026-10-30T14:00:00+01:00"}
+        e = logik.ergebnis([alt, fb, neu], {}, JETZT, eigene)
+        self.assertEqual((e["aktuell_ref"], e["aktuell_name"], e["oben_hinweis"]), (NB_ID, "Fassung 3", ""))
+        # Alles fehlgeschlagen: kein großer Knopf, die eigene behält ihren kleinen
+        kaputt = {**alt, "status": "fehlgeschlagen"}
+        e = logik.ergebnis([kaputt], {}, JETZT, eigene)
+        self.assertEqual((e["aktuell_ref"], e["oben_hinweis"]), ("", ""))
+        self.assertTrue(logik.final_erlaubt("eigene-1", e["verlauf"]))
+
+    def test_hinweis_nennt_die_fassung(self):
+        self.assertEqual(logik.hinweis_nach("final", "", "Fassung 2"), "Final. Fassung 2 ist jetzt die, die du nimmst.")
+        self.assertEqual(logik.hinweis_nach("final", "Straftheorien", "Fassung 2"),
+                         "Final. Fassung 2 steht jetzt bei Straftheorien.")
+        self.assertEqual(logik.hinweis_nach("final"), "Final. Diese Fassung ist jetzt die, die du nimmst.")
+        self.assertEqual(logik.hinweis_nach("nicht-final", "Straftheorien", "Fassung 2"), "Nicht mehr final.")
+
     def test_final_und_marke(self):
         alt, fb, nb = theater_kette()
         e = logik.ergebnis([alt, fb, nb], {}, JETZT, final_ref=ALT_ID)

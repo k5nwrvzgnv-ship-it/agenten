@@ -1004,7 +1004,7 @@ class TestMaterial(Aufbau):
         r, _ = self.sende("/final", {"ref": self.F1, "an": "1"})
         self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=final"))
         _, html = self.hole(self.URL + "?erledigt=final")
-        for text in ("Final. Diese Fassung ist jetzt die, die du nimmst.", ">Final · rückgängig<",
+        for text in ("Final. Fassung 1 ist jetzt die, die du nimmst.", ">Final · rückgängig<",
                      '<span class="material-marke marke-final">Final</span>'):
             self.assertIn(text, html)
         _, heute = self.hole("/")
@@ -1046,6 +1046,27 @@ class TestMaterial(Aufbau):
         self.assertIn("marke-final", self.hole(self.URL)[1])
         self.assertEqual(self.neue(), [])
         self.assertFalse((self.instanz / "eigene").exists())
+
+    def erstes_final_formular(self, html):
+        """(ref, Knopftext) des ersten Final-Formulars der Seite, das ist der große Knopf oben."""
+        return re.search(r'action="[^"]*/final">.*?name="ref" value="([^"]+)".*?<button[^>]*>([^<]+)<', html, re.S).groups()
+
+    def test_oberer_final_knopf_gilt_der_neuesten_fassung(self):
+        """Befund 03.11. Punkt 3: Nach einer eigenen Fassung markierte der große Knopf weiter die alte als final."""
+        self.assertEqual(self.erstes_final_formular(self.hole(self.URL)[1]), (self.F1, "Als final markieren"))
+        datei = self.tmp / "Mein Blatt.docx"
+        datei.write_bytes(b"MEINS")
+        app.fassungen.eigene_dazu(self.F1, datei, basis=self.instanz / "auftraege", agenten_dir=self.tmp)
+        _, html = self.hole(self.URL)
+        self.assertEqual(self.erstes_final_formular(html), ("eigene-1", "Fassung 2 als final markieren"))
+        self.assertIn("Oben steht noch: Fassung 1. Deine Datei ist Fassung 2", html)
+        # Fassung 1 behält ihren kleinen Knopf, Fassung 2 hat den großen
+        self.assertEqual(html.count('name="ref" value="eigene-1"'), 1)
+        self.assertEqual(html.count(f'name="ref" value="{self.F1}"'), 1)
+        self.assertEqual(self.sende("/final", {"ref": "eigene-1", "an": "1"})[0].status, 303)
+        _, html = self.hole(self.URL + "?erledigt=final")
+        self.assertIn("Final. Fassung 2 ist jetzt die, die du nimmst.", html)
+        self.assertEqual(self.erstes_final_formular(html), ("eigene-1", "Final · rückgängig"))
 
     def test_eigene_fassung_falsche_datei(self):
         r, html = self.sende("/eigene", {}, [("bild.exe", b"x")])

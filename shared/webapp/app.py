@@ -1912,7 +1912,9 @@ def seite_ergebnis(request: Request, eintrag_id: str):
     if kopf["id"] != eintrag_id:
         return RedirectResponse(f"/ergebnis/{kopf['id']}", status_code=303)
     reihe = logik.reihe_von(kopf, reihen_laden())
-    hinweis = logik.hinweis_nach(request.query_params.get("erledigt") or "", logik.reihe_text(reihe))
+    aktion = request.query_params.get("erledigt") or ""
+    fassung = _material(kette, kopf)[0]["final_name"] if aktion == "final" else ""
+    hinweis = logik.hinweis_nach(aktion, logik.reihe_text(reihe), fassung)
     return _ergebnis_seite(request, kette, kopf, request.query_params.get("offen") or "", hinweis)
 
 

@@ -537,6 +537,10 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
     final = next((x for x in schritte if x.get("final") and x.get("finalbar")), None)
     oben = (dateien_von or aktuell or {}).get("id") or ""
     dateien_ = _dateien(dateien_von, vorschauen)
+    finalbar = [x for x in schritte if x.get("finalbar")]
+    # Ist Lias Datei die neueste Fassung, gilt der große Knopf ihr, oben steht aber weiter die des Assistenten
+    eigene_neueste = finalbar[-1] if aktuell is not None and finalbar and finalbar[-1]["art"] == "eigene" else None
+    knopf = eigene_neueste or next((x for x in finalbar if x["ref"] == oben), None)
     if final:
         marke = "Final"
     elif laufend:
@@ -553,9 +557,14 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
         "art_zeile": " · ".join(x for x in (art(k), dateiart) if x),
         "marke": marke,
         "final_name": final["name"] if final else "",
-        # Knopf "Als final markieren" in der Spalte gilt für die Fassung, deren Dateien oben stehen
-        "aktuell_ref": oben if final_erlaubt(oben, schritte) else "",
-        "aktuell_final": bool(final) and final["ref"] == oben,
+        # Knopf "Als final markieren" in der Spalte: die neueste Fassung, sonst die, deren Dateien oben stehen.
+        # Der Name steht auf dem Knopf, sobald es mehr als eine Fassung zur Wahl gibt
+        "aktuell_ref": knopf["ref"] if knopf else "",
+        "aktuell_name": knopf["name"] if knopf and len(finalbar) > 1 else "",
+        "aktuell_final": bool(final and knopf) and final["ref"] == knopf["ref"],
+        "oben_hinweis": (f"Oben steht noch: {next(x['name'] for x in schritte if x.get('id') == oben)}. Deine Datei "
+                         f"ist {eigene_neueste['name']}, du findest sie unten bei den Fassungen."
+                         if eigene_neueste else ""),
         "titel": titel(k, nach_id, TITEL_LANG),
         "wunsch": kurz(wunsch(k), TITEL_LANG) if _dateititel(k) else "",
         "unter": " · ".join(x for x in (art(k), zeit_text(juengste.get("abgeschlossen"), jetzt)) if x),
@@ -577,7 +586,6 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
 
 VERALTET = "Die Seite war veraltet. Bitte wähle die Dateien neu und schick es noch einmal ab."
 HINWEISE = {
-    "final": "Final. Diese Fassung ist jetzt die, die du nimmst.",
     "nicht-final": "Nicht mehr final.",
     "eigene": "Deine Datei ist jetzt die neueste Fassung.",
     "rueckmeldung": "Rückmeldung ist unterwegs. Die neue Fassung erscheint hier und in „Heute“.",
@@ -600,10 +608,12 @@ HINWEISE = {
 }
 
 
-def hinweis_nach(aktion: str, ort: str = "") -> str:
-    """Hinweis oben in der Material-Ansicht nach einer Aktion (?erledigt=…); unbekannt: nichts."""
-    if aktion == "final" and ort:
-        return f"Final. Diese Fassung steht jetzt bei {ort}."
+def hinweis_nach(aktion: str, ort: str = "", fassung: str = "") -> str:
+    """Hinweis oben in der Material-Ansicht nach einer Aktion (?erledigt=…); unbekannt: nichts.
+    fassung: Name der finalen Fassung („Fassung 2“)."""
+    if aktion == "final":
+        wer = fassung or "Diese Fassung"
+        return f"Final. {wer} steht jetzt bei {ort}." if ort else f"Final. {wer} ist jetzt die, die du nimmst."
     return HINWEISE.get(aktion, "")
 
 
