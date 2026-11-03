@@ -54,8 +54,8 @@ recherche = [
   "taz.de", "lto.de", "tagesschau.de", "br.de", "zeit.de", "spiegel.de", "sueddeutsche.de",
   # Justiz
   "justiz.bayern.de", "bundesverfassungsgericht.de", "gesetze-im-internet.de",
-  # Bildung
-  "bpb.de",
+  # Bildung (kmk.org: Jan 03.11.2026, für Lias Chat mit Websuche)
+  "bpb.de", "kmk.org",
   # Mediatheken
   "ardmediathek.de", "zdf.de", "arte.tv", "youtube.com",
   # bisherige Quellen

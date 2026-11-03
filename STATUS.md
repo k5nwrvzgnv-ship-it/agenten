@@ -705,8 +705,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         (`dateien`), anzeigen z. B. als „mit Datei: Name“.
      c) Markdown-Links `[Titel](URL)` in Antworten anzeigen (mit netz unter „Quellen:“), nur http/https, mit
         `rel="noopener noreferrer"` und `target="_blank"`. Überschriften und Tabellen verlangt der Prompt nicht mehr.
-     Für Jan: kmk.org fehlt auf `[webfetch] recherche` (gilt auch für den Chat); im Test konnte Claude das
-     Original der KMK-Empfehlung deshalb nicht öffnen.
+     kmk.org steht seit 03.11. auf `[webfetch] recherche` (Jan, gilt für Chat und Recherche).
 25. Bedarf aus dem Lia-Chat (01.11.2026, Lias Rückmeldung mit Datei zur Spielfassung):
      a) Erledigt 02.11. (Jans Okay): Eine Datei an einer Rückmeldung hat jetzt eine Art (agentkit.fassungen,
         art_bestimmen): „fassung“ (Word-Kommentare oder mindestens 25 % der Absätze stehen in einer Fassung der Kette),

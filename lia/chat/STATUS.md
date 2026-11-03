@@ -65,6 +65,7 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
 - 02.11.2026 (Jan, „Ja, so umsetzen“): Websuche nur auf Lias Häkchen, WebFetch nur auf die Domains von Lias Recherche
   (in agent.py übernommen, shared/einstellungen.toml unverändert; fehlt die Liste, nur WebSearch), höchstens 8
   Schritte. Der Text der Frage geht dabei als Suchanfrage hinaus (Hinweis „keine Namen“ macht die Web-App).
+  03.11.2026 (Jan): kmk.org auf `[webfetch] recherche` (gilt auch für lia/recherche).
 - 02.11.2026 (Jan): Dateien: PDF, Word, PowerPoint (Pakete wie lia/unterricht), kein Excel, keine Fotos (bräuchten
   das Werkzeug Read). Datei gleich nach der Antwort gelöscht (auch bei Fehlern, spätestens nach 24 h vom Aufräumen),
   ihr Text bleibt im Verlauf (30 Tage) und geht bei Folgefragen am selben Ort mit (jeweils der jüngste). Alle
@@ -72,10 +73,8 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
 
 ## Offene Punkte
 1. Web-App: Häkchen „Im Netz nachsehen“, Datei-Feld und Links in der Anzeige (Bedarf in Punkt 24 der Haupt-STATUS).
-2. Jan: kmk.org (und ggf. Kultusministerien der Länder) auf `[webfetch] recherche` in shared/einstellungen.toml?
-   Die Liste gilt dann auch für lia/recherche.
-3. Fotos (JPG/PNG) im Chat: bräuchten Read auf data/dateien/<id>/; erst nach dem Test mit Lia und Jans Okay.
-4. Sauberer als das Löschen der Sitzungen: Option `--no-session-persistence` in agentkit.claude_lauf
+2. Fotos (JPG/PNG) im Chat: bräuchten Read auf data/dateien/<id>/; erst nach dem Test mit Lia und Jans Okay.
+3. Sauberer als das Löschen der Sitzungen: Option `--no-session-persistence` in agentkit.claude_lauf
    (Hauptordner-Chat, kein Muss).
 
 ## Gelernte Regeln
