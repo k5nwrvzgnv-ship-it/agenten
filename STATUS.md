@@ -745,6 +745,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        datum. Literaturverzeichnis: Überschrift "Literaturverzeichnis" (fett, nicht nummeriert), APA 7 mit
        hängendem Einzug, DOI als Link. uni liefert rahmen jetzt mehrzeilig (bis 400 Zeichen) und Zitate im Text
        nach APA (Nachname, Jahr). Besser als die PDF wäre die Word-Datei der Vorlage (renderer.vorlage_umwandeln).
+       Erledigt 03.11. im Renderer-Chat (Plan von Jan freigegeben): Art "expose" -> .docx (PDF aus der Vorschau,
+       ergebnis.pdf), Format in shared/renderer/FORMAT.md (gleich wie uni/expose.py, Umfang prüft weiter uni),
+       Profil shared/renderer/beispiele/profil-jan-expose.toml (Arial 11, Zeilenabstand 1.0, Ränder; logo = Pfad zu
+       uni/data/vorlagen/hnee_logo.png trägt uni ein). Kontrolltext endet mit den Stellen [OFFEN: ...]. Nachbau des
+       Exposés vom 02.11. in shared/renderer/data/nachbau/expose/. Bedarf uni (uni-Chat): von .md auf renderer.bauen
+       umstellen (docx und PDF an Jan). Jan: Nachbau in Word öffnen (Silbentrennung macht nur Word).
     b) agentkit.mail (Hauptordner-Chat): Anhänge beim Senden (Entwurf nennt Dateien aus dem Agent-Ordner, Python
        prüft Pfad und Größe, die Freigabe zeigt die Anhänge). Dann kann uni die Mail an Böhme mit Exposé zur
        Freigabe vorlegen; bis dahin schickt Jan selbst.

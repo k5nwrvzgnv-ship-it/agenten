@@ -2,12 +2,16 @@
 
 ## Zweck
 Gemeinsame Bibliothek für Jan und Lia: Claude schreibt eine JSON-Beschreibung, Python baut daraus ein Arbeitsblatt
-(docx) oder Folien (pptx) im Stil von Lias Material, eine Zusammenfassung (docx) in Jans Stil oder eine Arbeitsmappe
-(xlsx, Tabellen zum Ausfüllen mit Rechnungen), mit Kontrolltext und Vorschaubildern für Claude. Claude führt nie Code aus. Nutzer: Lias Material-Agent (Übergabe
-`../../docs/uebergabe-lia-dokumente.md`) und Jans dokumente-Agent (Zusammenfassungen, Hauptordner-STATUS Punkt 3a). Grundlage: `../../docs/lia-architektur.md`, Abschnitt 2.1 (Rolle material).
+(docx) oder Folien (pptx) im Stil von Lias Material, eine Zusammenfassung (docx) in Jans Stil, ein Exposé (docx nach
+Jans HNEE-Formatvorlage) oder eine Arbeitsmappe (xlsx, Tabellen zum Ausfüllen mit Rechnungen), mit Kontrolltext und Vorschaubildern für Claude. Claude führt nie Code aus. Nutzer: Lias Material-Agent (Übergabe
+`../../docs/uebergabe-lia-dokumente.md`), Jans dokumente-Agent (Zusammenfassungen, Hauptordner-STATUS Punkt 3a) und uni
+(Exposé, Hauptordner-STATUS Punkt 26 a). Grundlage: `../../docs/lia-architektur.md`, Abschnitt 2.1 (Rolle material).
 
-## Stand (30.10.2026)
-Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 155 Tests). lia/unterricht nutzt Arbeitsblatt
+## Stand (03.11.2026)
+Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 178 Tests).
+Art `expose` fertig (03.11., Plan von Jan freigegeben): Uni-Exposé vom 02.11. nachgebaut (`data/nachbau/expose/`,
+Vorschau neben der Formatvorlage angesehen, Maße stimmen). Offen: Jan öffnet es in Word (Silbentrennung, Rahmen
+unten auf dem Deckblatt), uni stellt von .md auf `renderer.bauen` um (Bedarf in `../../STATUS.md` 26 a). lia/unterricht nutzt Arbeitsblatt
 und Folien.
 Art `arbeitsmappe` (Excel) fertig (29.10.): Lias Notentabelle gebaut (`data/nachbau/notentabelle/`, Vorschau
 angesehen, Calc rechnet wie Python). Offen: Jan öffnet sie in Excel, Vergleich mit der Handvorlage, lia/unterricht
@@ -27,10 +31,12 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 ```
 - Format für Claude: `FORMAT.md` (gehört in den Skill des Agenten). Art `arbeitsblatt` -> .docx, `folien` -> .pptx,
   `zusammenfassung` -> .docx (Jan bekommt das PDF aus der Vorschau, `ergebnis.pdf`), `arbeitsmappe` -> .xlsx
-  (ohne Vorlage; der Kontrolltext endet mit Proben, die Python nachgerechnet hat).
+  (ohne Vorlage; der Kontrolltext endet mit Proben, die Python nachgerechnet hat), `expose` -> .docx (PDF wie bei der
+  Zusammenfassung; der Kontrolltext endet mit den Stellen „[OFFEN: …]“).
 - Profil: dict, z. B. aus TOML. Vorlage mit Lias Stil: `beispiele/profil-lia-stil.toml` (ohne Namen, Fach und
   Lehrkraft trägt ihr Agent ein), mit Jans Stil: `beispiele/profil-jan-zusammenfassung.toml` (`erstellt_von` trägt
-  der dokumente-Agent ein). Felder und Standardwerte: `design.py`.
+  der dokumente-Agent ein), fürs Exposé: `beispiele/profil-jan-expose.toml` (`logo` = Pfad zur PNG trägt uni ein).
+  Felder und Standardwerte: `design.py`.
 - Vorlage: .docx/.pptx des Agenten (`<agent>/data/vorlagen/`); .dotx/.potx vorher mit `vorlage_umwandeln()`.
 - Vorschau: `<ziel ohne Endung>-vorschau/` mit PNG je Seite und PDF. Scheitert sie, steht der Grund in `hinweise`
   (und im Log `renderer`), die Datei gibt es trotzdem. Die PDF nutzt die Ersatzschriften des Servers.
@@ -41,7 +47,8 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 - `__init__.py`: `bauen`, `Ergebnis`, `pruefen`, `vorlage_umwandeln`, `BeschreibungUngueltig`.
 - `pruefung.py`: strenge Prüfung (reine Logik), `lesen()` liefert die Beschreibung mit allen Standardwerten. Grenzen
   stehen oben im Modul und in `FORMAT.md`, bei Änderung beide anpassen (`tests/test_format.py` prüft die Beispiele).
-- `arbeitsblatt.py`, `folien.py`, `zusammenfassung.py`, `arbeitsmappe.py`: bauen aus der gelesenen Beschreibung.
+- `arbeitsblatt.py`, `folien.py`, `zusammenfassung.py`, `expose.py`, `arbeitsmappe.py`: bauen aus der gelesenen
+  Beschreibung. `expose.py` erbt wie die Zusammenfassung von `arbeitsblatt._Bau`.
   `rechnung.py`: Rechensprache der Arbeitsmappe (reine Logik: zerlegen, gegen Spalten prüfen, Kreise, nach Excel
   übersetzen, in Python nachrechnen). Die Zusammenfassung
   erbt Seite, Schrift und XML-Hilfen vom Arbeitsblatt (`arbeitsblatt._Bau`), Änderungen dort wirken auf beide. `design.py`: Profil. `icons.py`: 55 Icons
@@ -77,6 +84,21 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
   Linie und Balken; Sycamore 949547 aufgehellt für Prüfungsrelevant (30 %, DFDFC8) und Tabellenkopf (20 %, EAEADA);
   Organisatorisches, Rechenbeispiel, Quellen grau. Quelle der Farbcodes: Markenfarben-Übersicht von Jan, nicht das
   Design-Handbuch der HNEE (bei Gelegenheit abgleichen). Logo über eine Word-Vorlage.
+
+## Exposé (Jans Formatvorlage, gebaut 03.11.)
+- Format: `FORMAT.md`, Abschnitt Exposé, genau wie `uni/expose.py` (FORMAT, pruefen); Umfangsgrenzen (Wörter,
+  Unterpunkte) prüft uni, nicht der Renderer. Keine Belege aus Transkript/Folien im Text (Fehler an Claude).
+- Gemessen an `uni/data/vorlagen/expose_vorlage_Quercus_Kleinke-vonMulert.pdf` (Word): Ränder oben 3, unten 2,4,
+  links/rechts 2,5 cm; Arial 11 mit Zeilenabstand „einfach“ (Profil `zeilenabstand = 1.0`, ergibt 12,6 pt);
+  10 pt nach Absätzen; Überschriften fett 11 pt, Nummer mit Tab bei 1 cm; Logo 7 cm breit ab 3 cm; Titel 22 pt in
+  262626; Rahmen 9 pt mit 14 pt Zeilenabstand, Oberkante bei 21,85 cm; Tabellen 10 pt, Titel 9 pt „Tabelle n: …“,
+  Linien 1,5 pt oben/unten und 0,75 pt unter dem Kopf; Literatur hängend 1,27 cm, Zeilenabstand 1,88 (23,8 pt).
+- Rahmen unten auf dem Deckblatt als Positionsrahmen (`w:framePr`, an der Seite verankert), damit die Lage nicht
+  von der Titellänge abhängt. Deckblatt ist ein eigener Abschnitt, das Literaturverzeichnis beginnt mit Seitenumbruch.
+- Bild ohne `distL/R/T/B` rückt LibreOffice 0,32 cm ein: am `wp:inline` auf 0 setzen.
+- Silbentrennung: `w:autoHyphenation` in settings.xml, Word trennt (Sprache de-DE im Stil Normal). Die Vorschau
+  trennt nicht (Trennwörterbuch `hyphen-de` fehlt, bräuchte root): Blocksatz zeigt dort weite Lücken.
+- Kontrolltext liest Links mit (`iter_inner_content`), DOIs und URLs in der Literatur sind anklickbar.
 
 ## Technik, die man kennen muss
 - Word: Neue XML-Elemente an der Stelle einfügen, die das Schema verlangt (sonst „unlesbarer Inhalt“). Theme-
@@ -146,7 +168,9 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 3. Echte Vorlage von Lia oder Jan testen, sobald es eine gibt (Zentrale muss Dateien annehmen, Hauptordner-Chat).
 4. Kleinigkeiten nach Bedarf: Aufzählungspunkte stehen in LibreOffice etwas hoch (in PowerPoint unauffällig),
    Icons im Folieninhalt etwas größer, Zeilennummern im Material (Lias Hilfen verweisen auf Zeilen).
-5. Später für Jans dokumente-Agent: weitere Arten (Brief, Bericht), Bearbeiten bestehender
+5. Exposé: Jan öffnet `data/nachbau/expose/Expose.docx` in Word (Silbentrennung, Rahmen unten, Links). Wunsch für
+   später: Silbentrennung in der Vorschau (`hyphen-de` als root installieren).
+6. Später für Jans dokumente-Agent: weitere Arten (Brief, Bericht), Bearbeiten bestehender
    Dateien (Anforderungen in `../../dokumente/STATUS.md`).
 
 ## Gelernte Regeln
