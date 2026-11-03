@@ -695,6 +695,18 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      d) Die Zuordnung „Gehört zu Reihe“ (zustand.py reihe_von) kennt nur die Web-App. Agenten sehen sie nicht, eine
         Rückmeldung zu 03b145/93e29e (Spielfassung, damals über Neu an unterricht) geht weiter an unterricht, nicht
         an theater.
+   - Vom lia/chat-Chat (02.11.2026, Ausbau mit Jans Okay, Einzelheiten lia/chat/STATUS.md „Schnittstelle“).
+     Gebaut und echt getestet: allgemeine Fragen ohne Schulbezug, Websuche auf Wunsch, Dateien in der Frage.
+     Bedarf shared/webapp (Spalte „Fragen“):
+     a) Häkchen „Im Netz nachsehen“ -> `frage_stellen(..., netz=True)`; Hinweis darunter, dass der Text der Frage
+        als Suchanfrage hinausgeht (keine Namen). Dauert ca. 20–60 s.
+     b) Datei-Feld (höchstens 3, .pdf/.docx/.pptx, je bis 20 MB) -> `dateien=[(Name, Pfad des Uploads)]`; die
+        Schnittstelle verschiebt sie, bei FrageFehler räumt die Web-App ihre Uploads weg. Im Verlauf stehen die Namen
+        (`dateien`), anzeigen z. B. als „mit Datei: Name“.
+     c) Markdown-Links `[Titel](URL)` in Antworten anzeigen (mit netz unter „Quellen:“), nur http/https, mit
+        `rel="noopener noreferrer"` und `target="_blank"`. Überschriften und Tabellen verlangt der Prompt nicht mehr.
+     Für Jan: kmk.org fehlt auf `[webfetch] recherche` (gilt auch für den Chat); im Test konnte Claude das
+     Original der KMK-Empfehlung deshalb nicht öffnen.
 25. Bedarf aus dem Lia-Chat (01.11.2026, Lias Rückmeldung mit Datei zur Spielfassung):
      a) Erledigt 02.11. (Jans Okay): Eine Datei an einer Rückmeldung hat jetzt eine Art (agentkit.fassungen,
         art_bestimmen): „fassung“ (Word-Kommentare oder mindestens 25 % der Absätze stehen in einer Fassung der Kette),
