@@ -1,3 +1,4 @@
+import hashlib
 import http.client
 import json
 import re
@@ -656,6 +657,7 @@ class TestOrdnung(Aufbau):
         self.assertEqual(self.schicke(reihe="strafe")[0].status, 303)
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
         self.assertEqual((a["reihe"], a["text"]), ("strafe", "Arbeitsblatt Kant\n\nReihe: Straftheorien (Ethik, Klasse 8)"))
+        self.assertEqual(a["ort"], "strafe")  # Feld ort (agentkit.struktur): die Reihe
         _, html = self.hole("/reihe/strafe")
         self.assertIn("Arbeitsblatt Kant", html.split("Zur ganzen Reihe</h2>")[1])
 
@@ -675,13 +677,17 @@ class TestOrdnung(Aufbau):
         self.assertEqual((r.status, r.getheader("location")), (303, "/reihe/strafe/stunde/1?erledigt=auftrag-test"))
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
         self.assertEqual(a["text"], "Präsentation: Folien Kant\n\nReihe: Straftheorien (Ethik, Klasse 8)\nStunde 1: Kant")
+        z = app.zustand_().lesen()
+        (stunde,) = z["stunden"]["strafe"]
+        self.assertRegex(stunde["id"], r"^s-[0-9a-f]{6}$")  # Stunde der Web-App mit fester id
+        self.assertEqual((a["reihe"], a["ort"], z["stunde_von"]), ("strafe", stunde["id"], {a["id"]: {"stunde": stunde["id"]}}))
         _, html = self.hole("/reihe/strafe/stunde/1?erledigt=auftrag-test")
         self.assertIn("Präsentation: Folien Kant", html)
         self.assertIn("Auftrag angelegt (Testbetrieb", html)
         # unbekannte Stunde fällt weg, unbekannte Art auch
         self.assertEqual(self.post("/neu", {"text": "x", "art": "quatsch", "reihe": "strafe", "stunde": "7"})[0].status, 303)
         b = next(x for x in app.auftraege.neue(basis=self.instanz / "auftraege") if x["id"] != a["id"])
-        self.assertEqual(b["text"], "x\n\nReihe: Straftheorien (Ethik, Klasse 8)")
+        self.assertEqual((b["text"], b["ort"]), ("x\n\nReihe: Straftheorien (Ethik, Klasse 8)", "strafe"))
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
             self.assertNotIn("+ Neu hier", self.hole("/reihe/strafe")[1])
 
@@ -700,6 +706,38 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.getheader("location"), "/reihe/strafe/stunde/1?erledigt=auftrag-test")
         _, html = self.hole("/neu?art=arbeitsblatt")  # Reihe aus der Auswahl: gilt für die ganze Reihe
         self.assertIn("für eine Stunde nimm „+ Neu hier“ in der Stunde", html)
+
+    def test_stunden_aus_der_datei_regel_23(self):
+        """Stunden in reihen.toml (neues Format): Auftrag aus einer Stunde trägt ihre id als ort, das Material folgt
+        der Stunde, wenn sie verschoben wird. Testregel 23: Auftrags-JSONs und Fassungen bleiben dabei byte-gleich."""
+        kopf = '[[fach]]\nid = "ethik"\nname = "Ethik"\n\n[[klasse]]\nid = "ethik-8"\nfach = "ethik"\nname = "8"\n\n' \
+               '[[reihe]]\nid = "strafe"\nklasse = "ethik-8"\ntitel = "Straftheorien"\nstand = "geplant"\n\n'
+        einstieg = '[[reihe.stunde]]\nid = "s-einstieg"\nthema = "Einstieg"\n\n'
+        kant = '[[reihe.stunde]]\nid = "s-kant"\nthema = "Kant"\n\n'
+        (self.instanz / "reihen.toml").write_text(kopf + einstieg + kant, encoding="utf-8")
+        schreibe(self.instanz / "fassungen" / "x.json", {"ursprung": "x"})
+        _, html = self.hole("/reihe/strafe")
+        self.assertIn("Ethik · Klasse 8 · in Planung", html)
+        self.assertIn('<span>Straftheorien (in Planung)</span>', html)
+        r, _ = self.post("/neu", {"text": "Blatt Kant", "art": "arbeitsblatt", "reihe": "strafe", "stunde": "2"})
+        self.assertEqual(r.getheader("location"), "/reihe/strafe/stunde/2?erledigt=auftrag-test")
+        (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
+        self.assertEqual((a["reihe"], a["ort"], a["text"].rsplit("\n", 1)[1]), ("strafe", "s-kant", "Stunde 2: Kant"))
+        self.assertEqual(app.zustand_().lesen()["stunde_von"], {a["id"]: {"stunde": "s-kant"}})
+
+        def pruefsummen():
+            return {p: hashlib.sha256(p.read_bytes()).hexdigest()
+                    for ordner in ("auftraege", "fassungen") for p in sorted((self.instanz / ordner).rglob("*.json"))}
+        vorher = pruefsummen()
+        (self.instanz / "reihen.toml").write_text(kopf + kant + einstieg, encoding="utf-8")  # Kant nach vorn
+        for pfad in ("/", "/reihe/strafe", "/reihe/strafe/stunde/1", "/reihe/strafe/stunde/2", "/klasse/ethik-8",
+                     "/fach/ethik"):
+            self.assertEqual(self.hole(pfad)[0].status, 200, pfad)
+        _, html = self.hole("/reihe/strafe/stunde/1")
+        self.assertIn("Blatt Kant", html)
+        self.assertNotIn("Blatt Kant", self.hole("/reihe/strafe/stunde/2")[1])
+        self.assertEqual(pruefsummen(), vorher)
+        self.assertTrue({f"{a['id']}.json", "x.json"} <= {p.name for p in vorher})
 
     def test_varianten(self):
         original = "20261030-140944-unterricht-93e29e"
@@ -790,6 +828,14 @@ class TestOrdnung(Aufbau):
             frage = json.loads((ordner / "fragen" / f"{fid}.json").read_text())
             self.assertEqual((frage["text"], frage["ort"]["reihe"], frage["ort"]["chip"]),
                              ("Was heißt Vergeltung?", "strafe", "Ethik › Klasse 8 › Straftheorien"))
+            # aus einer Stunde: Nummer, Thema und ihre id (lia/chat, freiwillig seit Bauschritt 2)
+            self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+            sid = app.zustand_().lesen()["stunden"]["strafe"][0]["id"]
+            r2, _ = self.post("/fragen", {"text": "Und Kant?", "reihe": "strafe", "stunde": "1",
+                                          "zurueck": "/reihe/strafe/stunde/1"})
+            fid2 = r2.getheader("location").split("frage=")[1].split("#")[0]
+            ort = json.loads((ordner / "fragen" / f"{fid2}.json").read_text())["ort"]
+            self.assertEqual((ort["stunde"], ort["stunde_thema"], ort["stunde_id"]), (1, "Kant", sid))
             _, html = self.hole(f"/reihe/strafe?frage={fid}")
             self.assertIn(f'hx-get="/teile/frage/{fid}"', html)
             _, teil = self.hole(f"/teile/frage/{fid}")

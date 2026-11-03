@@ -1,0 +1,130 @@
+# Testdaten für tests/test_ordnung.py: reihen_alt.toml im neuen Format (Strukturplan Abschnitt 2), so wie es die
+# Migration (Bauschritt 3) ergeben könnte, nur mit den Feldern, die die Web-App zeigt. Klassen-ids wie die
+# bisherigen Links der App (/klasse/<id>). Die Archiv-Daten sind Beispiele, keine Angaben von Lia.
+
+[[fach]]
+id = "ethik"
+name = "Ethik"
+
+[[fach]]
+id = "darstellendes-spiel"
+name = "Darstellendes Spiel"
+
+[[klasse]]
+id = "ethik-8"
+fach = "ethik"
+name = "8"
+schuljahr = "2026/27"
+herkunft = "ethik-7-2025-26"
+
+[[klasse]]
+id = "ethik-7-2025-26"
+fach = "ethik"
+name = "7"
+schuljahr = "2025/26"
+archiviert = "2026-08-01"
+
+[[klasse]]
+id = "darstellendes-spiel-kurs-12"
+fach = "darstellendes-spiel"
+name = "Kurs 12"
+schuljahr = "2026/27"
+
+# Kurs 11 ohne Reihe (im alten Format die Platzhalter-Reihe darstellendes-spiel-kurs-11)
+[[klasse]]
+id = "darstellendes-spiel-kurs-11"
+fach = "darstellendes-spiel"
+name = "Kurs 11"
+schuljahr = "2026/27"
+
+[[klasse]]
+id = "darstellendes-spiel-kurs-11-2025-26"
+fach = "darstellendes-spiel"
+name = "Kurs 11"
+schuljahr = "2025/26"
+archiviert = "2026-08-01"
+
+[[reihe]]
+id = "ethik-8-straftheorien"
+klasse = "ethik-8"
+titel = "Straftheorien"
+stand = "geplant"
+behandelt = ["Peter Singer", "Aristoteles", "Kant", "Jeremy Bentham", "John Rawls", "John Stuart Mill"]
+agenten = ["examen"]
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+klasse = "darstellendes-spiel-kurs-12"
+titel = "Der nackte Wahnsinn"
+agenten = ["theater"]
+
+[[reihe]]
+id = "ethik-7-luege-und-wahrheit"
+klasse = "ethik-7-2025-26"
+titel = "Lüge und Wahrheit"
+reihenfrage = "Sollte ich lügen, um einen Freund zu schützen?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-gerechtes-verteilen"
+klasse = "ethik-7-2025-26"
+titel = "Gerechtes Verteilen"
+reihenfrage = "Wie verteilt man gerecht, wenn nicht genug für alle da ist?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-freundschaft"
+klasse = "ethik-7-2025-26"
+titel = "Freundschaft"
+reihenfrage = "Wie erkenne ich einen guten Freund?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-tiere-toeten"
+klasse = "ethik-7-2025-26"
+titel = "Tiere töten"
+reihenfrage = "Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-glueckliches-leben"
+klasse = "ethik-7-2025-26"
+titel = "Glückliches Leben"
+reihenfrage = "Wie führe ich ein glückliches Leben?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Grundlagen Körper"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Grundlagen Stimme"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Schauspielgrundlagen"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Gegenstand und Material"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Kompositionsmethoden"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Proben + Feedbackphase"
+stand = "abgeschlossen"

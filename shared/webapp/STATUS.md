@@ -32,11 +32,14 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
 - Klasse/Kurs `/klasse/<kennung>` (`logik.klasse_ansicht`, nur lesend): Reihen (laufende zuerst) mit Reihenfrage
   bzw. „Reihenfrage noch offen“, Zahl der Sachen, Marke Abgeschlossen; „Zur ganzen Klasse“ leer mit Hinweis
   (Material der Klasse steht in keiner Datei).
-- Stunden (`/reihe/<kennung>/stunde/<n>`, Jan 30.10. Block A3): speichert die Web-App selbst (`zustand.py`:
-  `stunden`, `stunde_von`), Nummer = Platz in der Liste, Thema bis 120 Zeichen, ändern ja, löschen und
-  umsortieren nein. Ansicht mit Material der Stunde und „Thema ändern“. In der Material-Ansicht „Gehört zu“
-  (ganze Reihe oder Stunde n). Ein Auftrag aus einer Stunde nennt sie im Text („Stunde 3: Thema“); die Agenten
-  kennen keine Stunden (Bedarf a in Punkt 24).
+- Stunden (`/reihe/<kennung>/stunde/<n>`, Jan 30.10. Block A3): aus reihen.toml, sonst speichert die Web-App sie
+  selbst (`zustand.py`: `stunden`, bis Bauschritt 5 des Strukturplans), Nummer = Platz in der Liste, Thema bis
+  120 Zeichen, ändern ja, löschen und umsortieren nein. Jede Stunde hat eine feste id (Datei: aus
+  agentkit.struktur; Web-App: `s-` + 6 Hex, `logik.neue_stunden_id`). Material hängt an der id (`stunde_von`:
+  `{"stunde": id}`), nicht an der Nummer, und folgt der Stunde. Ansicht mit Material der Stunde und „Thema
+  ändern“. In der Material-Ansicht „Gehört zu“ (ganze Reihe oder Stunde n; das Formular schickt die Nummer, die
+  App speichert die id). Ein Auftrag aus einer Stunde nennt sie im Text („Stunde 3: Thema“) und trägt ihre id im
+  Feld `ort`.
 - Neu (`/neu`, Block A4): ohne `?art=` die Galerie (Arbeitsblatt, Präsentation, Tabelle: was unterricht baut),
   mit Art ein kurzes Formular (eigene Frage und Platzhalter je Art), Ort aus `?reihe=…&stunde=n` vorbelegt und
   oben genannt („für Ethik › Klasse 8 › Straftheorien › Stunde 1“), sonst Auswahl der Reihe. Text an den Agenten:
@@ -137,18 +140,29 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
   Browser nach dem Fix vom 01.11. noch nicht bestätigt); Token im Formular
   (HMAC, geheim je Start der App), nach einem Neustart „Die Seite war veraltet“. Ohne Zurücknehmen,
   ohne „Das beachte ich“, keine Auswahl der Art (gibt es noch nicht).
-- Ordnung nach Fach, Klasse und Reihe (Jans Wunsch und Okay 30.10.):
-  - Reihen aus `<instanz>/reihen.toml` (Format in `ordnung.py`: wie lia/unterricht/reihen.toml plus `id`,
-    `stand`, `agenten`). Gibt es sie nicht (heute), setzt `ordnung.py` sie zusammen: Reihen aus
-    `lia/unterricht/reihen.toml` (Fach aus profil.toml), Examensaufträge zur Reihe aus `examen.toml`
-    (`titel_in_reihen_toml`), das Stück aus `theater.toml` als Fach „Darstellendes Spiel“, „Kurs 12“ (Jan
-    30.10., steht in keiner Datei, `THEATER_FACH`, `THEATER_KURS`). Kaputte Dateien: Fehler im Log (nur bei Änderung), App zeigt ohne Reihen.
+- Ordnung nach Fach, Klasse und Reihe (Jans Wunsch und Okay 30.10.; Strukturplan Bauschritt 2 erledigt 03.11.):
+  - `ordnung.laden` liest `<instanz>/reihen.toml` nur über `agentkit.struktur.laden()` (altes und neues Format)
+    und gibt (Reihen, Gruppen, Fehler) zurück; `logik.reihen_aus(s)` macht daraus Reihen und Klassen/Kurse der
+    App. Gruppen sind die Klassen, im neuen Format auch ohne Reihe (Baum, Fach- und Klassen-Ansicht zeigen sie;
+    nach der Migration steht Kurs 11 ohne Platzhalter-Reihe da). Archiv: im alten Format bleibt die Regel der App
+    (schuljahr + abgeschlossen, Klassen-Kennung mit Jahr wie bisher, z. B. `/klasse/darstellendes-spiel-kurs-11`
+    statt der struktur-id `…-klasse`), im neuen gilt `im_archiv`. Eine einzeln archivierte Reihe einer laufenden
+    Klasse steht nur in der Klassen-Ansicht (Marke „Archiv“). Stand `geplant` gilt als laufend und steht im Baum
+    als „(in Planung)“, in der Reihe als „· in Planung“. Kaputte Datei: ganze Datei verworfen (wie unterricht),
+    Fehler im Log (nur bei Änderung), App zeigt ohne Reihen. Den Ersatzweg aus den Agent-Ordnern gibt es nicht mehr.
+  - Test: `tests/test_ordnung.py` vergleicht Baum, Brotkrumen, Klassen-, Fach- und Reihen-Ansicht für die
+    eingefrorene Kopie der echten Datei (`tests/daten/reihen_alt.toml`) mit dem Bild vor der Umstellung
+    (`tests/daten/ansicht_vorher.json`), dazu `reihen_neu.toml` (dieselbe Datei im neuen Format) und die
+    Testregeln 7, 22 (lesend) und 23 (`test_app.py`).
   - Zuordnung (`logik.reihe_von`): Feld `reihe` des Auftrags, sonst der Agent, wenn er in genau einer Reihe unter
     `agenten` steht. Nichts aus dem Text geraten, sonst „ohne Reihe“. Bei Ketten zählt der Ursprung.
     Echte Daten 30.10.: Theater-Fassung 0baec0 -> Der nackte Wahnsinn; Entwurf examen-0c44bf -> Ethik 8 Straftheorien;
     alle Material-Aufträge, Recherche und der Fehlschlag ohne Reihe.
   - Neuer Auftrag: Auswahl „Für welche Reihe?“ (laufende Reihen, Standard keine). Der Auftrag trägt `reihe`
-    (agentkit, neues optionales Feld) und am Textende „Reihe: Titel (Fach, Klasse)“ für den Agenten.
+    (für ältere Leser), `ort` (Stunden-id, sonst Reihen-id; agentkit.struktur) und am Textende „Reihe: Titel
+    (Fach, Klasse)“ für den Agenten. Variante trägt `ort` = Reihe, Nochmal übernimmt `ort` des Ursprungs. Die
+    Frage an den Chat behält ihren Ort (`{"reihe", "stunde": n, "stunde_thema", …}`), aus einer Stunde
+    zusätzlich `stunde_id` (lia/chat liest dann Nummer und Thema aus reihen.toml).
 - Test-Instanz für Jan: `data/test/instanz` (`.env` mit PERSON=Lia, 0600) und Agent-Ordner `data/test/unterricht`,
   nicht im Repo. Probelauf 30.10.: Auftrag mit PDF angelegt, Datei verschoben, ohne Origin 403; danach gelöscht.
 
@@ -168,8 +182,8 @@ Jans Auftrag: „alle Funktionen aus dem Board zum Laufen bekommen“, je Ordner
 lia/chat neu, Hauptordner/agentkit). In der Web-App gebaut, je mit Tests:
 - Reihen aus `lia/instanz/reihen.toml` (eine Datei für App und Agenten) mit `schuljahr`: abgeschlossene Reihen
   eines Schuljahrs sind Archiv („Archiv: Klasse 7 · 2025/26“, im Baum eingeklappt, eigene Klassen-Kennung mit
-  Jahr). `[[reihe.stunde]]` (nr 1 bis n, thema, marke UB/Prüfung) gewinnt gegen die Stunden der Web-App; dann
-  kein „+ Stunde“ und kein „Thema ändern“ (die Datei pflegt der unterricht-Chat bzw. Jan).
+  Jahr). Stunden aus reihen.toml gewinnen gegen die Stunden der Web-App; dann kein „+ Stunde“ und kein „Thema
+  ändern“ (die Datei pflegt Jan; Masken in Bauschritt 5).
 - Fach-Ansicht `/fach/<kennung>` (Klassen mit laufenden Reihen, „Zum ganzen Fach“ leer), Fach in Baum und
   Brotkrumen verlinkt; die gezeigte Reihe klappt im Baum ihre Stunden aus.
 - Rückmeldung je Datei: Knopf „Rückmeldung“ an jeder Datei-Karte, „Rückmeldung zu dieser Seite“ im Betrachter;
@@ -226,7 +240,7 @@ Ablage (Jan fragen), Datei in eine Stunde ziehen (JavaScript), Muster, Konten.
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
   `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`, Stunden, Varianten,
-  Fragen), getestet. `ordnung.py`: Reihen-Dateien, Profil und Regeln lesen. `zustand.py`: was die Web-App selbst
+  Fragen), getestet. `ordnung.py`: Struktur (über agentkit.struktur), Profil und Regeln lesen. `zustand.py`: was die Web-App selbst
   in data/ speichert (Stunden, Zuordnungen zu Stunde und Reihe, Entwurf-Entscheidungen, Nochmal), liest final/eigene aus agentkit. `dateien.py`: Pfade der
   Ergebnisdateien und der Vorschau, geprüft gegen den Agent-Ordner `lia/<agent>/` (aufgelöst inkl. Symlinks,
   kein `..`, nichts Verstecktes, nur pdf/docx/pptx/xlsx bzw. png). URLs tragen nur die Nummer in
@@ -271,10 +285,14 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
     öffnet neuen Tab).
 0. Echt auf lia/instanz: freigegeben (Jan 30.10., siehe Entscheidungen). Noch kein echter Lauf aus der Web-App;
    den ersten beobachten (Log der App, Ergebnis in „Heute“, Nachricht an Lia per Telegram).
-9. Reihen: lia/instanz/reihen.toml gibt es (30.10.); der Ersatz aus den Agent-Ordnern greift nur noch ohne sie.
-   Pflege durch Lia in der App (Neue Reihe, Behandeltes ergänzen) und
-   „Reihe zuordnen“ für alte Aufträge (schreibt in Lias Instanz) erst mit Konten. Weitere Klassen von Lia sind
-   nicht bekannt; Jan trägt sie ein, sobald Lia sie nennt.
+9. Strukturplan (docs/struktur-pflege-plan.md): Bauschritt 2 für die Web-App erledigt (lesend). webapp.service
+   läuft noch mit dem alten Code; Neustart braucht Jans Okay (`systemctl --user restart webapp.service`). Nächste
+   Schritte für diesen Ordner: nach der Migration (3) und den Schreib-Operationen in agentkit (4) Bauschritt 5
+   (Masken, „+ Neu“ je Ebene, Stunden aus der Datei statt aus data/, Tests 24–25). Dabei offen: Fach ohne Klasse
+   zeigt der Baum noch nicht; zwei laufende Klassen mit gleichem Namen in verschiedenen Schuljahren sähen im Baum
+   gleich aus; Material an einer ausgeblendeten Stunde fällt an die ganze Reihe (Zuordnung bleibt gespeichert,
+   Liste „Ausgeblendete Stunden“ fehlt); „Gehört zu“ und „Neu“ schicken die Stunden-Nummer, mit Verschieben in
+   der App besser die id. Die Test-Instanz `data/test/instanz` hat keine reihen.toml (zeigt keine Reihen).
 8. Aufträge, die inhaltlich eine neue Fassung sind, aber als neuer Material-Auftrag mit Datei kamen (93e29e,
    03b145 zur Theater-Fassung), haben kein `bezug` und stehen einzeln. Nicht geraten; Jan gefragt, ob so etwas
    zusammengehören soll (sauber wäre ein Änderungswunsch mit Datei aus der Ergebnis-Ansicht, Bauschritt 4).

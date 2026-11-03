@@ -1,0 +1,4431 @@
+{
+ "baum": {
+  "heute": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": true,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": true
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "ethik-8-straftheorien": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-12-der-nackte-wahnsinn": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-11": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "ethik-7-luege-und-wahrheit": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Lüge und Wahrheit (abgeschlossen)",
+    "link": "/reihe/ethik-7-luege-und-wahrheit",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Gerechtes Verteilen (abgeschlossen)",
+    "link": "/reihe/ethik-7-gerechtes-verteilen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Freundschaft (abgeschlossen)",
+    "link": "/reihe/ethik-7-freundschaft",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Tiere töten (abgeschlossen)",
+    "link": "/reihe/ethik-7-tiere-toeten",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Glückliches Leben (abgeschlossen)",
+    "link": "/reihe/ethik-7-glueckliches-leben",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "ethik-7-gerechtes-verteilen": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Lüge und Wahrheit (abgeschlossen)",
+    "link": "/reihe/ethik-7-luege-und-wahrheit",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gerechtes Verteilen (abgeschlossen)",
+    "link": "/reihe/ethik-7-gerechtes-verteilen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Freundschaft (abgeschlossen)",
+    "link": "/reihe/ethik-7-freundschaft",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Tiere töten (abgeschlossen)",
+    "link": "/reihe/ethik-7-tiere-toeten",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Glückliches Leben (abgeschlossen)",
+    "link": "/reihe/ethik-7-glueckliches-leben",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "ethik-7-freundschaft": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Lüge und Wahrheit (abgeschlossen)",
+    "link": "/reihe/ethik-7-luege-und-wahrheit",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gerechtes Verteilen (abgeschlossen)",
+    "link": "/reihe/ethik-7-gerechtes-verteilen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Freundschaft (abgeschlossen)",
+    "link": "/reihe/ethik-7-freundschaft",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Tiere töten (abgeschlossen)",
+    "link": "/reihe/ethik-7-tiere-toeten",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Glückliches Leben (abgeschlossen)",
+    "link": "/reihe/ethik-7-glueckliches-leben",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "ethik-7-tiere-toeten": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Lüge und Wahrheit (abgeschlossen)",
+    "link": "/reihe/ethik-7-luege-und-wahrheit",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gerechtes Verteilen (abgeschlossen)",
+    "link": "/reihe/ethik-7-gerechtes-verteilen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Freundschaft (abgeschlossen)",
+    "link": "/reihe/ethik-7-freundschaft",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Tiere töten (abgeschlossen)",
+    "link": "/reihe/ethik-7-tiere-toeten",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Glückliches Leben (abgeschlossen)",
+    "link": "/reihe/ethik-7-glueckliches-leben",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "ethik-7-glueckliches-leben": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Lüge und Wahrheit (abgeschlossen)",
+    "link": "/reihe/ethik-7-luege-und-wahrheit",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gerechtes Verteilen (abgeschlossen)",
+    "link": "/reihe/ethik-7-gerechtes-verteilen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Freundschaft (abgeschlossen)",
+    "link": "/reihe/ethik-7-freundschaft",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Tiere töten (abgeschlossen)",
+    "link": "/reihe/ethik-7-tiere-toeten",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Glückliches Leben (abgeschlossen)",
+    "link": "/reihe/ethik-7-glueckliches-leben",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Körper (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Stimme (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Schauspielgrundlagen (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gegenstand und Material (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Kompositionsmethoden (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Proben + Feedbackphase (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Körper (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Stimme (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Schauspielgrundlagen (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gegenstand und Material (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Kompositionsmethoden (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Proben + Feedbackphase (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Körper (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Stimme (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Schauspielgrundlagen (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Gegenstand und Material (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Kompositionsmethoden (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Proben + Feedbackphase (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Körper (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Stimme (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Schauspielgrundlagen (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gegenstand und Material (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Kompositionsmethoden (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Proben + Feedbackphase (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Körper (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Stimme (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Schauspielgrundlagen (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gegenstand und Material (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Kompositionsmethoden (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Proben + Feedbackphase (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Körper (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Stimme (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Schauspielgrundlagen (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gegenstand und Material (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Kompositionsmethoden (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Proben + Feedbackphase (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": true
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "klasse:ethik-8": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "klasse:darstellendes-spiel-kurs-12": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "klasse:darstellendes-spiel-kurs-11": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "klasse:ethik-7-2025-26": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Lüge und Wahrheit (abgeschlossen)",
+    "link": "/reihe/ethik-7-luege-und-wahrheit",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gerechtes Verteilen (abgeschlossen)",
+    "link": "/reihe/ethik-7-gerechtes-verteilen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Freundschaft (abgeschlossen)",
+    "link": "/reihe/ethik-7-freundschaft",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Tiere töten (abgeschlossen)",
+    "link": "/reihe/ethik-7-tiere-toeten",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Glückliches Leben (abgeschlossen)",
+    "link": "/reihe/ethik-7-glueckliches-leben",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "klasse:darstellendes-spiel-kurs-11-2025-26": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": true
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Körper (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Grundlagen Stimme (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Schauspielgrundlagen (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Gegenstand und Material (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Kompositionsmethoden (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Proben + Feedbackphase (abgeschlossen)",
+    "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "fach:ethik": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": true
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ],
+  "fach:darstellendes-spiel": [
+   {
+    "art": "eintrag",
+    "text": "Heute",
+    "link": "/",
+    "tiefe": 0,
+    "zahl": 3,
+    "aktiv": false,
+    "ueber": false
+   },
+   {
+    "art": "fach",
+    "text": "Ethik",
+    "link": "/fach/ethik",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Klasse 8",
+    "tiefe": 0,
+    "link": "/klasse/ethik-8",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Straftheorien (in Planung)",
+    "link": "/reihe/ethik-8-straftheorien",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Klasse 7 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/ethik-7-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Darstellendes Spiel",
+    "link": "/fach/darstellendes-spiel",
+    "aktiv": true
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 12",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-12",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Der nackte Wahnsinn",
+    "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Kurs 11",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Noch ohne Titel",
+    "link": "/reihe/darstellendes-spiel-kurs-11",
+    "tiefe": 1,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "gruppe",
+    "text": "Archiv: Kurs 11 · 2025/26",
+    "tiefe": 0,
+    "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+    "aktiv": false
+   },
+   {
+    "art": "fach",
+    "text": "Mehr"
+   },
+   {
+    "art": "eintrag",
+    "text": "Vorlagen",
+    "link": "/vorlagen",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   },
+   {
+    "art": "eintrag",
+    "text": "Ich",
+    "link": "/ich",
+    "tiefe": 0,
+    "zahl": "",
+    "aktiv": false
+   }
+  ]
+ },
+ "baum_stunde": [
+  {
+   "art": "eintrag",
+   "text": "Heute",
+   "link": "/",
+   "tiefe": 0,
+   "zahl": "",
+   "aktiv": false,
+   "ueber": false
+  },
+  {
+   "art": "fach",
+   "text": "Ethik",
+   "link": "/fach/ethik",
+   "aktiv": false
+  },
+  {
+   "art": "gruppe",
+   "text": "Klasse 8",
+   "tiefe": 0,
+   "link": "/klasse/ethik-8",
+   "aktiv": false
+  },
+  {
+   "art": "eintrag",
+   "text": "Straftheorien (in Planung)",
+   "link": "/reihe/ethik-8-straftheorien",
+   "tiefe": 1,
+   "zahl": "",
+   "aktiv": false
+  },
+  {
+   "art": "eintrag",
+   "text": "1  Einstieg",
+   "link": "/reihe/ethik-8-straftheorien/stunde/1",
+   "tiefe": 2,
+   "zahl": "",
+   "aktiv": false
+  },
+  {
+   "art": "eintrag",
+   "text": "2  Kant",
+   "link": "/reihe/ethik-8-straftheorien/stunde/2",
+   "tiefe": 2,
+   "zahl": "",
+   "aktiv": true
+  },
+  {
+   "art": "gruppe",
+   "text": "Archiv: Klasse 7 · 2025/26",
+   "tiefe": 0,
+   "link": "/klasse/ethik-7-2025-26",
+   "aktiv": false
+  },
+  {
+   "art": "fach",
+   "text": "Darstellendes Spiel",
+   "link": "/fach/darstellendes-spiel",
+   "aktiv": false
+  },
+  {
+   "art": "gruppe",
+   "text": "Kurs 12",
+   "tiefe": 0,
+   "link": "/klasse/darstellendes-spiel-kurs-12",
+   "aktiv": false
+  },
+  {
+   "art": "eintrag",
+   "text": "Der nackte Wahnsinn",
+   "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+   "tiefe": 1,
+   "zahl": "",
+   "aktiv": false
+  },
+  {
+   "art": "gruppe",
+   "text": "Kurs 11",
+   "tiefe": 0,
+   "link": "/klasse/darstellendes-spiel-kurs-11",
+   "aktiv": false
+  },
+  {
+   "art": "eintrag",
+   "text": "Noch ohne Titel",
+   "link": "/reihe/darstellendes-spiel-kurs-11",
+   "tiefe": 1,
+   "zahl": "",
+   "aktiv": false
+  },
+  {
+   "art": "gruppe",
+   "text": "Archiv: Kurs 11 · 2025/26",
+   "tiefe": 0,
+   "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+   "aktiv": false
+  },
+  {
+   "art": "fach",
+   "text": "Mehr"
+  },
+  {
+   "art": "eintrag",
+   "text": "Vorlagen",
+   "link": "/vorlagen",
+   "tiefe": 0,
+   "zahl": "",
+   "aktiv": false
+  },
+  {
+   "art": "eintrag",
+   "text": "Ich",
+   "link": "/ich",
+   "tiefe": 0,
+   "zahl": "",
+   "aktiv": false
+  }
+ ],
+ "krumen": {
+  "ethik-8-straftheorien": [
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 8",
+      "link": "/klasse/ethik-8"
+     }
+    ],
+    "hier": "Straftheorien (in Planung)"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 8",
+      "link": "/klasse/ethik-8"
+     },
+     {
+      "text": "Straftheorien (in Planung)",
+      "link": "/reihe/ethik-8-straftheorien"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     }
+    ],
+    "hier": "Klasse 8"
+   }
+  ],
+  "darstellendes-spiel-kurs-12-der-nackte-wahnsinn": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 12",
+      "link": "/klasse/darstellendes-spiel-kurs-12"
+     }
+    ],
+    "hier": "Der nackte Wahnsinn"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 12",
+      "link": "/klasse/darstellendes-spiel-kurs-12"
+     },
+     {
+      "text": "Der nackte Wahnsinn",
+      "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 12"
+   }
+  ],
+  "darstellendes-spiel-kurs-11": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11",
+      "link": "/klasse/darstellendes-spiel-kurs-11"
+     }
+    ],
+    "hier": "Noch ohne Titel"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11",
+      "link": "/klasse/darstellendes-spiel-kurs-11"
+     },
+     {
+      "text": "Noch ohne Titel",
+      "link": "/reihe/darstellendes-spiel-kurs-11"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 11"
+   }
+  ],
+  "ethik-7-luege-und-wahrheit": [
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     }
+    ],
+    "hier": "Lüge und Wahrheit"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     },
+     {
+      "text": "Lüge und Wahrheit",
+      "link": "/reihe/ethik-7-luege-und-wahrheit"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     }
+    ],
+    "hier": "Klasse 7 · 2025/26"
+   }
+  ],
+  "ethik-7-gerechtes-verteilen": [
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     }
+    ],
+    "hier": "Gerechtes Verteilen"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     },
+     {
+      "text": "Gerechtes Verteilen",
+      "link": "/reihe/ethik-7-gerechtes-verteilen"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     }
+    ],
+    "hier": "Klasse 7 · 2025/26"
+   }
+  ],
+  "ethik-7-freundschaft": [
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     }
+    ],
+    "hier": "Freundschaft"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     },
+     {
+      "text": "Freundschaft",
+      "link": "/reihe/ethik-7-freundschaft"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     }
+    ],
+    "hier": "Klasse 7 · 2025/26"
+   }
+  ],
+  "ethik-7-tiere-toeten": [
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     }
+    ],
+    "hier": "Tiere töten"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     },
+     {
+      "text": "Tiere töten",
+      "link": "/reihe/ethik-7-tiere-toeten"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     }
+    ],
+    "hier": "Klasse 7 · 2025/26"
+   }
+  ],
+  "ethik-7-glueckliches-leben": [
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     }
+    ],
+    "hier": "Glückliches Leben"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     },
+     {
+      "text": "Klasse 7 · 2025/26",
+      "link": "/klasse/ethik-7-2025-26"
+     },
+     {
+      "text": "Glückliches Leben",
+      "link": "/reihe/ethik-7-glueckliches-leben"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Ethik",
+      "link": "/fach/ethik"
+     }
+    ],
+    "hier": "Klasse 7 · 2025/26"
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     }
+    ],
+    "hier": "Grundlagen Körper"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     },
+     {
+      "text": "Grundlagen Körper",
+      "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 11 · 2025/26"
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     }
+    ],
+    "hier": "Grundlagen Stimme"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     },
+     {
+      "text": "Grundlagen Stimme",
+      "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 11 · 2025/26"
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     }
+    ],
+    "hier": "Schauspielgrundlagen"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     },
+     {
+      "text": "Schauspielgrundlagen",
+      "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 11 · 2025/26"
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     }
+    ],
+    "hier": "Gegenstand und Material"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     },
+     {
+      "text": "Gegenstand und Material",
+      "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 11 · 2025/26"
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     }
+    ],
+    "hier": "Kompositionsmethoden"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     },
+     {
+      "text": "Kompositionsmethoden",
+      "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 11 · 2025/26"
+   }
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback": [
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     }
+    ],
+    "hier": "Proben + Feedbackphase"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     },
+     {
+      "text": "Kurs 11 · 2025/26",
+      "link": "/klasse/darstellendes-spiel-kurs-11-2025-26"
+     },
+     {
+      "text": "Proben + Feedbackphase",
+      "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback"
+     }
+    ],
+    "hier": "Neu"
+   },
+   {
+    "teile": [
+     {
+      "text": "Darstellendes Spiel",
+      "link": "/fach/darstellendes-spiel"
+     }
+    ],
+    "hier": "Kurs 11 · 2025/26"
+   }
+  ]
+ },
+ "klasse": {
+  "ethik-8": {
+   "titel": "Klasse 8",
+   "unter": "Ethik",
+   "zeilen": [
+    {
+     "titel": "Straftheorien (in Planung)",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "2 Sachen",
+     "marke": "",
+     "link": "/reihe/ethik-8-straftheorien"
+    }
+   ],
+   "reihe": {
+    "id": "ethik-8-straftheorien",
+    "fach": "Ethik",
+    "fach_id": "ethik",
+    "klasse": "8",
+    "gruppe": "Klasse 8",
+    "gruppe_id": "ethik-8",
+    "titel": "Straftheorien (in Planung)",
+    "schuljahr": "",
+    "archiv": false,
+    "reihenfrage": "",
+    "behandelt": [
+     "Peter Singer",
+     "Aristoteles",
+     "Kant",
+     "Jeremy Bentham",
+     "John Rawls",
+     "John Stuart Mill"
+    ],
+    "laufend": true,
+    "agenten": [
+     "examen"
+    ],
+    "stunden": []
+   }
+  },
+  "darstellendes-spiel-kurs-12": {
+   "titel": "Kurs 12",
+   "unter": "Darstellendes Spiel",
+   "zeilen": [
+    {
+     "titel": "Der nackte Wahnsinn",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "",
+     "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+    }
+   ],
+   "reihe": {
+    "id": "darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+    "fach": "Darstellendes Spiel",
+    "fach_id": "darstellendes-spiel",
+    "klasse": "Kurs 12",
+    "gruppe": "Kurs 12",
+    "gruppe_id": "darstellendes-spiel-kurs-12",
+    "titel": "Der nackte Wahnsinn",
+    "schuljahr": "",
+    "archiv": false,
+    "reihenfrage": "",
+    "behandelt": [],
+    "laufend": true,
+    "agenten": [
+     "theater"
+    ],
+    "stunden": []
+   }
+  },
+  "darstellendes-spiel-kurs-11": {
+   "titel": "Kurs 11",
+   "unter": "Darstellendes Spiel",
+   "zeilen": [
+    {
+     "titel": "Noch ohne Titel",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "",
+     "link": "/reihe/darstellendes-spiel-kurs-11"
+    }
+   ],
+   "reihe": {
+    "id": "darstellendes-spiel-kurs-11",
+    "fach": "Darstellendes Spiel",
+    "fach_id": "darstellendes-spiel",
+    "klasse": "Kurs 11",
+    "gruppe": "Kurs 11",
+    "gruppe_id": "darstellendes-spiel-kurs-11",
+    "titel": "Noch ohne Titel",
+    "schuljahr": "",
+    "archiv": false,
+    "reihenfrage": "",
+    "behandelt": [],
+    "laufend": true,
+    "agenten": [],
+    "stunden": []
+   }
+  },
+  "ethik-7-2025-26": {
+   "titel": "Klasse 7 · 2025/26",
+   "unter": "Ethik",
+   "zeilen": [
+    {
+     "titel": "Lüge und Wahrheit",
+     "unter": "Sollte ich lügen, um einen Freund zu schützen?",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/ethik-7-luege-und-wahrheit"
+    },
+    {
+     "titel": "Gerechtes Verteilen",
+     "unter": "Wie verteilt man gerecht, wenn nicht genug für alle da ist?",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/ethik-7-gerechtes-verteilen"
+    },
+    {
+     "titel": "Freundschaft",
+     "unter": "Wie erkenne ich einen guten Freund?",
+     "hinweis": "1 Sache",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/ethik-7-freundschaft"
+    },
+    {
+     "titel": "Tiere töten",
+     "unter": "Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/ethik-7-tiere-toeten"
+    },
+    {
+     "titel": "Glückliches Leben",
+     "unter": "Wie führe ich ein glückliches Leben?",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/ethik-7-glueckliches-leben"
+    }
+   ],
+   "reihe": {
+    "id": "ethik-7-luege-und-wahrheit",
+    "fach": "Ethik",
+    "fach_id": "ethik",
+    "klasse": "7",
+    "gruppe": "Klasse 7 · 2025/26",
+    "gruppe_id": "ethik-7-2025-26",
+    "titel": "Lüge und Wahrheit",
+    "schuljahr": "2025/26",
+    "archiv": true,
+    "reihenfrage": "Sollte ich lügen, um einen Freund zu schützen?",
+    "behandelt": [],
+    "laufend": false,
+    "agenten": [],
+    "stunden": []
+   }
+  },
+  "darstellendes-spiel-kurs-11-2025-26": {
+   "titel": "Kurs 11 · 2025/26",
+   "unter": "Darstellendes Spiel",
+   "zeilen": [
+    {
+     "titel": "Grundlagen Körper",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper"
+    },
+    {
+     "titel": "Grundlagen Stimme",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme"
+    },
+    {
+     "titel": "Schauspielgrundlagen",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen"
+    },
+    {
+     "titel": "Gegenstand und Material",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material"
+    },
+    {
+     "titel": "Kompositionsmethoden",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden"
+    },
+    {
+     "titel": "Proben + Feedbackphase",
+     "unter": "Reihenfrage noch offen",
+     "hinweis": "Noch nichts",
+     "marke": "Abgeschlossen",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback"
+    }
+   ],
+   "reihe": {
+    "id": "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+    "fach": "Darstellendes Spiel",
+    "fach_id": "darstellendes-spiel",
+    "klasse": "Kurs 11",
+    "gruppe": "Kurs 11 · 2025/26",
+    "gruppe_id": "darstellendes-spiel-kurs-11-2025-26",
+    "titel": "Grundlagen Körper",
+    "schuljahr": "2025/26",
+    "archiv": true,
+    "reihenfrage": "",
+    "behandelt": [],
+    "laufend": false,
+    "agenten": [],
+    "stunden": []
+   }
+  }
+ },
+ "fach": {
+  "ethik": {
+   "titel": "Ethik",
+   "unter": "Fach",
+   "zeilen": [
+    {
+     "titel": "Klasse 8",
+     "link": "/klasse/ethik-8",
+     "unter": "Läuft: Straftheorien (in Planung)",
+     "hinweis": "1 Reihe · 2 Sachen",
+     "marke": ""
+    },
+    {
+     "titel": "Klasse 7 · 2025/26",
+     "link": "/klasse/ethik-7-2025-26",
+     "unter": "keine laufende Reihe",
+     "hinweis": "5 Reihen · 1 Sache",
+     "marke": ""
+    }
+   ]
+  },
+  "darstellendes-spiel": {
+   "titel": "Darstellendes Spiel",
+   "unter": "Fach",
+   "zeilen": [
+    {
+     "titel": "Kurs 12",
+     "link": "/klasse/darstellendes-spiel-kurs-12",
+     "unter": "Läuft: Der nackte Wahnsinn",
+     "hinweis": "1 Reihe · noch nichts",
+     "marke": ""
+    },
+    {
+     "titel": "Kurs 11",
+     "link": "/klasse/darstellendes-spiel-kurs-11",
+     "unter": "Läuft: Noch ohne Titel",
+     "hinweis": "1 Reihe · noch nichts",
+     "marke": ""
+    },
+    {
+     "titel": "Kurs 11 · 2025/26",
+     "link": "/klasse/darstellendes-spiel-kurs-11-2025-26",
+     "unter": "keine laufende Reihe",
+     "hinweis": "6 Reihen · noch nichts",
+     "marke": ""
+    }
+   ]
+  }
+ },
+ "auswahl": [
+  {
+   "id": "ethik-8-straftheorien",
+   "text": "Straftheorien (in Planung) (Ethik, Klasse 8)"
+  },
+  {
+   "id": "darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+   "text": "Der nackte Wahnsinn (Darstellendes Spiel, Kurs 12)"
+  },
+  {
+   "id": "darstellendes-spiel-kurs-11",
+   "text": "Noch ohne Titel (Darstellendes Spiel, Kurs 11)"
+  }
+ ],
+ "texte": {
+  "ethik-8-straftheorien": [
+   "Ethik › Klasse 8 › Straftheorien (in Planung)",
+   "Ethik › Klasse 8 › Straftheorien (in Planung) › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   true,
+   "/reihe/ethik-8-straftheorien",
+   "/klasse/ethik-8"
+  ],
+  "darstellendes-spiel-kurs-12-der-nackte-wahnsinn": [
+   "Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn",
+   "Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn › Probe 2",
+   [
+    "Probe",
+    "Proben"
+   ],
+   true,
+   "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+   "/klasse/darstellendes-spiel-kurs-12"
+  ],
+  "darstellendes-spiel-kurs-11": [
+   "Darstellendes Spiel › Kurs 11 › Noch ohne Titel",
+   "Darstellendes Spiel › Kurs 11 › Noch ohne Titel › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   true,
+   "/reihe/darstellendes-spiel-kurs-11",
+   "/klasse/darstellendes-spiel-kurs-11"
+  ],
+  "ethik-7-luege-und-wahrheit": [
+   "Ethik › Klasse 7 · 2025/26 › Lüge und Wahrheit",
+   "Ethik › Klasse 7 · 2025/26 › Lüge und Wahrheit › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/ethik-7-luege-und-wahrheit",
+   "/klasse/ethik-7-2025-26"
+  ],
+  "ethik-7-gerechtes-verteilen": [
+   "Ethik › Klasse 7 · 2025/26 › Gerechtes Verteilen",
+   "Ethik › Klasse 7 · 2025/26 › Gerechtes Verteilen › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/ethik-7-gerechtes-verteilen",
+   "/klasse/ethik-7-2025-26"
+  ],
+  "ethik-7-freundschaft": [
+   "Ethik › Klasse 7 · 2025/26 › Freundschaft",
+   "Ethik › Klasse 7 · 2025/26 › Freundschaft › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/ethik-7-freundschaft",
+   "/klasse/ethik-7-2025-26"
+  ],
+  "ethik-7-tiere-toeten": [
+   "Ethik › Klasse 7 · 2025/26 › Tiere töten",
+   "Ethik › Klasse 7 · 2025/26 › Tiere töten › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/ethik-7-tiere-toeten",
+   "/klasse/ethik-7-2025-26"
+  ],
+  "ethik-7-glueckliches-leben": [
+   "Ethik › Klasse 7 · 2025/26 › Glückliches Leben",
+   "Ethik › Klasse 7 · 2025/26 › Glückliches Leben › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/ethik-7-glueckliches-leben",
+   "/klasse/ethik-7-2025-26"
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper": [
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Grundlagen Körper",
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Grundlagen Körper › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper",
+   "/klasse/darstellendes-spiel-kurs-11-2025-26"
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme": [
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Grundlagen Stimme",
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Grundlagen Stimme › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme",
+   "/klasse/darstellendes-spiel-kurs-11-2025-26"
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen": [
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Schauspielgrundlagen",
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Schauspielgrundlagen › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen",
+   "/klasse/darstellendes-spiel-kurs-11-2025-26"
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material": [
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Gegenstand und Material",
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Gegenstand und Material › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material",
+   "/klasse/darstellendes-spiel-kurs-11-2025-26"
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden": [
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Kompositionsmethoden",
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Kompositionsmethoden › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden",
+   "/klasse/darstellendes-spiel-kurs-11-2025-26"
+  ],
+  "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback": [
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Proben + Feedbackphase",
+   "Darstellendes Spiel › Kurs 11 · 2025/26 › Proben + Feedbackphase › Stunde 2",
+   [
+    "Stunde",
+    "Stunden"
+   ],
+   false,
+   "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback",
+   "/klasse/darstellendes-spiel-kurs-11-2025-26"
+  ]
+ },
+ "reihe_ansicht": {
+  "ethik-8-straftheorien": {
+   "titel": "Straftheorien (in Planung)",
+   "unter": "Ethik · Klasse 8",
+   "reihenfrage": "",
+   "behandelt": "Peter Singer; Aristoteles; Kant; Jeremy Bentham; John Rawls; John Stuart Mill",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/ethik-8-straftheorien/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/ethik-8-straftheorien/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/ethik-8-straftheorien/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-12-der-nackte-wahnsinn": {
+   "titel": "Der nackte Wahnsinn",
+   "unter": "Darstellendes Spiel · Kurs 12",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Probe",
+   "wort_mehrzahl": "Proben",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-11": {
+   "titel": "Noch ohne Titel",
+   "unter": "Darstellendes Spiel · Kurs 11",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-11/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-11/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-11/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "ethik-7-luege-und-wahrheit": {
+   "titel": "Lüge und Wahrheit",
+   "unter": "Ethik · Klasse 7 · 2025/26 · abgeschlossen",
+   "reihenfrage": "Sollte ich lügen, um einen Freund zu schützen?",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/ethik-7-luege-und-wahrheit/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/ethik-7-luege-und-wahrheit/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/ethik-7-luege-und-wahrheit/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "ethik-7-gerechtes-verteilen": {
+   "titel": "Gerechtes Verteilen",
+   "unter": "Ethik · Klasse 7 · 2025/26 · abgeschlossen",
+   "reihenfrage": "Wie verteilt man gerecht, wenn nicht genug für alle da ist?",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/ethik-7-gerechtes-verteilen/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/ethik-7-gerechtes-verteilen/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/ethik-7-gerechtes-verteilen/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "ethik-7-freundschaft": {
+   "titel": "Freundschaft",
+   "unter": "Ethik · Klasse 7 · 2025/26 · abgeschlossen",
+   "reihenfrage": "Wie erkenne ich einen guten Freund?",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/ethik-7-freundschaft/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/ethik-7-freundschaft/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/ethik-7-freundschaft/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "ethik-7-tiere-toeten": {
+   "titel": "Tiere töten",
+   "unter": "Ethik · Klasse 7 · 2025/26 · abgeschlossen",
+   "reihenfrage": "Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/ethik-7-tiere-toeten/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/ethik-7-tiere-toeten/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/ethik-7-tiere-toeten/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "ethik-7-glueckliches-leben": {
+   "titel": "Glückliches Leben",
+   "unter": "Ethik · Klasse 7 · 2025/26 · abgeschlossen",
+   "reihenfrage": "Wie führe ich ein glückliches Leben?",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/ethik-7-glueckliches-leben/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/ethik-7-glueckliches-leben/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/ethik-7-glueckliches-leben/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper": {
+   "titel": "Grundlagen Körper",
+   "unter": "Darstellendes Spiel · Kurs 11 · 2025/26 · abgeschlossen",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme": {
+   "titel": "Grundlagen Stimme",
+   "unter": "Darstellendes Spiel · Kurs 11 · 2025/26 · abgeschlossen",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen": {
+   "titel": "Schauspielgrundlagen",
+   "unter": "Darstellendes Spiel · Kurs 11 · 2025/26 · abgeschlossen",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material": {
+   "titel": "Gegenstand und Material",
+   "unter": "Darstellendes Spiel · Kurs 11 · 2025/26 · abgeschlossen",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden": {
+   "titel": "Kompositionsmethoden",
+   "unter": "Darstellendes Spiel · Kurs 11 · 2025/26 · abgeschlossen",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  },
+  "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback": {
+   "titel": "Proben + Feedbackphase",
+   "unter": "Darstellendes Spiel · Kurs 11 · 2025/26 · abgeschlossen",
+   "reihenfrage": "",
+   "behandelt": "",
+   "zeilen": [],
+   "wort": "Stunde",
+   "wort_mehrzahl": "Stunden",
+   "stunden_neu": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback/stunden",
+   "stunden": [
+    {
+     "nr": 1,
+     "titel": "Einstieg",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback/stunde/1",
+     "marke": "",
+     "unter": "noch leer"
+    },
+    {
+     "nr": 2,
+     "titel": "Kant",
+     "link": "/reihe/darstellendes-spiel-kurs-11-2025-26-proben-und-feedback/stunde/2",
+     "marke": "UB",
+     "unter": "noch leer"
+    }
+   ]
+  }
+ },
+ "reihe_von": {
+  "examen": "ethik-8-straftheorien",
+  "theater": "darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
+  "unterricht": null
+ }
+}

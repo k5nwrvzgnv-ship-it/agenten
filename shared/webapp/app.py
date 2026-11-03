@@ -26,7 +26,7 @@ GET:
                                         ohne JavaScript; <id> ist die Fassung, aus der die Datei stammt
   /entwurf/<id>                         offener Entwurf, ganzer Text; Lia entscheidet bei Typ entwurf selbst
   /reihe/<kennung>                      Reihe mit Reihenfrage und ihren Aufträgen (ordnung.py, nur lesend)
-  /reihe/<kennung>/stunde/<n>           Stunde (bzw. Probe) n mit Thema und Material (Stunden speichert die Web-App)
+  /reihe/<kennung>/stunde/<n>           Stunde (bzw. Probe) n mit Thema und Material (aus reihen.toml oder data/)
   /fach/<kennung>                       Fach mit Klassen/Kursen (nur lesend)
   /klasse/<kennung>                     Klasse/Kurs mit ihren Reihen (nur lesend)
   /vorlagen                             Gestaltung (Profil des Material-Agenten) und Arten, nur lesend
@@ -46,7 +46,7 @@ POST:
   /entwurf/<id>                         Lias Entscheidung „Setze ich selbst ein“/„Brauche ich nicht“/rückgängig (data/)
   /auftrag/<id>/zurueckziehen           laufenden Auftrag zurückziehen (agentkit, nur test/echt)
   /ergebnis/<id>/nochmal                fehlgeschlagenen letzten Versuch noch einmal anlegen (nur test/echt)
-  /ergebnis/<id>/stunde                 Material einer Stunde der Reihe zuordnen (nur in data/)
+  /ergebnis/<id>/stunde                 Material einer Stunde der Reihe zuordnen (nur in data/, über die Stunden-id)
   /ergebnis/<id>/variante               Variante anfordern: neuer Auftrag an den Material-Agenten mit der Datei als
                                         Anhang (wie Neuer Auftrag nur test/echt), Zuordnung in data/
   /reihe/<kennung>/stunden              neue Stunde am Ende der Reihe (nur in data/)
@@ -146,14 +146,19 @@ async def kopfzeilen(request: Request, call_next):
 _reihen_fehler: list[str] = []  # zuletzt geloggte Fehler: nicht bei jedem Neuladen (jede Minute) wieder
 
 
-def reihen_laden() -> list[dict]:
-    """Lias Reihen; Fehler in reihen.toml stehen im Log, die App zeigt dann ohne die fehlerhaften Reihen."""
-    reihen, fehler = ordnung.laden(INSTANZ)
+def ordnung_laden() -> tuple[list[dict], list[dict]]:
+    """Lias Reihen und Klassen/Kurse (agentkit.struktur); Fehler in reihen.toml stehen im Log, die App zeigt dann
+    keine Reihen."""
+    reihen, gruppen, fehler = ordnung.laden(INSTANZ)
     if fehler != _reihen_fehler:
         for f in fehler:
             logger.error("Reihen: %s", f)
         _reihen_fehler[:] = fehler
-    return reihen
+    return reihen, gruppen
+
+
+def reihen_laden() -> list[dict]:
+    return ordnung_laden()[0]
 
 
 def zustand_() -> zustand.Zustand:
@@ -223,7 +228,7 @@ def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int
         anzahl_wartet = heute_daten(reihen)["anzahl_wartet"]
     reihe = next((r for r in reihen if r["id"] == aktiv), None)
     stunden = {aktiv: logik.reihe_stunden(reihe, zustand_().lesen())} if reihe else {}
-    return {"baum": logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde), "krumen": krumen,
+    return {"baum": logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde, ordnung_laden()[1]), "krumen": krumen,
             "neu_hier": neu_hier if neu_modus() else "", "fragen": _fragen(reihen, aktiv, stunde),
             "fragen_token": logik.formular_token(GEHEIM), "frage_fehler": logik.FRAGE_FEHLER}
 
@@ -286,7 +291,8 @@ async def _frage_weitergeben(modul, form, dateien_: list[UploadFile]) -> Redirec
     ablage = Path(tempfile.mkdtemp(dir=EINGANG))
     try:  # je Datei ein Unterordner wie bei Neuer Auftrag
         uploads = [(d.filename, datei_ablegen(d, ablage / str(nr))) for nr, d in enumerate(dateien_)]
-        fid = modul.frage_stellen(text, logik.frage_ort(reihe, stunde, []), gruendlich, CHAT_ORDNER,
+        stunde_id = logik.reihe_stunden(reihe, zustand_().lesen())[stunde[0] - 1]["id"] if stunde else ""
+        fid = modul.frage_stellen(text, logik.frage_ort(reihe, stunde, [], stunde_id), gruendlich, CHAT_ORDNER,
                                   netz=netz, dateien=uploads)
     except modul.FrageFehler as fehler_:
         logger.warning("Frage abgewiesen: %s", fehler_)
@@ -398,7 +404,9 @@ async def stunde_anlegen(request: Request, reihe_id: str):
         return _reihe_seite(request, reihe_id, fehler, thema, 400)
     z_ = zustand_()
     try:
-        neu, nr = logik.stunde_dazu(z_.lesen(), reihe_id, thema, datetime.now(ZONE).isoformat())
+        z = z_.lesen()
+        neu, nr = logik.stunde_dazu(z, reihe_id, thema, datetime.now(ZONE).isoformat(),
+                                    logik.neue_stunden_id(logik.stunden_ids(reihen_laden(), z)))
         z_.schreiben(neu)
     except OSError as fehler_:
         logger.error("Stunde nicht gespeichert: %s", fehler_)
@@ -432,10 +440,10 @@ async def stunde_aendern(request: Request, reihe_id: str, nr: str):
 
 @app.get("/fach/{fach_id}", response_class=HTMLResponse)
 def seite_fach(request: Request, fach_id: str):
-    reihen = reihen_laden()
+    reihen, gruppen = ordnung_laden()
     zeilen_je = logik.zeilen_je_reihe(reihen, _alle_auftraege(), datetime.now(ZONE), _entwuerfe(),
                                       ausblenden=_ausblenden(zustand_().lesen()))
-    e = logik.fach_ansicht(fach_id, reihen, zeilen_je)
+    e = logik.fach_ansicht(fach_id, reihen, zeilen_je, gruppen)
     if e is None:
         raise HTTPException(404)
     return vorlagen.TemplateResponse(request, "fach.html", {
@@ -444,15 +452,15 @@ def seite_fach(request: Request, fach_id: str):
 
 @app.get("/klasse/{gruppe_id}", response_class=HTMLResponse)
 def seite_klasse(request: Request, gruppe_id: str):
-    reihen = reihen_laden()
+    reihen, gruppen = ordnung_laden()
     zeilen_je = logik.zeilen_je_reihe(reihen, _alle_auftraege(), datetime.now(ZONE),
                                       _entwuerfe(),
                                       ausblenden=_ausblenden(zustand_().lesen()))
-    e = logik.klasse_ansicht(gruppe_id, reihen, zeilen_je)
+    e = logik.klasse_ansicht(gruppe_id, reihen, zeilen_je, gruppen)
     if e is None:
         raise HTTPException(404)
     return vorlagen.TemplateResponse(request, "klasse.html", {
-        "e": e, **rahmen(reihen, logik.krumen_klasse(e["reihe"]), logik.klasse_aktiv(gruppe_id))})
+        "e": e, **rahmen(reihen, logik.krumen_klasse(e["gruppe"]), logik.klasse_aktiv(gruppe_id))})
 
 
 _lese_fehler: list[str] = []  # wie _reihen_fehler: Fehler im Profil nur einmal loggen
@@ -667,7 +675,9 @@ async def neu_abschicken(request: Request):
         return _formular(request, text, fehler + fehler_reihe + fehler_extra, 400, reihe or "", art, stunde_text,
                          extra)
     agent, quelle = logik.vorlage_agent(art)
-    _, stunde = _ort(reihen, reihe or "", stunde_text)
+    ort_reihe, stunde = _ort(reihen, reihe or "", stunde_text)
+    # Feld ort (agentkit.struktur, Strukturplan Abschnitt 8): die Stunde, sonst die Reihe; reihe bleibt gesetzt
+    stunde_id = logik.reihe_stunden(ort_reihe, zustand_().lesen())[stunde[0] - 1]["id"] if stunde else None
     # „Auch als“: der Material-Agent baut die Varianten im selben Lauf (Zeile im Auftragstext, lia/unterricht)
     auch_als = logik.varianten_waehlen([str(w) for w in form.getlist("varianten")]) \
         if (logik.VORLAGEN.get(art) or {}).get("varianten") else []
@@ -679,7 +689,8 @@ async def neu_abschicken(request: Request):
             pfade.append(datei_ablegen(d, ablage / str(nr)))
         aid = auftraege.neuer_auftrag(agent, logik.text_mit_reihe(text, reihe, reihen, stunde, art, extra, auch_als),
                                       quelle=quelle, dateien=pfade, basis=INSTANZ / "auftraege",
-                                      agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe)
+                                      agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe,
+                                      ort=stunde_id or reihe)
     except (auftraege.AuftragFehler, OSError) as fehler_:
         logger.error("Neuer Auftrag nicht angelegt: %s", fehler_)
         return _formular(request, text, [logik.FEHLGESCHLAGEN], 500, reihe or "", art, stunde_text, extra)
@@ -692,7 +703,7 @@ async def neu_abschicken(request: Request):
     if stunde:  # die Web-App merkt sich, zu welcher Stunde der Auftrag gehört (zustand.py)
         try:
             z_ = zustand_()
-            z_.schreiben(logik.stunde_zuordnen(z_.lesen(), aid, reihe, stunde[0]))
+            z_.schreiben(logik.stunde_zuordnen(z_.lesen(), aid, stunde_id))
         except OSError as fehler_:
             logger.error("Stunde von %s nicht gespeichert: %s", aid, fehler_)
     if modus == "echt":
@@ -768,9 +779,7 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
     reihen = reihen_laden()
     reihe = logik.reihe_von(kopf, reihen)
     stunden = logik.reihe_stunden(reihe, z) if reihe else []
-    ort = z["stunde_von"].get(kopf["id"]) or {}
-    nr = ort.get("nr") if reihe and ort.get("reihe") == reihe["id"] else None
-    nr = nr if isinstance(nr, int) and 1 <= nr <= len(stunden) else None
+    nr = logik.stunde_nr(z["stunde_von"].get(kopf["id"]), stunden)
     ueber = {"text": f"{logik.stunden_wort(reihe)[0]} {nr}", "link": logik.stunde_link(reihe, nr)} if nr else None
     original = logik.variante_von(z, kopf["id"])
     if original:  # Varianten stehen beim Original: Brotkrume und Leiste von dort
@@ -896,7 +905,8 @@ async def ergebnis_variante(request: Request, eintrag_id: str):
                                     reihen)
         aid = auftraege.neuer_auftrag(logik.NEU_AGENT, text, quelle=logik.NEU_QUELLE, dateien=[kopie],
                                       basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
-                                      absender=config.person(INSTANZ), reihe=reihe["id"] if reihe else None)
+                                      absender=config.person(INSTANZ), reihe=reihe["id"] if reihe else None,
+                                      ort=reihe["id"] if reihe else None)
         z_ = zustand_()
         z_.schreiben(logik.variante_dazu(z_.lesen(), kopf["id"], art, aid, datetime.now(ZONE).isoformat()))
     except (auftraege.AuftragFehler, OSError) as fehler_:
@@ -950,7 +960,7 @@ async def ergebnis_nochmal(request: Request, eintrag_id: str):
     try:
         aid = auftraege.neuer_auftrag(logik.NEU_AGENT, f["text"], quelle=f["quelle"], bezug=f["bezug"],
                                       sitzung=f["sitzung"], basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
-                                      absender=config.person(INSTANZ), reihe=f["reihe"])
+                                      absender=config.person(INSTANZ), reihe=f["reihe"], ort=f["ort"])
         if not f["bezug"]:  # neuer Ursprung: Ort und Zuordnungen gehen mit, der alte verschwindet aus „Heute“
             z_ = zustand_()
             z = z_.lesen()
@@ -979,12 +989,12 @@ async def ergebnis_stunde(request: Request, eintrag_id: str):
         return _ergebnis_seite(request, kette, kopf, hinweis=logik.VERALTET, status=400)
     z_ = zustand_()
     z = z_.lesen()
-    wert = str(form.get("nr") or "")
-    nr = logik.stunde_nummer(wert, len(logik.reihe_stunden(reihe, z)))
+    wert, stunden = str(form.get("nr") or ""), logik.reihe_stunden(reihe, z)
+    nr = logik.stunde_nummer(wert, len(stunden))
     if nr is None and wert != "0":
         raise HTTPException(404)
     try:
-        z_.schreiben(logik.stunde_zuordnen(z, kopf["id"], reihe["id"], nr))
+        z_.schreiben(logik.stunde_zuordnen(z, kopf["id"], stunden[nr - 1]["id"] if nr else None))
     except OSError as fehler_:
         logger.error("Zuordnung nicht gespeichert: %s", fehler_)
         return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
@@ -1006,7 +1016,8 @@ async def ergebnis_reihe(request: Request, eintrag_id: str):
     if not wahl or wert not in {w["id"] for w in wahl}:
         raise HTTPException(404)
     try:
-        z_.schreiben(logik.reihe_zuordnen(z, kopf["id"], wert or None))
+        ziel = next((r for r in reihen if r["id"] == wert), None)
+        z_.schreiben(logik.reihe_zuordnen(z, kopf["id"], wert or None, logik.reihe_stunden(ziel, z) if ziel else []))
     except OSError as fehler_:
         logger.error("Zuordnung zur Reihe nicht gespeichert: %s", fehler_)
         return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)

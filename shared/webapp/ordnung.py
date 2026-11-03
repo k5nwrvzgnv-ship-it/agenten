@@ -1,26 +1,15 @@
-"""Lias Reihen aus Dateien laden (nur lesend). Prüfen und Zuordnen macht logik.py (reihen_aus, reihe_von).
-
-Ziel (Jan 30.10.2026): EINE Datei <instanz>/reihen.toml, die die App zeigt und die Agenten lesen. Format wie
-lia/unterricht/reihen.toml ([[reihe]] mit fach, klasse, titel, reihenfrage, lerngruppe, notizen, behandelt,
-merksaetze, bisherige_reihen), dazu freiwillig:
-  id       feste Kennung (sonst aus Fach, Klasse und Titel ohne Klammern), steht in Aufträgen im Feld "reihe"
-  stand    "laufend" (Standard) oder "abgeschlossen"
-  agenten  Aufträge dieser Agenten gehören zu dieser Reihe (z. B. ["theater"]), wenn der Agent nur hier steht
-
-Bis die Datei dort liegt (Umzug macht der lia/unterricht-Chat), setzt die App sie aus dem Bestand zusammen:
-  <agenten>/unterricht/reihen.toml        Reihen, fach ohne Angabe aus unterricht/profil.toml
-  <agenten>/examen/examen.toml            [reihe] titel_in_reihen_toml: Reihe der Examensaufträge
-  <agenten>/theater/theater.toml          [stueck] titel: Reihe des Theater-Agenten, THEATER_FACH, THEATER_KURS
+"""Lias Struktur laden (nur lesend) über agentkit.struktur, EINE Leseschicht für App und Agenten (Strukturplan
+docs/struktur-pflege-plan.md, Bauschritt 2). Quelle ist <instanz>/reihen.toml, im alten Format (nur [[reihe]])
+oder im neuen ([[fach]], [[klasse]], [[reihe]], [[reihe.stunde]]). Was die App daraus zeigt, macht
+logik.reihen_aus; zugeordnet wird in logik.py (reihe_von).
 """
 
 import tomllib
 from pathlib import Path
 
-import logik
+from agentkit import struktur
 
-DATEI = "reihen.toml"
-THEATER_FACH = "Darstellendes Spiel"   # Jan 30.10.2026: so heißt das Fach (nicht „Theater“)
-THEATER_KURS = "Kurs 12"   # Jan 30.10.2026: das Stück gehört zu Kurs 12, steht in keiner Datei des Theater-Agenten
+import logik
 
 
 def _toml(pfad: Path) -> dict:
@@ -33,34 +22,14 @@ def _toml(pfad: Path) -> dict:
         raise ValueError(f"{pfad}: {e}") from None
 
 
-def _ersatz(agenten: Path) -> tuple[list, str]:
-    """[[reihe]]-Blöcke aus dem Bestand der Agent-Ordner und das Standardfach."""
-    eintraege = [dict(e) for e in _toml(agenten / "unterricht" / DATEI).get("reihe", [])
-                 if isinstance(e, dict)]
-    fach = _toml(agenten / "unterricht" / "profil.toml").get("fach") or ""
-    examen = (_toml(agenten / "examen" / "examen.toml").get("reihe") or {}).get("titel_in_reihen_toml") or ""
-    treffer = [e for e in eintraege if examen and str(e.get("titel", "")).startswith(examen)]
-    if len(treffer) == 1:
-        treffer[0]["agenten"] = [*treffer[0].get("agenten", []), "examen"]
-    stueck = (_toml(agenten / "theater" / "theater.toml").get("stueck") or {}).get("titel") or ""
-    if stueck:
-        eintraege.append({"fach": THEATER_FACH, "klasse": THEATER_KURS, "titel": stueck, "agenten": ["theater"]})
-    return eintraege, fach
-
-
-def laden(instanz: Path) -> tuple[list[dict], list[str]]:
-    """Reihen der Instanz und Fehlertexte für Jan. Bei kaputten Dateien keine Reihen, die App läuft weiter."""
+def laden(instanz: Path) -> tuple[list[dict], list[dict], list[str]]:
+    """Reihen, Klassen/Kurse (logik.reihen_aus) und Fehlertexte für Jan. Ist die Datei kaputt, zeigt die App keine
+    Reihen und läuft weiter (agentkit.struktur prüft die ganze Datei, wie lia/unterricht). Fehlt sie: leer."""
     try:
-        datei = instanz / DATEI
-        if datei.exists():
-            eintraege, fach = _toml(datei).get("reihe", []), ""
-        else:
-            eintraege, fach = _ersatz(instanz.parent)
-    except ValueError as e:
-        return [], [str(e)]
-    if not isinstance(eintraege, list):
-        return [], [f"{DATEI}: Reihen als [[reihe]] schreiben"]
-    return logik.reihen_aus(eintraege, fach)
+        s = struktur.laden(instanz)
+    except (struktur.StrukturFehler, OSError, UnicodeDecodeError) as e:
+        return [], [], [str(e)]
+    return (*logik.reihen_aus(s), [])
 
 
 # Für die Seiten „Vorlagen“ und „Ich“ (nur lesend): Gestaltung aus dem Profil des Material-Agenten, Lias Regeln aus

@@ -1,6 +1,9 @@
+import json
 import unittest
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
+from agentkit import struktur
 
 import logik
 
@@ -149,10 +152,11 @@ class TestReiheZuordnen(unittest.TestCase):
               {"id": "alt", "fach": "Ethik", "gruppe": "7", "titel": "Alt", "laufend": False, "agenten": []}]
 
     def test_zuordnen_und_zuruecknehmen(self):
-        z = {"stunde_von": {"K": {"reihe": "r", "nr": 1}}}
-        z = logik.reihe_zuordnen(z, "K", "r")
-        self.assertEqual((z["reihe_von"], z["stunde_von"]), ({"K": "r"}, {"K": {"reihe": "r", "nr": 1}}))
-        z = logik.reihe_zuordnen(z, "K", None)  # andere Reihe bzw. keine: die Stunde fällt weg
+        z = {"stunde_von": {"K": {"stunde": "s-1"}}}
+        z = logik.reihe_zuordnen(z, "K", "r", [{"id": "s-0"}, {"id": "s-1"}])  # Stunde gehört zur Reihe: bleibt
+        self.assertEqual((z["reihe_von"], z["stunde_von"]), ({"K": "r"}, {"K": {"stunde": "s-1"}}))
+        self.assertEqual(logik.reihe_zuordnen(z, "K", "t", [{"id": "s-2"}])["stunde_von"], {})  # andere Reihe
+        z = logik.reihe_zuordnen(z, "K", None)  # keine Reihe: die Stunde fällt weg
         self.assertEqual((z["reihe_von"], z["stunde_von"]), ({}, {}))
 
     def test_mit_zuordnung(self):
@@ -570,10 +574,19 @@ ETHIK = {"fach": "Ethik", "klasse": "8", "titel": "Straftheorien (in Planung)", 
 THEATER = {"fach": "Darstellendes Spiel", "klasse": "Kurs 12", "titel": "Der nackte Wahnsinn", "agenten": ["theater"]}
 
 
+def toml_text(eintraege) -> str:
+    """[[reihe]]-Blöcke im alten Format aus Dicts (Texte, Listen, Stunden mit nr)."""
+    zeilen = []
+    for e in eintraege:
+        zeilen += ["[[reihe]]"] + [f"{k} = {json.dumps(v, ensure_ascii=False)}" for k, v in e.items() if k != "stunde"]
+        for st in e.get("stunde", []):
+            zeilen += ["[[reihe.stunde]]"] + [f"{k} = {json.dumps(v, ensure_ascii=False)}" for k, v in st.items()]
+    return "\n".join(zeilen) + "\n"
+
+
 def reihen(*eintraege):
-    ergebnis, fehler = logik.reihen_aus(list(eintraege or (ETHIK, THEATER)))
-    assert not fehler, fehler
-    return ergebnis
+    """Reihen der App wie aus reihen.toml über agentkit.struktur (ordnung.laden)."""
+    return logik.reihen_aus(struktur.aus_text(toml_text(eintraege or (ETHIK, THEATER))))[0]
 
 
 class TestReihen(unittest.TestCase):
@@ -589,21 +602,11 @@ class TestReihen(unittest.TestCase):
                          ("ethik-8-straftheorien", "Klasse 8", "ethik-8", True))
         self.assertEqual((theater["gruppe"], theater["fach_id"]), ("Kurs 12", "darstellendes-spiel"))
         # ohne titel nicht noch einmal der Kursname (Chrome-Test Nr. 9)
-        (ohne,), _ = logik.reihen_aus([{"fach": "Darstellendes Spiel", "klasse": "Kurs 11"}])
+        (ohne,) = reihen({"fach": "Darstellendes Spiel", "klasse": "Kurs 11"})
         self.assertEqual((ohne["titel"], ohne["gruppe"]), ("Noch ohne Titel", "Kurs 11"))
-
-    def test_reihen_aus_fehler(self):
-        faelle = [({"klasse": "8"}, "fach fehlt"), ({"fach": "Ethik"}, "klasse fehlt"),
-                  ({**ETHIK, "farbe": "rot"}, "farbe"), ({**ETHIK, "behandelt": "Kant"}, "behandelt"),
-                  ({**ETHIK, "id": "Ethik 8"}, "id"), ({**ETHIK, "stand": "fertig"}, "stand"), ("x", "kein Block")]
-        for eintrag, text in faelle:
-            with self.subTest(eintrag=eintrag):
-                gut, fehler = logik.reihen_aus([eintrag])
-                self.assertEqual(gut, [])
-                self.assertIn(text, fehler[0])
-        gut, fehler = logik.reihen_aus([ETHIK, ETHIK])
-        self.assertEqual((len(gut), "doppelt" in fehler[0]), (1, True))
-        self.assertEqual(logik.reihen_aus([{"klasse": "8"}], "Ethik")[0][0]["fach"], "Ethik")
+        # Prüfen macht agentkit.struktur (dort getestet): eine kaputte Reihe verwirft die Datei
+        with self.assertRaises(struktur.StrukturFehler):
+            reihen({**ETHIK, "stand": "fertig"})
 
     def test_reihe_von(self):
         r = reihen()
@@ -612,11 +615,12 @@ class TestReihen(unittest.TestCase):
         self.assertIsNone(logik.reihe_von({"agent": "unterricht"}, r))  # nichts geraten
         self.assertEqual(logik.reihe_von({"agent": "unterricht", "reihe": "ethik-8-straftheorien"}, r)["klasse"], "8")
         self.assertIsNone(logik.reihe_von({"agent": "theater", "reihe": "gibt-es-nicht"}, r))
-        zweimal = reihen(ETHIK, {**ETHIK, "titel": "Helfen"})  # examen in zwei Reihen: nicht sicher
+        # examen in zwei Reihen: nicht sicher (agentkit.struktur lässt das in der Datei nicht zu, Regel 6)
+        zweimal = [*r, {**r[0], "id": "ethik-8-helfen"}]
         self.assertIsNone(logik.reihe_von({"agent": "examen"}, zweimal))
 
     def test_auswahl_und_pruefen(self):
-        r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"})
+        r = reihen(ETHIK, THEATER, {**ETHIK, "agenten": [], "titel": "Helfen", "stand": "abgeschlossen"})
         self.assertEqual(logik.reihen_auswahl(r), [
             {"id": "ethik-8-straftheorien", "text": "Straftheorien (in Planung) (Ethik, Klasse 8)"},
             {"id": "darstellendes-spiel-kurs-12-der-nackte-wahnsinn",
@@ -677,7 +681,7 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.material_marke([alt, {**nb, "status": "fehlgeschlagen"}], JETZT), "Hat nicht geklappt")
 
     def test_baum(self):
-        r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"})
+        r = reihen(ETHIK, THEATER, {**ETHIK, "agenten": [], "titel": "Helfen", "stand": "abgeschlossen"})
         b = logik.baum(r, 2, "heute")
         self.assertEqual([(e["text"], e.get("link", "")) for e in b[-3:]], [("Mehr", ""), ("Vorlagen", "/vorlagen"),
                                                                            ("Ich", "/ich")])
@@ -702,22 +706,24 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.stunde_pruefen("  Kant   Vergeltung "), ("Kant Vergeltung", []))
         self.assertTrue(logik.stunde_pruefen("")[1])
         self.assertTrue(logik.stunde_pruefen("x" * 121)[1])
-        z, nr = logik.stunde_dazu({"final": {}}, "r", "Einstieg", "t1")
-        z, nr2 = logik.stunde_dazu(z, "r", "Kant", "t2")
+        z, nr = logik.stunde_dazu({"final": {}}, "r", "Einstieg", "t1", "s-aaaaaa")
+        z, nr2 = logik.stunde_dazu(z, "r", "Kant", "t2", "s-bbbbbb")
         self.assertEqual((nr, nr2, z["final"]), (1, 2, {}))
+        self.assertEqual([s["id"] for s in z["stunden"]["r"]], ["s-aaaaaa", "s-bbbbbb"])
         z = logik.stunde_aendern(z, "r", 1, "Einstieg neu")
         self.assertEqual([s["thema"] for s in z["stunden"]["r"]], ["Einstieg neu", "Kant"])
         self.assertEqual([logik.stunde_nummer(w, 2) for w in ("1", "2", "3", "0", "x", "", None, "-1")],
                          [1, 2, None, None, None, None, None, None])
-        z = logik.stunde_zuordnen(z, "K", "r", 2)
-        self.assertEqual(z["stunde_von"], {"K": {"reihe": "r", "nr": 2}})
+        z = logik.stunde_zuordnen(z, "K", "s-bbbbbb")
+        self.assertEqual(z["stunde_von"], {"K": {"stunde": "s-bbbbbb"}})
+        stunden = z["stunden"]["r"]
         zeilen = [{"id": "K", "titel": "AB"}, {"id": "L", "titel": "Folien"}, {"titel": "Entwurf"}]
-        je = logik.material_je_stunde("r", zeilen, z["stunde_von"], 2)
+        je = logik.material_je_stunde(zeilen, z["stunde_von"], stunden)
         self.assertEqual(({k: [x["titel"] for x in v] for k, v in je.items()}), {2: ["AB"], 0: ["Folien", "Entwurf"]})
-        self.assertEqual(list(logik.material_je_stunde("r", zeilen, z["stunde_von"], 1)), [0])  # Stunde 2 fehlt
-        self.assertEqual(list(logik.material_je_stunde("x", zeilen, z["stunde_von"], 2)), [0])  # andere Reihe
-        self.assertEqual(logik.stunde_zuordnen(z, "K", "r", None)["stunde_von"], {})
-        st = logik.stunde_ansicht(ethik, 2, z["stunden"]["r"], zeilen, {"K": {"reihe": ethik["id"], "nr": 2}})
+        self.assertEqual(list(logik.material_je_stunde(zeilen, z["stunde_von"], stunden[:1])), [0])  # Stunde fehlt
+        self.assertEqual(logik.stunde_nr({"reihe": "r", "nr": 2}, stunden), None)  # alte Zuordnung per Nummer
+        self.assertEqual(logik.stunde_zuordnen(z, "K", None)["stunde_von"], {})
+        st = logik.stunde_ansicht(ethik, 2, stunden, zeilen, z["stunde_von"])
         self.assertEqual((st["titel"], st["unter"], [x["titel"] for x in st["zeilen"]]), ("Kant", "Stunde 2", ["AB"]))
         self.assertEqual([s["text"] for s in logik.stunden_auswahl(theater, z["stunden"]["r"])],
                          ["zur ganzen Reihe", "Probe 1: Einstieg neu", "Probe 2: Kant"])
@@ -821,7 +827,9 @@ class TestReihen(unittest.TestCase):
                          reihe="r")
         self.assertTrue(logik.nochmal_moeglich([kaputt]))
         self.assertEqual(logik.nochmal_felder([kaputt]),
-                         {"text": "AB", "quelle": "portal-material", "bezug": None, "sitzung": None, "reihe": "r"})
+                         {"text": "AB", "quelle": "portal-material", "bezug": None, "sitzung": None, "reihe": "r",
+                          "ort": None})
+        self.assertEqual(logik.nochmal_felder([{**kaputt, "ort": "s-1"}])["ort"], "s-1")
         self.assertFalse(logik.nochmal_moeglich([{**kaputt, "dateien": ["a.pdf"]}]))
         self.assertFalse(logik.nochmal_moeglich([{**kaputt, "agent": "theater"}]))
         self.assertFalse(logik.nochmal_moeglich([{**kaputt, "status": "erledigt"}]))
@@ -834,16 +842,15 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(h["fehlgeschlagen"], [])
 
     def test_archiv_und_stunden_aus_datei(self):
-        stunden = [{"nr": 2, "thema": "Kant", "marke": "UB"}, {"nr": 1, "thema": "Einstieg"}]
-        r, fehler = logik.reihen_aus([
+        stunden = [{"nr": 3, "thema": "Kant", "marke": "UB"}, {"nr": 1, "thema": "Einstieg"}]
+        r = reihen(
             {**ETHIK, "stunde": stunden},
-            {"fach": "Ethik", "klasse": "7", "titel": "Freundschaft", "schuljahr": "2025/26", "stand": "abgeschlossen"},
-            {"fach": "Ethik", "klasse": "7", "titel": "Tiere", "stunde": [{"nr": 2, "thema": "x"}]},
-            {"fach": "Ethik", "klasse": "7", "titel": "Falsch", "stunde": [{"nr": 1, "thema": "x", "marke": "Probe"}]}])
-        self.assertEqual(len(fehler), 2)  # Lücke in den Nummern, unbekannte Marke
+            {"fach": "Ethik", "klasse": "7", "titel": "Freundschaft", "schuljahr": "2025/26", "stand": "abgeschlossen"})
         ethik, archiv = r
         self.assertEqual([s["thema"] for s in logik.reihe_stunden(ethik, {"stunden": {ethik["id"]: [{"thema": "z"}]}})],
-                         ["Einstieg", "Kant"])  # die Datei gewinnt
+                         ["Einstieg", "Kant"])  # die Datei gewinnt; Nummern neu gezählt (agentkit.struktur)
+        self.assertEqual([s["id"] for s in ethik["stunden"]],
+                         ["ethik-8-straftheorien-stunde-1", "ethik-8-straftheorien-stunde-3"])
         self.assertEqual((archiv["gruppe"], archiv["gruppe_id"], archiv["archiv"]),
                          ("Klasse 7 · 2025/26", "ethik-7-2025-26", True))
         a = logik.reihe_ansicht(ethik, r, [], JETZT, stunden_=logik.reihe_stunden(ethik, {}))
@@ -855,8 +862,8 @@ class TestReihen(unittest.TestCase):
         self.assertIn("Freundschaft (abgeschlossen)", [e["text"] for e in logik.baum(r, 0, archiv["id"])])
 
     def test_fach_ansicht(self):
-        r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen"},
-                   {**ETHIK, "klasse": "7", "titel": "Tierethik", "stand": "abgeschlossen"})
+        r = reihen(ETHIK, THEATER, {**ETHIK, "agenten": [], "titel": "Helfen", "stand": "abgeschlossen"},
+                   {**ETHIK, "agenten": [], "klasse": "7", "titel": "Tierethik", "stand": "abgeschlossen"})
         e = logik.fach_ansicht("ethik", r, {"ethik-8-helfen": [{}]})
         self.assertEqual([(z["titel"], z["unter"], z["hinweis"], z["link"]) for z in e["zeilen"]], [
             ("Klasse 8", "Läuft: Straftheorien (in Planung)", "2 Reihen · 1 Sache", "/klasse/ethik-8"),
@@ -905,6 +912,8 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.frage_ort(ethik, (3, "Kant"), ["AB"]),
                          {"reihe": ethik["id"], "chip": sp["chip"], "materialien": ["AB"], "stunde": 3,
                           "stunde_thema": "Kant"})
+        self.assertEqual(logik.frage_ort(ethik, (3, "Kant"), [], "s-kant")["stunde_id"], "s-kant")
+        self.assertNotIn("stunde_id", logik.frage_ort(ethik, None, [], "s-kant"))
         self.assertIsNone(logik.frage_ort(None, None, []))
         self.assertEqual([logik.zurueck_pfad(w) for w in ("/reihe/a?x=1#y", "//boese", "https://x", "/a b", None)],
                          ["/reihe/a", "/", "/", "/", "/"])
@@ -928,7 +937,7 @@ class TestReihen(unittest.TestCase):
                 logik.port_pruefen(falsch)
 
     def test_klasse_ansicht(self):
-        r = reihen(ETHIK, THEATER, {**ETHIK, "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
+        r = reihen(ETHIK, THEATER, {**ETHIK, "agenten": [], "titel": "Helfen", "stand": "abgeschlossen", "reihenfrage": "Wem helfen?"})
         e = logik.klasse_ansicht("ethik-8", r, {"ethik-8-helfen": [{}, {}], "ethik-8-straftheorien": [{}]})
         self.assertEqual((e["titel"], e["unter"]), ("Klasse 8", "Ethik"))
         self.assertEqual([(z["titel"], z["hinweis"], z["marke"], z["link"]) for z in e["zeilen"]], [
