@@ -1,7 +1,8 @@
 """Lias Struktur Fach → Klasse/Kurs → Reihe → Stunde aus lia/instanz/reihen.toml, EINE Leseschicht für alle Leser.
 
-Plan: docs/struktur-pflege-plan.md (Jan 03.11.2026, F1). Bauschritt 1: nur lesen. Schreiben (Block-Editor) kommt
-in Bauschritt 4. unterricht, examen, recherche, chat und Web-App lesen ab Bauschritt 2 nur noch hierüber.
+Plan: docs/struktur-pflege-plan.md (Jan 03.11.2026, F1). Hier wird nur gelesen. Geschrieben wird über
+agentkit.strukturpflege (Operationen, Ablauf, Rückgängig) mit agentkit.blockeditor (Bauschritt 4). unterricht, examen,
+recherche, chat und Web-App lesen nur hierüber.
 
 Neues Format (Abschnitt 2 des Plans), eine id gilt über alle Ebenen und ändert sich nie:
   [[fach]]   id, name; freiwillig kurzform, archiviert
@@ -10,7 +11,8 @@ Neues Format (Abschnitt 2 des Plans), eine id gilt über alle Ebenen und ändert
   [[reihe]]  id, klasse (id der Klasse); freiwillig titel, reihenfrage, notizen, stand (geplant, laufend,
              abgeschlossen; Standard laufend), herkunft (id einer Reihe), archiviert als Texte; behandelt,
              merksaetze, bisherige_reihen, agenten als Listen von Texten
-  [[reihe.stunde]] id, thema; freiwillig marke ("UB" oder "Prüfung"), archiviert (= ausgeblendet), termin.
+  [[reihe.stunde]] id; freiwillig thema (fehlt = „Thema offen“, Plan 4.4), marke ("UB" oder "Prüfung"),
+             archiviert (= ausgeblendet), termin.
              Keine gespeicherte Nummer (F3): Die Nummer zählt die Reihenfolge der Blöcke, nur über nicht
              ausgeblendete Stunden.
 Termine (Abschnitt 2a, Bauschritt 1b, Rechnung in agentkit.termine):
@@ -184,18 +186,14 @@ class Struktur:
             haken.append({"quelle": "verweise", "anzahl": 1, "text": "Prüfungsstunde (lia/examen)"})
         if self.instanz is None:
             return haken
-        passt = _passt_zu(kennung_)
-        dazu("auftraege", sum(map(passt, _jsons(self.instanz / "auftraege", ("neu", "erledigt")))),
-             "Auftrag", "Aufträge")
-        dazu("entwuerfe", sum(map(passt, _jsons(self.instanz / "freigabe", ("offen", "erledigt")))),
-             "Entwurf", "Entwürfe")
-        dazu("webapp", _im_zustand(kennung_, _zustand(self.instanz, webapp_daten or WEBAPP_DATEN)),
-             "Zuordnung in der Web-App", "Zuordnungen in der Web-App")
-        dazu("chat", sum(map(passt, _jsonl(self.instanz.parent / "chat" / "data" / "verlauf.jsonl"))),
-             "Eintrag im Chat-Verlauf", "Einträge im Chat-Verlauf")
-        for pfad in _verweise(kennung_, self.instanz):
-            haken.append({"quelle": "verweise", "anzahl": 1, "text": f"Verweis in {pfad}"})
-        return haken
+        return haken + _haken_aussen(kennung_, self.instanz, webapp_daten or WEBAPP_DATEN)
+
+    def id_frei(self, kennung_: str, webapp_daten: Path | None = None) -> bool:
+        """Testregel 2: Eine neue id kommt weder in der Datei noch in Aufträgen, Entwürfen, Web-App-Zustand,
+        Chat-Verlauf oder Verweisen der Agenten vor."""
+        if self.objekt(kennung_) is not None:
+            return False
+        return self.instanz is None or not _haken_aussen(kennung_, self.instanz, webapp_daten or WEBAPP_DATEN)
 
     def kalender(self, datei: Path | None = None) -> termine.Kalender:
         """Ferien und Feiertage des Bundeslands aus [schule] (agentkit/ferien.json). Fehlt etwas: TermineFehler."""
@@ -404,7 +402,10 @@ def _neu(daten: dict, fehler: list[str]) -> Struktur:
         for snr, st in enumerate(stunden, 1):
             swo = f"{wo} ({e['id']}), Stunde {snr}"
             if not (_texte_pruefen(st, STUNDE_TEXTE, (), swo, fehler) and _id_pruefen(st, swo, fehler)
-                    and _pflicht(st, ("thema",), swo, fehler) and _termin_pruefen(st.get("termin"), swo, fehler)):
+                    and _termin_pruefen(st.get("termin"), swo, fehler)):
+                continue
+            if "thema" in st and not st["thema"].strip():
+                fehler.append(f"{swo}: thema fehlt (leer); ist das Thema offen, die Zeile thema weglassen")
                 continue
             _stunde_dazu(r, st["id"], st, swo, fehler)
         s.reihen.append(r)
@@ -507,7 +508,7 @@ def _stunde_dazu(r: dict, kennung_: str, st: dict, wo: str, fehler: list[str]) -
         return
     archiviert = st.get("archiviert", "")
     termin = st.get("termin", "")
-    s = {"id": kennung_, "ebene": "stunde", "reihe_id": r["id"], "nr": None, "thema": st["thema"].strip(),
+    s = {"id": kennung_, "ebene": "stunde", "reihe_id": r["id"], "nr": None, "thema": st.get("thema", "").strip(),
          "marke": marke, "archiviert": archiviert, "im_archiv": bool(archiviert) or r["im_archiv"],
          "termin": termin, "datum": termin.split("/")[0] if termin else ""}
     if archiviert:
@@ -595,6 +596,26 @@ def _lerngruppen_einsetzen(s: Struktur, lerngruppen: dict) -> None:
 
 
 # --- Quellen für haengt_dran ---------------------------------------------------------------------------------------
+
+def _haken_aussen(kennung_: str, instanz: Path, webapp_daten: Path) -> list[dict]:
+    """Was außerhalb von reihen.toml auf die id zeigt (Quellen 2, 3, 5, 6, 7 aus Abschnitt 3.1)."""
+    haken = []
+
+    def dazu(quelle: str, anzahl: int, einzahl: str, mehrzahl: str):
+        if anzahl:
+            haken.append({"quelle": quelle, "anzahl": anzahl,
+                          "text": f"{anzahl} {einzahl if anzahl == 1 else mehrzahl}"})
+
+    passt = _passt_zu(kennung_)
+    dazu("auftraege", sum(map(passt, _jsons(instanz / "auftraege", ("neu", "erledigt")))), "Auftrag", "Aufträge")
+    dazu("entwuerfe", sum(map(passt, _jsons(instanz / "freigabe", ("offen", "erledigt")))), "Entwurf", "Entwürfe")
+    dazu("webapp", _im_zustand(kennung_, _zustand(instanz, webapp_daten)),
+         "Zuordnung in der Web-App", "Zuordnungen in der Web-App")
+    dazu("chat", sum(map(passt, _jsonl(instanz.parent / "chat" / "data" / "verlauf.jsonl"))),
+         "Eintrag im Chat-Verlauf", "Einträge im Chat-Verlauf")
+    for pfad in _verweise(kennung_, instanz):
+        haken.append({"quelle": "verweise", "anzahl": 1, "text": f"Verweis in {pfad}"})
+    return haken
 
 def _passt_zu(kennung_: str):
     return lambda e: isinstance(e, dict) and kennung_ in (e.get("reihe"), e.get("ort"))

@@ -444,7 +444,7 @@ class TestDateien(unittest.TestCase):
 
 
 class TestHaengtDran(unittest.TestCase):
-    """Quellen aus Abschnitt 3.1 (Regel 8 mit den Lösch-Operationen folgt in Bauschritt 4)."""
+    """Quellen aus Abschnitt 3.1 (Regel 8 mit den Lösch-Operationen in test_strukturpflege.py)."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

@@ -595,7 +595,8 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
    `[schule] bundesland` und der Stundenplan der laufenden Klassen (von Lia zu erfragen).
    Stand: ohne Termine und ohne Prüfungsstunde (Jan 03.11.: Stundenplan kommt über die Maske, Lia kennt die
    Stunden noch nicht); `bisherige_reihen` bleibt, bis unterricht frühere Reihen aus der Herkunft liest.
-4. **Hauptordner**: Schreib-Operationen und Block-Editor in `agentkit.struktur`, Rückgängig, Tests 4–5, 7–14, 16,
+4. **Erledigt 03.11.** **Hauptordner**: Schreib-Operationen und Block-Editor (`agentkit.strukturpflege`,
+   `agentkit.blockeditor`; struktur bleibt lesend), Rückgängig, Tests 4–5, 7–14, 16,
    18–21, 23.
 5. **shared/webapp**: „Bearbeiten“ und „+ Neu“ je Ebene, Aktionen aus Abschnitt 4, Rückgängig-Hinweis und „Letzte
    Änderungen“, Stunden aus der Datei statt aus data/, Tests 24–25.

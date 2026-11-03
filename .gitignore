@@ -59,3 +59,5 @@ lia/instanz/ausfall/
 lia/instanz/fassungen/
 # Lerngruppen je Klasse (agentkit.struktur, chmod 600): Angaben zur Gruppe gehören nicht in Git (F6)
 lia/instanz/lerngruppen.toml
+# Sperre für Lesen-Ändern-Schreiben von reihen.toml (agentkit.strukturpflege)
+lia/instanz/.reihen.sperre

@@ -583,7 +583,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      zugeteilt, Ausfall mit Wahl „rückt nach“/„fällt weg“, Ferien je Bundesland (Plan Abschnitt 2a). Nächster Schritt:
      F20–F24 entschieden (03.11.): Ferien per Abrufskript, Doppelstunde = ein Termin, keine A/B-Wochen, Nachrücken
      über Reihengrenzen, Halbjahr endet mit den Winterferien. Bauschritt 1b erledigt 03.11. (siehe unten).
-     Bauschritt 3 (Migration) erledigt 03.11. (siehe unten). Nächster Schritt: Schreib-Operationen (4).
+     Bauschritt 3 (Migration) erledigt 03.11. (siehe unten). Bauschritt 4 (Schreiben) erledigt 03.11. (siehe unten).
+     Nächster Schritt: Bauschritt 5 (Masken, shared/webapp-Chat).
      Offen: Neustart webapp.service mit Jans Okay (läuft seit 14:27 mit Code vor Bauschritt 2).
      Bauschritt 1 erledigt 03.11. (Hauptordner): agentkit.struktur (nur lesend, Tests 1–3, 6, 15, 17 mit eingefrorener
      Kopie der echten Datei, Lerngruppe darin durch Platzhalter ersetzt), Feld `ort` in auftraege.neuer_auftrag,
@@ -677,6 +678,57 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      - Bedarf lia/unterricht und lia/chat (Vorschlag, Jan entscheidet): „(in Planung)“ stand bisher im Titel; der
        Prompt sagt jetzt nirgends, dass Straftheorien geplant ist (nur die Notizen). Ggf. stand "geplant" im
        Prompt nennen.
+     Bauschritt 4 erledigt 03.11. (Hauptordner): Schreiben in agentkit.blockeditor (Block-Editor, Option A, nur
+     Bordmittel) und agentkit.strukturpflege (Operationen, Ablauf, Rückgängig); struktur bleibt nur lesend. Tests 4, 5,
+     7–14, 16, 18–21, 23, 32–35 in agentkit/tests/test_blockeditor.py und test_strukturpflege.py auf
+     tests/daten/reihen_echt.toml (eingefrorene Kopie der echten Datei, Lerngruppe als Platzhalter), Ablauf in einem
+     Git-Repo im Temp-Ordner mit dem echten commit-daten.sh. Die echte reihen.toml ist unverändert. Geändert in
+     struktur: thema einer Stunde ist freiwillig (fehlt = „Thema offen“, Plan 4.4), `thema = ""` bleibt ein Fehler;
+     `s.id_frei(id)` (Testregel 2). .gitignore: lia/instanz/.reihen.sperre.
+     Schreib-Schnittstelle für Bauschritt 5 (Einzelheiten im Kopf von shared/agentkit/strukturpflege.py):
+     - `from agentkit import strukturpflege as sp`; `aus = sp.ausfuehren(operation, argumente, gesehen=None,
+       von="Lia, Web-App")` -> Ausgang: geaendert (False = nichts zu tun, nichts geschrieben), text (Satz für
+       „Rückgängig“-Hinweis und Commit), aktion (id fürs Rückgängig), neue_id (bei anlegen/kopieren), hinweise (Lia
+       sagen, z. B. „2 Stunden haben keinen Termin mehr“), gesichert (Commit gelungen), commit.
+     - `gesehen` = {id: {feld: wert}} mit den Werten, die die Maske beim Öffnen gezeigt hat (so, wie struktur sie
+       liefert, z. B. {"ethik-8-straftheorien": {"titel": "Straftheorien"}}). Konflikt nur, wenn sich genau so ein
+       Wert geändert hat; Jans Änderungen an anderen Stellen bleiben.
+     - Operationen (`sp.OPERATIONEN`, Name -> Beschreibung), Argumente als Dict (Formularwerte):
+       schule_setzen(bundesland); fach_anlegen(name, kurzform), fach_aendern(fach, name/kurzform);
+       klasse_anlegen(fach, name, schuljahr, zeitplan=None, herkunft=""), klasse_aendern(klasse, name/schuljahr),
+       klasse_verschieben(klasse, fach), klasse_kopieren(klasse, name, schuljahr=+1, lerngruppe_mitnehmen=False,
+       zeitplan=None) („Ins nächste Schuljahr“, F8 vorbelegt aus), lerngruppe_setzen(klasse, text) ("" entfernt),
+       stundenplan_setzen(klasse, zeitplan) (nur, wenn keine Stunde ihren Termin verliert, z. B. „bis“ ändern),
+       stundenplan_ab(klasse, stichtag, zeitplan), zusatztermin(klasse, termin), zusatztermin_entfernen;
+       reihe_anlegen(klasse, titel, stand="geplant", reihenfrage, stunden=[Themen], termine=[Kennungen] oder ab+anzahl),
+       reihe_aendern(reihe, titel/reihenfrage/stand/notizen/behandelt/merksaetze), reihe_verschieben(reihe, klasse),
+       reihe_zeitlich(reihe, start, bei_belegt), reihe_kopieren(reihe, klasse, termine/ab+anzahl);
+       stunde_anlegen(reihe, thema="", marke="", vor=<stunden-id>, termin, bei_belegt), stunde_aendern(stunde,
+       thema/marke), stunde_verschieben(stunde, stelle ab 0 unter den sichtbaren, reihe=None), stunde_kopieren(stunde,
+       reihe), stunde_auf_termin(stunde, termin, bei_belegt); termine_zuteilen(reihe, termine oder ab+anzahl),
+       termine_freigeben(reihe, termine), ausfall(klasse, termin, folge "nachruecken" oder "faellt_weg"),
+       ausfall_aufheben(klasse, termin); archivieren(id) (Stunde: ausblenden), wiederherstellen(id), loeschen(id).
+       Termine als Kennung "2026-11-11/3", Daten "2026-11-11", zeitplan wie in reihen.toml (tag, stunde, laenge, ab, bis).
+     - Fehler: sp.PflegeFehler (Text für Lia, nie mit Lerngruppe), Unterklassen Konflikt („bitte neu laden“),
+       Handaenderung (Jan hat eine Meldung), HaengtDran (.haken wie struktur.haengt_dran, dann Archivieren anbieten);
+       termine.Belegt (.stunden, .reihen): einmal „Dahinter alles nachrücken“ oder „Tauschen“ fragen und mit
+       bei_belegt="nachruecken"/"tauschen" erneut aufrufen.
+     - Rückgängig: `sp.rueckgaengig(aktion_id)` (eigener Commit „Rückgängig: …“, Konflikt, wenn der Block seitdem
+       geändert wurde); „Letzte Änderungen“: `sp.letzte(20)` (id, zeit, text, von, operation, zurueckgenommen,
+       rueckgaengig_von). Aktionsablage shared/webapp/data/aktionen/<schlüssel der instanz>/ (0700/0600, enthält den
+       alten Lerngruppen-Text fürs Rückgängig).
+     - `sp.vorschau(operation, argumente, text, lerngruppen_text)` rechnet nur (z. B. Vorschau in der Maske).
+     - Testinstanz: `sp.Umgebung(instanz=<ordner>)`; liegt die Datei nicht als lia/instanz/reihen.toml im Repo, gibt
+       es keine Git-Prüfung und keinen Commit.
+     - Commit läuft synchron über commit-daten.sh und wartet auf commit.sperre (während ein anderer Chat committet,
+       bis zu umgebung.commit_zeit = 300 s). Die Web-App sollte ausfuehren deshalb nicht im Request-Thread blockierend
+       aufrufen (Thread oder Hintergrund). Scheitert der Commit: Datei ist geschrieben, Meldung an Jan, die nächste
+       Änderung committet mit (gesichert False, Hinweis für Lia).
+     - Löschen folgt nur 3.1: Aufträge ohne Feld reihe/ort (die 7 alten, F13) und Titel-Verweise zählen nicht. Heute
+       hängt an Straftheorien nichts, sie wäre löschbar (mit Rückgängig). Die Maske sollte Löschen nur für leere
+       Objekte anbieten (F17), Archivieren immer.
+     - Nicht entschieden, vorbelegt nach Plan-Vorschlag: F7 (Reihe kopieren übernimmt nur Struktur, alle Felder außer
+       agenten, archiviert, stand, herkunft), F8 (Lerngruppe beim Übernehmen nur mit Häkchen).
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit
