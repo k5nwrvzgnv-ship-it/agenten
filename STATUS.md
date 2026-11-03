@@ -652,9 +652,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        (kein Timer). Quelle OpenHolidays API, kostenlos, ohne Schlüssel, Daten ODbL 1.0 (Quelle nennen). Rückfall:
        von Hand im gleichen Format, Zeitraum unter "abgedeckt". Fehlen Ferien für einen Zeitraum, sagt termine es.
        Annahme für MV: Lia ist an einer allgemeinbildenden Schule (Ferien der beruflichen zählen nicht).
-     - Offen für Jan: Soll die App den Stundenplan bis Schuljahresende anlegen (Reihen über die Winterferien
-       planbar, stundenplan_ab legt beim Wechsel um) oder wie im Plan bis Halbjahresende? termine kann beides.
-       Bewegliche Ferientage und Studientage der Schule stehen in keiner Quelle (Lia streicht sie als Ausfall);
+     - Wie weit der Stundenplan reicht, entscheidet Lia in der Maske (Jan 03.11.): Feld „bis“ mit Vorbelegung
+       (Halbjahres- oder Schuljahresende, festzulegen beim Bau der Maske, Bauschritt 5), jederzeit änderbar;
+       termine kann beides. Bewegliche Ferientage und Studientage der Schule stehen in keiner Quelle (Lia streicht sie als Ausfall);
        IServ hat nach meiner Suche keine offene Schnittstelle dafür.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
