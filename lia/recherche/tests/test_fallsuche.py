@@ -62,26 +62,28 @@ class FallsucheTest(unittest.TestCase):
             "regelwerk.md": "## L\n- L1 Lerngruppe trifft.\n- L3 Containern meiden.\n## P\n- P3 Konkret.\n",
             "STATUS.md": "## Gelernte Regeln\n- 24.10.: Keine Tötung.\n",
             "leitfaden.md": "LEITFADEN",
-            "reihen.toml": '[[reihe]]\nklasse = "8"\ntitel = "Straftheorien"\nbisherige_reihen = '
-                           '["Klasse 7, Lüge: Sollte ich lügen, um einen Freund zu schützen?"]\n',
+            "reihen.toml": '[[reihe]]\nfach = "Ethik"\nklasse = "8"\ntitel = "Straftheorien"\nbisherige_reihen = '
+                           '["Klasse 7, Lüge: Sollte ich lügen, um einen Freund zu schützen?"]\n'
+                           '[[reihe.stunde]]\nnr = 1\nthema = "Kant"\nmarke = "Prüfung"\n',
             "examen.toml": "[pruefung]\n", "vorbild.md": "VORBILD", "rubrik.toml": "RUBRIK",
             "rlp.toml": '[[stelle]]\nid = "strafe"\nseite = 24\ntext = "Strafe"\n',
         }
         for name, text in dateien.items():
             (k / name).write_text(text, encoding="utf-8")
         self.pfade = fallsuche.Pfade(regelwerk=k / "regelwerk.md", status_unterricht=k / "STATUS.md",
-                                     leitfaden=k / "leitfaden.md", reihen=k / "reihen.toml",
+                                     leitfaden=k / "leitfaden.md", instanz=k,
                                      examen=k / "examen.toml", vorbild=k / "vorbild.md", rubrik=k / "rubrik.toml",
                                      rlp=k / "rlp.toml")
         self.meldungen, self.gebaut = [], []
 
     def ausfuehren(self, sammeln, fenster=("nachrichten", "urteile"), kosten=None, weiter=None, nur_dossier=False,
-                   **mehr):
+                   reihe_id=None, **mehr):
         self.claude = Claude(self.hier, sammeln, **mehr)
         return fallsuche.ausfuehren(hier=self.hier, fenster=list(fenster), weiter=weiter, nur_dossier=nur_dossier,
                                     laufen=self.claude,
                                     seitentext=seitentext, renderer_bauen=lambda b, z: self.gebaut.append((b, z)),
-                                    melden=self.meldungen.append, cfg=CFG, kosten=kosten, pfade=self.pfade)
+                                    melden=self.meldungen.append, cfg=CFG, kosten=kosten, pfade=self.pfade,
+                                    reihe_id=reihe_id)
 
     def test_ganzer_ablauf(self):
         ordner = self.ausfuehren({"nachrichten": [GUT, None], "urteile": [UNGEPRUEFT, None]})
@@ -91,7 +93,8 @@ class FallsucheTest(unittest.TestCase):
         self.assertIsNone(self.claude.prompts[4][1])  # Abgleich: neue Sitzung
         self.assertIsNone(self.claude.prompts[5][1])  # Dossier: neue Sitzung
         erster = self.claude.prompts[0][0]
-        for teil in ("L3 Containern meiden", "GR1: 24.10.: Keine Tötung", "Straftheorien", "taz.de"):
+        for teil in ("L3 Containern meiden", "GR1: 24.10.: Keine Tötung", "Ethik Klasse 8, Reihe Straftheorien.",
+                     "taz.de"):
             self.assertIn(teil, erster)
         abgleich = self.claude.prompts[4][0]
         for teil in ("LEITFADEN", "VORBILD", "RUBRIK", '"id": "F01"', '"id": "F02"'):
@@ -107,6 +110,26 @@ class FallsucheTest(unittest.TestCase):
         self.assertIn("Muss jeder Dieb ins Gefängnis?", json.dumps(self.gebaut[0][0], ensure_ascii=False))
         self.assertIn("2 Fälle aus 2 Fenstern (1 mit geprüftem Zitat), 1 ausgewählt, 1 Leitfragen", self.meldungen[-1])
         self.assertIn("Kosten 3.00 USD in 6 Läufen", self.meldungen[-1])
+
+    def test_ohne_pruefungsreihe_melden(self):
+        """Keine Reihe mit Prüfungsstunde: Suche ohne Reihenkontext, Grund in probleme und in der Meldung an Jan."""
+        reihen = self.pfade.instanz / "reihen.toml"
+        reihen.write_text(reihen.read_text(encoding="utf-8").replace("Prüfung", "UB"), encoding="utf-8")
+        ordner = self.ausfuehren({"nachrichten": [GUT, None]}, fenster=("nachrichten",))
+        self.assertNotIn("Reihe Straftheorien.", self.claude.prompts[0][0])
+        self.assertIn("Sollte ich lügen, um einen Freund zu schützen?", self.claude.prompts[-1][0])
+        e = json.loads((ordner / "ergebnis.json").read_text())
+        self.assertEqual(len(e["probleme"]), 1)
+        self.assertIn("Ohne Reihenkontext: keine Reihe mit einer Stunde mit Marke „Prüfung“", e["probleme"][0])
+        self.assertIn("Ohne Reihenkontext", self.meldungen[-1])
+
+    def test_reihe_von_hand(self):
+        reihen = self.pfade.instanz / "reihen.toml"
+        reihen.write_text(reihen.read_text(encoding="utf-8").replace("Prüfung", "UB"), encoding="utf-8")
+        ordner = self.ausfuehren({"nachrichten": [GUT, None]}, fenster=("nachrichten",),
+                                 reihe_id="ethik-8-straftheorien")
+        self.assertIn("Ethik Klasse 8, Reihe Straftheorien.", self.claude.prompts[0][0])
+        self.assertEqual(json.loads((ordner / "ergebnis.json").read_text())["probleme"], [])
 
     def test_nachbesserung_beim_sammeln(self):
         ordner = self.ausfuehren({"nachrichten": [FALSCH, None, GUT]}, fenster=["nachrichten"])

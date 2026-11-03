@@ -17,8 +17,9 @@ Fehler bei einer Quelle: loggen, alter Registereintrag bleibt, am Ende eine Meld
 Ebenso, wenn sich die Gemeinfreiheit einer Quelle ändert, Stellen verworfen werden oder Claude gelaufen ist.
 """
 
+import argparse
 import json
-import tomllib
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -28,6 +29,7 @@ import gemeinfrei
 import kernstellen
 import quellen
 import register
+import reihenkontext
 import scan
 import seitenbild
 from agentkit import abruf, claude_lauf, config, log, meldungen, wortlaut
@@ -36,7 +38,6 @@ AGENT = "recherche"
 HIER = Path(__file__).resolve().parent
 logger = log.hole_logger(HIER, AGENT)
 GRENZE_USD = 8.0  # je Lauf von agent.py (Jan, 25.10.2026: 8 USD pro Nacht)
-REIHEN = HIER.parent / "unterricht" / "reihen.toml"  # gehört lia/unterricht, hier nur gelesen
 
 
 class QuelleFehler(Exception):
@@ -71,14 +72,13 @@ def claude_laufen(prompt: str, sitzung: str | None = None):
     return claude_lauf.laufen(AGENT, HIER, prompt, art="anspruchsvoll", sitzung_fortsetzen=sitzung)
 
 
-def reihe_laden(pfad: Path) -> str:
-    """Reihe Straftheorien als Prompt-Abschnitt. Fehlt oder kaputt: leer, mit Log (Claude läuft trotzdem)."""
-    try:
-        with open(pfad, "rb") as f:
-            return kernstellen.reihe_text(tomllib.load(f).get("reihe", []))
-    except (OSError, tomllib.TOMLDecodeError) as e:
-        logger.warning("Reihenkontext fehlt (%s): %s", pfad, e)
-        return ""
+def reihe_laden(instanz: Path | None = None, ort: str | None = None) -> tuple[str, str]:
+    """Reihe als Prompt-Abschnitt über agentkit.struktur (reihenkontext.py): (Text, Grund). Keine eindeutige Reihe
+    oder kaputte Datei: Text leer, Grund für Jan, mit Log (Claude läuft trotzdem)."""
+    _, reihe, grund = reihenkontext.laden(instanz, ort)
+    if grund:
+        logger.warning("Reihenkontext fehlt: %s", grund)
+    return reihenkontext.text(reihe), grund
 
 
 def kernstellen_finden(e: dict, q: dict, hier: Path, reihe: str, laufen, kosten: Kosten) -> list[str]:
@@ -339,8 +339,10 @@ def quelle_verarbeiten(q: dict, allowlist, hier: Path, alt: dict | None, jahr: i
 
 
 def lauf(hier: Path = HIER, laden=abruf.laden, melden=jan_melden, jahr: int | None = None,
-         claude=claude_laufen, reihen: Path = REIHEN, kosten: Kosten | None = None) -> list[str]:
-    """Ein Lauf über alle Quellen. Gibt die Fehler zurück (leer = alles gut)."""
+         claude=claude_laufen, instanz: Path | None = None, reihe_id: str | None = None,
+         kosten: Kosten | None = None) -> list[str]:
+    """Ein Lauf über alle Quellen. Gibt die Fehler zurück (leer = alles gut). instanz: Ordner mit reihen.toml
+    (Standard lia/instanz), reihe_id: Reihe oder Stunde für den Reihenkontext (sonst die Prüfungsreihe)."""
     jahr = jahr or date.today().year
     try:
         allowlist, alle = quellen.laden(hier / "quellen.toml")
@@ -373,7 +375,10 @@ def lauf(hier: Path = HIER, laden=abruf.laden, melden=jan_melden, jahr: int | No
         if not braucht_kernstellen(e):
             continue
         q = next(q for q in alle if q["id"] == e["id"])
-        reihe = reihe_laden(reihen) if reihe is None else reihe
+        if reihe is None:
+            reihe, grund = reihe_laden(instanz, reihe_id)
+            if grund:
+                hinweise.append(f"Kernstellen ohne Reihenkontext: {grund}")
         try:
             if "scan_id" in e:
                 hinweise += seitenbild_finden(e, q, hier, reihe, claude, kosten, laden, allowlist)
@@ -413,5 +418,14 @@ def lauf(hier: Path = HIER, laden=abruf.laden, melden=jan_melden, jahr: int | No
     return fehler
 
 
+def main(argv: list[str]) -> int:
+    teiler = argparse.ArgumentParser(prog="agent.py", description="Quellenregister für Lias Examensreihe.")
+    teiler.add_argument("--reihe", metavar="ID", help="Reihe oder Stunde für den Reihenkontext (ohne: die Reihe "
+                                                      "mit der Stunde mit Marke „Prüfung“)")
+    args = teiler.parse_args(argv[1:])
+    lauf(reihe_id=args.reihe)
+    return 0
+
+
 if __name__ == "__main__":
-    lauf()
+    sys.exit(main(sys.argv))

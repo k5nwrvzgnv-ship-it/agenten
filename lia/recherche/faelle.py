@@ -118,17 +118,6 @@ def rlp_stellen(rlp_toml: str) -> dict[str, str]:
     return {s["id"]: f"{s.get('abschnitt', '')}: {s['text']}" for s in tomllib.loads(rlp_toml).get("stelle", [])}
 
 
-def reihenfragen_lias(reihen_toml: str) -> list[str]:
-    """Lias bisherige Reihenfragen aus reihen.toml (bisherige_reihen: „Klasse 7, Thema: Frage? Merksätze …“)."""
-    fragen = []
-    for r in tomllib.loads(reihen_toml).get("reihe", []):
-        for eintrag in r.get("bisherige_reihen", []):
-            m = re.search(r":\s*([^:?]+\?)", eintrag)
-            if m:
-                fragen.append(m.group(1).strip())
-    return fragen
-
-
 def _liste(d: dict[str, str]) -> str:
     return "\n".join(f"- {k}: {v}" for k, v in d.items()) or "(keine)"
 

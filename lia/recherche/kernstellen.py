@@ -23,18 +23,6 @@ class KernstellenFehler(Exception):
     pass
 
 
-def reihe_text(reihen: list[dict]) -> str:
-    """Prompt-Abschnitt zur Reihe Straftheorien aus lia/unterricht/reihen.toml (nur gelesen)."""
-    for r in reihen:
-        if "Straftheorien" in r.get("titel", ""):
-            teile = [f"Ethik Klasse {r.get('klasse', '?')}, Reihe {r['titel']}."]
-            for feld, name in (("lerngruppe", "Lerngruppe"), ("notizen", "Planung")):
-                if r.get(feld):
-                    teile.append(f"{name}: {r[feld]}")
-            return "\n".join(teile)
-    return ""
-
-
 def prompt(quelle: dict, textpfad: str, ausgabe: str, reihe: str) -> str:
     personen = quelle.get("autor", "")
     return f"""Aufgabe: Wähle Kernstellen aus einem Primärtext für Lias Unterricht (Lehrerin, Examensstunde).

@@ -80,6 +80,20 @@ GUT = [st(331, "Vom Straf= und Begnadigungsrecht."), st(331, "heißt Verbrechen 
 FREI = QUELLEN.replace('herausgeber = ""', 'herausgeber = "H"\nherausgeber_todesjahr = 1924')
 
 
+REIHEN = """[[reihe]]
+id = "ethik-8-straftheorien"
+fach = "Ethik"
+klasse = "8"
+titel = "Straftheorien"
+notizen = "erst Kant"
+
+[[reihe.stunde]]
+nr = 1
+thema = "Kant"
+marke = "Prüfung"
+"""
+
+
 class LaufTest(unittest.TestCase):
     def setUp(self):
         self.hier = Path(tempfile.mkdtemp())
@@ -87,14 +101,12 @@ class LaufTest(unittest.TestCase):
         (self.hier / "quellen.toml").write_text(QUELLEN, encoding="utf-8")
         self.meldungen = []
         self.claude = Claude(self.hier, [])
-        self.reihen = self.hier / "reihen.toml"
-        self.reihen.write_text('[[reihe]]\nklasse = "8"\ntitel = "Straftheorien"\nnotizen = "erst Kant"\n',
-                               encoding="utf-8")
+        (self.hier / "reihen.toml").write_text(REIHEN, encoding="utf-8")  # instanz = self.hier
 
-    def lauf(self, seiten=SEITEN, laden=None, kosten=None):
+    def lauf(self, seiten=SEITEN, laden=None, kosten=None, reihe_id=None):
         self.laden = laden or Laden(seiten)
         return agent.lauf(self.hier, laden=self.laden, melden=self.meldungen.append, jahr=2026,
-                          claude=self.claude, reihen=self.reihen, kosten=kosten)
+                          claude=self.claude, instanz=self.hier, reihe_id=reihe_id, kosten=kosten)
 
     def register(self):
         return {e["id"]: e for e in json.loads((self.hier / "data/register.json").read_text())["quellen"]}
@@ -147,6 +159,33 @@ class LaufTest(unittest.TestCase):
         self.claude.antworten = []
         self.assertEqual(self.lauf(), [])
         self.assertEqual(len(self.claude.prompts), 2)
+
+    def test_kernstellen_ohne_eindeutige_reihe_melden(self):
+        """Keine Reihe mit Prüfungsstunde: Claude läuft ohne Reihenkontext, Jan erfährt den Grund."""
+        (self.hier / "reihen.toml").write_text(REIHEN.replace('marke = "Prüfung"', 'marke = "UB"'), encoding="utf-8")
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        self.claude.antworten = [GUT]
+        self.assertEqual(self.lauf(), [])
+        self.assertIn("(kein Reihenkontext vorhanden)", self.claude.prompts[0][0])
+        self.assertNotIn("erst Kant", self.claude.prompts[0][0])
+        self.assertIn("Kernstellen ohne Reihenkontext: keine Reihe mit einer Stunde mit Marke „Prüfung“",
+                      self.meldungen[-1])
+
+    def test_kernstellen_reihe_von_hand(self):
+        """--reihe: die angegebene Reihe, auch ohne Prüfungsstunde, ohne Hinweis an Jan."""
+        (self.hier / "reihen.toml").write_text(REIHEN.replace('marke = "Prüfung"', 'marke = "UB"'), encoding="utf-8")
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        self.claude.antworten = [GUT]
+        self.assertEqual(self.lauf(reihe_id="ethik-8-straftheorien"), [])
+        self.assertIn("Ethik Klasse 8, Reihe Straftheorien.\nPlanung: erst Kant", self.claude.prompts[0][0])
+        self.assertNotIn("Reihenkontext", self.meldungen[-1])
+
+    def test_kaputte_reihen_toml_melden(self):
+        (self.hier / "reihen.toml").write_text("[[reihe]\n", encoding="utf-8")
+        (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")
+        self.claude.antworten = [GUT]
+        self.assertEqual(self.lauf(), [])
+        self.assertIn("Kernstellen ohne Reihenkontext: reihen.toml nicht lesbar", self.meldungen[-1])
 
     def test_zu_wenige_stellen_kein_neuer_versuch(self):
         (self.hier / "quellen.toml").write_text(FREI, encoding="utf-8")

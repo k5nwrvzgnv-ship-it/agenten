@@ -72,17 +72,21 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Zentrale um 17:55 mit PDF zugestellt, ohne Feedback-Knöpfe. Ihr Feedback kommt als Textantwort (lia-feedback).
   Siehe Abschnitt Fallsuche.
 - Kein Dienst, kein Timer (Teil D).
-- 163 Tests (tests/), in pruefen.sh eingetragen.
+- Strukturplan Bauschritt 2 (03.11.2026): recherche liest Lias Reihen nur noch über agentkit.struktur
+  (reihenkontext.py), erkennt eine Reihe nur an ihrer id. Bis die Migration (Bauschritt 3) eine Stunde mit Marke
+  „Prüfung“ einträgt, gibt es keine Prüfungsreihe: Ohne --reihe laufen Kernstellen und Fallsuche dann ohne
+  Reihenkontext, Jan bekommt den Grund in der Meldung. Für einen Lauf mit Kontext: --reihe ethik-8-straftheorien.
+- 188 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
-- Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py`
+- Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py [--reihe ID]`
 - agent.py: Lauf über alle Quellen. Fehler je Quelle: loggen, alter Registereintrag bleibt, am Ende
   eine Meldung an Jan (Jans Zentrale, wie jan_melden in lia/unterricht). Ebenso, wenn sich die
   Gemeinfreiheit einer Quelle ändert, Stellen verworfen werden oder Claude gelaufen ist (Stellen,
   Gestrichenes, Kosten). Sonst still.
 - Kernstellen (Teil C): für jeden verwendbaren Primärtext ohne Stellen ein Claude-Lauf (claude_lauf,
-  art "anspruchsvoll" = Opus, Werkzeuge "standard" ohne Bash). Prompt mit der Reihe Straftheorien aus
-  lia/unterricht/reihen.toml (nur gelesen). Claude liest data/text/<id>.txt, schreibt
+  art "anspruchsvoll" = Opus, Werkzeuge "standard" ohne Bash). Prompt mit dem Reihenkontext aus
+  reihenkontext.py (siehe unten). Claude liest data/text/<id>.txt, schreibt
   data/kernstellen/<id>.json. kernstellen.py prüft: Seite vorhanden, Zitat wörtlich auf genau dieser
   Seite (wortlaut.steht_in), höchstens 700 Zeichen, keine Überschneidung. Durchgefallenes einmal zurück
   (dieselbe Sitzung), danach gestrichen. 3 bis 6 Stellen; je Textfassung (sha256) nur ein Versuch.
@@ -106,6 +110,17 @@ Stellen. lia/examen liest das Register für die Skizzen.
      Abschrift GENAU von Anfang bis einschließlich Ende, sonst gleiche Prüfung, dazu keine Überschneidung
      (40 gemeinsame Zeichen, normalisiert) mit vorhandenen Stellen. Je Stelle ein Versuch, Ergebnis in
      kernstellen.von_hand {seite:anfang: aufgenommen | verworfen: grund}, Kosten in von_hand_usd.
+- reihenkontext.py (rein, getestet): Lias Struktur nur über agentkit.struktur.laden() (Standard lia/instanz),
+  nie reihen.toml selbst, Reihe nur über ihre id. Welche Reihe: aus dem Auftrag (ort = id einer Reihe oder Stunde,
+  oder reihe; von Hand --reihe ID bei agent.py und fallsuche.py), sonst die eine Prüfungsreihe
+  (struktur.pruefungsreihen(): nicht archiviert, sichtbare Stunde mit Marke „Prüfung“). Keine, mehrere, unbekannte
+  id, id eines Fachs/einer Klasse oder kaputte Datei: (None, Grund), der Schritt läuft ohne Reihenkontext, der
+  Grund geht in die Meldung an Jan (agent.py: „Kernstellen ohne Reihenkontext: …“, fallsuche: probleme).
+  text(reihe) = Prompt-Abschnitt wie bisher („Ethik Klasse 8, Reihe …“, Lerngruppe, Planung = notizen).
+  fruehere_reihenfragen(s, reihe): Reihenfragen abgeschlossener und archivierter Reihen desselben Fachs; im
+  alten Format dazu der Regex über bisherige_reihen (fällt mit der Migration, F10). woerter(s): alle Texte der
+  Struktur für die Prüfung „keine Namen aus dem Fall“. Testdaten tests/daten/reihen_alt.toml und reihen_neu.toml
+  sind Kopien aus shared/agentkit/tests/daten (Lerngruppe als Platzhalter); dazu Tests gegen die echte Datei.
 - quellen.toml: von Hand gepflegt, [abruf] allowlist (die einzige Stelle dafür) und je [[quelle]] id,
   art, werk, ausgabe, autor/todesjahr_autor, herausgeber/_todesjahr, uebersetzer/_todesjahr, urls, seiten.
 - quellen.py: liest und prüft quellen.toml ohne Netz (Pflichtfelder, URLs gegen die Allowlist).
@@ -145,7 +160,7 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Media, Popkultur, Alltag) für Lias Examensreihe, laufend gegen regelwerk_reihe.md abgeglichen; daraus Problem-
   bzw. Leitfragen. Kein Bewertungsbogen: Lia liest das Dossier und spricht ihr Feedback ein.
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python fallsuche.py [--fenster a,b]
-  [--weiter data/fallsuche/<id>]`. Ablage data/fallsuche/<id>/: sammeln-<fenster>.json (+ -geprueft.json),
+  [--weiter data/fallsuche/<id>] [--reihe ID]`. Reihe wie bei agent.py (reihenkontext.py). Ablage data/fallsuche/<id>/: sammeln-<fenster>.json (+ -geprueft.json),
   faelle.json, abgleich.json, dossier.json, ergebnis.json, „Fallsuche Strafe.docx“, roh/.
 - fallsuche.py (Ablauf): je Suchfenster (faelle.FENSTER: nachrichten, urteile, social_media, popkultur,
   lebenswelt) eine Opus-Sitzung mit WebSearch/WebFetch, dazu einmal „weitersuchen“ in derselben Sitzung
@@ -167,7 +182,8 @@ Stellen. lia/examen liest das Register für die Skizzen.
   stark/mittel/schwach, Begründung, nur bekannte Regel-Kennungen; Leitfragen mit genau zwei Polen, Fällen aus der
   Auswahl, Kant/Liszt mit Registerverweis, RLP-ids aus lia/examen/rlp_auszug.toml.
 - Kontext jedes Laufs (nur gelesen, als Text im Prompt, weil Claude außerhalb von lia/recherche nicht lesen darf):
-  regelwerk_reihe.md, lia/unterricht/STATUS.md (Gelernte Regeln), leitfaden.md, reihen.toml, lia/examen/
+  regelwerk_reihe.md, lia/unterricht/STATUS.md (Gelernte Regeln), leitfaden.md, Reihenkontext und frühere
+  Reihenfragen (reihenkontext.py), lia/examen/
   examen.toml, seminar_vorbild.md, rubrik.toml, rlp_auszug.toml, Register. Prompt-Größe ca. 19k Zeichen je
   Fenster, 38k Zeichen Abgleich ohne Fälle.
 - regelwerk_reihe.md: Lerngruppe (L), Rosenberger-Vorgaben aus dem Fachseminar (P, F, R), Kritik an früheren
@@ -185,6 +201,8 @@ Seite 1, geprüft mit agentkit.wortlaut.steht_in. Primärtexte: Stellen bleiben 
 solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und Jan erfährt es.
 
 ## Entscheidungen
+- 03.11.2026 (Jan, Strukturplan): Reihen nur über ihre feste id, nie über den Titel; Examen ist eine Stunde mit
+  Marke „Prüfung“ in einer normalen Reihe. recherche nimmt ohne Angabe im Auftrag die Prüfungsreihe.
 - 25.10.2026 (Jan): Teile A–D, Allowlist gesetze-im-internet.de, de.wikisource.org, zeno.org,
   korpora.org, archive.org. Meldungen an Jan, nicht an Lia.
 - 25.10.2026: Gemeinfrei nur, wenn alle Beteiligten (Autor, Herausgeber, Übersetzer) Todesjahr + 70
@@ -208,6 +226,9 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
   „d. i.“, „u. dergl.“ und Kants Semikolons nicht sicher.
 
 ## Offene Punkte
+0. Nach der Migration (Bauschritt 3) prüfen, ob reihenkontext ohne --reihe die Straftheorien findet (sobald dort
+   eine Stunde die Marke „Prüfung“ trägt). Feste Texte nennen die Reihe noch beim Namen (faelle.py:
+   „Lias Examensreihe Ethik, Klasse 8, Straftheorien“, Titel „Fallsuche Straftheorien“), erkennen sie aber nicht.
 1. Nebenbei gesehen: korpora.org schreibt, das Korpus werde fortlaufend korrigiert (Textkorrekturen,
    Lesarten). Ob das für die Zitierfähigkeit „nach AA“ eine Rolle spielt, bei Gelegenheit mit Jan klären.
 2. Tests schreiben ins echte logs/recherche.log (logger an HIER), z. B. „liszt Auswahl 0.30 USD“ aus der

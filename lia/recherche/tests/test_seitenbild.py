@@ -90,7 +90,7 @@ class AblaufTest(unittest.TestCase):
     def lauf(self, abschriften, auswahl=AUSWAHL):
         self.claude = Claude(self.hier, auswahl, abschriften)
         fehler = agent.lauf(self.hier, laden=laden, melden=self.meldungen.append, jahr=2026,
-                            claude=self.claude, reihen=self.hier / "fehlt.toml")
+                            claude=self.claude, instanz=self.hier)
         reg = json.loads((self.hier / "data/register.json").read_text())["quellen"][0]
         return fehler, reg
 
@@ -146,7 +146,7 @@ class AblaufTest(unittest.TestCase):
 
         self.claude = Abbruch(self.hier, AUSWAHL, [])
         fehler = agent.lauf(self.hier, laden=laden, melden=self.meldungen.append, jahr=2026,
-                            claude=self.claude, reihen=self.hier / "fehlt.toml")
+                            claude=self.claude, instanz=self.hier)
         self.assertIn("Kontingent", fehler[0])
         _, reg = self.lauf([LESUNG, LESUNG])
         self.assertEqual(len(self.claude.prompts), 2)  # nur die zwei Abschriften, keine neue Auswahl
@@ -192,7 +192,7 @@ class HandTest(unittest.TestCase):
         (self.hier / "quellen.toml").write_text(toml, encoding="utf-8")
         self.claude = Claude(self.hier, auswahl, abschriften)
         fehler = agent.lauf(self.hier, laden=laden, melden=self.meldungen.append, jahr=2026,
-                            claude=self.claude, reihen=self.hier / "fehlt.toml")
+                            claude=self.claude, instanz=self.hier)
         return fehler, json.loads((self.hier / "data/register.json").read_text())["quellen"][0]
 
     def test_aufgenommen_und_nicht_wiederholt(self):

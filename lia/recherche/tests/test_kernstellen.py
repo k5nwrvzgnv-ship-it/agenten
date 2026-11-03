@@ -80,16 +80,6 @@ class AntwortTest(unittest.TestCase):
 
 
 class PromptTest(unittest.TestCase):
-    def test_reihe(self):
-        reihen = [{"klasse": "7", "titel": "Lügen"},
-                  {"klasse": "8", "titel": "Straftheorien (in Planung)", "notizen": "erst Kant, dann von Liszt",
-                   "lerngruppe": "heterogen"}]
-        text = kernstellen.reihe_text(reihen)
-        self.assertIn("Klasse 8, Reihe Straftheorien", text)
-        self.assertIn("erst Kant, dann von Liszt", text)
-        self.assertNotIn("Lügen", text)
-        self.assertEqual(kernstellen.reihe_text(reihen[:1]), "")
-
     def test_prompt_nennt_dateien(self):
         p = kernstellen.prompt({"autor": "Kant", "werk": "MdS", "ausgabe": "AA"}, "data/text/k.txt",
                                "data/kernstellen/k.json", "Reihe X")

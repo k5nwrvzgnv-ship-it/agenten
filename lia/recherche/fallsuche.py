@@ -1,7 +1,8 @@
 """Fallsuche: offene, gründliche Suche nach realen Fällen für Lias Examensreihe, mit Abgleich und Leitfragen.
 
 Aufruf (vorerst von Hand):
-    AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python fallsuche.py [--fenster a,b] [--weiter ORDNER] [--grenze USD]
+    AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python fallsuche.py [--fenster a,b] [--weiter ORDNER]
+        [--reihe ID] [--grenze USD]
 
 Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
 1. Sammeln: je Suchfenster (faelle.FENSTER) eine eigene Claude-Sitzung mit WebSearch/WebFetch, danach
@@ -17,6 +18,8 @@ Ablauf (Plan Jan 27.10.2026, Logik in faelle.py):
    einige weitere interessante Fälle, wenige Rückfragen. Eine Nachbesserung. Schlankes docx über shared/renderer
    ohne Regel-Kennungen, Meldung an Jan. Kein Bewertungsbogen. --weiter ORDNER --nur-dossier schreibt nur das
    Dossier neu.
+Reihe (reihenkontext.py, über agentkit.struktur): --reihe ID, sonst die Reihe mit der Stunde mit Marke „Prüfung“;
+ohne eindeutige läuft die Suche ohne Reihenkontext, und die Meldung an Jan sagt es.
 Ablage data/fallsuche/<datum-zeit>/. --weiter ORDNER übernimmt fertig geprüfte Fenster eines abgebrochenen Laufs
 und wiederholt keine bezahlte Suche (sammeln-<fenster>-gesucht.json), nur die Prüfung.
 An Lia (nach Jans Durchsicht): --an-lia ORDNER macht aus dem docx eine PDF, legt in Lias Instanz einen Auftrag
@@ -35,9 +38,10 @@ from pathlib import Path
 import agent
 import faelle
 import register
+import reihenkontext
 import webauftrag
 import webpruefung
-from agentkit import auftraege, claude_lauf, config, einstellungen
+from agentkit import auftraege, claude_lauf, config, einstellungen, struktur
 
 HIER = agent.HIER
 logger = agent.logger
@@ -53,33 +57,38 @@ class Pfade:
     regelwerk: Path = HIER / "regelwerk_reihe.md"
     status_unterricht: Path = LIA / "unterricht" / "STATUS.md"  # Abschnitt „Gelernte Regeln“
     leitfaden: Path = LIA / "unterricht" / "leitfaden.md"
-    reihen: Path = agent.REIHEN
+    instanz: Path = struktur.LIA_INSTANZ  # reihen.toml, nur über agentkit.struktur gelesen
     examen: Path = LIA / "examen" / "examen.toml"
     vorbild: Path = LIA / "examen" / "seminar_vorbild.md"
     rubrik: Path = LIA / "examen" / "rubrik.toml"
     rlp: Path = LIA / "examen" / "rlp_auszug.toml"
 
 
-def kontext_laden(pfade: Pfade, reg: dict) -> dict:
-    """Alles, was Claude lesen soll, als Text (Claude darf außerhalb von lia/recherche nicht lesen)."""
+def kontext_laden(pfade: Pfade, reg: dict, reihe_id: str | None = None) -> dict:
+    """Alles, was Claude lesen soll, als Text (Claude darf außerhalb von lia/recherche nicht lesen). Reihe aus
+    reihe_id, sonst die Prüfungsreihe (reihenkontext.py); ohne eindeutige steht der Grund in "reihe_grund"."""
     def lies(p: Path) -> str:
         return p.read_text(encoding="utf-8")
-    regelwerk, reihen = lies(pfade.regelwerk), lies(pfade.reihen)
+    regelwerk = lies(pfade.regelwerk)
+    s, reihe, grund = reihenkontext.laden(pfade.instanz, reihe_id)
+    if grund:
+        logger.warning("Fallsuche: Reihenkontext fehlt: %s", grund)
     k = {
         "regelwerk": regelwerk,
         "regeltexte": faelle.regeln_aus_regelwerk(regelwerk),
         "gelernte": faelle.gelernte_regeln(lies(pfade.status_unterricht)),
         "leitfaden": lies(pfade.leitfaden),
-        "reihe": agent.reihe_laden(pfade.reihen),
+        "reihe": reihenkontext.text(reihe),
+        "reihe_grund": grund,
         "examen": lies(pfade.examen),
         "vorbild": lies(pfade.vorbild),
         "rubrik": lies(pfade.rubrik),
         "rlp": faelle.rlp_stellen(lies(pfade.rlp)),
         "register": webauftrag.register_text(reg),
-        "reihenfragen": faelle.reihenfragen_lias(reihen),
+        "reihenfragen": reihenkontext.fruehere_reihenfragen(s, reihe),
     }
     # Wörter, die in einer allgemeinen Reihenfrage stehen dürfen (Prüfung „keine Namen aus dem Fall“)
-    k["allgemein"] = "\n".join([regelwerk, reihen, k["leitfaden"], k["examen"], k["vorbild"], k["rubrik"],
+    k["allgemein"] = "\n".join([regelwerk, reihenkontext.woerter(s), k["leitfaden"], k["examen"], k["vorbild"], k["rubrik"],
                                 *k["gelernte"].values(), *k["rlp"].values()])
     return k
 
@@ -174,9 +183,11 @@ def _renderer_standard():
 
 def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path | None = None, laufen=None,
                seitentext=None, renderer_bauen=None, melden=agent.jan_melden, cfg: dict | None = None,
-               kosten: agent.Kosten | None = None, pfade: Pfade | None = None, nur_dossier: bool = False) -> Path:
+               kosten: agent.Kosten | None = None, pfade: Pfade | None = None, nur_dossier: bool = False,
+               reihe_id: str | None = None) -> Path:
     """Eine Fallsuche. Gibt den Ordner data/fallsuche/<id>/ zurück. nur_dossier (mit weiter): Suche und Abgleich
-    aus faelle.json und abgleich.json übernehmen, nur das Dossier neu."""
+    aus faelle.json und abgleich.json übernehmen, nur das Dossier neu. reihe_id: Reihe oder Stunde (sonst die
+    Prüfungsreihe); ohne eindeutige Reihe läuft die Suche ohne Reihenkontext, Jan erfährt es in der Meldung."""
     cfg = cfg or einstellungen.lade()
     domains = einstellungen.webfetch_domains(cfg, agent.AGENT) or []
     kosten = kosten or agent.Kosten(grenze=GRENZE_USD)
@@ -187,7 +198,7 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
         ordner = hier / "data" / "fallsuche" / f"{datetime.now():%Y%m%d-%H%M%S}"
         ordner.mkdir(parents=True)
     reg = register.laden(hier / "data" / "register.json")
-    kontext = kontext_laden(pfade or Pfade(), reg)
+    kontext = kontext_laden(pfade or Pfade(), reg, reihe_id)
     regel_ids = set(kontext["regeltexte"]) | set(kontext["gelernte"])
     seitentext = seitentext or webauftrag.seitenleser(domains, ordner / "roh")
     lauf = _lauf(laufen or webauftrag._laufen_standard(hier), kosten, ordner.name)
@@ -195,7 +206,8 @@ def ausfuehren(hier: Path = HIER, fenster: list[str] | None = None, weiter: Path
     def budget_frei() -> bool:
         return kosten.summe + LAUF_USD <= kosten.grenze - RESERVE_USD
 
-    probleme, je_fenster = [], {}
+    probleme = [f"Ohne Reihenkontext: {kontext['reihe_grund']}."] if kontext["reihe_grund"] else []
+    je_fenster = {}
     try:
         if nur_dossier:
             ges = json.loads((ordner / "faelle.json").read_text(encoding="utf-8"))
@@ -279,6 +291,8 @@ def main(argv: list[str]) -> int:
     teiler.add_argument("--weiter", metavar="ORDNER", help="abgebrochenen Lauf in data/fallsuche/<id> fortsetzen")
     teiler.add_argument("--an-lia", metavar="ORDNER", help="fertiges Dossier an Lias Zentrale schicken")
     teiler.add_argument("--nur-dossier", action="store_true", help="mit --weiter: nur das Dossier neu schreiben")
+    teiler.add_argument("--reihe", metavar="ID", help="Reihe oder Stunde (ohne: die Reihe mit der Stunde mit "
+                                                      "Marke „Prüfung“)")
     teiler.add_argument("--grenze", type=float, default=GRENZE_USD, help=f"Kostengrenze in USD (ohne: {GRENZE_USD:g})")
     args = teiler.parse_args(argv[1:])
     if args.an_lia:
@@ -303,7 +317,7 @@ def main(argv: list[str]) -> int:
         print(f"Ordner fehlt: {weiter}", file=sys.stderr)
         return 2
     try:
-        print(ausfuehren(fenster=fenster, weiter=weiter, nur_dossier=args.nur_dossier,
+        print(ausfuehren(fenster=fenster, weiter=weiter, nur_dossier=args.nur_dossier, reihe_id=args.reihe,
                          kosten=agent.Kosten(grenze=args.grenze)))
     except (faelle.FallFehler, agent.KostenGrenze, claude_lauf.LaufFehler) as e:
         print(e, file=sys.stderr)

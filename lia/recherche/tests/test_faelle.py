@@ -241,19 +241,6 @@ class FallbezugTest(unittest.TestCase):
         self.assertNotIn("Haft", w)  # steht im allgemeinen Kontext
         self.assertNotIn("Täter", w)
 
-    def test_reihenfragen_lias(self):
-        toml = """[[reihe]]
-klasse = "8"
-bisherige_reihen = ["Klasse 7, Lüge und Wahrheit: Sollte ich lügen, um einen Freund zu schützen?",
-  "Klasse 8, Helfen: Muss ich Fremden genauso helfen? Merksätze (Lia, 24.10.2026): Singer: x", "ohne Frage"]
-"""
-        self.assertEqual(faelle.reihenfragen_lias(toml), ["Sollte ich lügen, um einen Freund zu schützen?",
-                                                          "Muss ich Fremden genauso helfen?"])
-
-    def test_echte_reihenfragen(self):
-        fragen = faelle.reihenfragen_lias((HIER.parent / "unterricht/reihen.toml").read_text(encoding="utf-8"))
-        self.assertIn("Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?", fragen)
-
 
 class BeschreibungTest(Temp):
     def test_renderer_baut_schlankes_dossier(self):
