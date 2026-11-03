@@ -138,6 +138,15 @@ Die Maske fragt das Bundesland und erkennt Ferien selbst; bei Ausfall entscheide
 mehrere Termine je Woche und Doppelstunden kommen vor, aber nicht immer; A/B-Wochen gibt es nicht (F22); zum Halbjahr ändert sich teils
 der Wochentag, die Anzahl der Termine nicht.
 
+**Grundsatz Flexibilität (Jan 03.11.):** Kein starres System. Stunden und Reihen lassen sich im Jahr jederzeit
+einfach hin- und herschieben, wenn Lia das will. Daraus folgt:
+- Nichts ist gesperrt außer dem, was Daten kaputt machen würde (ein Termin trägt höchstens eine Stunde). Keine
+  Pflichtreihenfolge der Reihen, Lücken zwischen Reihen sind erlaubt, Stunden ohne Termin auch.
+- Verschieben geht mit einem Griff: Stunde oder ganze Reihe ziehen bzw. „Verschieben nach …“ mit Terminauswahl.
+  Trifft das Ziel belegte Termine, fragt die App einmal: „Dahinter alles nachrücken“ oder „Tauschen“.
+- Jede Verschiebung ist eine Aktion mit Rückgängig, ohne Rückfrage.
+- Die App rechnet Daten, Lia entscheidet. Kein Automatismus verschiebt etwas, ohne dass Lia es auslöst.
+
 ### 2a.1 Ablauf
 
 | Schritt | Wer, wann | Was Lia angibt | Was die App macht |
@@ -202,6 +211,12 @@ thema = "Kant: Vergeltung"
   rücken je einen Termin weiter.
 - **Halbjahreswechsel mit neuem Wochentag**: Die Stunden ab dem Stichtag werden der Reihe nach auf die neuen Termine
   gelegt. Bei gleicher Anzahl bleibt keine Stunde ohne Termin; bei abweichender Anzahl sagt die App, welche.
+- **Reihe zeitlich verschieben**: Die ganze Reihe beginnt an einem anderen Termin (z. B. „Würde vor Strafe“ oder „ab
+  12.01.“); ihre Stunden liegen dann der Reihe nach auf den Terminen ab dort. Belegte Termine: „Dahinter alles
+  nachrücken“ (die andere Reihe rückt hinter sie) oder „Tauschen“ (zwei Reihen tauschen ihre Termine). Freie Termine
+  dazwischen bleiben frei.
+- **Stunde auf einen bestimmten Termin**: Eine Stunde lässt sich direkt auf einen freien Termin legen, auch in eine
+  Lücke oder in eine andere Reihe; auf einen belegten Termin nur mit „nachrücken“ oder „tauschen“.
 - **Zusatztermin** (Nachholen, Projekttag): einzelner Termin an der Klasse, `zusatz = ["2026-12-02/5"]`.
 - **Ausfall zurücknehmen**: über Rückgängig (Abschnitt 3.1), stellt alle Daten wieder her.
 
@@ -297,7 +312,8 @@ Doppelte Klasse (gleicher Name, gleiches Schuljahr, gleiches Fach): Hinweis „g
 |---|---|---|---|---|
 | anlegen | ja | Titel; Klasse vom Ort vorbelegt; `stand = "geplant"`; optional freie Termine zuteilen oder Stunden ohne Termin anlegen (2a.1) | je Termin eine Stunde, Thema offen | – |
 | ändern | ja (Titel, Reihenfrage, Stand, Notizen, behandelt, Merksätze); nicht `id`, nicht `agenten` | Titel | – | bleiben; neue Läufe sehen den neuen Titel |
-| verschieben | ja, in eine andere Klasse (auch anderes Fach, auch Archiv-Klasse) | Ziel-Klasse | Stunden gehen mit | bleiben (über `id`) |
+| verschieben | ja, in eine andere Klasse (auch anderes Fach, auch Archiv-Klasse) | Ziel-Klasse | Stunden gehen mit (ohne Termin, wenn die Ziel-Klasse andere Termine hat) | bleiben (über `id`) |
+| zeitlich verschieben | ja, jederzeit (Grundsatz Flexibilität, 2a) | Start-Termin; bei belegten Terminen „nachrücken“ oder „tauschen“ | Stunden bekommen neue Daten, Reihenfolge bleibt | bleiben |
 | kopieren | ja, z. B. „in die 9 von 2026/27 übernehmen“ | Ziel-Klasse | Stunden kopiert mit neuen `id`s, nur Thema, ohne Marke (UB/Prüfung gehören zum alten Jahr) | **nicht** kopiert. Neue Reihe: `herkunft` = alte id, `stand = "geplant"`, ohne `agenten`, ohne `archiviert`. Material aus der alten Reihe übernehmen: **F7** |
 | archivieren | ja; läuft noch ein Auftrag, Hinweis „läuft weiter, Ergebnis landet im Archiv“ | – | gelten als ausgeblendet | bleiben dran |
 | wiederherstellen | ja | – | wie vorher | wie vorher |
@@ -548,6 +564,10 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 31. Ein Termin trägt höchstens eine Stunde, eine Stunde liegt auf höchstens einem Termin; ein gestrichener Termin
     trägt keine.
 32. Reihe anlegen mit zugeteilten Terminen ist eine Aktion, ein Commit, ein Rückgängig.
+33. Reihe zeitlich verschieben: mit „nachrücken“ rückt die getroffene Reihe dahinter, mit „tauschen“ tauschen beide
+    ihre Termine; Lücken bleiben; ids, Themen, Material unverändert; Rückgängig stellt alles her.
+34. Stunde auf einen freien Termin in einer Lücke: nur diese Stunde ändert ihr Datum.
+35. Keine Aktion verschiebt etwas, das Lia nicht ausgelöst hat (Laden und Lesen ändern nie Daten).
 
 ---
 
@@ -560,7 +580,8 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 1b. **Hauptordner** (neu; Jans Antworten F20–F24 vom 03.11. liegen vor): `agentkit.termine` ohne Netz (Termine aus
    Stundenplan, Ferien, Feiertagen, Ausfällen, Zusatzterminen; Nachrücken; Halbjahreswechsel), Ferien-Datei je
    Bundesland (F20: Abrufskript einmal je Schuljahr, Datei im Repo als Rückfall und Prüfstand), `agentkit.struktur` liest `[schule]`, `klasse.zeitplan`, `ausfall`, `zusatz` und
-   `stunde.termin`. Tests 26–31.
+   `stunde.termin`. Rechenregeln aus 2a.3 als reine Funktionen (auch Reihe zeitlich verschieben). Tests 26–31,
+   33–35 (soweit Rechnung).
 2. **Erledigt 03.11.** **Leser umstellen**, je in ihrem Chat: lia/unterricht (reihen.py über struktur), lia/examen (Reihe und
    Prüfungsstunde über die Marke „Prüfung“, `titel_in_reihen_toml` und `pruefungsstunde_in_reihe` raus, behebt den
    Absturz mit Stunden), lia/recherche (`id` statt „Straftheorien“, frühere Reihenfragen aus
