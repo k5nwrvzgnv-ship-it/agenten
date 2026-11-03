@@ -102,6 +102,7 @@ class Prompt(unittest.TestCase):
         self.assertTrue(p.endswith("Lias Frage:\nWas ist ein Standbild?"))
         self.assertIn("Daraus Auftrag machen", p)
         self.assertIn("Namen von Schüler*innen", p)
+        self.assertIn("ohne Überschriften und Tabellen", p)
 
     def test_ohne_ort_und_gruendlich(self):
         p = kontext.prompt("Teilzeitantrag?", "", [], gruendlich=True)
