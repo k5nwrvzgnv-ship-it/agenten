@@ -503,6 +503,28 @@ class TestMaterial(unittest.TestCase):
                          "kürzer\n\nDazu eine Datei: Blatt.docx.")
 
 
+class TestRueckmeldungDoppelt(unittest.TestCase):
+    JETZT = datetime(2026, 11, 3, 18, 0, 30, tzinfo=ZoneInfo("Europe/Berlin"))
+
+    def auftrag(self, **felder):
+        return {"bezug": "b1", "text": "kürzer", "status": "neu", "erstellt": "2026-11-03T18:00:00+01:00", **felder}
+
+    def doppelt(self, **felder):
+        return logik.rueckmeldung_doppelt("b1", "kürzer", [self.auftrag(**felder)], self.JETZT)
+
+    def test_gleich_und_kurz_danach(self):
+        self.assertTrue(self.doppelt())
+        self.assertTrue(self.doppelt(status="erledigt"))  # der Dienst war schon fertig
+
+    def test_alles_andere_gilt_als_neu(self):
+        self.assertFalse(logik.rueckmeldung_doppelt("b1", "kürzer", [], self.JETZT))
+        self.assertFalse(self.doppelt(text="größer"))
+        self.assertFalse(self.doppelt(bezug="b2"))
+        self.assertFalse(self.doppelt(erstellt="2026-11-03T17:59:59+01:00"))  # 31 s her
+        self.assertFalse(self.doppelt(status="fehlgeschlagen"))
+        self.assertFalse(self.doppelt(status="zurueckgezogen"))
+
+
 class TestEntwurf(unittest.TestCase):
     def test_ganzer_text_und_nur_bekannte_details(self):
         inhalt = "Kurze Umfrage\n\n1. Frage\n   [ ] in der Schule   [ ] zu Hause\n" + "lang " * 200

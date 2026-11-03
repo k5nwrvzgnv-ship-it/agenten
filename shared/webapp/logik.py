@@ -612,6 +612,7 @@ def final_erlaubt(ref: str, schritte: list[dict]) -> bool:
     return any(x.get("ref") == ref and x.get("finalbar") for x in schritte)
 
 
+RUECKMELDUNG_SPERRE_S = 30  # gleiche Rückmeldung zum selben Bezug in dieser Zeit: verworfen
 EIGENE_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx")
 RUECK_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
 
@@ -665,6 +666,15 @@ def rueckmeldung_text(text: str, datei_name_: str = "", ziel: dict | None = None
     if not datei_name_:
         return text
     return f"{text}\n\nDazu eine Datei: {dateiname_bereinigen(datei_name_)}."
+
+
+def rueckmeldung_doppelt(bezug: str, text: str, vorhanden: list[dict], jetzt: datetime) -> bool:
+    """Gibt es diese Rückmeldung zu diesem Bezug schon aus den letzten Sekunden (Doppelklick, Befund 03.11. Punkt 1)?
+    vorhanden: Aufträge an den Feedback-Dienst, text wie von rueckmeldung_text. Ist die erste fehlgeschlagen oder
+    zurückgezogen, darf Lia es gleich noch einmal schicken."""
+    return any(a.get("bezug") == bezug and a.get("text") == text
+               and a.get("status") not in ("fehlgeschlagen", "zurueckgezogen")
+               and abs(jetzt.timestamp() - _zeitpunkt(a)) <= RUECKMELDUNG_SPERRE_S for a in vorhanden)
 
 
 def seiten_text(anzahl: int) -> str:

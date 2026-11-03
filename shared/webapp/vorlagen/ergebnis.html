@@ -2,6 +2,7 @@
     rechts die Knöpfe; darunter „Das Wichtigste“ und die Fassungen (neueste oben). Ohne JavaScript: Rückmeldung,
     eigene Fassung und Variante öffnen sich über ?offen=…, Formulare mit Token (app.py). -#}
 {% extends "basis.html" %}
+{%- block skripte %}{{ super() }}{% if offen == "rueckmeldung" and aktionen %}<script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="material-kopf">
   {%- if e.art_zeile %}<span class="material-art">{{ e.art_zeile }}</span>{% endif %}
@@ -165,7 +166,7 @@
   {%- if aktionen %}
   {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Rückmeldung landet in der Test-Instanz, kein Agent startet.</p>{% endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
-  <form class="formular" method="post" action="{{ basis_url }}/rueckmeldung" enctype="multipart/form-data">
+  <form class="formular" method="post" action="{{ basis_url }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
     {%- if ziel %}
     <input type="hidden" name="fassung" value="{{ ziel.fassung }}">

@@ -1085,6 +1085,44 @@ class TestMaterial(Aufbau):
         self.assertEqual(self.sende("/rueckmeldung", {"text": "kürzer"})[0].status, 404)
         self.assertEqual(self.neue(), [])
 
+    def test_rueckmeldung_doppelklick_ein_auftrag(self):
+        """Befund 03.11. Punkt 1: Ein Doppelklick schickt denselben POST zweimal, die zweite Antwort sieht Lia."""
+        with mock.patch.object(app, "NEUER_AUFTRAG", "echt"), mock.patch.object(app, "agent_starten") as start, \
+                mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"):
+            for _ in range(2):
+                r, _ = self.sende("/rueckmeldung", {"text": "Bitte kürzer"}, [("Kommentare.docx", b"KOMM")])
+                self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=rueckmeldung"))
+            start.assert_called_once_with("feedback")
+            self.assertEqual(len(self.neue()), 1)
+            stand = app.fassungen.lesen(self.F1, basis=self.instanz / "auftraege")
+            self.assertEqual(len(stand["eigene"]), 1)  # auch die Datei nur einmal
+            # Anderer Text ist eine neue Rückmeldung
+            self.assertEqual(self.sende("/rueckmeldung", {"text": "Und größer"})[0].status, 303)
+            self.assertEqual(len(self.neue()), 2)
+
+    def test_rueckmeldung_gleichzeitig_ein_auftrag(self):
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), \
+                mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"):
+            antworten = []
+            faeden = [threading.Thread(target=lambda: antworten.append(self.sende("/rueckmeldung", {"text": "Kürzer"})[0]))
+                      for _ in range(2)]
+            for f in faeden:
+                f.start()
+            for f in faeden:
+                f.join()
+        self.assertEqual([r.status for r in antworten], [303, 303])
+        self.assertEqual(len(self.neue()), 1)
+
+    def test_rueckmeldung_knopf_sperrt_sich(self):
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"):
+            _, html = self.hole(self.URL + "?offen=rueckmeldung")
+            self.assertIn('<script src="/statisch/einmal.js" defer></script>', html)
+            self.assertRegex(html, r'<form [^>]*/rueckmeldung"[^>]* data-einmal[ >]')
+            self.assertNotIn("einmal.js", self.hole(self.URL)[1])
+        r, js = self.hole("/statisch/einmal.js")
+        self.assertEqual(r.status, 200)
+        self.assertIn("data-einmal", js)
+
     def test_rueckmeldung_im_testbetrieb(self):
         with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten") as start:
             _, html = self.hole(self.URL + "?offen=rueckmeldung")

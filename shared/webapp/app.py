@@ -2202,11 +2202,17 @@ async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
         if fehler:
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=fehler, text=text, status=400,
                                    ziel=ziel)
+        auftragstext = logik.rueckmeldung_text(text, datei.filename if datei else "", ziel)
+        # Doppelklick: Lia sieht die Antwort der zweiten Anfrage, also dieselbe Bestätigung. Prüfen und Anlegen liegen
+        # ohne await hintereinander, gleichzeitige Anfragen kommen sich dazwischen nicht in die Quere.
+        basis = INSTANZ / "auftraege"
+        if logik.rueckmeldung_doppelt(bezug, auftragstext, auftraege.neue("feedback", basis) +
+                                      auftraege.erledigte("feedback", basis), datetime.now(ZONE)):
+            logger.info("Gleiche Rückmeldung zu %s gerade schon angelegt, verworfen", bezug)
+            return _fertig(kopf, "rueckmeldung" if modus == "echt" else "rueckmeldung-test")
         pfad = _upload_ablegen(datei) if datei else None
         try:  # agentkit: die Datei kommt mit ihrer Art in die Kette (Agent sieht sie), dann der Auftrag an den Feedback-Dienst
-            fid, _ = fassungen.rueckmeldung(bezug, logik.rueckmeldung_text(text, datei.filename if datei else "", ziel),
-                                            pfad, basis=INSTANZ / "auftraege",
-                                            agenten_dir=INSTANZ.parent)
+            fid, _ = fassungen.rueckmeldung(bezug, auftragstext, pfad, basis=basis, agenten_dir=INSTANZ.parent)
         except (fassungen.FassungFehler, auftraege.AuftragFehler, OSError) as fehler_:
             logger.error("Rückmeldung nicht angelegt: %s", fehler_)
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[logik.FEHLGESCHLAGEN], text=text,
