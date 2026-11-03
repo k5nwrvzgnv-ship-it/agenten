@@ -1,7 +1,7 @@
 # Plan: Lia pflegt Fach → Klasse/Kurs → Reihe → Stunde selbst
 
 Stand 03.11.2026. Nur Plan, nichts gebaut. Gebaut wird nach Jans Freigabe und Antworten auf die offenen Fragen
-(Abschnitt 9, markiert mit **F1** bis **F19**).
+(Abschnitt 9, markiert mit **F1** bis **F19**). Entschieden (Jan 03.11.): F4, F6, F14, F19.
 
 Grundlage (selbst gelesen): `git log -p lia/instanz/reihen.toml` (8 Commits, mit der Vorgängerdatei
 `lia/unterricht/reihen.toml`), alle Leser der Datei (`lia/unterricht/reihen.py`, `lia/examen/runde.py`,
@@ -65,8 +65,8 @@ Folgerungen:
 Fazit: Heute hängen nur `agenten`-Zuordnungen an Reihen-Kennungen. **Ein Formatwechsel ist jetzt billig**; nach
 den ersten App-Aufträgen mit Feld `reihe` nicht mehr.
 
-Jans frühere Entscheidung (Haupt-STATUS Punkt 24, 30.10.): „Reihen pflegt vorerst Jan, Lia erst mit Konten.“
-Konten gibt es noch nicht (Schutz heute: Caddy-Passwort). **F19.**
+Jans frühere Entscheidung (30.10.) „Reihen pflegt vorerst Jan, Lia erst mit Konten“ gilt nicht mehr (Jan 03.11.,
+F19): Lia pflegt die Struktur, sobald es gebaut ist, auch ohne Konten (Schutz bis dahin: Caddy-Passwort).
 
 ---
 
@@ -92,7 +92,6 @@ id = "ethik-8-straftheorien"
 klasse = "ethik-8"             # id der Klasse (heute Anzeigetext „8“)
 titel = "Straftheorien"        # ohne „(in Planung)“, das sagt jetzt stand
 stand = "geplant"
-agenten = ["examen"]
 
 [[reihe.stunde]]
 id = "s-4k2m9a"
@@ -110,6 +109,12 @@ marke = "Prüfung"
 - `herkunft` an Klasse und Reihe: Kopie bzw. Vorjahr. Ersetzt den Freitext `bisherige_reihen`
   („Frühere Reihen der Klasse“ = Reihen der Klassen in der Herkunftskette). **F10.**
 - Systemfelder, die keine Maske zeigt: `id`, `herkunft`, `archiviert`, `agenten` (nur Jan, **F18**).
+- **Examen ist eine Stunde** (Jan 03.11., F14): die Prüfungsstunde ist eine Stunde mit `marke = "Prüfung"` in einer
+  normalen Reihe, nichts Eigenes. lia/examen findet seine Reihe darüber und nicht mehr über den Titelanfang
+  (`titel_in_reihen_toml` entfällt) und nicht über `agenten = ["examen"]` (entfällt). Welche Stunde der Reihe die
+  Prüfungsstunde ist, ergibt sich aus ihrer Stelle (`pruefungsstunde_in_reihe` in examen.toml entfällt). Gilt
+  genauso für eine spätere Examensreihe in einer anderen Klasse: Lia setzt die Marke, mehr nicht. Hat keine oder
+  mehr als eine Stunde die Marke „Prüfung“, meldet examen das an Jan und läuft nicht.
 
 **Eine Leseschicht für alle.** Heute prüfen vier Stellen die Datei je anders. Vorschlag: `shared/agentkit/struktur.py`
 (Hauptordner-Chat) mit `laden()` → aufgelöste Objekte (eine Reihe kennt Fachname, Klassenname, Schuljahr,
@@ -257,19 +262,18 @@ Wohin der Text heute geht: Git-Verlauf seit 23.10. (bleibt dort auch nach Lösch
 GitHub (ob privat und ob es gepusht wird, weiß ich nicht), jeder Prompt von unterricht, chat und examen
 (examen gibt alle Felder der Reihe weiter).
 
-Vorschlag (**F6**):
+Entschieden (Jan 03.11., **F6**): Lerngruppe an die Klasse und aus dem Repo auslagern (Punkte 1 und 2).
 1. **Lerngruppe an die Klasse**, nicht an jede Reihe: ein Ort, wird beim Kopieren einer Reihe nicht mitkopiert.
 2. **Auslagern aus dem Repo**: `lia/instanz/lerngruppen.toml` (gitignored, chmod 600), Schlüssel = Klassen-`id`,
    gelesen von `agentkit.struktur`. Dann landet die Lerngruppe nicht mehr in Git und auf GitHub; Rückgängig geht
    trotzdem (Aktionsliste der App). Der bestehende Git-Verlauf bleibt, wie er ist (Umschreiben der Geschichte nur
    mit Jans ausdrücklichem Auftrag, nicht vorgeschlagen).
-   Gegenvorschlag: bleibt in reihen.toml, dann gilt die Abnahme „Diff wie Handänderung“ auch für sie.
 3. **Fester Hinweis an der Maske**: „Nur die Gruppe beschreiben. Keine Namen, keine Angaben zu einzelnen
    Schüler*innen (Diagnosen, Förderbedarf, Noten).“ Eine zuverlässige Namenserkennung gibt es nicht; die App
    behauptet keine.
 4. Lerngruppe **nie** in Commit-Nachricht („Lerngruppe von Ethik 8 geändert“), Log, Ereignis, Telegram-Meldung oder
    Aktionsliste (dort nur „geändert“, der alte Text liegt für Rückgängig in der 0600-Ablage).
-5. Archivierte Klassen: Lerngruppe nach Ablauf einer Frist leeren? (Löschkonzept, **F6**).
+5. Archivierte Klassen: Lerngruppe nach Ablauf einer Frist leeren? (Löschkonzept, offen, Teil von F6).
 
 ---
 
@@ -318,7 +322,10 @@ Ordner ein Test rot ist. Dann wäre Lias Änderung geschrieben, aber nicht commi
 | b | eigenes Skript `commit-daten.sh` im Hauptordner: dieselbe flock-Sperre wie `commit.sh`, nur `lia/instanz/reihen.toml`, prüft nur die Struktur statt aller Tests | sekundenschnell, unabhängig von fremden Tests | Ausnahme von „Hook immer“; braucht Jans Okay (`--no-verify` für genau diesen Pfad) |
 | c | eigenes Git-Repo für die Instanzdaten | sauber getrennt | großer Umbau, Verlauf wandert |
 
-Empfehlung b. Autor der Commits: Jan, oder ein eigener Autor „Lia (Web-App)“? Eine Adresse dafür erfinde ich nicht.
+Entschieden (Jan 03.11., F4): **b**. Das ist eine Ausnahme vom Hook für genau den Pfad `lia/instanz/reihen.toml`
+und genau dieses Skript. Sie kommt als Zeile unter „Fertig heißt“ in CLAUDE.md (Bauschritt 1). Alle anderen
+Commits laufen weiter über `commit.sh` mit Hook. Autor der Commits: Jan, oder ein eigener Autor „Lia (Web-App)“?
+Eine Adresse dafür erfinde ich nicht (F5).
 
 ---
 
@@ -346,9 +353,9 @@ Wo die Web-App Stunden aus der Datei heute sperrt („+ Stunde“ nur ohne Stund
 | F1 | Eine Leseschicht `agentkit.struktur` für alle Leser (Hauptordner-Chat)? | ja |
 | F2 | Formatwechsel wie Abschnitt 2 (`[[fach]]`, `[[klasse]]`, `reihe.klasse` = id)? Bricht alle Leser, bis sie umgestellt sind | ja, jetzt (heute hängt fast nichts an den Kennungen) |
 | F3 | Stunden ohne gespeicherte Nummer, Reihenfolge = Reihenfolge in der Datei? | ja |
-| F4 | Commit-Weg a, b oder c (7.3); bei b Ausnahme vom Hook für genau diesen Pfad | b |
+| F4 | Commit-Weg a, b oder c (7.3); bei b Ausnahme vom Hook für genau diesen Pfad | **entschieden: b** (Jan 03.11.) |
 | F5 | Autor der App-Commits? | offen |
-| F6 | Lerngruppe auslagern (gitignored) oder in reihen.toml lassen? Frist zum Leeren im Archiv? | auslagern; Frist offen |
+| F6 | Lerngruppe auslagern (gitignored) oder in reihen.toml lassen? Frist zum Leeren im Archiv? | **entschieden: auslagern** (Jan 03.11.); Frist offen |
 | F7 | Reihe kopieren: nur Struktur, oder auch finale Fassungen als Kopie mit Herkunft (Regel R10)? | erst nur Struktur, Material der alten Reihe als Liste „aus dem Vorjahr“ sichtbar |
 | F8 | Klasse ins nächste Schuljahr: Lerngruppe mitnehmen? | als Häkchen, Standard aus |
 | F9 | Wann beginnt das Schuljahr (für die Vorbelegung)? Ich vermute 1. August, weiß es aber nicht sicher | – |
@@ -356,12 +363,12 @@ Wo die Web-App Stunden aus der Datei heute sperrt („+ Stunde“ nur ohne Stund
 | F11 | Stunde mit Datum und „gehalten“? | erst nach Lias Test fragen |
 | F12 | Reihe-Art „Inszenierung“ als Feld (heute: Probe statt Stunde nur bei `agenten = ["theater"]`; eine neue Inszenierung im nächsten Jahr hätte „Stunden“) | Feld `art`, freiwillig |
 | F13 | „Keine Aufträge ohne Ort“: nur für neue Aufträge aus der App, oder auch für die 7 alten ohne Ort (4 Material, 2 Feedback, 1 Recherche)? | neue immer; alte bleiben in „Ohne Ort“, Lia kann sie zuordnen (gebaut) |
-| F14 | Abnahme examen: echter Lauf (Runde 1 = mehrere anspruchsvolle Läufe, Kosten kenne ich nicht) oder Kontextprobe (`reihe_text` und `skizzen.kontext` ohne Claude)? | Kontextprobe plus ein echter unterricht-Lauf |
+| F14 | Wie findet examen seine Reihe, und wie wird es abgenommen? | **entschieden** (Jan 03.11.): Examen ist eine Stunde mit Marke „Prüfung“ (Abschnitt 2); Abnahme mit echtem Lauf (Abschnitt 12) |
 | F15 | `lia/instanz/fassungen/` in `.gitignore`? | ja (Hauptordner) |
 | F16 | Am Schuljahresende Hinweis „Klassen archivieren?“ in Heute? | ja, nie automatisch |
 | F17 | Löschen nur ohne Ebenen darunter, oder mitlöschen, wenn nirgends etwas hängt? | nur ohne Ebenen darunter |
 | F18 | `agenten` pflegt nur Jan von Hand? | ja; Test: ein Agent höchstens in einer Reihe |
-| F19 | Darf Lia schon schreiben, solange nur das Caddy-Passwort schützt, oder erst mit Konten (Entscheidung 30.10.)? | Jans Entscheidung |
+| F19 | Darf Lia schon schreiben, solange nur das Caddy-Passwort schützt, oder erst mit Konten (Entscheidung 30.10.)? | **entschieden: ja, ohne Konten** (Jan 03.11.) |
 
 ---
 
@@ -429,13 +436,17 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 
 0. Jan: Antworten auf F1–F19, Freigabe dieses Plans.
 1. **Hauptordner**: `agentkit.struktur` lesend (laden, prüfen, auflösen, `haengt_dran`), Tests 1–3, 6, 15, 17;
-   `.gitignore` für `lia/instanz/fassungen/` (F15); Feld `ort` in `agentkit.auftraege`; ggf. `commit-daten.sh` (F4).
-2. **Leser umstellen**, je in ihrem Chat: lia/unterricht (reihen.py über struktur), lia/examen (`id` statt
-   Titelanfang, behebt den Absturz mit Stunden), lia/recherche (`id` statt „Straftheorien“, frühere Reihenfragen aus
+   `.gitignore` für `lia/instanz/fassungen/` (F15) und `lia/instanz/lerngruppen.toml` (F6); Feld `ort` in
+   `agentkit.auftraege`; `commit-daten.sh` mit der Ausnahme-Zeile in CLAUDE.md (F4).
+2. **Leser umstellen**, je in ihrem Chat: lia/unterricht (reihen.py über struktur), lia/examen (Reihe und
+   Prüfungsstunde über die Marke „Prüfung“, `titel_in_reihen_toml` und `pruefungsstunde_in_reihe` raus, behebt den
+   Absturz mit Stunden), lia/recherche (`id` statt „Straftheorien“, frühere Reihenfragen aus
    struktur statt Regex), lia/chat (kontext), shared/webapp (ordnung, logik). Test 22 je Ordner.
 3. **Migration der Datei** (dieser Ordner, ein Commit wie von Hand, nach Jans Okay): `[[fach]]`, `[[klasse]]`,
    Schuljahr 2026/27 an den laufenden Klassen, `stand = "geplant"` und Titel ohne „(in Planung)“, Platzhalter-Reihe
-   Kurs 11 wird Klasse, Helfen als Reihe (F10), ggf. Lerngruppe auslagern (F6). Vorher und nachher: echter Prompt
+   Kurs 11 wird Klasse, Helfen als Reihe (F10), Lerngruppe nach `lerngruppen.toml` (F6), `agenten = ["examen"]`
+   raus, dafür die Prüfungsstunde als Stunde mit Marke (sobald Lia ihre Stunden der Reihe kennt; bis dahin läuft
+   examen nicht, siehe Abschnitt 2). Vorher und nachher: echter Prompt
    von unterricht für eine Reihe vergleichen.
 4. **Hauptordner**: Schreib-Operationen und Block-Editor in `agentkit.struktur`, Rückgängig, Tests 4–5, 7–14, 16,
    18–21, 23.
@@ -450,7 +461,9 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 | Kriterium | Wie geprüft |
 |---|---|
 | `./pruefen.sh` ALLES GRÜN mit Tests aus Abschnitt 10 | Ausgabe im Commit des letzten Bauschritts |
-| Echter Lauf von unterricht und examen greift die Reihe richtig auf | In der App: Reihe umbenennen und eine Stunde verschieben, dann ein Arbeitsblatt-Auftrag an dieser Stunde (echter unterricht-Lauf). Prüfen: Prompt nennt die Reihe als gewählt, die Stunde mit neuer Nummer und Thema. examen je nach F14. |
+| Echter Lauf von unterricht und examen greift die Reihe richtig auf | In der App: Reihe umbenennen und eine Stunde verschieben, dann ein Arbeitsblatt-Auftrag an dieser Stunde (echter unterricht-Lauf). Prüfen: Prompt nennt die Reihe als gewählt, die Stunde mit neuer Nummer und Thema. examen: in der App die
+Prüfungsstunde verschieben, dann echte Runde 1 (am 25.10. kostete sie 2,47 USD). Prüfen: Kontext nennt die Reihe
+und die Prüfungsstunde mit ihrer neuen Stelle. |
 | Git-Diff sieht aus wie eine Handänderung | je Aktion `git show` des App-Commits: nur die betroffenen Zeilen, Kommentare unverändert, Stil wie Jans Einträge |
 | Wiederherstellungsprobe | Reihe mit Material und Stunden (Testinstanz) archivieren, wiederherstellen: Datei byte-gleich, Material an denselben Stunden, „Heute“ zeigt dieselben Brotkrumen, Prüfsummen der Aufträge gleich |
 | Test mit Lia | Abschnitt 13 |

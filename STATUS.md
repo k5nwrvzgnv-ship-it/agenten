@@ -543,7 +543,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
    - Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.): Zuordnung nur über das optionale Feld reihe in
      agentkit.auftraege.neuer_auftrag oder den Agenten (theater -> Darstellendes Spiel Kurs 12 „Der nackte
      Wahnsinn“, examen -> Ethik 8 Straftheorien), sonst ohne Reihe. Auswahl der Reihe beim Neuen Auftrag
-     (Testbetrieb). Reihen pflegt vorerst Jan, Lia erst mit Konten.
+     (Testbetrieb). Reihen pflegt vorerst Jan; Lia pflegt sie selbst, sobald gebaut, auch ohne Konten (Jan 03.11.).
    - Bedarf an den lia/unterricht-Chat (Jan 30.10.): EINE Datei lia/instanz/reihen.toml für App und Agenten. Bitte
      lia/unterricht/reihen.toml dorthin verschieben, reihen.py und lia/examen (titel_in_reihen_toml) umstellen,
      Felder id, stand (laufend/abgeschlossen) und agenten erlauben und den Kurs eintragen (fach „Darstellendes
@@ -577,7 +577,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      30.10. abends (401 ohne, 200 mit Passwort, Formulare gehen, kcal unverändert). Offen bei Jan: erster echter Lauf Spielfassung
      (ca. 7 USD), ob Lias Ablage in die App soll. Nicht gebaut:
      „+ Reihe“ in der App, Konten.
-     Plan (03.11., wartet auf Jans Freigabe und Antworten F1–F19): Lia pflegt Fach, Klasse, Reihe, Stunde selbst,
+     Plan (03.11., wartet auf Jans Freigabe; entschieden F4, F6, F14, F19, offen die übrigen): Lia pflegt Fach, Klasse, Reihe, Stunde selbst,
      docs/struktur-pflege-plan.md. Befund dort: lia/examen stürzt ab, sobald die Straftheorien-Reihe Stunden hat.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
