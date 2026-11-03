@@ -577,8 +577,37 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      30.10. abends (401 ohne, 200 mit Passwort, Formulare gehen, kcal unverändert). Offen bei Jan: erster echter Lauf Spielfassung
      (ca. 7 USD), ob Lias Ablage in die App soll. Nicht gebaut:
      „+ Reihe“ in der App, Konten.
-     Plan (03.11., von Jan freigegeben 03.11., Bauschritt 1 im Hauptordner-Chat; entschieden F1–F6, F14, F19; F7–F13, F15–F18 betreffen spätere Schritte): Lia pflegt Fach, Klasse, Reihe, Stunde selbst,
+     Plan (03.11., von Jan freigegeben 03.11.; entschieden F1–F6, F14, F19; F7–F13, F15–F18 betreffen spätere Schritte): Lia pflegt Fach, Klasse, Reihe, Stunde selbst,
      docs/struktur-pflege-plan.md. Befund dort: lia/examen stürzt ab, sobald die Straftheorien-Reihe Stunden hat.
+     Bauschritt 1 erledigt 03.11. (Hauptordner): agentkit.struktur (nur lesend, Tests 1–3, 6, 15, 17 mit eingefrorener
+     Kopie der echten Datei, Lerngruppe darin durch Platzhalter ersetzt), Feld `ort` in auftraege.neuer_auftrag,
+     .gitignore für lia/instanz/fassungen/ und lerngruppen.toml, commit-daten.sh mit Ausnahme-Zeile in CLAUDE.md.
+     Nächster Schritt: Bauschritt 2, je Leser in seinem Chat (unterricht, examen, recherche, chat, webapp).
+     Schnittstelle für Bauschritt 2 (Einzelheiten im Kopf von shared/agentkit/struktur.py):
+     - `from agentkit import struktur`; `s = struktur.laden()` (Standard lia/instanz, sonst `laden(instanz_ordner)`),
+       bei kaputter Datei `struktur.StrukturFehler` (Text für Jan, nie mit Lerngruppe). `struktur.pruefen()` -> Liste
+       von Fehlertexten. Lesen ändert nichts und legt nichts an.
+     - Liest altes UND neues Format (`s.format` "alt"/"neu"), bis die Migration (Bauschritt 3) gelaufen ist. Leser
+       müssen also schon jetzt umstellen können, ohne auf die Migration zu warten.
+     - `s.reihen` (Dateireihenfolge), `s.klassen`, `s.faecher`, `s.objekt(id)`, `s.reihe(id)`, `s.stunden()`. Eine Reihe
+       ist ein Dict mit den bisherigen Feldnamen: fach und klasse sind die NAMEN („Ethik“, „8“, „Kurs 12“), dazu
+       fach_id, klasse_id, schuljahr (im neuen Format von der Klasse), lerngruppe (neu: aus lerngruppen.toml der
+       Klasse; alt: das Feld der Reihe), titel, reihenfrage, notizen, stand ("geplant", "laufend", "abgeschlossen";
+       geplant gilt im Prompt als laufend), behandelt, merksaetze, bisherige_reihen, agenten, herkunft, archiviert
+       (eigenes Datum), im_archiv (auch geerbt von Klasse/Fach), stunden (sichtbare, je {id, nr ab 1, thema, marke,
+       ...}), ausgeblendete_stunden (nr None). Fehlende Texte sind "", fehlende Listen [].
+     - Unterschiede zu heute: Reihen ohne id bekommen im alten Format die id wie die Web-App (kennung). Stunden im
+       alten Format bekommen die id `<reihe-id>-stunde-<nr>` und werden 1..n neu gezählt. Archiv im alten Format:
+       im_archiv ist dort immer False; „Archiv = schuljahr + abgeschlossen“ (logik.reihen_aus) bleibt bis zur
+       Migration Sache der Web-App. Die Platzhalter-Reihe darstellendes-spiel-kurs-11 und die abgeleitete Klasse
+       Kurs 11 kollidieren; die Klasse heißt im alten Format darstellendes-spiel-kurs-11-klasse.
+     - examen: `s.pruefungsreihen()` (nicht archivierte Reihen mit sichtbarer Stunde Marke „Prüfung“; nicht genau
+       eine -> Meldung an Jan, nicht laufen), dann `s.pruefungsstunde(reihe_id)` (genau eine, sonst StrukturFehler).
+       Heute hat keine Reihe Stunden, examen findet also bis zur Migration mit Prüfungsstunde keine Reihe.
+     - `s.ort(id)` -> {"ebene", "fach", "klasse", "reihe", "stunde"} (aufgelöste Objekte, None darunter) für Feld `ort`
+       eines Auftrags; `s.haengt_dran(id)` -> [{"quelle", "anzahl", "text"}] (Quellen 3.1; Titel-Verweise von
+       examen/recherche erkennt es nicht, nur Verweise per id in lia/<agent>/*.toml, *.py).
+     - Aufträge: `auftraege.neuer_auftrag(..., reihe=..., ort=<stunden-id>)`; `reihe` weiter setzen für ältere Leser.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit
