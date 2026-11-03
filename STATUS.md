@@ -725,32 +725,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
         Speicher-Wächter, einmaliger Neustart abgebrochener Lia-Aufträge.
 26. Bedarf aus uni (02.11.2026, Plan von Jan freigegeben): Exposé für das Forschungsprojekt (Fehlstellenerkennung
     an Holzlamellen, Betreuung Prof. Böhme) aus einem Teams-Transkript. uni-Teil gebaut (uni/expose.py): Claude
-    schreibt data/expose/<kette>/expose.json, uni prüft selbst und schickt bis auf Weiteres eine .md-Fassung.
-    a) shared/renderer (Renderer-Chat): neue Art "expose" (docx A4 und PDF) mit genau dem Format aus
-       uni/expose.py (FORMAT, pruefen): Titelblatt mit titel, untertitel, autoren, betreuung, einrichtung, rahmen,
-       datum; bloecke ueberschrift (ebene 1/2, automatisch nummeriert), absatz, liste (nummeriert), tabelle (titel,
-       kopf, zeilen, höchstens 8 Spalten); literatur als Verzeichnis am Ende. Ausdrücklich ohne quellen und
-       kennzeichnung (das Exposé geht an den Professor, Belege stehen nur im Protokoll). Stellen "[OFFEN: ...]"
-       im Text gut sichtbar hervorheben (Jan muss sie vor dem Versand füllen). Kopf/Fußzeile ohne „Vorlesung
-       vom“. Danach baut uni mit renderer.bauen wie bei Lernblättern (eigenes Profil, eigener Chat).
-       Formatvorlage (Jan 02.11.2026, abends): Jans Studienbeleg "Quercus" (HNEE, Word/PDFMaker), liegt als
-       uni/data/vorlagen/expose_vorlage_Quercus_Kleinke-vonMulert.pdf, Logo als uni/data/vorlagen/hnee_logo.png
-       (beides nicht im Repo, persönliche Daten). Aus der PDF gemessen: A4; Ränder links und rechts 2,5 cm,
-       oben etwa 3 cm, unten etwa 2,4 cm; Arial 11 pt, Zeilenabstand etwa 1,15 (12,6 pt), Blocksatz mit
-       Silbentrennung; Überschriften beider Ebenen Arial fett 11 pt, nummeriert "1", "1.1", ohne Punkt; Tabellen
-       Arial 10 pt (Kopf fett), Tabellentitel darüber als "Tabelle n: ..."; keine Seitenzahlen sichtbar.
-       Deckblatt: Logo oben links, "Fachbereich ..." (einrichtung) 11 pt, Autorenzeile "Name (Matr.-Nr. ...) |
-       Name (...)" 11 pt, Titel Arial 22 pt linksbündig, untertitel darunter; unten links rahmen in 9 pt, erste
-       Zeile fett ("Exposé | Wintersemester 2026/27"), dann Studiengang, Modul, "Betreuung: ..." (betreuung),
-       datum. Literaturverzeichnis: Überschrift "Literaturverzeichnis" (fett, nicht nummeriert), APA 7 mit
-       hängendem Einzug, DOI als Link. uni liefert rahmen jetzt mehrzeilig (bis 400 Zeichen) und Zitate im Text
-       nach APA (Nachname, Jahr). Besser als die PDF wäre die Word-Datei der Vorlage (renderer.vorlage_umwandeln).
-       Erledigt 03.11. im Renderer-Chat (Plan von Jan freigegeben): Art "expose" -> .docx (PDF aus der Vorschau,
-       ergebnis.pdf), Format in shared/renderer/FORMAT.md (gleich wie uni/expose.py, Umfang prüft weiter uni),
-       Profil shared/renderer/beispiele/profil-jan-expose.toml (Arial 11, Zeilenabstand 1.0, Ränder; logo = Pfad zu
-       uni/data/vorlagen/hnee_logo.png trägt uni ein). Kontrolltext endet mit den Stellen [OFFEN: ...]. Nachbau des
-       Exposés vom 02.11. in shared/renderer/data/nachbau/expose/. Bedarf uni (uni-Chat): von .md auf renderer.bauen
-       umstellen (docx und PDF an Jan). Jan: Nachbau in Word öffnen (Silbentrennung macht nur Word).
+    schreibt data/expose/<kette>/expose.json, uni prüft selbst und baut daraus docx und PDF für Jan.
+    a) Erledigt 03.11.: Renderer-Art "expose" (shared/renderer, Format in FORMAT.md, nachgebaut nach Jans
+       Studienbeleg "Quercus" der HNEE) und Umstellung in uni (Commit 58fcbb4, Jans Entscheidung: .md-Fassung
+       entfällt). uni/expose.py baut mit renderer.bauen (ohne Bildvorschau) und vorschau.als_pdf, Profil
+       uni/profil-expose.toml mit Logo data/vorlagen/hnee_logo.png (nicht im Repo). Abnahme: Exposé der Kette
+       20261102-165741-uni-ac9dcc ohne Claude-Lauf als docx (mit Logo) und PDF (6 Seiten) gebaut.
+       Offen (Jan): Exposé in Word öffnen und das Format abnehmen (Silbentrennung macht nur Word). Besser als die
+       PDF der Vorlage wäre ihre Word-Datei (renderer.vorlage_umwandeln).
     b) agentkit.mail (Hauptordner-Chat): Anhänge beim Senden (Entwurf nennt Dateien aus dem Agent-Ordner, Python
        prüft Pfad und Größe, die Freigabe zeigt die Anhänge). Dann kann uni die Mail an Böhme mit Exposé zur
        Freigabe vorlegen; bis dahin schickt Jan selbst.
