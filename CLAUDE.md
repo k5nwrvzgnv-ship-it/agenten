@@ -41,7 +41,8 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   - Vinted-Bot: User-Dienst `vinted-bot.service`, /home/agent/agents/vinted, Port 9222 (lokal)
     Ausnahme (Jan 27.10.2026, Stufe 1): llm.py protokolliert jeden claude-Lauf per agentkit.verbrauch
     (agent vinted, konto login, ohne Auslastung), die Unit trägt OnFailure=ausfall@%n.service und eine
-    Startgrenze. Sonst weiter nicht anfassen.
+    Startgrenze. Ausnahme (Jan 03.11.2026): Schalter /an und /aus in bot.py (aus = keine Vinted-Zugriffe,
+    keine Fehlermeldungen). Sonst weiter nicht anfassen.
 - Jeder Agent bekommt eigene Zugangsdaten, auch einen eigenen Telegram-Bot-Token. Die Tokens der bestehenden Bots werden nicht wiederverwendet.
 
 ## Architektur
