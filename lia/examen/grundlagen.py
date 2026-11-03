@@ -2,14 +2,16 @@
 
 Schritt 1 des Plans (Jan 25.10.2026). Die Dateien liegen im Repo (keine Schülerdaten) und sind die feste
 Grundlage für alle späteren Läufe (Skizzen, Prüfer). Aufruf `.venv/bin/python grundlagen.py` prüft alles:
-Rubrik vollständig, jede RLP-Stelle wörtlich auf ihrer Seite im PDF, offene Angaben in examen.toml.
+Rubrik vollständig, jede RLP-Stelle wörtlich auf ihrer Seite im PDF, offene Angaben in examen.toml, die Reihe.
+Die Reihe kommt aus lia/instanz/reihen.toml über agentkit.struktur (Strukturplan, Jan 03.11.2026, F14): die eine
+Reihe mit einer Stunde mit Marke „Prüfung“. Deren Nummer ist die Stelle der Prüfungsstunde in der Reihe.
 """
 
 import sys
 import tomllib
 from pathlib import Path
 
-from agentkit import wortlaut
+from agentkit import struktur, wortlaut
 
 HIER = Path(__file__).resolve().parent
 RUBRIK = HIER / "rubrik.toml"
@@ -24,6 +26,10 @@ STELLE_FREI = ("stufe", "hinweis")
 
 class GrundlagenFehler(Exception):
     """Eine Grundlagen-Datei ist kaputt oder unvollständig. Der Text ist für Jan."""
+
+
+class ReiheOffen(GrundlagenFehler):
+    """Keine oder mehr als eine Reihe bzw. Prüfungsstunde. Der Text sagt Jan, was Lia eintragen muss."""
 
 
 def _toml(pfad: Path) -> dict:
@@ -98,6 +104,22 @@ def auszug_pruefen(stellen: list[dict], textfassung: str) -> list[str]:
     return fehler
 
 
+def pruefungsreihe(s: struktur.Struktur) -> tuple[dict, dict]:
+    """(Reihe, Prüfungsstunde) aus der aufgelösten Struktur. Nicht genau eine: ReiheOffen."""
+    reihen = s.pruefungsreihen()
+    if not reihen:
+        raise ReiheOffen(f"Keine Reihe hat eine Stunde mit Marke „{struktur.PRUEFUNG}“. Lia muss die Stunden der "
+                         "Reihe mit Prüfungsstunde eintragen und die Prüfungsstunde markieren.")
+    if len(reihen) > 1:
+        raise ReiheOffen(f"{len(reihen)} Reihen haben eine Stunde mit Marke „{struktur.PRUEFUNG}“ "
+                         f"({', '.join(r['id'] for r in reihen)}), erwartet genau eine. Lia muss die Marke in den "
+                         "anderen Reihen entfernen.")
+    try:
+        return reihen[0], s.pruefungsstunde(reihen[0]["id"])
+    except struktur.StrukturFehler as e:
+        raise ReiheOffen(f"{e}. Lia muss die Marke so setzen, dass genau eine Stunde die Prüfungsstunde ist.") from None
+
+
 def offene_angaben(daten: dict, vorne: str = "") -> list[str]:
     """Schlüssel (mit Punkt verbunden), deren Wert noch leer ist: Angaben, die Lia nachliefern muss."""
     offen = []
@@ -134,6 +156,13 @@ def main() -> int:
         offen = offene_angaben(_toml(EXAMEN))
         print("ok      examen.toml" + (f", noch offen: {', '.join(offen)}" if offen else ", vollständig"))
     except GrundlagenFehler as e:
+        fehler.append(str(e))
+    try:
+        reihe, stunde = pruefungsreihe(struktur.laden())
+        print(f"ok      Reihe {reihe['id']}: Prüfungsstunde ist Stunde {stunde['nr']} von {len(reihe['stunden'])}")
+    except ReiheOffen as e:
+        print(f"offen   Reihe: {e}")
+    except struktur.StrukturFehler as e:
         fehler.append(str(e))
     for f in fehler:
         print(f"FEHLER  {f}")

@@ -17,6 +17,7 @@ import grundlagen
 import pruefer
 import skizzen
 import versionen
+from agentkit import struktur
 
 HIER = Path(__file__).resolve().parent
 PROFIL = HIER / "profil.toml"
@@ -27,7 +28,6 @@ ANGABEN = {
     "pruefung.termin": "Datum der Prüfungsstunde",
     "pruefung.abgabe_entwurf": "Abgabe des schriftlichen Entwurfs bis",
     "pruefung.stundenzahl": "Stunden der Reihe insgesamt",
-    "pruefung.pruefungsstunde_in_reihe": "Die wievielte Stunde ist die Prüfungsstunde?",
     "pruefung.stundenlaenge": "Stundenlänge (45 oder 90 Minuten)",
     "pruefung.schulform": "Schulform (ISS grundlegend/erweitert oder Gymnasium)",
     "pruefung.bewertungsbogen": "Offizieller Bewertungsbogen vorhanden? (bitte schicken)",
@@ -178,7 +178,7 @@ def bauen(ordner: Path, examen: dict, reihe: str, runde: int = 1, renderer_bauen
 
 def main() -> int:
     examen = grundlagen._toml(grundlagen.EXAMEN)
-    reihe = "Examensreihe " + examen.get("reihe", {}).get("titel_in_reihen_toml", "")
+    reihe = "Examensreihe " + grundlagen.pruefungsreihe(struktur.laden())[0]["titel"]
     dateien = bauen(HIER / "data" / "reihe" / "runde-1", examen, reihe)
     commit = versionen.sichern(HIER / "data" / "reihe", "Runde 1: Kurzfassung und Bewertungsbogen für Lia (mit Lesehilfe)")
     for d in dateien:

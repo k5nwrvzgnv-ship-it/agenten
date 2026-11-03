@@ -5,6 +5,7 @@ Grundentscheidung, rückwärts geplant ab der Abschlussaufgabe, je mit Reihenfra
 die Skizzen als JSON, Python prüft alles Prüfbare (RLP-ids, Quellenverweise, Stundenzahl, Perspektiven, Länge).
 Zitate schreibt Claude nicht: Quellen nur als Verweis auf das Register von lia/recherche ("<quelle>:<seite>").
 Allgemein gehalten: Die Reihe kommt aus examen.toml und reihen.toml, nichts ist auf Straftheorien festgelegt.
+Die Prüfungsstunde (ps) ist die Nummer der Stunde mit Marke „Prüfung“ in reihen.toml (grundlagen.pruefungsreihe).
 """
 
 import json
@@ -62,11 +63,6 @@ def stundenzahl(examen: dict) -> int | None:
     return int(wert) if wert.isdigit() else None
 
 
-def pruefungsstunde(examen: dict) -> int | None:
-    wert = str(examen.get("pruefung", {}).get("pruefungsstunde_in_reihe", "")).strip()
-    return int(wert) if wert.isdigit() else None
-
-
 def _stundenvorgabe(examen: dict) -> str:
     n = stundenzahl(examen)
     if n:
@@ -104,8 +100,7 @@ def kontext(rubrik: dict, rlp: list[dict], examen: dict, reihe: str, quellen: di
     return "\n".join(teile)
 
 
-def prompt(kontext_text: str, ausgabe: str, examen: dict) -> str:
-    ps = pruefungsstunde(examen)
+def prompt(kontext_text: str, ausgabe: str, examen: dict, ps: int | None) -> str:
     ps_text = (f"Die Prüfungsstunde ist Stunde {ps}; markiere sie mit pruefungsstunde = true."
                if ps else "Markiere genau eine Stunde als pruefungsstunde = true (die, die sich am besten "
                "für eine Prüfungsstunde eignet) und begründe die Wahl unter annahmen.")
@@ -246,7 +241,7 @@ def _erklaerung_pruefen(k: str, sk: dict) -> list[str]:
     return fehler
 
 
-def pruefen(daten: dict, rlp_ids: set[str], refs: set[str], examen: dict) -> list[str]:
+def pruefen(daten: dict, rlp_ids: set[str], refs: set[str], examen: dict, ps: int | None) -> list[str]:
     """Fehlerliste (leer = in Ordnung). Prüft nur, was Python sicher prüfen kann, nicht die Didaktik."""
     fehler = []
     skizzen = daten.get("skizzen")
@@ -254,7 +249,7 @@ def pruefen(daten: dict, rlp_ids: set[str], refs: set[str], examen: dict) -> lis
         return ["skizzen fehlt oder ist keine Liste"]
     if [s.get("kennung") for s in skizzen] != list(KENNUNGEN):
         fehler.append(f"Erwartet genau drei Skizzen mit kennung A, B, C, gefunden: {[s.get('kennung') for s in skizzen]}")
-    n, ps = stundenzahl(examen), pruefungsstunde(examen)
+    n = stundenzahl(examen)
     if not n and not daten.get("annahmen"):
         fehler.append("annahmen fehlt: Stundenzahl ist offen, deine Annahme muss dort stehen")
     for sk in skizzen:

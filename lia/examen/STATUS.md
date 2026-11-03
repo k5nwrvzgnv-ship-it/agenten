@@ -29,8 +29,9 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   Niveaustufen ISS/Gymnasium/Förderbedarf Lernen, Standards 2.3 D–F, drei weitere mit unsicherer Stufe).
   Alle 23 wörtlich auf ihrer Seite im PDF belegt (grundlagen.py).
 - examen.toml: Prüfungsangaben und Reihenfrage-Kandidaten, Anregungen aus „Tipps Max Examens.docx“. Offen
-  (Lia): Termin, Abgabe Entwurf, Stundenzahl, Position der Prüfungsstunde, Stundenlänge, Schulform (bestimmt
-  die Niveaustufe), Bewertungsbogen, Reihenfrage, Seminarvorgaben zur Reihenfrage. Verordnung vermutlich VSLVO
+  (Lia): Termin, Abgabe Entwurf, Stundenzahl, Stundenlänge, Schulform (bestimmt die Niveaustufe),
+  Bewertungsbogen, Reihenfrage, Seminarvorgaben zur Reihenfrage. Welche Reihe und die Stelle der Prüfungsstunde
+  stehen seit 03.11. nur in lia/instanz/reihen.toml (siehe Aufbau). Verordnung vermutlich VSLVO
   2014 (Beginn vor 02.02.2026), von Lia zu bestätigen.
 - Vorab-Impuls: impuls.md (5 Fragen, anonym, Papier, ca. 5 min, mit Hinweisen für Lia). Liegt in Lias
   Freigabe-Warteschlange: 20261025-003745-examen-0c44bf. Nach Lias Freigabe von Hand als ausgeführt vermerken
@@ -76,7 +77,13 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   Problemfrage/Inhalt/Perspektive/Kompetenz/Material, Verlauf eigenes Urteil → Klärung → realer Fall →
   Positionen → Debatte → schriftliches Urteil mit Checkliste. Geht in Skizzen- und Prüfer-Lauf (runde.py
   Pfade.vorbild). Skizzen brauchen ab Runde 2 je Stunde einen RLP-Kompetenzbereich; alle vier müssen vorkommen.
-- Tests: 35, grün. Kein Dienst, kein Timer.
+- Strukturplan Bauschritt 2 (03.11.2026, docs/struktur-pflege-plan.md, Jan F14 „Examen ist eine Stunde“):
+  examen liest die Reihe nur noch über agentkit.struktur. titel_in_reihen_toml und pruefungsstunde_in_reihe sind
+  aus examen.toml, skizzen.py, kurzfassung.py raus. reihe_text stürzt mit Stunden nicht mehr ab (vorher TypeError
+  bei "; ".join über die Stunden-Tabellen). Bis zur Migration (Bauschritt 3) hat keine Reihe Stunden: examen
+  läuft dann nicht, gewollt. Kein echter Lauf in diesem Schritt (kommt mit der Abnahme, Plan Abschnitt 12).
+- Tests: 46, grün (davon LeserTest = Testregel 22 auf den eingefrorenen Daten von agentkit). Kein Dienst, kein
+  Timer.
 
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
@@ -88,16 +95,28 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
   alle drei Perspektiven, genau eine Prüfungsstunde, höchstens 3000 Zeichen je Skizze), pruefer.py (neue
   Sitzung, jedes Kriterium genau einmal mit Stufe und Beleg, fünf Kolloquiumsfragen), versionen.py (data/reihe/
   als lokales Git-Repo, Autor „Agent examen“, ohne geerbte GIT_*-Variablen). Je Lauf eine Nachbesserung in
-  derselben Sitzung, danach Abbruch mit Meldung. Welche Reihe: examen.toml [reihe] titel_in_reihen_toml.
-- Kontext jedes Laufs: Reihe aus lia/unterricht/reihen.toml, Lias Gelernte Regeln aus lia/unterricht/STATUS.md,
-  lia/unterricht/leitfaden.md, Register lia/recherche/data/register.json (alles nur gelesen).
+  derselben Sitzung, danach Abbruch mit Meldung.
+- Welche Reihe (grundlagen.pruefungsreihe): struktur.laden() (lia/instanz), dann s.pruefungsreihen() (nicht
+  archivierte Reihen mit sichtbarer Stunde Marke „Prüfung“) und s.pruefungsstunde(id). Die Nummer dieser Stunde
+  ist die Prüfungsstunde der Skizzen (skizzen.prompt/pruefen, Parameter ps). Keine oder mehrere Reihen bzw.
+  Prüfungsstunden, oder reihen.toml kaputt: runde.ReiheFehlt, kein Claude-Lauf, Meldung an Jan mit dem, was Lia
+  eintragen muss, aber nur, wenn sich der Text seit der letzten Meldung geändert hat (data/zustand.json, Feld
+  reihe; eine eindeutige Reihe setzt es auf ""). Gilt für den späteren Timer genauso. grundlagen.py zeigt den
+  Zustand als „ok“ oder „offen“. kurzfassung.py nimmt den Titel der gefundenen Reihe.
+- Kontext jedes Laufs: Reihe aus lia/instanz/reihen.toml über agentkit.struktur (runde.reihe_text: Felder der
+  Reihe ohne ids, Zeile „Prüfungsstunde: Stunde n von m“, alle sichtbaren Stunden mit Nummer, Prüfungsstunde als
+  [PRÜFUNGSSTUNDE], UB als [UB]), Lias Gelernte Regeln aus lia/unterricht/STATUS.md, lia/unterricht/leitfaden.md,
+  Register lia/recherche/data/register.json (alles nur gelesen).
 - Daten im Repo (keine Schülerdaten): rubrik.toml, rlp_auszug.toml, examen.toml, impuls.md.
 - data/vorgaben/RLP_Ethik_Sek_I.pdf: Kopie aus lia/unterricht/data/wissen/eingang/Vorgaben/ (nicht im Repo).
 - .venv: pypdf und die Pakete des Renderers (Versionen wie shared/renderer/requirements.txt), agentkit und
   renderer per agentkit.pth.
 - kurzfassung.py: `.venv/bin/python kurzfassung.py` baut Kurzfassung und Bogen für Runde 1 aus skizzen.json und
   pruefung.json und sichert eine neue Version. profil.toml: Kopie von lia/unterricht/profil.toml.
-- Reihenkontext (Lerngruppe, Vorwissen, Kant dann von Liszt) steht in lia/unterricht/reihen.toml, nicht doppelt.
+- Reihenkontext (Lerngruppe, Vorwissen, Kant dann von Liszt) steht in lia/instanz/reihen.toml (Lerngruppe nach
+  der Migration in lia/instanz/lerngruppen.toml), nicht doppelt.
+- Tests: tests/test_runde.py LeserTest nutzt shared/agentkit/tests/daten/reihen_alt.toml (eingefrorene echte
+  Datei) und reihen_neu.toml (neues Format mit Stunden), nur gelesen.
 
 ## Entscheidungen
 - 25.10.2026 (Jan): Bundesland Berlin, Seminar egal, Prüfung in etwa einem Monat. KI-Regeln des Seminars
@@ -131,6 +150,11 @@ Straftheorien (Berlin, Prüfung ca. Ende November 2026). Lia wählt die Richtung
    shared/einstellungen.toml [webfetch]). Offen dort: Lias Zentrale als Eingang, Teilläufe für gründliche
    Aufträge, Prüflauf „trägt das Zitat?“ mit haiku nur Vorsortierung (siehe lia/recherche/STATUS.md).
 8. Lia soll seminar_vorbild.md lesen und bestätigen, was davon Regel werden soll.
+9. Strukturplan: Nach der Migration (Bauschritt 3) muss Lia die Stunden der Straftheorien eintragen und die
+   Prüfungsstunde markieren, sonst läuft examen nicht. Abnahme (Plan Abschnitt 12): Prüfungsstunde in der App
+   verschieben, dann echte Runde 1; Kontext muss Reihe und neue Stelle nennen.
+10. Frage an Jan (nicht entschieden): stundenzahl bleibt in examen.toml. Sobald Lia alle Stunden einträgt,
+   könnte die Zahl ihrer Stunden die Vorgabe für die Skizzen sein; heute gilt sonst 8 bis 10.
 
 ## Gelernte Regeln
 - (noch keine)

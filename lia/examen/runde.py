@@ -2,8 +2,10 @@
 
 Aufruf von Hand (noch kein Timer): AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python runde.py
 Ablauf:
-1. Grundlagen laden (grundlagen.py), Reihe aus lia/unterricht/reihen.toml, Quellen aus dem Register von
-   lia/recherche, Lias Regeln und Leitfaden aus lia/unterricht (alles nur gelesen).
+1. Grundlagen laden (grundlagen.py), Reihe aus lia/instanz/reihen.toml über agentkit.struktur (die eine Reihe
+   mit einer Stunde mit Marke „Prüfung“), Quellen aus dem Register von lia/recherche, Lias Regeln und Leitfaden
+   aus lia/unterricht (alles nur gelesen). Keine oder mehrere Prüfungsreihen bzw. -stunden: kein Lauf, Meldung an
+   Jan nur, wenn sich dieser Zustand seit der letzten Meldung geändert hat (data/zustand.json).
 2. Skizzen-Lauf (Opus): Claude schreibt data/reihe/runde-1/skizzen.json, Python prüft. Fehler gehen einmal an
    Claude zurück (dieselbe Sitzung), danach Abbruch.
 3. Prüfer-Lauf (Opus, neue Sitzung): pruefung.json, Python prüft, ebenso einmal Nachbesserung.
@@ -13,7 +15,6 @@ Kostengrenze 8 USD je Aufruf (Jan, 25.10.2026). Fehler: loggen und Meldung an Ja
 
 import json
 import sys
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,7 +22,7 @@ import grundlagen
 import pruefer
 import skizzen
 import versionen
-from agentkit import claude_lauf, config, log, meldungen
+from agentkit import claude_lauf, config, log, meldungen, struktur
 
 AGENT = "examen"
 HIER = Path(__file__).resolve().parent
@@ -33,15 +34,20 @@ GRENZE_USD = 8.0
 class Pfade:
     hier: Path = HIER
     repo: Path = HIER / "data" / "reihe"
-    reihen: Path = HIER.parent / "unterricht" / "reihen.toml"  # gehört lia/unterricht, nur gelesen
+    instanz: Path = struktur.LIA_INSTANZ  # reihen.toml und lerngruppen.toml, nur gelesen über agentkit.struktur
     regeln: Path = HIER.parent / "unterricht" / "STATUS.md"  # Abschnitt „Gelernte Regeln“
     leitfaden: Path = HIER.parent / "unterricht" / "leitfaden.md"
     register: Path = HIER.parent / "recherche" / "data" / "register.json"  # gehört lia/recherche
     vorbild: Path = HIER / "seminar_vorbild.md"  # Beobachtungen aus Beispielen des Fachseminars
+    zustand: Path = HIER / "data" / "zustand.json"  # zuletzt gemeldeter Zustand der Reihe
 
 
 class RundenFehler(Exception):
     """Runde abgebrochen. Der Text ist für Jan."""
+
+
+class ReiheFehlt(RundenFehler):
+    """Keine eindeutige Reihe mit Prüfungsstunde oder reihen.toml kaputt: Lauf findet nicht statt."""
 
 
 class Kosten:
@@ -67,16 +73,50 @@ def claude_laufen(prompt: str, sitzung: str | None = None):
     return claude_lauf.laufen(AGENT, HIER, prompt, art="anspruchsvoll", sitzung_fortsetzen=sitzung)
 
 
-def reihe_text(pfad: Path, titel: str) -> str:
-    """Die Reihe aus reihen.toml, deren titel mit `titel` beginnt, als Text."""
-    reihen = tomllib.loads(pfad.read_text(encoding="utf-8")).get("reihe", [])
-    treffer = [r for r in reihen if str(r.get("titel", "")).startswith(titel)]
-    if len(treffer) != 1:
-        raise RundenFehler(f"{pfad.name}: {len(treffer)} Reihen mit Titel „{titel}…“, erwartet genau eine")
+# Felder der aufgelösten Reihe (agentkit.struktur) für den Kontext; Systemfelder (ids, agenten, archiviert) nicht
+REIHE_FELDER = ("fach", "klasse", "schuljahr", "titel", "reihenfrage", "stand", "lerngruppe", "notizen", "behandelt",
+                "merksaetze", "bisherige_reihen")
+
+
+def reihe_finden(instanz: Path) -> tuple[dict, dict]:
+    """(Reihe, Prüfungsstunde) aus <instanz>/reihen.toml. Nicht eindeutig oder Datei kaputt: ReiheFehlt."""
+    try:
+        return grundlagen.pruefungsreihe(struktur.laden(instanz))
+    except (grundlagen.ReiheOffen, struktur.StrukturFehler) as e:
+        raise ReiheFehlt(str(e)) from None
+
+
+def reihe_text(reihe: dict, pruefungsstunde: dict) -> str:
+    """Die Reihe als Text für den Kontext, die Stunden mit Nummer, die Prüfungsstunde markiert."""
     zeilen = []
-    for k, v in treffer[0].items():
-        zeilen.append(f"- {k}: " + ("; ".join(v) if isinstance(v, list) else str(v)))
+    for k in REIHE_FELDER:
+        v = reihe.get(k)
+        if v:
+            zeilen.append(f"- {k}: " + ("; ".join(map(str, v)) if isinstance(v, list) else str(v)))
+    zeilen.append(f"- Prüfungsstunde: Stunde {pruefungsstunde['nr']} von {len(reihe['stunden'])} "
+                  f"(„{pruefungsstunde['thema']}“)")
+    zeilen.append("- Stunden (von Lia eingetragen):")
+    for st in reihe["stunden"]:
+        marke = " [PRÜFUNGSSTUNDE]" if st["id"] == pruefungsstunde["id"] else (f" [{st['marke']}]" if st["marke"] else "")
+        zeilen.append(f"  {st['nr']}. {st['thema']}{marke}")
     return "\n".join(zeilen)
+
+
+def neu_zu_melden(zustand: Path, text: str) -> bool:
+    """Merkt sich den Zustand der Reihe ("" = in Ordnung). True, wenn `text` ein Problem ist, das seit der letzten
+    Meldung neu ist; dann muss Jan es erfahren. Gleicher Text wie zuletzt: False (kein Melden bei jedem Lauf)."""
+    try:
+        bisher = json.loads(zustand.read_text(encoding="utf-8")).get("reihe", "")
+    except FileNotFoundError:
+        bisher = ""
+    except (json.JSONDecodeError, AttributeError):
+        logger.warning("%s unlesbar, gilt als leer", zustand)
+        bisher = ""
+    if text == bisher:
+        return False
+    zustand.parent.mkdir(parents=True, exist_ok=True)
+    zustand.write_text(json.dumps({"reihe": text}, ensure_ascii=False) + "\n", encoding="utf-8")
+    return bool(text)
 
 
 def abschnitt(pfad: Path, ueberschrift: str) -> str:
@@ -115,13 +155,12 @@ def runde_eins(pfade: Pfade | None = None, laufen=claude_laufen, sichern=version
     pfade = pfade or Pfade()
     rubrik, rlp = grundlagen.rubrik_laden(), grundlagen.auszug_laden()
     examen = grundlagen._toml(grundlagen.EXAMEN)
-    titel = examen.get("reihe", {}).get("titel_in_reihen_toml", "")
-    if not titel:
-        raise RundenFehler("examen.toml: [reihe] titel_in_reihen_toml fehlt")
+    reihe, ps = reihe_finden(pfade.instanz)
+    neu_zu_melden(pfade.zustand, "")  # Reihe wieder eindeutig: ein späteres Problem wird wieder gemeldet
     quellen = skizzen.quellen_aus_register(json.loads(pfade.register.read_text(encoding="utf-8")))
     if not quellen:
         raise RundenFehler(f"Keine verwendbaren Quellen im Register {pfade.register}")
-    kontext = skizzen.kontext(rubrik, rlp, examen, reihe_text(pfade.reihen, titel), quellen,
+    kontext = skizzen.kontext(rubrik, rlp, examen, reihe_text(reihe, ps), quellen,
                               abschnitt(pfade.regeln, "Gelernte Regeln"), pfade.leitfaden.read_text(encoding="utf-8"),
                               pfade.vorbild.read_text(encoding="utf-8") if pfade.vorbild.exists() else "")
 
@@ -132,8 +171,9 @@ def runde_eins(pfade: Pfade | None = None, laufen=claude_laufen, sichern=version
 
     ausgabe = ordner / "skizzen.json"
     sk = _lauf_mit_pruefung(
-        laufen, kosten, "Skizzen", skizzen.prompt(kontext, str(ausgabe), examen), ausgabe,
-        skizzen.antwort_lesen, lambda d: skizzen.pruefen(d, rlp_ids, refs, examen), skizzen.nachbesserung_prompt)
+        laufen, kosten, "Skizzen", skizzen.prompt(kontext, str(ausgabe), examen, ps["nr"]), ausgabe,
+        skizzen.antwort_lesen, lambda d: skizzen.pruefen(d, rlp_ids, refs, examen, ps["nr"]),
+        skizzen.nachbesserung_prompt)
     rlp_nach_id = {s["id"]: s for s in rlp}
     teile = [skizzen.darstellen(s, rlp_nach_id, quellen) for s in sk["skizzen"]]
     for s, md in zip(sk["skizzen"], teile, strict=True):
@@ -168,9 +208,15 @@ def melden_text(z: dict) -> str:
     return "\n".join(zeilen)
 
 
-def main(melden=jan_melden) -> int:
+def main(melden=jan_melden, pfade: Pfade | None = None) -> int:
+    pfade = pfade or Pfade()
     try:
-        z = runde_eins()
+        z = runde_eins(pfade)
+    except ReiheFehlt as e:
+        logger.warning("Runde 1 läuft nicht: %s", e)
+        if neu_zu_melden(pfade.zustand, str(e)):
+            melden(f"Runde 1 läuft nicht: {e}")
+        return 1
     except Exception as e:  # jeder Abbruch muss bei Jan ankommen
         logger.exception("Runde 1 abgebrochen")
         melden(f"Runde 1 abgebrochen: {e}")

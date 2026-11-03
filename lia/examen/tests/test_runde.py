@@ -11,6 +11,7 @@ import pruefer
 import runde
 import skizzen
 import versionen
+from agentkit import struktur
 
 REGISTER = {"quellen": [
     {"id": "kant", "werk": "Kant, MdS", "gemeinfreiheit": {"verwendbar": True},
@@ -21,7 +22,17 @@ REGISTER = {"quellen": [
      "stellen": [{"seite": 1, "zitat": "nicht verwenden"}]},
 ]}
 RLP_IDS = {"strafe_problemfragen", "urteilen_e", "argumentieren_e"}
-EXAMEN_OFFEN = {"pruefung": {"stundenzahl": "", "pruefungsstunde_in_reihe": ""}}
+EXAMEN_OFFEN = {"pruefung": {"stundenzahl": ""}}
+# Eingefrorene Kopie der echten reihen.toml (altes Format, ohne Stunden) und dieselbe im neuen Format mit Stunden
+# (Einstieg, ausgeblendet, Kant mit Marke „Prüfung“, Liszt mit „UB“), gepflegt mit agentkit.struktur.
+DATEN = Path(struktur.__file__).parent / "tests" / "daten"
+ALT = (DATEN / "reihen_alt.toml").read_text(encoding="utf-8")
+NEU = (DATEN / "reihen_neu.toml").read_text(encoding="utf-8")
+KANT = '[[reihe.stunde]]\nid = "s-kant"\nthema = "Kant: Vergeltung"\nmarke = "Prüfung"\n\n'
+# Altes Format mit Stunden (Feld nr): daran stürzte reihe_text bis 03.11. ab
+ALT_MIT_STUNDEN = '[[reihe]]\nfach = "Ethik"\nklasse = "8"\ntitel = "Straftheorien (in Planung)"\n' + "".join(
+    f'\n[[reihe.stunde]]\nnr = {i}\nthema = "Thema {i}"\n' + ('marke = "Prüfung"\n' if i == 5 else "")
+    for i in range(1, 9))
 runde.logger.disabled = True  # Tests sollen nicht ins echte logs/ schreiben
 
 
@@ -59,8 +70,8 @@ class SkizzenTest(unittest.TestCase):
         self.assertEqual(sorted(q), ["kant:333", "liszt:31"])
         self.assertTrue(q["liszt:31"][0]["am_scan_pruefen"])
 
-    def pruefen(self, daten, examen=EXAMEN_OFFEN):
-        return skizzen.pruefen(daten, RLP_IDS, {"kant:333", "liszt:31"}, examen)
+    def pruefen(self, daten, examen=EXAMEN_OFFEN, ps=5):
+        return skizzen.pruefen(daten, RLP_IDS, {"kant:333", "liszt:31"}, examen, ps)
 
     def test_gut(self):
         self.assertEqual(self.pruefen(GUT), [])
@@ -75,7 +86,8 @@ class SkizzenTest(unittest.TestCase):
                 st.update(perspektive="individuell") for st in d["skizzen"][2]["stunden"] if st["perspektive"] == "ideengeschichtlich"],
             "11 Stunden, erwartet 8 bis 10": lambda d: d["skizzen"][0].update(stunden=stunden(11)),
             "nicht fortlaufend": lambda d: d["skizzen"][0]["stunden"][3].update(nr=9),
-            "genau eine Stunde": lambda d: d["skizzen"][0]["stunden"][0].update(pruefungsstunde=True),
+            "Prüfungsstunde muss Stunde 5 sein, markiert: [1, 5]": lambda d: d["skizzen"][0]["stunden"][0].update(
+                pruefungsstunde=True),
             "reihenfrage fehlt": lambda d: d["skizzen"][0].update(reihenfrage=" "),
             "annahmen fehlt": lambda d: d.update(annahmen=[]),
             "eine Seite": lambda d: d["skizzen"][0].update(risiken="x" * 3000),
@@ -96,14 +108,20 @@ class SkizzenTest(unittest.TestCase):
                 self.assertTrue(any(erwartet in f for f in self.pruefen(daten)), self.pruefen(daten))
 
     def test_feste_stundenzahl_und_pruefungsstunde(self):
-        examen = {"pruefung": {"stundenzahl": "8", "pruefungsstunde_in_reihe": "6"}}
-        fehler = self.pruefen(GUT, examen)
+        examen = {"pruefung": {"stundenzahl": "8"}}
+        fehler = self.pruefen(GUT, examen, ps=6)
         self.assertEqual(fehler, [f"Skizze {k}: Prüfungsstunde muss Stunde 6 sein, markiert: [5]" for k in "ABC"])
         daten = copy.deepcopy(GUT)
         daten["annahmen"] = []  # bei fester Stundenzahl nicht nötig
         for s in daten["skizzen"]:
             s["stunden"] = stunden(8, ps=6)
-        self.assertEqual(self.pruefen(daten, examen), [])
+        self.assertEqual(self.pruefen(daten, examen, ps=6), [])
+
+    def test_ohne_pruefungsstunde_genau_eine_markieren(self):
+        daten = copy.deepcopy(GUT)
+        daten["skizzen"][0]["stunden"][0]["pruefungsstunde"] = True
+        self.assertIn("Skizze A: genau eine Stunde als pruefungsstunde markieren, markiert: [1, 5]",
+                      self.pruefen(daten, ps=None))
 
     def test_darstellen_mit_quellen(self):
         md = skizzen.darstellen(GUT["skizzen"][0], {"strafe_problemfragen": {"abschnitt": "3.3"},
@@ -128,9 +146,10 @@ class SkizzenTest(unittest.TestCase):
         self.assertIn("(OCR-Quelle, Lia prüft am Scan)", k)
         self.assertIn("# Vorbild: wie das Fachseminar Reihen plant", k)
         self.assertIn("Eine Problemfrage für die ganze Reihe.", k)
-        p = skizzen.prompt(k, "/x/skizzen.json", EXAMEN_OFFEN)
+        p = skizzen.prompt(k, "/x/skizzen.json", EXAMEN_OFFEN, 4)
         self.assertIn("/x/skizzen.json", p)
         self.assertIn("8 bis 10 Stunden", p)
+        self.assertIn("Die Prüfungsstunde ist Stunde 4", p)
 
     def test_antwort_lesen(self):
         with tempfile.TemporaryDirectory() as d:
@@ -196,13 +215,13 @@ class RundeTest(unittest.TestCase):
         self.addCleanup(d.cleanup)
         basis = Path(d.name)
         (basis / "register.json").write_text(json.dumps(REGISTER), encoding="utf-8")
-        (basis / "reihen.toml").write_text('[[reihe]]\nklasse = "8"\ntitel = "Straftheorien (in Planung)"\n',
-                                          encoding="utf-8")
+        (basis / "reihen.toml").write_text(ALT_MIT_STUNDEN, encoding="utf-8")
         (basis / "STATUS.md").write_text("## Gelernte Regeln\n- kurz\n## Anderes\nnein\n", encoding="utf-8")
         (basis / "leitfaden.md").write_text("Leitfaden", encoding="utf-8")
-        self.pfade = runde.Pfade(hier=basis, repo=basis / "reihe", reihen=basis / "reihen.toml",
+        self.pfade = runde.Pfade(hier=basis, repo=basis / "reihe", instanz=basis,
                                  regeln=basis / "STATUS.md", leitfaden=basis / "leitfaden.md",
-                                 register=basis / "register.json", vorbild=basis / "vorbild.md")
+                                 register=basis / "register.json", vorbild=basis / "vorbild.md",
+                                 zustand=basis / "zustand.json")
         (basis / "vorbild.md").write_text("Vorbild-Text", encoding="utf-8")
         self.prompts = []
 
@@ -225,6 +244,9 @@ class RundeTest(unittest.TestCase):
         self.assertEqual(len(self.prompts), 2)
         self.assertIn("Variante A", self.prompts[1][0])  # Prüfer sieht die Skizzen
         self.assertIn("Vorbild-Text", self.prompts[0][0])
+        self.assertIn("  5. Thema 5 [PRÜFUNGSSTUNDE]", self.prompts[0][0])
+        self.assertIn("Die Prüfungsstunde ist Stunde 5", self.prompts[0][0])
+        self.assertIn("  5. Thema 5 [PRÜFUNGSSTUNDE]", self.prompts[1][0])
         self.assertIn("Vorbild-Text", self.prompts[1][0])
         self.assertIsNone(self.prompts[1][1])  # Prüfer in neuer Sitzung
         self.assertEqual(z["skizzen"][0], ("A", "Variante A", 1))
@@ -256,23 +278,112 @@ class RundeTest(unittest.TestCase):
 
     def test_hilfen(self):
         self.assertEqual(runde.abschnitt(self.pfade.regeln, "Gelernte Regeln"), "- kurz")
-        self.assertIn("- klasse: 8", runde.reihe_text(self.pfade.reihen, "Straftheorien"))
-        with self.assertRaisesRegex(runde.RundenFehler, "genau eine"):
-            runde.reihe_text(self.pfade.reihen, "Helfen")
+        reihe, ps = runde.reihe_finden(self.pfade.instanz)
+        text = runde.reihe_text(reihe, ps)  # altes Format mit Stunden: kein TypeError mehr
+        self.assertIn("- klasse: 8", text)
+        self.assertIn("- Prüfungsstunde: Stunde 5 von 8 („Thema 5“)", text)
+        self.assertIn("  4. Thema 4\n  5. Thema 5 [PRÜFUNGSSTUNDE]\n", text)
+
+    def test_ohne_pruefungsreihe_kein_lauf_und_einmal_melden(self):
+        (self.pfade.instanz / "reihen.toml").write_text(ALT, encoding="utf-8")
+        gemeldet = []
+        for _ in range(3):  # wie drei Timer-Läufe
+            self.assertEqual(runde.main(gemeldet.append, self.pfade), 1)
+        self.assertEqual(len(gemeldet), 1, gemeldet)
+        self.assertIn("Runde 1 läuft nicht: Keine Reihe hat eine Stunde mit Marke „Prüfung“. Lia muss die Stunden "
+                      "der Reihe mit Prüfungsstunde eintragen", gemeldet[0])
+        self.assertEqual(self.prompts, [])  # kein Claude-Lauf
+        (self.pfade.instanz / "reihen.toml").write_text("kaputt =", encoding="utf-8")
+        runde.main(gemeldet.append, self.pfade)
+        runde.main(gemeldet.append, self.pfade)
+        self.assertEqual(len(gemeldet), 2)  # neuer Zustand: einmal gemeldet
+        self.assertIn("kein gültiges TOML", gemeldet[1])
+
+    def test_neu_zu_melden(self):
+        z = self.pfade.zustand
+        self.assertTrue(runde.neu_zu_melden(z, "keine Reihe"))
+        self.assertFalse(runde.neu_zu_melden(z, "keine Reihe"))
+        self.assertTrue(runde.neu_zu_melden(z, "zwei Reihen"))
+        self.assertFalse(runde.neu_zu_melden(z, ""))  # wieder in Ordnung: nichts zu melden, Zustand zurück
+        self.assertTrue(runde.neu_zu_melden(z, "keine Reihe"))  # dasselbe Problem später: wieder melden
+        z.write_text("kaputt", encoding="utf-8")
+        self.assertTrue(runde.neu_zu_melden(z, "keine Reihe"))
+
+    def test_erfolgreiche_runde_setzt_zustand_zurueck(self):
+        self.pfade.zustand.write_text(json.dumps({"reihe": "keine Reihe"}), encoding="utf-8")
+        runde.runde_eins(self.pfade, self.attrappe(GUT, {"skizzen": [bewertung(k) for k in "ABC"]}))
+        self.assertEqual(json.loads(self.pfade.zustand.read_text(encoding="utf-8")), {"reihe": ""})
 
     def test_main_meldet_abbruch(self):
         gemeldet = []
 
-        def kaputt():
+        def kaputt(pfade):
             raise runde.RundenFehler("kaputt")
 
         alt = runde.runde_eins
         runde.runde_eins = kaputt
         try:
-            self.assertEqual(runde.main(gemeldet.append), 1)
+            self.assertEqual(runde.main(gemeldet.append, self.pfade), 1)
         finally:
             runde.runde_eins = alt
         self.assertEqual(gemeldet, ["Runde 1 abgebrochen: kaputt"])
+
+
+class LeserTest(unittest.TestCase):
+    """Testregel 22 des Strukturplans für examen: Reihe und Prüfungsstunde über die Marke „Prüfung“."""
+
+    def finden(self, text):
+        return grundlagen.pruefungsreihe(struktur.aus_text(text))
+
+    def test_genau_eine_pruefungsstunde(self):
+        reihe, ps = self.finden(NEU)
+        self.assertEqual((reihe["id"], ps["id"], ps["nr"]), ("ethik-8-straftheorien", "s-kant", 2))
+        text = runde.reihe_text(reihe, ps)
+        self.assertIn("- titel: Straftheorien", text)
+        self.assertIn("- behandelt: Peter Singer; Aristoteles; Kant", text)
+        self.assertIn("- Prüfungsstunde: Stunde 2 von 3 („Kant: Vergeltung“)", text)
+        self.assertIn("  1. Einstieg: Wozu Gefängnis?\n  2. Kant: Vergeltung [PRÜFUNGSSTUNDE]\n"
+                      "  3. von Liszt: Prävention [UB]", text)
+        self.assertNotIn("Alte Idee", text)  # ausgeblendete Stunde zählt nicht und steht nicht im Kontext
+        self.assertNotIn("ethik-8", text)  # keine Systemfelder
+
+    def test_keine_pruefungsstunde(self):
+        for name, text in {"echte Datei ohne Stunden": ALT, "Marke entfernt": NEU.replace('marke = "Prüfung"\n', ""),
+                           "Prüfungsstunde ausgeblendet": NEU.replace('marke = "Prüfung"',
+                                                                      'marke = "Prüfung"\narchiviert = "2026-11-03"')}.items():
+            with self.subTest(name), self.assertRaisesRegex(grundlagen.ReiheOffen, "Keine Reihe .* Lia muss die "
+                                                                                    "Stunden der Reihe"):
+                self.finden(text)
+
+    def test_zwei_pruefungsstunden(self):
+        with self.assertRaisesRegex(grundlagen.ReiheOffen, "hat 2 Stunden mit Marke „Prüfung“.*genau eine"):
+            self.finden(NEU.replace('marke = "UB"', 'marke = "Prüfung"'))
+
+    def test_zwei_pruefungsreihen(self):
+        text = NEU.replace('[[reihe]]\nid = "ethik-8-helfen"', KANT.replace("s-kant", "s-kant-2")
+                           + '[[reihe]]\nid = "ethik-8-helfen"')
+        with self.assertRaisesRegex(grundlagen.ReiheOffen, "2 Reihen .*darstellendes-spiel-kurs-12-der-nackte-"
+                                                           "wahnsinn.*genau eine"):
+            self.finden(text)
+
+    def test_archivierte_kopie_zaehlt_nicht(self):
+        reihe, _ = self.finden(NEU + "\n" + KANT.replace("s-kant", "s-kant-alt"))  # Freundschaft, Klasse archiviert
+        self.assertEqual(reihe["id"], "ethik-8-straftheorien")
+
+    def test_stunde_verschoben_neue_nummer(self):
+        text = NEU.replace(KANT, "")
+        self.assertNotEqual(text, NEU)
+        text = text.replace('marke = "UB"\n', 'marke = "UB"\n\n' + KANT.rstrip("\n") + "\n")
+        reihe, ps = self.finden(text)
+        self.assertEqual(ps["nr"], 3)
+        kontext = runde.reihe_text(reihe, ps)
+        self.assertIn("- Prüfungsstunde: Stunde 3 von 3", kontext)
+        self.assertIn("  2. von Liszt: Prävention [UB]\n  3. Kant: Vergeltung [PRÜFUNGSSTUNDE]", kontext)
+        self.assertIn("Die Prüfungsstunde ist Stunde 3", skizzen.prompt(kontext, "/x.json", EXAMEN_OFFEN, ps["nr"]))
+
+    def test_titel_geaendert(self):
+        reihe, _ = self.finden(NEU.replace('titel = "Straftheorien"', 'titel = "Strafe und Gerechtigkeit"'))
+        self.assertEqual(reihe["id"], "ethik-8-straftheorien")
 
 
 if __name__ == "__main__":
