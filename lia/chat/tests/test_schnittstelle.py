@@ -19,7 +19,8 @@ class Schnittstelle(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_frage_stellen_und_antwort_holen(self):
-        ort = {"reihe": "ethik-8-straftheorien", "stunde": 2, "chip": "Ethik › 8", "materialien": ["AB"]}
+        ort = {"reihe": "ethik-8-straftheorien", "stunde_id": "s-kant", "stunde": 2, "chip": "Ethik › 8",
+               "materialien": ["AB"]}
         fid = schnittstelle.frage_stellen("  Was ist Vergeltung? ", ort, ordner=self.ordner)
         self.assertTrue(schnittstelle.wartet(fid, self.ordner))
         d = json.loads((self.ordner / "fragen" / f"{fid}.json").read_text(encoding="utf-8"))
@@ -37,6 +38,7 @@ class Schnittstelle(unittest.TestCase):
     def test_ungueltige_fragen(self):
         for text, ort in (("", None), ("x" * 4001, None), ("a", {"stunde": 1}), ("a", {"reihe": "r", "x": 1}),
                           ("a", {"reihe": "r", "stunde": "2"}), ("a", {"reihe": "r", "materialien": [1]}),
+                          ("a", {"reihe": "r", "stunde_id": 2}), ("a", {"stunde_id": "s-kant"}),
                           ("a", "ethik")):
             with self.subTest(text=text[:5], ort=ort), self.assertRaises(schnittstelle.FrageFehler):
                 schnittstelle.frage_stellen(text, ort, ordner=self.ordner)

@@ -10,6 +10,9 @@ from agentkit import claude_lauf
 
 REIHEN = '[[reihe]]\nfach = "Ethik"\nklasse = "8"\ntitel = "Strafe"\nreihenfrage = "Warum strafen wir?"\n'
 ORT = {"reihe": "ethik-8-strafe", "chip": "Ethik › 8 › Strafe"}
+NEU = ('[[fach]]\nid = "ethik"\nname = "Ethik"\n\n[[klasse]]\nid = "ethik-8"\nfach = "ethik"\nname = "8"\n\n'
+       '[[reihe]]\nid = "ethik-8-strafe"\nklasse = "ethik-8"\ntitel = "Strafe"\n\n'
+       '[[reihe.stunde]]\nid = "s-1"\nthema = "Einstieg"\n')
 
 
 class Fake:
@@ -102,6 +105,26 @@ class Agent(unittest.TestCase):
         self.abarbeiten(Fake())
         self.assertTrue(schnittstelle.antwort_holen(fid, self.ordner)["ok"])
         self.assertEqual(len(self.meldungen), 1)
+
+    def test_neues_format_lerngruppe_und_stunde(self):
+        (self.instanz / "reihen.toml").write_text(NEU, encoding="utf-8")
+        gruppen = self.instanz / "lerngruppen.toml"
+        gruppen.write_text('"ethik-8" = "Geheime Gruppe"\n', encoding="utf-8")
+        gruppen.chmod(0o600)
+        fake = Fake()
+        schnittstelle.frage_stellen("x", dict(ORT, reihe="ethik-8-strafe", stunde_id="s-1"), ordner=self.ordner)
+        self.abarbeiten(fake)
+        for teil in ("Fach: Ethik, Klasse 8", "Lerngruppe: Geheime Gruppe", "Gerade offen: Stunde 1: Einstieg"):
+            self.assertIn(teil, fake.prompts[0][0])
+        # Lerngruppen-Datei mit falschen Rechten: ohne Reihe antworten, Jan melden, ohne den Text der Gruppe
+        gruppen.chmod(0o644)
+        fid = schnittstelle.frage_stellen("y", dict(ORT, reihe="ethik-8-strafe"), ordner=self.ordner)
+        self.abarbeiten(fake)
+        self.assertTrue(schnittstelle.antwort_holen(fid, self.ordner)["ok"])
+        self.assertIn("keine weiteren Angaben", fake.prompts[1][0])
+        self.assertEqual(len(self.meldungen), 1)
+        self.assertIn("chmod 600", self.meldungen[0])
+        self.assertNotIn("Geheime Gruppe", self.meldungen[0])
 
     def test_lauf_einstellungen_ohne_werkzeuge(self):
         cfg = {"werkzeuge": {"standard": ["Read"]}, "lauf": {"max_schritte": 30, "max_minuten": 15,

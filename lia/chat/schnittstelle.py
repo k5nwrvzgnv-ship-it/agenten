@@ -17,7 +17,8 @@ import chatverlauf as _verlauf
 ORDNER = Path(__file__).resolve().parent / "data"
 MAX_ZEICHEN = 4000
 ID_MUSTER = re.compile(r"^[0-9a-f]{12}$")
-ORT_FELDER = {"reihe": str, "stunde": int, "chip": str, "stunde_thema": str, "materialien": list}
+ORT_FELDER = {"reihe": str, "stunde_id": str, "stunde": int, "chip": str, "stunde_thema": str,
+              "materialien": list}
 # Dateien in der Frage (Jan 02.11.2026): PDF, Word, PowerPoint, kein Excel und keine Bilder
 ENDUNGEN = (".pdf", ".docx", ".pptx")
 MAX_DATEIEN = 3

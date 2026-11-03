@@ -1,61 +1,38 @@
 """Kontext eines Orts und Prompt für eine Chat-Frage (rein, ohne Netz und ohne Modell).
 
-Der Ort kommt aus der Frage der Web-App ({"reihe": kennung, "stunde": n, "chip", "stunde_thema", "materialien"}).
-Die Reihe selbst liest der Agent aus Dateien: <instanz>/reihen.toml, bis zum Umzug durch lia/unterricht ersatzweise
-lia/unterricht/reihen.toml (Fach ohne Angabe aus unterricht/profil.toml) und das Stück aus theater/theater.toml.
-Kennung wie in der Web-App (shared/webapp/logik.kennung), damit beide dieselbe Reihe meinen.
+Der Ort kommt aus der Frage der Web-App ({"reihe": id, "stunde_id": id, "stunde": n, "chip", "stunde_thema",
+"materialien"}). Die Reihe selbst liest der Agent über agentkit.struktur aus <instanz>/reihen.toml (altes und neues
+Format, Lerngruppe im neuen Format von der Klasse). Reihe und Stunde erkennt er nur an ihrer festen id.
 """
 
-import re
-import tomllib
-import unicodedata
 from pathlib import Path
 
-DATEI = "reihen.toml"
-THEATER_FACH = "Darstellendes Spiel"  # Jan 30.10.2026, wie shared/webapp/ordnung.py
-THEATER_KURS = "Kurs 12"
-_UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
-_KLAMMER = re.compile(r"\s*\([^)]*\)")
+from agentkit import struktur
+
 VERLAUF_ZEICHEN = 1500  # je Frage bzw. Antwort im Verlauf höchstens so viel
 
 
-def kennung(*teile: str) -> str:
-    """Kennung aus Fach, Klasse und Titel wie in der Web-App (Klammern im Titel zählen nicht)."""
-    text = " ".join(_KLAMMER.sub("", t) for t in teile).lower().translate(_UMLAUTE)
-    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")[:80].rstrip("-")
-
-
-def _toml(pfad: Path) -> dict:
-    if not pfad.exists():
-        return {}
-    return tomllib.loads(pfad.read_text(encoding="utf-8"))
-
-
 def reihen_laden(instanz: Path) -> list[dict]:
-    """[[reihe]]-Blöcke mit Feld id. Kaputte Dateien werfen ValueError (tomllib) weiter."""
-    agenten = instanz.parent
-    if (instanz / DATEI).exists():
-        eintraege, fach = _toml(instanz / DATEI).get("reihe", []), ""
-    else:
-        eintraege = list(_toml(agenten / "unterricht" / DATEI).get("reihe", []))
-        fach = _toml(agenten / "unterricht" / "profil.toml").get("fach") or ""
-        stueck = (_toml(agenten / "theater" / "theater.toml").get("stueck") or {}).get("titel") or ""
-        if stueck:
-            eintraege.append({"fach": THEATER_FACH, "klasse": THEATER_KURS, "titel": stueck})
-    reihen = []
-    for e in eintraege:
-        if not isinstance(e, dict):
-            continue
-        r = dict(e)
-        r["fach"] = str(r.get("fach") or fach)
-        r["id"] = str(r.get("id") or kennung(r["fach"], str(r.get("klasse", "")), str(r.get("titel", ""))))
-        reihen.append(r)
-    return reihen
+    """Aufgelöste Reihen aus agentkit.struktur. Kaputte Datei: struktur.StrukturFehler."""
+    return struktur.laden(instanz).reihen
 
 
 def reihe_finden(reihen: list[dict], reihe_id: str | None) -> dict | None:
     return next((r for r in reihen if reihe_id and r["id"] == reihe_id), None)
+
+
+def stunde_finden(ort: dict, reihe: dict | None) -> tuple[int | None, str] | None:
+    """Offene Stunde als (Nummer, Thema). Mit stunde_id aus der Reihe (Nummer None, wenn ausgeblendet); sonst die
+    Nummer aus dem Ort mit stunde_thema oder dem Thema der Stunde mit dieser Nummer. Ohne Stunde: None."""
+    sichtbar = reihe["stunden"] if reihe else []
+    alle = sichtbar + (reihe["ausgeblendete_stunden"] if reihe else [])
+    treffer = next((s for s in alle if ort.get("stunde_id") and s["id"] == ort["stunde_id"]), None)
+    if treffer:
+        return treffer["nr"], treffer["thema"]
+    if not ort.get("stunde"):
+        return None
+    return ort["stunde"], ort.get("stunde_thema") or next(
+        (s["thema"] for s in sichtbar if s["nr"] == ort["stunde"]), "")
 
 
 def _gruppe(klasse: str) -> str:
@@ -80,18 +57,16 @@ def kontext_text(ort: dict | None, reihe: dict | None) -> str:
         for feld, name in (("behandelt", "Schon behandelt"), ("merksaetze", "Merksätze")):
             if _liste(reihe.get(feld)):
                 zeilen.append(f"{name}: " + "; ".join(_liste(reihe[feld])))
-        stunden = [s for s in reihe.get("stunde", []) if isinstance(s, dict)]
-        if stunden:
+        if reihe["stunden"]:
             zeilen.append("Stunden: " + "; ".join(
-                f"{s.get('nr', '?')}. {s.get('thema', '')}" + (f" ({s['marke']})" if s.get("marke") else "")
-                for s in stunden))
+                f"{s['nr']}. {s['thema']}" + (f" ({s['marke']})" if s["marke"] else "") for s in reihe["stunden"]))
     else:
         zeilen.append("(Zu diesem Ort liegen keine weiteren Angaben vor.)")
-    if ort.get("stunde"):
-        thema = ort.get("stunde_thema") or next(
-            (s.get("thema", "") for s in (reihe or {}).get("stunde", []) if isinstance(s, dict)
-             and s.get("nr") == ort["stunde"]), "")
-        zeilen.append(f"Gerade offen: Stunde {ort['stunde']}" + (f": {thema}" if thema else ""))
+    stunde = stunde_finden(ort, reihe)
+    if stunde:
+        nr, thema = stunde
+        zeilen.append("Gerade offen: " + (f"Stunde {nr}" if nr else "ausgeblendete Stunde") +
+                      (f": {thema}" if thema else ""))
     if _liste(ort.get("materialien")):
         zeilen.append("Material hier: " + "; ".join(_liste(ort["materialien"])))
     return "\n".join(zeilen)

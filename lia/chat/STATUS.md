@@ -19,10 +19,17 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
   - „Gründlich“ echt: 138 s, 0,05 USD. Brachte Überschriften und eine Tabelle; seitdem verlangt der Prompt nur
     fett, Listen und Links (schmale Spalte).
 - Tests schreiben nicht mehr ins echte logs/chat.log (tests/__init__.py).
+- Strukturplan Bauschritt 2 (03.11.2026, docs/struktur-pflege-plan.md): Reihen kommen über agentkit.struktur
+  (altes und neues Format), erkannt nur an ihrer id. Lerngruppe im neuen Format von der Klasse
+  (lia/instanz/lerngruppen.toml), Stunden aus reihe["stunden"] (nur sichtbare, Nummer zählt struktur). Eigene
+  kennung, Ersatzweg über lia/unterricht/reihen.toml und Stück aus theater.toml sind weg. Kontext-Text für alle
+  14 echten Reihen byte-gleich wie vorher. Kaputte reihen.toml oder lerngruppen.toml (auch Rechte nicht 600):
+  StrukturFehler, Antwort ohne Reihe, Meldung an Jan (ohne Lerngruppen-Text). Kein Neustart nötig
+  (lia-chat.service ist oneshot und startet je Frage neu).
 
 ## Aufbau
-- Code: agent.py (Einstieg, Fehlertexte, claude_lauf, Text aus Dateien), kontext.py (Reihe aus Dateien,
-  Kontext-Text, Prompt; rein), chatverlauf.py (Verlauf, Aufräumen), schnittstelle.py (für die Web-App, nur
+- Code: agent.py (Einstieg, Fehlertexte, claude_lauf, Text aus Dateien), kontext.py (Reihe über
+  agentkit.struktur, Kontext-Text, Prompt; rein), chatverlauf.py (Verlauf, Aufräumen), schnittstelle.py (für die Web-App, nur
   Bordmittel), tests/.
 - .venv: lia/chat/.venv, agentkit per .pth, Pakete aus requirements.txt (pypdf, python-docx, python-pptx samt
   Abhängigkeiten, Versionen wie lia/unterricht; Jan 02.11.2026). Kein openpyxl, also kein Excel.
@@ -35,9 +42,12 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
   chatverlauf):
   - `frage_stellen(text, ort=None, gruendlich=False, ordner=ORDNER, netz=False, dateien=None) -> id` (12
     Hex-Zeichen). Ungültig: `FrageFehler` mit Satz für Lia (leer, über 4.000 Zeichen, Ort falsch, Dateien falsch).
-  - `ort`: None (ohne Ort) oder `{"reihe": "<kennung>", "stunde": n, "chip": "Ethik › 8 › Straftheorien",
-    "stunde_thema": "…", "materialien": ["Titel", …]}`; nur `reihe` ist Pflicht. Reihe, Lerngruppe, Stunden usw.
-    liest der Agent selbst aus lia/instanz/reihen.toml.
+  - `ort`: None (ohne Ort) oder `{"reihe": "<id>", "stunde_id": "<id>", "stunde": n, "chip": "Ethik › 8 ›
+    Straftheorien", "stunde_thema": "…", "materialien": ["Titel", …]}`; nur `reihe` ist Pflicht. Reihe, Lerngruppe,
+    Stunden usw. liest der Agent selbst über agentkit.struktur aus lia/instanz/reihen.toml. `stunde_id` (neu
+    03.11.2026, freiwillig): Steht die Stunde mit dieser id in der Reihe, nimmt der Agent Nummer und Thema von dort
+    (auch ausgeblendete); sonst wie bisher `stunde` mit `stunde_thema` (oder dem Thema der Stunde mit dieser
+    Nummer). Die Web-App schickt heute noch keine `stunde_id`.
   - `netz=True`: Lias Häkchen „Im Netz nachsehen“. Dauert länger (ca. 20–60 s, Grenze 4 bzw. gründlich 6 min).
   - `dateien`: Liste von `(Name wie hochgeladen, Pfad der hochgeladenen Datei)`, höchstens 3, nur .pdf/.docx/.pptx,
     je bis 20 MB. Die Dateien werden nach data/dateien/<id>/ verschoben (Name bereinigt); bei `FrageFehler` bleibt
@@ -72,9 +82,10 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
   Dateien einer Frage zusammen höchstens 60.000 Zeichen.
 
 ## Offene Punkte
-1. Web-App: Häkchen „Im Netz nachsehen“, Datei-Feld und Links in der Anzeige (Bedarf in Punkt 24 der Haupt-STATUS).
-2. Fotos (JPG/PNG) im Chat: bräuchten Read auf data/dateien/<id>/; erst nach dem Test mit Lia und Jans Okay.
-3. Sauberer als das Löschen der Sitzungen: Option `--no-session-persistence` in agentkit.claude_lauf
+1. Web-App: `stunde_id` im Ort mitschicken, sobald ihre Stunden aus reihen.toml kommen (Strukturplan Bauschritt 5).
+2. Web-App: Häkchen „Im Netz nachsehen“, Datei-Feld und Links in der Anzeige (Bedarf in Punkt 24 der Haupt-STATUS).
+3. Fotos (JPG/PNG) im Chat: bräuchten Read auf data/dateien/<id>/; erst nach dem Test mit Lia und Jans Okay.
+4. Sauberer als das Löschen der Sitzungen: Option `--no-session-persistence` in agentkit.claude_lauf
    (Hauptordner-Chat, kein Muss).
 
 ## Gelernte Regeln

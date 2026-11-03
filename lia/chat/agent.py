@@ -15,7 +15,7 @@ from pathlib import Path
 import chatverlauf
 import kontext
 import schnittstelle
-from agentkit import claude_lauf, config, einstellungen, log, meldungen, textfassung, verbrauch
+from agentkit import claude_lauf, config, einstellungen, log, meldungen, struktur, textfassung, verbrauch
 
 AGENT = "chat"
 HIER = Path(__file__).resolve().parent
@@ -105,7 +105,7 @@ def beantworten(frage: dict, instanz: Path, ordner: Path = DATEN, fragen=claude_
     ort = frage["ort"]
     try:
         reihe = kontext.reihe_finden(kontext.reihen_laden(instanz), ort["reihe"]) if ort else None
-    except (OSError, ValueError) as f:  # kaputte reihen.toml: ohne Reihe antworten, Jan Bescheid geben
+    except (OSError, struktur.StrukturFehler) as f:  # kaputte reihen.toml: ohne Reihe antworten, Jan melden
         logger.warning("Reihen nicht lesbar: %s", f)
         melden(f"reihen.toml nicht lesbar, Chat antwortet ohne Reihe: {f}")
         reihe = None
