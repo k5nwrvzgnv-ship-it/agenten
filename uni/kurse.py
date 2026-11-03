@@ -29,7 +29,7 @@ from datetime import datetime
 from html import unescape
 from pathlib import Path
 
-from agentkit.textfassung import als_text
+from agentkit.textfassung import als_text, kommentare
 
 HIER = Path(__file__).resolve().parent
 ZIEL = HIER / "data" / "kurse"
@@ -73,6 +73,31 @@ def textfassung(pfad: Path, erneuern: bool) -> bool:
         except Exception as f:  # noqa: BLE001 – kaputte Datei soll den Abgleich nicht stoppen
             txt.write_text(f"(Textfassung fehlgeschlagen: {f})", encoding="utf-8")
     return True
+
+
+def kommentare_block(pfade: list[Path], namen: list[str], lesen=kommentare) -> str:
+    """Kommentare aus angehängten PDF- und Word-Dateien als Textblock für den Auftrag ("" ohne Kommentare).
+
+    Claude sieht beim Lesen einer PDF nur Text und Seitenbild, nicht die Kommentare (Jan 03.11.2026: Exposé in
+    der PDF kommentiert). namen: so heißen die Dateien im Block (Pfade relativ zum Agent-Ordner).
+    """
+    teile = []
+    for pfad, name in zip(pfade, namen, strict=True):
+        try:
+            liste = lesen(pfad)
+        except Exception as f:  # noqa: BLE001 – kaputte Datei: Hinweis statt Abbruch, Claude soll es sagen können
+            logging.getLogger("uni").warning("Kommentare aus %s nicht lesbar: %s", name, f)
+            teile.append(f"Kommentare in {name}: nicht lesbar ({f})")
+            continue
+        if not liste:
+            continue
+        zeilen = [f"Kommentare in {name} (Seite, markierte Stelle: Kommentar):"]
+        for k in liste:
+            ort = f"S. {k['seite']}, " if k.get("seite") else ""
+            stelle = f"„{k['stelle'][:300]}“: " if k.get("stelle") else ""
+            zeilen.append(f"- {ort}{stelle}{k['kommentar']}")
+        teile.append("\n".join(zeilen))
+    return "\n\n".join(teile)
 
 
 def entpacken(pfad: Path) -> list[str]:

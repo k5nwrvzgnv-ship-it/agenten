@@ -19,6 +19,30 @@ class TestKurse(unittest.TestCase):
                          "Klausur am 12.02.\nRaum\xa05")
         self.assertEqual(kurse.html_zu_text(None), "")
 
+    def test_kommentare_block(self):
+        gelesen = {
+            "a.pdf": [{"seite": 2, "stelle": "Scopus neun Suchen", "kommentar": "kürzen", "autor": "Jan"},
+                      {"seite": 4, "stelle": "", "kommentar": "Technikum", "autor": ""}],
+            "b.docx": [{"stelle": "Satz", "kommentar": "raus", "autor": "Jan"}],
+            "c.pdf": [],
+        }
+
+        def lesen(pfad):
+            if pfad.name == "kaputt.pdf":
+                raise ValueError("kein PDF")
+            return gelesen[pfad.name]
+
+        namen = ["data/eingang/a.pdf", "data/eingang/b.docx", "data/eingang/c.pdf", "data/eingang/kaputt.pdf"]
+        with self.assertLogs("uni", "WARNING"):
+            block = kurse.kommentare_block([Path(n) for n in namen], namen, lesen=lesen)
+        self.assertEqual(block, "Kommentare in data/eingang/a.pdf (Seite, markierte Stelle: Kommentar):\n"
+                                "- S. 2, „Scopus neun Suchen“: kürzen\n- S. 4, Technikum\n\n"
+                                "Kommentare in data/eingang/b.docx (Seite, markierte Stelle: Kommentar):\n"
+                                "- „Satz“: raus\n\n"
+                                "Kommentare in data/eingang/kaputt.pdf: nicht lesbar (kein PDF)")
+        self.assertEqual(kurse.kommentare_block([Path("x.png")], ["x.png"]), "")
+        self.assertEqual(kurse.kommentare_block([], []), "")
+
     def test_textfassungen(self):
         import docx
         import openpyxl

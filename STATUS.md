@@ -777,9 +777,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
       Achtung: pruefen.sh lässt agentkit/tests mit System-python3 laufen, dort fehlt pypdf; die 3 PDF-Tests werden
       dort übersprungen (skipUnless) und laufen mit uni/.venv/bin/python grün. Offen, nach Jans Entscheidung: in
       pruefen.sh einen zweiten Eintrag "shared|../uni/.venv/bin/python|agentkit/tests" oder so lassen.
-    - Danach uni-Chat: auftrag_bearbeiten hängt für jeden Anhang mit Kommentaren einen Block "Kommentare in
-      <datei> (Seite, markierte Stelle: Kommentar)" an a["text"], so sieht ihn jeder Weg (Exposé, Dokument,
-      sonstige). Test in uni/tests.
+    - uni erledigt 03.11.: kurse.kommentare_block, auftrag_bearbeiten hängt den Block an a["text"] (nur für die
+      Prompts, die Ablage behält Jans Text). Test in uni/tests/test_kurse.py.
     - Später, nicht nötig: Lias Agenten (unterricht/material.py, theater/nachbesserung.py) auf kommentare()
       umstellen, dann auch PDF-Kommentare von Lia.
 

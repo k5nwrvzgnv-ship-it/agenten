@@ -187,8 +187,6 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Matrikelnummer, Forschungsprojekt 1 oder 2, fehlende APA-Angaben bei 7 Quellen).
   Kürzung nach Jans Anmerkungen in der PDF (03.11., Auftrag 20261103-114706-uni-c85257, im Chat aus den
   PDF-Kommentaren abgeschrieben): etwa 900 Wörter, 10 Quellen, 11 [OFFEN].
-  Kommentare in PDFs liest der Agent nicht (agentkit.textfassung nimmt nur den Text), Bedarf und Plan in
-  ../STATUS.md Punkt 28. uni-Teil (Kommentare an a["text"] in auftrag_bearbeiten) erst nach dem agentkit-Teil.
   Normen nachgereicht (03.11., Auftrag 20261103-120228-uni-187226, data/normen/Normen_Forschungsprojekt/): EN 14080,
   EN 14081-1 und DIN 4074-3 eingearbeitet, Werk heißt best wood Schneider, Eberhardzell. Etwa 1.000 Wörter,
   12 Quellen, 10 [OFFEN]. Der Lauf scheiterte an literatur_pruefen (nur Normen aus geprueft.json zählten);
@@ -197,6 +195,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   wirklich fürs Markieren eingesetzt sind (steht so im Text, von Jan nicht bestätigt).
   Schwäche: expose.bauen ruft die Literaturprüfung erst, wenn Format und Umfang stimmen. Die eine Nachbesserung
   ging deshalb nur an "13 statt 12 Angaben", der Literaturfehler kam erst danach. Vorschlag: beide auf einmal melden.
+- Kommentare in Anhängen (03.11.): auftrag_bearbeiten hängt Kommentare aus angehängten PDF- und Word-Dateien
+  (kurse.kommentare_block über agentkit.textfassung.kommentare) als Block "Kommentare in <datei> (Seite, markierte
+  Stelle: Kommentar)" an den Auftragstext, nur für die Prompts. Jan kann eine kommentierte PDF also einfach als
+  Antwort schicken. Noch nicht mit echtem Telegram-Anhang geprüft, nur Test und Jans Exposé-PDF.
 - Scopus (scopus.py, 02.11.): Keine API (die Uni gibt kein Institutional Token heraus). Jan sucht selbst in Scopus
   (Claude in Chrome auf dem Mac, Prompt mit Suchstrings S1.., Export CSV mit Abstract, höchstens 300 je Suche,
   Protokoll "S1 | Treffer | exportiert | Datei | Vermerk"). Ablage recherche/scopus/ (*.csv, suchen.json,

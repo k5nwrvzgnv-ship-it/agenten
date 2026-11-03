@@ -1086,6 +1086,8 @@ def auftrag_bearbeiten(a: dict) -> bool:
     """Ein Auftrag. False: Claude ist gerade nicht verfügbar, der Auftrag bleibt in neu/."""
     for datei in a.get("dateien") or []:  # Word, PowerPoint, Excel kann Claude nur als Textfassung lesen
         kurse.textfassung(HIER / datei, erneuern=False)
+    if block := kurse.kommentare_block([HIER / d for d in a.get("dateien") or []], a.get("dateien") or []):
+        a["text"] += "\n\n" + block  # nur für die Prompts, der Auftrag in der Ablage bleibt, wie Jan ihn schrieb
     if transkripte.ist_transkript(a["text"]) and not a.get("sitzung"):
         try:
             transkript_uebernehmen(a)
