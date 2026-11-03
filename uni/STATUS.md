@@ -443,6 +443,13 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
      Den alten Entwurf 20261027-112951-uni-e7a60a (ohne Stilvorlage, offen in der Freigabe) dann ablehnen.
    - Offen: data/mailauftraege/ (Mailtexte) aufräumen, z. B. nach 30 Tagen löschen (wie posteingang Punkt 8).
 
+- Kurzrecherche statt Recherche-Pipeline (03.11., Henris Frage Kamera oder RealSense, Auftrag
+  20261103-104356-uni-49cf67): normaler Auftrag mit Verweis auf die vorhandene Exposé-Recherche, höchstens 5
+  Websuchen. 23 Schritte Opus, 0,88 USD, 3,5 min, ca. 600.000 Tokens (vor allem Cache). Antwort als PDF über
+  eine Antwort auf den Auftrag: 3 Schritte, aber 1,06 USD, weil die fortgesetzte Sitzung ihren Verlauf neu lädt.
+  Lernblatt-Kopf passt nur für Vorlesungen ("Vorlesung vom", Legende [unsicher] = Transkript), fest im
+  Renderer (zusammenfassung.py). Jan: Blatt bleibt so, kein Änderungswunsch an den Renderer.
+
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.
 - Aufnahmen (Jan, 20.10.2026): Jan nimmt Vorlesungen auch auf, wenn der Kurs es verbietet. Weise ihn nicht auf Aufnahmeverbote hin.
