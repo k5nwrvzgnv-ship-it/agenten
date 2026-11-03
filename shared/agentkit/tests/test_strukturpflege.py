@@ -3,10 +3,12 @@
 
 Vorlage: daten/reihen_echt.toml (eingefrorene Kopie der echten reihen.toml im neuen Format), Lerngruppe als
 Platzhalter. MIT_TERMINEN entsteht daraus mit den Operationen selbst (Bundesland, Stundenplan, Stunden, Termine).
-Die Ablauf-Tests laufen in einem Git-Repo im Temp-Ordner mit dem echten commit-daten.sh.
+Die Ablauf-Tests laufen in einem Git-Repo im Temp-Ordner mit dem echten commit-daten.sh, meist mit wartendem Commit
+(hintergrund False), TestCommitImHintergrund mit Faden und belegter commit.sperre.
 """
 
 import difflib
+import fcntl
 import hashlib
 import json
 import logging
@@ -15,6 +17,8 @@ import random
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 from datetime import date
 from pathlib import Path
@@ -447,9 +451,8 @@ class TestTermineSchreiben(unittest.TestCase):
         self.assertEqual(struktur.aus_text(r.text).reihe(r.neue_id)["agenten"], [])  # Regel 6
 
 
-class TestAblauf(unittest.TestCase):
-    """Sperre, Handänderung, Konflikt, atomares Schreiben, Commit, Lerngruppe, Rückgängig (7.2) in einem Git-Repo im
-    Temp-Ordner mit dem echten commit-daten.sh."""
+class _MitRepo(unittest.TestCase):
+    """Git-Repo im Temp-Ordner mit dem echten commit-daten.sh und einer Instanz lia/instanz (ohne eigene Tests)."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -476,7 +479,8 @@ class TestAblauf(unittest.TestCase):
         log = logging.getLogger("agentkit.strukturpflege.test")
         log.addHandler(logging.NullHandler())  # Warnungen nicht auf stderr, assertLogs sieht sie trotzdem
         self.u = sp.Umgebung(instanz=self.instanz, ablage=self.wurzel / "ablage", webapp_daten=self.wurzel / "web",
-                             kalender=BE, melden=self.meldungen.append, heute=HEUTE, zufall=random.Random(3), log=log)
+                             kalender=BE, melden=self.meldungen.append, heute=HEUTE, zufall=random.Random(3), log=log,
+                             hintergrund=False, neuer_versuch=None)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -492,6 +496,10 @@ class TestAblauf(unittest.TestCase):
         self.datei.write_text(self.datei.read_text(encoding="utf-8").replace(alt, neu, 1), encoding="utf-8")
         if committen:
             self.git("commit", "-q", "-m", "Jan von Hand", "--", "lia/instanz/reihen.toml")
+
+
+class TestAblauf(_MitRepo):
+    """Sperre, Handänderung, Konflikt, atomares Schreiben, Commit, Lerngruppe, Rückgängig (7.2), Commit wartend."""
 
     def test_regel20_genau_ein_commit_nur_dieser_pfad(self):
         aus = sp.ausfuehren("reihe_anlegen", {"klasse": "ethik-8", "titel": "Würde"}, umgebung=self.u)
@@ -551,19 +559,54 @@ class TestAblauf(unittest.TestCase):
 
     def test_eigene_ungesicherte_aenderung_blockiert_nicht(self):
         ohne_commit = sp.Umgebung(**{**self.u.__dict__, "commit": False})
-        sp.ausfuehren("archivieren", {"id": STRAF}, umgebung=ohne_commit)
+        aus = sp.ausfuehren("archivieren", {"id": STRAF}, umgebung=ohne_commit)
+        self.assertTrue(aus.ausstehend and not aus.gesichert)
         self.assertEqual(self.commits(), ["Anfang"])
-        sp.ausfuehren("archivieren", {"id": "ethik-8-helfen"}, umgebung=self.u)  # committet beide
-        self.assertEqual(len(self.commits()), 2)
+        sp.ausfuehren("archivieren", {"id": "ethik-8-helfen"}, umgebung=self.u)  # holt den ersten nach
+        self.assertEqual(self.commits(), ["lia/instanz: Reihe „Helfen“ in Ethik 8 (2026/27) archiviert (Lia, Web-App)",
+                                          "lia/instanz: Reihe „Straftheorien“ in Ethik 8 (2026/27) archiviert (Lia, "
+                                          "Web-App)", "Anfang"])
         self.assertEqual(self.git("status", "--porcelain", "--", "lia"), "")
+        self.assertEqual(list((self.u.ablage / sp.WARTESCHLANGE).glob("*.json")), [])
 
-    def test_commit_fehlgeschlagen_meldet_jan(self):
+    def test_commit_fehlgeschlagen_meldet_jan_und_bleibt_liegen(self):
+        echt = (self.repo / "commit-daten.sh").read_text()
         (self.repo / "commit-daten.sh").write_text("#!/bin/sh\necho kaputt >&2\nexit 1\n")
         aus = sp.ausfuehren("archivieren", {"id": STRAF}, umgebung=self.u)
         self.assertTrue(aus.geaendert)
         self.assertFalse(aus.gesichert)
+        self.assertIn("noch nicht in Git gesichert", " ".join(aus.hinweise))
+        self.assertEqual(len(self.meldungen), 1)
         self.assertIn("kaputt", self.meldungen[0])
+        self.assertIn("Warteschlange", self.meldungen[0])
         self.assertIn('archiviert = "2026-11-03"', self.datei.read_text(encoding="utf-8"))
+        self.assertEqual([p.stem for p in (self.u.ablage / sp.WARTESCHLANGE).glob("*.json")], [aus.aktion])
+        # nächste Aktion: blockiert nicht, wartet hinter der ersten, keine zweite Meldung zum selben Eintrag
+        zweite = sp.ausfuehren("archivieren", {"id": "ethik-8-helfen"}, umgebung=self.u)
+        self.assertFalse(zweite.gesichert)
+        self.assertEqual(len(self.meldungen), 1)  # je hängendem Eintrag nur einmal
+        self.assertEqual(self.commits(), ["Anfang"])
+        sp.nachholen(self.u)
+        self.assertEqual(self.commits(), ["Anfang"])
+        self.assertEqual(len(self.meldungen), 1)
+        # behoben: der nächste Versuch committet beide einzeln, in Reihenfolge
+        (self.repo / "commit-daten.sh").write_text(echt)
+        self.assertEqual(list(sp.nachholen(self.u)), [aus.aktion, zweite.aktion])
+        self.assertEqual(len(self.commits()), 3)
+        self.assertIn("Straftheorien", self.commits()[1])
+        self.assertEqual(self.git("status", "--porcelain", "--", "lia"), "")
+
+    def test_ungueltiger_stand_wird_nicht_committet(self):
+        aus = sp.ausfuehren("archivieren", {"id": STRAF}, umgebung=sp.Umgebung(**{**self.u.__dict__,
+                                                                                   "commit": False}))
+        eintrag = self.u.ablage / sp.WARTESCHLANGE / f"{aus.aktion}.json"
+        daten = json.loads(eintrag.read_text(encoding="utf-8"))
+        daten["text"] = daten["text"].replace('stand = "geplant"', 'stand = "irgendwie"', 1)
+        eintrag.write_text(json.dumps(daten), encoding="utf-8")
+        self.assertEqual(sp.nachholen(self.u), {})
+        self.assertEqual(self.commits(), ["Anfang"])
+        self.assertTrue(eintrag.exists())
+        self.assertIn("ungültig", self.meldungen[0])
 
     def test_regel15_ungueltige_datei_wird_nicht_beschrieben(self):
         self.von_hand('stand = "geplant"', 'stand = "irgendwie"')
@@ -644,7 +687,7 @@ class TestAblauf(unittest.TestCase):
         self.assertNotIn("lerngruppen", self.git("log", "--name-only", "--format="))
         ablage = self.u.ablage
         self.assertEqual(ablage.stat().st_mode & 0o777, 0o700)
-        self.assertTrue(all(p.stat().st_mode & 0o777 == 0o600 for p in ablage.iterdir()))
+        self.assertTrue(all(p.stat().st_mode & 0o777 == (0o700 if p.is_dir() else 0o600) for p in ablage.rglob("*")))
         self.assertIn(GRUPPE, (ablage / f"{aus.aktion}.json").read_text(encoding="utf-8"))  # fürs Rückgängig
 
     def test_klasse_loeschen_nimmt_lerngruppe_mit(self):
@@ -743,6 +786,160 @@ class TestAblauf(unittest.TestCase):
         self.assertTrue(aus.gesichert)
         self.assertIsNone(aus.commit)
         self.assertEqual(self.commits(), ["Anfang"])
+
+
+class TestCommitImHintergrund(_MitRepo):
+    """Speichern wartet nicht auf commit.sperre; je Aktion ein Commit, in Reihenfolge (Commit im Hintergrund)."""
+
+    def setUp(self):
+        super().setUp()
+        self.u = sp.Umgebung(**{**self.u.__dict__, "hintergrund": True})
+        self.sperre = None
+
+    def tearDown(self):
+        self.freigeben()
+        with sp._versuche_sperre:
+            for timer in sp._versuche.values():
+                timer.cancel()
+        self.warten()
+        super().tearDown()
+
+    def belegen(self):
+        """commit.sperre halten wie ein anderer Chat mit commit.sh oder pruefen.sh."""
+        self.sperre = open(self.repo / ".git" / "commit.sperre", "a")
+        fcntl.flock(self.sperre, fcntl.LOCK_EX)
+
+    def freigeben(self):
+        if self.sperre:
+            self.sperre.close()
+            self.sperre = None
+
+    def warten(self, sekunden: float = 60):
+        ende = time.monotonic() + sekunden
+        for faden in threading.enumerate():
+            if faden.name == "strukturpflege-commit":
+                faden.join(max(0.1, ende - time.monotonic()))
+
+    def schnell(self, *argumente, **mehr) -> sp.Ausgang:
+        start = time.monotonic()
+        aus = sp.ausfuehren(*argumente, umgebung=self.u, **mehr)
+        self.assertLess(time.monotonic() - start, 5)  # der Commit wartete sonst, bis die Sperre frei ist
+        return aus
+
+    def warteschlange(self) -> list[str]:
+        return sorted(p.stem for p in (self.u.ablage / sp.WARTESCHLANGE).glob("*.json"))
+
+    def test_antwortet_sofort_obwohl_die_sperre_belegt_ist(self):
+        self.belegen()
+        aus = self.schnell("archivieren", {"id": STRAF})
+        self.assertTrue(aus.geaendert and aus.ausstehend and not aus.gesichert)
+        self.assertEqual(aus.hinweise, [])
+        self.assertIn('archiviert = "2026-11-03"', self.datei.read_text(encoding="utf-8"))
+        time.sleep(0.3)
+        self.assertEqual(self.commits(), ["Anfang"])
+        self.assertEqual(self.warteschlange(), [aus.aktion])
+        self.freigeben()
+        self.warten()
+        self.assertEqual(self.commits()[0], "lia/instanz: Reihe „Straftheorien“ in Ethik 8 (2026/27) archiviert "
+                                            "(Lia, Web-App)")
+        self.assertEqual(self.warteschlange(), [])
+        self.assertEqual(self.git("status", "--porcelain", "--", "lia"), "")
+        self.assertEqual(self.meldungen, [])
+
+    def test_drei_aktionen_drei_commits_in_reihenfolge(self):
+        self.belegen()
+        self.schnell("reihe_aendern", {"reihe": STRAF, "titel": "Strafe"})
+        self.schnell("archivieren", {"id": "ethik-8-helfen"})  # ausstehender Commit blockiert nicht
+        self.schnell("fach_aendern", {"fach": "ethik", "kurzform": "Eth"})
+        self.assertEqual(len(self.warteschlange()), 3)
+        self.freigeben()
+        self.warten()
+        self.assertEqual(self.commits(), [
+            "lia/instanz: Fach „Ethik“: Kurzform geändert (Lia, Web-App)",
+            "lia/instanz: Reihe „Helfen“ in Ethik 8 (2026/27) archiviert (Lia, Web-App)",
+            "lia/instanz: Reihe „Straftheorien“ in Ethik 8 (2026/27): Titel geändert (jetzt „Strafe“) (Lia, Web-App)",
+            "Anfang"])
+        # je Commit genau die Zeilen seiner Aktion
+        diffs = [[z for z in self.git("show", "--format=", "-U0", f"HEAD~{n}").splitlines()
+                  if z[:1] in "+-" and z[:3] not in ("+++", "---")] for n in range(3)]
+        self.assertEqual(len(diffs[2]), 2)
+        self.assertIn('+titel = "Strafe"', diffs[2])
+        self.assertEqual(diffs[1], ['+archiviert = "2026-11-03"'])
+        self.assertTrue(any("Eth" in z for z in diffs[0]) and len(diffs[0]) in (1, 2))
+        self.assertEqual(self.git("status", "--porcelain", "--", "lia"), "")
+        self.assertEqual(self.warteschlange(), [])
+
+    def test_echte_handaenderung_blockiert_trotz_ausstehendem_commit(self):
+        self.belegen()
+        self.schnell("archivieren", {"id": STRAF})
+        self.von_hand('titel = "Helfen"', 'titel = "Helfen in Not"', committen=False)
+        with self.assertRaises(sp.Handaenderung):
+            self.schnell("archivieren", {"id": "ethik-8-helfen"})
+        self.assertIn("ungespeicherte Handänderungen", self.meldungen[0])
+        self.freigeben()
+        self.warten()
+        # committet wird genau Lias Stand, Jans Änderung bleibt ungespeichert in der Datei
+        self.assertEqual(len(self.commits()), 2)
+        self.assertNotIn("Helfen in Not", self.git("show", "HEAD:lia/instanz/reihen.toml"))
+        self.assertIn("Helfen in Not", self.datei.read_text(encoding="utf-8"))
+
+    def test_rueckgaengig_vor_dem_commit(self):
+        self.belegen()
+        aus = self.schnell("loeschen", {"id": "darstellendes-spiel-kurs-11"})
+        start = time.monotonic()
+        zurueck = sp.rueckgaengig(aus.aktion, umgebung=self.u)
+        self.assertLess(time.monotonic() - start, 5)
+        self.assertTrue(zurueck.ausstehend)
+        self.assertEqual(self.datei.read_text(encoding="utf-8"), ECHT)
+        self.freigeben()
+        self.warten()
+        self.assertEqual(self.commits(), [
+            "lia/instanz: Rückgängig: Klasse Darstellendes Spiel Kurs 11 (2026/27) gelöscht (Lia, Web-App)",
+            "lia/instanz: Klasse Darstellendes Spiel Kurs 11 (2026/27) gelöscht (Lia, Web-App)", "Anfang"])
+        self.assertEqual(self.git("show", "HEAD:lia/instanz/reihen.toml"), ECHT)
+        self.assertEqual(self.git("status", "--porcelain", "--", "lia"), "")
+
+    def test_gescheiterter_commit_meldet_und_wird_spaeter_nachgeholt(self):
+        echt = (self.repo / "commit-daten.sh").read_text()
+        (self.repo / "commit-daten.sh").write_text("#!/bin/sh\necho kaputt >&2\nexit 1\n")
+        self.u.neuer_versuch = 0.5
+        aus = self.schnell("archivieren", {"id": STRAF})
+        self.warten()
+        self.assertEqual(self.commits(), ["Anfang"])
+        self.assertEqual(self.warteschlange(), [aus.aktion])
+        self.assertEqual(len(self.meldungen), 1)
+        self.assertIn("kaputt", self.meldungen[0])
+        (self.repo / "commit-daten.sh").write_text(echt)
+        ende = time.monotonic() + 30
+        while self.warteschlange() and time.monotonic() < ende:
+            time.sleep(0.1)
+        self.warten()
+        self.assertEqual(len(self.commits()), 2)
+        self.assertEqual(self.warteschlange(), [])
+        self.assertEqual(len(self.meldungen), 1)
+
+    def test_beim_start_liegengebliebene_nachholen(self):
+        ohne = sp.Umgebung(**{**self.u.__dict__, "commit": False})
+        a = sp.ausfuehren("archivieren", {"id": STRAF}, umgebung=ohne)
+        b = sp.ausfuehren("archivieren", {"id": "ethik-8-helfen"}, umgebung=ohne)
+        self.assertEqual(self.warteschlange(), [a.aktion, b.aktion])
+        sp.anstossen(self.u).join(60)
+        self.assertEqual(len(self.commits()), 3)
+        self.assertEqual(self.warteschlange(), [])
+
+    def test_von_hand_committet_kein_doppelter_commit(self):
+        self.belegen()
+        self.schnell("archivieren", {"id": STRAF})
+        self.schnell("archivieren", {"id": "ethik-8-helfen"})
+        self.git("commit", "-q", "-m", "Jan von Hand", "--", "lia/instanz/reihen.toml")  # nimmt beide mit
+        self.schnell("reihe_aendern", {"reihe": STRAF, "titel": "Strafe"})
+        self.von_hand('titel = "Strafe"', 'titel = "Strafe!"')  # Jan ändert und committet, Lias Titel steckt drin
+        self.freigeben()
+        self.warten()
+        self.assertEqual(self.commits(), ["Jan von Hand", "Jan von Hand", "Anfang"])
+        self.assertEqual(self.warteschlange(), [])
+        self.assertEqual(self.meldungen, [])
+        self.assertEqual(self.git("status", "--porcelain", "--", "lia"), "")
 
 
 if __name__ == "__main__":

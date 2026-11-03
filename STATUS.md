@@ -689,7 +689,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      - `from agentkit import strukturpflege as sp`; `aus = sp.ausfuehren(operation, argumente, gesehen=None,
        von="Lia, Web-App")` -> Ausgang: geaendert (False = nichts zu tun, nichts geschrieben), text (Satz für
        „Rückgängig“-Hinweis und Commit), aktion (id fürs Rückgängig), neue_id (bei anlegen/kopieren), hinweise (Lia
-       sagen, z. B. „2 Stunden haben keinen Termin mehr“), gesichert (Commit gelungen), commit.
+       sagen, z. B. „2 Stunden haben keinen Termin mehr“), ausstehend (Commit läuft im Hintergrund), gesichert
+       (Commit gelungen, nur ohne Hintergrund), commit.
      - `gesehen` = {id: {feld: wert}} mit den Werten, die die Maske beim Öffnen gezeigt hat (so, wie struktur sie
        liefert, z. B. {"ethik-8-straftheorien": {"titel": "Straftheorien"}}). Konflikt nur, wenn sich genau so ein
        Wert geändert hat; Jans Änderungen an anderen Stellen bleiben.
@@ -720,10 +721,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      - `sp.vorschau(operation, argumente, text, lerngruppen_text)` rechnet nur (z. B. Vorschau in der Maske).
      - Testinstanz: `sp.Umgebung(instanz=<ordner>)`; liegt die Datei nicht als lia/instanz/reihen.toml im Repo, gibt
        es keine Git-Prüfung und keinen Commit.
-     - Commit läuft synchron über commit-daten.sh und wartet auf commit.sperre (während ein anderer Chat committet,
-       bis zu umgebung.commit_zeit = 300 s). Die Web-App sollte ausfuehren deshalb nicht im Request-Thread blockierend
-       aufrufen (Thread oder Hintergrund). Scheitert der Commit: Datei ist geschrieben, Meldung an Jan, die nächste
-       Änderung committet mit (gesichert False, Hinweis für Lia).
+     - Commit im Hintergrund (erledigt 03.11., Hauptordner): ausfuehren und rueckgaengig prüfen und schreiben wie
+       bisher, legen den Stand der Aktion in die Warteschlange <aktionsablage>/commits/<aktion>.json und kehren sofort
+       zurück, auch wenn commit.sperre belegt ist. Ein Faden (`sp.anstossen(umgebung)`, startet ausfuehren selbst)
+       committet je Aktion genau einen Commit in Reihenfolge über `commit-daten.sh "Nachricht" <stand> <blob>` (neuer
+       Modus: genau dieser Stand, nicht die Arbeitsdatei, nur wenn HEAD noch den Stand davor hat; Arbeitsdatei und
+       gemeinsamer Index bleiben). Ausstehende Commits gelten nicht als Handänderung, echte Handänderungen blockieren
+       weiter; Rückgängig geht vor dem Commit (zwei Commits). Hat Jan die Datei inzwischen selbst committet, entfällt
+       der Commit der Aktion (steckt schon drin). Scheitert ein Commit: Eintrag bleibt, die folgenden warten, Meldung
+       an Jan (einmal je Eintrag), neuer Versuch nach umgebung.neuer_versuch = 600 s, beim nächsten Speichern oder
+       Start der App. commit_zeit jetzt 900 s (wartet ja niemand). `Umgebung(hintergrund=False)` wartet wie früher
+       (Skripte, Tests). Regeln im Kopf von strukturpflege.py, Tests TestCommitImHintergrund.
      - Löschen folgt nur 3.1: Aufträge ohne Feld reihe/ort (die 7 alten, F13) und Titel-Verweise zählen nicht. Heute
        hängt an Straftheorien nichts, sie wäre löschbar (mit Rückgängig). Die Maske sollte Löschen nur für leere
        Objekte anbieten (F17), Archivieren immer.
@@ -745,9 +753,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        Testinstanz melden sich bei Jan wie sonst auch.
      - Offen: Neustart von webapp.service mit Jans Okay (`systemctl --user restart webapp.service`), erst dann sieht
        Lia die Masken in der echten App.
-     - Bedarf agentkit: `strukturpflege.ausfuehren` mit Commit im Hintergrund. Heute wartet Lia nach dem Speichern bis
-       zu `commit_zeit` = 300 s, wenn gerade ein anderer Chat committet (die App ruft im Thread auf, die Seite hängt
-       trotzdem so lange).
+     - Erledigt 03.11. (Hauptordner): Commit im Hintergrund, Speichern wartet nicht mehr auf commit.sperre (siehe
+       Schreib-Schnittstelle oben).
+     - Bedarf webapp (vor dem Neustart von webapp.service): beim Start der App einmal `sp.anstossen(umgebung())`
+       aufrufen, damit liegengebliebene Commits nachgeholt werden; den Docstring von `pflegen` in app.py anpassen
+       (wartet nicht mehr bis zu 300 s). Sonst keine Änderung nötig, ausfuehren startet den Commit selbst.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit

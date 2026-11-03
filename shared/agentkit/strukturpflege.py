@@ -10,8 +10,9 @@ Aufruf (Web-App, später Skripte für Jan):
   from agentkit import strukturpflege as sp
   aus = sp.ausfuehren("reihe_anlegen", {"klasse": "ethik-8", "titel": "Würde"}, gesehen=None)
   aus.aktion (id fürs Rückgängig), aus.text („Reihe „Würde“ in Ethik 8 (2026/27) angelegt“), aus.hinweise,
-  aus.neue_id, aus.geaendert, aus.gesichert (Commit gelungen)
+  aus.neue_id, aus.geaendert, aus.ausstehend (Commit läuft im Hintergrund), aus.gesichert (Commit gelungen)
   sp.rueckgaengig(aus.aktion); sp.letzte(20) für „Letzte Änderungen“; sp.OPERATIONEN (Name -> Beschreibung)
+  sp.anstossen(umgebung) beim Start der App: liegengebliebene Commits nachholen (Faden, kehrt sofort zurück)
   sp.vorschau(operation, argumente, text, lerngruppen_text) rechnet nur (Tests, Vorschau), schreibt nichts.
 Fehler (Text immer für Lia lesbar, nie mit Lerngruppen-Text):
   PflegeFehler        Eingabe falsch oder Datei gerade nicht beschreibbar (Jan ist dann schon informiert)
@@ -24,10 +25,23 @@ Ablauf einer Änderung (7.2): Sperre <instanz>/.reihen.sperre; frisch lesen; die
 nur, wenn sich einer der Werte aus `gesehen` ({id: {feld: wert, wie struktur ihn liefert}}) geändert hat; Operation
 auf den aktuellen Text; neuen Text mit tomllib und struktur prüfen; hat reihen.toml ungespeicherte Änderungen, die
 nicht vom letzten Schreiben der App stammen: nicht schreiben, Meldung an Jan; atomar auf den echten Pfad (nie auf
-den Symlink lia/unterricht/reihen.toml); Aktion mit Gegen-Operation in die Aktionsablage; commit-daten.sh mit
+den Symlink lia/unterricht/reihen.toml); Aktion mit Gegen-Operation in die Aktionsablage; Commit mit
 „lia/instanz: <Text> (<von>)“, nur wenn die Datei lia/instanz/reihen.toml des Repos ist. Die Lerngruppe (F6) geht in
 lerngruppen.toml (0600, nicht im Repo) und nie in Commit, Log, Meldung oder Aktionsliste; ihr alter Text liegt für
 Rückgängig nur in der Aktionsablage (Ordner 0700, Dateien 0600, Standard shared/webapp/data/aktionen/<instanz>/).
+
+Commit im Hintergrund: Speichern wartet nicht auf commit.sperre (andere Chats, pruefen.sh rund 76 s). Jede Aktion
+legt ihren Stand (Hash vorher, Text nachher, HEAD) als <aktion>.json in die Warteschlange <ablage>/commits/; ein
+Faden (anstossen) committet die Einträge der Reihe nach je einzeln mit `commit-daten.sh "Nachricht" <stand> <blob>`
+(genau dieser Stand, nicht die Arbeitsdatei, nur wenn HEAD noch den Stand vorher hat). Je Eintrag gilt, mit K = Inhalt
+von HEAD:lia/instanz/reihen.toml:
+  K = vorher                      committen, dann Eintrag weg
+  K = nachher (dieses oder eines späteren Eintrags)   schon in Git (z. B. von Hand committet): Eintrag weg
+  sonst, und die Datei wurde seit dem Eintrag committet   steckt in diesem Commit: Eintrag weg (Log)
+  sonst bzw. Commit gescheitert   Eintrag bleibt, die folgenden warten, Meldung an Jan (einmal je Eintrag), neuer
+                                  Versuch nach umgebung.neuer_versuch Sekunden, beim nächsten Speichern oder Start.
+Ungespeicherte Änderungen gegenüber HEAD gelten nicht als Handänderung, solange die Datei genau der Stand nach dem
+letzten Eintrag der Warteschlange ist. Ohne Hintergrund (umgebung.hintergrund False) wartet ausfuehren wie früher.
 """
 
 import fcntl
@@ -39,6 +53,7 @@ import random
 import re
 import secrets
 import subprocess
+import threading
 import tomllib
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -55,6 +70,7 @@ REPO_PFAD = Path("lia") / "instanz" / DATEI  # nur diese Datei committet commit-
 VON_LIA = "Lia, Web-App"
 MELDE_AGENT = "webapp"
 AKTIONEN_BEHALTEN = 1000
+WARTESCHLANGE = "commits"  # Unterordner der Aktionsablage
 LIA_JAN_WEISS = "Speichern geht gerade nicht. Jan ist informiert."
 
 # Reihenfolge der Schlüssel je Block, wie in Jans Datei; neue Zeilen kommen an diese Stelle.
@@ -109,8 +125,10 @@ class Umgebung:
     kalender: termine.Kalender | None = None  # Standard aus [schule] bundesland und ferien.json
     ferien_datei: Path | None = None
     melden: Callable[[str], object] | None = None  # Standard meldungen.melden("webapp", text)
-    commit: bool = True                   # commit-daten.sh, wenn die Datei lia/instanz/reihen.toml des Repos ist
-    commit_zeit: int = 300                # Sekunden; commit-daten.sh wartet auf commit.sperre
+    commit: bool = True                   # Commit anstoßen (False: Eintrag bleibt nur in der Warteschlange)
+    hintergrund: bool = True              # Commit in eigenem Faden; False: ausfuehren wartet auf den Commit
+    commit_zeit: int = 900                # Sekunden; commit-daten.sh wartet auf commit.sperre
+    neuer_versuch: float | None = 600     # Sekunden bis zum nächsten Versuch nach einem gescheiterten Commit
     heute: date | None = None
     zufall: random.Random | None = None   # für Stunden-ids (Tests: fester Startwert)
     log: logging.Logger | None = None
@@ -136,6 +154,7 @@ class Ausgang:
     neue_id: str | None = None
     gesichert: bool = False  # Commit gelungen (oder nicht nötig)
     commit: str | None = None
+    ausstehend: bool = False  # Commit wartet in der Warteschlange (Hintergrund), Jan erfährt, wenn er scheitert
 
 
 OPERATIONEN: dict[str, str] = {}
@@ -974,22 +993,214 @@ def _ablauf(u: Umgebung, von: str, operation: str, rechnen: Callable[[str, str],
         if r.text == text and r.lerngruppen == lg_text:
             return Ausgang(False, r.beschreibung, hinweise=r.hinweise, neue_id=r.neue_id, gesichert=True)
         repo = _repo(pfad) if r.text != text else None
-        if repo and _ungespeichert(repo, pfad) and _hash(text) != _letzter_hash(ablage):
+        # Erst die Warteschlange, dann git diff: ist ein Eintrag beim Lesen schon weg, ist er auch schon committet
+        if repo and not _nur_ausstehend(ablage, text) and _ungespeichert(repo, pfad):
             _jan(u, ablage, "hand", text, "lia/instanz/reihen.toml hat ungespeicherte Handänderungen. Die Web-App "
                  "schreibt nicht, bis sie committet sind (~/agenten/commit-daten.sh \"Nachricht\").")
             raise Handaenderung("Speichern geht gerade nicht, weil Jan die Datei bearbeitet. Jan ist informiert.")
         _schreiben(pfad, text, r.text, lg_pfad, lg_text, r.lerngruppen)
-        if r.text != text:
-            _json_schreiben(ablage / "stand.json", {"hash": _hash(r.text)})
         aktion = _aktion_ablegen(ablage, r, von, operation, rueckgaengig_von)
         log.info("Struktur: %s (%s), Aktion %s", r.beschreibung, von, aktion)
         aus = Ausgang(True, r.beschreibung, aktion, r.hinweise, r.neue_id, gesichert=True)
-        if repo and u.commit and pfad == Path(os.path.realpath(repo / REPO_PFAD)):
-            aus.commit = _committen(u, ablage, repo, f"lia/instanz: {r.beschreibung} ({von})", log)
-            aus.gesichert = aus.commit is not None
+        if repo and pfad == Path(os.path.realpath(repo / REPO_PFAD)):
+            _einreihen(ablage, aktion, f"lia/instanz: {r.beschreibung} ({von})", text, r.text, repo)
+            aus.gesichert, aus.ausstehend = False, True
+    if aus.ausstehend and u.commit:
+        if u.hintergrund:
+            anstossen(u)
+        else:
+            commits = nachholen(u)
+            aus.commit = commits.get(aktion)
+            aus.gesichert, aus.ausstehend = aus.commit is not None, aus.commit is None
             if not aus.gesichert:
                 aus.hinweise.append("Gespeichert, aber noch nicht in Git gesichert; Jan ist informiert")
     return aus
+
+
+# --- Commit im Hintergrund (siehe Kopf) ----------------------------------------------------------------------------
+
+_versuche: dict[str, threading.Timer] = {}  # je Warteschlange höchstens ein geplanter neuer Versuch
+_versuche_sperre = threading.Lock()
+
+
+def anstossen(umgebung: Umgebung | None = None) -> threading.Thread:
+    """Warteschlange in einem eigenen Faden abarbeiten, kehrt sofort zurück. Beim Start der App aufrufen, damit
+    liegengebliebene Commits nachgeholt werden. Kein Daemon: ein Skript wartet am Ende auf seinen Commit."""
+    u = umgebung or Umgebung()
+    faden = threading.Thread(target=_nachholen_im_faden, args=(u,), name="strukturpflege-commit")
+    faden.start()
+    return faden
+
+
+def nachholen(umgebung: Umgebung | None = None) -> dict[str, str]:
+    """Warteschlange jetzt abarbeiten (wartet auf commit.sperre). Ergebnis {aktion: commit} der gelungenen
+    Commits. Arbeitet gerade ein anderer Faden oder Prozess, wartet es auf ihn und macht dann weiter."""
+    u = umgebung or Umgebung()
+    return _nachholen(u, warten=True)
+
+
+def _nachholen_im_faden(u: Umgebung) -> None:
+    log = u.log or logging.getLogger("agentkit.strukturpflege")
+    try:
+        _nachholen(u, warten=False)
+    except Exception as e:  # der Faden darf nicht still sterben
+        log.exception("Commit im Hintergrund fehlgeschlagen")
+        _jan(u, _ablage(u), "nachholen", f"{type(e).__name__}: {e}", "Die Web-App konnte ihre Änderungen an "
+             f"lia/instanz/reihen.toml nicht committen ({type(e).__name__}: {e}). Sie versucht es später noch "
+             "einmal; die Datei selbst ist gespeichert.")
+        _spaeter(u)
+
+
+def _nachholen(u: Umgebung, warten: bool) -> dict[str, str]:
+    """Arbeitet ab, solange etwas da ist. Ohne warten: hält ein anderer die Sperre, macht der weiter (er schaut nach
+    dem Freigeben noch einmal nach, deshalb geht kein Eintrag verloren)."""
+    log = u.log or logging.getLogger("agentkit.strukturpflege")
+    ablage = _ablage(u)
+    ordner = ablage / WARTESCHLANGE
+    pfad = Path(os.path.realpath(Path(u.instanz) / DATEI))
+    repo = _repo(pfad)
+    commits: dict[str, str] = {}
+    if not repo or pfad != Path(os.path.realpath(repo / REPO_PFAD)):
+        return commits
+    while _eintraege(ordner):
+        with open(_sperre_anlegen(ordner), "a") as f:
+            try:
+                fcntl.flock(f, fcntl.LOCK_EX | (0 if warten else fcntl.LOCK_NB))
+            except BlockingIOError:
+                return commits
+            try:
+                fertig = _abarbeiten(u, ablage, repo, commits, log)
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+        if not fertig:
+            _spaeter(u)
+            break
+    return commits
+
+
+def _sperre_anlegen(ordner: Path) -> Path:
+    ordner.mkdir(parents=True, exist_ok=True, mode=0o700)
+    sperre = ordner / ".sperre"
+    if not sperre.exists():
+        sperre.touch(mode=0o600)
+    return sperre
+
+
+def _abarbeiten(u: Umgebung, ablage: Path, repo: Path, commits: dict[str, str], log: logging.Logger) -> bool:
+    """Einträge der Reihe nach (Regeln im Kopf). False: ein Eintrag hängt, die übrigen warten."""
+    eintraege = _eintraege(ablage / WARTESCHLANGE)
+    for nr, (datei, e) in enumerate(eintraege):
+        if e is None:
+            _jan(u, ablage, "commit", datei.name, f"Die Warteschlange der Web-App enthält einen unlesbaren Eintrag "
+                 f"({datei}). Die Commits danach warten. Datei prüfen und löschen; die Änderungen selbst stehen in "
+                 "lia/instanz/reihen.toml.")
+            return False
+        for _ in range(3):  # HEAD kann sich zwischen Nachsehen und Commit ändern (Ausgang 3)
+            blob = _git(repo, "rev-parse", "-q", "--verify", f"HEAD:{REPO_PFAD}").stdout.strip()
+            kopf = _git(repo, "cat-file", "blob", blob).stdout if blob else ""
+            # vorher zuerst: nach Aktion und Rückgängig ist nachher des Rückgängig gleich vorher der Aktion
+            if _hash(kopf) != e["vorher"]:
+                if _hash(kopf) in {s["nachher"] for _, s in eintraege[nr:] if s}:
+                    log.info("Commit von Aktion %s entfällt: schon in Git", e["aktion"])
+                    break
+                if _seit_commit(repo, e.get("head", "")):
+                    log.info("Commit von Aktion %s entfällt: reihen.toml wurde seitdem mit diesem Stand committet",
+                             e["aktion"])
+                    break
+                return _gescheitert(u, ablage, datei, e, "HEAD hat einen anderen Stand von reihen.toml als vor "
+                                    "dieser Änderung, und seitdem wurde die Datei nicht committet")
+            ergebnis, grund = _committen(u, ablage, repo, e, blob)
+            if ergebnis == "commit":
+                commits[e["aktion"]] = grund
+                break
+            if ergebnis != "nochmal":
+                return _gescheitert(u, ablage, datei, e, grund)
+        else:
+            return _gescheitert(u, ablage, datei, e, "HEAD ändert sich ständig")
+        datei.unlink(missing_ok=True)
+    return True
+
+
+def _committen(u: Umgebung, ablage: Path, repo: Path, e: dict, blob: str) -> tuple[str, str]:
+    """("commit", hash) | ("nochmal", "") bei Ausgang 3 | ("fehler", grund)."""
+    stand = ablage / WARTESCHLANGE / f".{e['aktion']}.toml"
+    try:
+        _atomar(stand, e["text"], 0o600)
+        r = subprocess.run([str(repo / "commit-daten.sh"), e["nachricht"], str(stand), blob], cwd=repo,
+                           capture_output=True, text=True, timeout=u.commit_zeit, env=_umgebung_ohne_git())
+    except (OSError, subprocess.SubprocessError) as fehler:
+        return "fehler", str(fehler)
+    finally:
+        stand.unlink(missing_ok=True)
+    if r.returncode == 0:
+        return "commit", _git(repo, "rev-parse", "HEAD").stdout.strip()
+    if r.returncode == 3:
+        return "nochmal", ""
+    return "fehler", (r.stderr or r.stdout).strip()[-500:]
+
+
+def _gescheitert(u: Umgebung, ablage: Path, datei: Path, e: dict, grund: str) -> bool:
+    log = u.log or logging.getLogger("agentkit.strukturpflege")
+    log.error("Commit von Aktion %s fehlgeschlagen: %s", e["aktion"], grund)
+    _jan(u, ablage, "commit", e["aktion"], f"Die Web-App hat lia/instanz/reihen.toml geschrieben, aber der Commit "
+         f"„{e['nachricht']}“ ist fehlgeschlagen ({grund}). Er bleibt in der Warteschlange ({datei}), die Commits "
+         "danach warten, die Web-App versucht es später noch einmal. Hilft das nicht: Ursache beheben, dann "
+         "committet die nächste Änderung in der App mit; oder den Eintrag löschen und von Hand "
+         "~/agenten/commit-daten.sh \"Nachricht\".")
+    return False
+
+
+def _spaeter(u: Umgebung) -> None:
+    """Neuer Versuch nach u.neuer_versuch Sekunden (Daemon: hält das Ende der App nicht auf)."""
+    if u.neuer_versuch is None:
+        return
+    schluessel = str(_ablage(u))
+    with _versuche_sperre:
+        if schluessel in _versuche and _versuche[schluessel].is_alive():
+            return
+        timer = threading.Timer(u.neuer_versuch, anstossen, args=(u,))
+        timer.daemon = True
+        _versuche[schluessel] = timer
+        timer.start()
+
+
+def _einreihen(ablage: Path, aktion: str, nachricht: str, vorher: str, nachher: str, repo: Path) -> None:
+    head = _git(repo, "rev-parse", "-q", "--verify", "HEAD").stdout.strip()
+    _json_schreiben(ablage / WARTESCHLANGE / f"{aktion}.json", {
+        "aktion": aktion, "nachricht": nachricht, "vorher": _hash(vorher), "nachher": _hash(nachher), "head": head,
+        "text": nachher})
+
+
+def _eintraege(ordner: Path) -> list[tuple[Path, dict | None]]:
+    """Einträge nach Aktion sortiert (Aktions-ids sind nach Zeit sortierbar); unlesbar = None."""
+    liste = []
+    dateien = sorted(p for p in ordner.glob("*.json") if _AKTION_ID.fullmatch(p.stem)) if ordner.exists() else []
+    for pfad in dateien:
+        try:
+            e = json.loads(pfad.read_text(encoding="utf-8"))
+        except FileNotFoundError:  # gerade committet
+            continue
+        except (OSError, ValueError):
+            e = None
+        if not (isinstance(e, dict) and {"aktion", "nachricht", "vorher", "nachher", "text"} <= set(e)):
+            e = None
+        liste.append((pfad, e))
+    return liste
+
+
+def _nur_ausstehend(ablage: Path, text: str) -> bool:
+    """Die Datei ist genau der Stand nach dem letzten Eintrag der Warteschlange: ihr Unterschied zu HEAD sind nur
+    Aktionen der App, deren Commit noch aussteht (keine Handänderung)."""
+    eintraege = _eintraege(ablage / WARTESCHLANGE)
+    return bool(eintraege) and eintraege[-1][1] is not None and eintraege[-1][1]["nachher"] == _hash(text)
+
+
+def _seit_commit(repo: Path, head: str) -> bool:
+    """Wurde reihen.toml nach dem Einreihen (HEAD damals) committet? Dann steckt der Stand darin, denn die Datei
+    war da schon geschrieben."""
+    if not head or _git(repo, "merge-base", "--is-ancestor", head, "HEAD").returncode != 0:
+        return False
+    return bool(_git(repo, "log", "--format=%H", f"{head}..HEAD", "--", str(REPO_PFAD)).stdout.strip())
 
 
 @contextmanager
@@ -1082,22 +1293,6 @@ def _ungespeichert(repo: Path, pfad: Path) -> bool:
     return _git(repo, "diff", "--quiet", "HEAD", "--", str(pfad)).returncode != 0
 
 
-def _committen(u: Umgebung, ablage: Path, repo: Path, nachricht: str, log: logging.Logger) -> str | None:
-    try:
-        r = subprocess.run([str(repo / "commit-daten.sh"), nachricht], cwd=repo, capture_output=True, text=True,
-                           timeout=u.commit_zeit, env=_umgebung_ohne_git())
-        if r.returncode == 0:
-            return _git(repo, "rev-parse", "HEAD").stdout.strip() or None
-        grund = (r.stderr or r.stdout).strip()[-500:]
-    except (OSError, subprocess.SubprocessError) as e:
-        grund = str(e)
-    log.error("commit-daten.sh fehlgeschlagen: %s", grund)
-    _jan(u, ablage, "commit", nachricht, f"Die Web-App hat lia/instanz/reihen.toml geschrieben, aber commit-daten.sh "
-         f"ist fehlgeschlagen ({grund}). Die nächste Änderung committet mit, oder von Hand: "
-         "~/agenten/commit-daten.sh \"Nachricht\".")
-    return None
-
-
 def _jan(u: Umgebung, ablage: Path, grund: str, zu: str, text: str) -> None:
     """Meldung an Jan, je Grund und Dateistand nur einmal (Lia klickt sonst mehrmals)."""
     log = u.log or logging.getLogger("agentkit.strukturpflege")
@@ -1122,10 +1317,6 @@ def _ablage(u: Umgebung) -> Path:
         return Path(u.ablage)
     schluessel = hashlib.sha256(str(Path(u.instanz).resolve()).encode()).hexdigest()[:12]
     return Path(u.webapp_daten or WEBAPP_DATEN) / "aktionen" / schluessel
-
-
-def _letzter_hash(ablage: Path) -> str | None:
-    return _json_lesen(ablage / "stand.json").get("hash")
 
 
 def _json_lesen(pfad: Path) -> dict:
