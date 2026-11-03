@@ -16,6 +16,7 @@ import pptx
 from docx.enum.section import WD_ORIENT
 from docx.oxml.ns import qn
 from docx.table import Table
+from docx.text.hyperlink import Hyperlink
 from docx.text.paragraph import Paragraph
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
@@ -83,7 +84,10 @@ def _docx(pfad: Path) -> str:
 
 def _absatztext(p) -> str:
     teile = []
-    for r in p.runs:
+    for r in p.iter_inner_content():  # Runs und Links in Lesereihenfolge
+        if isinstance(r, Hyperlink):
+            teile.append(r.text)
+            continue
         if r._r.find(qn("w:sym")) is not None:
             teile.append("☐")
         teile.append(r.text)

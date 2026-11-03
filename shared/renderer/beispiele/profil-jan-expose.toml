@@ -1,0 +1,13 @@
+# Design-Profil für Jans Exposés (Art "expose"), gemessen am Studienbeleg "Quercus" der HNEE (03.11.2026):
+# Arial 11 (in der PDF maßgleich durch Liberation Sans), Zeilenabstand einfach (bei Arial 12,6 pt), Ränder 3 / 2,4 /
+# 2,5 / 2,5 cm. Vorlage für den uni-Agenten: Datei dorthin kopieren und logo eintragen. Werte: design.py.
+
+schrift = "Arial"
+schriftgroesse_pt = 11
+zeilenabstand = 1.0
+logo = ""             # Pfad zum HNEE-Logo (PNG), z. B. uni/data/vorlagen/hnee_logo.png; leer: ohne Logo
+logo_breite_cm = 7.0
+rand_oben_cm = 3.0
+rand_unten_cm = 2.4
+rand_links_cm = 2.5
+rand_rechts_cm = 2.5

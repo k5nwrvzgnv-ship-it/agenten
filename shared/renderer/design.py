@@ -16,6 +16,12 @@ STANDARD = {
     "nummer_text": "Arbeitsblatt",  # vor der Nummer im Kopf: "Arbeitsblatt 5"
     "erstellt_von": "",  # Zusammenfassung: "erstellt von ..." im Kopf, leer: weglassen
     "linienabstand_cm": 0.8,  # Abstand der Schreiblinien
+    "logo": "",  # Exposé: Pfad zu einem Bild (PNG/JPG) oben links auf dem Deckblatt, leer: ohne Logo
+    "logo_breite_cm": 7.0,
+    "rand_oben_cm": 3.0,  # Ränder des Exposés ohne Vorlage (die anderen Arten haben feste Ränder)
+    "rand_unten_cm": 2.4,
+    "rand_links_cm": 2.5,
+    "rand_rechts_cm": 2.5,
     "folien_schrift": "Aptos",
     "folien_titelschrift": "Aptos Display",
     "farben": {
@@ -36,7 +42,9 @@ STANDARD = {
 }
 
 _FARBE = re.compile(r"^[0-9A-Fa-f]{6}$")
-_GRENZEN = {"schriftgroesse_pt": (8, 16), "zeilenabstand": (1.0, 2.0), "linienabstand_cm": (0.5, 1.5)}
+_GRENZEN = {"schriftgroesse_pt": (8, 16), "zeilenabstand": (1.0, 2.0), "linienabstand_cm": (0.5, 1.5),
+            "logo_breite_cm": (1, 16), "rand_oben_cm": (1, 5), "rand_unten_cm": (1, 5), "rand_links_cm": (1, 5),
+            "rand_rechts_cm": (1, 5)}
 
 
 class ProfilUngueltig(ValueError):
@@ -66,6 +74,8 @@ def profil_lesen(profil: dict | None) -> dict:
                  "folien_titelschrift"):
         if not isinstance(ergebnis[name], str) or len(ergebnis[name]) > 60:
             fehler.append(f"{name}: muss ein Text mit höchstens 60 Zeichen sein")
+    if not isinstance(ergebnis["logo"], str) or len(ergebnis["logo"]) > 500:
+        fehler.append("logo: muss ein Pfad (Text mit höchstens 500 Zeichen) sein")
     for name, (unten, oben) in _GRENZEN.items():
         wert = ergebnis[name]
         if isinstance(wert, bool) or not isinstance(wert, int | float) or not unten <= wert <= oben:
