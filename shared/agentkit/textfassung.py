@@ -5,6 +5,8 @@ nicht, dafür bräuchte es LibreOffice.
 Die Bibliotheken (pypdf, python-docx, python-pptx, openpyxl) importiert die Funktion
 erst bei Bedarf: Jeder Agent installiert in seiner .venv nur, welche Formate er braucht.
 word_kommentare() und word_absaetze() kommen ohne Pakete aus (zipfile), z. B. für Lias Word-Datei an einer Rückmeldung.
+pdf_kommentare() liest Markierungen und Notizen einer PDF (braucht pypdf), kommentare() wählt nach Endung
+zwischen Word und PDF.
 """
 
 import logging
@@ -108,3 +110,70 @@ def word_kommentare(pfad: Path) -> list[dict]:
             ergebnis.append({"stelle": " ".join("".join(stellen.get(k.get(f"{W}id"), [])).split()),
                              "kommentar": text, "autor": k.get(f"{W}author") or ""})
     return ergebnis
+
+
+MARKIERUNGEN = {"/Highlight", "/Underline", "/StrikeOut", "/Squiggly"}
+NOTIZEN = {"/Text", "/FreeText"}
+
+
+def _textstuecke(seite) -> list[tuple[float, float, str]]:
+    """Textstücke einer pypdf-Seite als (x, y, text), x und y = Anfang in Seitenkoordinaten (Tm mal CTM)."""
+    stuecke = []
+
+    def sammeln(t, cm, tm, schrift, groesse):
+        if t.strip():
+            stuecke.append((tm[4] * cm[0] + tm[5] * cm[2] + cm[4], tm[4] * cm[1] + tm[5] * cm[3] + cm[5], t))
+    seite.extract_text(visitor_text=sammeln)
+    return stuecke
+
+
+def _stelle(stuecke: list[tuple[float, float, str]], quadpunkte: list) -> str:
+    """Text unter den QuadPoints (je 8 Zahlen ein Viereck). Ein Textstück gehört dazu, wenn seine Grundlinie im
+    y-Bereich des Vierecks liegt und es nicht rechts davon beginnt. Stücke in Lesereihenfolge, jedes nur einmal."""
+    zahlen = [float(z) for z in quadpunkte]
+    treffer = set()
+    for i in range(0, len(zahlen) - 7, 8):
+        xs, ys = zahlen[i:i + 8:2], zahlen[i + 1:i + 8:2]
+        for nr, (x, y, _) in enumerate(stuecke):
+            if min(ys) - 2 <= y <= max(ys) and x <= max(xs) + 2:
+                treffer.add(nr)
+    return " ".join(" ".join(stuecke[nr][2] for nr in sorted(treffer)).split())
+
+
+def pdf_kommentare(pfad: Path) -> list[dict]:
+    """Kommentare einer PDF in Seitenreihenfolge: {"seite", "stelle": markierter Text, "kommentar", "autor"}.
+    Markierungen (Highlight, Underline, StrikeOut, Squiggly) nur mit Kommentartext; Notizen (Text, FreeText) mit
+    leerer Stelle. Ohne Kommentare oder bei anderen Formaten: []. Kaputte Datei: ValueError."""
+    if Path(pfad).suffix.lower() != ".pdf":
+        return []
+    import pypdf
+    logging.getLogger("pypdf").setLevel(logging.ERROR)  # kaputte PDFs sonst sehr gesprächig
+    ergebnis = []
+    try:
+        for nr, seite in enumerate(pypdf.PdfReader(pfad).pages, 1):
+            stuecke = None
+            for verweis in seite.get("/Annots") or []:
+                a = verweis.get_object()
+                art = a.get("/Subtype")
+                text = str(a.get("/Contents") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+                if art not in MARKIERUNGEN | NOTIZEN or not text:
+                    continue
+                stelle = ""
+                if art in MARKIERUNGEN:
+                    if stuecke is None:
+                        stuecke = _textstuecke(seite)
+                    stelle = _stelle(stuecke, a.get("/QuadPoints") or [])
+                ergebnis.append({"seite": nr, "stelle": stelle, "kommentar": text, "autor": str(a.get("/T") or "")})
+    except pypdf.errors.PyPdfError as f:
+        raise ValueError(f"{Path(pfad).name}: {f}") from None
+    return ergebnis
+
+
+def kommentare(pfad: Path) -> list[dict]:
+    """Kommentare einer docx (word_kommentare) oder pdf (pdf_kommentare), andere Formate: []."""
+    endung = Path(pfad).suffix.lower()
+    if endung == ".docx":
+        return word_kommentare(pfad)
+    if endung == ".pdf":
+        return pdf_kommentare(pfad)
+    return []

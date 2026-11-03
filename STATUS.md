@@ -767,14 +767,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     /Highlight, /Text, /FreeText: Seite, markierter Text über /QuadPoints, Kommentartext /Contents), z. B. als
     Abschnitt "Kommentare" hinter dem Text. Anlass: Jan hat das Exposé in der PDF kommentiert; der uni-Agent hätte
     bei einer Antwort mit der PDF nur den alten Text gesehen. Mit pypdf (in uni/.venv vorhanden) machbar.
-    Plan (03.11., Jan: "planen"; bauen erst nach Jans Okay):
-    - Hauptordner-Chat: textfassung.pdf_kommentare(pfad) -> list[dict] wie word_kommentare: {"seite", "stelle",
-      "kommentar", "autor"}. Markierungen (/Highlight, /Underline, /StrikeOut, /Squiggly): stelle = Text unter den
-      /QuadPoints (pypdf extract_text mit visitor_text, Zeilen nach y und x zuordnen). /Text und /FreeText: stelle
-      leer. /Popup, /Link u. a. überspringen. kommentar = /Contents (\r zu \n), autor = /T. Ohne Kommentare oder bei
-      anderen Formaten [], kaputte Datei ValueError. Dazu kommentare(pfad): docx oder pdf. als_text bleibt
-      unverändert. Tests mit einer in setUp per pypdf erzeugten PDF (Markierung mit und ohne Kommentar,
-      Notiz, Link). Keine neuen Pakete.
+    Plan (03.11., Jan: "Ja, so bauen"):
+    - agentkit erledigt 03.11.: textfassung.kommentare(pfad) -> list[dict] (docx: word_kommentare, pdf:
+      pdf_kommentare, sonst []). pdf_kommentare liefert {"seite", "stelle", "kommentar", "autor"} in
+      Seitenreihenfolge; Markierungen (/Highlight, /Underline, /StrikeOut, /Squiggly) nur mit /Contents, stelle =
+      Textstücke, deren Grundlinie im y-Bereich eines QuadPoints-Vierecks liegt und die nicht rechts davon beginnen
+      (ganze Zeilen, auch bei Teilmarkierung). /Text, /FreeText mit leerer stelle, alles andere übersprungen.
+      Kaputte Datei ValueError. Gegen Jans kommentierte Exposé-PDF geprüft (6 Kommentare, Seiten 2 und 4).
+      Achtung: pruefen.sh lässt agentkit/tests mit System-python3 laufen, dort fehlt pypdf; die 3 PDF-Tests werden
+      dort übersprungen (skipUnless) und laufen mit uni/.venv/bin/python grün. Offen, nach Jans Entscheidung: in
+      pruefen.sh einen zweiten Eintrag "shared|../uni/.venv/bin/python|agentkit/tests" oder so lassen.
     - Danach uni-Chat: auftrag_bearbeiten hängt für jeden Anhang mit Kommentaren einen Block "Kommentare in
       <datei> (Seite, markierte Stelle: Kommentar)" an a["text"], so sieht ihn jeder Weg (Exposé, Dokument,
       sonstige). Test in uni/tests.
