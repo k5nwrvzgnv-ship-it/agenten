@@ -1,12 +1,12 @@
 # Plan: Lia pflegt Fach → Klasse/Kurs → Reihe → Stunde selbst
 
 Stand 03.11.2026. **Von Jan freigegeben am 03.11.2026.** Gebaut wird in den Bauschritten aus Abschnitt 11, je im
-zuständigen Chat. Offene Fragen in Abschnitt 9 (**F1** bis **F24**). Entschieden (Jan 03.11.): F1 bis F6, F9, F11, F14, F19. Offen: F7, F8, F10, F12, F13, F15 bis F18, F20 bis F24.
+zuständigen Chat. Offene Fragen in Abschnitt 9 (**F1** bis **F24**). Entschieden (Jan 03.11.): F1 bis F6, F9, F11, F14, F19 bis F24. Offen: F7, F8, F10, F12, F13, F15 bis F18.
 
 **Erweiterung 03.11. nach der Freigabe:** Jan beschreibt den Ablauf vom neuen Schuljahr an. Die Klasse bekommt
 wiederkehrende Termine, die Reihe bekommt Termine zugeteilt (Abschnitt 2a). Das ändert Datenmodell, Masken und
-Matrix. Bauschritte 1 und 2 bleiben gültig. **Bauschritt 3 (Migration) wartet**, bis Jan Abschnitt 2a angesehen hat,
-sonst wird die Datei zweimal umgestellt.
+Matrix. Bauschritte 1 und 2 bleiben gültig. Jan hat 2a angesehen und F20–F24 beantwortet (03.11.). **Bauschritt 3
+(Migration) wartet auf Bauschritt 1b**, sonst wird die Datei zweimal umgestellt.
 
 Grundlage (selbst gelesen): `git log -p lia/instanz/reihen.toml` (8 Commits, mit der Vorgängerdatei
 `lia/unterricht/reihen.toml`), alle Leser der Datei (`lia/unterricht/reihen.py`, `lia/examen/runde.py`,
@@ -135,7 +135,7 @@ Jans Vorgabe: Neues Schuljahr, neuer Kurs bzw. neue Klasse (beides dieselbe Orga
 man den wiederkehrenden Termin an, und die App erzeugt daraus alle Termine des Halbjahrs. In der Maske der Reihe
 teilt man diese Termine der Reihe zu oder legt Stunden an, wenn es noch keine Termine gibt. Antworten (Jan 03.11.):
 Die Maske fragt das Bundesland und erkennt Ferien selbst; bei Ausfall entscheidet Lia jedes Mal, ob alles nachrückt;
-mehrere Termine je Woche, Doppelstunden und A/B-Wochen kommen vor, aber nicht immer; zum Halbjahr ändert sich teils
+mehrere Termine je Woche und Doppelstunden kommen vor, aber nicht immer; A/B-Wochen gibt es nicht (F22); zum Halbjahr ändert sich teils
 der Wochentag, die Anzahl der Termine nicht.
 
 ### 2a.1 Ablauf
@@ -143,7 +143,7 @@ der Wochentag, die Anzahl der Termine nicht.
 | Schritt | Wer, wann | Was Lia angibt | Was die App macht |
 |---|---|---|---|
 | 0 Schule | einmal (beim ersten Kurs) | Bundesland | Schuljahr und Halbjahre aus den Ferien des Bundeslands (Schuljahr = nach den Sommerferien bis zu den nächsten); Feiertage dazu |
-| 1 Klasse/Kurs anlegen | Schuljahresbeginn | Fach (vorbelegt), Name, Schuljahr (vorbelegt); **Stundenplan**: je wiederkehrendem Termin Wochentag, Unterrichtsstunde, Einzel- oder Doppelstunde, jede Woche oder A/B-Woche; beliebig viele | erzeugt alle Termine bis Halbjahresende ohne Ferien und Feiertage; sie sind zunächst **frei** (gehören zur Klasse, zu keiner Reihe) |
+| 1 Klasse/Kurs anlegen | Schuljahresbeginn | Fach (vorbelegt), Name, Schuljahr (vorbelegt); **Stundenplan**: je wiederkehrendem Termin Wochentag, Unterrichtsstunde, Einzel- oder Doppelstunde; beliebig viele | erzeugt alle Termine bis Halbjahresende ohne Ferien und Feiertage; sie sind zunächst **frei** (gehören zur Klasse, zu keiner Reihe) |
 | 2 Reihe anlegen | wenn Lia plant | Titel; optional in derselben Maske: **freie Termine zuteilen** (Häkchen in der Terminliste oder „ab Di 11.11., 8 Termine“), oder **Stunden ohne Termin** anlegen | je zugeteiltem Termin eine Stunde der Reihe mit Datum, Thema zunächst offen |
 | 3 Stunden füllen | laufend | Thema, Marke (UB/Prüfung), Material | wie bisher |
 | 4 Alltag | laufend | Termin fällt aus: **„Alles rückt nach“** oder **„Diese Stunde fällt weg“**; Stunde verschieben; Reihe bekommt mehr oder weniger Termine; einzelner Zusatztermin | rechnet Daten neu (2a.3) |
@@ -172,7 +172,6 @@ ausfall = ["2026-11-18/3"]       # gestrichene Termine („alles rückt nach“)
 tag = "Di"
 stunde = 3                       # Unterrichtsstunde laut Stundenplan
 laenge = 1                       # 1 Einzelstunde, 2 Doppelstunde (= ein Termin, F21)
-woche = "jede"                   # "jede", "A" oder "B" (F22)
 ab = "2026-08-31"
 bis = "2027-01-29"               # neuer Eintrag ab dem 2. Halbjahr, wenn sich der Tag ändert
 
@@ -195,7 +194,7 @@ thema = "Kant: Vergeltung"
 ### 2a.3 Rechenregeln
 
 - **Alles rückt nach**: Der Termin kommt in `ausfall`. Jede spätere Stunde der Klasse rückt auf den nächsten Termin,
-  über Reihengrenzen hinweg (**F23**). Die letzte Stunde nimmt den nächsten freien Termin; gibt es keinen mehr im
+  über Reihengrenzen hinweg (F23, Jan 03.11.). Die letzte Stunde nimmt den nächsten freien Termin; gibt es keinen mehr im
   Halbjahr, steht sie ohne Termin da und die App sagt es. Inhalte, ids und Material bleiben.
 - **Diese Stunde fällt weg**: Der Termin kommt in `ausfall`, die Stunde wird ausgeblendet (Abschnitt 3). Alle
   anderen Daten bleiben.
@@ -320,7 +319,7 @@ Doppelte Klasse (gleicher Name, gleiches Schuljahr, gleiches Fach): Hinweis „g
 
 | Aktion | erlaubt | Pflichtfelder | Folgen | Aufträge |
 |---|---|---|---|---|
-| anlegen | über den Stundenplan der Klasse; einzeln als Zusatztermin | Stundenplan: Wochentag, Unterrichtsstunde (Einzel/Doppel, Woche vorbelegt „jede“); Zusatztermin: Datum, Unterrichtsstunde | freie Termine | – |
+| anlegen | über den Stundenplan der Klasse; einzeln als Zusatztermin | Stundenplan: Wochentag, Unterrichtsstunde (Einzel/Doppel); Zusatztermin: Datum, Unterrichtsstunde | freie Termine | – |
 | zuteilen | ja, an eine Reihe (in der Maske der Reihe oder an der Reihe) | Auswahl der Termine | je Termin eine Stunde, Thema offen; Stunden ohne Termin bekommen der Reihe nach Daten | – |
 | freigeben | ja (Reihe braucht weniger) | – | nur leere Stunden (ohne Thema, ohne Material) verschwinden; sonst wird die Stunde ohne Termin behalten | bleiben |
 | ausfallen | ja, Lia wählt jedes Mal: „Alles rückt nach“ oder „Diese Stunde fällt weg“ (Jan 03.11.) | Auswahl | 2a.3 | bleiben an ihren Stunden |
@@ -340,7 +339,7 @@ Pflichtfeld fehlt.
 |---|---|---|---|
 | Fach | Name | Kurzform | id |
 | Schule (einmal) | Bundesland | – | – |
-| Klasse/Kurs | Name, Schuljahr (vorbelegt); in derselben Maske, aber freiwillig: Stundenplan (je Zeile Wochentag, Unterrichtsstunde, Einzel/Doppel, jede/A/B-Woche; „+ weiterer Termin“) | Lerngruppe (mit festem Hinweis, Abschnitt 6), Stundenplan ab Stichtag | id, herkunft, archiviert, ausfall |
+| Klasse/Kurs | Name, Schuljahr (vorbelegt); in derselben Maske, aber freiwillig: Stundenplan (je Zeile Wochentag, Unterrichtsstunde, Einzel/Doppel; „+ weiterer Termin“) | Lerngruppe (mit festem Hinweis, Abschnitt 6), Stundenplan ab Stichtag | id, herkunft, archiviert, ausfall |
 | Reihe | Titel; in derselben Maske, aber freiwillig: freie Termine zuteilen (Liste mit Häkchen, Schnellwahl „ab … n Termine“) oder „+ Stunde ohne Termin“ | Reihenfrage, Stand, Notizen, schon behandelt, Merksätze (je Zeile einer) | id, herkunft, archiviert, agenten |
 | Stunde | – (Thema darf offen sein) | Thema, Marke (UB, Prüfung) | id, archiviert, termin (ändert sich nur über Zuteilen, Verschieben, Ausfall) |
 | Ausfall | Termin, „Alles rückt nach“ oder „Diese Stunde fällt weg“ | – | – |
@@ -471,11 +470,11 @@ Wo die Web-App Stunden aus der Datei heute sperrt („+ Stunde“ nur ohne Stund
 | F17 | Löschen nur ohne Ebenen darunter, oder mitlöschen, wenn nirgends etwas hängt? | nur ohne Ebenen darunter |
 | F18 | `agenten` pflegt nur Jan von Hand? | ja; Test: ein Agent höchstens in einer Reihe |
 | F19 | Darf Lia schon schreiben, solange nur das Caddy-Passwort schützt, oder erst mit Konten (Entscheidung 30.10.)? | **entschieden: ja, ohne Konten** (Jan 03.11.) |
-| F20 | Woher kommen Ferien und Feiertage je Bundesland? a) Datei im Repo, je Schuljahr von Hand aus der amtlichen Übersicht der Kultusministerkonferenz gepflegt; b) ein Skript holt sie einmal je Schuljahr über eine offene Schnittstelle (z. B. OpenHolidays API; Angebot und Bedingungen habe ich nicht geprüft) in dieselbe Datei. Die App selbst geht in beiden Fällen nicht ins Netz | b mit a als Rückfall; Netzabruf eines fremden Dienstes nur mit Jans Okay |
-| F21 | Doppelstunde = ein Termin mit einer Stunde (90 Minuten) oder zwei Termine? | ein Termin |
-| F22 | A/B-Woche: Lia gibt an, ob die erste Schulwoche A oder B ist; Ferienwochen zählen nicht mit? | so, aber bei Lia nachfragen, wie ihre Schule zählt |
-| F23 | „Alles rückt nach“ auch über die Grenze zur nächsten Reihe der Klasse? | ja, alle späteren Stunden der Klasse |
-| F24 | Ferien und Halbjahreswechsel: Halbjahr endet laut Vorschlag mit Beginn der Winterferien. Ob das je Bundesland stimmt, weiß ich nicht; Lia kann den Stichtag ändern | so, Stichtag änderbar |
+| F20 | Woher kommen Ferien und Feiertage je Bundesland? a) Datei im Repo, je Schuljahr von Hand aus der amtlichen Übersicht der Kultusministerkonferenz gepflegt; b) ein Skript holt sie einmal je Schuljahr über eine offene Schnittstelle (z. B. OpenHolidays API; Angebot und Bedingungen habe ich nicht geprüft) in dieselbe Datei. Die App selbst geht in beiden Fällen nicht ins Netz | **entschieden: b mit a als Rückfall** (Jan 03.11., Okay für den Abruf einmal je Schuljahr) |
+| F21 | Doppelstunde = ein Termin mit einer Stunde (90 Minuten) oder zwei Termine? | **entschieden: ein Termin** (Jan 03.11.) |
+| F22 | A/B-Wochen? | **entschieden: gibt es nicht** (Jan 03.11.); kein Feld `woche` |
+| F23 | „Alles rückt nach“ auch über die Grenze zur nächsten Reihe der Klasse? | **entschieden: ja** (Jan 03.11.), alle späteren Stunden der Klasse |
+| F24 | Halbjahr endet mit Beginn der Winterferien, Stichtag änderbar? | **entschieden: ja** (Jan 03.11.) |
 
 ---
 
@@ -540,7 +539,7 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 **Termine** (2a)
 26. Aus dem Stundenplan entstehen genau die Schultage ohne Ferien und Feiertage (Prüfdaten: Ferien-Datei eines
     Bundeslands, eingefroren).
-27. Doppelstunde ergibt einen Termin, A/B-Woche nur jede zweite Schulwoche, mehrere Termine je Woche in Datumsfolge.
+27. Doppelstunde ergibt einen Termin, mehrere Termine je Woche stehen in Datumsfolge.
 28. „Alles rückt nach“: Alle späteren Stunden der Klasse wandern um genau einen Termin, ids, Themen und Material
     bleiben; Rückgängig stellt alle Daten wieder her.
 29. „Diese Stunde fällt weg“: nur diese Stunde ausgeblendet, alle anderen Daten unverändert.
@@ -558,9 +557,9 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 1. **Hauptordner**: `agentkit.struktur` lesend (laden, prüfen, auflösen, `haengt_dran`), Tests 1–3, 6, 15, 17;
    `.gitignore` für `lia/instanz/fassungen/` (F15) und `lia/instanz/lerngruppen.toml` (F6); Feld `ort` in
    `agentkit.auftraege`; `commit-daten.sh` mit der Ausnahme-Zeile in CLAUDE.md (F4). **Erledigt 03.11.**
-1b. **Hauptordner** (neu, nach Jans Blick auf 2a und Antworten F20–F24): `agentkit.termine` ohne Netz (Termine aus
+1b. **Hauptordner** (neu; Jans Antworten F20–F24 vom 03.11. liegen vor): `agentkit.termine` ohne Netz (Termine aus
    Stundenplan, Ferien, Feiertagen, Ausfällen, Zusatzterminen; Nachrücken; Halbjahreswechsel), Ferien-Datei je
-   Bundesland (Weg aus F20), `agentkit.struktur` liest `[schule]`, `klasse.zeitplan`, `ausfall`, `zusatz` und
+   Bundesland (F20: Abrufskript einmal je Schuljahr, Datei im Repo als Rückfall und Prüfstand), `agentkit.struktur` liest `[schule]`, `klasse.zeitplan`, `ausfall`, `zusatz` und
    `stunde.termin`. Tests 26–31.
 2. **Erledigt 03.11.** **Leser umstellen**, je in ihrem Chat: lia/unterricht (reihen.py über struktur), lia/examen (Reihe und
    Prüfungsstunde über die Marke „Prüfung“, `titel_in_reihen_toml` und `pruefungsstunde_in_reihe` raus, behebt den
@@ -617,7 +616,7 @@ Erfolg in Sekunden, wörtliche Äußerungen. Bogen: `shared/webapp/data/ia/testb
 **Ziel**: 6 von 6 ohne Hilfe (Jans Vorgabe „alles ohne Hilfe“), erster Klick bei mindestens 5 von 6 richtig.
 Zeiten werden erhoben, aber ohne Sollwert (einen belastbaren Vergleichswert habe ich nicht).
 
-**Danach (5 Minuten)**: „Was war unklar?“, „Fehlt dir beim Anlegen ein Feld?“, „Wie zählt deine Schule A- und
-B-Wochen?“ (F22), „Was erwartest du, wenn du eine Reihe in ein neues Jahr holst: auch die Materialien?“ (F7).
+**Danach (5 Minuten)**: „Was war unklar?“, „Fehlt dir beim Anlegen ein Feld?“, „Fehlt dir beim Stundenplan
+etwas?“, „Was erwartest du, wenn du eine Reihe in ein neues Jahr holst: auch die Materialien?“ (F7).
 
 **Auswertung**: Was zweimal falsch angeklickt wird, wird geändert. Unter 6 von 6: ändern, zweiter Test.
