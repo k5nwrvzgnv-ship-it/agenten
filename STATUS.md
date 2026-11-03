@@ -775,8 +775,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
       (ganze Zeilen, auch bei Teilmarkierung). /Text, /FreeText mit leerer stelle, alles andere übersprungen.
       Kaputte Datei ValueError. Gegen Jans kommentierte Exposé-PDF geprüft (6 Kommentare, Seiten 2 und 4).
       Achtung: pruefen.sh lässt agentkit/tests mit System-python3 laufen, dort fehlt pypdf; die 3 PDF-Tests werden
-      dort übersprungen (skipUnless) und laufen mit uni/.venv/bin/python grün. Offen, nach Jans Entscheidung: in
-      pruefen.sh einen zweiten Eintrag "shared|../uni/.venv/bin/python|agentkit/tests" oder so lassen.
+      dort übersprungen (skipUnless) und laufen mit uni/.venv/bin/python grün. Jan 03.11.: so lassen, kein
+      zweiter Eintrag in pruefen.sh. Bei Änderungen an pdf_kommentare die Tests von Hand mit uni/.venv starten.
     - uni erledigt 03.11.: kurse.kommentare_block, auftrag_bearbeiten hängt den Block an a["text"] (nur für die
       Prompts, die Ablage behält Jans Text). Test in uni/tests/test_kurse.py.
     - Später, nicht nötig: Lias Agenten (unterricht/material.py, theater/nachbesserung.py) auf kommentare()
