@@ -266,9 +266,9 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-10. webapp.service läuft noch mit dem Stand vor dem lia/chat-Ausbau (Netz, Dateien, Links, 03.11.): Neustart
-    `systemctl --user restart webapp.service` nur nach Jans Okay. Danach einmal in lia.meldro.de prüfen
-    (Häkchen, Datei-Feld, Link öffnet neuen Tab).
+10. webapp.service mit dem lia/chat-Ausbau (Netz, Dateien, Links) neu gestartet (Jans Okay 03.11.), die Seite
+    liefert Häkchen und Datei-Feld aus. Offen: einmal im Browser in lia.meldro.de prüfen (Datei hochladen, Link
+    öffnet neuen Tab).
 0. Echt auf lia/instanz: freigegeben (Jan 30.10., siehe Entscheidungen). Noch kein echter Lauf aus der Web-App;
    den ersten beobachten (Log der App, Ergebnis in „Heute“, Nachricht an Lia per Telegram).
 9. Reihen: lia/instanz/reihen.toml gibt es (30.10.); der Ersatz aus den Agent-Ordnern greift nur noch ohne sie.
