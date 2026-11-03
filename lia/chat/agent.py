@@ -8,13 +8,14 @@ Aufruf: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.
 
 import copy
 import json
+import shutil
 import sys
 from pathlib import Path
 
 import chatverlauf
 import kontext
 import schnittstelle
-from agentkit import claude_lauf, config, einstellungen, log, meldungen, verbrauch
+from agentkit import claude_lauf, config, einstellungen, log, meldungen, textfassung, verbrauch
 
 AGENT = "chat"
 HIER = Path(__file__).resolve().parent
@@ -25,6 +26,7 @@ logger = log.hole_logger(HIER, AGENT)
 SITZUNGEN = Path.home() / ".claude" / "projects" / str(HIER).replace("/", "-")
 NETZ_DOMAINS_VON = "recherche"  # WebFetch nur auf die Liste von Lias Recherche (einstellungen.toml)
 NETZ_SCHRITTE = 8  # Suchen und Seiten öffnen sind je ein Schritt
+DATEI_ZEICHEN = 60_000  # Text aus Lias Dateien je Frage höchstens so viel (alle Dateien zusammen)
 
 TEXTE = {
     "limit": "Gerade ist die Rechenzeit aufgebraucht. Frag bitte ab {zeit} noch einmal.",
@@ -68,6 +70,28 @@ def sitzung_loeschen(sitzung: str | None, ordner: Path = SITZUNGEN) -> None:
         (ordner / f"{Path(sitzung).name}.jsonl").unlink(missing_ok=True)
 
 
+def dateien_text(frage: dict, ordner: Path = DATEN) -> str:
+    """Text aus Lias Dateien der Frage, je Datei mit Name, zusammen höchstens DATEI_ZEICHEN. Ohne Dateien: leer."""
+    namen = frage.get("dateien") or []
+    teile, je_datei = [], DATEI_ZEICHEN // max(len(namen), 1)
+    for name in namen:
+        try:
+            text = (textfassung.als_text(schnittstelle.dateien_ordner(frage["id"], ordner) / name) or "").strip()
+        except Exception as f:  # kaputte oder verschlüsselte Datei: Claude bekommt den Hinweis, Lia die Antwort
+            logger.warning("Frage %s: Datei nicht lesbar: %s", frage["id"], type(f).__name__)
+            text = "(Die Datei ließ sich nicht lesen.)"
+        if text.startswith("(Kein Text gefunden"):  # Scan: im Chat ohne Werkzeuge nicht lesbar
+            text = "(Kein Text gefunden, vermutlich ein Scan. Lesen kann ich ihn nicht.)"
+        if len(text) > je_datei:
+            text = text[:je_datei] + "\n[… gekürzt]"
+        teile.append(f"--- Datei: {name}\n{text or '(leer)'}")
+    return "\n\n".join(teile)
+
+
+def dateien_loeschen(frage_id: str, ordner: Path = DATEN) -> None:
+    shutil.rmtree(schnittstelle.dateien_ordner(frage_id, ordner), ignore_errors=True)
+
+
 def antwort(frage: dict, text: str, ok: bool, fehler: str | None = None, wieder_frei: str | None = None) -> dict:
     ort = frage.get("ort") or {}
     return {"id": frage["id"], "zeit": chatverlauf.jetzt().isoformat(timespec="seconds"), "ok": ok, "text": text,
@@ -87,7 +111,10 @@ def beantworten(frage: dict, instanz: Path, ordner: Path = DATEN, fragen=claude_
         reihe = None
     verlauf = chatverlauf.am_ort(chatverlauf.lesen(ordner), ort["reihe"] if ort else None)
     netz = frage.get("netz", False)
-    prompt = kontext.prompt(frage["text"], kontext.kontext_text(ort, reihe), verlauf, frage["gruendlich"], netz)
+    # Neue Dateien gehen mit; sonst der Text aus der letzten Frage mit Datei an diesem Ort (für Folgefragen)
+    datei = dateien_text(frage, ordner) or next((e["dateitext"] for e in reversed(verlauf) if e.get("dateitext")), "")
+    prompt = kontext.prompt(frage["text"], kontext.kontext_text(ort, reihe), verlauf, frage["gruendlich"], netz,
+                            datei, neu=bool(frage.get("dateien")))
     try:
         e = fragen(prompt, frage["gruendlich"], frage["id"], netz=netz)
     except claude_lauf.LimitErreicht as f:
@@ -105,9 +132,10 @@ def beantworten(frage: dict, instanz: Path, ordner: Path = DATEN, fragen=claude_
         melden(f"Frage {frage['id']} fehlgeschlagen: {type(f).__name__}: {f}")
         return antwort(frage, TEXTE["technik"], False, "technik")
     loeschen(e.sitzung)
-    logger.info("Frage %s: %d Zeichen, Ort %s, %s, Netz %s, ok %s, %d Schritte, %.1f s, %.3f USD", frage["id"],
-                len(frage["text"]), "ja" if ort else "nein", "gründlich" if frage["gruendlich"] else "schnell",
-                "ja" if netz else "nein", e.ok, e.schritte, e.dauer_s, e.usd)
+    logger.info("Frage %s: %d Zeichen, Ort %s, %s, Netz %s, %d Dateien, ok %s, %d Schritte, %.1f s, %.3f USD",
+                frage["id"], len(frage["text"]), "ja" if ort else "nein",
+                "gründlich" if frage["gruendlich"] else "schnell", "ja" if netz else "nein",
+                len(frage.get("dateien") or []), e.ok, e.schritte, e.dauer_s, e.usd)
     if e.verweigert:  # z. B. WebFetch auf eine Seite außerhalb der Liste: nur zählen, keine Adressen ins Log
         logger.info("Frage %s: %d Werkzeug-Aufrufe abgelehnt", frage["id"], len(e.verweigert))
     if not e.ok or not e.text.strip():
@@ -116,7 +144,8 @@ def beantworten(frage: dict, instanz: Path, ordner: Path = DATEN, fragen=claude_
     a = antwort(frage, e.text.strip(), True)
     chatverlauf.anhaengen(ordner, {"id": frage["id"], "zeit": a["zeit"], "reihe": a["reihe"], "chip": a["chip"],
                                    "gruendlich": a["gruendlich"], "netz": a["netz"], "frage": frage["text"],
-                                   "antwort": a["text"]})
+                                   "antwort": a["text"], "dateien": frage.get("dateien") or [],
+                                   "dateitext": datei if frage.get("dateien") else ""})
     return a
 
 
@@ -143,9 +172,13 @@ def fragen_abarbeiten(instanz: Path = config.SHARED_DIR, ordner: Path = DATEN, *
                 logger.warning("%s: %s", pfad.name, f)
                 if schnittstelle.ID_MUSTER.match(pfad.stem):
                     schnittstelle.antwort_schreiben(antwort({"id": pfad.stem}, str(f), False, "ungueltig"), ordner)
+                    dateien_loeschen(pfad.stem, ordner)
                 pfad.unlink(missing_ok=True)
                 continue
-            schnittstelle.antwort_schreiben(beantworten(frage, instanz, ordner, **kw), ordner)
+            try:
+                schnittstelle.antwort_schreiben(beantworten(frage, instanz, ordner, **kw), ordner)
+            finally:  # Lias Dateien bleiben nie liegen, auch nicht nach einem Fehler (ihr Text steht im Verlauf)
+                dateien_loeschen(frage["id"], ordner)
             pfad.unlink(missing_ok=True)
             anzahl += 1
     return anzahl

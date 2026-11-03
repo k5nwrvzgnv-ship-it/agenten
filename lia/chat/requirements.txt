@@ -1,1 +1,9 @@
-# Keine Pakete: nur Python-Bordmittel und agentkit (per .pth eingebunden).
+# Text aus Lias Dateien im Chat (agentkit.textfassung), Jan 02.11.2026: PDF, Word, PowerPoint, kein Excel.
+# Versionen wie lia/unterricht bzw. lia/recherche.
+lxml==6.1.3
+pillow==12.3.0
+pypdf==6.21.0
+python-docx==1.2.0
+python-pptx==1.0.2
+typing_extensions==4.16.0
+xlsxwriter==3.2.9

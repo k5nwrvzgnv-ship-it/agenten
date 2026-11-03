@@ -145,6 +145,64 @@ class Agent(unittest.TestCase):
         ohne = agent.lauf_einstellungen(False, {k: v for k, v in cfg.items() if k != "webfetch"}, netz=True)
         self.assertEqual(ohne["werkzeuge"]["chat"], ["WebSearch"])
 
+    def datei(self, name, inhalt=None):
+        """Datei zum Hochladen: docx mit Text, leeres PDF (wie ein Scan) oder Bytes."""
+        pfad = Path(self.tmp.name) / "upload" / name
+        pfad.parent.mkdir(exist_ok=True)
+        if isinstance(inhalt, bytes):
+            pfad.write_bytes(inhalt)
+        elif name.endswith(".docx"):
+            import docx
+            d = docx.Document()
+            d.add_paragraph(inhalt or "Aufgabe 1: Erkläre Vergeltung.")
+            d.save(pfad)
+        else:
+            import pypdf
+            w = pypdf.PdfWriter()
+            w.add_blank_page(100, 100)
+            w.write(pfad)
+        return (name, pfad)
+
+    def test_datei_im_prompt_und_folgefrage(self):
+        fid = schnittstelle.frage_stellen("Passt das?", ORT, ordner=self.ordner, dateien=[self.datei("AB.docx")])
+        fake = Fake()
+        self.abarbeiten(fake)
+        self.assertIn("mit dieser Frage geschickt", fake.prompts[0][0])
+        self.assertIn("--- Datei: AB.docx\nAufgabe 1: Erkläre Vergeltung.", fake.prompts[0][0])
+        self.assertFalse(schnittstelle.dateien_ordner(fid, self.ordner).exists())
+        e = chatverlauf.lesen(self.ordner)[-1]
+        self.assertEqual(e["dateien"], ["AB.docx"])
+        self.assertIn("Erkläre Vergeltung", e["dateitext"])
+        # Folgefrage am selben Ort bekommt den Text mit, eine ohne Ort nicht
+        schnittstelle.frage_stellen("Und Aufgabe 2?", ORT, ordner=self.ordner)
+        self.abarbeiten(fake)
+        self.assertIn("früheren Frage an diesem Ort", fake.prompts[1][0])
+        self.assertIn("Erkläre Vergeltung", fake.prompts[1][0])
+        self.assertEqual(chatverlauf.lesen(self.ordner)[-1]["dateitext"], "")
+        schnittstelle.frage_stellen("Anderes", None, ordner=self.ordner)
+        self.abarbeiten(fake)
+        self.assertNotIn("Erkläre Vergeltung", fake.prompts[2][0])
+
+    def test_scan_kaputte_datei_und_kuerzen(self):
+        lang = "x" * agent.DATEI_ZEICHEN
+        schnittstelle.frage_stellen("?", None, ordner=self.ordner, dateien=[
+            self.datei("scan.pdf"), self.datei("kaputt.docx", b"kein zip"), self.datei("lang.docx", lang)])
+        fake = Fake()
+        self.abarbeiten(fake)
+        p = fake.prompts[0][0]
+        self.assertIn("--- Datei: scan.pdf\n(Kein Text gefunden, vermutlich ein Scan. Lesen kann ich ihn nicht.)", p)
+        self.assertNotIn("Read", p.split("Dateien, die Lia")[1])
+        self.assertIn("--- Datei: kaputt.docx\n(Die Datei ließ sich nicht lesen.)", p)
+        self.assertIn("x" * (agent.DATEI_ZEICHEN // 3) + "\n[… gekürzt]", p)
+        self.assertNotIn("x" * (agent.DATEI_ZEICHEN // 3 + 1), p)
+        self.assertEqual(self.meldungen, [])
+
+    def test_dateien_weg_auch_nach_fehler(self):
+        fid = schnittstelle.frage_stellen("?", None, ordner=self.ordner, dateien=[self.datei("AB.docx")])
+        self.abarbeiten(Fake(fehler=claude_lauf.KeinPlatz("voll")))
+        self.assertEqual(schnittstelle.antwort_holen(fid, self.ordner)["fehler"], "belegt")
+        self.assertFalse(schnittstelle.dateien_ordner(fid, self.ordner).exists())
+
     def test_sitzungen_loeschen(self):
         sitzungen = Path(self.tmp.name) / "projekte"
         sitzungen.mkdir()

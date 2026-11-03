@@ -1,16 +1,19 @@
 """Verlauf des Chats: eine Zeile JSON je Frage und Antwort in data/verlauf.jsonl, höchstens 30 Tage.
 
 Nur Python-Bordmittel: Die Web-App liest den Verlauf über schnittstelle.py mit ihrer eigenen Python-Umgebung.
-Gespeichert werden nur beantwortete Fragen. Fehlertexte stehen nur in der Antwort-Datei.
+Gespeichert werden nur beantwortete Fragen. Fehlertexte stehen nur in der Antwort-Datei. Der Text aus Lias
+Dateien steht mit im Eintrag (dateitext, Jan 02.11.2026: 30 Tage wie der Rest), die Dateien selbst nicht.
 """
 
 import json
 import os
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
 DATEI = "verlauf.jsonl"
 TAGE = 30  # Jan 30.10.2026: Verläufe nach 30 Tagen löschen
+DATEIEN_STUNDEN = 24  # Lias Dateien löscht der Agent nach der Antwort; was übrig blieb, spätestens dann
 
 
 def jetzt() -> datetime:
@@ -70,5 +73,10 @@ def aufraeumen(ordner: Path, tage: int = TAGE, heute: datetime | None = None) ->
     for pfad in (ordner / "antworten").glob("*.json"):
         if datetime.fromtimestamp(pfad.stat().st_mtime).astimezone() < grenze:
             pfad.unlink()
+            weg += 1
+    grenze_dateien = (heute or jetzt()) - timedelta(hours=DATEIEN_STUNDEN)
+    for pfad in (ordner / "dateien").iterdir() if (ordner / "dateien").is_dir() else []:
+        if datetime.fromtimestamp(pfad.stat().st_mtime).astimezone() < grenze_dateien:
+            shutil.rmtree(pfad, ignore_errors=True)
             weg += 1
     return weg

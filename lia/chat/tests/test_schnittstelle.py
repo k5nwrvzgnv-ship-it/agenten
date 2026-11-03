@@ -80,6 +80,47 @@ class Verlauf(unittest.TestCase):
         self.assertEqual([e["frage"] for e in schnittstelle.verlauf(self.ordner)], [neu])
         self.assertEqual([p.name for p in (self.ordner / "antworten").iterdir()], ["b.json"])
 
+    def test_dateien_stellen(self):
+        hoch = self.ordner / "upload"
+        hoch.mkdir()
+        (hoch / "tmp1").write_bytes(b"x")
+        fid = schnittstelle.frage_stellen("Was steht drin?", None, ordner=self.ordner,
+                                          dateien=[("../Mein AB (neu).DOCX", hoch / "tmp1")])
+        d = json.loads((self.ordner / "fragen" / f"{fid}.json").read_text(encoding="utf-8"))
+        self.assertEqual(d["dateien"], ["Mein AB (neu).docx"])
+        self.assertTrue((schnittstelle.dateien_ordner(fid, self.ordner) / "Mein AB (neu).docx").is_file())
+        self.assertFalse((hoch / "tmp1").exists())
+        self.assertEqual(json.loads((self.ordner / "fragen" / f"{fid}.json").read_text())["dateien"],
+                         schnittstelle.frage_pruefen(d)["dateien"])
+
+    def test_dateien_ungueltig(self):
+        hoch = self.ordner / "upload"
+        hoch.mkdir()
+        klein, gross = hoch / "klein", hoch / "gross"
+        klein.write_bytes(b"x")
+        with open(gross, "wb") as f:
+            f.truncate(schnittstelle.MAX_BYTES + 1)
+        faelle = [[("a.xlsx", klein)], [("bild.jpg", klein)], [(f"{i}.pdf", klein) for i in range(4)],
+                  [("a.pdf", klein), ("a.pdf", klein)], [("a.pdf", gross)], [("a.pdf", hoch / "fehlt")]]
+        for dateien in faelle:
+            with self.subTest(dateien=dateien[0][0]), self.assertRaises(schnittstelle.FrageFehler):
+                schnittstelle.frage_stellen("x", None, ordner=self.ordner, dateien=dateien)
+        self.assertFalse((self.ordner / "fragen").exists())
+        self.assertFalse((self.ordner / "dateien").exists())
+        self.assertTrue(klein.exists())
+        for namen in (["../a.pdf"], [".a.pdf"], "a.pdf", [1]):
+            with self.subTest(namen=namen), self.assertRaises(schnittstelle.FrageFehler):
+                schnittstelle.frage_pruefen({"id": "0123456789ab", "text": "x", "dateien": namen})
+
+    def test_aufraeumen_liegengebliebene_dateien(self):
+        alt, neu = self.ordner / "dateien" / "aaaaaaaaaaaa", self.ordner / "dateien" / "bbbbbbbbbbbb"
+        for d in (alt, neu):
+            d.mkdir(parents=True)
+            (d / "a.pdf").write_bytes(b"x")
+        os.utime(alt, (time.time() - 2 * 86400,) * 2)
+        self.assertEqual(chatverlauf.aufraeumen(self.ordner), 1)
+        self.assertEqual([p.name for p in (self.ordner / "dateien").iterdir()], ["bbbbbbbbbbbb"])
+
     def test_kaputte_zeilen_und_leerer_ordner(self):
         self.assertEqual(chatverlauf.lesen(self.ordner), [])
         self.assertEqual(chatverlauf.aufraeumen(self.ordner), 0)
