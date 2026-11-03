@@ -86,6 +86,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -135,7 +136,22 @@ KOPFZEILEN = {
     "Cache-Control": "no-store",
 }
 
-app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+def beim_start() -> None:
+    """Liegengebliebene Commits von reihen.toml nachholen (agentkit.strukturpflege, eigener Faden, kehrt sofort
+    zurück). Ein Fehler hier hält die App nicht auf."""
+    try:
+        sp.anstossen(umgebung())
+    except Exception:  # Start der App geht vor; agentkit meldet gescheiterte Commits selbst an Jan
+        logger.exception("Commits der Struktur nicht angestoßen")
+
+
+@asynccontextmanager
+async def lebenslauf(_app):
+    beim_start()
+    yield
+
+
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lebenslauf)
 app.mount("/statisch", StaticFiles(directory=HIER / "statisch"), name="statisch")
 vorlagen = Jinja2Templates(directory=HIER / "vorlagen")
 
@@ -456,9 +472,9 @@ def _objekt(s, kennung_: str, ebene: str) -> dict:
 
 
 async def pflegen(operation: str, argumente: dict, gesehen: dict | None = None) -> tuple[sp.Ausgang | None, str]:
-    """agentkit.strukturpflege.ausfuehren in einem Faden (der Commit wartet auf commit.sperre, bis zu 300 s; andere
-    Anfragen laufen derweil weiter). (Ausgang, "") oder (None, Fehlertext für Lia). termine.Belegt geht an den
-    Aufrufer (Rückfrage)."""
+    """agentkit.strukturpflege.ausfuehren in einem Faden (Sperre und Schreiben der Datei; den Commit macht agentkit
+    im Hintergrund, Speichern wartet nicht darauf). (Ausgang, "") oder (None, Fehlertext für Lia). termine.Belegt
+    geht an den Aufrufer (Rückfrage)."""
     try:
         aus = await run_in_threadpool(sp.ausfuehren, operation, argumente, gesehen or None, sp.VON_LIA, umgebung())
     except termine.Belegt:

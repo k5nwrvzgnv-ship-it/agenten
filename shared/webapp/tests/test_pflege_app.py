@@ -3,11 +3,13 @@ Testregeln 24, 25 und 32 bis 35 aus Sicht der App, Rückgängig und „Letzte Ä
 Grundlage ist eine eingefrorene Kopie der echten reihen.toml (tests/daten/reihen_echt.toml) in einer Instanz im
 Temp-Ordner; die liegt in keinem Git-Repo, also gibt es keinen Commit (agentkit.strukturpflege)."""
 
+import asyncio
 import hashlib
 import logging
 import re
 import stat
 from pathlib import Path
+from unittest import mock
 
 from agentkit import struktur, termine
 from agentkit import strukturpflege as sp
@@ -680,3 +682,21 @@ class TestDiesesLog(Pflege):
             r, _ = self.post("/klasse/ethik-8/lerngruppe", {"lerngruppe": "Geheim " * 600, "alt_lerngruppe": ""})
         self.assertEqual(r.status, 400)
         self.assertFalse([z for z in logs.output if "Geheim" in z])
+
+
+class TestStart(Pflege):
+    def test_commits_beim_start_nachholen(self):
+        """Beim Start stößt die App die Warteschlange der Commits an (agentkit, eigener Faden); ein Fehler dabei hält
+        den Start nicht auf. Speichern selbst wartet nicht auf einen Commit."""
+        async def starten():
+            async with app.lebenslauf(app.app):
+                pass
+        with mock.patch.object(app.sp, "anstossen") as anstossen:
+            asyncio.run(starten())
+        (aufruf,) = anstossen.call_args_list
+        u = aufruf.args[0]
+        self.assertEqual((u.instanz, u.webapp_daten, u.hintergrund), (self.instanz, self.tmp / "webdaten", True))
+        with mock.patch.object(app.sp, "anstossen", side_effect=OSError("kaputt")), \
+                self.assertLogs("webapp", level="ERROR") as logs:
+            asyncio.run(starten())
+        self.assertIn("nicht angestoßen", logs.output[0])

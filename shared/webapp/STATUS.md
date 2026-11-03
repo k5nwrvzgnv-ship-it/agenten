@@ -207,7 +207,9 @@ Masken nur im neuen Format (sonst 404, Baum ohne „+ …“).
   Termin der 9 nach den Winterferien, Kopie mit sechs Terminen, Material wandert mit Kant auf Stunde 3, Ausfall rückt
   nach, Archiv und Zurückholen byte-gleich), alle sieben Aktionen per Rückgängig zurück, Log ohne Fehler.
 - Offen: einmal im Browser durchklicken (Chrome, auch Ziehen); webapp.service neu starten nur mit Jans Okay
-  (`systemctl --user restart webapp.service`); Bedarf agentkit (Commit im Hintergrund) steht in der Haupt-STATUS.
+  (`systemctl --user restart webapp.service`).
+- Commits von reihen.toml macht agentkit im Hintergrund (Speichern wartet nicht); die App stößt beim Start
+  liegengebliebene an (`app.beim_start` über lifespan).
 
 ## Neuer Aufbau „Desktop zuerst“ (Plan 30.10.2026)
 Plan `../../docs/webapp-aufbau.md` (Abschnitt 5: Bauschritte), Boards „Desktop“ und „Handy-Prüfung“ im Canvas.

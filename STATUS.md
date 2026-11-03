@@ -755,9 +755,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        Lia die Masken in der echten App.
      - Erledigt 03.11. (Hauptordner): Commit im Hintergrund, Speichern wartet nicht mehr auf commit.sperre (siehe
        Schreib-Schnittstelle oben).
-     - Bedarf webapp (vor dem Neustart von webapp.service): beim Start der App einmal `sp.anstossen(umgebung())`
-       aufrufen, damit liegengebliebene Commits nachgeholt werden; den Docstring von `pflegen` in app.py anpassen
-       (wartet nicht mehr bis zu 300 s). Sonst keine Änderung nötig, ausfuehren startet den Commit selbst.
+     - Erledigt 03.11. (webapp): Die App ruft beim Start einmal `sp.anstossen(umgebung())` auf (`app.beim_start`
+       über lifespan, Test TestStart); nirgends wartet sie mehr auf einen Commit. webapp.service läuft noch mit dem
+       alten Code: Neustart nach Jans Okay (`systemctl --user restart webapp.service`).
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit
