@@ -88,3 +88,13 @@ class TestAufbereiten(unittest.TestCase):
             self.assertIn("DIN EN 350", (ordner / "uebersicht.md").read_text())
             self.assertEqual(normen.aufbereiten(ordner, textfassung=textfassung), [])
             self.assertEqual(normen.aufbereiten(ordner / "fehlt"), [])
+
+    def test_kennungen_aus_dateinamen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ordner = Path(tmp)
+            (ordner / "projekt").mkdir()
+            (ordner / "projekt" / "DIN EN 14080_2013-09-00_DE_1936211.pdf").write_bytes(b"%PDF")
+            (ordner / "projekt" / "DIN EN 14080_2013-09-00_DE_1936211.pdf.txt").write_text("Text")
+            (ordner / "en350.pdf").write_bytes(b"%PDF")  # kein Nautos-Name
+            self.assertEqual(normen.kennungen(ordner), {"DIN EN 14080"})
+            self.assertEqual(normen.kennungen(ordner / "fehlt"), set())

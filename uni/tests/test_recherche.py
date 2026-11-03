@@ -158,6 +158,13 @@ class TestZusammenfuehren(Ordner):
         fehler = recherche.literatur_pruefen(["Erfunden, B. (2020): Holz. Verlag."], g)
         self.assertIn("literatur[0]: 'Erfunden", fehler[0])
 
+    def test_nachgereichte_norm_aus_der_ablage(self):
+        g = self.geprueft()
+        norm = ["DIN EN 14080:2013-09, Holzbauwerke – Brettschichtholz und Balkenschichtholz"]
+        self.assertEqual(len(recherche.literatur_pruefen(norm, g)), 1)
+        self.assertEqual(recherche.literatur_pruefen(norm, g, {"DIN EN 14080"}), [])
+        self.assertEqual(len(recherche.literatur_pruefen(["DIN EN 9999:2020"], g, {"DIN EN 14080"})), 1)
+
     def test_bericht(self):
         md = recherche.bericht(self.geprueft(), 3.5)
         for teil in ("# Recherchebericht: Fehlstellen", "3 Aussagen: 2 gesichert", "Kosten 3.50 USD",

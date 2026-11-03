@@ -92,6 +92,14 @@ def verzeichnis(eintraege: list[dict]) -> str:
     return "\n".join(zeilen) + "\n"
 
 
+def kennungen(ordner: Path = ORDNER) -> set[str]:
+    """Kennungen aller Normen der Ablage, aus dem Nautos-Dateinamen (andere Dateinamen zählen nicht)."""
+    if not ordner.exists():
+        return set()
+    return {k[0] for p in ordner.rglob("*") if p.is_file() and p.suffix.lower() in FORMATE
+            and (k := aus_dateiname(p.name))}
+
+
 def aufbereiten(ordner: Path = ORDNER, textfassung=kurse.textfassung) -> list[dict]:
     """Textfassungen für neue Dateien, Verzeichnis neu. Gibt die Einträge der neu aufbereiteten Dateien zurück."""
     return ablage_aufbereiten(ordner, eintrag, verzeichnis, textfassung)

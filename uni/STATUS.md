@@ -186,9 +186,16 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   (Auftrag 20261102-232434-uni-e64053): 1190 Wörter, 12 Quellen aus der Recherche, 13 [OFFEN] (u. a. Felix'
   Matrikelnummer, Forschungsprojekt 1 oder 2, fehlende APA-Angaben bei 7 Quellen).
   Kürzung nach Jans Anmerkungen in der PDF (03.11., Auftrag 20261103-114706-uni-c85257, im Chat aus den
-  PDF-Kommentaren abgeschrieben): etwa 900 Wörter, 10 Quellen, 11 [OFFEN]. Offen: Normen EN 14080, EN 14081,
-  DIN 4074-3 reicht Jan nach (nach data/normen/), Angabe Werk Schneider (6 Beschäftigte fürs Markieren?) prüfen.
+  PDF-Kommentaren abgeschrieben): etwa 900 Wörter, 10 Quellen, 11 [OFFEN].
   Kommentare in PDFs liest der Agent nicht (agentkit.textfassung nimmt nur den Text), Bedarf in ../STATUS.md Punkt 28.
+  Normen nachgereicht (03.11., Auftrag 20261103-120228-uni-187226, data/normen/Normen_Forschungsprojekt/): EN 14080,
+  EN 14081-1 und DIN 4074-3 eingearbeitet, Werk heißt best wood Schneider, Eberhardzell. Etwa 1.000 Wörter,
+  12 Quellen, 10 [OFFEN]. Der Lauf scheiterte an literatur_pruefen (nur Normen aus geprueft.json zählten);
+  seitdem zählen auch alle Normen der Ablage (normen.kennungen, Nautos-Dateiname). Die geschriebene Fassung
+  danach ohne Claude gebaut und per Meldung an Jan geschickt. Offen: ob die 6 Beschäftigten bei Schneider
+  wirklich fürs Markieren eingesetzt sind (steht so im Text, von Jan nicht bestätigt).
+  Schwäche: expose.bauen ruft die Literaturprüfung erst, wenn Format und Umfang stimmen. Die eine Nachbesserung
+  ging deshalb nur an "13 statt 12 Angaben", der Literaturfehler kam erst danach. Vorschlag: beide auf einmal melden.
 - Scopus (scopus.py, 02.11.): Keine API (die Uni gibt kein Institutional Token heraus). Jan sucht selbst in Scopus
   (Claude in Chrome auf dem Mac, Prompt mit Suchstrings S1.., Export CSV mit Abstract, höchstens 300 je Suche,
   Protokoll "S1 | Treffer | exportiert | Datei | Vermerk"). Ablage recherche/scopus/ (*.csv, suchen.json,
@@ -212,9 +219,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Kette 20261102-165741-uni-ac9dcc). Ob Scopus die Suchstrings so annimmt, ist erst mit dem nächsten Exposé geprüft.
 - WebFetch für uni und [webfetch] uni (36 Domains: Literatur, Verlage, Daten, Förderung, Weinig, Microtec) stehen
   seit 02.11. in shared/einstellungen.toml (../STATUS.md Punkt 27). Python prüft Belege nur auf diesen Domains,
-  andere zählen als ungeprüft: fehlende Herstellerseiten nach dem ersten Lauf ergänzen. Normen für den Lauf fehlen lokal vermutlich: DIN EN 14081-1, DIN EN 14080, DIN 4074-3/-4
-  (vorhanden: DIN 4074-1, DIN 4074-5, DIN EN 338). Erster echter Lauf mit dem Teams-Transkript vom 02.11. (Jan,
-  Felix, Henri, Auftrag "Exposé: ...") steht aus, Versand an Böhme war für Mittwoch 04.11. geplant.
+  andere zählen als ungeprüft: fehlende Herstellerseiten nach dem ersten Lauf ergänzen. Normen fürs Exposé liegen
+  seit 03.11. in data/normen/Normen_Forschungsprojekt/ (DIN EN 14080, 14081-1 bis -3, DIN 4074-1/-2/-3/-5,
+  DIN 20000-3; DIN 4074-1 und -5 doppelt bzw. in zwei Ausgaben auch in material/). Versand an Böhme war für
+  Mittwoch 04.11. geplant.
 - Tests mit Meldungen: von OhneTelegram (tests/test_agent.py) erben, sonst landen sie echt in Telegram
   (passiert am 27.10. mit zwei Testnachrichten).
 - Tests schreiben nicht ins echte logs/*.log: tests/__init__.py richtet die Logger uni, uni-lernen und

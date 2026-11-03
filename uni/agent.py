@@ -928,7 +928,8 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
     def literatur(d: dict) -> list[str]:
         if not geprueft.exists():
             return []
-        return recherche.literatur_pruefen(d.get("literatur", []), json.loads(geprueft.read_text()))
+        return recherche.literatur_pruefen(d.get("literatur", []), json.loads(geprueft.read_text()),
+                                           normen.kennungen())
 
     datei = ordner / expose.DATEI
     vorher = datei.stat().st_mtime_ns if datei.exists() else None

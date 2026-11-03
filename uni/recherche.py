@@ -550,13 +550,16 @@ def normquellen(geprueft: dict) -> set[str]:
     return aus
 
 
-def literatur_pruefen(literatur: list[str], geprueft: dict) -> list[str]:
-    """Jede Literaturangabe nennt DOI oder Adresse einer zitierfähigen Quelle oder eine verwendete lokale Norm."""
+def literatur_pruefen(literatur: list[str], geprueft: dict, normen_ablage: set[str] = frozenset()) -> list[str]:
+    """Jede Literaturangabe nennt DOI oder Adresse einer zitierfähigen Quelle oder eine verwendete lokale Norm.
+
+    normen_ablage: Kennungen der Normen in data/normen/ (normen.kennungen). Jan reicht Normen auch nach der
+    Recherche nach, das Exposé belegt sie dann im Protokoll; in geprueft.json stehen sie nicht."""
     schluessel = []
     for q in geprueft["quellen"]:
         if q["zitierfaehig"]:
             schluessel += [q["url"].lower()] + ([q["doi"].lower()] if q.get("doi") else [])
-    kennungen = normquellen(geprueft)
+    kennungen = normquellen(geprueft) | set(normen_ablage)
     fehler = []
     for i, eintrag in enumerate(literatur):
         e = eintrag.lower()
