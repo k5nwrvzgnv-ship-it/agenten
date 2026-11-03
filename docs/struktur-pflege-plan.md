@@ -1,7 +1,7 @@
 # Plan: Lia pflegt Fach → Klasse/Kurs → Reihe → Stunde selbst
 
-Stand 03.11.2026. Nur Plan, nichts gebaut. Gebaut wird nach Jans Freigabe und Antworten auf die offenen Fragen
-(Abschnitt 9, markiert mit **F1** bis **F19**). Entschieden (Jan 03.11.): F1 bis F6, F14, F19. Offen: F7 bis F13, F15 bis F18 (betreffen spätere Bauschritte).
+Stand 03.11.2026. **Von Jan freigegeben am 03.11.2026.** Gebaut wird in den Bauschritten aus Abschnitt 11, je im
+zuständigen Chat. Offene Fragen in Abschnitt 9 (**F1** bis **F19**). Entschieden (Jan 03.11.): F1 bis F6, F14, F19. Offen: F7 bis F13, F15 bis F18 (betreffen spätere Bauschritte).
 
 Grundlage (selbst gelesen): `git log -p lia/instanz/reihen.toml` (8 Commits, mit der Vorgängerdatei
 `lia/unterricht/reihen.toml`), alle Leser der Datei (`lia/unterricht/reihen.py`, `lia/examen/runde.py`,
