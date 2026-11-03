@@ -869,6 +869,34 @@ class TestReihen(unittest.TestCase):
                         {"text": "Ausgleich.", "fett": False}]},
             {"punkte": [[{"text": "eins", "fett": False}], [{"text": "zwei", "fett": True}]]},
             {"absatz": [{"text": "Kopf", "fett": True}]}])
+        self.assertEqual(logik.markdown_bloecke(
+            "Quellen:\n- [Kant (Wiki)](https://de.wikipedia.org/wiki/Kant_(Philosoph)) und **[KMK](http://kmk.org/a)**\n"
+            "- [böse](javascript:alert(1)) [leer](https:///x) [\"x\"](https://a.de/?q=\"><b>)"), [
+            {"absatz": [{"text": "Quellen:", "fett": False}]},
+            {"punkte": [[{"text": "Kant (Wiki)", "fett": False, "link": "https://de.wikipedia.org/wiki/Kant_(Philosoph)"},
+                         {"text": " und ", "fett": False}, {"text": "KMK", "fett": True, "link": "http://kmk.org/a"}],
+                        [{"text": "[böse](javascript:alert(1)) ", "fett": False}, {"text": "leer", "fett": False},
+                         {"text": " ", "fett": False},
+                         {"text": '"x"', "fett": False, "link": 'https://a.de/?q="><b>'}]]}])
+        self.assertEqual([logik.link_ziel(u) for u in ("https://a.de/x", "http://[::1", "ftp://a.de", "https:///x")],
+                         ["https://a.de/x", "", "", ""])
+        e = logik.fragen_eintrag({"id": "a", "frage": "Was?", "antwort": "x", "netz": True, "dateien": ["A.pdf"],
+                                  "dateitext": "geheim"})
+        self.assertEqual((e["netz"], e["dateien"]), (True, ["A.pdf"]))
+        self.assertNotIn("geheim", str(e))
+        self.assertEqual(logik.fragen_eintrag({"text": "x", "dateien": "kaputt"})["dateien"], [])
+        mb = 1024 * 1024
+        self.assertEqual([logik.frage_dateien_pruefen(d) for d in (
+            [], [("a.pdf", 1), ("b.DOCX", 1), ("c.pptx", 20 * mb)], [("a.pdf", 1)] * 4, [("a.xlsx", 1)],
+            [("a.pdf", 20 * mb + 1)], [("a.pdf", 0)], [("A.pdf", 1), ("a.pdf", 1)])],
+            ["", "", "dateien", "dateiart", "dateigross", "dateileer", "dateiname"])
+        self.assertEqual([logik.frage_fehler_schluessel(t, m) for t, m in (
+            (" ", "Die Frage ist leer."), ("x", "Die Frage ist zu lang (höchstens 4000 Zeichen)."),
+            ("x", "Höchstens 3 Dateien je Frage."), ("x", "Im Chat gehen nur PDF, Word und PowerPoint."),
+            ("x", "Eine Datei ist zu groß (höchstens 20 MB)."), ("x", "Zwei Dateien mit demselben Namen"),
+            ("x", "Eine Datei ist nicht angekommen."))],
+            ["leer", "lang", "dateien", "dateiart", "dateigross", "dateiname", "technik"])
+        self.assertTrue(set(logik.FRAGE_FEHLER) >= {"dateien", "dateiart", "dateigross", "dateileer", "dateiname"})
         ethik = reihen()[0]
         sp = logik.fragen_spalte([{"id": "a", "reihe": "x", "frage": "1"}, {"id": "b", "reihe": ethik["id"], "frage": "2"}],
                                  ethik, (3, "Kant"))

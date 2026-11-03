@@ -256,28 +256,49 @@ def teil_heute(request: Request):
 
 @app.post("/fragen")
 async def frage_stellen(request: Request):
-    """Frage an den Chat-Agenten; danach zurück auf die Seite, die Antwort lädt htmx nach (/teile/frage/<id>)."""
+    """Frage an den Chat-Agenten; danach zurück auf die Seite, die Antwort lädt htmx nach (/teile/frage/<id>).
+    Dateien legt die Web-App in EINGANG ab, die Schnittstelle verschiebt sie; was übrig bleibt (auch bei
+    FrageFehler), räumt die Web-App weg."""
     modul = chat()
     if modul is None:
         raise HTTPException(404)
-    form = await formular_lesen(request, "Frage", 0)
+    form = await formular_lesen(request, "Frage", logik.FRAGE_DATEIEN_MAX, logik.NEU_DATEIEN_MAX)  # zu viele: Satz
+    dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
+    try:
+        return await _frage_weitergeben(modul, form, dateien_)
+    finally:
+        for d in dateien_:
+            await d.close()
+
+
+async def _frage_weitergeben(modul, form, dateien_: list[UploadFile]) -> RedirectResponse:
     zurueck = logik.zurueck_pfad(str(form.get("zurueck") or ""))
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
         return RedirectResponse(f"{zurueck}?fragefehler=veraltet#fragen", status_code=303)
+    text, netz, gruendlich = str(form.get("text") or ""), form.get("netz") == "1", form.get("gruendlich") == "1"
+    code = "leer" if not text.strip() else logik.frage_dateien_pruefen([(d.filename, d.size or 0) for d in dateien_])
+    if code:
+        return RedirectResponse(f"{zurueck}?fragefehler={code}#fragen", status_code=303)
     reihen = reihen_laden()
     reihe = None if form.get("ohne") else next((r for r in reihen if r["id"] == str(form.get("reihe") or "")), None)
     stunde = _stunde_tupel(reihe, logik.stunde_nummer(str(form.get("stunde") or ""), 999))
-    try:
-        fid = modul.frage_stellen(str(form.get("text") or ""), logik.frage_ort(reihe, stunde, []),
-                                  form.get("gruendlich") == "1", CHAT_ORDNER)
+    EINGANG.mkdir(parents=True, exist_ok=True)
+    ablage = Path(tempfile.mkdtemp(dir=EINGANG))
+    try:  # je Datei ein Unterordner wie bei Neuer Auftrag
+        uploads = [(d.filename, datei_ablegen(d, ablage / str(nr))) for nr, d in enumerate(dateien_)]
+        fid = modul.frage_stellen(text, logik.frage_ort(reihe, stunde, []), gruendlich, CHAT_ORDNER,
+                                  netz=netz, dateien=uploads)
     except modul.FrageFehler as fehler_:
-        code = "leer" if not str(form.get("text") or "").strip() else "lang" if "lang" in str(fehler_) else "technik"
+        logger.warning("Frage abgewiesen: %s", fehler_)
+        code = logik.frage_fehler_schluessel(text, str(fehler_))
         return RedirectResponse(f"{zurueck}?fragefehler={code}#fragen", status_code=303)
     except OSError as fehler_:
         logger.error("Frage nicht gestellt: %s", fehler_)
         return RedirectResponse(f"{zurueck}?fragefehler=technik#fragen", status_code=303)
-    logger.info("Frage %s gestellt (%s, %s)", fid, reihe["id"] if reihe else "ohne Ort",
-                "gründlich" if form.get("gruendlich") == "1" else "schnell")
+    finally:
+        shutil.rmtree(ablage, ignore_errors=True)
+    logger.info("Frage %s gestellt (%s, %s, %s, %d Dateien)", fid, reihe["id"] if reihe else "ohne Ort",
+                "gründlich" if gruendlich else "schnell", "mit Netz" if netz else "ohne Netz", len(uploads))
     return RedirectResponse(f"{zurueck}?frage={fid}#fragen", status_code=303)
 
 
@@ -598,8 +619,10 @@ def agent_starten(agent: str) -> None:
         logger.error("Start von %s.service fehlgeschlagen: %s", dienst, lauf.stderr.strip())
 
 
-async def formular_lesen(request: Request, wofuer: str, max_dateien: int):
-    """Formular einer Route mit Wirkung: Herkunft prüfen (403), Größe begrenzen (413), lesen (400)."""
+async def formular_lesen(request: Request, wofuer: str, max_dateien: int, max_teile: int | None = None):
+    """Formular einer Route mit Wirkung: Herkunft prüfen (403), Größe begrenzen (413), lesen (400).
+    max_teile: so viele Dateien darf das Formular haben, ohne dass es 400 gibt (sonst max_dateien + 1); die
+    Größe richtet sich nach max_dateien."""
     if not logik.herkunft_passt(request.headers.get("origin"), request.headers.get("host"),
                                 request.headers.get("sec-fetch-site")):
         logger.warning("%s abgewiesen: fremde Herkunft", wofuer)
@@ -608,7 +631,7 @@ async def formular_lesen(request: Request, wofuer: str, max_dateien: int):
     if int(request.headers.get("content-length") or 0) > grenze:
         raise HTTPException(413)
     try:
-        return await request.form(max_files=max_dateien + 1, max_fields=10, max_part_size=64 * 1024)
+        return await request.form(max_files=max_teile or max_dateien + 1, max_fields=10, max_part_size=64 * 1024)
     except Exception:  # kaputtes oder zu großes Formular (MultiPartException u. a.)
         logger.warning("%s: Formular nicht lesbar", wofuer)
         raise HTTPException(400) from None

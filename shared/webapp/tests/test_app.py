@@ -814,6 +814,55 @@ class TestOrdnung(Aufbau):
             self.assertIn("Schreib kurz deine Frage.", self.hole("/?fragefehler=leer")[1])
             self.assertEqual(self.hole("/teile/frage/../../x")[0].status, 404)
 
+    def test_fragen_netz_und_dateien(self):
+        ordner, eingang = self.tmp / "chat", self.tmp / "eingang"
+
+        def frage(dateien_, status=303, **felder):
+            body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "text": "Fass zusammen",
+                                   "zurueck": "/", **felder}, dateien_)
+            r, _ = self.hole("/fragen", "POST", body=body, kopf={"Content-Type": art, "Content-Length": str(len(body)),
+                                                                  "Origin": "http://localhost"})
+            self.assertEqual(r.status, status)
+            self.assertEqual(list(eingang.iterdir()) if eingang.exists() else [], [])  # Uploads immer weggeräumt
+            return r.getheader("location")
+
+        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner), \
+                mock.patch.object(app, "EINGANG", eingang):
+            _, html = self.hole("/")
+            for text in ('enctype="multipart/form-data"', 'name="netz" value="1"', "Im Netz nachsehen",
+                         "als Suchanfrage ins Netz, also keine Namen", 'type="file" name="dateien" multiple',
+                         'accept=".pdf,.docx,.pptx"'):
+                self.assertIn(text, html)
+            ort = frage([("../Text.pdf", b"%PDF-1"), ("Folien.pptx", b"PK")], netz="1")
+            fid = ort.split("frage=")[1].split("#")[0]
+            fid2 = frage([]).split("frage=")[1].split("#")[0]
+            f = json.loads((ordner / "fragen" / f"{fid}.json").read_text())
+            self.assertEqual((f["netz"], f["dateien"], f["gruendlich"]), (True, ["Text.pdf", "Folien.pptx"], False))
+            self.assertEqual((ordner / "dateien" / fid / "Text.pdf").read_bytes(), b"%PDF-1")
+            self.assertEqual(json.loads((ordner / "fragen" / f"{fid2}.json").read_text())["netz"], False)
+            frage([("a.pdf", b"x")] * 11, 400)  # mehr als 10 Teile liest die App gar nicht erst
+            for dateien_, code in (([("a.pdf", b"x")] * 4, "dateien"),
+                                   ([("Tabelle.xlsx", b"x")], "dateiart"), ([("a.pdf", b"")], "dateileer"),
+                                   ([("a.pdf", b"x"), ("A.pdf", b"y")], "dateiname")):
+                self.assertEqual(frage(dateien_), f"/?fragefehler={code}#fragen")
+            self.assertIn("Höchstens 3 Dateien je Frage.", self.hole("/?fragefehler=dateien")[1])
+            modul = app.chat()
+            with mock.patch.object(modul, "frage_stellen", side_effect=modul.FrageFehler("Eine Datei ist zu groß")):
+                self.assertEqual(frage([("a.pdf", b"x")]), "/?fragefehler=dateigross#fragen")
+            self.assertEqual(len(list((ordner / "fragen").iterdir())), 2)
+            (ordner / "verlauf.jsonl").write_text(json.dumps({
+                "id": fid, "reihe": "", "chip": "", "frage": "Fass zusammen", "netz": True,
+                "dateien": ["Text.pdf", "Folien.pptx"], "dateitext": "GEHEIMER INHALT",
+                "antwort": "Kurz.\n\nQuellen:\n- [Kant <b>](https://de.wikipedia.org/wiki/Kant?a=1&b=2)\n"
+                           "- [weg](javascript:alert(1))"}) + "\n")
+            _, html = self.hole("/")
+            self.assertIn('<p class="unter fragen-dateien">mit Datei: Text.pdf, Folien.pptx</p>', html)
+            self.assertNotIn("GEHEIMER INHALT", html)
+            self.assertIn('<li><a href="https://de.wikipedia.org/wiki/Kant?a=1&amp;b=2" rel="noopener noreferrer" '
+                          'target="_blank">Kant &lt;b&gt;</a></li>', html)
+            self.assertIn("<li>[weg](javascript:alert(1))</li>", html)
+            self.assertNotIn('href="javascript', html)
+
     def test_zurueckziehen(self):
         self.assertEqual(self.post("/neu", {"text": "Blatt", "art": "arbeitsblatt"})[0].status, 303)
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")

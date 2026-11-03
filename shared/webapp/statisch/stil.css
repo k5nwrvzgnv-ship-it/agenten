@@ -519,6 +519,8 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .fragen-frage { align-self: flex-end; max-width: 85%; margin: 0; padding: 10px 12px; background: var(--schwarz); color: var(--weiss); font-size: 14px; }
 .fragen-antwort { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--schwarz); font-size: 14px; }
 .fragen-antwort p { margin: 0; }
+.fragen-antwort a:not(.knopf) { overflow-wrap: anywhere; }
+.fragen-dateien { align-self: flex-end; max-width: 85%; margin: 0; font-size: 12px; overflow-wrap: anywhere; }
 .fragen-antwort .knopf { align-self: flex-start; }
 .fragen-fehler { border-color: var(--akzent); }
 .fragen-punkte { margin: 0; padding-left: 18px; border: 0; }
@@ -526,6 +528,7 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .fragen-trenner { margin: 6px 0 0; font-size: 12px; color: var(--grau); text-transform: uppercase; letter-spacing: .06em; }
 .fragen-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .fragen-form textarea { font: inherit; padding: 8px; border: 2px solid var(--schwarz); border-radius: 0; }
+.fragen-form input[type=file] { font: inherit; font-size: 14px; }
 .fragen-ort { margin: 0; font-weight: 700; }
 .zeile-aktion { display: flex; justify-content: flex-end; padding: 0 0 10px; border-top: 0; }
 

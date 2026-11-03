@@ -1468,26 +1468,51 @@ def nochmal_felder(kette: list[dict]) -> dict:
 
 
 # Spalte „Fragen“ (Board „Desktop“): Chat-Agent lia/chat über seine Schnittstelle (Warteschlange in Dateien).
-# Die Antworten sind Markdown (fett, Listen); hier nur so viel davon, wie die Spalte zeigt, ohne HTML von außen.
+# Die Antworten sind Markdown (fett, Listen, Links); hier nur so viel davon, wie die Spalte zeigt, ohne HTML von außen.
 _FETT = re.compile(r"\*\*(.+?)\*\*")
+# [Titel](URL), nur http/https; Klammern in der URL eine Ebene tief (Wikipedia: Kant_(Philosoph))
+_LINK = re.compile(r"\[([^\[\]]+)\]\((https?://(?:[^\s()]|\([^\s()]*\))+)\)")
 VERLAUF_ANZAHL = 6  # so viele Fragen zeigt die Spalte (der Agent hält 30 Tage)
 
 
+def link_ziel(url: str) -> str:
+    """URL eines Links in einer Antwort, wenn sie http/https mit Host ist, sonst "" (dann nur der Titel)."""
+    try:
+        teile = urlsplit(url)
+    except ValueError:
+        return ""
+    return url if teile.scheme in ("http", "https") and teile.hostname else ""
+
+
+def _links(text: str, fett: bool) -> list[dict]:
+    teile, pos = [], 0
+    for m in _LINK.finditer(text):
+        if m.start() > pos:
+            teile.append({"text": text[pos:m.start()], "fett": fett})
+        ziel = link_ziel(m.group(2))
+        teile.append({"text": m.group(1), "fett": fett, **({"link": ziel} if ziel else {})})
+        pos = m.end()
+    if pos < len(text):
+        teile.append({"text": text[pos:], "fett": fett})
+    return teile
+
+
 def _teile(zeile: str) -> list[dict]:
+    """Teile {"text", "fett", "link" (nur bei Links)} einer Zeile."""
     teile, pos = [], 0
     for m in _FETT.finditer(zeile):
         if m.start() > pos:
-            teile.append({"text": zeile[pos:m.start()], "fett": False})
-        teile.append({"text": m.group(1), "fett": True})
+            teile += _links(zeile[pos:m.start()], False)
+        teile += _links(m.group(1), True)
         pos = m.end()
     if pos < len(zeile):
-        teile.append({"text": zeile[pos:], "fett": False})
+        teile += _links(zeile[pos:], False)
     return teile
 
 
 def markdown_bloecke(text: str) -> list[dict]:
     """Antworttext in Blöcke: {"absatz": [Teile]} oder {"punkte": [[Teile]]} (Zeilen mit "- ", "* " oder "1. "),
-    Teile {"text", "fett"} (**…**). Überschriften (#) werden fette Absätze."""
+    Teile {"text", "fett"} (**…**), bei Links [Titel](URL) mit "link". Überschriften (#) werden fette Absätze."""
     bloecke: list[dict] = []
     for zeile in (text or "").replace("\r\n", "\n").split("\n"):
         z = zeile.strip()
@@ -1512,8 +1537,10 @@ def markdown_bloecke(text: str) -> list[dict]:
 
 def fragen_eintrag(e: dict) -> dict:
     """Eine Frage mit Antwort für die Spalte (aus verlauf() bzw. antwort_holen() des Chat-Agenten)."""
+    namen = e.get("dateien") if isinstance(e.get("dateien"), list) else []  # nur die Namen, nie dateitext
     return {"id": e.get("id") or "", "frage": e.get("frage") or "", "chip": e.get("chip") or "",
             "reihe": e.get("reihe") or "", "ok": e.get("ok", True), "gruendlich": bool(e.get("gruendlich")),
+            "netz": bool(e.get("netz")), "dateien": [str(n) for n in namen],
             "bloecke": markdown_bloecke(e.get("antwort") if "antwort" in e else e.get("text") or "")}
 
 
@@ -1547,7 +1574,40 @@ def zurueck_pfad(wert: str | None) -> str:
 
 FRAGE_FEHLER = {"leer": "Schreib kurz deine Frage.", "lang": "Die Frage ist zu lang (höchstens 4.000 Zeichen).",
                 "veraltet": "Die Seite war veraltet. Bitte schick die Frage noch einmal.",
-                "technik": "Die Frage kam nicht an. Sag Jan bitte Bescheid."}
+                "technik": "Die Frage kam nicht an. Sag Jan bitte Bescheid.",
+                "dateien": "Höchstens 3 Dateien je Frage.",
+                "dateiart": "Im Chat gehen nur PDF, Word und PowerPoint.",
+                "dateigross": "Eine Datei ist zu groß (höchstens 20 MB).",
+                "dateileer": "Eine Datei ist leer.",
+                "dateiname": "Zwei Dateien haben denselben Namen."}
+# Dateien in der Frage, wie lia/chat sie annimmt (schnittstelle.py)
+FRAGE_DATEIEN_MAX = 3
+FRAGE_ENDUNGEN = (".pdf", ".docx", ".pptx")
+
+
+def frage_dateien_pruefen(dateien_: list[tuple[str, int]]) -> str:
+    """Schlüssel in FRAGE_FEHLER für die Dateien einer Frage (Name, Größe in Bytes), sonst ""."""
+    if len(dateien_) > FRAGE_DATEIEN_MAX:
+        return "dateien"
+    if any(Path(n).suffix.lower() not in FRAGE_ENDUNGEN for n, _ in dateien_):
+        return "dateiart"
+    if any(g > NEU_DATEI_MAX_MB * 1024 * 1024 for _, g in dateien_):
+        return "dateigross"
+    if any(g == 0 for _, g in dateien_):
+        return "dateileer"
+    namen = [dateiname_bereinigen(n).lower() for n, _ in dateien_]
+    return "dateiname" if len(set(namen)) < len(namen) else ""
+
+
+def frage_fehler_schluessel(text: str, meldung: str) -> str:
+    """Schlüssel in FRAGE_FEHLER für einen FrageFehler des Chat-Agenten (seine Sätze, schnittstelle.py)."""
+    if not (text or "").strip():
+        return "leer"
+    for teil, schluessel in (("zu lang", "lang"), ("Höchstens", "dateien"), ("PDF, Word", "dateiart"),
+                             ("zu groß", "dateigross"), ("demselben Namen", "dateiname")):
+        if teil in meldung:
+            return schluessel
+    return "technik"
 
 
 def chat_id_gueltig(wert: str | None) -> bool:

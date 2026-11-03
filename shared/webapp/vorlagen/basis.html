@@ -57,6 +57,7 @@
     {%- for f in fragen.verlauf %}
     {%- if f.wechsel %}<p class="fragen-trenner">jetzt: {{ f.chip or "ohne Ort" }}</p>{% endif %}
     <p class="fragen-frage">{{ f.frage }}</p>
+    {%- if f.dateien %}<p class="unter fragen-dateien">mit Datei: {{ f.dateien | join(", ") }}</p>{% endif %}
     {% include "_antwort.html" %}
     {%- endfor %}
     {%- if wartend and wartend not in fragen.verlauf | map(attribute="id") | list %}
@@ -66,7 +67,7 @@
     {%- endif %}
   </div>
   {%- if fehler_frage in frage_fehler %}<p class="fehler" role="alert">{{ frage_fehler[fehler_frage] }}</p>{% endif %}
-  <form class="fragen-form" method="post" action="/fragen">
+  <form class="fragen-form" method="post" action="/fragen" enctype="multipart/form-data">
     <input type="hidden" name="token" value="{{ fragen_token }}">
     <input type="hidden" name="zurueck" value="{{ request.url.path }}">
     <input type="hidden" name="reihe" value="{{ fragen.reihe }}">
@@ -76,6 +77,10 @@
     <label class="unsichtbar" for="chat-eingabe">Deine Frage</label>
     <textarea id="chat-eingabe" name="text" rows="3" maxlength="4000" required></textarea>
     <label class="unter"><input type="checkbox" name="gruendlich" value="1"> gründlich (dauert länger)</label>
+    <label class="unter"><input type="checkbox" name="netz" value="1" aria-describedby="netz-hinweis"> Im Netz nachsehen</label>
+    <span class="unter" id="netz-hinweis">Dann geht der Text deiner Frage als Suchanfrage ins Netz, also keine Namen. Dauert etwa eine Minute.</span>
+    <label class="unter" for="chat-dateien">Datei dazu (PDF, Word, PowerPoint; höchstens 3, je bis 20 MB)</label>
+    <input id="chat-dateien" type="file" name="dateien" multiple accept=".pdf,.docx,.pptx">
     <button class="knopf knopf-voll" type="submit">Fragen</button>
     <span class="unter">Keine Namen von Schüler*innen. Kostet Rechenzeit.</span>
   </form>
