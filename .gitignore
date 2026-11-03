@@ -55,3 +55,7 @@ lia/instanz/auftraege/
 lia/instanz/meldungen/
 lia/instanz/verbrauch/
 lia/instanz/ausfall/
+# Final und eigene Fassungen (agentkit.fassungen): hängen an Aufträgen, die auch nicht im Repo liegen (F15)
+lia/instanz/fassungen/
+# Lerngruppen je Klasse (agentkit.struktur, chmod 600): Angaben zur Gruppe gehören nicht in Git (F6)
+lia/instanz/lerngruppen.toml
