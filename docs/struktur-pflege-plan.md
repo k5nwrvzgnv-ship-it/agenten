@@ -1,7 +1,12 @@
 # Plan: Lia pflegt Fach → Klasse/Kurs → Reihe → Stunde selbst
 
 Stand 03.11.2026. **Von Jan freigegeben am 03.11.2026.** Gebaut wird in den Bauschritten aus Abschnitt 11, je im
-zuständigen Chat. Offene Fragen in Abschnitt 9 (**F1** bis **F19**). Entschieden (Jan 03.11.): F1 bis F6, F14, F19. Offen: F7 bis F13, F15 bis F18 (betreffen spätere Bauschritte).
+zuständigen Chat. Offene Fragen in Abschnitt 9 (**F1** bis **F24**). Entschieden (Jan 03.11.): F1 bis F6, F9, F11, F14, F19. Offen: F7, F8, F10, F12, F13, F15 bis F18, F20 bis F24.
+
+**Erweiterung 03.11. nach der Freigabe:** Jan beschreibt den Ablauf vom neuen Schuljahr an. Die Klasse bekommt
+wiederkehrende Termine, die Reihe bekommt Termine zugeteilt (Abschnitt 2a). Das ändert Datenmodell, Masken und
+Matrix. Bauschritte 1 und 2 bleiben gültig. **Bauschritt 3 (Migration) wartet**, bis Jan Abschnitt 2a angesehen hat,
+sonst wird die Datei zweimal umgestellt.
 
 Grundlage (selbst gelesen): `git log -p lia/instanz/reihen.toml` (8 Commits, mit der Vorgängerdatei
 `lia/unterricht/reihen.toml`), alle Leser der Datei (`lia/unterricht/reihen.py`, `lia/examen/runde.py`,
@@ -124,6 +129,85 @@ gleich, weil die aufgelösten Felder dieselben Namen haben. **F1.**
 
 ---
 
+## 2a. Termine und Ablauf vom neuen Schuljahr an (Jan 03.11.)
+
+Jans Vorgabe: Neues Schuljahr, neuer Kurs bzw. neue Klasse (beides dieselbe Organisationseinheit). Beim Anlegen gibt
+man den wiederkehrenden Termin an, und die App erzeugt daraus alle Termine des Halbjahrs. In der Maske der Reihe
+teilt man diese Termine der Reihe zu oder legt Stunden an, wenn es noch keine Termine gibt. Antworten (Jan 03.11.):
+Die Maske fragt das Bundesland und erkennt Ferien selbst; bei Ausfall entscheidet Lia jedes Mal, ob alles nachrückt;
+mehrere Termine je Woche, Doppelstunden und A/B-Wochen kommen vor, aber nicht immer; zum Halbjahr ändert sich teils
+der Wochentag, die Anzahl der Termine nicht.
+
+### 2a.1 Ablauf
+
+| Schritt | Wer, wann | Was Lia angibt | Was die App macht |
+|---|---|---|---|
+| 0 Schule | einmal (beim ersten Kurs) | Bundesland | Schuljahr und Halbjahre aus den Ferien des Bundeslands (Schuljahr = nach den Sommerferien bis zu den nächsten); Feiertage dazu |
+| 1 Klasse/Kurs anlegen | Schuljahresbeginn | Fach (vorbelegt), Name, Schuljahr (vorbelegt); **Stundenplan**: je wiederkehrendem Termin Wochentag, Unterrichtsstunde, Einzel- oder Doppelstunde, jede Woche oder A/B-Woche; beliebig viele | erzeugt alle Termine bis Halbjahresende ohne Ferien und Feiertage; sie sind zunächst **frei** (gehören zur Klasse, zu keiner Reihe) |
+| 2 Reihe anlegen | wenn Lia plant | Titel; optional in derselben Maske: **freie Termine zuteilen** (Häkchen in der Terminliste oder „ab Di 11.11., 8 Termine“), oder **Stunden ohne Termin** anlegen | je zugeteiltem Termin eine Stunde der Reihe mit Datum, Thema zunächst offen |
+| 3 Stunden füllen | laufend | Thema, Marke (UB/Prüfung), Material | wie bisher |
+| 4 Alltag | laufend | Termin fällt aus: **„Alles rückt nach“** oder **„Diese Stunde fällt weg“**; Stunde verschieben; Reihe bekommt mehr oder weniger Termine; einzelner Zusatztermin | rechnet Daten neu (2a.3) |
+| 5 Halbjahr | Halbjahreswechsel | „Stundenplan ab 2. Halbjahr“: vorbelegt der alte, Lia ändert z. B. den Wochentag | erzeugt die Termine des 2. Halbjahrs; Stunden nach dem Stichtag behalten ihre Reihenfolge und bekommen die neuen Daten (gleiche Anzahl, Jans Antwort 4) |
+| 6 Schuljahresende | Sommer | archivieren; „Ins nächste Schuljahr übernehmen“; Reihe kopieren | wie Abschnitt 4 |
+
+### 2a.2 Modell
+
+Termin und Stunde bleiben getrennt: Der **Termin** ist ein Platz im Stundenplan der Klasse (Datum, Unterrichtsstunde),
+die **Stunde** ist der Inhalt einer Reihe. Eine Stunde liegt auf höchstens einem Termin, ein Termin trägt höchstens
+eine Stunde. Freie Termine werden nicht gespeichert, sondern aus dem Stundenplan berechnet; gespeichert wird nur, was
+Lia festlegt.
+
+```toml
+[schule]
+bundesland = "BE"
+
+[[klasse]]
+id = "ethik-9"
+fach = "ethik"
+name = "9"
+schuljahr = "2026/27"
+ausfall = ["2026-11-18/3"]       # gestrichene Termine („alles rückt nach“)
+
+[[klasse.zeitplan]]              # ein wiederkehrender Termin; beliebig viele
+tag = "Di"
+stunde = 3                       # Unterrichtsstunde laut Stundenplan
+laenge = 1                       # 1 Einzelstunde, 2 Doppelstunde (= ein Termin, F21)
+woche = "jede"                   # "jede", "A" oder "B" (F22)
+ab = "2026-08-31"
+bis = "2027-01-29"               # neuer Eintrag ab dem 2. Halbjahr, wenn sich der Tag ändert
+
+[[reihe.stunde]]
+id = "s-4k2m9a"
+termin = "2026-11-11/3"          # Datum/Unterrichtsstunde; fehlt bei einer Stunde ohne Termin
+thema = "Kant: Vergeltung"
+```
+
+- **Ferien und Feiertage** kommen aus einer Datei je Bundesland und Schuljahr, die die App nur liest (Quelle **F20**).
+  Bewegliche Ferientage und Studientage der Schule stehen in keiner Quelle: Lia streicht diese Termine als Ausfall.
+- **Stunde ohne Termin** (in der Maske angelegt, bevor es Termine gibt): steht in der Reihe ohne Datum; „Termine
+  zuteilen“ füllt die Daten später der Reihe nach.
+- **Reihenfolge** bleibt Reihenfolge der Blöcke (F3); bei Stunden mit Termin ist sie zugleich die Reihenfolge der
+  Daten. Die Leseschicht zählt Nummer und Datum.
+- **Prüfungsstunde**: ihr Datum ist der Prüfungstermin; `termin` in examen.toml kann dann entfallen (später, im
+  examen-Chat).
+- Die Agenten bekommen das Datum je Stunde in den Kontext („Stunde 3, Di 25.11.: Kant“).
+
+### 2a.3 Rechenregeln
+
+- **Alles rückt nach**: Der Termin kommt in `ausfall`. Jede spätere Stunde der Klasse rückt auf den nächsten Termin,
+  über Reihengrenzen hinweg (**F23**). Die letzte Stunde nimmt den nächsten freien Termin; gibt es keinen mehr im
+  Halbjahr, steht sie ohne Termin da und die App sagt es. Inhalte, ids und Material bleiben.
+- **Diese Stunde fällt weg**: Der Termin kommt in `ausfall`, die Stunde wird ausgeblendet (Abschnitt 3). Alle
+  anderen Daten bleiben.
+- **Stunde verschieben**: Der Inhalt wandert, die Termine bleiben. Die Stunden zwischen alter und neuer Stelle
+  rücken je einen Termin weiter.
+- **Halbjahreswechsel mit neuem Wochentag**: Die Stunden ab dem Stichtag werden der Reihe nach auf die neuen Termine
+  gelegt. Bei gleicher Anzahl bleibt keine Stunde ohne Termin; bei abweichender Anzahl sagt die App, welche.
+- **Zusatztermin** (Nachholen, Projekttag): einzelner Termin an der Klasse, `zusatz = ["2026-12-02/5"]`.
+- **Ausfall zurücknehmen**: über Rückgängig (Abschnitt 3.1), stellt alle Daten wieder her.
+
+---
+
 ## 3. Lebenslauf je Objekt
 
 ```
@@ -137,6 +221,8 @@ Reihe:   geplant ──► laufend ──► abgeschlossen        (jeder Schritt
 
 Fach, Klasse:  aktiv ◄──► archiviert;  Löschen wie oben
 Stunde:        sichtbar ◄──► ausgeblendet (= archiviert, zählt nicht mit);  Löschen wie oben
+Termin:        frei ──zuteilen──► trägt eine Stunde;  frei oder belegt ──Ausfall──► gestrichen (Rückgängig möglich)
+               vergangen = gehalten (aus dem Datum, kein eigenes Feld)
 ```
 
 - **Kein Automatismus.** Ende des Schuljahrs: Hinweis in „Heute“ („Schuljahr 2025/26 vorbei: Klassen
@@ -149,7 +235,8 @@ Stunde:        sichtbar ◄──► ausgeblendet (= archiviert, zählt nicht mi
 - Im Prompt der Agenten: `geplant` und `laufend` stehen als laufende Reihen (Straftheorien ist geplant und genau
   die Reihe, an der Lia arbeitet), `abgeschlossen` und archiviert als kurze Liste „was die Klassen schon kennen“
   (wie heute).
-- Stunde: kein eigener Stand. „gehalten“ und ein Datum erst, wenn Lia es will (**F11**).
+- Stunde: kein eigener Stand. Das Datum kommt vom Termin, „gehalten“ heißt: der Termin liegt in der Vergangenheit
+  (F11, durch Jans Ablauf entschieden).
 
 ### 3.1 Löschen: wann es geht
 
@@ -195,8 +282,8 @@ Fassungen werden nie umgeschrieben**; sie zeigen auf eine `id`, und die bleibt.
 
 | Aktion | erlaubt | Pflichtfelder | Darunter | Aufträge |
 |---|---|---|---|---|
-| anlegen | ja | Name („8“, „Kurs 11“), Schuljahr (vorbelegt: laufendes, **F9**); Fach vom Ort vorbelegt | – | – |
-| ändern | ja (Name, Schuljahr, Lerngruppe) | Name, Schuljahr | zeigen den neuen Namen | bleiben |
+| anlegen | ja | Name („8“, „Kurs 11“), Schuljahr (vorbelegt aus den Ferien des Bundeslands); Fach vom Ort vorbelegt; Stundenplan optional, aber gleich in der Maske (2a.1) | erzeugt freie Termine | – |
+| ändern | ja (Name, Schuljahr, Lerngruppe, Stundenplan ab einem Stichtag) | Name, Schuljahr | Stundenplan ab Stichtag: Stunden danach bekommen neue Daten (2a.3) | bleiben |
 | verschieben | ja, in ein anderes Fach (Korrektur) | Ziel-Fach | Reihen und Stunden gehen mit | bleiben (über `id`) |
 | kopieren | ja, als „Ins nächste Schuljahr übernehmen“ | Name (vorbelegt wie bisher, Lia ändert z. B. 7 → 8), Schuljahr (vorbelegt +1) | Reihen werden **nicht** kopiert (die gibt es einzeln, 4.3); die neue Klasse bekommt `herkunft` | bleiben an der alten Klasse; Lerngruppe mitnehmen? **F8** |
 | archivieren | ja | – | gelten als archiviert | bleiben dran |
@@ -209,7 +296,7 @@ Doppelte Klasse (gleicher Name, gleiches Schuljahr, gleiches Fach): Hinweis „g
 
 | Aktion | erlaubt | Pflichtfelder | Darunter | Aufträge |
 |---|---|---|---|---|
-| anlegen | ja | Titel; Klasse vom Ort vorbelegt; `stand = "geplant"` | – | – |
+| anlegen | ja | Titel; Klasse vom Ort vorbelegt; `stand = "geplant"`; optional freie Termine zuteilen oder Stunden ohne Termin anlegen (2a.1) | je Termin eine Stunde, Thema offen | – |
 | ändern | ja (Titel, Reihenfrage, Stand, Notizen, behandelt, Merksätze); nicht `id`, nicht `agenten` | Titel | – | bleiben; neue Läufe sehen den neuen Titel |
 | verschieben | ja, in eine andere Klasse (auch anderes Fach, auch Archiv-Klasse) | Ziel-Klasse | Stunden gehen mit | bleiben (über `id`) |
 | kopieren | ja, z. B. „in die 9 von 2026/27 übernehmen“ | Ziel-Klasse | Stunden kopiert mit neuen `id`s, nur Thema, ohne Marke (UB/Prüfung gehören zum alten Jahr) | **nicht** kopiert. Neue Reihe: `herkunft` = alte id, `stand = "geplant"`, ohne `agenten`, ohne `archiviert`. Material aus der alten Reihe übernehmen: **F7** |
@@ -221,13 +308,25 @@ Doppelte Klasse (gleicher Name, gleiches Schuljahr, gleiches Fach): Hinweis „g
 
 | Aktion | erlaubt | Pflichtfelder | Darunter | Aufträge |
 |---|---|---|---|---|
-| anlegen | ja (ans Ende oder „davor einfügen“) | Thema (bis 120 Zeichen, wie heute) | – | – |
-| ändern | ja (Thema, Marke UB/Prüfung) | Thema | – | bleiben; alte Auftragstexte nennen das alte Thema |
-| verschieben | ja, in der Reihe (Reihenfolge) und in eine andere Reihe | Ziel (Reihe, Stelle) | – | Material geht mit (Zuordnung über Stunden-`id`, nicht Nummer). Das Feld `reihe` alter Aufträge bleibt; der Ort eines Materials folgt der Stunde (Regel: Lias Zuordnung vor Feld `reihe` vor `agenten`) |
+| anlegen | ja (ans Ende oder „davor einfügen“; auch über „Termine zuteilen“) | keins: Thema darf offen bleiben („Thema offen“), bis 120 Zeichen | – | – |
+| ändern | ja (Thema, Marke UB/Prüfung) | – | – | bleiben; alte Auftragstexte nennen das alte Thema |
+| verschieben | ja, in der Reihe (Reihenfolge; der Inhalt wandert, die Termine bleiben, 2a.3) und in eine andere Reihe | Ziel (Reihe, Stelle) | – | Material geht mit (Zuordnung über Stunden-`id`, nicht Nummer). Das Feld `reihe` alter Aufträge bleibt; der Ort eines Materials folgt der Stunde (Regel: Lias Zuordnung vor Feld `reihe` vor `agenten`) |
 | kopieren | ja, einzeln in eine andere Reihe | Ziel-Reihe | – | nicht kopiert (nur das Thema) |
 | archivieren (ausblenden) | ja | – | – | Material bleibt an der Stunde, sichtbar unter „Ausgeblendete Stunden“ |
 | wiederherstellen | ja, an der alten Stelle | – | – | wie vorher |
 | löschen | nur ohne Material und Aufträge | – | – | – |
+
+### 4.5 Termin
+
+| Aktion | erlaubt | Pflichtfelder | Folgen | Aufträge |
+|---|---|---|---|---|
+| anlegen | über den Stundenplan der Klasse; einzeln als Zusatztermin | Stundenplan: Wochentag, Unterrichtsstunde (Einzel/Doppel, Woche vorbelegt „jede“); Zusatztermin: Datum, Unterrichtsstunde | freie Termine | – |
+| zuteilen | ja, an eine Reihe (in der Maske der Reihe oder an der Reihe) | Auswahl der Termine | je Termin eine Stunde, Thema offen; Stunden ohne Termin bekommen der Reihe nach Daten | – |
+| freigeben | ja (Reihe braucht weniger) | – | nur leere Stunden (ohne Thema, ohne Material) verschwinden; sonst wird die Stunde ohne Termin behalten | bleiben |
+| ausfallen | ja, Lia wählt jedes Mal: „Alles rückt nach“ oder „Diese Stunde fällt weg“ (Jan 03.11.) | Auswahl | 2a.3 | bleiben an ihren Stunden |
+| Stundenplan ändern | ja, ab einem Stichtag (Halbjahr) | Stichtag, neuer Stundenplan (vorbelegt der alte) | Stunden ab Stichtag bekommen neue Daten | bleiben |
+| kopieren, archivieren | – (gehört zur Klasse) | | | |
+| wiederherstellen | über Rückgängig | – | Daten wie vorher | wie vorher |
 
 ---
 
@@ -240,9 +339,11 @@ Pflichtfeld fehlt.
 | Objekt | Anlegen (Pflicht) | Später ergänzbar | nie in einer Maske |
 |---|---|---|---|
 | Fach | Name | Kurzform | id |
-| Klasse/Kurs | Name, Schuljahr (Auswahl: voriges, laufendes, nächstes) | Lerngruppe (mit festem Hinweis, Abschnitt 6) | id, herkunft, archiviert |
-| Reihe | Titel | Reihenfrage, Stand, Notizen, schon behandelt, Merksätze (je Zeile einer) | id, herkunft, archiviert, agenten |
-| Stunde | Thema | Marke (UB, Prüfung) | id, archiviert |
+| Schule (einmal) | Bundesland | – | – |
+| Klasse/Kurs | Name, Schuljahr (vorbelegt); in derselben Maske, aber freiwillig: Stundenplan (je Zeile Wochentag, Unterrichtsstunde, Einzel/Doppel, jede/A/B-Woche; „+ weiterer Termin“) | Lerngruppe (mit festem Hinweis, Abschnitt 6), Stundenplan ab Stichtag | id, herkunft, archiviert, ausfall |
+| Reihe | Titel; in derselben Maske, aber freiwillig: freie Termine zuteilen (Liste mit Häkchen, Schnellwahl „ab … n Termine“) oder „+ Stunde ohne Termin“ | Reihenfrage, Stand, Notizen, schon behandelt, Merksätze (je Zeile einer) | id, herkunft, archiviert, agenten |
+| Stunde | – (Thema darf offen sein) | Thema, Marke (UB, Prüfung) | id, archiviert, termin (ändert sich nur über Zuteilen, Verschieben, Ausfall) |
+| Ausfall | Termin, „Alles rückt nach“ oder „Diese Stunde fällt weg“ | – | – |
 
 Längen: Titel und Namen bis 80 Zeichen, Thema bis 120 (wie heute), Reihenfrage bis 300, Notizen und Lerngruppe
 bis 1500 (Vorschlag; heute längste Texte: Lerngruppe und Notizen der Straftheorien, je rund 440 Zeichen).
@@ -359,9 +460,9 @@ Wo die Web-App Stunden aus der Datei heute sperrt („+ Stunde“ nur ohne Stund
 | F6 | Lerngruppe auslagern (gitignored) oder in reihen.toml lassen? Frist zum Leeren im Archiv? | **entschieden: auslagern** (Jan 03.11.); Frist offen |
 | F7 | Reihe kopieren: nur Struktur, oder auch finale Fassungen als Kopie mit Herkunft (Regel R10)? | erst nur Struktur, Material der alten Reihe als Liste „aus dem Vorjahr“ sichtbar |
 | F8 | Klasse ins nächste Schuljahr: Lerngruppe mitnehmen? | als Häkchen, Standard aus |
-| F9 | Wann beginnt das Schuljahr (für die Vorbelegung)? Ich vermute 1. August, weiß es aber nicht sicher | – |
+| F9 | Wann beginnt das Schuljahr (für die Vorbelegung)? | **entschieden** (Jan 03.11.): die Maske fragt das Bundesland, Schuljahr und Halbjahre ergeben sich aus dessen Ferien (2a.1) |
 | F10 | `bisherige_reihen` ablösen: Helfen (Ethik 8, mit Merksätzen) als echte abgeschlossene Reihe, Klasse 7 als Herkunft von Klasse 8? recherche/faelle.py liest das Feld heute | ja, mit Umstellung in recherche |
-| F11 | Stunde mit Datum und „gehalten“? | erst nach Lias Test fragen |
+| F11 | Stunde mit Datum und „gehalten“? | **entschieden** durch Jans Ablauf: Datum vom Termin, gehalten = vergangen (2a) |
 | F12 | Reihe-Art „Inszenierung“ als Feld (heute: Probe statt Stunde nur bei `agenten = ["theater"]`; eine neue Inszenierung im nächsten Jahr hätte „Stunden“) | Feld `art`, freiwillig |
 | F13 | „Keine Aufträge ohne Ort“: nur für neue Aufträge aus der App, oder auch für die 7 alten ohne Ort (4 Material, 2 Feedback, 1 Recherche)? | neue immer; alte bleiben in „Ohne Ort“, Lia kann sie zuordnen (gebaut) |
 | F14 | Wie findet examen seine Reihe, und wie wird es abgenommen? | **entschieden** (Jan 03.11.): Examen ist eine Stunde mit Marke „Prüfung“ (Abschnitt 2); Abnahme mit echtem Lauf (Abschnitt 12) |
@@ -370,6 +471,11 @@ Wo die Web-App Stunden aus der Datei heute sperrt („+ Stunde“ nur ohne Stund
 | F17 | Löschen nur ohne Ebenen darunter, oder mitlöschen, wenn nirgends etwas hängt? | nur ohne Ebenen darunter |
 | F18 | `agenten` pflegt nur Jan von Hand? | ja; Test: ein Agent höchstens in einer Reihe |
 | F19 | Darf Lia schon schreiben, solange nur das Caddy-Passwort schützt, oder erst mit Konten (Entscheidung 30.10.)? | **entschieden: ja, ohne Konten** (Jan 03.11.) |
+| F20 | Woher kommen Ferien und Feiertage je Bundesland? a) Datei im Repo, je Schuljahr von Hand aus der amtlichen Übersicht der Kultusministerkonferenz gepflegt; b) ein Skript holt sie einmal je Schuljahr über eine offene Schnittstelle (z. B. OpenHolidays API; Angebot und Bedingungen habe ich nicht geprüft) in dieselbe Datei. Die App selbst geht in beiden Fällen nicht ins Netz | b mit a als Rückfall; Netzabruf eines fremden Dienstes nur mit Jans Okay |
+| F21 | Doppelstunde = ein Termin mit einer Stunde (90 Minuten) oder zwei Termine? | ein Termin |
+| F22 | A/B-Woche: Lia gibt an, ob die erste Schulwoche A oder B ist; Ferienwochen zählen nicht mit? | so, aber bei Lia nachfragen, wie ihre Schule zählt |
+| F23 | „Alles rückt nach“ auch über die Grenze zur nächsten Reihe der Klasse? | ja, alle späteren Stunden der Klasse |
+| F24 | Ferien und Halbjahreswechsel: Halbjahr endet laut Vorschlag mit Beginn der Winterferien. Ob das je Bundesland stimmt, weiß ich nicht; Lia kann den Stichtag ändern | so, Stichtag änderbar |
 
 ---
 
@@ -431,6 +537,19 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 24. Leeres Pflichtfeld, zu lang, doppelte Klasse im selben Schuljahr → kein Schreiben, Fehlertext für Lia.
 25. Schreibende Formulare nur mit Formular-Token und passendem Origin (wie „Neuer Auftrag“ heute).
 
+**Termine** (2a)
+26. Aus dem Stundenplan entstehen genau die Schultage ohne Ferien und Feiertage (Prüfdaten: Ferien-Datei eines
+    Bundeslands, eingefroren).
+27. Doppelstunde ergibt einen Termin, A/B-Woche nur jede zweite Schulwoche, mehrere Termine je Woche in Datumsfolge.
+28. „Alles rückt nach“: Alle späteren Stunden der Klasse wandern um genau einen Termin, ids, Themen und Material
+    bleiben; Rückgängig stellt alle Daten wieder her.
+29. „Diese Stunde fällt weg“: nur diese Stunde ausgeblendet, alle anderen Daten unverändert.
+30. Stundenplan ab Stichtag mit neuem Wochentag: Stunden danach behalten die Reihenfolge und bekommen neue Daten;
+    bei gleicher Anzahl keine Stunde ohne Termin.
+31. Ein Termin trägt höchstens eine Stunde, eine Stunde liegt auf höchstens einem Termin; ein gestrichener Termin
+    trägt keine.
+32. Reihe anlegen mit zugeteilten Terminen ist eine Aktion, ein Commit, ein Rückgängig.
+
 ---
 
 ## 11. Bauschritte (je ein Chat, je ein Commit, `./pruefen.sh` grün)
@@ -438,8 +557,12 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 0. Jan: Antworten auf F1–F19, Freigabe dieses Plans.
 1. **Hauptordner**: `agentkit.struktur` lesend (laden, prüfen, auflösen, `haengt_dran`), Tests 1–3, 6, 15, 17;
    `.gitignore` für `lia/instanz/fassungen/` (F15) und `lia/instanz/lerngruppen.toml` (F6); Feld `ort` in
-   `agentkit.auftraege`; `commit-daten.sh` mit der Ausnahme-Zeile in CLAUDE.md (F4).
-2. **Leser umstellen**, je in ihrem Chat: lia/unterricht (reihen.py über struktur), lia/examen (Reihe und
+   `agentkit.auftraege`; `commit-daten.sh` mit der Ausnahme-Zeile in CLAUDE.md (F4). **Erledigt 03.11.**
+1b. **Hauptordner** (neu, nach Jans Blick auf 2a und Antworten F20–F24): `agentkit.termine` ohne Netz (Termine aus
+   Stundenplan, Ferien, Feiertagen, Ausfällen, Zusatzterminen; Nachrücken; Halbjahreswechsel), Ferien-Datei je
+   Bundesland (Weg aus F20), `agentkit.struktur` liest `[schule]`, `klasse.zeitplan`, `ausfall`, `zusatz` und
+   `stunde.termin`. Tests 26–31.
+2. **Erledigt 03.11.** **Leser umstellen**, je in ihrem Chat: lia/unterricht (reihen.py über struktur), lia/examen (Reihe und
    Prüfungsstunde über die Marke „Prüfung“, `titel_in_reihen_toml` und `pruefungsstunde_in_reihe` raus, behebt den
    Absturz mit Stunden), lia/recherche (`id` statt „Straftheorien“, frühere Reihenfragen aus
    struktur statt Regex), lia/chat (kontext), shared/webapp (ordnung, logik). Test 22 je Ordner.
@@ -448,7 +571,8 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
    Kurs 11 wird Klasse, Helfen als Reihe (F10), Lerngruppe nach `lerngruppen.toml` (F6), `agenten = ["examen"]`
    raus, dafür die Prüfungsstunde als Stunde mit Marke (sobald Lia ihre Stunden der Reihe kennt; bis dahin läuft
    examen nicht, siehe Abschnitt 2). Vorher und nachher: echter Prompt
-   von unterricht für eine Reihe vergleichen.
+   von unterricht für eine Reihe vergleichen. **Wartet auf 1b**, damit die Datei nur einmal umgestellt wird; dabei
+   `[schule] bundesland` und der Stundenplan der laufenden Klassen (von Lia zu erfragen).
 4. **Hauptordner**: Schreib-Operationen und Block-Editor in `agentkit.struktur`, Rückgängig, Tests 4–5, 7–14, 16,
    18–21, 23.
 5. **shared/webapp**: „Bearbeiten“ und „+ Neu“ je Ebene, Aktionen aus Abschnitt 4, Rückgängig-Hinweis und „Letzte
@@ -480,19 +604,20 @@ laut. Hinweis vorher: „Getestet wird die Seite, nicht du.“
 
 | # | Aufgabe (vorlesen, ohne Wörter der Oberfläche) | Erfolg, wenn | richtiger erster Klick |
 |---|---|---|---|
-| 1 | „Du bekommst ab Februar noch einen Ethik-Kurs, eine 9. Trag ihn ein.“ | Klasse „9“ in Ethik, Schuljahr 2026/27 | Fach Ethik bzw. „+ Klasse“ dort |
-| 2 | „Die Reihe Freundschaft aus deiner 7 vom letzten Jahr willst du in der neuen 9 wieder machen. Hol sie dorthin.“ | Kopie in Ethik 9, Original bleibt im Archiv | Archiv Klasse 7 · 2025/26 bzw. die Reihe Freundschaft |
+| 1 | „Du bekommst ab Februar noch einen Ethik-Kurs, eine 9, immer dienstags in der 3. Stunde. Trag ihn ein.“ | Klasse „9“ in Ethik mit Stundenplan, Termine bis Halbjahresende sichtbar | Fach Ethik bzw. „+ Klasse“ dort |
+| 2 | „Die Reihe Freundschaft aus deiner 7 vom letzten Jahr willst du in der neuen 9 wieder machen, in den ersten sechs Terminen. Hol sie dorthin.“ | Kopie in Ethik 9 mit sechs Terminen, Original bleibt im Archiv | Archiv Klasse 7 · 2025/26 bzw. die Reihe Freundschaft |
 | 3 | „In der Strafe-Reihe soll die Stunde zu von Liszt vor die Stunde zu Kant.“ | Reihenfolge geändert, Material bei seiner Stunde | Reihe Straftheorien |
-| 4 | „Die Reihe zum nackten Wahnsinn ist vorbei. Räum sie aus deiner Übersicht, ohne dass etwas verloren geht.“ | Reihe archiviert (nicht gelöscht) | Reihe Der nackte Wahnsinn |
-| 5 | „Du brauchst sie doch noch mal. Hol sie zurück, mit allem, was dazugehört.“ | wiederhergestellt; Lia findet ein Material darin wieder | Archiv bzw. Rückgängig |
+| 4 | „Am nächsten Dienstag fällt der Unterricht in der 9 aus. Alles soll einen Termin später kommen.“ | Ausfall mit „Alles rückt nach“ | Klasse 9 bzw. der Termin |
+| 5 | „Die Reihe zum nackten Wahnsinn ist vorbei. Räum sie aus deiner Übersicht, ohne dass etwas verloren geht.“ | Reihe archiviert (nicht gelöscht) | Reihe Der nackte Wahnsinn |
+| 6 | „Du brauchst sie doch noch mal. Hol sie zurück, mit allem, was dazugehört.“ | wiederhergestellt; Lia findet ein Material darin wieder | Archiv bzw. Rückgängig |
 
 **Gemessen je Aufgabe**: Erfolg (ohne Hilfe / mit Hilfe / nicht), erster Klick (richtig/falsch, wohin), Zeit bis
 Erfolg in Sekunden, wörtliche Äußerungen. Bogen: `shared/webapp/data/ia/testbogen-struktur.csv`.
 
-**Ziel**: 5 von 5 ohne Hilfe (Jans Vorgabe „alles ohne Hilfe“), erster Klick bei mindestens 4 von 5 richtig.
+**Ziel**: 6 von 6 ohne Hilfe (Jans Vorgabe „alles ohne Hilfe“), erster Klick bei mindestens 5 von 6 richtig.
 Zeiten werden erhoben, aber ohne Sollwert (einen belastbaren Vergleichswert habe ich nicht).
 
-**Danach (5 Minuten)**: „Was war unklar?“, „Fehlt dir beim Anlegen ein Feld?“, „Willst du an einer Stunde ein Datum
-oder ‚gehalten‘?“ (F11), „Was erwartest du, wenn du eine Reihe in ein neues Jahr holst: auch die Materialien?“ (F7).
+**Danach (5 Minuten)**: „Was war unklar?“, „Fehlt dir beim Anlegen ein Feld?“, „Wie zählt deine Schule A- und
+B-Wochen?“ (F22), „Was erwartest du, wenn du eine Reihe in ein neues Jahr holst: auch die Materialien?“ (F7).
 
-**Auswertung**: Was zweimal falsch angeklickt wird, wird geändert. Unter 5 von 5: ändern, zweiter Test.
+**Auswertung**: Was zweimal falsch angeklickt wird, wird geändert. Unter 6 von 6: ändern, zweiter Test.

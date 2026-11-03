@@ -579,6 +579,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      „+ Reihe“ in der App, Konten.
      Plan (03.11., von Jan freigegeben 03.11.; entschieden F1–F6, F14, F19; F7–F13, F15–F18 betreffen spätere Schritte): Lia pflegt Fach, Klasse, Reihe, Stunde selbst,
      docs/struktur-pflege-plan.md. Befund dort: lia/examen stürzt ab, sobald die Straftheorien-Reihe Stunden hat.
+     Erweiterung 03.11. (Jan): Termine. Klasse bekommt Stundenplan (wiederkehrende Termine), Reihe bekommt Termine
+     zugeteilt, Ausfall mit Wahl „rückt nach“/„fällt weg“, Ferien je Bundesland (Plan Abschnitt 2a). Nächster Schritt:
+     Jan sieht 2a an und beantwortet F20–F24, dann Bauschritt 1b (agentkit.termine, Hauptordner), danach Migration (3).
+     Offen: Neustart webapp.service mit Jans Okay (läuft seit 14:27 mit Code vor Bauschritt 2).
      Bauschritt 1 erledigt 03.11. (Hauptordner): agentkit.struktur (nur lesend, Tests 1–3, 6, 15, 17 mit eingefrorener
      Kopie der echten Datei, Lerngruppe darin durch Platzhalter ersetzt), Feld `ort` in auftraege.neuer_auftrag,
      .gitignore für lia/instanz/fassungen/ und lerngruppen.toml, commit-daten.sh mit Ausnahme-Zeile in CLAUDE.md.
