@@ -82,8 +82,15 @@ MAX_FIXIERT = 3
 MAX_NACHKOMMA = 4
 MAX_ZAHL = 1e9
 MAX_ZEICHEN_GRENZE = 1000
+# Exposé
+MAX_EINRICHTUNG = 200
+MAX_RAHMEN = 400
+MAX_PERSONEN = 8
+MAX_PERSON = 100
+MAX_LITERATUR = 50
+MAX_LITERATURANGABE = 1000
 
-ARTEN = ("arbeitsblatt", "folien", "zusammenfassung", "arbeitsmappe")
+ARTEN = ("arbeitsblatt", "folien", "zusammenfassung", "arbeitsmappe", "expose")
 BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "merksatz", "anweisung", "material", "aufgaben",
               "neue_seite")
 ANTWORTARTEN = ("linien", "kasten", "ankreuzen", "satzanfaenge")
@@ -91,6 +98,7 @@ ELEMENTTYPEN = ("text", "punkte", "kasten", "leitfrage", "zentriert", "zeit", "s
                 "feedback", "legende")
 TEXTFARBEN = ("blau", "orange", "gruen", "rot", "grau")
 Z_BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "hinweis", "rechenbeispiel")
+E_BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle")
 HINWEISARTEN = ("pruefungsrelevant", "organisatorisch")
 KENNZEICHNUNGEN = ("unsicher", "muendlich")
 QUELLENARTEN = ("transkript", "folie", "norm")
@@ -171,6 +179,8 @@ def _beschreibung(p: "_Pruefer", daten) -> dict | None:
         return _zusammenfassung(p, daten)
     if art == "arbeitsmappe":
         return _arbeitsmappe(p, daten)
+    if art == "expose":
+        return _expose(p, daten)
     erlaubt = ", ".join(_zeigen(a) for a in ARTEN[:-1]) + f" oder {_zeigen(ARTEN[-1])}"
     if art is _FEHLT:
         p.melden("art", f"fehlt, erlaubt sind {erlaubt}")
@@ -689,6 +699,84 @@ def _formeln_pruefen(p: "_Pruefer", spalten: list, pfad: str):
             if len(rechnung.excel(s["baum"], zelle)) > rechnung.MAX_EXCEL:
                 p.melden(f"{pfad}.spalten[{j}].formel", "wird in Excel zu lang, bitte vereinfachen "
                                                         "(z. B. einen Teil in eine eigene rechnung-Spalte)")
+
+
+def _expose(p: "_Pruefer", d: dict) -> dict:
+    p.felder(d, "", pflicht=("art", "titel", "autoren", "einrichtung", "datum", "bloecke"),
+             optional=("untertitel", "betreuung", "rahmen", "literatur"))
+    titel = p.text(d.get("titel", _FEHLT), "titel", MAX_TITEL)
+    untertitel = p.text(d["untertitel"], "untertitel", MAX_TITEL) if "untertitel" in d else ""
+    einrichtung = p.text(d.get("einrichtung", _FEHLT), "einrichtung", MAX_EINRICHTUNG)
+    rahmen = p.text(d["rahmen"], "rahmen", MAX_RAHMEN) if "rahmen" in d else ""
+    datum = _datum(p, d.get("datum", _FEHLT), "datum")
+    autoren = p.liste(d.get("autoren", _FEHLT), "autoren", 1, MAX_PERSONEN) or []
+    betreuung = (p.liste(d["betreuung"], "betreuung", 0, MAX_PERSONEN) or []) if "betreuung" in d else []
+    literatur = (p.liste(d["literatur"], "literatur", 0, MAX_LITERATUR) or []) if "literatur" in d else []
+    bloecke = p.liste(d.get("bloecke", _FEHLT), "bloecke", 1, MAX_BLOECKE) or []
+    gelesen = [_e_block(p, b, f"bloecke[{i}]") for i, b in enumerate(bloecke)]
+    ebene1 = False
+    for i, b in enumerate(gelesen):
+        if b is None or (b["typ"] == "ueberschrift" and b["ebene"] is None):
+            break  # Block schon als Fehler gemeldet, keine Folgefehler
+        if b["typ"] == "ueberschrift":
+            if b["ebene"] == 2 and not ebene1:
+                p.melden(f"bloecke[{i}].ebene", "Ebene 2 vor der ersten Überschrift der Ebene 1, "
+                                                 "erst eine Überschrift mit ebene 1 setzen")
+            ebene1 = ebene1 or b["ebene"] == 1
+    return {"art": "expose", "titel": titel, "untertitel": untertitel, "einrichtung": einrichtung,
+            "rahmen": rahmen, "datum": datum,
+            "autoren": [p.text(a, f"autoren[{i}]", MAX_PERSON) for i, a in enumerate(autoren)],
+            "betreuung": [p.text(a, f"betreuung[{i}]", MAX_PERSON) for i, a in enumerate(betreuung)],
+            "bloecke": gelesen,
+            "literatur": [_e_text(p, x, f"literatur[{i}]", MAX_LITERATURANGABE) for i, x in enumerate(literatur)]}
+
+
+def _e_block(p: "_Pruefer", b, pfad: str) -> dict | None:
+    """Block eines Exposés: wie bei der Zusammenfassung, aber ohne Belege (die stehen im Protokoll des Agenten)."""
+    if not isinstance(b, dict):
+        p.melden(pfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(b)}")
+        return None
+    typ = b.get("typ", _FEHLT)
+    if typ not in E_BLOCKTYPEN:
+        erlaubt = ", ".join(_zeigen(t) for t in E_BLOCKTYPEN)
+        if typ is _FEHLT:
+            p.melden(f"{pfad}.typ", f"fehlt, erlaubt sind {erlaubt}")
+        else:
+            p.melden(f"{pfad}.typ", f"muss einer von {erlaubt} sein, ist {_zeigen(typ)}{_aehnlich(typ, E_BLOCKTYPEN)}")
+        return None
+
+    if typ == "ueberschrift":
+        p.felder(b, pfad, pflicht=("typ", "text"), optional=("ebene",))
+        ebene = p.ganzzahl(b["ebene"], f"{pfad}.ebene", 1, MAX_Z_EBENE) if "ebene" in b else 1
+        text = p.text(b.get("text", _FEHLT), f"{pfad}.text", MAX_TITEL)
+        if text and _NUMMER_VORN.match(text):
+            p.melden(f"{pfad}.text", "ohne Nummer schreiben, die Nummer setzt der Renderer")
+        return {"typ": typ, "text": text, "ebene": ebene}
+
+    if typ == "absatz":
+        p.felder(b, pfad, pflicht=("typ", "text"))
+        return {"typ": typ, "text": _e_text(p, b.get("text", _FEHLT), f"{pfad}.text", MAX_ABSATZ)}
+
+    if typ == "liste":
+        p.felder(b, pfad, pflicht=("typ", "punkte"), optional=("nummeriert",))
+        punkte = p.liste(b.get("punkte", _FEHLT), f"{pfad}.punkte", 1, MAX_LISTE_PUNKTE) or []
+        nummeriert = p.wahrheitswert(b["nummeriert"], f"{pfad}.nummeriert") if "nummeriert" in b else False
+        return {"typ": typ, "nummeriert": nummeriert,
+                "punkte": [_e_text(p, x, f"{pfad}.punkte[{i}]", MAX_LISTE_PUNKT) for i, x in enumerate(punkte)]}
+
+    # tabelle: Zellen wie beim Arbeitsblatt, ohne zeilenhoehe_cm und erste_spalte_fett
+    p.felder(b, pfad, pflicht=("typ", "zeilen"), optional=("titel", "kopf"))
+    titel = p.text(b["titel"], f"{pfad}.titel", MAX_TITEL) if "titel" in b else ""
+    tabelle = _tabelle(p, {k: v for k, v in b.items() if k in ("typ", "kopf", "zeilen")}, pfad)
+    return {"typ": "tabelle", "titel": titel, "kopf": tabelle["kopf"], "zeilen": tabelle["zeilen"]}
+
+
+def _e_text(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> str | None:
+    """Text eines Exposés. Belege aus der Besprechung gehören ins Protokoll, nicht ins Exposé."""
+    text = p.text(wert, pfad, max_laenge)
+    if text and _QUELLE_IM_TEXT.search(text):
+        p.melden(pfad, "Beleg aus Transkript oder Folien im Text, der gehört nicht ins Exposé (nur ins Protokoll)")
+    return text
 
 
 def _punkt(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> dict | None:

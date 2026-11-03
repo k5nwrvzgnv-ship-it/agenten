@@ -1,6 +1,6 @@
 # Format der Beschreibung (für Claude)
 
-Du beschreibst ein Dokument als JSON (Arbeitsblatt, Zusammenfassung, Folien oder Arbeitsmappe). Python prüft es und baut daraus
+Du beschreibst ein Dokument als JSON (Arbeitsblatt, Zusammenfassung, Exposé, Folien oder Arbeitsmappe). Python prüft es und baut daraus
 die Datei. Du schreibst nur Inhalt: keine Dateinamen, keine Pfade, keine Schriftarten oder Farben. Die Gestaltung
 kommt aus dem Profil des Agenten.
 
@@ -143,6 +143,58 @@ optional; bei `liste` stehen sie an den einzelnen Punkten):
 | `rechenbeispiel` | `aufgabe` (höchstens 2000 Zeichen), `schritte`: 1 bis 15, je `text` (höchstens 1000) und `rechnung` (optional, höchstens 300); `ergebnis` (höchstens 300); `titel` (optional), `gegeben` (optional, 1 bis 15 Texte, je höchstens 300) | Kasten: Aufgabe, Gegeben, Schritt 1, 2, …, Ergebnis fett |
 
 Formeln schreibst du als reinen Text, z. B. `u = (m_u − m_0) / m_0 · 100 %`.
+
+## Exposé (wird eine docx-Datei, A4)
+
+Für Exposés von Studien- und Forschungsprojekten. Die erste Seite ist ein Deckblatt: Logo (aus dem Profil),
+`einrichtung`, die Autorenzeile, Titel und Untertitel, unten `rahmen`, „Betreuung: …“ und `datum`. Danach folgt der
+Text, am Ende auf eigener Seite das Literaturverzeichnis. Überschriften werden automatisch nummeriert (1, 1.1),
+schreibe keine Nummer in den Text. Ein Exposé hat keine Belege aus Transkript oder Folien, die stehen nur im
+Protokoll. Stellen, die vor dem Versand noch gefüllt werden müssen, schreibst du als `[OFFEN: …]`: Sie erscheinen
+fett und gelb hinterlegt.
+
+```json
+{
+  "art": "expose",
+  "titel": "Fehlstellenerkennung an Holzlamellen mit einer Kamera",
+  "untertitel": "Prototyp für die Keilzinkung",
+  "autoren": ["Vorname Nachname (Matr.-Nr. 12345678)", "Vorname Nachname (Matr.-Nr. [OFFEN: Nummer])"],
+  "betreuung": ["Prof. Dr. Vorname Nachname"],
+  "einrichtung": "Fachbereich Holzingenieurwesen",
+  "rahmen": "Exposé | Wintersemester 2026/27\nStudiengang Holzingenieurwesen (M. Sc.)\nModul Forschungsprojekt 1",
+  "datum": "02.11.2026",
+  "bloecke": [
+    {"typ": "ueberschrift", "text": "Ausgangslage"},
+    {"typ": "absatz", "text": "Äste vor der Keilzinkung mindern die Festigkeit (Nachname & Nachname, 2021)."},
+    {"typ": "ueberschrift", "text": "Ziel", "ebene": 2},
+    {"typ": "liste", "punkte": ["Bilder aufnehmen", "Modell trainieren"], "nummeriert": true},
+    {"typ": "tabelle", "titel": "Zeitplan", "kopf": ["Zeitraum", "Arbeitsschritt"], "zeilen": [["November", "Bildaufnahme"], ["[OFFEN: Monat]", "Auswertung"]]}
+  ],
+  "literatur": ["Nachname, V., & Nachname, V. (2021). Titel des Buchs. Verlag. https://doi.org/10.1000/beispiel"]
+}
+```
+
+| Feld | Pflicht | Bedeutung |
+|---|---|---|
+| `art` | ja | `"expose"` |
+| `titel` | ja | Titel, höchstens 200 Zeichen |
+| `untertitel` | nein | steht unter dem Titel, höchstens 200 Zeichen |
+| `autoren` | ja | 1 bis 8 Namen, je höchstens 100 Zeichen, auf dem Deckblatt durch „\|“ getrennt |
+| `betreuung` | nein | 0 bis 8 Namen, je höchstens 100 Zeichen, erscheint als „Betreuung: …“ |
+| `einrichtung` | ja | z. B. Fachbereich, höchstens 200 Zeichen |
+| `rahmen` | nein | bis 400 Zeichen, mehrzeilig mit `\n`, unten auf dem Deckblatt, erste Zeile fett |
+| `datum` | ja | Stand als `"TT.MM.JJJJ"` |
+| `bloecke` | ja | 1 bis 200 Blöcke in Lesereihenfolge |
+| `literatur` | nein | 0 bis 50 Angaben, je höchstens 1000 Zeichen, in der Reihenfolge wie gegeben (sortiere selbst). Links mit `https://` werden anklickbar. |
+
+Blöcke, unterschieden durch `typ`:
+
+| typ | Felder | Aussehen |
+|---|---|---|
+| `ueberschrift` | `text` (höchstens 200 Zeichen, ohne Nummer), `ebene` 1 oder 2 (optional, Standard 1). Vor der ersten Ebene 2 muss eine Ebene 1 stehen. | nummeriert, fett |
+| `absatz` | `text` (höchstens 5000 Zeichen) | Blocksatz |
+| `liste` | `punkte`: 1 bis 50 Texte (je höchstens 1000 Zeichen), `nummeriert` true/false (optional) | Aufzählung |
+| `tabelle` | `zeilen`: 1 bis 100, `kopf` (optional, fett), `titel` (optional) | höchstens 8 Spalten, Zellen höchstens 500 Zeichen, jede Zeile gleich viele Zellen, darüber „Tabelle n: titel“ |
 
 ## Folien (wird eine pptx-Datei, 16:9)
 
