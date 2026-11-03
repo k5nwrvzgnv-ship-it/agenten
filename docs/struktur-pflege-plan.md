@@ -476,7 +476,7 @@ Wo die Web-App Stunden aus der Datei heute sperrt („+ Stunde“ nur ohne Stund
 | F7 | Reihe kopieren: nur Struktur, oder auch finale Fassungen als Kopie mit Herkunft (Regel R10)? | erst nur Struktur, Material der alten Reihe als Liste „aus dem Vorjahr“ sichtbar |
 | F8 | Klasse ins nächste Schuljahr: Lerngruppe mitnehmen? | als Häkchen, Standard aus |
 | F9 | Wann beginnt das Schuljahr (für die Vorbelegung)? | **entschieden** (Jan 03.11.): die Maske fragt das Bundesland, Schuljahr und Halbjahre ergeben sich aus dessen Ferien (2a.1) |
-| F10 | `bisherige_reihen` ablösen: Helfen (Ethik 8, mit Merksätzen) als echte abgeschlossene Reihe, Klasse 7 als Herkunft von Klasse 8? recherche/faelle.py liest das Feld heute | ja, mit Umstellung in recherche |
+| F10 | `bisherige_reihen` ablösen: Helfen (Ethik 8, mit Merksätzen) als echte abgeschlossene Reihe, Klasse 7 als Herkunft von Klasse 8? recherche/faelle.py liest das Feld heute | **teils entschieden** (Jan 03.11.): Helfen ist Reihe, Klasse 7 Herkunft von Klasse 8; `bisherige_reihen` fällt erst, wenn unterricht frühere Reihen aus der Herkunft liest (recherche liest es im neuen Format nicht mehr) |
 | F11 | Stunde mit Datum und „gehalten“? | **entschieden** durch Jans Ablauf: Datum vom Termin, gehalten = vergangen (2a) |
 | F12 | Reihe-Art „Inszenierung“ als Feld (heute: Probe statt Stunde nur bei `agenten = ["theater"]`; eine neue Inszenierung im nächsten Jahr hätte „Stunden“) | Feld `art`, freiwillig |
 | F13 | „Keine Aufträge ohne Ort“: nur für neue Aufträge aus der App, oder auch für die 7 alten ohne Ort (4 Material, 2 Feedback, 1 Recherche)? | neue immer; alte bleiben in „Ohne Ort“, Lia kann sie zuordnen (gebaut) |
@@ -586,13 +586,15 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
    Prüfungsstunde über die Marke „Prüfung“, `titel_in_reihen_toml` und `pruefungsstunde_in_reihe` raus, behebt den
    Absturz mit Stunden), lia/recherche (`id` statt „Straftheorien“, frühere Reihenfragen aus
    struktur statt Regex), lia/chat (kontext), shared/webapp (ordnung, logik). Test 22 je Ordner.
-3. **Migration der Datei** (dieser Ordner, ein Commit wie von Hand, nach Jans Okay): `[[fach]]`, `[[klasse]]`,
+3. **Erledigt 03.11.** **Migration der Datei** (dieser Ordner, ein Commit wie von Hand, nach Jans Okay): `[[fach]]`, `[[klasse]]`,
    Schuljahr 2026/27 an den laufenden Klassen, `stand = "geplant"` und Titel ohne „(in Planung)“, Platzhalter-Reihe
    Kurs 11 wird Klasse, Helfen als Reihe (F10), Lerngruppe nach `lerngruppen.toml` (F6), `agenten = ["examen"]`
    raus, dafür die Prüfungsstunde als Stunde mit Marke (sobald Lia ihre Stunden der Reihe kennt; bis dahin läuft
    examen nicht, siehe Abschnitt 2). Vorher und nachher: echter Prompt
    von unterricht für eine Reihe vergleichen. **Wartet auf 1b**, damit die Datei nur einmal umgestellt wird; dabei
    `[schule] bundesland` und der Stundenplan der laufenden Klassen (von Lia zu erfragen).
+   Stand: ohne Termine und ohne Prüfungsstunde (Jan 03.11.: Stundenplan kommt über die Maske, Lia kennt die
+   Stunden noch nicht); `bisherige_reihen` bleibt, bis unterricht frühere Reihen aus der Herkunft liest.
 4. **Hauptordner**: Schreib-Operationen und Block-Editor in `agentkit.struktur`, Rückgängig, Tests 4–5, 7–14, 16,
    18–21, 23.
 5. **shared/webapp**: „Bearbeiten“ und „+ Neu“ je Ebene, Aktionen aus Abschnitt 4, Rückgängig-Hinweis und „Letzte

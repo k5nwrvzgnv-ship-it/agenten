@@ -583,8 +583,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      zugeteilt, Ausfall mit Wahl „rückt nach“/„fällt weg“, Ferien je Bundesland (Plan Abschnitt 2a). Nächster Schritt:
      F20–F24 entschieden (03.11.): Ferien per Abrufskript, Doppelstunde = ein Termin, keine A/B-Wochen, Nachrücken
      über Reihengrenzen, Halbjahr endet mit den Winterferien. Bauschritt 1b erledigt 03.11. (siehe unten).
-     Nächster Schritt: Migration (3, mit Jans Okay; dabei [schule] bundesland und Stundenplan von Lia erfragen),
-     danach Schreib-Operationen (4).
+     Bauschritt 3 (Migration) erledigt 03.11. (siehe unten). Nächster Schritt: Schreib-Operationen (4).
      Offen: Neustart webapp.service mit Jans Okay (läuft seit 14:27 mit Code vor Bauschritt 2).
      Bauschritt 1 erledigt 03.11. (Hauptordner): agentkit.struktur (nur lesend, Tests 1–3, 6, 15, 17 mit eingefrorener
      Kopie der echten Datei, Lerngruppe darin durch Platzhalter ersetzt), Feld `ort` in auftraege.neuer_auftrag,
@@ -656,6 +655,28 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        (Halbjahres- oder Schuljahresende, festzulegen beim Bau der Maske, Bauschritt 5), jederzeit änderbar;
        termine kann beides. Bewegliche Ferientage und Studientage der Schule stehen in keiner Quelle (Lia streicht sie als Ausfall);
        IServ hat nach meiner Suche keine offene Schnittstelle dafür.
+     Bauschritt 3 erledigt 03.11. (Hauptordner, Jans Okay 03.11.): lia/instanz/reihen.toml ist im neuen Format
+     (`struktur.laden()` meldet „Format neu“: 2 Fächer, 5 Klassen, 14 Reihen, 0 Stunden). Fächer ethik und
+     darstellendes-spiel; laufende Klassen ethik-8 (herkunft ethik-7-2025-26), darstellendes-spiel-kurs-12,
+     darstellendes-spiel-kurs-11 (ohne Reihe, die Platzhalter-Reihe ist weg), je schuljahr 2026/27; Archiv-Klassen
+     ethik-7-2025-26 und darstellendes-spiel-kurs-11-2025-26 mit archiviert "2026-10-30". Straftheorien: stand
+     "geplant", Titel ohne „(in Planung)“, ohne agenten. Neu (F10, Jan 03.11.): Reihe ethik-8-helfen
+     (abgeschlossen, mit Lias zwei Merksätzen); bisherige_reihen bleibt an Straftheorien, bis unterricht frühere
+     Reihen aus der Herkunft liest. Lerngruppe nur noch in lia/instanz/lerngruppen.toml (600, gitignored).
+     Prompt-Vergleich vorher/nachher: unterricht und chat gleich bis auf: Titel ohne „(in Planung)“, der leere Block
+     „Darstellendes Spiel, Kurs 11“ fällt weg, Helfen steht zusätzlich in der Liste abgeschlossener Reihen;
+     recherche hat dieselben 6 früheren Reihenfragen (Helfen jetzt zuerst); Web-App-Baum gleich, plus Helfen,
+     Kurs 11 ohne „Noch ohne Titel“.
+     Noch offen:
+     - Stundenplan der laufenden Klassen und [schule] bundesland fehlen (Jan 03.11.: kommen später über die Maske,
+       Bauschritt 5; bis dahin keine Termine).
+     - Prüfungsstunde: Straftheorien hat noch keine Stunden, Lia kennt sie noch nicht. Bis eine Stunde die Marke
+       „Prüfung“ trägt, läuft lia/examen nicht (meldet es an Jan), recherche braucht --reihe bzw. ort.
+     - Bedarf lia/unterricht (F10-Rest): „Frühere Reihen der Klasse“ aus der Herkunftskette (Reihen der Klasse und
+       ihrer Herkunft, mit Merksätzen) statt aus bisherige_reihen; danach bisherige_reihen aus reihen.toml streichen.
+     - Bedarf lia/unterricht und lia/chat (Vorschlag, Jan entscheidet): „(in Planung)“ stand bisher im Titel; der
+       Prompt sagt jetzt nirgends, dass Straftheorien geplant ist (nur die Notizen). Ggf. stand "geplant" im
+       Prompt nennen.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit
