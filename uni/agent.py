@@ -14,7 +14,8 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
    ein PDF und hängt es an das Ergebnis (lernblatt.py, lernblaetter_bauen),
    Aufträge "Exposé: ..." mit Besprechungstranskript: erst eine geprüfte Recherche in Suchfenstern
    (recherche.py, Recherchebericht hängt an), dann schreibt Claude data/expose/<kette>/expose.json und ein
-   Protokoll, Python prüft und hängt das Exposé an (expose.py, expose_auftrag); Antworten überarbeiten es,
+   Protokoll, Python prüft, baut docx und PDF und hängt sie an (expose.py, expose_auftrag); Antworten
+   überarbeiten es,
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -60,6 +61,7 @@ MAILS_OFFEN = DATA / "mails_offen.json"
 FEHLER_DATEI = DATA / "schritt_fehler.json"
 FORMAT_MD = HIER.parent / "shared" / "renderer" / "FORMAT.md"
 PROFIL_LERNBLATT = HIER / "profil-lernblatt.toml"
+PROFIL_EXPOSE = HIER / "profil-expose.toml"
 logger = log.hole_logger(HIER, AGENT)
 cfg = config.lade_config(HIER, pflicht=("HNEE_NUTZER", "HNEE_KENNWORT", "MOODLE_URL", "IMAP_HOST"))
 
@@ -858,6 +860,17 @@ PROMPT_EXPOSE_NACHBESSERN = """Python hat das Exposé nicht übernommen, die Bes
 Korrigiere alle genannten Stellen in {ordner}/expose.json und antworte mit einem Satz, was du korrigiert hast."""
 
 
+def expose_bauen(ordner: Path, weitere) -> expose.Bericht:
+    """Exposé mit PROFIL_EXPOSE bauen, das Logo im Profil relativ zu uni/. Profilfehler stehen im Bericht."""
+    try:
+        profil = tomllib.loads(PROFIL_EXPOSE.read_text())
+    except (OSError, ValueError) as f:
+        return expose.Bericht(fehler=[f"Profil {PROFIL_EXPOSE.name}: {f}"])
+    if profil.get("logo") and not Path(profil["logo"]).is_absolute():
+        profil["logo"] = str(HIER / profil["logo"])
+    return expose.bauen(ordner, profil, weitere=weitere)
+
+
 def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -> None:
     """Exposé schreiben (start = a) oder überarbeiten (Antwort in der Kette von start), höchstens eine Nachbesserung.
 
@@ -930,14 +943,14 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
                        e.text[:200] or "ohne Text")
         e.text = "Der Lauf endete vor der Kurzfassung (Grenze der Arbeitsschritte), das Exposé ist trotzdem gebaut."
     sitzung, zeilen = e.sitzung, [e.text, *zeilen]
-    b = expose.bauen(ordner, weitere=literatur)
+    b = expose_bauen(ordner, literatur)
     if b.ungueltig and sitzung:
         logger.warning("Exposé %s ungültig, Nachbesserung:\n%s", start["id"], b.ungueltig)
         try:
             e2 = laufen(AGENT, HIER, PROMPT_EXPOSE_NACHBESSERN.format(fehler=b.ungueltig, ordner=pfad),
                         art="anspruchsvoll", auftrag_id=a["id"], sitzung_fortsetzen=sitzung)
             sitzung = e2.sitzung or sitzung
-            b = expose.bauen(ordner, weitere=literatur)
+            b = expose_bauen(ordner, literatur)
         except (*WARTEN, claude_lauf.LaufFehler) as f:  # der erste Lauf ist bezahlt, Ergebnis trotzdem abgeben
             logger.error("Nachbesserung Exposé %s fehlgeschlagen: %s", start["id"], f)
             zeilen.append(f"Nachbesserung des Exposés nicht möglich: {f}")
@@ -946,6 +959,9 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
         zeilen.append(f"Exposé nicht übernommen, Beschreibung ungültig:\n{b.ungueltig}")
     elif not (ordner / expose.DATEI).exists():
         zeilen.append("Es liegt noch kein Exposé vor.")
+    for f in b.fehler:
+        logger.error("Exposé %s: %s", start["id"], f)
+        zeilen.append(f"Exposé: {f}")
     for datei in b.dateien:
         logger.info("Exposé gebaut: %s", datei.relative_to(HIER))
     auftraege.abschliessen(a["id"], "\n\n".join(zeilen), sitzung=sitzung, dateien=b.dateien + dateien)

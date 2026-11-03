@@ -1,0 +1,14 @@
+# Design-Profil für Jans Exposés (Agent uni, expose.py). Kopie von shared/renderer/beispiele/profil-jan-expose.toml
+# (03.11.2026), gemessen am Studienbeleg "Quercus" der HNEE: Arial 11 (in der PDF maßgleich durch Liberation Sans),
+# Zeilenabstand einfach, Ränder 3 / 2,4 / 2,5 / 2,5 cm. Werte: shared/renderer/design.py.
+# logo: relativ zu uni/ (agent.py macht den Pfad daraus), die PNG liegt nicht im Repo.
+
+schrift = "Arial"
+schriftgroesse_pt = 11
+zeilenabstand = 1.0
+logo = "data/vorlagen/hnee_logo.png"
+logo_breite_cm = 7.0
+rand_oben_cm = 3.0
+rand_unten_cm = 2.4
+rand_links_cm = 2.5
+rand_rechts_cm = 2.5

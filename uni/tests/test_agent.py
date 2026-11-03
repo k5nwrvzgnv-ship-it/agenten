@@ -633,13 +633,23 @@ class TestExpose(OhneTelegram):
         self.abschliessen = p.start()
         self.addCleanup(p.stop)
         self.aufrufe = []
-        from tests.test_expose import GUELTIG
+        from tests.test_expose import GUELTIG, pdf
         self.gueltig = GUELTIG
         r = self.hier / "data" / "expose" / ID / "recherche"
         self.recherche = agent.recherche.Ergebnis(geprueft=r / "geprueft.json", bericht=r / "Recherchebericht.md",
                                                   usd=7.0, zeilen=["Recherche: 2 Fragen"])
         p = mock.patch.object(agent.recherche, "durchfuehren", return_value=self.recherche)
         self.durchfuehren = p.start()
+        self.addCleanup(p.stop)
+        self.profile = []
+        echt = agent.expose.bauen
+
+        def bauen(ordner, profil, weitere=None):  # Renderer und LibreOffice als Attrappe
+            self.profile.append(profil)
+            return echt(ordner, profil, weitere=weitere, bauen=lambda text, ziel, **kw: ziel.write_text("docx"),
+                        als_pdf=pdf)
+        p = mock.patch.object(agent.expose, "bauen", bauen)
+        p.start()
         self.addCleanup(p.stop)
 
     def claude(self, *fassungen, ok=True):
@@ -670,8 +680,11 @@ class TestExpose(OhneTelegram):
         self.assertIsNone(kw["sitzung_fortsetzen"])
         args, kw = self.abschliessen.call_args
         self.assertEqual((args[1], kw["sitzung"]), ("Lauf 1\n\nRecherche: 2 Fragen", "s1"))
-        self.assertEqual(kw["dateien"], [self.hier / "data" / "expose" / ID / "fassung" / "Fehlstellen - Holzlamellen.md",
-                                         self.recherche.bericht])
+        fassung = self.hier / "data" / "expose" / ID / "fassung"
+        self.assertEqual(kw["dateien"], [fassung / "Fehlstellen - Holzlamellen.docx",
+                                         fassung / "Fehlstellen - Holzlamellen.pdf", self.recherche.bericht])
+        self.assertEqual(self.profile[0]["logo"], str(self.hier / "data" / "vorlagen" / "hnee_logo.png"))
+        self.assertEqual(self.profile[0]["schrift"], "Arial")
 
     def test_recherche_gescheitert_kein_expose(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
@@ -690,7 +703,7 @@ class TestExpose(OhneTelegram):
         ok = {**self.gueltig, "literatur": ["Muster, A. (2020): Titel. https://doi.org/10.1/x"]}
         agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig, ok), netz=("s", "m"))
         self.assertIn("ist keine geprüfte Quelle der Recherche", self.aufrufe[1][0])
-        self.assertEqual(len(self.abschliessen.call_args.kwargs["dateien"]), 2)
+        self.assertEqual(len(self.abschliessen.call_args.kwargs["dateien"]), 3)
 
     def test_ungueltig_eine_nachbesserung(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
@@ -698,7 +711,7 @@ class TestExpose(OhneTelegram):
         self.assertIn("- datum:", self.aufrufe[1][0])
         self.assertEqual(self.aufrufe[1][1]["sitzung_fortsetzen"], "s1")
         _, kw = self.abschliessen.call_args
-        self.assertEqual((kw["sitzung"], len(kw["dateien"])), ("s2", 2))  # Exposé und Recherchebericht
+        self.assertEqual((kw["sitzung"], len(kw["dateien"])), ("s2", 3))  # docx, PDF und Recherchebericht
 
     def test_bleibt_ungueltig_steht_im_ergebnis(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
@@ -753,7 +766,7 @@ class TestExpose(OhneTelegram):
         args, kw = self.abschliessen.call_args
         self.assertIn("Lauf endete vor der Kurzfassung", args[1])
         self.assertNotIn("status", kw)
-        self.assertEqual(len(kw["dateien"]), 2)
+        self.assertEqual(len(kw["dateien"]), 3)
 
     def test_abbruch_ohne_neue_fassung_fehlgeschlagen(self):
         start = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
@@ -763,6 +776,15 @@ class TestExpose(OhneTelegram):
         a = {"id": "a2", "text": "kürzer", "sitzung": "s0", "bezug": ID, "modus": "erledigen"}
         agent.expose_auftrag(a, start, laufen=self.claude(ok=False), netz=("s", "m"))
         self.assertEqual(self.abschliessen.call_args.kwargs["status"], "fehlgeschlagen")
+
+    def test_profilfehler_im_ergebnis_ohne_nachbesserung(self):
+        a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}
+        with mock.patch.object(agent, "PROFIL_EXPOSE", self.hier / "fehlt.toml"):
+            agent.expose_auftrag(a, a, laufen=self.claude(self.gueltig), netz=("s", "m"))
+        self.assertEqual(len(self.aufrufe), 1)
+        args, kw = self.abschliessen.call_args
+        self.assertIn("Exposé: Profil fehlt.toml:", args[1])
+        self.assertEqual(kw["dateien"], [self.recherche.bericht])
 
     def test_ohne_expose_hinweis(self):
         a = {"id": ID, "text": "Exposé: Lamellen", "modus": "erledigen"}

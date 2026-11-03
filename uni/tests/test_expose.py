@@ -68,14 +68,12 @@ class TestPruefen(unittest.TestCase):
         self.assertEqual(expose.pruefen("[]"), ["die Beschreibung muss ein JSON-Objekt sein"])
 
 
-class TestMarkdown(unittest.TestCase):
-    def test_nummeriert_mit_kopf_tabelle_literatur(self):
-        md = expose.als_markdown(GUELTIG)
-        for teil in ("# Fehlstellen: Holzlamellen", "Jan Kleinke, Felix Frankowiak",
-                     "Betreuung: Prof. Dr. Thomas Böhme", "Stand: 02.11.2026", "## 1 Problemstellung",
-                     "### 1.1 Daten", "1. Kamera\n2. Licht", "## 2 Zeitplan", "| Wann | Was |",
-                     "| Nov. | Aufnahmen |", "## Literatur\n\n- Muster"):
-            self.assertIn(teil, md)
+PROFIL = {"schrift": "Arial"}
+
+
+def pdf(docx, ziel):  # Attrappe für LibreOffice
+    (ziel / f"{docx.stem}.pdf").write_text("pdf")
+    return ziel / f"{docx.stem}.pdf"
 
 
 class TestBauen(unittest.TestCase):
@@ -83,31 +81,85 @@ class TestBauen(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.ordner = Path(self._tmp.name)
+        self.aufrufe = []
+
+    def renderer(self, fehler=None):
+        def bauen(text, ziel, profil, vorschau):
+            self.aufrufe.append((json.loads(text), ziel, profil, vorschau))
+            if fehler:
+                raise fehler
+            ziel.write_text("docx")
+        return bauen
+
+    def bauen(self, weitere=None, fehler=None, als_pdf=pdf):
+        return expose.bauen(self.ordner, PROFIL, weitere=weitere, bauen=self.renderer(fehler), als_pdf=als_pdf)
 
     def test_ohne_datei_nichts(self):
-        self.assertEqual(expose.bauen(self.ordner), expose.Bericht())
+        self.assertEqual(self.bauen(), expose.Bericht())
 
-    def test_einmal_bauen_und_titelwechsel(self):
+    def test_docx_und_pdf_einmal_und_titelwechsel(self):
         (self.ordner / "expose.json").write_text(json.dumps(GUELTIG))
-        b = expose.bauen(self.ordner)
-        self.assertEqual(b.dateien, [self.ordner / "fassung" / "Fehlstellen - Holzlamellen.md"])
-        self.assertEqual(expose.bauen(self.ordner).dateien, [])  # unverändert: nicht noch einmal
+        (self.ordner / "fassung").mkdir()
+        (self.ordner / "fassung" / "Alt.md").write_text("Fassung vor dem Renderer")
+        fassung = self.ordner / "fassung"
+        self.assertEqual(self.bauen().dateien, [fassung / "Fehlstellen - Holzlamellen.docx",
+                                                fassung / "Fehlstellen - Holzlamellen.pdf"])
+        self.assertEqual(self.aufrufe, [(GUELTIG, fassung / "Fehlstellen - Holzlamellen.docx", PROFIL, False)])
+        self.assertEqual(self.bauen().dateien, [])  # unverändert: nicht noch einmal
         (self.ordner / "expose.json").write_text(json.dumps({**GUELTIG, "titel": "Neu"}))
-        self.assertEqual(expose.bauen(self.ordner).dateien, [self.ordner / "fassung" / "Neu.md"])
-        self.assertEqual([p.name for p in (self.ordner / "fassung").iterdir()], ["Neu.md"])
+        self.assertEqual(len(self.bauen().dateien), 2)
+        self.assertEqual(sorted(p.name for p in fassung.iterdir()), ["Neu.docx", "Neu.pdf"])
 
     def test_ungueltig_nicht_gebaut(self):
         (self.ordner / "expose.json").write_text(json.dumps({**GUELTIG, "datum": "x"}))
-        b = expose.bauen(self.ordner)
-        self.assertEqual(b.dateien, [])
+        b = self.bauen()
+        self.assertEqual((b.dateien, self.aufrufe), ([], []))
         self.assertIn("- datum:", b.ungueltig)
         self.assertFalse((self.ordner / "fassung").exists())
 
     def test_weitere_pruefung_nur_bei_gueltiger_beschreibung(self):
         (self.ordner / "expose.json").write_text(json.dumps(GUELTIG))
-        b = expose.bauen(self.ordner, weitere=lambda d: [f"literatur[0]: {d['literatur'][0]} nicht geprüft"])
+        b = self.bauen(weitere=lambda d: [f"literatur[0]: {d['literatur'][0]} nicht geprüft"])
         self.assertEqual((b.dateien, b.ungueltig), ([], "- literatur[0]: Muster, A. (2020): Titel. Verlag. nicht geprüft"))
-        self.assertEqual(len(expose.bauen(self.ordner, weitere=lambda d: []).dateien), 1)
+        self.assertEqual(len(self.bauen(weitere=lambda d: []).dateien), 2)
+
+    def test_renderer_lehnt_ab_geht_an_claude(self):
+        (self.ordner / "expose.json").write_text(json.dumps(GUELTIG))
+        b = self.bauen(fehler=expose.renderer.BeschreibungUngueltig(["bloecke[1].text: Beleg im Text"]))
+        self.assertEqual((b.dateien, b.ungueltig, b.fehler), ([], "- bloecke[1].text: Beleg im Text", []))
+
+    def test_profilfehler_geht_an_jan_und_wird_wiederholt(self):
+        (self.ordner / "expose.json").write_text(json.dumps(GUELTIG))
+        b = self.bauen(fehler=ValueError("Logo x.png gibt es nicht (Profil, Feld logo)"))
+        self.assertEqual((b.dateien, b.ungueltig), ([], ""))
+        self.assertEqual(b.fehler, ["Fehlstellen - Holzlamellen.docx nicht gebaut: Logo x.png gibt es nicht "
+                                    "(Profil, Feld logo)"])
+        self.assertEqual(len(self.bauen().dateien), 2)  # Stand nicht gesetzt: nächster Lauf baut
+
+    def test_ohne_pdf_geht_die_docx_trotzdem(self):
+        (self.ordner / "expose.json").write_text(json.dumps(GUELTIG))
+
+        def kaputt(docx, ziel):
+            raise expose.vorschau.VorschauFehler("LibreOffice (soffice) ist nicht installiert")
+        b = self.bauen(als_pdf=kaputt)
+        self.assertEqual(b.dateien, [self.ordner / "fassung" / "Fehlstellen - Holzlamellen.docx"])
+        self.assertIn("PDF nicht gebaut, die docx hängt an: LibreOffice", b.fehler[0])
+
+
+class TestEchterRenderer(unittest.TestCase):
+    """Beschreibung, die expose.pruefen annimmt, nimmt auch der Renderer an; das Profil im Repo ist gültig."""
+
+    def test_baut_docx_mit_profil_aus_dem_repo(self):
+        import tomllib
+        profil = tomllib.loads((Path(expose.__file__).parent / "profil-expose.toml").read_text())
+        self.assertEqual(profil["logo"], "data/vorlagen/hnee_logo.png")
+        profil["logo"] = ""  # die PNG liegt nicht im Repo
+        with tempfile.TemporaryDirectory() as tmp:
+            ordner = Path(tmp)
+            (ordner / "expose.json").write_text(json.dumps(GUELTIG))
+            b = expose.bauen(ordner, profil, als_pdf=pdf)
+            self.assertEqual((b.ungueltig, b.fehler), ("", []))
+            self.assertTrue(b.dateien[0].read_bytes().startswith(b"PK"))  # docx ist ein Zip
 
 
 if __name__ == "__main__":

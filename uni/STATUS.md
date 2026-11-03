@@ -147,17 +147,24 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   data/mailauftraege/*/kontext.json) und Kursmaterial, schreibt data/expose/<kette>/expose.json (Format
   expose.FORMAT, ohne Quellen, Lücken als [OFFEN: ...]) und protokolle/<kette>.md (Beschlossen mit Sprecher und
   Zeitmarke, Offen/uneinig, eigene Ergänzungen, Prüfschritte). Python prüft (expose.pruefen), eine Nachbesserung in
-  derselben Sitzung, und hängt data/expose/<kette>/fassung/<Titel>.md an. Antworten auf das Ergebnis überarbeiten
-  dasselbe Exposé (Nachtrag im Protokoll). Übergangsweise .md, weil der Renderer keine Art "expose" hat; docx/PDF
-  und Mail mit Anhang an Böhme stehen als Bedarf in ../STATUS.md Punkt 26.
+  derselben Sitzung, baut mit shared/renderer (Art "expose") data/expose/<kette>/fassung/<Titel>.docx und .pdf
+  und hängt beide an. Antworten auf das Ergebnis überarbeiten dasselbe Exposé (Nachtrag im Protokoll). Die
+  Mail mit Anhang an Böhme steht als Bedarf in ../STATUS.md Punkt 26.
   Umfang (Jan 02.11.: 2 bis 4 Seiten, kurz und knapp): expose.umfang, 650 bis 1500 Wörter in den Blöcken,
   höchstens 12 Literaturangaben, höchstens 6 Überschriften Ebene 2; sonst Nachbesserung.
   Formatvorlage (Jan 02.11. abends): Jans Studienbeleg "Quercus" in data/vorlagen/ (PDF, Logo, Deckblatt-Angaben
   expose_vorlage.md mit Matrikelnummern; nicht im Repo). expose.VORLAGE_REGELN: Deckblatt (einrichtung =
   Fachbereich, autoren mit Matr.-Nr., rahmen mehrzeilig bis 400 Zeichen), Zitierweise APA 7 im Text und im
   Literaturverzeichnis. Gilt im ersten Lauf (FORMAT) und bei jeder Überarbeitung (PROMPT_EXPOSE_ANTWORT).
-  Layout (Arial 11 pt usw.) baut erst der Renderer mit der Art "expose" (../STATUS.md Punkt 26 a, dort die
-  Maße aus der PDF); bis dahin bleibt die Fassung Markdown.
+  Bau (03.11., Plan von Jan freigegeben, .md-Fassung entfällt): agent.expose_bauen lädt uni/profil-expose.toml
+  (Kopie von shared/renderer/beispiele/profil-jan-expose.toml: Arial 11, Ränder der Vorlage), macht logo
+  (data/vorlagen/hnee_logo.png, nicht im Repo) zum Pfad unter uni/, expose.bauen prüft zuerst selbst (Format
+  und Umfang, den der Renderer nicht prüft; Literatur gegen die Recherche), dann renderer.bauen ohne Bildvorschau
+  + vorschau.als_pdf (wie Lernblätter, ohne pypdfium2). BeschreibungUngueltig -> Nachbesserung an Claude;
+  Profil-, Logo- oder LibreOffice-Fehler -> Zeile "Exposé: ..." im Ergebnis und Log, kein Claude-Lauf, der Stand
+  (.gebaut.json) bleibt offen, nächster Lauf der Kette baut neu. Ohne PDF geht die docx trotzdem an Jan.
+  Abnahme 03.11.: expose.json der Kette 20261102-165741-uni-ac9dcc ohne Claude-Lauf gebaut, docx (mit Logo)
+  und PDF (6 Seiten) liegen in fassung/, nicht per Telegram verschickt. Formatabnahme in Word: Renderer-STATUS.
 - Recherche vor dem Exposé (recherche.py, 02.11., Jan: "aufwendig, Ergebnis verlässlich"), nur beim ersten
   Auftrag der Kette, Ablage data/expose/<kette>/recherche/: eckpunkte.json (Claude stellt Fragen aus Transkript und
   Mails, je Frage ein Suchfenster: literatur, methoden, daten, projekte, markt, regelwerk), je Fenster eigene

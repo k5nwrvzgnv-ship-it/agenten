@@ -4,10 +4,10 @@ Auslöser: Auftrag beginnt mit "Exposé:" oder "Expose:" (nur der erste Auftrag 
 überarbeiten dasselbe Exposé). Claude schreibt die Beschreibung nach data/expose/<kette>/expose.json und ein
 Protokoll für Jan (Beschlossenes, Offenes, Belege). <kette> ist der erste Auftrag der Antwortkette.
 
-Der Renderer kennt noch keine Art "expose" (Bedarf in ../STATUS.md). Bis dahin prüft dieses Modul die
-Beschreibung selbst und macht daraus eine Markdown-Datei (<Titel>.md), die Jan in Word oder Teams übernehmen
-kann. Das Format ist so gewählt, dass der Renderer es später übernehmen kann (Blöcke wie bei "zusammenfassung",
-ohne Quellen: die Belege stehen nur im Protokoll).
+Dieses Modul prüft die Beschreibung selbst (Format wie die Renderer-Art "expose", dazu der Umfang, den der
+Renderer nicht prüft) und baut sie mit shared/renderer nach data/expose/<kette>/fassung/<Titel>.docx und .pdf
+(LibreOffice, ohne Bildvorschau, also ohne pypdfium2). Layout aus profil-expose.toml (Formatvorlage der HNEE).
+Belege stehen nur im Protokoll, nicht im Exposé.
 """
 
 import hashlib
@@ -15,6 +15,9 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+
+import renderer
+from renderer import vorschau
 
 import kurse
 
@@ -73,8 +76,9 @@ _BLOCKFELDER = {"ueberschrift": {"typ", "text", "ebene"}, "absatz": {"typ", "tex
 
 @dataclass
 class Bericht:
-    dateien: list[Path] = field(default_factory=list)  # neu gebaut, gehen an Jan
+    dateien: list[Path] = field(default_factory=list)  # neu gebaut (docx, pdf), gehen an Jan
     ungueltig: str = ""  # Fehler für Claude, leer = gültig oder nichts zu tun
+    fehler: list[str] = field(default_factory=list)  # Fehler des Agenten (Profil, Logo, LibreOffice), nicht Claudes
 
 
 def ist_exposeauftrag(text: str) -> bool:
@@ -205,57 +209,17 @@ def umfang(d: dict) -> list[str]:
     return fehler
 
 
-def _zelle(text: str) -> str:
-    return text.replace("|", "\\|").replace("\n", "<br>")
-
-
-def als_markdown(d: dict) -> str:
-    """Lesbare Fassung einer gültigen Beschreibung, Überschriften nummeriert (1, 1.1)."""
-    zeilen = [f"# {d['titel']}"]
-    if d.get("untertitel"):
-        zeilen.append(f"\n*{d['untertitel']}*")
-    kopf = [", ".join(d["autoren"])]
-    if d.get("betreuung"):
-        kopf.append(f"Betreuung: {', '.join(d['betreuung'])}")
-    kopf += [x for x in (d.get("rahmen"), d["einrichtung"]) if x]
-    kopf.append(f"Stand: {d['datum']}")
-    zeilen.append("\n" + "  \n".join(kopf))
-    nr = [0, 0]
-    for b in d["bloecke"]:
-        if b["typ"] == "ueberschrift":
-            if b.get("ebene", 1) == 1:
-                nr = [nr[0] + 1, 0]
-                zeilen.append(f"\n## {nr[0]} {b['text']}")
-            else:
-                nr[1] += 1
-                zeilen.append(f"\n### {nr[0]}.{nr[1]} {b['text']}")
-        elif b["typ"] == "absatz":
-            zeilen.append("\n" + b["text"])
-        elif b["typ"] == "liste":
-            zeichen = (lambda i: f"{i}.") if b.get("nummeriert") else (lambda i: "-")
-            zeilen.append("\n" + "\n".join(f"{zeichen(i)} {p}" for i, p in enumerate(b["punkte"], 1)))
-        else:
-            if b.get("titel"):
-                zeilen.append(f"\n**{b['titel']}**")
-            kopf_t = b.get("kopf") or [""] * len(b["zeilen"][0])
-            tab = [f"| {' | '.join(_zelle(z) for z in kopf_t)} |", "|" + "---|" * len(kopf_t)]
-            tab += [f"| {' | '.join(_zelle(z) for z in zeile)} |" for zeile in b["zeilen"]]
-            zeilen.append("\n" + "\n".join(tab))
-    if d.get("literatur"):
-        zeilen.append("\n## Literatur\n")
-        zeilen.append("\n".join(f"- {q}" for q in d["literatur"]))
-    return "\n".join(zeilen) + "\n"
-
-
 def dateiname(titel: str) -> str:
     return kurse.sicherer_name(re.sub(r"\s*:\s*", " - ", titel))
 
 
-def bauen(exposeordner: Path, weitere=None) -> Bericht:
-    """Baut expose.json als <Titel>.md, wenn es neu oder geändert ist. Ungültig: Fehler für Claude.
+def bauen(exposeordner: Path, profil: dict, weitere=None, bauen=renderer.bauen,
+          als_pdf=vorschau.als_pdf) -> Bericht:
+    """Baut expose.json als <Titel>.docx und .pdf, wenn es neu oder geändert ist. Ungültig: Fehler für Claude.
 
     weitere(d) -> list[str]: zusätzliche Prüfung einer sonst gültigen Beschreibung (z. B. Literatur gegen die
-    geprüfte Recherche)."""
+    geprüfte Recherche). Fehler des Agenten (Profil, Logo, LibreOffice) stehen in `fehler`, der Stand bleibt dann
+    offen, damit der nächste Lauf es noch einmal versucht."""
     bericht = Bericht()
     datei = exposeordner / DATEI
     if not datei.is_file():
@@ -273,14 +237,26 @@ def bauen(exposeordner: Path, weitere=None) -> Bericht:
     if fehler:
         bericht.ungueltig = "\n".join(f"- {f}" for f in fehler)
         return bericht
-    d = json.loads(text)
     ausgang = exposeordner / "fassung"
     ausgang.mkdir(exist_ok=True)
-    for alt in ausgang.glob("*.md"):  # Titel kann sich geändert haben
-        alt.unlink()
-    ziel = ausgang / f"{dateiname(d['titel'])}.md"
-    ziel.write_text(als_markdown(d), encoding="utf-8")
-    bericht.dateien.append(ziel)
+    for alt in ausgang.iterdir():  # Titel kann sich geändert haben; .md: Fassung vor dem Renderer
+        if alt.suffix in (".docx", ".pdf", ".md"):
+            alt.unlink()
+    docx = ausgang / f"{dateiname(json.loads(text)['titel'])}.docx"
+    try:
+        bauen(text, docx, profil=profil, vorschau=False)
+    except renderer.BeschreibungUngueltig as f:  # nach pruefen() nicht zu erwarten, dann eben an Claude
+        bericht.ungueltig = "\n".join(f"- {x}" for x in f.fehler)
+        return bericht
+    except (ValueError, OSError) as f:  # Profil (ProfilUngueltig ist ein ValueError), Logo fehlt
+        bericht.fehler.append(f"{docx.name} nicht gebaut: {f}")
+        return bericht
+    bericht.dateien.append(docx)
+    try:
+        bericht.dateien.append(als_pdf(docx, ausgang))
+    except (OSError, vorschau.VorschauFehler) as f:  # die docx geht trotzdem an Jan
+        bericht.fehler.append(f"PDF nicht gebaut, die docx hängt an: {f}")
+        return bericht
     stand[DATEI] = summe
     stand_datei.write_text(json.dumps(stand, indent=1))
     return bericht
