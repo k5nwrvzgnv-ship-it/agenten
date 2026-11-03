@@ -89,6 +89,9 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
     Agent-Ordner unter `data/eingang/<ursprung>/eigene-<n>/`; Jans Entscheidung: die Agenten sehen es). Das
     schreibt also auch in lia/instanz und startet keinen Lauf; darum geht es immer. `zustand.py` liest es zum
     Anzeigen mit. Final nimmt den Auftrag aus „Wartet auf dich“, unter Fertig steht „Final“.
+    Der große Knopf gilt der neuesten Fassung, auch Lias eigener (`aktuell_ref`), und nennt sie, sobald es mehr als
+    eine zur Wahl gibt („Fassung 2 als final markieren“); die Bestätigung nennt die Fassung. Oben steht dann weiter die
+    Fassung des Assistenten („steht oben“ stimmt also), der Hinweis `oben_hinweis` sagt das und wo Lias Datei ist.
   - Rückmeldung geben (`POST …/rueckmeldung`): Text (Pflicht), optional eine Datei. Über
     `agentkit.fassungen.rueckmeldung`: die Datei kommt mit ihrer Art in die Kette (fassung, anmerkungen, unklar),
     dann ein Auftrag an `feedback` (bezug = neueste fertige Fassung bzw. die Fassung der Datei, siehe „Rückmeldung
@@ -96,6 +99,10 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
     Nachbesserung. Im Verlauf: Fassung n, „Deine Anmerkungen“ bzw. „Deine Datei“ (ohne Nummer, nicht final
     markierbar). Eine Fassung lädt Lia sonst über „Eigene Fassung“ hoch. Nur mit `WEBAPP_NEUER_AUFTRAG` test bzw. echt
     (startet lia-feedback.service). Sonst „Rückmeldungen gehen im Moment noch über Telegram“.
+    Doppelklick: Der Knopf sperrt sich nach dem Absenden (`statisch/einmal.js`, Formular mit `data-einmal`), der Server
+    verwirft eine gleiche Rückmeldung zum selben Bezug innerhalb von 30 s (`logik.rueckmeldung_doppelt`, gleiche
+    Bestätigung, kein zweiter Lauf). Fehlgeschlagene und zurückgezogene zählen nicht. Gleicher Text mit anderer Datei
+    gleichen Namens in den 30 s gilt auch als doppelt.
   - Alle POSTs mit Herkunftsprüfung und Token (`app.formular_lesen`), Aktionen nur an der ID des Ursprungs.
   - Echter Lauf 30.10. (nur lesend): alle 5 Ergebnisse 200, nichts gespeichert.
 - Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, zurückgezogene 404; IDs
@@ -198,11 +205,18 @@ Masken nur im neuen Format (sonst 404, Baum ohne „+ …“).
   Lia-Test-Aufgaben 1–6; Grundlage `tests/daten/reihen_echt.toml` (Kopie der echten Datei), Ferien aus
   `agentkit/ferien.json`. ALLES GRÜN steht im Commit.
 - Testinstanz für Abnahme und Lia-Test (Plan 12/13): `data/test/instanz` (nicht im Repo), Kopie der echten
-  reihen.toml ohne Bundesland, Straftheorien mit Einstieg, Kant: Vergeltung, von Liszt (über strukturpflege), ein
-  Material an Kant (Zuordnung im Zustand der Testinstanz), ein Theater-Ergebnis an Der nackte Wahnsinn. Neu aufbauen
-  vor jedem Durchgang: `.venv/bin/python data/test/aufbauen.py` (löscht auch Zustand und Aktionsablage der
-  Testinstanz, „Letzte Änderungen“ beginnt leer). Testbogen `data/ia/testbogen-struktur.csv`. Startbefehl für Jan
-  (Port 8792, Tunnel) in der Haupt-STATUS Punkt 24.
+  reihen.toml ohne Bundesland, die ersten Stunden von Straftheorien heißen Einstieg, Kant: Vergeltung, von Liszt (über
+  strukturpflege; vorhandene Stunden der Kopie werden umbenannt, Stunde 2 ist immer Kant). Testdaten ohne Dateien und
+  ohne echte Inhalte: Reihenentwurf an der Reihe (Testbogen 1), Präsentation und Arbeitsblatt an Stunde 2 (Testbogen
+  3 und 6), Theater-Ergebnis an Der nackte Wahnsinn. Neu aufbauen vor jedem Durchgang:
+  `.venv/bin/python data/test/aufbauen.py` (löscht auch Zustand, Aktionsablage und Uploads, legt
+  `data/test/unterricht` und `data/test/theater` frisch an, „Letzte Änderungen“ beginnt leer). Testbogen
+  `data/ia/testbogen.csv` und `data/ia/testbogen-struktur.csv`. Startbefehl für Jan (Port 8792, Tunnel) in der
+  Haupt-STATUS Punkt 24. `aufbauen.py` liegt unter `data/` und ist damit nicht versioniert: keine Sicherung, kein Test
+  in `pruefen.sh`.
+- Testbogen 4 (Chat) geht in der Testinstanz nicht: Sie läuft ohne `WEBAPP_CHAT=an`, darum „Kommt bald“. Der Schalter
+  allein reicht nicht, `CHAT_ORDNER` ist fest `lia/chat/data`: Die Testinstanz zeigte Lias echten Chat-Verlauf, und jede
+  Frage startete den echten Agenten auf Lias Kontingent.
 - Durchgespielt 03.11. über einen Test-Socket mit curl: Lia-Test-Aufgaben 1–6 gehen (Bundesland wird gefragt, erster
   Termin der 9 nach den Winterferien, Kopie mit sechs Terminen, Material wandert mit Kant auf Stunde 3, Ausfall rückt
   nach, Archiv und Zurückholen byte-gleich), alle sieben Aktionen per Rückgängig zurück, Log ohne Fehler.
@@ -325,7 +339,7 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Jan entscheidet, was gebaut wird. Vor dem Lia-Test Testinstanz reparieren (Punkt 8 im Befund).
+11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. Laufende Dienste haben den Code der Punkte 1 und 3 erst nach einem Neustart: Testinstanz 8792 startet Jan neu, `webapp.service` nur mit Jans Okay. Im Browser noch nicht geprüft: Sperre des Knopfs und Darstellung des großen Knopfs. Offen für Jan: (a) Testbogen 4 auf den echten Dienst, streichen oder Chat in die Testinstanz; (b) Doppelklick-Lücken, gemessen mit zwei gleichen POST: `/neu` und `…/variante` legen zwei Aufträge an (im echten Betrieb zwei Läufe), `…/eigene` zwei Fassungen, `…/ausfall` ändert nur einmal, die zweite Antwort zeigt aber „Nicht gefunden“ bzw. einen Fehler; (c) `data/test/aufbauen.py` ins Repo holen?
 10. webapp.service mit dem lia/chat-Ausbau (Netz, Dateien, Links) neu gestartet (Jans Okay 03.11.), die Seite
     liefert Häkchen und Datei-Feld aus. Offen: einmal im Browser in lia.meldro.de prüfen (Datei hochladen, Link
     öffnet neuen Tab).
