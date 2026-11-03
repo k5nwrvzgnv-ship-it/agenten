@@ -5,8 +5,8 @@ zuständigen Chat. Offene Fragen in Abschnitt 9 (**F1** bis **F24**). Entschiede
 
 **Erweiterung 03.11. nach der Freigabe:** Jan beschreibt den Ablauf vom neuen Schuljahr an. Die Klasse bekommt
 wiederkehrende Termine, die Reihe bekommt Termine zugeteilt (Abschnitt 2a). Das ändert Datenmodell, Masken und
-Matrix. Bauschritte 1 und 2 bleiben gültig. Jan hat 2a angesehen und F20–F24 beantwortet (03.11.). **Bauschritt 3
-(Migration) wartet auf Bauschritt 1b**, sonst wird die Datei zweimal umgestellt.
+Matrix. Bauschritte 1 und 2 bleiben gültig. Jan hat 2a angesehen und F20–F24 beantwortet (03.11.). Bauschritt 1b
+ist erledigt (03.11.), Bauschritt 3 (Migration) kann folgen.
 
 Grundlage (selbst gelesen): `git log -p lia/instanz/reihen.toml` (8 Commits, mit der Vorgängerdatei
 `lia/unterricht/reihen.toml`), alle Leser der Datei (`lia/unterricht/reihen.py`, `lia/examen/runde.py`,
@@ -577,7 +577,7 @@ Beispieldaten), Stand eingefroren in den Testdaten. Kein neuer Testordner nötig
 1. **Hauptordner**: `agentkit.struktur` lesend (laden, prüfen, auflösen, `haengt_dran`), Tests 1–3, 6, 15, 17;
    `.gitignore` für `lia/instanz/fassungen/` (F15) und `lia/instanz/lerngruppen.toml` (F6); Feld `ort` in
    `agentkit.auftraege`; `commit-daten.sh` mit der Ausnahme-Zeile in CLAUDE.md (F4). **Erledigt 03.11.**
-1b. **Hauptordner** (neu; Jans Antworten F20–F24 vom 03.11. liegen vor): `agentkit.termine` ohne Netz (Termine aus
+1b. **Erledigt 03.11.** **Hauptordner** (neu; Jans Antworten F20–F24 vom 03.11. liegen vor): `agentkit.termine` ohne Netz (Termine aus
    Stundenplan, Ferien, Feiertagen, Ausfällen, Zusatzterminen; Nachrücken; Halbjahreswechsel), Ferien-Datei je
    Bundesland (F20: Abrufskript einmal je Schuljahr, Datei im Repo als Rückfall und Prüfstand), `agentkit.struktur` liest `[schule]`, `klasse.zeitplan`, `ausfall`, `zusatz` und
    `stunde.termin`. Rechenregeln aus 2a.3 als reine Funktionen (auch Reihe zeitlich verschieben). Tests 26–31,

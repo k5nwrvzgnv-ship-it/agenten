@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agentkit import struktur
+from agentkit import struktur, termine
 
 DATEN = Path(__file__).parent / "daten"
 ALT = (DATEN / "reihen_alt.toml").read_text(encoding="utf-8")
@@ -272,6 +272,119 @@ class TestRegel15UngueltigWirdErkannt(unittest.TestCase):
             fehler = struktur.pruefen(instanz)
             self.assertEqual(len(fehler), 2)
             self.assertFalse(any(GRUPPE in f for f in fehler))
+
+
+# Vorlage mit Terminen (Bauschritt 1b): Ethik 8 Di 3. Stunde und Do 5./6. (Doppelstunde), ein Ausfall, ein Zusatztermin
+TERMINE = ('[schule]\nbundesland = "BE"\n\n' + NEU).replace(
+    'herkunft = "ethik-7-2025-26"\n',
+    'herkunft = "ethik-7-2025-26"\nausfall = ["2026-11-10/3"]\nzusatz = ["2026-11-28/5"]\n\n'
+    '[[klasse.zeitplan]]\ntag = "Di"\nstunde = 3\nab = "2026-11-02"\nbis = "2027-01-29"\n\n'
+    '[[klasse.zeitplan]]\ntag = "Do"\nstunde = 5\nlaenge = 2\nab = 2026-11-02\nbis = 2027-01-29\n', 1).replace(
+    'id = "s-einstieg"\n', 'id = "s-einstieg"\ntermin = "2026-11-03/3"\n', 1).replace(
+    'id = "s-kant"\n', 'id = "s-kant"\ntermin = "2026-11-05/5"\n', 1)
+BE = termine.kalender_aus_daten(json.loads((DATEN / "ferien_2026.json").read_text(encoding="utf-8")), "BE")
+
+
+class TestTermine(unittest.TestCase):
+    """Neue Felder aus Abschnitt 2a: [schule], klasse.zeitplan, ausfall, zusatz, stunde.termin (Bauschritt 1b)."""
+
+    def setUp(self):
+        self.s = struktur.aus_text(TERMINE)
+
+    def test_gueltig_und_aufgeloest(self):
+        self.assertEqual(fehler_zu(TERMINE), [])
+        self.assertEqual(self.s.schule, {"bundesland": "BE"})
+        k = self.s.objekt("ethik-8")
+        self.assertEqual(k["zeitplan"], [
+            {"tag": "Di", "stunde": 3, "laenge": 1, "ab": "2026-11-02", "bis": "2027-01-29"},
+            {"tag": "Do", "stunde": 5, "laenge": 2, "ab": "2026-11-02", "bis": "2027-01-29"}])  # TOML-Datum als Text
+        self.assertEqual((k["ausfall"], k["zusatz"]), (["2026-11-10/3"], ["2026-11-28/5"]))
+        self.assertEqual(self.s.objekt("ethik-7-2025-26")["zeitplan"], [])
+
+    def test_datum_je_stunde(self):
+        r = self.s.reihe("ethik-8-straftheorien")
+        self.assertEqual([(s["id"], s["termin"], s["datum"]) for s in r["stunden"]],
+                         [("s-einstieg", "2026-11-03/3", "2026-11-03"), ("s-kant", "2026-11-05/5", "2026-11-05"),
+                          ("s-liszt", "", "")])
+        self.assertEqual([s["nr"] for s in r["stunden"]], [1, 2, 3])  # Nummern wie vorher
+
+    def test_plan_der_klasse(self):
+        plan = self.s.plan("ethik-8", BE)
+        self.assertEqual([t.kennung for t in plan.termine[:5]],
+                         ["2026-11-03/3", "2026-11-05/5", "2026-11-12/5", "2026-11-17/3", "2026-11-19/5"])
+        self.assertIn("2026-11-28/5", [t.kennung for t in plan.termine])
+        self.assertEqual(plan.belegung, {"s-einstieg": "2026-11-03/3", "s-kant": "2026-11-05/5", "s-liszt": None,
+                                         "s-alt": None})  # nur Straftheorien hat in der Vorlage Stunden
+        self.assertEqual(plan.reihen["ethik-8-straftheorien"], ["s-einstieg", "s-kant", "s-liszt", "s-alt"])
+        self.assertEqual(plan.ausgeblendet, {"s-alt"})
+        self.assertEqual(plan.alles_rueckt_nach("2026-11-03/3").geaendert,
+                         {"s-einstieg": "2026-11-05/5", "s-kant": "2026-11-12/5"})
+        self.assertEqual(self.s.hinweise(BE), [])
+        # Klasse ohne Stundenplan braucht keinen Kalender
+        self.assertEqual(self.s.plan("darstellendes-spiel-kurs-12").termine, [])
+        with self.assertRaises(struktur.StrukturFehler):
+            self.s.plan("ethik-8-straftheorien")
+
+    def test_datum_ausserhalb_des_stundenplans_ist_hinweis(self):
+        s = struktur.aus_text(TERMINE.replace('termin = "2026-11-05/5"', 'termin = "2026-11-04/3"'))
+        self.assertEqual(len(s.hinweise(BE)), 1)
+        self.assertIn("s-kant liegt auf 2026-11-04/3", s.hinweise(BE)[0])
+
+    def test_regel31_ein_termin_eine_stunde(self):
+        faelle = {
+            "trägt zwei Stunden": TERMINE.replace('termin = "2026-11-05/5"', 'termin = "2026-11-03/3"'),
+            "ist gestrichen": TERMINE.replace('termin = "2026-11-05/5"', 'termin = "2026-11-10/3"'),
+            "ausgeblendet zählt mit": TERMINE.replace('id = "s-alt"\n', 'id = "s-alt"\ntermin = "2026-11-03/3"\n'),
+            "höchstens ein Termin je Stunde": TERMINE.replace('termin = "2026-11-05/5"',
+                                                              'termin = ["2026-11-05/5", "2026-11-12/5"]'),
+        }
+        for name, text in faelle.items():
+            with self.subTest(name):
+                self.assertTrue(fehler_zu(text))
+
+    def test_fehler_je_feld(self):
+        faelle = {
+            "bundesland fehlt": (TERMINE.replace('[schule]\nbundesland = "BE"\n', ''), "braucht [schule]"),
+            "bundesland falsch": (TERMINE.replace('"BE"', '"Berlin"'), "bundesland 'Berlin'"),
+            "schule unbekannt": (TERMINE.replace('bundesland = "BE"', 'bundesland = "BE"\nort = "x"'),
+                                 "unbekannte Felder"),
+            "schule als Liste": ('[[schule]]\nbundesland = "BE"\n' + NEU, "[schule]"),
+            "tag": (TERMINE.replace('tag = "Di"', 'tag = "Dienstag"'), "tag 'Dienstag'"),
+            "ausfall": (TERMINE.replace('ausfall = ["2026-11-10/3"]', 'ausfall = ["10.11."]'), "ausfall"),
+            "zusatz als Text": (TERMINE.replace('zusatz = ["2026-11-28/5"]', 'zusatz = "2026-11-28/5"'),
+                                "Liste von Texten"),
+            "termin": (TERMINE.replace('termin = "2026-11-03/3"', 'termin = "2026-11-03"'), "Datum/Unterrichtsstunde"),
+        }
+        for name, (text, erwartet) in faelle.items():
+            with self.subTest(name):
+                self.assertIn(erwartet, " ".join(fehler_zu(text)))
+
+    def test_altes_format_geht_weiter(self):
+        s = struktur.aus_text('[schule]\nbundesland = "BE"\n\n' + ALT)
+        self.assertEqual((s.format, len(s.reihen), s.schule), ("alt", 14, {"bundesland": "BE"}))
+        self.assertTrue(all(k["zeitplan"] == [] and k["ausfall"] == [] for k in s.klassen))
+        alt = struktur.aus_text(ALT)
+        self.assertEqual(alt.schule, {})
+        self.assertEqual(alt.hinweise(), [])
+        self.assertTrue(all(st["termin"] == "" and st["datum"] == "" for st in alt.stunden()))
+
+    def test_kalender_braucht_bundesland(self):
+        with self.assertRaisesRegex(termine.TermineFehler, "bundesland fehlt"):
+            struktur.aus_text(NEU).kalender()
+        self.assertEqual(self.s.kalender(DATEN / "ferien_2026.json"), BE)
+
+    def test_regel35_lesen_und_rechnen_aendert_nichts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            instanz = Path(tmp)
+            datei = instanz / "reihen.toml"
+            datei.write_text(TERMINE, encoding="utf-8")
+            vorher, zeit = datei.read_bytes(), datei.stat().st_mtime_ns
+            s = struktur.laden(instanz)
+            s.plan("ethik-8", BE).reihe_verschieben("ethik-8-straftheorien", "2026-12-01/3")
+            s.hinweise(BE)
+            self.assertEqual((datei.read_bytes(), datei.stat().st_mtime_ns), (vorher, zeit))
+            self.assertEqual(sorted(p.name for p in instanz.iterdir()), ["reihen.toml"])
+            self.assertEqual(struktur.laden(instanz), s)
 
 
 class TestDateien(unittest.TestCase):

@@ -582,8 +582,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      Erweiterung 03.11. (Jan): Termine. Klasse bekommt Stundenplan (wiederkehrende Termine), Reihe bekommt Termine
      zugeteilt, Ausfall mit Wahl „rückt nach“/„fällt weg“, Ferien je Bundesland (Plan Abschnitt 2a). Nächster Schritt:
      F20–F24 entschieden (03.11.): Ferien per Abrufskript, Doppelstunde = ein Termin, keine A/B-Wochen, Nachrücken
-     über Reihengrenzen, Halbjahr endet mit den Winterferien. Nächster Schritt: Bauschritt 1b (agentkit.termine,
-     Hauptordner), danach Migration (3).
+     über Reihengrenzen, Halbjahr endet mit den Winterferien. Bauschritt 1b erledigt 03.11. (siehe unten).
+     Nächster Schritt: Migration (3, mit Jans Okay; dabei [schule] bundesland und Stundenplan von Lia erfragen),
+     danach Schreib-Operationen (4).
      Offen: Neustart webapp.service mit Jans Okay (läuft seit 14:27 mit Code vor Bauschritt 2).
      Bauschritt 1 erledigt 03.11. (Hauptordner): agentkit.struktur (nur lesend, Tests 1–3, 6, 15, 17 mit eingefrorener
      Kopie der echten Datei, Lerngruppe darin durch Platzhalter ersetzt), Feld `ort` in auftraege.neuer_auftrag,
@@ -618,6 +619,43 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
      byte-gleich wie vorher). Für den webapp-Chat: Der Ort einer Frage darf zusätzlich `"stunde_id": "<id>"`
      tragen (freiwillig, abwärtsverträglich; `reihe` bleibt Pflicht, `stunde` und `stunde_thema` gehen weiter).
      Mit stunde_id nimmt chat Nummer und Thema aus reihen.toml, sonst wie bisher. Bedarf in agentkit.struktur: keiner.
+     Bauschritt 1b erledigt 03.11. (Hauptordner): agentkit.termine (rein, ohne Netz), Ferien-Datei
+     shared/agentkit/ferien.json (alle 16 Länder, 01.01.2026–31.12.2027) mit Abrufskript agentkit.ferien_holen,
+     struktur liest die Termin-Felder. Tests 26–31, 33–35 (Rechnung) in agentkit/tests/test_termine.py und
+     test_struktur.py (TestTermine). Schnittstelle für Bauschritt 4 und die Web-App (Einzelheiten im Kopf von
+     shared/agentkit/termine.py):
+     - Datei: `[schule] bundesland = "BE"`; an `[[klasse]]` `ausfall`, `zusatz` (Listen "2026-11-18/3") und
+       `[[klasse.zeitplan]]` tag ("Mo".."Sa"), stunde (0..15), laenge (1/2, Standard 1; Doppelstunde = ein Termin),
+       ab, bis (beide Pflicht); an `[[reihe.stunde]]` `termin = "2026-11-11/3"`. Keine A/B-Wochen. struktur prüft
+       Format und Testregel 31 (Fehler); ein Datum, das kein Termin des Stundenplans ist, ist nur ein Hinweis
+       (`s.hinweise()`, auch auf der Kommandozeile). Altes Format und alle Leser aus Bauschritt 2 gehen unverändert.
+     - Gelesen: Stunde hat zusätzlich `termin` und `datum` ("2026-11-11" oder ""), Klasse `zeitplan` (normalisiert,
+       Daten als Text), `ausfall`, `zusatz`; `s.schule`, `s.kalender()`, `s.plan(klassen_id)` -> termine.Plan.
+     - `termine.termine(zeitplan, kalender, ausfall, zusatz)` -> [Termin] (kennung, datum, stunde, laenge, zusatz,
+       text „Di 11.11., 3./4. Std.“); `termine.anzeige(kennung)` für den Kontext der Agenten („Stunde 3, Di 25.11.“).
+     - Kalender: `kalender("BE")`; `schuljahr("2026/27")` (nach den Sommerferien bis vor die nächsten),
+       `schuljahr_von(datum)` (Vorbelegung), `halbjahr_stichtag(name)` = Beginn der Winter-/Halbjahresferien (F24).
+       In BW, BY, HE, NW, RP, SH, SL gibt es keine solchen Ferien: None, die App fragt den Stichtag.
+     - Regeln am Plan, je -> Ergebnis (nichts geschrieben): `alles_rueckt_nach(termin)` (jede spätere Stunde der
+       Klasse genau einen Termin weiter, F23), `stunde_faellt_weg(termin)` (ausblenden, ohne Termin),
+       `ausfall_aufheben`, `stunde_verschieben(folge, id, stelle)` (Inhalt wandert, Termine bleiben),
+       `stunde_auf_termin(id, termin, bei_belegt)`, `reihe_verschieben(reihe_id, start, bei_belegt)`,
+       `stundenplan_ab(stichtag, neuer_zeitplan)`, `zuteilen(ids, ab=None, auswahl=None)`, dazu `freie(ab, anzahl)`.
+       Belegtes Ziel ohne bei_belegt: `termine.Belegt` (stunden, reihen) -> App fragt einmal, ruft mit
+       "nachruecken" (Getroffene rücken nur so weit wie nötig, Lücken dahinter bleiben) oder "tauschen" (beide
+       Reihen tauschen ihre Plätze auf genau ihren bisherigen Terminen) erneut auf.
+     - Ergebnis: `termine` (alle Stunden der Klasse -> Kennung/None), `ausfall`, `zeitplan`, `ausblenden`,
+       `einblenden`, `ohne_termin` (Lia sagen, welche), `hinweise`, `reihenfolge`; `geaendert`, `anwenden()`,
+       `rueckgaengig()`. Für Bauschritt 4: die Felder schreiben, danach in jeder Reihe die Blöcke mit
+       `termine.nach_datum(ids, termine)` ordnen (nur nötig nach stunde_auf_termin).
+     - Ferien: `cd ~/agenten/shared && python3 -m agentkit.ferien_holen 2027/28` einmal je Schuljahr von Hand
+       (kein Timer). Quelle OpenHolidays API, kostenlos, ohne Schlüssel, Daten ODbL 1.0 (Quelle nennen). Rückfall:
+       von Hand im gleichen Format, Zeitraum unter "abgedeckt". Fehlen Ferien für einen Zeitraum, sagt termine es.
+       Annahme für MV: Lia ist an einer allgemeinbildenden Schule (Ferien der beruflichen zählen nicht).
+     - Offen für Jan: Soll die App den Stundenplan bis Schuljahresende anlegen (Reihen über die Winterferien
+       planbar, stundenplan_ab legt beim Wechsel um) oder wie im Plan bis Halbjahresende? termine kann beides.
+       Bewegliche Ferientage und Studientage der Schule stehen in keiner Quelle (Lia streicht sie als Ausfall);
+       IServ hat nach meiner Suche keine offene Schnittstelle dafür.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit

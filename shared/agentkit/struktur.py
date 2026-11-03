@@ -10,9 +10,16 @@ Neues Format (Abschnitt 2 des Plans), eine id gilt über alle Ebenen und ändert
   [[reihe]]  id, klasse (id der Klasse); freiwillig titel, reihenfrage, notizen, stand (geplant, laufend,
              abgeschlossen; Standard laufend), herkunft (id einer Reihe), archiviert als Texte; behandelt,
              merksaetze, bisherige_reihen, agenten als Listen von Texten
-  [[reihe.stunde]] id, thema; freiwillig marke ("UB" oder "Prüfung"), archiviert (= ausgeblendet).
+  [[reihe.stunde]] id, thema; freiwillig marke ("UB" oder "Prüfung"), archiviert (= ausgeblendet), termin.
              Keine gespeicherte Nummer (F3): Die Nummer zählt die Reihenfolge der Blöcke, nur über nicht
              ausgeblendete Stunden.
+Termine (Abschnitt 2a, Bauschritt 1b, Rechnung in agentkit.termine):
+  [schule]   bundesland ("BE", nötig, sobald eine Klasse einen Stundenplan hat)
+  [[klasse]] freiwillig ausfall, zusatz (Listen von Terminen "2026-11-18/3") und
+  [[klasse.zeitplan]] tag ("Mo".."Sa"), stunde (Unterrichtsstunde), laenge (1 oder 2, Standard 1), ab, bis
+  [[reihe.stunde]] termin = "2026-11-11/3" (fehlt bei einer Stunde ohne Termin)
+  Geprüft (Testregel 31): Ein Termin trägt höchstens eine Stunde der Klasse, ein gestrichener keine. Ein Datum, das
+  kein Termin des Stundenplans ist, ist kein Fehler, sondern ein Hinweis (s.hinweise()).
 archiviert ist ein Datum "2026-11-03". Es vererbt sich beim Lesen (im_archiv): Ist das Fach oder die Klasse
 archiviert, gilt alles darunter als archiviert, ohne dass dort etwas steht.
 
@@ -29,13 +36,15 @@ fach_id, klasse_id die Kennungen), damit Prompt-Texte gleich bleiben:
   Reihe:  id, ebene="reihe", fach, fach_id, klasse, klasse_id, schuljahr, lerngruppe, titel, reihenfrage, notizen,
           stand, behandelt, merksaetze, bisherige_reihen, agenten, herkunft, archiviert, im_archiv,
           stunden (sichtbare, je mit nr ab 1), ausgeblendete_stunden (nr None)
-  Stunde: id, ebene="stunde", reihe_id, nr, thema, marke, archiviert, im_archiv
+  Stunde: id, ebene="stunde", reihe_id, nr, thema, marke, archiviert, im_archiv, termin (Kennung oder ""),
+          datum ("2026-11-11" oder "")
   Klasse: id, ebene="klasse", fach, fach_id, name, schuljahr, lerngruppe, herkunft, archiviert, im_archiv,
-          reihen (ids)
+          reihen (ids), zeitplan (Einträge mit laenge, ab, bis als Text), ausfall, zusatz
   Fach:   id, ebene="fach", name, kurzform, archiviert, im_archiv, klassen (ids)
 
 Aufruf: s = struktur.laden(); s.reihe("ethik-8-straftheorien"), s.ort(id), s.haengt_dran(id),
-s.pruefungsreihen(), s.pruefungsstunde(reihe_id). struktur.pruefen() gibt Fehlertexte für Jan zurück (leer = gut).
+s.pruefungsreihen(), s.pruefungsstunde(reihe_id), s.schule ({"bundesland": "BE"} oder {}), s.kalender(),
+s.plan(klassen_id) (termine.Plan für die Rechenregeln), s.hinweise(). struktur.pruefen() gibt Fehlertexte für Jan zurück (leer = gut).
 Auf der Kommandozeile (commit-daten.sh): python3 -m agentkit.struktur [<instanz-ordner>]
 """
 
@@ -50,6 +59,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+from . import termine
 from .config import KONTINGENT_DIR
 
 LIA_INSTANZ = KONTINGENT_DIR.parent / "lia" / "instanz"
@@ -65,9 +75,11 @@ PRUEFUNG = "Prüfung"
 
 FACH_TEXTE = ("id", "name", "kurzform", "archiviert")
 KLASSE_TEXTE = ("id", "fach", "name", "schuljahr", "herkunft", "archiviert")
+KLASSE_LISTEN = ("ausfall", "zusatz")
 REIHE_TEXTE = ("id", "klasse", "titel", "reihenfrage", "notizen", "stand", "herkunft", "archiviert")
 REIHE_LISTEN = ("behandelt", "merksaetze", "bisherige_reihen", "agenten")
-STUNDE_TEXTE = ("id", "thema", "marke", "archiviert")
+STUNDE_TEXTE = ("id", "thema", "marke", "archiviert", "termin")
+SCHULE_TEXTE = ("bundesland",)
 # Altes Format (wie lia/unterricht/reihen.py)
 ALT_TEXTE = ("id", "fach", "klasse", "titel", "reihenfrage", "lerngruppe", "notizen", "stand", "schuljahr")
 ALT_STUNDE = ("nr", "thema", "marke")
@@ -96,6 +108,7 @@ class Struktur:
     klassen: list[dict] = field(default_factory=list)
     reihen: list[dict] = field(default_factory=list)
     instanz: Path | None = None  # Ordner mit auftraege/, freigabe/ (für haengt_dran)
+    schule: dict = field(default_factory=dict)  # {"bundesland": "BE"} oder leer
 
     def objekt(self, kennung_: str) -> dict | None:
         """Objekt einer beliebigen Ebene per id, sonst None."""
@@ -184,6 +197,41 @@ class Struktur:
             haken.append({"quelle": "verweise", "anzahl": 1, "text": f"Verweis in {pfad}"})
         return haken
 
+    def kalender(self, datei: Path | None = None) -> termine.Kalender:
+        """Ferien und Feiertage des Bundeslands aus [schule] (agentkit/ferien.json). Fehlt etwas: TermineFehler."""
+        if not self.schule.get("bundesland"):
+            raise termine.TermineFehler(f"{DATEI}: [schule] bundesland fehlt")
+        return termine.kalender(self.schule["bundesland"], datei)
+
+    def plan(self, klassen_id: str, kalender: termine.Kalender | None = None) -> termine.Plan:
+        """Stand der Klasse für die Rechenregeln (agentkit.termine): Stundenplan, Ausfall, Zusatztermine, Termin
+        jeder Stunde. Den Kalender lädt es nur, wenn die Klasse einen Stundenplan hat."""
+        k = self.objekt(klassen_id)
+        if k is None or k["ebene"] != "klasse":
+            raise StrukturFehler(f"Klasse {klassen_id!r} gibt es nicht in {DATEI}")
+        reihen = [r for r in self.reihen if r["klasse_id"] == klassen_id]
+        if kalender is None and k["zeitplan"]:
+            kalender = self.kalender()
+        return termine.Plan(
+            zeitplan=tuple(k["zeitplan"]), ausfall=tuple(k["ausfall"]), zusatz=tuple(k["zusatz"]), kalender=kalender,
+            belegung={s["id"]: s["termin"] or None for r in reihen for s in r["stunden"] + r["ausgeblendete_stunden"]},
+            reihen={r["id"]: [s["id"] for s in r["stunden"] + r["ausgeblendete_stunden"]] for r in reihen},
+            ausgeblendet=frozenset(s["id"] for r in reihen for s in r["ausgeblendete_stunden"]))
+
+    def hinweise(self, kalender: termine.Kalender | None = None) -> list[str]:
+        """Was nicht kaputt ist, aber jemand wissen sollte: fehlende Ferien, Stunden auf einem Datum, das kein Termin
+        der Klasse ist. Liest höchstens ferien.json."""
+        texte = []
+        for k in self.klassen:
+            if not (k["zeitplan"] or k["zusatz"] or any(s["termin"] for r in self.reihen if r["klasse_id"] == k["id"]
+                                                        for s in r["stunden"] + r["ausgeblendete_stunden"])):
+                continue
+            try:
+                texte += [f"Klasse {k['id']}: {h}" for h in self.plan(k["id"], kalender).hinweise()]
+            except termine.TermineFehler as e:
+                texte.append(f"Klasse {k['id']}: {e}")
+        return texte
+
     def _alle(self) -> list[dict]:
         return self.faecher + self.klassen + self.reihen + self.stunden()
 
@@ -219,10 +267,10 @@ def aufloesen(text: str, lerngruppen: dict[str, str], instanz: Path | None = Non
         daten = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
         return Struktur("neu", instanz=instanz), [f"{DATEI} ist kein gültiges TOML: {e}"]
-    fremd = sorted(set(daten) - {"fach", "klasse", "reihe"})
+    fremd = sorted(set(daten) - {"schule", "fach", "klasse", "reihe"})
     if fremd:
-        return Struktur("neu", instanz=instanz), [f"{DATEI}: unbekannte Einträge {fremd}, erwartet [[fach]], "
-                                                  "[[klasse]], [[reihe]]"]
+        return Struktur("neu", instanz=instanz), [f"{DATEI}: unbekannte Einträge {fremd}, erwartet [schule], "
+                                                  "[[fach]], [[klasse]], [[reihe]]"]
     for name in ("fach", "klasse", "reihe"):
         if name in daten and not (isinstance(daten[name], list) and all(isinstance(x, dict) for x in daten[name])):
             return Struktur("neu", instanz=instanz), [f"{DATEI}: {name} als [[{name}]] schreiben, nicht [{name}]"]
@@ -232,7 +280,9 @@ def aufloesen(text: str, lerngruppen: dict[str, str], instanz: Path | None = Non
     else:
         s = _alt(daten.get("reihe", []), fehler)
     s.instanz = instanz
+    s.schule = _schule(daten.get("schule", {}), fehler)
     _gemeinsam_pruefen(s, lerngruppen, fehler)
+    _termine_pruefen(s, fehler)
     if not fehler:
         _lerngruppen_einsetzen(s, lerngruppen)
     return s, fehler
@@ -319,8 +369,9 @@ def _neu(daten: dict, fehler: list[str]) -> Struktur:
         s.faecher.append(f)
     for nr, e in enumerate(daten.get("klasse", []), 1):
         wo = f"{DATEI}, Klasse {nr}"
-        if not (_texte_pruefen(e, KLASSE_TEXTE, (), wo, fehler) and _id_pruefen(e, wo, fehler)
-                and _pflicht(e, ("fach", "name"), wo, fehler)):
+        if not (_texte_pruefen(e, KLASSE_TEXTE, KLASSE_LISTEN, wo, fehler, ("zeitplan",))
+                and _id_pruefen(e, wo, fehler) and _pflicht(e, ("fach", "name"), wo, fehler)
+                and _klassen_termine_pruefen(e, f"{wo} ({e['id']})", fehler)):
             continue
         fach = faecher.get(e["fach"])
         if fach is None:
@@ -329,7 +380,8 @@ def _neu(daten: dict, fehler: list[str]) -> Struktur:
         k = {"id": e["id"], "ebene": "klasse", "fach": fach["name"], "fach_id": fach["id"], "name": e["name"].strip(),
              "schuljahr": e.get("schuljahr", ""), "lerngruppe": "", "herkunft": e.get("herkunft", ""),
              "archiviert": e.get("archiviert", ""), "im_archiv": bool(e.get("archiviert")) or fach["im_archiv"],
-             "reihen": []}
+             "reihen": [], "zeitplan": termine.zeitplan_normal(e.get("zeitplan", [])),
+             "ausfall": list(e.get("ausfall", [])), "zusatz": list(e.get("zusatz", []))}
         fach["klassen"].append(k["id"])
         klassen[k["id"]] = k
         s.klassen.append(k)
@@ -352,7 +404,7 @@ def _neu(daten: dict, fehler: list[str]) -> Struktur:
         for snr, st in enumerate(stunden, 1):
             swo = f"{wo} ({e['id']}), Stunde {snr}"
             if not (_texte_pruefen(st, STUNDE_TEXTE, (), swo, fehler) and _id_pruefen(st, swo, fehler)
-                    and _pflicht(st, ("thema",), swo, fehler)):
+                    and _pflicht(st, ("thema",), swo, fehler) and _termin_pruefen(st.get("termin"), swo, fehler)):
                 continue
             _stunde_dazu(r, st["id"], st, swo, fehler)
         s.reihen.append(r)
@@ -382,7 +434,8 @@ def _alt(eintraege: list, fehler: list[str]) -> Struktur:
         if klasse is None:
             klasse = {"id": kennung(fach_name, klasse_name, schuljahr), "ebene": "klasse", "fach": fach_name,
                       "fach_id": fach["id"], "name": klasse_name, "schuljahr": schuljahr, "lerngruppe": "",
-                      "herkunft": "", "archiviert": "", "im_archiv": False, "reihen": []}
+                      "herkunft": "", "archiviert": "", "im_archiv": False, "reihen": [], "zeitplan": [],
+                      "ausfall": [], "zusatz": []}
             klassen[schluessel] = klasse
             fach["klassen"].append(klasse["id"])
             s.klassen.append(klasse)
@@ -453,8 +506,10 @@ def _stunde_dazu(r: dict, kennung_: str, st: dict, wo: str, fehler: list[str]) -
         fehler.append(f"{wo}: marke {marke!r}, erlaubt {list(MARKEN)}")
         return
     archiviert = st.get("archiviert", "")
+    termin = st.get("termin", "")
     s = {"id": kennung_, "ebene": "stunde", "reihe_id": r["id"], "nr": None, "thema": st["thema"].strip(),
-         "marke": marke, "archiviert": archiviert, "im_archiv": bool(archiviert) or r["im_archiv"]}
+         "marke": marke, "archiviert": archiviert, "im_archiv": bool(archiviert) or r["im_archiv"],
+         "termin": termin, "datum": termin.split("/")[0] if termin else ""}
     if archiviert:
         r["ausgeblendete_stunden"].append(s)
     else:
@@ -484,6 +539,51 @@ def _gemeinsam_pruefen(s: Struktur, lerngruppen: dict, fehler: list[str]) -> Non
     klassen = {k["id"] for k in s.klassen}
     for k in sorted(set(lerngruppen) - klassen):
         fehler.append(f"{LERNGRUPPEN}: Klasse {k!r} gibt es nicht in {DATEI}")
+
+
+def _schule(e, fehler: list[str]) -> dict:
+    if not isinstance(e, dict):
+        fehler.append(f"{DATEI}: schule als [schule] schreiben")
+        return {}
+    if not _texte_pruefen(e, SCHULE_TEXTE, (), f"{DATEI}, [schule]", fehler):
+        return {}
+    if "bundesland" in e and e["bundesland"] not in termine.BUNDESLAENDER:
+        fehler.append(f"{DATEI}, [schule]: bundesland {e['bundesland']!r}, erlaubt {sorted(termine.BUNDESLAENDER)}")
+        return {}
+    return dict(e)
+
+
+def _termin_pruefen(wert, wo: str, fehler: list[str]) -> bool:
+    if wert is None:
+        return True
+    try:
+        termine.kennung_lesen(wert)
+    except termine.TermineFehler as e:
+        fehler.append(f"{wo}: {e}")
+        return False
+    return True
+
+
+def _klassen_termine_pruefen(e: dict, wo: str, fehler: list[str]) -> bool:
+    """Stundenplan, ausfall und zusatz einer Klasse im neuen Format."""
+    weitere = termine.zeitplan_pruefen(e.get("zeitplan", []), f"{wo}, Stundenplan")
+    for feld in KLASSE_LISTEN:
+        for wert in e.get(feld, []):
+            _termin_pruefen(wert, f"{wo}, {feld}", weitere)
+    fehler += weitere
+    return not weitere
+
+
+def _termine_pruefen(s: Struktur, fehler: list[str]) -> None:
+    """Testregel 31 je Klasse; Stundenplan nur mit Bundesland."""
+    for k in s.klassen:
+        if k["zeitplan"] and not s.schule.get("bundesland"):
+            fehler.append(f"{DATEI} ({k['id']}): Stundenplan braucht [schule] bundesland")
+        belegung = {}
+        for r in s.reihen:
+            if r["klasse_id"] == k["id"]:
+                belegung.update({st["id"]: st["termin"] for st in r["stunden"] + r["ausgeblendete_stunden"]})
+        fehler += [f"{DATEI} ({k['id']}): {t}" for t in termine.belegung_pruefen(belegung, k["ausfall"])]
 
 
 def _lerngruppen_einsetzen(s: Struktur, lerngruppen: dict) -> None:
@@ -567,6 +667,8 @@ def main(argumente: list[str]) -> int:
         print("\n".join(fehler), file=sys.stderr)
         return 1
     s = laden(instanz)
+    for h in s.hinweise():
+        print(f"Hinweis: {h}", file=sys.stderr)
     print(f"Struktur in Ordnung ({instanz / DATEI}, Format {s.format}): {len(s.faecher)} Fächer, "
           f"{len(s.klassen)} Klassen, {len(s.reihen)} Reihen, {len(s.stunden())} Stunden")
     return 0

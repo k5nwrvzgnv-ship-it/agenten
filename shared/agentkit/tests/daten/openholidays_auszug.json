@@ -1,0 +1,240 @@
+{
+ "_hinweis": "Auszug aus Antworten der OpenHolidays API vom 03.11.2026 (https://www.openholidaysapi.org, ODbL 1.0) für tests/test_termine.py: SchoolHolidays, PublicHolidays, Groups für DE",
+ "schulferien": [
+  {
+   "id": "7dcb7a13-cb0f-4661-a283-495acbc3ed82",
+   "startDate": "2026-07-04",
+   "endDate": "2026-08-15",
+   "type": "School",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Sommerferien"
+    }
+   ],
+   "regionalScope": "Regional",
+   "temporalScope": "FullDay",
+   "nationwide": false,
+   "subdivisions": [
+    {
+     "code": "DE-SH",
+     "shortName": "SH"
+    }
+   ]
+  },
+  {
+   "id": "fdd6cbef-1e9f-4897-831d-8fdb276c4797",
+   "startDate": "2026-07-04",
+   "endDate": "2026-08-08",
+   "type": "School",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Sommerferien"
+    }
+   ],
+   "regionalScope": "Regional",
+   "temporalScope": "FullDay",
+   "nationwide": false,
+   "subdivisions": [
+    {
+     "code": "DE-SH",
+     "shortName": "SH"
+    }
+   ],
+   "comment": [
+    {
+     "language": "DE",
+     "text": "Inseln Sylt, Föhr, Amrum, Helgoland und die Halligen"
+    }
+   ],
+   "tags": [
+    "Exception"
+   ]
+  },
+  {
+   "id": "1fa16795-e96d-4215-8a8d-7632bdaa5285",
+   "startDate": "2026-10-19",
+   "endDate": "2026-10-31",
+   "type": "School",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Herbstferien"
+    }
+   ],
+   "regionalScope": "Regional",
+   "temporalScope": "FullDay",
+   "nationwide": false,
+   "subdivisions": [
+    {
+     "code": "DE-BE",
+     "shortName": "BE"
+    }
+   ]
+  },
+  {
+   "id": "80d1a9e2-9c3e-41b7-925f-3cdf7a3b3cc0",
+   "startDate": "2027-02-08",
+   "endDate": "2027-02-13",
+   "type": "School",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Winterferien"
+    }
+   ],
+   "regionalScope": "Regional",
+   "temporalScope": "FullDay",
+   "nationwide": false,
+   "subdivisions": [
+    {
+     "code": "DE-MV",
+     "shortName": "MV"
+    }
+   ],
+   "groups": [
+    {
+     "code": "DE-MV-BBS",
+     "shortName": "MV-BBS"
+    }
+   ]
+  },
+  {
+   "id": "97de5c95-2c41-4709-a8bf-bf5910ee758d",
+   "startDate": "2027-02-08",
+   "endDate": "2027-02-19",
+   "type": "School",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Winterferien"
+    }
+   ],
+   "regionalScope": "Regional",
+   "temporalScope": "FullDay",
+   "nationwide": false,
+   "subdivisions": [
+    {
+     "code": "DE-MV",
+     "shortName": "MV"
+    }
+   ],
+   "groups": [
+    {
+     "code": "DE-MV-ABS",
+     "shortName": "MV-ABS"
+    }
+   ]
+  }
+ ],
+ "feiertage": [
+  {
+   "id": "bea65880-834e-4095-9ab7-07b05f2c3030",
+   "startDate": "2026-08-08",
+   "endDate": "2026-08-08",
+   "type": "Public",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Friedensfest"
+    }
+   ],
+   "regionalScope": "Local",
+   "temporalScope": "FullDay",
+   "nationwide": false,
+   "subdivisions": [
+    {
+     "code": "DE-BY-AU",
+     "shortName": "BY-AU"
+    }
+   ]
+  },
+  {
+   "id": "555eaa64-b8f6-44ce-850b-6af0d75555e9",
+   "startDate": "2026-10-03",
+   "endDate": "2026-10-03",
+   "type": "Public",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Tag der Deutschen Einheit"
+    }
+   ],
+   "regionalScope": "National",
+   "temporalScope": "FullDay",
+   "nationwide": true
+  },
+  {
+   "id": "1ddfa412-ebda-4571-a6fd-aa8e2ba340d5",
+   "startDate": "2027-03-08",
+   "endDate": "2027-03-08",
+   "type": "Public",
+   "name": [
+    {
+     "language": "DE",
+     "text": "Internationaler Frauentag"
+    }
+   ],
+   "regionalScope": "Regional",
+   "temporalScope": "FullDay",
+   "nationwide": false,
+   "subdivisions": [
+    {
+     "code": "DE-BE",
+     "shortName": "BE"
+    },
+    {
+     "code": "DE-MV",
+     "shortName": "MV"
+    }
+   ]
+  }
+ ],
+ "gruppen": [
+  {
+   "code": "DE-MV-ABS",
+   "shortName": "MV-ABS",
+   "category": [
+    {
+     "language": "DE",
+     "text": "Schulart"
+    }
+   ],
+   "name": [
+    {
+     "language": "DE",
+     "text": "Allgemeinbildende Schulen"
+    }
+   ],
+   "subdivisions": [
+    {
+     "code": "DE-MV",
+     "shortName": "MV"
+    }
+   ]
+  },
+  {
+   "code": "DE-MV-BBS",
+   "shortName": "MV-BBS",
+   "category": [
+    {
+     "language": "DE",
+     "text": "Schulart"
+    }
+   ],
+   "name": [
+    {
+     "language": "DE",
+     "text": "Berufliche Schulen"
+    }
+   ],
+   "subdivisions": [
+    {
+     "code": "DE-MV",
+     "shortName": "MV"
+    }
+   ]
+  }
+ ]
+}
