@@ -82,5 +82,8 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   bricht sonst jeden Commit ab. `--no-verify` nur mit Jans Okay.
 - Committen nur mit `~/agenten/commit.sh "Nachricht" <pfade>` (Pfade relativ zum Hauptordner), nie mit
   `git add` und `git commit` von Hand: Alle Chats teilen sich den Index, das Skript committet nacheinander.
+- Einzige Ausnahme vom Hook (Jan 03.11.2026): `~/agenten/commit-daten.sh "Nachricht"` committet genau
+  `lia/instanz/reihen.toml` (Web-App, Skripte), prüft dafür nur die Struktur (agentkit.struktur) statt pruefen.sh.
+  Für keinen anderen Pfad, und kein anderes Skript umgeht den Hook.
 - Neue Logik hat Tests. Neue Testordner werden in pruefen.sh eingetragen.
 - STATUS.md beschreibt den aktuellen Stand, keinen Verlauf (der steht in Git).
