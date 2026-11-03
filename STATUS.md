@@ -608,6 +608,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        eines Auftrags; `s.haengt_dran(id)` -> [{"quelle", "anzahl", "text"}] (Quellen 3.1; Titel-Verweise von
        examen/recherche erkennt es nicht, nur Verweise per id in lia/<agent>/*.toml, *.py).
      - Aufträge: `auftraege.neuer_auftrag(..., reihe=..., ort=<stunden-id>)`; `reihe` weiter setzen für ältere Leser.
+     Bauschritt 2 lia/chat erledigt 03.11.: kontext liest über struktur (Kontext-Text für alle 14 echten Reihen
+     byte-gleich wie vorher). Für den webapp-Chat: Der Ort einer Frage darf zusätzlich `"stunde_id": "<id>"`
+     tragen (freiwillig, abwärtsverträglich; `reihe` bleibt Pflicht, `stunde` und `stunde_thema` gehen weiter).
+     Mit stunde_id nimmt chat Nummer und Thema aus reihen.toml, sonst wie bisher. Bedarf in agentkit.struktur: keiner.
    - Bedarf an lia/ aus der Neuplanung (erst nach dem Test, nicht vorher bauen):
      a) lia/unterricht: Stunden je Reihe (Nummer, Thema, Marke UB/Prüfung) in lia/instanz/reihen.toml oder einer
         Datei je Reihe; Agenten bekommen beim Auftrag an einer Stunde Reihe und Stunde als Kontext. Übergang seit
