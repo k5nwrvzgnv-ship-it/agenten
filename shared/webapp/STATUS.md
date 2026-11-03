@@ -187,8 +187,18 @@ lia/chat neu, Hauptordner/agentkit). In der Web-App gebaut, je mit Tests:
 - Spalte „Fragen“ an den Chat-Agenten `lia/chat` (Schnittstelle `schnittstelle.py`, Warteschlange in
   lia/chat/data): nur mit `WEBAPP_CHAT=an` (jede Frage läuft über Lias Kontingent, ca. 0,03 USD). „Ich weiß:
   Ort“ (Reihe, auf Stundenseiten mit Stunde), „ohne Ort fragen“, „gründlich“, Antwort per htmx alle 2 s
-  (`/teile/frage/<id>`), die letzten 6 Fragen mit Trennlinie bei Ortswechsel, Markdown nur fett und Listen,
-  „Daraus Auftrag machen“ öffnet Neu mit Frage und Antwort am Ort. Noch nie aus der Web-App echt gefragt.
+  (`/teile/frage/<id>`), die letzten 6 Fragen mit Trennlinie bei Ortswechsel, Markdown fett, Listen und Links,
+  „Daraus Auftrag machen“ öffnet Neu mit Frage und Antwort am Ort.
+  Ausbau lia/chat (Punkt 24 der Haupt-STATUS, 03.11.): Häkchen „Im Netz nachsehen“ (`netz=True`, Hinweis: Text
+  der Frage geht als Suchanfrage hinaus, keine Namen); Datei-Feld bis 3 Dateien .pdf/.docx/.pptx je 20 MB, vorab
+  geprüft (`logik.frage_dateien_pruefen`, Sätze in `FRAGE_FEHLER`), Upload in data/eingang, die Schnittstelle
+  verschiebt sie, Rest (auch bei FrageFehler) löscht die App; FrageFehler-Sätze werden auf Schlüssel abgebildet
+  (`logik.frage_fehler_schluessel`), die URL trägt nie Text des Agenten. Mehr als 10 Dateien: Formular nicht
+  gelesen (400). Im Verlauf „mit Datei: Name“ aus `dateien`, `dateitext` nie. Links `[Titel](URL)` nur
+  http/https mit Host (`logik.link_ziel`), `rel="noopener noreferrer"`, `target="_blank"`, sonst bleibt der
+  Markdown-Text stehen. Echter Lauf 03.11. über einen Test-Socket (neuer Code, echte Warteschlange): Frage mit
+  Häkchen und Word-Datei, Antwort mit Inhalt der Datei und zwei klickbaren Quellen, Datei danach gelöscht;
+  Testeintrag aus lia/chat/data/verlauf.jsonl wieder entfernt.
 - Formatvorlagen (Jan 30.10.): Seite Vorlagen › „Deine Formatvorlagen“: Upload .dotx/.docx/.potx/.pptx (bis
   20 MB) nach `lia/unterricht/data/vorlagen/` bzw. `…/reihenentwurf/`, `…/lernerfolgskontrolle/` („Gilt für“),
   Name bereinigt, gleicher Name ersetzt; Liste mit „gilt“ (neueste je Geltung und Sorte, wie
@@ -256,6 +266,9 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
+10. webapp.service läuft noch mit dem Stand vor dem lia/chat-Ausbau (Netz, Dateien, Links, 03.11.): Neustart
+    `systemctl --user restart webapp.service` nur nach Jans Okay. Danach einmal in lia.meldro.de prüfen
+    (Häkchen, Datei-Feld, Link öffnet neuen Tab).
 0. Echt auf lia/instanz: freigegeben (Jan 30.10., siehe Entscheidungen). Noch kein echter Lauf aus der Web-App;
    den ersten beobachten (Log der App, Ergebnis in „Heute“, Nachricht an Lia per Telegram).
 9. Reihen: lia/instanz/reihen.toml gibt es (30.10.); der Ersatz aus den Agent-Ordnern greift nur noch ohne sie.
