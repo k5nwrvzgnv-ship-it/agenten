@@ -767,7 +767,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     /Highlight, /Text, /FreeText: Seite, markierter Text über /QuadPoints, Kommentartext /Contents), z. B. als
     Abschnitt "Kommentare" hinter dem Text. Anlass: Jan hat das Exposé in der PDF kommentiert; der uni-Agent hätte
     bei einer Antwort mit der PDF nur den alten Text gesehen. Mit pypdf (in uni/.venv vorhanden) machbar.
-    Nicht gebaut, Jans Okay steht aus.
+    Plan (03.11., Jan: "planen"; bauen erst nach Jans Okay):
+    - Hauptordner-Chat: textfassung.pdf_kommentare(pfad) -> list[dict] wie word_kommentare: {"seite", "stelle",
+      "kommentar", "autor"}. Markierungen (/Highlight, /Underline, /StrikeOut, /Squiggly): stelle = Text unter den
+      /QuadPoints (pypdf extract_text mit visitor_text, Zeilen nach y und x zuordnen). /Text und /FreeText: stelle
+      leer. /Popup, /Link u. a. überspringen. kommentar = /Contents (\r zu \n), autor = /T. Ohne Kommentare oder bei
+      anderen Formaten [], kaputte Datei ValueError. Dazu kommentare(pfad): docx oder pdf. als_text bleibt
+      unverändert. Tests mit einer in setUp per pypdf erzeugten PDF (Markierung mit und ohne Kommentar,
+      Notiz, Link). Keine neuen Pakete.
+    - Danach uni-Chat: auftrag_bearbeiten hängt für jeden Anhang mit Kommentaren einen Block "Kommentare in
+      <datei> (Seite, markierte Stelle: Kommentar)" an a["text"], so sieht ihn jeder Weg (Exposé, Dokument,
+      sonstige). Test in uni/tests.
+    - Später, nicht nötig: Lias Agenten (unterricht/material.py, theater/nachbesserung.py) auf kommentare()
+      umstellen, dann auch PDF-Kommentare von Lia.
 
 ## Gelernte Regeln
 - (noch keine)

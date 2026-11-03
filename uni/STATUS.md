@@ -187,7 +187,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Matrikelnummer, Forschungsprojekt 1 oder 2, fehlende APA-Angaben bei 7 Quellen).
   Kürzung nach Jans Anmerkungen in der PDF (03.11., Auftrag 20261103-114706-uni-c85257, im Chat aus den
   PDF-Kommentaren abgeschrieben): etwa 900 Wörter, 10 Quellen, 11 [OFFEN].
-  Kommentare in PDFs liest der Agent nicht (agentkit.textfassung nimmt nur den Text), Bedarf in ../STATUS.md Punkt 28.
+  Kommentare in PDFs liest der Agent nicht (agentkit.textfassung nimmt nur den Text), Bedarf und Plan in
+  ../STATUS.md Punkt 28. uni-Teil (Kommentare an a["text"] in auftrag_bearbeiten) erst nach dem agentkit-Teil.
   Normen nachgereicht (03.11., Auftrag 20261103-120228-uni-187226, data/normen/Normen_Forschungsprojekt/): EN 14080,
   EN 14081-1 und DIN 4074-3 eingearbeitet, Werk heißt best wood Schneider, Eberhardzell. Etwa 1.000 Wörter,
   12 Quellen, 10 [OFFEN]. Der Lauf scheiterte an literatur_pruefen (nur Normen aus geprueft.json zählten);
