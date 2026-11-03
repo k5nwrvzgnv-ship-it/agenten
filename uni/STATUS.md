@@ -185,6 +185,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   (30) nach dem Schreiben: seitdem wird eine geschriebene Fassung trotzdem gebaut. Überarbeitung nach Vorlage
   (Auftrag 20261102-232434-uni-e64053): 1190 Wörter, 12 Quellen aus der Recherche, 13 [OFFEN] (u. a. Felix'
   Matrikelnummer, Forschungsprojekt 1 oder 2, fehlende APA-Angaben bei 7 Quellen).
+  Kürzung nach Jans Anmerkungen in der PDF (03.11., Auftrag 20261103-114706-uni-c85257, im Chat aus den
+  PDF-Kommentaren abgeschrieben): etwa 900 Wörter, 10 Quellen, 11 [OFFEN]. Offen: Normen EN 14080, EN 14081,
+  DIN 4074-3 reicht Jan nach (nach data/normen/), Angabe Werk Schneider (6 Beschäftigte fürs Markieren?) prüfen.
+  Kommentare in PDFs liest der Agent nicht (agentkit.textfassung nimmt nur den Text), Bedarf in ../STATUS.md Punkt 28.
 - Scopus (scopus.py, 02.11.): Keine API (die Uni gibt kein Institutional Token heraus). Jan sucht selbst in Scopus
   (Claude in Chrome auf dem Mac, Prompt mit Suchstrings S1.., Export CSV mit Abstract, höchstens 300 je Suche,
   Protokoll "S1 | Treffer | exportiert | Datei | Vermerk"). Ablage recherche/scopus/ (*.csv, suchen.json,

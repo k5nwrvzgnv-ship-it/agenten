@@ -763,6 +763,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        ergänzen: Belege von fremden Domains zählen dort als "ungeprüft".
     Später (kein Muss): Belegprüfung url+zitat für Webseiten und PDFs als agentkit-Baustein, uni/recherche.py
     und lia/recherche/webpruefung.py würden ihn teilen.
+28. Bedarf aus uni (03.11.2026): agentkit.textfassung soll bei PDFs auch Kommentare liefern (Annotationen
+    /Highlight, /Text, /FreeText: Seite, markierter Text über /QuadPoints, Kommentartext /Contents), z. B. als
+    Abschnitt "Kommentare" hinter dem Text. Anlass: Jan hat das Exposé in der PDF kommentiert; der uni-Agent hätte
+    bei einer Antwort mit der PDF nur den alten Text gesehen. Mit pypdf (in uni/.venv vorhanden) machbar.
+    Nicht gebaut, Jans Okay steht aus.
 
 ## Gelernte Regeln
 - (noch keine)
