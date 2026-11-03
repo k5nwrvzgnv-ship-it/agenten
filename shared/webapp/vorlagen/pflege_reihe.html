@@ -1,0 +1,55 @@
+{#- Reihe bearbeiten (Aktionsmatrix 4.3): Titel, Reihenfrage, Stand, Notizen, Schon behandelt, Merksätze; nicht id,
+    nicht agenten. Dazu in eine andere Klasse, übernehmen (kopieren), Archivieren, Wiederherstellen, Löschen. -#}
+{% extends "basis.html" %}
+{%- from "_pflege.html" import fehler_liste, knopf -%}
+{% block inhalt %}
+{{ fehler_liste(fehler) }}
+<form class="formular" method="post" action="/reihe/{{ reihe.id }}/bearbeiten">
+  <input type="hidden" name="token" value="{{ token }}">
+  <section>
+    <label class="feld-titel" for="titel">Titel</label>
+    <input class="feld" id="titel" name="titel" type="text" maxlength="{{ laenge.titel }}" value="{{ werte.titel }}" required>
+    <label class="feld-titel" for="reihenfrage">Reihenfrage</label>
+    <textarea id="reihenfrage" name="reihenfrage" rows="2" maxlength="{{ laenge.reihenfrage }}">{{ werte.reihenfrage }}</textarea>
+    <label class="feld-titel" for="stand">Stand</label>
+    <select id="stand" name="stand">
+      {%- for wert, text in staende.items() %}<option value="{{ wert }}"{% if werte.stand == wert %} selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>
+    <label class="feld-titel" for="notizen">Notizen</label>
+    <textarea id="notizen" name="notizen" rows="5" maxlength="{{ laenge.notizen }}">{{ werte.notizen }}</textarea>
+    <label class="feld-titel" for="behandelt">Schon behandelt <span class="unter">(je Zeile eins)</span></label>
+    <textarea id="behandelt" name="behandelt" rows="4">{{ werte.behandelt }}</textarea>
+    <label class="feld-titel" for="merksaetze">Merksätze <span class="unter">(je Zeile einer)</span></label>
+    <textarea id="merksaetze" name="merksaetze" rows="4">{{ werte.merksaetze }}</textarea>
+    {%- for feld in ("titel", "reihenfrage", "stand", "notizen") %}
+    <input type="hidden" name="alt_{{ feld }}" value="{{ reihe[feld] }}">
+    {%- endfor %}
+    <input type="hidden" name="alt_behandelt" value="{{ reihe.behandelt | join('\n') }}">
+    <input type="hidden" name="alt_merksaetze" value="{{ reihe.merksaetze | join('\n') }}">
+  </section>
+  <button class="knopf knopf-voll" type="submit">Speichern</button>
+</form>
+<section aria-labelledby="mehr">
+  <h2 id="mehr"><span class="akzent">02</span>Mehr</h2>
+  <div class="knoepfe knoepfe-unten">
+    <a class="knopf" href="/reihe/{{ reihe.id }}/kopieren">In eine andere Klasse übernehmen</a>
+    {%- if reihe.archiviert %}
+    {{ knopf("/objekt/" ~ reihe.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}
+    {%- elif not reihe.im_archiv %}
+    {{ knopf("/objekt/" ~ reihe.id ~ "/archivieren", "Archivieren", token) }}
+    {%- endif %}
+    {%- if loeschen %}{{ knopf("/objekt/" ~ reihe.id ~ "/loeschen", "Löschen", token) }}{% endif %}
+  </div>
+  {%- if not loeschen %}<p class="unter">Löschen geht nicht, daran hängt: {{ haken }}. Archivieren geht immer.</p>{% endif %}
+  {%- if klassen %}
+  <form class="zeile-form" method="post" action="/reihe/{{ reihe.id }}/verschieben">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label for="klasse">Gehört eigentlich zu:</label>
+    <select id="klasse" name="klasse">
+      {%- for k in klassen %}<option value="{{ k.id }}">{{ k.text }}</option>{% endfor %}
+    </select>
+    <button class="knopf" type="submit">Verschieben</button>
+  </form>
+  {%- endif %}
+</section>
+{% endblock %}

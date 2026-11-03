@@ -1,11 +1,27 @@
-{#- Fach (nur lesend): Klassen/Kurse. Material des Fachs (RLP, Operatoren, Referendariat) steht in keiner Datei:
-    dafür der leere Zustand. -#}
+{#- Fach: Klassen/Kurse, „+ Klasse oder Kurs“ und „Bearbeiten“ (Struktur pflegen). Material des Fachs (RLP, Operatoren,
+    Referendariat) steht in keiner Datei: dafür der leere Zustand. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
+{%- from "_pflege.html" import knopf -%}
 {% block inhalt %}
+{%- if fach %}
+<div class="knoepfe knoepfe-unten">
+  {%- if fach.archiviert %}
+  <p class="hinweis">Archiviert. Alles darin bleibt erhalten.</p>
+  {{ knopf("/objekt/" ~ fach.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}
+  {%- else %}
+  <a class="knopf knopf-voll" href="/fach/{{ fach.id }}/klasse/neu">+ Klasse oder Kurs</a>
+  {%- endif %}
+  <a class="knopf" href="/fach/{{ fach.id }}/bearbeiten">Bearbeiten</a>
+</div>
+{%- endif %}
 <section aria-labelledby="ab1">
   <h2 id="ab1"><span class="akzent">01</span>Klassen und Kurse</h2>
+  {%- if e.zeilen %}
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
+  {%- else %}
+  <p class="leer">Noch keine Klasse und kein Kurs.</p>
+  {%- endif %}
 </section>
 <section aria-labelledby="ab2">
   <h2 id="ab2"><span class="akzent">02</span>Zum ganzen Fach</h2>

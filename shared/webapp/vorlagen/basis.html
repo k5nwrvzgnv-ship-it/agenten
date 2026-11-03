@@ -29,6 +29,22 @@
   <h1 class="titel-gross">{{ e.titel }}</h1>
 </header>
 {% endblock %}
+{%- set ah = aktion_hinweis(request.query_params.get("aktion")) %}
+{%- if ah %}
+<div class="hinweis hinweis-erledigt aktion-hinweis" role="status">
+  <div class="aktion-zeile"><span>{{ ah.text }}</span>
+    {%- if ah.zurueck %}<span aria-hidden="true">·</span>
+    <form class="inline-form" method="post" action="/rueckgaengig">
+      <input type="hidden" name="token" value="{{ formular_token() }}">
+      <input type="hidden" name="aktion" value="{{ ah.id }}">
+      <input type="hidden" name="zurueck" value="{{ request.url.path }}">
+      <button class="knopf-link" type="submit">Rückgängig</button>
+    </form>{% endif %}</div>
+  {%- for h in ah.hinweise %}<p class="absatz unter">{{ h }}</p>{% endfor %}
+</div>
+{%- elif request.query_params.get("erledigt") == "nichts" %}
+<p class="hinweis" role="status">Nichts geändert.</p>
+{%- endif %}
 {% block inhalt %}{% endblock %}
 </main>
 <nav class="baum" aria-label="Fächer und Reihen">
@@ -39,6 +55,8 @@
     <li><a class="baum-fach" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}>{{ b.text }}</a></li>
     {%- elif b.art == "fach" %}
     <li class="baum-fach">{{ b.text }}</li>
+    {%- elif b.art == "neu" %}
+    <li><a class="baum-eintrag baum-neu tiefe-{{ b.tiefe }}" href="{{ b.link }}"><span>{{ b.text }}</span></a></li>
     {%- elif b.art == "gruppe" %}
     <li><a class="baum-eintrag baum-gruppe" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}><span>{{ b.text }}</span></a></li>
     {%- else %}

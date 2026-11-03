@@ -15,7 +15,6 @@ App erst mit Konten (Bauschritt 2/3).
 
 import hmac
 import re
-import secrets
 import unicodedata
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -880,6 +879,7 @@ def token_passt(geheim: bytes, token: str | None) -> bool:
 OHNE_REIHE = "ohne"
 ORT_TRENNER = " › "
 KRUME_LANG = 60  # letzte Brotkrume (z. B. ein langer Ergebnistitel)
+THEMA_OFFEN = "Thema offen"  # Stunde ohne thema (Plan 4.4: das Thema darf offen bleiben)
 OHNE_TITEL = "Noch ohne Titel"  # Reihe ohne titel in reihen.toml (nicht „Kurs 11 / Kurs 11“, Chrome-Test Nr. 9)
 # Stand einer Reihe hinter dem Titel im Baum bzw. als Marke in der Klasse. „geplant“ gilt sonst als laufend (Plan
 # Abschnitt 3): „(in Planung)“ stand bis zur Migration im Titel, so sieht der Baum danach gleich aus.
@@ -895,9 +895,10 @@ def gruppe_name(klasse: str) -> str:
 def reihen_aus(s) -> tuple[list[dict], list[dict]]:
     """Reihen und Klassen/Kurse („Gruppen“) der App aus einer geladenen Struktur (s = agentkit.struktur.laden()).
     Reihe: id, fach, fach_id, klasse, gruppe („Klasse 8“, im Archiv „Kurs 11 · 2025/26“), gruppe_id, titel,
-    schuljahr, archiv, stand, laufend (geplant oder laufend, nicht im Archiv), reihenfrage, behandelt, agenten,
-    stunden (sichtbare aus der Datei, je {id, thema, marke, aus_datei}). Gruppe: gruppe_id, gruppe, fach, fach_id,
-    archiv; im neuen Format auch Klassen ohne Reihe, in der Reihenfolge der Fächer und Klassen der Datei.
+    schuljahr, archiv, archiviert (eigenes Datum, neues Format), stand, laufend (geplant oder laufend, nicht im
+    Archiv), reihenfrage, behandelt, agenten, stunden (sichtbare aus der Datei, je {id, thema, marke, termin}),
+    ausgeblendete (ebenso). Gruppe: gruppe_id, gruppe, fach, fach_id, archiv; im neuen Format auch Klassen ohne
+    Reihe, in der Reihenfolge der Fächer und Klassen der Datei.
     Archiv: im alten Format die Regel der App (R11: abgeschlossene Reihe eines genannten Schuljahrs, die Klasse trägt
     dann das Jahr und eine eigene Kennung wie bisher), im neuen Format im_archiv aus agentkit.struktur."""
     klassen = {k["id"]: k for k in s.klassen}
@@ -918,9 +919,9 @@ def reihen_aus(s) -> tuple[list[dict], list[dict]]:
             "gruppe": gruppe["gruppe"], "gruppe_id": gruppe_id, "titel": r["titel"] or OHNE_TITEL,
             "schuljahr": r["schuljahr"], "archiv": archiv, "stand": r["stand"],
             "laufend": r["stand"] != "abgeschlossen" and not archiv, "reihenfrage": r["reihenfrage"],
-            "behandelt": list(r["behandelt"]), "agenten": list(r["agenten"]),
-            "stunden": [{"id": st["id"], "thema": st["thema"], "marke": st["marke"], "aus_datei": True}
-                        for st in r["stunden"]],
+            "behandelt": list(r["behandelt"]), "agenten": list(r["agenten"]), "archiviert": r["archiviert"],
+            "stunden": [_stunde(st) for st in r["stunden"]],
+            "ausgeblendete": [_stunde(st) for st in r["ausgeblendete_stunden"]],
         })
     if s.format == "neu":
         gruppen = {}
@@ -933,6 +934,18 @@ def reihen_aus(s) -> tuple[list[dict], list[dict]]:
     return reihen, list(gruppen.values())
 
 
+def _stunde(st: dict) -> dict:
+    return {"id": st["id"], "thema": st["thema"], "marke": st["marke"], "termin": st.get("termin") or ""}
+
+
+def faecher_aus(s) -> list[dict]:
+    """Fächer der Struktur (auch ohne Klassen) für den Baum: fach_id, fach, archiv. Im alten Format leer (der Baum
+    nimmt dann die Fächer aus den Klassen)."""
+    if s is None or s.format != "neu":
+        return []
+    return [{"fach_id": f["id"], "fach": f["name"], "archiv": f["im_archiv"]} for f in s.faecher]
+
+
 def gruppen_aus(reihen: list[dict]) -> list[dict]:
     """Klassen/Kurse, wie sie aus den Reihen folgen (ohne leere), in der Reihenfolge der Reihen."""
     gruppen: dict[str, dict] = {}
@@ -941,27 +954,10 @@ def gruppen_aus(reihen: list[dict]) -> list[dict]:
     return list(gruppen.values())
 
 
-def reihe_stunden(reihe: dict, zustand_: dict) -> list[dict]:
-    """Stunden einer Reihe, je mit fester id: aus reihen.toml, wenn dort welche stehen (dann pflegt sie die Datei),
-    sonst die, die die Web-App selbst speichert (zustand.py, bis Bauschritt 5)."""
-    return reihe.get("stunden") or (zustand_.get("stunden") or {}).get(reihe["id"]) or []
-
-
-def neue_stunden_id(vergeben: set[str]) -> str:
-    """Feste id für eine Stunde der Web-App (Plan Abschnitt 2, „s-4k2m9a“): passt zu agentkit.struktur und kommt in
-    vergeben (ids der Datei und des Zustands) nicht vor."""
-    while True:
-        kandidat = "s-" + secrets.token_hex(3)
-        if kandidat not in vergeben:
-            return kandidat
-
-
-def stunden_ids(reihen: list[dict], zustand_: dict) -> set[str]:
-    """Alle vergebenen ids, gegen die eine neue Stunden-id geprüft wird: Reihen, Klassen, Stunden der Datei und der
-    Web-App."""
-    ids = {r["id"] for r in reihen} | {r["gruppe_id"] for r in reihen} | {r["fach_id"] for r in reihen}
-    ids |= {s["id"] for r in reihen for s in r["stunden"]}
-    return ids | {s.get("id") for liste in (zustand_.get("stunden") or {}).values() for s in liste if s.get("id")}
+def reihe_stunden(reihe: dict) -> list[dict]:
+    """Sichtbare Stunden einer Reihe, je mit fester id. Sie stehen nur in reihen.toml (Strukturplan Bauschritt 5,
+    gepflegt über agentkit.strukturpflege); eigene Stunden der Web-App gibt es nicht mehr."""
+    return reihe.get("stunden") or []
 
 
 def reihe_von(eintrag: dict, reihen: list[dict]) -> dict | None:
@@ -1061,15 +1057,32 @@ def reihe_ansicht(reihe: dict, reihen: list[dict], auftraege_: list[dict], jetzt
     Stunden (bzw. Proben) mit ihrem Material. stunden_: reihe_stunden; stunde_von: aus zustand.py."""
     zeilen = zeilen_je_reihe(reihen, auftraege_, jetzt, entwuerfe, finale, eigene, ausblenden).get(reihe["id"], [])
     je_stunde = material_je_stunde(zeilen, stunde_von or {}, stunden_)
+    # Material an einer ausgeblendeten Stunde bleibt bei ihr (Aktionsmatrix 4.4), nicht bei der ganzen Reihe
+    weg = {s["id"] for s in reihe.get("ausgeblendete") or []}
+    an_weg = {z["id"] for z in je_stunde.get(0, []) if (stunde_von or {}).get(z.get("id") or "", {}).get("stunde") in weg}
     einzahl, mehrzahl = stunden_wort(reihe)
     zusatz = {"geplant": " · in Planung", "abgeschlossen": " · abgeschlossen"}.get(reihe["stand"], "")
     return {"titel": reihe["titel"], "unter": f"{reihe['fach']} · {reihe['gruppe']}{zusatz}",
             "reihenfrage": reihe["reihenfrage"], "behandelt": "; ".join(reihe["behandelt"]),
-            "zeilen": je_stunde.get(0, []), "wort": einzahl, "wort_mehrzahl": mehrzahl,
-            "stunden_neu": "" if reihe.get("stunden") else reihe_link(reihe) + "/stunden",
-            "stunden": [{"nr": nr, "titel": s["thema"], "link": stunde_link(reihe, nr), "marke": s.get("marke", ""),
+            "zeilen": [z for z in je_stunde.get(0, []) if z.get("id") not in an_weg], "wort": einzahl,
+            "wort_mehrzahl": mehrzahl,
+            "stunden": [{"nr": nr, "titel": s["thema"] or THEMA_OFFEN, "link": stunde_link(reihe, nr),
+                         "marke": s.get("marke", ""), "id": s.get("id", ""), "datum": termin_kurz(s.get("termin")),
                          "unter": ", ".join(z["titel"] for z in je_stunde.get(nr, [])) or "noch leer"}
-                        for nr, s in enumerate(stunden_, 1)]}
+                        for nr, s in enumerate(stunden_, 1)],
+            "ausgeblendete": [{"id": s["id"], "titel": s["thema"] or THEMA_OFFEN,
+                               "unter": ", ".join(z["titel"] for z in je_stunde.get(0, []) if z.get("id") in an_weg
+                                                  and stunde_von[z["id"]]["stunde"] == s["id"]) or "ohne Material"}
+                              for s in reihe.get("ausgeblendete") or []]}
+
+
+def termin_kurz(kennung: str | None) -> str:
+    """„Di 11.11.“ aus der Kennung eines Termins ("2026-11-11/3"), sonst leer."""
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})/\d{1,2}", kennung or "")
+    if not m:
+        return ""
+    d = datetime(int(m[1]), int(m[2]), int(m[3]))
+    return f"{WOCHENTAGE[d.weekday()]} {d:%d.%m.}"
 
 
 def reihe_link(reihe: dict) -> str:
@@ -1086,12 +1099,13 @@ def fach_aktiv(fach_id: str) -> str:
 
 
 def fach_ansicht(fach_id: str, reihen: list[dict], zeilen_je: dict[str, list[dict]],
-                 gruppen: list[dict] | None = None) -> dict | None:
+                 gruppen: list[dict] | None = None, faecher: list[dict] | None = None) -> dict | None:
     """Ansicht eines Fachs (nur lesend): Klassen/Kurse mit Zahl der Reihen (gruppen aus reihen_aus, auch leere;
     ohne Angabe die aus den Reihen). Fach-Material (RLP, Operatoren, Referendariat, Regel R3/R6) steht in keiner
-    Datei. Unbekannt: None."""
+    Datei. faecher (faecher_aus): auch ein Fach ohne Klasse. Unbekannt: None."""
     eigene = [g for g in (gruppen if gruppen is not None else gruppen_aus(reihen)) if g["fach_id"] == fach_id]
-    if not eigene:
+    fach = next((f for f in faecher or [] if f["fach_id"] == fach_id), None)
+    if not eigene and fach is None:
         return None
     zeilen = []
     for g in eigene:
@@ -1103,7 +1117,7 @@ def fach_ansicht(fach_id: str, reihen: list[dict], zeilen_je: dict[str, list[dic
                        "hinweis": f"{len(rs)} {'Reihe' if len(rs) == 1 else 'Reihen'} · "
                                   + ("noch nichts" if n == 0 else "1 Sache" if n == 1 else f"{n} Sachen"),
                        "marke": ""})
-    return {"titel": eigene[0]["fach"], "unter": "Fach", "zeilen": zeilen}
+    return {"titel": fach["fach"] if fach else eigene[0]["fach"], "unter": "Fach", "zeilen": zeilen}
 
 
 def klasse_aktiv(gruppe_id: str) -> str:
@@ -1132,7 +1146,8 @@ def klasse_ansicht(gruppe_id: str, reihen: list[dict], zeilen_je: dict[str, list
 
 
 def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[str, list[dict]] | None = None,
-         aktiv_stunde: int | None = None, gruppen: list[dict] | None = None) -> list[dict]:
+         aktiv_stunde: int | None = None, gruppen: list[dict] | None = None, faecher: list[dict] | None = None,
+         pflegen: bool = False) -> list[dict]:
     """Linke Spalte: oben "Heute" mit der Zahl, was wartet, dann je Fach die Klassen/Kurse und ihre Reihen, unten
     „Mehr“ mit Vorlagen und Ich. Die gezeigte Reihe klappt ihre Stunden aus (stunden: je Reihen-Kennung,
     reihe_stunden; aktiv_stunde: die gezeigte Stunde). Fach-Überschriften verlinken auf die Fach-Ansicht.
@@ -1140,17 +1155,21 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[
     Reihe einer Klasse, die nicht im Archiv ist (neues Format), steht nur in der Klassen-Ansicht.
     aktiv: "heute", "vorlagen", "ich", fach_aktiv(…), die Kennung der gezeigten Reihe oder klasse_aktiv(…); "" (Seite
     ohne Reihe, z. B. Material ohne Ort oder Neu): "Heute" als Ort markiert (ueber). art: "eintrag" (Link), "fach"
-    (Überschrift) oder "gruppe" (Klasse/Kurs, Link zur Klassen-Ansicht)."""
+    (Überschrift), "gruppe" (Klasse/Kurs, Link zur Klassen-Ansicht) oder "neu" („+ …“, Masken der Struktur-Pflege).
+    faecher: faecher_aus (auch Fächer ohne Klasse); pflegen: „+ Fach“, „+ Klasse oder Kurs“ je Fach und „+ Reihe“ in
+    der Klasse, in der man gerade ist (nur nicht archivierte; nur, wenn die App schreiben kann)."""
     eintraege = [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0, "zahl": anzahl_wartet or "",
                   "aktiv": aktiv == "heute", "ueber": aktiv == ""}]
     je_gruppe: dict[str, list[dict]] = {}
     for r in reihen:
         je_gruppe.setdefault(r["gruppe_id"], []).append(r)
-    faecher: dict[str, list[dict]] = {}
+    je_fach: dict[str, list[dict]] = {f["fach_id"]: [] for f in faecher or []}
     for g in gruppen if gruppen is not None else gruppen_aus(reihen):
-        faecher.setdefault(g["fach_id"], []).append(g)
-    for fid, gruppen_ in faecher.items():
-        eintraege.append({"art": "fach", "text": gruppen_[0]["fach"], "link": f"/fach/{fid}",
+        je_fach.setdefault(g["fach_id"], []).append(g)
+    namen = {f["fach_id"]: f for f in faecher or []}
+    for fid, gruppen_ in je_fach.items():
+        f = namen.get(fid) or {"fach": gruppen_[0]["fach"], "archiv": False}
+        eintraege.append({"art": "fach", "text": f["fach"], "link": f"/fach/{fid}",
                           "aktiv": aktiv == fach_aktiv(fid)})
         # Archiv (Regel R11) nach den laufenden Klassen, eingeklappt: Reihen nur, wenn man in ihnen ist
         for g in sorted(gruppen_, key=lambda g: g["archiv"]):
@@ -1167,9 +1186,17 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[
                                   "link": reihe_link(r), "tiefe": 1, "zahl": "",
                                   "aktiv": aktiv == r["id"] and not aktiv_stunde})
                 if aktiv == r["id"]:
-                    eintraege += [{"art": "eintrag", "text": f"{nr}  {s['thema']}", "link": stunde_link(r, nr),
-                                   "tiefe": 2, "zahl": "", "aktiv": aktiv_stunde == nr}
+                    eintraege += [{"art": "eintrag", "text": f"{nr}  {s['thema'] or THEMA_OFFEN}",
+                                   "link": stunde_link(r, nr), "tiefe": 2, "zahl": "", "aktiv": aktiv_stunde == nr}
                                   for nr, s in enumerate((stunden or {}).get(r["id"]) or [], 1)]
+            if pflegen and drin and not g["archiv"]:
+                eintraege.append({"art": "neu", "text": "+ Reihe", "link": f"/klasse/{g['gruppe_id']}/reihe/neu",
+                                  "tiefe": 1})
+        if pflegen and not f["archiv"]:
+            eintraege.append({"art": "neu", "text": "+ Klasse oder Kurs", "link": f"/fach/{fid}/klasse/neu",
+                              "tiefe": 0})
+    if pflegen:
+        eintraege.append({"art": "neu", "text": "+ Fach", "link": "/fach/neu", "tiefe": 0})
     eintraege += [{"art": "fach", "text": "Mehr"},
                   {"art": "eintrag", "text": "Vorlagen", "link": "/vorlagen", "tiefe": 0, "zahl": "",
                    "aktiv": aktiv == "vorlagen"},
@@ -1198,11 +1225,10 @@ def krumen_klasse(gruppe: dict) -> dict:
     return {"teile": [{"text": gruppe["fach"], "link": f"/fach/{gruppe['fach_id']}"}], "hier": gruppe["gruppe"]}
 
 
-# Stunden (Board "Desktop", Jan 30.10.: Lia will die Ebene Stunde). Stehen keine in reihen.toml, speichert die
-# Web-App sie selbst (zustand.py, bis Bauschritt 5), die Agenten kennen diese nur als Zeile im Auftragstext.
-# Nummer = Platz in der Liste (ab 1), keine Pflicht (Regel R1). Jede Stunde hat eine feste id; Material hängt an
-# der id, nicht an der Nummer (Strukturplan Abschnitt 8), und folgt so der Stunde, wenn sie verschoben wird.
-STUNDE_THEMA_MAX = 120
+# Stunden (Board "Desktop", Jan 30.10.: Lia will die Ebene Stunde). Sie stehen nur in reihen.toml (Strukturplan
+# Bauschritt 5); Nummer = Platz unter den sichtbaren Stunden (ab 1), keine Pflicht (Regel R1). Jede Stunde hat eine
+# feste id; Material hängt an der id, nicht an der Nummer (Strukturplan Abschnitt 8), und folgt so der Stunde, wenn
+# sie verschoben wird.
 
 
 def stunden_wort(reihe: dict) -> tuple[str, str]:
@@ -1212,29 +1238,6 @@ def stunden_wort(reihe: dict) -> tuple[str, str]:
 
 def stunde_link(reihe: dict, nr: int) -> str:
     return f"/reihe/{reihe['id']}/stunde/{nr}"
-
-
-def stunde_pruefen(thema: str) -> tuple[str, list[str]]:
-    thema = " ".join((thema or "").split())
-    if not thema:
-        return "", ["Schreib kurz das Thema dazu."]
-    if len(thema) > STUNDE_THEMA_MAX:
-        return thema, [f"Das Thema ist zu lang (höchstens {STUNDE_THEMA_MAX} Zeichen)."]
-    return thema, []
-
-
-def stunde_dazu(zustand_: dict, reihe_id: str, thema: str, zeit: str, stunde_id: str) -> tuple[dict, int]:
-    """Neuer Zustand mit einer Stunde mehr am Ende der Reihe (id aus neue_stunden_id) und ihre Nummer."""
-    stunden = dict(zustand_.get("stunden") or {})
-    stunden[reihe_id] = [*(stunden.get(reihe_id) or []), {"id": stunde_id, "thema": thema, "zeit": zeit}]
-    return {**zustand_, "stunden": stunden}, len(stunden[reihe_id])
-
-
-def stunde_aendern(zustand_: dict, reihe_id: str, nr: int, thema: str) -> dict:
-    """Neuer Zustand mit neuem Thema der Stunde nr (die Stunde muss es geben)."""
-    liste = [dict(s) for s in (zustand_.get("stunden") or {}).get(reihe_id) or []]
-    liste[nr - 1]["thema"] = thema
-    return {**zustand_, "stunden": {**(zustand_.get("stunden") or {}), reihe_id: liste}}
 
 
 def stunde_zuordnen(zustand_: dict, kopf_id: str, stunde_id: str | None) -> dict:
@@ -1303,8 +1306,10 @@ def stunde_ansicht(reihe: dict, nr: int, stunden_: list[dict], zeilen: list[dict
     """Ansicht einer Stunde: Thema und ihr Material (zeilen: Zeilen der Reihe aus zeilen_je_reihe)."""
     einzahl, _ = stunden_wort(reihe)
     marke = stunden_[nr - 1].get("marke") or ""
-    return {"titel": stunden_[nr - 1]["thema"], "unter": f"{einzahl} {nr}" + (f" · {marke}" if marke else ""),
-            "nr": nr, "wort": einzahl, "aus_datei": bool(stunden_[nr - 1].get("aus_datei")),
+    st = stunden_[nr - 1]
+    datum = termin_kurz(st.get("termin"))
+    return {"titel": st["thema"] or THEMA_OFFEN, "nr": nr, "wort": einzahl, "id": st.get("id", ""),
+            "unter": f"{einzahl} {nr}" + (f" · {datum}" if datum else "") + (f" · {marke}" if marke else ""),
             "zeilen": material_je_stunde(zeilen, stunde_von, stunden_).get(nr, [])}
 
 
@@ -1312,7 +1317,7 @@ def stunden_auswahl(reihe: dict, stunden_: list[dict]) -> list[dict]:
     """Auswahl „Gehört zu“ in der Material-Ansicht: ganze Reihe, dann die Stunden."""
     einzahl, _ = stunden_wort(reihe)
     return [{"nr": 0, "text": "zur ganzen Reihe"}] + [
-        {"nr": nr, "text": f"{einzahl} {nr}: {s['thema']}"} for nr, s in enumerate(stunden_, 1)]
+        {"nr": nr, "text": f"{einzahl} {nr}: {s['thema'] or THEMA_OFFEN}"} for nr, s in enumerate(stunden_, 1)]
 
 
 # Seiten „Vorlagen“ und „Ich“ (Board „Desktop“), nur lesend

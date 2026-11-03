@@ -1,0 +1,15 @@
+{#- Eine Rückfrage (Plan 2a: nur bei belegtem Ziel, beim Löschen und Archivieren einer Klasse oder eines Fachs). Die
+    Felder des ursprünglichen Formulars gehen unverändert mit, dazu der gewählte Knopf. -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+<p class="absatz">{{ text }}</p>
+{%- if frage %}<p class="absatz"><b>{{ frage }}</b></p>{% endif %}
+<form class="knoepfe knoepfe-unten" method="post" action="{{ action }}">
+  <input type="hidden" name="token" value="{{ token }}">
+  {%- for name, wert in felder %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
+  {%- for name, wert, beschriftung in knoepfe %}
+  <button class="knopf{% if loop.first %} knopf-voll{% endif %}" type="submit" name="{{ name }}" value="{{ wert }}">{{ beschriftung }}</button>
+  {%- endfor %}
+  <a class="knopf" href="{{ zurueck }}">Abbrechen</a>
+</form>
+{% endblock %}

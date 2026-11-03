@@ -96,7 +96,9 @@ class Aufbau(unittest.TestCase):
             "ergebnis": "Gerade ist das gemeinsame Kontingent aufgebraucht.", "ergebnis_dateien": []})
         (self.instanz / ".env").write_text("PERSON=Lia\n")
         (self.instanz / ".env").chmod(0o600)
-        for name, wert in (("INSTANZ", self.instanz), ("DATEN", self.tmp / "webdaten")):
+        self.meldungen = []  # Meldungen an Jan (agentkit.strukturpflege) gehen in Tests nur hierher
+        for name, wert in (("INSTANZ", self.instanz), ("DATEN", self.tmp / "webdaten"),
+                           ("MELDEN", self.meldungen.append)):
             patch = mock.patch.object(app, name, wert)
             patch.start()
             self.addCleanup(patch.stop)
@@ -433,18 +435,35 @@ class TestNeuerAuftrag(Aufbau):
 
 
 REIHEN = """
+[[fach]]
+id = "ethik"
+name = "Ethik"
+
+[[fach]]
+id = "darstellendes-spiel"
+name = "Darstellendes Spiel"
+
+[[klasse]]
+id = "ethik-8"
+fach = "ethik"
+name = "8"
+
+[[klasse]]
+id = "darstellendes-spiel-kurs-12"
+fach = "darstellendes-spiel"
+name = "Kurs 12"
+
 [[reihe]]
 id = "strafe"
-fach = "Ethik"
-klasse = "8"
+klasse = "ethik-8"
 titel = "Straftheorien"
 reihenfrage = "Wozu <strafen> wir?"
 behandelt = ["Kant", "Bentham"]
 agenten = ["examen"]
 
 [[reihe]]
-fach = "Darstellendes Spiel"
-klasse = "Kurs 12"
+id = "darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+klasse = "darstellendes-spiel-kurs-12"
 titel = "Der nackte Wahnsinn"
 agenten = ["theater"]
 """
@@ -505,6 +524,10 @@ class TestOrdnung(Aufbau):
         return self.hole(pfad, "POST", body=body,
                          kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
 
+    def stunden(self, reihe_id="strafe"):
+        """Stunden der Reihe aus reihen.toml (dort stehen sie seit Bauschritt 5 nur noch)."""
+        return app.struktur.laden(self.instanz).reihe(reihe_id)["stunden"]
+
     def test_stunden(self):
         schreibe(self.instanz / "auftraege" / "erledigt" / "20261030-160000-unterricht-cccccc.json", {
             "id": "20261030-160000-unterricht-cccccc", "agent": "unterricht", "text": "Arbeitsblatt Vergeltung",
@@ -514,7 +537,8 @@ class TestOrdnung(Aufbau):
         self.assertIn("Noch keine Stunden.", html)
         self.assertNotIn("Gehört zu", self.hole("/ergebnis/20261030-160000-unterricht-cccccc")[1])
         r, _ = self.post("/reihe/strafe/stunden", {"thema": "  Einstieg  "})
-        self.assertEqual((r.status, r.getheader("location")), (303, "/reihe/strafe/stunde/1?erledigt=stunde"))
+        self.assertEqual(r.status, 303)
+        self.assertRegex(r.getheader("location"), r"^/reihe/strafe\?aktion=\d{8}-\d{6}-\d{6}#stunden$")
         self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant <Vergeltung>"})[0].status, 303)
         r, html = self.hole("/reihe/strafe/stunde/2")
         self.assertEqual(r.status, 200)
@@ -524,11 +548,14 @@ class TestOrdnung(Aufbau):
         for falsch in ("/reihe/strafe/stunde/3", "/reihe/strafe/stunde/0", "/reihe/strafe/stunde/x",
                        "/reihe/gibts-nicht/stunde/1"):
             self.assertEqual(self.hole(falsch)[0].status, 404, falsch)
-        r, html = self.post("/reihe/strafe/stunden", {"thema": " "})
-        self.assertEqual(r.status, 400)
-        self.assertIn("Schreib kurz das Thema dazu.", html)
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": " "})[0].status, 303)  # Thema darf offen bleiben
+        self.assertEqual([s["thema"] for s in self.stunden()], ["Einstieg", "Kant <Vergeltung>", ""])
+        self.assertIn("Thema offen", self.hole("/reihe/strafe")[1])
         self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "x"}, token=False)[0].status, 400)
-        self.assertEqual(self.post("/reihe/strafe/stunde/1", {"thema": "Einstieg: Gefängnis"})[0].status, 303)
+        self.assertEqual(len(self.stunden()), 3)
+        einstieg = self.stunden()[0]["id"]
+        self.assertEqual(self.post(f"/stunde/{einstieg}/aendern", {"thema": "Einstieg: Gefängnis",
+                                                                   "alt_thema": "Einstieg"})[0].status, 303)
         # Material einordnen
         r, html = self.hole("/ergebnis/20261030-160000-unterricht-cccccc")
         self.assertIn('<option value="2">Stunde 2: Kant &lt;Vergeltung&gt;</option>', html)
@@ -678,8 +705,8 @@ class TestOrdnung(Aufbau):
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
         self.assertEqual(a["text"], "Präsentation: Folien Kant\n\nReihe: Straftheorien (Ethik, Klasse 8)\nStunde 1: Kant")
         z = app.zustand_().lesen()
-        (stunde,) = z["stunden"]["strafe"]
-        self.assertRegex(stunde["id"], r"^s-[0-9a-f]{6}$")  # Stunde der Web-App mit fester id
+        (stunde,) = self.stunden()
+        self.assertRegex(stunde["id"], r"^s-[a-z0-9]{6}$")  # Stunde aus reihen.toml mit fester id (agentkit)
         self.assertEqual((a["reihe"], a["ort"], z["stunde_von"]), ("strafe", stunde["id"], {a["id"]: {"stunde": stunde["id"]}}))
         _, html = self.hole("/reihe/strafe/stunde/1?erledigt=auftrag-test")
         self.assertIn("Präsentation: Folien Kant", html)
@@ -830,7 +857,7 @@ class TestOrdnung(Aufbau):
                              ("Was heißt Vergeltung?", "strafe", "Ethik › Klasse 8 › Straftheorien"))
             # aus einer Stunde: Nummer, Thema und ihre id (lia/chat, freiwillig seit Bauschritt 2)
             self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
-            sid = app.zustand_().lesen()["stunden"]["strafe"][0]["id"]
+            sid = self.stunden()[0]["id"]
             r2, _ = self.post("/fragen", {"text": "Und Kant?", "reihe": "strafe", "stunde": "1",
                                           "zurueck": "/reihe/strafe/stunde/1"})
             fid2 = r2.getheader("location").split("frage=")[1].split("#")[0]

@@ -703,20 +703,13 @@ class TestReihen(unittest.TestCase):
         ethik, theater = reihen()
         self.assertEqual(logik.stunden_wort(ethik), ("Stunde", "Stunden"))
         self.assertEqual(logik.stunden_wort(theater), ("Probe", "Proben"))
-        self.assertEqual(logik.stunde_pruefen("  Kant   Vergeltung "), ("Kant Vergeltung", []))
-        self.assertTrue(logik.stunde_pruefen("")[1])
-        self.assertTrue(logik.stunde_pruefen("x" * 121)[1])
-        z, nr = logik.stunde_dazu({"final": {}}, "r", "Einstieg", "t1", "s-aaaaaa")
-        z, nr2 = logik.stunde_dazu(z, "r", "Kant", "t2", "s-bbbbbb")
-        self.assertEqual((nr, nr2, z["final"]), (1, 2, {}))
-        self.assertEqual([s["id"] for s in z["stunden"]["r"]], ["s-aaaaaa", "s-bbbbbb"])
-        z = logik.stunde_aendern(z, "r", 1, "Einstieg neu")
-        self.assertEqual([s["thema"] for s in z["stunden"]["r"]], ["Einstieg neu", "Kant"])
+        stunden = [{"id": "s-aaaaaa", "thema": "Einstieg neu", "marke": ""},
+                   {"id": "s-bbbbbb", "thema": "Kant", "marke": "", "termin": "2026-11-10/3"}]
+        z = {"final": {}}
         self.assertEqual([logik.stunde_nummer(w, 2) for w in ("1", "2", "3", "0", "x", "", None, "-1")],
                          [1, 2, None, None, None, None, None, None])
         z = logik.stunde_zuordnen(z, "K", "s-bbbbbb")
         self.assertEqual(z["stunde_von"], {"K": {"stunde": "s-bbbbbb"}})
-        stunden = z["stunden"]["r"]
         zeilen = [{"id": "K", "titel": "AB"}, {"id": "L", "titel": "Folien"}, {"titel": "Entwurf"}]
         je = logik.material_je_stunde(zeilen, z["stunde_von"], stunden)
         self.assertEqual(({k: [x["titel"] for x in v] for k, v in je.items()}), {2: ["AB"], 0: ["Folien", "Entwurf"]})
@@ -724,13 +717,20 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.stunde_nr({"reihe": "r", "nr": 2}, stunden), None)  # alte Zuordnung per Nummer
         self.assertEqual(logik.stunde_zuordnen(z, "K", None)["stunde_von"], {})
         st = logik.stunde_ansicht(ethik, 2, stunden, zeilen, z["stunde_von"])
-        self.assertEqual((st["titel"], st["unter"], [x["titel"] for x in st["zeilen"]]), ("Kant", "Stunde 2", ["AB"]))
-        self.assertEqual([s["text"] for s in logik.stunden_auswahl(theater, z["stunden"]["r"])],
+        self.assertEqual((st["titel"], st["unter"], [x["titel"] for x in st["zeilen"]]),
+                         ("Kant", "Stunde 2 · Di 10.11.", ["AB"]))
+        self.assertEqual([s["text"] for s in logik.stunden_auswahl(theater, stunden)],
                          ["zur ganzen Reihe", "Probe 1: Einstieg neu", "Probe 2: Kant"])
-        a = logik.reihe_ansicht(ethik, [ethik], [], JETZT, stunden_=z["stunden"]["r"])
-        self.assertEqual([(s["nr"], s["titel"], s["unter"], s["link"]) for s in a["stunden"]], [
-            (1, "Einstieg neu", "noch leer", "/reihe/ethik-8-straftheorien/stunde/1"),
-            (2, "Kant", "noch leer", "/reihe/ethik-8-straftheorien/stunde/2")])
+        a = logik.reihe_ansicht(ethik, [ethik], [], JETZT, stunden_=stunden)
+        self.assertEqual([(s["nr"], s["titel"], s["unter"], s["link"], s["datum"]) for s in a["stunden"]], [
+            (1, "Einstieg neu", "noch leer", "/reihe/ethik-8-straftheorien/stunde/1", ""),
+            (2, "Kant", "noch leer", "/reihe/ethik-8-straftheorien/stunde/2", "Di 10.11.")])
+        # Thema offen (Plan 4.4): die Stunde heißt so, bis Lia eins einträgt
+        offen = [{"id": "s-c", "thema": ""}]
+        self.assertEqual(logik.stunde_ansicht(ethik, 1, offen, [], {})["titel"], "Thema offen")
+        self.assertEqual(logik.stunden_auswahl(ethik, offen)[1]["text"], "Stunde 1: Thema offen")
+        self.assertEqual([logik.termin_kurz(k) for k in ("2026-11-11/3", "", None, "quatsch")],
+                         ["Mi 11.11.", "", "", ""])
 
     def test_neu_galerie_und_text(self):
         ethik, theater = reihen()
@@ -847,15 +847,15 @@ class TestReihen(unittest.TestCase):
             {**ETHIK, "stunde": stunden},
             {"fach": "Ethik", "klasse": "7", "titel": "Freundschaft", "schuljahr": "2025/26", "stand": "abgeschlossen"})
         ethik, archiv = r
-        self.assertEqual([s["thema"] for s in logik.reihe_stunden(ethik, {"stunden": {ethik["id"]: [{"thema": "z"}]}})],
-                         ["Einstieg", "Kant"])  # die Datei gewinnt; Nummern neu gezählt (agentkit.struktur)
+        self.assertEqual([s["thema"] for s in logik.reihe_stunden(ethik)],
+                         ["Einstieg", "Kant"])  # nur aus der Datei; Nummern neu gezählt (agentkit.struktur)
         self.assertEqual([s["id"] for s in ethik["stunden"]],
                          ["ethik-8-straftheorien-stunde-1", "ethik-8-straftheorien-stunde-3"])
         self.assertEqual((archiv["gruppe"], archiv["gruppe_id"], archiv["archiv"]),
                          ("Klasse 7 · 2025/26", "ethik-7-2025-26", True))
-        a = logik.reihe_ansicht(ethik, r, [], JETZT, stunden_=logik.reihe_stunden(ethik, {}))
-        self.assertEqual(([s["marke"] for s in a["stunden"]], a["stunden_neu"]), (["", "UB"], ""))
-        self.assertEqual(logik.stunde_ansicht(ethik, 2, logik.reihe_stunden(ethik, {}), [], {})["unter"], "Stunde 2 · UB")
+        a = logik.reihe_ansicht(ethik, r, [], JETZT, stunden_=logik.reihe_stunden(ethik))
+        self.assertEqual(([s["marke"] for s in a["stunden"]], a["ausgeblendete"]), (["", "UB"], []))
+        self.assertEqual(logik.stunde_ansicht(ethik, 2, logik.reihe_stunden(ethik), [], {})["unter"], "Stunde 2 · UB")
         b = logik.baum(r, 0)
         self.assertIn("Archiv: Klasse 7 · 2025/26", [e["text"] for e in b])
         self.assertNotIn("Freundschaft (abgeschlossen)", [e["text"] for e in b])  # eingeklappt

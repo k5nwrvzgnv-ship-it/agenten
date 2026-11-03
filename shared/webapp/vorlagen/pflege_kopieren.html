@@ -1,0 +1,32 @@
+{#- Reihe in eine andere Klasse übernehmen (Aktionsmatrix 4.3, kopieren): erst die Klasse, dann freiwillig gleich
+    die Termine dort. Die Kopie ist geplant, mit den Themen der Stunden, ohne Marken und ohne Aufträge. -#}
+{% extends "basis.html" %}
+{%- from "_pflege.html" import fehler_liste, termine_wahl -%}
+{% block inhalt %}
+{{ fehler_liste(fehler) }}
+<p class="absatz unter">Die Reihe bleibt, wo sie ist. Die neue bekommt die Themen der Stunden, ohne Material und ohne
+  Marken.</p>
+{%- if not ziel %}
+<form class="zeile-form" method="get" action="/reihe/{{ reihe.id }}/kopieren">
+  <label for="klasse">In welche Klasse?</label>
+  <select id="klasse" name="klasse">
+    {%- for k in klassen %}<option value="{{ k.id }}">{{ k.text }}</option>{% endfor %}
+  </select>
+  <button class="knopf knopf-voll" type="submit">Weiter</button>
+</form>
+{%- else %}
+<form class="formular" method="post" action="/reihe/{{ reihe.id }}/kopieren">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="klasse" value="{{ ziel.id }}">
+  <section>
+    <h2><span class="akzent">01</span>Nach {{ ziel_text }}</h2>
+    <a class="unter" href="/reihe/{{ reihe.id }}/kopieren">andere Klasse wählen</a>
+  </section>
+  <section>
+    <h2><span class="akzent">02</span>Termine dort <span class="unter">(freiwillig)</span></h2>
+    {{ termine_wahl(frei, ab_wahl, werte, termine_fehler) }}
+  </section>
+  <button class="knopf knopf-voll" type="submit">Übernehmen</button>
+</form>
+{%- endif %}
+{% endblock %}

@@ -6,7 +6,7 @@ Ergebnisse mit Vorschau, Feedback und Entwürfe. Plan: `../../docs/webapp-plan.m
 Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Modernist“ (Board ModHeute im Canvas
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
-## Stand (31.10.2026)
+## Stand (03.11.2026, Struktur pflegen siehe eigener Abschnitt)
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
 Ordnung nach Fach, Klasse und Reihe (Jans Okay 30.10.), Bauschritt 1 des neuen Aufbaus „Desktop zuerst“
@@ -32,14 +32,11 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
 - Klasse/Kurs `/klasse/<kennung>` (`logik.klasse_ansicht`, nur lesend): Reihen (laufende zuerst) mit Reihenfrage
   bzw. „Reihenfrage noch offen“, Zahl der Sachen, Marke Abgeschlossen; „Zur ganzen Klasse“ leer mit Hinweis
   (Material der Klasse steht in keiner Datei).
-- Stunden (`/reihe/<kennung>/stunde/<n>`, Jan 30.10. Block A3): aus reihen.toml, sonst speichert die Web-App sie
-  selbst (`zustand.py`: `stunden`, bis Bauschritt 5 des Strukturplans), Nummer = Platz in der Liste, Thema bis
-  120 Zeichen, ändern ja, löschen und umsortieren nein. Jede Stunde hat eine feste id (Datei: aus
-  agentkit.struktur; Web-App: `s-` + 6 Hex, `logik.neue_stunden_id`). Material hängt an der id (`stunde_von`:
-  `{"stunde": id}`), nicht an der Nummer, und folgt der Stunde. Ansicht mit Material der Stunde und „Thema
-  ändern“. In der Material-Ansicht „Gehört zu“ (ganze Reihe oder Stunde n; das Formular schickt die Nummer, die
-  App speichert die id). Ein Auftrag aus einer Stunde nennt sie im Text („Stunde 3: Thema“) und trägt ihre id im
-  Feld `ort`.
+- Stunden (`/reihe/<kennung>/stunde/<n>`, Nummer = Platz unter den sichtbaren): nur aus reihen.toml (Strukturplan
+  Bauschritt 5; die eigenen Stunden der App in `zustand.py` sind weg, auf dem Server gab es keine, geprüft 03.11.).
+  Jede Stunde hat eine feste id aus agentkit. Material hängt an der id (`stunde_von`: `{"stunde": id}`) und folgt
+  der Stunde beim Verschieben. „Gehört zu“ schickt noch die Nummer (die App speichert die id). Ein Auftrag aus
+  einer Stunde nennt sie im Text („Stunde 3: Thema“) und trägt ihre id im Feld `ort`.
 - Neu (`/neu`, Block A4): ohne `?art=` die Galerie (Arbeitsblatt, Präsentation, Tabelle: was unterricht baut),
   mit Art ein kurzes Formular (eigene Frage und Platzhalter je Art), Ort aus `?reihe=…&stunde=n` vorbelegt und
   oben genannt („für Ethik › Klasse 8 › Straftheorien › Stunde 1“), sonst Auswahl der Reihe. Text an den Agenten:
@@ -165,6 +162,47 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
     zusätzlich `stunde_id` (lia/chat liest dann Nummer und Thema aus reihen.toml).
 - Test-Instanz für Jan: `data/test/instanz` (`.env` mit PERSON=Lia, 0600) und Agent-Ordner `data/test/unterricht`,
   nicht im Repo. Probelauf 30.10.: Auftrag mit PDF angelegt, Datei verschoben, ohne Origin 403; danach gelöscht.
+
+## Struktur pflegen (Strukturplan Bauschritt 5, gebaut 03.11.2026, noch nicht abgenommen)
+Plan `../../docs/struktur-pflege-plan.md` (2a, 4, 5, 6, 10). Lia pflegt Fach → Klasse/Kurs → Reihe → Stunde mit
+Terminen in der App. Geschrieben wird nur über `agentkit.strukturpflege` (`app.pflegen`, im Faden über
+`run_in_threadpool`, weil der Commit auf commit.sperre wartet); die App schreibt nie selbst in reihen.toml.
+Masken nur im neuen Format (sonst 404, Baum ohne „+ …“).
+- Code: `pflege.py` (reine Logik: Formularwerte, Stundenplan-Zeilen, Termine-Liste, Texte für Lia, getestet in
+  `tests/test_pflege.py`), Routen im Block „Struktur pflegen“ in `app.py` (Liste im Kopf von app.py), Vorlagen
+  `pflege_*.html`, `_pflege.html` (Bausteine), `rueckfrage.html`, `meldung.html`, `statisch/ziehen.js`.
+- Baum: „+ Fach“, „+ Klasse oder Kurs“ je Fach, „+ Reihe“ in der Klasse, in der man ist (nicht im Archiv). Fach
+  ohne Klasse steht jetzt im Baum (`logik.faecher_aus`).
+- Schule: Bundesland fragt „Neue Klasse“ einmal (nur nötig mit Stundenplan), ändern unter „Ich“.
+- Klasse: anlegen mit Stundenplan in derselben Maske (Zeilen Wochentag, Stunde, Einzel/Doppel, „+ weiterer
+  Termin“ ohne JavaScript; ab/bis leer = ganzes Schuljahr aus den Ferien; meine Entscheidung zur Vorbelegung, Plan
+  ließ sie offen: Schuljahresende statt Halbjahresende, damit „ab Februar“ ohne Fehler geht). Bearbeiten (Name,
+  Schuljahr), Lerngruppe mit festem Hinweis aus Abschnitt 6 (eigenes Formular, nie im Log), Stundenplan (ganz oder ab
+  Stichtag, vorbelegt Beginn der Winterferien), Ins nächste Schuljahr übernehmen (Lerngruppe nur mit Häkchen),
+  in anderes Fach. Ansicht: Termine (kommende, vergangene eingeklappt) mit „fällt aus“ (Maske: Alles rückt nach /
+  Diese Stunde fällt weg; freier Termin: nur streichen), „findet doch statt“, Zusatztermin.
+- Reihe: anlegen mit Titel; freiwillig „ab …, n Termine“, einzelne Häkchen oder Stunden ohne Termin. Bearbeiten
+  (Titel, Reihenfrage, Stand, Notizen, Behandelt, Merksätze; nur geänderte Felder gehen mit `gesehen` an agentkit,
+  Jans Änderungen an anderen Feldern bleiben). In der Ansicht: Archivieren (ohne Rückfrage), Wiederherstellen,
+  „In eine andere Klasse übernehmen“ (kopieren, zwei Schritte: Klasse, dann Termine), „Die Reihe beginnt am …“,
+  „Termine“ (zuteilen, abgeben), in andere Klasse verschieben (Bearbeiten).
+- Stunde: „+ Stunde“ (Thema darf offen bleiben, „Thema offen“), Thema und Marke, „Verschieben nach …“ (ein Formular:
+  vor Stunde n / ans Ende / auf einen Termin / in eine andere Reihe; in der Reihe auch per Ziehen, das Skript füllt
+  dasselbe Formular), Kopieren, Ausblenden („Ausgeblendete Stunden“ mit Material und Wiederherstellen), Löschen nur
+  ohne Haken (sonst „Löschen geht nicht, daran hängt: …“).
+- Rückfragen nur bei belegtem Ziel („Dahinter alles nachrücken“ / „Tauschen“) und beim Archivieren bzw. Löschen von
+  Klasse oder Fach (nennt Klassen und Reihen). Nach jeder Aktion „<Text> · Rückgängig“ (`?aktion=<id>`, Hinweise von
+  agentkit nur im Speicher), „Letzte Änderungen“ (20) unter „Ich“ mit Rückgängig.
+- Schutz: alle POSTs mit Origin-Prüfung und Token (`pflege_formular`, bis 300 Felder). Tests: `tests/test_pflege_app.py`
+  über den Socket für jede Maske, Testregeln 24, 25, 32–35, 21 (Lerngruppe nicht im Log), Wiederherstellungsprobe,
+  Lia-Test-Aufgaben 1–6; Grundlage `tests/daten/reihen_echt.toml` (Kopie der echten Datei), Ferien aus
+  `agentkit/ferien.json`. ALLES GRÜN steht im Commit.
+- Noch nicht getan (nächster Chat in diesem Ordner): Testinstanz `data/test/instanz` mit Kopie von reihen.toml,
+  Beispiel-Stunden in Straftheorien (Kant, von Liszt) und Test-Aufträgen (Material an einer Stunde, ein
+  Theater-Ergebnis) für Plan 12/13; Eintrag in der Haupt-STATUS Punkt 24 (was für Abnahme und Lia-Test bereitliegt;
+  Bedarf agentkit: Commit im Hintergrund, damit Lia nicht bis zu 300 s wartet, wenn ein anderer Chat committet);
+  einmal im Browser durchklicken (Chrome); webapp.service neu starten nur mit Jans Okay
+  (`systemctl --user restart webapp.service`).
 
 ## Neuer Aufbau „Desktop zuerst“ (Plan 30.10.2026)
 Plan `../../docs/webapp-aufbau.md` (Abschnitt 5: Bauschritte), Boards „Desktop“ und „Handy-Prüfung“ im Canvas.

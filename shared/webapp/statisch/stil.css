@@ -534,3 +534,32 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 
 /* Tastatur: sichtbarer Fokus überall (Chrome-Test Nr. 12) */
 :focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
+
+/* Struktur pflegen (Bauschritt 5): Hinweis „… · Rückgängig“, Masken, Termine, „+ …“ im Baum */
+.aktion-hinweis { display: flex; flex-direction: column; gap: 4px; }
+.aktion-zeile { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.inline-form { display: inline-flex; margin: 0; }
+.knopf-link { font: inherit; font-weight: 700; padding: 0; border: 0; background: none; color: var(--akzent);
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.knopf-link:hover { color: var(--schwarz); }
+.baum-neu { font-weight: 400; font-size: 14px; color: var(--grau); }
+.baum-neu:hover { color: var(--akzent); }
+.plan-zeilen { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.plan-zeile { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; border: 0; }
+.plan-zeile label, .plan-zeilen label { display: flex; flex-direction: column; gap: 4px; }
+.plan-zeile select, .plan-zeilen select, .zeile-form input[type="date"] {
+  min-height: 44px; padding: 0 8px; font: inherit; border: 2px solid var(--schwarz); border-radius: 0;
+  background: var(--weiss);
+}
+.feld-zahl { width: 7em; }
+.auswahl-spalte { flex-direction: column; gap: 0; }
+.termin-wahl summary, .termine-vorher summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
+.termine li.termin-zeile { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto auto; gap: 10px;
+  align-items: center; padding: 8px 0; }
+.termin-datum { font-weight: 700; font-size: 15px; }
+.termin-aus .termin-datum { text-decoration: line-through; color: var(--grau); }
+.stunden-liste li[draggable="true"] { cursor: grab; }
+.wird-gezogen { opacity: .4; }
+@media (max-width: 640px) {
+  .termine li.termin-zeile { grid-template-columns: minmax(0, 1fr) auto; }
+}

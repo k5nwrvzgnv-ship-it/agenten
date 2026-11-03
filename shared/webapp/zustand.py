@@ -1,5 +1,7 @@
-"""Was die Web-App selbst speichert: Stunden einer Reihe (solange reihen.toml keine hat), welches Material zu welcher
-Stunde gehört, welche Aufträge Varianten eines Materials sind, Lias Entscheidungen zu Entwürfen, „Nochmal“.
+"""Was die Web-App selbst speichert: welches Material zu welcher Stunde gehört, welche Aufträge Varianten eines
+Materials sind, Lias Entscheidungen zu Entwürfen, „Nochmal“. Stunden stehen nur in reihen.toml (Strukturplan
+Bauschritt 5, geschrieben über agentkit.strukturpflege); ein altes Feld "stunden" wird nicht mehr gelesen und beim
+nächsten Schreiben weggelassen (auf dem Server gab es keins, geprüft 03.11.2026).
 "final" und Lias eigene Fassungen speichert seit 30.10.2026 agentkit.fassungen (<instanz>/fassungen/, Dateien im
 Agent-Ordner, damit die Agenten sie sehen; Jans Entscheidung). lesen() liefert sie zum Anzeigen mit.
 
@@ -8,19 +10,16 @@ data/eigene/<schluessel>/<ursprung-id>/<n>/<name>. Nichts davon liegt in Lias In
 (Bedarf b und d in Punkt 24 der Haupt-STATUS).
 
 Format:
-  {"stunden": {"<reihe-id>": [{"id": "s-4k2m9a", "thema": "Kant: Vergeltung", "zeit": "<iso>"}]},
-        Nummer = Platz in der Liste (ab 1), id fest (logik.neue_stunden_id), bis die Stunden in reihen.toml stehen
-   "stunde_von": {"<ursprung-id>": {"stunde": "<stunden-id>"}},   aus reihen.toml oder "stunden" (Strukturplan 8)
+  {"stunde_von": {"<ursprung-id>": {"stunde": "<stunden-id>"}},   Stunde aus reihen.toml (Strukturplan 8)
    "reihe_von": {"<ursprung-id>": "<reihe-id>"},   Lias Zuordnung eines Auftrags ohne Reihe (logik.mit_zuordnung)
    "varianten": {"<ursprung-id>": [{"art": "einfach", "auftrag": "<auftrags-id der variante>", "zeit": "<iso>"}]},
    "varianten_wunsch": {"<ursprung-id>": ["tuerkisch"]},   Lias „Auch als“, bis die Variante angefordert ist
    "entwuerfe": {"<entwurf-id>": {"stand": "selbst" | "nein", "zeit": "<iso>"}},   Lias Entscheidung (logik)
    "ersetzt": {"<fehlgeschlagener ursprung>": "<auftrags-id von Nochmal>"}}
-Die reine Logik dazu steht in logik.py (stunde_dazu, stunde_zuordnen, reihe_zuordnen, variante_dazu, entwurf_entscheiden).
+Die reine Logik dazu steht in logik.py (stunde_zuordnen, reihe_zuordnen, variante_dazu, entwurf_entscheiden).
 Dazu beim Lesen (nur lesend aus agentkit.fassungen): "final": {"<ursprung>": {"fassung", "zeit"}},
 "eigene": {"<ursprung>": [{"n", "name", "datei" (relativ zum Agent-Ordner), "notiz", "zeit"}]}.
-Stunden der Web-App kennen die Agenten nicht; ein Auftrag aus einer Stunde nennt sie im Text
-(logik.text_mit_reihe) und trägt ihre id im Feld ort.
+Ein Auftrag aus einer Stunde nennt sie im Text (logik.text_mit_reihe) und trägt ihre id im Feld ort.
 """
 
 import hashlib
@@ -33,7 +32,7 @@ from pathlib import Path
 logger = logging.getLogger("webapp")
 
 
-FELDER = ("stunden", "stunde_von", "reihe_von", "varianten", "varianten_wunsch", "entwuerfe", "ersetzt")
+FELDER = ("stunde_von", "reihe_von", "varianten", "varianten_wunsch", "entwuerfe", "ersetzt")
 
 
 def leer() -> dict:

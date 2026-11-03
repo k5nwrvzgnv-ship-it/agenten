@@ -40,10 +40,19 @@ def bild(reihen: list[dict], gruppen: list[dict] | None = None) -> dict:
         "auswahl": logik.reihen_auswahl(reihen),
         "texte": {r["id"]: [logik.reihe_text(r), logik.ort_text(r, (2, "Kant")), list(logik.stunden_wort(r)),
                             r["laufend"], logik.reihe_link(r), logik.klasse_link(r)] for r in reihen},
-        "reihe_ansicht": {r["id"]: logik.reihe_ansicht(r, reihen, [], JETZT, stunden_=STUNDEN) for r in reihen},
+        "reihe_ansicht": {r["id"]: _wie_vorher(logik.reihe_ansicht(r, reihen, [], JETZT, stunden_=STUNDEN))
+                          for r in reihen},
         "reihe_von": {a: (logik.reihe_von({"agent": a}, reihen) or {}).get("id")
                       for a in ("examen", "theater", "unterricht")},
     }
+
+
+def _wie_vorher(a: dict) -> dict:
+    """Reihen-Ansicht ohne das, was Bauschritt 5 bewusst geändert hat: „+ Stunde“ steht nicht mehr als Link in der
+    Ansicht (das Formular kommt aus reihe_pflege), Stunden haben id und Datum, dazu „Ausgeblendete Stunden“."""
+    a = {k: v for k, v in a.items() if k != "ausgeblendete"}
+    a["stunden"] = [{k: v for k, v in s.items() if k not in ("id", "datum")} for s in a["stunden"]]
+    return a
 
 
 def baum_texte(reihen: list[dict], gruppen: list[dict], aktiv: str = "") -> list[str]:
@@ -91,6 +100,8 @@ class TestLaden(Instanz):
         vorher = json.loads((DATEN / "ansicht_vorher.json").read_text(encoding="utf-8"))
         for k in vorher["klasse"].values():
             k.pop("reihe")
+        for a in vorher["reihe_ansicht"].values():
+            a.pop("stunden_neu")  # „+ Stunde“ kommt seit Bauschritt 5 aus reihe_pflege (app.py), siehe _wie_vorher
         jetzt = json.loads(json.dumps(bild(reihen, gruppen), ensure_ascii=False))
         for teil in vorher:
             with self.subTest(teil=teil):
@@ -179,7 +190,7 @@ class TestNeuesFormat(Instanz):
                                     (nachher, ["Einstieg", "von Liszt", "Kant"], 3)):
             reihen, gruppen = self.laden(text)
             r = reihen[0]
-            st = logik.reihe_stunden(r, z)
+            st = logik.reihe_stunden(r)
             self.assertEqual([(s["thema"]) for s in st], nummern)
             je = logik.material_je_stunde(zeilen, z["stunde_von"], st)
             self.assertEqual({k: [x["titel"] for x in v] for k, v in je.items()}, {kant: ["AB Kant"], 0: ["Folien"]})
@@ -222,19 +233,6 @@ class TestNeuesFormat(Instanz):
                 self.assertEqual(logik.reihe_von({"agent": "examen"}, reihen)["id"], rid)
                 self.assertEqual(logik.reihe_von({"agent": "unterricht", "reihe": rid}, reihen)["id"], rid)
                 self.assertEqual(logik.krumen(reihe=r)["teile"][1]["text"], gruppe.removeprefix("Archiv: "))
-
-
-class TestStundenId(unittest.TestCase):
-    def test_neue_id_passt_und_ist_frei(self):
-        from agentkit import struktur
-        vergeben = {"s-" + f"{i:06x}" for i in range(50)}
-        for _ in range(200):
-            sid = logik.neue_stunden_id(vergeben)
-            self.assertTrue(struktur.ID_MUSTER.fullmatch(sid), sid)
-            self.assertNotIn(sid, vergeben)
-        r = [{"id": "r", "gruppe_id": "g", "fach_id": "f", "stunden": [{"id": "r-stunde-1"}]}]
-        self.assertEqual(logik.stunden_ids(r, {"stunden": {"x": [{"id": "s-a"}, {"thema": "ohne"}]}}),
-                         {"r", "g", "f", "r-stunde-1", "s-a"})
 
 
 if __name__ == "__main__":

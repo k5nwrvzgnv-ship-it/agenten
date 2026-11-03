@@ -1,0 +1,25 @@
+{#- Ausfall (Plan 2a.3, Jan 03.11.): Lia wählt jedes Mal „Alles rückt nach“ oder „Diese Stunde fällt weg“. -#}
+{% extends "basis.html" %}
+{%- from "_pflege.html" import fehler_liste -%}
+{% block inhalt %}
+{{ fehler_liste(fehler) }}
+<p class="absatz"><b>{{ termin.text }}</b> · {% if termin.stunde %}Stunde {{ termin.stunde.nr }}: {{ termin.stunde.thema }}
+  ({{ termin.stunde.reihe }}){% else %}frei{% endif %}</p>
+<form class="formular" method="post" action="/klasse/{{ klasse.id }}/ausfall">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="termin" value="{{ termin.kennung }}">
+  {%- if termin.stunde %}
+  <fieldset class="auswahl auswahl-spalte">
+    <legend>Was passiert mit der Stunde?</legend>
+    <label><input type="radio" name="folge" value="nachruecken" required> Alles rückt nach: diese und alle späteren
+      Stunden der Klasse kommen einen Termin später.</label>
+    <label><input type="radio" name="folge" value="faellt_weg"> Diese Stunde fällt weg: sie wird ausgeblendet, alles
+      andere bleibt, wo es ist.</label>
+  </fieldset>
+  <button class="knopf knopf-voll" type="submit">Speichern</button>
+  {%- else %}
+  <p class="unter">Auf dem Termin liegt noch keine Stunde. Er wird gestrichen, sonst ändert sich nichts.</p>
+  <button class="knopf knopf-voll" type="submit">Termin streichen</button>
+  {%- endif %}
+</form>
+{% endblock %}

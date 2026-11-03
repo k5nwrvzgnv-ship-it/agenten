@@ -1,0 +1,173 @@
+# Testdaten für tests/test_pflege_app.py: eingefrorene Kopie der echten lia/instanz/reihen.toml vom 03.11.2026
+# (neues Format, nach Bauschritt 3; gleich shared/agentkit/tests/daten/reihen_echt.toml). Ohne Lerngruppe, ohne
+# Bundesland und Stundenplan; die Tests setzen das selbst. Nicht an die echte Datei anpassen.
+
+# Lias Struktur Fach → Klasse/Kurs → Reihe → Stunde, EINE Datei für die Web-App und die Agenten. Gelesen wird sie
+# nur über agentkit.struktur (Format und Regeln im Kopf von shared/agentkit/struktur.py, Plan
+# docs/struktur-pflege-plan.md). Prüfen: cd ~/agenten/shared && python3 -m agentkit.struktur
+# Bis zu den Masken der Web-App von Jan von Hand gepflegt. Eine id ändert sich nie.
+# Die Lerngruppe steht nicht hier, sondern je Klasse in lerngruppen.toml (nicht im Repo, F6).
+# Noch ohne [schule] bundesland und Stundenplan (Jan 03.11.2026: kommen später über die Maske).
+
+[[fach]]
+id = "ethik"
+name = "Ethik"
+
+[[fach]]
+id = "darstellendes-spiel"
+name = "Darstellendes Spiel"
+
+# Lias Klasse 7 aus 2025/26 ist jetzt ihre Klasse 8.
+[[klasse]]
+id = "ethik-8"
+fach = "ethik"
+name = "8"
+schuljahr = "2026/27"
+herkunft = "ethik-7-2025-26"
+
+# Jan 30.10.2026: das Stück des Theater-Agenten gehört zu Kurs 12.
+[[klasse]]
+id = "darstellendes-spiel-kurs-12"
+fach = "darstellendes-spiel"
+name = "Kurs 12"
+schuljahr = "2026/27"
+
+# Jan 30.10.2026: neuer Kurs 11 im Schuljahr 2026/27, Reihen noch nicht eingetragen.
+[[klasse]]
+id = "darstellendes-spiel-kurs-11"
+fach = "darstellendes-spiel"
+name = "Kurs 11"
+schuljahr = "2026/27"
+
+# Archiv (Jan 30.10.2026): Klasse 7 aus 2025/26, Reihen aus Lias Ablage-Ordnern (Ethik/7. Klasse), Titel und
+# Reihenfragen nach Lias Angaben 23.10.2026.
+[[klasse]]
+id = "ethik-7-2025-26"
+fach = "ethik"
+name = "7"
+schuljahr = "2025/26"
+archiviert = "2026-10-30"
+
+# Archiv (Jan 30.10.2026): Kurs 11 aus 2025/26 (Kurse 11.1 und 11.2), Einheiten nach Lias Ordnern
+# (theater/data/entpackt/klasse/k11/).
+[[klasse]]
+id = "darstellendes-spiel-kurs-11-2025-26"
+fach = "darstellendes-spiel"
+name = "Kurs 11"
+schuljahr = "2025/26"
+archiviert = "2026-10-30"
+
+# Angaben von Lia, 23.10.2026. Merksätze hatte sie gerade nicht parat. Die Prüfungsstunde (Marke „Prüfung“) kommt,
+# sobald Lia die Stunden der Reihe kennt; bis dahin läuft lia/examen nicht.
+# bisherige_reihen bleibt, bis lia/unterricht frühere Reihen aus der Herkunft der Klasse liest (F10, Jan 03.11.2026).
+[[reihe]]
+id = "ethik-8-straftheorien"
+klasse = "ethik-8"
+titel = "Straftheorien"
+stand = "geplant"
+notizen = """Nächste Reihe: Straftheorien (Vergeltung, Besserung, Prävention), stark vereinfacht, am liebsten am \
+Thema Gefängnisstrafe. Positionen (Lia, 24.10.2026): erst Kant (absolute Straftheorie, \
+Vergeltung), dann von Liszt als Gegenposition (relative Straftheorie). Welche Strafzwecke bei von Liszt im \
+Vordergrund stehen (etwa Besserung, Abschreckung), ist noch offen. Die Reihenfrage steht noch nicht fest, Lia sucht noch nach einer guten."""
+behandelt = ["Peter Singer", "Aristoteles", "Kant", "Jeremy Bentham", "John Rawls", "John Stuart Mill"]
+bisherige_reihen = [
+    "Klasse 7, Lüge und Wahrheit: Sollte ich lügen, um einen Freund zu schützen?",
+    "Klasse 7, Gerechtes Verteilen: Wie verteilt man gerecht, wenn nicht genug für alle da ist?",
+    "Klasse 7, Freundschaft: Wie erkenne ich einen guten Freund?",
+    "Klasse 7, Tiere töten: Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?",
+    "Klasse 7, Glückliches Leben: Wie führe ich ein glückliches Leben?",
+    """Klasse 8, Helfen: Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden? Merksätze (Lia, \
+24.10.2026): Peter Singer: „Wenn die Not der Person groß ist und meine eigenen Kosten im Vergleich kleiner, dann \
+muss ich helfen. Egal ob die Person nah oder fremd ist.“ Aristoteles: „Wenn mir ein Mensch nahesteht, dann \
+schulde ich ihm mehr als einem Fremden. Das gilt besonders, wenn er viel Gutes für mich getan hat.“""",
+]
+
+# Aus bisherige_reihen der Straftheorien (Lias Angaben 23. und 24.10.2026), eigene Reihe seit Jan 03.11.2026 (F10).
+[[reihe]]
+id = "ethik-8-helfen"
+klasse = "ethik-8"
+titel = "Helfen"
+reihenfrage = "Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?"
+stand = "abgeschlossen"
+merksaetze = [
+    "Peter Singer: „Wenn die Not der Person groß ist und meine eigenen Kosten im Vergleich kleiner, dann muss ich helfen. Egal ob die Person nah oder fremd ist.“",
+    "Aristoteles: „Wenn mir ein Mensch nahesteht, dann schulde ich ihm mehr als einem Fremden. Das gilt besonders, wenn er viel Gutes für mich getan hat.“",
+]
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+klasse = "darstellendes-spiel-kurs-12"
+titel = "Der nackte Wahnsinn"
+agenten = ["theater"]
+
+[[reihe]]
+id = "ethik-7-luege-und-wahrheit"
+klasse = "ethik-7-2025-26"
+titel = "Lüge und Wahrheit"
+reihenfrage = "Sollte ich lügen, um einen Freund zu schützen?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-gerechtes-verteilen"
+klasse = "ethik-7-2025-26"
+titel = "Gerechtes Verteilen"
+reihenfrage = "Wie verteilt man gerecht, wenn nicht genug für alle da ist?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-freundschaft"
+klasse = "ethik-7-2025-26"
+titel = "Freundschaft"
+reihenfrage = "Wie erkenne ich einen guten Freund?"
+notizen = "Mit Operatorentraining (Ordner „Reihe Freundschaft + Operatoren“)."
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-tiere-toeten"
+klasse = "ethik-7-2025-26"
+titel = "Tiere töten"
+reihenfrage = "Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-glueckliches-leben"
+klasse = "ethik-7-2025-26"
+titel = "Glückliches Leben"
+reihenfrage = "Wie führe ich ein glückliches Leben?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Grundlagen Körper"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Grundlagen Stimme"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Schauspielgrundlagen"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Gegenstand und Material"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Kompositionsmethoden"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Proben + Feedbackphase"
+stand = "abgeschlossen"
