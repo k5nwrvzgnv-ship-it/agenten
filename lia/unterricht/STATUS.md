@@ -111,17 +111,25 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
   Datei eine Textfassung (<datei>.txt, agentkit.textfassung, pypdf) und Seitenbilder (<datei>-seiten/, über
   renderer.vorschau, auch für Scans; höchstens 8 je Datei im Prompt). Grund: Claudes Read öffnet PDFs auf dem
   Server nicht (kein poppler). Bilder öffnet Claude direkt, andere Formate versucht Claude mit Read.
-- Reihenkontext (reihen.py, lia/instanz/reihen.toml, gelesen über config.SHARED_DIR; Format im Kopf der Datei
-  und von shared/webapp/ordnung.py): je Reihe [[reihe]] mit fach und klasse (Pflicht), dazu id, titel,
-  reihenfrage (fehlt, solange eine Reihe geplant wird), lerngruppe, notizen, schuljahr, stand (laufend oder
-  abgeschlossen), behandelt, merksaetze, bisherige_reihen, agenten und [[reihe.stunde]] (nr, thema, marke UB
-  oder Prüfung). Laufende Reihen gehen voll in den Startprompt, mit Stunden („Probe“ bei agenten theater);
-  abgeschlossene nur als kurze Liste. Die Reihe aus dem Feld reihe des Auftrags steht zuerst und markiert, die
-  Stunde liest Claude aus der Zeile „Stunde n: …“ im Text. Sonst nimmt Claude die passende und nennt seine
-  Annahme im Begleittext. reihen.toml ist im Repo (keine Schülerdaten) und für Claude schreibgeschützt (*.toml
-  in claude_lauf.GESCHUETZT). lia/unterricht/reihen.toml ist ein Symlink darauf, nur für lia/examen (runde.py
-  liest den alten Pfad; löschen, sobald examen umgestellt ist). Ist die Datei fehlerhaft, läuft das Material ohne
-  Reihen und Jan bekommt eine Meldung. Pflege heute von Hand durch Jan; später ggf. über Lias Zentrale.
+- Reihenkontext (reihen.py): lia/instanz/reihen.toml liest seit 03.11.2026 nur agentkit.struktur (Strukturplan
+  docs/struktur-pflege-plan.md, Bauschritt 2; Format, Prüfung, altes und neues Format im Kopf von
+  shared/agentkit/struktur.py). reihen.laden(config.SHARED_DIR) gibt die Struktur, bei kaputter Datei (auch
+  lerngruppen.toml) StrukturFehler: das Material läuft ohne Reihen, Jan bekommt eine Meldung. Laufend im Prompt
+  sind stand geplant und laufend (voll, mit Stunden aus reihe["stunden"], nr gezählt; „Probe“ bei agenten
+  theater); abgeschlossene und archivierte (auch geerbt von der Klasse) nur als kurze Liste. Gewählte Reihe
+  (reihen.wahl): Feld ort des Auftrags über s.ort (Stunden- oder Reihen-id), sonst Feld reihe; ort auf Klasse,
+  Fach oder unbekannt -> Feld reihe. Die gewählte Reihe steht zuerst und markiert, eine Stunde aus ort als Zeile
+  „- Lia hat den Auftrag zugeordnet: Stunde n: Thema (Marke)“ darunter; ohne ort liest Claude die Stunde wie
+  bisher aus „Stunde n: …“ im Text. Sonst nimmt Claude die passende und nennt seine Annahme im Begleittext.
+  Prompt für die echte Datei vor und nach der Umstellung gleich (03.11. verglichen: ohne Wahl und mit jeder der
+  14 Reihen als Wahl, 15 von 15 byte-gleich). Regel 22 in tests/test_reihen.py: altes Format (eingefrorene
+  Kopie shared/agentkit/tests/daten/reihen_alt.toml) und dieselben Reihen im neuen Format
+  (tests/daten/reihen_neu.toml) ergeben denselben Prompt, auch mit ort = Stunden-id.
+  Nach der Migration (Bauschritt 3) ändert sich der Prompt absichtlich: Titel „Straftheorien“ ohne „(in
+  Planung)“, und der Block „### Darstellendes Spiel, Kurs 11“ (Platzhalter-Reihe) fällt weg, wenn Kurs 11 eine
+  Klasse ohne Reihe wird. reihen.toml ist für Claude schreibgeschützt (*.toml in claude_lauf.GESCHUETZT).
+  lia/unterricht/reihen.toml ist ein Symlink darauf, nur für ältere Leser (löschen, sobald keiner mehr den alten
+  Pfad liest).
 - Opus (art="anspruchsvoll"), Zeitbudget 18 min für neue Läufe, Dienst-Timeout 25 min.
 - Fehler: Lia bekommt „nicht erstellen, Jan ist informiert“ (ihre Zentrale zeigt bei fehlgeschlagen
   ohnehin ihren eigenen Text), Jan eine Meldung in seiner Zentrale (jan_melden, Jans shared/meldungen).
@@ -131,7 +139,7 @@ Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 ## Aufbau
 - Instanz: AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz (Warteschlangen, Regeln, .env dort)
 - Code: agent.py (Verteilung nach quelle, Fehler, Meldung an Jan), material.py (Ablauf, ohne Netz testbar),
-  reihen.py (Reihenkontext laden und prüfen, Prompt-Abschnitt), formatvorlage.py (Lias Vorlage wählen), wissen.py (Textfassungen, Katalog, Prompt-Abschnitt),
+  reihen.py (Reihenkontext über agentkit.struktur, gewählte Reihe/Stunde, Prompt-Abschnitt), formatvorlage.py (Lias Vorlage wählen), wissen.py (Textfassungen, Katalog, Prompt-Abschnitt),
   leitfaden.py (Leitfaden-Entwurf per Claude, freigegebenen Leitfaden laden, Prompt-Abschnitt). leitfaden.md ist
   für Claude noch nicht schreibgeschützt (Bedarf in Haupt-STATUS)
 - Wissen: data/wissen/eingang/ (Lias Dateien), text/ (Textfassungen), katalog.md, alles nicht im Repo.
@@ -249,7 +257,8 @@ Weitere Wünsche von Lia (23.10.), noch nicht umgesetzt:
    Hinweis in der Kontrolle), LEK-Fälle ohne Gewalt (Skill); Begleittext mit du.
 8. claude_lauf.Zurueckgezogen (Auftrag von Lia zurückgezogen) in agent.py vor LaufFehler fangen, nur loggen,
    keine Meldung an Jan (Bedarf des Hauptordner-Chats, Punkt 24).
-9. Symlink reihen.toml löschen, sobald lia/examen lia/instanz/reihen.toml liest (Bedarf in Punkt 24).
+9. Symlink reihen.toml löschen, sobald kein Leser mehr lia/unterricht/reihen.toml liest (examen, recherche
+   stellen in Bauschritt 2 um).
 10. Einheiten des neuen Kurs 11 (2026/27) und Stunden der laufenden Reihen eintragen, wenn Lia sie nennt.
 
 ## Gelernte Regeln

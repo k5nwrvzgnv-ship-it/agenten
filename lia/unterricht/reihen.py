@@ -1,95 +1,43 @@
 """Reihenkontext: Lias laufende Unterrichtsreihen (reihen.toml) für jeden Lauf.
 
 Grund (lia/auswertung, 23.10.2026): Viele Korrekturen in Lias Chats entstanden, weil Claude Reihenfrage, Klasse
-oder schon behandelte Positionen nicht kannte. reihen.toml pflegt Jan von Hand; laden prüft sie, prompt_reihen
-macht daraus einen Prompt-Abschnitt.
+oder schon behandelte Positionen nicht kannte. prompt_reihen macht aus den Reihen einen Prompt-Abschnitt.
 
-Seit 30.10.2026 liegt die Datei in der Instanz (lia/instanz/reihen.toml), EINE Datei für Web-App und Agenten
-(Format auch im Kopf von shared/webapp/ordnung.py). Dazu freiwillig: id (feste Kennung, steht in Aufträgen im Feld
-reihe), stand (laufend oder abgeschlossen), schuljahr (z. B. "2025/26"), agenten (Liste, z. B. ["theater"]).
-Abgeschlossene Reihen stehen im Prompt nur als kurze Liste.
+Die Datei (lia/instanz/reihen.toml, EINE Datei für Web-App und Agenten) liest seit 03.11.2026 nur noch
+agentkit.struktur (docs/struktur-pflege-plan.md, Bauschritt 2): Format, Prüfung, altes und neues Format stehen
+dort im Kopf. laden gibt die Struktur zurück, ist die Datei kaputt, kommt struktur.StrukturFehler (Text für Jan).
+Laufend im Prompt sind die Reihen mit stand geplant oder laufend; abgeschlossene und archivierte stehen nur als
+kurze Liste.
 
-Stunden (board-plan.md 3): je Reihe [[reihe.stunde]] mit nr (ganze Zahl ab 1), thema und optional marke ("UB" oder
-"Prüfung"). Sie gehen mit ins Prompt. Hat der Auftrag das Feld reihe (Web-App), steht diese Reihe zuerst und als
-gewählt; die Stunde selbst steht als Zeile „Stunde n: Thema“ (bzw. „Probe n“) im Auftragstext.
+Stunden (board-plan.md 3): reihe["stunden"], sichtbare Stunden mit gezählter nr, thema und marke ("UB" oder
+"Prüfung"). Sie gehen mit ins Prompt. Welche Reihe gewählt ist, sagt wahl: das Feld ort des Auftrags (id einer
+Stunde oder Reihe, über s.ort), sonst das Feld reihe (Web-App). Die gewählte Reihe steht zuerst und als gewählt,
+eine Stunde aus ort steht als eigene Zeile darunter. Ohne ort steht die Stunde wie bisher als Zeile
+„Stunde n: Thema“ (bzw. „Probe n“) im Auftragstext.
 """
 
-import re
-import tomllib
 from pathlib import Path
 
-PFLICHT = ("fach", "klasse")  # Reihenfrage fehlt, solange eine Reihe noch geplant wird; fach wie die Web-App
-TEXTE = ("id", "fach", "klasse", "titel", "reihenfrage", "lerngruppe", "notizen", "stand", "schuljahr")
-LISTEN = ("behandelt", "merksaetze", "bisherige_reihen", "agenten")
-STAENDE = ("laufend", "abgeschlossen")
-MARKEN = ("UB", "Prüfung")
-STUNDE_FELDER = ("nr", "thema", "marke")
-ID_MUSTER = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")  # wie agentkit.auftraege (Feld reihe)
+from agentkit import struktur
 
 
-class ReihenFehler(Exception):
-    """reihen.toml ist kaputt oder unvollständig. Der Text ist für Jan."""
+def laden(instanz: Path) -> struktur.Struktur:
+    """Struktur aus <instanz>/reihen.toml über agentkit.struktur. Fehlt die Datei, gibt es keine Reihen."""
+    return struktur.laden(instanz)
 
 
-def laden(pfad: Path) -> list[dict]:
-    """Alle Reihen aus der Datei, geprüft. Fehlt die Datei, gibt es keine Reihen."""
-    if not pfad.exists():
-        return []
-    try:
-        daten = tomllib.loads(pfad.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as e:
-        raise ReihenFehler(f"{pfad.name} ist kein gültiges TOML: {e}") from None
-    if set(daten) - {"reihe"}:
-        raise ReihenFehler(f"{pfad.name}: unbekannte Einträge {sorted(set(daten) - {'reihe'})}, erwartet [[reihe]]")
-    reihen = daten.get("reihe", [])
-    if not isinstance(reihen, list):
-        raise ReihenFehler(f"{pfad.name}: Reihen als [[reihe]] schreiben, nicht [reihe]")
-    ids = set()
-    for nr, reihe in enumerate(reihen, 1):
-        unbekannt = set(reihe) - set(TEXTE) - set(LISTEN) - {"stunde"}
-        if unbekannt:
-            raise ReihenFehler(f"{pfad.name}, Reihe {nr}: unbekannte Felder {sorted(unbekannt)}")
-        for feld in PFLICHT:
-            if not str(reihe.get(feld, "")).strip():
-                raise ReihenFehler(f"{pfad.name}, Reihe {nr}: {feld} fehlt")
-        for feld in LISTEN:
-            if feld in reihe and not (isinstance(reihe[feld], list) and all(isinstance(x, str) for x in reihe[feld])):
-                raise ReihenFehler(f"{pfad.name}, Reihe {nr}: {feld} muss eine Liste von Texten sein")
-        if reihe.get("stand", "laufend") not in STAENDE:
-            raise ReihenFehler(f"{pfad.name}, Reihe {nr}: stand {reihe['stand']!r}, erlaubt {list(STAENDE)}")
-        if "id" in reihe:
-            if not ID_MUSTER.fullmatch(str(reihe["id"])):
-                raise ReihenFehler(f"{pfad.name}, Reihe {nr}: id nur aus Kleinbuchstaben, Ziffern und Bindestrichen")
-            if reihe["id"] in ids:
-                raise ReihenFehler(f"{pfad.name}, Reihe {nr}: id {reihe['id']!r} gibt es doppelt")
-            ids.add(reihe["id"])
-        _stunden_pruefen(reihe.pop("stunde", []), reihe, f"{pfad.name}, Reihe {nr}")
-    return reihen
-
-
-def _stunden_pruefen(stunden, reihe: dict, wo: str) -> None:
-    """Prüft [[reihe.stunde]] und legt sie unter "stunden" (nach nr sortiert) ab."""
-    if not isinstance(stunden, list) or not all(isinstance(s, dict) for s in stunden):
-        raise ReihenFehler(f"{wo}: Stunden als [[reihe.stunde]] schreiben")
-    nummern = set()
-    for s in stunden:
-        if set(s) - set(STUNDE_FELDER):
-            raise ReihenFehler(f"{wo}: Stunde mit unbekannten Feldern {sorted(set(s) - set(STUNDE_FELDER))}")
-        if not isinstance(s.get("nr"), int) or isinstance(s["nr"], bool) or s["nr"] < 1:
-            raise ReihenFehler(f"{wo}: Stunde braucht nr als ganze Zahl ab 1")
-        if s["nr"] in nummern:
-            raise ReihenFehler(f"{wo}: Stunde {s['nr']} gibt es doppelt")
-        nummern.add(s["nr"])
-        if not isinstance(s.get("thema"), str) or not s["thema"].strip():
-            raise ReihenFehler(f"{wo}, Stunde {s['nr']}: thema fehlt")
-        if "marke" in s and s["marke"] not in MARKEN:
-            raise ReihenFehler(f"{wo}, Stunde {s['nr']}: marke {s['marke']!r}, erlaubt {list(MARKEN)}")
-    if stunden:
-        reihe["stunden"] = sorted(stunden, key=lambda s: s["nr"])
+def wahl(s: struktur.Struktur | None, auftrag: dict) -> tuple[str | None, dict | None]:
+    """(id der gewählten Reihe, gewählte Stunde oder None). Feld ort zuerst (Stunde oder Reihe), sonst Feld reihe.
+    Zeigt ort auf etwas anderes (Klasse, Fach) oder auf nichts, gilt das Feld reihe."""
+    lage = s.ort(auftrag["ort"]) if s is not None and auftrag.get("ort") else None
+    if lage and lage["reihe"]:
+        return lage["reihe"]["id"], lage["stunde"]
+    return auftrag.get("reihe"), None
 
 
 def laufend(reihe: dict) -> bool:
-    return reihe.get("stand", "laufend") == "laufend"
+    """geplant zählt als laufend (Straftheorien ist geplant und genau die Reihe, an der Lia arbeitet)."""
+    return reihe.get("stand", "laufend") in ("geplant", "laufend") and not reihe.get("im_archiv")
 
 
 def ort(reihe: dict, fach: str) -> str:
@@ -103,8 +51,15 @@ def stunden_wort(reihe: dict) -> str:
     return "Probe" if "theater" in reihe.get("agenten", []) else "Stunde"
 
 
-def prompt_reihen(reihen: list[dict], fach: str, gewaehlt: str | None = None) -> str:
-    """Abschnitt für den Prompt, leer ohne Reihen. gewaehlt: id der Reihe aus dem Auftrag (Feld reihe)."""
+def stunde_zeile(reihe: dict, stunde: dict) -> str:
+    """z. B. „Stunde 3: Kant (Prüfung)“; eine ausgeblendete Stunde hat keine Nummer."""
+    nr = f" {stunde['nr']}" if stunde.get("nr") else ""
+    return f"{stunden_wort(reihe)}{nr}: {stunde['thema']}" + (f" ({stunde['marke']})" if stunde.get("marke") else "")
+
+
+def prompt_reihen(reihen: list[dict], fach: str, gewaehlt: str | None = None, stunde: dict | None = None) -> str:
+    """Abschnitt für den Prompt, leer ohne Reihen. gewaehlt: id der Reihe aus dem Auftrag (wahl), stunde: die
+    Stunde aus dem Feld ort, falls es eine Stunde nennt."""
     if not reihen:
         return ""
     bloecke = []
@@ -114,6 +69,8 @@ def prompt_reihen(reihen: list[dict], fach: str, gewaehlt: str | None = None) ->
         if r is wahl:
             kopf += " (Lia hat den Auftrag dieser Reihe zugeordnet)"
         zeilen = [kopf]
+        if r is wahl and stunde:
+            zeilen.append(f"- Lia hat den Auftrag zugeordnet: {stunde_zeile(r, stunde)}")
         if r.get("reihenfrage"):
             zeilen.append(f"- Reihenfrage: {r['reihenfrage']}")
         if r.get("lerngruppe"):
@@ -128,9 +85,7 @@ def prompt_reihen(reihen: list[dict], fach: str, gewaehlt: str | None = None) ->
             zeilen.append(f"- Notizen: {r['notizen']}")
         if r.get("stunden"):
             wort = stunden_wort(r)
-            zeilen.append(f"- {wort}n der Reihe:\n" + "\n".join(
-                f"  - {wort} {s['nr']}: {s['thema']}" + (f" ({s['marke']})" if s.get("marke") else "")
-                for s in r["stunden"]))
+            zeilen.append(f"- {wort}n der Reihe:\n" + "\n".join(f"  - {stunde_zeile(r, s)}" for s in r["stunden"]))
         bloecke.append("\n".join(zeilen))
     fertig = [r for r in reihen if not laufend(r) and r is not wahl]
     if fertig:
@@ -146,3 +101,11 @@ def prompt_reihen(reihen: list[dict], fach: str, gewaehlt: str | None = None) ->
             "Stunde: Es baut auf den Stunden davor auf und bereitet die danach vor; bei UB oder Prüfung besonders "
             "sorgfältig. Passt keine Reihe oder mehrere, nenne deine Annahme im Begleittext.\n\n"
             + "\n\n".join(bloecke) + "\n\n")
+
+
+def prompt_auftrag(s: struktur.Struktur | None, fach: str, auftrag: dict) -> str:
+    """prompt_reihen für einen Auftrag: alle Reihen der Struktur, gewählt nach wahl. Ohne Struktur leer."""
+    if s is None:
+        return ""
+    gewaehlt, stunde = wahl(s, auftrag)
+    return prompt_reihen(s.reihen, fach, gewaehlt, stunde)

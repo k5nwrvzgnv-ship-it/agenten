@@ -1,0 +1,151 @@
+# Testdaten für tests/test_reihen.py (Strukturplan docs/struktur-pflege-plan.md, Regel 22): dieselben Reihen wie
+# shared/agentkit/tests/daten/reihen_alt.toml (eingefrorene Kopie der echten reihen.toml), Eins zu eins ins neue
+# Format übertragen, damit der Prompt gleich sein muss. Nicht die Migration aus Bauschritt 3: Titel
+# „(in Planung)“ und die Platzhalter-Reihe von Kurs 11 bleiben. Anders als im alten Format: Straftheorien hat
+# stand = "geplant", die Klassen aus 2025/26 sind archiviert. Lerngruppe von Ethik 8 kommt aus lerngruppen.toml,
+# die der Test anlegt.
+
+[[fach]]
+id = "ethik"
+name = "Ethik"
+
+[[fach]]
+id = "darstellendes-spiel"
+name = "Darstellendes Spiel"
+
+[[klasse]]
+id = "ethik-8"
+fach = "ethik"
+name = "8"
+schuljahr = "2026/27"
+
+[[klasse]]
+id = "darstellendes-spiel-kurs-12"
+fach = "darstellendes-spiel"
+name = "Kurs 12"
+schuljahr = "2026/27"
+
+[[klasse]]
+id = "darstellendes-spiel-kurs-11-2026-27"
+fach = "darstellendes-spiel"
+name = "Kurs 11"
+schuljahr = "2026/27"
+
+[[klasse]]
+id = "ethik-7-2025-26"
+fach = "ethik"
+name = "7"
+schuljahr = "2025/26"
+archiviert = "2026-08-01"
+
+[[klasse]]
+id = "darstellendes-spiel-kurs-11-2025-26"
+fach = "darstellendes-spiel"
+name = "Kurs 11"
+schuljahr = "2025/26"
+archiviert = "2026-08-01"
+
+[[reihe]]
+id = "ethik-8-straftheorien"
+klasse = "ethik-8"
+titel = "Straftheorien (in Planung)"
+stand = "geplant"
+agenten = ["examen"]
+notizen = """Nächste Reihe: Straftheorien (Vergeltung, Besserung, Prävention), stark vereinfacht, am liebsten am \
+Thema Gefängnisstrafe. Positionen (Lia, 24.10.2026): erst Kant (absolute Straftheorie, \
+Vergeltung), dann von Liszt als Gegenposition (relative Straftheorie). Welche Strafzwecke bei von Liszt im \
+Vordergrund stehen (etwa Besserung, Abschreckung), ist noch offen. Die Reihenfrage steht noch nicht fest, Lia sucht noch nach einer guten."""
+behandelt = ["Peter Singer", "Aristoteles", "Kant", "Jeremy Bentham", "John Rawls", "John Stuart Mill"]
+bisherige_reihen = [
+    "Klasse 7, Lüge und Wahrheit: Sollte ich lügen, um einen Freund zu schützen?",
+    "Klasse 7, Gerechtes Verteilen: Wie verteilt man gerecht, wenn nicht genug für alle da ist?",
+    "Klasse 7, Freundschaft: Wie erkenne ich einen guten Freund?",
+    "Klasse 7, Tiere töten: Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?",
+    "Klasse 7, Glückliches Leben: Wie führe ich ein glückliches Leben?",
+    """Klasse 8, Helfen: Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden? Merksätze (Lia, \
+24.10.2026): Peter Singer: „Wenn die Not der Person groß ist und meine eigenen Kosten im Vergleich kleiner, dann \
+muss ich helfen. Egal ob die Person nah oder fremd ist.“ Aristoteles: „Wenn mir ein Mensch nahesteht, dann \
+schulde ich ihm mehr als einem Fremden. Das gilt besonders, wenn er viel Gutes für mich getan hat.“""",
+]
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+klasse = "darstellendes-spiel-kurs-12"
+titel = "Der nackte Wahnsinn"
+agenten = ["theater"]
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11"
+klasse = "darstellendes-spiel-kurs-11-2026-27"
+
+[[reihe]]
+id = "ethik-7-luege-und-wahrheit"
+klasse = "ethik-7-2025-26"
+titel = "Lüge und Wahrheit"
+reihenfrage = "Sollte ich lügen, um einen Freund zu schützen?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-gerechtes-verteilen"
+klasse = "ethik-7-2025-26"
+titel = "Gerechtes Verteilen"
+reihenfrage = "Wie verteilt man gerecht, wenn nicht genug für alle da ist?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-freundschaft"
+klasse = "ethik-7-2025-26"
+titel = "Freundschaft"
+reihenfrage = "Wie erkenne ich einen guten Freund?"
+notizen = "Mit Operatorentraining (Ordner „Reihe Freundschaft + Operatoren“)."
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-tiere-toeten"
+klasse = "ethik-7-2025-26"
+titel = "Tiere töten"
+reihenfrage = "Sollte in unserer Schulmensa nur einmal pro Woche Fleisch angeboten werden?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "ethik-7-glueckliches-leben"
+klasse = "ethik-7-2025-26"
+titel = "Glückliches Leben"
+reihenfrage = "Wie führe ich ein glückliches Leben?"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-koerper"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Grundlagen Körper"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-grundlagen-stimme"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Grundlagen Stimme"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-schauspielgrundlagen"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Schauspielgrundlagen"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-gegenstand-und-material"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Gegenstand und Material"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-kompositionsmethoden"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Kompositionsmethoden"
+stand = "abgeschlossen"
+
+[[reihe]]
+id = "darstellendes-spiel-kurs-11-2025-26-proben-und-feedback"
+klasse = "darstellendes-spiel-kurs-11-2025-26"
+titel = "Proben + Feedbackphase"
+stand = "abgeschlossen"

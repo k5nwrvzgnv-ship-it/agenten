@@ -8,6 +8,7 @@ from unittest import mock
 
 import material
 import renderer
+from agentkit import struktur
 from agentkit.claude_lauf import Ergebnis
 
 PROFIL = tomllib.loads((Path(__file__).resolve().parent.parent / "profil.toml").read_text(encoding="utf-8"))
@@ -100,8 +101,9 @@ class MaterialTest(unittest.TestCase):
 
     def test_reihen_im_startprompt(self):
         claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
-        reihe = {"klasse": 10, "reihenfrage": "Was soll ich tun?", "behandelt": ["Kant"]}
-        material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN, reihen=[reihe])
+        reihe = struktur.aus_text('[[reihe]]\nfach = "Ethik"\nklasse = "10"\nreihenfrage = "Was soll ich tun?"\n'
+                                  'behandelt = ["Kant"]\n')
+        material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN, reihen=reihe)
         start = claude.prompts[0]
         self.assertIn("## Lias laufende Reihen", start)
         self.assertIn("### Ethik, Klasse 10\n- Reihenfrage: Was soll ich tun?\n- Schon behandelt: Kant", start)
@@ -111,19 +113,34 @@ class MaterialTest(unittest.TestCase):
 
     def test_gewaehlte_reihe_zuerst(self):
         claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
-        andere = {"id": "a", "fach": "Ethik", "klasse": 8, "titel": "Strafe"}
-        gewaehlt = {"id": "b", "fach": "Ethik", "klasse": 10, "titel": "Pflicht",
-                    "stunden": [{"nr": 1, "thema": "Kant", "marke": "UB"}]}
-        material.bearbeiten({**self.auftrag, "reihe": "b"}, self.hier, PROFIL, laufen=claude, bauen=BAUEN,
-                            reihen=[andere, gewaehlt])
+        s = struktur.aus_text('[[reihe]]\nid = "a"\nfach = "Ethik"\nklasse = "8"\ntitel = "Strafe"\n\n'
+                              '[[reihe]]\nid = "b"\nfach = "Ethik"\nklasse = "10"\ntitel = "Pflicht"\n'
+                              '[[reihe.stunde]]\nnr = 1\nthema = "Kant"\nmarke = "UB"\n'
+                              '[[reihe.stunde]]\nnr = 2\nthema = "Mill"\n')
+        material.bearbeiten({**self.auftrag, "reihe": "b"}, self.hier, PROFIL, laufen=claude, bauen=BAUEN, reihen=s)
         start = claude.prompts[0]
         self.assertLess(start.index("Klasse 10: Pflicht (Lia hat den Auftrag"), start.index("Klasse 8: Strafe"))
-        self.assertIn("- Stunden der Reihe:\n  - Stunde 1: Kant (UB)", start)
+        self.assertIn("- Stunden der Reihe:\n  - Stunde 1: Kant (UB)\n  - Stunde 2: Mill", start)
+        self.assertNotIn("Lia hat den Auftrag zugeordnet:", start)
+
+    def test_ort_waehlt_reihe_und_stunde(self):
+        claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
+        s = struktur.aus_text('[[reihe]]\nid = "a"\nfach = "Ethik"\nklasse = "8"\ntitel = "Strafe"\n\n'
+                              '[[reihe]]\nid = "b"\nfach = "Ethik"\nklasse = "10"\ntitel = "Pflicht"\n'
+                              '[[reihe.stunde]]\nnr = 1\nthema = "Kant"\nmarke = "UB"\n'
+                              '[[reihe.stunde]]\nnr = 2\nthema = "Mill"\n')
+        material.bearbeiten({**self.auftrag, "reihe": "a", "ort": "b-stunde-2"}, self.hier, PROFIL, laufen=claude,
+                            bauen=BAUEN, reihen=s)
+        start = claude.prompts[0]
+        self.assertIn("### Ethik, Klasse 10: Pflicht (Lia hat den Auftrag dieser Reihe zugeordnet)\n"
+                      "- Lia hat den Auftrag zugeordnet: Stunde 2: Mill\n", start)
+        self.assertLess(start.index("Klasse 10: Pflicht (Lia hat den Auftrag"), start.index("Klasse 8: Strafe"))
 
     def test_katalog_im_startprompt(self):
         claude = FalscherClaude(self.ordner, [(BLATT, "Entwurf"), (None, "Fertig.")])
         material.bearbeiten(self.auftrag, self.hier, PROFIL, laufen=claude, bauen=BAUEN,
-                            reihen=[{"klasse": 10, "reihenfrage": "Was soll ich tun?"}],
+                            reihen=struktur.aus_text('[[reihe]]\nfach = "Ethik"\nklasse = "10"\n'
+                                                     'reihenfrage = "Was soll ich tun?"\n'),
                             katalog="### Ethik 7: Lügen\n- data/wissen/text/AB_6_Kant.docx.txt | Arbeitsblatt | Kant\n")
         start = claude.prompts[0]
         self.assertIn("## Lias Material aus früheren Reihen", start)
