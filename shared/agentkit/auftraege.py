@@ -73,6 +73,7 @@ def neuer_auftrag(
     absender: str | None = None,
     reihe: str | None = None,
     kopieren: bool = False,
+    ort: str | None = None,
 ) -> str:
     """Legt einen Auftrag an und gibt seine ID zurück.
 
@@ -84,6 +85,8 @@ def neuer_auftrag(
     die mit basis= für eine andere Instanz anlegen (Web-App für Lia).
     reihe: Kennung einer Unterrichtsreihe (Web-App für Lia, Kleinbuchstaben, Ziffern, Bindestriche). Das Feld
     steht nur im Auftrag, wenn es gesetzt ist.
+    ort: id eines Objekts beliebiger Ebene aus agentkit.struktur (Fach, Klasse, Reihe, Stunde), z. B. die Stunde,
+    aus der Lia den Auftrag anlegt. Steht neben reihe (das ältere Leser brauchen), nur wenn gesetzt.
     kopieren: dateien kopieren statt verschieben (z. B. Lias eigene Fassung, die in agentkit.fassungen bleibt).
     """
     if modus not in MODI:
@@ -95,8 +98,11 @@ def neuer_auftrag(
     _ablage.pruefe_dienst(agent, dienst)
     if reihe is not None and not REIHE_MUSTER.fullmatch(reihe):
         raise AuftragFehler(f"Ungültige Reihe: {reihe!r}")
+    if ort is not None and not REIHE_MUSTER.fullmatch(ort):
+        raise AuftragFehler(f"Ungültiger Ort: {ort!r}")
     felder = {"quelle": quelle, "modus": modus, "bezug": bezug, "sitzung": sitzung, "meldung": meldung,
-              "dienst": dienst, **({"reihe": reihe} if reihe is not None else {})}
+              "dienst": dienst, **({"reihe": reihe} if reihe is not None else {}),
+              **({"ort": ort} if ort is not None else {})}
     return _anlegen(agent, text, felder, dateien or [], shutil.copy2 if kopieren else shutil.move,
                     absender or person(), basis, agenten_dir)
 

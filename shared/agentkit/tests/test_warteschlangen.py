@@ -371,6 +371,17 @@ class TestWeitergabe(unittest.TestCase):
             with self.subTest(reihe=falsch), self.assertRaises(auftraege.AuftragFehler):
                 auftraege.neuer_auftrag("unterricht", "x", basis=self.basis, reihe=falsch)
 
+    def test_neuer_auftrag_mit_ort(self):
+        auftraege.neuer_auftrag("unterricht", "Stunde", basis=self.basis, reihe="ethik-8-straftheorien",
+                                ort="s-4k2m9a")
+        auftraege.neuer_auftrag("unterricht", "ohne Ort", basis=self.basis)
+        mit, ohne = sorted(auftraege.neue(basis=self.basis), key=lambda a: a["text"])
+        self.assertEqual((mit["reihe"], mit["ort"]), ("ethik-8-straftheorien", "s-4k2m9a"))
+        self.assertNotIn("ort", ohne)  # alte Form bleibt unverändert
+        for falsch in ["", "Stunde 2", "../x", "-x", "a" * 81]:
+            with self.subTest(ort=falsch), self.assertRaises(auftraege.AuftragFehler):
+                auftraege.neuer_auftrag("unterricht", "x", basis=self.basis, ort=falsch)
+
     def test_dateien_nur_aus_dem_eigenen_ordner(self):
         (self.agenten / "uni" / ".env").write_text("GEHEIM=1")
         (self.agenten / "einkauf" / "x.txt").write_text("x")
