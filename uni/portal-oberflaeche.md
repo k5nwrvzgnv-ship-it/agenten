@@ -106,18 +106,47 @@ Mein alter Vorschlag (Filter, Suche, gespeicherte Ansichten) war also nicht geme
 - Modul: Das Formular "Transkript auswerten" füllt die Mitte der Seite, die Themen kommen erst danach. Der technische Hinweis auf
   `ELEVENLABS_AGENT_URL` in `uni/portal/.env` steht offen auf der Seite. Alle Themen zeigen "Score 5, nicht gesehen" ohne Erklärung.
 
-**Spannung zum Plan:** `webapp-plan.md` Abschnitt 3 "Was nicht gebaut wird" nennt "Zugänge für die Gruppe" und "Oberfläche für die
+**Spannung zum Plan:** `webapp-plan.md` Abschnitt 8 "Was nicht gebaut wird" nennt "Zugänge für die Gruppe" und "Oberfläche für die
 Recherche-Pipeline". Die Aufgaben 9 und 10 gehen darüber hinaus. Das Portal hat heute ein gemeinsames Passwort und keine Personen,
 wer Zugang hat, sähe auch Schriftverkehr und Lernstand. Vor Schritt 4 klären. Zugänge und Recherche-Start berühren Kosten und
 Datenschutz und kommen, wie die Nachfrage, als eigener Vorschlag.
 
+## Jans Antworten (04.11., abends)
+
+**Seine Idee zur gemeinsamen Arbeit, nah an seinen Worten:** Ähnlich wie bei Lias Web-App gibt es Ebenen. Oberste Ebene ist der Kurs
+(wissenschaftliches Projekt). Innerhalb des Projekts können neue Reiter aufgemacht werden, seine spontanen Beispiele: Themenfindung,
+Exposé, Versuche, Interviews, Software, Hardware, Schriftlicher Teil. Alles lässt sich frei benennen, umbenennen und umorganisieren, auch
+im Nachhinein. Innerhalb dieser Ebenen gibt es wieder neue Ebenen, im schriftlichen Teil zum Beispiel die einzelnen Kapitel, sodass jede
+Person in einem Kapitel arbeiten kann. Auf den Ebenen kann man immer Dokumente oder Aufträge anlegen. So hat jeder Auftrag und jedes
+Dokument einen Ort, und alle Fassungen gehören zu dem einen Dokument.
+
+**Rechte (Jan):** "beide sollen alles bearbeiten können innerhalb des wissenschaftlichen projektes, wir arbeiten alle an allem und
+brauchen auch überblick was die anderen gemacht haben". Daraus neu [W]: Überblick, was die anderen gemacht haben. "beide" meint vermutlich
+Felix und Henri **[V]**, das Exposé nennt sie als Mitautoren. Dass Lernstand und Modul Holzschutz für sie gesperrt bleiben, folgt
+aus "innerhalb des Projekts" nur vermutlich **[V]**.
+
+**Lias App:** Die Liste oben stimmt "so in etwa", Jan verweist auf seine Idee. Damit gilt sie als bestätigt, ohne Einzelprüfung.
+
+**Weitere Vorbilder:** Ihm fällt keines ein. "du kannst sehr gerne mal recherchieren, wir sollten nicht das rad neu erfinden". Die
+Recherche ist also von Jan gewünscht und ersetzt die eigene Benutzung; Vorbilder daraus sind nur aus Dokumentation bekannt und so zu kennzeichnen.
+
+**Entscheidungen:**
+- `portal/messung.py` und `portal/tests/test_messung.py` löschen: ja. Geprüft 04.11.: Sonst nutzt sie nichts im Repo (Treffer nur in
+  STATUS.md und dieser Datei); `messung` in `auswertung_agent.py` und `agentkit/sprache.py` ist etwas anderes. Noch nicht gelöscht.
+- Baumtest, fremde Person, Log-Auswertung nach zwei Wochen: gestrichen (ja).
+- `webapp-plan.md` Abschnitt 9, Zeile "Oberfläche: kein Prüfstein, Abnahme nach Jans Eindruck": ergänzen (ja). Noch nicht eingetragen.
+
+**Screenshot Projektseite (Exposé):**
+- Befund 8 bestätigt: Das Formular samt Erklärung und Kostenangabe füllt den ersten Bildschirm, der Exposé-Text beginnt ganz unten.
+- Befund 10 auch hier: Rechts ist etwa die halbe Breite leer.
+- Rückmeldungen heißen nur nach ihrer Zeit ("2026-11-04 20:34"), der Inhalt ist nicht erkennbar.
+- Inhalt: Die Kopfzeile zeigt "Felix Frankowiak (Matr.-Nr. XXXXXXXX)", darüber steht "Noch offen (0)". Der Platzhalter wird also nicht als offen erkannt.
+
 ## Offene Fragen an Jan
 
-1. Weitere Vorbilder außer Lias App: Programme oder Seiten, mit denen du gern viel liest, filterst und kommentierst? Und was genau
-   ist an Lias App gut?
-2. Deine Idee zur gemeinsamen Arbeit am Projekt (Aufgabe 10) und zu den Zugängen.
-3. `portal/messung.py` und `portal/tests/test_messung.py` löschen? Empfehlung: ja. Erst nach Okay.
-4. Baumtest, fremde Person, Log-Auswertung nach zwei Wochen streichen? Empfehlung: alle drei.
-5. `webapp-plan.md` Abschnitt 9: Zeile "Oberfläche: kein Prüfstein, Abnahme nach Jans Eindruck" ergänzen? Dort stand bisher nichts zur
-   Oberfläche. Und bleibt die Zeile "mindestens 10 von 14 Tagen geübt, sonst Portalbau stoppen" (23.11.)?
-6. Screenshot der Projektseite mit dem Exposé.
+1. Bleibt die Zeile "mindestens 10 von 14 Tagen geübt, sonst Portalbau stoppen" (23.11.) in `webapp-plan.md` Abschnitt 9? Jans "ja" zu der
+   Doppelfrage ist hier nicht eindeutig (bleibt oder Empfehlung streichen). Nachfragen, nichts ändern.
+2. Sollen Aufgabe 9 (neue Recherche beginnen, Überblick vorab) und 10 (gemeinsam kapitelweise) feste Kernaufgaben werden? Bei 10 und dem
+   Überblick spricht Jans Antwort dafür, zu 9 hat er nichts gesagt.
+3. Sind mit "beide" Felix und Henri gemeint, und bleiben Lernen und Holzschutz für sie gesperrt?
+4. Bestätigung der Vorbilder nach der Recherche. Erst danach Schritt 4.
