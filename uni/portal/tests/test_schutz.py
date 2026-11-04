@@ -17,7 +17,7 @@ import app
 from tests.hilfe import KETTE, KOEDER, Aufbau
 
 PORTAL = Path(app.__file__).parent
-EIGENER_CODE = ("app.py", "logik.py", "ablage.py", "uebungen.py", "projekt.py")
+EIGENER_CODE = ("app.py", "logik.py", "ablage.py", "uebungen.py", "projekt.py", "../rueckmeldungen.py")
 ANGRIFFE = (
     "/.env", "/data/mails/1.json", "/statisch/../.env", "/statisch/%2e%2e/%2e%2e/.env",
     "/statisch/..%2f..%2f.env", "/modul/holzschutz/../../.env", "/modul/..%2f..%2fdata%2fmails",
@@ -32,6 +32,9 @@ ANGRIFFE = (
     "/projekt/anderes", "/projekt/mails/recherche", "/projekt/..%2f..%2fmails", "/projekt/fehlstellen/fassung/json",
     "/projekt/fehlstellen/fassung/..%2f..%2f..%2f.env", "/projekt/fehlstellen/fassung/env", "/projekt/fehlstellen/mails",
     "/projekt/anderes/schriftverkehr", "/projekt/fehlstellen/kontakte.json", "/projekt/fehlstellen/schriftverkehr.json",
+    "/projekt/fehlstellen/rueckmeldung", "/projekt/fehlstellen/rueckmeldung/1", "/projekt/fehlstellen/rueckmeldung/..%2f..%2f..%2fmails",
+    "/projekt/fehlstellen/rueckmeldung/20261104-100000-abcdef", "/projekt/anderes/rueckmeldung/20261104-100000-abcdef",
+    "/projekt/fehlstellen/rueckmeldung/20261104-100000-abcdef/zuruecknehmen",
     "/docs", "/redoc", "/openapi.json",
 )
 
@@ -54,8 +57,11 @@ class Positivliste(Aufbau):
 
     def test_nur_dateien_der_liste_werden_geoeffnet(self):
         uebung_id = self.uebung_mit_auswertung()
+        antwort, _ = self.hochladen({"text": "Bitte den Zeitplan kürzen."}, ("k.pdf", b"%PDF-KOMMENTARE"), pfad="/projekt/fehlstellen/rueckmeldung")
+        kennung = antwort.getheader("location").rsplit("/", 1)[1]
 
         def ablauf():
+            self.text(f"/projekt/fehlstellen/rueckmeldung/{kennung}")
             self.text("/modul/holzschutz")
             self.text("/modul/holzschutz/ueben")
             self.holen("/modul/holzschutz/bild/pilze-1/frage")
@@ -76,6 +82,8 @@ class Positivliste(Aufbau):
         erlaubt |= {kette / "expose.json", kette / "recherche" / "geprueft.json",
                     self.uni.resolve() / "protokolle" / f"{KETTE}.md",
                     self.uni.resolve() / "data" / "projekte" / "fehlstellen" / "schriftverkehr.json"}
+        rueck = self.uni.resolve() / "data" / "projekte" / "fehlstellen" / "rueckmeldungen" / kennung
+        erlaubt |= {rueck / "stand.json", rueck / "text.txt"}  # kommentare.pdf nicht: Das Portal gibt sie nie wieder aus
         geoeffnet = self._geoeffnet(ablauf)
         self.assertTrue(geoeffnet, "Die Messung hat nichts gesehen, der Test belegt so nichts")
         self.assertLessEqual(geoeffnet, erlaubt)
@@ -181,6 +189,46 @@ class ProjektPositivliste(Aufbau):
         self.assertNotIn("kontakte.json", (PORTAL / "ablage.py").read_text(encoding="utf-8"))
 
 
+class RueckmeldungPositivliste(Aufbau):
+    def _anlegen(self) -> str:
+        antwort, _ = self.hochladen({"text": "Bitte den Zeitplan kürzen."}, ("k.pdf", b"%PDF-" + KOEDER.encode()), pfad="/projekt/fehlstellen/rueckmeldung")
+        self.assertEqual(antwort.status, 303)
+        return antwort.getheader("location").rsplit("/", 1)[1]
+
+    def test_ids_nur_im_festen_format(self):
+        for falsch in ("..", "../../mails", "mails", "", None, "20261104-100000-ABCDEF", "20261104-100000-abcdef/.."):
+            self.assertIsNone(ablage.rueckmeldung_ordner(self.uni, "fehlstellen", falsch), falsch)
+        self.assertIsNone(ablage.rueckmeldung_ordner(self.uni, "mails", self._anlegen()))
+
+    def test_datei_und_sicherung_kommen_nie_zurueck(self):
+        kennung = self._anlegen()
+        vorher = self.uni / "data" / "projekte" / "fehlstellen" / "rueckmeldungen" / kennung / "vorher"
+        vorher.mkdir()
+        (vorher / "expose.json").write_text(KOEDER)
+        self.assertNotIn(KOEDER, self.text(f"/projekt/fehlstellen/rueckmeldung/{kennung}"))
+        self.assertNotIn(KOEDER, self.text("/projekt/fehlstellen"))
+        for rest in ("/kommentare.pdf", "/vorher/expose.json", "/stand.json", "/text.txt"):
+            self.assertEqual(self.holen(f"/projekt/fehlstellen/rueckmeldung/{kennung}{rest}")[0].status, 404, rest)
+
+    def test_symlink_gilt_nicht(self):
+        wurzel = self.uni / "data" / "projekte" / "fehlstellen" / "rueckmeldungen"
+        wurzel.mkdir()
+        kennung = "20261104-100000-abcdef"
+        (wurzel / kennung).symlink_to(self.uni / "data" / "mails")
+        self.assertIsNone(ablage.rueckmeldung_ordner(self.uni, "fehlstellen", kennung))
+        self.assertEqual(ablage.rueckmeldungen_ids(self.uni, "fehlstellen"), [])
+        self.assertEqual(self.holen(f"/projekt/fehlstellen/rueckmeldung/{kennung}")[0].status, 404)
+
+    def test_text_als_symlink_gilt_nicht(self):
+        kennung = self._anlegen()
+        pfad = self.uni / "data" / "projekte" / "fehlstellen" / "rueckmeldungen" / kennung / "text.txt"
+        pfad.unlink()
+        ziel = self.uni / "data" / "mails" / "1.txt"
+        ziel.write_text(KOEDER)
+        pfad.symlink_to(ziel)
+        self.assertNotIn(KOEDER, self.text(f"/projekt/fehlstellen/rueckmeldung/{kennung}"))
+
+
 class KeinWegNachAussen(unittest.TestCase):
     def _importe(self) -> set[str]:
         namen = set()
@@ -196,7 +244,8 @@ class KeinWegNachAussen(unittest.TestCase):
         """Kein smtplib, imaplib, urllib, subprocess, agentkit usw. Wer hier etwas ergänzt, begründet es."""
         self.assertEqual(self._importe(), {
             "ablage", "datetime", "fastapi", "hashlib", "hmac", "json", "lernmodell", "logging", "logik", "os", "pathlib",
-            "projekt", "re", "secrets", "sys", "threading", "typing", "uebungen", "urllib", "uvicorn", "zoneinfo"})
+            "projekt", "re", "rueckmeldungen", "secrets", "shutil", "sys", "threading", "typing", "uebungen", "urllib", "uvicorn",
+            "zoneinfo"})
 
     def test_urllib_nur_zum_zerlegen(self):
         for datei in ("logik.py", "ablage.py"):
@@ -212,7 +261,9 @@ class KeinWegNachAussen(unittest.TestCase):
             ("/modul/{modul}/uebung/{uebung_id}/neu", "POST"), ("/modul/{modul}/uebung/{uebung_id}/karten", "POST"),
             ("/modul/{modul}/rubrik", "GET"), ("/modul/{modul}/rubrik/bestaetigen", "POST"),
             ("/projekt/{projekt}", "GET"), ("/projekt/{projekt}/fassung/{art}", "GET"), ("/projekt/{projekt}/recherche", "GET"),
-            ("/projekt/{projekt}/protokoll", "GET"), ("/projekt/{projekt}/schriftverkehr", "GET")})
+            ("/projekt/{projekt}/protokoll", "GET"), ("/projekt/{projekt}/schriftverkehr", "GET"),
+            ("/projekt/{projekt}/rueckmeldung", "POST"), ("/projekt/{projekt}/rueckmeldung/{kennung}", "GET"),
+            ("/projekt/{projekt}/rueckmeldung/{kennung}/zuruecknehmen", "POST")})
 
     def test_dienst_ohne_env_datei(self):
         for dienst in ("uni-portal.service", "uni-portal-frage.service"):
@@ -223,6 +274,18 @@ class KeinWegNachAussen(unittest.TestCase):
         code = "".join((PORTAL / d).read_text(encoding="utf-8") for d in EIGENER_CODE)
         for wort in ("import auswertung_agent", "claude_lauf", "import bewertung", "subprocess"):
             self.assertNotIn(wort, code)
+
+    def test_web_nutzt_vom_gemeinsamen_modul_nur_den_web_teil(self):
+        """Marken nehmen, Sichern und Auftrag anlegen gehören dem Agenten: Das Portal ruft nichts davon auf."""
+        erlaubt = {"ID", "MAX_BYTES", "MAX_ZEICHEN", "PROJEKTE_ORDNER", "RUECKMELDUNGEN", "STAND", "TEXT", "UploadFehler", "anlegen", "ordner",
+                   "pruefen", "stand_ansicht", "zuruecknehmen"}
+        benutzt = set()
+        for datei in ("app.py", "ablage.py"):
+            for knoten in ast.walk(ast.parse((PORTAL / datei).read_text(encoding="utf-8"))):
+                if isinstance(knoten, ast.Attribute) and isinstance(knoten.value, ast.Name) and knoten.value.id == "rueckmeldungen":
+                    benutzt.add(knoten.attr)
+        self.assertEqual(benutzt, erlaubt)
+        self.assertNotIn("agentkit", (PORTAL.parent / "rueckmeldungen.py").read_text(encoding="utf-8").split('"""', 2)[2])
 
     def test_auswertung_ohne_werkzeuge_und_eigene_sperre(self):
         code = (PORTAL / "auswertung_agent.py").read_text(encoding="utf-8")

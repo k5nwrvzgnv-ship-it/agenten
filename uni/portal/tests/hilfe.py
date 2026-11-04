@@ -174,8 +174,9 @@ class Aufbau(unittest.TestCase):
         felder.update(aenderung)
         return self.holen("/modul/holzschutz/bewerten", "POST", felder, kopf)
 
-    def hochladen(self, felder: dict | None = None, datei: tuple[str, bytes] | None = None, kopf=None, modul="holzschutz"):
-        """Formular multipart/form-data wie aus dem Browser. Ohne Angabe: gültiges Token."""
+    def hochladen(self, felder: dict | None = None, datei: tuple[str, bytes] | None = None, kopf=None, modul="holzschutz",
+                  pfad: str | None = None):
+        """Formular multipart/form-data wie aus dem Browser. Ohne Angabe: gültiges Token, Transkript-Formular des Moduls."""
         grenze = "----testgrenze"
         felder = {"token": app.logik.formular_token(app.GEHEIM), **(felder or {})}
         teile = []
@@ -188,7 +189,7 @@ class Aufbau(unittest.TestCase):
         kopfzeilen = {"Origin": "http://localhost", "Host": "localhost",
                       "Content-Type": f"multipart/form-data; boundary={grenze}", **(kopf or {})}
         verbindung = UnixVerbindung(self.socket)
-        verbindung.request("POST", f"/modul/{modul}/uebung", rumpf, kopfzeilen)
+        verbindung.request("POST", pfad or f"/modul/{modul}/uebung", rumpf, kopfzeilen)
         antwort = verbindung.getresponse()
         inhalt = antwort.read()
         verbindung.close()

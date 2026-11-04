@@ -609,6 +609,7 @@ h3 { margin: 12px 0 4px; font-size: 14px; }
 .feld { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 700; }
 .feld input[type="text"], .feld textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--schwarz); font: inherit; font-weight: 400; }
 .laufstand { font-weight: 700; }
+.zeilen { white-space: pre-line; }
 .rubrik-punkt { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; }
 .rubrik-kopf { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
 .rubrik-kopf .titel { font-size: 16px; font-weight: 700; }

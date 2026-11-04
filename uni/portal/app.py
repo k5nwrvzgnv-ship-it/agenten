@@ -19,6 +19,9 @@ Seiten:
   /modul/<modul>/rubrik/bestaetigen  POST: Rubrik bestätigen
   /projekt/<projekt>                 Exposé: aktuelle Fassung, offene Stellen, Dateien
   /projekt/<projekt>/fassung/<art>   Fassung als docx oder pdf
+  /projekt/<projekt>/rueckmeldung    POST: Rückmeldung zum Exposé annehmen, nur Dateien ablegen (uni/rueckmeldungen.py)
+  /projekt/<projekt>/rueckmeldung/<id>                Stand und Ergebnis
+  /projekt/<projekt>/rueckmeldung/<id>/zuruecknehmen  POST: solange sie wartet
   /projekt/<projekt>/recherche       geprüfte Aussagen, Quellen, Lücken, Literatursuche
   /projekt/<projekt>/protokoll       Protokoll der Besprechung und der Überarbeitungen
   /projekt/<projekt>/schriftverkehr  Mails mit den Kontaktpersonen (Auszug des Agenten)
@@ -44,6 +47,7 @@ HIER = Path(__file__).resolve().parent
 sys.path.append(str(HIER.parent))  # lernmodell.py liegt in uni/; hinten, damit eigene Namen vorgehen
 
 import lernmodell  # noqa: E402
+import rueckmeldungen  # noqa: E402
 
 import ablage  # noqa: E402
 import logik  # noqa: E402
@@ -54,6 +58,7 @@ UNI = HIER.parent
 DATEN = HIER / "data"  # Sitzung des Portals, Warteschlange der Auswertung
 ENV_DATEI = HIER / ".env"  # nur die Adresse des ElevenLabs-Agenten wird daraus gelesen (ablage.elevenlabs_adresse)
 MAX_FORMULAR_BYTES = 1024 * 1024  # Körper des Upload-Formulars; Starlette begrenzt ein Textfeld genauso
+MAX_RUECKMELDUNG_BYTES = rueckmeldungen.MAX_BYTES + 256 * 1024  # Datei, dazu Text und Token
 PORT = os.environ.get("PORTAL_PORT", "8793")
 GEHEIM = secrets.token_bytes(32)  # für das Formular-Token, neu bei jedem Start
 ZONE = ZoneInfo("Europe/Berlin")
@@ -130,15 +135,83 @@ def start():
     return RedirectResponse(f"/projekt/{next(iter(ablage.PROJEKTE))}", status_code=303)
 
 
-@app.get("/projekt/{projekt}")
-def projekt_expose(request: Request, projekt: str):
+def _rueckmeldungen_ansicht(projekt: str) -> list[dict]:
+    zeilen = []
+    for kennung in ablage.rueckmeldungen_ids(UNI, projekt):
+        daten = ablage.rueckmeldung_lesen(UNI, projekt, kennung) or {"stand": {}}
+        zeilen.append({"id": kennung, "angelegt": daten["stand"].get("angelegt", ""),
+                       "stand": rueckmeldungen.stand_ansicht(daten["stand"], UNI)})
+    return zeilen
+
+
+def _expose_seite(request: Request, projekt: str, fehler: str | None = None, text: str = "", status_code: int = 200):
     rahmen = _projekt_rahmen(projekt, "expose")
     expose = ablage.expose_lesen(UNI, projekt)
     return vorlagen.TemplateResponse(request, "projekt_expose.html", {
         **rahmen, "expose": projektansicht.expose_ansicht(expose) if expose else None,
         "offen": projektansicht.offene_stellen(expose) if expose else [],
         "docx": ablage.fassung_pfad(UNI, projekt, "docx") is not None,
-        "pdf": ablage.fassung_pfad(UNI, projekt, "pdf") is not None})
+        "pdf": ablage.fassung_pfad(UNI, projekt, "pdf") is not None,
+        "rueckmeldungen": _rueckmeldungen_ansicht(projekt), "token": logik.formular_token(GEHEIM), "fehler": fehler,
+        "eingabe_text": text, "max_mb": rueckmeldungen.MAX_BYTES // (1024 * 1024), "max_zeichen": rueckmeldungen.MAX_ZEICHEN},
+        status_code=status_code)
+
+
+@app.get("/projekt/{projekt}")
+def projekt_expose(request: Request, projekt: str):
+    return _expose_seite(request, projekt)
+
+
+@app.post("/projekt/{projekt}/rueckmeldung")
+async def rueckmeldung_abschicken(request: Request, projekt: str):
+    _projekt_rahmen(projekt, "expose")
+    try:
+        laenge = int(request.headers.get("content-length", ""))
+    except ValueError:
+        raise HTTPException(411, "Größe des Formulars fehlt") from None
+    if laenge > MAX_RUECKMELDUNG_BYTES:  # vor dem Lesen: ein zu großer Körper landet gar nicht erst auf der Platte
+        return _expose_seite(request, projekt, f"Zu groß: höchstens {rueckmeldungen.MAX_BYTES // (1024 * 1024)} MB.", status_code=413)
+    async with request.form(max_files=1, max_fields=2) as formular:
+        token, text, datei = (formular.get(n) for n in ("token", "text", "datei"))
+        name, roh = None, b""
+        if datei is not None and not isinstance(datei, str) and datei.filename:
+            name = datei.filename
+            roh = await datei.read(rueckmeldungen.MAX_BYTES + 1)
+    text = text if isinstance(text, str) else ""
+    if not _formular_pruefen(request, token if isinstance(token, str) else None):
+        hinweis = "Die Seite war nicht mehr aktuell. Bitte noch einmal absenden" + (" und die Datei neu wählen." if name else ".")
+        return _expose_seite(request, projekt, hinweis, text, 400)
+    try:
+        sauber, endung = rueckmeldungen.pruefen(text, name, roh)
+    except rueckmeldungen.UploadFehler as f:
+        return _expose_seite(request, projekt, str(f), text, 400)
+    kennung = rueckmeldungen.anlegen(UNI, projekt, ablage.PROJEKTE[projekt]["kette"], sauber, endung, roh, _jetzt())
+    logger.info("Rückmeldung %s angelegt, %d Zeichen, Datei: %s", kennung, len(sauber), endung or "keine")
+    return RedirectResponse(f"/projekt/{projekt}/rueckmeldung/{kennung}", status_code=303)
+
+
+@app.get("/projekt/{projekt}/rueckmeldung/{kennung}")
+def rueckmeldung_seite(request: Request, projekt: str, kennung: str):
+    rahmen = _projekt_rahmen(projekt, "expose")
+    daten = ablage.rueckmeldung_lesen(UNI, projekt, kennung)
+    if daten is None:
+        raise HTTPException(404)
+    return vorlagen.TemplateResponse(request, "projekt_rueckmeldung.html", {
+        **rahmen, "kennung": kennung, "stand": daten["stand"], "eingabe": daten["text"],
+        "laufstand": rueckmeldungen.stand_ansicht(daten["stand"], UNI), "token": logik.formular_token(GEHEIM),
+        "veraltet": request.query_params.get("veraltet") == "1"})
+
+
+@app.post("/projekt/{projekt}/rueckmeldung/{kennung}/zuruecknehmen")
+def rueckmeldung_zuruecknehmen(request: Request, projekt: str, kennung: str, token: Annotated[str, Form()] = ""):
+    wo = ablage.rueckmeldung_ordner(UNI, projekt, kennung)
+    if wo is None:
+        raise HTTPException(404)
+    if not _formular_pruefen(request, token):
+        return RedirectResponse(f"/projekt/{projekt}/rueckmeldung/{kennung}?veraltet=1", status_code=303)
+    with SPERRE:
+        rueckmeldungen.zuruecknehmen(UNI, wo, kennung, _jetzt())
+    return RedirectResponse(f"/projekt/{projekt}/rueckmeldung/{kennung}", status_code=303)
 
 
 @app.get("/projekt/{projekt}/fassung/{art}")

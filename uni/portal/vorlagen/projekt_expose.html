@@ -32,6 +32,36 @@
   {%- endif %}
 </section>
 
+<section id="rueckmeldung">
+  <h2>Rückmeldung geben</h2>
+  <p class="absatz">Der Agent überarbeitet daraus das Exposé und schreibt eine neue Fassung. Die alte Fassung sichert er vorher. Etwa 1 USD je Überarbeitung (gemessen 1,06). Das Ergebnis steht danach hier und kommt per Telegram.</p>
+  <p class="absatz">Aus einer Datei liest der Agent nur die Kommentare. Eigene Textänderungen in Word kommen also nicht an: Schreib sie ins Textfeld.</p>
+  {%- if fehler %}
+  <p class="hinweis hinweis-fehler" role="alert">{{ fehler }}</p>
+  {%- endif %}
+  <form class="hochladen" method="post" action="/projekt/{{ projekt }}/rueckmeldung" enctype="multipart/form-data">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label class="feld">Text (bis {{ max_zeichen }} Zeichen)
+      <textarea name="text" rows="6" maxlength="{{ max_zeichen }}">{{ eingabe_text }}</textarea>
+    </label>
+    <label class="feld">Und/oder kommentierte Datei (PDF oder docx, bis {{ max_mb }} MB)
+      <input type="file" name="datei" accept=".pdf,.docx">
+    </label>
+    <p class="absatz"><button class="knopf knopf-voll" type="submit">Abschicken</button></p>
+  </form>
+  {%- if rueckmeldungen %}
+  <h3>Bisherige Rückmeldungen</h3>
+  <ul>
+    {%- for r in rueckmeldungen %}
+    <li class="fehlt">
+      <a class="titel" href="/projekt/{{ projekt }}/rueckmeldung/{{ r.id }}">{{ r.angelegt[:16] | replace('T', ' ') }}</a>
+      <span class="unter">{{ r.stand.text }}</span>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+</section>
+
 <section class="expose-text">
   <h2>{{ expose.titel }}</h2>
   {%- if expose.untertitel %}<p class="absatz"><strong>{{ expose.untertitel }}</strong></p>{% endif %}

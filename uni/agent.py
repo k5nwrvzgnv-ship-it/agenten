@@ -15,7 +15,7 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
    Aufträge "Exposé: ..." mit Besprechungstranskript: erst eine geprüfte Recherche in Suchfenstern
    (recherche.py, Recherchebericht hängt an), dann schreibt Claude data/expose/<kette>/expose.json und ein
    Protokoll, Python prüft, baut docx und PDF und hängt sie an (expose.py, expose_auftrag); Antworten
-   überarbeiten es,
+   überarbeiten es. Eine Rückmeldung aus dem Portal wird zu so einer Antwort (rueckmeldungen.py),
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -48,6 +48,7 @@ import literatur
 import normen
 import postfach
 import recherche
+import rueckmeldungen
 import schriftverkehr
 import scopus
 import termine
@@ -1253,6 +1254,15 @@ def projekt_post_abgleichen() -> None:
         logger.info("Schriftverkehr %s: %d Mails", datei.parent.name, len(auszug["mails"]))
 
 
+# Rückmeldungen aus dem Portal (rueckmeldungen.py) --------------------------------
+
+def rueckmeldungen_abarbeiten() -> None:
+    """Das Portal legt nur Dateien ab. Hier wird daraus ein Auftrag in der Exposé-Kette, das Ergebnis geht zurück in den
+    Stand der Rückmeldung und wie jedes Ergebnis per Telegram an Jan."""
+    rueckmeldungen.abarbeiten(HIER, AGENT, auftraege, auftraege_abarbeiten, kurse.kommentare, melden,
+                              lambda: datetime.now(timezone.utc).astimezone())
+
+
 # Fehler einzelner Schritte -------------------------------------------------------
 
 def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, datei: Path = FEHLER_DATEI) -> bool:
@@ -1274,7 +1284,8 @@ def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, 
 if __name__ == "__main__":
     # auftraege_abarbeiten am Ende noch einmal: Aufträge, die während Fristen/Post ankamen
     for schritt in (freigegebene_ausfuehren, kurse_spiegeln, normen_aufbereiten, literatur_aufbereiten, projekt_post_abgleichen,
-                    auftraege_abarbeiten, mail_wuensche_nachholen, fristen_pruefen, post_pruefen, auftraege_abarbeiten):
+                    auftraege_abarbeiten, rueckmeldungen_abarbeiten, mail_wuensche_nachholen, fristen_pruefen, post_pruefen,
+                    auftraege_abarbeiten, rueckmeldungen_abarbeiten):
         try:
             schritt()
         except Exception as f:  # noqa: BLE001 – ein Fehler soll die anderen Schritte nicht blockieren

@@ -1,0 +1,15 @@
+# Vorlage: nach ~/.config/systemd/user/uni-portal-rueckmeldung.path kopieren, daemon-reload, dann
+# systemctl --user enable --now uni-portal-rueckmeldung.path
+# Startet uni.service, sobald sich in der Warteschlange der Rückmeldungen etwas ändert (das Portal legt dort eine Marke ab).
+# PathChanged statt DirectoryNotEmpty: Bleibt eine Marke liegen (Projekt belegt), gäbe es sonst eine Startschleife.
+# Ohne diese Unit greift der nächste Timer von uni.service (8, 13, 19 Uhr).
+[Unit]
+Description=Rückmeldungen aus dem Uni-Portal
+
+[Path]
+PathChanged=/home/agent/agenten/uni/data/projekte/warteschlange
+MakeDirectory=yes
+Unit=uni.service
+
+[Install]
+WantedBy=default.target

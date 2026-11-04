@@ -431,25 +431,31 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Eingetragen: Böhme. Echter Abgleich 04.11.: 3 Mails (21., 26., 29.10.).
   - Gemessen 04.11. am echten Dienst: Seiten 11 bis 68 ms, Recherche mit allen 163 Aussagen 227 KB, MemoryPeak 42 MB, von außen ohne
     Passwort 401. Ungeprüft: Aussehen im Browser.
+  - Rückmeldung zum Exposé (Stufe 2, 04.11., gebaut): Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Text bis 20.000
+    Zeichen, Prüfung über Endung und Dateianfang, fester Name kommentare.pdf/.docx). Logik in uni/rueckmeldungen.py, gemeinsam für Web und Agent, ohne
+    agentkit (test_schutz belegt: das Portal nutzt nur den Web-Teil). Ablage data/projekte/<projekt>/rueckmeldungen/<id>/ (stand.json, text.txt, Datei,
+    vorher/; 700/600), Marke in data/projekte/warteschlange/. Seite /projekt/<p>/rueckmeldung/<id> mit Stand, lädt alle 10 s neu, Zurücknehmen solange
+    die Marke liegt. Das Portal liest nur stand.json und text.txt, Datei und vorher/ gibt es nie wieder aus.
+    Agent: Schritt rueckmeldungen_abarbeiten direkt nach beiden auftraege_abarbeiten. Zieht den Endstand aus der Aufträge-Ablage in stand.json (fertig,
+    fehlgeschlagen, zurückgenommen, Ergebnistext), nimmt je Projekt höchstens eine Marke, sichert expose.json und die Fassungen nach vorher/ und legt den
+    Auftrag an (quelle "portal", bezug und sitzung vom neuesten Auftrag der Kette, derzeit 20261103-120228-uni-187226). auftrag_bearbeiten erkennt daran
+    den Exposé-Zweig und holt die Kommentare. Das Ergebnis geht zusätzlich wie jedes per Telegram an Jan.
+    Abweichungen vom Bauplan, bewusst: Die Marke wird vor dem Sichern gelöscht, nicht danach (höchstens ein Lauf: Absturz in der Übergabe heißt
+    "fehlgeschlagen", nie ein zweiter bezahlter Lauf; Zurücknehmen kann sich nicht mit der Übergabe überschneiden). Datei ohne Kommentare und ohne Text:
+    kein Lauf, Stand fehlgeschlagen. Liegt in der Kette schon ein offener Auftrag (z. B. Telegram-Antwort bei knappem Kontingent), wartet die Marke.
+    Nach "fehlgeschlagen" gibt es keinen Knopf "noch einmal": neu abschicken, der eigene Text steht auf der Seite. Alte Fassung zurückholen geht nur von
+    Hand aus vorher/, das Portal hat dafür keinen Knopf.
+    Sofortstart: Vorlage portal/systemd/uni-portal-rueckmeldung.path (PathChanged auf die Warteschlange, startet uni.service), einrichten macht Jan (Offene
+    Punkte 12). Ohne sie greift der Timer 8, 13, 19 Uhr. Auch mit ihr: Kommt eine Marke, während uni.service gerade nach seinem letzten Rückmeldungs-Schritt
+    endet, wartet sie bis zum nächsten Timer. Jeder Start ist ein voller Lauf von uni.service (Moodle, Post), wie nach einem Telegram-Auftrag, auch nach
+    dem Zurücknehmen, denn PathChanged meldet auch das Löschen.
+    Geprüft: Tests (uni/tests/test_rueckmeldungen.py mit echter Aufträge-Ablage im Temp-Ordner, portal/tests/test_rueckmeldung.py, test_schutz.py); am
+    echten Dienst nur abgelehnte Eingaben (siehe Commit-Stand unten). UNGEPRÜFT: ein echter Lauf von der Marke bis zur neuen Fassung, Aussehen im Browser, die
+    Pfad-Unit im Betrieb. Bewusst nicht getestet: Eine gültige Marke am echten Dienst löst einen bezahlten Lauf aus und überschreibt das Exposé. Der
+    Echttest ist Jans erste echte Rückmeldung.
   - Geplant, nicht gebaut (Jan 04.11.: Der Agent schreibt, die Gruppe kommentiert; Word soll auch mal gehen; weitere Bausteine erst, wenn
-    die Schritte anstehen): Stufe 2 Rückmeldung per Text oder kommentierter PDF, daraus neue Fassung. Interviews vorbereiten (Jan: kommt
-    bald). Stufe 3 eigene Word-Fassung über agentkit.fassungen. Stufe 2 und Interviews brauchen Claude-Läufe: Das Web legt nur eine Datei in
-    die Warteschlange (app.py bleibt ohne agentkit).
-  - Nächster Schritt (Jan 04.11.: erst Rückmeldung, dann Interviews), Bauplan, noch kein Code. Braucht NICHT Offene Punkte 11, läuft über uni.service:
-    Web: Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Prüfung über Endung und Dateianfang, fester Name
-    kommentare.pdf/.docx, Hinweis: aus Dateien liest der Agent nur die Kommentare, eigene Word-Textänderungen also ins Textfeld; etwa 1 USD je
-    Überarbeitung, gemessen 1,06). Ablage data/projekte/<projekt>/rueckmeldungen/<id>/ (stand.json, text.txt, Datei; 700/600), Marke in
-    data/projekte/warteschlange/. Seite /projekt/<p>/rueckmeldung/<id> mit Stand, Neuladen alle 10 s wie uebung.html, Zurücknehmen solange "wartet".
-    Agent: neuer Schritt rueckmeldungen_abarbeiten (neues Modul uni/rueckmeldungen.py, getestet) nach beiden auftraege_abarbeiten: Endstand laufender
-    Rückmeldungen aus auftraege.erledigter in stand.json (fertig, fehlgeschlagen, zurückgezogen, Ergebnistext); immer nur eine je Projekt offen; vor der
-    Übergabe expose.json und PDF als vorher-Kopie sichern (Fassungen werden sonst überschrieben), dann auftraege.neuer_auftrag(AGENT, text,
-    quelle="portal", bezug=<neuester Auftrag der Kette>, sitzung=<dessen Sitzung>, dateien=[...], kopieren=True), Marke löschen, dann
-    auftraege_abarbeiten. Kettenende per ursprung(): derzeit 20261103-120228-uni-187226, Sitzung vorhanden. auftrag_bearbeiten erkennt die
-    Kette selbst (Exposé-Zweig, Kommentare aus Anhängen). Das Ergebnis geht zusätzlich wie immer per Telegram an Jan.
-    Sofortstart: neue Vorlage portal/systemd/uni-portal-rueckmeldung.path mit PathChanged= auf die Warteschlange, Unit=uni.service, MakeDirectory=yes
-    (PathChanged statt DirectoryNotEmpty, sonst Startschleife, wenn eine Marke liegen bleibt). Einrichten muss Jan, ohne sie greift der nächste Timer.
-    Anpassen: tests/test_schutz.py (Importe, Routen, Dateien), .gitignore prüfen. Tests am echten Dienst nur ohne gültige Rückmeldung: Eine echte Marke
-    löst beim nächsten Timer einen bezahlten Lauf aus und ändert das Exposé. Der Echttest ist Jans erste echte Rückmeldung.
+    die Schritte anstehen): Als Nächstes Interviews vorbereiten (Jan: kommt bald; braucht Claude-Läufe, also wieder nur Datei in die Warteschlange).
+    Stufe 3 eigene Word-Fassung über agentkit.fassungen.
     Von Jan noch offen: weitere Kontaktpersonen (Name, Adresse), erstes Interview (wer, wann, Ziel).
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
@@ -561,6 +567,9 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
     portal/systemd/uni-portal-frage.{service,path} nach ~/.config/systemd/user/ kopieren, `systemctl --user daemon-reload`,
     `systemctl --user enable --now uni-portal-frage.path`. Vorher bleibt jede Auswertung auf "wartet" stehen. Danach Adresse des
     ElevenLabs-Agenten als ELEVENLABS_AGENT_URL in portal/.env, Rubrik im Portal lesen und bestätigen.
+12. Sofortstart der Exposé-Rückmeldung einrichten (Jan, Terminal auf dem Server, als agent; freiwillig, ohne sie greift der Timer): Unit aus
+    portal/systemd/uni-portal-rueckmeldung.path nach ~/.config/systemd/user/ kopieren, `systemctl --user daemon-reload`,
+    `systemctl --user enable --now uni-portal-rueckmeldung.path`.
 
 - Kurzrecherche statt Recherche-Pipeline (03.11., Henris Frage Kamera oder RealSense, Auftrag
   20261103-104356-uni-49cf67): normaler Auftrag mit Verweis auf die vorhandene Exposé-Recherche, höchstens 5

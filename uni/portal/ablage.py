@@ -10,6 +10,9 @@ Aus portal/.env liest die App nur die Adresse des ElevenLabs-Agenten. Das Passwo
 Zu einem Projekt aus PROJEKTE liest das Portal nur: expose.json, die Fassungen (docx, pdf), recherche/geprueft.json, das
 Protokoll der Kette und den Auszug schriftverkehr.json. Der Auszug enthält nur Mails der eingetragenen Kontaktpersonen
 (uni/schriftverkehr.py, Jans Wunsch 04.11.); data/mails und das Postfach bleiben außen vor.
+
+Von einer Rückmeldung zum Exposé liest das Portal nur stand.json und text.txt. Die hochgeladene Datei legt es ab, gibt sie
+aber nie wieder aus, ebenso wenig die Sicherung in vorher/.
 """
 
 import re
@@ -17,6 +20,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
 import lernmodell
+import rueckmeldungen
 
 LERNEN_RELATIV = PurePosixPath("data/lernen")
 MODULE = {"holzschutz": "Holzschutz"}  # Ordner unter data/lernen -> Anzeigename; weitere Module kommen hier dazu
@@ -152,6 +156,34 @@ def schriftverkehr_lesen(uni: Path, projekt: str) -> dict | None:
         return None
     pfad = sicher(uni / "data" / "projekte" / projekt, "schriftverkehr.json", {".json"})
     return lernmodell.lies_json(pfad, None) if pfad else None
+
+
+def rueckmeldung_ordner(uni: Path, projekt: str, kennung: str) -> Path | None:
+    """data/projekte/<projekt>/rueckmeldungen/<id>/ nur für bekannte Projekte und IDs im festen Format; kein Symlink."""
+    if projekt not in PROJEKTE or not rueckmeldungen.ID.match(kennung or ""):
+        return None
+    pfad = rueckmeldungen.ordner(uni, projekt, kennung)
+    return pfad if pfad.is_dir() and not pfad.is_symlink() else None
+
+
+def rueckmeldung_lesen(uni: Path, projekt: str, kennung: str) -> dict | None:
+    """Stand und Text einer Rückmeldung, nur diese beiden Dateien: keine hochgeladene Datei und nichts aus vorher/."""
+    wo = rueckmeldung_ordner(uni, projekt, kennung)
+    pfad = sicher(wo, rueckmeldungen.STAND, {".json"}) if wo else None
+    if pfad is None:
+        return None
+    text = sicher(wo, rueckmeldungen.TEXT, {".txt"})
+    return {"stand": lernmodell.lies_json(pfad, {}), "text": text.read_text(encoding="utf-8") if text else ""}
+
+
+def rueckmeldungen_ids(uni: Path, projekt: str) -> list[str]:
+    """IDs der Rückmeldungen eines Projekts, neueste zuerst."""
+    if projekt not in PROJEKTE:
+        return []
+    wurzel = uni / rueckmeldungen.PROJEKTE_ORDNER / projekt / rueckmeldungen.RUECKMELDUNGEN
+    if not wurzel.is_dir():
+        return []
+    return sorted((p.name for p in wurzel.iterdir() if rueckmeldung_ordner(uni, projekt, p.name)), reverse=True)
 
 
 def elevenlabs_adresse(env_datei: Path) -> str | None:

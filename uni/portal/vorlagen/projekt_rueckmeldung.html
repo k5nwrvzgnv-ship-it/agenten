@@ -1,0 +1,58 @@
+{% extends "basis.html" %}
+{% block titel %}Rückmeldung zum Exposé{% endblock %}
+{% block kopf %}{% if laufstand.laeuft_noch %}<meta http-equiv="refresh" content="10">{% endif %}{% endblock %}
+{% block inhalt %}
+<nav class="krumen" aria-label="Brotkrumen">
+  <ol>
+    <li><a href="/projekt/{{ projekt }}#rueckmeldung">{{ name }}</a><span class="trenner" aria-hidden="true">›</span></li>
+    <li aria-current="page">Rückmeldung</li>
+  </ol>
+</nav>
+<header class="kopf">
+  <h1 class="titel-modul">Rückmeldung zum Exposé</h1>
+  <p class="unter">{{ (stand.angelegt or "")[:16] | replace('T', ' ') }}</p>
+</header>
+{%- if veraltet %}
+<p class="hinweis" role="status">Die Seite war nicht mehr aktuell, es wurde nichts geändert. Bitte noch einmal.</p>
+{%- endif %}
+
+<section>
+  <h2>Stand</h2>
+  <p class="absatz laufstand" role="status">{{ laufstand.text }}</p>
+  {%- if laufstand.grund %}
+  <p class="hinweis{% if laufstand.wert == 'fehlgeschlagen' %} hinweis-fehler{% endif %}">{{ laufstand.grund }}</p>
+  {%- endif %}
+  {%- if stand.hinweis %}
+  <p class="hinweis">{{ stand.hinweis }}</p>
+  {%- endif %}
+  {%- if laufstand.laeuft_noch %}
+  <p class="unter">Die Seite lädt sich alle 10 Sekunden neu.</p>
+  {%- endif %}
+  {%- if laufstand.zuruecknehmbar %}
+  <form method="post" action="/projekt/{{ projekt }}/rueckmeldung/{{ kennung }}/zuruecknehmen" class="knopf-abstand">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button class="knopf" type="submit">Zurücknehmen</button>
+  </form>
+  {%- endif %}
+  {%- if laufstand.wert == "fertig" %}
+  <p class="absatz knopf-abstand"><a class="knopf knopf-voll" href="/projekt/{{ projekt }}">Zur aktuellen Fassung</a></p>
+  {%- endif %}
+</section>
+
+{%- if stand.ergebnis %}
+<section>
+  <h2>Ergebnis des Agenten</h2>
+  <p class="absatz zeilen">{{ stand.ergebnis }}</p>
+</section>
+{%- endif %}
+
+<section>
+  <h2>Deine Rückmeldung</h2>
+  {%- if eingabe %}
+  <p class="absatz zeilen">{{ eingabe }}</p>
+  {%- endif %}
+  {%- if stand.datei %}
+  <p class="unter">Dazu eine Datei mit Kommentaren ({{ stand.datei }}).</p>
+  {%- endif %}
+</section>
+{% endblock %}
