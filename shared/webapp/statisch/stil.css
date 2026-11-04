@@ -63,7 +63,7 @@ body {
 .baum li { border: 0; }
 .baum-fach {
   padding: 16px 10px 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -109,7 +109,7 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--grau);
 }
 .krumen li { display: flex; gap: 6px; border: 0; }
@@ -130,7 +130,7 @@ body {
   .vorschau img { width: 56px; }
   .betrachter img { min-height: 0; max-height: none; width: 100%; }
   .baum-eintrag { min-height: 44px; }
-  h1 { font-size: 48px; }
+  h1 { font-size: 40px; }
 }
 
 .kopf {
@@ -224,7 +224,7 @@ a:hover { text-decoration-thickness: 2px; }
 
 .einzeln section { gap: 10px; }
 .einzeln h2 { margin: 0; }
-h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
+h3 { margin: 6px 0 0; font-size: 16px; font-weight: 700; }
 
 .absatz { margin: 0; }
 
@@ -250,14 +250,14 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   padding: 8px 0;
   border-bottom: 1px solid var(--schwarz);
 }
-.dateiname { font-weight: 700; font-size: 15px; overflow-wrap: anywhere; }
+.dateiname { font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
 .knoepfe { display: flex; gap: 8px; }
 .knopf {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid var(--schwarz);
+  border: 2px solid var(--schwarz);
   background: var(--weiss);
   color: var(--schwarz);
   font-size: 14px;
@@ -266,8 +266,8 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 }
 .knopf-voll { background: var(--schwarz); color: var(--weiss); }
 .knopf:hover { background: var(--schwarz); color: var(--weiss); }
-.knopf-voll:hover { background: var(--grau); border-color: var(--grau); }
-.knopf:disabled, .knopf-gross:disabled, .knopf-spalte:disabled { opacity: 0.5; cursor: default; }
+.knopf-voll:hover { background: var(--grau); border-color: var(--grau); color: var(--weiss); }
+.knopf:disabled, .knopf-gross:disabled { opacity: 0.5; cursor: default; }
 .knopf-aus { color: var(--hell); border-color: var(--hell); }
 
 /* Datei mit Seitenbildern: Karte mit der ersten Seite klein, Klick öffnet den Seiten-Betrachter */
@@ -320,7 +320,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 .entwurf {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 15px;
+  font-size: 16px;
   padding: 14px 0;
   border-top: 1px solid var(--schwarz);
   border-bottom: 1px solid var(--schwarz);
@@ -373,7 +373,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   color: var(--schwarz);
   resize: vertical;
 }
-.formular input[type=file] { font: inherit; font-size: 15px; padding: 10px 0; border-top: 1px solid var(--schwarz); }
+.formular input[type=file] { font: inherit; font-size: 14px; padding: 10px 0; border-top: 1px solid var(--schwarz); }
 .fehler { padding-left: 12px; border-left: 3px solid var(--akzent); color: var(--akzent); font-weight: 700; }
 .fehler p { margin: 0 0 4px; }
 .formular select {
@@ -415,26 +415,14 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 .material-knoepfe { display: flex; flex-direction: column; gap: 8px; }
 .final-form { display: contents; }
 .knopf-satz { margin: -4px 0 4px; }
-.knopf-spalte {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 2px solid var(--schwarz);
-  background: var(--weiss);
-  color: var(--schwarz);
-  font: inherit;
-  font-weight: 700;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-}
-.knopf-spalte:hover, .knopf-spalte:focus-visible { background: var(--schwarz); color: var(--weiss); }
+.knopf-spalte { width: 100%; text-align: left; }
 .knopf-abgesetzt { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--schwarz); }
-.knopf-spalte.ist-final, .knopf-spalte.ist-offen { background: var(--schwarz); color: var(--weiss); }
-.knopf-spalte.ist-final:hover, .knopf-spalte.ist-offen:hover { background: var(--grau); border-color: var(--grau); color: var(--weiss); }
-.knopf-klein { min-height: 32px; padding: 0 10px; font-size: 13px; align-self: flex-start; cursor: pointer; font-family: inherit; }
+.knopf-klein { min-height: 32px; padding: 0 10px; align-self: flex-start; cursor: pointer; font-family: inherit; }
+/* Leise: viele gleiche Knöpfe untereinander („fällt aus“), sie dürfen dem Hauptknopf keine Konkurrenz machen */
+.knopf-leise { min-height: 32px; padding: 0 6px; border-color: transparent; background: none; color: var(--grau); font-weight: 500;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-family: inherit; }
+.knopf-leise:hover { background: none; color: var(--schwarz); }
+.formular .knopf { align-self: flex-start; }
 button.knopf { font-family: inherit; cursor: pointer; }
 .hinweis-erledigt { font-weight: 700; }
 
@@ -570,7 +558,7 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .termin-wahl summary, .termine-vorher summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
 .termine li.termin-zeile { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto auto; gap: 10px;
   align-items: center; padding: 8px 0; }
-.termin-datum { font-weight: 700; font-size: 15px; }
+.termin-datum { font-weight: 700; font-size: 14px; }
 .termin-aus .termin-datum { text-decoration: line-through; color: var(--grau); }
 .stunden-liste li[draggable="true"] { cursor: grab; }
 .wird-gezogen { opacity: .4; }

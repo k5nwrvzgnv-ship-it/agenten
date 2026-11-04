@@ -14,10 +14,10 @@
   </span>
   {%- if not p.archiv %}
   {%- if t.ausgefallen %}
-  {{ knopf("/klasse/" ~ k.id ~ "/ausfall-aufheben", "findet doch statt", token, [("termin", t.kennung)]) }}
+  {{ knopf("/klasse/" ~ k.id ~ "/ausfall-aufheben", "findet doch statt", token, [("termin", t.kennung)], leise=true) }}
   {%- else %}
-  <a class="knopf knopf-klein" href="/klasse/{{ k.id }}/ausfall?termin={{ t.kennung }}">fällt aus</a>
-  {%- if t.zusatz and not t.stunde %}{{ knopf("/klasse/" ~ k.id ~ "/zusatztermin-entfernen", "entfernen", token, [("termin", t.kennung)]) }}{% endif %}
+  <a class="knopf knopf-leise" href="/klasse/{{ k.id }}/ausfall?termin={{ t.kennung }}">fällt aus</a>
+  {%- if t.zusatz and not t.stunde %}{{ knopf("/klasse/" ~ k.id ~ "/zusatztermin-entfernen", "entfernen", token, [("termin", t.kennung)], leise=true) }}{% endif %}
   {%- endif %}
   {%- endif %}
 </li>

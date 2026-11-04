@@ -9,11 +9,11 @@
 {%- endmacro -%}
 
 {#- Ein Knopf mit Wirkung (POST), z. B. Archivieren. felder: (name, wert) -#}
-{%- macro knopf(action, text, token, felder=[], voll=false) -%}
+{%- macro knopf(action, text, token, felder=[], voll=false, leise=false) -%}
 <form class="inline-form" method="post" action="{{ action }}">
   <input type="hidden" name="token" value="{{ token }}">
   {%- for name, wert in felder %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
-  <button class="knopf{% if voll %} knopf-voll{% endif %}" type="submit">{{ text }}</button>
+  <button class="knopf{% if voll %} knopf-voll{% elif leise %} knopf-leise{% endif %}" type="submit">{{ text }}</button>
 </form>
 {%- endmacro -%}
 

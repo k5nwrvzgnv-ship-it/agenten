@@ -188,6 +188,11 @@ class TestApp(Aufbau):
         # Befund 03.11. Punkt 5: Der Hinweis mit Rückgängig bleibt nach dem Sprung im Bild. Gemessen wird im Browser.
         self.assertRegex(css, r"\.aktion-hinweis \{ position: sticky; top: 0;")
 
+    def test_schriftgroessen(self):
+        """Befund 03.11., Teil D: vorher 11 Schriftgrößen, je Seite 7 bis 9. Neue Größen müssen hier begründet werden."""
+        _, css = self.hole("/statisch/stil.css")
+        self.assertEqual({int(n) for n in re.findall(r"font-size: (\d+)px", css)}, {12, 14, 16, 18, 22, 40, 64})
+
     def test_rot_nur_fuer_wartendes_und_fehler(self):
         """Befund 03.11., Kapitel 4: Rot sagt nur noch „schau hier hin“. Neue rote Stellen müssen hier begründet werden."""
         _, css = self.hole("/statisch/stil.css")
@@ -1225,6 +1230,11 @@ class TestMaterial(Aufbau):
         r, js = self.hole("/statisch/einmal.js")
         self.assertEqual(r.status, 200)
         self.assertIn("data-einmal", js)
+
+    def test_ein_hauptknopf(self):
+        """Befund 03.11., Teil D: Auf der Material-Ansicht ist „Rückmeldung geben“ der eine schwarze Knopf."""
+        _, html = self.hole(self.URL)
+        self.assertEqual(re.findall(r'<a class="[^"]*knopf-voll[^"]*"[^>]*>([^<]+)<', html), ["Rückmeldung geben"])
 
     def test_rueckmeldung_nur_mit_datei(self):
         """Befund 03.11. Punkt 2: Eine Datei allein reicht, der Browser verlangt keinen Text mehr."""

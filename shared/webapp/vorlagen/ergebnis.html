@@ -12,6 +12,8 @@
   {%- if e.marke %}<span class="material-marke{% if e.marke == 'Final' %} marke-final{% elif e.marke | dringend %} marke-rot{% endif %}">{{ e.marke }}</span>{% endif %}
 </header>
 {% endblock %}
+{#- Hauptknopf der Seite ist „Rückmeldung geben“: Sonst stünde „+ Neu hier“ schwarz daneben -#}
+{% block neu_klasse %}{% endblock %}
 {% block inhalt %}
 {%- macro inhalt(x) %}
   {%- if x.kern %}<p class="absatz">{{ x.kern }}</p>{% endif %}
@@ -46,7 +48,7 @@
       {%- endif %}
       <span class="knoepfe">
       {%- for k in d.knoepfe %}
-        <a class="knopf{% if loop.first %} knopf-voll{% endif %}" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
+        <a class="knopf" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
       {%- endfor %}
       {%- if aktionen %}
         <a class="knopf" href="{{ basis_url }}?offen=rueckmeldung&amp;fassung={{ d.auftrag }}&amp;datei={{ d.nr }}#rueckmeldung">Rückmeldung</a>
@@ -61,7 +63,7 @@
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="ref" value="{{ ref }}">
   <input type="hidden" name="an" value="{{ '0' if ist_final else '1' }}">
-  <button class="{{ klasse }}{% if ist_final %} ist-final{% endif %}" type="submit">{{ "Final · rückgängig" if ist_final else (name ~ " als final markieren" if name else "Als final markieren") }}</button>
+  <button class="{{ klasse }}" type="submit">{{ "Final · rückgängig" if ist_final else (name ~ " als final markieren" if name else "Als final markieren") }}</button>
 </form>
 {%- endmacro %}
 
@@ -85,7 +87,7 @@
     <button class="knopf knopf-klein" type="submit">{{ w.name }} anfordern</button>
   </form>
   {%- endfor %}
-  <a class="knopf knopf-klein{% if offen == 'variante' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=variante#variante">+ Variante</a>
+  <a class="knopf knopf-klein{% if offen == 'variante' %} knopf-voll{% endif %}" href="{{ basis_url }}?offen=variante#variante">+ Variante</a>
   {%- elif varianten.gewuenscht and not variante_art %}
   <span class="unter">Gewünscht: {{ varianten.gewuenscht | map(attribute="name") | join(", ") }}. Anfordern geht, sobald das Blatt fertig ist.</span>
   {%- endif %}
@@ -151,15 +153,16 @@
   <div class="material-knoepfe">
     {%- if einzeln %}
     {%- for k in e.dateien[0].knoepfe | sort(attribute="pfad") %}
-    <a class="knopf-spalte" href="/ergebnis/{{ e.dateien[0].auftrag }}/datei/{{ e.dateien[0].nr }}{{ k.pfad }}" download>{{ k.lang }}</a>
+    <a class="knopf knopf-spalte" href="/ergebnis/{{ e.dateien[0].auftrag }}/datei/{{ e.dateien[0].nr }}{{ k.pfad }}" download>{{ k.lang }}</a>
     {%- endfor %}
     {%- endif %}
-    <a class="knopf-spalte{% if offen == 'rueckmeldung' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Rückmeldung geben</a>
+    {%- set haupt = offen or ("" if e.aktuell_final else "rueckmeldung") %}
+    <a class="knopf knopf-spalte{% if haupt == 'rueckmeldung' %} knopf-voll{% endif %}" href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Rückmeldung geben</a>
     <span class="unter knopf-satz">Ich ändere es für dich.</span>
-    <a class="knopf-spalte{% if offen == 'eigene' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=eigene#eigene">Eigene Fassung hochladen</a>
+    <a class="knopf knopf-spalte{% if haupt == 'eigene' %} knopf-voll{% endif %}" href="{{ basis_url }}?offen=eigene#eigene">Eigene Fassung hochladen</a>
     <span class="unter knopf-satz">Deine Datei gilt, ich ändere nichts.</span>
     {#- „Final“ abgesetzt am Ende (Chrome-Test Nr. 11); rückgängig machbar, darum ohne Rückfrage #}
-    {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf-spalte", e.aktuell_name) }}</div>{% endif %}
+    {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf knopf-spalte", e.aktuell_name) }}</div>{% endif %}
   </div>
 </div>
 {%- if einzeln %}<span class="unter">{{ e.dateien[0].name }} · {{ e.dateien[0].seiten_text }}{% if e.dateien_aus %} · aus {{ e.dateien_aus }}{% endif %}. Tipp auf eine Seite, um sie durchzublättern.</span>

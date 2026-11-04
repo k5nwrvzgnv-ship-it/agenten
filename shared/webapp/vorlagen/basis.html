@@ -21,7 +21,7 @@
     <li aria-current="page">{{ krumen.hier }}</li>
   </ol>
 </nav>
-{%- if neu_hier %}<a class="knopf knopf-voll" href="{{ neu_hier }}">+ Neu hier</a>{% endif %}
+{%- if neu_hier %}<a class="knopf{% block neu_klasse %} knopf-voll{% endblock %}" href="{{ neu_hier }}">+ Neu hier</a>{% endif %}
 </div>
 {% block seitenkopf %}
 <header class="kopf">
