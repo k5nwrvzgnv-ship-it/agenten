@@ -188,6 +188,15 @@ class TestApp(Aufbau):
         # Befund 03.11. Punkt 5: Der Hinweis mit Rückgängig bleibt nach dem Sprung im Bild. Gemessen wird im Browser.
         self.assertRegex(css, r"\.aktion-hinweis \{ position: sticky; top: 0;")
 
+    def test_rot_nur_fuer_wartendes_und_fehler(self):
+        """Befund 03.11., Kapitel 4: Rot sagt nur noch „schau hier hin“. Neue rote Stellen müssen hier begründet werden."""
+        _, css = self.hole("/statisch/stil.css")
+        css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+        rot = {w.strip() for sel, inhalt in re.findall(r"([^{}]+)\{([^{}]*)\}", css) if "var(--akzent)" in inhalt
+               for w in sel.split(",")}
+        self.assertEqual(rot, {".baum-zahl", ".akzent", ".punkt-rot", ".marke-rot", ".hinweis-fehler", ".fehler",
+                               ".fragen-fehler"})
+
     def test_ergebnis(self):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
         self.assertEqual(r.status, 200)

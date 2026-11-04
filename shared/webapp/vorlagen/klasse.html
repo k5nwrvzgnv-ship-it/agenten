@@ -35,7 +35,7 @@
 </div>
 {%- endif %}
 <section aria-labelledby="ab1">
-  <h2 id="ab1"><span class="akzent">01</span>Reihen</h2>
+  <h2 id="ab1"><span class="abschnitt-nr">01</span>Reihen</h2>
   {%- if e.zeilen %}
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
   {%- else %}
@@ -44,7 +44,7 @@
 </section>
 {%- if p %}
 <section aria-labelledby="ab2" id="termine">
-  <h2 id="ab2"><span class="akzent">02</span>Termine</h2>
+  <h2 id="ab2"><span class="abschnitt-nr">02</span>Termine</h2>
   {%- if p.stundenplan %}<p class="absatz unter">Stundenplan: {{ p.stundenplan }} · <a href="/klasse/{{ p.klasse.id }}/stundenplan">ändern</a></p>{% endif %}
   {%- if p.termine_fehler %}
   <p class="hinweis">{{ p.termine_fehler }}</p>
@@ -80,7 +80,7 @@
 </section>
 {%- endif %}
 <section aria-labelledby="ab3">
-  <h2 id="ab3"><span class="akzent">{{ "03" if p else "02" }}</span>Zur ganzen Klasse</h2>
+  <h2 id="ab3"><span class="abschnitt-nr">{{ "03" if p else "02" }}</span>Zur ganzen Klasse</h2>
   <p class="leer">Noch nichts. Hier steht später, was zu keiner Reihe gehört, zum Beispiel eine Notentabelle.
     Bis dahin findest du es in „Heute“.</p>
 </section>

@@ -22,7 +22,7 @@
 {%- for name, zeilen, offen, leer in abschnitte if zeilen or leer %}
 {%- set nummer.n = nummer.n + 1 %}
 <section aria-labelledby="ab{{ nummer.n }}">
-  <h2 id="ab{{ nummer.n }}"><span class="akzent">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
+  <h2 id="ab{{ nummer.n }}"><span class="abschnitt-nr">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
   {%- if zeilen %}
   <ul>{% for z in zeilen %}{{ zeile(z, offen) }}
     {%- if z.zurueck_id and neu %}

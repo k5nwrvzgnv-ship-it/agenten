@@ -33,7 +33,7 @@
   {%- if stunde %}<input type="hidden" name="stunde" value="{{ stunde }}">{% endif %}
   {%- endif %}
   <section>
-    <h2><span class="akzent">01</span><label for="wunsch">{{ vorlage.frage }}</label></h2>
+    <h2><span class="abschnitt-nr">01</span><label for="wunsch">{{ vorlage.frage }}</label></h2>
     {%- if vorlage.kurz %}
     <input class="feld" id="wunsch" name="text" type="text" maxlength="300" required placeholder="{{ vorlage.hint }}" value="{{ text }}">
     {%- else %}
@@ -56,7 +56,7 @@
   {%- endif %}
   {%- if stunden_wahl %}
   <section>
-    <h2><span class="akzent">02</span><label for="stunde">Für welche Stunde?</label></h2>
+    <h2><span class="abschnitt-nr">02</span><label for="stunde">Für welche Stunde?</label></h2>
     <select id="stunde" name="stunde">
       {%- for s in stunden_wahl %}
       <option value="{{ s.nr }}">{{ s.text }}</option>
@@ -69,7 +69,7 @@
   {%- endif %}
   {%- if reihen %}
   <section>
-    <h2><span class="akzent">02</span><label for="reihe">Für welche Reihe?</label></h2>
+    <h2><span class="abschnitt-nr">02</span><label for="reihe">Für welche Reihe?</label></h2>
     <select id="reihe" name="reihe">
       <option value="">keine Reihe</option>
       {%- for r in reihen %}
@@ -90,7 +90,7 @@
   </fieldset>
   {%- endif %}
   <section>
-    <h2><span class="akzent">{{ "03" if reihen or stunden_wahl else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
+    <h2><span class="abschnitt-nr">{{ "03" if reihen or stunden_wahl else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
     <input id="dateien" name="dateien" type="file" multiple accept="{{ endungen }},image/*">
     <span class="unter">Zum Beispiel ein altes Blatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.
       Soll etwas, das ich schon gemacht habe, überarbeitet werden? Öffne es unter <a href="/">Heute</a> und

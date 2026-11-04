@@ -7,7 +7,7 @@
 <form class="formular" method="post" action="/klasse/{{ klasse.id }}/bearbeiten">
   <input type="hidden" name="token" value="{{ token }}">
   <section>
-    <h2><span class="akzent">01</span><label for="name">Name</label></h2>
+    <h2><span class="abschnitt-nr">01</span><label for="name">Name</label></h2>
     <input class="feld" id="name" name="name" type="text" maxlength="{{ laenge.name }}" value="{{ werte.name }}" required>
     <input type="hidden" name="alt_name" value="{{ klasse.name }}">
     <label class="feld-titel" for="schuljahr">Schuljahr</label>
@@ -20,7 +20,7 @@
 <form class="formular" method="post" action="/klasse/{{ klasse.id }}/lerngruppe" id="lerngruppe">
   <input type="hidden" name="token" value="{{ token }}">
   <section>
-    <h2><span class="akzent">02</span><label for="lg">Lerngruppe</label></h2>
+    <h2><span class="abschnitt-nr">02</span><label for="lg">Lerngruppe</label></h2>
     <p class="hinweis">{{ hinweis_lerngruppe }}</p>
     <textarea id="lg" name="lerngruppe" rows="5" maxlength="{{ laenge.lerngruppe }}">{{ lerngruppe }}</textarea>
     <input type="hidden" name="alt_lerngruppe" value="{{ lerngruppe_alt }}">
@@ -29,7 +29,7 @@
   <button class="knopf" type="submit">Lerngruppe speichern</button>
 </form>
 <section aria-labelledby="mehr">
-  <h2 id="mehr"><span class="akzent">03</span>Mehr</h2>
+  <h2 id="mehr"><span class="abschnitt-nr">03</span>Mehr</h2>
   <div class="knoepfe knoepfe-unten">
     <a class="knopf" href="/klasse/{{ klasse.id }}/stundenplan">Stundenplan</a>
     <a class="knopf" href="/klasse/{{ klasse.id }}/uebernehmen">Ins nächste Schuljahr übernehmen</a>

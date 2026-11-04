@@ -7,7 +7,7 @@
 <form class="formular" method="post" action="/klasse/{{ klasse.id }}/uebernehmen">
   <input type="hidden" name="token" value="{{ token }}">
   <section>
-    <h2><span class="akzent">01</span><label for="name">Name im neuen Schuljahr</label></h2>
+    <h2><span class="abschnitt-nr">01</span><label for="name">Name im neuen Schuljahr</label></h2>
     <input class="feld" id="name" name="name" type="text" maxlength="{{ laenge.name }}" value="{{ werte.name }}" required>
     <label class="feld-titel" for="schuljahr">Schuljahr</label>
     <input class="feld" id="schuljahr" name="schuljahr" type="text" maxlength="7" value="{{ werte.schuljahr }}"
@@ -20,7 +20,7 @@
       Klasse übernehmen“.</span>
   </section>
   <section>
-    <h2><span class="akzent">02</span>Stundenplan <span class="unter">(freiwillig)</span></h2>
+    <h2><span class="abschnitt-nr">02</span>Stundenplan <span class="unter">(freiwillig)</span></h2>
     {{ stundenplan(zeilen, anzahl, tage, stunden_wahl) }}
     {{ zeitraum(werte) }}
   </section>

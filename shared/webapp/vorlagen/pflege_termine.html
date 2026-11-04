@@ -8,7 +8,7 @@
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="was" value="zuteilen">
   <section>
-    <h2><span class="akzent">01</span>Freie Termine dazunehmen</h2>
+    <h2><span class="abschnitt-nr">01</span>Freie Termine dazunehmen</h2>
     {{ termine_wahl(frei, ab_wahl, werte, termine_fehler) }}
   </section>
   {%- if frei %}<button class="knopf knopf-voll" type="submit">Zuteilen</button>{% endif %}
@@ -18,7 +18,7 @@
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="was" value="freigeben">
   <section>
-    <h2><span class="akzent">02</span>Termine abgeben</h2>
+    <h2><span class="abschnitt-nr">02</span>Termine abgeben</h2>
     <span class="unter">Stunden ohne Thema und Material verschwinden dabei, die anderen bleiben ohne Termin in der Reihe.</span>
     <fieldset class="auswahl auswahl-spalte">
       <legend class="unsichtbar">Termine der Reihe</legend>

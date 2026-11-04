@@ -1,4 +1,5 @@
 /* Gestaltung "Modernist" (Board ModHeute): Schwarz-Weiß, ein Akzent, Linien statt Karten.
+   Rot (--akzent) heißt nur: „wartet auf dich“ oder „hat nicht geklappt“. Ein Test prüft die Liste der Stellen.
    Inter/Inter Tight nur, wenn auf dem Gerät vorhanden: keine Google Fonts, kein fremder Server. */
 :root {
   --schwarz: #111111;
@@ -82,6 +83,7 @@ body {
 .baum-eintrag.tiefe-1 { padding-left: 26px; font-weight: 400; }
 .baum-eintrag[aria-current] { background: var(--schwarz); color: var(--weiss); font-weight: 700; }
 .baum-zahl { font-size: 12px; font-weight: 700; color: var(--akzent); }
+.baum-eintrag[aria-current] .baum-zahl { color: var(--weiss); }
 
 .fragen {
   grid-area: fragen;
@@ -160,6 +162,7 @@ h1 {
 
 section { display: flex; flex-direction: column; }
 h2 { margin: 0 0 6px; display: flex; gap: 12px; }
+.abschnitt-nr { color: var(--grau); }
 
 ul { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--schwarz); }
 
@@ -176,23 +179,25 @@ li { border-top: 1px solid var(--schwarz); }
   text-decoration: none;
 }
 
-a.zeile:hover .titel, a.zeile:focus-visible .titel { color: var(--akzent); }
+a.zeile:hover .titel, a.zeile:focus-visible .titel { text-decoration: underline; text-underline-offset: 3px; }
 
-.punkt { width: 10px; height: 10px; margin-top: 7px; background: var(--akzent); }
+.punkt { width: 10px; height: 10px; margin-top: 7px; background: var(--schwarz); }
+.punkt-rot { background: var(--akzent); }
 .punkt-offen { background: none; border: 2px solid var(--schwarz); }
 
 .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .titel { font-size: 18px; font-weight: 700; line-height: 1.25; }
 .unter { font-size: 14px; color: var(--grau); }
 .grund { font-size: 14px; margin-top: 4px; }
-.marke { color: var(--akzent); padding-top: 4px; }
+.marke { padding-top: 4px; }
+.marke-rot { color: var(--akzent); }
 
 .leer { margin: 0; padding: 14px 0; border-top: 1px solid var(--schwarz); color: var(--grau); }
 ul + .leer { border-top: none; }
 
 /* Ergebnis und Entwurf (Board ModErgebnis) */
 a { color: var(--schwarz); }
-a:hover { color: var(--akzent); }
+a:hover { text-decoration-thickness: 2px; }
 
 .zurueck {
   align-self: start;
@@ -233,7 +238,8 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 }
 .nr { font-weight: 700; }
 
-.hinweis { margin: 0; padding-left: 12px; border-left: 3px solid var(--akzent); font-size: 15px; }
+.hinweis { margin: 0; padding-left: 12px; border-left: 3px solid var(--schwarz); font-size: 16px; }
+.hinweis-fehler { border-left-color: var(--akzent); }
 
 .dateien { display: flex; flex-direction: column; border-top: 1px solid var(--schwarz); }
 .datei {
@@ -259,8 +265,8 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   text-decoration: none;
 }
 .knopf-voll { background: var(--schwarz); color: var(--weiss); }
-.knopf:hover { border-color: var(--akzent); }
-.knopf-voll:hover { color: var(--weiss); background: var(--akzent); }
+.knopf:hover { background: var(--schwarz); color: var(--weiss); }
+.knopf-voll:hover { background: var(--grau); border-color: var(--grau); }
 .knopf:disabled, .knopf-gross:disabled, .knopf-spalte:disabled { opacity: 0.5; cursor: default; }
 .knopf-aus { color: var(--hell); border-color: var(--hell); }
 
@@ -268,7 +274,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 .datei-karte { grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; }
 .datei-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .datei-text .dateiname { color: var(--schwarz); text-decoration: none; }
-.datei-text .dateiname:hover, .datei-karte .vorschau:hover + .datei-text .dateiname { color: var(--akzent); }
+.datei-text .dateiname:hover, .datei-karte .vorschau:hover + .datei-text .dateiname { text-decoration: underline; }
 .vorschau img {
   display: block;
   width: 64px;
@@ -277,7 +283,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   border: 1px solid var(--schwarz);
   background: var(--weiss);
 }
-.vorschau:hover img { border-color: var(--akzent); }
+.vorschau:hover img { outline: 1px solid var(--schwarz); }
 
 /* Seiten-Betrachter: die ganze Seite passt in das Fenster */
 .blaettern { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -307,7 +313,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   font-weight: 700;
   text-decoration: none;
 }
-.seitenwahl a:hover { border-color: var(--akzent); }
+.seitenwahl a:hover { border-color: var(--schwarz); }
 .seitenwahl a[aria-current="page"] { background: var(--schwarz); border-color: var(--schwarz); color: var(--weiss); }
 .knoepfe-unten { flex-wrap: wrap; }
 
@@ -353,7 +359,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   cursor: pointer;
 }
 .knopf-gross span { font-size: 22px; }
-.knopf-gross:hover, .knopf-gross:focus-visible { background: var(--akzent); color: var(--weiss); }
+.knopf-gross:hover, .knopf-gross:focus-visible { background: var(--grau); color: var(--weiss); }
 .formular { display: flex; flex-direction: column; gap: 28px; }
 .formular section { gap: 10px; }
 .formular textarea {
@@ -389,7 +395,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   padding-bottom: 12px;
 }
 .material-art { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--grau); }
-.material-marke { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--akzent); }
+.material-marke { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .marke-final { align-self: flex-start; padding: 2px 8px; background: var(--schwarz); color: var(--weiss); }
 
 .material { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
@@ -404,7 +410,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   border: 1px solid var(--schwarz);
   background: var(--weiss);
 }
-.blatt:hover img, .blatt:focus-visible img { border-color: var(--akzent); outline: 1px solid var(--akzent); }
+.blatt:hover img, .blatt:focus-visible img { outline: 1px solid var(--schwarz); }
 .material-text { display: flex; flex-direction: column; gap: 10px; }
 .material-knoepfe { display: flex; flex-direction: column; gap: 8px; }
 .final-form { display: contents; }
@@ -424,10 +430,10 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
   text-decoration: none;
   cursor: pointer;
 }
-.knopf-spalte:hover, .knopf-spalte:focus-visible { border-color: var(--akzent); color: var(--akzent); }
+.knopf-spalte:hover, .knopf-spalte:focus-visible { background: var(--schwarz); color: var(--weiss); }
 .knopf-abgesetzt { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--schwarz); }
 .knopf-spalte.ist-final, .knopf-spalte.ist-offen { background: var(--schwarz); color: var(--weiss); }
-.knopf-spalte.ist-final:hover, .knopf-spalte.ist-offen:hover { background: var(--akzent); border-color: var(--akzent); color: var(--weiss); }
+.knopf-spalte.ist-final:hover, .knopf-spalte.ist-offen:hover { background: var(--grau); border-color: var(--grau); color: var(--weiss); }
 .knopf-klein { min-height: 32px; padding: 0 10px; font-size: 13px; align-self: flex-start; cursor: pointer; font-family: inherit; }
 button.knopf { font-family: inherit; cursor: pointer; }
 .hinweis-erledigt { font-weight: 700; }
@@ -449,10 +455,9 @@ button.knopf { font-family: inherit; cursor: pointer; }
 .fassungen .fassung-zeile:last-child { border-bottom: 1px solid var(--schwarz); }
 .fassung-name { font-weight: 700; }
 .fassung-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.fassung-rueckmeldung .fassung-name { color: var(--akzent); }
 .fassung-marke { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .fassung-text summary { cursor: pointer; font-size: 14px; font-weight: 700; }
-.fassung-text summary:hover { color: var(--akzent); }
+.fassung-text summary:hover { text-decoration: underline; }
 
 @media (max-width: 760px) {
   .material { grid-template-columns: minmax(0, 1fr); }
@@ -493,11 +498,11 @@ button.knopf { font-family: inherit; cursor: pointer; }
   color: inherit;
   text-decoration: none;
 }
-.galerie-karte:hover, .galerie-karte:focus-visible { border-color: var(--akzent); }
-.galerie-karte:hover .titel { color: var(--akzent); }
+.galerie-karte:hover, .galerie-karte:focus-visible { background: #fafafa; }
+.galerie-karte:hover .titel { text-decoration: underline; text-underline-offset: 3px; }
 .galerie-bild { display: block; height: 54px; border: 1px solid var(--schwarz); background: var(--weiss); }
 .bild-ab { background: linear-gradient(#ffd873 0 10px, #fff 10px 16px, #e4e4e4 16px 18px, #fff 18px 24px, #d9f2d0 24px 44px, #fff 44px); }
-.bild-folie { background: linear-gradient(90deg, var(--akzent) 0 6px, #fff 6px); }
+.bild-folie { background: linear-gradient(90deg, var(--schwarz) 0 6px, #fff 6px); }
 .bild-tabelle { background: repeating-linear-gradient(90deg, transparent 0 30px, var(--schwarz) 30px 31px), repeating-linear-gradient(#fff 0 12px, #e4e4e4 12px 13px); }
 .krumen-zeile { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
 
@@ -539,7 +544,7 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .nachfrage-form { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 6px; font-size: 14px; }
 
 /* Tastatur: sichtbarer Fokus überall (Chrome-Test Nr. 12) */
-:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--schwarz); outline-offset: 2px; }
 
 /* Struktur pflegen (Bauschritt 5): Hinweis „… · Rückgängig“, Masken, Termine, „+ …“ im Baum */
 /* Nach dem Sprung auf #stunden/#termine bleibt der Hinweis im Bild (Befund 03.11. Punkt 5), der Sprung endet darunter */
@@ -548,11 +553,11 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 .inhalt:has(.aktion-hinweis) [id] { scroll-margin-top: 96px; }
 .aktion-zeile { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .inline-form { display: inline-flex; margin: 0; }
-.knopf-link { font: inherit; font-weight: 700; padding: 0; border: 0; background: none; color: var(--akzent);
+.knopf-link { font: inherit; font-weight: 700; padding: 0; border: 0; background: none; color: var(--schwarz);
   text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.knopf-link:hover { color: var(--schwarz); }
+.knopf-link:hover { text-decoration-thickness: 2px; }
 .baum-neu { font-weight: 400; font-size: 14px; color: var(--grau); }
-.baum-neu:hover { color: var(--akzent); }
+.baum-neu:hover { color: var(--schwarz); }
 .plan-zeilen { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
 .plan-zeile { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; border: 0; }
 .plan-zeile label, .plan-zeilen label { display: flex; flex-direction: column; gap: 4px; }

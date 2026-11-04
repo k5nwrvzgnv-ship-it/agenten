@@ -19,11 +19,11 @@
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="klasse" value="{{ ziel.id }}">
   <section>
-    <h2><span class="akzent">01</span>Nach {{ ziel_text }}</h2>
+    <h2><span class="abschnitt-nr">01</span>Nach {{ ziel_text }}</h2>
     <a class="unter" href="/reihe/{{ reihe.id }}/kopieren">andere Klasse wählen</a>
   </section>
   <section>
-    <h2><span class="akzent">02</span>Termine dort <span class="unter">(freiwillig)</span></h2>
+    <h2><span class="abschnitt-nr">02</span>Termine dort <span class="unter">(freiwillig)</span></h2>
     {{ termine_wahl(frei, ab_wahl, werte, termine_fehler) }}
   </section>
   <button class="knopf knopf-voll" type="submit">Übernehmen</button>

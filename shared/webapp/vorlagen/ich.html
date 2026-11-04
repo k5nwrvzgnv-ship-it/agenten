@@ -5,7 +5,7 @@
 {% block inhalt %}
 {%- for g in gruppen %}
 <section aria-labelledby="ab{{ loop.index }}">
-  <h2 id="ab{{ loop.index }}"><span class="akzent">{{ "%02d" | format(loop.index) }}</span>{{ g.titel }}</h2>
+  <h2 id="ab{{ loop.index }}"><span class="abschnitt-nr">{{ "%02d" | format(loop.index) }}</span>{{ g.titel }}</h2>
   <ul>{% for r in g.regeln %}{{ zeile(r) }}{% endfor %}</ul>
 </section>
 {%- else %}

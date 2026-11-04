@@ -7,7 +7,7 @@
 <form class="formular" method="post" action="/fach/{{ fach.id }}/klasse/neu">
   <input type="hidden" name="token" value="{{ token }}">
   <section>
-    <h2><span class="akzent">01</span><label for="name">Name</label></h2>
+    <h2><span class="abschnitt-nr">01</span><label for="name">Name</label></h2>
     <input class="feld" id="name" name="name" type="text" maxlength="{{ laenge.name }}" value="{{ werte.name }}"
            required placeholder="zum Beispiel 9 oder Kurs 11">
     <label class="feld-titel" for="schuljahr">Schuljahr</label>
@@ -15,7 +15,7 @@
            required pattern="[0-9]{4}/[0-9]{2}">
   </section>
   <section>
-    <h2><span class="akzent">02</span>Stundenplan <span class="unter">(freiwillig)</span></h2>
+    <h2><span class="abschnitt-nr">02</span>Stundenplan <span class="unter">(freiwillig)</span></h2>
     <span class="unter">Wann hast du die Klasse jede Woche? Daraus entstehen alle Termine, ohne Ferien und Feiertage.</span>
     {%- if bundesland_fehlt %}
     <label class="feld-titel" for="bundesland">Bundesland deiner Schule</label>

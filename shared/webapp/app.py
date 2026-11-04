@@ -522,6 +522,7 @@ def aktion_hinweis(aktion_id: str | None) -> dict | None:
 vorlagen.env.globals["aktion_hinweis"] = aktion_hinweis
 vorlagen.env.globals["formular_token"] = lambda: logik.formular_token(GEHEIM)
 vorlagen.env.globals["einmal_kennung"] = lambda: secrets.token_hex(8)
+vorlagen.env.filters["dringend"] = logik.marke_dringend
 
 
 _EINMAL: dict[str, asyncio.Future] = {}  # Formular-Kennung -> Ziel der Weiterleitung (nur die letzten, siehe einmal)
@@ -1976,7 +1977,8 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
         "neu_link": logik.neu_link(reihe["id"] if reihe and reihe["laufend"] else ""),
         "e": e, "kopf_id": kopf["id"], "basis_url": logik.ergebnis_link(kopf), "token": logik.formular_token(GEHEIM),
         "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene", "variante") else "",
-        "hinweis": hinweis, "fehler": fehler or [], "text": text, "text_max": logik.NEU_TEXT_MAX,
+        "hinweis": hinweis, "hinweis_fehler": hinweis == logik.FEHLGESCHLAGEN, "fehler": fehler or [], "text": text,
+        "text_max": logik.NEU_TEXT_MAX,
         "rueck_endungen": ",".join(logik.RUECK_ENDUNGEN), "eigene_endungen": ",".join(logik.EIGENE_ENDUNGEN),
         **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "",
                  neu_hier=_neu_hier(reihe, nr) if reihe else "")}, status_code=status)

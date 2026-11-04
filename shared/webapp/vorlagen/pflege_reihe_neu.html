@@ -9,12 +9,12 @@
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
   <section>
-    <h2><span class="akzent">01</span><label for="titel">Titel</label></h2>
+    <h2><span class="abschnitt-nr">01</span><label for="titel">Titel</label></h2>
     <input class="feld" id="titel" name="titel" type="text" maxlength="{{ laenge.titel }}" value="{{ werte.titel }}"
            required placeholder="zum Beispiel Würde des Menschen">
   </section>
   <section>
-    <h2><span class="akzent">02</span>Termine <span class="unter">(freiwillig)</span></h2>
+    <h2><span class="abschnitt-nr">02</span>Termine <span class="unter">(freiwillig)</span></h2>
     <span class="unter">Je Termin entsteht eine Stunde, das Thema trägst du später ein.</span>
     {{ termine_wahl(frei, ab_wahl, werte, termine_fehler) }}
     <label class="plan-zeilen"><span class="unter">Stunden ohne Termin</span>
