@@ -79,6 +79,7 @@ Nicht geprüft: Lesbarkeit, Abstände, Schriftgrößen und Handy-Ansicht, alles,
 
 ## Offene Fragen an Jan
 
-1. "Recherche-Maske": nur besser durch Ergebnisse navigieren oder auch Nachfragen und neue Recherchen auslösen?
+1. "Recherche-Maske": entschieden (Jan 04.11.): navigieren und nachfragen. Die Nachfrage kommt als eigener Vorschlag, weil
+   sie Kosten und Agentenlogik berührt.
 2. "Flexibilität": Was wolltest du zuletzt tun und konntest es nicht? Vorschlag: kombinierbare Filter, Suche, gespeicherte
    Ansichten, keine Einstellungsseite.

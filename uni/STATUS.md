@@ -432,9 +432,22 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Gemessen 04.11. am echten Dienst: Seiten 11 bis 68 ms, Recherche mit allen 163 Aussagen 227 KB, MemoryPeak 42 MB, von außen ohne
     Passwort 401. Ungeprüft: Aussehen im Browser.
   - Oberfläche (Jan 04.11.: "furchtbar", zu viel Information, keine Hierarchie): Schritt 1 fertig, Kernaufgaben und Befund in
-    portal-oberflaeche.md, nichts umgebaut. Wartet auf Jans Okay und seine Antworten zu "Recherche-Maske" und "Flexibilität".
-    Danach Schritt 2: Testfragen mit prüfbarer Lösung, Messung am alten Stand, Zielwerte vor jedem Entwurf; dann Vorbilder,
-    Entwurf, Umbau auf getrenntem Port, Abnahme. Screenshots gehen auf dem Server nicht (Chromium ohne Systembibliotheken).
+    portal-oberflaeche.md, nichts umgebaut. Jan 04.11.: Die Recherche soll navigieren und nachfragen können; die Nachfrage kommt als
+    eigener Vorschlag (Kosten, Agentenlogik). Noch offen von Jan: Okay zu den Kernaufgaben, was "Flexibilität" konkret heißt, zwei
+    Screenshots vom Mac oder Chrome mit Erweiterung (auf dem Server startet Chromium nicht, Systembibliotheken fehlen).
+    Ablauf: 2 Messlatte, 3 Vorbilder aus eigener Benutzung (danach Jans Okay), 4 Struktur und Varianten mit Baumtest (danach Jans
+    Okay), 5 Umbau auf getrenntem Port (Vorlagen wirken sofort live), nur uni/, 6 Abnahme mit Parallelfragen und einer fremden
+    Person, nach zwei Wochen Log auswerten, Prüfstein in webapp-plan.md Abschnitt 9. Fertig erst bei erreichten Zielwerten.
+    Schritt 2, Entwurf, noch nicht gebaut: uni/portal/messung.py, nur lesend, Tests in portal/tests, keine neuen Pakete, nicht im
+    Web-Dienst. Jan startet es per SSH im Terminal und benutzt dabei das echte Portal. Eine Frage nach der anderen, Zeit je Frage, leere
+    Antwort heißt aufgegeben, Seitenaufrufe aus journalctl im Zeitfenster (ohne /statisch), Ergebnis in portal/data/messung/.
+    Lösungen zur Laufzeit aus den Daten berechnen, nicht im Repo, erst nach dem ganzen Satz zeigen. Fragen Jan vorher nicht
+    zeigen, sonst ist die Messung wertlos. Satz A jetzt, gleich schwerer Satz B zur Abnahme, mit anderen Parametern:
+    Literaturangaben oder Zeilen im Zeitplan (K1), offene Stellen je Abschnitt (K2), Status zählen in einer Frage Fx (K3-nah,
+    Recherche), Belege einer Aussage und Aussagen einer Quelle (K4, nur Quellen mit eindeutigem Titel: 79 von 89), Titel einer Suche Sx (K5,
+    9 Suchen), PDF öffnen, geprüft über den Aufruf fassung/pdf im Log (K6), Datum einer Mail (K7, 3 Mails), Score eines Themas (K8, 16
+    Themen; keine POSTs, Bewerten ändert echten Lernstand), Scopus-Aussagen ohne Beleg (fenster, heute kaum lösbar). Fassungsvergleich und
+    Nachfrage gehen heute nicht und zählen als "geht nicht". Strg+F ist erlaubt. Danach: Messung mit Jan, Zielwerte vor jedem Entwurf.
   - Rückmeldung zum Exposé (Stufe 2, 04.11., gebaut): Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Text bis 20.000
     Zeichen, Prüfung über Endung und Dateianfang, fester Name kommentare.pdf/.docx). Logik in uni/rueckmeldungen.py, gemeinsam für Web und Agent, ohne
     agentkit (test_schutz belegt: das Portal nutzt nur den Web-Teil). Ablage data/projekte/<projekt>/rueckmeldungen/<id>/ (stand.json, text.txt, Datei,
