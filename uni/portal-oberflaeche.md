@@ -1,7 +1,8 @@
 # Portal-Oberfläche: Aufgaben und Befund (Schritt 1)
 
-Stand 04.11.2026. Nichts umgebaut. Noch offen ist Jans Okay zu den Kernaufgaben und seine Antwort auf die beiden
-Fragen am Ende. Danach folgt Schritt 2 (Messlatte am alten Stand).
+Stand 04.11.2026. Nichts umgebaut. Noch offen ist Jans Okay zu den Kernaufgaben und seine Antwort auf die Frage am Ende.
+Schritt 2 (Messlatte) entfällt: Jan will keine Messung (04.11.). Es gibt keine Zielwerte, abgenommen wird nach Jans Eindruck.
+Als nächster Schritt folgt 3 (Vorbilder).
 
 Kennzeichnung: **[B]** belegt in den genannten Daten, **[W]** von Jan gewünscht, aber noch nicht praktisch vorgekommen,
 **[V]** meine Vermutung.
