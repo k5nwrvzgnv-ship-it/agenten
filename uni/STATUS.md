@@ -585,6 +585,14 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
     portal/systemd/uni-portal-frage.{service,path} nach ~/.config/systemd/user/ kopieren, `systemctl --user daemon-reload`,
     `systemctl --user enable --now uni-portal-frage.path`. Vorher bleibt jede Auswertung auf "wartet" stehen. Danach Adresse des
     ElevenLabs-Agenten als ELEVENLABS_AGENT_URL in portal/.env, Rubrik im Portal lesen und bestätigen.
+12. Exposé-Auftrag am Exposé-Weg vorbei (Vorfall 04.11., Auftrag 20261104-163834-uni-2ee98f, neue Telegram-Nachricht "Exposé überarbeiten ..." mit
+    kommentierter PDF): expose.AUSLOESER verlangt "Exposé:", Antwort ohne Exposé-Start in der Kette zählt auch nicht. Der normale Lauf änderte expose.json
+    trotzdem, ohne Prüfung und Bau; das Portal zeigte damit vermutlich neuen Text neben alter PDF (aus dem Code, nicht geöffnet). Antworten auf das Ergebnis dieses Auftrags laufen weiter am Exposé-Weg
+    vorbei. Fassung im Chat ohne Claude-Lauf gebaut und per Meldung an Jan geschickt, alte Dateien in
+    data/expose/20261102-165741-uni-ac9dcc/vorher/20261104-163834-uni-2ee98f/. Stand der Kette: 17 Kommentare (Felix 12, Henri 5), 11 [OFFEN].
+    Noch offen, Jan wollte vorerst nur den Bau, nicht behoben. Vorschlag: geänderte expose.json am Laufende prüfen und bauen, egal über welchen Weg; Aufträge
+    zum Exposé auch ohne "Exposé:" erkennen; kurse.kommentare_block gibt den Autor mit (agentkit.textfassung liefert ihn, er fehlt im Block,
+    deshalb nannte der Lauf falsch nur Henri). Offen bei Jan: 800 mm, Keilzinkung, Beleg Microtec Goldeneye 301, Titel.
 
 - Kurzrecherche statt Recherche-Pipeline (03.11., Henris Frage Kamera oder RealSense, Auftrag
   20261103-104356-uni-49cf67): normaler Auftrag mit Verweis auf die vorhandene Exposé-Recherche, höchstens 5
