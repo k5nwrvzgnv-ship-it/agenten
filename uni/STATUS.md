@@ -355,11 +355,32 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Übung Folie 81 durchgespielt, Hintergrund, 5-10 Selbsttest-Fragen, offene Fragen an den Dozenten."
     Danach Tokens messen (Schätzung 100.000-200.000 für uni, dazu der Lauf von dokumente).
 
-- Portal (04.11., Entscheidungsgrundlage `webapp-plan.md`, nichts gebaut): Empfehlung neue kleine App in uni/portal/
-  statt Lias App zu kopieren, erster Durchstich Prüfungsseite Holzschutz. Der tägliche Anstoß bleibt in Telegram. Stand
-  04.11.: uni-lernen nicht eingerichtet, keine Karte bewertet (kein zustand.json, kein verlauf.jsonl, Log leer), karten.json
-  hat 64 Karten. Jans Entscheidungen stehen im Plan, Abschnitt 10 (Portal zuerst, ElevenLabs statt Probeprüfer, Subdomain
-  mit Passwort statt Tunnel). Bau wartet auf Jans Okay für Pakete, Dienst und Caddy. Bedarf: ../STATUS.md Punkt 29.
+- Portal (uni/portal/, Teil 1 gebaut 04.11., Grundlage `webapp-plan.md`, Jans Entscheidungen dort Abschnitt 10):
+  - Läuft: Dienst uni-portal (Vorlage portal/systemd/, aktiviert), nur 127.0.0.1:8793, MemoryMax=200M. Neustart nach
+    Code-Änderung: `systemctl --user restart uni-portal`. Vorlagen und CSS wirken sofort, Python erst nach Neustart.
+    Log: `journalctl --user -u uni-portal`. Von außen noch nicht erreichbar: DNS und Caddy macht Jan (Offene Punkte 10).
+  - Seiten: /modul/holzschutz (Prüfungsform, Themen mit Score und Lernstand, Liste "fehlt", bewusst ohne Termin),
+    /modul/holzschutz/ueben (Karte, Antwort zeigen, vier Knöpfe; Bildkarten zeigen zur Antwort die ganze Infokarte).
+    Kein Claude-Lauf, also kein Kontingent. Weitere Module: Eintrag in ablage.MODULE.
+  - Aufbau: app.py (dünn), logik.py (Sitzung, Formularschutz, Ansicht), ablage.py (Positivliste), tests/ (in pruefen.sh).
+    statisch/ ist eine Kopie von shared/webapp/statisch (ohne einmal.js, ziehen.js), eigene Regeln am Ende von stil.css.
+    einmal.js fehlt mit Absicht: Es sperrt den Knopf beim Absenden, sein Wert fehlte dann im Formular. Doppelklicks fängt
+    der Server über den Zähler nr ab.
+  - Schutz: lädt uni/.env nicht, kein agentkit, liest nur MODUL_DATEIEN und bilder/ der Module, nie data/mails oder
+    data/mailauftraege, kein Weg nach außen (tests/test_schutz.py: Köderdateien, Mitschnitt aller geöffneten Dateien,
+    Importliste, Routenliste, eigener Prozess mit leerer Umgebung).
+  - Lernstand: zustand.json und verlauf.jsonl über lernmodell.Modul, gemeinsam mit lernen.py (Test). Die Sitzung des
+    Portals liegt in portal/data/sitzung_<modul>.json, nicht in lernens sitzung.json. Ablauf wie lernen.weiter (Nochmal
+    einmal ans Ende), aber nach 13 Karten geht es weiter, solange etwas fällig ist; neue bleiben bei 8 am Tag. Beide Wege
+    teilen die Bewertungen, nicht die Warteschlange: Wird uni-lernen eingerichtet, kann eine Karte am selben Tag in
+    beiden Warteschlangen stehen und zweimal bewertet werden. Keine gemeinsame Dateisperre mit lernen.py.
+  - Zugang: portal/.env (600) mit Benutzer jan, Passwort und Hash, portal/data/caddy-uni.txt (600) mit fertigem Block,
+    Block und Hash mit einem kurzzeitigen lokalen Caddy geprüft (401 ohne und mit falschem Passwort, 200 mit richtigem).
+  - Gemessen 04.11. (lokal, ohne Caddy, während pruefen.sh lief): Karte 6 bis 19 ms, Bewerten 16 ms, Bild 19 ms,
+    MemoryPeak 38 MB. Echte Karte angezeigt und einmal bewertet, die Bewertung danach entfernt: Jans Lernstand ist leer.
+  - Ungeprüft: Aussehen im Browser (Headless-Browser startet auf dem Server nicht, fehlende Bibliotheken) und Zugriff
+    über uni.meldro.de. Nächster Teil in eigenem Chat: Auswertung der mündlichen Übung (ElevenLabs-Transkript).
+  - Stand vor dem Bau: uni-lernen nicht eingerichtet und laut Plan Abschnitt 10 optional. Bedarf: ../STATUS.md Punkt 29.
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
@@ -463,6 +484,9 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
      (Erkennung, Suchbegriffe), data/mailauftraege/<id>/kontext.json und Entwurf prüfen, erst dann freigeben.
      Den alten Entwurf 20261027-112951-uni-e7a60a (ohne Stilvorlage, offen in der Freigabe) dann ablehnen.
    - Offen: data/mailauftraege/ (Mailtexte) aufräumen, z. B. nach 30 Tagen löschen (wie posteingang Punkt 8).
+10. Portal von außen (Jan): DNS bei INWX für uni.meldro.de (A 84.247.188.205, AAAA 2a02:c207:3020:9076::1; zeigte am
+    04.11. auf 185.181.104.242, Jan prüft, ob er das nutzt), dann Block aus portal/data/caddy-uni.txt als root an
+    /etc/caddy/Caddyfile anhängen und Caddy neu laden. Danach Aussehen im Browser ansehen.
 
 - Kurzrecherche statt Recherche-Pipeline (03.11., Henris Frage Kamera oder RealSense, Auftrag
   20261103-104356-uni-49cf67): normaler Auftrag mit Verweis auf die vorhandene Exposé-Recherche, höchstens 5
