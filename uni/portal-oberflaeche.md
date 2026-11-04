@@ -222,23 +222,26 @@ Stand: `webapp-plan.md` Abschnitt "Was nicht gebaut wird" (unter Abschnitt 8) bl
 |---|---|---|
 | "Zugänge für die Gruppe" | Aufgabe 10, Jans "wir arbeiten alle an allem" | Eigener Vorschlag (Kosten, Datenschutz). Heute gibt es ein gemeinsames Passwort und keine Personen |
 | "Oberfläche für die Recherche-Pipeline" | Aufgabe 9, Recherche-Start, Nachfrage (Aufgabe 3) | Eigener Vorschlag (Kosten, Agentenlogik) |
-| "Web-Editor für Berichte: Word bleibt" | Kommentieren an der Textstelle im Browser | Kein Editor, aber neuer Bau daneben. Heute laufen Kommentare über Text oder PDF/docx. Jan entscheidet (Frage 6) |
+| "Web-Editor für Berichte: Word bleibt" | Kommentieren an der Textstelle im Browser | Entfällt, Jan will das vorerst nicht (siehe "Jans Antworten auf die Fragen") |
 
 Davon hängen ab:
 - Der Filter nach Person im Aktivitätsüberblick (Basecamp) hängt an den Zugängen. Ohne Personen zeigt eine Zeitleiste nur, was geschah, nicht wer es war **[V]**.
 - Für den Fassungsvergleich (Confluence, Overleaf) ist in Schritt 4 zu prüfen, woher die alten Fassungen kommen: Die Sicherung `vorher/` gibt das Portal laut
   `STATUS.md` nie wieder aus.
 
+## Jans Antworten auf die Fragen (04.11., spät)
+
+- **Zeile "mindestens 10 von 14 Tagen":** "nein löschen". Aus `webapp-plan.md` Abschnitt 9 gelöscht.
+- **"Beide":** Felix und Henri sind gemeint. "holzschutz oder ander müssen nicht gesperrt bleiben, soeinfahch wie möglich erstmal". Keine Sperren vorerst.
+  Sie sähen dann auch Schriftverkehr und Lernstand, das benennt der Vorschlag zu den Zugängen.
+- **Eigener Vorschlag zu Zugänge, Recherche-Start, Nachfrage:** "ja gerne", dafür Vorbilder recherchieren, "keine lust das rad neu zuerfinden".
+- **Kommentieren an der Textstelle im Browser:** "erstmal zu kompliziert, lieber das mit dokumetnen und kommentaren optimieren und wirklich gut machen".
+  Nicht vorsehen. Die Muster dazu (Notion, Overleaf) gelten damit nur noch für die Darstellung der Kommentare und das Erledigen, nicht fürs Markieren im Text **[V]**.
+
 ## Offene Fragen an Jan
 
-1. Bleibt die Zeile "mindestens 10 von 14 Tagen geübt, sonst Portalbau stoppen" (23.11.) in `webapp-plan.md` Abschnitt 9? Jans "ja" zu der
-   Doppelfrage ist hier nicht eindeutig (bleibt oder Empfehlung streichen). Bis zur Antwort unverändert.
-2. Sollen Aufgabe 9 (neue Recherche beginnen, Überblick vorab) und 10 (gemeinsam kapitelweise) feste Kernaufgaben werden? Bei 10 und dem
-   Überblick spricht Jans Antwort dafür, zu 9 hat er nichts gesagt.
-3. Sind mit "beide" Felix und Henri gemeint, und bleiben Lernen und Holzschutz für sie gesperrt?
-4. Bestätigst du die Vorbilder? Erst danach Schritt 4.
-5. Soll ein eigener Vorschlag zu Zugänge, Recherche-Start und Nachfrage kommen? Erst damit würde sich "Was nicht gebaut wird" ändern.
-6. Kommentieren an der Textstelle im Browser: vorsehen, oder bleibt es bei Text und PDF/docx?
+1. Aufgabe 9 und 10: Jan hat die Frage nicht verstanden, einfacher neu gestellt.
+2. Bestätigst du die Vorbilder? Erst danach Schritt 4.
 
 **Hinweis zum Exposé:** Die Autorenzeile der aktuellen Fassung zeigt "Felix Frankowiak (Matr.-Nr. XXXXXXXX)". Die Seite meldet trotzdem "Noch offen (0)",
 weil `portal/projekt.py` nur `[OFFEN: ...]` als offene Stelle erkennt. Nur gemeldet, nichts geändert.

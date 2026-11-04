@@ -441,8 +441,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     nicht). Vorbilder (Notion, Basecamp, Overleaf, Confluence, NotebookLM) stehen in portal-oberflaeche.md, nur aus Dokumentation
     bekannt, nur als Muster; Jans Bestätigung steht aus, seine offenen Fragen stehen am Ende der Datei. Am Portal nichts geändert, Schritt 4 erst nach seinem Okay.
     Messung entfällt (Jan 04.11.): keine Zielwerte, Abnahme nach Jans Eindruck (eingetragen in webapp-plan.md Abschnitt 9). Baumtest, fremde Person und Log-Auswertung gestrichen,
-    portal/messung.py samt Test gelöscht. Offen: Bleibt die Zeile "mindestens 10 von 14 Tagen geübt" in Abschnitt 9, bis zu Jans Antwort unverändert.
-    Spannung zu webapp-plan.md "Was nicht gebaut wird" (Zugänge, Recherche-Pipeline, Web-Editor): Abschnitt unverändert, Zugänge, Recherche-Start und Nachfrage nur als eigener Vorschlag.
+    portal/messung.py samt Test gelöscht, die Zeile "mindestens 10 von 14 Tagen geübt" aus Abschnitt 9 ebenfalls (Jan 04.11.). Kommentieren an der Textstelle im Browser: vorerst nicht, Dokumente und Kommentare wie bisher verbessern.
+    Spannung zu webapp-plan.md "Was nicht gebaut wird" (Zugänge, Recherche-Pipeline): Abschnitt unverändert. Jan will dazu einen eigenen Vorschlag mit Vorbildern (Zugänge für Felix und Henri ohne Sperren, Recherche-Start, Nachfrage).
     Ablauf: 3 Vorbilder (danach Jans Okay), 4 Struktur und Varianten (danach Jans Okay), 5 Umbau auf getrenntem Port (Vorlagen wirken sofort live),
     nur uni/, 6 Abnahme durch Jan.
   - Rückmeldung zum Exposé (Stufe 2, 04.11., gebaut): Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Text bis 20.000
