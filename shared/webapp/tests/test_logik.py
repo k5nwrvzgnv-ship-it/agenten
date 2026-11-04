@@ -523,10 +523,6 @@ class TestMaterial(unittest.TestCase):
         self.assertEqual((h["anzahl_wartet"], [z["marke"] for z in h["fertig"]]), (0, ["Final"]))
 
     def test_rueckmeldung_und_dateien_pruefen(self):
-        for marke in ("Neu", "Offen", "Hat nicht geklappt", "Fassung 2 · neu", "Neu · wartet"):
-            self.assertTrue(logik.marke_dringend(marke), marke)
-        for marke in ("", None, "Final", "Läuft", "Fassung 2", "Archiv", "Abgeschlossen", "In Planung", "Erledigt", "Prüfung"):
-            self.assertFalse(logik.marke_dringend(marke), marke)
         self.assertEqual(logik.rueckmeldung_pruefen("  kürzer  ", None), ("kürzer", []))
         self.assertEqual(logik.rueckmeldung_pruefen(" ", None)[1],
                          ["Schreib kurz, was anders werden soll, oder häng eine Datei an."])

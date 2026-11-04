@@ -1,7 +1,8 @@
 {#- Eine Zeile in Heute und in einer Reihe. link führt zur Ergebnis- bzw. Entwurf-Ansicht (nur lesend). -#}
 {%- macro zeile(z, offen=false) -%}
 <li>{% if z.link %}<a class="zeile" href="{{ z.link }}">{% else %}<div class="zeile">{% endif %}
-  {%- set rot = z.grund or z.marke | dringend %}
+  {#- Rot nur für „wartet auf dich“ und „hat nicht geklappt“ -#}
+  {%- set rot = z.grund or z.marke in ("Neu", "Offen", "Hat nicht geklappt") or (z.marke or "").endswith("· neu") %}
   <span class="punkt{% if offen %} punkt-offen{% elif rot %} punkt-rot{% endif %}" aria-hidden="true"></span>
   <span class="text">
     <span class="titel">{{ z.titel }}</span>

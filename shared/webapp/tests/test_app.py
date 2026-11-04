@@ -1024,6 +1024,25 @@ class TestOrdnung(Aufbau):
         self.assertEqual(len(app.auftraege.neue(basis=self.instanz / "auftraege")), 1)
 
 
+class TestSchrift(Aufbau):
+    def test_pruefsummen(self):
+        ordner = Path(app.__file__).parent / "statisch" / "schrift"
+        for zeile in (ordner / "schrift.sha256").read_text().splitlines():
+            summe, name = zeile.split()
+            self.assertEqual(hashlib.sha256((ordner / name).read_bytes()).hexdigest(), summe, name)
+        self.assertIn("Open Font License", (ordner / "LIZENZ-OFL.txt").read_text())
+
+    def test_auslieferung(self):
+        _, css = self.hole("/statisch/stil.css")
+        self.assertIn('url("schrift/inter.woff2")', css)
+        self.assertNotIn("http", css)  # nur dieser Server
+        for name in ("inter.woff2", "inter-tight.woff2"):
+            r, _ = self.hole("/statisch/schrift/" + name, roh=True)
+            self.assertEqual((r.status, r.getheader("Content-Type")), (200, "font/woff2"))
+            # Sonst lädt sie bei jedem Seitenwechsel neu und der Text springt
+            self.assertIn("max-age", r.getheader("Cache-Control"))
+
+
 class TestHtmx(unittest.TestCase):
     def test_pruefsumme(self):
         import hashlib
@@ -1240,6 +1259,11 @@ class TestMaterial(Aufbau):
                 for wort in ("Agent", "Assistent", "Test-Instanz"):
                     self.assertNotIn(wort, self.sichtbar(html), pfad)
                 self.assertEqual(self.sichtbar(html).count("Assistenz"), 1, pfad)
+
+    def test_rote_marken(self):
+        _, html = self.hole("/")
+        self.assertRegex(html, r'<span class="punkt punkt-rot"[^>]*></span>')
+        self.assertIn('<span class="marke marke-rot">Neu</span>', html)
 
     def test_ein_hauptknopf(self):
         """Befund 03.11., Teil D: Auf der Material-Ansicht ist „Rückmeldung geben“ der eine schwarze Knopf."""

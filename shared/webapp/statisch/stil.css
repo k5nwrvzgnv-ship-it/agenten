@@ -1,6 +1,10 @@
+/* Schrift liegt auf diesem Server (statisch/schrift, Lizenz OFL), kein fremder Server. Lateinisch, stufenlos fett. */
+@font-face { font-family: Inter; src: url("schrift/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Inter Tight"; src: url("schrift/inter-tight.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+
 /* Gestaltung "Modernist" (Board ModHeute): Schwarz-Weiß, ein Akzent, Linien statt Karten.
    Rot (--akzent) heißt nur: „wartet auf dich“ oder „hat nicht geklappt“. Ein Test prüft die Liste der Stellen.
-   Inter/Inter Tight nur, wenn auf dem Gerät vorhanden: keine Google Fonts, kein fremder Server. */
+*/
 :root {
   --schwarz: #111111;
   --grau: #5c5c5c;

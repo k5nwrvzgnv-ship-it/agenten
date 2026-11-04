@@ -169,6 +169,8 @@ async def fehlerseite(request: Request, fehler: StarletteHTTPException):
 @app.middleware("http")
 async def kopfzeilen(request: Request, call_next):
     antwort = await call_next(request)
+    if request.url.path.startswith("/statisch/schrift/"):  # no-store ließe die Schrift bei jedem Seitenwechsel neu laden
+        antwort.headers["Cache-Control"] = "public, max-age=2592000"
     for name, wert in KOPFZEILEN.items():
         antwort.headers.setdefault(name, wert)
     return antwort
@@ -522,7 +524,6 @@ def aktion_hinweis(aktion_id: str | None) -> dict | None:
 vorlagen.env.globals["aktion_hinweis"] = aktion_hinweis
 vorlagen.env.globals["formular_token"] = lambda: logik.formular_token(GEHEIM)
 vorlagen.env.globals["einmal_kennung"] = lambda: secrets.token_hex(8)
-vorlagen.env.filters["dringend"] = logik.marke_dringend
 
 
 _EINMAL: dict[str, asyncio.Future] = {}  # Formular-Kennung -> Ziel der Weiterleitung (nur die letzten, siehe einmal)

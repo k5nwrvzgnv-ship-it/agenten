@@ -1061,12 +1061,6 @@ def material_marke(kette: list[dict], jetzt: datetime, finale: set[str] = frozen
     return f"Fassung {nummer}" + (" · neu" if ist_neu(letzte, jetzt) else "")
 
 
-def marke_dringend(marke: str | None) -> bool:
-    """Darf diese Marke rot sein? Rot heißt nur „wartet auf dich“ oder „hat nicht geklappt“ (Befund 03.11., Kapitel 4)."""
-    marke = marke or ""
-    return marke in ("Neu", "Offen", "Hat nicht geklappt") or marke.endswith("· neu") or marke.endswith("· wartet")
-
-
 def zeilen_je_reihe(reihen: list[dict], auftraege_: list[dict], jetzt: datetime,
                     entwuerfe: list[dict] | None = None, finale: set[str] = frozenset(),
                     eigene: dict[str, list[dict]] | None = None,
