@@ -355,6 +355,11 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Übung Folie 81 durchgespielt, Hintergrund, 5-10 Selbsttest-Fragen, offene Fragen an den Dozenten."
     Danach Tokens messen (Schätzung 100.000-200.000 für uni, dazu der Lauf von dokumente).
 
+- Portal (04.11., Entscheidungsgrundlage `webapp-plan.md`, nichts gebaut): Empfehlung neue kleine App in uni/portal/
+  statt Lias App zu kopieren, erster Durchstich Prüfungsseite Holzschutz. Der tägliche Anstoß bleibt in Telegram. Stand
+  04.11.: uni-lernen nicht eingerichtet, keine Karte bewertet (kein zustand.json, kein verlauf.jsonl, Log leer), karten.json
+  hat 64 Karten. Es warten fünf Fragen an Jan (Plan, Abschnitt 10), dann sein Okay. Bedarf: ../STATUS.md Punkt 29.
+
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
   Zone Europe/Berlin, nach Beginn sortiert. Fehler beim Abruf: KalenderFehler (nennt nur "Kalender N").
