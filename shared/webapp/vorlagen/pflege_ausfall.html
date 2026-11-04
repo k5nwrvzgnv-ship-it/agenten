@@ -1,11 +1,12 @@
 {#- Ausfall (Plan 2a.3, Jan 03.11.): Lia wählt jedes Mal „Alles rückt nach“ oder „Diese Stunde fällt weg“. -#}
 {% extends "basis.html" %}
+{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>{% endblock %}
 {%- from "_pflege.html" import fehler_liste -%}
 {% block inhalt %}
 {{ fehler_liste(fehler) }}
 <p class="absatz"><b>{{ termin.text }}</b> · {% if termin.stunde %}Stunde {{ termin.stunde.nr }}: {{ termin.stunde.thema }}
   ({{ termin.stunde.reihe }}){% else %}frei{% endif %}</p>
-<form class="formular" method="post" action="/klasse/{{ klasse.id }}/ausfall">
+<form class="formular" method="post" action="/klasse/{{ klasse.id }}/ausfall" data-einmal>
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="termin" value="{{ termin.kennung }}">
   {%- if termin.stunde %}

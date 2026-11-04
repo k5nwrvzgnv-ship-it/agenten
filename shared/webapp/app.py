@@ -1004,15 +1004,26 @@ def seite_ausfall(request: Request, klasse_id: str, termin: str = ""):
                          unter=_klasse_name(k), klasse=k, termin=t)
 
 
+def _ausfall_schon_da(klasse_id: str) -> RedirectResponse:
+    """Termin fällt schon aus (Doppelklick): dieselbe Seite wie nach der ersten Anfrage mit deren Rückgängig; ist die
+    letzte Aktion kein Ausfall (alte Seite noch offen): „Nichts geändert“."""
+    letzte = sp.letzte(1, umgebung())
+    frage = (f"aktion={letzte[0]['id']}" if letzte and letzte[0]["operation"] == "ausfall"
+             and not letzte[0]["zurueckgenommen"] else "erledigt=nichts")
+    return RedirectResponse(f"/klasse/{klasse_id}?{frage}#termine", status_code=303)
+
+
 @app.post("/klasse/{klasse_id}/ausfall", response_class=HTMLResponse)
 async def ausfall(request: Request, klasse_id: str):
     s = struktur_()
     k = _objekt(s, klasse_id, "klasse")
     form, token_ok = await pflege_formular(request, "Ausfall")
     w = _wert(form)
-    t = next((x for x in _termine_von(s, klasse_id)[0] if x["kennung"] == w("termin") and not x["ausgefallen"]), None)
+    t = next((x for x in _termine_von(s, klasse_id)[0] if x["kennung"] == w("termin")), None)
     if t is None:
         raise HTTPException(404)
+    if t["ausgefallen"]:
+        return _ausfall_schon_da(klasse_id)
     folge = w("folge") if t["stunde"] else termine.NACHRUECKEN  # freier Termin: nur streichen
     fehler = [pflege.VERALTET] if not token_ok else [] if folge in (termine.NACHRUECKEN, "faellt_weg") else [
         "Bitte wählen: Alles rückt nach, oder diese Stunde fällt weg."]
@@ -1020,6 +1031,8 @@ async def ausfall(request: Request, klasse_id: str):
         aus, text_ = await pflegen("ausfall", {"klasse": klasse_id, "termin": t["kennung"], "folge": folge})
         if aus:
             return nach(f"/klasse/{klasse_id}#termine", aus)
+        if any(x["kennung"] == t["kennung"] and x["ausgefallen"] for x in _termine_von(struktur_(), klasse_id)[0]):
+            return _ausfall_schon_da(klasse_id)  # gleichzeitige Anfrage war schneller
         fehler = [text_]
     return _klasse_seite(request, s, "pflege_ausfall.html", "Termin fällt aus", {}, klasse_id, fehler, 400,
                          unter=_klasse_name(k), klasse=k, termin=t)

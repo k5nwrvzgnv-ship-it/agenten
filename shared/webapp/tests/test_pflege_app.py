@@ -8,6 +8,7 @@ import hashlib
 import logging
 import re
 import stat
+import threading
 from pathlib import Path
 from unittest import mock
 
@@ -286,6 +287,42 @@ class TestKlasse(Pflege):
         r, html = self.post("/klasse/ethik-8/uebernehmen", {"name": "9", "schuljahr": "2027/28"})
         self.assertEqual(r.status, 400)
         self.assertIn("gibt es schon", html)
+
+    def test_ausfall_doppelklick(self):
+        """Die zweite Anfrage ändert nichts und zeigt dieselbe Seite wie die erste, nicht „Nicht gefunden“."""
+        frei = self.mit_plan()
+        self.reihe("A", anzahl=2)
+        felder = {"termin": frei[0], "folge": "nachruecken"}
+        _, html = self.hole(f"/klasse/ethik-8/ausfall?termin={frei[0]}")
+        self.assertIn('<script src="/statisch/einmal.js" defer></script>', html)
+        self.assertRegex(html, r'<form [^>]*/ausfall"[^>]* data-einmal[ >]')
+        ziel = self.ok("/klasse/ethik-8/ausfall", felder)
+        danach = self.text()
+        self.assertEqual(self.ok("/klasse/ethik-8/ausfall", felder), ziel)
+        self.assertEqual(self.text(), danach)
+
+    def test_ausfall_alt_nichts_geaendert(self):
+        frei = self.mit_plan()
+        self.reihe("A", anzahl=2)
+        felder = {"termin": frei[0], "folge": "nachruecken"}
+        self.ok("/klasse/ethik-8/ausfall", felder)
+        with mock.patch.object(app.sp, "letzte", lambda *a: []):
+            r, _ = self.post("/klasse/ethik-8/ausfall", felder)
+        self.assertEqual((r.status, r.getheader("location")), (303, "/klasse/ethik-8?erledigt=nichts#termine"))
+
+    def test_ausfall_gleichzeitig(self):
+        frei = self.mit_plan()
+        self.reihe("A", anzahl=2)
+        felder = {"termin": frei[0], "folge": "nachruecken"}
+        antworten = []
+        faeden = [threading.Thread(target=lambda: antworten.append(self.post("/klasse/ethik-8/ausfall", felder)[0]))
+                  for _ in range(2)]
+        for f in faeden:
+            f.start()
+        for f in faeden:
+            f.join()
+        self.assertEqual([r.status for r in antworten], [303, 303])
+        self.assertEqual(self.text().count(frei[0]), 1)
 
     def test_ausfall_zusatztermin(self):
         """Lia-Test Aufgabe 4 und Plan 2a.3: „Alles rückt nach“ (alle späteren Stunden der Klasse einen Termin weiter,
