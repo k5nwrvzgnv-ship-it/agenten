@@ -43,7 +43,7 @@
   {%- for h in ah.hinweise %}<p class="absatz unter">{{ h }}</p>{% endfor %}
 </div>
 {%- elif request.query_params.get("erledigt") == "nichts" %}
-<p class="hinweis" role="status">Nichts geändert.</p>
+<p class="hinweis aktion-hinweis" role="status">Nichts geändert.</p>
 {%- endif %}
 {% block inhalt %}{% endblock %}
 </main>

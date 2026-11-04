@@ -538,7 +538,10 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--schwarz); }
 :focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
 
 /* Struktur pflegen (Bauschritt 5): Hinweis „… · Rückgängig“, Masken, Termine, „+ …“ im Baum */
-.aktion-hinweis { display: flex; flex-direction: column; gap: 4px; }
+/* Nach dem Sprung auf #stunden/#termine bleibt der Hinweis im Bild (Befund 03.11. Punkt 5), der Sprung endet darunter */
+.aktion-hinweis { position: sticky; top: 0; z-index: 2; display: flex; flex-direction: column; gap: 4px;
+  padding-top: 10px; padding-bottom: 10px; background: var(--weiss); }
+.inhalt:has(.aktion-hinweis) [id] { scroll-margin-top: 96px; }
 .aktion-zeile { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .inline-form { display: inline-flex; margin: 0; }
 .knopf-link { font: inherit; font-weight: 700; padding: 0; border: 0; background: none; color: var(--akzent);

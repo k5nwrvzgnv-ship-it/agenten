@@ -185,6 +185,8 @@ class TestApp(Aufbau):
         self.assertEqual(r.status, 200)
         self.assertIn("--akzent: #d4290f", css)
         self.assertEqual(self.hole("/statisch/../app.py")[0].status, 404)
+        # Befund 03.11. Punkt 5: Der Hinweis mit Rückgängig bleibt nach dem Sprung im Bild. Gemessen wird im Browser.
+        self.assertRegex(css, r"\.aktion-hinweis \{ position: sticky; top: 0;")
 
     def test_ergebnis(self):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
