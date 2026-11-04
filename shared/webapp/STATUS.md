@@ -92,7 +92,8 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
     Der große Knopf gilt der neuesten Fassung, auch Lias eigener (`aktuell_ref`), und nennt sie, sobald es mehr als
     eine zur Wahl gibt („Fassung 2 als final markieren“); die Bestätigung nennt die Fassung. Oben steht dann weiter die
     Fassung des Assistenten („steht oben“ stimmt also), der Hinweis `oben_hinweis` sagt das und wo Lias Datei ist.
-  - Rückmeldung geben (`POST …/rueckmeldung`): Text (Pflicht), optional eine Datei. Über
+  - Rückmeldung geben (`POST …/rueckmeldung`): Text oder Datei, eine Datei allein reicht (dann Auftragstext
+    `logik.RUECK_NUR_DATEI`, derselbe Wunsch wie Lias Satz vom 01.11.). Unter den zwei Knöpfen je ein Satz, was danach passiert. Über
     `agentkit.fassungen.rueckmeldung`: die Datei kommt mit ihrer Art in die Kette (fassung, anmerkungen, unklar),
     dann ein Auftrag an `feedback` (bezug = neueste fertige Fassung bzw. die Fassung der Datei, siehe „Rückmeldung
     je Datei“); der Feedback-Dienst richtet Zuordnung und Auftrag nach der Art aus und hängt die Datei an die
@@ -260,7 +261,8 @@ lia/chat neu, Hauptordner/agentkit). In der Web-App gebaut, je mit Tests:
   Entschiedene warten nicht mehr in „Heute“. Ändern eines Entwurfs geht weiter über Jan.
 - „Nochmal“ bei Fehlschlag (nur Material ohne Anhänge, nur test/echt): neuer Auftrag mit Text, quelle, bezug,
   sitzung des letzten Versuchs; ein ersetzter Ursprung verschwindet aus „Hat nicht geklappt“ (`ersetzt`).
-- „Zurückziehen“ unter „Läuft gerade“ (`agentkit.auftraege.zurueckziehen`, ein laufender claude-Lauf endet).
+- „Zurückziehen“ unter „Läuft gerade“ (`agentkit.auftraege.zurueckziehen`, ein laufender claude-Lauf endet). Zwei
+  Schritte ohne JavaScript (`<details>`): Erst „Ja, zurückziehen“ schickt ab, „Nein“ lädt neu; das Neuladen von „Heute“ schließt die Rückfrage.
 - Galerie: dazu Reihenentwurf und Lernerfolgskontrolle (nur Ethik, unterricht), Spielfassung (Kürzung) und
   Szenenaufgabe (nur Darstellendes Spiel, Agent theater, quelle portal-theater, weitere Felder Länge,
   Spieler*innen, Was bleiben muss bzw. Methode, Szene, Material). Spielfassung = ganze Runde, bis 3 Stunden,
@@ -303,6 +305,23 @@ lia/chat neu, Hauptordner/agentkit). In der Web-App gebaut, je mit Tests:
   Dienst nach diesen Commits noch nicht neu gestartet (Jan fragen).
 Nicht gebaut: „+ Reihe“ in der App (schreibt reihen.toml; Jan bzw. unterricht-Chat), Fach-Material und Lias
 Ablage (Jan fragen), Datei in eine Stunde ziehen (JavaScript), Muster, Konten.
+
+## Gestaltung (Jans Wahl 04.11.2026: Feinschliff, Modernist und drei Spalten bleiben)
+Gebaut 04.11. aus dem Befund: Punkte 2, 5, 7, dazu:
+- Rot (`--akzent`) heißt nur „wartet auf dich“ oder „hat nicht geklappt“; ein Test hält die Liste der roten Stellen fest.
+- Knöpfe: eine Grundform `.knopf`, dazu `-voll` (Hauptknopf), `-klein`, `-spalte`, `-leise` („fällt aus“). Auf der
+  Material-Ansicht ist „Rückmeldung geben“ der schwarze Knopf, ist etwas offen der offene Weg, bei final keiner.
+- Schriftgrößen: nur 12, 14, 16, 18, 22, 40, 64 (Test). Schrift Inter und Inter Tight in `statisch/schrift/` (von
+  jsdelivr und unpkg, byte-gleich, Prüfsummen, Lizenz OFL), nur Lateinisch, darf 30 Tage im Browser bleiben.
+- Hinweis mit Rückgängig (`.aktion-hinweis`) bleibt beim Scrollen oben kleben, der Sprung auf `#stunden`/`#termine` endet darunter.
+- Wörter: Sätze sagen „ich“, „Deine Assistenz“ bleibt nur als Name oben links (Test); keine Agenten- und Ordnernamen
+  mehr bei „daran hängt“; nach dem Rückgängigmachen „Zurückgenommen: …“.
+- Bewusst nicht geändert: „Auftrag“ (Glossar sagt „Anfrage/Wunsch“, Jan entscheidet) und „Sag Jan bitte Bescheid“ bei
+  Störungen (Sprachregel, Entscheidung 4 vom 27.10.: bleibt, wo Jan keine Meldung bekommt), obwohl Jan am 04.11.
+  „kein sag Jan Bescheid“ mitgewählt hat; das hat er noch nicht entschieden. Punkte 4, 6, 9, 10 warten auf den Lia-Test.
+- Achtung beim Bauen: Vorlagen und CSS wirken sofort auf den laufenden Dienst, Python erst nach dem Neustart. Vorlagen
+  dürfen darum keinen neuen Filter und keine Pflichtwerte aus Python brauchen. Am 04.11. antwortete `webapp.service` so
+  rund 14 Minuten mit 500 (etwa 09:01 bis 09:15, im Log nur meine eigene Abfrage). `./pruefen.sh` merkt das nicht.
 
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
@@ -347,7 +366,7 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. `webapp.service` läuft seit 04.11. 08:45 mit Jans Okay auf dem Code von 58378b2, die Testinstanz 8792 seit 08:41 ebenfalls. Im Browser noch nicht geprüft: Sperre der Knöpfe und Darstellung des großen Knopfs. Die übrigen Formulare der Struktur-Pflege (etwa „+ Klasse“, Termine, Übernehmen, Kopieren) sind auf Doppelklick nicht gemessen. Offen für Jan: `data/test/aufbauen.py` ins Repo holen? Offen: Benutzeroberfläche und Design nochmal angehen (Jan 04.11.: später, nicht jetzt).
+11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. `webapp.service` läuft seit 04.11. 08:45 mit Jans Okay auf dem Code von 58378b2, die Testinstanz 8792 seit 08:41 ebenfalls. Im Browser noch nicht geprüft: Sperre der Knöpfe und Darstellung des großen Knopfs. Die übrigen Formulare der Struktur-Pflege (etwa „+ Klasse“, Termine, Übernehmen, Kopieren) sind auf Doppelklick nicht gemessen. Offen für Jan: `data/test/aufbauen.py` ins Repo holen? Benutzeroberfläche und Design: siehe Abschnitt „Gestaltung“. Offen: Neustart von `webapp.service` (Jans Okay fehlt) und Prüfung im Browser. Bis zum Neustart zeigt die echte App neue Vorlagen mit altem Python: Eine Rückmeldung nur mit Datei lehnt der Dienst noch ab.
 10. webapp.service mit dem lia/chat-Ausbau (Netz, Dateien, Links) neu gestartet (Jans Okay 03.11.), die Seite
     liefert Häkchen und Datei-Feld aus. Offen: einmal im Browser in lia.meldro.de prüfen (Datei hochladen, Link
     öffnet neuen Tab).
@@ -377,9 +396,6 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
    Telegram-Feedback-Knöpfe nicht übernehmen (Jan 30.10.: „die im tg sind quatsch“).
 7. Kern-Texte aus Telegram sagen „antworte direkt auf diese Nachricht“. In der Web-App passt das erst mit den
    Feedback-Knöpfen; bis dahin bleibt der Text, wie der Agent ihn geschrieben hat.
-5. Schrift: Inter/Inter Tight werden nur genutzt, wenn sie auf dem Gerät sind (sonst Helvetica/Arial). Google Fonts
-   bewusst nicht (Lias Gerät soll nur mit dem Server sprechen). Schriftdateien lokal ausliefern: Jan fragen
-   (Lizenz OFL, Dateien ins Repo wie htmx).
 6. „Hat nicht geklappt“ zeigt auch alte Fehlschläge (22.10.) ohne Ablaufdatum. Ob sie nach einer Zeit verschwinden
    sollen, mit Lia klären.
 
