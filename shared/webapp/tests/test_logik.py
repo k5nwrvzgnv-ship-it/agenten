@@ -536,26 +536,34 @@ class TestMaterial(unittest.TestCase):
                          "kürzer\n\nDazu eine Datei: Blatt.docx.")
 
 
-class TestRueckmeldungDoppelt(unittest.TestCase):
+class TestAuftragDoppelt(unittest.TestCase):
     JETZT = datetime(2026, 11, 3, 18, 0, 30, tzinfo=ZoneInfo("Europe/Berlin"))
 
     def auftrag(self, **felder):
         return {"bezug": "b1", "text": "kürzer", "status": "neu", "erstellt": "2026-11-03T18:00:00+01:00", **felder}
 
     def doppelt(self, **felder):
-        return logik.rueckmeldung_doppelt("b1", "kürzer", [self.auftrag(**felder)], self.JETZT)
+        return logik.auftrag_doppelt([self.auftrag(**felder)], self.JETZT, "kürzer", bezug="b1")
 
     def test_gleich_und_kurz_danach(self):
         self.assertTrue(self.doppelt())
         self.assertTrue(self.doppelt(status="erledigt"))  # der Dienst war schon fertig
 
     def test_alles_andere_gilt_als_neu(self):
-        self.assertFalse(logik.rueckmeldung_doppelt("b1", "kürzer", [], self.JETZT))
+        self.assertFalse(logik.auftrag_doppelt([], self.JETZT, "kürzer", bezug="b1"))
         self.assertFalse(self.doppelt(text="größer"))
         self.assertFalse(self.doppelt(bezug="b2"))
         self.assertFalse(self.doppelt(erstellt="2026-11-03T17:59:59+01:00"))  # 31 s her
         self.assertFalse(self.doppelt(status="fehlgeschlagen"))
         self.assertFalse(self.doppelt(status="zurueckgezogen"))
+        self.assertFalse(self.doppelt(ort="s-abc"))
+        self.assertFalse(self.doppelt(dateien=["data/eingang/x/Blatt.docx"]))
+
+    def test_anhaenge_haengt_agentkit_hinten_an(self):
+        a = self.auftrag(text="kürzer\n\nAngehängte Dateien von Lia (im Agent-Ordner):\n- data/eingang/x/Blatt.docx",
+                         dateien=["data/eingang/x/Blatt.docx"])
+        self.assertTrue(logik.auftrag_doppelt([a], self.JETZT, "kürzer", bezug="b1", dateinamen=["Blatt.docx"]))
+        self.assertFalse(logik.auftrag_doppelt([a], self.JETZT, "kürzer", bezug="b1", dateinamen=["Anders.docx"]))
 
 
 class TestEntwurf(unittest.TestCase):

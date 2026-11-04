@@ -368,6 +368,12 @@ def _reihe(reihe_id: str) -> tuple[list[dict], dict]:
     return reihen, reihe
 
 
+def _auftraege_von(agent: str) -> list[dict]:
+    """Offene und abgeschlossene Aufträge eines Agenten (für logik.auftrag_doppelt)."""
+    basis = INSTANZ / "auftraege"
+    return auftraege.neue(agent, basis) + auftraege.erledigte(agent, basis)
+
+
 def _alle_auftraege() -> list[dict]:
     """Alle Aufträge der Instanz, mit Lias Zuordnung zu Reihen (zustand.py: reihe_von)."""
     basis = INSTANZ / "auftraege"
@@ -1754,6 +1760,15 @@ def datei_ablegen(upload: UploadFile, ordner: Path) -> Path:
     return pfad
 
 
+def _neu_fertig(modus: str, reihe: str | None, reihen: list[dict], stunde) -> RedirectResponse:
+    """Nach Neuer Auftrag: zur Stunde bzw. Reihe mit Bestätigung, ohne Reihe nach „Heute“."""
+    if reihe:
+        r = next(x for x in reihen if x["id"] == reihe)
+        ziel = logik.stunde_link(r, stunde[0]) if stunde else logik.reihe_link(r)
+        return RedirectResponse(f"{ziel}?erledigt={'auftrag' if modus == 'echt' else 'auftrag-test'}", status_code=303)
+    return RedirectResponse("/?abgeschickt=1", status_code=303)
+
+
 @app.post("/neu", response_class=HTMLResponse)
 async def neu_abschicken(request: Request):
     modus = neu_modus()
@@ -1781,13 +1796,22 @@ async def neu_abschicken(request: Request):
     # „Auch als“: der Material-Agent baut die Varianten im selben Lauf (Zeile im Auftragstext, lia/unterricht)
     auch_als = logik.varianten_waehlen([str(w) for w in form.getlist("varianten")]) \
         if (logik.VORLAGEN.get(art) or {}).get("varianten") else []
+    auftragstext = logik.text_mit_reihe(text, reihe, reihen, stunde, art, extra, auch_als)
+    # Doppelklick: Lia sieht die Antwort der zweiten Anfrage, also dieselbe Bestätigung. Zwischen Prüfen und Anlegen
+    # liegt kein await, gleichzeitige Anfragen kommen sich nicht in die Quere.
+    if logik.auftrag_doppelt(_auftraege_von(agent), datetime.now(ZONE), auftragstext, ort=stunde_id or reihe,
+                             dateinamen=[logik.dateiname_bereinigen(d.filename) for d in dateien_]):
+        logger.info("Gleicher Auftrag an %s gerade schon angelegt, verworfen", agent)
+        for d in dateien_:
+            await d.close()
+        return _neu_fertig(modus, reihe, reihen, stunde)
     EINGANG.mkdir(parents=True, exist_ok=True)
     ablage = Path(tempfile.mkdtemp(dir=EINGANG))
     try:
         pfade = []
         for nr, d in enumerate(dateien_):  # je Datei ein Unterordner: gleiche Namen überschreiben sich nicht
             pfade.append(datei_ablegen(d, ablage / str(nr)))
-        aid = auftraege.neuer_auftrag(agent, logik.text_mit_reihe(text, reihe, reihen, stunde, art, extra, auch_als),
+        aid = auftraege.neuer_auftrag(agent, auftragstext,
                                       quelle=quelle, dateien=pfade, basis=INSTANZ / "auftraege",
                                       agenten_dir=INSTANZ.parent, absender=config.person(INSTANZ), reihe=reihe,
                                       ort=stunde_id or reihe)
@@ -1808,12 +1832,7 @@ async def neu_abschicken(request: Request):
             logger.error("Stunde von %s nicht gespeichert: %s", aid, fehler_)
     if modus == "echt":
         agent_starten(agent)
-    erledigt = "auftrag" if modus == "echt" else "auftrag-test"
-    if reihe:
-        r = next(x for x in reihen if x["id"] == reihe)
-        ziel = logik.stunde_link(r, stunde[0]) if stunde else logik.reihe_link(r)
-        return RedirectResponse(f"{ziel}?erledigt={erledigt}", status_code=303)
-    return RedirectResponse("/?abgeschickt=1", status_code=303)
+    return _neu_fertig(modus, reihe, reihen, stunde)
 
 
 def _auftrag(eintrag_id: str) -> dict:
@@ -2208,8 +2227,7 @@ async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
         # Doppelklick: Lia sieht die Antwort der zweiten Anfrage, also dieselbe Bestätigung. Prüfen und Anlegen liegen
         # ohne await hintereinander, gleichzeitige Anfragen kommen sich dazwischen nicht in die Quere.
         basis = INSTANZ / "auftraege"
-        if logik.rueckmeldung_doppelt(bezug, auftragstext, auftraege.neue("feedback", basis) +
-                                      auftraege.erledigte("feedback", basis), datetime.now(ZONE)):
+        if logik.auftrag_doppelt(_auftraege_von("feedback"), datetime.now(ZONE), auftragstext, bezug=bezug):
             logger.info("Gleiche Rückmeldung zu %s gerade schon angelegt, verworfen", bezug)
             return _fertig(kopf, "rueckmeldung" if modus == "echt" else "rueckmeldung-test")
         pfad = _upload_ablegen(datei) if datei else None

@@ -2,6 +2,7 @@
     Der Ort (Reihe, Stunde) ist vorbelegt, wenn Lia „+ Neu hier“ an einem Ort drückt; sonst wählt sie die Reihe.
     Formular ohne JavaScript, Schutz über Origin-Prüfung und Token (app.py). -#}
 {% extends "basis.html" %}
+{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>{% endblock %}
 {% block inhalt %}
 {%- if modus == "test" %}
 <p class="hinweis"><b>Testbetrieb:</b> Der Auftrag landet in einer Test-Instanz, kein Agent startet.</p>
@@ -24,7 +25,7 @@
 <p class="unter">Weitere Arten kommen, sobald deine Assistenz sie bauen kann.
   {%- if not ort_fest %} Tipp: Mit „+ Neu hier“ in einer Reihe oder Stunde ist der Ort schon eingetragen.{% endif %}</p>
 {%- else %}
-<form class="formular" method="post" action="/neu" enctype="multipart/form-data">
+<form class="formular" method="post" action="/neu" enctype="multipart/form-data" data-einmal>
   <input type="hidden" name="token" value="{{ token }}">
   <input type="hidden" name="art" value="{{ art }}">
   {%- if ort_fest %}

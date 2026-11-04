@@ -363,6 +363,25 @@ class TestNeuerAuftrag(Aufbau):
     def neue(self):
         return app.auftraege.neue(basis=self.instanz / "auftraege")
 
+    def test_doppelklick_ein_auftrag(self):
+        """Doppelklick auf „Abschicken“: zwei gleiche POST, nur ein Auftrag, beide Antworten gleich."""
+        (self.tmp / "unterricht").mkdir(exist_ok=True)
+        with mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"), \
+                mock.patch.object(app, "NEUER_AUFTRAG", "echt"), mock.patch.object(app, "agent_starten") as start:
+            antworten = [self.schicke(dateien=[("Text.pdf", b"PDF")])[0] for _ in range(2)]
+            self.assertEqual([(r.status, r.getheader("Location")) for r in antworten], [(303, "/?abgeschickt=1")] * 2)
+            start.assert_called_once_with("unterricht")
+            self.assertEqual(len(self.neue()), 1)
+            # Anderer Text oder andere Datei ist ein neuer Auftrag
+            self.assertEqual(self.schicke("Anderes Blatt", [("Text.pdf", b"PDF")])[0].status, 303)
+            self.assertEqual(self.schicke(dateien=[("Anders.pdf", b"PDF")])[0].status, 303)
+        self.assertEqual(len(self.neue()), 3)
+
+    def test_knopf_sperrt_sich(self):
+        _, html = self.hole("/neu?art=arbeitsblatt")
+        self.assertIn('<script src="/statisch/einmal.js" defer></script>', html)
+        self.assertRegex(html, r'<form [^>]*action="/neu"[^>]* data-einmal[ >]')
+
     def test_aus_ohne_einstellung_und_nie_test_auf_lias_instanz(self):
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
             self.assertEqual(self.hole("/neu")[0].status, 404)

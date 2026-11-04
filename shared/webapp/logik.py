@@ -622,7 +622,8 @@ def final_erlaubt(ref: str, schritte: list[dict]) -> bool:
     return any(x.get("ref") == ref and x.get("finalbar") for x in schritte)
 
 
-RUECKMELDUNG_SPERRE_S = 30  # gleiche Rückmeldung zum selben Bezug in dieser Zeit: verworfen
+DOPPELT_SPERRE_S = 30  # gleicher Auftrag in dieser Zeit: verworfen (auftrag_doppelt)
+ANHANG_TRENNER = "\n\nAngehängte Dateien von "  # so hängt agentkit.auftraege Anhänge an den Text
 EIGENE_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx")
 RUECK_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
 
@@ -678,13 +679,17 @@ def rueckmeldung_text(text: str, datei_name_: str = "", ziel: dict | None = None
     return f"{text}\n\nDazu eine Datei: {dateiname_bereinigen(datei_name_)}."
 
 
-def rueckmeldung_doppelt(bezug: str, text: str, vorhanden: list[dict], jetzt: datetime) -> bool:
-    """Gibt es diese Rückmeldung zu diesem Bezug schon aus den letzten Sekunden (Doppelklick, Befund 03.11. Punkt 1)?
-    vorhanden: Aufträge an den Feedback-Dienst, text wie von rueckmeldung_text. Ist die erste fehlgeschlagen oder
-    zurückgezogen, darf Lia es gleich noch einmal schicken."""
-    return any(a.get("bezug") == bezug and a.get("text") == text
-               and a.get("status") not in ("fehlgeschlagen", "zurueckgezogen")
-               and abs(jetzt.timestamp() - _zeitpunkt(a)) <= RUECKMELDUNG_SPERRE_S for a in vorhanden)
+def auftrag_doppelt(vorhanden: list[dict], jetzt: datetime, text: str, bezug: str | None = None,
+                    ort: str | None = None, dateinamen: list[str] = ()) -> bool:
+    """Gibt es diesen Auftrag schon aus den letzten Sekunden (Doppelklick, Befund 03.11. Punkt 1)?
+    vorhanden: Aufträge desselben Agenten, text wie an agentkit übergeben (agentkit hängt Anhänge hinten an). Ist der
+    erste fehlgeschlagen oder zurückgezogen, darf Lia es gleich noch einmal schicken."""
+    def gleich(a: dict) -> bool:
+        return ((a.get("text") or "").split(ANHANG_TRENNER)[0] == text and a.get("bezug") == bezug
+                and a.get("ort") == ort and sorted(Path(p).name for p in a.get("dateien") or []) == sorted(dateinamen)
+                and a.get("status") not in ("fehlgeschlagen", "zurueckgezogen") and bool(a.get("erstellt"))
+                and abs(jetzt.timestamp() - datetime.fromisoformat(a["erstellt"]).timestamp()) <= DOPPELT_SPERRE_S)
+    return any(gleich(a) for a in vorhanden)
 
 
 def seiten_text(anzahl: int) -> str:
