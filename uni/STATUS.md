@@ -434,7 +434,23 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Geplant, nicht gebaut (Jan 04.11.: Der Agent schreibt, die Gruppe kommentiert; Word soll auch mal gehen; weitere Bausteine erst, wenn
     die Schritte anstehen): Stufe 2 Rückmeldung per Text oder kommentierter PDF, daraus neue Fassung. Interviews vorbereiten (Jan: kommt
     bald). Stufe 3 eigene Word-Fassung über agentkit.fassungen. Stufe 2 und Interviews brauchen Claude-Läufe: Das Web legt nur eine Datei in
-    die Warteschlange (app.py bleibt ohne agentkit), also erst Offene Punkte 11.
+    die Warteschlange (app.py bleibt ohne agentkit).
+  - Nächster Schritt (Jan 04.11.: erst Rückmeldung, dann Interviews), Bauplan, noch kein Code. Braucht NICHT Offene Punkte 11, läuft über uni.service:
+    Web: Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Prüfung über Endung und Dateianfang, fester Name
+    kommentare.pdf/.docx, Hinweis: aus Dateien liest der Agent nur die Kommentare, eigene Word-Textänderungen also ins Textfeld; etwa 1 USD je
+    Überarbeitung, gemessen 1,06). Ablage data/projekte/<projekt>/rueckmeldungen/<id>/ (stand.json, text.txt, Datei; 700/600), Marke in
+    data/projekte/warteschlange/. Seite /projekt/<p>/rueckmeldung/<id> mit Stand, Neuladen alle 10 s wie uebung.html, Zurücknehmen solange "wartet".
+    Agent: neuer Schritt rueckmeldungen_abarbeiten (neues Modul uni/rueckmeldungen.py, getestet) nach beiden auftraege_abarbeiten: Endstand laufender
+    Rückmeldungen aus auftraege.erledigter in stand.json (fertig, fehlgeschlagen, zurückgezogen, Ergebnistext); immer nur eine je Projekt offen; vor der
+    Übergabe expose.json und PDF als vorher-Kopie sichern (Fassungen werden sonst überschrieben), dann auftraege.neuer_auftrag(AGENT, text,
+    quelle="portal", bezug=<neuester Auftrag der Kette>, sitzung=<dessen Sitzung>, dateien=[...], kopieren=True), Marke löschen, dann
+    auftraege_abarbeiten. Kettenende per ursprung(): derzeit 20261103-120228-uni-187226, Sitzung vorhanden. auftrag_bearbeiten erkennt die
+    Kette selbst (Exposé-Zweig, Kommentare aus Anhängen). Das Ergebnis geht zusätzlich wie immer per Telegram an Jan.
+    Sofortstart: neue Vorlage portal/systemd/uni-portal-rueckmeldung.path mit PathChanged= auf die Warteschlange, Unit=uni.service, MakeDirectory=yes
+    (PathChanged statt DirectoryNotEmpty, sonst Startschleife, wenn eine Marke liegen bleibt). Einrichten muss Jan, ohne sie greift der nächste Timer.
+    Anpassen: tests/test_schutz.py (Importe, Routen, Dateien), .gitignore prüfen. Tests am echten Dienst nur ohne gültige Rückmeldung: Eine echte Marke
+    löst beim nächsten Timer einen bezahlten Lauf aus und ändert das Exposé. Der Echttest ist Jans erste echte Rückmeldung.
+    Von Jan noch offen: weitere Kontaktpersonen (Name, Adresse), erstes Interview (wer, wann, Ziel).
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
