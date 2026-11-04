@@ -228,11 +228,12 @@ Lücken, die das Portal nicht schließt **[B]** (`pruefungsplan.json`, „fehlt�
 ### Was nicht gebaut wird
 
 - Web-Editor für Berichte: Word bleibt.
-- Oberfläche für die Recherche-Pipeline: Sie läuft wenige Male und kostet viel. Sichtbar sind nur Stand und Bericht, ab dem zweiten Durchstich.
+- Weitere Oberfläche für die Recherche-Pipeline über Start und Nachfrage hinaus. Vorläufig im Plan (Jan 04.11.: "erstmal okay", Vorschlag in `portal-oberflaeche.md`): Recherche-Start in zwei Stufen (Eckpunkte ansehen und ändern, dann Starten) und Nachfrage in zwei Stufen (ohne Web, mit Web).
 - Live-Sprache im Portal, solange ElevenLabs reicht.
 - Mails, Termine, Freigaben: bleiben in Telegram.
 - Gesamtsuche über alle Kurse: Machbar mit SQLite FTS5 (auf dem Server vorhanden), aber erst bei belegtem Bedarf.
-- Zugänge für die Gruppe, Handy-Oberfläche, Änderungen an Lias App.
+- Handy-Oberfläche, Änderungen an Lias App.
+- Rechte-Stufen für die Gruppe. Vorläufig im Plan (Jan 04.11.: "erstmal okay"): drei Konten in Caddy, alle bearbeiten alles.
 
 ## 9. Was das Ergebnis unabhängig belegt
 

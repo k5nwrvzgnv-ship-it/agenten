@@ -439,10 +439,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     eigener Vorschlag (Kosten, Agentenlogik). Schritt 3: Kernaufgaben bestätigt, "Flexibilität" geklärt (Reiter je Strukturebene,
     Dokumente und Recherchen an ihrer Ebene), Lias App als erstes Vorbild, Screenshots ausgewertet (Chromium startet auf dem Server
     nicht). Vorbilder (Notion, Basecamp, Overleaf, Confluence, NotebookLM) stehen in portal-oberflaeche.md, nur aus Dokumentation
-    bekannt, nur als Muster; Jans Bestätigung steht aus, seine offenen Fragen stehen am Ende der Datei. Am Portal nichts geändert, Schritt 4 erst nach seinem Okay.
+    bekannt, nur als Muster; von Jan bestätigt (04.11.). Am Portal nichts geändert. Schritt 4 ist frei, beginnt auf Jans Wort.
     Messung entfällt (Jan 04.11.): keine Zielwerte, Abnahme nach Jans Eindruck (eingetragen in webapp-plan.md Abschnitt 9). Baumtest, fremde Person und Log-Auswertung gestrichen,
     portal/messung.py samt Test gelöscht, die Zeile "mindestens 10 von 14 Tagen geübt" aus Abschnitt 9 ebenfalls (Jan 04.11.). Kommentieren an der Textstelle im Browser: vorerst nicht, Dokumente und Kommentare wie bisher verbessern.
-    Vorschlag zu Zugängen (Felix und Henri), Recherche-Start und Nachfrage steht in portal-oberflaeche.md, Jans Entscheidungen stehen aus (Fragen 1 bis 8 am Dateiende). webapp-plan.md "Was nicht gebaut wird" bleibt unverändert bis zu seinem Okay.
+    Vorschlag zu Zugängen (Felix und Henri), Recherche-Start und Nachfrage: Jan 04.11. "erstmal okay", Antworten am Ende von portal-oberflaeche.md, webapp-plan.md "Was nicht gebaut wird" vorläufig angepasst, nichts gebaut. Entschieden: alle dürfen starten und bezahlte Läufe auslösen, ohne Freigabe; Lernstand bleibt gemeinsam; Aufgaben 9 und 10 in Schritt 4 einplanen. Offen bei Jan: die Mail von Böhme vom 26.10. ging nur an ihn, Abrechnung oder eigene Konten.
     Ablauf: 3 Vorbilder (danach Jans Okay), 4 Struktur und Varianten (danach Jans Okay), 5 Umbau auf getrenntem Port (Vorlagen wirken sofort live),
     nur uni/, 6 Abnahme durch Jan.
   - Rückmeldung zum Exposé (Stufe 2, 04.11., gebaut): Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Text bis 20.000

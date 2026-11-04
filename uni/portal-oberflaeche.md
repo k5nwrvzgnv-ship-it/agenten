@@ -150,7 +150,7 @@ gut anfühlt, ist also offen. Von Jan noch nicht bestätigt. Übernommen werden 
 oben und gilt als bestätigt.
 
 Aufgabennummern wie in "Kernaufgaben" und "Schritt 3, Zwischenstand". "Ebenen" meint Jans Idee aus "Jans Antworten". Die Aufgaben 9 und 10
-sind noch nicht fest (Frage 2).
+plant Jan beim Entwurf der Struktur mit ein (Antwort vom 04.11.).
 
 ### Notion: Ebenen und Kommentare
 
@@ -216,7 +216,7 @@ Quelle: [Hilfeseite](https://support.google.com/notebooklm/answer/16179559?hl=en
 
 ### Spannung zum Plan
 
-Stand: `webapp-plan.md` Abschnitt "Was nicht gebaut wird" (unter Abschnitt 8) bleibt unverändert, solange Jan nichts anderes sagt.
+Stand: `webapp-plan.md` Abschnitt "Was nicht gebaut wird" (unter Abschnitt 8) ist nach Jans Okay vom 04.11. vorläufig angepasst (Zugänge, Recherche-Start, Nachfrage).
 
 | Im Plan ausgeschlossen | Was dagegen läuft | Folge |
 |---|---|---|
@@ -240,7 +240,7 @@ Davon hängen ab:
 
 ## Vorschlag: Zugänge, Recherche-Start, Nachfrage (04.11.)
 
-**Stand:** Vorschlag, nichts gebaut, am Portal nichts geändert. `webapp-plan.md` "Was nicht gebaut wird" ändert sich erst nach Jans Okay.
+**Stand:** Von Jan am 04.11. vorläufig bestätigt ("erstmal okay"), seine Antworten stehen am Dateiende. Nichts gebaut, am Portal nichts geändert. `webapp-plan.md` "Was nicht gebaut wird" ist angepasst.
 Kein neues Werkzeug, nur Muster.
 
 **Wie sicher das ist:** Alle Quellen nur aus Dokumentation oder Suchergebnis, abgerufen am 04.11.2026, über automatische Zusammenfassung gelesen, keines benutzt.
@@ -265,7 +265,7 @@ Aus dem Code **[B]**. Das Portal kennt keine Personen, jedes Konto darf alles. D
 Unverändert bleiben: gleicher Linux-Benutzer und Abschnitt 7 des Plans, Mails nur über Telegram schreiben und freigeben, kein Postfachzugang im Portal.
 Das Kontingent (7 Tage) ist gemeinsam: Wird es knapp, hält das auch die anderen Agenten auf.
 
-Zum Datenschutz treffe ich keine Rechtsaussage. Offen ist nur die Frage an Jan, ob Böhme davon wissen soll (Frage 7).
+Zum Datenschutz treffe ich keine Rechtsaussage. Jans Antwort und eine Rückfrage zur Mail vom 26.10. stehen am Dateiende (Frage 7).
 
 ### Zugänge für 3 Personen
 
@@ -289,7 +289,7 @@ Zum Datenschutz treffe ich keine Rechtsaussage. Offen ist nur die Frage an Jan, 
 | Zwei Konten in Caddy | klein, Jan als root | keine |
 | Name ans Portal, Name je Handlung, Überblick | mittel | keine |
 
-**Lernstand, drei Möglichkeiten, Jans Entscheidung (Frage 3):**
+**Lernstand, drei Möglichkeiten, Jans Entscheidung (Frage 3): so lassen.**
 
 | Möglichkeit | Folge | Aufwand **[V]** |
 |---|---|---|
@@ -314,7 +314,7 @@ Zum Datenschutz treffe ich keine Rechtsaussage. Offen ist nur die Frage an Jan, 
 
 **Aufwand [V]:** mittel bis groß (Formular, Marke, Anhalten nach den Eckpunkten, Fragen ändern, Start-Knopf, Fortschritt).
 
-**Wer darf starten, Jans Entscheidung (Frage 4):** alle drei, oder Felix und Henri bereiten vor und Jan gibt per Telegram frei.
+**Wer darf starten, Jans Entscheidung (Frage 4):** alle drei, ohne Freigabe durch Jan.
 
 ### Nachfrage an eine vorhandene Recherche (Aufgabe 3)
 
@@ -345,19 +345,26 @@ Das Exposé-Formular bleibt davon unberührt und nutzt weiter die fortgesetzte S
 
 Zu Aufgabe 5, geprüft **[B]**: Kosten stehen in `stand.json`; Fragen, Fenster, Zahlen je Status und die Scopus-Suche (Suchstrings, 1.441 Arbeiten ohne Doppelte) in `geprueft.json`. Ob je ausgeschlossener Arbeit ein Grund vorliegt, ist nicht geprüft. `stand.json` einer Recherche liest das Portal heute nicht.
 
+## Jans Antworten (04.11.)
+
+| Nr. | Frage | Antwort **[W]** |
+|---|---|---|
+| 1 | Aufgabe 9 und 10 beim Entwurf der Struktur gleich einplanen? | "ja" |
+| 2 | Vorbilder bestätigt? Erst danach Schritt 4 | "okay" |
+| 3 | Lernstand: so lassen, Modulseiten nur für Jan veränderbar, oder Lernstand je Person? | "so lassen" |
+| 4 | Wer darf eine neue Recherche starten: alle drei, oder Jan gibt per Telegram frei? | "alle drei und ich muss nicht freigeben" |
+| 5 | Wer darf bezahlte Läufe auslösen (Rückmeldung, Nachfrage, Auswertung einer Übung): alle drei, oder nur Jan? | "jeder, aber schlussendlich muss ich gucken dass ich geld von den anderen bekomme bzw. vielleicht hat jeder seinen eigenen pro acount" |
+| 6 | Normenzitate und Kartenbilder so in Ordnung, oder für Felix und Henri ausblenden? | "ist in or" |
+| 7 | Soll Böhme wissen, dass Felix und Henri die Mails im Portal sehen? | "nein das weiß er doch eh, die stehen im cc" |
+| 8 | Vorschlag insgesamt okay? | "erstmal okay" |
+
+**Befund zu Frage 7 [B]:** Laut `data/projekte/fehlstellen/schriftverkehr.json` stehen Felix und Henri bei den Mails vom 21.10. und 29.10. im Feld "an" (Jans eigene Mails an Böhme).
+Die Mail von Böhme vom 26.10. ging laut Feld "an" nur an Jan, ein Feld für cc gibt es dort nicht. Das Portal zeigt sie Felix und Henri trotzdem. Geprüft sind nur Kopf und Empfänger, nicht der Text.
+
 ## Offene Fragen an Jan
 
-1. Aufgabe 9 und 10: Sollen sie von Anfang an mitgedacht werden? Jan hat die Frage nicht verstanden, einfacher neu gestellt.
-2. Bestätigst du die Vorbilder? Erst danach Schritt 4.
-
-Zum Vorschlag oben:
-
-3. Lernstand: so lassen, Modulseiten nur für Jan veränderbar, oder Lernstand je Person?
-4. Wer darf eine neue Recherche starten: alle drei, oder Jan gibt per Telegram frei?
-5. Wer darf bezahlte Läufe auslösen (Rückmeldung, Nachfrage, Auswertung einer Übung): alle drei, oder nur Jan?
-6. Gehen Normenzitate und Kartenbilder so in Ordnung, oder sollen sie für Felix und Henri ausgeblendet werden?
-7. Soll Böhme wissen, dass Felix und Henri die Mails im Portal sehen?
-8. Vorschlag insgesamt: okay? Erst dann ändert sich `webapp-plan.md` "Was nicht gebaut wird".
+1. Gilt deine Antwort zu Frage 7 auch für die Mail von Böhme vom 26.10., die nur an dich ging?
+2. Offene Idee aus Frage 5, nicht entschieden, nichts gebaut: Wie wird abgerechnet, oder bekommt jeder ein eigenes Konto? Heute laufen alle bezahlten Läufe auf Jans Konto. Ohne Name je Handlung ist nicht zu sehen, wer welchen Lauf ausgelöst hat.
 
 **Hinweis zum Exposé:** Die Autorenzeile der aktuellen Fassung zeigt "Felix Frankowiak (Matr.-Nr. XXXXXXXX)". Die Seite meldet trotzdem "Noch offen (0)",
 weil `portal/projekt.py` nur `[OFFEN: ...]` als offene Stelle erkennt. Nur gemeldet, nichts geändert.
