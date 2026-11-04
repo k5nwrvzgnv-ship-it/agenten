@@ -156,6 +156,7 @@ def auswerten(modul_ordner: Path, ordner: Path, fragen=claude_fragen, melden=jan
             raise Gescheitert("Claude hat keine brauchbare Antwort geliefert. Jan ist informiert.")
         ergebnis, harte, weiche = bewertung.pruefen(bewertung.antwort_lesen(e.text), rubrik, plan, karten, transkript)
         messung["nachbesserung"] = bool(harte or weiche)
+        erste_fehler = harte + weiche
         if harte or weiche:  # genau eine Nachbesserung in derselben Sitzung
             logger.info("%s: Nachbesserung, %d harte, %d weiche Fehler", ordner.name, len(harte), len(weiche))
             try:
@@ -175,7 +176,8 @@ def auswerten(modul_ordner: Path, ordner: Path, fragen=claude_fragen, melden=jan
         for s in sitzungen:
             loeschen(s)
     ergebnis.update(id=ordner.name, zeit=_zeit(), rubrik_summe=uebungen.rubrik_summe(rubrik),
-                    rubrik_bestaetigt_beim_lauf=uebungen.rubrik_bestaetigt(rubrik), verworfen=weiche)
+                    rubrik_bestaetigt_beim_lauf=uebungen.rubrik_bestaetigt(rubrik), verworfen=weiche,
+                    erste_fehler=erste_fehler)
     return ergebnis, messung
 
 

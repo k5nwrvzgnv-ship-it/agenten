@@ -86,8 +86,8 @@ Die Bezeichnungen im ElevenLabs-Web können sich ändern; sinngemäß:
      gibt: Geduld hoch (sonst fällt der Agent in den Vortrag), Dauer etwa 40 Minuten.
 3. Testen: kurzer Durchlauf mit "Abbruch" nach zwei Fragen, prüfen, ob Aussprache und
    Fachbegriffe stimmen. Fehler bei Aussprache: Regel unter "Sprechen" in prompt.md ergänzen.
-4. Nach einer echten Übung: Transkript aus ElevenLabs herunterladen und per /uni an den
-   uni-Agenten schicken, damit Lücken in die Lernkarten kommen.
+4. Nach einer echten Übung: Transkript aus ElevenLabs herunterladen und im Uni-Portal unter
+   "Mündlich üben" auswerten lassen. Kartenvorschläge bestätigst du dort.
 
 Paket neu bauen (z. B. nach neuen Karten oder Transkripten):
 .venv/bin/python sprachpruefung.py {modul_ordner} {teil}

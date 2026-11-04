@@ -123,6 +123,15 @@ class Pruefen(unittest.TestCase):
         self.assertEqual([k["frage"] for k in ergebnis["karten_neu"]], ["Neu2?"])
         self.assertIn("Fundstelle", weiche[0])
 
+    def test_einzelne_stelle_einer_angabe_zaehlt(self):
+        karten = KARTEN + [{"id": "x", "thema": "pilze", "frage": "Y?", "antwort": "a", "quelle": "Infokarten S. 1; SHB_01 S. 19, 22"}]
+        stellen = bewertung.fundstellen_sammeln(karten, PLAN)
+        for gut in ("SHB_01 S. 19", "SHB_01 S. 22", "SHB_01 S. 19, 22", "Infokarten S. 1", "Infokarten S. 1; SHB_01 S. 22",
+                    "Infokarten S. 1; SHB_01 S. 19, 22", "SHB 01 S. 3"):
+            self.assertTrue(bewertung.fundstelle_belegt(gut, stellen), gut)
+        for falsch in ("SHB_01 S. 20", "SHB_01 S. 19; DIN 99999", "SHB_01", "", ";", "Infokarten S. 2"):
+            self.assertFalse(bewertung.fundstelle_belegt(falsch, stellen), falsch)
+
     def test_karte_die_es_schon_gibt_wird_verworfen(self):
         doppelt = {"thema": "faeule", "frage": "was ist braunfäule?", "antwort": "x", "quelle": "SHB 02 S. 9"}
         self.assertEqual(pruefen(antwort(karten_neu=[doppelt]))[0]["karten_neu"], [])
@@ -131,6 +140,10 @@ class Pruefen(unittest.TestCase):
         ergebnis, _, weiche = pruefen(antwort(karten_faellig=[{"karte": "gibt-es-nicht"}, {"karte": "pilze-1"}, {"karte": "pilze-1"}]))
         self.assertEqual([k["karte"] for k in ergebnis["karten_faellig"]], ["pilze-1"])
         self.assertEqual(len(weiche), 1)
+
+    def test_id_mit_klammern_wie_in_der_wissensbasis(self):
+        ergebnis, _, weiche = pruefen(antwort(karten_faellig=[{"karte": "[pilze-1]"}]))
+        self.assertEqual((ergebnis["karten_faellig"][0]["karte"], weiche), ("pilze-1", []))
 
     def test_mengengrenzen(self):
         viele = [{"thema": "faeule", "frage": f"F{i}?", "antwort": "a", "quelle": "SHB 02 S. 9"} for i in range(50)]

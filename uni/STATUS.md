@@ -323,7 +323,7 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     (Rolle aus plan["teile"], Ablauf Vortrag -> Fragen nach Score -> Note), begruessung.txt,
     wissen_themen.md (Themen des Teils + Kartenwissen, Bildkarten als Merkmale), wissen_vorlesung.md
     (Transkripte des Kurses), ANLEITUNG.md. Paket IHS gebaut 29.10., in ElevenLabs noch nicht getestet.
-    Offen: Auswertung des ElevenLabs-Transkripts (per /uni) in FSRS. Stufe 2: dieselbe Stimme über
+    Die Auswertung des Transkripts läuft über das Portal (siehe Portal, Mündlich üben). Stufe 2: dieselbe Stimme über
     Telegram-Sprachnachrichten (mit Bildkarten, Bericht, FSRS; Zentrale braucht Sprachnachrichten).
     Audio liegt nicht auf dem Server, ffmpeg fehlt.
 
@@ -379,8 +379,46 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Gemessen 04.11. (lokal, ohne Caddy, während pruefen.sh lief): Karte 6 bis 19 ms, Bewerten 16 ms, Bild 19 ms,
     MemoryPeak 38 MB. Echte Karte angezeigt und einmal bewertet, die Bewertung danach entfernt: Jans Lernstand ist leer.
   - Ungeprüft: Aussehen im Browser (Headless-Browser startet auf dem Server nicht, fehlende Bibliotheken) und Zugriff
-    über uni.meldro.de. Nächster Teil in eigenem Chat: Auswertung der mündlichen Übung (ElevenLabs-Transkript).
+    über uni.meldro.de.
   - Stand vor dem Bau: uni-lernen nicht eingerichtet und laut Plan Abschnitt 10 optional. Bedarf: ../STATUS.md Punkt 29.
+  - Mündlich üben (Teil 2, 04.11.): Auf /modul/holzschutz Link zum ElevenLabs-Agenten (ELEVENLABS_AGENT_URL in portal/.env,
+    nur https, sonst Hinweis; keine Einbettung, CSP unverändert, keine ElevenLabs-API), Transkript als .txt, .md, .json bis
+    512 KB oder eingefügt, 200 bis 60.000 Zeichen. Ablage data/lernen/<modul>/uebungen/<id>/ (transkript.txt, stand.json,
+    auswertung.json, kartenstand.json; Ordner 700, nicht im Repo). Das JSON-Format stammt aus der API-Doku von ElevenLabs, der
+    Web-Export ist ungeprüft; im Zweifel Text einfügen.
+  - Agent uniportal (portal/auswertung_agent.py, Dienst uni-portal-frage, Oneshot, MemoryMax=500M, Pfad-Unit auf
+    portal/data/warteschlange/): eigener Ordner, also eigene Sperre portal/data/lauf.lock. Claude (anspruchsvoll, Opus) bekommt
+    alles im Prompt und keine Werkzeuge (--tools ""), wie lia/chat. Deshalb kein Eintrag in shared/einstellungen.toml nötig:
+    lauf_einstellungen setzt das im Speicher. Ohne diese Zeile fiele ein neuer Name auf [werkzeuge] standard mit Write und Edit
+    zurück. Name nur a-z, sonst lehnt agentkit.meldungen ihn ab. Die Regeln aus "Gelernte Regeln" unten gehen mit in den Prompt.
+    Claudes Sitzungsdatei wird nach dem Lauf gelöscht. Log: portal/logs/uni-portal-frage.log, ohne Inhalte.
+  - Grenze: Der Prompt ist ein Argument von claude -p, Linux erlaubt 128 KiB je Argument (bewertung.MAX_PROMPT_BYTES = 125.000).
+    Deshalb bekommt die Auswertung Themen und Karten als Wissensbasis, nicht wissen_vorlesung.md.
+  - Stände: wartet, läuft, fertig, fehlgeschlagen mit Grund; die Seite lädt sich dabei alle 10 s neu (ohne JavaScript). Plätze
+    belegt: "wartet", neuer Versuch jede Minute, nach 30 min geparkt. Stufe limit oder nur_auftraege: sofort geparkt
+    (portal/data/geparkt/, von systemd nicht beobachtet), nichts startet von selbst. Knopf "Jetzt starten" startet auch bei
+    nur_auftraege, bei limit nicht. Bleibt ein Auftrag ohne Endstand liegen, höchstens 3 Starts.
+  - Rubrik: data/lernen/holzschutz/rubrik.json (nicht im Repo), Entwurf aus Modulhandbuch PDF-S. 41 bis 43, pruefungsplan.json und
+    prompt.md, 10 Punkte, davon 3 Annahmen (Fälle begründen, Vortrag, Fachsprache), weil der echte Maßstab unbekannt ist. Thema
+    "details-ohne-pruefungsbezug" gehört bewusst zu keinem Punkt. Bestätigung per Knopf auf /modul/holzschutz/rubrik, gilt für genau
+    diese Punkte (Prüfsumme). Bis dahin zeigt die Ergebnisseite "Rubrik noch nicht bestätigt". Am 04.11. noch nicht bestätigt.
+  - Prüfung der Antwort (bewertung.py): Jedes Zitat muss wörtlich im Transkript stehen (Leerraum und typografische Zeichen
+    vereinheitlicht, mindestens 12 Zeichen). Punkt ohne belegtes Zitat wird "unbelegt". Neue Karte nur mit Fundstelle aus der
+    Wissensbasis, fällige nur mit vorhandener ID. Eine Nachbesserung in derselben Sitzung. Nicht geprüft: ob das Zitat von Jan
+    stammt oder von der Prüferin; der Prompt verlangt Jans Antworten, Python kann die Sprecher nicht sicher trennen.
+  - Karten: Vorschläge einzeln oder gesammelt per Knopf. Neue hängt uebungen.uebernehmen an karten.json an (Feld herkunft), fällige
+    kommen nach vorgemerkt.json und beim Üben im Portal zuerst, bis sie bewertet sind. zustand.json und verlauf.jsonl ändert nur
+    die Bewertung selbst. lernen.py (Telegram) kennt vorgemerkt.json nicht.
+  - Probelauf 04.11. mit künstlichem Kurztranskript (816 Zeichen), hochgeladen über den echten Dienst, Agent von Hand gestartet, weil
+    die Units noch fehlen. Drei Läufe, zusammen 1,90 USD; danach alles entfernt, karten.json, rubrik.json, pruefungsplan.json
+    per Prüfsumme gleich, zustand.json und verlauf.jsonl gibt es weiter nicht. Prompt 41,8 KB. Ein Lauf ohne Nachbesserung: 42 s,
+    0,32 USD, 35.910 Tokens, Python-Prozess und claude je höchstens 261 MB. Mit Nachbesserung 73 bis 81 s, 0,76 bis 0,82 USD;
+    die Nachbesserungen der ersten zwei Läufe kamen von Karten-IDs mit Klammern, behoben. Alle Zitate der drei Läufe belegt.
+    Streuung: Bei gleichem Transkript wichen je Lauf bis zu 2 von 10 Stufen ab (immer "teilweise" gegen "nicht geprüft"), und nur der
+    erste Lauf schlug eine neue Karte vor. Eine Auswertung ist also eine Einschätzung, keine Messung.
+  - Ungeprüft: Pfad-Unit (Einrichtung war gesperrt, siehe Offene Punkte 11), Aussehen im Browser, echtes ElevenLabs-Transkript, ein
+    langes Transkript, Warten und Parken im echten Betrieb (nur Tests), Übernehmen einer neuen Karte am echten Dienst (im letzten
+    Lauf gab es keinen Vorschlag; nur Tests. Vormerken am echten Dienst geprüft und entfernt).
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
@@ -487,6 +525,10 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 10. Portal von außen (Jan): DNS bei INWX für uni.meldro.de (A 84.247.188.205, AAAA 2a02:c207:3020:9076::1; zeigte am
     04.11. auf 185.181.104.242, Jan prüft, ob er das nutzt), dann Block aus portal/data/caddy-uni.txt als root an
     /etc/caddy/Caddyfile anhängen und Caddy neu laden. Danach Aussehen im Browser ansehen.
+11. Auswertung mündlicher Übungen einrichten (Jan, Terminal auf dem Server, als agent; für Claude gesperrt, 04.11.): Units aus
+    portal/systemd/uni-portal-frage.{service,path} nach ~/.config/systemd/user/ kopieren, `systemctl --user daemon-reload`,
+    `systemctl --user enable --now uni-portal-frage.path`. Vorher bleibt jede Auswertung auf "wartet" stehen. Danach Adresse des
+    ElevenLabs-Agenten als ELEVENLABS_AGENT_URL in portal/.env, Rubrik im Portal lesen und bestätigen.
 
 - Kurzrecherche statt Recherche-Pipeline (03.11., Henris Frage Kamera oder RealSense, Auftrag
   20261103-104356-uni-49cf67): normaler Auftrag mit Verweis auf die vorhandene Exposé-Recherche, höchstens 5
