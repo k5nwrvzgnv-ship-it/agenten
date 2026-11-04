@@ -445,14 +445,14 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     kein Lauf, Stand fehlgeschlagen. Liegt in der Kette schon ein offener Auftrag (z. B. Telegram-Antwort bei knappem Kontingent), wartet die Marke.
     Nach "fehlgeschlagen" gibt es keinen Knopf "noch einmal": neu abschicken, der eigene Text steht auf der Seite. Alte Fassung zurückholen geht nur von
     Hand aus vorher/, das Portal hat dafür keinen Knopf.
-    Sofortstart: Vorlage portal/systemd/uni-portal-rueckmeldung.path (PathChanged auf die Warteschlange, startet uni.service), einrichten macht Jan (Offene
-    Punkte 12). Ohne sie greift der Timer 8, 13, 19 Uhr. Auch mit ihr: Kommt eine Marke, während uni.service gerade nach seinem letzten Rückmeldungs-Schritt
+    Sofortstart: Unit uni-portal-rueckmeldung.path (Vorlage in portal/systemd/, PathChanged auf die Warteschlange, startet uni.service), von Jan am 04.11.
+    eingerichtet, aktiv. Der Timer 8, 13, 19 Uhr greift zusätzlich. Kommt eine Marke, während uni.service gerade nach seinem letzten Rückmeldungs-Schritt
     endet, wartet sie bis zum nächsten Timer. Jeder Start ist ein voller Lauf von uni.service (Moodle, Post), wie nach einem Telegram-Auftrag, auch nach
     dem Zurücknehmen, denn PathChanged meldet auch das Löschen.
     Geprüft: Tests (uni/tests/test_rueckmeldungen.py mit echter Aufträge-Ablage im Temp-Ordner, portal/tests/test_rueckmeldung.py, test_schutz.py); am
     echten Dienst (04.11., direkt auf 127.0.0.1:8793) nur abgelehnte Eingaben: zu kurz, leer, falsche Endung, falscher Dateianfang, 20 MB ohne PDF-Anfang,
     21 MB (413), altes Token, fremde Herkunft (403), danach keine Marke und kein Auftrag; MemoryPeak dabei 83 MB (Grenze 200 MB). UNGEPRÜFT: ein echter
-    Lauf von der Marke bis zur neuen Fassung, Aussehen im Browser, Upload über Caddy, die Pfad-Unit im Betrieb. Bewusst nicht getestet: Eine gültige Marke am echten Dienst löst einen bezahlten Lauf aus und überschreibt das Exposé. Der
+    Lauf von der Marke bis zur neuen Fassung, Aussehen im Browser, Upload über Caddy, ob die Pfad-Unit bei einer Marke wirklich auslöst (sie ist aktiv, ausgelöst hat sie noch nie). Bewusst nicht getestet: Eine gültige Marke am echten Dienst löst einen bezahlten Lauf aus und überschreibt das Exposé. Der
     Echttest ist Jans erste echte Rückmeldung.
   - Geplant, nicht gebaut (Jan 04.11.: Der Agent schreibt, die Gruppe kommentiert; Word soll auch mal gehen; weitere Bausteine erst, wenn
     die Schritte anstehen): Als Nächstes Interviews vorbereiten (Jan: kommt bald; braucht Claude-Läufe, also wieder nur Datei in die Warteschlange).
@@ -568,9 +568,6 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
     portal/systemd/uni-portal-frage.{service,path} nach ~/.config/systemd/user/ kopieren, `systemctl --user daemon-reload`,
     `systemctl --user enable --now uni-portal-frage.path`. Vorher bleibt jede Auswertung auf "wartet" stehen. Danach Adresse des
     ElevenLabs-Agenten als ELEVENLABS_AGENT_URL in portal/.env, Rubrik im Portal lesen und bestätigen.
-12. Sofortstart der Exposé-Rückmeldung einrichten (Jan, Terminal auf dem Server, als agent; freiwillig, ohne sie greift der Timer): Unit aus
-    portal/systemd/uni-portal-rueckmeldung.path nach ~/.config/systemd/user/ kopieren, `systemctl --user daemon-reload`,
-    `systemctl --user enable --now uni-portal-rueckmeldung.path`.
 
 - Kurzrecherche statt Recherche-Pipeline (03.11., Henris Frage Kamera oder RealSense, Auftrag
   20261103-104356-uni-49cf67): normaler Auftrag mit Verweis auf die vorhandene Exposé-Recherche, höchstens 5
