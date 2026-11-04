@@ -209,7 +209,7 @@ Quelle: [Hilfeseite](https://support.google.com/notebooklm/answer/16179559?hl=en
 ### Lücken
 
 - Aufgabe 5 (wie kam die Recherche zustande), 6 (Weitergabe), 7 (Kontaktpersonen), 9 (neue Recherche, Überblick vorab): kein Vorbild.
-  Danach wurde teils gar nicht gesucht, teils fand sich nichts Belastbares.
+  Danach wurde teils gar nicht gesucht, teils fand sich nichts Belastbares. Inzwischen nachgesucht, siehe "Vorschlag: Zugänge, Recherche-Start, Nachfrage".
 - Aufgabe 8 (Üben): war nicht Teil dieser Suche.
 - Aufgabe 2 nur teilweise: Kommentare sind pro Seite belegt, eine Gesamtliste "was fehlt noch" über alle Dokumente nicht.
 - Aufträge an einen Agenten mit festem Ort: In den gelesenen Werkzeugen gibt es nichts Direktes, Vorbild bleibt Lias "+ Neu hier".
@@ -238,10 +238,126 @@ Davon hängen ab:
 - **Kommentieren an der Textstelle im Browser:** "erstmal zu kompliziert, lieber das mit dokumetnen und kommentaren optimieren und wirklich gut machen".
   Nicht vorsehen. Die Muster dazu (Notion, Overleaf) gelten damit nur noch für die Darstellung der Kommentare und das Erledigen, nicht fürs Markieren im Text **[V]**.
 
+## Vorschlag: Zugänge, Recherche-Start, Nachfrage (04.11.)
+
+**Stand:** Vorschlag, nichts gebaut, am Portal nichts geändert. `webapp-plan.md` "Was nicht gebaut wird" ändert sich erst nach Jans Okay.
+Kein neues Werkzeug, nur Muster.
+
+**Wie sicher das ist:** Alle Quellen nur aus Dokumentation oder Suchergebnis, abgerufen am 04.11.2026, über automatische Zusammenfassung gelesen, keines benutzt.
+Die Aussagen zum Portal kommen aus dem Code, nicht aus dem Browser. Aufwand ist überall meine grobe Schätzung **[V]**.
+
+### Was "keine Sperren" heute bedeutet
+
+Aus dem Code **[B]**. Das Portal kennt keine Personen, jedes Konto darf alles. Das ist vermutlich mehr, als Jan bei "soeinfach wie möglich" vor Augen hatte **[V]**.
+
+| Tatsache | Stelle |
+|---|---|
+| **Sie schreiben auch.** Karten üben ändert `zustand.json` und `verlauf.jsonl`, die Sitzung liegt einmal je Modul. Schon das Öffnen von "Üben" speichert sie. Übt Felix, ändern sich Jans Lernstand und Jans nächste Karte, auch für Telegram | `portal/app.py`, `/modul/<modul>/ueben`, `/bewerten`, `_sitzung_datei` |
+| Die Rubrik bestätigen könnten auch sie, laut Plan tut das Jan | `/modul/<modul>/rubrik/bestaetigen` |
+| Sie sehen die 3 Mails von Böhme, einer dritten Person | `/projekt/<projekt>/schriftverkehr` |
+| Sie sehen Jans Lernstand, Karten und Bilder, Transkripte mündlicher Übungen samt Auswertung | `portal/ablage.py`, `MODUL_DATEIEN`, `UEBUNG_DATEIEN` |
+| Normen-PDFs und Skripte selbst gibt das Portal nicht aus, Auszüge schon: 29 wörtliche Normenzitate aus 4 Normen (etwa 2.000 Zeichen) in der Recherche, 12 Bildkarten laut Feld `quelle` aus den Infokarten Pilze und Insekten | `geprueft.json`, `karten.json` |
+| **Bezahlte Läufe:** Das Formular "Rückmeldung zum Exposé" startet einen Claude-Lauf auf Jans Konto. Das Ergebnis geht per Telegram nur an Jan | `portal/vorlagen/projekt_expose.html`, `rueckmeldungen.py` |
+| **Falsche Angabe, nur gemeldet:** Die Seite sagt "Etwa 1 USD", gemessen wurden auch 10,38 USD | `projekt_expose.html`, Zeile 37; `STATUS.md` |
+| Zweiter bezahlter Weg: Die Auswertung einer Übung reiht einen Opus-Lauf ein. Die Unit dafür ist noch nicht eingerichtet (Offener Punkt 11), Kosten ungemessen | `/modul/<modul>/uebung` |
+| Rückmeldungen, Fassungen und Protokoll tragen keinen Namen | `rueckmeldungen.py`, Protokoll |
+
+Unverändert bleiben: gleicher Linux-Benutzer und Abschnitt 7 des Plans, Mails nur über Telegram schreiben und freigeben, kein Postfachzugang im Portal.
+Das Kontingent (7 Tage) ist gemeinsam: Wird es knapp, hält das auch die anderen Agenten auf.
+
+Zum Datenschutz treffe ich keine Rechtsaussage. Offen ist nur die Frage an Jan, ob Böhme davon wissen soll (Frage 7).
+
+### Zugänge für 3 Personen
+
+**Empfehlung:** Drei eigene Konten in Caddy. Das Passwort nicht teilen: Heute gibt es nur das Konto `jan`. Bei einem geteilten Passwort ist niemand zu unterscheiden, und Jans
+"Überblick, was die anderen gemacht haben" geht nicht.
+
+- **Muster:** [Caddy `basic_auth`](https://caddyserver.com/docs/caddyfile/directives/basic_auth): Liste aus Benutzer und Hash, Klartext unzulässig, `caddy hash-password`. Danach steht `{http.auth.user.id}` bereit.
+  Läuft heute schon mit einem Konto (`portal/data/caddy-uni.txt`). Keine neue Anmeldeseite, zwei weitere Zeilen. Jan trägt sie als root ein (Weg wie Offener Punkt 10 in `STATUS.md`).
+- **Name ans Portal:** [`reverse_proxy`](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy): `header_up` ohne Vorzeichen setzt und überschreibt auch einen vom Browser gesendeten Wert, `+` fügt nur hinzu. Also ohne `+`, sonst fälschbar.
+  [Forum](https://caddy.community/t/passing-basic-auth-user-id-to-app-behind-reverse-proxy/16752), dort vom Nutzer bestätigt. Der Dienst hört nur auf 127.0.0.1.
+- **Grenzen, allgemeines Wissen, nicht aus den Quellen:** Kein Abmelden. Passwort vergessen heißt: Jan setzt es neu.
+- **Überblick:** Muster Basecamp, oben. Dafür braucht jede Handlung einen Namen.
+- **Verworfen als Standard:** Magic Link (einmaliger, befristeter Link per Mail): [Outline](https://docs.getoutline.com/s/hosting/doc/email-magic-link-N2CPh5tmTS) setzt SMTP voraus, außerdem
+  [Supabase](https://supabase.com/docs/guides/auth/auth-email-passwordless). Jede Anmeldung wäre eine automatische Mail nach außen. Das Portal handelt nie nach außen, `CLAUDE.md` erlaubt das nur nach Freigabe. Ginge nur mit Jans ausdrücklicher Ausnahme.
+- **Gegenbild, von Jan nicht gewollt:** Rechte-Stufen bei [NotebookLM](https://support.google.com/notebooklm/answer/16322204) (Betrachter, Bearbeiter) und [Claude Projects](https://support.claude.com/en/articles/9519177) (laut Suchergebnis). In Claude Projects bleiben
+  [Chats auch im geteilten Projekt privat](https://support.claude.com/en/articles/9519189-project-visibility-and-sharing): Auch offene Projekte müssen nicht alles teilen.
+- **Nicht verwendet:** Paperless-ngx, Mealie, Linkding: nichts Belastbares gefunden.
+
+| Baustein | Aufwand **[V]** | Kosten |
+|---|---|---|
+| Zwei Konten in Caddy | klein, Jan als root | keine |
+| Name ans Portal, Name je Handlung, Überblick | mittel | keine |
+
+**Lernstand, drei Möglichkeiten, Jans Entscheidung (Frage 3):**
+
+| Möglichkeit | Folge | Aufwand **[V]** |
+|---|---|---|
+| So lassen | Am einfachsten. Jeder Übende verändert Jans Lernstand | keiner |
+| Modulseiten nur für Jan veränderbar, für andere nur lesen | Felix und Henri können dort nicht üben. "Üben" muss mitgesperrt werden, weil schon das Öffnen speichert | klein |
+| Lernstand je Person | Alle können üben. Berührt Ablage, Sitzung und den gemeinsamen Stand mit Telegram | mittel bis groß |
+
+### Start einer teuren Recherche (Aufgabe 9)
+
+**Empfehlung:** Zwei Stufen. Erst Fragen und Rahmen ansehen und ändern, dann ein eigener Knopf "Starten". Das Portal ruft Claude nie selbst auf, Muster ist die Marke in der Warteschlange wie bei der Rückmeldung.
+
+- **Muster:** [Gemini Deep Research](https://support.google.com/gemini/answer/15719111): Nach dem Absenden kommt ein Plan, dann "Edit plan" und "Start research". Tageslimit, Hinweis auf Restmenge, man kann den Chat verlassen und wird benachrichtigt. Abbrechen beschreibt die Seite nicht.
+- [Gemini API](https://aistudio.google.com/docs/deep-research): `collaborative_planning`, der Plan wird in mehreren Runden verfeinert, erst dann der Start. Nennt eine Kostenschätzung je Aufgabe: etwa 80 Suchen 1 bis 3 USD, Max etwa 160 Suchen 3 bis 7 USD (Preview-Preise).
+- [ChatGPT Deep Research](https://help.openai.com/en/articles/10500283-deep-research-in-chatgpt), nur aus dem Suchergebnis, die Seite gab 403: Rückfragen und Plan vor dem Start, Plan bearbeitbar, Fortschritt sichtbar, Unterbrechen, Zähler für verbleibende Aufgaben.
+- [Elicit](https://support.elicit.com/en/articles/7927169): Setup-Seite zeigt "every step and setting in one place", bevor etwas läuft.
+- **Übertragen:** `recherche.py` erzeugt ohnehin zuerst `eckpunkte.json` (Fragen, Suchfenster). Das ist der natürliche Überblick. Heute läuft die Pipeline danach einfach weiter, sie müsste dort anhalten **[V]**. Die Recherche läuft nur beim ersten Auftrag einer Kette, passt also zu "neuer Auftrag auf einer Ebene".
+
+**Kosten [B]:**
+- Erster Lauf 02.11. mit Scopus: 35,23 USD, 24 Fragen, 163 Aussagen, zweimal vom Kontingent unterbrochen. Grenze `GRENZE_USD` 50 je Recherche, 5 USD Reserve.
+- Dauer 2,5 bis 4 Stunden. In der Zeit blockiert der uni-Lauf (Fristen, Post).
+- Überblick vorab: Der Eckpunkte-Lauf kostete 0,94 USD (Opus, 10 Schritte, 2 Minuten). Zuordnung über Zeitstempel in `laeufe.jsonl`, nur dieser eine Fall.
+
+**Aufwand [V]:** mittel bis groß (Formular, Marke, Anhalten nach den Eckpunkten, Fragen ändern, Start-Knopf, Fortschritt).
+
+**Wer darf starten, Jans Entscheidung (Frage 4):** alle drei, oder Felix und Henri bereiten vor und Jan gibt per Telegram frei.
+
+### Nachfrage an eine vorhandene Recherche (Aufgabe 3)
+
+**Empfehlung:** Immer eine neue Sitzung, nie `--resume`. Zwei Stufen, die Antwort landet am Ort der Ebene (Jans Idee).
+
+| Stufe | Kosten |
+|---|---|
+| Nur aus der vorhandenen Recherche, ohne Web | ungemessen, vermutlich die billigste **[V]** |
+| Mit Websuche, höchstens 5 | 0,88 USD, 3,5 Minuten **[B]**, ein Fall (Henris Frage Kamera oder RealSense, 03.11.) |
+
+- **Warum keine fortgesetzte Sitzung [B]:** Die Antwort per fortgesetzter Sitzung kostete bei 3 Schritten 1,06 USD, die Exposé-Überarbeitung mit `--resume` 10,38 USD.
+- **Muster:** [Gemini API](https://aistudio.google.com/docs/deep-research): Nachfassen über `previous_interaction_id`, ohne neu zu recherchieren. Das Beispiel nutzt dafür ein Modell statt des Agenten, also vermutlich nicht der teure Weg **[V]**.
+- [Perplexity](https://www.five.reviews/how-to/how-to-use-perplexity-ai-for-research/): Nachfragen im selben Thread behalten den Kontext, nur Blogs und Foren, keine offizielle Doku. Ob Quellen erhalten bleiben, ist offen. Ein [Rezensent](https://uzyn.com/2025/thoughts-on-perplexity-deep-research-after-24-hours/) fand, dass Nachfragen Fehler aufdecken.
+- NotebookLM: nur aus eigenen Quellen, siehe oben.
+- **Warnung:** [Gemini-Forum](https://discuss.ai.google.dev/t/3-pro-deep-research-follow-up-questions-fail-80-of-the-time/112108): Nachfragen scheiterten oft, Einzelbericht. Ob Nachfragen aufs Limit zählen, ist nicht belegt.
+
+**Aufwand [V]:** mittel (Formular, Marke, eigener Agentenzweig, Ablage an der Ebene).
+
+Das Exposé-Formular bleibt davon unberührt und nutzt weiter die fortgesetzte Sitzung. Es bleibt also teuer, bis jemand das eigens ändert.
+
+### Lücken aus der Vorbild-Suche, jetzt mit Muster
+
+| Aufgabe | Muster und Quelle | Aufwand **[V]** | Kosten |
+|---|---|---|---|
+| 5 Wie kam es zustande | Eine Seite "So kam das zustande" mit Fragen, Fenstern, Zahlen. [Elicit](https://support.elicit.com/en/articles/7927169) zeigt je ausgeschlossenem Paper Kriterium und Grund mit [Belegstelle](https://support.elicit.com/en/articles/2601281); PRISMA-Flussdiagramm nur laut [Nachricht](https://hlrnet.com/sites/ai/?p=17182), die Hilfeseite erwähnt es nicht | klein | kein Claude-Lauf **[V]** |
+| 6 Weitergabe | Ein klarer Knopf für PDF und Word der aktuellen Fassung, beides gibt es schon. [Gemini](https://support.google.com/gemini/answer/15719111) "Share & export"; ChatGPT "Download as PDF" nur laut [Presse](https://bgr.com/tech/chatgpt-deep-research-just-got-an-upgrade-you-should-try). Öffentliche Links wie bei Perplexity (nur Suchergebnis) widersprechen Plan Abschnitt 7. Mail an Böhme bleibt über Telegram | klein | keine |
+| 7 Kontaktpersonen | Seite je Person aus `schriftverkehr.json`, chronologisch. [HubSpot-Zeitleiste](https://jdrgroup.co.uk/blog/hubspot-contact-timeline), nur Drittseiten. Für Interviewvorbereitung kein Vorbild gefunden | klein | keine |
+
+Zu Aufgabe 5, geprüft **[B]**: Kosten stehen in `stand.json`; Fragen, Fenster, Zahlen je Status und die Scopus-Suche (Suchstrings, 1.441 Arbeiten ohne Doppelte) in `geprueft.json`. Ob je ausgeschlossener Arbeit ein Grund vorliegt, ist nicht geprüft. `stand.json` einer Recherche liest das Portal heute nicht.
+
 ## Offene Fragen an Jan
 
-1. Aufgabe 9 und 10: Jan hat die Frage nicht verstanden, einfacher neu gestellt.
+1. Aufgabe 9 und 10: Sollen sie von Anfang an mitgedacht werden? Jan hat die Frage nicht verstanden, einfacher neu gestellt.
 2. Bestätigst du die Vorbilder? Erst danach Schritt 4.
+
+Zum Vorschlag oben:
+
+3. Lernstand: so lassen, Modulseiten nur für Jan veränderbar, oder Lernstand je Person?
+4. Wer darf eine neue Recherche starten: alle drei, oder Jan gibt per Telegram frei?
+5. Wer darf bezahlte Läufe auslösen (Rückmeldung, Nachfrage, Auswertung einer Übung): alle drei, oder nur Jan?
+6. Gehen Normenzitate und Kartenbilder so in Ordnung, oder sollen sie für Felix und Henri ausgeblendet werden?
+7. Soll Böhme wissen, dass Felix und Henri die Mails im Portal sehen?
+8. Vorschlag insgesamt: okay? Erst dann ändert sich `webapp-plan.md` "Was nicht gebaut wird".
 
 **Hinweis zum Exposé:** Die Autorenzeile der aktuellen Fassung zeigt "Felix Frankowiak (Matr.-Nr. XXXXXXXX)". Die Seite meldet trotzdem "Noch offen (0)",
 weil `portal/projekt.py` nur `[OFFEN: ...]` als offene Stelle erkennt. Nur gemeldet, nichts geändert.
