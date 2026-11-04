@@ -408,6 +408,7 @@ h3 { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
 .material-text { display: flex; flex-direction: column; gap: 10px; }
 .material-knoepfe { display: flex; flex-direction: column; gap: 8px; }
 .final-form { display: contents; }
+.knopf-satz { margin: -4px 0 4px; }
 .knopf-spalte {
   display: flex;
   align-items: center;

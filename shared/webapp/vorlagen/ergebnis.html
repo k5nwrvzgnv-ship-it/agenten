@@ -155,7 +155,9 @@
     {%- endfor %}
     {%- endif %}
     <a class="knopf-spalte{% if offen == 'rueckmeldung' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Rückmeldung geben</a>
+    <span class="unter knopf-satz">Ich ändere es für dich.</span>
     <a class="knopf-spalte{% if offen == 'eigene' %} ist-offen{% endif %}" href="{{ basis_url }}?offen=eigene#eigene">Eigene Fassung hochladen</a>
+    <span class="unter knopf-satz">Deine Datei gilt, ich ändere nichts.</span>
     {#- „Final“ abgesetzt am Ende (Chrome-Test Nr. 11); rückgängig machbar, darum ohne Rückfrage #}
     {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf-spalte", e.aktuell_name) }}</div>{% endif %}
   </div>
@@ -179,8 +181,8 @@
       <a href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Stattdessen zum Ganzen</a></p>
     {%- endif %}
     <label class="tafel-titel" for="rueck-text">Was soll anders werden?</label>
-    <textarea id="rueck-text" name="text" rows="3" maxlength="{{ text_max }}" required>{{ text }}</textarea>
-    <label class="datei-wahl" for="rueck-datei">Datei anhängen (Word, PDF, Foto)
+    <textarea id="rueck-text" name="text" rows="3" maxlength="{{ text_max }}">{{ text }}</textarea>
+    <label class="datei-wahl" for="rueck-datei">Datei anhängen (Word, PDF, Foto). Eine Datei allein reicht auch.
       <input id="rueck-datei" name="datei" type="file" accept="{{ rueck_endungen }},image/*"></label>
     <button class="knopf knopf-voll" type="submit">Neue Fassung anfordern</button>
   </form>

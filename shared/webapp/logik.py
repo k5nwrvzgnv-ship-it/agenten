@@ -625,6 +625,7 @@ def final_erlaubt(ref: str, schritte: list[dict]) -> bool:
 DOPPELT_SPERRE_S = 30  # gleicher Auftrag in dieser Zeit: verworfen (auftrag_doppelt)
 ANHANG_TRENNER = "\n\nAngehängte Dateien von "  # so hängt agentkit.auftraege Anhänge an den Text
 EIGENE_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx")
+RUECK_NUR_DATEI = "Bitte erstelle eine neue Fassung, in der du meine Datei beachtest."
 RUECK_ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
 
 
@@ -639,11 +640,11 @@ def datei_pruefen(name: str, groesse: int, endungen: tuple[str, ...]) -> list[st
 
 
 def rueckmeldung_pruefen(text: str, datei: tuple[str, int] | None) -> tuple[str, list[str]]:
-    """Rückmeldung aus der Material-Ansicht: Text ist Pflicht, eine Datei darf dazu."""
+    """Rückmeldung aus der Material-Ansicht: Text oder Datei, eine Datei allein reicht (Befund 03.11. Punkt 2)."""
     text = (text or "").strip()
     fehler = []
-    if not text:
-        fehler.append("Schreib kurz, was anders werden soll.")
+    if not text and not datei:
+        fehler.append("Schreib kurz, was anders werden soll, oder häng eine Datei an.")
     elif len(text) > NEU_TEXT_MAX:
         fehler.append(f"Der Text ist zu lang (höchstens {NEU_TEXT_MAX} Zeichen).")
     if datei:
@@ -671,7 +672,8 @@ def rueckmeldung_ziel(kette: list[dict], fassung_id: str | None, nr_text: str | 
 def rueckmeldung_text(text: str, datei_name_: str = "", ziel: dict | None = None) -> str:
     """Text des Auftrags an den Feedback-Dienst. ziel (rueckmeldung_ziel): Der Text beginnt mit Datei und Seite.
     Was eine angehängte Datei ist, bestimmt agentkit.fassungen.rueckmeldung; der Feedback-Dienst hängt sie an die
-    Nachbesserung."""
+    Nachbesserung. Ohne Text steht dort der Satz, den Lia selbst so geschrieben hat (RUECK_NUR_DATEI)."""
+    text = text or RUECK_NUR_DATEI
     if ziel:
         text = f"Zur Datei {ziel['text']}: {text}"
     if not datei_name_:

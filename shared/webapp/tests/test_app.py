@@ -1209,6 +1209,22 @@ class TestMaterial(Aufbau):
         self.assertEqual(r.status, 200)
         self.assertIn("data-einmal", js)
 
+    def test_rueckmeldung_nur_mit_datei(self):
+        """Befund 03.11. Punkt 2: Eine Datei allein reicht, der Browser verlangt keinen Text mehr."""
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"):
+            _, html = self.hole(self.URL + "?offen=rueckmeldung")
+            self.assertNotRegex(html, r'<textarea id="rueck-text"[^>]* required')
+            r, _ = self.sende("/rueckmeldung", {"text": ""}, [("Korrigiert.docx", b"KOMM")])
+            self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=rueckmeldung-test"))
+        (a,) = self.neue()
+        self.assertEqual(a["text"], f"{app.logik.RUECK_NUR_DATEI}\n\nDazu eine Datei: Korrigiert.docx.")
+
+    def test_datei_wege_erklaert(self):
+        """Befund 03.11. Punkt 2: Unter den zwei Knöpfen steht je ein Satz, was danach passiert."""
+        _, html = self.hole(self.URL)
+        for satz in ("Ich ändere es für dich.", "Deine Datei gilt, ich ändere nichts."):
+            self.assertIn(satz, html)
+
     def test_rueckmeldung_im_testbetrieb(self):
         with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten") as start:
             _, html = self.hole(self.URL + "?offen=rueckmeldung")
@@ -1217,7 +1233,7 @@ class TestMaterial(Aufbau):
                 self.assertIn(text, html)
             r, html = self.sende("/rueckmeldung", {"text": " "})
             self.assertEqual(r.status, 400)
-            self.assertIn("Schreib kurz, was anders werden soll.", html)
+            self.assertIn("Schreib kurz, was anders werden soll, oder häng eine Datei an.", html)
             r, _ = self.sende("/rueckmeldung", {"text": "Bitte kürzer"}, [("Kommentare.docx", b"KOMM")])
             self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=rueckmeldung-test"))
             start.assert_not_called()

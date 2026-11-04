@@ -524,7 +524,9 @@ class TestMaterial(unittest.TestCase):
 
     def test_rueckmeldung_und_dateien_pruefen(self):
         self.assertEqual(logik.rueckmeldung_pruefen("  kürzer  ", None), ("kürzer", []))
-        self.assertEqual(logik.rueckmeldung_pruefen(" ", None)[1], ["Schreib kurz, was anders werden soll."])
+        self.assertEqual(logik.rueckmeldung_pruefen(" ", None)[1],
+                         ["Schreib kurz, was anders werden soll, oder häng eine Datei an."])
+        self.assertEqual(logik.rueckmeldung_pruefen(" ", ("Blatt.docx", 10)), ("", []))  # Datei allein reicht
         self.assertEqual(len(logik.rueckmeldung_pruefen("x" * 5001, None)[1]), 1)
         self.assertEqual(logik.rueckmeldung_pruefen("x", ("Foto.JPG", 10))[1], [])
         self.assertIn("geht nicht", logik.rueckmeldung_pruefen("x", ("a.exe", 10))[1][0])
@@ -532,6 +534,8 @@ class TestMaterial(unittest.TestCase):
         self.assertEqual(logik.datei_pruefen("a.png", 1, logik.EIGENE_ENDUNGEN),
                          ["Diese Datei geht nicht. Möglich sind: Excel, PDF, PowerPoint, Word."])
         self.assertEqual(logik.rueckmeldung_text("kürzer"), "kürzer")
+        self.assertEqual(logik.rueckmeldung_text("", "Blatt.docx"),
+                         f"{logik.RUECK_NUR_DATEI}\n\nDazu eine Datei: Blatt.docx.")
         self.assertEqual(logik.rueckmeldung_text("kürzer", "Blatt.docx"),
                          "kürzer\n\nDazu eine Datei: Blatt.docx.")
 
