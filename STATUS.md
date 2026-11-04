@@ -966,7 +966,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     - Später, nicht nötig: Lias Agenten (unterricht/material.py, theater/nachbesserung.py) auf kommentare()
       umstellen, dann auch PDF-Kommentare von Lia.
 29. Bedarf aus uni (04.11.2026, Portal, Grundlage uni/webapp-plan.md, Bau wartet auf Jans Okay): Punkt 6 (Zentrale schließt
-    Klick-Aufträge still ab) ist die letzte Hürde vor uni-lernen und sollte vor dem Portal erledigt werden. shared/webapp
+    Klick-Aufträge still ab) ist keine Voraussetzung mehr, das Portal kommt zuerst (Jan 04.11.). shared/webapp
     bleibt unberührt, uni/portal/ kopiert CSS, Schrift, htmx und einzelne Schutzfunktionen. Später, wenn beide Apps
     stabil sind, prüfen: gemeinsamer Baustein in agentkit für Kopfzeilen, Formularschutz und sichere Dateipfade.
 

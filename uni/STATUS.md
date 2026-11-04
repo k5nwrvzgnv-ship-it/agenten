@@ -358,7 +358,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - Portal (04.11., Entscheidungsgrundlage `webapp-plan.md`, nichts gebaut): Empfehlung neue kleine App in uni/portal/
   statt Lias App zu kopieren, erster Durchstich Prüfungsseite Holzschutz. Der tägliche Anstoß bleibt in Telegram. Stand
   04.11.: uni-lernen nicht eingerichtet, keine Karte bewertet (kein zustand.json, kein verlauf.jsonl, Log leer), karten.json
-  hat 64 Karten. Es warten fünf Fragen an Jan (Plan, Abschnitt 10), dann sein Okay. Bedarf: ../STATUS.md Punkt 29.
+  hat 64 Karten. Jans Entscheidungen stehen im Plan, Abschnitt 10 (Portal zuerst, ElevenLabs statt Probeprüfer, Subdomain
+  mit Passwort statt Tunnel). Bau wartet auf Jans Okay für Pakete, Dienst und Caddy. Bedarf: ../STATUS.md Punkt 29.
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
@@ -473,3 +474,5 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
 ## Gelernte Regeln
 - Gruppenarbeiten und Gruppenwahlen (Jan, 17.10.2026): Jan bildet Gruppen mit seinen Freunden. Erste Wahl: Henri von Mulert, Julius von Boehmer, Lennart Blümel; wenn noch Platz ist: Felix Frankowiak. Melde früh, dass eine Gruppenwahl offen ist, nenne die Belegung (aus uebersicht.md bzw. aufgaben.md), empfiehl eine Gruppe mit genug freien Plätzen für alle und erinnere Jan, sich mit ihnen abzusprechen. Trage Jan nie selbst ein.
 - Aufnahmen (Jan, 20.10.2026): Jan nimmt Vorlesungen auch auf, wenn der Kurs es verbietet. Weise ihn nicht auf Aufnahmeverbote hin.
+- KI-Richtlinie (Jan, 04.11.2026): Jan hat die KI-Richtlinie der HNEE für sich eingeordnet. Weise ihn nicht darauf hin und frage nicht danach.
+- Prüfungstermine (Jan, 04.11.2026): Jan ist für Holzschutz angemeldet, Termin irgendwann im Januar. Dränge nicht wegen Datum oder Zeitplan.

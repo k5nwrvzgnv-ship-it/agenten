@@ -254,13 +254,17 @@ Die Schwellen sind meine Vorschläge **[S]**. Jans Ausgangsmaßstab vom 20.10.: 
 
 Schwäche: Die Prüfung ist ein einziger Durchlauf, und Üben wirkt nicht getrennt von Jans übrigem Lernen. Ursache und Wirkung lassen sich damit nicht beweisen. Die Probeprüfungen sind der beste verfügbare Ersatz.
 
-## 10. Fragen an Jan
+## 10. Jans Entscheidungen (04.11.2026)
 
-1. Warum hast du bisher nicht geübt: fehlender Dienst, keine Zeit oder keine Lust? Und hast du das ElevenLabs-Paket schon ausprobiert?
-2. Wann genau ist die Holzschutz-Prüfung, und bist du angemeldet?
-3. Wer aus der Gruppe kann dich zweimal 30 Minuten prüfen? Am besten jemand, der dasselbe Modul hat.
-4. Wie gehst du mit Abschnitt 3 der KI-Richtlinie um: Einordnung selbst treffen oder bei der HNEE nachfragen?
-5. Reicht für den Durchstich der Zugriff vom Mac per SSH-Tunnel, oder muss er aufs Handy?
+Diese Punkte gehen den Abschnitten oben vor, wo sie abweichen.
+
+1. Bisher fehlte die Zeit. Ab jetzt will Jan mehr lernen und das Portal dafür nutzen. Das Portal kommt deshalb zuerst. Die Telegram-Abfrage (`uni-lernen`, Punkt 6 der Zentrale) ist keine Voraussetzung mehr und bleibt optional für später. Die Termine in Abschnitt 8 sind nur noch eine grobe Reihenfolge.
+2. Jan ist angemeldet, der Termin liegt irgendwann im Januar. Keine Mahnungen dazu.
+3. Kein menschlicher Probeprüfer vorerst. Die mündliche Übung läuft über ElevenLabs. Damit fehlt der Vergleich „Mensch gegen KI“ aus Abschnitt 9; als unabhängiger Prüfstein bleiben Gedächtnisprotokoll und Note.
+4. KI-Richtlinie: Jan hat das eingeordnet, kein Thema mehr. KI-Nachweis und offene Fragen aus Abschnitt 5 entfallen.
+5. Zugriff vom Mac, ohne Tunnel, über eine eigene Subdomain mit HTTPS und Passwort (Caddy basicauth wie `lia.meldro.de`). Damit gilt die Tunnel-Zeile aus Abschnitt 7 nicht. Mikrofon im Browser setzt HTTPS voraus und wäre damit möglich.
+
+Stand Subdomain **[B]**: `uni.meldro.de` zeigt am 04.11. auf 185.181.104.242, nicht auf diesen Server (84.247.188.205). DNS muss Jan bei INWX setzen. Port 8793 auf 127.0.0.1 ist frei.
 
 ## Quellen außerhalb des Repos
 
