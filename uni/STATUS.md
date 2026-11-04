@@ -436,8 +436,9 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Passwort 401. Ungeprüft: Aussehen im Browser.
   - Oberfläche (Jan 04.11.: "furchtbar", zu viel Information, keine Hierarchie): Schritt 1 fertig, Kernaufgaben und Befund in
     portal-oberflaeche.md, nichts umgebaut. Jan 04.11.: Die Recherche soll navigieren und nachfragen können; die Nachfrage kommt als
-    eigener Vorschlag (Kosten, Agentenlogik). Noch offen von Jan: Okay zu den Kernaufgaben, was "Flexibilität" konkret heißt, zwei
-    Screenshots vom Mac oder Chrome mit Erweiterung (auf dem Server startet Chromium nicht, Systembibliotheken fehlen).
+    eigener Vorschlag (Kosten, Agentenlogik). Schritt 3 läuft: Kernaufgaben bestätigt, "Flexibilität" geklärt (Reiter je Strukturebene,
+    Dokumente und Recherchen an ihrer Ebene), Lias App als erstes Vorbild, zwei Screenshots ausgewertet (Chromium startet auf dem Server
+    nicht); offene Fragen an Jan am Ende von portal-oberflaeche.md. Am Portal nichts geändert, Schritt 4 erst nach Jans Okay zu den Vorbildern.
     Messung entfällt (Jan 04.11.: will keine Messung, auch nicht nach Rückfrage). Damit gibt es keine Zielwerte und keine Parallelfragen; abgenommen wird nach Jans Eindruck.
     Ablauf: 3 Vorbilder aus eigener Benutzung (danach Jans Okay), 4 Struktur und Varianten (danach Jans Okay), 5 Umbau auf getrenntem Port (Vorlagen wirken sofort live),
     nur uni/, 6 Abnahme durch Jan. Noch nicht besprochen: ob Baumtest, fremde Person und Log-Auswertung nach zwei Wochen bleiben. Der Prüfstein in webapp-plan.md Abschnitt 9 ist damit nicht abgeglichen.

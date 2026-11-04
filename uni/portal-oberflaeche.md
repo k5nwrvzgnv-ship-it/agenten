@@ -1,8 +1,8 @@
 # Portal-Oberfläche: Aufgaben und Befund (Schritt 1)
 
-Stand 04.11.2026. Nichts umgebaut. Noch offen ist Jans Okay zu den Kernaufgaben und seine Antwort auf die Frage am Ende.
+Stand 04.11.2026. Nichts umgebaut. Jan hat die Kernaufgaben bestätigt und Ergänzungen genannt (Abschnitt "Schritt 3, Zwischenstand").
 Schritt 2 (Messlatte) entfällt: Jan will keine Messung (04.11.). Es gibt keine Zielwerte, abgenommen wird nach Jans Eindruck.
-Als nächster Schritt folgt 3 (Vorbilder).
+Schritt 3 (Vorbilder) läuft, offene Punkte stehen am Ende.
 
 Kennzeichnung: **[B]** belegt in den genannten Daten, **[W]** von Jan gewünscht, aber noch nicht praktisch vorgekommen,
 **[V]** meine Vermutung.
@@ -78,9 +78,46 @@ Nicht geprüft: Lesbarkeit, Abstände, Schriftgrößen und Handy-Ansicht, alles,
 - Keine Struktur und kein Entwurf, das ist Schritt 4.
 - Ob ein Nachfrage-Formular gebaut wird. Es berührt Kosten und Agentenlogik und wäre ein eigener Vorschlag.
 
+## Schritt 3, Zwischenstand (Jan 04.11.)
+
+**Kernaufgaben:** Jan: "stimmen". Er möchte vielleicht ergänzen **[W]**:
+- 9. Neue Recherche beginnen und vorab einen Überblick haben, wie sie ablaufen wird.
+- 10. Gemeinsam kapitelweise am Forschungsprojekt arbeiten; jede Person der Gruppe bekommt einen Zugang zur Web-App. Dafür hat Jan
+  schon eine Idee, die er noch ausführlicher erklärt. Sie ist noch nicht aufgenommen, also nicht erfinden, sondern nachfragen.
+
+**Flexibilität heißt (Jan):** Der Aufbau hat eine sinnvolle Logik, und auf jeder Strukturebene kann der Nutzer einen neuen Reiter
+hinzufügen oder entfernen. Die Ebenen laufen von Kursen über Vorlesungen und deren Aufbereitungen zu Prüfungsleistungen. Dokumente und
+Aufträge bzw. Recherchen finden auf einer bestimmten Ebene statt und werden dort auch wiedergefunden. Das gilt auch für alles andere.
+Mein alter Vorschlag (Filter, Suche, gespeicherte Ansichten) war also nicht gemeint.
+
+**Erstes Vorbild, von Jan genannt:** Lias Web-App, "in der Hinsicht schon ganz gut inzwischen". Was sich übernehmen lässt, laut
+`shared/webapp/STATUS.md` und Vorlagen, von mir nicht im Browser gesehen, von Jan noch nicht bestätigt **[V]**:
+- Baum nach Ebenen (dort Fach, Klasse, Reihe), die gezeigte Seite markiert. Brotkrumen auf jeder Seite.
+- "+ Neu hier" an Reihe, Stunde und Material: Der neue Auftrag kennt seinen Ort und bleibt dort auffindbar.
+- "+ Stunde", "+ Reihe", "+ Fach" in der Pflege: Ebenen lassen sich anlegen, ohne die Struktur von Hand zu ändern.
+- Jede Zeile nennt ihren Ort, wenn sie außerhalb der Ebene steht ("Ethik › Klasse 8 › Straftheorien").
+- Unklar: Ob die Struktur dort auch das Entfernen trägt und was Jan an Lias App genau gut findet.
+- Grenze: `shared/webapp` bleibt unverändert, übernommen wird nur das Muster, in `uni/`.
+
+**Screenshots (Recherche und Modul Holzschutz, 04.11.):** erste Sichtprüfung, die Projektseite mit dem Exposé fehlt noch.
+- Befund 10 bestätigt: Rechts neben dem Inhalt ist auf breitem Fenster etwa die halbe Breite leer.
+- Befund 7 bestätigt: Reiter, Ansicht und Status liegen als drei Reihen übereinander, und erst darunter beginnt der Inhalt.
+- Recherche: Die Fragen stehen als fette Großbuchstaben über bis zu sechs Zeilen und sind so schwerer lesbar als die Aussagen darunter.
+- Modul: Das Formular "Transkript auswerten" füllt die Mitte der Seite, die Themen kommen erst danach. Der technische Hinweis auf
+  `ELEVENLABS_AGENT_URL` in `uni/portal/.env` steht offen auf der Seite. Alle Themen zeigen "Score 5, nicht gesehen" ohne Erklärung.
+
+**Spannung zum Plan:** `webapp-plan.md` Abschnitt 3 "Was nicht gebaut wird" nennt "Zugänge für die Gruppe" und "Oberfläche für die
+Recherche-Pipeline". Die Aufgaben 9 und 10 gehen darüber hinaus. Das Portal hat heute ein gemeinsames Passwort und keine Personen,
+wer Zugang hat, sähe auch Schriftverkehr und Lernstand. Vor Schritt 4 klären. Zugänge und Recherche-Start berühren Kosten und
+Datenschutz und kommen, wie die Nachfrage, als eigener Vorschlag.
+
 ## Offene Fragen an Jan
 
-1. "Recherche-Maske": entschieden (Jan 04.11.): navigieren und nachfragen. Die Nachfrage kommt als eigener Vorschlag, weil
-   sie Kosten und Agentenlogik berührt.
-2. "Flexibilität": Was wolltest du zuletzt tun und konntest es nicht? Vorschlag: kombinierbare Filter, Suche, gespeicherte
-   Ansichten, keine Einstellungsseite.
+1. Weitere Vorbilder außer Lias App: Programme oder Seiten, mit denen du gern viel liest, filterst und kommentierst? Und was genau
+   ist an Lias App gut?
+2. Deine Idee zur gemeinsamen Arbeit am Projekt (Aufgabe 10) und zu den Zugängen.
+3. `portal/messung.py` und `portal/tests/test_messung.py` löschen? Empfehlung: ja. Erst nach Okay.
+4. Baumtest, fremde Person, Log-Auswertung nach zwei Wochen streichen? Empfehlung: alle drei.
+5. `webapp-plan.md` Abschnitt 9: Zeile "Oberfläche: kein Prüfstein, Abnahme nach Jans Eindruck" ergänzen? Dort stand bisher nichts zur
+   Oberfläche. Und bleibt die Zeile "mindestens 10 von 14 Tagen geübt, sonst Portalbau stoppen" (23.11.)?
+6. Screenshot der Projektseite mit dem Exposé.
