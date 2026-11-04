@@ -252,6 +252,8 @@ Die Schwellen sind meine Vorschläge **[S]**. Jans Ausgangsmaßstab vom 20.10.: 
 | Zugang ist dicht | Aufruf von außen, `ss -ltn` | kein offener Port im Tunnelbetrieb; mit Caddy 401 ohne Anmeldung | vor jedem Echtbetrieb |
 | Tempo, Speicher, Kosten | Stoppuhr, `MemoryPeak`, `laeufe.jsonl` | Karte unter 0,5 s, Web unter 200 MB, Karten 0 USD | Abnahme Durchstich |
 
+Oberfläche: kein Prüfstein, Abnahme nach Jans Eindruck (Jan 04.11.).
+
 Schwäche: Die Prüfung ist ein einziger Durchlauf, und Üben wirkt nicht getrennt von Jans übrigem Lernen. Ursache und Wirkung lassen sich damit nicht beweisen. Die Probeprüfungen sind der beste verfügbare Ersatz.
 
 ## 10. Jans Entscheidungen (04.11.2026)
