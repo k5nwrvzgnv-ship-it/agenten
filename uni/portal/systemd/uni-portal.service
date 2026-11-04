@@ -1,0 +1,22 @@
+# Vorlage: nach ~/.config/systemd/user/uni-portal.service kopieren, dann systemctl --user daemon-reload und
+# systemctl --user enable --now uni-portal.service.
+# Uni-Portal: hört nur auf 127.0.0.1:8793, von außen nur über Caddy (uni.meldro.de, HTTPS, Passwort im Caddy-Block).
+# Lädt uni/.env nicht: hier steht bewusst kein EnvironmentFile (tests/test_schutz.py).
+[Unit]
+Description=Uni-Portal (127.0.0.1:8793, hinter Caddy)
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/agent/agenten/uni/portal
+Environment=PORTAL_PORT=8793
+ExecStart=/home/agent/agenten/uni/.venv/bin/python app.py
+Restart=on-failure
+RestartSec=10
+MemoryMax=200M
+
+[Install]
+WantedBy=default.target

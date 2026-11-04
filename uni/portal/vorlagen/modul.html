@@ -1,0 +1,59 @@
+{% extends "basis.html" %}
+{% block inhalt %}
+<header class="kopf">
+  <h1 class="titel-modul">{{ name }}</h1>
+  <p class="absatz">{{ plan.modul }}</p>
+</header>
+
+<section>
+  <h2>Prüfung</h2>
+  <p class="absatz">{{ plan.pruefung.form }}</p>
+</section>
+
+<section>
+  <h2>Karten</h2>
+  <p class="absatz">{{ ueberblick.gesehen }} von {{ ueberblick.karten }} gesehen, jetzt dran: {{ ueberblick.dran }}</p>
+  <p class="absatz knopf-abstand"><a class="knopf knopf-voll" href="/modul/{{ modul }}/ueben">Karten üben</a></p>
+</section>
+
+<section>
+  <h2>Themen</h2>
+  <ul>
+    {%- for t in themen %}
+    <li class="thema">
+      <details>
+        <summary class="thema-zeile">
+          <span class="text"><span class="titel">{{ t.titel }}</span><span class="unter">{{ t.teil }}{% if t.karten %} · {{ t.gesehen }} von {{ t.karten }} Karten gesehen{% endif %}</span></span>
+          <span class="thema-zahl">Score {{ t.score }}</span>
+          <span class="thema-stand">{{ t.stand }}</span>
+        </summary>
+        <div class="thema-mehr">
+          <p class="absatz">{{ t.begruendung }}</p>
+          {%- if t.lernziele %}
+          <h3>Lernziele</h3>
+          <ul class="liste">{% for z in t.lernziele %}<li>{{ z.text }}{% if z.aufgabentyp %} <span class="unter">({{ z.aufgabentyp }})</span>{% endif %}</li>{% endfor %}</ul>
+          {%- endif %}
+          {%- if t.quellen %}
+          <h3>Quellen</h3>
+          <ul class="liste">{% for q in t.quellen %}<li>{{ q }}</li>{% endfor %}</ul>
+          {%- endif %}
+        </div>
+      </details>
+    </li>
+    {%- endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>Fehlt</h2>
+  <ul>
+    {%- for f in plan.fehlt %}
+    <li class="fehlt">
+      <span class="titel">{{ f.was }}</span>
+      <span class="unter">Warum: {{ f.warum }}</span>
+      <span class="unter">Woher: {{ f.woher }}</span>
+    </li>
+    {%- endfor %}
+  </ul>
+</section>
+{% endblock %}

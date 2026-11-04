@@ -1,0 +1,46 @@
+{% extends "basis.html" %}
+{% block titel %}Karten üben{% endblock %}
+{% block inhalt %}
+<nav class="krumen" aria-label="Brotkrumen">
+  <ol>
+    <li><a href="/modul/{{ modul }}">{{ name }}</a><span class="trenner" aria-hidden="true">›</span></li>
+    <li aria-current="page">Karten üben</li>
+  </ol>
+</nav>
+{%- if veraltet %}
+<p class="hinweis" role="status">Die Seite war nicht mehr aktuell, deine Bewertung wurde nicht gespeichert. Bitte noch einmal bewerten.</p>
+{%- endif %}
+{%- if karte %}
+<article class="lernkarte">
+  <p class="unter">{{ thema }} · Score {{ score }} · noch {{ offen }}</p>
+  <p class="karte-frage">{{ karte.frage }}</p>
+  {%- if hat_bild %}
+  <img class="karte-bild" src="/modul/{{ modul }}/bild/{{ karte.id }}/frage" alt="Bild zur Frage">
+  {%- endif %}
+  <details class="aufdecken">
+    <summary class="knopf knopf-voll">Antwort zeigen</summary>
+    <div class="karte-antwort">
+      <p class="antwort-text">{{ karte.antwort }}</p>
+      {%- if hat_ganzes %}
+      <img class="karte-bild" src="/modul/{{ modul }}/bild/{{ karte.id }}/ganz" alt="Ganze Infokarte mit Beschriftung" loading="lazy">
+      {%- endif %}
+      <p class="unter">Quelle: {{ karte.quelle }}</p>
+      <form class="bewerten" method="post" action="/modul/{{ modul }}/bewerten">
+        <input type="hidden" name="token" value="{{ token }}">
+        <input type="hidden" name="karte" value="{{ karte.id }}">
+        <input type="hidden" name="nr" value="{{ sitzung.erledigt }}">
+        {%- for wort, wert in bewertungen.items() %}
+        <button class="knopf" type="submit" name="bewertung" value="{{ wert }}">{{ wort }}</button>
+        {%- endfor %}
+      </form>
+    </div>
+  </details>
+</article>
+{%- else %}
+<header class="kopf">
+  <h1 class="titel-modul">Gerade nichts dran</h1>
+</header>
+<p class="absatz">{% if sitzung.erledigt %}Heute bewertet: {{ sitzung.erledigt }}, davon gewusst: {{ sitzung.richtig }}.{% else %}Heute ist keine Karte fällig.{% endif %}</p>
+<p class="absatz"><a class="knopf" href="/modul/{{ modul }}">Zurück zur Übersicht</a></p>
+{%- endif %}
+{% endblock %}

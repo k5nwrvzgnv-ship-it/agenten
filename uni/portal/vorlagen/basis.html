@@ -1,0 +1,26 @@
+{#- Angepasst aus shared/webapp/vorlagen/basis.html: Baum | Inhalt, ohne Spalte Fragen. Im HTML steht der Inhalt
+    vorn, damit er bei schmalem Fenster oben steht; die Spalten ordnet stil.css. -#}
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titel %}{{ name }}{% endblock %} · Uni</title>
+<link rel="stylesheet" href="/statisch/stil.css">
+</head>
+<body>
+<div class="rahmen">
+<main class="inhalt einzeln">
+{% block inhalt %}{% endblock %}
+</main>
+<nav class="baum" aria-label="Module">
+  <a class="baum-name" href="/">Uni</a>
+  <ul>
+    {%- for mod in module %}
+    <li><a class="baum-eintrag" href="/modul/{{ mod.id }}"{% if mod.id == aktiv %} aria-current="page"{% endif %}><span>{{ mod.name }}</span></a></li>
+    {%- endfor %}
+  </ul>
+</nav>
+</div>
+</body>
+</html>

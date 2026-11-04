@@ -22,6 +22,7 @@ TESTS=(
   "shared/leitstand|.venv/bin/python|tests"
   "shared/webapp|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
+  "uni/portal|../.venv/bin/python|tests"
   "dokumente|.venv/bin/python|tests"
   "posteingang|.venv/bin/python|tests"
   "lia/unterricht|.venv/bin/python|tests"
