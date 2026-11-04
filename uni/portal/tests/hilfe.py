@@ -17,6 +17,13 @@ import uvicorn
 import app
 
 KOEDER = "KOEDER-GEHEIM-1234"
+RUBRIK = {"modul": "holzschutz", "quellen": ["Modulhandbuch"], "hinweis": "Entwurf", "bestaetigt": None, "punkte": [
+    {"id": "r1", "titel": "Fäule erklären", "teil": "IHS", "themen": ["faeule"], "quelle": "S. 42", "erwartung": "Erklärt Fäule."},
+    {"id": "r2", "titel": "Vortrag", "teil": "IHS+SHB", "themen": [], "quelle": "S. 41", "erwartung": "Hält einen Vortrag."}]}
+TRANSKRIPT = ("TEST, künstlich.\nPrüferin: Was ist Braunfäule und woran erkennen Sie sie?\n"
+              "Prüfling: Bei der Braunfäule bauen die Pilze vor allem die Zellulose ab, das Holz\nzerfällt dann in Würfel.\n"
+              "Prüferin: Und bei der Weißfäule?\nPrüfling: Das weiß ich gerade nicht mehr, da bin ich leider unsicher.\n"
+              "Prüferin: Danke, damit sind wir am Ende der kleinen Probe angekommen.\n")
 
 
 class UnixVerbindung(http.client.HTTPConnection):
@@ -56,6 +63,7 @@ def agent_ordner(tmp: Path) -> Path:
                     "lernziele": [], "quellen": []}],
         "fehlt": [{"was": "Gedächtnisprotokolle", "warum": "echte Fragen", "woher": "ältere Semester"}]}),
         encoding="utf-8")
+    (modul / "rubrik.json").write_text(json.dumps(RUBRIK), encoding="utf-8")
     (modul / "bilder" / "pilz-1-frage.jpg").write_bytes(b"JPG-FRAGE")
     (modul / "bilder" / "pilz-1-ganz.jpg").write_bytes(b"JPG-GANZ")
     # Köder
@@ -78,7 +86,9 @@ class Aufbau(unittest.TestCase):
         self.uni = agent_ordner(self.tmp)
         self.modul = self.uni / "data" / "lernen" / "holzschutz"
         self.daten = self.tmp / "portal-data"
-        for name, wert in (("UNI", self.uni), ("DATEN", self.daten)):
+        self.env = self.tmp / "portal.env"
+        self.env.write_text(f"UNI_PASSWORT={KOEDER}\n")
+        for name, wert in (("UNI", self.uni), ("DATEN", self.daten), ("ENV_DATEI", self.env)):
             p = mock.patch.object(app, name, wert)
             p.start()
             self.addCleanup(p.stop)
@@ -118,3 +128,48 @@ class Aufbau(unittest.TestCase):
         kopf.update(aenderung.pop("kopf", {}))
         felder.update(aenderung)
         return self.holen("/modul/holzschutz/bewerten", "POST", felder, kopf)
+
+    def hochladen(self, felder: dict | None = None, datei: tuple[str, bytes] | None = None, kopf=None, modul="holzschutz"):
+        """Formular multipart/form-data wie aus dem Browser. Ohne Angabe: gültiges Token."""
+        grenze = "----testgrenze"
+        felder = {"token": app.logik.formular_token(app.GEHEIM), **(felder or {})}
+        teile = []
+        for name, wert in felder.items():
+            teile.append(f'--{grenze}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{wert}\r\n'.encode())
+        if datei is not None:
+            teile.append(f'--{grenze}\r\nContent-Disposition: form-data; name="datei"; filename="{datei[0]}"\r\n'
+                         f'Content-Type: application/octet-stream\r\n\r\n'.encode() + datei[1] + b"\r\n")
+        rumpf = b"".join(teile) + f"--{grenze}--\r\n".encode()
+        kopfzeilen = {"Origin": "http://localhost", "Host": "localhost",
+                      "Content-Type": f"multipart/form-data; boundary={grenze}", **(kopf or {})}
+        verbindung = UnixVerbindung(self.socket)
+        verbindung.request("POST", f"/modul/{modul}/uebung", rumpf, kopfzeilen)
+        antwort = verbindung.getresponse()
+        inhalt = antwort.read()
+        verbindung.close()
+        return antwort, inhalt
+
+    def senden_an(self, pfad: str, **felder):
+        """POST mit gültigem Token und passender Herkunft."""
+        kopf = {"Origin": "http://localhost", "Host": "localhost", **felder.pop("kopf", {})}
+        return self.holen(pfad, "POST", {"token": app.logik.formular_token(app.GEHEIM), **felder}, kopf)
+
+    def uebung_mit_auswertung(self) -> str:
+        """Fertige Übung im Modulordner, wie sie der Agent hinterlässt."""
+        import uebungen
+        uebung_id = uebungen.anlegen(self.modul, self.daten, "holzschutz", TRANSKRIPT, "Probe", app._jetzt())
+        ordner = self.modul / "uebungen" / uebung_id
+        (self.daten / uebungen.WARTESCHLANGE / f"{uebung_id}.json").unlink()
+        uebungen.stand_aendern(ordner, stand="fertig", grund=None, laeufe=1, usd=0.25, dauer_s=40.0)
+        (ordner / "auswertung.json").write_text(json.dumps({
+            "id": uebung_id, "gesamt": "Gesamteinschätzung <b>hier</b>", "rubrik_summe": uebungen.rubrik_summe(RUBRIK),
+            "punkte": [{"id": "r1", "titel": "Fäule erklären", "teil": "IHS", "stufe": "teilweise", "stufe_text": "teilweise",
+                        "stufe_genannt": "teilweise", "begruendung": "Braunfäule ja, Weißfäule nein.",
+                        "zitate": [{"text": "bauen die Pilze vor allem die Zellulose ab", "belegt": True}]},
+                       {"id": "r2", "titel": "Vortrag", "teil": "IHS+SHB", "stufe": "unbelegt", "stufe_text": "unbelegt",
+                        "stufe_genannt": "erfuellt", "begruendung": "Gut.", "zitate": [{"text": "erfundenes Zitat aus dem Nichts", "belegt": False}]}],
+            "luecken": [{"thema": "faeule", "was": "Weißfäule nicht erklärt", "zitat": "Das weiß ich gerade nicht mehr"}],
+            "karten_neu": [{"thema": "faeule", "frage": "Was baut Weißfäule ab?", "antwort": "Auch Lignin", "quelle": "SHB", "warum": "Lücke"},
+                           {"thema": "pilze", "frage": "Zweite neue Karte?", "antwort": "Ja", "quelle": "Infokarte", "warum": ""}],
+            "karten_faellig": [{"karte": "faeule-1", "warum": "Lücke"}], "verworfen": ["Zitat stimmte nicht"]}), encoding="utf-8")
+        return uebung_id

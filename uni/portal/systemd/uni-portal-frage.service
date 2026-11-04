@@ -1,0 +1,17 @@
+# Vorlage: nach ~/.config/systemd/user/uni-portal-frage.service kopieren, dann systemctl --user daemon-reload.
+# Agent uniportal: wertet mündliche Übungen aus. Gestartet von uni-portal-frage.path. Eigene Sperre portal/data/lauf.lock,
+# läuft also auch während einer Recherche in uni.service. Claude ohne Werkzeuge. Lädt uni/.env nicht.
+[Unit]
+Description=Auswertung mündlicher Übungen (Uni-Portal)
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=10min
+StartLimitBurst=10
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/uni/portal
+ExecStart=/home/agent/agenten/uni/.venv/bin/python auswertung_agent.py
+# Mehrere Übungen nacheinander: je bis zu 30 min Warten auf einen Platz und zwei Läufe zu höchstens 10 min
+TimeoutStartSec=3h
+MemoryMax=500M

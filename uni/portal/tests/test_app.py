@@ -47,7 +47,8 @@ class Seiten(Aufbau):
                          "public, max-age=2592000")
 
     def test_keine_fremden_quellen_und_kein_inline(self):
-        for pfad in ("/modul/holzschutz", "/modul/holzschutz/ueben"):
+        for pfad in ("/modul/holzschutz", "/modul/holzschutz/ueben", "/modul/holzschutz/rubrik",
+                     f"/modul/holzschutz/uebung/{self.uebung_mit_auswertung()}"):
             html = self.text(pfad)
             self.assertNotRegex(html, r'(src|href)="https?:')
             self.assertNotIn("style=", html)
@@ -165,6 +166,15 @@ class Dienstvorlage(unittest.TestCase):
         for zeile in ("MemoryMax=200M", "OnFailure=ausfall@%n.service", "StartLimitIntervalSec=300", "StartLimitBurst=5",
                       "Environment=PORTAL_PORT=8793"):
             self.assertIn(zeile, text)
+
+    def test_auswertung(self):
+        ordner = Path(app.__file__).parent / "systemd"
+        text = (ordner / "uni-portal-frage.service").read_text(encoding="utf-8")
+        for zeile in ("Type=oneshot", "MemoryMax=500M", "OnFailure=ausfall@%n.service", "auswertung_agent.py"):
+            self.assertIn(zeile, text)
+        text = (ordner / "uni-portal-frage.path").read_text(encoding="utf-8")
+        self.assertIn("DirectoryNotEmpty=/home/agent/agenten/uni/portal/data/warteschlange", text)
+        self.assertIn("Unit=uni-portal-frage.service", text)
 
 
 if __name__ == "__main__":

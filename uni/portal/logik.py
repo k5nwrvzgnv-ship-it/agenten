@@ -36,15 +36,18 @@ def port_pruefen(wert: str) -> int:
     return port
 
 
-def sitzung_holen(s: dict | None, m: lernmodell.Modul, modul: str, jetzt: datetime) -> dict:
+def sitzung_holen(s: dict | None, m: lernmodell.Modul, modul: str, jetzt: datetime, vorgemerkt=()) -> dict:
     """Heutige Sitzung fortsetzen oder neu beginnen. Ist die Runde leer, kommt die nächste Auswahl dazu: Wer weiter
-    üben will, bekommt alles Fällige, die Grenze für neue Karten pro Tag bleibt (lernmodell.auswahl)."""
+    üben will, bekommt alles Fällige, die Grenze für neue Karten pro Tag bleibt (lernmodell.auswahl).
+    vorgemerkt: Karten, die Jan aus einer Übungsauswertung bestätigt hat, kommen zuerst."""
     heute = jetzt.date().isoformat()
     if not s or s.get("datum") != heute or s.get("modul") != modul:
         s = {"datum": heute, "modul": modul, "warteschlange": [], "wiederholt": [], "erledigt": 0, "richtig": 0}
     s["warteschlange"] = [i for i in s["warteschlange"] if i in m.karten]  # Karten können neu erzeugt worden sein
     if not s["warteschlange"]:
         s["warteschlange"] = m.auswahl(jetzt)
+    vorn = [i for i in vorgemerkt if i in m.karten]
+    s["warteschlange"] = vorn + [i for i in s["warteschlange"] if i not in vorn]
     return s
 
 

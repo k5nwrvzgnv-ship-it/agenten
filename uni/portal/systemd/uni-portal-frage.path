@@ -1,0 +1,13 @@
+# Vorlage: nach ~/.config/systemd/user/uni-portal-frage.path kopieren, daemon-reload, dann
+# systemctl --user enable --now uni-portal-frage.path
+# Startet uni-portal-frage.service, sobald in data/warteschlange/ eine Datei liegt (das Portal legt sie dort ab).
+[Unit]
+Description=Wartende Auswertungen des Uni-Portals
+
+[Path]
+DirectoryNotEmpty=/home/agent/agenten/uni/portal/data/warteschlange
+MakeDirectory=yes
+Unit=uni-portal-frage.service
+
+[Install]
+WantedBy=default.target

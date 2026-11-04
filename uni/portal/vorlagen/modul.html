@@ -12,8 +12,50 @@
 
 <section>
   <h2>Karten</h2>
-  <p class="absatz">{{ ueberblick.gesehen }} von {{ ueberblick.karten }} gesehen, jetzt dran: {{ ueberblick.dran }}</p>
+  <p class="absatz">{{ ueberblick.gesehen }} von {{ ueberblick.karten }} gesehen, jetzt dran: {{ ueberblick.dran }}{% if vorgemerkt %}, dazu {{ vorgemerkt }} aus Übungen vorgemerkt{% endif %}</p>
   <p class="absatz knopf-abstand"><a class="knopf knopf-voll" href="/modul/{{ modul }}/ueben">Karten üben</a></p>
+</section>
+
+<section id="muendlich">
+  <h2>Mündlich üben</h2>
+  {%- if elevenlabs %}
+  <p class="absatz knopf-abstand"><a class="knopf" href="{{ elevenlabs }}" rel="noopener noreferrer">Zum ElevenLabs-Agenten</a></p>
+  {%- else %}
+  <p class="hinweis">Die Adresse des ElevenLabs-Agenten fehlt noch. Sie gehört als ELEVENLABS_AGENT_URL in uni/portal/.env.</p>
+  {%- endif %}
+  {%- if rubrik_da %}
+  <p class="absatz knopf-abstand"><a href="/modul/{{ modul }}/rubrik">Rubrik ansehen</a>{% if not rubrik_bestaetigt %} · <strong>Rubrik noch nicht bestätigt</strong>{% endif %}</p>
+  {%- endif %}
+
+  <h3>Transkript auswerten</h3>
+  {%- if fehler %}
+  <p class="hinweis hinweis-fehler" role="alert">{{ fehler }}</p>
+  {%- endif %}
+  <form class="hochladen" method="post" action="/modul/{{ modul }}/uebung" enctype="multipart/form-data">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label class="feld">Titel (freiwillig)
+      <input type="text" name="titel" maxlength="100" value="{{ eingabe_titel }}">
+    </label>
+    <label class="feld">Datei ({{ endungen }}, bis {{ max_kb }} KB)
+      <input type="file" name="datei" accept="{{ endungen | replace(' ', '') }}">
+    </label>
+    <label class="feld">Oder Text einfügen (bis {{ max_zeichen }} Zeichen)
+      <textarea name="text" rows="6">{{ eingabe_text }}</textarea>
+    </label>
+    <p class="absatz"><button class="knopf knopf-voll" type="submit">Auswerten</button></p>
+  </form>
+
+  {%- if uebungen %}
+  <h3>Bisherige Übungen</h3>
+  <ul>
+    {%- for u in uebungen %}
+    <li class="fehlt">
+      <a class="titel" href="/modul/{{ modul }}/uebung/{{ u.id }}">{{ u.titel }}</a>
+      <span class="unter">{{ u.angelegt[:16] | replace('T', ' ') }} · {{ u.stand.text }}</span>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
 </section>
 
 <section>

@@ -1,0 +1,165 @@
+{% extends "basis.html" %}
+{% block titel %}Mündliche Übung{% endblock %}
+{% block kopf %}{% if laufstand.laeuft_noch %}<meta http-equiv="refresh" content="10">{% endif %}{% endblock %}
+{% block inhalt %}
+<nav class="krumen" aria-label="Brotkrumen">
+  <ol>
+    <li><a href="/modul/{{ modul }}#muendlich">{{ name }}</a><span class="trenner" aria-hidden="true">›</span></li>
+    <li aria-current="page">Mündliche Übung</li>
+  </ol>
+</nav>
+<header class="kopf">
+  <h1 class="titel-modul">{{ stand.titel or "Mündliche Übung" }}</h1>
+  <p class="unter">{{ (stand.angelegt or "")[:16] | replace('T', ' ') }}</p>
+</header>
+{%- if veraltet %}
+<p class="hinweis" role="status">Die Seite war nicht mehr aktuell, es wurde nichts gespeichert. Bitte noch einmal.</p>
+{%- endif %}
+
+<section>
+  <h2>Laufstand</h2>
+  <p class="absatz laufstand" role="status">{{ laufstand.text }}</p>
+  {%- if laufstand.grund %}
+  <p class="hinweis{% if laufstand.wert == 'fehlgeschlagen' %} hinweis-fehler{% endif %}">{{ laufstand.grund }}</p>
+  {%- endif %}
+  {%- if laufstand.laeuft_noch %}
+  <p class="unter">Die Seite lädt sich alle 10 Sekunden neu.</p>
+  {%- endif %}
+  {%- if laufstand.neu_startbar %}
+  <form method="post" action="/modul/{{ modul }}/uebung/{{ uebung_id }}/neu" class="knopf-abstand">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button class="knopf" type="submit">{% if laufstand.geparkt %}Jetzt starten{% else %}Noch einmal auswerten{% endif %}</button>
+  </form>
+  {%- endif %}
+</section>
+
+{%- if rubrik_hinweis %}
+<p class="hinweis hinweis-fehler"><strong>{{ rubrik_hinweis }}.</strong> <a href="/modul/{{ modul }}/rubrik">Rubrik ansehen</a></p>
+{%- endif %}
+
+{%- if auswertung %}
+<section>
+  <h2>Einschätzung</h2>
+  <p class="absatz">{{ auswertung.gesamt }}</p>
+</section>
+
+<section>
+  <h2>Bewertung je Rubrikpunkt</h2>
+  <ul>
+    {%- for p in auswertung.punkte %}
+    <li class="rubrik-punkt">
+      <div class="rubrik-kopf">
+        <span class="titel">{{ p.titel }}{% if p.teil %} <span class="unter">({{ p.teil }})</span>{% endif %}</span>
+        <span class="stufe stufe-{{ p.stufe }}">{{ p.stufe_text }}</span>
+      </div>
+      <p class="absatz">{{ p.begruendung }}</p>
+      {%- if p.stufe == "unbelegt" %}
+      <p class="unter">Claude nannte „{{ p.stufe_genannt }}“, aber kein Zitat steht wörtlich im Transkript. Die Stufe zählt deshalb nicht.</p>
+      {%- endif %}
+      {%- for z in p.zitate %}
+      <blockquote class="zitat{% if not z.belegt %} zitat-falsch{% endif %}">„{{ z.text }}“{% if not z.belegt %} <span class="unter">(nicht im Transkript gefunden)</span>{% endif %}</blockquote>
+      {%- endfor %}
+    </li>
+    {%- endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>Lücken je Thema</h2>
+  {%- if ansicht.luecken %}
+  <ul>
+    {%- for g in ansicht.luecken %}
+    <li class="rubrik-punkt">
+      <span class="titel">{{ g.titel }} <span class="unter">Score {{ g.score }}</span></span>
+      {%- for l in g.eintraege %}
+      <p class="absatz">{{ l.was }}</p>
+      {%- if l.zitat %}<blockquote class="zitat">„{{ l.zitat }}“</blockquote>{% endif %}
+      {%- endfor %}
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="absatz">Keine Lücken genannt.</p>
+  {%- endif %}
+</section>
+
+<section>
+  <h2>Neue Karten</h2>
+  <p class="unter">Vorschläge. Erst dein Klick nimmt sie in den Kartenstapel auf; vorhandene Karten und dein Lernstand bleiben unverändert.</p>
+  {%- if ansicht.neu_offen > 1 %}
+  <form method="post" action="/modul/{{ modul }}/uebung/{{ uebung_id }}/karten" class="knopf-abstand">
+    <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="neu"><input type="hidden" name="nr" value="alle">
+    <button class="knopf" type="submit">Alle {{ ansicht.neu_offen }} übernehmen</button>
+  </form>
+  {%- endif %}
+  <ul>
+    {%- for v in ansicht.neu %}
+    <li class="rubrik-punkt">
+      <span class="titel">{{ v.frage }}</span>
+      <span class="unter">{{ v.titel }} · Quelle: {{ v.quelle }}</span>
+      <p class="antwort-text absatz">{{ v.antwort }}</p>
+      {%- if v.warum %}<p class="unter">Warum: {{ v.warum }}</p>{% endif %}
+      {%- if v.uebernommen %}
+      <p class="absatz laufstand">Übernommen</p>
+      {%- else %}
+      <form method="post" action="/modul/{{ modul }}/uebung/{{ uebung_id }}/karten">
+        <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="neu"><input type="hidden" name="nr" value="{{ v.nr }}">
+        <button class="knopf knopf-klein" type="submit">Übernehmen</button>
+      </form>
+      {%- endif %}
+    </li>
+    {%- else %}
+    <li class="rubrik-punkt"><span class="absatz">Keine Vorschläge.</span></li>
+    {%- endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>Karten bald wiederholen</h2>
+  <p class="unter">Bestätigte Karten kommen beim nächsten Üben zuerst dran. Ihr Lernstand ändert sich erst, wenn du sie bewertest.</p>
+  {%- if ansicht.faellig_offen > 1 %}
+  <form method="post" action="/modul/{{ modul }}/uebung/{{ uebung_id }}/karten" class="knopf-abstand">
+    <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="faellig"><input type="hidden" name="nr" value="alle">
+    <button class="knopf" type="submit">Alle {{ ansicht.faellig_offen }} vormerken</button>
+  </form>
+  {%- endif %}
+  <ul>
+    {%- for v in ansicht.faellig %}
+    <li class="rubrik-punkt">
+      <span class="titel">{{ v.frage }}</span>
+      {%- if v.warum %}<p class="unter">Warum: {{ v.warum }}</p>{% endif %}
+      {%- if v.uebernommen %}
+      <p class="absatz laufstand">Vorgemerkt</p>
+      {%- elif v.vorhanden %}
+      <form method="post" action="/modul/{{ modul }}/uebung/{{ uebung_id }}/karten">
+        <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="faellig"><input type="hidden" name="nr" value="{{ v.nr }}">
+        <button class="knopf knopf-klein" type="submit">Vormerken</button>
+      </form>
+      {%- endif %}
+    </li>
+    {%- else %}
+    <li class="rubrik-punkt"><span class="absatz">Keine Vorschläge.</span></li>
+    {%- endfor %}
+  </ul>
+</section>
+
+{%- if auswertung.verworfen %}
+<section>
+  <h2>Von Python verworfen</h2>
+  <p class="unter">Diese Teile hielten der Prüfung auch nach einer Nachbesserung nicht stand.</p>
+  <ul class="liste">{% for f in auswertung.verworfen %}<li>{{ f }}</li>{% endfor %}</ul>
+</section>
+{%- endif %}
+{%- endif %}
+
+{%- if laufstand.wert == "fertig" and stand.usd is defined %}
+<p class="unter">Claude-Läufe: {{ stand.laeufe }} · {{ stand.dauer_s | round(0) | int }} s · {{ "%.2f" | format(stand.usd) }} USD Gegenwert</p>
+{%- endif %}
+
+<section>
+  <details>
+    <summary>Transkript</summary>
+    <p class="transkript">{{ transkript }}</p>
+  </details>
+</section>
+{% endblock %}

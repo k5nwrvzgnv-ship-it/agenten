@@ -1,11 +1,12 @@
 """Tests des Uni-Portals.
 
-Der Logger von lernen.py (Verträgt-sich-Test) wird vorab ohne Datei eingerichtet, sonst hängt agentkit.log ihn an
-das echte logs/uni-lernen.log.
+Die Logger von lernen.py (Verträgt-sich-Test) und auswertung_agent.py werden vorab ohne Datei eingerichtet, sonst
+hängt agentkit.log sie an die echten Logdateien.
 """
 
 import logging
 
-_logger = logging.getLogger("uni-lernen")
-_logger.addHandler(logging.NullHandler())
-_logger.propagate = False
+for _name in ("uni-lernen", "uni-portal-frage"):
+    _logger = logging.getLogger(_name)
+    _logger.addHandler(logging.NullHandler())
+    _logger.propagate = False

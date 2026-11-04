@@ -605,3 +605,15 @@ h3 { margin: 12px 0 4px; font-size: 14px; }
   .thema-zeile { grid-template-columns: minmax(0, 1fr) auto; }
   .thema-zeile .text { grid-column: 1 / -1; }
 }
+.hochladen { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.feld { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 700; }
+.feld input[type="text"], .feld textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--schwarz); font: inherit; font-weight: 400; }
+.laufstand { font-weight: 700; }
+.rubrik-punkt { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; }
+.rubrik-kopf { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.rubrik-kopf .titel { font-size: 16px; font-weight: 700; }
+.stufe { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.stufe-unbelegt, .stufe-nicht_erfuellt { color: var(--akzent); }
+.zitat { margin: 0; padding-left: 12px; border-left: 3px solid var(--hell); font-style: italic; overflow-wrap: anywhere; }
+.zitat-falsch { border-left-color: var(--akzent); }
+.transkript { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }

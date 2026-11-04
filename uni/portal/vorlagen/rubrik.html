@@ -1,0 +1,47 @@
+{% extends "basis.html" %}
+{% block titel %}Rubrik{% endblock %}
+{% block inhalt %}
+<nav class="krumen" aria-label="Brotkrumen">
+  <ol>
+    <li><a href="/modul/{{ modul }}#muendlich">{{ name }}</a><span class="trenner" aria-hidden="true">›</span></li>
+    <li aria-current="page">Rubrik</li>
+  </ol>
+</nav>
+<header class="kopf">
+  <h1 class="titel-modul">Rubrik</h1>
+  <p class="absatz">Woran die mündlichen Übungen gemessen werden.</p>
+</header>
+{%- if veraltet %}
+<p class="hinweis" role="status">Die Seite war nicht mehr aktuell, es wurde nichts gespeichert. Bitte noch einmal.</p>
+{%- endif %}
+<section>
+  {%- if bestaetigt %}
+  <p class="absatz laufstand">Bestätigt am {{ rubrik.bestaetigt.zeit[:16] | replace('T', ' ') }}.</p>
+  {%- else %}
+  <p class="hinweis hinweis-fehler"><strong>Rubrik noch nicht bestätigt.</strong> Dies ist ein Entwurf. Auswertungen laufen trotzdem und tragen bis dahin diesen Hinweis.</p>
+  <form method="post" action="/modul/{{ modul }}/rubrik/bestaetigen" class="knopf-abstand">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button class="knopf knopf-voll" type="submit">Rubrik bestätigen</button>
+  </form>
+  {%- endif %}
+  {%- if rubrik.hinweis %}<p class="absatz knopf-abstand">{{ rubrik.hinweis }}</p>{% endif %}
+</section>
+<section>
+  <h2>Punkte</h2>
+  <ul>
+    {%- for p in rubrik.punkte %}
+    <li class="rubrik-punkt">
+      <span class="titel">{{ p.titel }} <span class="unter">({{ p.teil }})</span></span>
+      <p class="absatz">{{ p.erwartung }}</p>
+      <p class="unter">Grundlage: {{ p.quelle }}</p>
+    </li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- if rubrik.quellen %}
+<section>
+  <h2>Quellen</h2>
+  <ul class="liste">{% for q in rubrik.quellen %}<li>{{ q }}</li>{% endfor %}</ul>
+</section>
+{%- endif %}
+{% endblock %}
