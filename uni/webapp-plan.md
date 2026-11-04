@@ -263,6 +263,7 @@ Diese Punkte gehen den Abschnitten oben vor, wo sie abweichen.
 3. Kein menschlicher Probeprüfer vorerst. Die mündliche Übung läuft über ElevenLabs. Damit fehlt der Vergleich „Mensch gegen KI“ aus Abschnitt 9; als unabhängiger Prüfstein bleiben Gedächtnisprotokoll und Note.
 4. KI-Richtlinie: Jan hat das eingeordnet, kein Thema mehr. KI-Nachweis und offene Fragen aus Abschnitt 5 entfallen.
 5. Zugriff vom Mac, ohne Tunnel, über eine eigene Subdomain mit HTTPS und Passwort (Caddy basicauth wie `lia.meldro.de`). Damit gilt die Tunnel-Zeile aus Abschnitt 7 nicht. Mikrofon im Browser setzt HTTPS voraus und wäre damit möglich.
+6. Schriftverkehr mit Kontaktpersonen des Forschungsprojekts soll im Portal sichtbar sein. Das geht über Abschnitt 7 und Abschnitt 8 („Mails bleiben in Telegram“) hinaus, aber nur für einen Auszug: Der Agent schreibt die Mails der eingetragenen Personen nach `data/projekte/<projekt>/schriftverkehr.json`. `data/mails`, `data/mailauftraege` und das Postfach bleiben für das Portal gesperrt, Mails geschrieben und freigegeben werden weiter über Telegram.
 
 Stand Subdomain **[B]**: `uni.meldro.de` zeigt am 04.11. auf 185.181.104.242, nicht auf diesen Server (84.247.188.205). DNS muss Jan bei INWX setzen. Port 8793 auf 127.0.0.1 ist frei.
 

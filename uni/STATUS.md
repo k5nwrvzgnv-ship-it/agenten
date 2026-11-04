@@ -419,6 +419,22 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Ungeprüft: Pfad-Unit (Einrichtung war gesperrt, siehe Offene Punkte 11), Aussehen im Browser, echtes ElevenLabs-Transkript, ein
     langes Transkript, Warten und Parken im echten Betrieb (nur Tests), Übernehmen einer neuen Karte am echten Dienst (im letzten
     Lauf gab es keinen Vorschlag; nur Tests. Vormerken am echten Dienst geprüft und entfernt).
+  - Forschungsprojekt (Stufe 1, 04.11., Jan: Hier arbeite ich gerade am meisten, deshalb führt / jetzt dorthin): /projekt/fehlstellen,
+    nur lesend, kein Claude-Lauf. Reiter Exposé (aktuelle Fassung im Browser, [OFFEN]-Liste aus dem Text, PDF und Word),
+    Recherche (Aussagen je Frage mit Statusfilter und Belegen, Quellen, Lücken und Widersprüche, Literatursuche), Protokoll,
+    Schriftverkehr. Logik in portal/projekt.py, Dateien nur über ablage.PROJEKTE (feste Kette, keine Namen aus der Adresse).
+  - Schriftverkehr (Jans Wunsch 04.11., bewusste Ausnahme von webapp-plan.md Abschnitt 7): Der Agent (schriftverkehr.py, Schritt
+    projekt_post_abgleichen, also Timer 8, 13, 19 Uhr) sucht lesend in INBOX, Archive und Gesendete Elemente nur nach den Adressen aus
+    data/projekte/fehlstellen/kontakte.json, ab "seit" (2026-10-01, ältere Mails derselben Person gehören nicht zum Projekt), und
+    schreibt schriftverkehr.json (600). Das Portal liest nur diesen Auszug, nie data/mails und nie kontakte.json, und hat weiter keinen
+    Postfachzugang. Neue Kontaktperson: Zeile in kontakte.json, wirkt beim nächsten Lauf. Anhänge nur als Name, kein Download.
+    Eingetragen: Böhme. Echter Abgleich 04.11.: 3 Mails (21., 26., 29.10.).
+  - Gemessen 04.11. am echten Dienst: Seiten 11 bis 68 ms, Recherche mit allen 163 Aussagen 227 KB, MemoryPeak 42 MB, von außen ohne
+    Passwort 401. Ungeprüft: Aussehen im Browser.
+  - Geplant, nicht gebaut (Jan 04.11.: Der Agent schreibt, die Gruppe kommentiert; Word soll auch mal gehen; weitere Bausteine erst, wenn
+    die Schritte anstehen): Stufe 2 Rückmeldung per Text oder kommentierter PDF, daraus neue Fassung. Interviews vorbereiten (Jan: kommt
+    bald). Stufe 3 eigene Word-Fassung über agentkit.fassungen. Stufe 2 und Interviews brauchen Claude-Läufe: Das Web legt nur eine Datei in
+    die Warteschlange (app.py bleibt ohne agentkit), also erst Offene Punkte 11.
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit

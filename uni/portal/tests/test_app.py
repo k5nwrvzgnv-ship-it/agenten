@@ -18,9 +18,9 @@ def karte_auf_seite(html: str) -> tuple[str, str]:
 
 
 class Seiten(Aufbau):
-    def test_start_fuehrt_zum_modul(self):
+    def test_start_fuehrt_zum_projekt(self):
         antwort, _ = self.holen("/")
-        self.assertEqual((antwort.status, antwort.getheader("location")), (303, "/modul/holzschutz"))
+        self.assertEqual((antwort.status, antwort.getheader("location")), (303, "/projekt/fehlstellen"))
 
     def test_pruefungsseite(self):
         html = self.text("/modul/holzschutz")

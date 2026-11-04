@@ -32,7 +32,7 @@ Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Te
 import json
 import time
 import tomllib
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from agentkit import auftraege, claude_lauf, config, einstellungen, freigabe, imap, kalender, log, mailauftrag, meldungen, regeln
@@ -48,6 +48,7 @@ import literatur
 import normen
 import postfach
 import recherche
+import schriftverkehr
 import scopus
 import termine
 import transkripte
@@ -1242,6 +1243,16 @@ def post_pruefen() -> None:
         melden("\n".join(fehler))
 
 
+# Schriftverkehr der Projekte fürs Portal (schriftverkehr.py) ---------------------
+
+def projekt_post_abgleichen() -> None:
+    """Nur lesend. Das Portal hat keinen Postfachzugang und sieht nur diesen Auszug der eingetragenen Kontaktpersonen."""
+    for datei in sorted((HIER / "data" / "projekte").glob("*/kontakte.json")):
+        auszug = schriftverkehr.abgleichen(datei, postfach_suchen, mailablauf.UNI.eingang, mailablauf.UNI.gesendet,
+                                           datetime.now(timezone.utc))
+        logger.info("Schriftverkehr %s: %d Mails", datei.parent.name, len(auszug["mails"]))
+
+
 # Fehler einzelner Schritte -------------------------------------------------------
 
 def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, datei: Path = FEHLER_DATEI) -> bool:
@@ -1262,8 +1273,8 @@ def schritt_fehler_melden(schritt: str, f: Exception, heute: str | None = None, 
 
 if __name__ == "__main__":
     # auftraege_abarbeiten am Ende noch einmal: Aufträge, die während Fristen/Post ankamen
-    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, normen_aufbereiten, literatur_aufbereiten, auftraege_abarbeiten,
-                    mail_wuensche_nachholen, fristen_pruefen, post_pruefen, auftraege_abarbeiten):
+    for schritt in (freigegebene_ausfuehren, kurse_spiegeln, normen_aufbereiten, literatur_aufbereiten, projekt_post_abgleichen,
+                    auftraege_abarbeiten, mail_wuensche_nachholen, fristen_pruefen, post_pruefen, auftraege_abarbeiten):
         try:
             schritt()
         except Exception as f:  # noqa: BLE001 – ein Fehler soll die anderen Schritte nicht blockieren

@@ -6,6 +6,10 @@ data/mailauftraege und alles Übrige außen vor. Bilder werden über die Karte g
 Adresse; eine Übung nur über eine ID im festen Format. tests/test_schutz.py belegt das.
 
 Aus portal/.env liest die App nur die Adresse des ElevenLabs-Agenten. Das Passwort, das dort auch steht, sieht sie nie.
+
+Zu einem Projekt aus PROJEKTE liest das Portal nur: expose.json, die Fassungen (docx, pdf), recherche/geprueft.json, das
+Protokoll der Kette und den Auszug schriftverkehr.json. Der Auszug enthält nur Mails der eingetragenen Kontaktpersonen
+(uni/schriftverkehr.py, Jans Wunsch 04.11.); data/mails und das Postfach bleiben außen vor.
 """
 
 import re
@@ -32,6 +36,10 @@ UEBUNG_ENDUNGEN = {".txt", ".json"}
 UEBUNG_ID = re.compile(r"^\d{8}-\d{6}-[0-9a-f]{6}$")
 
 ELEVENLABS_SCHLUESSEL = "ELEVENLABS_AGENT_URL"
+
+# Projekt -> Anzeigename und Kette: Überarbeitungen bleiben in derselben Kette, der Eintrag ändert sich dadurch nicht
+PROJEKTE = {"fehlstellen": {"name": "Forschungsprojekt", "kette": "20261102-165741-uni-ac9dcc"}}
+FASSUNG_ENDUNGEN = {".docx", ".pdf"}
 
 
 def sicher(wurzel: Path, relativ: str | Path, endungen: set[str]) -> Path | None:
@@ -101,6 +109,49 @@ def uebungen_ids(uni: Path, modul: str) -> list[str]:
         return []
     ids = [p.name for p in (ordner / UEBUNGEN_ORDNER).iterdir() if uebung_ordner(uni, modul, p.name)]
     return sorted(ids, reverse=True)
+
+
+def _projekt_kette(projekt: str) -> str | None:
+    eintrag = PROJEKTE.get(projekt)
+    return eintrag["kette"] if eintrag else None
+
+
+def expose_lesen(uni: Path, projekt: str) -> dict | None:
+    kette = _projekt_kette(projekt)
+    pfad = sicher(uni / "data" / "expose" / kette, "expose.json", {".json"}) if kette else None
+    return lernmodell.lies_json(pfad, None) if pfad else None
+
+
+def geprueft_lesen(uni: Path, projekt: str) -> dict | None:
+    kette = _projekt_kette(projekt)
+    pfad = sicher(uni / "data" / "expose" / kette / "recherche", "geprueft.json", {".json"}) if kette else None
+    return lernmodell.lies_json(pfad, None) if pfad else None
+
+
+def protokoll_lesen(uni: Path, projekt: str) -> str | None:
+    kette = _projekt_kette(projekt)
+    pfad = sicher(uni / "protokolle", f"{kette}.md", {".md"}) if kette else None
+    return pfad.read_text(encoding="utf-8") if pfad else None
+
+
+def fassung_pfad(uni: Path, projekt: str, endung: str) -> Path | None:
+    """Neueste Datei mit dieser Endung direkt in fassung/ des Projekts. Der Name kommt nie aus der Adresse."""
+    kette = _projekt_kette(projekt)
+    endung = f".{endung}"
+    if kette is None or endung not in FASSUNG_ENDUNGEN:
+        return None
+    ordner = uni / "data" / "expose" / kette / "fassung"
+    if not ordner.is_dir():
+        return None
+    dateien = [p for p in (sicher(ordner, d.name, {endung}) for d in ordner.iterdir() if not d.is_symlink()) if p]
+    return max(dateien, key=lambda p: p.stat().st_mtime, default=None)
+
+
+def schriftverkehr_lesen(uni: Path, projekt: str) -> dict | None:
+    if projekt not in PROJEKTE:
+        return None
+    pfad = sicher(uni / "data" / "projekte" / projekt, "schriftverkehr.json", {".json"})
+    return lernmodell.lies_json(pfad, None) if pfad else None
 
 
 def elevenlabs_adresse(env_datei: Path) -> str | None:

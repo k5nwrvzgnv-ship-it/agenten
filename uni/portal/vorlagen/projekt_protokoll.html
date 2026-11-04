@@ -1,0 +1,26 @@
+{% extends "basis.html" %}
+{% macro stuecke(teile) %}{% for t in teile %}{% if t.fett %}<strong>{{ t.text }}</strong>{% else %}{{ t.text }}{% endif %}{% endfor %}{% endmacro %}
+{% block titel %}Protokoll · {{ name }}{% endblock %}
+{% block inhalt %}
+<header class="kopf">
+  <h1 class="titel-modul">{{ name }}</h1>
+  <p class="absatz">Protokoll</p>
+</header>
+{% include "projekt_reiter.html" %}
+
+{%- if bloecke is none %}
+<p class="hinweis">Es gibt noch kein Protokoll.</p>
+{%- else %}
+<section class="expose-text">
+  {%- for b in bloecke %}
+  {%- if b.art == "kopf" %}
+  {%- if b.ebene == 2 %}<h2>{{ b.text }}</h2>{% else %}<h3>{{ b.text }}</h3>{% endif %}
+  {%- elif b.art == "punkte" %}
+  <ul class="liste">{% for p in b.punkte %}<li>{{ stuecke(p) }}</li>{% endfor %}</ul>
+  {%- else %}
+  <p class="absatz">{{ stuecke(b.teile) }}</p>
+  {%- endif %}
+  {%- endfor %}
+</section>
+{%- endif %}
+{% endblock %}

@@ -1,0 +1,5 @@
+<nav class="reiter" aria-label="Bereiche des Projekts">
+  {%- for id, titel, pfad in [("expose", "Exposé", ""), ("recherche", "Recherche", "/recherche"), ("protokoll", "Protokoll", "/protokoll"), ("schriftverkehr", "Schriftverkehr", "/schriftverkehr")] %}
+  <a href="/projekt/{{ projekt }}{{ pfad }}"{% if reiter == id %} aria-current="page"{% endif %}>{{ titel }}</a>
+  {%- endfor %}
+</nav>

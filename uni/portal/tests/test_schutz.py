@@ -14,10 +14,10 @@ from unittest import mock
 import ablage
 import app
 
-from tests.hilfe import KOEDER, Aufbau
+from tests.hilfe import KETTE, KOEDER, Aufbau
 
 PORTAL = Path(app.__file__).parent
-EIGENER_CODE = ("app.py", "logik.py", "ablage.py", "uebungen.py")
+EIGENER_CODE = ("app.py", "logik.py", "ablage.py", "uebungen.py", "projekt.py")
 ANGRIFFE = (
     "/.env", "/data/mails/1.json", "/statisch/../.env", "/statisch/%2e%2e/%2e%2e/.env",
     "/statisch/..%2f..%2f.env", "/modul/holzschutz/../../.env", "/modul/..%2f..%2fdata%2fmails",
@@ -29,6 +29,9 @@ ANGRIFFE = (
     "/modul/holzschutz/uebung/..%2f..%2f..%2fmails", "/modul/holzschutz/uebung/20261104-100000-abcdef",
     "/modul/holzschutz/uebung/..%2f..%2felevenlabs", "/modul/mailauftraege/rubrik", "/modul/anderes/rubrik",
     "/modul/holzschutz/uebungen", "/modul/holzschutz/uebung",
+    "/projekt/anderes", "/projekt/mails/recherche", "/projekt/..%2f..%2fmails", "/projekt/fehlstellen/fassung/json",
+    "/projekt/fehlstellen/fassung/..%2f..%2f..%2f.env", "/projekt/fehlstellen/fassung/env", "/projekt/fehlstellen/mails",
+    "/projekt/anderes/schriftverkehr", "/projekt/fehlstellen/kontakte.json", "/projekt/fehlstellen/schriftverkehr.json",
     "/docs", "/redoc", "/openapi.json",
 )
 
@@ -60,6 +63,8 @@ class Positivliste(Aufbau):
             self.senden("faeule-1", 0, 3)
             self.text(f"/modul/holzschutz/uebung/{uebung_id}")
             self.text("/modul/holzschutz/rubrik")
+            for pfad in ("", "/recherche", "/recherche?ansicht=quellen", "/protokoll", "/schriftverkehr"):
+                self.text(f"/projekt/fehlstellen{pfad}")
             for pfad in ANGRIFFE:
                 self.holen(pfad)
 
@@ -67,6 +72,10 @@ class Positivliste(Aufbau):
         erlaubt |= {self.modul.resolve() / "bilder" / n for n in ("pilz-1-frage.jpg", "pilz-1-ganz.jpg")}
         erlaubt.add(self.modul.resolve() / "zustand.json.tmp")  # lernmodell.schreibe_json schreibt atomar
         erlaubt |= {self.modul.resolve() / "uebungen" / uebung_id / n for n in ablage.UEBUNG_DATEIEN}
+        kette = self.uni.resolve() / "data" / "expose" / KETTE
+        erlaubt |= {kette / "expose.json", kette / "recherche" / "geprueft.json",
+                    self.uni.resolve() / "protokolle" / f"{KETTE}.md",
+                    self.uni.resolve() / "data" / "projekte" / "fehlstellen" / "schriftverkehr.json"}
         geoeffnet = self._geoeffnet(ablauf)
         self.assertTrue(geoeffnet, "Die Messung hat nichts gesehen, der Test belegt so nichts")
         self.assertLessEqual(geoeffnet, erlaubt)
@@ -141,6 +150,37 @@ class UebungsablagePositivliste(Aufbau):
         self.assertNotIn(KOEDER, html)
 
 
+class ProjektPositivliste(Aufbau):
+    def test_fassung_als_symlink_gilt_nicht(self):
+        ordner = self.uni / "data" / "expose" / KETTE / "fassung"
+        for datei in ordner.iterdir():
+            datei.unlink()
+        (ordner / "boese.pdf").symlink_to(self.uni / ".env")
+        self.assertIsNone(ablage.fassung_pfad(self.uni, "fehlstellen", "pdf"))
+        self.assertEqual(self.holen("/projekt/fehlstellen/fassung/pdf")[0].status, 404)
+
+    def test_nur_docx_und_pdf(self):
+        ordner = self.uni / "data" / "expose" / KETTE / "fassung"
+        (ordner / "geheim.env").write_text(KOEDER)
+        for art in ("env", "json", "txt", "../../../.env"):
+            self.assertIsNone(ablage.fassung_pfad(self.uni, "fehlstellen", art), art)
+
+    def test_auszug_als_symlink_gilt_nicht(self):
+        ziel = self.uni / "data" / "projekte" / "fehlstellen" / "schriftverkehr.json"
+        ziel.unlink()
+        ziel.symlink_to(self.uni / "data" / "mails" / "1.json")
+        self.assertIsNone(ablage.schriftverkehr_lesen(self.uni, "fehlstellen"))
+        self.assertNotIn(KOEDER, self.text("/projekt/fehlstellen/schriftverkehr"))
+
+    def test_kein_koeder_auf_den_seiten(self):
+        for pfad in ("", "/recherche", "/protokoll", "/schriftverkehr"):
+            self.assertNotIn(KOEDER, self.text(f"/projekt/fehlstellen{pfad}"), pfad)
+
+    def test_portal_liest_kontakte_nicht(self):
+        """Die Kontaktliste steuert nur den Agenten; das Portal braucht sie nicht."""
+        self.assertNotIn("kontakte.json", (PORTAL / "ablage.py").read_text(encoding="utf-8"))
+
+
 class KeinWegNachAussen(unittest.TestCase):
     def _importe(self) -> set[str]:
         namen = set()
@@ -156,7 +196,7 @@ class KeinWegNachAussen(unittest.TestCase):
         """Kein smtplib, imaplib, urllib, subprocess, agentkit usw. Wer hier etwas ergänzt, begründet es."""
         self.assertEqual(self._importe(), {
             "ablage", "datetime", "fastapi", "hashlib", "hmac", "json", "lernmodell", "logging", "logik", "os", "pathlib",
-            "re", "secrets", "sys", "threading", "typing", "uebungen", "urllib", "uvicorn", "zoneinfo"})
+            "projekt", "re", "secrets", "sys", "threading", "typing", "uebungen", "urllib", "uvicorn", "zoneinfo"})
 
     def test_urllib_nur_zum_zerlegen(self):
         for datei in ("logik.py", "ablage.py"):
@@ -170,7 +210,9 @@ class KeinWegNachAussen(unittest.TestCase):
             ("/modul/{modul}/bewerten", "POST"), ("/modul/{modul}/bild/{karte_id}/{art}", "GET"),
             ("/modul/{modul}/uebung", "POST"), ("/modul/{modul}/uebung/{uebung_id}", "GET"),
             ("/modul/{modul}/uebung/{uebung_id}/neu", "POST"), ("/modul/{modul}/uebung/{uebung_id}/karten", "POST"),
-            ("/modul/{modul}/rubrik", "GET"), ("/modul/{modul}/rubrik/bestaetigen", "POST")})
+            ("/modul/{modul}/rubrik", "GET"), ("/modul/{modul}/rubrik/bestaetigen", "POST"),
+            ("/projekt/{projekt}", "GET"), ("/projekt/{projekt}/fassung/{art}", "GET"), ("/projekt/{projekt}/recherche", "GET"),
+            ("/projekt/{projekt}/protokoll", "GET"), ("/projekt/{projekt}/schriftverkehr", "GET")})
 
     def test_dienst_ohne_env_datei(self):
         for dienst in ("uni-portal.service", "uni-portal-frage.service"):

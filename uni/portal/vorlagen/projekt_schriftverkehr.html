@@ -1,0 +1,41 @@
+{% extends "basis.html" %}
+{% block titel %}Schriftverkehr · {{ name }}{% endblock %}
+{% block inhalt %}
+<header class="kopf">
+  <h1 class="titel-modul">{{ name }}</h1>
+  <p class="absatz">Schriftverkehr mit Kontaktpersonen</p>
+</header>
+{% include "projekt_reiter.html" %}
+
+{%- if not post.da %}
+<p class="hinweis">Der Agent hat das Postfach für dieses Projekt noch nicht abgeglichen.</p>
+{%- else %}
+<p class="absatz">Stand {{ post.stand | replace("T", " ") }} · Mails ab {{ post.seit }} · nur lesend, Mails schreibst du weiter über Telegram</p>
+{%- if post.gekappt %}<p class="hinweis">Mindestens eine Suche hat die Grenze von 50 Mails erreicht, ältere Mails fehlen.</p>{% endif %}
+{%- for k in post.kontakte %}
+<section>
+  <h2>{{ k.name }}</h2>
+  <p class="unter">{{ k.adresse }} · {{ k.mails | length }} Mails</p>
+  <ul>
+    {%- for m in k.mails %}
+    <li class="thema">
+      <details{% if loop.first %} open{% endif %}>
+        <summary class="aussage-zeile"><span><span class="titel">{{ m.betreff or "Ohne Betreff" }}</span><span class="unter"> {{ m.datum | replace("T", " ") }}</span></span><span class="stufe">{% if m.richtung == "an" %}von dir{% else %}an dich{% endif %}</span></summary>
+        <div class="thema-mehr">
+          <p class="unter">Von: {{ m.von }}</p>
+          <p class="unter">An: {{ m.an | join(", ") }}</p>
+          {%- if m.anhaenge %}<p class="unter">Anhänge: {{ m.anhaenge | join(", ") }}</p>{% endif %}
+          <div class="transkript mail-text">{{ m.text }}</div>
+        </div>
+      </details>
+    </li>
+    {%- else %}
+    <li class="fehlt"><span class="unter">Keine Mails gefunden.</span></li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- else %}
+<p class="hinweis">Es sind noch keine Kontaktpersonen eingetragen.</p>
+{%- endfor %}
+{%- endif %}
+{% endblock %}

@@ -17,6 +17,35 @@ import uvicorn
 import app
 
 KOEDER = "KOEDER-GEHEIM-1234"
+KETTE = "20261102-165741-uni-ac9dcc"
+EXPOSE = {"art": "expose", "titel": "Fehlstellen <erkennen>", "untertitel": "Prototyp", "autoren": ["Jan K."], "betreuung": ["Prof. B."],
+          "datum": "03.11.2026", "literatur": ["Achatz (2025). Titel. [OFFEN: Seitenzahl]"], "bloecke": [
+              {"typ": "ueberschrift", "text": "Ausgangslage"},
+              {"typ": "absatz", "text": "Text davor [OFFEN: Branchenzahlen] und <b>danach</b>."},
+              {"typ": "ueberschrift", "ebene": 2, "text": "Daten"},
+              {"typ": "liste", "punkte": ["Punkt eins"]},
+              {"typ": "tabelle", "titel": "Zeitplan", "kopf": ["Wann", "Was"], "zeilen": [["Dez.", "Versuch [OFFEN]"]]},
+              {"typ": "neuartig", "text": "gibt es noch nicht"}]}
+GEPRUEFT = {"thema": "t", "fragen": [{"id": "F1", "fenster": "markt", "frage": "Was kostet es?"}, {"id": "F2", "frage": "Wie gut?"}],
+            "aussagen": [{"id": "markt-1", "frage": "F1", "text": "Kamera kostet wenig", "status": "gesichert", "fehlt": "", "belege": [
+                             {"url": "https://example.org/a", "zitat": "wenig Geld", "pruefung": {"status": "bestanden", "vermerk": "gefunden"}}]},
+                         {"id": "markt-2", "frage": "F2", "text": "Gut genug", "status": "unbelegt", "fehlt": "Beleg fehlt", "belege": [
+                             {"url": "javascript:alert(1)", "zitat": "boese", "pruefung": {"status": "abgelehnt"}},
+                             {"datei": "data/normen/DIN 4074-1.pdf.txt", "seite": 8, "zitat": "Norm", "pruefung": {"status": "bestanden"}}]}],
+            "quellen": [{"url": "https://example.org/a", "titel": "Quelle A", "autoren": ["Lin"], "jahr": 2025, "doi": "10.1/ab", "zitierfaehig": True,
+                         "pruefung": {"status": "bestanden", "vermerk": "DOI ok"}},
+                        {"url": "javascript:alert(2)", "titel": "Quelle B", "jahr": None, "doi": "keine doi", "zitierfaehig": False, "pruefung": {}}],
+            "luecken": [{"fenster": "markt", "text": "Preise fehlen"}], "widersprueche": [{"ids": ["markt-1", "markt-2"], "worum": "passt nicht"}],
+            "offen": [{"frage": "F2", "warum": "Keine Studie"}],
+            "literatursuche": {"datenbank": "Scopus", "datum": "02.11.2026", "arbeiten_ohne_doppelte": 12,
+                               "suchen": [{"nr": "S1", "titel": "Holz", "suchstring": "TITLE-ABS-KEY(wood)"}]}}
+PROTOKOLL = "# Kopf\n\n## Beschlossen\n- Umfang **kurz**: Henri 10:01\n\nAbsatz <i>eins</i>\nweiter\n"
+AUSZUG = {"stand": "2026-11-04T13:00", "seit": "2026-10-01", "gekappt": False,
+          "kontakte": [{"name": "Prof. Böhme", "adresse": "b@hnee.de"}, {"name": "Werk", "adresse": "w@x.de"}],
+          "mails": [{"kontakt": "b@hnee.de", "richtung": "von", "von": "Böhme <b@hnee.de>", "an": ["jan@hnee.de"], "betreff": "AW: Anfrage",
+                     "datum": "2026-10-26T09:44", "text": "Guten Tag <b>Herr</b> Kleinke", "anhaenge": ["plan.pdf"]},
+                    {"kontakt": "b@hnee.de", "richtung": "an", "von": "Jan", "an": ["b@hnee.de"], "betreff": "Anfrage",
+                     "datum": "2026-10-21T10:00", "text": "Sehr geehrter Herr Böhme", "anhaenge": []}]}
 RUBRIK = {"modul": "holzschutz", "quellen": ["Modulhandbuch"], "hinweis": "Entwurf", "bestaetigt": None, "punkte": [
     {"id": "r1", "titel": "Fäule erklären", "teil": "IHS", "themen": ["faeule"], "quelle": "S. 42", "erwartung": "Erklärt Fäule."},
     {"id": "r2", "titel": "Vortrag", "teil": "IHS+SHB", "themen": [], "quelle": "S. 41", "erwartung": "Hält einen Vortrag."}]}
@@ -76,6 +105,22 @@ def agent_ordner(tmp: Path) -> Path:
     (modul / "elevenlabs" / "prompt.jpg").write_text(KOEDER)
     (uni / "data" / "lernen" / "anderes").mkdir()
     (uni / "data" / "lernen" / "anderes" / "karten.json").write_text(KOEDER)
+    # Projekt, dazu Köder neben den erlaubten Dateien
+    kette = uni / "data" / "expose" / KETTE
+    (kette / "recherche").mkdir(parents=True)
+    (kette / "fassung").mkdir()
+    (kette / "expose.json").write_text(json.dumps(EXPOSE), encoding="utf-8")
+    (kette / "recherche" / "geprueft.json").write_text(json.dumps(GEPRUEFT), encoding="utf-8")
+    (kette / "recherche" / "literatur.json").write_text(KOEDER)
+    (kette / "fassung" / "Fassung.pdf").write_bytes(b"%PDF-TEST")
+    (kette / "fassung" / "Fassung.docx").write_bytes(b"DOCX-TEST")
+    (uni / "protokolle").mkdir()
+    (uni / "protokolle" / f"{KETTE}.md").write_text(PROTOKOLL, encoding="utf-8")
+    (uni / "protokolle" / "anderes.md").write_text(KOEDER)
+    projekt = uni / "data" / "projekte" / "fehlstellen"
+    projekt.mkdir(parents=True)
+    (projekt / "schriftverkehr.json").write_text(json.dumps(AUSZUG), encoding="utf-8")
+    (projekt / "kontakte.json").write_text(KOEDER)
     return uni
 
 

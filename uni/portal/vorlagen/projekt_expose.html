@@ -1,0 +1,64 @@
+{% extends "basis.html" %}
+{% macro stuecke(teile) %}{% for t in teile %}{% if t.offen %}<mark class="offen">{{ t.text }}</mark>{% else %}{{ t.text }}{% endif %}{% endfor %}{% endmacro %}
+{% block inhalt %}
+<header class="kopf">
+  <h1 class="titel-modul">{{ name }}</h1>
+  {%- if expose %}<p class="absatz">{{ expose.titel }}</p>{% endif %}
+</header>
+{% include "projekt_reiter.html" %}
+
+{%- if not expose %}
+<p class="hinweis">Es gibt noch keine Fassung des Exposés.</p>
+{%- else %}
+<section>
+  <h2>Aktuelle Fassung</h2>
+  <p class="absatz">Stand {{ expose.datum }}{% if expose.autoren %} · {{ expose.autoren | join(", ") }}{% endif %}{% if expose.betreuung %} · Betreuung: {{ expose.betreuung | join(", ") }}{% endif %}</p>
+  <p class="absatz knopf-abstand">
+    {%- if pdf %}<a class="knopf knopf-voll" href="/projekt/{{ projekt }}/fassung/pdf">PDF öffnen</a> {% endif %}
+    {%- if docx %}<a class="knopf" href="/projekt/{{ projekt }}/fassung/docx">Word laden</a>{% endif %}
+  </p>
+</section>
+
+<section>
+  <h2>Noch offen ({{ offen | length }})</h2>
+  {%- if offen %}
+  <ul>
+    {%- for o in offen %}
+    <li class="fehlt"><span class="titel">{{ o.was }}</span><span class="unter">{{ o.abschnitt }}</span></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="absatz">Im Text ist nichts mehr als offen markiert.</p>
+  {%- endif %}
+</section>
+
+<section class="expose-text">
+  <h2>{{ expose.titel }}</h2>
+  {%- if expose.untertitel %}<p class="absatz"><strong>{{ expose.untertitel }}</strong></p>{% endif %}
+  {%- if expose.ausgelassen %}<p class="hinweis">{{ expose.ausgelassen }} Block/Blöcke kann diese Ansicht nicht anzeigen. Die PDF zeigt alles.</p>{% endif %}
+  {%- for b in expose.bloecke %}
+  {%- if b.typ == "ueberschrift" %}
+  {%- if b.ebene == 3 %}<h3>{{ b.text }}</h3>{% else %}<h3 class="abschnitt">{{ b.text }}</h3>{% endif %}
+  {%- elif b.typ == "absatz" %}
+  <p class="absatz">{{ stuecke(b.teile) }}</p>
+  {%- elif b.typ == "liste" %}
+  {%- if b.nummeriert %}<ol class="liste">{% else %}<ul class="liste">{% endif %}
+    {%- for p in b.punkte %}<li>{{ stuecke(p) }}</li>{% endfor %}
+  {%- if b.nummeriert %}</ol>{% else %}</ul>{% endif %}
+  {%- elif b.typ == "tabelle" %}
+  <div class="tabelle-rahmen">
+  <table class="tabelle">
+    {%- if b.titel %}<caption>{{ b.titel }}</caption>{% endif %}
+    {%- if b.kopf %}<thead><tr>{% for k in b.kopf %}<th scope="col">{{ k }}</th>{% endfor %}</tr></thead>{% endif %}
+    <tbody>{% for z in b.zeilen %}<tr>{% for zelle in z %}<td>{{ stuecke(zelle) }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table>
+  </div>
+  {%- endif %}
+  {%- endfor %}
+  {%- if expose.literatur %}
+  <h3 class="abschnitt">Literatur</h3>
+  <ul class="liste">{% for q in expose.literatur %}<li>{{ stuecke(q) }}</li>{% endfor %}</ul>
+  {%- endif %}
+</section>
+{%- endif %}
+{% endblock %}

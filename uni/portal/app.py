@@ -17,6 +17,11 @@ Seiten:
   /modul/<modul>/uebung/<id>/karten  POST: Kartenvorschläge bestätigen, einzeln oder gesammelt
   /modul/<modul>/rubrik              Rubrik ansehen
   /modul/<modul>/rubrik/bestaetigen  POST: Rubrik bestätigen
+  /projekt/<projekt>                 Exposé: aktuelle Fassung, offene Stellen, Dateien
+  /projekt/<projekt>/fassung/<art>   Fassung als docx oder pdf
+  /projekt/<projekt>/recherche       geprüfte Aussagen, Quellen, Lücken, Literatursuche
+  /projekt/<projekt>/protokoll       Protokoll der Besprechung und der Überarbeitungen
+  /projekt/<projekt>/schriftverkehr  Mails mit den Kontaktpersonen (Auszug des Agenten)
 """
 
 import logging
@@ -42,6 +47,7 @@ import lernmodell  # noqa: E402
 
 import ablage  # noqa: E402
 import logik  # noqa: E402
+import projekt as projektansicht  # noqa: E402
 import uebungen  # noqa: E402
 
 UNI = HIER.parent
@@ -102,14 +108,80 @@ def _sitzung_schreiben(modul: str, s: dict) -> None:
     lernmodell.schreibe_json(_sitzung_datei(modul), s)
 
 
+def _navigation() -> dict:
+    return {"module": [{"id": i, "name": n} for i, n in ablage.MODULE.items()],
+            "projekte": [{"id": i, "name": e["name"]} for i, e in ablage.PROJEKTE.items()]}
+
+
 def _rahmen(modul: str) -> dict:
-    return {"module": [{"id": i, "name": n} for i, n in ablage.MODULE.items()], "aktiv": modul, "modul": modul,
-            "name": ablage.MODULE[modul]}
+    return {**_navigation(), "aktiv": modul, "modul": modul, "name": ablage.MODULE[modul]}
+
+
+def _projekt_rahmen(projekt: str, reiter: str) -> dict:
+    eintrag = ablage.PROJEKTE.get(projekt)
+    if eintrag is None:
+        raise HTTPException(404)
+    return {**_navigation(), "aktiv": projekt, "projekt": projekt, "name": eintrag["name"], "reiter": reiter}
 
 
 @app.get("/")
 def start():
-    return RedirectResponse(f"/modul/{next(iter(ablage.MODULE))}", status_code=303)
+    """Das Forschungsprojekt ist gerade der Arbeitsschwerpunkt (Jan 04.11.)."""
+    return RedirectResponse(f"/projekt/{next(iter(ablage.PROJEKTE))}", status_code=303)
+
+
+@app.get("/projekt/{projekt}")
+def projekt_expose(request: Request, projekt: str):
+    rahmen = _projekt_rahmen(projekt, "expose")
+    expose = ablage.expose_lesen(UNI, projekt)
+    return vorlagen.TemplateResponse(request, "projekt_expose.html", {
+        **rahmen, "expose": projektansicht.expose_ansicht(expose) if expose else None,
+        "offen": projektansicht.offene_stellen(expose) if expose else [],
+        "docx": ablage.fassung_pfad(UNI, projekt, "docx") is not None,
+        "pdf": ablage.fassung_pfad(UNI, projekt, "pdf") is not None})
+
+
+@app.get("/projekt/{projekt}/fassung/{art}")
+def projekt_fassung(projekt: str, art: str):
+    if projekt not in ablage.PROJEKTE or art not in ("docx", "pdf"):
+        raise HTTPException(404)
+    pfad = ablage.fassung_pfad(UNI, projekt, art)
+    if pfad is None:
+        raise HTTPException(404)
+    return FileResponse(pfad, filename=pfad.name, content_disposition_type="inline" if art == "pdf" else "attachment")
+
+
+@app.get("/projekt/{projekt}/recherche")
+def projekt_recherche(request: Request, projekt: str, ansicht: str = "aussagen", status: str | None = None,
+                      frage: str | None = None):
+    rahmen = _projekt_rahmen(projekt, "recherche")
+    geprueft = ablage.geprueft_lesen(UNI, projekt)
+    ansicht = ansicht if ansicht in projektansicht.ANSICHTEN else "aussagen"
+    daten = {**rahmen, "da": geprueft is not None, "ansicht": ansicht, "ansichten": projektansicht.ANSICHTEN,
+             "status_namen": projektansicht.STATUS}
+    if geprueft is not None:
+        daten["zahlen"] = projektansicht.recherche_zahlen(geprueft)
+        daten["inhalt"] = {
+            "aussagen": lambda: projektansicht.aussagen_ansicht(geprueft, status, frage),
+            "quellen": lambda: projektansicht.quellen_ansicht(geprueft),
+            "luecken": lambda: projektansicht.luecken_ansicht(geprueft),
+            "suche": lambda: projektansicht.suche_ansicht(geprueft)}[ansicht]()
+    return vorlagen.TemplateResponse(request, "projekt_recherche.html", daten)
+
+
+@app.get("/projekt/{projekt}/protokoll")
+def projekt_protokoll(request: Request, projekt: str):
+    rahmen = _projekt_rahmen(projekt, "protokoll")
+    text = ablage.protokoll_lesen(UNI, projekt)
+    return vorlagen.TemplateResponse(request, "projekt_protokoll.html", {
+        **rahmen, "bloecke": projektansicht.markdown_bloecke(text) if text else None})
+
+
+@app.get("/projekt/{projekt}/schriftverkehr")
+def projekt_schriftverkehr(request: Request, projekt: str):
+    rahmen = _projekt_rahmen(projekt, "schriftverkehr")
+    return vorlagen.TemplateResponse(request, "projekt_schriftverkehr.html", {
+        **rahmen, "post": projektansicht.schriftverkehr_ansicht(ablage.schriftverkehr_lesen(UNI, projekt))})
 
 
 def _uebungen_ansicht(modul: str) -> list[dict]:

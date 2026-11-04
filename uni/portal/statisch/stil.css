@@ -617,3 +617,25 @@ h3 { margin: 12px 0 4px; font-size: 14px; }
 .zitat { margin: 0; padding-left: 12px; border-left: 3px solid var(--hell); font-style: italic; overflow-wrap: anywhere; }
 .zitat-falsch { border-left-color: var(--akzent); }
 .transkript { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+
+/* Forschungsprojekt */
+.reiter, .filter { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; }
+.reiter { padding-bottom: 8px; border-bottom: 1px solid var(--hell); }
+.reiter a, .filter a { font-size: 14px; font-weight: 700; color: inherit; text-decoration: none; }
+.reiter a:hover, .filter a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.reiter a[aria-current], .filter a[aria-current] { color: var(--akzent); text-decoration: underline; text-underline-offset: 3px; }
+.filter a { font-weight: 400; }
+.offen { background: none; color: var(--akzent); font-weight: 700; }
+.expose-text .absatz { margin: 8px 0; }
+.abschnitt { margin: 20px 0 4px; font-size: 18px; }
+.tabelle-rahmen { overflow-x: auto; margin: 10px 0; }
+.tabelle { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabelle caption { text-align: left; font-weight: 700; padding-bottom: 4px; }
+.tabelle th, .tabelle td { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--hell); text-align: left; vertical-align: top; }
+.frage-titel { font-size: 16px; line-height: 1.35; }
+.aussage-zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 10px 0; }
+.status-unbelegt, .status-verworfen { color: var(--akzent); }
+.beleg { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.beleg .unter, .fehlt .unter, .thema-mehr .unter { overflow-wrap: anywhere; }
+.suchstring { font-size: 12px; overflow-wrap: anywhere; }
+.mail-text { margin-top: 8px; }

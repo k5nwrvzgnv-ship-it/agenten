@@ -17,6 +17,9 @@
 <nav class="baum" aria-label="Module">
   <a class="baum-name" href="/">Uni</a>
   <ul>
+    {%- for p in projekte %}
+    <li><a class="baum-eintrag" href="/projekt/{{ p.id }}"{% if p.id == aktiv %} aria-current="page"{% endif %}><span>{{ p.name }}</span></a></li>
+    {%- endfor %}
     {%- for mod in module %}
     <li><a class="baum-eintrag" href="/modul/{{ mod.id }}"{% if mod.id == aktiv %} aria-current="page"{% endif %}><span>{{ mod.name }}</span></a></li>
     {%- endfor %}
