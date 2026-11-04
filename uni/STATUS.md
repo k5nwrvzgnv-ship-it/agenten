@@ -431,6 +431,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Eingetragen: Böhme. Echter Abgleich 04.11.: 3 Mails (21., 26., 29.10.).
   - Gemessen 04.11. am echten Dienst: Seiten 11 bis 68 ms, Recherche mit allen 163 Aussagen 227 KB, MemoryPeak 42 MB, von außen ohne
     Passwort 401. Ungeprüft: Aussehen im Browser.
+  - Oberfläche (Jan 04.11.: "furchtbar", zu viel Information, keine Hierarchie): Schritt 1 fertig, Kernaufgaben und Befund in
+    portal-oberflaeche.md, nichts umgebaut. Wartet auf Jans Okay und seine Antworten zu "Recherche-Maske" und "Flexibilität".
+    Danach Schritt 2: Testfragen mit prüfbarer Lösung, Messung am alten Stand, Zielwerte vor jedem Entwurf; dann Vorbilder,
+    Entwurf, Umbau auf getrenntem Port, Abnahme. Screenshots gehen auf dem Server nicht (Chromium ohne Systembibliotheken).
   - Rückmeldung zum Exposé (Stufe 2, 04.11., gebaut): Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Text bis 20.000
     Zeichen, Prüfung über Endung und Dateianfang, fester Name kommentare.pdf/.docx). Logik in uni/rueckmeldungen.py, gemeinsam für Web und Agent, ohne
     agentkit (test_schutz belegt: das Portal nutzt nur den Web-Teil). Ablage data/projekte/<projekt>/rueckmeldungen/<id>/ (stand.json, text.txt, Datei,
