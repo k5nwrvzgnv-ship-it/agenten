@@ -692,6 +692,16 @@ def auftrag_doppelt(vorhanden: list[dict], jetzt: datetime, text: str, bezug: st
     return any(gleich(a) for a in vorhanden)
 
 
+def eigene_doppelt(eigene: list[dict], name: str, jetzt: datetime) -> dict | None:
+    """Die eben hochgeladene eigene Fassung, wenn sie gleich heißt und gerade erst kam (Doppelklick); sonst None.
+    Ob der Inhalt gleich ist, prüft der Aufrufer. eigene: wie agentkit.fassungen, name bereinigt."""
+    letzte = eigene[-1] if eigene else None
+    if (letzte is None or letzte.get("name") != name or letzte.get("art") in KEINE_FASSUNG
+            or abs(jetzt.timestamp() - datetime.fromisoformat(letzte["zeit"]).timestamp()) > DOPPELT_SPERRE_S):
+        return None
+    return letzte
+
+
 def seiten_text(anzahl: int) -> str:
     return "1 Seite" if anzahl == 1 else f"{anzahl} Seiten"
 

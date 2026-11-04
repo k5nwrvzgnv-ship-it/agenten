@@ -191,7 +191,7 @@
 {%- elif offen == "eigene" %}
 <div class="tafel" id="eigene">
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
-  <form class="formular" method="post" action="{{ basis_url }}/eigene" enctype="multipart/form-data">
+  <form class="formular" method="post" action="{{ basis_url }}/eigene" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
     <label class="tafel-titel" for="eigene-datei">Deine Fassung (Word, PowerPoint, Excel oder PDF)</label>
     <input id="eigene-datei" name="datei" type="file" accept="{{ eigene_endungen }}" required>

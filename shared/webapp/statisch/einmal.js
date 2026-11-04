@@ -1,5 +1,5 @@
 // Formular mit data-einmal: Knopf nach dem ersten Absenden sperren (Doppelklick, Befund 03.11. Punkt 1). Nur zusätzlich:
-// Ohne JavaScript verwirft der Server die zweite gleiche Anfrage.
+// Ohne JavaScript fängt der Server die zweite gleiche Anfrage ab.
 (function () {
   "use strict";
   function knoepfe(form) {

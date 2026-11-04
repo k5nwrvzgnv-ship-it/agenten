@@ -566,6 +566,22 @@ class TestAuftragDoppelt(unittest.TestCase):
         self.assertFalse(logik.auftrag_doppelt([a], self.JETZT, "kürzer", bezug="b1", dateinamen=["Anders.docx"]))
 
 
+class TestEigeneDoppelt(unittest.TestCase):
+    JETZT = datetime(2026, 11, 3, 18, 0, 30, tzinfo=ZoneInfo("Europe/Berlin"))
+
+    def test_nur_die_letzte_gleichnamige_kurz_danach(self):
+        e = {"n": 1, "name": "Blatt.docx", "zeit": "2026-11-03T18:00:00+01:00"}
+        self.assertEqual(logik.eigene_doppelt([e], "Blatt.docx", self.JETZT), e)
+        self.assertIsNone(logik.eigene_doppelt([], "Blatt.docx", self.JETZT))
+        self.assertIsNone(logik.eigene_doppelt([e], "Anders.docx", self.JETZT))
+        self.assertIsNone(logik.eigene_doppelt([{**e, "zeit": "2026-11-03T17:59:59+01:00"}], "Blatt.docx", self.JETZT))
+        # Datei an einer Rückmeldung, die keine Fassung ist, zählt nicht
+        self.assertIsNone(logik.eigene_doppelt([{**e, "art": "anmerkungen"}], "Blatt.docx", self.JETZT))
+        # A, B, wieder A: A ist nicht die letzte, also Absicht
+        b = {**e, "n": 2, "name": "B.docx"}
+        self.assertIsNone(logik.eigene_doppelt([e, b], "Blatt.docx", self.JETZT))
+
+
 class TestEntwurf(unittest.TestCase):
     def test_ganzer_text_und_nur_bekannte_details(self):
         inhalt = "Kurze Umfrage\n\n1. Frage\n   [ ] in der Schule   [ ] zu Hause\n" + "lang " * 200

@@ -1087,6 +1087,23 @@ class TestMaterial(Aufbau):
         self.assertIn("Final. Fassung 2 ist jetzt die, die du nimmst.", html)
         self.assertEqual(self.erstes_final_formular(html), ("eigene-1", "Final · rückgängig"))
 
+    def test_eigene_fassung_doppelklick_eine_fassung(self):
+        def eigene():
+            return app.fassungen.lesen(self.F1, basis=self.instanz / "auftraege")["eigene"]
+        with mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"):
+            for _ in range(2):
+                r, _ = self.sende("/eigene", {}, [("Blatt.docx", b"MEINS")])
+                self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=eigene"))
+            self.assertEqual([e["n"] for e in eigene()], [1])
+            # Gleicher Name, anderer Inhalt: Lia hat die Datei geändert, das ist eine neue Fassung
+            self.assertEqual(self.sende("/eigene", {}, [("Blatt.docx", b"GEAENDERT")])[0].status, 303)
+            self.assertEqual([e["n"] for e in eigene()], [1, 2])
+            self.assertEqual(self.sende("/eigene", {}, [("Anders.docx", b"GEAENDERT")])[0].status, 303)
+            self.assertEqual([e["n"] for e in eigene()], [1, 2, 3])
+        _, html = self.hole(self.URL + "?offen=eigene")
+        self.assertIn("einmal.js", html)
+        self.assertRegex(html, r'<form [^>]*/eigene"[^>]* data-einmal[ >]')
+
     def test_eigene_fassung_falsche_datei(self):
         r, html = self.sende("/eigene", {}, [("bild.exe", b"x")])
         self.assertEqual(r.status, 400)

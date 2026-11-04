@@ -2175,6 +2175,19 @@ def _eigene_speichern(kette: list[dict], kopf: dict, upload: UploadFile, notiz: 
     return eintrag["name"], logik.fassung_namen(kette, eigene).get(logik.eigene_ref(eintrag["n"]), "")
 
 
+def _eigene_gerade_da(kopf: dict, upload: UploadFile) -> bool:
+    """Liegt genau diese Datei (Name und Inhalt) gerade erst als letzte eigene Fassung da?"""
+    eigene = zustand_().lesen()["eigene"].get(kopf["id"]) or []
+    letzte = logik.eigene_doppelt(eigene, logik.dateiname_bereinigen(upload.filename), datetime.now(ZONE))
+    pfad = _eigene_pfad(kopf, eigene, letzte["n"], set(logik.EIGENE_ENDUNGEN)) if letzte else None
+    if pfad is None:
+        return False
+    upload.file.seek(0)
+    gleich = pfad.read_bytes() == upload.file.read()
+    upload.file.seek(0)
+    return gleich
+
+
 @app.post("/ergebnis/{eintrag_id}/eigene", response_class=HTMLResponse)
 async def ergebnis_eigene(request: Request, eintrag_id: str):
     kette, kopf = _kopf_fuer_post(eintrag_id)
@@ -2189,6 +2202,9 @@ async def ergebnis_eigene(request: Request, eintrag_id: str):
         if fehler:
             return _ergebnis_seite(request, kette, kopf, "eigene", fehler=fehler, status=400)
         try:
+            if _eigene_gerade_da(kopf, datei):  # Doppelklick: dieselbe Bestätigung, keine zweite Fassung
+                logger.info("Gleiche eigene Fassung zu %s gerade schon gespeichert, verworfen", kopf["id"])
+                return _fertig(kopf, "eigene")
             _eigene_speichern(kette, kopf, datei, "")
         except (fassungen.FassungFehler, OSError) as fehler_:
             logger.error("Eigene Fassung nicht gespeichert: %s", fehler_)
