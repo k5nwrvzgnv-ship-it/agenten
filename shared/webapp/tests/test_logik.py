@@ -293,7 +293,7 @@ class TestErgebnis(unittest.TestCase):
         self.assertEqual((d1["nr"], d1["name"], d1["seiten"], d1["auftrag"]), (0, "1 Szenenkarte", 17, "A"))
         self.assertEqual((e["dateien_aus"], e["laeuft"]), ("", ""))
         self.assertEqual([(x["name"], x["von"], x["aktuell"]) for x in e["verlauf"]],
-                         [("Fassung 1", "vom Assistenten", True)])  # Fassungen auch ohne Schleife
+                         [("Fassung 1", "von mir", True)])  # Fassungen auch ohne Schleife
         self.assertEqual(d1["knoepfe"], [{"text": "PDF", "lang": "PDF zum Drucken", "pfad": "/pdf"},
                                          {"text": "Word", "lang": "In Word öffnen", "pfad": ""}])
         self.assertEqual(d2["knoepfe"], [{"text": "Word", "lang": "In Word öffnen", "pfad": ""}])
@@ -451,7 +451,7 @@ class TestMaterial(unittest.TestCase):
                          ("von dir", "mit deinen Kommentaren", {"name": "Spielfassung", "nr": 1, "knopf": "Word"},
                           True, True))
         self.assertEqual((v[0]["von"], v[0]["beschreibung"], v[0]["final"]),
-                         ("vom Assistenten", "19 Bausteine für 38 Minuten.", False))
+                         ("von mir", "19 Bausteine für 38 Minuten.", False))
 
     def test_datei_ohne_fassung_zaehlt_nicht(self):
         alt, fb, nb = theater_kette()

@@ -322,8 +322,13 @@ def stelle(folge: list[str], stunde_id: str, vor_id: str = "") -> int | None:
 
 
 def haken_text(haken: list[dict]) -> str:
-    """„2 Stunden, 1 Auftrag“ aus struktur.haengt_dran."""
-    return ", ".join(h["text"] for h in haken)
+    """„2 Stunden, 1 Auftrag“ aus struktur.haengt_dran. Agenten und Ordner nennt die App Lia nie (Sprachregel)."""
+    return ", ".join("meine Arbeit daran" if h.get("quelle") == "agenten" else h["text"].split(" (lia/")[0] for h in haken)
+
+
+def aktion_text(text: str) -> str:
+    """Hinweis nach einer Aktion. Nach dem Rückgängigmachen hieße er sonst „Rückgängig: … · Rückgängig“."""
+    return text.replace("Rückgängig: ", "Zurückgenommen: ", 1) if text.startswith("Rückgängig: ") else text
 
 
 def loeschen_text(haken: list[dict]) -> str:
@@ -346,7 +351,7 @@ def aenderungen(letzte: list[dict], jetzt: datetime) -> list[dict]:
         tage = (jetzt.date() - zeit.date()).days if zeit else None
         wann = "" if zeit is None else f"heute {zeit:%H:%M}" if tage == 0 else \
             f"gestern {zeit:%H:%M}" if tage == 1 else f"{zeit:%d.%m.%Y %H:%M}"
-        liste.append({"id": a.get("id") or "", "text": a.get("text") or "", "zeit": wann,
+        liste.append({"id": a.get("id") or "", "text": aktion_text(a.get("text") or ""), "zeit": wann,
                       "zurueck": not a.get("zurueckgenommen"),
                       "hinweis": "zurückgenommen" if a.get("zurueckgenommen") else ""})
     return liste

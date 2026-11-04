@@ -140,6 +140,18 @@ class TestEingaben(unittest.TestCase):
         self.assertIsNone(pflege.stelle(folge, "a", "x"))
 
 
+class TestTexte(unittest.TestCase):
+    def test_haken_ohne_technik(self):
+        haken = [{"quelle": "agenten", "anzahl": 1, "text": "Agenten: theater"},
+                 {"quelle": "verweise", "anzahl": 1, "text": "Prüfungsstunde (lia/examen)"},
+                 {"quelle": "darunter", "anzahl": 2, "text": "2 Stunden"}]
+        self.assertEqual(pflege.haken_text(haken), "meine Arbeit daran, Prüfungsstunde, 2 Stunden")
+
+    def test_aktion_text(self):
+        self.assertEqual(pflege.aktion_text("Rückgängig: Stunde angelegt"), "Zurückgenommen: Stunde angelegt")
+        self.assertEqual(pflege.aktion_text("Stunde angelegt"), "Stunde angelegt")
+
+
 class TestAnsichten(unittest.TestCase):
     def setUp(self):
         self.s = struktur.aus_text(TEXT)

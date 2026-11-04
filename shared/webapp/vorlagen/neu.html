@@ -5,7 +5,7 @@
 {%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>{% endblock %}
 {% block inhalt %}
 {%- if modus == "test" %}
-<p class="hinweis"><b>Testbetrieb:</b> Der Auftrag landet in einer Test-Instanz, kein Agent startet.</p>
+<p class="hinweis"><b>Testbetrieb:</b> Der Auftrag bleibt in der Testumgebung, es startet nichts.</p>
 {%- endif %}
 {%- if fehler %}
 <div class="fehler" role="alert">
@@ -22,7 +22,7 @@
   </a>
   {%- endfor %}
 </div>
-<p class="unter">Weitere Arten kommen, sobald deine Assistenz sie bauen kann.
+<p class="unter">Weitere Arten kommen, sobald ich sie bauen kann.
   {%- if not ort_fest %} Tipp: Mit „+ Neu hier“ in einer Reihe oder Stunde ist der Ort schon eingetragen.{% endif %}</p>
 {%- else %}
 <form class="formular" method="post" action="/neu" enctype="multipart/form-data" data-einmal>
@@ -76,7 +76,7 @@
       <option value="{{ r.id }}"{% if r.id == reihe %} selected{% endif %}>{{ r.text }}</option>
       {%- endfor %}
     </select>
-    <span class="unter">Ordnet den Auftrag in deiner Übersicht ein und sagt deiner Assistenz, zu welcher Reihe er gehört.
+    <span class="unter">Ordnet den Auftrag in deiner Übersicht ein und sagt mir, zu welcher Reihe er gehört.
       Er gilt dann für die ganze Reihe; für eine Stunde nimm „+ Neu hier“ in der Stunde.</span>
   </section>
   {%- endif %}
@@ -86,7 +86,7 @@
     {%- for k, v in varianten.items() %}
     <label><input type="checkbox" name="varianten" value="{{ k }}"> {{ v.name }}</label>
     {%- endfor %}
-    <span class="unter">Deine Assistenz baut sie gleich mit, als eigene Dateien neben dem normalen Blatt.</span>
+    <span class="unter">Ich baue sie gleich mit, als eigene Dateien neben dem normalen Blatt.</span>
   </fieldset>
   {%- endif %}
   <section>

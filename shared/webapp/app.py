@@ -515,7 +515,7 @@ def aktion_hinweis(aktion_id: str | None) -> dict | None:
     eintrag = next((a for a in sp.letzte(30, umgebung()) if a["id"] == aktion_id), None)
     if eintrag is None:
         return None
-    return {"id": aktion_id, "text": eintrag["text"], "zurueck": not eintrag["zurueckgenommen"],
+    return {"id": aktion_id, "text": pflege.aktion_text(eintrag["text"]), "zurueck": not eintrag["zurueckgenommen"],
             "hinweise": _NACH_AKTION.get(aktion_id, [])}
 
 
@@ -1657,7 +1657,7 @@ def _vorlagen_seite(request: Request, hinweis: str = "", fehler: list[str] | Non
             logger.error("Profil: %s", f)
         _lese_fehler[:] = lese_fehler
     return vorlagen.TemplateResponse(request, "vorlagen.html", {
-        "e": {"titel": "Vorlagen", "unter": "Gilt für alles, was deine Assistenz für dich baut."},
+        "e": {"titel": "Vorlagen", "unter": "Gilt für alles, was ich für dich baue."},
         "gestaltung": logik.gestaltung(profil), "arten": list(logik.VORLAGEN.values()),
         "formatvorlagen": _formatvorlagen(), "geltungen": logik.FORMAT_GELTUNG, "token": logik.formular_token(GEHEIM),
         "endungen": ",".join(logik.FORMAT_ENDUNGEN), "hinweis": hinweis, "fehler": fehler or [],
@@ -1722,7 +1722,7 @@ async def formatvorlage_entfernen(request: Request):
 @app.get("/ich", response_class=HTMLResponse)
 def seite_ich(request: Request):
     return vorlagen.TemplateResponse(request, "ich.html", {
-        "e": {"titel": "Ich", "unter": "Was deine Assistenz über deine Wünsche weiß."},
+        "e": {"titel": "Ich", "unter": "Was ich über deine Wünsche weiß."},
         "gruppen": logik.regeln_aus(ordnung.regeltexte(INSTANZ)), "token": logik.formular_token(GEHEIM),
         "p": ich_pflege(), **rahmen(reihen_laden(), logik.krumen("Ich"), "ich")})
 
@@ -1750,7 +1750,7 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
         "stunde_fehlt": f"{logik.stunden_wort(ort_reihe)[0]} {stunde}" if ort_reihe and stunde and not ort_stunde
         else "", "reihe_link": logik.reihe_link(ort_reihe) if ort_reihe else "",
         "e": {"titel": vorlage["name"] if vorlage else "Neu",
-              "unter": "für " + logik.ort_text(ort_reihe, ort_stunde) if ort_reihe else "Auftrag an deine Assistenz"},
+              "unter": "für " + logik.ort_text(ort_reihe, ort_stunde) if ort_reihe else "Auftrag an mich"},
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
         "art": art if vorlage else "", "vorlage": vorlage, "varianten": logik.VARIANTEN,
         "galerie": logik.galerie(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None,

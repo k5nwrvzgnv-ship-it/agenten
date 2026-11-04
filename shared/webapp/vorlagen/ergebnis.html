@@ -95,7 +95,7 @@
 {%- endif %}
 {%- if offen == "variante" and variante_moeglich %}
 <div class="tafel" id="variante">
-  {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Variante landet in der Test-Instanz, kein Agent startet.</p>{% endif %}
+  {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Variante bleibt in der Testumgebung, es startet nichts.</p>{% endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
   <form class="formular" method="post" action="{{ basis_url }}/variante" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
@@ -109,7 +109,7 @@
     <input id="variante-extra" name="extra" type="text" maxlength="{{ extra_max }}" value="{{ text }}">
     <button class="knopf knopf-voll" type="submit">Variante anfordern</button>
   </form>
-  <span class="unter">Deine Assistenz baut sie aus {{ "der finalen Fassung" if e.final_name else "der Fassung oben" }}.
+  <span class="unter">Ich baue sie aus {{ "der finalen Fassung" if e.final_name else "der Fassung oben" }}.
     Bitte keine Namen von Schüler*innen.</span>
 </div>
 {%- endif %}
@@ -172,7 +172,7 @@
 {%- if offen == "rueckmeldung" %}
 <div class="tafel" id="rueckmeldung">
   {%- if aktionen %}
-  {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Rückmeldung landet in der Test-Instanz, kein Agent startet.</p>{% endif %}
+  {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Rückmeldung bleibt in der Testumgebung, es startet nichts.</p>{% endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
   <form class="formular" method="post" action="{{ basis_url }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
@@ -204,7 +204,7 @@
     <button class="knopf knopf-voll" type="submit">Als neue Fassung hochladen</button>
   </form>
   <span class="unter">Deine Datei wird die nächste Fassung. Danach kannst du „Rückmeldung geben“ oder sie als final
-    markieren. Der Assistent arbeitet bei der nächsten Rückmeldung noch mit seiner letzten Fassung.</span>
+    markieren. Ich arbeite bei der nächsten Rückmeldung noch mit meiner letzten Fassung.</span>
 </div>
 {%- endif %}
 

@@ -211,7 +211,7 @@ class TestApp(Aufbau):
                      '<a href="/">Heute</a>', "Etwa zwei Seiten, passt in eine Stunde.", "aus Fassung 1",
                      "Fassungen", "Deine Rückmeldung", "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>",
                      ">In Word öffnen<", ">PDF zum Drucken<", ">Als final markieren<", ">Rückmeldung geben<",
-                     ">Eigene Fassung hochladen<", "vom Assistenten, heute 14:16", "2 Seiten · ansehen"):
+                     ">Eigene Fassung hochladen<", "von mir, heute 14:16", "2 Seiten · ansehen"):
             self.assertIn(text, html)
         basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
         self.assertIn(f'href="{basis}/pdf" download>PDF zum Drucken', html)
@@ -221,7 +221,7 @@ class TestApp(Aufbau):
             self.assertIn(f'href="{basis}/ansehen?seite={m}"', html)
             self.assertIn(f'src="{basis}/seite/{m}"', html)
         self.assertEqual(html.count(f'<a class="dateiname" href="{basis}/ansehen">Arbeitsblatt</a>'), 1)
-        self.assertLess(html.index("vom Assistenten, heute 14:40"), html.index("vom Assistenten, heute 14:16"))
+        self.assertLess(html.index("von mir, heute 14:40"), html.index("von mir, heute 14:16"))
         # „Als final markieren“ abgesetzt nach den anderen Knöpfen (Chrome-Test Nr. 11)
         self.assertLess(html.index("Eigene Fassung hochladen<"), html.index('<div class="knopf-abgesetzt">'))
         self.assertLess(html.index('<div class="knopf-abgesetzt">'), html.index("Als final markieren"))
@@ -678,7 +678,7 @@ class TestOrdnung(Aufbau):
             body = body.replace(b'name="dateien"', b'name="datei"')
             return self.hole("/vorlagen/formatvorlage", "POST", body=body,
                              kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
-        self.assertIn("Noch keine. Deine Assistenz nimmt dann die Gestaltung oben.", self.hole("/vorlagen")[1])
+        self.assertIn("Noch keine. Ich nehme dann die Gestaltung oben.", self.hole("/vorlagen")[1])
         r, _ = hoch("../Schule Kopf.dotx")
         self.assertEqual((r.status, r.getheader("location")), (303, "/vorlagen?erledigt=formatvorlage#formatvorlagen"))
         self.assertEqual((ordner / "Schule Kopf.dotx").read_bytes(), b"PK-VORLAGE")
@@ -1090,7 +1090,7 @@ class TestMaterial(Aufbau):
         for text in ("Deine Datei ist jetzt die neueste Fassung.", "Fassung 2", "von dir, heute",
                      f'href="{self.URL}/eigene/1" download>Word<'):
             self.assertIn(text, html)
-        self.assertLess(html.index("von dir, heute"), html.index("vom Assistenten, heute 14:40"))
+        self.assertLess(html.index("von dir, heute"), html.index("von mir, heute 14:40"))
         r, inhalt = self.hole(self.URL + "/eigene/1", roh=True)
         self.assertEqual((r.status, inhalt), (200, b"MEINS"))
         self.assertIn("Mein%20Blatt.docx", r.getheader("Content-Disposition"))
@@ -1230,6 +1230,16 @@ class TestMaterial(Aufbau):
         r, js = self.hole("/statisch/einmal.js")
         self.assertEqual(r.status, 200)
         self.assertIn("data-einmal", js)
+
+    def test_eine_stimme(self):
+        """Sprachregel: Lia liest „ich“, nie Agent oder Assistent. „Deine Assistenz“ bleibt nur als Name oben links."""
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"):
+            for pfad in (self.URL, self.URL + "?offen=rueckmeldung", self.URL + "?offen=eigene", "/", "/neu",
+                         "/neu?art=arbeitsblatt", "/neu?art=spielfassung", "/vorlagen", "/ich"):
+                _, html = self.hole(pfad)
+                for wort in ("Agent", "Assistent", "Test-Instanz"):
+                    self.assertNotIn(wort, self.sichtbar(html), pfad)
+                self.assertEqual(self.sichtbar(html).count("Assistenz"), 1, pfad)
 
     def test_ein_hauptknopf(self):
         """Befund 03.11., Teil D: Auf der Material-Ansicht ist „Rückmeldung geben“ der eine schwarze Knopf."""

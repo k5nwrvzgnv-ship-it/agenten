@@ -506,7 +506,7 @@ def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[
         teile = inhalt(a)
         schritte.append({
             "art": "fassung", "name": namen[a["id"]], "id": a["id"], "ref": a["id"], "aktuell": a is aktuell,
-            "von": "vom Assistenten", "beschreibung": kurz(teile["kern"] or next(iter(teile["punkte"]), ""), 120),
+            "von": "von mir", "beschreibung": kurz(teile["kern"] or next(iter(teile["punkte"]), ""), 120),
             "final": a["id"] == final_ref,
             "finalbar": status == "erledigt" and namen[a["id"]] != "Antwort",
             "zeit": ("seit " + zeit_text(a.get("erstellt"), jetzt) if status == "neu"
@@ -589,22 +589,22 @@ HINWEISE = {
     "nicht-final": "Nicht mehr final.",
     "eigene": "Deine Datei ist jetzt die neueste Fassung.",
     "rueckmeldung": "Rückmeldung ist unterwegs. Die neue Fassung erscheint hier und in „Heute“.",
-    "rueckmeldung-test": "Rückmeldung angelegt (Testbetrieb, es startet kein Agent).",
+    "rueckmeldung-test": "Rückmeldung angelegt (Testbetrieb, es startet nichts).",
     "stunde": "Angelegt. Mit „Gehört zu“ in einem Material ordnest du es hier ein.",
     "thema": "Thema geändert.",
     "zugeordnet": "Eingeordnet.",
-    "formatvorlage": "Gespeichert. Deine Assistenz nimmt die Vorlage ab dem nächsten Auftrag.",
+    "formatvorlage": "Gespeichert. Ich nehme die Vorlage ab dem nächsten Auftrag.",
     "formatvorlage-weg": "Entfernt.",
-    "zurueckgezogen": "Zurückgezogen. Deine Assistenz hört damit auf.",
+    "zurueckgezogen": "Zurückgezogen. Ich höre damit auf.",
     "nochmal": "Läuft noch einmal. Das Ergebnis erscheint in „Heute“.",
-    "nochmal-test": "Noch einmal angelegt (Testbetrieb, es startet kein Agent).",
+    "nochmal-test": "Noch einmal angelegt (Testbetrieb, es startet nichts).",
     "entwurf-selbst": "Erledigt: Du setzt den Entwurf selbst ein. Er wartet nicht mehr in „Heute“.",
     "entwurf-nein": "Erledigt: Du brauchst den Entwurf nicht.",
     "entwurf-offen": "Wieder offen.",
     "variante": "Die Variante ist unterwegs. Sie erscheint hier unter „Varianten“ und in „Heute“.",
-    "variante-test": "Variante angelegt (Testbetrieb, es startet kein Agent).",
+    "variante-test": "Variante angelegt (Testbetrieb, es startet nichts).",
     "auftrag": "Dein Auftrag ist unterwegs. Er steht hier und in „Heute“.",
-    "auftrag-test": "Auftrag angelegt (Testbetrieb, es startet kein Agent). Er steht hier und in „Heute“.",
+    "auftrag-test": "Auftrag angelegt (Testbetrieb, es startet nichts). Er steht hier und in „Heute“.",
 }
 
 
@@ -789,7 +789,7 @@ VORLAGEN = {
     "spielfassung": {"name": "Spielfassung (Kürzung)", "kopf": "Spielfassung", "text": "Stück auf eure Länge kürzen",
                      "bild": "skript", "agent": "theater", "quelle": "portal-theater", "fach": "Darstellendes Spiel",
                      "frage": "Welches Stück?", "hint": "Der nackte Wahnsinn", "kurz": True,
-                     "hinweis": "Dauert bis zu drei Stunden. Bisher kennt deine Assistenz nur den Text von "
+                     "hinweis": "Dauert bis zu drei Stunden. Bisher kenne ich nur den Text von "
                                 "„Der nackte Wahnsinn“.",
                      "extra": [("laenge", "Länge", "z. B. 35–40 Minuten", False, "Länge"),
                                ("spieler", "Spieler*innen", "z. B. 18", False, "Spieler*innen"),

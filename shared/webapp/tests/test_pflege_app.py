@@ -649,7 +649,7 @@ class TestStunde(Pflege):
         # Material hängt dran: kein Löschen, Ausblenden geht; Material bleibt bei der ausgeblendeten Stunde
         self.material_an(st["id"], r["id"])
         _, html = self.hole(f"/reihe/{r['id']}/stunde/1")
-        self.assertIn("Löschen geht nicht, daran hängt: Prüfungsstunde (lia/examen), 1 Zuordnung in der Web-App.",
+        self.assertIn("Löschen geht nicht, daran hängt: Prüfungsstunde, 1 Zuordnung in der Web-App.",
                       html)
         r3, html = self.post(f"/objekt/{st['id']}/loeschen", {})
         self.assertEqual(r3.status, 400)
@@ -712,7 +712,7 @@ class TestRueckgaengig(Pflege):
         self.assertTrue(r.getheader("location").startswith(f"/reihe/{STRAFE}?aktion="))  # die Stunde gibt es nicht mehr
         self.assertEqual(self.text(), ECHT)
         _, html = self.hole("/ich")
-        self.assertIn("Rückgängig: Stunde „Einstieg“ in „Straftheorien“ angelegt", html)
+        self.assertIn("Zurückgenommen: Stunde „Einstieg“ in „Straftheorien“ angelegt", html)
         self.assertIn("zurückgenommen", html)
         r, html = self.post("/rueckgaengig", {"aktion": aktion, "zurueck": "/ich"})
         self.assertEqual(r.status, 409)
