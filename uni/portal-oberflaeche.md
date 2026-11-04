@@ -3,6 +3,7 @@
 Stand 04.11.2026. Nichts umgebaut. Jan hat die Kernaufgaben bestätigt und Ergänzungen genannt (Abschnitt "Schritt 3, Zwischenstand").
 Schritt 2 (Messlatte) entfällt: Jan will keine Messung (04.11.). Es gibt keine Zielwerte, abgenommen wird nach Jans Eindruck.
 Schritt 3 (Vorbilder): eingearbeitet, Jans Bestätigung steht aus. Offene Punkte stehen am Ende. Schritt 4 beginnt erst nach seinem Okay.
+Pause (Jan 04.11.): Schritt 4 wartet auf den Notion-Test. Der klärt, ob Notion die Ebenen und die gemeinsame Arbeit übernimmt, statt nur Vorbild zu sein. Prüfungsseite und Lernen sind nicht betroffen.
 
 Kennzeichnung: **[B]** belegt in den genannten Daten, **[W]** von Jan gewünscht, aber noch nicht praktisch vorgekommen,
 **[V]** meine Vermutung.

@@ -123,6 +123,22 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Telegram und PC-Chat führen dieselbe Sitzung fort). Kein automatischer Vorschlag von lernen.
 - Agenten denken mit `claude -p` (~/.local/bin/claude). Laufzeit-Agenten ändern nie Code.
 - Rollen für Entwicklungs-Chats nicht eigens gebaut: Plan-Modus und /code-review reichen (16.10.).
+- Notion-Test (Jan 04.11.2026, Plan freigegeben, noch nichts gebaut): Notion als Arbeitsoberfläche, Agenten bleiben auf dem Server.
+  Auftrag für den Hauptordner-Chat, Einrichten von Timer und Regeländerung erst nach Zusammenfassung an Jan:
+  - Neuer Ordner shared/notion/, nur Bordmittel, Logik getestet, Testordner in pruefen.sh, eigener systemd-User-Timer alle 2 Minuten.
+    Token einer Internal Connection (kein PAT, der hätte alle Rechte Jans) in shared/notion/.env, chmod 600, trägt Jan selbst ein.
+    Die Connection sieht nur die Test-Datenbank.
+  - Datenbank "Aufträge": Titel = Name, Seitentext = Auftrag, Status. Ein Notion-Button "Starten" setzt den Status (Buttons können Seiten
+    bearbeiten, laut Hilfe in allen Tarifen); Datenbank-Button auf der Zeile im Test prüfen. Die Brücke fragt per Timer ab, keine Webhooks
+    (Button-Webhook nur in bezahlten Tarifen, braucht öffentliche Adresse, pausiert bei Fehlern).
+  - Brücke: nur Seiten von Jans Notion-Konto annehmen (created_by), auftraege.neuer_auftrag(agent "uni", quelle "notion"), danach
+    <agent>.service starten (die Zentrale startet nur Weitergaben von selbst). Ergebnis, Dateien, Status zurück auf die Seite.
+    Grenzen: 2000 Zeichen je Rich-Text, 100 Blöcke je Anfrage, Datei im Free-Tarif 5 MB (größere nur per Telegram, Hinweis auf der Seite).
+  - Keine Doppelläufe: Seite -> Auftrag vor dem Anlegen vormerken. Abbruch dazwischen wird nicht wiederholt, sondern an Jan gemeldet.
+  - Die Zentrale meldet jeden abgeschlossenen Auftrag weiter per Telegram: bleibt im Test so, zentrale.py unverändert.
+  - Nur unkritische Recherchen: keine Mails, Kursunterlagen, Transkripte, kein Exposé, nichts aus Lias Instanz. Freigaben bleiben in Telegram.
+  - Befristete Ausnahme in CLAUDE.md eintragen: Ergebnisse dieses Tests gehen ohne Einzelfreigabe in Jans eigenen Notion-Workspace (Jans Okay 04.11.).
+  - Nicht im Test: Kommentare an den Agenten, Webhooks, weitere Agenten, Felix und Henri. Abnahme nach Jans Eindruck, keine Messung.
 
 ## Offene Punkte
 1. Erledigt im uni-Chat 17.10.: agent.py setzt Antworten in der Sitzung fort, jeder Auftrag speichert
