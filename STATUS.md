@@ -969,6 +969,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Klick-Aufträge still ab) ist keine Voraussetzung mehr, das Portal kommt zuerst (Jan 04.11.). shared/webapp
     bleibt unberührt, uni/portal/ kopiert CSS, Schrift, htmx und einzelne Schutzfunktionen. Später, wenn beide Apps
     stabil sind, prüfen: gemeinsamer Baustein in agentkit für Kopfzeilen, Formularschutz und sichere Dateipfade.
+30. Bedarf aus uni (04.11.2026): agentkit.textfassung.pdf_kommentare gibt als "stelle" ganze Zeilen statt der markierten
+    Stelle (bewusst so gebaut, Punkt 28). Das ist für den Agenten irreführend: Bei Jans Exposé-PDF hing "raus" an
+    "Produktionslinien im Dreischichtbetrieb sechs Beschäftigte eingesetzt. Die Arbeit ist eintönig und belastend.", markiert war
+    nur der letzte Satz; bei den meisten "raus" war nur ein [OFFEN: ...] markiert. Genauer ginge es mit den x-Grenzen der
+    QuadPoints; pypdfium2 get_text_bounded traf bei dieser PDF alle 25 Stellen wörtlich (Paket liegt nicht in uni/.venv).
+    Noch nicht gebaut, braucht Jans Okay. Bis dahin hat der uni-Chat die Stellen von Hand in den Auftragstext geschrieben.
 
 ## Gelernte Regeln
 - (noch keine)

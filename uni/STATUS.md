@@ -468,9 +468,11 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     dem Zurücknehmen, denn PathChanged meldet auch das Löschen.
     Geprüft: Tests (uni/tests/test_rueckmeldungen.py mit echter Aufträge-Ablage im Temp-Ordner, portal/tests/test_rueckmeldung.py, test_schutz.py); am
     echten Dienst (04.11., direkt auf 127.0.0.1:8793) nur abgelehnte Eingaben: zu kurz, leer, falsche Endung, falscher Dateianfang, 20 MB ohne PDF-Anfang,
-    21 MB (413), altes Token, fremde Herkunft (403), danach keine Marke und kein Auftrag; MemoryPeak dabei 83 MB (Grenze 200 MB). UNGEPRÜFT: ein echter
-    Lauf von der Marke bis zur neuen Fassung, Aussehen im Browser, Upload über Caddy, ob die Pfad-Unit bei einer Marke wirklich auslöst (sie ist aktiv, ausgelöst hat sie noch nie). Bewusst nicht getestet: Eine gültige Marke am echten Dienst löst einen bezahlten Lauf aus und überschreibt das Exposé. Der
-    Echttest ist Jans erste echte Rückmeldung.
+    21 MB (413), altes Token, fremde Herkunft (403), danach keine Marke und kein Auftrag; MemoryPeak dabei 83 MB (Grenze 200 MB).
+    Echter Lauf 04.11. (Rückmeldung 20261104-203439-c2c849, Auftrag 20261104-203511-uni-fde8fe): Marke im Chat mit rueckmeldungen.anlegen gelegt, nur Text
+    ohne Datei und ohne Web-Formular. Pfad-Unit löste sofort aus, 2:20 min bis zur Fassung, Stand "fertig" samt Ergebnis, alte Fassung in vorher/. Kosten 10,38 USD
+    (7 Schritte, 2 Mio. Tokens, fast alles Verlauf der fortgesetzten Sitzung, Auslastung 7 Tage 69 %), nicht die im Code genannten etwa 1 USD.
+    UNGEPRÜFT: Rückmeldung mit Datei, Upload über Formular und Caddy, Aussehen im Browser.
   - Geplant, nicht gebaut (Jan 04.11.: Der Agent schreibt, die Gruppe kommentiert; Word soll auch mal gehen; weitere Bausteine erst, wenn
     die Schritte anstehen): Als Nächstes Interviews vorbereiten (Jan: kommt bald; braucht Claude-Läufe, also wieder nur Datei in die Warteschlange).
     Stufe 3 eigene Word-Fassung über agentkit.fassungen.
@@ -592,7 +594,13 @@ Zwei Arbeitsmodi. Jan wählt je nach Zeitdruck; ohne Angabe gilt "erledigen".
     data/expose/20261102-165741-uni-ac9dcc/vorher/20261104-163834-uni-2ee98f/. Stand der Kette: 17 Kommentare (Felix 12, Henri 5), 11 [OFFEN].
     Noch offen, Jan wollte vorerst nur den Bau, nicht behoben. Vorschlag: geänderte expose.json am Laufende prüfen und bauen, egal über welchen Weg; Aufträge
     zum Exposé auch ohne "Exposé:" erkennen; kurse.kommentare_block gibt den Autor mit (agentkit.textfassung liefert ihn, er fehlt im Block,
-    deshalb nannte der Lauf falsch nur Henri). Offen bei Jan: 800 mm, Keilzinkung, Beleg Microtec Goldeneye 301, Titel.
+    deshalb nannte der Lauf falsch nur Henri).
+13. Exposé-Druckfassung (04.11., siehe Rückmeldung im Portal-Abschnitt): 24 Kommentare von Jan umgesetzt, kein [OFFEN] mehr, 9 Quellen, 5 Seiten mit Deckblatt, Protokoll
+    Nachtrag 5 mit allen Stellen. Der Exposé-Weg mit [OFFEN] ist damit nicht geändert: Druckreif stand nur im Auftragstext. MiCROTEC von Hand als Quelle
+    (art produkt, ungeprueft) in recherche/geprueft.json eingetragen, sonst hätte literatur_pruefen abgelehnt; Seite im Chat gelesen, nennt weder Eigenfrequenz noch
+    "rechtssicher", Satz deshalb angepasst. Noch offen bei Jan: Felix' Matrikelnummer (XXXXXXXX auf dem Deckblatt), Laser-Satz, "Hierfür" vor Technikum, "die diese Abstände
+    einhalten muss" gegen "Kappen nicht Teil des Prototyps". Änderungen daran lassen sich ohne Claude-Lauf in expose.json machen und bauen.
+    Schwäche: Fortgesetzte Exposé-Sitzungen sind teuer (10,38 USD für diese kleine Überarbeitung). Vorschlag: Überarbeitungen in neuer Sitzung mit expose.json statt --resume.
 
 - Kurzrecherche statt Recherche-Pipeline (03.11., Henris Frage Kamera oder RealSense, Auftrag
   20261103-104356-uni-49cf67): normaler Auftrag mit Verweis auf die vorhandene Exposé-Recherche, höchstens 5
