@@ -436,13 +436,15 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Passwort 401. Ungeprüft: Aussehen im Browser.
   - Oberfläche (Jan 04.11.: "furchtbar", zu viel Information, keine Hierarchie): Schritt 1 fertig, Kernaufgaben und Befund in
     portal-oberflaeche.md, nichts umgebaut. Jan 04.11.: Die Recherche soll navigieren und nachfragen können; die Nachfrage kommt als
-    eigener Vorschlag (Kosten, Agentenlogik). Schritt 3 läuft: Kernaufgaben bestätigt, "Flexibilität" geklärt (Reiter je Strukturebene,
-    Dokumente und Recherchen an ihrer Ebene), Lias App als erstes Vorbild, zwei Screenshots ausgewertet (Chromium startet auf dem Server
-    nicht); offene Fragen an Jan am Ende von portal-oberflaeche.md. Am Portal nichts geändert, Schritt 4 erst nach Jans Okay zu den Vorbildern.
-    Messung entfällt (Jan 04.11.: will keine Messung, auch nicht nach Rückfrage). Damit gibt es keine Zielwerte und keine Parallelfragen; abgenommen wird nach Jans Eindruck.
-    Ablauf: 3 Vorbilder aus eigener Benutzung (danach Jans Okay), 4 Struktur und Varianten (danach Jans Okay), 5 Umbau auf getrenntem Port (Vorlagen wirken sofort live),
-    nur uni/, 6 Abnahme durch Jan. Noch nicht besprochen: ob Baumtest, fremde Person und Log-Auswertung nach zwei Wochen bleiben. Der Prüfstein in webapp-plan.md Abschnitt 9 ist damit nicht abgeglichen.
-    portal/messung.py mit Tests ist gebaut (Commit e6d4f64), nie echt gelaufen und wird nicht gebraucht; Jan entscheidet, ob es gelöscht wird.
+    eigener Vorschlag (Kosten, Agentenlogik). Schritt 3: Kernaufgaben bestätigt, "Flexibilität" geklärt (Reiter je Strukturebene,
+    Dokumente und Recherchen an ihrer Ebene), Lias App als erstes Vorbild, Screenshots ausgewertet (Chromium startet auf dem Server
+    nicht). Vorbilder (Notion, Basecamp, Overleaf, Confluence, NotebookLM) stehen in portal-oberflaeche.md, nur aus Dokumentation
+    bekannt, nur als Muster; Jans Bestätigung steht aus, seine offenen Fragen stehen am Ende der Datei. Am Portal nichts geändert, Schritt 4 erst nach seinem Okay.
+    Messung entfällt (Jan 04.11.): keine Zielwerte, Abnahme nach Jans Eindruck (eingetragen in webapp-plan.md Abschnitt 9). Baumtest, fremde Person und Log-Auswertung gestrichen,
+    portal/messung.py samt Test gelöscht. Offen: Bleibt die Zeile "mindestens 10 von 14 Tagen geübt" in Abschnitt 9, bis zu Jans Antwort unverändert.
+    Spannung zu webapp-plan.md "Was nicht gebaut wird" (Zugänge, Recherche-Pipeline, Web-Editor): Abschnitt unverändert, Zugänge, Recherche-Start und Nachfrage nur als eigener Vorschlag.
+    Ablauf: 3 Vorbilder (danach Jans Okay), 4 Struktur und Varianten (danach Jans Okay), 5 Umbau auf getrenntem Port (Vorlagen wirken sofort live),
+    nur uni/, 6 Abnahme durch Jan.
   - Rückmeldung zum Exposé (Stufe 2, 04.11., gebaut): Formular auf /projekt/fehlstellen (Text und/oder eine PDF/docx bis 20 MB, Text bis 20.000
     Zeichen, Prüfung über Endung und Dateianfang, fester Name kommentare.pdf/.docx). Logik in uni/rueckmeldungen.py, gemeinsam für Web und Agent, ohne
     agentkit (test_schutz belegt: das Portal nutzt nur den Web-Teil). Ablage data/projekte/<projekt>/rueckmeldungen/<id>/ (stand.json, text.txt, Datei,
