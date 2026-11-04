@@ -3,7 +3,7 @@
     eigene Fassung und Variante öffnen sich über ?offen=…, Formulare mit Token (app.py). -#}
 {% extends "basis.html" %}
 {#- Skript nur, wenn ein Formular mit data-einmal auf der Seite steht -#}
-{%- block skripte %}{{ super() }}{% if offen or (variante_moeglich and varianten.gewuenscht) %}<script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
+{%- block skripte %}{{ super() }}{% if offen or nochmal or (variante_moeglich and varianten.gewuenscht) %}<script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="material-kopf">
   {%- if e.art_zeile %}<span class="material-art">{{ e.art_zeile }}</span>{% endif %}
@@ -115,8 +115,9 @@
 
 {%- macro nochmal_knopf() %}
 {%- if nochmal %}
-<form class="final-form" method="post" action="{{ basis_url }}/nochmal">
+<form class="final-form" method="post" action="{{ basis_url }}/nochmal" data-einmal>
   <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
   <button class="knopf knopf-voll" type="submit">Nochmal</button>
 </form>
 {%- elif nochmal_weg %}

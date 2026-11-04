@@ -4,7 +4,7 @@
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
-{%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script>{% endif %}{% endblock %}
+{%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
   <span class="datum grau">{{ e.unter }}</span>
@@ -55,8 +55,9 @@
   {%- endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
   {%- if p and not p.archiv %}
-  <form class="zeile-form" method="post" action="/reihe/{{ p.reihe.id }}/stunden">
+  <form class="zeile-form" method="post" action="/reihe/{{ p.reihe.id }}/stunden" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
     <label class="unsichtbar" for="thema">Thema der neuen {{ e.wort }}</label>
     <input id="thema" name="thema" type="text" maxlength="{{ thema_max }}" value="{{ thema }}"
            placeholder="Thema (darf offen bleiben)">

@@ -48,7 +48,7 @@ class Aufbau(unittest.TestCase):
     """Echter Uvicorn auf einem Socket im Temp-Ordner, Instanz mit Beispielaufträgen."""
 
     def setUp(self):
-        for zeit in (mock.patch.object(app, "datetime", FesteZeit),
+        for zeit in (mock.patch.object(app, "datetime", FesteZeit), mock.patch.dict(app._EINMAL, clear=True),
                      mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T17:59:00+01:00")):
             zeit.start()
             self.addCleanup(zeit.stop)
@@ -831,6 +831,20 @@ class TestOrdnung(Aufbau):
         self.assertIn("Formatvorlage anwenden", html.split("Läuft gerade")[1])
         self.assertEqual(self.post(f"/ergebnis/{alt}/nochmal", {})[0].status, 404)  # nicht doppelt
         self.assertEqual(self.post("/ergebnis/20261030-140944-unterricht-93e29e/nochmal", {})[0].status, 404)
+
+    def test_nochmal_doppelklick(self):
+        alt = "20261022-232618-unterricht-67ba47"
+        _, html = self.hole(f"/ergebnis/{alt}")
+        form = re.search(r'<form [^>]*/nochmal"[^>]*>.*?</form>', html, re.S).group(0)
+        self.assertIn("data-einmal", form)
+        self.assertRegex(form, r'name="einmal" value="[0-9a-f]{16}"')
+        self.assertIn("einmal.js", html)
+        erste, zweite = (self.post(f"/ergebnis/{alt}/nochmal", {"einmal": "kennung-1"})[0] for _ in range(2))
+        self.assertEqual((erste.status, zweite.status), (303, 303))
+        self.assertEqual(zweite.getheader("location"), erste.getheader("location"))
+        self.assertEqual(len(app.auftraege.neue(basis=self.instanz / "auftraege")), 1)
+        # Eine alte Seite ohne diese Kennung bleibt abgewiesen
+        self.assertEqual(self.post(f"/ergebnis/{alt}/nochmal", {"einmal": "kennung-2"})[0].status, 404)
 
     def test_nochmal_mit_datei_zeigt_weg(self):
         alt = "20261022-232618-unterricht-67ba47"

@@ -77,6 +77,7 @@ Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET; mit W
        statt Socket, so läuft der Dienst systemd/webapp.service hinter Caddy)
 """
 
+import asyncio
 import logging
 import os
 import re
@@ -520,6 +521,40 @@ def aktion_hinweis(aktion_id: str | None) -> dict | None:
 
 vorlagen.env.globals["aktion_hinweis"] = aktion_hinweis
 vorlagen.env.globals["formular_token"] = lambda: logik.formular_token(GEHEIM)
+vorlagen.env.globals["einmal_kennung"] = lambda: secrets.token_hex(8)
+
+
+_EINMAL: dict[str, asyncio.Future] = {}  # Formular-Kennung -> Ziel der Weiterleitung (nur die letzten, siehe einmal)
+EINMAL_MERKEN = 200
+
+
+async def einmal(request: Request, form, ablauf: Callable) -> HTMLResponse | RedirectResponse:
+    """Formular mit Kennung (Feld "einmal", je geladene Seite neu) nur einmal ausführen: Ein Doppelklick schickt dieselbe
+    Kennung zweimal und bekommt dieselbe Weiterleitung wie die erste Anfrage, auch wenn die noch läuft. Für Formulare,
+    bei denen gleicher Inhalt kurz nacheinander Absicht sein kann (leere Stunden), darum nicht wie
+    logik.auftrag_doppelt über den Inhalt. Scheitert die erste Anfrage, zählt die Kennung nicht."""
+    if not form.get("einmal"):
+        return await ablauf()
+    kennung = f"{request.url.path}|{form.get('einmal')}"
+    if kennung in _EINMAL:
+        ziel = await _EINMAL[kennung]
+        if ziel:
+            logger.info("Gleiches Formular gerade schon ausgeführt, verworfen")
+            return RedirectResponse(ziel, status_code=303)
+        return await ablauf()
+    laeuft = _EINMAL[kennung] = asyncio.get_running_loop().create_future()
+    ziel = ""
+    try:
+        antwort = await ablauf()
+        if antwort.status_code == 303:
+            ziel = antwort.headers["location"]
+        return antwort
+    finally:
+        laeuft.set_result(ziel)
+        if not ziel:
+            del _EINMAL[kennung]
+        for alt in list(_EINMAL)[:-EINMAL_MERKEN]:
+            del _EINMAL[alt]
 
 
 async def pflege_formular(request: Request, wofuer: str):
@@ -684,16 +719,19 @@ async def fach_neu(request: Request):
     if s is None or s.format != "neu":
         raise HTTPException(404)
     form, token_ok = await pflege_formular(request, "Fach anlegen")
-    name, fehler = pflege.text(_wert(form)("name"), "name", pflege.PFLICHT["fach"])
-    werte = {"name": name, "kurzform": ""}
-    if not token_ok:
-        fehler = [pflege.VERALTET]
-    if not fehler:
-        aus, f = await pflegen("fach_anlegen", {"name": name})
-        if aus:
-            return nach(f"/fach/{aus.neue_id}", aus)
-        fehler = [f]
-    return _fach_seite(request, s, None, werte, fehler, 400)
+
+    async def anlegen():
+        name, fehler = pflege.text(_wert(form)("name"), "name", pflege.PFLICHT["fach"])
+        werte = {"name": name, "kurzform": ""}
+        if not token_ok:
+            fehler = [pflege.VERALTET]
+        if not fehler:
+            aus, f = await pflegen("fach_anlegen", {"name": name})
+            if aus:
+                return nach(f"/fach/{aus.neue_id}", aus)
+            fehler = [f]
+        return _fach_seite(request, s, None, werte, fehler, 400)
+    return await einmal(request, form, anlegen)
 
 
 @app.get("/fach/{fach_id}/bearbeiten", response_class=HTMLResponse)
@@ -1118,22 +1156,25 @@ async def reihe_neu(request: Request, klasse_id: str):
     s = struktur_()
     k = _objekt(s, klasse_id, "klasse")
     form, token_ok = await pflege_formular(request, "Reihe anlegen")
-    w, liste = _wert(form), _liste(form)
-    titel, fehler = pflege.text(w("titel"), "titel", pflege.PFLICHT["reihe"])
-    wahl, f_wahl = pflege.termine_wahl(w, liste)
-    ohne, f_ohne = pflege.ohne_termin_zahl(w("ohne"))
-    werte = {"titel": titel, "ohne": w("ohne"), **_wahl_werte(w, liste)}
-    fehler = [pflege.VERALTET] if not token_ok else fehler + f_wahl + f_ohne
-    if not fehler:
-        try:
-            aus, text_ = await pflegen("reihe_anlegen", {"klasse": klasse_id, "titel": titel,
-                                                         "stunden": [""] * ohne, **wahl})
-        except termine.Belegt:
-            aus, text_ = None, pflege.TERMIN_BELEGT
-        if aus:
-            return nach(f"/reihe/{aus.neue_id}", aus)
-        fehler = [text_]
-    return _reihe_neu_seite(request, s, k, werte, fehler, 400)
+
+    async def anlegen():
+        w, liste = _wert(form), _liste(form)
+        titel, fehler = pflege.text(w("titel"), "titel", pflege.PFLICHT["reihe"])
+        wahl, f_wahl = pflege.termine_wahl(w, liste)
+        ohne, f_ohne = pflege.ohne_termin_zahl(w("ohne"))
+        werte = {"titel": titel, "ohne": w("ohne"), **_wahl_werte(w, liste)}
+        fehler = [pflege.VERALTET] if not token_ok else fehler + f_wahl + f_ohne
+        if not fehler:
+            try:
+                aus, text_ = await pflegen("reihe_anlegen", {"klasse": klasse_id, "titel": titel,
+                                                             "stunden": [""] * ohne, **wahl})
+            except termine.Belegt:
+                aus, text_ = None, pflege.TERMIN_BELEGT
+            if aus:
+                return nach(f"/reihe/{aus.neue_id}", aus)
+            fehler = [text_]
+        return _reihe_neu_seite(request, s, k, werte, fehler, 400)
+    return await einmal(request, form, anlegen)
 
 
 def _reihe_bearbeiten_seite(request: Request, s, r: dict, werte: dict, fehler: list[str] | None = None,
@@ -1327,15 +1368,18 @@ async def stunde_anlegen(request: Request, reihe_id: str):
     s = struktur_()
     _objekt(s, reihe_id, "reihe")
     form, token_ok = await pflege_formular(request, "Stunde")
-    thema, fehler = pflege.text(_wert(form)("thema"), "thema")
-    if not token_ok:
-        fehler = [pflege.VERALTET]
-    if not fehler:
-        aus, text_ = await pflegen("stunde_anlegen", {"reihe": reihe_id, "thema": thema})
-        if aus:
-            return nach(f"/reihe/{reihe_id}#stunden", aus)
-        fehler = [text_]
-    return _reihe_seite(request, reihe_id, fehler, thema, 400)
+
+    async def anlegen():
+        thema, fehler = pflege.text(_wert(form)("thema"), "thema")
+        if not token_ok:
+            fehler = [pflege.VERALTET]
+        if not fehler:
+            aus, text_ = await pflegen("stunde_anlegen", {"reihe": reihe_id, "thema": thema})
+            if aus:
+                return nach(f"/reihe/{reihe_id}#stunden", aus)
+            fehler = [text_]
+        return _reihe_seite(request, reihe_id, fehler, thema, 400)
+    return await einmal(request, form, anlegen)
 
 
 def _stunde_obj(s, stunde_id: str) -> dict:
@@ -2089,30 +2133,33 @@ async def ergebnis_nochmal(request: Request, eintrag_id: str):
         raise HTTPException(404)
     kette, kopf = _kopf_fuer_post(eintrag_id)
     form = await formular_lesen(request, "Nochmal", 0)
-    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
-        return _ergebnis_seite(request, kette, kopf, hinweis=logik.VERALTET, status=400)
-    if not logik.nochmal_moeglich(kette) or kopf["id"] in zustand_().lesen()["ersetzt"]:
-        raise HTTPException(404)
-    f = logik.nochmal_felder(kette)
-    try:
-        aid = auftraege.neuer_auftrag(logik.NEU_AGENT, f["text"], quelle=f["quelle"], bezug=f["bezug"],
-                                      sitzung=f["sitzung"], basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
-                                      absender=config.person(INSTANZ), reihe=f["reihe"], ort=f["ort"])
-        if not f["bezug"]:  # neuer Ursprung: Ort und Zuordnungen gehen mit, der alte verschwindet aus „Heute“
-            z_ = zustand_()
-            z = z_.lesen()
-            ersetzt = {**z["ersetzt"], kopf["id"]: aid}
-            stunde_von = dict(z["stunde_von"])
-            if kopf["id"] in stunde_von:
-                stunde_von[aid] = stunde_von[kopf["id"]]
-            z_.schreiben({**z, "ersetzt": ersetzt, "stunde_von": stunde_von})
-    except (auftraege.AuftragFehler, OSError) as fehler_:
-        logger.error("Nochmal nicht angelegt: %s", fehler_)
-        return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
-    logger.info("Nochmal %s zu %s angelegt (%s)", aid, kopf["id"], modus)
-    if modus == "echt":
-        agent_starten(logik.NEU_AGENT)
-    return _fertig(kopf, "nochmal" if modus == "echt" else "nochmal-test")
+
+    async def anlegen():
+        if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+            return _ergebnis_seite(request, kette, kopf, hinweis=logik.VERALTET, status=400)
+        if not logik.nochmal_moeglich(kette) or kopf["id"] in zustand_().lesen()["ersetzt"]:
+            raise HTTPException(404)
+        f = logik.nochmal_felder(kette)
+        try:
+            aid = auftraege.neuer_auftrag(logik.NEU_AGENT, f["text"], quelle=f["quelle"], bezug=f["bezug"],
+                                          sitzung=f["sitzung"], basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
+                                          absender=config.person(INSTANZ), reihe=f["reihe"], ort=f["ort"])
+            if not f["bezug"]:  # neuer Ursprung: Ort und Zuordnungen gehen mit, der alte verschwindet aus „Heute“
+                z_ = zustand_()
+                z = z_.lesen()
+                ersetzt = {**z["ersetzt"], kopf["id"]: aid}
+                stunde_von = dict(z["stunde_von"])
+                if kopf["id"] in stunde_von:
+                    stunde_von[aid] = stunde_von[kopf["id"]]
+                z_.schreiben({**z, "ersetzt": ersetzt, "stunde_von": stunde_von})
+        except (auftraege.AuftragFehler, OSError) as fehler_:
+            logger.error("Nochmal nicht angelegt: %s", fehler_)
+            return _ergebnis_seite(request, kette, kopf, hinweis=logik.FEHLGESCHLAGEN, status=500)
+        logger.info("Nochmal %s zu %s angelegt (%s)", aid, kopf["id"], modus)
+        if modus == "echt":
+            agent_starten(logik.NEU_AGENT)
+        return _fertig(kopf, "nochmal" if modus == "echt" else "nochmal-test")
+    return await einmal(request, form, anlegen)
 
 
 @app.post("/ergebnis/{eintrag_id}/stunde", response_class=HTMLResponse)

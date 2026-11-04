@@ -106,6 +106,10 @@ Boards echt“ (Jan 30.10. abends, Plan `board-plan.md`, Abschnitt „Board komp
     auch als doppelt, zwei gleichnamige Dateien in einem Auftrag erkennt der Server nicht. Eigene Fassung:
     `logik.eigene_doppelt` und Vergleich des Inhalts, geänderte Datei bleibt eine neue Fassung. Ausfall: Termin fällt
     schon aus, dann dieselbe Seite wie nach der ersten Anfrage (`_ausfall_schon_da`).
+    „+ Stunde“, „+ Reihe“, „+ Fach“, „Nochmal“: Knopfsperre und Formular-Kennung (Feld `einmal`, je geladene Seite neu,
+    `app.einmal`): gleiche Kennung bekommt dieselbe Weiterleitung, auch während die erste Anfrage noch läuft; mehrere
+    leere Stunden nacheinander bleiben möglich. Die App merkt sich die letzten 200 Kennungen im Speicher, ein Neustart
+    leert sie; scheitert die erste Anfrage, zählt die Kennung nicht.
   - Alle POSTs mit Herkunftsprüfung und Token (`app.formular_lesen`), Aktionen nur an der ID des Ursprungs.
   - Echter Lauf 30.10. (nur lesend): alle 5 Ergebnisse 200, nichts gespeichert.
 - Ergebnis `/ergebnis/<id>` (nur abgeschlossene Aufträge der Instanz, ID per pruefe_id, zurückgezogene 404; IDs
@@ -343,7 +347,7 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. Laufende Dienste haben den Code der Punkte 1 und 3 und der Doppelklick-Sperren erst nach einem Neustart: Testinstanz 8792 startet Jan neu, `webapp.service` nur mit Jans Okay. Im Browser noch nicht geprüft: Sperre der Knöpfe und Darstellung des großen Knopfs. Ohne Sperre noch (gemessen mit zwei gleichen POST, nicht beauftragt): „+ Stunde“ und „+ Reihe“ legen zwei an, „Nochmal“ und „+ Fach“ legen eins an, die zweite Antwort zeigt aber 404 bzw. 400; die übrigen Formulare der Struktur-Pflege sind nicht gemessen. Offen für Jan: `data/test/aufbauen.py` ins Repo holen?
+11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. Laufende Dienste haben den Code der Punkte 1 und 3 und der Doppelklick-Sperren erst nach einem Neustart: Testinstanz 8792 startet Jan neu, `webapp.service` nur mit Jans Okay. Im Browser noch nicht geprüft: Sperre der Knöpfe und Darstellung des großen Knopfs. Die übrigen Formulare der Struktur-Pflege (etwa „+ Klasse“, Termine, Übernehmen, Kopieren) sind auf Doppelklick nicht gemessen. Offen für Jan: `data/test/aufbauen.py` ins Repo holen?
 10. webapp.service mit dem lia/chat-Ausbau (Netz, Dateien, Links) neu gestartet (Jans Okay 03.11.), die Seite
     liefert Häkchen und Datei-Feld aus. Offen: einmal im Browser in lia.meldro.de prüfen (Datei hochladen, Link
     öffnet neuen Tab).

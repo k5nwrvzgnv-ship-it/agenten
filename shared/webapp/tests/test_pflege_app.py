@@ -121,6 +121,73 @@ class TestLesen(Pflege):
             self.assertEqual(self.hole(pfad)[0].status, 404, pfad)
 
 
+class TestDoppelklick(Pflege):
+    """Ein Doppelklick schickt dieselbe Formular-Kennung zweimal; eine neu geladene Seite hat eine neue."""
+
+    def zweimal(self, pfad, felder):
+        """Zwei gleiche POST: beide 303 auf dieselbe Seite."""
+        erste, zweite = (self.post(pfad, {**felder, "einmal": "kennung-1"})[0] for _ in range(2))
+        self.assertEqual((erste.status, zweite.status), (303, 303))
+        self.assertRegex(erste.getheader("location"), AKTION)
+        self.assertEqual(zweite.getheader("location"), erste.getheader("location"))
+
+    def stunden(self):
+        return len(self.s().reihe(STRAFE)["stunden"])
+
+    def test_stunde(self):
+        vorher = self.stunden()
+        self.zweimal(f"/reihe/{STRAFE}/stunden", {"thema": ""})
+        self.assertEqual(self.stunden(), vorher + 1)
+        # Mehrere leere Stunden nacheinander sind Absicht: neue Seite, neue Kennung
+        self.ok(f"/reihe/{STRAFE}/stunden", {"thema": "", "einmal": "kennung-2"})
+        self.assertEqual(self.stunden(), vorher + 2)
+
+    def test_stunde_gleichzeitig(self):
+        vorher = self.stunden()
+        antworten = []
+        felder = {"thema": "Kant", "einmal": "kennung-1"}
+        faeden = [threading.Thread(target=lambda: antworten.append(self.post(f"/reihe/{STRAFE}/stunden", felder)[0]))
+                  for _ in range(2)]
+        for f in faeden:
+            f.start()
+        for f in faeden:
+            f.join()
+        self.assertEqual([r.status for r in antworten], [303, 303])
+        self.assertEqual(antworten[0].getheader("location"), antworten[1].getheader("location"))
+        self.assertEqual(self.stunden(), vorher + 1)
+
+    def test_fehler_zaehlt_nicht(self):
+        """Hat die erste Anfrage nicht geklappt, darf derselbe Knopf es noch einmal versuchen."""
+        vorher = self.stunden()
+        r, _ = self.post(f"/reihe/{STRAFE}/stunden", {"thema": "x" * 5000, "einmal": "kennung-1"})
+        self.assertEqual(r.status, 400)
+        self.ok(f"/reihe/{STRAFE}/stunden", {"thema": "Kant", "einmal": "kennung-1"})
+        self.assertEqual(self.stunden(), vorher + 1)
+
+    def test_reihe(self):
+        vorher = self.text().count("[[reihe]]")
+        self.zweimal("/klasse/ethik-8/reihe/neu", {"titel": "Neue Reihe"})
+        self.assertEqual(self.text().count("[[reihe]]"), vorher + 1)
+
+    def test_fach(self):
+        vorher = self.text().count("[[fach]]")
+        self.zweimal("/fach/neu", {"name": "Kunst"})
+        self.assertEqual(self.text().count("[[fach]]"), vorher + 1)
+
+    def test_formulare_tragen_kennung_und_sperre(self):
+        for seite, ziel in ((f"/reihe/{STRAFE}", "/stunden"), ("/klasse/ethik-8/reihe/neu", "/reihe/neu"),
+                            ("/fach/neu", "/fach/neu")):
+            _, html = self.hole(seite)
+            form = re.search(rf'<form [^>]*{ziel}"[^>]*>.*?</form>', html, re.S).group(0)
+            self.assertIn("data-einmal", form, seite)
+            self.assertRegex(form, r'name="einmal" value="[0-9a-f]{16}"')
+            self.assertIn('<script src="/statisch/einmal.js" defer></script>', html)
+        # Neu geladen: neue Kennung
+        kennung = re.compile(r'name="einmal" value="([0-9a-f]+)"')
+        self.assertNotEqual(kennung.search(self.hole("/fach/neu")[1])[1], kennung.search(self.hole("/fach/neu")[1])[1])
+        self.assertNotIn("einmal.js", self.hole("/fach/ethik/bearbeiten")[1])
+
+
 class TestFach(Pflege):
     def test_anlegen_aendern_archivieren_loeschen(self):
         r, html = self.post("/fach/neu", {"name": " "})
