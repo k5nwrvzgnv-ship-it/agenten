@@ -2,7 +2,8 @@
     rechts die Knöpfe; darunter „Das Wichtigste“ und die Fassungen (neueste oben). Ohne JavaScript: Rückmeldung,
     eigene Fassung und Variante öffnen sich über ?offen=…, Formulare mit Token (app.py). -#}
 {% extends "basis.html" %}
-{%- block skripte %}{{ super() }}{% if offen == "rueckmeldung" and aktionen %}<script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
+{#- Skript nur, wenn ein Formular mit data-einmal auf der Seite steht -#}
+{%- block skripte %}{{ super() }}{% if offen or (variante_moeglich and varianten.gewuenscht) %}<script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="material-kopf">
   {%- if e.art_zeile %}<span class="material-art">{{ e.art_zeile }}</span>{% endif %}
@@ -78,7 +79,7 @@
   {%- endfor %}
   {%- if variante_moeglich %}
   {%- for w in varianten.gewuenscht %}
-  <form class="final-form" method="post" action="{{ basis_url }}/variante">
+  <form class="final-form" method="post" action="{{ basis_url }}/variante" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
     <input type="hidden" name="art" value="{{ w.art }}">
     <button class="knopf knopf-klein" type="submit">{{ w.name }} anfordern</button>
@@ -94,7 +95,7 @@
 <div class="tafel" id="variante">
   {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Variante landet in der Test-Instanz, kein Agent startet.</p>{% endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
-  <form class="formular" method="post" action="{{ basis_url }}/variante">
+  <form class="formular" method="post" action="{{ basis_url }}/variante" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
     <fieldset class="auswahl">
       <legend class="tafel-titel">Welche Variante?</legend>

@@ -1153,12 +1153,27 @@ class TestMaterial(Aufbau):
         self.assertEqual([r.status for r in antworten], [303, 303])
         self.assertEqual(len(self.neue()), 1)
 
+    def test_variante_doppelklick_ein_auftrag(self):
+        with mock.patch.object(app, "NEUER_AUFTRAG", "echt"), mock.patch.object(app, "agent_starten") as start, \
+                mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"):
+            for _ in range(2):
+                r, _ = self.sende("/variante", {"art": "einfach"})
+                self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=variante"))
+            start.assert_called_once_with("unterricht")
+            self.assertEqual(len(self.neue()), 1)
+            self.assertEqual(len(app.zustand_().lesen()["varianten"][self.F1]), 1)
+            # Andere Art ist eine neue Variante
+            self.assertEqual(self.sende("/variante", {"art": "hilfekarten"})[0].status, 303)
+            self.assertEqual(len(self.neue()), 2)
+            _, html = self.hole(self.URL + "?offen=variante")
+            self.assertIn("einmal.js", html)
+            self.assertRegex(html, r'<form [^>]*/variante"[^>]* data-einmal[ >]')
+
     def test_rueckmeldung_knopf_sperrt_sich(self):
         with mock.patch.object(app, "NEUER_AUFTRAG", "test"):
             _, html = self.hole(self.URL + "?offen=rueckmeldung")
             self.assertIn('<script src="/statisch/einmal.js" defer></script>', html)
             self.assertRegex(html, r'<form [^>]*/rueckmeldung"[^>]* data-einmal[ >]')
-            self.assertNotIn("einmal.js", self.hole(self.URL)[1])
         r, js = self.hole("/statisch/einmal.js")
         self.assertEqual(r.status, 200)
         self.assertIn("data-einmal", js)

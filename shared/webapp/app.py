@@ -2017,13 +2017,16 @@ async def ergebnis_variante(request: Request, eintrag_id: str):
         raise HTTPException(404)
     reihen = reihen_laden()
     reihe = logik.reihe_von(kopf, reihen)
+    text = logik.text_mit_reihe(logik.variante_text(art, e["titel"], extra), reihe["id"] if reihe else None, reihen)
+    if logik.auftrag_doppelt(_auftraege_von(logik.NEU_AGENT), datetime.now(ZONE), text,
+                             ort=reihe["id"] if reihe else None, dateinamen=[quelle.name]):  # Doppelklick
+        logger.info("Gleiche Variante %s zu %s gerade schon angelegt, verworfen", art, kopf["id"])
+        return _fertig(kopf, "variante" if modus == "echt" else "variante-test")
     EINGANG.mkdir(parents=True, exist_ok=True)
     ablage = Path(tempfile.mkdtemp(dir=EINGANG))
     try:
         kopie = ablage / quelle.name  # agentkit verschiebt den Anhang, das Original bleibt
         shutil.copyfile(quelle, kopie)
-        text = logik.text_mit_reihe(logik.variante_text(art, e["titel"], extra), reihe["id"] if reihe else None,
-                                    reihen)
         aid = auftraege.neuer_auftrag(logik.NEU_AGENT, text, quelle=logik.NEU_QUELLE, dateien=[kopie],
                                       basis=INSTANZ / "auftraege", agenten_dir=INSTANZ.parent,
                                       absender=config.person(INSTANZ), reihe=reihe["id"] if reihe else None,
