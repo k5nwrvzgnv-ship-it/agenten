@@ -429,6 +429,9 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     schreibt schriftverkehr.json (600). Das Portal liest nur diesen Auszug, nie data/mails und nie kontakte.json, und hat weiter keinen
     Postfachzugang. Neue Kontaktperson: Zeile in kontakte.json, wirkt beim nächsten Lauf. Anhänge nur als Name, kein Download.
     Eingetragen: Böhme. Echter Abgleich 04.11.: 3 Mails (21., 26., 29.10.).
+  - Gesprächswissen (04.11.): data/projekte/fehlstellen/wissen.md (600, nicht im Repo), mündliche Hinweise aus der Praxis, ungeprüft; neue Gespräche als eigener
+    Abschnitt. KONTEXT und Exposé-Prompt in agent.py verweisen darauf (nie als Beleg oder Literatur). Das Portal zeigt die Datei nicht. Erster Eintrag: Microtec-Mittagessen,
+    von Henri wiedergegeben. Offen bei Jan: Das Exposé sagt "bereits sortierte Lamellen", laut Gespräch wird meist unsortiert eingekauft; Exposé dazu nicht geändert.
   - Gemessen 04.11. am echten Dienst: Seiten 11 bis 68 ms, Recherche mit allen 163 Aussagen 227 KB, MemoryPeak 42 MB, von außen ohne
     Passwort 401. Ungeprüft: Aussehen im Browser.
   - Oberfläche (Jan 04.11.: "furchtbar", zu viel Information, keine Hierarchie): Schritt 1 fertig, Kernaufgaben und Befund in

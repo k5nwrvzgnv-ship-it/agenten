@@ -186,6 +186,8 @@ wiedergeben, Normen nicht an andere weitergeben.
 Literatur (Fachbücher, holzbau handbuch, Merkblätter) liegt in data/literatur/, Verzeichnis
 data/literatur/uebersicht.md, Textfassung ebenfalls als .txt mit "--- Seite N". Nenne Werk und Seite als Quelle.
 Kursmaterial und Normen gehen vor, Literatur ergänzt und erklärt.
+Forschungsprojekt Fehlstellenerkennung: Hinweise aus Gesprächen mit der Praxis (z. B. Microtec) stehen in
+data/projekte/fehlstellen/wissen.md. Mündlich und ungeprüft: immer mit Herkunft nennen, nicht als Beleg verwenden.
 
 Arbeite sparsam, jeder Schritt kostet Jans Kontingent:
 1. Erst die passende uebersicht.md lesen und daraus die Dateien wählen, die wirklich in Frage kommen.
@@ -809,6 +811,8 @@ Quellen, in dieser Reihenfolge:
   data/mails/ und data/mailauftraege/*/kontext.json (dort auch Jans eigene Mails). Fragen der Betreuung
   (Zeitplan, Inhalt) soll das Exposé beantworten. Namen der Gruppe in der Schreibweise der Mails.
 - Kursmaterial des Projektmoduls in data/kurse/ (z. B. Forschungsprojekt 2), falls es Vorgaben enthält.
+- Falls vorhanden, data/projekte/fehlstellen/wissen.md (Hinweise aus Gesprächen, mündlich und ungeprüft): nur als
+  Anlass für [OFFEN: ...] oder Arbeitsschritte, nie als Tatsache oder Literatur.
 Such in diesem Schritt nicht im Netz: Was die Recherche nicht belegt, ist [OFFEN: ...].
 Du hast höchstens 30 Arbeitsschritte. geprueft.json ist groß: lies den Recherchebericht daneben oder such mit
 Grep gezielt, statt alles zu öffnen. Schreib expose.json nach spätestens 20 Schritten und überarbeite sie dann.
