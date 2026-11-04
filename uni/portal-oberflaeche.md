@@ -2,7 +2,7 @@
 
 Stand 04.11.2026. Nichts umgebaut. Jan hat die Kernaufgaben bestätigt und Ergänzungen genannt (Abschnitt "Schritt 3, Zwischenstand").
 Schritt 2 (Messlatte) entfällt: Jan will keine Messung (04.11.). Es gibt keine Zielwerte, abgenommen wird nach Jans Eindruck.
-Schritt 3 (Vorbilder) läuft, offene Punkte stehen am Ende.
+Schritt 3 (Vorbilder): eingearbeitet, Jans Bestätigung steht aus. Offene Punkte stehen am Ende. Schritt 4 beginnt erst nach seinem Okay.
 
 Kennzeichnung: **[B]** belegt in den genannten Daten, **[W]** von Jan gewünscht, aber noch nicht praktisch vorgekommen,
 **[V]** meine Vermutung.
@@ -131,10 +131,10 @@ aus "innerhalb des Projekts" nur vermutlich **[V]**.
 Recherche ist also von Jan gewünscht und ersetzt die eigene Benutzung; Vorbilder daraus sind nur aus Dokumentation bekannt und so zu kennzeichnen.
 
 **Entscheidungen:**
-- `portal/messung.py` und `portal/tests/test_messung.py` löschen: ja. Geprüft 04.11.: Sonst nutzt sie nichts im Repo (Treffer nur in
-  STATUS.md und dieser Datei); `messung` in `auswertung_agent.py` und `agentkit/sprache.py` ist etwas anderes. Noch nicht gelöscht.
+- `portal/messung.py` und `portal/tests/test_messung.py` löschen: ja. Direkt davor erneut geprüft: Sonst nutzt sie nichts im Repo;
+  `messung` in `auswertung_agent.py` und `agentkit/sprache.py` ist etwas anderes. Gelöscht.
 - Baumtest, fremde Person, Log-Auswertung nach zwei Wochen: gestrichen (ja).
-- `webapp-plan.md` Abschnitt 9, Zeile "Oberfläche: kein Prüfstein, Abnahme nach Jans Eindruck": ergänzen (ja). Noch nicht eingetragen.
+- `webapp-plan.md` Abschnitt 9, Zeile "Oberfläche: kein Prüfstein, Abnahme nach Jans Eindruck": ergänzen (ja). Eingetragen.
 
 **Screenshot Projektseite (Exposé):**
 - Befund 8 bestätigt: Das Formular samt Erklärung und Kostenangabe füllt den ersten Bildschirm, der Exposé-Text beginnt ganz unten.
@@ -142,11 +142,103 @@ Recherche ist also von Jan gewünscht und ersetzt die eigene Benutzung; Vorbilde
 - Rückmeldungen heißen nur nach ihrer Zeit ("2026-11-04 20:34"), der Inhalt ist nicht erkennbar.
 - Inhalt: Die Kopfzeile zeigt "Felix Frankowiak (Matr.-Nr. XXXXXXXX)", darüber steht "Noch offen (0)". Der Platzhalter wird also nicht als offen erkannt.
 
+## Schritt 3, Vorbilder aus der Recherche (04.11.)
+
+**Wie sicher das ist:** Alles in diesem Abschnitt ist nur aus der Dokumentation der Anbieter bekannt, abgerufen am 04.11.2026. Die Seiten
+wurden über automatische Zusammenfassung gelesen, nicht im Wortlaut geprüft. Keines der Werkzeuge wurde benutzt, ob sich ein Muster
+gut anfühlt, ist also offen. Von Jan noch nicht bestätigt. Übernommen werden nur Muster, kein Werkzeug wird eingeführt. Lias App steht
+oben und gilt als bestätigt.
+
+Aufgabennummern wie in "Kernaufgaben" und "Schritt 3, Zwischenstand". "Ebenen" meint Jans Idee aus "Jans Antworten". Die Aufgaben 9 und 10
+sind noch nicht fest (Frage 2).
+
+### Notion: Ebenen und Kommentare
+
+Quellen: [Seitenleiste](https://www.notion.com/help/navigate-with-the-sidebar), [Kommentare](https://www.notion.com/help/comments-mentions-and-reminders),
+[Löschen und Wiederherstellen](https://www.notion.com/help/duplicate-delete-and-restore-content), [Analytics](https://www.notion.com/help/page-analytics)
+
+- **Ebenen, Aufgabe 10:** Seiten beliebig tief verschachtelt, "+" beim Darüberfahren legt eine Unterseite an Ort und Stelle an, Verschieben
+  per Ziehen in der Seitenleiste. Gelöschte Seiten liegen 30 Tage im Papierkorb und lassen sich wiederherstellen, das sichert Jans "entfernen" ab.
+- **Aufgabe 1, 2:** Kommentar an der markierten Stelle, standardmäßig rechts neben dem Text. Häkchen löst auf, ein Filter holt Erledigtes
+  zurück. Bereich mit allen Kommentaren der Seite, filterbar nach Person und Status.
+- **Aufgabe 10:** Pro Seite sichtbar, wer erstellt, bearbeitet und angesehen hat, mit Zeitpunkt.
+- **Nicht übernehmen:** Fassungen. Sie entstehen automatisch alle 10 Minuten und passen schlecht auf benannte Fassungen eines Agenten.
+- **Nicht belegt:** Umbenennen und Pfadanzeige standen nicht im Gelesenen. Die Brotkrumen kommen ohnehin aus Lias App.
+
+### Basecamp: eine Datei mit Fassungen, Überblick über die anderen
+
+Quellen: [Aktivität](https://5.basecamp-help.com/article/1160-activity), [Dokumente und Dateien](https://5.basecamp-help.com/article/1079-docs-and-files),
+[Verschieben](https://5.basecamp-help.com/article/1134-moving-copying), [Projekt einrichten](https://5.basecamp-help.com/article/1176-creating-and-setting-up-a-project) (nur aus dem Suchergebnis)
+
+- **Aufgabe 10:** Zeitleiste nach Datum gruppiert, ein Klick führt an den ursprünglichen Ort. Filter nach Projekt, Person und Stichwort.
+- **Aufgabe 1, Jans "alle Fassungen gehören zu dem einen Dokument":** Vorn die aktuelle Fassung, "Replace with a new version" darunter,
+  "See all versions" zeigt die früheren.
+- **Ebenen:** Beim Verschieben bleiben Kommentare, Anhänge und Verlauf erhalten. Ordner klappen in der Liste auf, ohne die Seite zu verlassen.
+- **Nur aus dem Suchergebnis:** Werkzeuge je Projekt zu- und abschalten und direkt umbenennen, wirkt nur in diesem Projekt.
+- **Grenze:** Die Struktur ist eher flach (Projekt, Werkzeuge, Ordner) und nicht Jans freier Baum. Die Tiefe der Ordner ist nicht angegeben.
+
+### Overleaf: benannte Fassungen, Kommentare
+
+Quellen: [Verlauf und Fassungen](https://docs.overleaf.com/writing-and-editing/history-and-versioning), [Kommentare](https://docs.overleaf.com/collaborating/commenting),
+[Reviewer](https://docs.overleaf.com/collaborating/reviewing-and-reviewers) (nur aus dem Suchergebnis)
+
+- **Aufgabe 1:** Wichtige Stände bekommen einen Namen ("Label this version"). Zwei Ansichten: "All history" und "Labels". Der jetzige Stand heißt
+  "Current state". Vergleich durch Wahl von Start und Ende in der Liste.
+- **Aufgabe 1, 2:** Text markieren, Kommentar ins Panel daneben. Häkchen löst auf, aufgelöste Kommentare stehen in einer Liste und lassen sich wieder öffnen.
+- **Nicht übernehmen:** Beim Wiederherstellen werden Kommentare und Änderungsverfolgung mit zurückgesetzt. Das passt nicht zu einer
+  Kommentar-Fassung-Kette **[V]**.
+- **Nicht belegt:** Übersicht offener Kommentare über alle Dateien, Überblick über die Tätigkeit anderer, Aufteilung in Kapitel.
+
+### Confluence Cloud: Fassungen vergleichen
+
+Quelle: [Seite erstellen und bearbeiten](https://support.atlassian.com/confluence-cloud/docs/create-edit-and-publish-a-page/)
+
+- **Aufgabe 1 ("was hat sich geändert", Befund 9):** Zwei Versionen auswählen und vergleichen, lange unveränderte Abschnitte sind ausgeblendet.
+- **Aufgabe 1:** Wiederherstellen löscht nichts, die alte Version wird als neueste kopiert, mit Änderungskommentar.
+- **Nicht verwendet:** Das Verschieben im Baum fand sich nur in sehr alter Dokumentation (Version 2.9), für das aktuelle Produkt also nicht belegt.
+
+### NotebookLM: von der Aussage zur Quelle
+
+Quelle: [Hilfeseite](https://support.google.com/notebooklm/answer/16179559?hl=en) (die Hilfe heißt inzwischen "Gemini Notebook")
+
+- **Aufgabe 4:** Verweis direkt im Text, Darüberfahren zeigt die zitierte Stelle, ein Klick öffnet die Quelle dort.
+- **Aufgabe 3, nur als Muster:** Antworten stützen sich nur auf die eigenen Quellen und lassen sich als Notiz mit klickbaren Zitaten speichern. Die Nachfrage selbst ist ein eigener Vorschlag.
+- **Grenze:** Dort geht es um Chat-Antworten, nicht um eine eigene Fassung wie das Exposé. Das Muster muss auf Exposé-Sätze und `geprueft.json`
+  übertragen werden. Ob die Daten das hergeben, ist nicht geprüft.
+
+### Lücken
+
+- Aufgabe 5 (wie kam die Recherche zustande), 6 (Weitergabe), 7 (Kontaktpersonen), 9 (neue Recherche, Überblick vorab): kein Vorbild.
+  Danach wurde teils gar nicht gesucht, teils fand sich nichts Belastbares.
+- Aufgabe 8 (Üben): war nicht Teil dieser Suche.
+- Aufgabe 2 nur teilweise: Kommentare sind pro Seite belegt, eine Gesamtliste "was fehlt noch" über alle Dokumente nicht.
+- Aufträge an einen Agenten mit festem Ort: In den gelesenen Werkzeugen gibt es nichts Direktes, Vorbild bleibt Lias "+ Neu hier".
+
+### Spannung zum Plan
+
+Stand: `webapp-plan.md` Abschnitt "Was nicht gebaut wird" (unter Abschnitt 8) bleibt unverändert, solange Jan nichts anderes sagt.
+
+| Im Plan ausgeschlossen | Was dagegen läuft | Folge |
+|---|---|---|
+| "Zugänge für die Gruppe" | Aufgabe 10, Jans "wir arbeiten alle an allem" | Eigener Vorschlag (Kosten, Datenschutz). Heute gibt es ein gemeinsames Passwort und keine Personen |
+| "Oberfläche für die Recherche-Pipeline" | Aufgabe 9, Recherche-Start, Nachfrage (Aufgabe 3) | Eigener Vorschlag (Kosten, Agentenlogik) |
+| "Web-Editor für Berichte: Word bleibt" | Kommentieren an der Textstelle im Browser | Kein Editor, aber neuer Bau daneben. Heute laufen Kommentare über Text oder PDF/docx. Jan entscheidet (Frage 6) |
+
+Davon hängen ab:
+- Der Filter nach Person im Aktivitätsüberblick (Basecamp) hängt an den Zugängen. Ohne Personen zeigt eine Zeitleiste nur, was geschah, nicht wer es war **[V]**.
+- Für den Fassungsvergleich (Confluence, Overleaf) ist in Schritt 4 zu prüfen, woher die alten Fassungen kommen: Die Sicherung `vorher/` gibt das Portal laut
+  `STATUS.md` nie wieder aus.
+
 ## Offene Fragen an Jan
 
 1. Bleibt die Zeile "mindestens 10 von 14 Tagen geübt, sonst Portalbau stoppen" (23.11.) in `webapp-plan.md` Abschnitt 9? Jans "ja" zu der
-   Doppelfrage ist hier nicht eindeutig (bleibt oder Empfehlung streichen). Nachfragen, nichts ändern.
+   Doppelfrage ist hier nicht eindeutig (bleibt oder Empfehlung streichen). Bis zur Antwort unverändert.
 2. Sollen Aufgabe 9 (neue Recherche beginnen, Überblick vorab) und 10 (gemeinsam kapitelweise) feste Kernaufgaben werden? Bei 10 und dem
    Überblick spricht Jans Antwort dafür, zu 9 hat er nichts gesagt.
 3. Sind mit "beide" Felix und Henri gemeint, und bleiben Lernen und Holzschutz für sie gesperrt?
-4. Bestätigung der Vorbilder nach der Recherche. Erst danach Schritt 4.
+4. Bestätigst du die Vorbilder? Erst danach Schritt 4.
+5. Soll ein eigener Vorschlag zu Zugänge, Recherche-Start und Nachfrage kommen? Erst damit würde sich "Was nicht gebaut wird" ändern.
+6. Kommentieren an der Textstelle im Browser: vorsehen, oder bleibt es bei Text und PDF/docx?
+
+**Hinweis zum Exposé:** Die Autorenzeile der aktuellen Fassung zeigt "Felix Frankowiak (Matr.-Nr. XXXXXXXX)". Die Seite meldet trotzdem "Noch offen (0)",
+weil `portal/projekt.py` nur `[OFFEN: ...]` als offene Stelle erkennt. Nur gemeldet, nichts geändert.
