@@ -450,8 +450,9 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     endet, wartet sie bis zum nächsten Timer. Jeder Start ist ein voller Lauf von uni.service (Moodle, Post), wie nach einem Telegram-Auftrag, auch nach
     dem Zurücknehmen, denn PathChanged meldet auch das Löschen.
     Geprüft: Tests (uni/tests/test_rueckmeldungen.py mit echter Aufträge-Ablage im Temp-Ordner, portal/tests/test_rueckmeldung.py, test_schutz.py); am
-    echten Dienst nur abgelehnte Eingaben (siehe Commit-Stand unten). UNGEPRÜFT: ein echter Lauf von der Marke bis zur neuen Fassung, Aussehen im Browser, die
-    Pfad-Unit im Betrieb. Bewusst nicht getestet: Eine gültige Marke am echten Dienst löst einen bezahlten Lauf aus und überschreibt das Exposé. Der
+    echten Dienst (04.11., direkt auf 127.0.0.1:8793) nur abgelehnte Eingaben: zu kurz, leer, falsche Endung, falscher Dateianfang, 20 MB ohne PDF-Anfang,
+    21 MB (413), altes Token, fremde Herkunft (403), danach keine Marke und kein Auftrag; MemoryPeak dabei 83 MB (Grenze 200 MB). UNGEPRÜFT: ein echter
+    Lauf von der Marke bis zur neuen Fassung, Aussehen im Browser, Upload über Caddy, die Pfad-Unit im Betrieb. Bewusst nicht getestet: Eine gültige Marke am echten Dienst löst einen bezahlten Lauf aus und überschreibt das Exposé. Der
     Echttest ist Jans erste echte Rückmeldung.
   - Geplant, nicht gebaut (Jan 04.11.: Der Agent schreibt, die Gruppe kommentiert; Word soll auch mal gehen; weitere Bausteine erst, wenn
     die Schritte anstehen): Als Nächstes Interviews vorbereiten (Jan: kommt bald; braucht Claude-Läufe, also wieder nur Datei in die Warteschlange).
