@@ -3,6 +3,7 @@
 {% block titel %}Heute{% endblock %}
 {% block skripte %}
 <script src="/statisch/htmx-2.0.4.min.js" defer></script>
+{%- if neu %}<script src="/statisch/einmal.js" defer></script>{% endif %}
 {%- endblock %}
 {% block main_klasse %}{% endblock %}
 {% block seitenkopf %}{% endblock %}

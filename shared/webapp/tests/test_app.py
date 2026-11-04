@@ -977,6 +977,12 @@ class TestOrdnung(Aufbau):
         _, html = self.hole("/")
         self.assertIn(f'action="/auftrag/{a["id"]}/zurueckziehen"', html)
         self.assertNotIn(a["id"], self.sichtbar(html))
+        # Befund 03.11. Punkt 7: Der erste Klick öffnet nur die Rückfrage, abschicken kann erst „Ja, zurückziehen“
+        self.assertRegex(html, r'(?s)<details class="nachfrage">\s*<summary[^>]*>Zurückziehen</summary>\s*<form [^>]*/zurueckziehen"')
+        self.assertIn("Wirklich zurückziehen?", html)
+        self.assertIn(">Ja, zurückziehen</button>", html)
+        self.assertNotIn(">Zurückziehen</button>", html)
+        self.assertIn('<script src="/statisch/einmal.js" defer></script>', html)
         r, _ = self.post(f"/auftrag/{a['id']}/zurueckziehen", {})
         self.assertEqual((r.status, r.getheader("location")), (303, "/?erledigt=zurueckgezogen"))
         self.assertEqual(app.auftraege.neue(basis=self.instanz / "auftraege"), [])

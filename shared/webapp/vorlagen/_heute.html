@@ -26,10 +26,16 @@
   {%- if zeilen %}
   <ul>{% for z in zeilen %}{{ zeile(z, offen) }}
     {%- if z.zurueck_id and neu %}
-    <li class="zeile-aktion"><form class="final-form" method="post" action="/auftrag/{{ z.zurueck_id }}/zurueckziehen">
-      <input type="hidden" name="token" value="{{ token }}">
-      <button class="knopf knopf-klein" type="submit">Zurückziehen</button>
-    </form></li>
+    {#- Zwei Schritte ohne JavaScript (Befund 03.11. Punkt 7): Ein Klick allein ändert nichts. „Nein“ lädt die Seite neu. #}
+    <li class="zeile-aktion"><details class="nachfrage">
+      <summary class="knopf knopf-klein">Zurückziehen</summary>
+      <form class="nachfrage-form" method="post" action="/auftrag/{{ z.zurueck_id }}/zurueckziehen" data-einmal>
+        <input type="hidden" name="token" value="{{ token }}">
+        <span>Wirklich zurückziehen? Ich höre dann damit auf.</span>
+        <button class="knopf knopf-klein" type="submit">Ja, zurückziehen</button>
+        <a class="knopf knopf-klein" href="/">Nein</a>
+      </form>
+    </details></li>
     {%- endif %}{% endfor %}</ul>
   {%- if name == "Fertig" and h.fertig_weitere %}<p class="leer">und {{ h.fertig_weitere }} ältere</p>{% endif %}
   {%- else %}
