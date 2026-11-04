@@ -214,9 +214,10 @@ Masken nur im neuen Format (sonst 404, Baum ohne „+ …“).
   `data/ia/testbogen.csv` und `data/ia/testbogen-struktur.csv`. Startbefehl für Jan (Port 8792, Tunnel) in der
   Haupt-STATUS Punkt 24. `aufbauen.py` liegt unter `data/` und ist damit nicht versioniert: keine Sicherung, kein Test
   in `pruefen.sh`.
-- Testbogen 4 (Chat) geht in der Testinstanz nicht: Sie läuft ohne `WEBAPP_CHAT=an`, darum „Kommt bald“. Der Schalter
-  allein reicht nicht, `CHAT_ORDNER` ist fest `lia/chat/data`: Die Testinstanz zeigte Lias echten Chat-Verlauf, und jede
-  Frage startete den echten Agenten auf Lias Kontingent.
+- Aufgabe 4 (Chat) ist aus `data/ia/testbogen.csv` gestrichen (Jan 04.11.), die übrigen behalten ihre Nummern (1-3,
+  5-7). In der Testinstanz ginge sie nicht: Sie läuft ohne `WEBAPP_CHAT=an`, darum „Kommt bald“. Der Schalter allein
+  reicht nicht, `CHAT_ORDNER` ist fest `lia/chat/data`: Die Testinstanz zeigte Lias echten Chat-Verlauf, und jede Frage
+  startete den echten Agenten auf Lias Kontingent.
 - Durchgespielt 03.11. über einen Test-Socket mit curl: Lia-Test-Aufgaben 1–6 gehen (Bundesland wird gefragt, erster
   Termin der 9 nach den Winterferien, Kopie mit sechs Terminen, Material wandert mit Kant auf Stunde 3, Ausfall rückt
   nach, Archiv und Zurückholen byte-gleich), alle sieben Aktionen per Rückgängig zurück, Log ohne Fehler.
@@ -339,7 +340,7 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. Laufende Dienste haben den Code der Punkte 1 und 3 erst nach einem Neustart: Testinstanz 8792 startet Jan neu, `webapp.service` nur mit Jans Okay. Im Browser noch nicht geprüft: Sperre des Knopfs und Darstellung des großen Knopfs. Offen für Jan: (a) Testbogen 4 auf den echten Dienst, streichen oder Chat in die Testinstanz; (b) Doppelklick-Lücken, gemessen mit zwei gleichen POST: `/neu` und `…/variante` legen zwei Aufträge an (im echten Betrieb zwei Läufe), `…/eigene` zwei Fassungen, `…/ausfall` ändert nur einmal, die zweite Antwort zeigt aber „Nicht gefunden“ bzw. einen Fehler; (c) `data/test/aufbauen.py` ins Repo holen?
+11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. Laufende Dienste haben den Code der Punkte 1 und 3 erst nach einem Neustart: Testinstanz 8792 startet Jan neu, `webapp.service` nur mit Jans Okay. Im Browser noch nicht geprüft: Sperre des Knopfs und Darstellung des großen Knopfs. Offen für Jan: (a) Doppelklick-Lücken, gemessen mit zwei gleichen POST: `/neu` und `…/variante` legen zwei Aufträge an (im echten Betrieb zwei Läufe), `…/eigene` zwei Fassungen, `…/ausfall` ändert nur einmal, die zweite Antwort zeigt aber „Nicht gefunden“ bzw. einen Fehler; (b) `data/test/aufbauen.py` ins Repo holen?
 10. webapp.service mit dem lia/chat-Ausbau (Netz, Dateien, Links) neu gestartet (Jans Okay 03.11.), die Seite
     liefert Häkchen und Datei-Feld aus. Offen: einmal im Browser in lia.meldro.de prüfen (Datei hochladen, Link
     öffnet neuen Tab).

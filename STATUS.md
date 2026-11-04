@@ -753,6 +753,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        Testinstanz melden sich bei Jan wie sonst auch.
      - Offen: Neustart von webapp.service mit Jans Okay (`systemctl --user restart webapp.service`), erst dann sieht
        Lia die Masken in der echten App.
+     - Bedarf aus shared/webapp (Jan 04.11.): Aufgabe 4 (Chat) ist für den Lia-Test gestrichen und aus
+       data/ia/testbogen.csv raus (Grund: shared/webapp/STATUS.md). docs/webapp-aufbau.md Abschnitt 6 nennt noch sieben
+       Aufgaben und die Ziele „6 von 7“ und „5 von 7“: anpassen, die neuen Schwellen legt Jan fest.
      - Erledigt 03.11. (Hauptordner): Commit im Hintergrund, Speichern wartet nicht mehr auf commit.sperre (siehe
        Schreib-Schnittstelle oben).
      - Erledigt 03.11. (webapp): Die App ruft beim Start einmal `sp.anstossen(umgebung())` auf (`app.beim_start`
