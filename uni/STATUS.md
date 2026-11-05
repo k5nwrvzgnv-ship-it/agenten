@@ -202,7 +202,10 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   als Mail, läuft der normale Ablauf, und ein Mail-Wunsch von dort hat keinen Anhang. Nennt der Text einen Anhang
   und keine Datei ist dabei, steht das unter "Bitte prüfen" in der Freigabe (mail.anhang_warnung, nur Hinweis).
   Erster echter Test am 05.11. ging ohne Anhang raus: Die Weiterleitung kam als zwei Nachrichten, der Auftrag lag vor
-  der Datei an. Seitdem wartet die Zentrale kurz auf nachkommende Dateien. Mit Anhang noch nicht echt geprüft.
+  der Datei an. Seitdem wartet die Zentrale kurz auf nachkommende Dateien. Echt geprüft am 05.11.: Weiterleitung mit
+  Kommentar, Mail an Jan selbst, Anhang im Eingang und in "Gesendete Elemente" in voller Größe. Eine vergessene Datei
+  im Eingang der Zentrale geht mit dem nächsten Auftrag mit, auch doppelt (Test 09:39); gleiche Dateien aussortieren
+  wäre in agentkit.mail möglich, noch nicht entschieden.
 - Kommentare in Anhängen (03.11.): auftrag_bearbeiten hängt Kommentare aus angehängten PDF- und Word-Dateien
   (kurse.kommentare_block über agentkit.textfassung.kommentare) als Block "Kommentare in <datei> (Seite, markierte
   Stelle: Kommentar)" an den Auftragstext, nur für die Prompts. Jan kann eine kommentierte PDF also einfach als

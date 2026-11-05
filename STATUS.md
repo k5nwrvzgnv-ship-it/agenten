@@ -952,7 +952,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        Claude; uni mit Jans Okay aus diesem Chat mitgeändert): agentkit.mail.pruefen(entwurf, original, anhaenge=,
        ordner=) prüft mit _ablage.anhaenge_pruefen, höchstens 5 Dateien und zusammen 15 MB (geschätzt, Limit des
        HNEE-Servers unbekannt). daten["anhaenge"] hält Pfad, Name, Größe, SHA-256; bauen bricht ab, wenn die Datei
-       abweicht. Die Freigabe zeigt Name und Größe. Noch nicht mit echter Mail geprüft. posteingang gibt keine
+       abweicht. Die Freigabe zeigt Name und Größe. Mit echter Mail geprüft (05.11., uni). posteingang gibt keine
        Dateien weiter (bei Bedarf wie in uni). Dateien, die uni selbst baut, kann er nicht direkt anhängen.
 27. Erledigt 02.11. (Bedarf aus uni, Jan: "Recherche aufwendig, Ergebnis verlässlich"; mit Jans Okay im uni-Chat
     eingetragen, Test in agentkit/tests/test_claude_lauf.py angepasst): Vor dem Exposé recherchiert uni in
