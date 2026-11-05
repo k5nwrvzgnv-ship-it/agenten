@@ -24,7 +24,8 @@ Telegram ist die Oberfläche: Was dort steht, muss ohne Technikwissen verständl
 - **Wer spricht:** Absender fett in der ersten Zeile: der Agent mit großem Namen („Uni“, „Recherche (Lia)“) oder
   „Zentrale“ für alles vom System (Rechenzeit, Störung, Feedback). Der Absender spricht als „ich“.
 - **Länge:** Satz höchstens 20 Wörter. Nachricht höchstens 800 Zeichen ohne aufklappbaren Teil.
-- **Ausnahmen:** der Befehl unter /pc (zum Kopieren) und die Zahlen unter Verbrauch.
+- **Ausnahmen:** der Befehl unter /pc (zum Kopieren), die Zahlen unter Verbrauch und die Zeile „Anhang:“ in der
+  Mail-Freigabe (Dateiname und Größe, damit Jan genau sieht, was rausgeht).
 - **Lesbarkeit:** 1. Wiener Sachtextformel höchstens 8.
 
 ## Glossar: nie sagen, stattdessen sagen

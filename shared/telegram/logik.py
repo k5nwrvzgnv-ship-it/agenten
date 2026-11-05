@@ -9,6 +9,8 @@ from datetime import datetime
 from html import escape, unescape
 from pathlib import Path
 
+from agentkit.mail import anhang_zeile
+
 AGENTEN = ("uni", "dokumente", "posteingang", "einkauf")
 MAX_LAENGE = 3800  # Telegram erlaubt 4096 Zeichen pro Nachricht, etwas Puffer
 MAX_DATEI_BYTES = 20 * 1024 * 1024  # mehr lädt die Bot-Schnittstelle von Telegram nicht herunter
@@ -149,7 +151,7 @@ DETAIL_NAMEN = {"an": "An", "cc": "Cc", "bcc": "Bcc", "betreff": "Betreff", "tex
 TECHNIK = ("in_reply_to", "references", "antwort_auf_uid", "message_id")  # aus der Originalmail, nicht gezeigt
 BEZUG = ("antwort_auf", "antwort_auf_von", "antwort_auf_datum")  # nur für die Bezugszeile
 WARUM = ("begruendung", "pruefen")
-MAIL_KOPF = ("an", "cc", "betreff", "text")
+MAIL_KOPF = ("an", "cc", "betreff", "text", "anhaenge")
 PRAEFIXE = re.compile(r"^\s*(?:(?:re|aw|antw|wg|fw|fwd|sv)\s*(?:\[\d+\])?\s*:\s*)+", re.IGNORECASE)
 WEITERLEITUNG = re.compile(r"^\s*(?:wg|fw|fwd)\b", re.IGNORECASE)
 BITTE = re.compile(r"(?:(?<=[.!?])\s+|^)(Bitte prüf\w*\b[^.!?]*[.!?]?)")
@@ -276,6 +278,7 @@ def entwurf_als_text(entwurf: dict) -> list[str]:
         if bezug := bezug_text(daten):
             zeilen.append(f"<i>{_esc(bezug)}</i>")
         zeilen += _empfaenger(daten)[1:]
+        zeilen += [f"Anhang: {_esc(anhang_zeile(a))}" for a in daten.get("anhaenge") or []]
     else:
         inhalt, bekannt = entwurf["inhalt"], (*WARUM, *TECHNIK)
         zeilen.append(f"<b>{_esc(entwurf['titel'])}</b>")

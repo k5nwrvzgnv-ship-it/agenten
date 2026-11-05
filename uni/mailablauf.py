@@ -13,6 +13,7 @@ Drei Wege führen zu einem Entwurf, alle laufen danach gleich (agent.mail_entwer
 
 import json
 from datetime import datetime
+from pathlib import PurePosixPath
 
 from agentkit import mailauftrag
 
@@ -25,8 +26,9 @@ MAX_WUNSCH = 3000
 
 PROMPT_ERKENNEN = """Entscheide zuerst, ob Jans Auftrag unten nur darum geht, eine Mail zu schreiben oder zu
 beantworten (z. B. "antworte Böhme auf seine Rückfragen", "schreib Henri wegen der Gruppe", "sag Frau X den
-Termin ab"). Gehört mehr dazu (etwas nachschlagen, zusammenfassen, erklären, lernen, ein Dokument) oder geht es
-gar nicht um eine Mail, antworte nur:
+Termin ab"). Auch angehängte Dateien, die nur mitgeschickt werden sollen ("schick das Böhme"), sind eine Mail.
+Gehört mehr dazu (etwas nachschlagen, zusammenfassen, erklären, lernen, ein Dokument schreiben oder auswerten)
+oder geht es gar nicht um eine Mail, antworte nur:
 {"mail": false}
 Geht es nur um eine Mail, antworte wie unten verlangt und füg dem JSON-Objekt "mail": true hinzu.
 
@@ -40,6 +42,13 @@ zusätzlich "regel": {"regel": "eine Zeile", "anlass": "kurz"} hinzu. Jan bestä
 
 class WunschFehler(Exception):
     """Ein Mail-Wunsch (mail_<n>.json mit "auftrag") hat nicht die verlangte Form."""
+
+
+def anhang_hinweis(dateien: list[str]) -> str:
+    """Satz für den Auftragstext: Python hängt Jans Dateien selbst an, Claude schreibt nur den Text dazu."""
+    namen = ", ".join(PurePosixPath(d).name for d in dateien)
+    return (f"\n\nPython hängt diese Dateien an die Mail an: {namen}. Du musst dafür nichts tun. Schreib im Text, "
+            "dass sie anhängen, nenn keinen Pfad und beschreib ihren Inhalt nicht über das hinaus, was Jan sagt.")
 
 
 def _objekt(text: str):

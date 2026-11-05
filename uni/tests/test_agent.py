@@ -433,6 +433,66 @@ class TestMailAblauf(OhneTelegram):
         self.assertFalse(agent.mail_auftrag({"id": "a3", "text": "x", "bezug": "zz", "sitzung": "s"},
                                             laufen=self.claude, entwerfen=entwerfen))
 
+    def uni_ordner_mit_datei(self):
+        """Eigener uni-Ordner mit einer Datei aus Jans Auftrag. Gibt deren relativen Pfad zurück."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        hier = Path(tmp.name)
+        (hier / ".env").write_text("HNEE_KENNWORT=geheim")
+        (hier / "data/eingang/a1").mkdir(parents=True)
+        (hier / "data/eingang/a1/Exposé.pdf").write_bytes(b"%PDF-1.4")
+        patcher = mock.patch.object(agent.mail, "HIER", hier)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return "data/eingang/a1/Exposé.pdf"
+
+    def test_anhang_kommt_bis_in_die_freigabe(self):
+        datei = self.uni_ordner_mit_datei()
+        self.antworten = ['{"personen": ["Boehme"], "stichworte": [], "tage_zurueck": 1000, "kalender_tage": 0}',
+                          self.ENTWURF]
+        agent.mail_entwerfen("schick das Böhme", "a1", laufen=self.claude, suchen=self.suchen, termine=None,
+                             neuer_entwurf=self.neuer_entwurf, anhaenge=[datei])
+        self.assertEqual(self.angelegt[0]["daten"]["anhaenge"][0]["name"], "Exposé.pdf")
+        self.assertIn("Anhang: Exposé.pdf", self.angelegt[0]["inhalt"])
+        self.assertEqual(json.loads(agent.kontext_datei("a1").read_text())["anhaenge"], [datei])
+
+    def test_claude_bestimmt_keine_anhaenge(self):
+        self.uni_ordner_mit_datei()
+        roh = json.loads(self.ENTWURF)
+        roh["entwurf"]["anhaenge"] = [".env"]
+        kontext = {"mails": [dict(self.BOEHME, schluessel="m1")]}
+        agent.mail_einreichen(json.dumps(roh), kontext, "a1", neuer_entwurf=self.neuer_entwurf)
+        self.assertNotIn("anhaenge", self.angelegt[0]["daten"])
+
+    def test_aendern_behaelt_oder_ersetzt_anhang(self):
+        datei = self.uni_ordner_mit_datei()
+        (agent.mail.HIER / "data/eingang/a1/neu.pdf").write_bytes(b"neu")
+        kontext = {"mails": [dict(self.BOEHME, schluessel="m1")]}
+        alt = {"id": "e0", "daten": {"anhaenge": agent.mail.pruefen(
+            {"an": ["a@hnee.de"], "betreff": "B", "text": "T"}, anhaenge=[datei])["anhaenge"]}}
+        agent.mail_einreichen(self.ENTWURF, kontext, "a1", vorgaenger=alt, neuer_entwurf=self.neuer_entwurf)
+        self.assertEqual(self.angelegt[0]["daten"]["anhaenge"], alt["daten"]["anhaenge"])
+        agent.mail_einreichen(self.ENTWURF, kontext, "a1", vorgaenger=alt, neuer_entwurf=self.neuer_entwurf,
+                              anhaenge=["data/eingang/a1/neu.pdf"])
+        self.assertEqual([x["name"] for x in self.angelegt[1]["daten"]["anhaenge"]], ["neu.pdf"])
+
+    def test_auftrag_mit_datei(self):
+        self.antworten = ['{"mail": true, "personen": ["Boehme"]}']
+        entwerfen = mock.Mock(return_value=("Rückfrage zur Mail: Welche Adresse?", "s2"))
+        datei = "data/eingang/a1/Exposé.pdf"
+        with mock.patch.object(agent.auftraege, "abschliessen"):
+            agent.mail_auftrag({"id": "a1", "text": "schick das Böhme", "dateien": [datei]}, laufen=self.claude,
+                               entwerfen=entwerfen)
+        self.assertEqual(entwerfen.call_args.kwargs["anhaenge"], [datei])
+        self.assertIn("Python hängt diese Dateien an die Mail an: Exposé.pdf", entwerfen.call_args.args[0])
+        self.assertNotIn(datei, entwerfen.call_args.args[0])
+        # Antwort auf die Rückfrage ohne neue Datei: die Datei des ersten Auftrags bleibt
+        agent._schreibe_json(agent.kontext_datei("a1"), {"text": "schick das Böhme", "kontext": {}, "anhaenge": [datei]})
+        with mock.patch.object(agent.auftraege, "abschliessen"):
+            agent.mail_auftrag({"id": "a2", "text": "die HNEE-Adresse", "bezug": "a1", "sitzung": "s2"},
+                               laufen=self.claude, entwerfen=entwerfen)
+        self.assertEqual(entwerfen.call_args.kwargs["anhaenge"], [datei])
+
     def test_auftrag_wartet_bleibt_offen(self):
         self.antworten = ['{"mail": true, "personen": ["Boehme"]}']
         entwerfen = mock.Mock(side_effect=agent.claude_lauf.Pausiert("Pause"))

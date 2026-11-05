@@ -944,9 +944,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
        20261102-165741-uni-ac9dcc ohne Claude-Lauf als docx (mit Logo) und PDF (6 Seiten) gebaut.
        Offen (Jan): Exposé in Word öffnen und das Format abnehmen (Silbentrennung macht nur Word). Besser als die
        PDF der Vorlage wäre ihre Word-Datei (renderer.vorlage_umwandeln).
-    b) agentkit.mail (Hauptordner-Chat): Anhänge beim Senden (Entwurf nennt Dateien aus dem Agent-Ordner, Python
-       prüft Pfad und Größe, die Freigabe zeigt die Anhänge). Dann kann uni die Mail an Böhme mit Exposé zur
-       Freigabe vorlegen; bis dahin schickt Jan selbst.
+    b) Erledigt 05.11. (Jans Entscheidung: Datei kommt aus der Telegram-Nachricht, Python bestimmt die Anhänge, nie
+       Claude; uni mit Jans Okay aus diesem Chat mitgeändert): agentkit.mail.pruefen(entwurf, original, anhaenge=,
+       ordner=) prüft mit _ablage.anhaenge_pruefen, höchstens 5 Dateien und zusammen 15 MB (geschätzt, Limit des
+       HNEE-Servers unbekannt). daten["anhaenge"] hält Pfad, Name, Größe, SHA-256; bauen bricht ab, wenn die Datei
+       abweicht. Die Freigabe zeigt Name und Größe. Noch nicht mit echter Mail geprüft. posteingang gibt keine
+       Dateien weiter (bei Bedarf wie in uni). Dateien, die uni selbst baut, kann er nicht direkt anhängen.
 27. Erledigt 02.11. (Bedarf aus uni, Jan: "Recherche aufwendig, Ergebnis verlässlich"; mit Jans Okay im uni-Chat
     eingetragen, Test in agentkit/tests/test_claude_lauf.py angepasst): Vor dem Exposé recherchiert uni in
     Suchfenstern (uni/recherche.py), Python prüft jedes Zitat wörtlich auf der Seite bzw. im PDF und jede DOI

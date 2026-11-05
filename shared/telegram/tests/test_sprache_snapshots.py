@@ -23,6 +23,7 @@ AUSNAHMEN = {
     "jan_entwurf_mail_verlauf": ("laenge",),
     "jan_entwurf_mail_frage": ("laenge",),
     "jan_entwurf_mail_lang": ("laenge",),
+    "jan_entwurf_mail_anhang": ("laenge", "datei", "glossar"),  # Zeile „Anhang:“ nennt Dateiname und Größe
 }
 
 

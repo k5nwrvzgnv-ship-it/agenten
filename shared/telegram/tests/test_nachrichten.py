@@ -50,6 +50,11 @@ ENTWURF_VERLAUF = {
 }
 ENTWURF_FRAGE = {**ENTWURF_VERLAUF, "daten": {
     **ENTWURF_VERLAUF["daten"], "pruefen": "ob 'eine Woche Vorlauf vereinbart' so stimmt, wie du es gemeint hast."}}
+ENTWURF_ANHANG = {**ENTWURF_VERLAUF, "daten": {
+    **ENTWURF_VERLAUF["daten"], "anhaenge": [
+        {"pfad": "/geheim/data/eingang/x/Exposé <Holz>.pdf", "name": "Exposé <Holz>.pdf", "groesse": 114688,
+         "sha256": "abc"},
+        {"pfad": "/geheim/data/eingang/x/Anlage.docx", "name": "Anlage.docx", "groesse": 2097152, "sha256": "def"}]}}
 ENTWURF_LANG = {**ENTWURF_VERLAUF, "vorgaenger": "20261027-000000-posteingang-aaaaaa", "daten": {
     **ENTWURF_VERLAUF["daten"], "text": "Liebe Frau Berger,\n\n" + "\n\n".join(
         f"Punkt {i}: Wir haben die Unterlagen für Ihre Beratung durchgesehen und melden uns dazu bald." * 3
@@ -86,6 +91,7 @@ class NachrichtenTest(unittest.TestCase):
         self.snapshot("jan_entwurf_mail", logik.entwurf_als_text(ENTWURF), FREIGABE_KNOEPFE)
         self.snapshot("jan_entwurf_mail_verlauf", logik.entwurf_als_text(ENTWURF_VERLAUF), FREIGABE_KNOEPFE)
         self.snapshot("jan_entwurf_mail_frage", logik.entwurf_als_text(ENTWURF_FRAGE), FREIGABE_KNOEPFE)
+        self.snapshot("jan_entwurf_mail_anhang", logik.entwurf_als_text(ENTWURF_ANHANG), FREIGABE_KNOEPFE)
         lang = logik.entwurf_als_text(ENTWURF_LANG)
         self.assertGreater(len(lang), 1)
         self.assertTrue(all(len(s) <= logik.MAX_LAENGE for s in lang))

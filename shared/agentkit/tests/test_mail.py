@@ -1,6 +1,9 @@
 import email
 import email.policy
+import hashlib
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from agentkit import mail
@@ -68,6 +71,94 @@ class TestAnzeigeBauen(unittest.TestCase):
         self.assertEqual(n["References"], "<a@x.de> <b@x.de>")
         self.assertTrue(n["Message-ID"].endswith("@kleinke.org>"))
         self.assertIn("ich muss absagen.", n.get_content())
+
+
+class TestAnhaenge(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.ordner = Path(tmp.name) / "uni"
+        (self.ordner / "data").mkdir(parents=True)
+        (self.ordner / ".env").write_text("KENNWORT=geheim")
+        self.pdf = self.ordner / "data" / "Exposé Holz.pdf"
+        self.pdf.write_bytes(b"%PDF-1.4 " + b"x" * 2048)
+        (self.ordner / "data" / "notiz.txt").write_bytes("Grüße\n".encode())
+
+    def pruefen(self, *dateien):
+        return mail.pruefen(ENTWURF, anhaenge=list(dateien), ordner=self.ordner)
+
+    def test_daten_und_anzeige(self):
+        daten = self.pruefen("data/Exposé Holz.pdf", "data/Exposé Holz.pdf")
+        (anhang,) = daten["anhaenge"]
+        self.assertEqual((anhang["name"], anhang["groesse"]), ("Exposé Holz.pdf", 2057))
+        self.assertEqual(anhang["sha256"], hashlib.sha256(self.pdf.read_bytes()).hexdigest())
+        self.assertIn("Anhang: Exposé Holz.pdf (2 KB)", mail.anzeige(daten))
+        self.assertEqual(mail.anhang_zeile({"name": "a", "groesse": 5}), "a (5 Byte)")
+        self.assertEqual(mail.anhang_zeile({"name": "a", "groesse": 1572864}), "a (1,5 MB)")
+
+    def test_ohne_anhaenge_kein_feld(self):
+        self.assertNotIn("anhaenge", mail.pruefen(ENTWURF))
+
+    def test_feld_aus_claudes_entwurf_wird_ignoriert(self):
+        daten = mail.pruefen({**ENTWURF, "anhaenge": [".env"]}, ordner=self.ordner)
+        self.assertNotIn("anhaenge", daten)
+
+    def test_abgelehnte_dateien(self):
+        (self.ordner.parent / "fremd.pdf").write_bytes(b"x")
+        (self.ordner / "data" / "hinaus.pdf").symlink_to(self.ordner.parent / "fremd.pdf")
+        (self.ordner / "data" / "tarnung.pdf").symlink_to(self.ordner / ".env")
+        for datei in (".env", "../fremd.pdf", "data/hinaus.pdf", "data/tarnung.pdf", "data/fehlt.pdf", "data"):
+            with self.subTest(datei), self.assertRaises(mail.MailFehler):
+                self.pruefen(datei)
+
+    def test_ohne_ordner_kein_stiller_verlust(self):
+        with self.assertRaises(mail.MailFehler):
+            mail.pruefen(ENTWURF, anhaenge=["data/notiz.txt"])
+
+    def test_grenzen(self):
+        with self.assertRaises(mail.MailFehler):
+            self.pruefen(*[f"data/{i}.pdf" for i in range(mail.MAX_ANHAENGE + 1)])
+        with mock.patch.object(mail, "MAX_ANHAENGE_BYTES", 2000), self.assertRaises(mail.MailFehler):
+            self.pruefen("data/Exposé Holz.pdf")
+
+    def test_bauen_haengt_an(self):
+        daten = self.pruefen("data/Exposé Holz.pdf", "data/notiz.txt")
+        msg = mail.bauen(daten, "jan@kleinke.org", jetzt=0)
+        n = email.message_from_bytes(msg.as_bytes(), policy=email.policy.default)
+        self.assertIn("ich muss absagen.", n.get_body().get_content())
+        (a, b) = n.iter_attachments()
+        self.assertEqual((a.get_filename(), a.get_content_type()), ("Exposé Holz.pdf", "application/pdf"))
+        self.assertEqual(a.get_content(), self.pdf.read_bytes())
+        self.assertEqual((b.get_filename(), b.get_content_type()), ("notiz.txt", "text/plain"))
+
+    def test_geaenderte_oder_fehlende_datei_wird_nicht_gesendet(self):
+        daten = self.pruefen("data/Exposé Holz.pdf")
+        self.pdf.write_bytes(b"andere Fassung")
+        with self.assertRaisesRegex(mail.MailFehler, "seit der Freigabe geändert"):
+            mail.bauen(daten, "jan@kleinke.org")
+        self.pdf.unlink()
+        with self.assertRaisesRegex(mail.MailFehler, "nichts gesendet"):
+            mail.bauen(daten, "jan@kleinke.org")
+        aufrufe = []
+        with mock.patch("smtplib.SMTP_SSL", FalscherServer("ssl", aufrufe)), self.assertRaises(mail.MailFehler):
+            mail.senden(CFG, daten)
+        self.assertEqual(aufrufe, [])
+
+    def test_senden_nennt_anhang_und_kopie_enthaelt_ihn(self):
+        aufrufe, kopien = [], []
+
+        class Imap(FalscherServer):
+            def append(self, ordner, flags, _zeit, roh):
+                kopien.append(roh)
+                return "OK", [b""]
+
+        with mock.patch("smtplib.SMTP_SSL", FalscherServer("ssl", aufrufe)), \
+                mock.patch("imaplib.IMAP4_SSL", Imap("imap", aufrufe)):
+            ergebnis = mail.senden(CFG, self.pruefen("data/notiz.txt"))
+        self.assertIn("(Anhang: notiz.txt (8 Byte))", ergebnis)
+        self.assertEqual(len([a for a in aufrufe if a[1] == "send"]), 1)
+        kopie = email.message_from_bytes(kopien[0], policy=email.policy.default)
+        self.assertEqual([a.get_filename() for a in kopie.iter_attachments()], ["notiz.txt"])
 
 
 class FalscherServer:

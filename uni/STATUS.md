@@ -148,8 +148,7 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   expose.FORMAT, ohne Quellen, Lücken als [OFFEN: ...]) und protokolle/<kette>.md (Beschlossen mit Sprecher und
   Zeitmarke, Offen/uneinig, eigene Ergänzungen, Prüfschritte). Python prüft (expose.pruefen), eine Nachbesserung in
   derselben Sitzung, baut mit shared/renderer (Art "expose") data/expose/<kette>/fassung/<Titel>.docx und .pdf
-  und hängt beide an. Antworten auf das Ergebnis überarbeiten dasselbe Exposé (Nachtrag im Protokoll). Die
-  Mail mit Anhang an Böhme steht als Bedarf in ../STATUS.md Punkt 26.
+  und hängt beide an. Antworten auf das Ergebnis überarbeiten dasselbe Exposé (Nachtrag im Protokoll).
   Umfang (Jan 02.11.: 2 bis 4 Seiten, kurz und knapp): expose.umfang, 650 bis 1500 Wörter in den Blöcken,
   höchstens 12 Literaturangaben, höchstens 6 Überschriften Ebene 2; sonst Nachbesserung.
   Formatvorlage (Jan 02.11. abends): Jans Studienbeleg "Quercus" in data/vorlagen/ (PDF, Logo, Deckblatt-Angaben
@@ -195,6 +194,13 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   wirklich fürs Markieren eingesetzt sind (steht so im Text, von Jan nicht bestätigt).
   Schwäche: expose.bauen ruft die Literaturprüfung erst, wenn Format und Umfang stimmen. Die eine Nachbesserung
   ging deshalb nur an "13 statt 12 Angaben", der Literaturfehler kam erst danach. Vorschlag: beide auf einmal melden.
+- Mail mit Anhang (05.11., aus dem Hauptordner-Chat mit Jans Okay): Jan schickt die Datei in Telegram an uni, der
+  Auftrag steht in der Bildunterschrift ("schick das Böhme"). mail_auftrag gibt a["dateien"] als anhaenge bis zu
+  agentkit.mail.pruefen weiter, Claude bestimmt keine Anhänge und bekommt nur die Namen (mailablauf.anhang_hinweis).
+  Die Dateien stehen im gespeicherten Kontext und gelten nach einer Rückfrage weiter. Beim Ändern bleiben sie, eine
+  neue Datei ersetzt sie; entfernen geht nur über Ablehnen und einen neuen Auftrag. Erkennt Claude den Auftrag nicht
+  als Mail, läuft der normale Ablauf, und ein Mail-Wunsch von dort hat keinen Anhang (die Freigabe zeigt das, weil
+  die Zeile "Anhang:" fehlt). Noch nicht mit echtem Telegram und echter Mail geprüft: erste Mail an Jan selbst.
 - Kommentare in Anhängen (03.11.): auftrag_bearbeiten hängt Kommentare aus angehängten PDF- und Word-Dateien
   (kurse.kommentare_block über agentkit.textfassung.kommentare) als Block "Kommentare in <datei> (Seite, markierte
   Stelle: Kommentar)" an den Auftragstext, nur für die Prompts. Jan kann eine kommentierte PDF also einfach als

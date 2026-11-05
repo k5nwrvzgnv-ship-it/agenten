@@ -11,6 +11,11 @@ Ablauf ("Claude denkt, Python handelt"):
 3. Nach der Freigabe: mail.senden(cfg, daten) baut die Mail (bauen) und sendet sie genau einmal,
    danach eine Kopie in den Gesendet-Ordner.
 
+Anhänge bestimmt Python, nie Claude: mail.pruefen(entwurf, original, anhaenge=[...], ordner=<Agent-Ordner>) nimmt
+die Dateien, die Jan dem Auftrag mitgegeben hat; ein Feld "anhaenge" in Claudes Entwurf wird ignoriert. Die daten
+merken sich je Datei Pfad, Name, Größe und Prüfsumme. Weicht die Datei beim Senden ab, geht nichts raus: Gesendet
+wird nur, was Jan freigegeben hat.
+
 Werte in cfg (aus der .env des Agenten):
 - MAIL_ABSENDER (Pflicht), MAIL_NAME (Anzeigename, optional)
 - SMTP_HOST (Standard IMAP_HOST), SMTP_PORT (465: SMTP_SSL, sonst STARTTLS; Standard 587)
@@ -22,17 +27,24 @@ Fehler im Entwurf oder beim Senden: MailFehler. Ohne Netz testbar: pruefen, anze
 
 import email.policy
 import email.utils
+import hashlib
 import imaplib
+import mimetypes
 import re
 import smtplib
 import time
 from datetime import datetime
 from email.message import EmailMessage
+from pathlib import Path
+
+from ._ablage import AblageFehler, anhaenge_pruefen
 
 MAX_EMPFAENGER = 5
 MAX_BETREFF = 200
 MAX_TEXT = 20_000
 MAX_PRUEFEN = 500
+MAX_ANHAENGE = 5
+MAX_ANHAENGE_BYTES = 15 * 1024 * 1024  # Limit des Servers unbekannt, Base64 macht die Mail ein Drittel größer
 ADRESSE = re.compile(r"^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
 
 
@@ -56,10 +68,47 @@ def _adressen(wert, feld: str) -> list[str]:
     return ergebnis
 
 
-def pruefen(entwurf: dict, original: dict | None = None) -> dict:
+def _anhaenge(dateien, ordner) -> list[dict]:
+    """Prüft die Dateien (agentkit._ablage.anhaenge_pruefen) und hält Pfad, Name, Größe und Prüfsumme fest."""
+    dateien = list(dict.fromkeys(map(str, dateien or [])))
+    if not dateien:
+        return []
+    if ordner is None:
+        raise MailFehler("Anhänge ohne Agent-Ordner nicht möglich")
+    if len(dateien) > MAX_ANHAENGE:
+        raise MailFehler(f"höchstens {MAX_ANHAENGE} Anhänge")
+    wurzel = Path(ordner).resolve()
+    try:
+        relativ = anhaenge_pruefen(wurzel, dateien)
+    except AblageFehler as f:
+        raise MailFehler(f"Anhang: {f}") from None
+    ergebnis = []
+    for pfad in (wurzel / r for r in relativ):
+        inhalt = pfad.read_bytes()
+        ergebnis.append({"pfad": str(pfad), "name": pfad.name, "groesse": len(inhalt),
+                         "sha256": hashlib.sha256(inhalt).hexdigest()})
+    if sum(a["groesse"] for a in ergebnis) > MAX_ANHAENGE_BYTES:
+        raise MailFehler(f"Anhänge zusammen größer als {MAX_ANHAENGE_BYTES // 2**20} MB")
+    return ergebnis
+
+
+def anhang_zeile(anhang: dict) -> str:
+    """'Exposé.pdf (112 KB)', für Anzeige und Freigabe."""
+    groesse = anhang["groesse"]
+    if groesse < 1024:
+        text = f"{groesse} Byte"
+    elif groesse < 1024 ** 2:
+        text = f"{round(groesse / 1024)} KB"
+    else:
+        text = f"{groesse / 1024 ** 2:.1f} MB".replace(".", ",")
+    return f"{anhang['name']} ({text})"
+
+
+def pruefen(entwurf: dict, original: dict | None = None, anhaenge=None, ordner=None) -> dict:
     """Prüft einen Entwurf von Claude und gibt die daten für die Freigabe zurück (nur bekannte Felder).
 
     original: die Mail, auf die geantwortet wird (dict wie imap.zerlege), sonst None.
+    anhaenge: Dateien, die mitgehen (von Python, nie aus Claudes Entwurf), relativ zu ordner (Agent-Ordner).
     """
     if not isinstance(entwurf, dict):
         raise MailFehler("Entwurf ist kein JSON-Objekt")
@@ -82,6 +131,8 @@ def pruefen(entwurf: dict, original: dict | None = None) -> dict:
         raise MailFehler(f"pruefen: höchstens {MAX_PRUEFEN} Zeichen")
     if pruefen_text:
         daten["pruefen"] = pruefen_text
+    if liste := _anhaenge(anhaenge, ordner):
+        daten["anhaenge"] = liste
     if original is not None:
         if not isinstance(original, dict) or not str(original.get("message_id") or "").strip():
             raise MailFehler("Originalmail ohne Message-ID, Antwort nicht möglich")
@@ -103,7 +154,9 @@ def anzeige(daten: dict) -> str:
         zeilen.append(f"Cc: {', '.join(daten['cc'])}")
     if daten.get("antwort_auf"):
         zeilen.append(f"Antwort auf: {daten['antwort_auf']}")
-    zeilen += [f"Betreff: {daten['betreff']}", "", daten["text"]]
+    zeilen.append(f"Betreff: {daten['betreff']}")
+    zeilen += [f"Anhang: {anhang_zeile(a)}" for a in daten.get("anhaenge") or []]
+    zeilen += ["", daten["text"]]
     if daten.get("begruendung"):
         zeilen += ["", f"(Warum: {daten['begruendung']})"]
     if daten.get("pruefen"):
@@ -127,6 +180,17 @@ def wortlaut(original: dict) -> str:
     return "\n".join(zeilen) + "\n\n" + (original.get("wortlaut") or original.get("text") or "(kein Text)")
 
 
+def _anhang_lesen(anhang: dict) -> bytes:
+    """Der Inhalt, den Jan freigegeben hat. Fehlt die Datei oder hat sie sich geändert: MailFehler."""
+    try:
+        inhalt = Path(anhang["pfad"]).read_bytes()
+    except OSError as f:
+        raise MailFehler(f"Anhang {anhang['name']} nicht lesbar ({type(f).__name__}), nichts gesendet") from None
+    if hashlib.sha256(inhalt).hexdigest() != anhang["sha256"]:
+        raise MailFehler(f"Anhang {anhang['name']} hat sich seit der Freigabe geändert, nichts gesendet")
+    return inhalt
+
+
 def bauen(daten: dict, absender: str, name: str = "", jetzt: float | None = None) -> EmailMessage:
     msg = EmailMessage(policy=email.policy.SMTP)
     msg["From"] = email.utils.formataddr((name, absender)) if name else absender
@@ -140,6 +204,10 @@ def bauen(daten: dict, absender: str, name: str = "", jetzt: float | None = None
         msg["In-Reply-To"] = daten["in_reply_to"]
         msg["References"] = daten.get("references") or daten["in_reply_to"]
     msg.set_content(daten["text"])
+    for anhang in daten.get("anhaenge") or []:
+        typ = mimetypes.guess_type(anhang["name"])[0] or "application/octet-stream"
+        haupt, _, unter = typ.partition("/")
+        msg.add_attachment(_anhang_lesen(anhang), maintype=haupt, subtype=unter, filename=anhang["name"])
     return msg
 
 
@@ -174,6 +242,8 @@ def senden(cfg: dict, daten: dict) -> str:
     if abgelehnt:
         raise MailFehler(f"Server hat Empfänger abgelehnt: {', '.join(abgelehnt)}")
     ergebnis = f"Mail gesendet an {', '.join(daten['an'] + daten.get('cc', []))}: {daten['betreff']}"
+    if daten.get("anhaenge"):
+        ergebnis += f" (Anhang: {', '.join(anhang_zeile(a) for a in daten['anhaenge'])})"
     ordner = cfg.get("GESENDET_ORDNER")
     if not ordner or not cfg.get("IMAP_HOST"):
         return ergebnis + " (keine Kopie in Gesendet: GESENDET_ORDNER oder IMAP_HOST fehlt)"

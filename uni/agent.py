@@ -311,7 +311,7 @@ def bis_gesendet(ids: list[str], max_sekunden: int = 120, schlafen=time.sleep) -
 
 def entwuerfe_einreichen(schluessel: str, vorgaenger: str | None = None, alte_daten: dict | None = None,
                          neuer_entwurf=None, nur_fehler: bool = False, zeitgesteuert: bool = False,
-                         entwerfen=None) -> list[str]:
+                         entwerfen=None, anhaenge: list[str] | None = None) -> list[str]:
     """Mail-Entwürfe von Claude prüfen und in die Freigabe legen. Gibt Zeilen für Jan zurück
     (nur_fehler: nur die nicht vorgelegten).
 
@@ -333,13 +333,13 @@ def entwuerfe_einreichen(schluessel: str, vorgaenger: str | None = None, alte_da
                 if zeile and (not nur_fehler or not zeile.startswith("Mail-Entwurf an ")):
                     zeilen.append(zeile)
                 continue
-            daten = mail.pruefen(roh)
+            daten = mail.pruefen(roh, anhaenge=anhaenge)
         except (json.JSONDecodeError, mail.MailFehler) as f:
             logger.warning("Mail-Entwurf %s ungültig: %s", pfad.name, f)
             zeilen.append(f"Mail-Entwurf {pfad.name} nicht vorgelegt: {f}")
             pfad.rename(pfad.with_suffix(".ungueltig"))
             continue
-        for feld in ("in_reply_to", "references", "antwort_auf"):
+        for feld in ("in_reply_to", "references", "antwort_auf", "anhaenge"):
             if alte_daten and alte_daten.get(feld) and not daten.get(feld):
                 daten[feld] = alte_daten[feld]
         ids = []
@@ -377,16 +377,17 @@ def mailentwuerfe_datei() -> Path:
 
 
 def mail_einreichen(antwort: str, kontext: dict, schluessel: str, vorgaenger: dict | None = None,
-                    neuer_entwurf=None) -> str:
+                    neuer_entwurf=None, anhaenge: list[str] | None = None) -> str:
     """Claudes Entwurf prüfen und in die Freigabe legen, vorher Wortlaut des Originals und Entwurfstext als eigene
-    Nachrichten. Gibt die Zeile für Jan zurück (bei einer Rückfrage deren Text).
+    Nachrichten. Gibt die Zeile für Jan zurück (bei einer Rückfrage deren Text). anhaenge: Dateien aus Jans
+    Auftrag; ohne neue Dateien bleiben beim Ändern die des Vorgängers.
     Wirft mailauftrag.AuftragFehler oder mail.MailFehler."""
     neuer_entwurf = neuer_entwurf or freigabe.neuer_entwurf
     art, roh, original = mailauftrag.antwort_lesen(antwort, kontext)
     if art == "rueckfrage":
         return f"Rückfrage zur Mail: {roh}"
-    daten = mail.pruefen(roh, original=original)
-    for feld in ("in_reply_to", "references", "antwort_auf"):
+    daten = mail.pruefen(roh, original=original, anhaenge=anhaenge)
+    for feld in ("in_reply_to", "references", "antwort_auf", "anhaenge"):
         if vorgaenger and vorgaenger["daten"].get(feld) and not daten.get(feld):
             daten[feld] = vorgaenger["daten"][feld]
     ids = [melden(mail.wortlaut(original))] if original and not vorgaenger else []
@@ -401,11 +402,13 @@ def mail_einreichen(antwort: str, kontext: dict, schluessel: str, vorgaenger: di
 
 def mail_entwerfen(text: str, schluessel: str, suche: dict | None = None, original: dict | None = None,
                    zeitgesteuert: bool = False, laufen=claude_lauf.laufen, suchen=None, termine=kalender.termine,
-                   heute: date | None = None, neuer_entwurf=None) -> tuple[str, str | None]:
+                   heute: date | None = None, neuer_entwurf=None,
+                   anhaenge: list[str] | None = None) -> tuple[str, str | None]:
     """Schriftwechsel und Stil im Postfach suchen, Claude den Entwurf schreiben lassen, in die Freigabe legen.
 
     suche: Suchbegriffe, falls schon bekannt (Erkennung), sonst nennt Claude sie zuerst. original: die Mail, auf
-    die geantwortet wird (kommt sicher in den Kontext). Der Kontext bleibt in data/mailauftraege/<schluessel>/.
+    die geantwortet wird (kommt sicher in den Kontext). anhaenge: Dateien aus Jans Auftrag, gehen mit der Mail raus.
+    Der Kontext bleibt in data/mailauftraege/<schluessel>/.
     Gibt (Zeile für Jan, Sitzung) zurück. Wirft WARTEN, LaufFehler, AuftragFehler, MailFehler.
     """
     heute = heute or date.today()
@@ -420,14 +423,14 @@ def mail_entwerfen(text: str, schluessel: str, suche: dict | None = None, origin
     kontext = mailauftrag.kontext_sammeln(suche, suchen or postfach_suchen, termine, heute, mailablauf.UNI)
     if original:
         text = mailablauf.wunsch_text(text, original, mailablauf.original_einfuegen(kontext, original))
-    _schreibe_json(kontext_datei(schluessel), {"text": text, "kontext": kontext})
+    _schreibe_json(kontext_datei(schluessel), {"text": text, "kontext": kontext, "anhaenge": anhaenge or []})
     logger.info("Mail %s: %d Mails, %d Stilvorlagen, %d Termine gefunden", schluessel, len(kontext["mails"]),
                 len(kontext["stil"]), len(kontext["termine"]))
     e = laufen(AGENT, HIER, mailauftrag.prompt_entwurf(text, kontext, heute, mailablauf.UNI), art="anspruchsvoll",
                zeitgesteuert=zeitgesteuert, auftrag_id=schluessel)
     if not e.ok:
         raise claude_lauf.LaufFehler(e.text[:300])
-    return mail_einreichen(e.text, kontext, schluessel, neuer_entwurf=neuer_entwurf), e.sitzung
+    return mail_einreichen(e.text, kontext, schluessel, neuer_entwurf=neuer_entwurf, anhaenge=anhaenge), e.sitzung
 
 
 def mail_wunsch(pfad: Path, roh: dict, schluessel: str, zeitgesteuert: bool, entwerfen=None) -> str | None:
@@ -467,11 +470,13 @@ def mail_auftrag(a: dict, laufen=claude_lauf.laufen, entwerfen=None, heute: date
     entwerfen = entwerfen or mail_entwerfen
     heute = heute or date.today()
     suche = None
+    anhaenge = a.get("dateien") or []
     if a.get("sitzung"):
         vorher = _lies_json(kontext_datei(str(a.get("bezug"))), None) if a.get("bezug") else None
         if not vorher:
             return False
         text = f"{vorher['text']}\n\nNachtrag von Jan: {a['text']}"
+        anhaenge = anhaenge or vorher.get("anhaenge") or []  # Rückfrage: die Dateien des ersten Auftrags gelten weiter
     else:
         text = a["text"]
         e = laufen(AGENT, HIER, mailablauf.prompt_erkennen(text, heute), art="routine", auftrag_id=a["id"])
@@ -486,8 +491,10 @@ def mail_auftrag(a: dict, laufen=claude_lauf.laufen, entwerfen=None, heute: date
         if suche is None:
             return False
         logger.info("Auftrag %s ist eine Mail: %s", a["id"], suche)
+    if a.get("dateien"):
+        text += mailablauf.anhang_hinweis(a["dateien"])
     try:
-        zeile, sitzung = entwerfen(text, a["id"], suche=suche, heute=heute)
+        zeile, sitzung = entwerfen(text, a["id"], suche=suche, heute=heute, anhaenge=anhaenge)
     except WARTEN:
         raise
     except (claude_lauf.LaufFehler, mailauftrag.AuftragFehler, mail.MailFehler) as f:
@@ -1046,7 +1053,7 @@ def aenderung_bearbeiten(a: dict, laufen=claude_lauf.laufen, holen=None) -> None
                                                   ordner=ordner.relative_to(HIER)),
                art="routine", auftrag_id=a["id"])
     zeilen = [e.text if e.ok else f"Fehler: {e.text}"]
-    zeilen += entwuerfe_einreichen(a["id"], vorgaenger=alt["id"], alte_daten=alt["daten"])
+    zeilen += entwuerfe_einreichen(a["id"], vorgaenger=alt["id"], alte_daten=alt["daten"], anhaenge=a.get("dateien"))
     regel_datei = ordner / "regel.json"
     if regel_datei.exists():
         try:
@@ -1078,7 +1085,8 @@ def aenderung_mit_kontext(a: dict, alt: dict, schluessel: str, gespeichert: dict
         auftraege.abschliessen(a["id"], f"Kein neuer Entwurf möglich: {e.text[:300]}", status="fehlgeschlagen")
         return
     try:
-        zeilen = [mail_einreichen(e.text, gespeichert["kontext"], schluessel, vorgaenger=alt)]
+        zeilen = [mail_einreichen(e.text, gespeichert["kontext"], schluessel, vorgaenger=alt,
+                                  anhaenge=a.get("dateien"))]
     except (mailauftrag.AuftragFehler, mail.MailFehler) as f:
         logger.warning("Änderung %s fehlgeschlagen: %s", a["id"], f)
         auftraege.abschliessen(a["id"], f"Kein neuer Entwurf möglich: {f}", status="fehlgeschlagen")

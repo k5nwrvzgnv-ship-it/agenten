@@ -24,12 +24,12 @@ MAILS = HIER / "data" / "mails"
 GESENDET_ORDNER = "Gesendete Elemente"
 
 
-def pruefen(entwurf: dict, mails_ordner: Path = MAILS, original: dict | None = None) -> dict:
+def pruefen(entwurf: dict, mails_ordner: Path = MAILS, original: dict | None = None, anhaenge=None) -> dict:
     """Prüft einen Entwurf von Claude; der Gesprächsbezug kommt aus original (Mail aus dem Suchkontext) oder,
-    bei antwort_auf_uid, aus der abgelegten Mail."""
+    bei antwort_auf_uid, aus der abgelegten Mail. anhaenge: Dateien aus Jans Auftrag (relativ zum uni-Ordner)."""
     if original is None and isinstance(entwurf, dict) and entwurf.get("antwort_auf_uid") not in (None, ""):
         original = mail_holen(entwurf["antwort_auf_uid"], mails_ordner)
-    return _mail.pruefen(entwurf, original)
+    return _mail.pruefen(entwurf, original, anhaenge=anhaenge, ordner=HIER)
 
 
 def senden(cfg: dict, daten: dict) -> str:
