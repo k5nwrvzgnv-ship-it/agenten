@@ -464,6 +464,34 @@ class TestMailAblauf(OhneTelegram):
         agent.mail_einreichen(json.dumps(roh), kontext, "a1", neuer_entwurf=self.neuer_entwurf)
         self.assertNotIn("anhaenge", self.angelegt[0]["daten"])
 
+    def test_warnung_wenn_text_anhang_nennt_und_keine_datei_dabei(self):
+        roh = json.loads(self.ENTWURF)
+        roh["entwurf"]["text"] = "Die Datei hängt an dieser Mail."
+        kontext = {"mails": [dict(self.BOEHME, schluessel="m1")]}
+        agent.mail_einreichen(json.dumps(roh), kontext, "a1", neuer_entwurf=self.neuer_entwurf)
+        self.assertEqual(self.angelegt[0]["daten"]["pruefen"], agent.mail.ANHANG_FEHLT)
+        self.assertIn(agent.mail.ANHANG_FEHLT, self.angelegt[0]["inhalt"])
+
+    def test_keine_warnung_wenn_die_datei_dabei_oder_vom_vorgaenger_ist(self):
+        datei = self.uni_ordner_mit_datei()
+        roh = json.loads(self.ENTWURF)
+        roh["entwurf"]["text"] = "Anbei die Datei."
+        kontext = {"mails": [dict(self.BOEHME, schluessel="m1")]}
+        agent.mail_einreichen(json.dumps(roh), kontext, "a1", neuer_entwurf=self.neuer_entwurf, anhaenge=[datei])
+        alt = {"id": "e0", "daten": {"anhaenge": self.angelegt[0]["daten"]["anhaenge"]}}
+        agent.mail_einreichen(json.dumps(roh), kontext, "a1", vorgaenger=alt, neuer_entwurf=self.neuer_entwurf)
+        self.assertNotIn("pruefen", self.angelegt[0]["daten"])
+        self.assertNotIn("pruefen", self.angelegt[1]["daten"])
+
+    def test_anhang_warnung_erkennt_die_ueblichen_saetze(self):
+        for text in ("Im Anhang das Exposé.", "anbei die Folien", "Ich hänge dir die Datei an.", "angehängt: Plan",
+                     "Beigefügt die Liste", "Die Anhänge sind neu"):
+            self.assertIn("pruefen", agent.mail.anhang_warnung({"text": text}), text)
+        for text in ("Der Termin hängt davon ab.", "Ich fange an.", "Wir kommen am Montag an."):
+            self.assertNotIn("pruefen", agent.mail.anhang_warnung({"text": text}), text)
+        daten = agent.mail.anhang_warnung({"text": "anbei", "pruefen": "Stimmt die Adresse?"})
+        self.assertEqual(daten["pruefen"], f"{agent.mail.ANHANG_FEHLT} Stimmt die Adresse?")
+
     def test_aendern_behaelt_oder_ersetzt_anhang(self):
         datei = self.uni_ordner_mit_datei()
         (agent.mail.HIER / "data/eingang/a1/neu.pdf").write_bytes(b"neu")

@@ -14,6 +14,7 @@ Ohne Netz testbar: pruefen, mail_merken, mail_holen (anzeige, wortlaut, bauen: T
 """
 
 import json
+import re
 from pathlib import Path
 
 from agentkit import mail as _mail
@@ -22,6 +23,9 @@ from agentkit.mail import MailFehler, anzeige, bauen, wortlaut  # noqa: F401 –
 HIER = Path(__file__).resolve().parent
 MAILS = HIER / "data" / "mails"
 GESENDET_ORDNER = "Gesendete Elemente"
+ANHANG_ERWAEHNT = re.compile(r"\b(?:anh[aä]ng\w*|angeh[aä]ngt\w*|anbei|beigef[uü]gt\w*|beiliegend\w*|attachment\w*"
+                             r"|h[aä]ng\w*\b[^.!?\n]{0,40}?\ban)\b", re.IGNORECASE)
+ANHANG_FEHLT = "Im Text steht ein Anhang, an der Mail hängt aber keine Datei."
 
 
 def pruefen(entwurf: dict, mails_ordner: Path = MAILS, original: dict | None = None, anhaenge=None) -> dict:
@@ -30,6 +34,14 @@ def pruefen(entwurf: dict, mails_ordner: Path = MAILS, original: dict | None = N
     if original is None and isinstance(entwurf, dict) and entwurf.get("antwort_auf_uid") not in (None, ""):
         original = mail_holen(entwurf["antwort_auf_uid"], mails_ordner)
     return _mail.pruefen(entwurf, original, anhaenge=anhaenge, ordner=HIER)
+
+
+def anhang_warnung(daten: dict) -> dict:
+    """Erwähnt der Text einen Anhang, ohne dass eine Datei dabei ist, steht das unter "Bitte prüfen" in der Freigabe.
+    Aufrufen, wenn die Anhänge feststehen, also auch die des Vorgängers übernommen sind."""
+    if daten.get("anhaenge") or not ANHANG_ERWAEHNT.search(daten["text"]):
+        return daten
+    return {**daten, "pruefen": " ".join(filter(None, (ANHANG_FEHLT, daten.get("pruefen"))))}
 
 
 def senden(cfg: dict, daten: dict) -> str:

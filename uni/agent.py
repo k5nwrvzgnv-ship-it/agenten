@@ -342,6 +342,7 @@ def entwuerfe_einreichen(schluessel: str, vorgaenger: str | None = None, alte_da
         for feld in ("in_reply_to", "references", "antwort_auf", "anhaenge"):
             if alte_daten and alte_daten.get(feld) and not daten.get(feld):
                 daten[feld] = alte_daten[feld]
+        daten = mail.anhang_warnung(daten)
         ids = []
         if roh.get("antwort_auf_uid") not in (None, "") and not vorgaenger:
             ids.append(melden(mail.wortlaut(mail.mail_holen(roh["antwort_auf_uid"]))))
@@ -390,6 +391,7 @@ def mail_einreichen(antwort: str, kontext: dict, schluessel: str, vorgaenger: di
     for feld in ("in_reply_to", "references", "antwort_auf", "anhaenge"):
         if vorgaenger and vorgaenger["daten"].get(feld) and not daten.get(feld):
             daten[feld] = vorgaenger["daten"][feld]
+    daten = mail.anhang_warnung(daten)
     ids = [melden(mail.wortlaut(original))] if original and not vorgaenger else []
     ids.append(melden(daten["text"]))
     bis_gesendet(ids)
