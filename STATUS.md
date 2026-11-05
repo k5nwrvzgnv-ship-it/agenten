@@ -20,6 +20,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
   Agent-Auswahl), Entwürfe mit Freigeben/Ablehnen/Ändern, Meldungen, /status, /verbrauch,
   Antwort auf eine Auftragsmeldung = neuer Auftrag in derselben Claude-Sitzung, /pc und /weiter.
   Dateien und Fotos (bis 20 MB), wartende Dateien hängen am nächsten Auftrag, /verwerfen.
+  Auftragstexte (/<agent> und Text nach der Menüwahl) warten 3 Sekunden auf nachkommende Dateien, weil Telegram
+  eine Weiterleitung mit Kommentar als zwei Nachrichten schickt, erst den Text (05.11., aus dem uni-Chat mit Jans
+  Okay). Text mit Agent-Auswahl braucht das nicht, die Datei ist vor dem Klick da; dort kommt aber noch der
+  Hinweis "liegt bereit", und eine Bildunterschrift des Originals ersetzt den wartenden Text.
   Startet nach Auftrag oder Freigabe sofort <agent>.service.
   Meldungen mit Knöpfen (meldungen.melden(..., knoepfe=[["Gut", "Schwer"]], dienst="uni-lernen")):
   Klick (einmal je Meldung) oder Text-Antwort wird ein Auftrag mit quelle knopf/antwort, Feld meldung

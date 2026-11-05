@@ -543,6 +543,14 @@ def dateiname_bereinigen(name: str | None, ersatz: str = "datei") -> str:
     return name[:100] or ersatz
 
 
+def datei_gehoert_zum_auftrag(bildunterschrift: str | None, weitergeleitet: bool, ist_antwort: bool) -> bool:
+    """Gehört eine Datei zum Auftragstext, der gerade kurz wartet? Ja, außer sie ist eine Antwort auf eine Nachricht
+    oder Jan hat ihr eine eigene Bildunterschrift gegeben. Bei weitergeleiteten stammt die Unterschrift vom Original."""
+    if ist_antwort:
+        return False
+    return weitergeleitet or not (bildunterschrift or "").strip()
+
+
 class Eingang:
     """Dateien von Jan, die noch keinem Auftrag gehören (je Datei ein Unterordner, älteste zuerst).
 

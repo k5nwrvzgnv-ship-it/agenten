@@ -29,6 +29,8 @@
 - Nimmt Dateien und Fotos an (bis 20 MB). Mit /agent in der Bildunterschrift oder als Antwort auf
   eine Meldung gehen sie sofort an den Auftrag, sonst warten sie in data/eingang/ auf den nächsten
   Auftrag. agentkit.auftraege legt sie dann in <agent>/data/eingang/<auftrag-id>/ ab.
+  Eine weitergeleitete Datei mit Kommentar schickt Telegram als zwei Nachrichten, erst den Text, dann die Datei.
+  Deshalb wird ein Auftrag erst AUFTRAG_WARTEN Sekunden nach dem Text oder der letzten Datei angelegt.
 
 Start: .venv/bin/python zentrale.py
 """
@@ -74,6 +76,7 @@ from logik import (
     befehl_auswerten,
     bestaetigung,
     aenderung_weiter,
+    datei_gehoert_zum_auftrag,
     dateien_auswaehlen,
     dateien_verworfen,
     dateien_warten,
@@ -106,6 +109,7 @@ UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 AGENTEN_DIR = auftraege.AGENTEN_DIR
 PRUEF_INTERVALL = 30  # Sekunden
 ALBUM_WARTEN = 3  # Sekunden nach der letzten Datei eines Albums, dann wird zugeordnet
+AUFTRAG_WARTEN = 3  # Sekunden nach Auftragstext oder letzter Datei, dann wird der Auftrag angelegt
 
 cfg = config.lade_config(HIER, pflicht=("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"))
 JAN = int(cfg["TELEGRAM_CHAT_ID"])
@@ -288,7 +292,42 @@ async def auftrag_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not text:
         await update.message.reply_text(f"Schreib den Auftrag bitte dazu, zum Beispiel /{agent} Fristen prüfen")
         return
-    await auftrag_anlegen(context.bot, agent, modus, text)
+    await auftrag_zurueckhalten(context, agent, modus, text)
+
+
+async def auftrag_zurueckhalten(context: ContextTypes.DEFAULT_TYPE, agent: str, modus: str, text: str,
+                                im_menue: bool = False) -> None:
+    """Auftragstext kurz zurückhalten, damit eine nachkommende Datei mit in den Auftrag geht. Liegt schon einer
+    bereit, geht er vorher los. Ein Neustart in diesen Sekunden verliert den Text, wie bei einem Album."""
+    await wartenden_auftrag_anlegen(context.bot, context.chat_data)
+    context.chat_data["wartender_auftrag"] = {"agent": agent, "modus": modus, "text": text, "im_menue": im_menue}
+    wartezeit_starten(context)
+
+
+def wartezeit_starten(context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.chat_data["wartender_auftrag"]["job"] = context.job_queue.run_once(wartezeit_um, AUFTRAG_WARTEN,
+                                                                                chat_id=JAN)
+
+
+def wartezeit_anhalten(wartend: dict) -> None:
+    if job := wartend.pop("job", None):
+        job.schedule_removal()
+
+
+async def wartezeit_um(context: ContextTypes.DEFAULT_TYPE) -> None:
+    if wartend := context.chat_data.get("wartender_auftrag"):
+        wartend.pop("job", None)  # läuft gerade, lässt sich nicht mehr entfernen
+    await wartenden_auftrag_anlegen(context.bot, context.chat_data)
+
+
+async def wartenden_auftrag_anlegen(bot, chat_data: dict) -> None:
+    wartend = chat_data.pop("wartender_auftrag", None)
+    if wartend is None:
+        return
+    wartezeit_anhalten(wartend)
+    agent, modus, text, im_menue = (wartend[k] for k in ("agent", "modus", "text", "im_menue"))
+    if await auftrag_anlegen(bot, agent, modus, text, bestaetigen=not im_menue) and im_menue:
+        await panel_zeigen(bot, chat_data, home(bestaetigung(agent, modus, [])), neu=True)
 
 
 async def auftrag_anlegen(bot, agent: str, modus: str, text: str, bezug: str | None = None,
@@ -408,9 +447,7 @@ async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     ziel = context.chat_data.pop("panel_agent", None)
     if ziel:
         agent, modus = ziel
-        if await auftrag_anlegen(context.bot, agent, modus, text, bestaetigen=False):
-            await panel_zeigen(context.bot, context.chat_data,
-                               home(bestaetigung(agent, modus, [])), neu=True)
+        await auftrag_zurueckhalten(context, agent, modus, text, im_menue=True)
         return
     await agent_fragen(context.bot, context.chat_data, text)
 
@@ -504,6 +541,13 @@ async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if datei.file_size and datei.file_size > MAX_DATEI_BYTES:
         await m.reply_text(DATEI_ZU_GROSS)
         return
+    wartend = context.chat_data.get("wartender_auftrag")
+    zum_auftrag = wartend is not None and datei_gehoert_zum_auftrag(m.caption, m.forward_origin is not None,
+                                                                    m.reply_to_message is not None)
+    if zum_auftrag:  # die Uhr steht während des Downloads, die Datei wäre sonst noch nicht da
+        wartezeit_anhalten(wartend)
+    elif wartend is not None:  # die Datei bringt ihren eigenen Auftrag mit, der wartende gehört nicht dazu
+        await wartenden_auftrag_anlegen(context.bot, context.chat_data)
     pfad = eingang.neuer_platz(name or "datei")
     try:
         await (await datei.get_file()).download_to_drive(pfad)
@@ -512,8 +556,13 @@ async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         pfad.unlink(missing_ok=True)
         eingang.aufraeumen()
         await m.reply_text(DATEI_NICHT_GELADEN)
+        if zum_auftrag:
+            wartezeit_starten(context)
         return
     logger.info("Datei empfangen: %s (%d Bytes)", pfad.name, pfad.stat().st_size)
+    if zum_auftrag:
+        wartezeit_starten(context)
+        return
     if m.media_group_id is None:
         await dateien_zuordnen(context.bot, context.chat_data, m.caption, beantworteter_auftrag(update))
         return
