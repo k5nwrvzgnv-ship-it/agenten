@@ -199,6 +199,8 @@ class TestLogik(unittest.TestCase):
         self.assertEqual(dateiname_bereinigen("a/b;rm -rf.txt"), "b_rm -rf.txt")
         self.assertEqual(dateiname_bereinigen(None, "foto.jpg"), "foto.jpg")
         self.assertEqual(dateiname_bereinigen("..."), "datei")
+        self.assertEqual(dateiname_bereinigen("nachru\u0308stbare Lo\u0308sung.pdf"), "nachrüstbare Lösung.pdf")
+        self.assertEqual(dateiname_bereinigen("nachrüstbare.pdf"), "nachrüstbare.pdf")
         lang = dateiname_bereinigen("x" * 300 + ".pdf")
         self.assertEqual(len(lang), 100)
         self.assertTrue(lang.endswith(".pdf"))

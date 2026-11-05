@@ -5,6 +5,7 @@ import json
 import re
 import secrets
 import shutil
+import unicodedata
 from datetime import datetime
 from html import escape, unescape
 from pathlib import Path
@@ -536,6 +537,7 @@ class Gemeldet:
 def dateiname_bereinigen(name: str | None, ersatz: str = "datei") -> str:
     """Dateiname aus Telegram sicher machen: kein Pfad, nicht versteckt (.env), nur harmlose Zeichen."""
     name = Path((name or "").replace("\\", "/")).name
+    name = unicodedata.normalize("NFC", name)  # macOS: ü als u plus zwei Punkte, sonst würde daraus u_
     name = re.sub(r"[^\w.\- ]", "_", name).strip(" .")
     stamm, punkt, endung = name.rpartition(".")
     if punkt and len(name) > 100:
