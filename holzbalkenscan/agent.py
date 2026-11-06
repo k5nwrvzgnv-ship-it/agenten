@@ -64,7 +64,7 @@ def reihe_rechnen(lid: str, reihe: Path, ziel: Path, grenze: str, verfahren: Pat
         ("zusammenbau", "zusammensetzen2.py", [str(reihe), "--ziel", str(streifen)], zus_txt,
          kennzahlen.aus_zusammenbau),
     ]
-    erg = {"schritte": {}}
+    erg = {"schritte": {}, "unvollstaendig": pruefstand.unvollstaendige_fotos(reihe)}
     for schritt, skript, argumente, bericht, auslesen in plan:
         cmd = befehl(python, verfahren / skript, argumente, grenze, pruefstand.scope_name(lid, reihe.name, schritt))
         s = schritt_ausfuehren(cmd, ziel, ziel / f"{schritt}.ausgabe.txt", zeitgrenze_s)

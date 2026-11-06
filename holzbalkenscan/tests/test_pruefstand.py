@@ -49,6 +49,14 @@ class TestCodeUndReihen(unittest.TestCase):
         self.assertEqual(ps.reihen_finden(self.tmp), ["ISO 800"])
         self.assertEqual(ps.reihen_finden(self.tmp / "fehlt"), [])
 
+    def test_unvollstaendige_fotos(self):
+        (self.tmp / "gut.jpg").write_bytes(b"\xff\xd8daten\xff\xd9")
+        (self.tmp / "halb.jpg").write_bytes(b"\xff\xd8dat")
+        (self.tmp / "bauteil.json").write_text("{}")
+        self.assertEqual(ps.unvollstaendige_fotos(self.tmp), ["halb.jpg"])
+        text = "\n".join(ps.reihe_kurz("R", {"status": "fehler", "unvollstaendig": ["halb.jpg"]}))
+        self.assertIn("unvollständige Fotos (Datei endet mitten im Bild): halb.jpg", text)
+
     def test_auswahl(self):
         reihen = ["261022_Test", "ISO 800"]
         self.assertEqual(ps.auswahl("bitte iso 800 rechnen", reihen), ["ISO 800"])
@@ -121,6 +129,7 @@ class TestAblageUndVergleich(unittest.TestCase):
         self.lauf("20261101-000001", {"A": ergebnis(0.10)})
         self.lauf("20261102-000002", {"B": ergebnis()})
         self.lauf("20261109-000003", {"A": ergebnis()})  # später, zählt nicht
+        self.lauf("20261104-000004", {"A": ergebnis(status="fehler")})  # gescheitert, zählt nicht
         (self.laeufe / "kaputt").mkdir()
         self.assertEqual(ps.vorlauf(self.laeufe, "20261105-000000", "A")["id"], "20261101-000001")
         self.assertIsNone(ps.vorlauf(self.laeufe, "20261105-000000", "C"))
@@ -159,6 +168,14 @@ class TestAblageUndVergleich(unittest.TestCase):
         self.assertIn("zusammenbau: Nahtversatz Median mm: 0.09 -> 0.15 (+0.06)", text)
         self.assertIn("zusammenbau: Prüfbericht neu: neu", text)
         self.assertIn("kein Vorlauf und kein Referenzbericht", text)
+
+    def test_meldetext_ohne_kennzahlen_behauptet_keine_gleichheit(self):
+        leer = {"status": "fehler", "schritte": {"zusammenbau": schritt("fehler", 3)}, "vorpruefung": {},
+                "zusammenbau": {}}
+        lauf = self.lauf("20261107-000001", {"A": leer})
+        text = ps.meldetext(lauf, {"A": ("Referenzbericht", ergebnis())})
+        self.assertIn("nichts zu vergleichen", text)
+        self.assertNotIn("keine Änderung", text)
 
     def test_meldetext_ohne_aenderung(self):
         lauf = self.lauf("20261107-000001", {"A": ergebnis()})

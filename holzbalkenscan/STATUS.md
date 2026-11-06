@@ -41,8 +41,11 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
   (es gibt keinen Timer, der ihn später holen würde).
 
 ## Offene Punkte
-1. Echter Lauf ISO 800: nur nach Jans Okay, vorher free -m (am 07.11. rund 1,8 GB verfügbar, zu wenig für 3G).
-   Gemessene Speicherspitze danach als SPEICHER_STANDARD eintragen.
+1. Erster echter Lauf ISO 800 (07.11., Lauf 20261107-004413, Grenze 3000M, mit Jans Okay) scheiterte an zwei
+   unvollständigen Fotos vom SharePoint-Download: IMG_2252.jpg (10223616 Byte) und IMG_2255.jpg (2818048 Byte)
+   enden mitten im Bild. Jan lädt sie neu, dann Lauf wiederholen (vorher free -m, Jan fragen).
+   Speicherspitzen bis zum Abbruch: Vorprüfung 417 MB (89 s), Zusammenbau 472 MB (28 s); die volle Spitze
+   ist noch unbekannt, SPEICHER_STANDARD danach anpassen.
 2. Zweite Reihe 261022_Test fehlt noch (von Jans SharePoint holen, nach data/reihen/).
 3. Danach Zweiteinschätzung F0–F8 (verfahren/PROBLEMSTELLUNG.md) per agentkit.claude_lauf.
 4. Dienst installieren und Eintrag in der Zentrale (Bedarf 31 im Hauptstatus), beides mit Jans Okay.

@@ -77,6 +77,18 @@ def reihen_finden(reihen_dir: Path) -> list[str]:
     return gefunden
 
 
+def unvollstaendige_fotos(reihe: Path) -> list[str]:
+    """JPEG-Dateien ohne Endmarke FF D9, etwa nach einem abgebrochenen Download."""
+    kaputt = []
+    for p in sorted(reihe.iterdir()):
+        if p.suffix.lower() in (".jpg", ".jpeg"):
+            with open(p, "rb") as f:
+                f.seek(max(0, p.stat().st_size - 2))
+                if f.read(2) != b"\xff\xd9":
+                    kaputt.append(p.name)
+    return kaputt
+
+
 def auswahl(text: str, reihen: list[str]) -> list[str]:
     """Reihen, deren Name im Auftragstext steht (ohne Groß-/Kleinschreibung); keine genannt: alle."""
     t = text.casefold()
@@ -153,7 +165,7 @@ def speichern(lauf_dir: Path, lauf: dict) -> Path:
 
 
 def vorlauf(laeufe_dir: Path, vor_id: str, reihe: str) -> dict | None:
-    """Letzter Lauf vor vor_id, der die Reihe enthält."""
+    """Letzter Lauf vor vor_id, in dem die Reihe gelungen ist."""
     if not laeufe_dir.is_dir():
         return None
     for d in sorted((d for d in laeufe_dir.iterdir() if d.is_dir() and d.name < vor_id), reverse=True):
@@ -161,7 +173,7 @@ def vorlauf(laeufe_dir: Path, vor_id: str, reihe: str) -> dict | None:
             lauf = json.loads((d / "lauf.json").read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if reihe in lauf.get("reihen", {}):
+        if lauf.get("reihen", {}).get(reihe, {}).get("status") == "ok":  # gescheiterte Läufe taugen nicht als Basis
             return lauf
     return None
 
@@ -223,6 +235,8 @@ def _fmt(w) -> str:
 def reihe_kurz(name: str, erg: dict) -> list[str]:
     """Kernzahlen einer Reihe für die Meldung."""
     z = [f"{name}: {erg['status']}"]
+    if erg.get("unvollstaendig"):
+        z.append(f"  unvollständige Fotos (Datei endet mitten im Bild): {', '.join(erg['unvollstaendig'])}")
     for schritt, s in erg.get("schritte", {}).items():
         z.append(f"  {schritt}: {s['status']}, Exit {s['exit']}, {s['dauer_s']:.0f} s, "
                  f"Speicherspitze {_fmt(s.get('spitze_mb'))} MB")
@@ -243,6 +257,8 @@ def reihe_kurz(name: str, erg: dict) -> list[str]:
 
 
 def vergleich_text(bezeichnung: str, alt: dict, neu: dict) -> list[str]:
+    if not (neu.get("vorpruefung") or neu.get("zusammenbau")):
+        return [f"  gegen {bezeichnung}: nichts zu vergleichen, keine Kennzahlen in diesem Lauf"]
     z = []
     for art in ("vorpruefung", "zusammenbau"):
         if alt.get(art) and neu.get(art):
