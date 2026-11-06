@@ -63,6 +63,9 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - `shared/vorlagen/`: Gerüst für neue Agenten (agent_beispiel.py, Service, Timer, STATUS.md).
 - `uni/`, `dokumente/`, `posteingang/`, `lia/<agent>/` (geplant: `einkauf/`, Ordner entsteht mit dem Agenten): je ein Agent mit agent.py als Einstieg, eigener
   .venv, .env, STATUS.md, tests/. Laufzeitdaten in data/, logs/ (nicht im Repo).
+- `holzbalkenscan/`: Jans Agent, Prüfstand für ein fremdes Verfahren (Fotoreihen zu maßhaltigem Streifenbild).
+  Der fremde Code liegt unverändert in `holzbalkenscan/verfahren/` (nur Pillow und numpy, vom Linter und den
+  Tests ausgenommen). Läufe nur auf Auftrag, ohne Claude, mit fester Speichergrenze (systemd-run --scope).
 - Reihenfolge der Umsetzung: uni, dokumente, posteingang, einkauf.
 - Ein Chat pro Ordner, gestartet in diesem Ordner: je Agent einer (auch lia/<agent>), einer für
   shared/renderer/, einer im Hauptordner für Struktur und das übrige shared/. Ein Chat ändert nur seinen
