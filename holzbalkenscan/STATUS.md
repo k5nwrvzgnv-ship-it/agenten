@@ -5,41 +5,48 @@ Prüfstand für ein fremdes Forschungsverfahren, das Handyfotos einer Holzbautei
 maßhaltigen Streifenbild zusammensetzt. Der Prüfstand rechnet die Fotoreihen nach, liest die
 Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 freigegeben.
 
-## Stand (07.11.2026, Übergabe mitten in der Arbeit)
-- Committet: Gerüst (.venv mit numpy 2.5.4, Pillow 13.0.0, agentkit.pth), Eintrag in pruefen.sh
-  und CLAUDE.md; verfahren/ (Fremdcode, byte-gleich aus /home/agent/holzbalken-skript/Code,
-  ruff.toml nimmt holzbalkenscan/verfahren aus); kennzahlen.py mit tests/test_kennzahlen.py.
-- NICHT committet: pruefstand.py und tests/test_pruefstand.py (32 Tests im Ordner grün, ruff grün).
-  Der Commit brach ab, weil pruefen.sh insgesamt nicht grün war. Ursache noch nicht angesehen,
-  kann auch ein anderer Ordner sein.
-- Fotos: data/reihen/ISO 800/ (26 Fotos + bauteil.json, aus Input/ verschoben, git ignoriert data/).
-  Referenzbericht des Auftraggebers: data/referenz/ISO 800.txt (Kopie von Output-2/streifen_v40_ISO800.txt).
-- Getestet am Server: systemd-run --user --scope -p MemoryMax=50M bricht einen zu großen Prozess mit
-  Signal 9 ab (returncode -9), nur ihn. os.wait4 auf die Popen-PID liefert die Speicherspitze (ru_maxrss).
+## Stand (07.11.2026)
+- Prüfstand fertig und getestet (36 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
+- Noch kein echter Lauf mit den 48-MP-Fotos (wartet auf Jans Okay).
+- Dienst nicht installiert, die Zentrale kennt den Agenten noch nicht (Bedarf 31 in ../STATUS.md).
 
 ## Aufbau
-- kennzahlen.py: aus_zusammenbau(text), aus_vorpruefung(text), rein, letzte Fundstelle gilt.
-- pruefstand.py: codefassung (sha256 über verfahren/*.py,*.json), reihen_finden, auswahl (Reihen aus
-  dem Auftragstext, sonst alle), speicher_aus_text ("speicher 4G"), genug_speicher (MemAvailable gegen
-  Grenze + 500 MB), befehl (systemd-run-Scope), schritt_status, speichern (data/laeufe/<id>/lauf.json),
-  vorlauf/basis (Vorlauf, sonst Referenzbericht), vergleichen, meldetext.
-- Aufruf des Verfahrens: pruefen.py <reihe> --bericht <dir>/vorpruefung.txt (Exit 0/1/2 = grün/gelb/rot);
-  zusammensetzen2.py <reihe> --ziel <dir>/streifen.jpg (schreibt streifen.txt; Exit 0/1 gelungen,
-  2 Eingabe, 3 Absturz). Die Rechenzeit im Referenzbericht (33 s) ist nur der Zeichenteil (--weiter).
+- verfahren/: fremder Code, byte-gleich aus /home/agent/holzbalken-skript/Code (zusammensetzen2.py,
+  pruefen.py, kantenbild.py, bauteil_vorlage.json, KONZEPT.md, LIESMICH_FUER_REVIEW.md, PROBLEMSTELLUNG.md).
+  Nicht ändern. ruff.toml nimmt ihn aus, Tests laufen nur in tests/.
+- kennzahlen.py: aus_zusammenbau(text), aus_vorpruefung(text). Rein, die letzte Fundstelle gilt, fehlende Werte None.
+- pruefstand.py: Codefassung (sha256 über verfahren/*.py, *.json), Reihen finden und wählen, Speicherprüfung
+  (MemAvailable gegen Grenze + 500 MB), systemd-run-Scope mit MemoryMax, Status je Schritt, Ablage,
+  Vorlauf/Referenz, Vergleich mit Schwellen, Meldetext.
+- agent.py: je Auftrag Speicher prüfen, je Reihe pruefen.py (--bericht) und zusammensetzen2.py (--ziel), jeder
+  Schritt im eigenen Scope, Zeitgrenze 60 min, Speicherspitze per os.wait4. Ergebnis als Meldung
+  (agentkit.meldungen), Auftrag mit einem Satz abgeschlossen. Ohne Claude, ohne Timer, Sperre data/lauf.sperre.
+- Auftragstext: Reihennamen (sonst alle), "speicher 4G" (Standard 3G, geschätzt).
+- Daten (nicht im Repo): data/reihen/<reihe>/ (Fotos + bauteil.json), data/referenz/<reihe>.txt (Bericht des
+  Auftraggebers, Vergleichsbasis ohne Vorlauf), data/laeufe/<lauf-id>/lauf.json und je Reihe Berichte,
+  Konsolenausgabe, streifen.jpg.
+- Reihen: "ISO 800" (26 Fotos, Testbalken 261019 Seite A; Referenz streifen_v40_ISO800.txt, Nahtversatz 0,09 mm).
+  Die Rechenzeit im Referenzbericht (33 s) ist nur der Zeichenteil (--weiter), der Vergleich zeigt sie darum als Änderung.
+- Dienst: systemd/holzbalkenscan.service (Vorlage, nicht installiert).
+
+## Auftrag von Hand (bis die Zentrale den Agenten kennt)
+    cd ~/agenten/holzbalkenscan
+    .venv/bin/python -c "from agentkit import auftraege; print(auftraege.neuer_auftrag('holzbalkenscan', 'ISO 800', quelle='hand'))"
+    .venv/bin/python agent.py
+
+## Entscheidungen
+- 07.11.2026: Exit 1 von zusammensetzen2.py gilt als gelungen (heißt nur "mit Prüfpunkten"), Exit 0/1/2 von
+  pruefen.py ebenso (grün/gelb/rot steht im Bericht).
+- 07.11.2026: Reicht der Speicher nicht, wird der Auftrag als fehlgeschlagen abgeschlossen statt zu warten
+  (es gibt keinen Timer, der ihn später holen würde).
 
 ## Offene Punkte
-1. Ursache für pruefen.sh nicht grün klären, pruefstand.py + Tests committen.
-2. agent.py: Aufträge per agentkit.auftraege holen, Sperre data/lauf.sperre, Speicher prüfen, je Reihe
-   beide Schritte per pruefstand.befehl (cwd = Laufordner, Ausgabe in Datei, Zeitgrenze per Timer +
-   kill, os.wait4 für Spitze), Kennzahlen auslesen, lauf.json speichern, meldungen.melden mit
-   meldetext, Auftrag abschliessen (kurz, Details in der Meldung). Ohne Timer, ohne Claude.
-   Standard-Speichergrenze 3G ist geschätzt, bis ein echter Lauf die Spitze misst.
-3. systemd/holzbalkenscan.service nach Vorlage (nicht installieren ohne Jan).
-4. Die Zentrale kennt den Agenten noch nicht (shared/telegram/logik.py AGENTEN): Bedarf in die
-   STATUS.md des Hauptordners schreiben. Bis dahin Auftrag von Hand anlegen.
-5. Echter Lauf mit den 48-MP-Fotos nur nach Jans Okay und free -m (am 07.11. ca. 2,2 GB verfügbar).
-6. Zweite Reihe 261022_Test fehlt noch (SharePoint).
-7. Danach Zweiteinschätzung F0–F8 (verfahren/PROBLEMSTELLUNG.md) per agentkit.claude_lauf.
+1. Echter Lauf ISO 800: nur nach Jans Okay, vorher free -m (am 07.11. rund 1,8 GB verfügbar, zu wenig für 3G).
+   Gemessene Speicherspitze danach als SPEICHER_STANDARD eintragen.
+2. Zweite Reihe 261022_Test fehlt noch (von Jans SharePoint holen, nach data/reihen/).
+3. Danach Zweiteinschätzung F0–F8 (verfahren/PROBLEMSTELLUNG.md) per agentkit.claude_lauf.
+4. Dienst installieren und Eintrag in der Zentrale (Bedarf 31 im Hauptstatus), beides mit Jans Okay.
+5. Wenn Jan das doppelt findet: Meldung und Auftragsergebnis zu einer Nachricht zusammenlegen.
 
 ## Gelernte Regeln
 - (noch keine)
