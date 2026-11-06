@@ -2,7 +2,8 @@
 # Bewusst nur Regeln, die echte Fehler finden (keine reinen Stilfragen).
 # E4/E7/E9: Syntax und grobe Fehler, F: unbenutzte/undefinierte Namen, B: typische Fallen.
 target-version = "py312"
-extend-exclude = ["data", "logs", "protokolle"]
+# holzbalkenscan/verfahren: fremder Code, bleibt unverändert (Prüfstand ruft ihn nur auf)
+extend-exclude = ["data", "logs", "protokolle", "holzbalkenscan/verfahren"]
 
 [lint]
 select = ["E4", "E7", "E9", "F", "B"]
