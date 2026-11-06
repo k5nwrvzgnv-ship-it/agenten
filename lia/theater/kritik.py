@@ -9,6 +9,44 @@ Schwelle); die Überarbeitung prüft fassung.pruefen wie den ersten Ablauf.
 
 MAX_UEBERARBEITUNGEN = 2
 MAX = {"beleg": 500, "verbesserung": 500, "aenderung": 400, "staerke": 300}
+SATZENDE = (". ", "! ", "? ", "; ")
+
+
+def _kuerzen(text: str, n: int) -> str:
+    """Auf höchstens n Zeichen: am letzten Satzende in der zweiten Hälfte, sonst abgeschnitten mit „…“."""
+    if len(text) <= n:
+        return text
+    stueck = text[:n]
+    ende = max(stueck.rfind(z) for z in SATZENDE)
+    if ende >= n // 2:
+        return stueck[:ende + 1]
+    return text[:n - 1].rstrip() + "…"
+
+
+def kuerzen(daten: dict) -> list[str]:
+    """Kürzt zu lange Texte des Prüfers an Ort und Stelle (Jan 07.11.2026: kein eigener Claude-Lauf nur fürs
+    Kürzen, keine abgebrochene Prüfschleife). Gibt je Kürzung einen Hinweis fürs Log zurück. Was keine Liste oder
+    kein Text ist, bleibt unangetastet; das meldet pruefen."""
+    hinweise: list[str] = []
+    bewertungen = daten.get("kriterien")
+    if isinstance(bewertungen, list):
+        for i, b in enumerate(bewertungen):
+            if not isinstance(b, dict):
+                continue
+            for feld in ("beleg", "verbesserung"):
+                wert = b.get(feld)
+                if isinstance(wert, str) and len(wert) > MAX[feld]:
+                    b[feld] = _kuerzen(wert, MAX[feld])
+                    hinweise.append(f"kriterien[{i}].{feld}: {len(wert)} auf {len(b[feld])} Zeichen gekürzt")
+    for feld, laenge in (("staerken", MAX["staerke"]), ("wichtigste_aenderungen", MAX["aenderung"])):
+        liste = daten.get(feld)
+        if not isinstance(liste, list):
+            continue
+        for i, x in enumerate(liste):
+            if isinstance(x, str) and len(x) > laenge:
+                liste[i] = _kuerzen(x, laenge)
+                hinweise.append(f"{feld}[{i}]: {len(x)} auf {len(liste[i])} Zeichen gekürzt")
+    return hinweise
 
 
 def unter_schwelle(kritik: dict, rubrik: dict) -> list[dict]:

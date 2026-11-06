@@ -294,6 +294,14 @@ def runde(pfade: Pfade | None = None, laufen=claude_laufen, renderer_bauen=None,
     }
 
 
+def kritik_pruefen(daten: dict, rubrik: dict, wofuer: str) -> list[str]:
+    """Zu lange Texte des Prüfers kürzt Python (Warnung im Log), dann kritik.pruefen."""
+    hinweise = kritik.kuerzen(daten)
+    if hinweise:
+        logger.warning("%s: Texte gekürzt: %s", wofuer, hinweise)
+    return kritik.pruefen(daten, rubrik)
+
+
 def pruefschleife(laufen, kosten: Kosten, ordner: Path, rel_ordner: Path, rel: dict, f: dict, sitzung: str | None,
                    einheiten: list[stueck.Einheit], muss: list[dict], rahmen: dict, rubrik: dict) -> dict:
     """Prüfer (neue Sitzung) bewertet, Autor (seine Sitzung) überarbeitet, bis alles mindestens „gut“ ist oder
@@ -309,7 +317,7 @@ def pruefschleife(laufen, kosten: Kosten, ordner: Path, rel_ordner: Path, rel: d
             kritik.prompt(str(rel_ordner / kdatei), str(rel_ordner / spielfassung.name), str(rel_ordner / datei),
                           rel["vorgaben"], rel["grundlagen"], rel["buch"], str(rel_ordner / "szenenkarte.json"),
                           rubrik, version),
-            ordner / kdatei, lambda d: kritik.pruefen(d, rubrik), None)
+            ordner / kdatei, lambda d, w=f"Prüfung {version}": kritik_pruefen(d, rubrik, w), None)
         unter = kritik.unter_schwelle(k, rubrik)
         logger.info("Prüfung %d: %d von %d Kriterien unter „%s“ (%s)", version, len(unter), len(k["kriterien"]),
                     rubrik["stufen"]["mindestens"], ", ".join(b["id"] for b in unter))

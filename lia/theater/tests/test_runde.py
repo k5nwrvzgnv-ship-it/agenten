@@ -311,3 +311,17 @@ class Runde(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KritikPruefen(unittest.TestCase):
+    def test_zu_langer_beleg_wird_gekuerzt_und_geloggt(self):
+        from tests.test_kritik import RUBRIK, antwort
+        k = antwort()
+        k["kriterien"][4]["beleg"] = "y" * 507
+        from unittest import mock
+        with mock.patch.object(runde, "logger") as logger:
+            self.assertEqual(runde.kritik_pruefen(k, RUBRIK, "Prüfung 1"), [])
+        args = logger.warning.call_args.args
+        self.assertEqual(args[0] % args[1:], "Prüfung 1: Texte gekürzt: "
+                         "['kriterien[4].beleg: 507 auf 500 Zeichen gekürzt']")
+        self.assertEqual(len(k["kriterien"][4]["beleg"]), 500)

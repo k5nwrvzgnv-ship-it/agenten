@@ -120,6 +120,10 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
   Bei Überarbeitung danach runde.pruefschleife (Prüfer gegen die Rubrik, Autor überarbeitet höchstens zweimal);
   bricht sie ab, gilt der letzte Stand, der Pythons Prüfung besteht. Ablauf-Dokument: Lias Änderungen, Prüfung.
   Lias Antworttext entsteht vor dem Prüfschritt; spätere Änderungen stehen nur im Dokument.
+  Zu lange Prüfer-Texte (beleg, verbesserung, staerken, wichtigste_aenderungen, Grenzen kritik.MAX) kürzt Python
+  (kritik.kuerzen über runde.kritik_pruefen, am Satzende, sonst „…“, Warnung „Texte gekürzt“ im Log); sie sind
+  kein Fehler mehr (Jan 07.11.2026: vorher 4 von 9 Prüfungen mit eigenem Kürzungslauf je 1,1–1,5 USD, am 06.11.
+  brach die Prüfschleife deshalb nach Prüfung 1 ab).
 - wunsch.py (reine Logik): Art aus der ersten Zeile („Spielfassung:“, „Szenenaufgabe:“; quelle portal-theater ohne
   Art und ohne bezug ist ein Fehler), Zeilen „Schlüssel: Wert“ (Länge, Spieler*innen, Was bleiben muss), Stück
   passt nur zu theater.toml. anpassen: Länge neu, Zeitplan je Teil anteilig, Spielerzahl auch im Kriterium

@@ -376,7 +376,7 @@ def letzter_guter_stand(ordner: Path, einheiten, v: dict) -> dict:
                "kritik": None, "kritik_datei": None}
         try:
             k = karte.antwort_lesen(ordner / f"kritik-{n}.json")
-            if not kritik.pruefen(k, v):
+            if not runde_mod.kritik_pruefen(k, v, f"Prüfung {n} (gelesen)"):
                 gut.update(kritik=k, kritik_datei=f"kritik-{n}.json")
         except karte.AntwortFehler:
             pass

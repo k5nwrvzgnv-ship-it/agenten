@@ -61,6 +61,39 @@ class Pruefen(unittest.TestCase):
         self.assertTrue(any("beleg: höchstens 500" in f for f in fehler))
         self.assertTrue(any(f.startswith("staerken:") for f in fehler))
 
+    def test_kuerzen_am_satzende(self):
+        k = antwort()
+        satz = "B07 trägt die Szene gut. "  # 25 Zeichen
+        k["kriterien"][0]["beleg"] = satz * 21  # 525 Zeichen, wie am 06.11. (507)
+        hinweise = kritik.kuerzen(k)
+        beleg = k["kriterien"][0]["beleg"]
+        self.assertLessEqual(len(beleg), 500)
+        self.assertTrue(beleg.endswith("gut."))
+        self.assertEqual(hinweise, [f"kriterien[0].beleg: 525 auf {len(beleg)} Zeichen gekürzt"])
+        self.assertEqual(kritik.pruefen(k, RUBRIK), [])
+
+    def test_kuerzen_ohne_satzende_mit_auslassung(self):
+        k = antwort("ansatzweise")
+        k["kriterien"][3]["verbesserung"] = "x" * 600
+        k["staerken"] = ["s" * 301]
+        k["wichtigste_aenderungen"] = ["Kurz", "a" * 450]
+        hinweise = kritik.kuerzen(k)
+        self.assertEqual(k["kriterien"][3]["verbesserung"], "x" * 499 + "…")
+        self.assertEqual(len(k["staerken"][0]), 300)
+        self.assertEqual(k["wichtigste_aenderungen"][0], "Kurz")
+        self.assertEqual(len(k["wichtigste_aenderungen"][1]), 400)
+        self.assertEqual(len(hinweise), 3)
+        self.assertEqual(kritik.pruefen(k, RUBRIK), [])
+
+    def test_kuerzen_laesst_kurzes_und_falsches_stehen(self):
+        k = antwort()
+        k["kriterien"].append("kein dict")
+        k["kriterien"][1]["beleg"] = 7
+        vorher = repr(k)
+        self.assertEqual(kritik.kuerzen(k), [])
+        self.assertEqual(repr(k), vorher)
+        self.assertEqual(kritik.kuerzen({"kriterien": None, "staerken": "x"}), [])
+
     def test_aenderungen(self):
         self.assertEqual(kritik.aenderungen_pruefen({"aenderungen": ["B07 gekürzt"]}), [])
         self.assertTrue(kritik.aenderungen_pruefen({}))
