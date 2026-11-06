@@ -1,0 +1,189 @@
+Bauteil Testbalken 261019, Seite A - 26 Aufnahmen
+6485 x 230 mm, Ziel 6 Px/mm, Saum 5 mm
+  Hoehe an 3 Stellen gemessen, Spanne 0.0 mm = 0.00 % - das ist die Toleranz des Massnormals
+  7 Lamellen -> im Mittel 32.9 mm
+
+Bauteilachse: laengs der Zeilen   1.9 % Streuung der Bandbreite, laengs der Spalten  62.4 %
+  Arbeitsbild 8064 x 6048 Px, Brennweite 5824 Px (EXIF 26 mm (KB))
+
+Kanten
+  Vorgabe aus der Bewegung (6 Bildpaare): Bauteil liegt bei 2579..4749 Px quer, also etwa 9.4 Px/mm
+  Bandbreite, auf die sich alle Aufnahmen einigen: 512 Px im Messbild = 8.90 Px/mm im Original
+  je Bild: 8.35 .. 9.79 Px/mm (+/-9 % - Abstandsschwankung der Hand)
+  IMG_2230.jpg: Neigung -0.03 Grad, Rest 34.3 Px, Balken im Bild   1- 99 % (30/36 Stationen)
+  IMG_2231.jpg: Neigung +2.12 Grad, Rest 17.2 Px, Balken im Bild   1- 99 % (33/36 Stationen)
+  IMG_2232.jpg: Neigung -0.57 Grad, Rest 46.4 Px, Balken im Bild   1- 99 % (34/36 Stationen)
+  IMG_2233.jpg: Neigung +0.38 Grad, Rest 13.9 Px, Balken im Bild   1- 99 % (34/36 Stationen)
+  IMG_2234.jpg: Neigung +0.28 Grad, Rest  9.1 Px, Balken im Bild   1- 99 % (34/36 Stationen)
+  IMG_2235.jpg: Neigung +0.47 Grad, Rest  6.3 Px, Balken im Bild   1- 99 % (34/36 Stationen)
+  IMG_2236.jpg: Neigung +0.03 Grad, Rest  2.8 Px, Balken im Bild   1- 99 % (35/36 Stationen)
+  IMG_2237.jpg: Neigung +1.13 Grad, Rest 14.4 Px, Balken im Bild   1- 99 % (28/36 Stationen)
+  IMG_2238.jpg: Neigung +0.80 Grad, Rest 16.4 Px, Balken im Bild   1- 90 % (24/36 Stationen)
+  IMG_2239.jpg: Neigung -0.39 Grad, Rest 24.8 Px, Balken im Bild   1- 99 % (29/36 Stationen)
+  IMG_2240.jpg: Neigung -0.04 Grad, Rest  3.5 Px, Balken im Bild   1- 99 % (35/36 Stationen)
+  IMG_2241.jpg: Neigung +0.43 Grad, Rest 27.0 Px, Balken im Bild   1- 99 % (36/36 Stationen)
+  IMG_2242.jpg: Neigung +0.81 Grad, Rest  9.9 Px, Balken im Bild   1- 99 % (36/36 Stationen)
+  IMG_2243.jpg: Neigung +0.45 Grad, Rest 13.0 Px, Balken im Bild   1- 99 % (34/36 Stationen)
+  IMG_2244.jpg: Neigung -0.30 Grad, Rest  6.3 Px, Balken im Bild   1- 99 % (36/36 Stationen)
+  IMG_2245.jpg: Neigung +0.42 Grad, Rest  9.8 Px, Balken im Bild   1- 99 % (36/36 Stationen)
+  IMG_2246.jpg: Neigung -0.11 Grad, Rest  2.0 Px, Balken im Bild   1- 99 % (36/36 Stationen)
+  IMG_2247.jpg: Neigung -0.34 Grad, Rest  6.5 Px, Balken im Bild   1- 99 % (36/36 Stationen)
+  IMG_2248.jpg: Neigung -0.98 Grad, Rest 11.5 Px, Balken im Bild  15- 99 % (30/36 Stationen)
+  IMG_2249.jpg: Neigung -0.70 Grad, Rest 11.9 Px, Balken im Bild  29- 99 % (25/36 Stationen)
+  IMG_2250.jpg: Neigung -1.50 Grad, Rest 42.0 Px, Balken im Bild  40- 99 % (21/36 Stationen)
+  IMG_2251.jpg: Neigung +0.15 Grad, Rest 13.4 Px, Balken im Bild  57- 99 % (16/36 Stationen)
+  IMG_2252.jpg: Neigung +0.82 Grad, Rest 36.6 Px, Balken im Bild   1- 62 % (17/36 Stationen)
+  IMG_2253.jpg: Neigung +2.10 Grad, Rest 54.2 Px, Balken im Bild   1- 65 % (23/36 Stationen)
+  IMG_2254.jpg: Neigung +1.37 Grad, Rest 32.4 Px, Balken im Bild   1- 93 % (27/36 Stationen)
+  IMG_2255.jpg: Neigung -1.28 Grad, Rest 55.5 Px, Balken im Bild  10- 99 % (23/36 Stationen)
+  Rest der Kantengeraden: Median 13.6 Px, groesster 55.5 Px
+  Verjuengung des Bandes ueber das Bild: Median -1.49 %, Streuung 1.32 %
+  IMG_2230.jpg: Verjuengung +6.86 % statt -1.49 % - Kante auf die Reihe abgeglichen (steht dort etwas vor dem Bauteil?)
+  IMG_2231.jpg: Verjuengung -7.07 % statt -1.49 % - Kante auf die Reihe abgeglichen (steht dort etwas vor dem Bauteil?)
+  IMG_2250.jpg: Verjuengung +9.14 % statt -1.49 % - Kante auf die Reihe abgeglichen (steht dort etwas vor dem Bauteil?)
+  IMG_2252.jpg: Verjuengung -7.63 % statt -1.49 % - Kante auf die Reihe abgeglichen (steht dort etwas vor dem Bauteil?)
+  IMG_2255.jpg: Verjuengung +5.39 % statt -1.49 % - Kante auf die Reihe abgeglichen (steht dort etwas vor dem Bauteil?)
+
+Zuordnung (3 Px/mm)
+  IMG_2230.jpg -> IMG_2231.jpg:  5 Paare, NCC 0.84, Versatz +310 mm (zweiter Anlauf)
+  IMG_2231.jpg -> IMG_2232.jpg:  9 Paare, NCC 0.54, Versatz +294 mm
+  IMG_2232.jpg -> IMG_2233.jpg:  6 Paare, NCC 0.51, Versatz +250 mm
+  IMG_2233.jpg -> IMG_2234.jpg: 13 Paare, NCC 0.67, Versatz +247 mm
+  IMG_2234.jpg -> IMG_2235.jpg: 15 Paare, NCC 0.70, Versatz +273 mm
+  IMG_2235.jpg -> IMG_2236.jpg: 11 Paare, NCC 0.73, Versatz +283 mm
+  IMG_2236.jpg -> IMG_2237.jpg:  9 Paare, NCC 0.71, Versatz +259 mm
+  IMG_2237.jpg -> IMG_2238.jpg: 14 Paare, NCC 0.79, Versatz +200 mm
+  IMG_2238.jpg -> IMG_2239.jpg:  7 Paare, NCC 0.61, Versatz +282 mm
+  IMG_2239.jpg -> IMG_2240.jpg:  9 Paare, NCC 0.82, Versatz +312 mm
+  IMG_2240.jpg -> IMG_2241.jpg: 14 Paare, NCC 0.82, Versatz +196 mm
+  IMG_2241.jpg -> IMG_2242.jpg: 11 Paare, NCC 0.83, Versatz +261 mm
+  IMG_2242.jpg -> IMG_2243.jpg: 14 Paare, NCC 0.90, Versatz +249 mm
+  IMG_2243.jpg -> IMG_2244.jpg:  7 Paare, NCC 0.77, Versatz +248 mm
+  IMG_2244.jpg -> IMG_2245.jpg: 12 Paare, NCC 0.79, Versatz +289 mm
+  IMG_2245.jpg -> IMG_2246.jpg: 12 Paare, NCC 0.74, Versatz +240 mm
+  IMG_2246.jpg -> IMG_2247.jpg:  8 Paare, NCC 0.72, Versatz +199 mm
+  IMG_2247.jpg -> IMG_2248.jpg: 13 Paare, NCC 0.73, Versatz +249 mm
+  IMG_2248.jpg -> IMG_2249.jpg: 11 Paare, NCC 0.78, Versatz +221 mm
+  IMG_2249.jpg -> IMG_2250.jpg:  5 Paare, NCC 0.69, Versatz +262 mm
+  IMG_2250.jpg -> IMG_2251.jpg:  6 Paare, NCC 0.67, Versatz +185 mm
+  IMG_2251.jpg -> IMG_2252.jpg:  5 Paare, NCC 0.47, Versatz -281 mm (zweiter Anlauf)
+  IMG_2252.jpg -> IMG_2253.jpg: 16 Paare, NCC 0.83, Versatz +240 mm
+  IMG_2253.jpg -> IMG_2254.jpg: 21 Paare, NCC 0.80, Versatz +236 mm
+  IMG_2254.jpg -> IMG_2255.jpg:  6 Paare, NCC 0.59, Versatz +219 mm
+  Weitere Nachbarn mit genug Ueberlappung: 28 versucht, 10 verbunden
+  35 Bildpaare, 330 Punktpaare
+
+Ausgleichung  (je Bild Pose gegen die Bauteilebene, Brennweite global)
+  Aufnahmeabstand zu Beginn: 646 mm; Brennweite fest
+  1. Durchgang: Kanten 1556 Stationen, Rest Median 1.06 mm, 90 % unter 7.60 mm
+                Punktpaare 330, Rest Median 0.473 mm, 90 % unter 1.629 mm
+
+Zuordnung, zweiter Durchgang im Modellrahmen
+  40 Bildpaare neu zugeordnet, 0 verworfen (Suche am Fensterrand); 1298 Punktpaare statt 330
+  3. Durchgang: Kanten 1556 Stationen, Rest Median 1.11 mm, 90 % unter 8.08 mm
+                Punktpaare 1298, Rest Median 0.278 mm, 90 % unter 0.904 mm
+  IMG_2255.jpg: Kante sitzt 13.5 mm daneben (Reihe: 1.02 mm) - Kantenmessung fallengelassen
+  noch ein Durchgang: Kanten 1508 Stationen, Rest Median 0.83 mm, 90 % unter 6.68 mm
+                      Punktpaare 1298, Rest Median 0.280 mm, 90 % unter 0.871 mm
+  IMG_2250.jpg: Kante sitzt 4.9 mm daneben (Reihe: 0.78 mm) - Kantenmessung fallengelassen
+  noch ein Durchgang: Kanten 1460 Stationen, Rest Median 0.78 mm, 90 % unter 6.00 mm
+                      Punktpaare 1298, Rest Median 0.280 mm, 90 % unter 0.840 mm
+  IMG_2251.jpg: Verjuengung +7 Grad unmoeglich - auf die Reihe gesetzt und festgehalten
+  IMG_2255.jpg: Verjuengung -35 Grad unmoeglich - auf die Reihe gesetzt und festgehalten
+  noch ein Durchgang: Kanten 1460 Stationen, Rest Median 0.82 mm, 90 % unter 7.47 mm
+                      Punktpaare 1298, Rest Median 0.265 mm, 90 % unter 0.829 mm
+  IMG_2230.jpg: Verjuengung +48 Grad unmoeglich - auf die Reihe gesetzt und festgehalten
+  noch ein Durchgang: Kanten 1460 Stationen, Rest Median 1.47 mm, 90 % unter 6.89 mm
+                      Punktpaare 1298, Rest Median 0.306 mm, 90 % unter 1.005 mm
+  Verkippung quer, fuer die ganze Reihe: 10.7 Grad
+  Verjuengung laengs je Bild: -4.3 .. +3.1 Grad
+  Laengsachse gespiegelt (Aufnahmerichtung)
+
+Lage der Aufnahmen im Bauteilrahmen
+  IMG_2230.jpg:    -621 ..       5 mm (  626 mm), Mitte    -311, Abstand  603 mm, 10.7 Grad
+  IMG_2231.jpg:    -279 ..     320 mm (  599 mm), Mitte      25, Abstand  573 mm, 11.0 Grad
+  IMG_2232.jpg:     -27 ..     615 mm (  642 mm), Mitte     294, Abstand  614 mm, 10.7 Grad
+  IMG_2233.jpg:     226 ..     862 mm (  636 mm), Mitte     544, Abstand  612 mm, 10.7 Grad
+  IMG_2234.jpg:     444 ..    1108 mm (  664 mm), Mitte     777, Abstand  635 mm, 10.7 Grad
+  IMG_2235.jpg:     687 ..    1378 mm (  690 mm), Mitte    1032, Abstand  662 mm, 10.7 Grad
+  IMG_2236.jpg:     991 ..    1659 mm (  668 mm), Mitte    1327, Abstand  638 mm, 10.7 Grad
+  IMG_2237.jpg:    1255 ..    1923 mm (  668 mm), Mitte    1587, Abstand  637 mm, 10.7 Grad
+  IMG_2238.jpg:    1446 ..    2121 mm (  676 mm), Mitte    1790, Abstand  642 mm, 10.9 Grad
+  IMG_2239.jpg:    1710 ..    2400 mm (  690 mm), Mitte    2056, Abstand  658 mm, 10.7 Grad
+  IMG_2240.jpg:    1983 ..    2708 mm (  725 mm), Mitte    2348, Abstand  692 mm, 10.7 Grad
+  IMG_2241.jpg:    2189 ..    2911 mm (  722 mm), Mitte    2553, Abstand  691 mm, 10.8 Grad
+  IMG_2242.jpg:    2443 ..    3171 mm (  728 mm), Mitte    2810, Abstand  699 mm, 10.8 Grad
+  IMG_2243.jpg:    2679 ..    3421 mm (  743 mm), Mitte    3056, Abstand  714 mm, 10.9 Grad
+  IMG_2244.jpg:    2956 ..    3676 mm (  720 mm), Mitte    3322, Abstand  692 mm, 10.8 Grad
+  IMG_2245.jpg:    3272 ..    3970 mm (  697 mm), Mitte    3624, Abstand  673 mm, 10.8 Grad
+  IMG_2246.jpg:    3518 ..    4210 mm (  693 mm), Mitte    3866, Abstand  667 mm, 10.7 Grad
+  IMG_2247.jpg:    3769 ..    4407 mm (  638 mm), Mitte    4092, Abstand  613 mm, 10.8 Grad
+  IMG_2248.jpg:    3988 ..    4657 mm (  669 mm), Mitte    4324, Abstand  642 mm, 10.7 Grad
+  IMG_2249.jpg:    4230 ..    4886 mm (  656 mm), Mitte    4557, Abstand  630 mm, 10.7 Grad
+  IMG_2252.jpg:    4441 ..    5068 mm (  627 mm), Mitte    4750, Abstand  601 mm, 10.8 Grad
+  IMG_2250.jpg:    4443 ..    5120 mm (  677 mm), Mitte    4794, Abstand  646 mm, 11.4 Grad
+  IMG_2253.jpg:    4675 ..    5328 mm (  652 mm), Mitte    4991, Abstand  622 mm, 11.3 Grad
+  IMG_2251.jpg:    4673 ..    5348 mm (  675 mm), Mitte    5012, Abstand  650 mm, 10.7 Grad
+  IMG_2254.jpg:    4875 ..    5557 mm (  682 mm), Mitte    5219, Abstand  652 mm, 10.8 Grad
+  IMG_2255.jpg:    4990 ..    5841 mm (  850 mm), Mitte    5463, Abstand  899 mm, 10.7 Grad
+
+Vorschub: Median 244 mm, Spanne 21..336 mm
+Aufnahmeabstand: Median 644 mm, Spanne 573..899 mm (57 % - Schwankung der Hand)
+Verkippung gegen die Bauteilebene: Median 10.7 Grad, groesste 11.4 Grad
+Belegt: -626 .. 5846 mm (6472 mm)
+
+Photometrie
+  42 Bildpaare beprobt
+  Helligkeitsfaktoren: 0.880 .. 1.296 (Spanne 47 %)
+  Weissabgleich der Kamera lief um R/G 18 %, B/G 22 % - wird herausgerechnet
+  Lichtfeld ueber dem Bild: -4.7 % bis +35.6 % gegen die Bildmitte
+
+Naehte
+  25 Naehte, Abstand Median 241 mm
+Bauteil Testbalken 261019, Seite A - 26 Aufnahmen
+6485 x 230 mm, Ziel 6 Px/mm, Saum 5 mm
+  Hoehe an 3 Stellen gemessen, Spanne 0.0 mm = 0.00 % - das ist die Toleranz des Massnormals
+  7 Lamellen -> im Mittel 32.9 mm
+
+Zwischenspeicher uebernommen: streifen_v40_ISO800.modell.pkl
+
+Balkenenden ueber die Faserrichtung gefunden (Holz 2.8-fach quergerichtet)
+Balken im Streifen: 6212 mm, Aufmass 6485 mm -> -273 mm = -4.21 %
+  Laengsmassstab auf das Aufmass gesetzt (Faktor 1.0439).
+  Quer ist die Flaechenhoehe das Mass, laengs die Gesamtlaenge -
+  beide gemessen am Bauteil. Eine unabhaengige Laengsprobe gibt
+  diese Reihe nicht her; dafuer braeuchte es zwei eingemessene
+  Marken im Bild.
+
+Leinwand 38970 x 1440 Px = 6495 x 240 mm (Balkenfeld 6485 x 230 mm)
+Flaeche belegt: 100.0 % der Laenge
+
+Pruefzahlen
+  Querversatz an den 25 Naehten: Median 0.09 mm, groesster 0.33 mm
+  Bauteilkante im Streifen: Streuung 1.52 mm, langwellige Abweichung 4.20 mm (auf 85 % der Laenge gefunden)
+    (die kurzwellige Streuung ist das Bauteil - Ausbrueche, Saegespuren; die langwellige ist das Verfahren)
+  Nahtsichtbarkeit: 59 Spalten mit senkrechter Kante, staerkste 36-fach ueber dem Grundwert
+  Helligkeitswelligkeit laengs: 10.3 % (Streuung um den Verlauf ueber 600 mm)
+
+Pruefbericht
+------------
+  14 Punkt(e):
+    - IMG_2230.jpg: Bandverjuengung +6.9 % unplausibel - Kante abgeglichen, Geometrie dort weniger sicher
+    - IMG_2231.jpg: Bandverjuengung -7.1 % unplausibel - Kante abgeglichen, Geometrie dort weniger sicher
+    - IMG_2250.jpg: Bandverjuengung +9.1 % unplausibel - Kante abgeglichen, Geometrie dort weniger sicher
+    - IMG_2252.jpg: Bandverjuengung -7.6 % unplausibel - Kante abgeglichen, Geometrie dort weniger sicher
+    - IMG_2255.jpg: Bandverjuengung +5.4 % unplausibel - Kante abgeglichen, Geometrie dort weniger sicher
+    - IMG_2255.jpg: Kantenmessung verworfen - Querlage dort nur aus den Punktpaaren
+    - IMG_2250.jpg: Kantenmessung verworfen - Querlage dort nur aus den Punktpaaren
+    - IMG_2251.jpg: Verjuengung auf die Reihe gesetzt - Geometrie dort weniger sicher
+    - IMG_2255.jpg: Verjuengung auf die Reihe gesetzt - Geometrie dort weniger sicher
+    - IMG_2230.jpg: Verjuengung auf die Reihe gesetzt - Geometrie dort weniger sicher
+    - Weissabgleich der Kamera war nicht fest - die Farbe des Streifens ist das Mittel der Reihe, nicht die wahre Farbe. In ProCamera Kelvin fest einstellen.
+    - rohe Laenge wich -4.2 % vom Aufmass ab
+    - Bauteilkante wandert langwellig um 4.2 mm
+    - 59 sichtbare Nahtkanten
+
+Ergebnis:   39318 x 1830 Px, Balkenfeld 6485 x 230 mm bei 6 Px/mm
+Geschrieben: /home/claude/ergebnis/streifen_v40_ISO800.jpg
+Uebersicht:  /home/claude/ergebnis/streifen_v40_ISO800_uebersicht.jpg
+Rechenzeit:  33 s

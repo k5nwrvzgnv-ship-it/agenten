@@ -1,0 +1,30 @@
+Bildreihe: /tmp/reihe
+26 Aufnahmen, Teiler 8, Flaechenhoehe 230 mm (bauteil.json)
+
+3 - Kanten des Bauteils
+-----------------------
+  Bandbreite, auf die sich alle Aufnahmen einigen: 256 Px im Messbild = 8.90 Px/mm im Original
+  Aufloesung   8.90 Px/mm   ok
+
+5 - Ueberlappung und Vorschub
+-----------------------------
+  Ueberlappung  Median  61.2 %, kleinste  42.0 %  ok
+
+6 - Urteil
+----------
+  Masstreue    GELB  - laesst sich zusammensetzen, Mass mit Abstrichen.
+  Farbtreue    ROT   - Farben nicht wiederherstellbar.
+
+  [ROT ] Weissabgleich nicht fest  (Farbe)
+         Der Weissabgleich lief um 18 %.
+         -> In ProCamera Kelvin fest einstellen.
+
+  [gelb] Handy nicht parallel zum Bauteil  (Mass)
+         In 4 von 26 Aufnahmen liegt das Bauteil schraeg.
+         -> Das Handy parallel halten.
+         betrifft: IMG_2231.jpg (+2.1 Grad)
+
+  (Geprueft wird die Aufnahmereihe, nicht das fertige Bild. Dass die
+   Reihe besteht, heisst noch nicht, dass der Streifen masshaltig
+   wird - das zeigt erst der Zusammenbau.)
+  [21.4 s]
