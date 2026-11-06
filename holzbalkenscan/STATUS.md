@@ -42,8 +42,12 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
 
 ## Offene Punkte
 1. Erster echter Lauf ISO 800 (07.11., Lauf 20261107-004413, Grenze 3000M, mit Jans Okay) scheiterte an zwei
-   unvollständigen Fotos vom SharePoint-Download: IMG_2252.jpg (10223616 Byte) und IMG_2255.jpg (2818048 Byte)
-   enden mitten im Bild. Jan lädt sie neu, dann Lauf wiederholen (vorher free -m, Jan fragen).
+   unvollständigen Fotos vom SharePoint-Download. Am 07.11. neu geladen und geprüft (IMG_2252.jpg 10986746 Byte,
+   IMG_2255.jpg 10517613 Byte, Größen wie auf SharePoint). Lauf wiederholen (vorher free -m, Jan fragen).
+   SharePoint: Freigabelink mit curl -c holt ein Gast-Cookie (FedAuth); Liste per
+   _api/web/GetFolderByServerRelativeUrl('/personal/jkl298_hnee_de/Documents/Forschungsprojekt_Lamellen-Scan/
+   Panorama/Input/<reihe>')?$expand=Files. Dateien über _layouts/15/download.aspx?SourceUrl=<pfad> laden,
+   nicht über /$value (brach ab). Nach jedem Download Größe gegen Length aus der Liste prüfen.
    Speicherspitzen bis zum Abbruch: Vorprüfung 417 MB (89 s), Zusammenbau 472 MB (28 s); die volle Spitze
    ist noch unbekannt, SPEICHER_STANDARD danach anpassen.
 2. Zweite Reihe 261022_Test fehlt noch (von Jans SharePoint holen, nach data/reihen/).
