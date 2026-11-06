@@ -998,6 +998,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     nur der letzte Satz; bei den meisten "raus" war nur ein [OFFEN: ...] markiert. Genauer ginge es mit den x-Grenzen der
     QuadPoints; pypdfium2 get_text_bounded traf bei dieser PDF alle 25 Stellen wörtlich (Paket liegt nicht in uni/.venv).
     Noch nicht gebaut, braucht Jans Okay. Bis dahin hat der uni-Chat die Stellen von Hand in den Auftragstext geschrieben.
+31. Bedarf aus holzbalkenscan (07.11.2026): Die Zentrale kennt den Agenten noch nicht. Für Aufträge per Telegram
+    "holzbalkenscan" in AGENTEN (shared/telegram/logik.py) eintragen; die Zentrale startet dann
+    holzbalkenscan.service (Vorlage holzbalkenscan/systemd/, noch nicht installiert, braucht Jans Okay).
+    Bis dahin Auftrag von Hand anlegen (siehe holzbalkenscan/STATUS.md).
 
 ## Gelernte Regeln
 - (noch keine)

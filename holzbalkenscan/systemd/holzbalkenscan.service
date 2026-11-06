@@ -1,0 +1,17 @@
+# Agent holzbalkenscan: rechnet auf Auftrag die Fotoreihen nach (Prüfstand). Kein Timer, die Zentrale startet
+# den Dienst nach jedem neuen Auftrag. Einrichten nur nach Jans Okay:
+#   cp systemd/holzbalkenscan.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+# Die Rechenschritte laufen in eigenen Scopes mit eigener Speichergrenze (agent.py, pruefstand.befehl),
+# MemoryMax hier gilt nur für agent.py selbst.
+[Unit]
+Description=Agent holzbalkenscan (Prüfstand)
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/holzbalkenscan
+ExecStart=/home/agent/agenten/holzbalkenscan/.venv/bin/python agent.py
+# je Schritt höchstens 60 min (agent.ZEITGRENZE_S), zwei Schritte je Reihe
+TimeoutStartSec=4h
+MemoryMax=512M
