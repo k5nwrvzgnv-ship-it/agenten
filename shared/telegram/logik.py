@@ -12,7 +12,7 @@ from pathlib import Path
 
 from agentkit.mail import anhang_zeile
 
-AGENTEN = ("uni", "dokumente", "posteingang", "einkauf")
+AGENTEN = ("uni", "dokumente", "posteingang", "einkauf", "finance")
 MAX_LAENGE = 3800  # Telegram erlaubt 4096 Zeichen pro Nachricht, etwas Puffer
 MAX_DATEI_BYTES = 20 * 1024 * 1024  # mehr lädt die Bot-Schnittstelle von Telegram nicht herunter
 ZENTRALE = "zentrale"  # Absender für Systemnachrichten (Sprachregel, Jan 27.10.2026)

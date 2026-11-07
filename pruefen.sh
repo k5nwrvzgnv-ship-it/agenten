@@ -26,6 +26,8 @@ TESTS=(
   "dokumente|.venv/bin/python|tests"
   "posteingang|.venv/bin/python|tests"
   "holzbalkenscan|.venv/bin/python|tests"
+  # finance: noch ohne .venv, deshalb python3; mit der .venv auf .venv/bin/python umstellen
+  "finance|python3|tests"
   "lia/unterricht|.venv/bin/python|tests"
   "lia/auswertung|.venv/bin/python|tests"
   "lia/examen|.venv/bin/python|tests"

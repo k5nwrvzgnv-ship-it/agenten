@@ -40,6 +40,9 @@ uni = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 dokumente = ["Read", "Write", "Edit", "Glob", "Grep"]
 posteingang = ["Read", "Write", "Edit", "Glob", "Grep"]
 einkauf = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
+# finance: Recherche zur Wirtschaftlichkeit (Jan 07.11.2026). Ohne Eintrag unter [webfetch], weil Geschäftsberichte
+# auf beliebigen Firmenseiten liegen; ob eine Domainliste kommt, entscheidet Jan (finance/STATUS.md).
+finance = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 # Lias Agent lia/recherche (Lias Instanz hat keine eigene einstellungen.toml, sie erbt [werkzeuge] von hier)
 recherche = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 # Feedback-Dienst (shared/feedback): Claude ordnet nur zu und antwortet als Text, schreibt nichts

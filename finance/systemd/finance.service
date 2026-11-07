@@ -1,0 +1,15 @@
+# Vorlage: nach ~/.config/systemd/user/finance.service kopieren (erst mit Jans Okay).
+# Startet einen Lauf: offene Aufträge abarbeiten, freigegebene Entwürfe ausführen,
+# zeitgesteuerte Aufgaben. Die Zentrale startet den Dienst nach jedem neuen Auftrag.
+[Unit]
+Description=Agent finance
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/finance
+ExecStart=/home/agent/agenten/finance/.venv/bin/python agent.py
+# 8h wie uni: eine Recherche besteht aus mehreren claude-Läufen nacheinander
+TimeoutStartSec=8h
+MemoryMax=1G

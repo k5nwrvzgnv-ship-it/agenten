@@ -5,7 +5,7 @@ Das Menü holst du mit /start.
 Aufträge:
 /uni Text: Uni erledigt das allein.
 /unilern Text: Du lernst es zusammen mit Uni.
-Genauso für /dokumente, /posteingang, /einkauf.
+Genauso für /dokumente, /posteingang, /einkauf, /finance.
 Text ohne Befehl: Ich frage, an wen er geht.
 Antwort auf ein Ergebnis: Es geht im selben Gespräch weiter.
 Antwort auf eine Meldung mit Knöpfen: zählt wie ein Knopf.
