@@ -6,8 +6,11 @@ und der Konsolenausgabe. lauf.json:
 Ergebnis einer Reihe: {"status", "schritte": {"vorpruefung"|"zusammenbau": Schritt}, "vorpruefung": {...},
 "zusammenbau": {...}} mit Schritt = {"exit", "dauer_s", "spitze_mb", "status"}.
 
-Vergleichsbasis: der letzte frühere Lauf, der die Reihe enthält; sonst der Referenzbericht
+Vergleichsbasis: der letzte frühere gelungene Lauf derselben Fassung mit der Reihe; sonst der Referenzbericht
 data/referenz/<reihe>.txt (Ergebnis des Auftraggebers), sonst keine.
+Fassungen: "alt" = verfahren/ (Felix, unverändert), "neu" = verfahren_neu/ (Auftrag "fassung neu"). Läufe der neuen
+Fassung werden immer gegen den letzten Lauf der alten Fassung verglichen (die Grundlinie), auch einen
+gescheiterten, damit "fällt auseinander -> gelingt" sichtbar wird. lauf.json ohne "fassung" gilt als "alt".
 """
 
 import hashlib
@@ -99,6 +102,11 @@ def auswahl(text: str, reihen: list[str]) -> list[str]:
     return genannt or list(reihen)
 
 
+def fassung_aus_text(text: str) -> str:
+    """'fassung neu' (oder 'fassung=neu') im Auftrag wählt verfahren_neu/, sonst die alte Fassung."""
+    return "neu" if re.search(r"\bfassung\s*=?\s*neu\b", text, re.IGNORECASE) else "alt"
+
+
 def speicher_aus_text(text: str, standard: str) -> str:
     """'speicher 4G' oder 'speicher=3500M' im Auftrag setzt die Grenze, sonst standard."""
     m = re.search(r"speicher\s*=?\s*(\d+\s*[MG])\b", text, re.IGNORECASE)
@@ -167,8 +175,8 @@ def speichern(lauf_dir: Path, lauf: dict) -> Path:
     return pfad
 
 
-def vorlauf(laeufe_dir: Path, vor_id: str, reihe: str) -> dict | None:
-    """Letzter Lauf vor vor_id, in dem die Reihe gelungen ist."""
+def vorlauf(laeufe_dir: Path, vor_id: str, reihe: str, fassung: str = "alt", nur_gelungen: bool = True) -> dict | None:
+    """Letzter Lauf der Fassung vor vor_id mit der Reihe (nur_gelungen: nur Läufe, in denen sie gelang)."""
     if not laeufe_dir.is_dir():
         return None
     for d in sorted((d for d in laeufe_dir.iterdir() if d.is_dir() and d.name < vor_id), reverse=True):
@@ -176,14 +184,22 @@ def vorlauf(laeufe_dir: Path, vor_id: str, reihe: str) -> dict | None:
             lauf = json.loads((d / "lauf.json").read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if lauf.get("reihen", {}).get(reihe, {}).get("status") == "ok":  # gescheiterte Läufe taugen nicht als Basis
+        if lauf.get("fassung", "alt") != fassung or reihe not in lauf.get("reihen", {}):
+            continue
+        if not nur_gelungen or lauf["reihen"][reihe].get("status") == "ok":  # gescheiterte taugen sonst nicht
             return lauf
     return None
 
 
-def basis(laeufe_dir: Path, referenz_dir: Path, vor_id: str, reihe: str) -> tuple[str, dict] | None:
+def basis(laeufe_dir: Path, referenz_dir: Path, vor_id: str, reihe: str,
+          fassung: str = "alt") -> tuple[str, dict] | None:
     """(Bezeichnung, Ergebnis der Reihe) zum Vergleichen, siehe Kopf."""
-    alt = vorlauf(laeufe_dir, vor_id, reihe)
+    if fassung == "neu":
+        alt = vorlauf(laeufe_dir, vor_id, reihe, "alt", nur_gelungen=False)
+        if alt:
+            return (f"Grundlinie alte Fassung {alt['id']} (Code {alt['code']}, {alt['reihen'][reihe]['status']})",
+                    alt["reihen"][reihe])
+    alt = vorlauf(laeufe_dir, vor_id, reihe, fassung)
     if alt:
         return f"Vorlauf {alt['id']} (Code {alt['code']})", alt["reihen"][reihe]
     ref = referenz_dir / f"{reihe}.txt"
@@ -256,6 +272,9 @@ def reihe_kurz(name: str, erg: dict) -> list[str]:
         z.append(f"  Länge roh {_fmt(k.get('laengsabweichung_prozent'))} %, Kante langwellig "
                  f"{_fmt(k.get('kante_langwellig_mm'))} mm, Nahtkanten {_fmt(k.get('nahtkanten'))}, "
                  f"Prüfpunkte {'–' if pb is None else len(pb)}, Rechenzeit {_fmt(k.get('rechenzeit_s'))} s")
+        z.append(f"  Zuordnung: direkte Paare {_fmt(k.get('direkte_paare'))}, Punktpaare {_fmt(k.get('punktpaare_1'))}"
+                 f" / {_fmt(k.get('punktpaare_2'))}, je Naht {_fmt(k.get('punktpaare_je_naht'))}, "
+                 f"abgehängt {_fmt(k.get('abgehaengt'))}")
     return z
 
 
@@ -273,7 +292,8 @@ def vergleich_text(bezeichnung: str, alt: dict, neu: dict) -> list[str]:
 
 def meldetext(lauf: dict, vergleiche: dict[str, tuple[str, dict] | None]) -> str:
     """Meldung an Jan: Kopf, je Reihe Kernzahlen und Unterschiede zur Vergleichsbasis."""
-    z = [f"Prüfstand holzbalkenscan, Lauf {lauf['id']}, Code {lauf['code']}, Speichergrenze {lauf['speicher']}"]
+    z = [f"Prüfstand holzbalkenscan, Lauf {lauf['id']}, Fassung {lauf.get('fassung', 'alt')}, Code {lauf['code']}, "
+         f"Speichergrenze {lauf['speicher']}"]
     for name, erg in lauf["reihen"].items():
         z.append("")
         z += reihe_kurz(name, erg)

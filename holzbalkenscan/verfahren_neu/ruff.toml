@@ -1,0 +1,8 @@
+# Linter für verfahren_neu: wie im Hauptordner. Die Kopien von Felix' Dateien (zusammensetzen2.py, pruefen.py,
+# kantenbild.py) behalten seinen Stil und sind ausgenommen; neue Module (zuordnung_roh.py) werden voll geprüft.
+extend = "../../ruff.toml"
+
+[lint.per-file-ignores]
+"zusammensetzen2.py" = ["E4", "E7", "E9", "F", "B"]
+"pruefen.py" = ["E4", "E7", "E9", "F", "B"]
+"kantenbild.py" = ["E4", "E7", "E9", "F", "B"]

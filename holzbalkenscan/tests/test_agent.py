@@ -65,6 +65,28 @@ class TestLauf(unittest.TestCase):
         _, text2 = self.rechnen(datetime(2026, 11, 7, 11, 0, 0))
         self.assertIn("gegen Vorlauf 20261107-100000", text2)
 
+    def test_neue_fassung_gegen_grundlinie(self):
+        neu = self.tmp / "verfahren_neu"
+        neu.mkdir()
+        (neu / "pruefen.py").write_text(FAKE_PRUEFEN)
+        (neu / "zusammensetzen2.py").write_text(FAKE_ZUSAMMEN + "# neu\n")
+        alt, _ = self.rechnen(datetime(2026, 11, 7, 10, 0, 0))
+        erg, text = agent.lauf("ISO 800 fassung neu", "auftrag-2", daten=self.daten,
+                               jetzt=datetime(2026, 11, 7, 11, 0, 0), verfahren_neu=neu, befehl=ohne_scope)
+        self.assertEqual((alt["fassung"], erg["fassung"]), ("alt", "neu"))
+        self.assertNotEqual(alt["code"], erg["code"])
+        self.assertIn("Fassung neu", text)
+        self.assertIn("gegen Grundlinie alte Fassung 20261107-100000", text)
+
+    def test_ohne_bericht_zaehlt_die_konsolenausgabe(self):
+        (self.verfahren / "zusammensetzen2.py").write_text(
+            "print('Bauteil X, Seite A - 5 Aufnahmen')\n"
+            "print('  ACHTUNG  ohne Verbindung zur Reihe: a.jpg, b.jpg')\nraise SystemExit(-9)\n")
+        erg, _ = self.rechnen(datetime(2026, 11, 7, 10, 0, 0))
+        z = erg["reihen"]["ISO 800"]["zusammenbau"]
+        self.assertEqual(z["aufnahmen"], 5)
+        self.assertEqual(z["ohne_verbindung"], ["a.jpg", "b.jpg"])
+
     def test_zeitgrenze(self):
         (self.verfahren / "pruefen.py").write_text("import time; time.sleep(30)\n")
         erg, _ = self.rechnen(datetime(2026, 11, 7, 10, 0, 0), zeitgrenze_s=0.5)

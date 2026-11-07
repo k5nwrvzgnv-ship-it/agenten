@@ -1,0 +1,25 @@
+{
+  "_hinweis": "Diese Datei gehoert als 'bauteil.json' neben die Aufnahmen EINER Bauteilseite. Alle Masse in Millimetern. Kommentarzeilen beginnen mit _.",
+
+  "bauteil": "002-WRD",
+  "seite": "A",
+
+  "_flaeche_hoehe_mm": "Hoehe der aufgenommenen Bauteilseite, an drei Stellen gemessen. Das ist das Massnormal - siehe Konzept 4.6.",
+  "flaeche_hoehe_mm": 600.0,
+  "flaeche_hoehe_mm_gemessen": [600.0, 600.0, 600.0],
+
+  "_laenge_mm": "Gesamtlaenge des Bauteils. Dient der Laengeneinpassung am Schluss.",
+  "laenge_mm": 8000.0,
+
+  "_grenzen": "kanten = Silhouette gegen den Hintergrund (Regelfall am Balken). raster = regelmaessige Linien im Bild (Lamellenfugen, Dielen) - Notbehelf, wenn keine Kante zu sehen ist.",
+  "grenzen": "kanten",
+
+  "_raster_mm": "Nur bei grenzen=raster noetig: Abstand der regelmaessigen Linien.",
+  "raster_mm": null,
+
+  "_lamellen": "Nur BSH, zur Kontrolle: Anzahl der Lamellen auf dieser Seite. Flaechenhoehe / Lamellen muss die Lamellendicke ergeben.",
+  "lamellen": null,
+
+  "_px_mm": "Aufloesung des Ergebnisses. 3 Px/mm ist das Aktenbild.",
+  "px_mm": 3.0
+}

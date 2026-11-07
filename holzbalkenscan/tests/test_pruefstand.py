@@ -134,6 +134,30 @@ class TestAblageUndVergleich(unittest.TestCase):
         self.assertEqual(ps.vorlauf(self.laeufe, "20261105-000000", "A")["id"], "20261101-000001")
         self.assertIsNone(ps.vorlauf(self.laeufe, "20261105-000000", "C"))
 
+    def test_vorlauf_und_basis_je_fassung(self):
+        def mit_fassung(lid, fassung, status="ok"):
+            lauf = {"id": lid, "zeit": "", "code": "c", "auftrag": None, "speicher": "3G", "fassung": fassung,
+                    "reihen": {"A": ergebnis(status=status)}}
+            ps.speichern(self.laeufe / lid, lauf)
+        self.lauf("20261101-000001", {"A": ergebnis()})               # ohne Angabe: alte Fassung
+        mit_fassung("20261102-000002", "alt", status="speichergrenze")
+        mit_fassung("20261103-000003", "neu")
+        self.assertEqual(ps.vorlauf(self.laeufe, "20261105-000000", "A")["id"], "20261101-000001")
+        self.assertEqual(ps.vorlauf(self.laeufe, "20261105-000000", "A", "neu")["id"], "20261103-000003")
+        self.assertEqual(ps.vorlauf(self.laeufe, "20261105-000000", "A", nur_gelungen=False)["id"],
+                         "20261102-000002")
+        name, _ = ps.basis(self.laeufe, self.ref, "20261105-000000", "A", "neu")
+        self.assertTrue(name.startswith("Grundlinie alte Fassung 20261102-000002"))
+        self.assertIn("speichergrenze", name)
+        name, _ = ps.basis(self.laeufe, self.ref, "20261105-000000", "A")
+        self.assertTrue(name.startswith("Vorlauf 20261101-000001"))
+
+    def test_fassung_aus_text(self):
+        self.assertEqual(ps.fassung_aus_text("pf-flau fassung neu speicher 2G"), "neu")
+        self.assertEqual(ps.fassung_aus_text("Fassung=Neu"), "neu")
+        self.assertEqual(ps.fassung_aus_text("ISO 800"), "alt")
+        self.assertEqual(ps.fassung_aus_text("fassung neuer"), "alt")
+
     def test_basis_faellt_auf_referenz_zurueck(self):
         (self.ref / "ISO 800.txt").write_text((BEISPIELE / "zusammenbau_iso800.txt").read_text(encoding="utf-8"),
                                               encoding="utf-8")
@@ -161,7 +185,7 @@ class TestAblageUndVergleich(unittest.TestCase):
     def test_meldetext(self):
         lauf = self.lauf("20261107-000001", {"ISO 800": ergebnis(0.15, ("a", "neu")), "X": ergebnis()})
         text = ps.meldetext(lauf, {"ISO 800": ("Vorlauf 1 (Code c1)", ergebnis()), "X": None})
-        self.assertIn("Lauf 20261107-000001, Code c1", text)
+        self.assertIn("Lauf 20261107-000001, Fassung alt, Code c1", text)
         self.assertIn("ISO 800: ok", text)
         self.assertIn("Nahtversatz Median 0.15 / max – mm", text)
         self.assertIn("gegen Vorlauf 1 (Code c1):", text)

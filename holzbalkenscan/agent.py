@@ -7,7 +7,8 @@ Ein Lauf je Auftrag (agentkit.auftraege), ohne Timer und ohne Claude:
 3. Kennzahlen auslesen, data/laeufe/<lauf-id>/lauf.json schreiben, mit Vorlauf bzw. Referenz vergleichen.
 4. Ergebnis als Meldung an Jan (agentkit.meldungen), Auftrag kurz abschließen.
 
-Im Auftragstext: Reihennamen (sonst alle), "speicher 4G" (sonst SPEICHER_STANDARD).
+Im Auftragstext: Reihennamen (sonst alle), "speicher 4G" (sonst SPEICHER_STANDARD), "fassung neu" (verfahren_neu/
+statt verfahren/; verglichen wird dann mit dem letzten Lauf der alten Fassung).
 """
 
 import fcntl
@@ -25,6 +26,7 @@ import pruefstand
 AGENT = "holzbalkenscan"
 HIER = Path(__file__).resolve().parent
 VERFAHREN = HIER / "verfahren"
+VERFAHREN_NEU = HIER / "verfahren_neu"
 DATEN = HIER / "data"
 SPEICHER_STANDARD = "3G"  # geschätzt, bis ein echter Lauf die Spitze gemessen hat
 ZEITGRENZE_S = 60 * 60    # je Schritt
@@ -70,13 +72,16 @@ def reihe_rechnen(lid: str, reihe: Path, ziel: Path, grenze: str, verfahren: Pat
         s = schritt_ausfuehren(cmd, ziel, ziel / f"{schritt}.ausgabe.txt", zeitgrenze_s)
         s["status"] = pruefstand.schritt_status(schritt, s["exit"], s.pop("zeit_um"), bericht.is_file())
         erg["schritte"][schritt] = s
-        erg[schritt] = auslesen(bericht.read_text(encoding="utf-8", errors="replace")) if bericht.is_file() else {}
+        # Ohne Bericht (Abbruch, etwa an der Speichergrenze) die Konsolenausgabe lesen: Sie enthält dieselben
+        # Zeilen bis zum Abbruch, und gerade gescheiterte Läufe sollen ihre Zuordnungszahlen zeigen.
+        quelle = bericht if bericht.is_file() else ziel / f"{schritt}.ausgabe.txt"
+        erg[schritt] = auslesen(quelle.read_text(encoding="utf-8", errors="replace")) if quelle.is_file() else {}
     erg["status"] = pruefstand.reihe_status(erg["schritte"])
     return erg
 
 
 def lauf(text: str, auftrag_id: str | None, daten: Path = DATEN, jetzt: datetime | None = None,
-         **rechnen) -> tuple[dict, str]:
+         verfahren_neu: Path = VERFAHREN_NEU, **rechnen) -> tuple[dict, str]:
     """Rechnet die gewählten Reihen, speichert lauf.json und gibt (lauf, Meldetext) zurück."""
     jetzt = jetzt or datetime.now()
     lid = pruefstand.lauf_id(jetzt)
@@ -84,14 +89,17 @@ def lauf(text: str, auftrag_id: str | None, daten: Path = DATEN, jetzt: datetime
     reihen = pruefstand.auswahl(text, pruefstand.reihen_finden(reihen_dir))
     grenze = pruefstand.speicher_aus_text(text, SPEICHER_STANDARD)
     lauf_dir = laeufe / lid
-    ergebnis = {"id": lid, "zeit": jetzt.isoformat(timespec="seconds"),
+    fassung = pruefstand.fassung_aus_text(text)
+    if fassung == "neu":
+        rechnen["verfahren"] = verfahren_neu
+    ergebnis = {"id": lid, "zeit": jetzt.isoformat(timespec="seconds"), "fassung": fassung,
                 "code": pruefstand.codefassung(rechnen.get("verfahren", VERFAHREN)),
                 "auftrag": auftrag_id, "speicher": grenze, "reihen": {}}
     for name in reihen:
         ergebnis["reihen"][name] = reihe_rechnen(lid, reihen_dir / name, lauf_dir / name, grenze, **rechnen)
         pruefstand.speichern(lauf_dir, ergebnis)  # nach jeder Reihe, damit ein Abbruch nichts verliert
     pruefstand.speichern(lauf_dir, ergebnis)
-    vergleiche = {n: pruefstand.basis(laeufe, daten / "referenz", lid, n) for n in reihen}
+    vergleiche = {n: pruefstand.basis(laeufe, daten / "referenz", lid, n, fassung) for n in reihen}
     return ergebnis, pruefstand.meldetext(ergebnis, vergleiche)
 
 
@@ -100,7 +108,8 @@ def kurzfassung(ergebnis: dict) -> str:
     if not reihen:
         return f"Lauf {ergebnis['id']}: keine Reihe in data/reihen gefunden."
     stand = ", ".join(f"{n}: {e['status']}" for n, e in reihen.items())
-    return f"Lauf {ergebnis['id']} (Code {ergebnis['code']}) fertig, {stand}. Kennzahlen kommen als Meldung."
+    return (f"Lauf {ergebnis['id']} (Fassung {ergebnis.get('fassung', 'alt')}, Code {ergebnis['code']}) fertig, "
+            f"{stand}. Kennzahlen kommen als Meldung.")
 
 
 def main() -> int:

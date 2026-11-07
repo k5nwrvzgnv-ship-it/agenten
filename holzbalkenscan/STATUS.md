@@ -6,7 +6,7 @@ maßhaltigen Streifenbild zusammensetzt. Der Prüfstand rechnet die Fotoreihen n
 Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 freigegeben.
 
 ## Stand (07.11.2026)
-- Prüfstand fertig und getestet (47 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
+- Prüfstand fertig und getestet (59 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
 - Reihe ISO 800 echt gerechnet: Lauf 20261107-010055 (Grenze 2800M) gelungen, Meldung an Jan gesendet.
   Nahtversatz Median 0,11 / max 0,31 mm, Länge roh -4,02 %, gegen den Referenzbericht nur kleine Abweichungen
   (Länge +12 mm, Kantenstreuung +0,07 mm, Nahtkanten 59 -> 53). Speicherspitzen: Vorprüfung 508 MB (114 s),
@@ -14,8 +14,9 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
 - Dienst nicht installiert, die Zentrale kennt den Agenten noch nicht (Bedarf 31 in ../STATUS.md).
 - Auftrag Jan (07.11.): Felix' Verfahren nachweisbar verbessern, zuerst die Zuordnung (F5). Felix' übrige
   Reihen (261019 B, C, 261022 V1, V2) gibt es nicht, auf dem SharePoint liegt nur ISO 800 (Jan bestätigt).
-  Mit Jans Okay stattdessen drei aus A abgeleitete Prüffälle (prueffaelle.py). Nächster Schritt: Plan für die
-  neue Zuordnung liegt Jan vor, Umsetzung erst nach Okay (eigene Fassung verfahren_neu/, verfahren/ bleibt).
+  Mit Jans Okay stattdessen drei aus A abgeleitete Prüffälle (prueffaelle.py). Plan für die neue Zuordnung von
+  Jan freigegeben ("Ja, bauen"), gebaut in verfahren_neu/ und gemessen (Tabelle unten). Ergebnis gemischt, keine
+  Reihe gelingt zusätzlich; wie es weitergeht, entscheidet Jan (Offene Punkte 1 und 2).
 
 ## Grundlinie: Felix' Code unverändert (Codefassung 9a26847fe5ed)
 | Reihe | gelingt | direkte Nachbarpaare | Punktpaare 1. / 2. Durchgang | je Naht | abgehängt | Nahtversatz Median / max | Länge roh | Px/mm Band | Spitze |
@@ -27,13 +28,40 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
 Läufe 20261107-010055, -014959, -015943, -020947 (pf-flau auch -014106 mit 2G). Kennzahlen bei pf-flau aus der
 Konsolenausgabe, der Bericht fehlt, weil das Zeichnen an der Speichergrenze abbrach (mehr als 2700M ist neben den
 übrigen Diensten nicht frei).
-- pf-flau bildet Reihe C nach: 13 Bilder mit flauer Kante kippen die Bandbreite der GANZEN Reihe (12,87 statt 8,9
-  Px/mm, Kantenrest Median 191 statt 14 Px), die Streifen sind falsch entzerrt, die direkten Paare zeigen Versätze
-  um 0 bis 20 mm statt rund 250 mm (falsche Treffer), 10 Aufnahmen hängen ab. Das ist genau die Kette aus P2a/P4.
+- pf-flau scheitert schon am Achsentest (Schritt 1), nicht erst an der Zuordnung: Die 13 flauen Bilder lassen
+  "laengs der Spalten" gewinnen (Streuung der Bandbreite 29,4 gegen 53,1 %), das Arbeitsbild ist um 90 Grad
+  falsch gedreht (6048 x 8064 statt 8064 x 6048). Daraus folgen Band 12,87 statt 8,9 Px/mm, Kantenrest 191 statt
+  14 Px, Versätze um 0 bis 20 mm statt rund 250 mm und 10 abgehängte Aufnahmen. Fehlerklasse wie P8. Ob Felix'
+  Reihe C an derselben Stelle scheitert, ist offen (sein Bericht nennt die Kanten).
 - pf-schmal bildet Reihe B NICHT nach: halbe Fläche allein senkt die Ausbeute nicht (54,8 statt 51,8 je Naht).
   Felix' Erklärung für B (zu wenig Bildfläche) ist damit an A nicht bestätigt; B hatte vermutlich weitere Ursachen.
 - pf-luecke: eine fehlende Aufnahme überbrückt das Verfahren ohne Verlust.
 - Nahtversatz misst nur die innere Stimmigkeit, nicht die Maßtreue. Künstliche Fälle ersetzen keine echten Reihen.
+
+## Neue Fassung verfahren_neu/: Zuordnung im Rohbild (F5), gemessen 07.11.2026
+Je Reihe alt (Grundlinie oben) gegen neu. Läufe neu: 20261107-023628, -025501, -031307, -033536 (pf-flau, 2500M).
+| Reihe | gelingt | direkte Paare aus Rohbild | Punktpaare 1. Durchgang | 2. Durchgang | je Naht | abgehängt | Nahtversatz Median | max | Rest Punktpaare | Länge roh | sichtbare Nahtkanten | Rechenzeit | Spitze |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ISO 800 (A) | ja / ja | – / 24 von 25 | 330 / 1503 | 1296 / 1365 | 51,8 / 54,6 | 0 / 0 | 0,11 / 0,12 mm | 0,31 / 0,43 mm | 0,293 / 0,225 mm | -4,02 / -3,35 % | 53 / 71 | 496 / 1003 s | 1250 / 1199 MB |
+| pf-luecke | ja / ja | – / 23 von 24 | 299 / 1305 | 1194 / 1227 | 49,8 / 51,1 | 0 / 0 | 0,09 / 0,08 mm | 0,32 / 0,32 mm | 0,335 / 0,259 mm | -4,21 / -3,28 % | 55 / 66 | 473 / 974 s | 1249 / 1207 MB |
+| pf-schmal | ja / ja | – / 16 von 25 | 364 / 674 | 1315 / 1216 | 54,8 / 50,7 | 1 / 1 | 0,14 / 0,10 mm | 0,49 / 0,56 mm | 0,231 / 0,319 mm | -2,24 / -3,10 % | 80 / 84 | 463 / 1194 s | 1116 / 1018 MB |
+| pf-flau | nein / nein | – / 15 von 25 | 273 / 426 | – / 400 | – | 10 / 0 * | – | – | 3,78 / 6,05 mm | – / -62 % | – | – / 2230 s | über 2700 / 2497 MB |
+\* pf-flau neu: formal keine abgehängte Aufnahme, aber die Lage fällt zusammen (rohe Länge 2444 statt 6485 mm),
+die Bewegung der gewählten Ebenen liegt im Median bei 406 statt rund 2150 Px: Wegen der falschen Achse (siehe
+Grundlinie) sucht die Rohbild-Zuordnung quer statt längs und greift den Hintergrund. Das zählt als gescheitert.
+- Messregel (mit Jan): behalten, wenn mehr Reihen gelingen oder Punktpaare/Nahtversatz besser werden, ohne A zu
+  verschlechtern (Median höchstens +0,02 mm, Punktpaare je Naht nicht weniger). A erfüllt das knapp (Median +0,01,
+  je Naht +2,8), aber der größte Nahtversatz steigt (0,31 -> 0,43 mm) und es gibt mehr sichtbare Nahtkanten
+  (53 -> 71). Keine Reihe gelingt zusätzlich. pf-schmal: weniger Punktpaare je Naht (54,8 -> 50,7), Median
+  besser, max schlechter. Rechenzeit etwa doppelt. Urteil: kein klarer Gewinn; Entscheidung bei Jan.
+- Was die neue Zuordnung sicher besser kann: 4- bis 5-mal so viele Punktpaare im ersten Durchgang, kleinerer Rest
+  der Punktpaare in A und pf-luecke, und in A ist die Reihenfolge der Aufnahmen jetzt durchgehend aufsteigend.
+  Felix' Lauf hatte bei 2250..2253 ein Zickzack (2251 -> 2252 mit 5 Paaren und -281 mm; neu 41 Paare, +256 mm,
+  im Rohbild bewegt sich der Balken dort in dieselbe Richtung wie bei allen anderen Paaren).
+- Endbild 2230 -> 2231: richtige Ebene gefunden (3255 Px), aber über der Toleranz 45 % zum Median verworfen,
+  dann Felix' Streifenweg. Toleranz nicht geändert (ohne Messung).
+- Nahtversatz und Rest der Punktpaare messen nur die innere Stimmigkeit, nicht die Maßtreue. Die rohe Länge ist
+  keine Probe (die Aufmaßlänge ist Eingangsgröße, P6). Künstliche Fälle ersetzen keine echten Reihen.
 
 ## Prüffälle (prueffaelle.py, Daten in data/reihen/pf-*, je Ordner herkunft.json)
 - Abgeleitet aus ISO 800 mit der Lage der Bauteilebene je Bild aus Lauf 20261107-010055 (streifen.modell.pkl).
@@ -49,16 +77,26 @@ Konsolenausgabe, der Bericht fehlt, weil das Zeichnen an der Speichergrenze abbr
 - verfahren/: fremder Code, byte-gleich aus /home/agent/holzbalken-skript/Code (zusammensetzen2.py,
   pruefen.py, kantenbild.py, bauteil_vorlage.json, KONZEPT.md, LIESMICH_FUER_REVIEW.md, PROBLEMSTELLUNG.md).
   Nicht ändern. ruff.toml nimmt ihn aus, Tests laufen nur in tests/.
+- verfahren_neu/: Kopie von zusammensetzen2.py, pruefen.py, kantenbild.py, bauteil_vorlage.json. Geändert nur
+  zusammensetzen2.py, Schritt 3 (direkte und weitere Nachbarn): zuerst zuordnung_roh im Rohbild, Paare per
+  inv(H0) in Streifenkoordinaten, Nachlauf mit der Median-Bewegung der Reihe, Rückfall auf Felix' Streifenweg.
+  zuordnung_roh.py (neu, getestet): grob Teiler 8 über das ganze Bild (NCC mit Eindeutigkeit, RANSAC-Homographien
+  bis 5 Ebenen, Wahl = größte Bewegung bzw. nächste an der Vorgabe), fein Teiler 2 nach Vorwarp, RANSAC.
+  Annahme: längs = Bildzeilen im Arbeitsbild (Suchfenster längs weit, quer eng). ruff.toml im Ordner nimmt nur
+  die Kopien aus.
 - kennzahlen.py: aus_zusammenbau(text), aus_vorpruefung(text). Rein, die letzte Fundstelle gilt, fehlende Werte None.
   Zuordnung: direkte_paare, bildpaare_1, punktpaare_1, punktpaare_2, punktpaare_je_naht, verwendet, abgehaengt
   (liest auch die Konsolenausgabe, wenn der Bericht fehlt).
-- pruefstand.py: Codefassung (sha256 über verfahren/*.py, *.json), Reihen finden und wählen, Speicherprüfung
+- pruefstand.py: Codefassung (sha256 über *.py, *.json der gewählten Fassung), Fassung aus dem Auftrag ("fassung
+  neu"; lauf.json "fassung", ohne Angabe alt), Vergleich neu immer gegen den letzten Lauf der alten Fassung (auch
+  einen gescheiterten), Reihen finden und wählen, Speicherprüfung
   (MemAvailable gegen Grenze + 500 MB), systemd-run-Scope mit MemoryMax, Status je Schritt, Ablage,
   Vorlauf/Referenz, Vergleich mit Schwellen, Meldetext.
 - agent.py: je Auftrag Speicher prüfen, je Reihe pruefen.py (--bericht) und zusammensetzen2.py (--ziel), jeder
   Schritt im eigenen Scope, Zeitgrenze 60 min, Speicherspitze per os.wait4. Ergebnis als Meldung
   (agentkit.meldungen), Auftrag mit einem Satz abgeschlossen. Ohne Claude, ohne Timer, Sperre data/lauf.sperre.
-- Auftragstext: Reihennamen (sonst alle), "speicher 4G" (Standard 3G, geschätzt).
+  Fehlt ein Bericht (Abbruch), liest er die Kennzahlen aus der Konsolenausgabe.
+- Auftragstext: Reihennamen (sonst alle), "speicher 4G" (Standard 3G, geschätzt), "fassung neu".
 - Daten (nicht im Repo): data/reihen/<reihe>/ (Fotos + bauteil.json), data/referenz/<reihe>.txt (Bericht des
   Auftraggebers, Vergleichsbasis ohne Vorlauf), data/laeufe/<lauf-id>/lauf.json und je Reihe Berichte,
   Konsolenausgabe, streifen.jpg.
@@ -70,6 +108,8 @@ Konsolenausgabe, der Bericht fehlt, weil das Zeichnen an der Speichergrenze abbr
     cd ~/agenten/holzbalkenscan
     .venv/bin/python -c "from agentkit import auftraege; print(auftraege.neuer_auftrag('holzbalkenscan', 'ISO 800', quelle='hand'))"
     .venv/bin/python agent.py
+Neue Fassung: Auftragstext z. B. 'pf-flau fassung neu speicher 2500M'. Je Auftrag eine Reihe; der Agent nimmt
+einen Auftrag nur an, wenn Grenze + 500 MB frei sind (sonst "nicht gerechnet", neu einstellen).
 
 ## Entscheidungen
 - 07.11.2026: Exit 1 von zusammensetzen2.py gilt als gelungen (heißt nur "mit Prüfpunkten"), Exit 0/1/2 von
@@ -78,18 +118,24 @@ Konsolenausgabe, der Bericht fehlt, weil das Zeichnen an der Speichergrenze abbr
   (es gibt keinen Timer, der ihn später holen würde).
 
 ## Offene Punkte
-1. Echte zweite Reihe fehlt (Felix fragen oder neu aufnehmen). Download-Weg vom SharePoint (Ordner Panorama,
+1. Entscheidung Jan: neue Zuordnung behalten oder nicht (siehe Messung). Nächster sinnvoller Schritt, falls ja:
+   die Rohbild-Zuordnung achsenunabhängig machen (Suchfenster in beide Richtungen weit) und die Richtung der
+   größten Bewegung als zweiten Achsentest nutzen; das zielt genau auf pf-flau. Danach Startposen/Band aus der
+   Rohbild-Bewegung (Plan-Schritt 3). Jeder Schritt einzeln gegen die Grundlinie messen.
+2. Rechenzeit der neuen Fassung etwa doppelt (grobe Suche über das ganze Bild je Paar, etwa 13 s); bei Bedarf
+   Kachelraster ausdünnen, erst messen.
+3. Echte zweite Reihe fehlt (Felix fragen oder neu aufnehmen). Download-Weg vom SharePoint (Ordner Panorama,
    Freigabelink von Jan vom 06.11.): Freigabelink mit curl -c holt ein Gast-Cookie (FedAuth); Liste per
    _api/web/GetFolderByServerRelativeUrl('/personal/jkl298_hnee_de/Documents/Forschungsprojekt_Lamellen-Scan/
    Panorama/Input/<reihe>')?$expand=Files. Dateien über _layouts/15/download.aspx?SourceUrl=<pfad> laden,
    nicht über /$value (brach ab). Nach jedem Download Größe gegen Length aus der Liste prüfen
    (der agent meldet unvollständige Fotos inzwischen selbst).
-2. SPEICHER_STANDARD (3G) liegt über dem, was meist frei ist (~3,2 GB, nötig Grenze + 500 MB). Gelungene Läufe
+4. SPEICHER_STANDARD (3G) liegt über dem, was meist frei ist (~3,2 GB, nötig Grenze + 500 MB). Gelungene Läufe
    brauchen 1116–1250 MB, der gescheiterte pf-flau über 2700 MB. Vorschlag: Standard 2G, Jan entscheidet.
-3. Danach Zweiteinschätzung F0–F8 (verfahren/PROBLEMSTELLUNG.md) per agentkit.claude_lauf.
-4. Dienst installieren und Eintrag in der Zentrale (Bedarf 31 im Hauptstatus), beides mit Jans Okay.
-5. Wenn Jan das doppelt findet: Meldung und Auftragsergebnis zu einer Nachricht zusammenlegen.
-6. Liegengebliebene fehlgeschlagene Test-Scopes (holzbalkenscan-test-*) in systemd: mit
+5. Danach Zweiteinschätzung F0–F8 (verfahren/PROBLEMSTELLUNG.md) per agentkit.claude_lauf.
+6. Dienst installieren und Eintrag in der Zentrale (Bedarf 31 im Hauptstatus), beides mit Jans Okay.
+7. Wenn Jan das doppelt findet: Meldung und Auftragsergebnis zu einer Nachricht zusammenlegen.
+8. Liegengebliebene fehlgeschlagene Test-Scopes (holzbalkenscan-test-*) in systemd: mit
    systemctl --user reset-failed wegräumen, wenn Jan will; ob die Tests sie selbst aufräumen sollten, offen.
 
 ## Gelernte Regeln
