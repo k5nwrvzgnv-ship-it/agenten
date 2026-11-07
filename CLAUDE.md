@@ -66,7 +66,9 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - `holzbalkenscan/`: Jans Agent, Prüfstand für ein fremdes Verfahren (Fotoreihen zu maßhaltigem Streifenbild).
   Der fremde Code liegt unverändert in `holzbalkenscan/verfahren/` (nur Pillow und numpy, vom Linter und den
   Tests ausgenommen). Läufe nur auf Auftrag, ohne Claude, mit fester Speichergrenze (systemd-run --scope).
-- Reihenfolge der Umsetzung: uni, dokumente, posteingang, einkauf.
+- `finance/`: Jans Agent, Recherche zur Wirtschaftlichkeit je Thema (Auftrag per /finance). Python holt Primärdaten
+  mit Quellen-ID nach data/quellen/, Claude schreibt je Schritt JSON, Python prüft: keine Zahl ohne Quelle oder Annahme.
+- Reihenfolge der Umsetzung: uni, dokumente, posteingang, finance, einkauf.
 - Ein Chat pro Ordner, gestartet in diesem Ordner: je Agent einer (auch lia/<agent>), einer für
   shared/renderer/, einer im Hauptordner für Struktur und das übrige shared/. Ein Chat ändert nur seinen
   Ordner, Bedarf anderswo schreibt er in die STATUS.md des Hauptordners. Gedächtnis ist die STATUS.md,

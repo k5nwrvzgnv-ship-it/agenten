@@ -1002,6 +1002,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     "holzbalkenscan" in AGENTEN (shared/telegram/logik.py) eintragen; die Zentrale startet dann
     holzbalkenscan.service (Vorlage holzbalkenscan/systemd/, noch nicht installiert, braucht Jans Okay).
     Bis dahin Auftrag von Hand anlegen (siehe holzbalkenscan/STATUS.md).
+32. finance vorbereitet (07.11.2026, Auftrag Jan, Plan freigegeben): Gerüst finance/ (agent.py aus der Vorlage,
+    systemd/finance.service nicht installiert, tests/test_geruest.py), Übergabe in finance/STATUS.md. Eingetragen:
+    pruefen.sh `finance|python3|tests` (noch keine .venv), [werkzeuge] finance wie uni, ohne [webfetch]-Liste und
+    ohne [weitergabe]; "finance" in AGENTEN (shared/telegram/logik.py, wirkt erst mit installiertem Dienst und
+    Neustart der Zentrale, der noch nicht erfolgt ist). Weiter im Chat ~/agenten/finance.
+    Offen hier: sobald finance/.venv existiert, Eintrag in pruefen.sh auf `.venv/bin/python` umstellen.
 
 ## Gelernte Regeln
 - (noch keine)

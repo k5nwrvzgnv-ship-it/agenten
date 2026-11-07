@@ -30,6 +30,7 @@ Regeln: CLAUDE.md. Aktueller Stand: STATUS.md.
 │   ├── uni/                 Jans Agent uni (läuft)
 │   ├── dokumente/           Jans Agent dokumente (Gerüst, noch kein agent.py)
 │   ├── posteingang/         Jans Agent posteingang, privates Postfach (Gerüst, noch kein agent.py)
+│   ├── finance/             Jans Agent finance, Recherchen zur Wirtschaftlichkeit (Gerüst, Bau im eigenen Chat)
 │   │
 │   └── lia/                 Lias Instanz
 │       ├── instanz/         Lias Daten: .env, Warteschlangen, Regeln, Daten ihrer Zentrale
@@ -40,6 +41,8 @@ Regeln: CLAUDE.md. Aktueller Stand: STATUS.md.
 ```
 
 posteingang (Jans privates Postfach): Gerüst angelegt, noch kein agent.py, kein Dienst.
+finance (Recherche zur Wirtschaftlichkeit je Thema, Auftrag Jan 07.11.2026): Gerüst angelegt, noch ohne .venv und Dienst.
+Bau im Chat `~/agenten/finance`, Übergabe in finance/STATUS.md.
 Geplant, noch ohne Ordner: einkauf (Recherche mit Preisen).
 Der Ordner entsteht mit dem Agenten.
 
