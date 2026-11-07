@@ -46,7 +46,10 @@ NAMEN = {
     "belegt_prozent": "belegt %", "rechenzeit_s": "Rechenzeit s", "aufloesung_px_mm": "Auflösung Px/mm",
     "ueberlappung_median_prozent": "Überlappung Median %", "ueberlappung_min_prozent": "Überlappung min %",
     "masstreue": "Maßtreue", "farbtreue": "Farbtreue",
-    "ohne_verbindung": "ohne Verbindung", "pruefbericht": "Prüfbericht", "maengel": "Mängel der Vorprüfung",
+    "ohne_verbindung": "ohne Verbindung",
+    "direkte_paare": "direkte Nachbarpaare", "bildpaare_1": "Bildpaare 1. Durchgang",
+    "punktpaare_1": "Punktpaare 1. Durchgang", "punktpaare_2": "Punktpaare 2. Durchgang",
+    "punktpaare_je_naht": "Punktpaare je Naht", "verwendet": "verwendete Aufnahmen", "abgehaengt": "abgehängte Aufnahmen", "pruefbericht": "Prüfbericht", "maengel": "Mängel der Vorprüfung",
 }
 
 

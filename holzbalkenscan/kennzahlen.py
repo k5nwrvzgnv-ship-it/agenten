@@ -74,6 +74,44 @@ def aus_zusammenbau(text: str) -> dict:
     k.update(_zahlen(r"Flaeche belegt: " + ZAHL + r" %", text, ["belegt_prozent"]))
     k.update(_zahlen(r"Rechenzeit:\s+" + ZAHL + r" s", text, ["rechenzeit_s"]))
     k["pruefbericht"] = _punkte_nach(text, "Pruefbericht")
+    k.update(_zuordnung(text))
+    return k
+
+
+def _lage_zeilen(text: str) -> int | None:
+    """Aufnahmen im Abschnitt "Lage der Aufnahmen im Bauteilrahmen" (letzte Fundstelle), sonst None."""
+    zeilen = text.splitlines()
+    start = None
+    for i, z in enumerate(zeilen):
+        if z.strip() == "Lage der Aufnahmen im Bauteilrahmen":
+            start = i
+    if start is None:
+        return None
+    n = 0
+    for z in zeilen[start + 1:]:
+        if not re.match(r"^  \S+: +[-+]?\d+ \.\. ", z):
+            break
+        n += 1
+    return n
+
+
+def _zuordnung(text: str) -> dict:
+    """Zuordnung: direkte Nachbarpaare, Punktpaare je Durchgang, verwendete Aufnahmen, Paare je Naht."""
+    k = {}
+    k.update(_zahlen(r" - (\d+) Aufnahmen$", text, ["aufnahmen"], ganz=("aufnahmen",)))
+    # Nur der erste Rechenlauf zählt; bei --weiter steht der Kopf ein zweites Mal ohne Zuordnung.
+    teil = text.split("\nZuordnung, zweiter Durchgang")[0]
+    direkt = re.findall(r"^  \S+ -> \S+: +\d+ Paare", teil, flags=re.MULTILINE)
+    k["direkte_paare"] = len(direkt) if "\nZuordnung (" in text else None
+    k.update(_zahlen(r"^  (\d+) Bildpaare, (\d+) Punktpaare$", text, ["bildpaare_1", "punktpaare_1"],
+                     ganz=("bildpaare_1", "punktpaare_1")))
+    k.update(_zahlen(r"; (\d+) Punktpaare statt \d+", text, ["punktpaare_2"], ganz=("punktpaare_2",)))
+    k["verwendet"] = _lage_zeilen(text)
+    k["abgehaengt"] = (k["aufnahmen"] - k["verwendet"]
+                       if k["aufnahmen"] is not None and k["verwendet"] is not None else None)
+    naehte = k.get("naehte") or _zahlen(r"Querversatz an den (\d+) Naehten", text, ["n"], ganz=("n",))["n"]
+    k["punktpaare_je_naht"] = (round(k["punktpaare_2"] / naehte, 1)
+                               if k["punktpaare_2"] is not None and naehte else None)
     return k
 
 

@@ -62,6 +62,33 @@ class TestZusammenbau(unittest.TestCase):
         self.assertEqual(k["laengsabweichung_prozent"], 0.23)
 
 
+class TestZuordnung(unittest.TestCase):
+    def test_iso800(self):
+        k = kennzahlen.aus_zusammenbau((BEISPIELE / "zusammenbau_iso800.txt").read_text(encoding="utf-8"))
+        self.assertEqual(k["aufnahmen"], 26)
+        self.assertEqual(k["direkte_paare"], 25)
+        self.assertEqual((k["bildpaare_1"], k["punktpaare_1"]), (35, 330))
+        self.assertEqual(k["punktpaare_2"], 1298)
+        self.assertEqual((k["verwendet"], k["abgehaengt"]), (26, 0))
+        self.assertEqual(k["punktpaare_je_naht"], 51.9)
+
+    def test_abgehaengt_und_abgebrochen(self):
+        text = ("Bauteil X, Seite A - 5 Aufnahmen\n\nZuordnung (3 Px/mm)\n"
+                "  a.jpg -> b.jpg:  7 Paare, NCC 0.5, Versatz +1 mm\n"
+                "  b.jpg -> c.jpg: kein direkter Treffer - wird ueber die uebernaechsten Nachbarn gefuehrt\n"
+                "  3 Bildpaare, 20 Punktpaare\n\nLage der Aufnahmen im Bauteilrahmen\n"
+                "  a.jpg:    -709 ..      94 mm (  803 mm), Mitte    -311\n"
+                "  b.jpg:      53 ..     690 mm (  638 mm), Mitte     372\n\nweiter\n")
+        k = kennzahlen.aus_zusammenbau(text)
+        self.assertEqual(k["direkte_paare"], 1)
+        self.assertEqual((k["verwendet"], k["abgehaengt"]), (2, 3))
+        self.assertIsNone(k["punktpaare_2"])
+        self.assertIsNone(k["punktpaare_je_naht"])
+        leer = kennzahlen.aus_zusammenbau("Kanten\n  Traceback\n")
+        self.assertIsNone(leer["direkte_paare"])
+        self.assertIsNone(leer["abgehaengt"])
+
+
 class TestVorpruefung(unittest.TestCase):
     def setUp(self):
         self.k = kennzahlen.aus_vorpruefung((BEISPIELE / "vorpruefung_gebaut.txt").read_text(encoding="utf-8"))
