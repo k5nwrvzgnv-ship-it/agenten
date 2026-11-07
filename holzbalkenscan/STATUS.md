@@ -43,7 +43,10 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
 ## Offene Punkte
 1. Erster echter Lauf ISO 800 (07.11., Lauf 20261107-004413, Grenze 3000M, mit Jans Okay) scheiterte an zwei
    unvollständigen Fotos vom SharePoint-Download. Am 07.11. neu geladen und geprüft (IMG_2252.jpg 10986746 Byte,
-   IMG_2255.jpg 10517613 Byte, Größen wie auf SharePoint). Lauf wiederholen (vorher free -m, Jan fragen).
+   IMG_2255.jpg 10517613 Byte, Größen wie auf SharePoint). Zweiter Lauf am 07.11. um 01:00 mit Jans Okay
+   gestartet (Auftrag 20261107-010047-holzbalkenscan-0361e3, Grenze 2800M, als transienter Dienst
+   holzbalkenscan-lauf-0361e3.service). Ergebnis: data/laeufe/<neuester>/lauf.json, Meldung an Jan.
+   Stand prüfen: systemctl --user status holzbalkenscan-lauf-0361e3, logs/.
    SharePoint: Freigabelink mit curl -c holt ein Gast-Cookie (FedAuth); Liste per
    _api/web/GetFolderByServerRelativeUrl('/personal/jkl298_hnee_de/Documents/Forschungsprojekt_Lamellen-Scan/
    Panorama/Input/<reihe>')?$expand=Files. Dateien über _layouts/15/download.aspx?SourceUrl=<pfad> laden,
