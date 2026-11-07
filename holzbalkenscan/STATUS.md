@@ -6,7 +6,7 @@ maßhaltigen Streifenbild zusammensetzt. Der Prüfstand rechnet die Fotoreihen n
 Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 freigegeben.
 
 ## Stand (07.11.2026)
-- Prüfstand fertig und getestet (63 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
+- Prüfstand fertig und getestet (64 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
 - Reihe ISO 800 echt gerechnet: Lauf 20261107-010055 (Grenze 2800M) gelungen, Meldung an Jan gesendet.
   Nahtversatz Median 0,11 / max 0,31 mm, Länge roh -4,02 %, gegen den Referenzbericht nur kleine Abweichungen
   (Länge +12 mm, Kantenstreuung +0,07 mm, Nahtkanten 59 -> 53). Speicherspitzen: Vorprüfung 508 MB (114 s),
@@ -16,7 +16,9 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
   Reihen (261019 B, C, 261022 V1, V2) gibt es nicht, auf dem SharePoint liegt nur ISO 800 (Jan bestätigt).
   Mit Jans Okay stattdessen drei aus A abgeleitete Prüffälle (prueffaelle.py). Plan für die neue Zuordnung von
   Jan freigegeben, gebaut in verfahren_neu/ (Rohbild-Zuordnung, dazu zweiter Achsentest aus der Bewegung) und
-  gemessen (Tabelle unten): pf-flau gelingt jetzt, A im Median gleich. Behalten oder nicht: Jan (Offener Punkt 1).
+  gemessen (Tabelle unten): pf-flau gelingt jetzt, A im Median gleich. Auf Jans Wunsch beide Änderungen getrennt
+  gemessen (Fassung achse): Der Achsentest allein reicht für pf-flau nicht, die Rohbild-Zuordnung trägt.
+  Behalten oder nicht: Jan (Offener Punkt 1).
 
 ## Grundlinie: Felix' Code unverändert (Codefassung 9a26847fe5ed)
 | Reihe | gelingt | direkte Nachbarpaare | Punktpaare 1. / 2. Durchgang | je Naht | abgehängt | Nahtversatz Median / max | Länge roh | Px/mm Band | Spitze |
@@ -67,6 +69,24 @@ Je Reihe alt (Grundlinie oben) gegen neu (Läufe 20261107-052530 pf-flau, -05454
 - Nahtversatz und Rest der Punktpaare messen nur die innere Stimmigkeit, nicht die Maßtreue. Die rohe Länge ist
   keine Probe (die Aufmaßlänge ist Eingangsgröße, P6). pf-flau ist künstlich, keine echte Reihe C.
 
+## Getrennt gemessen: nur der Achsentest (Fassung achse, 07.11.2026)
+Fassung achse = verfahren_neu/ mit --ohne-rohbild: Felix' Zuordnung auf den Streifen, dazu nur der zweite
+Achsentest. Läufe 20261107-113330 A, -114514 pf-luecke, -115612 pf-schmal, -120710 pf-flau (Grenze je 3000M).
+| Reihe | gelingt alt / achse / neu | abgehängt | je Naht | Nahtversatz Median | max | Länge roh | Rechenzeit |
+|---|---|---|---|---|---|---|---|
+| ISO 800 (A) | ja / ja / ja | 0 / 0 / 0 | 51,8 / 51,8 / 54,6 | 0,11 / 0,11 / 0,12 mm | 0,31 / 0,31 / 0,43 mm | -4,02 / -4,02 / -3,35 % | 496 / 591 / 1105 s |
+| pf-luecke | ja / ja / ja | 0 / 0 / 0 | 49,8 / 49,8 / 51,1 | 0,09 / 0,09 / 0,08 mm | 0,32 / 0,32 / 0,32 mm | -4,21 / -4,21 / -3,28 % | 473 / 550 / 1110 s |
+| pf-schmal | ja / ja / ja | 1 / 1 / 1 | 54,8 / 54,8 / 50,7 | 0,14 / 0,14 / 0,10 mm | 0,49 / 0,49 / 0,56 mm | -2,24 / -2,24 / -3,10 % | 463 / 550 / 1289 s |
+| pf-flau | nein / **halb** / ja | 10 / **13** / 0 | – / 42,1 / 52,0 | – / 0,40 / 0,15 mm | – / 1,25 / 0,72 mm | – / -6,37 / -3,16 % | – / 438 / 1096 s |
+- A, pf-luecke, pf-schmal: achse rechnet genau wie Felix (alle Kennzahlen gleich), nur etwa 80–95 s länger für den
+  Achsentest. Der Test schadet also nicht.
+- pf-flau mit achse: Achse jetzt richtig, der Lauf bricht nicht mehr ab, aber Felix' Zuordnung verbindet nur 13 von
+  26 Aufnahmen (IMG_2230–2235 und 2249–2255 ohne Verbindung, 23 von 25 direkten Paaren, Rest der Punktpaare
+  2,28 mm). Der Streifen zeigt also nur die halbe Reihe, Status "ok" täuscht. Für pf-flau braucht es die
+  Rohbild-Zuordnung.
+- Folgerung: Achsentest = reiner Gewinn ohne Nachteil. Rohbild-Zuordnung = nötig für pf-flau, kostet in A aber
+  größten Nahtversatz (0,31 -> 0,43 mm), Nahtkanten (53 -> 71) und Rechenzeit (gut doppelt).
+
 ## Prüffälle (prueffaelle.py, Daten in data/reihen/pf-*, je Ordner herkunft.json)
 - Abgeleitet aus ISO 800 mit der Lage der Bauteilebene je Bild aus Lauf 20261107-010055 (streifen.modell.pkl).
 - pf-luecke: IMG_2242 fehlt (übrige Fotos als Hardlinks).
@@ -93,7 +113,7 @@ Je Reihe alt (Grundlinie oben) gegen neu (Läufe 20261107-052530 pf-flau, -05454
   Zuordnung: direkte_paare, bildpaare_1, punktpaare_1, punktpaare_2, punktpaare_je_naht, verwendet, abgehaengt
   (liest auch die Konsolenausgabe, wenn der Bericht fehlt).
 - pruefstand.py: Codefassung (sha256 über *.py, *.json der gewählten Fassung), Fassung aus dem Auftrag ("fassung
-  neu"; lauf.json "fassung", ohne Angabe alt), Vergleich neu immer gegen den letzten Lauf der alten Fassung (auch
+  neu", "fassung achse"; lauf.json "fassung", ohne Angabe alt), Vergleich neu und achse immer gegen den letzten Lauf der alten Fassung (auch
   einen gescheiterten), Reihen finden und wählen, Speicherprüfung
   (MemAvailable gegen Grenze + 500 MB), systemd-run-Scope mit MemoryMax, Status je Schritt, Ablage,
   Vorlauf/Referenz, Vergleich mit Schwellen, Meldetext.
@@ -101,7 +121,8 @@ Je Reihe alt (Grundlinie oben) gegen neu (Läufe 20261107-052530 pf-flau, -05454
   Schritt im eigenen Scope, Zeitgrenze 60 min, Speicherspitze per os.wait4. Ergebnis als Meldung
   (agentkit.meldungen), Auftrag mit einem Satz abgeschlossen. Ohne Claude, ohne Timer, Sperre data/lauf.sperre.
   Fehlt ein Bericht (Abbruch), liest er die Kennzahlen aus der Konsolenausgabe.
-- Auftragstext: Reihennamen (sonst alle), "speicher 4G" (Standard 3G, geschätzt), "fassung neu".
+- Auftragstext: Reihennamen (sonst alle), "speicher 4G" (Standard 3G, geschätzt), "fassung neu" oder "fassung achse"
+  (verfahren_neu/ mit --ohne-rohbild: Felix' Zuordnung, nur der zweite Achsentest).
 - Daten (nicht im Repo): data/reihen/<reihe>/ (Fotos + bauteil.json), data/referenz/<reihe>.txt (Bericht des
   Auftraggebers, Vergleichsbasis ohne Vorlauf), data/laeufe/<lauf-id>/lauf.json und je Reihe Berichte,
   Konsolenausgabe, streifen.jpg.
@@ -123,7 +144,7 @@ einen Auftrag nur an, wenn Grenze + 500 MB frei sind (sonst "nicht gerechnet", n
   (es gibt keinen Timer, der ihn später holen würde).
 
 ## Offene Punkte
-1. Entscheidung Jan: neue Fassung behalten oder nicht (siehe Messung). Mögliche nächste Schritte, je einzeln
+1. Entscheidung Jan: neue Fassung behalten oder nicht (siehe Messung, auch "Getrennt gemessen"). Mögliche nächste Schritte, je einzeln
    gegen die Grundlinie messen: Band/Startposen aus der Rohbild-Bewegung (Plan-Schritt 3, zielt auf das 5 % zu
    breite Band in pf-flau); größten Nahtversatz und sichtbare Nahtkanten in A untersuchen.
 2. Rechenzeit der neuen Fassung etwa doppelt (grobe Suche über das ganze Bild je Paar, etwa 13 s); bei Bedarf
