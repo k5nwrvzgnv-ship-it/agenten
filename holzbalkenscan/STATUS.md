@@ -7,7 +7,10 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
 
 ## Stand (07.11.2026)
 - Prüfstand fertig und getestet (36 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
-- Noch kein echter Lauf mit den 48-MP-Fotos (wartet auf Jans Okay).
+- Reihe ISO 800 echt gerechnet: Lauf 20261107-010055 (Grenze 2800M) gelungen, Meldung an Jan gesendet.
+  Nahtversatz Median 0,11 / max 0,31 mm, Länge roh -4,02 %, gegen den Referenzbericht nur kleine Abweichungen
+  (Länge +12 mm, Kantenstreuung +0,07 mm, Nahtkanten 59 -> 53). Speicherspitzen: Vorprüfung 508 MB (114 s),
+  Zusammenbau 1250 MB (496 s).
 - Dienst nicht installiert, die Zentrale kennt den Agenten noch nicht (Bedarf 31 in ../STATUS.md).
 
 ## Aufbau
@@ -41,22 +44,18 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
   (es gibt keinen Timer, der ihn später holen würde).
 
 ## Offene Punkte
-1. Erster echter Lauf ISO 800 (07.11., Lauf 20261107-004413, Grenze 3000M, mit Jans Okay) scheiterte an zwei
-   unvollständigen Fotos vom SharePoint-Download. Am 07.11. neu geladen und geprüft (IMG_2252.jpg 10986746 Byte,
-   IMG_2255.jpg 10517613 Byte, Größen wie auf SharePoint). Zweiter Lauf am 07.11. um 01:00 mit Jans Okay
-   gestartet (Auftrag 20261107-010047-holzbalkenscan-0361e3, Grenze 2800M, als transienter Dienst
-   holzbalkenscan-lauf-0361e3.service). Ergebnis: data/laeufe/<neuester>/lauf.json, Meldung an Jan.
-   Stand prüfen: systemctl --user status holzbalkenscan-lauf-0361e3, logs/.
+1. Zweite Reihe 261022_Test fehlt noch (von Jans SharePoint holen, nach data/reihen/).
    SharePoint: Freigabelink mit curl -c holt ein Gast-Cookie (FedAuth); Liste per
    _api/web/GetFolderByServerRelativeUrl('/personal/jkl298_hnee_de/Documents/Forschungsprojekt_Lamellen-Scan/
    Panorama/Input/<reihe>')?$expand=Files. Dateien über _layouts/15/download.aspx?SourceUrl=<pfad> laden,
-   nicht über /$value (brach ab). Nach jedem Download Größe gegen Length aus der Liste prüfen.
-   Speicherspitzen bis zum Abbruch: Vorprüfung 417 MB (89 s), Zusammenbau 472 MB (28 s); die volle Spitze
-   ist noch unbekannt, SPEICHER_STANDARD danach anpassen.
-2. Zweite Reihe 261022_Test fehlt noch (von Jans SharePoint holen, nach data/reihen/).
+   nicht über /$value (brach ab). Nach jedem Download Größe gegen Length aus der Liste prüfen
+   (der agent meldet unvollständige Fotos inzwischen selbst).
+2. SPEICHER_STANDARD (3G) senken: gemessene Spitze 1250 MB bei 26 Fotos; Vorschlag erst nach der zweiten Reihe.
 3. Danach Zweiteinschätzung F0–F8 (verfahren/PROBLEMSTELLUNG.md) per agentkit.claude_lauf.
 4. Dienst installieren und Eintrag in der Zentrale (Bedarf 31 im Hauptstatus), beides mit Jans Okay.
 5. Wenn Jan das doppelt findet: Meldung und Auftragsergebnis zu einer Nachricht zusammenlegen.
+6. Liegengebliebene fehlgeschlagene Test-Scopes (holzbalkenscan-test-*) in systemd: mit
+   systemctl --user reset-failed wegräumen, wenn Jan will; ob die Tests sie selbst aufräumen sollten, offen.
 
 ## Gelernte Regeln
 - (noch keine)
