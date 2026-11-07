@@ -6,7 +6,7 @@ maßhaltigen Streifenbild zusammensetzt. Der Prüfstand rechnet die Fotoreihen n
 Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 freigegeben.
 
 ## Stand (07.11.2026)
-- Prüfstand fertig und getestet (59 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
+- Prüfstand fertig und getestet (63 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
 - Reihe ISO 800 echt gerechnet: Lauf 20261107-010055 (Grenze 2800M) gelungen, Meldung an Jan gesendet.
   Nahtversatz Median 0,11 / max 0,31 mm, Länge roh -4,02 %, gegen den Referenzbericht nur kleine Abweichungen
   (Länge +12 mm, Kantenstreuung +0,07 mm, Nahtkanten 59 -> 53). Speicherspitzen: Vorprüfung 508 MB (114 s),
@@ -15,8 +15,8 @@ Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 fr
 - Auftrag Jan (07.11.): Felix' Verfahren nachweisbar verbessern, zuerst die Zuordnung (F5). Felix' übrige
   Reihen (261019 B, C, 261022 V1, V2) gibt es nicht, auf dem SharePoint liegt nur ISO 800 (Jan bestätigt).
   Mit Jans Okay stattdessen drei aus A abgeleitete Prüffälle (prueffaelle.py). Plan für die neue Zuordnung von
-  Jan freigegeben ("Ja, bauen"), gebaut in verfahren_neu/ und gemessen (Tabelle unten). Ergebnis gemischt, keine
-  Reihe gelingt zusätzlich; wie es weitergeht, entscheidet Jan (Offene Punkte 1 und 2).
+  Jan freigegeben, gebaut in verfahren_neu/ (Rohbild-Zuordnung, dazu zweiter Achsentest aus der Bewegung) und
+  gemessen (Tabelle unten): pf-flau gelingt jetzt, A im Median gleich. Behalten oder nicht: Jan (Offener Punkt 1).
 
 ## Grundlinie: Felix' Code unverändert (Codefassung 9a26847fe5ed)
 | Reihe | gelingt | direkte Nachbarpaare | Punktpaare 1. / 2. Durchgang | je Naht | abgehängt | Nahtversatz Median / max | Länge roh | Px/mm Band | Spitze |
@@ -38,30 +38,34 @@ Konsolenausgabe, der Bericht fehlt, weil das Zeichnen an der Speichergrenze abbr
 - pf-luecke: eine fehlende Aufnahme überbrückt das Verfahren ohne Verlust.
 - Nahtversatz misst nur die innere Stimmigkeit, nicht die Maßtreue. Künstliche Fälle ersetzen keine echten Reihen.
 
-## Neue Fassung verfahren_neu/: Zuordnung im Rohbild (F5), gemessen 07.11.2026
-Je Reihe alt (Grundlinie oben) gegen neu. Läufe neu: 20261107-023628, -025501, -031307, -033536 (pf-flau, 2500M).
-| Reihe | gelingt | direkte Paare aus Rohbild | Punktpaare 1. Durchgang | 2. Durchgang | je Naht | abgehängt | Nahtversatz Median | max | Rest Punktpaare | Länge roh | sichtbare Nahtkanten | Rechenzeit | Spitze |
+## Neue Fassung verfahren_neu/: gemessen 07.11.2026
+Zwei Änderungen gegen Felix' Code, beide mit Jans Okay:
+1. Zuordnung im Rohbild (F5): Punktpaare zuerst direkt im unveränderten Foto statt auf den aus den Kanten
+   entzerrten Streifen.
+2. Zweiter Achsentest aus der Bewegung: an 6 Bildpaaren die Richtung, in die sich die Ebene mit der größten
+   Bewegung (das Bauteil) verschiebt, Suche im ganzen Bild ohne Annahme über die Achse. Ist das Urteil eindeutig
+   und weicht vom Bandtest ab, gilt die Bewegung (Meldung im Prüfbericht). Kostet etwa 95 s je Reihe.
+Je Reihe alt (Grundlinie oben) gegen neu (Läufe 20261107-052530 pf-flau, -054543 A, -060604 pf-luecke,
+-062623 pf-schmal; Grenze je 2G).
+| Reihe | gelingt | Punktpaare 1. Durchgang | 2. Durchgang | je Naht | abgehängt | Nahtversatz Median | max | Rest Punktpaare | Länge roh | Px/mm Band | sichtbare Nahtkanten | Rechenzeit | Spitze |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ISO 800 (A) | ja / ja | – / 24 von 25 | 330 / 1503 | 1296 / 1365 | 51,8 / 54,6 | 0 / 0 | 0,11 / 0,12 mm | 0,31 / 0,43 mm | 0,293 / 0,225 mm | -4,02 / -3,35 % | 53 / 71 | 496 / 1003 s | 1250 / 1199 MB |
-| pf-luecke | ja / ja | – / 23 von 24 | 299 / 1305 | 1194 / 1227 | 49,8 / 51,1 | 0 / 0 | 0,09 / 0,08 mm | 0,32 / 0,32 mm | 0,335 / 0,259 mm | -4,21 / -3,28 % | 55 / 66 | 473 / 974 s | 1249 / 1207 MB |
-| pf-schmal | ja / ja | – / 16 von 25 | 364 / 674 | 1315 / 1216 | 54,8 / 50,7 | 1 / 1 | 0,14 / 0,10 mm | 0,49 / 0,56 mm | 0,231 / 0,319 mm | -2,24 / -3,10 % | 80 / 84 | 463 / 1194 s | 1116 / 1018 MB |
-| pf-flau | nein / nein | – / 15 von 25 | 273 / 426 | – / 400 | – | 10 / 0 * | – | – | 3,78 / 6,05 mm | – / -62 % | – | – / 2230 s | über 2700 / 2497 MB |
-\* pf-flau neu: formal keine abgehängte Aufnahme, aber die Lage fällt zusammen (rohe Länge 2444 statt 6485 mm),
-die Bewegung der gewählten Ebenen liegt im Median bei 406 statt rund 2150 Px: Wegen der falschen Achse (siehe
-Grundlinie) sucht die Rohbild-Zuordnung quer statt längs und greift den Hintergrund. Das zählt als gescheitert.
-- Messregel (mit Jan): behalten, wenn mehr Reihen gelingen oder Punktpaare/Nahtversatz besser werden, ohne A zu
-  verschlechtern (Median höchstens +0,02 mm, Punktpaare je Naht nicht weniger). A erfüllt das knapp (Median +0,01,
-  je Naht +2,8), aber der größte Nahtversatz steigt (0,31 -> 0,43 mm) und es gibt mehr sichtbare Nahtkanten
-  (53 -> 71). Keine Reihe gelingt zusätzlich. pf-schmal: weniger Punktpaare je Naht (54,8 -> 50,7), Median
-  besser, max schlechter. Rechenzeit etwa doppelt. Urteil: kein klarer Gewinn; Entscheidung bei Jan.
-- Was die neue Zuordnung sicher besser kann: 4- bis 5-mal so viele Punktpaare im ersten Durchgang, kleinerer Rest
-  der Punktpaare in A und pf-luecke, und in A ist die Reihenfolge der Aufnahmen jetzt durchgehend aufsteigend.
-  Felix' Lauf hatte bei 2250..2253 ein Zickzack (2251 -> 2252 mit 5 Paaren und -281 mm; neu 41 Paare, +256 mm,
-  im Rohbild bewegt sich der Balken dort in dieselbe Richtung wie bei allen anderen Paaren).
-- Endbild 2230 -> 2231: richtige Ebene gefunden (3255 Px), aber über der Toleranz 45 % zum Median verworfen,
-  dann Felix' Streifenweg. Toleranz nicht geändert (ohne Messung).
+| ISO 800 (A) | ja / ja | 330 / 1503 | 1296 / 1365 | 51,8 / 54,6 | 0 / 0 | 0,11 / 0,12 mm | 0,31 / 0,43 mm | 0,293 / 0,225 mm | -4,02 / -3,35 % | 8,90 / 8,90 | 53 / 71 | 496 / 1105 s | 1250 / 1211 MB |
+| pf-luecke | ja / ja | 299 / 1305 | 1194 / 1227 | 49,8 / 51,1 | 0 / 0 | 0,09 / 0,08 mm | 0,32 / 0,32 mm | 0,335 / 0,259 mm | -4,21 / -3,28 % | 9,11 / 9,11 | 55 / 66 | 473 / 1110 s | 1249 / 1213 MB |
+| pf-schmal | ja / ja | 364 / 674 | 1315 / 1216 | 54,8 / 50,7 | 1 / 1 | 0,14 / 0,10 mm | 0,49 / 0,56 mm | 0,231 / 0,319 mm | -2,24 / -3,10 % | 8,83 / 8,83 | 80 / 84 | 463 / 1289 s | 1116 / 1013 MB |
+| pf-flau | **nein / ja** | 273 / 1348 | – / 1301 | – / 52,0 | 10 / 0 | – / 0,15 mm | – / 0,72 mm | 3,78 / 0,30 mm | – / -3,16 % | 12,87 / 9,39 | – / 46 | – / 1096 s | über 2700 / 1207 MB |
+- pf-flau gelingt jetzt: Der Bandtest wählt weiter die falsche Achse (Streuung 53,1 gegen 29,4 %), die Bewegung
+  (alle 6 Paare: dy 194 bis 406 Px, dx unter 27 Px) überstimmt ihn. Danach trägt die Rohbild-Zuordnung (25 von 25
+  direkten Paaren). Bandbreite 9,39 statt 8,90 Px/mm wie bei A: in den flauen Bildern bleibt das Band 5 % zu
+  breit (P1/P2a nicht gelöst). Größter Nahtversatz 0,72 mm, deutlich über A.
+- Messregel (mit Jan): mehr Reihen gelingen (pf-flau) und A wird nicht schlechter im Median (+0,01 mm) und je
+  Naht (+2,8). Schlechter in A: größter Nahtversatz 0,31 -> 0,43 mm, sichtbare Nahtkanten 53 -> 71. pf-schmal:
+  weniger Punktpaare je Naht (54,8 -> 50,7). Rechenzeit gut doppelt (etwa 18 statt 8 min je Reihe).
+- In A ist die Reihenfolge der Aufnahmen jetzt durchgehend aufsteigend; Felix' Lauf hatte bei 2250..2253 ein
+  Zickzack (2251 -> 2252: 5 Paare und -281 mm, neu 41 Paare und +256 mm).
+- Endbild 2230 -> 2231: richtige Ebene gefunden (3255 Px), aber über der Toleranz 45 % zum Median verworfen, dann
+  Felix' Streifenweg. Toleranz nicht geändert (ohne Messung).
 - Nahtversatz und Rest der Punktpaare messen nur die innere Stimmigkeit, nicht die Maßtreue. Die rohe Länge ist
-  keine Probe (die Aufmaßlänge ist Eingangsgröße, P6). Künstliche Fälle ersetzen keine echten Reihen.
+  keine Probe (die Aufmaßlänge ist Eingangsgröße, P6). pf-flau ist künstlich, keine echte Reihe C.
 
 ## Prüffälle (prueffaelle.py, Daten in data/reihen/pf-*, je Ordner herkunft.json)
 - Abgeleitet aus ISO 800 mit der Lage der Bauteilebene je Bild aus Lauf 20261107-010055 (streifen.modell.pkl).
@@ -82,8 +86,9 @@ Grundlinie) sucht die Rohbild-Zuordnung quer statt längs und greift den Hinterg
   inv(H0) in Streifenkoordinaten, Nachlauf mit der Median-Bewegung der Reihe, Rückfall auf Felix' Streifenweg.
   zuordnung_roh.py (neu, getestet): grob Teiler 8 über das ganze Bild (NCC mit Eindeutigkeit, RANSAC-Homographien
   bis 5 Ebenen, Wahl = größte Bewegung bzw. nächste an der Vorgabe), fein Teiler 2 nach Vorwarp, RANSAC.
-  Annahme: längs = Bildzeilen im Arbeitsbild (Suchfenster längs weit, quer eng). ruff.toml im Ordner nimmt nur
-  die Kopien aus.
+  Annahme: längs = Bildzeilen im Arbeitsbild (Suchfenster längs weit, quer eng). Dazu achse_urteil /
+  bewegung_beidseitig (NccFeld, Suche im ganzen Bild) als zweiter Achsentest, eingehängt nach achse_bestimmen.
+  ruff.toml im Ordner nimmt nur die Kopien aus.
 - kennzahlen.py: aus_zusammenbau(text), aus_vorpruefung(text). Rein, die letzte Fundstelle gilt, fehlende Werte None.
   Zuordnung: direkte_paare, bildpaare_1, punktpaare_1, punktpaare_2, punktpaare_je_naht, verwendet, abgehaengt
   (liest auch die Konsolenausgabe, wenn der Bericht fehlt).
@@ -118,10 +123,9 @@ einen Auftrag nur an, wenn Grenze + 500 MB frei sind (sonst "nicht gerechnet", n
   (es gibt keinen Timer, der ihn später holen würde).
 
 ## Offene Punkte
-1. Entscheidung Jan: neue Zuordnung behalten oder nicht (siehe Messung). Nächster sinnvoller Schritt, falls ja:
-   die Rohbild-Zuordnung achsenunabhängig machen (Suchfenster in beide Richtungen weit) und die Richtung der
-   größten Bewegung als zweiten Achsentest nutzen; das zielt genau auf pf-flau. Danach Startposen/Band aus der
-   Rohbild-Bewegung (Plan-Schritt 3). Jeder Schritt einzeln gegen die Grundlinie messen.
+1. Entscheidung Jan: neue Fassung behalten oder nicht (siehe Messung). Mögliche nächste Schritte, je einzeln
+   gegen die Grundlinie messen: Band/Startposen aus der Rohbild-Bewegung (Plan-Schritt 3, zielt auf das 5 % zu
+   breite Band in pf-flau); größten Nahtversatz und sichtbare Nahtkanten in A untersuchen.
 2. Rechenzeit der neuen Fassung etwa doppelt (grobe Suche über das ganze Bild je Paar, etwa 13 s); bei Bedarf
    Kachelraster ausdünnen, erst messen.
 3. Echte zweite Reihe fehlt (Felix fragen oder neu aufnehmen). Download-Weg vom SharePoint (Ordner Panorama,

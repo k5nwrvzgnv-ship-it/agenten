@@ -100,7 +100,8 @@ def homographie(p: np.ndarray, q: np.ndarray) -> np.ndarray:
 def anwenden(H: np.ndarray, p: np.ndarray) -> np.ndarray:
     p = np.asarray(p, float).reshape(-1, 2)
     ph = np.c_[p, np.ones(len(p))] @ H.T
-    return ph[:, :2] / ph[:, 2:3]
+    with np.errstate(divide="ignore", invalid="ignore"):  # entartete RANSAC-Stichprobe: inf/nan, fällt dort heraus
+        return ph[:, :2] / ph[:, 2:3]
 
 
 def ransac_homographie(p, q, schwelle, runden=400, rng=None):
@@ -209,6 +210,102 @@ def ebene_waehlen(gefunden, pa, pb, form, erwartet=None, toleranz=0.45):
         if beste is None or weg > beste[0]:
             beste = (weg, H, m)
     return None if beste is None else (beste[1], beste[2])
+
+
+# --- Achse aus der Bewegung -----------------------------------------------------------------------
+
+A_PAARE = 6            # Bildpaare, an denen die Achse geprüft wird
+A_VERHAELTNIS = 3.0    # Bewegung längs mindestens so viel größer als quer, sonst keine Stimme
+A_MEHRHEIT = 2 / 3     # Anteil der Stimmen, der für ein Urteil nötig ist
+
+
+class NccFeld:
+    """Normierte Kreuzkorrelation vieler gleich großer Kacheln gegen DASSELBE ganze Bild.
+
+    Transformierte des Bildes und die Fenstersummen werden einmal gerechnet; je Kachel bleiben eine Hin- und
+    eine Rücktransformation. Ergebnis wie ncc(..., zweiter=True).
+    """
+
+    def __init__(self, bild: np.ndarray, k: int):
+        self.k = k
+        self.H, self.W = bild.shape
+        s = (self.H, self.W)
+        self.F = np.fft.rfft2(bild, s=s)
+        eins = np.fft.rfft2(np.ones((k, k)), s=s)
+        summe = np.fft.irfft2(self.F * eins, s=s)
+        quadr = np.fft.irfft2(np.fft.rfft2(bild * bild, s=s) * eins, s=s)
+        self.wurzel = np.sqrt(np.maximum(quadr - summe * summe / (k * k), 1e-6))
+
+    def suche(self, kachel: np.ndarray):
+        k = self.k
+        t = kachel - kachel.mean()
+        kn = float(np.sqrt((t * t).sum()))
+        if kn < 1e-6:
+            return None
+        z = np.fft.irfft2(self.F * np.fft.rfft2(t[::-1, ::-1], s=(self.H, self.W)), s=(self.H, self.W))
+        wert = (z / (self.wurzel * kn))[k - 1:, k - 1:]
+        iy, ix = np.unravel_index(int(np.argmax(wert)), wert.shape)
+        rest = wert.copy()
+        rest[max(0, iy - k // 2):iy + k // 2 + 1, max(0, ix - k // 2):ix + k // 2 + 1] = -1.0
+        return float(iy), float(ix), float(min(1.0, wert[iy, ix])), float(rest.max())
+
+
+def treffer_beidseitig(a: np.ndarray, b: np.ndarray):
+    """Wie grobe_treffer, aber jede Kachel im GANZEN Bild b gesucht: keine Annahme über die Achse."""
+    L, W = a.shape
+    k = G_KACHEL
+    feld = NccFeld(b, k)
+    pa, pb = [], []
+    for y in range(0, L - k + 1, G_SCHRITT):
+        for x in range(0, W - k + 1, G_SCHRITT):
+            t = a[y:y + k, x:x + k]
+            if t.std() < 4:
+                continue
+            r = feld.suche(t)
+            if r is None or r[2] < G_NCC or r[2] - r[3] < G_ABSTAND:
+                continue
+            pa.append((x + k / 2, y + k / 2))
+            pb.append((r[1] + k / 2, r[0] + k / 2))
+    return np.asarray(pa, float).reshape(-1, 2), np.asarray(pb, float).reshape(-1, 2)
+
+
+def bewegung_beidseitig(a: np.ndarray, b: np.ndarray):
+    """Mittlere Bewegung (dx, dy) der Ebene mit der größten Bewegung, sonst None."""
+    pa, pb = treffer_beidseitig(a, b)
+    if len(pa) < G_MIN:
+        return None
+    wahl = ebene_waehlen(ebenen(pa, pb), pa, pb, a.shape)
+    if wahl is None:
+        return None
+    _, m = wahl
+    d = pb[m] - pa[m]
+    return float(np.median(d[:, 0])), float(np.median(d[:, 1]))
+
+
+def achse_urteil(bewegungen) -> str | None:
+    """'zeilen' (Bauteil bewegt sich längs y), 'spalten' (längs x) oder None, aus den (dx, dy) je Bildpaar."""
+    stimmen = []
+    for bw in bewegungen:
+        if bw is None:
+            continue
+        dx, dy = abs(bw[0]), abs(bw[1])
+        if dy >= A_VERHAELTNIS * max(dx, 1e-9):
+            stimmen.append("zeilen")
+        elif dx >= A_VERHAELTNIS * max(dy, 1e-9):
+            stimmen.append("spalten")
+    if len(stimmen) < 3:
+        return None
+    for urteil in ("zeilen", "spalten"):
+        if stimmen.count(urteil) >= A_MEHRHEIT * len(stimmen):
+            return urteil
+    return None
+
+
+def paare_fuer_achse(n: int, anzahl: int = A_PAARE) -> list[tuple[int, int]]:
+    """Über die Reihe verteilte Nachbarpaare (i, i+1)."""
+    if n < 2:
+        return []
+    return sorted({(i, i + 1) for i in np.linspace(0, n - 2, min(anzahl, n - 1)).round().astype(int).tolist()})
 
 
 # --- fein ---------------------------------------------------------------------------------------

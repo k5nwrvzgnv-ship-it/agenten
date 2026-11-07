@@ -1541,6 +1541,29 @@ def main() -> int:
         return zeichnen(a, daten, Z, HOEHE, LAENGE, PXMM, SAUM, SP, ZH, ziel)
 
     dreh = achse_bestimmen(alle) if a.achse == "auto" else (a.achse == "spalten")
+    if a.achse == "auto":
+        # verfahren_neu: zweiter Achsentest aus der BEWEGUNG zwischen den
+        # Aufnahmen. Der Bandtest oben haengt am Kantenkontrast; im Pruefling
+        # pf-flau (13 Bilder mit flauer Kante) waehlte er die falsche Achse,
+        # und alles Weitere war gedreht. Wer eine Reihe fotografiert, geht am
+        # Bauteil entlang: die Ebene mit der groessten Bewegung (das Bauteil)
+        # wandert laengs. Gesucht wird ohne Annahme ueber die Achse, im ganzen
+        # Bild. Ist das Urteil eindeutig, gilt es; sonst bleibt der Bandtest.
+        bew = []
+        for i, j in ZR.paare_fuer_achse(len(alle)):
+            with lade(alle[i], 8, False, grau=True) as i1, \
+                 lade(alle[j], 8, False, grau=True) as i2:
+                bew.append(ZR.bewegung_beidseitig(np.asarray(i1, np.float32),
+                                                  np.asarray(i2, np.float32)))
+        urteil = ZR.achse_urteil(bew)
+        txt = ", ".join("-" if b is None else f"{b[0]:+.0f}/{b[1]:+.0f}" for b in bew)
+        sag(f"  Achse aus der Bewegung (dx/dy je Bildpaar, Teiler 8: {txt}): "
+            f"{ {'zeilen': 'laengs der Zeilen', 'spalten': 'laengs der Spalten', None: 'kein Urteil'}[urteil] }")
+        if urteil is not None and (urteil == "spalten") != dreh:
+            dreh = urteil == "spalten"
+            warn("Bauteilachse aus der Bewegung weicht vom Bandtest ab - die Bewegung gilt")
+            sag("  ACHTUNG  Bandtest und Bewegung uneins - die Bewegung gilt")
+        takt("Achse aus der Bewegung")
     cache = Bildcache(dreh)
     with lade(alle[0], 1, dreh) as im0:
         W_V, L_V = im0.size

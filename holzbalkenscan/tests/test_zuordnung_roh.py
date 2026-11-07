@@ -83,6 +83,36 @@ class TestBausteine(unittest.TestCase):
         self.assertIsNone(zr.ebene_waehlen(gef, pa, pb, (300, 1000)))
 
 
+class TestAchse(unittest.TestCase):
+    def test_nccfeld_wie_ncc(self):
+        b = textur(150, 170, seed=4)
+        k = b[40:88, 60:108].copy()
+        r = zr.NccFeld(b, 48).suche(k)
+        self.assertEqual((r[0], r[1]), (40.0, 60.0))
+        self.assertGreater(r[2], 0.99)
+        self.assertLess(r[3], r[2])
+
+    def test_urteil(self):
+        self.assertEqual(zr.achse_urteil([(1, 300), (-5, 250), (3, 280), None]), "zeilen")
+        self.assertEqual(zr.achse_urteil([(300, 1), (250, -5), (280, 3), (2, 260)]), "spalten")
+        self.assertIsNone(zr.achse_urteil([(300, 1), (2, 250), (280, 3), (2, 260)]))   # keine Mehrheit
+        self.assertIsNone(zr.achse_urteil([(1, 300), (2, 250)]))                       # zu wenig Stimmen
+        self.assertIsNone(zr.achse_urteil([(100, 120), (90, 110), (80, 100)]))         # schräg: keine Stimme
+
+    def test_paare(self):
+        self.assertEqual(zr.paare_fuer_achse(26), [(0, 1), (5, 6), (10, 11), (14, 15), (19, 20), (24, 25)])
+        self.assertEqual(zr.paare_fuer_achse(3), [(0, 1), (1, 2)])
+        self.assertEqual(zr.paare_fuer_achse(1), [])
+
+    def test_bewegung_quer_zur_annahme(self):
+        a = verkleinern(textur(1000, 1200, seed=9))
+        H = np.array([[1.0, 0.0, -70.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]])  # Bewegung längs x
+        b = verzerrt(a, H)
+        dx, dy = zr.bewegung_beidseitig(a, b)
+        self.assertAlmostEqual(dx, -70.0, delta=0.5)
+        self.assertAlmostEqual(dy, 3.0, delta=0.5)
+
+
 class TestZuordnen(unittest.TestCase):
     def test_verschiebung_und_leichte_drehung(self):
         a2 = textur(1100, 1300, seed=7)
