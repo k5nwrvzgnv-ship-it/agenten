@@ -8,7 +8,8 @@ Ein Lauf je Auftrag (agentkit.auftraege), ohne Timer und ohne Claude:
 4. Ergebnis als Meldung an Jan (agentkit.meldungen), Auftrag kurz abschließen.
 
 Im Auftragstext: Reihennamen (sonst alle), "speicher 4G" (sonst SPEICHER_STANDARD), "fassung neu" (verfahren_neu/
-statt verfahren/; verglichen wird dann mit dem letzten Lauf der alten Fassung).
+statt verfahren/) oder "fassung achse" (verfahren_neu/ mit --ohne-rohbild: Felix' Zuordnung, nur der neue
+Achsentest); verglichen wird dann mit dem letzten Lauf der alten Fassung.
 """
 
 import fcntl
@@ -56,14 +57,14 @@ def schritt_ausfuehren(cmd: list[str], cwd: Path, ausgabe: Path, zeitgrenze_s: f
 
 def reihe_rechnen(lid: str, reihe: Path, ziel: Path, grenze: str, verfahren: Path = VERFAHREN,
                   befehl=pruefstand.befehl, python: str = sys.executable,
-                  zeitgrenze_s: float = ZEITGRENZE_S) -> dict:
+                  zeitgrenze_s: float = ZEITGRENZE_S, zusatz: tuple[str, ...] = ()) -> dict:
     """Beide Schritte für eine Reihe, Ergebnis wie in pruefstand beschrieben."""
     ziel.mkdir(parents=True, exist_ok=True)
     vor_txt, streifen = ziel / "vorpruefung.txt", ziel / "streifen.jpg"
     zus_txt = streifen.with_suffix(".txt")
     plan = [
         ("vorpruefung", "pruefen.py", [str(reihe), "--bericht", str(vor_txt)], vor_txt, kennzahlen.aus_vorpruefung),
-        ("zusammenbau", "zusammensetzen2.py", [str(reihe), "--ziel", str(streifen)], zus_txt,
+        ("zusammenbau", "zusammensetzen2.py", [str(reihe), "--ziel", str(streifen), *zusatz], zus_txt,
          kennzahlen.aus_zusammenbau),
     ]
     erg = {"schritte": {}, "unvollstaendig": pruefstand.unvollstaendige_fotos(reihe)}
@@ -90,8 +91,10 @@ def lauf(text: str, auftrag_id: str | None, daten: Path = DATEN, jetzt: datetime
     grenze = pruefstand.speicher_aus_text(text, SPEICHER_STANDARD)
     lauf_dir = laeufe / lid
     fassung = pruefstand.fassung_aus_text(text)
-    if fassung == "neu":
+    if fassung in ("neu", "achse"):
         rechnen["verfahren"] = verfahren_neu
+    if fassung == "achse":
+        rechnen["zusatz"] = ("--ohne-rohbild",)
     ergebnis = {"id": lid, "zeit": jetzt.isoformat(timespec="seconds"), "fassung": fassung,
                 "code": pruefstand.codefassung(rechnen.get("verfahren", VERFAHREN)),
                 "auftrag": auftrag_id, "speicher": grenze, "reihen": {}}

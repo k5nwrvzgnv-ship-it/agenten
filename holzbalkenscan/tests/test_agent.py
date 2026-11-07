@@ -78,6 +78,20 @@ class TestLauf(unittest.TestCase):
         self.assertIn("Fassung neu", text)
         self.assertIn("gegen Grundlinie alte Fassung 20261107-100000", text)
 
+    def test_fassung_achse_schaltet_rohbild_ab(self):
+        neu = self.tmp / "verfahren_neu"
+        neu.mkdir()
+        (neu / "pruefen.py").write_text(FAKE_PRUEFEN)
+        (neu / "zusammensetzen2.py").write_text(
+            "import sys\nprint('ARGUMENTE', ' '.join(sys.argv[1:]))\nsys.exit(1)\n")
+        self.rechnen(datetime(2026, 11, 7, 10, 0, 0))
+        erg, text = agent.lauf("ISO 800 fassung achse", "auftrag-3", daten=self.daten,
+                               jetzt=datetime(2026, 11, 7, 11, 0, 0), verfahren_neu=neu, befehl=ohne_scope)
+        self.assertEqual(erg["fassung"], "achse")
+        self.assertIn("gegen Grundlinie alte Fassung 20261107-100000", text)
+        aus = (self.daten / "laeufe" / erg["id"] / "ISO 800" / "zusammenbau.ausgabe.txt").read_text()
+        self.assertIn("--ohne-rohbild", aus)
+
     def test_ohne_bericht_zaehlt_die_konsolenausgabe(self):
         (self.verfahren / "zusammensetzen2.py").write_text(
             "print('Bauteil X, Seite A - 5 Aufnahmen')\n"

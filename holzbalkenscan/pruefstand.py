@@ -8,8 +8,9 @@ Ergebnis einer Reihe: {"status", "schritte": {"vorpruefung"|"zusammenbau": Schri
 
 Vergleichsbasis: der letzte frühere gelungene Lauf derselben Fassung mit der Reihe; sonst der Referenzbericht
 data/referenz/<reihe>.txt (Ergebnis des Auftraggebers), sonst keine.
-Fassungen: "alt" = verfahren/ (Felix, unverändert), "neu" = verfahren_neu/ (Auftrag "fassung neu"). Läufe der neuen
-Fassung werden immer gegen den letzten Lauf der alten Fassung verglichen (die Grundlinie), auch einen
+Fassungen: "alt" = verfahren/ (Felix, unverändert), "neu" = verfahren_neu/ (Auftrag "fassung neu"), "achse" =
+verfahren_neu/ mit --ohne-rohbild (Felix' Zuordnung, nur der neue Achsentest; Auftrag "fassung achse"). Läufe der
+Fassungen neu und achse werden immer gegen den letzten Lauf der alten Fassung verglichen (die Grundlinie), auch einen
 gescheiterten, damit "fällt auseinander -> gelingt" sichtbar wird. lauf.json ohne "fassung" gilt als "alt".
 """
 
@@ -103,8 +104,9 @@ def auswahl(text: str, reihen: list[str]) -> list[str]:
 
 
 def fassung_aus_text(text: str) -> str:
-    """'fassung neu' (oder 'fassung=neu') im Auftrag wählt verfahren_neu/, sonst die alte Fassung."""
-    return "neu" if re.search(r"\bfassung\s*=?\s*neu\b", text, re.IGNORECASE) else "alt"
+    """'fassung neu' / 'fassung achse' (auch mit '=') im Auftrag, sonst die alte Fassung."""
+    t = re.search(r"\bfassung\s*=?\s*(neu|achse)\b", text, re.IGNORECASE)
+    return t.group(1).lower() if t else "alt"
 
 
 def speicher_aus_text(text: str, standard: str) -> str:
@@ -194,7 +196,7 @@ def vorlauf(laeufe_dir: Path, vor_id: str, reihe: str, fassung: str = "alt", nur
 def basis(laeufe_dir: Path, referenz_dir: Path, vor_id: str, reihe: str,
           fassung: str = "alt") -> tuple[str, dict] | None:
     """(Bezeichnung, Ergebnis der Reihe) zum Vergleichen, siehe Kopf."""
-    if fassung == "neu":
+    if fassung != "alt":
         alt = vorlauf(laeufe_dir, vor_id, reihe, "alt", nur_gelungen=False)
         if alt:
             return (f"Grundlinie alte Fassung {alt['id']} (Code {alt['code']}, {alt['reihen'][reihe]['status']})",

@@ -157,6 +157,7 @@ class TestAblageUndVergleich(unittest.TestCase):
         self.assertEqual(ps.fassung_aus_text("Fassung=Neu"), "neu")
         self.assertEqual(ps.fassung_aus_text("ISO 800"), "alt")
         self.assertEqual(ps.fassung_aus_text("fassung neuer"), "alt")
+        self.assertEqual(ps.fassung_aus_text("pf-flau Fassung achse"), "achse")
 
     def test_basis_faellt_auf_referenz_zurueck(self):
         (self.ref / "ISO 800.txt").write_text((BEISPIELE / "zusammenbau_iso800.txt").read_text(encoding="utf-8"),

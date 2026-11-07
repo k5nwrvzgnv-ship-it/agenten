@@ -1496,6 +1496,9 @@ def main() -> int:
                         "festzuhalten")
     p.add_argument("--nur-geometrie", action="store_true",
                    help="nur rechnen und den Zwischenspeicher schreiben")
+    p.add_argument("--ohne-rohbild", action="store_true",
+                   help="verfahren_neu: Zuordnung nur auf den Streifen wie in "
+                        "der alten Fassung (zum Messen des Achsentests allein)")
     a = p.parse_args()
 
     if not a.ordner.is_dir():
@@ -1742,7 +1745,7 @@ def main() -> int:
     # alles Folgende unveraendert bleibt. Nur wo das Rohbild nichts liefert,
     # sucht der alte Weg auf den Streifen.
     grob = []
-    for b in B:
+    for b in ([] if a.ohne_rohbild else B):
         with lade(b["pfad"], 8, dreh, grau=True) as im:
             grob.append(np.asarray(im, np.float32))
     fein_ablage = {}
@@ -1772,7 +1775,7 @@ def main() -> int:
     schr = {}
     bew = {}
     n_roh = 0
-    erst = {i: roh_paar(i, i + 1) for i in range(n - 1)}
+    erst = {i: None if a.ohne_rohbild else roh_paar(i, i + 1) for i in range(n - 1)}
     gut = [r[2]["bewegung_px"] for r in erst.values() if r is not None]
     M_BEW = float(np.median(gut)) if gut else None
     if M_BEW is not None:
