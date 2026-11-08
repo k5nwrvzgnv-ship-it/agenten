@@ -203,4 +203,5 @@ sondern Spielanlässe finden, Szenen daraus entwickeln und die lustigen Textstel
 
 ## Gelernte Regeln
 - Lia über Jan, 01.11.2026: Rollentabellen enthalten keine direkten Zitate aus dem Stück, nur Stichpunkte zu den
+- 08.11.2026: Lia, 08.11.2026: Mini-Plots für Szenenaufgaben haben nichts mit dem Stück zu tun, sondern können eigenständige, ganz andere kleine Geschichten sein. (Feedback 20261108-143254-feedback-c0a861)
   Charaktereigenschaften.
