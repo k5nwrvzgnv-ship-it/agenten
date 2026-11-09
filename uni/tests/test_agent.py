@@ -344,6 +344,33 @@ class TestMailEntwuerfe(OhneTelegram):
             agent.aenderung_bearbeiten({"id": "x", "text": "k", "bezug": "e"}, holen=lambda e: None)
         self.assertEqual(abschliessen.call_args.kwargs["status"], "fehlgeschlagen")
 
+    def test_aendern_ueber_rueckfrage_findet_entwurf(self):
+        # Nachbesserung aus dem Feedback: bezug ist der vorige Ändern-Auftrag (der nur zurückgefragt hat)
+        e0 = {"id": "e0", "typ": "mail", "daten": {}}
+        vorher = {"id": "a1", "quelle": "telegram-aendern", "bezug": "e0"}
+        nb = {"id": "a2", "quelle": "telegram-aendern", "bezug": "a1"}
+        self.assertIs(agent.aenderungs_entwurf(nb, {"e0": e0}.get, {"a1": vorher}.__getitem__), e0)
+
+    def test_aendern_ueber_kette_nimmt_juengsten_entwurf(self):
+        e0 = {"id": "e0", "typ": "mail", "daten": {}}
+        e1 = {"id": "e1", "typ": "mail", "vorgaenger": "e0", "erstellt": "2026-11-09T10:00:00+01:00"}
+        e2 = {"id": "e2", "typ": "mail", "vorgaenger": "e1", "erstellt": "2026-11-09T11:00:00+01:00"}
+        nb = {"id": "a2", "quelle": "telegram-aendern", "bezug": "a1"}
+        vorher = {"id": "a1", "quelle": "telegram-aendern", "bezug": "e0"}
+        self.assertIs(agent.aenderungs_entwurf(nb, {"e0": e0}.get, {"a1": vorher}.__getitem__,
+                                               lambda: [e2, e0, e1]), e2)
+
+    def test_aendern_kette_ohne_entwurf(self):
+        def fehlt(eid):
+            raise agent.auftraege.AuftragFehler(eid)
+        andere = {"id": "a1", "quelle": "telegram", "bezug": None}
+        self.assertIsNone(agent.aenderungs_entwurf({"id": "a2", "bezug": "x"}, lambda e: None, fehlt))
+        self.assertIsNone(agent.aenderungs_entwurf({"id": "a2", "bezug": "a1"}, lambda e: None,
+                                                   {"a1": andere}.__getitem__))
+        kreis = {"id": "a1", "quelle": "telegram-aendern", "bezug": "a2"}
+        self.assertIsNone(agent.aenderungs_entwurf({"id": "a2", "bezug": "a1"}, lambda e: None,
+                                                   {"a1": kreis}.__getitem__))
+
     def test_ausfuehren_sendet_freigegebene_daten(self):
         with mock.patch.object(agent.mail, "senden", return_value="gesendet") as senden:
             self.assertEqual(agent.ausfuehren({"typ": "mail", "daten": {"an": ["a@hnee.de"]}}), "gesendet")

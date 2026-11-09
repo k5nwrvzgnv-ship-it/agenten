@@ -1034,10 +1034,41 @@ def _warten(a: dict, f: Exception) -> bool:
     return False
 
 
-def aenderung_bearbeiten(a: dict, laufen=claude_lauf.laufen, holen=None) -> None:
-    """Jan hat bei einem Entwurf "Ändern" getippt: a["text"] ist sein Kommentar, a["bezug"] der alte Entwurf."""
+def aenderungs_entwurf(a: dict, holen, auftrag_holen=auftraege.erledigter, entwuerfe=None) -> dict | None:
+    """Der Entwurf, den ein Ändern-Auftrag überarbeiten soll.
+
+    Meist ist a["bezug"] der Entwurf selbst. Eine Nachbesserung aus dem Feedback (z. B. Jans Antwort auf eine
+    Rückfrage) bezieht sich dagegen auf den vorigen Ändern-Auftrag: dann der Kette bis zum Entwurf folgen und
+    den jüngsten Entwurf nehmen, der seither daraus entstanden ist (vorgaenger)."""
+    gesehen, bezug = {a["id"]}, a.get("bezug")
+    while bezug and bezug not in gesehen:
+        gesehen.add(bezug)
+        alt = holen(bezug)
+        if alt:
+            break
+        try:
+            vorher = auftrag_holen(bezug)
+        except Exception:  # noqa: BLE001 – kein Auftrag unter dieser ID: kein Entwurf
+            return None
+        if vorher.get("quelle") != "telegram-aendern":
+            return None
+        bezug = vorher.get("bezug")
+    else:
+        return None
+    alle = entwuerfe() if entwuerfe else []
+    while nachfolger := [e for e in alle if e.get("vorgaenger") == alt["id"] and e.get("typ") == "mail"]:
+        alt = max(nachfolger, key=lambda e: e.get("erstellt", ""))
+    return alt
+
+
+def aenderung_bearbeiten(a: dict, laufen=claude_lauf.laufen, holen=None, auftrag_holen=auftraege.erledigter,
+                         entwuerfe=None) -> None:
+    """Jan hat bei einem Entwurf "Ändern" getippt: a["text"] ist sein Kommentar, a["bezug"] der alte Entwurf
+    (oder ein früherer Ändern-Auftrag zu ihm, siehe aenderungs_entwurf)."""
     holen = holen or (lambda eid: next((e for e in freigabe.erledigte(AGENT) if e["id"] == eid), None))
-    alt = holen(a.get("bezug"))
+    if entwuerfe is None and a.get("bezug") and holen(a["bezug"]) is None:
+        entwuerfe = lambda: freigabe.offene(AGENT) + freigabe.erledigte(AGENT)  # noqa: E731
+    alt = aenderungs_entwurf(a, holen, auftrag_holen, entwuerfe)
     if not alt or alt.get("typ") != "mail":
         auftraege.abschliessen(a["id"], f"Ändern geht bisher nur bei Mail-Entwürfen ({a.get('bezug')}).",
                                status="fehlgeschlagen")

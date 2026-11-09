@@ -104,7 +104,9 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   MAIL_ABSENDER=jkl298@hnee.de, MAIL_NAME in uni/.env, Kopie per IMAP APPEND nach "Gesendete Elemente".
   Ändern in Telegram -> Auftrag quelle "telegram-aendern", bezug = Entwurf: aenderung_bearbeiten (routine)
   schreibt neuen Entwurf (vorgaenger, alter Gesprächsbezug bleibt) und optional regel.json ->
-  regeln.regel_vorschlagen. Ablehnen ohne Kommentar: kein Regelvorschlag (Zentrale fragt keinen Grund ab).
+  regeln.regel_vorschlagen. Bezieht sich der Ändern-Auftrag auf einen früheren Ändern-Auftrag statt auf den
+  Entwurf (Nachbesserung aus dem Feedback, z. B. Antwort auf eine Rückfrage), folgt aenderungs_entwurf der Kette
+  bis zum Entwurf und nimmt dessen jüngsten Nachfolger. Ablehnen ohne Kommentar: kein Regelvorschlag (Zentrale fragt keinen Grund ab).
   post_pruefen legt jede gelesene Mail in data/mails/<uid>.json ab. Lernmodus bekommt keinen Mail-Hinweis.
   Echttest 24.10. erfolgreich: Entwurf an jkl298@hnee.de per Telegram freigegeben, 5 s später gesendet,
   genau einmal im Posteingang und in Gesendete Elemente (gleiche Message-ID). Ändern noch nicht echt getestet.
