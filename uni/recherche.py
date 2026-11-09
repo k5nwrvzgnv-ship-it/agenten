@@ -122,7 +122,22 @@ Schreib {pfad}:
 {format}
 Antworte danach mit einem Satz."""
 
-PROMPT_SUCHE = """Recherche für ein Exposé. Thema: {thema}
+PROMPT_ECKPUNKTE_BERICHT = """Auftrag von Jan: ein Research-Bericht (Recherche mit geprüften Belegen, ohne Exposé).
+{text}
+
+Vor dem Bericht kommt eine gründliche Recherche. Du stellst dafür jetzt nur die Fragen, du recherchierst noch nicht.
+Lies angehängte Dateien (Textfassung .txt neben .docx/.pdf), falls vorhanden. Stell die Fragen, die das Thema und die
+Fragestellung oben verlangen: konkret und beantwortbar, Namen von Firmen, Projekten oder Normen so, wie Jan sie nennt.
+Umfang dieses Auftrags: höchstens {fragen_max} Fragen in höchstens {fenster_max} verschiedenen Suchfenstern (Python
+prüft das). anlass: woher die Frage kommt (z. B. "Fragestellung von Jan" oder "für den Stand der Technik nötig").
+
+Schreib {pfad}:
+{format}
+Antworte danach mit einem Satz."""
+
+ZWECK = {"expose": "ein Exposé", "bericht": "einen Research-Bericht"}
+
+PROMPT_SUCHE = """Recherche für {zweck}. Thema: {thema}
 Suchfenster: {titel}. {hinweis}
 
 Deine Fragen:
@@ -142,7 +157,7 @@ danach, damit nichts verloren geht:
 {format}
 Antworte danach mit einem Satz (Zahl der Aussagen und Lücken)."""
 
-PROMPT_SCOPUS = """Recherche für ein Exposé. Thema: {thema}
+PROMPT_SCOPUS = """Recherche für {zweck}. Thema: {thema}
 Suchfenster: {titel}. Jan hat in Scopus gesucht und die Treffer exportiert. {kandidaten} enthält {anzahl} Arbeiten
 ohne Doppelte, nach Zitationen sortiert, je Arbeit Kennung, Suchen, Titel, Autoren, Quelle, DOI, url, Abstract und
 Schlagwörter. Oben stehen die Suchen. Sie sind breit, viele Treffer gehören nicht zum Thema.
@@ -204,7 +219,7 @@ PROMPT_NACHBESSERN = """Python hat {pfad} geprüft. Diese Stellen sind nicht in 
 Korrigiere sie in {pfad}: Zitat genau so kopieren, wie es auf der Seite steht (oder ein anderes, das dort steht),
 andere Quelle suchen, oder den Beleg streichen (eine Tatsache ohne Beleg wird zur Lücke). Antworte mit einem Satz."""
 
-PROMPT_GEGEN = """Gegenprüfung einer Recherche für ein Exposé. Thema: {thema}
+PROMPT_GEGEN = """Gegenprüfung einer Recherche für {zweck}. Thema: {thema}
 Du hast die Recherche nicht selbst gemacht. Prüfe streng, ob die geprüften Zitate die Aussagen wirklich tragen:
 - ja: Das Zitat sagt das (allein oder zusammen mit den anderen Zitaten derselben Aussage).
 - teilweise: Ein Teil der Aussage (Zahl, Zeitraum, Verallgemeinerung, Name) steht nicht in den Zitaten.
@@ -619,9 +634,25 @@ def _fragen_text(fragen: list[dict]) -> str:
     return "\n".join(f"- {f['id']} ({f['fenster']}): {f['frage']} [Anlass: {f['anlass']}]" for f in fragen)
 
 
+def umfang_pruefen(eck: dict, fragen_max: int, fenster_max: int) -> list[str]:
+    """Kleinerer Umfang als beim Exposé (Research-Bericht aus dem Arbeitsplatz): begrenzt die bezahlten Suchläufe."""
+    fehler = []
+    if len(eck.get("fragen", [])) > fragen_max:
+        fehler.append(f"fragen: höchstens {fragen_max} Fragen")
+    fenster = {f.get("fenster") for f in eck.get("fragen", []) if isinstance(f, dict)}
+    if len(fenster) > fenster_max:
+        fehler.append(f"fenster: höchstens {fenster_max} verschiedene Suchfenster, sind {len(fenster)}")
+    return fehler
+
+
 def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, metadaten,
-                 grenze_usd: float = GRENZE_USD, melden=None, eingang: Path | None = None) -> Ergebnis:
+                 grenze_usd: float = GRENZE_USD, melden=None, eingang: Path | None = None, zweck: str = "expose",
+                 fragen_max: int = FRAGEN_MAX, fenster_max: int = len(FENSTER)) -> Ergebnis:
     """Ganze Recherche für einen Exposé-Auftrag (setzt fort, was in ordner/recherche schon fertig ist).
+
+    zweck "bericht": eigenständiger Research-Bericht (Art recherche aus dem Arbeitsplatz). Die Fragen kommen dann aus
+    Jans Thema und Fragestellung statt aus einem Besprechungstranskript, höchstens fragen_max Fragen in höchstens
+    fenster_max Suchfenstern.
 
     laufen wie agentkit.claude_lauf.laufen; Kontingent- und Lauffehler gehen an den Aufrufer (Auftrag bleibt
     offen, der nächste Anlauf setzt fort). Ein Suchfenster, das scheitert, hält die anderen nicht auf.
@@ -648,11 +679,17 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
     # 1. Eckpunkte
     eck_pfad = r / "eckpunkte.json"
     if "eckpunkte" not in stand["fertig"]:
-        e = lauf(PROMPT_ECKPUNKTE.format(text=auftrag["text"], pfad=rel(eck_pfad), format=FORMAT_ECKPUNKTE))
-        fehler = _datei_fehler(eck_pfad, eckpunkte_pruefen)
+        if zweck == "bericht":
+            prompt = PROMPT_ECKPUNKTE_BERICHT.format(text=auftrag["text"], pfad=rel(eck_pfad), format=FORMAT_ECKPUNKTE,
+                                                     fragen_max=fragen_max, fenster_max=fenster_max)
+        else:
+            prompt = PROMPT_ECKPUNKTE.format(text=auftrag["text"], pfad=rel(eck_pfad), format=FORMAT_ECKPUNKTE)
+        pruef = lambda d: eckpunkte_pruefen(d) or umfang_pruefen(d, fragen_max, fenster_max)  # noqa: E731
+        e = lauf(prompt)
+        fehler = _datei_fehler(eck_pfad, pruef)
         if fehler and e.sitzung:
             lauf(PROMPT_DATEI_NACHBESSERN.format(pfad=rel(eck_pfad), fehler="\n".join(fehler)), e.sitzung)
-            fehler = _datei_fehler(eck_pfad, eckpunkte_pruefen)
+            fehler = _datei_fehler(eck_pfad, pruef)
         if fehler:
             raise RechercheFehler("Recherchefragen ungültig:\n" + "\n".join(f"- {f}" for f in fehler))
         fertig("eckpunkte")
@@ -677,7 +714,7 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
             erg.zeilen.append(f"Suchfenster {titel} nicht gestartet: Kostengrenze {grenze_usd:.0f} USD "
                               f"(bisher {stand['usd']:.2f} USD).")
             continue
-        prompt = PROMPT_SUCHE.format(thema=eck["thema"], titel=titel, hinweis=hinweis, fragen=_fragen_text(fragen),
+        prompt = PROMPT_SUCHE.format(zweck=ZWECK[zweck], thema=eck["thema"], titel=titel, hinweis=hinweis, fragen=_fragen_text(fragen),
                                      alle=_fragen_text(eck["fragen"]), regeln=KURZREGELN,
                                      pfad=rel(r / f"{name}.json"), format=FORMAT_FENSTER)
         try:
@@ -699,7 +736,8 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
     except scopus.ScopusFehler as f:
         erg.zeilen.append(f"Scopus-Export nicht lesbar, Recherche ohne Scopus: {f}")
     if export:
-        _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, seitentext, metadaten, grenze_usd)
+        _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, seitentext, metadaten, grenze_usd,
+                ZWECK[zweck])
     if not geprueft_fenster:
         raise RechercheFehler("kein Suchfenster mit Ergebnis\n" + "\n".join(erg.zeilen))
 
@@ -713,7 +751,7 @@ def durchfuehren(hier: Path, ordner: Path, auftrag: dict, laufen, seitentext, me
         ids = {a["id"] for a in zur_pruefung}
         aussagen = "\n".join(f"- {a['id']}: {a['text']}\n" + "\n".join(f"    „{z}“ ({wo})" for wo, z in a["zitate"])
                              for a in zur_pruefung)
-        e = lauf(PROMPT_GEGEN.format(thema=eck["thema"], fragen=_fragen_text(eck["fragen"]), aussagen=aussagen,
+        e = lauf(PROMPT_GEGEN.format(zweck=ZWECK[zweck], thema=eck["thema"], fragen=_fragen_text(eck["fragen"]), aussagen=aussagen,
                                      pfad=rel(gegen_pfad)))
         pruef = lambda d: gegen_pruefen(d, ids)  # noqa: E731
         fehler = _datei_fehler(gegen_pfad, pruef)
@@ -788,7 +826,8 @@ def _scopus_suchen(hier, r, eck, erg, lauf, melden):
         erg.zeilen.append(f"Scopus-Prompt nicht gemeldet ({f}), liegt unter {prompt.relative_to(hier)}")
 
 
-def _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, seitentext, metadaten, grenze_usd):
+def _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, seitentext, metadaten, grenze_usd,
+            zweck=ZWECK["expose"]):
     """Suchfenster aus dem Scopus-Export. Kommt es nach der Gegenprüfung dazu, wird sie wiederholt (Nachtrag)."""
     ziel = r / f"{SCOPUS}-geprueft.json"
     if SCOPUS in stand["fertig"]:
@@ -806,7 +845,7 @@ def _scopus(hier, r, eck, export, stand, geprueft_fenster, erg, lauf, fertig, se
     kandidaten.write_text(scopus.kandidaten_md(export), encoding="utf-8")
     bisher = [r / f"{n}-geprueft.json" for n in SCOPUS_FUER if (r / f"{n}-geprueft.json").exists()]
     prompt = PROMPT_SCOPUS.format(
-        thema=eck["thema"], titel=SCOPUS_TITEL, kandidaten=kandidaten.relative_to(hier), anzahl=len(export.treffer),
+        zweck=zweck, thema=eck["thema"], titel=SCOPUS_TITEL, kandidaten=kandidaten.relative_to(hier), anzahl=len(export.treffer),
         fragen=_fragen_text(fragen), alle=_fragen_text(eck["fragen"]),
         bisher=", ".join(str(p.relative_to(hier)) for p in bisher) or "noch nichts", regeln=KURZREGELN,
         pfad=(r / f"{SCOPUS}.json").relative_to(hier), format=FORMAT_FENSTER)

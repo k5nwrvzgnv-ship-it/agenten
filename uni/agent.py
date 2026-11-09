@@ -30,6 +30,7 @@ Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Te
 """
 
 import json
+import sys
 import time
 import tomllib
 from datetime import date, datetime, timedelta, timezone
@@ -37,10 +38,13 @@ from pathlib import Path
 
 from agentkit import auftraege, claude_lauf, config, einstellungen, freigabe, imap, kalender, log, mailauftrag, meldungen, regeln
 
+import arten
 import expose
 import fristen
+import karten
 import kurse
 import lernblatt
+import lernmodell
 import mail
 import mailablauf
 import moodle
@@ -64,6 +68,7 @@ FEHLER_DATEI = DATA / "schritt_fehler.json"
 FORMAT_MD = HIER.parent / "shared" / "renderer" / "FORMAT.md"
 PROFIL_LERNBLATT = HIER / "profil-lernblatt.toml"
 PROFIL_EXPOSE = HIER / "profil-expose.toml"
+PORTAL = HIER / "portal"  # Auswertung mündlicher Übungen (Art pruefung)
 logger = log.hole_logger(HIER, AGENT)
 cfg = config.lade_config(HIER, pflicht=("HNEE_NUTZER", "HNEE_KENNWORT", "MOODLE_URL", "IMAP_HOST"))
 
@@ -980,7 +985,11 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
         zeilen.append(f"Exposé: {f}")
     for datei in b.dateien:
         logger.info("Exposé gebaut: %s", datei.relative_to(HIER))
-    auftraege.abschliessen(a["id"], "\n\n".join(zeilen), sitzung=sitzung, dateien=b.dateien + dateien)
+    daten = None
+    if a.get("art"):  # nur für den Arbeitsplatz, Telegram-Ergebnisse bleiben wie bisher
+        gueltig = not b.ungueltig and (ordner / expose.DATEI).exists()
+        daten = arten.daten_expose(json.loads((ordner / expose.DATEI).read_text()) if gueltig else None)
+    auftraege.abschliessen(a["id"], "\n\n".join(zeilen), sitzung=sitzung, dateien=b.dateien + dateien, daten=daten)
 
 
 def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
@@ -1129,12 +1138,175 @@ def aenderung_mit_kontext(a: dict, alt: dict, schluessel: str, gespeichert: dict
     auftraege.abschliessen(a["id"], "\n\n".join(zeilen), status="erledigt", sitzung=e.sitzung)
 
 
+# Aufträge mit Art aus dem Arbeitsplatz (arten.py) ------------------------------------
+
+class Wartet(Exception):
+    """Der Auftrag bleibt in neu/ und kommt im nächsten Lauf wieder (wie WARTEN)."""
+
+
+def _ergebnis_text(daten: dict) -> str:
+    """Ergebnistext für Telegram und die Fassung aus den daten (keine Markdown-Tabellen)."""
+    zeilen = [daten["kern"], *(f"- {p}" for p in daten["punkte"])]
+    return "\n".join(zeilen) + f"\n\nBitte prüfen: {daten['pruefen']}"
+
+
+def recherche_auftrag(a: dict, laufen=claude_lauf.laufen, netz=None) -> None:
+    """Research-Bericht: die geprüfte Recherche aus recherche.py ohne Exposé, Fragen aus Thema und Fragestellung.
+
+    Ablage data/recherchen/<auftrag>/recherche/ (ein neuer Anlauf setzt dort fort). Kein Scopus-Vorschlag.
+    Wirft WARTEN und LaufFehler weiter.
+    """
+    if not (arten.feld(a, "Thema", "Fragestellung") or a["text"].strip()):
+        raise arten.ArtFehler("Thema oder Fragestellung fehlt.")
+    grenze, fragen_max, fenster_max = arten.umfang(arten.feld(a, "Umfang"))
+    ordner = HIER / "data" / "recherchen" / a["id"]
+    if netz is None:
+        domains = einstellungen.webfetch_domains(einstellungen.lade(), AGENT)
+        roh = ordner / recherche.ORDNER / "roh"
+        netz = (recherche.seitentext_laden(domains, roh), recherche.crossref_laden(domains, roh))
+    try:
+        r = recherche.durchfuehren(HIER, ordner, a, laufen, *netz, grenze_usd=grenze, zweck="bericht",
+                                   fragen_max=fragen_max, fenster_max=fenster_max)
+    except recherche.RechercheFehler as f:
+        logger.error("Research-Bericht %s gescheitert: %s", a["id"], f)
+        auftraege.abschliessen(a["id"], f"Recherche gescheitert:\n{f}", status="fehlgeschlagen")
+        return
+    daten = arten.daten_recherche(json.loads(r.geprueft.read_text()))
+    daten["ansicht"] = {"recherche": str(r.geprueft.parent.relative_to(HIER))}
+    auftraege.abschliessen(a["id"], "\n\n".join([_ergebnis_text(daten), *r.zeilen]), dateien=[r.bericht], daten=daten)
+
+
+def lernkarten_auftrag(a: dict, erzeugen=None) -> None:
+    """Lernkarten für ein Modul mit Prüfungsplan (karten.py), auf Wunsch nur einzelne Themen."""
+    module = karten.module(karten.LERNEN)
+    modul = arten.modul_waehlen(arten.feld(a, "Modul"), module)
+    plan = json.loads((karten.LERNEN / modul / "pruefungsplan.json").read_text(encoding="utf-8"))
+    themen = arten.themen_waehlen(arten.feld(a, "Themen", "Thema"), plan["themen"])
+    score = arten.score_waehlen(arten.feld(a, "Wichtigkeit ab", "Score ab", "Wichtigkeit"))
+    try:
+        r = (erzeugen or karten.erzeugen_ergebnis)(modul, score, themen=themen,
+                                                   hinweis=arten.feld(a, "Hinweis", "Wunsch"), auftrag_id=a["id"])
+    except lernmodell.LernFehler as f:
+        logger.warning("Lernkarten %s: %s", a["id"], f)
+        auftraege.abschliessen(a["id"], f"Keine Karten übernommen: {f}", status="fehlgeschlagen")
+        return
+    daten = arten.daten_karten(module[modul], r, themen)
+    daten["ansicht"] = {"modul": modul}
+    logger.info("Lernkarten %s: %d neue Karten in %s", a["id"], len(r["neu"]), modul)
+    auftraege.abschliessen(a["id"], _ergebnis_text(daten), daten=daten)
+
+
+def _portal():
+    """Module des Portals für die Auswertung mündlicher Übungen (uni/portal, Agent uniportal), erst bei Bedarf.
+    Hinten im Suchpfad: Namen aus uni/ gehen vor (das Portal holt lernmodell und rueckmeldungen selbst aus uni/)."""
+    pfad = str(PORTAL)
+    if pfad not in sys.path:
+        sys.path.append(pfad)
+    import ablage
+    import auswertung_agent
+    import bewertung
+    import uebungen
+    return ablage, auswertung_agent, bewertung, uebungen
+
+
+def transkript_text(a: dict, uebungen) -> str:
+    """Transkript der Übung aus dem Feld Transkript oder der ersten angehängten Datei (.txt, .md, .json),
+    mit den Prüfungen des Portals (Länge, Format)."""
+    try:
+        if text := arten.feld(a, "Transkript"):
+            return uebungen.text_pruefen(text)
+        for datei in a.get("dateien") or []:
+            pfad = HIER / datei
+            if pfad.suffix.lower() in uebungen.ENDUNGEN:
+                return uebungen.datei_lesen(pfad.name, pfad.read_bytes())
+    except uebungen.UploadFehler as f:
+        raise arten.ArtFehler(f"Transkript nicht verwendbar: {f}") from None
+    raise arten.ArtFehler("Transkript fehlt (Feld Transkript oder Datei .txt, .md, .json).")
+
+
+def pruefung_auftrag(a: dict, auswerten=None, jetzt: datetime | None = None) -> None:
+    """Mündliche Übung auswerten über den vorhandenen Weg des Portals (auswertung_agent.auswerten: Rubrik,
+    Wissensbasis, Zitatprüfung, eine Nachbesserung, Agent uniportal ohne Werkzeuge).
+
+    Die Übung liegt wie eine aus dem Portal unter data/lernen/<modul>/uebungen/<id>/ (id aus der Auftrags-ID), kommt
+    aber nicht in die Warteschlange des Portals: uni wertet selbst aus, nichts läuft doppelt. Ist sie schon fertig
+    (z. B. per Knopf im Portal), gibt es keinen neuen Lauf. Plätze belegt oder Kontingent leer: Wartet.
+    """
+    ablage, aw, bewertung, uebungen = _portal()
+    jetzt = jetzt or datetime.now(timezone.utc).astimezone()
+    modul = arten.modul_waehlen(arten.feld(a, "Modul"), ablage.MODULE)
+    modul_ordner = ablage.modul_ordner(HIER, modul)
+    uid = arten.uebung_id(a["id"])
+    ordner = modul_ordner / ablage.UEBUNGEN_ORDNER / uid
+    titel = arten.feld(a, "Titel") or f"Übung {jetzt:%d.%m.%Y %H:%M} (Arbeitsplatz)"
+    if not ordner.is_dir():
+        text = transkript_text(a, uebungen)
+        (modul_ordner / ablage.UEBUNGEN_ORDNER).mkdir(mode=0o700, exist_ok=True)
+        ordner.mkdir(mode=0o700)
+        (ordner / ablage.TRANSKRIPT).write_text(text + "\n", encoding="utf-8")
+        uebungen.stand_schreiben(ordner, {"id": uid, "modul": modul, "titel": titel, "stand": "wartet",
+                                          "grund": "Auftrag aus dem Arbeitsplatz.", "auftrag": a["id"],
+                                          "angelegt": jetzt.isoformat(timespec="seconds"), "versuche": 0})
+    stand = uebungen.stand_lesen(ordner)
+    ergebnis = lernmodell.lies_json(ordner / ablage.AUSWERTUNG, None)
+    if not (stand.get("stand") == "fertig" and ergebnis):
+        try:
+            ergebnis, messung = (auswerten or aw.auswerten)(modul_ordner, ordner, warten_s=0)
+        except aw.Geparkt as f:
+            uebungen.stand_aendern(ordner, stand="wartet", grund=str(f))
+            raise Wartet(str(f)) from None
+        except aw.Gescheitert as f:
+            uebungen.stand_aendern(ordner, stand="fehlgeschlagen", grund=str(f))
+            auftraege.abschliessen(a["id"], f"Auswertung fehlgeschlagen: {f}", status="fehlgeschlagen")
+            return
+        lernmodell.schreibe_json(ordner / ablage.AUSWERTUNG, ergebnis)
+        uebungen.stand_aendern(ordner, stand="fertig", grund=None, **messung)
+    rubrik = uebungen.rubrik_lesen(modul_ordner)
+    daten = arten.daten_pruefung(ablage.MODULE[modul], ergebnis, bewertung.STUFEN, stand.get("titel", titel),
+                                 uebungen.rubrik_bestaetigt(rubrik))
+    daten["ansicht"] = {"modul": modul, "uebung": uid}
+    auftraege.abschliessen(a["id"], _ergebnis_text(daten), daten=daten)
+
+
+def art_auftrag(a: dict) -> bool:
+    """Auftrag mit Art (Arbeitsplatz): gezielt nach a["art"], ohne den Text zu deuten. Rückgabe wie auftrag_bearbeiten."""
+    art = a["art"]
+    try:
+        if art not in arten.ARTEN:
+            raise arten.ArtFehler(f"Die Art {art!r} kann uni nicht (uni kann: {', '.join(arten.ARTEN)}).")
+        if a.get("sitzung") and art not in arten.MIT_NACHBESSERUNG:
+            raise arten.ArtFehler("Eine Rückmeldung zu diesem Ergebnis kann uni noch nicht einarbeiten. Bitte einen "
+                                  "neuen Auftrag mit geänderten Feldern stellen.")
+        a["text"] = arten.text_mit_feldern(a)
+        logger.info("Auftrag %s mit Art %s (Ort %s)", a["id"], art, a.get("ort") or "-")
+        if art == "expose":
+            if not a.get("sitzung") and not a.get("dateien"):
+                raise arten.ArtFehler("Für das Exposé fehlt das Besprechungstranskript als Datei.")
+            expose_auftrag(a, ursprung(a) if a.get("sitzung") else a)
+        elif art == "recherche":
+            recherche_auftrag(a)
+        elif art == "lernkarten":
+            lernkarten_auftrag(a)
+        else:
+            pruefung_auftrag(a)
+    except arten.ArtFehler as f:
+        logger.warning("Auftrag %s (%s): %s", a["id"], art, f)
+        auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
+    except (*WARTEN, Wartet) as f:
+        return _warten(a, f)
+    except claude_lauf.LaufFehler as f:
+        auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
+    return True
+
+
 def auftrag_bearbeiten(a: dict) -> bool:
     """Ein Auftrag. False: Claude ist gerade nicht verfügbar, der Auftrag bleibt in neu/."""
     for datei in a.get("dateien") or []:  # Word, PowerPoint, Excel kann Claude nur als Textfassung lesen
         kurse.textfassung(HIER / datei, erneuern=False)
     if block := kurse.kommentare_block([HIER / d for d in a.get("dateien") or []], a.get("dateien") or []):
         a["text"] += "\n\n" + block  # nur für die Prompts, der Auftrag in der Ablage bleibt, wie Jan ihn schrieb
+    if a.get("art"):  # Arbeitsplatz: gezielt nach Art, ohne Text zu deuten; ohne art alles wie bisher
+        return art_auftrag(a)
     if transkripte.ist_transkript(a["text"]) and not a.get("sitzung"):
         try:
             transkript_uebernehmen(a)

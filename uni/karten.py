@@ -50,7 +50,7 @@ Felder je Karte: thema (id aus dem Plan), typ ("text" oder "bild"), frage, antwo
 bei typ "bild" zusätzlich bild (Pfad der passenden -frage.jpg).
 
 Regeln:
-- Nur Themen mit Score {min_score} oder mehr. Anzahl je Thema: {anzahl}.
+- Nur Themen mit Score {min_score} oder mehr. Anzahl je Thema: {anzahl}.{auswahl}
 - Prüfungsstil: erklären, abgrenzen, bestimmen, Fall begründen. Keine Ja/Nein-Fragen, die Frage
   verrät die Antwort nicht. Mindestens ein Drittel Fallfragen (konkrete Lage am Bau, Jan soll
   Diagnose oder Maßnahme begründen).
@@ -133,34 +133,72 @@ def uebernehmen(ordner: Path, karten: list[dict]) -> int:
     return len(neu)
 
 
-def erzeugen(modul: str, min_score: int = 4) -> str:
-    """Bilder schneiden, Claude Entwürfe schreiben lassen, prüfen, übernehmen. Gibt eine Zusammenfassung."""
-    ordner = LERNEN / modul
+def module(lernen: Path = LERNEN) -> dict[str, str]:
+    """Module mit Prüfungsplan: Ordner unter data/lernen -> Name aus dem Plan. Nur dafür gibt es Karten."""
+    namen = {}
+    for plan in sorted(lernen.glob("*/pruefungsplan.json")):
+        try:
+            namen[plan.parent.name] = json.loads(plan.read_text(encoding="utf-8")).get("modul") or plan.parent.name
+        except (OSError, json.JSONDecodeError) as f:
+            logger.warning("Prüfungsplan %s unlesbar: %s", plan, f)
+    return namen
+
+
+def erzeugen_ergebnis(modul: str, min_score: int = 4, themen: set[str] | None = None, hinweis: str = "",
+                      laufen=None, auftrag_id: str | None = None, lernen: Path = LERNEN,
+                      hier: Path = HIER) -> dict:
+    """Bilder schneiden, Claude Entwürfe schreiben lassen, prüfen, übernehmen.
+
+    themen: nur diese Themen-IDs des Plans (sonst alle ab min_score). hinweis: Wunsch von Jan (Arbeitsplatz), nur Text.
+    Gibt {"neu": [neue Karten], "gueltig": n, "fehler": [...], "text": Claudes letzte Antwort} zurück.
+    Wirft lernmodell.LernFehler, wenn kein lesbarer Entwurf entsteht; Kontingentfehler gehen an den Aufrufer.
+    """
+    laufen = laufen or claude_lauf.laufen
+    ordner = lernen / modul
     plan = json.loads((ordner / "pruefungsplan.json").read_text(encoding="utf-8"))
     ganz = []
     for q in plan.get("bildquellen", []):
-        ganz += [g for _, g in bilder_schneiden(HIER / q["pdf"], ordner / "bilder", q["praefix"])]
-    vorhanden = [k["frage"] for k in lernmodell.lies_json(ordner / "karten.json", [])]
+        ganz += [g for _, g in bilder_schneiden(hier / q["pdf"], ordner / "bilder", q["praefix"])]
+    vorher = lernmodell.lies_json(ordner / "karten.json", [])
+    vorhanden = [k["frage"] for k in vorher]
     entwurf_pfad = ordner / "karten_entwurf.json"
     entwurf_pfad.unlink(missing_ok=True)
+    auswahl = ""
+    if themen:
+        auswahl = f"\n- Nur diese Themen (id): {', '.join(sorted(themen))}."
+    if hinweis.strip():
+        auswahl += f"\n- Wunsch von Jan: {hinweis.strip()}"
     prompt = PROMPT.format(
-        modul=plan["modul"], ordner=modul, min_score=min_score,
+        modul=plan["modul"], ordner=modul, min_score=min_score, auswahl=auswahl,
         kurse=", ".join(f"data/kurse/{k}/" for k in plan["kurse"]),
-        ganz=", ".join(str(g.relative_to(HIER)) for g in ganz) or "keine",
+        ganz=", ".join(str(g.relative_to(hier)) for g in ganz) or "keine",
         anzahl=", ".join(f"Score {s}: {a}" for s, a in ANZAHL.items() if s >= min_score),
         vorhanden=json.dumps(vorhanden, ensure_ascii=False) if vorhanden else "keine")
-    e = claude_lauf.laufen(AGENT, HIER, prompt, art="anspruchsvoll")
+    e = laufen(AGENT, hier, prompt, art="anspruchsvoll", **({"auftrag_id": auftrag_id} if auftrag_id else {}))
     if not entwurf_pfad.exists():
         raise lernmodell.LernFehler(f"Claude hat keinen Entwurf geschrieben: {e.text[:300]}")
     try:
         entwurf = json.loads(entwurf_pfad.read_text(encoding="utf-8"))
     except json.JSONDecodeError as f:
         raise lernmodell.LernFehler(f"Entwurf ist kein gültiges JSON: {f}") from f
-    gueltig, fehler = pruefen(entwurf, {t["id"] for t in plan["themen"]}, HIER)
+    erlaubt = {t["id"] for t in plan["themen"]} & (themen or {t["id"] for t in plan["themen"]})
+    gueltig, fehler = pruefen(entwurf, erlaubt, hier)
     for f in fehler:
         logger.warning("Karten %s: %s", modul, f)
-    neu = uebernehmen(ordner, gueltig)
-    return f"{neu} neue Karten ({len(gueltig)} gültig, {len(fehler)} verworfen). Claude: {e.text.strip()[-300:]}"
+    alt = {k["id"] for k in vorher}
+    uebernehmen(ordner, gueltig)
+    neu, gesehen = [], set(alt)
+    for k in gueltig:
+        if k["id"] not in gesehen:
+            gesehen.add(k["id"])
+            neu.append(k)
+    return {"neu": neu, "gueltig": len(gueltig), "fehler": fehler, "text": e.text.strip()}
+
+
+def erzeugen(modul: str, min_score: int = 4) -> str:
+    """Aufruf von Hand: wie erzeugen_ergebnis, als eine Zeile."""
+    r = erzeugen_ergebnis(modul, min_score)
+    return f"{len(r['neu'])} neue Karten ({r['gueltig']} gültig, {len(r['fehler'])} verworfen). Claude: {r['text'][-300:]}"
 
 
 if __name__ == "__main__":

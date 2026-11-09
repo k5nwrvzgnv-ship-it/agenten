@@ -6,7 +6,7 @@ einen Handler und hängt keinen an logs/<name>.log an. Sonst landen Testzeilen i
 
 import logging
 
-for _name in ("uni", "uni-lernen", "uni-transkript"):
+for _name in ("uni", "uni-lernen", "uni-transkript", "uni-portal-frage"):
     _logger = logging.getLogger(_name)
     _logger.addHandler(logging.NullHandler())
     _logger.propagate = False

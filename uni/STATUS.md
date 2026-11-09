@@ -488,6 +488,37 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Stufe 3 eigene Word-Fassung über agentkit.fassungen.
     Von Jan noch offen: weitere Kontaktpersonen (Name, Adresse), erstes Interview (wer, wann, Ziel).
 
+- Arten aus dem Arbeitsplatz (09.11., Sitzung B zu docs/arbeitsplatz-plan.md, nur Unit-Tests, kein echter Lauf):
+  - Auftrag mit `art` (quelle "arbeitsplatz") geht in auftrag_bearbeiten direkt nach dem Kommentar-Block an agent.art_auftrag,
+    vor Transkript-, Dokument-, Änderungs-, Exposé- und Mail-Erkennung: Der Text wird nicht gedeutet. Ohne `art` alles wie bisher.
+    Logik ohne Netz in uni/arten.py (Felder lesen, Werte prüfen, daten bauen), Tests in tests/test_arten.py.
+  - Felder: arten.feld liest a["felder"] (Name ohne Groß/klein und Umlaute). arten.text_mit_feldern hängt Felder an den Text,
+    die dort nicht schon als "Name: Wert" stehen. `ort` bleibt im Auftrag (Log nennt ihn), uni braucht ihn nicht selbst.
+  - Ergebnis: abschliessen mit daten {titel, kern, punkte, pruefen}, von Python gebaut (kein Claude-Lauf dafür), bei recherche,
+    lernkarten, pruefung zusätzlich daten["ansicht"] (recherche: Ordner mit geprueft.json; lernkarten: modul; pruefung: modul,
+    uebung). Ergebnistext = kern, punkte, "Bitte prüfen". Unbekannte Art oder fehlendes Feld: fehlgeschlagen ohne Claude-Lauf.
+  - recherche (Research-Bericht): recherche.durchfuehren mit zweck "bericht" (eigener Eckpunkte-Prompt aus Thema/Fragestellung,
+    Prompts sagen "für einen Research-Bericht"), Ablage data/recherchen/<auftrag>/recherche/, kein Scopus-Vorschlag. Feld Umfang:
+    kurz (Standard: 15 USD, höchstens 8 Fragen in 2 Suchfenstern, Python prüft) oder gründlich (50 USD, 24 Fragen, 6 Fenster).
+    Kosten geschätzt, nicht gemessen. Ergebnisdatei nur Recherchebericht.md (kein PDF, gibt es heute nicht).
+  - expose: expose_auftrag wie "Exposé:" aus Telegram, Transkript als Datei Pflicht (sonst fehlgeschlagen ohne Lauf). daten nur bei
+    Aufträgen mit art (Titel, Gliederung Ebene 1, [OFFEN]-Stellen). Rückmeldung (sitzung, art geerbt) überarbeitet in der Kette.
+    Kosten wie bisher: Recherche bis 50 USD, Überarbeitung mit fortgesetzter Sitzung bis etwa 10 USD (04.11. gemessen).
+  - lernkarten: karten.erzeugen_ergebnis (neu, karten.erzeugen bleibt für den Aufruf von Hand) mit Themen-Auswahl, Hinweis und
+    auftrag_id; nur Module mit pruefungsplan.json (karten.module, heute holzschutz). Keine Ergebnisdatei, Ansicht karten im Portal.
+  - pruefung: über den vorhandenen Weg des Portals, ohne die Warteschlange des Portals: uni legt die Übung unter
+    data/lernen/<modul>/uebungen/<id>/ an (id aus der Auftrags-ID, stand.json mit "auftrag") und ruft
+    portal/auswertung_agent.auswerten direkt (Agent uniportal, ohne Werkzeuge, warten_s=0). Plätze belegt oder Kontingent leer:
+    Auftrag bleibt in neu/, Übung "wartet". Schon fertig (z. B. per Knopf im Portal): kein zweiter Lauf. Transkript aus Feld
+    Transkript (höchstens 20.000 Zeichen, Grenze agentkit) oder Datei .txt/.md/.json (bis 60.000 Zeichen). Schwäche: Pausiert in
+    claude_lauf landet dort als "Technischer Fehler" (fehlgeschlagen), weil _ein_lauf alles Unbekannte so behandelt.
+  - Rückmeldung nur bei expose. Bei recherche, lernkarten, pruefung: fehlgeschlagen mit Hinweis "neuer Auftrag" (kein Lauf).
+  - Vorschlag Felder für shared/arbeitsplatz/arten.toml (pflegt der Hauptordner): recherche: Thema (zeile, Pflicht),
+    Fragestellung (text), Umfang (auswahl "kurz", "gründlich"). expose: Thema (zeile, Pflicht), Hinweise (text); Datei Pflicht.
+    lernkarten: Modul (auswahl "Holzschutz"; Ordnername oder Name aus dem Plan gehen beide), Themen (text), Wichtigkeit ab (auswahl "5", "4", "3"), Hinweis (text).
+    pruefung: Modul (auswahl "Holzschutz"), Titel (zeile), Transkript (text); oder Datei. Das Formular braucht Dateien.
+  - Echter Lauf je Art steht aus (geplant 10.11. 15 Uhr).
+
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
   Zone Europe/Berlin, nach Beginn sortiert. Fehler beim Abruf: KalenderFehler (nennt nur "Kalender N").
