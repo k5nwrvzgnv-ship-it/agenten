@@ -193,7 +193,7 @@ def recherche(thema: str, hier: Path, ordner: Path, quellen_ordner: Path, laufen
 
 
 def bericht_text(thema: str, ergebnisse: list[SchrittErgebnis], ordner_rel: str) -> str:
-    """Kurzer Text für Jan (Telegram), bis der Renderer den PDF-Bericht kann."""
+    """Kurzer Text für Jan (Telegram); Bericht und Modell hängen an (agent.dokumente)."""
     letzte = ergebnisse[-1]
     zeilen = [f"Recherche: {thema}"]
     if not letzte.ok:
@@ -216,8 +216,7 @@ def bericht_text(thema: str, ergebnisse: list[SchrittErgebnis], ordner_rel: str)
                          else "."))
     zeilen.append(f"{len(quellen_ids)} Quellen, {annahmen} Annahmen, {hinweise} Zahlen aus Webquellen ohne Rohdaten-"
                   f"abgleich. Läufe: {sum(e.laeufe for e in ergebnisse)}.")
-    zeilen.append(f"Dateien: finance/{ordner_rel}/schritt1.json bis schritt{letzte.nr}.json "
-                  "(PDF-Bericht folgt, sobald der Renderer es kann).")
+    zeilen.append(f"Bericht (PDF) und Modell (xlsx) im Anhang, Schritt-Dateien in finance/{ordner_rel}/.")
     return "\n".join(zeilen)
 
 

@@ -1,0 +1,17 @@
+# Design-Profil für den Bericht von finance (Renderer-Art "bericht"), Kopie von
+# shared/renderer/beispiele/profil-jan-zusammenfassung.toml (Jans Stil, HNEE-Farben, abgestimmt 22.10.2026).
+# Werte: shared/renderer/design.py.
+# HNEE-Farben: Burnham 00261E (dunkelgrün), Sycamore 949547 (oliv); Flächen sind Aufhellungen von Sycamore.
+
+erstellt_von = "Agent finance"
+schrift = "Calibri"
+schriftgroesse_pt = 11
+zeilenabstand = 1.15
+
+[farben]
+ueberschrift = "00261E"       # HNEE Burnham: Überschriften, Kurs im Kopf, Linie, Balken der Kästen
+pruefungsrelevant = "DFDFC8"  # HNEE Sycamore, 30 %: Hinweis prüfungsrelevant
+organisatorisch = "F2F2F2"    # Hinweis Organisatorisches (hellgrau)
+rechenbeispiel = "F2F2F2"     # Rechenbeispiel (hellgrau)
+tabellenkopf = "EAEADA"       # HNEE Sycamore, 20 %: Kopfzeile der Tabellen
+kennzeichnung = "7F7F7F"      # [unsicher], [nur mündlich], Quellen (grau)

@@ -6,13 +6,17 @@ legt sie ab (quellen.py) und prüft jede Zahl (pruefung.py).
 """
 
 import tempfile
+import tomllib
 from datetime import date
 from pathlib import Path
 
 from agentkit import abruf, auftraege, claude_lauf, config, freigabe, log, textfassung, wortlaut
 
+import renderer
+
 import ablauf
 import abrufer
+import bericht
 import quellen
 
 AGENT = "finance"
@@ -20,7 +24,9 @@ HIER = Path(__file__).resolve().parent
 QUELLEN = HIER / "data" / "quellen"
 RECHERCHEN = HIER / "data" / "recherchen"
 CACHE = HIER / "data" / "cache"
+PROFIL = HIER / "profil-bericht.toml"
 logger = log.hole_logger(HIER, AGENT)
+log.hole_logger(HIER, "renderer")  # Warnungen des Renderers (z. B. Vorschau) ins selbe Log-Verzeichnis
 cfg = config.lade_config(HIER)
 
 
@@ -84,6 +90,28 @@ def abrufen(abfrage: dict, _laden=abruf.laden) -> str:
     return qid
 
 
+def dokumente(thema: str, ergebnisse: list, ordner: Path, _bauen=renderer.bauen) -> tuple[list[Path], list[str]]:
+    """Bericht (PDF, sonst docx) und Modell (xlsx) im Recherche-Ordner. (Dateien, Fehler für Jan)."""
+    daten, abbruch = bericht.aus_ergebnissen(ergebnisse)
+    metas = {m["id"]: m for m in quellen.alle(QUELLEN)}
+    profil = tomllib.loads(PROFIL.read_text(encoding="utf-8"))
+    dateien, fehler = [], []
+    auftraege_ = [("Bericht", bericht.beschreibung(thema, daten, metas, date.today(), abbruch), "bericht.docx", True),
+                  ("Modell", bericht.modell(thema, daten), "modell.xlsx", False)]
+    for name, beschreibung, datei, vorschau in auftraege_:
+        if beschreibung is None:
+            continue
+        try:
+            erg = _bauen(beschreibung, ordner / datei, profil=profil, vorschau=vorschau)
+        except (renderer.BeschreibungUngueltig, ValueError) as f:  # Fehler im finance-Code, nicht bei Claude
+            logger.error("%s nicht gebaut: %s", name, f)
+            fehler.append(f"{name} nicht gebaut: {str(f)[:300]}")
+            continue
+        dateien.append(Path(erg.pdf) if getattr(erg, "pdf", None) else Path(erg.pfad))
+        fehler += [f"{name}: {h}" for h in getattr(erg, "hinweise", None) or []]
+    return dateien, fehler
+
+
 def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden, abfragen=abrufen) -> None:
     """Eine Recherche. LimitErreicht, KeinPlatz, LaeuftSchon gehen durch (Auftrag wartet)."""
     ordner = RECHERCHEN / a["id"]
@@ -95,9 +123,12 @@ def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden, ab
     ergebnisse = ablauf.recherche(thema, HIER, ordner, QUELLEN, lauf, laden, wortlaut.steht_in, date.today(),
                                   abrufen=abfragen)
     text = ablauf.bericht_text(thema, ergebnisse, str(ordner.relative_to(HIER)))
+    dateien, fehler = dokumente(thema, ergebnisse, ordner)
+    if fehler:
+        text += "\n" + "\n".join(f"- {f}" for f in fehler)
     ok = ergebnisse[-1].ok
     logger.info("Recherche %s: %s", a["id"], "fertig" if ok else "abgebrochen")
-    auftraege.abschliessen(a["id"], text, status="erledigt" if ok else "fehlgeschlagen")
+    auftraege.abschliessen(a["id"], text, status="erledigt" if ok else "fehlgeschlagen", dateien=dateien)
 
 
 def auftraege_abarbeiten(laufen=claude_lauf.laufen, laden=web_laden) -> None:

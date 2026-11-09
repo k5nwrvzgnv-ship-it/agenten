@@ -43,7 +43,9 @@ Regeln für Zahlen (Python prüft jede einzelne, sonst wird die Datei abgelehnt)
   {"wert": 0.08, "einheit": "Anteil", "berechnet": {"art": "quotient", "aus": [<Zahl-Objekt>, <Zahl-Objekt>]}}
       (art: produkt, quotient, summe, differenz; Python rechnet nach, höchstens 1 % Abweichung)
 - Keine nackten Zahlen, auch nicht in Listen. Ausnahme: die Felder "jahr", "von_jahr", "bis_jahr", "nr" (ganze Zahl).
-- Zahlen im Fließtext vermeiden. Was du nicht belegen kannst, ist eine Annahme, keine Quelle.
+- Beträge, Anteile und Mengen nicht im Fließtext, sondern als Zahl-Objekt. Jahreszahlen und Daten dürfen im
+  Text stehen, und zwar in Ziffern; schreibe Zahlen nie als Wort aus. Was du nicht belegen kannst, ist eine
+  Annahme, keine Quelle.
 - Erfinde keine Quellen-IDs und keine Zitate.
 - Webquellen: die Originalseite des Herausgebers (Investor Relations, Destatis, Verband, Behörde) statt
   Nachrichtenportalen oder Sammelseiten, wenn sie erreichbar ist. PDFs (Geschäftsberichte) sind erlaubt, Python
