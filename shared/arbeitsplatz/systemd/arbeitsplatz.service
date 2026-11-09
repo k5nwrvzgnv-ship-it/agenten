@@ -1,0 +1,22 @@
+# Vorlage: nach ~/.config/systemd/user/arbeitsplatz.service kopieren, dann systemctl --user daemon-reload und
+# systemctl --user enable --now arbeitsplatz.service.
+# Arbeitsplatz für Jan (docs/arbeitsplatz-plan.md, Jans Okay 09.11.2026): hört nur auf 127.0.0.1:8794, von außen nur
+# über Caddy mit Passwort (trägt Jan ein). ARBEITSPLATZ_AUFTRAEGE=aus: Formulare prüfen, legen aber keinen Auftrag an.
+[Unit]
+Description=Arbeitsplatz für Jan (127.0.0.1:8794)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/agent/agenten/shared/arbeitsplatz
+Environment=ARBEITSPLATZ_PORT=8794
+Environment=ARBEITSPLATZ_AUFTRAEGE=aus
+ExecStart=/home/agent/agenten/shared/arbeitsplatz/.venv/bin/python app.py
+Restart=on-failure
+RestartSec=10
+MemoryMax=200M
+
+[Install]
+WantedBy=default.target

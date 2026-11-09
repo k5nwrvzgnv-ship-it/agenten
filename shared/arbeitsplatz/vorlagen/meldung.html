@@ -1,0 +1,5 @@
+{% extends "basis.html" %}
+{% block inhalt %}
+<p class="absatz">{{ text }}</p>
+{%- if zurueck %}<p><a class="knopf" href="{{ zurueck }}">Zurück</a></p>{% endif %}
+{% endblock %}

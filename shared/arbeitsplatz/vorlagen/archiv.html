@@ -1,0 +1,17 @@
+{% extends "basis.html" %}
+{% block inhalt %}
+{%- if eintraege %}
+<ul>
+  {%- for x in eintraege %}
+  <li class="zeile-mit-knoepfen"><a class="zeile" href="/ort/{{ x.ort.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
+    <span class="text"><span class="titel">{{ x.ort.titel }}</span><span class="unter">{{ x.pfad }}</span></span></a>
+    <form class="inline-form" method="post" action="/ort/{{ x.ort.id }}/wiederherstellen">
+      <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="zurueck" value="/archiv">
+      <button class="knopf-link" type="submit">Wiederherstellen</button>
+    </form></li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="leer">Das Archiv ist leer.</p>
+{%- endif %}
+{% endblock %}

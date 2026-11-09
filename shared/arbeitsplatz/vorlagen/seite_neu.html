@@ -1,0 +1,14 @@
+{% extends "basis.html" %}
+{% block inhalt %}
+{%- if fehler %}<div class="fehler" role="alert">{% for f in fehler %}<p>{{ f }}</p>{% endfor %}</div>{% endif %}
+<form class="formular" method="post" action="/seite/neu" data-einmal>
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+  <input type="hidden" name="eltern" value="{{ eltern }}">
+  <section>
+    <label class="feld-titel" for="titel">Titel</label>
+    <input class="feld" id="titel" type="text" name="titel" value="{{ titel }}" maxlength="200" required autofocus>
+  </section>
+  <button class="knopf knopf-voll" type="submit">Anlegen</button>
+</form>
+{% endblock %}

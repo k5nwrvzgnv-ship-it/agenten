@@ -1,0 +1,47 @@
+{% extends "basis.html" %}
+{% block inhalt %}
+<p class="absatz">{{ art.beschreibung }}</p>
+{%- if fehler %}<div class="fehler" role="alert">{% for f in fehler %}<p>{{ f }}</p>{% endfor %}</div>{% endif %}
+{%- if not auftraege_an %}<p class="hinweis">Probebetrieb: Abschicken prüft nur das Formular, es entsteht kein Auftrag.</p>{% endif %}
+<form class="formular" method="post" action="/neu/{{ art.kennung }}" enctype="multipart/form-data" data-einmal>
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+  <section>
+    {%- if ort %}
+    <input type="hidden" name="ort" value="{{ ort }}">
+    <p class="feld-titel">Ort</p><p class="absatz">{{ ort_text }}</p>
+    {%- else %}
+    <label class="feld-titel" for="ort">Ort</label>
+    <select class="feld" id="ort" name="ort" required>
+      <option value="">Bitte wählen</option>
+      {%- for z in orte_wahl %}<option value="{{ z.id }}">{{ "  " * (z.tiefe - 1) }}{{ z.text }}</option>{% endfor %}
+    </select>
+    {%- endif %}
+  </section>
+  {%- for f in art.feld %}
+  {%- set name = "feld-" ~ loop.index0 %}
+  <section>
+    <label class="feld-titel" for="{{ name }}">{{ f.name }}{% if not f.pflicht %} <span class="grau">(optional)</span>{% endif %}</label>
+    {%- if f.hilfe %}<p class="unter">{{ f.hilfe }}</p>{% endif %}
+    {%- if f.art == "text" %}
+    <textarea id="{{ name }}" name="{{ name }}" rows="5"{% if f.pflicht %} required{% endif %}>{{ werte.get(f.name, "") }}</textarea>
+    {%- elif f.art == "auswahl" %}
+    <select class="feld" id="{{ name }}" name="{{ name }}"{% if f.pflicht %} required{% endif %}>
+      <option value="">{% if f.pflicht %}Bitte wählen{% else %}–{% endif %}</option>
+      {%- for w in f.werte %}<option{% if werte.get(f.name) == w %} selected{% endif %}>{{ w }}</option>{% endfor %}
+    </select>
+    {%- else %}
+    <input class="feld" id="{{ name }}" type="text"{% if f.art == "zahl" %} inputmode="decimal"{% endif %} name="{{ name }}" value="{{ werte.get(f.name, "") }}" maxlength="500"{% if f.pflicht %} required{% endif %}>
+    {%- endif %}
+  </section>
+  {%- endfor %}
+  {%- if art.material != "nein" %}
+  <section>
+    <label class="feld-titel" for="dateien">Material{% if art.material == "optional" %} <span class="grau">(optional)</span>{% endif %}</label>
+    <p class="unter">PDF, Word, PowerPoint, Excel, Text oder Bilder, höchstens 10 Dateien</p>
+    <input id="dateien" type="file" name="dateien" multiple{% if art.material == "pflicht" %} required{% endif %}>
+  </section>
+  {%- endif %}
+  <button class="knopf knopf-voll" type="submit">Auftrag geben</button>
+</form>
+{% endblock %}

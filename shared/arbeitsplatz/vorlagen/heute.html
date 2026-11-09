@@ -1,0 +1,21 @@
+{% extends "basis.html" %}
+{% from "_dokumente.html" import liste %}
+{% block inhalt %}
+<section>
+  <h2>Orte</h2>
+  {%- if oben %}
+  <ul>
+    {%- for k in oben %}
+    <li><a class="zeile" href="/ort/{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ k.titel }}</span></span></a></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="leer">Noch keine Orte. Links mit „+ Seite“ anlegen, z. B. „Modul Holzschutz“ oder „Finanzen“.</p>
+  {%- endif %}
+</section>
+<section>
+  <h2>Zuletzt</h2>
+  {%- if zuletzt %}{{ liste(zuletzt, true) }}{% else %}<p class="leer">Noch keine Dokumente aus dem Arbeitsplatz.</p>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{#- Liste von Dokumenten (Ort, Heute). d: logik.dokumente(); mit_ort zeigt den Ort darunter. -#}
+{%- macro liste(docs, mit_ort=false) -%}
+<ul>
+  {%- for d in docs %}
+  <li><a class="zeile" href="{{ d.link }}">
+    <span class="punkt{% if d.rot %} punkt-rot{% elif d.marke == 'Läuft' %} punkt-offen{% endif %}" aria-hidden="true"></span>
+    <span class="text">
+      <span class="titel">{{ d.titel }}</span>
+      <span class="unter">{{ d.art or d.agent }}{% if d.zeit_text %} · {{ d.zeit_text }}{% endif %}</span>
+      {%- if mit_ort and d.ort_text %}<span class="unter ort">{{ d.ort_text }}</span>{% endif %}
+    </span>
+    <span class="marke{% if d.rot %} marke-rot{% endif %}">{{ d.marke }}</span>
+  </a></li>
+  {%- endfor %}
+</ul>
+{%- endmacro -%}

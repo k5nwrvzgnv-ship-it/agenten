@@ -1,0 +1,20 @@
+/* Ergänzungen für den Arbeitsplatz zu stil.css (Kopie aus shared/webapp, dort nicht verändern). */
+.baum-eintrag.tiefe-0 { font-weight: 600; }
+.baum-eintrag.tiefe-1 { padding-left: 26px; font-weight: 400; }
+.baum-eintrag.tiefe-2 { padding-left: 42px; font-weight: 400; font-size: 14px; }
+.baum-eintrag.tiefe-3 { padding-left: 58px; font-weight: 400; font-size: 14px; }
+.baum-eintrag.tiefe-4 { padding-left: 74px; font-weight: 400; font-size: 14px; }
+.baum-eintrag.tiefe-5 { padding-left: 90px; font-weight: 400; font-size: 14px; }
+.baum-eintrag.tiefe-6 { padding-left: 106px; font-weight: 400; font-size: 14px; }
+.baum-neu { color: var(--grau); }
+.baum-zu { color: var(--grau); font-weight: 400; }
+.baum-zahl-grau { color: var(--grau); font-weight: 400; }
+.baum-eintrag[aria-current] .baum-zu { color: var(--weiss); }
+.baum-mehr { padding: 12px 10px 0; font-size: 14px; color: var(--grau); }
+.zeile-mit-knoepfen { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.knoepfe-klein { display: flex; gap: 12px; }
+.zeile-klein .titel { font-size: 16px; }
+.fragen ul { border-bottom: 1px solid var(--schwarz); }
+.details summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
+.fassungen summary { display: flex; gap: 12px; align-items: baseline; padding: 12px 0; cursor: pointer; }
+.auftrag-text { white-space: pre-line; }

@@ -1,0 +1,17 @@
+{% extends "basis.html" %}
+{% block inhalt %}
+<p class="absatz">{% if ort %}Neues Dokument in „{{ ort_text }}“.{% else %}Neues Dokument. Den Ort wählst du im Formular.{% endif %}</p>
+{%- if arten %}
+<div class="galerie">
+  {%- for a in arten %}
+  <a class="galerie-karte" href="/neu/{{ a.kennung }}{% if ort %}?ort={{ ort.id }}{% endif %}">
+    <span class="galerie-bild bild-{{ 'folie' if 'pptx' in a.ausgabe else 'skript' }}" aria-hidden="true"></span>
+    <span class="titel">{{ a.name }}</span>
+    <span class="unter">{{ a.beschreibung }}</span>
+  </a>
+  {%- endfor %}
+</div>
+{%- else %}
+<p class="leer">Keine Arten verfügbar (arten.toml fehlt oder ist fehlerhaft, Einzelheiten im Log).</p>
+{%- endif %}
+{% endblock %}

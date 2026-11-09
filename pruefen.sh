@@ -21,6 +21,7 @@ TESTS=(
   "shared/renderer|.venv/bin/python|tests"
   "shared/leitstand|.venv/bin/python|tests"
   "shared/webapp|.venv/bin/python|tests"
+  "shared/arbeitsplatz|.venv/bin/python|tests"
   "uni|.venv/bin/python|tests"
   "uni/portal|../.venv/bin/python|tests"
   "dokumente|.venv/bin/python|tests"

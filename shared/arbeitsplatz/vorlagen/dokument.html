@@ -1,0 +1,25 @@
+{% extends "basis.html" %}
+{% block seitenkopf %}
+<header class="kopf">
+  <span class="datum grau">{{ art }}</span>
+  <h1 class="titel-gross">{{ e.titel }}</h1>
+  <span class="marke{% if rot %} marke-rot{% endif %}">{{ marke }}</span>
+</header>
+{% endblock %}
+{% block inhalt %}
+<p class="hinweis">Erste, lesende Ansicht. Seitenbilder, Dateien, Rückmeldung und „final“ folgen.</p>
+<section class="fassungen">
+  <h2>Fassungen</h2>
+  <ul>
+    {%- for f in fassungen %}
+    <li><details{% if loop.first %} open{% endif %}><summary><span class="titel">{{ f.zeit }}</span>
+      <span class="unter">{{ {"neu": "läuft", "erledigt": "fertig", "fehlgeschlagen": "hat nicht geklappt", "zurueckgezogen": "zurückgezogen"}.get(f.status, f.status) }}</span></summary>
+      {%- if f.kern %}<p class="absatz">{{ f.kern }}</p>{% endif %}
+      {%- if f.dateien %}<p class="unter">Dateien: {{ f.dateien | join(", ") }}</p>{% endif %}
+      {%- if f.status != "erledigt" and f.ergebnis %}<p class="absatz">{{ f.ergebnis }}</p>{% endif %}
+      <p class="unter auftrag-text">{{ f.text }}</p>
+    </details></li>
+    {%- endfor %}
+  </ul>
+</section>
+{% endblock %}

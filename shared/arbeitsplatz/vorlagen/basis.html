@@ -1,0 +1,87 @@
+{#- Rahmen für alle Seiten (docs/arbeitsplatz-plan.md, Oberfläche): Baum | Seite mit Brotkrumen | Läuft gerade.
+    Im HTML steht der Inhalt vorn, damit er bei schmalem Fenster oben steht; die Spalten ordnet stil.css. -#}
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titel %}{{ e.titel }}{% endblock %} · Arbeitsplatz</title>
+<link rel="stylesheet" href="/statisch/stil.css">
+<link rel="stylesheet" href="/statisch/arbeitsplatz.css">
+<script src="/statisch/einmal.js" defer></script>
+</head>
+<body>
+<div class="rahmen">
+<main class="inhalt einzeln">
+<div class="krumen-zeile">
+<nav class="krumen" aria-label="Brotkrumen">
+  <ol>
+    {%- for k in krumen.teile %}
+    <li>{% if k.link %}<a href="{{ k.link }}">{{ k.text }}</a>{% else %}<span>{{ k.text }}</span>{% endif %}<span class="trenner" aria-hidden="true">›</span></li>
+    {%- endfor %}
+    <li aria-current="page">{{ krumen.hier }}</li>
+  </ol>
+</nav>
+{%- if neu_hier %}<a class="knopf knopf-voll" href="{{ neu_hier }}">+ Neu</a>{% endif %}
+</div>
+{% block seitenkopf %}
+<header class="kopf">
+  {%- if e.unter %}<span class="datum grau">{{ e.unter }}</span>{% endif %}
+  <h1 class="titel-gross">{{ e.titel }}</h1>
+</header>
+{% endblock %}
+{%- set ah = aktion_hinweis(request.query_params.get("aktion")) %}
+{%- if ah %}
+<div class="hinweis hinweis-erledigt aktion-hinweis" role="status">
+  <div class="aktion-zeile"><span>{{ ah.text }}</span><span aria-hidden="true">·</span>
+    <form class="inline-form" method="post" action="/rueckgaengig">
+      <input type="hidden" name="token" value="{{ formular_token() }}">
+      <input type="hidden" name="aktion" value="{{ ah.id }}">
+      <input type="hidden" name="zurueck" value="{{ request.url.path }}">
+      <button class="knopf-link" type="submit">Rückgängig</button>
+    </form></div>
+</div>
+{%- endif %}
+{%- set erledigt = request.query_params.get("erledigt") %}
+{%- if erledigt == "auftrag" %}
+<p class="hinweis hinweis-erledigt" role="status">Auftrag angelegt, der Agent arbeitet daran.</p>
+{%- elif erledigt == "auftrag-wartet" %}
+<p class="hinweis hinweis-fehler" role="status">Auftrag angelegt, aber der Agent ließ sich nicht starten. Er holt ihn beim nächsten Lauf.</p>
+{%- endif %}
+{% block inhalt %}{% endblock %}
+</main>
+<nav class="baum" aria-label="Orte">
+  <a class="baum-name" href="/">Arbeitsplatz</a>
+  <ul>
+    <li><a class="baum-eintrag" href="/"{% if krumen.hier == "Heute" and not krumen.teile %} aria-current="page"{% endif %}><span>Heute</span>
+      {%- if laeuft %}<span class="baum-zahl baum-zahl-grau">{{ laeuft | length }} läuft</span>{% endif %}</a></li>
+    {%- for b in baum %}
+    {%- if b.art == "neu" %}
+    <li><a class="baum-eintrag baum-neu tiefe-{{ [b.tiefe, 6] | min }}" href="{{ b.link }}"><span>{{ b.text }}</span></a></li>
+    {%- else %}
+    <li><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
+      {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterseiten">›</span>{% endif %}</a></li>
+    {%- endif %}
+    {%- endfor %}
+    <li><a class="baum-eintrag baum-neu" href="/seite/neu"><span>+ Seite</span></a></li>
+  </ul>
+  <a class="baum-mehr" href="/archiv">Archiv</a>
+</nav>
+<aside class="fragen" aria-label="Läuft gerade">
+  <h2 class="fragen-titel">Läuft gerade</h2>
+  {%- if laeuft %}
+  <ul>
+    {%- for z in laeuft %}
+    <li><a class="zeile zeile-klein" href="{{ z.link }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ z.titel }}</span>
+      <span class="unter">{{ z.agent }}{% if z.nachbesserung %} · Nachbesserung{% endif %} · seit {{ z.seit_text }}</span></span></a></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="leer">Gerade läuft nichts.</p>
+  {%- endif %}
+  {%- if not auftraege_an %}<p class="unter">Aufträge sind ausgeschaltet (Probebetrieb).</p>{% endif %}
+</aside>
+</div>
+</body>
+</html>
