@@ -14,7 +14,9 @@ Grundlage: `uni/portal-oberflaeche.md` (Kernaufgaben, Jans Idee zu Ebenen), `uni
 3. dokumente bekommt die Arten „Präsentation“ und „Bericht“ (bei Zeitnot nur eine).
 4. Über Nacht drei Sitzungen parallel (Hauptordner, uni, dokumente) ohne Einzelfreigabe je Schritt. Commits nur über
    commit.sh mit grünem pruefen.sh, pruefen.sh nur mit flock auf commit.sperre.
-5. Testläufe am 10.11. nachmittags auf dem Agenten-Konto, geschätzt 10 bis 20 USD (nicht gemessen).
+5. Testläufe am 10.11. nachmittags auf dem Agenten-Konto. Jan 09.11. abends: alle Arten echt testen, auch Exposé,
+   obwohl die Schätzung damit nicht mehr 10 bis 20 USD ist (Recherche „kurz“ bis 15 USD, Exposé mit Recherche bis
+   50 USD, laut uni geschätzt, nicht gemessen).
 
 ## Kernmodell
 
