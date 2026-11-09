@@ -1027,5 +1027,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
       Angaben für verwaltung aber ohnehin nicht über Telegram geben (Jan 09.11.); deshalb zurückgestellt.
     - Kein Dienst lia-verwaltung: Der Agent läuft von Hand (siehe lia/verwaltung/STATUS.md).
 
+34. Bedarf aus dokumente an shared/renderer (09.11.2026, Sitzung C zum Arbeitsplatz, nichts eilt): dokumente baut
+    jetzt Präsentationen (Art folien) und Berichte (Art bericht) und kommt mit dem Vorhandenen aus. Es fehlt:
+    - Folien: Bilder (Fotos, Diagramme aus dem Material), Tabellen auf Folien, Sprechernotizen, eine neutrale
+      Quellenfolie. Die Elemente sind auf Unterricht ausgelegt (satzanfang, feedback); für Vorträge reichen
+      punkte, kasten, spalten, text, zentriert.
+    - Bericht: Deckblatt für Abgaben (Name, Matrikelnummer, Betrieb, Zeitraum, Betreuung), Inhaltsverzeichnis,
+      Bilder mit Bildunterschrift; "Stand <Datum>" steht immer im Kopf (für eine Abgabe abschaltbar machen).
+    Details und Probeläufe: dokumente/STATUS.md.
+
 ## Gelernte Regeln
 - (noch keine)
