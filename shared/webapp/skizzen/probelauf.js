@@ -211,6 +211,22 @@ klick('ablegenok', {}, { wo: 'T6' });
 ok(wurzel().includes('Bewertungskriterien.pdf'), 'T6: Datei nicht an Kurs 12 sichtbar');
 ok(wurzel().includes('data-ziel="ohne"'), 'T6: "Gespräche ohne Ort" fehlt im Baum');
 
+// ---------- Seitenleiste: auf- und zuklappen ----------
+const baumHtml = () => { const h = wurzel(); const a = h.indexOf('<nav class="baum"'); return a < 0 ? '' : h.slice(a, h.indexOf('</nav>', a)); };
+zuruecksetzen(); klick('ebene', { ziel: 'k11' }, { pruefen: false });
+if (skript.includes("'klappen'")) {
+  ok(baumHtml().includes('data-ziel="helfen"'), 'Baum: Reihen der Klasse 8 nicht sichtbar');
+  ok(!baumHtml().includes('data-ziel="s1"'), 'Baum: Stunden einer fremden Reihe offen');
+  klick('klappen', { ziel: 'e8' }, { wo: 'Baum' });
+  ok(!baumHtml().includes('data-ziel="helfen"'), 'Baum: Klasse 8 klappt nicht zu');
+  ok(baumHtml().includes('punkt-rot'), 'Baum: roter Punkt fehlt an zugeklappter Klasse mit Wartendem');
+  klick('klappen', { ziel: 'e8' }, { wo: 'Baum' });
+  klick('klappen', { ziel: 'strafe' }, { wo: 'Baum' });
+  ok(baumHtml().includes('data-ziel="s1"'), 'Baum: Reihe klappt nicht auf');
+  klick('archiv', {}, { wo: 'Baum' });
+  ok(baumHtml().includes('Klasse 7'), 'Baum: Archiv klappt nicht auf');
+}
+
 // ---------- Vorschau (ab Schritt 5) ----------
 if (skript.includes("'vorschau'")) {
   zuruecksetzen(); klick('ebene', { ziel: 'strafe' }, { pruefen: false });

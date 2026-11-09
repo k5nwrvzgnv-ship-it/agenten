@@ -44,20 +44,37 @@ h1, h2, h3 { text-wrap: balance }
 /* App */
 .app { display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; min-height: calc(100vh - 48px) }
 .app.ohne-rechts { grid-template-columns: 240px minmax(0, 1fr) }
-.baum { background: var(--flaeche); padding: 12px 8px 32px; display: flex; flex-direction: column; gap: 1px; min-width: 0; font-size: 14px }
+.baum { background: var(--flaeche); padding: 12px 8px 16px; display: flex; flex-direction: column; gap: 1px; min-width: 0; font-size: 14px;
+  position: sticky; top: 0; align-self: start; min-height: calc(100vh - 48px) }
 .baum .name { padding: 6px 10px 12px; font-size: 14px; font-weight: 600 }
 .baum .kopf { padding: 16px 10px 4px; font-size: 12px; font-weight: 500; color: var(--sehrleise) }
-.baum button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 30px;
-  padding: 4px 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 14px; font-weight: 400; color: var(--fg) }
-.baum button:hover { background: var(--hover) }
-.baum button.e1 { padding-left: 24px }
-.baum button.e2 { padding-left: 38px; color: var(--leise) }
-.baum button:disabled { color: var(--sehrleise); cursor: default }
-.baum button:disabled:hover { background: transparent }
-.baum button[aria-current="location"] { background: var(--wahl); font-weight: 600; color: var(--fg) }
-.baum button.im-pfad { font-weight: 500 }
+.baum .knoten { display: flex; align-items: center }
+.baum .knoten.s1 { padding-left: 14px }
+.baum .knoten.s2 { padding-left: 28px }
+.baum .ort { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; width: 100%; min-width: 0; min-height: 30px;
+  padding: 4px 10px 4px 6px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 14px; font-weight: 400; color: var(--fg) }
+.baum > .ort, .baum-fuss .ort { padding-left: 10px }
+.baum .ort:hover { background: var(--hover) }
+.baum .ort:disabled { color: var(--sehrleise); cursor: default }
+.baum .ort:disabled:hover { background: transparent }
+.baum .leise-ort { color: var(--leise) }
+.baum .s2 .ort { color: var(--leise) }
+.baum .ort[aria-current="location"] { background: var(--wahl); font-weight: 600; color: var(--fg) }
+.baum .ort.im-pfad { font-weight: 500 }
+.baum .nm { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.baum .pfeil, .baum .pfeil-platz { flex: 0 0 20px; width: 20px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: none;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--sehrleise); font-size: 12px }
+.baum .pfeil { opacity: 0 }
+.baum:hover .pfeil, .baum .pfeil:focus-visible { opacity: 1 }
+.baum .pfeil:hover { background: var(--hover); color: var(--fg) }
 .baum .zahl { font-size: 12px; font-weight: 400; color: var(--sehrleise); white-space: nowrap; font-variant-numeric: tabular-nums }
 .baum .zahl.rot { color: var(--akzent); font-weight: 500 }
+.baum .zahl.nur-hover { display: none }
+.baum .ort:hover .zahl.nur-hover, .baum .ort:focus-visible .zahl.nur-hover { display: inline }
+.punkt-rot { flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--akzent) }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
+.baum-fuss { margin-top: auto; padding-top: 24px; display: flex; flex-direction: column; gap: 1px }
+@media (hover: none) { .baum .pfeil { opacity: 1 } }
 
 main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: column; gap: 24px }
 .krumen { display: flex; flex-wrap: wrap; gap: 2px; font-size: 14px; color: var(--leise); align-items: center }
@@ -198,7 +215,8 @@ aside .kette div.hier { background: var(--wahl); font-weight: 600 }
 @media (max-width: 860px) { .spalten { grid-template-columns: minmax(0, 1fr) } }
 @media (max-width: 760px) {
   .app, .app.ohne-rechts { grid-template-columns: minmax(0, 1fr) }
-  .baum { padding-bottom: 12px; border-bottom: 1px solid var(--linie) }
+  .baum { padding-bottom: 12px; border-bottom: 1px solid var(--linie); position: static; min-height: 0 }
+  .baum-fuss { padding-top: 12px }
   aside.rechts { grid-column: 1; padding-left: 16px; padding-right: 16px }
   main { padding: 16px 16px 40px }
   .titel h1, .luecken h1 { font-size: 26px }
@@ -254,6 +272,7 @@ function frische() {
   return {
     seite: 'luecken', ebene: 'strafe', gespraech: null, band: '', vorher: null, umbenennen: false,
     anhang: [], entwurf: '', gruendlich: false, netz: false, schicht: null, ablegenDatei: '', heute: false,
+    klapp: {}, archiv: false,
     reihenfrage: { strafe: '', helfen: 'Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?' },
     material: [
       { ort: 'e8', titel: 'Notentabelle Klasse 8 (ohne Namen)', stand: 'final' },
@@ -344,26 +363,39 @@ const relName = (d, k) => kette(d).slice(kette(k).length).map((x) => E[x].typ ==
 const reiheVon = (k) => kette(k).find((x) => E[x].reihenfrage);
 const zahlen = (g, m) => [g ? g + ' Gespr.' : '', m ? m + ' Mat.' : ''].filter(Boolean).join(' · ');
 
-// ---------- Baum ----------
+// ---------- Baum (Seitenleiste) ----------
+// Reihen klappen standardmäßig nur auf, wenn man darin steht; Klassen und Kurse sind offen. Pfeile ändern das.
+const wartetAn = (k) => S.material.some((m) => m.rot && m.ort === k);
+function aufgeklappt(k) {
+  if (S.klapp[k] !== undefined) return S.klapp[k];
+  return E[k].typ === 'Reihe' ? kette(S.ebene).includes(k) : true;
+}
 function baum() {
   const offen = kette(S.ebene);
-  const knoten = (k, cls) => {
+  const knoten = (k, stufe) => {
     const cur = !S.heute && k === S.ebene;
     const imPfad = !S.heute && !cur && offen.includes(k);
+    const name = E[k].typ === 'Stunde' ? E[k].kurz.replace('Stunde ', '') + '  ' + E[k].titel : E[k].name.replace(' · 2026/27', '');
+    const kinder = E[k].kinder.length > 0;
+    const auf = kinder && aufgeklappt(k);
+    const rot = wartetAn(k) || (kinder && !auf && unter(k).some(wartetAn));
     const z = zahlen(gHier(k).length, mHier(k).length);
-    let h = '<button type="button" class="' + (cls || '') + (imPfad ? ' im-pfad' : '') + '" data-akt="ebene" data-ziel="' + k + '"' + (cur ? ' aria-current="location"' : '') + '>' +
-      '<span>' + esc(E[k].typ === 'Stunde' ? (E[k].kurz.replace('Stunde ', '') + '  ' + E[k].titel) : E[k].name.replace(' · 2026/27', '')) + '</span>' + (z ? '<span class="zahl">' + z + '</span>' : '') + '</button>';
-    if (E[k].typ === 'Reihe' && offen.includes(k)) E[k].kinder.forEach((c) => { h += knoten(c, 'e2'); });
+    let h = '<div class="knoten s' + stufe + '">' +
+      (kinder ? '<button type="button" class="pfeil hover-akt" data-akt="klappen" data-ziel="' + k + '" aria-expanded="' + auf + '" aria-label="' + (auf ? 'Zuklappen: ' : 'Aufklappen: ') + esc(name) + '">' + (auf ? '▾' : '▸') + '</button>' : '<span class="pfeil-platz"></span>') +
+      '<button type="button" class="ort' + (imPfad ? ' im-pfad' : '') + '" data-akt="ebene" data-ziel="' + k + '"' + (cur ? ' aria-current="location"' : '') + '>' +
+      '<span class="nm">' + esc(name) + '</span>' + (rot ? '<span class="punkt-rot" title="wartet auf dich"></span><span class="sr">wartet auf dich</span>' : '') +
+      (z ? '<span class="zahl nur-hover">' + z + '</span>' : '') + '</button></div>';
+    if (auf) E[k].kinder.forEach((c) => { h += knoten(c, stufe + 1); });
     return h;
   };
   return '<nav class="baum" aria-label="Ordnung"><span class="name">Lias Assistenz</span>' +
-    '<button type="button" data-akt="heute"' + (S.heute ? ' aria-current="location"' : '') + '><span>Heute</span><span class="zahl rot">3</span></button>' +
-    '<span class="kopf">Ethik</span>' + knoten('e8') + knoten('strafe', 'e1') + knoten('helfen', 'e1') +
-    '<button type="button" disabled><span>Archiv: Klasse 7 · 2025/26</span></button>' +
-    '<span class="kopf">Darstellendes Spiel</span>' + knoten('k11') + knoten('k12') + knoten('wahnsinn', 'e1') +
-    '<button type="button" disabled><span>Archiv: Kurs 11 · 2025/26</span></button>' +
-    '<span class="kopf">Mehr</span>' + knoten('ohne') +
-    '<button type="button" disabled><span>Vorlagen</span></button><button type="button" disabled><span>Ich</span></button></nav>';
+    '<button type="button" class="ort" data-akt="heute"' + (S.heute ? ' aria-current="location"' : '') + '><span class="nm">Heute</span><span class="zahl rot">3</span></button>' +
+    '<span class="kopf">Ethik</span>' + knoten('e8', 0) +
+    '<span class="kopf">Darstellendes Spiel</span>' + knoten('k11', 0) + knoten('k12', 0) +
+    '<span class="kopf">Weiteres</span>' + knoten('ohne', 0) +
+    '<div class="baum-fuss"><button type="button" class="ort leise-ort" data-akt="archiv" aria-expanded="' + S.archiv + '"><span class="nm">' + (S.archiv ? '▾' : '▸') + ' Archiv</span></button>' +
+    (S.archiv ? '<button type="button" class="ort" disabled><span class="nm">Klasse 7 · 2025/26</span></button><button type="button" class="ort" disabled><span class="nm">Kurs 11 · 2025/26</span></button>' : '') +
+    '<button type="button" class="ort leise-ort" disabled><span class="nm">Vorlagen</span></button><button type="button" class="ort leise-ort" disabled><span class="nm">Ich</span></button></div></nav>';
 }
 
 function krumen(k) {
@@ -607,6 +639,12 @@ function zeichnen() {
   $('#wurzel').innerHTML = S.seite === 'luecken' ? seiteLuecken() : seiteSkizze();
   schicht();
 }
+// Nach dem Neuzeichnen den Fokus auf das gleiche Bedienelement setzen (Auf- und Zuklappen per Tastatur).
+function fokusZurueck(el) {
+  const d = el.dataset; let sel = '[data-akt="' + d.akt + '"]';
+  ['ziel', 'id', 'm'].forEach((x) => { if (d[x]) sel += '[data-' + x + '="' + d[x] + '"]'; });
+  const neu = document.querySelector(sel); if (neu && neu.focus) neu.focus();
+}
 function speichernEntwurf() { const t = $('#text'); if (t) S.entwurf = t.value; }
 function ansEnde() { const v = $('#verlauf'); if (v && v.lastElementChild) v.lastElementChild.scrollIntoView({ block: 'nearest' }); }
 
@@ -672,6 +710,8 @@ document.addEventListener('click', (e) => {
     case 'heute': speichernEntwurf(); S.heute = true; S.gespraech = null; S.band = ''; S.vorher = null; break;
     case 'ebene': speichernEntwurf(); S.ebene = el.dataset.ziel; S.gespraech = null; S.heute = false; S.umbenennen = false; S.band = ''; S.vorher = null; break;
     case 'oeffnen': oeffnen(el.dataset.id); return;
+    case 'klappen': speichernEntwurf(); S.klapp[el.dataset.ziel] = !aufgeklappt(el.dataset.ziel); zeichnen(); fokusZurueck(el); return;
+    case 'archiv': speichernEntwurf(); S.archiv = !S.archiv; zeichnen(); fokusZurueck(el); return;
     case 'neu': {
       speichernEntwurf();
       const id = 'n' + Date.now();
