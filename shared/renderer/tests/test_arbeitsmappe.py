@@ -7,7 +7,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from renderer import arbeitsmappe
+from renderer import arbeitsmappe, kontrolle, pruefen
 from renderer.pruefung import lesen
 from tests.test_pruefung import NOTEN
 
@@ -172,6 +172,89 @@ class TestEinzelheiten(unittest.TestCase):
     def test_keine_vorlage(self):
         with self.assertRaisesRegex(ValueError, "Vorlagen gibt es für xlsx nicht"):
             arbeitsmappe.bauen(lesen(self.blatt()), Path(tempfile.mkdtemp()) / "x.xlsx", vorlage=Path("v.xlsx"))
+
+
+MODELL = {"art": "arbeitsmappe", "titel": "Modell", "blaetter": [{
+    "name": "Szenarien", "zeilen": 4,
+    "spalten": [
+        {"id": "nr", "kopf": "Nr.", "art": "nummer"},
+        {"id": "szenario", "kopf": "Szenario", "art": "text", "max_zeichen": 20},
+        {"id": "menge", "kopf": "Menge", "art": "zahl", "ganz": True, "min": 0},
+        {"id": "preis", "kopf": "Preis", "art": "zahl", "min": 0, "max": 1000, "nachkommastellen": 2},
+        {"id": "umsatz", "kopf": "Umsatz", "art": "rechnung", "formel": "menge * preis", "nachkommastellen": 1},
+        {"id": "beleg", "kopf": "Beleg", "art": "text"}],
+    "werte": [
+        {"szenario": "Basis", "menge": 1200, "preis": 35.5, "beleg": "Q-20261109-genesis-3fa2c1"},
+        {"szenario": "ohne Preis", "menge": 100, "preis": None},
+        {"szenario": "=1+1"}]}]}
+
+
+def modell_mit(werte) -> dict:
+    d = copy.deepcopy(MODELL)
+    d["blaetter"][0]["werte"] = werte
+    return d
+
+
+class TestVorbelegteWerte(unittest.TestCase):
+    def test_gelesen(self):
+        werte = lesen(MODELL)["blaetter"][0]["werte"]
+        self.assertEqual(werte[0], {"szenario": "Basis", "menge": 1200.0, "preis": 35.5,
+                                    "beleg": "Q-20261109-genesis-3fa2c1"})
+        self.assertEqual(werte[1], {"szenario": "ohne Preis", "menge": 100.0, "preis": None, "beleg": None})
+        self.assertEqual(lesen(NOTEN)["blaetter"][0]["werte"], [])  # ohne werte wie bisher
+
+    def test_fehler(self):
+        f = pruefen(modell_mit([
+            {"menge": 1.5, "preis": 2000, "umsatz": 3, "nr": 1, "mege": 2},
+            {"menge": -1, "preis": "3,5", "szenario": "x" * 21},
+            {"menge": 2e9, "preis": True},
+            "Basis"]))
+        self.assertEqual(f, [
+            "blaetter[0].werte[0].menge: muss eine ganze Zahl sein (ganz: true), ist 1.5",
+            "blaetter[0].werte[0].preis: liegt nicht in min/max der Spalte (0 bis 1000), ist 2000",
+            'blaetter[0].werte[0].umsatz: Spalte der art "rechnung" füllt der Renderer bzw. Excel, hier keinen Wert '
+            "eintragen",
+            'blaetter[0].werte[0].nr: Spalte der art "nummer" füllt der Renderer bzw. Excel, hier keinen Wert eintragen',
+            'blaetter[0].werte[0].mege: keine Spalte mit dieser id (gemeint: "menge"?), erlaubt sind: szenario, menge, '
+            "preis, beleg",
+            "blaetter[0].werte[1].menge: liegt nicht in min/max der Spalte (0 bis …), ist -1",
+            'blaetter[0].werte[1].preis: muss eine Zahl oder null sein, ist "3,5"',
+            "blaetter[0].werte[1].szenario: zu lang (21 Zeichen, höchstens 20)",
+            "blaetter[0].werte[2].menge: zu groß (2000000000.0, höchstens 1e+09 dem Betrag nach), größere Beträge "
+            "in einer größeren Einheit angeben (z. B. Mio. EUR, Einheit in kopf)",
+            "blaetter[0].werte[2].preis: muss eine Zahl oder null sein, ist true",
+            'blaetter[0].werte[3]: muss ein Objekt {"spalten-id": wert, ...} sein, ist "Basis"'])
+        self.assertEqual(pruefen(modell_mit([{}] * 5)),
+                         ["blaetter[0].werte: muss 1 bis 4 Einträge haben, hat 5"])
+
+    def test_bauen(self):
+        teile = bauen(MODELL)
+        blatt = teile["xl/worksheets/sheet1.xml"]
+        texte = re.findall(r"<t[^>]*>(.*?)</t>", teile["xl/sharedStrings.xml"])
+        # Zeile 1 Kopf, 2 bis 5 die Zeilen
+        self.assertEqual(texte[int(re.search(r"<v>(\d+)</v>", zelle(blatt, "B2")).group(1))], "Basis")
+        self.assertIn("<v>1200</v>", zelle(blatt, "C2"))
+        self.assertIn("<v>35.5</v>", zelle(blatt, "D2"))
+        self.assertIn('<f>IF(OR(COUNT(C2)=0,COUNT(D2)=0),"",C2*D2)</f><v>42600</v>', zelle(blatt, "E2"))
+        self.assertTrue(zelle(blatt, "D3").endswith("/>"), zelle(blatt, "D3"))  # null: leer
+        self.assertTrue(zelle(blatt, "E3").endswith("<v></v></c>"))
+        self.assertIn("=1+1", texte)  # Text bleibt Text
+        self.assertNotIn("<f>1+1</f>", blatt)
+        self.assertTrue(zelle(blatt, "C5").endswith("/>"))  # Zeile ohne Werte bleibt leer
+
+    def test_kontrolle(self):
+        ziel = Path(tempfile.mkdtemp()) / "modell.xlsx"
+        b = lesen(MODELL)
+        arbeitsmappe.bauen(b, ziel)
+        text = kontrolle.kontrolltext(ziel)
+        self.assertIn("C „Menge“ (Breite 9): Eingabe, Prüfung ganze Zahl 0 bis 1000000000, Meldung „Bitte eine ganze "
+                      "Zahl ab 0 eintragen.“, vorbelegt in 2 von 4 Zeilen, Format 0", text)
+        self.assertEqual(arbeitsmappe.vorbelegt(b).split("\n"), [
+            "Vorbelegte Werte in Blatt „Szenarien“ (Rechnungen vom Renderer nachgerechnet):",
+            "Zeile 1: Szenario Basis; Menge 1200; Preis 35,5; Umsatz 42600,0; Beleg Q-20261109-genesis-3fa2c1",
+            "Zeile 2: Szenario ohne Preis; Menge 100; Preis leer; Umsatz leer; Beleg leer",
+            "Zeile 3: Szenario =1+1; Menge leer; Preis leer; Umsatz leer; Beleg leer"])
+        self.assertEqual(arbeitsmappe.vorbelegt(lesen(NOTEN)), "")
 
 
 if __name__ == "__main__":

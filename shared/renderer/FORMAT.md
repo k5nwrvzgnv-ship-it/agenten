@@ -1,6 +1,6 @@
 # Format der Beschreibung (für Claude)
 
-Du beschreibst ein Dokument als JSON (Arbeitsblatt, Zusammenfassung, Exposé, Folien oder Arbeitsmappe). Python prüft es und baut daraus
+Du beschreibst ein Dokument als JSON (Arbeitsblatt, Zusammenfassung, Exposé, Bericht, Folien oder Arbeitsmappe). Python prüft es und baut daraus
 die Datei. Du schreibst nur Inhalt: keine Dateinamen, keine Pfade, keine Schriftarten oder Farben. Die Gestaltung
 kommt aus dem Profil des Agenten.
 
@@ -196,6 +196,68 @@ Blöcke, unterschieden durch `typ`:
 | `liste` | `punkte`: 1 bis 50 Texte (je höchstens 1000 Zeichen), `nummeriert` true/false (optional) | Aufzählung |
 | `tabelle` | `zeilen`: 1 bis 100, `kopf` (optional, fett), `titel` (optional) | höchstens 8 Spalten, Zellen höchstens 500 Zeichen, jede Zeile gleich viele Zellen, darüber „Tabelle n: titel“ |
 
+## Bericht (wird eine docx-Datei, A4)
+
+Für Berichte und Recherchen mit Zahlen, bei denen jede Aussage belegt oder als Annahme gekennzeichnet ist. Oben
+steht ein Kopf aus `rubrik` (klein, farbig), Titel, Untertitel, „Stand …“ und „erstellt von“ (aus dem Profil),
+darunter die Legende der benutzten Kennzeichen. Unten auf jeder Seite stehen Rubrik, Titel und die Seitenzahl. Am
+Ende folgen die offenen Fragen und das Quellenverzeichnis. Überschriften werden automatisch nummeriert (1, 1.1),
+schreibe keine Nummer in den Text.
+
+Die Blöcke sind dieselben wie bei der Zusammenfassung (`ueberschrift`, `absatz`, `liste`, `tabelle`, `hinweis`,
+`rechenbeispiel`, gleiche Felder und Grenzen), mit diesen Unterschieden:
+- **Belege** `quellen`: `{"art": "quelle", "stelle": "Q-20261109-genesis-3fa2c1"}` (eine Quellen-ID: Buchstaben,
+  Ziffern und `. _ : -`, höchstens 60 Zeichen) oder `{"art": "norm", "stelle": "DIN 68800-1"}`. Erscheint klein in
+  eckigen Klammern am Ende, z. B. „[Q-20261109-genesis-3fa2c1]“. Schreibe IDs aus dem Quellenverzeichnis nicht in
+  Texte (Fehler), nur in `quellen` oder in Tabellenzellen (z. B. eine Spalte „Beleg“).
+- **Kennzeichen** `kennzeichnung`: `"annahme"` (nicht durch eine Quelle belegt, angenommen; erscheint als
+  „[Annahme]“) oder `"unsicher"` (Quelle nicht eindeutig).
+- **Tabellen:** Jede Zelle in `zeilen` darf statt eines Texts ein Objekt `{"text", "quellen", "kennzeichnung"}`
+  sein, dann steht der Beleg klein in der Zelle unter dem Wert. Zellen mit Zahlen (außer in der ersten Spalte)
+  stehen rechtsbündig. Die Kopfzeile hat nur Texte.
+- **Hinweise:** `art` ist `"wichtig"` (farbiger Kasten, Standardtitel „Wichtig“, z. B. eine Hypothese mit
+  Abbruchkriterien) oder `"einschraenkung"` (grauer Kasten, Standardtitel „Einschränkung“).
+
+```json
+{
+  "art": "bericht",
+  "rubrik": "Wirtschaftlichkeit",
+  "titel": "Robotik in der Holzindustrie",
+  "untertitel": "Wertschöpfung, Lücken und Hypothesen",
+  "datum": "09.11.2026",
+  "bloecke": [
+    {"typ": "ueberschrift", "text": "Wertschöpfungskette"},
+    {"typ": "absatz", "text": "Die Sägeindustrie setzte 2023 rund 7,9 Mrd. EUR um.", "quellen": [{"art": "quelle", "stelle": "Q-20261109-genesis-3fa2c1"}]},
+    {"typ": "absatz", "text": "Die Marge der Hobelwerke liegt bei etwa 4 %.", "kennzeichnung": "annahme"},
+    {"typ": "tabelle", "titel": "Marktgröße von unten (Basis)", "kopf": ["Größe", "Wert"], "erste_spalte_fett": true, "zeilen": [
+      ["Betriebe", {"text": "1.850", "quellen": [{"art": "quelle", "stelle": "Q-20261109-genesis-3fa2c1"}]}],
+      ["Anteil mit Bedarf", {"text": "30 %", "kennzeichnung": "annahme"}],
+      ["Preis je Zelle", {"text": "180.000 EUR", "quellen": [{"art": "quelle", "stelle": "Q-20261109-ted-9b1c22"}]}]]},
+    {"typ": "tabelle", "titel": "Szenarien", "kopf": ["Szenario", "Anteil", "Markt"], "zeilen": [["vorsichtig", "15 %", "50 Mio. EUR"], ["Basis", "30 %", "100 Mio. EUR"]], "kennzeichnung": "annahme"},
+    {"typ": "ueberschrift", "text": "Hypothesen"},
+    {"typ": "hinweis", "art": "wichtig", "titel": "Hypothese 1: Sortierroboter für Lamellen", "text": "Sicherheit: mittel.\nAbbruch, wenn weniger als 3 von 10 befragten Betrieben Bedarf bestätigen."},
+    {"typ": "hinweis", "art": "einschraenkung", "text": "Die Handelsdaten sind nach Zollverfahren aufgeteilt.", "kennzeichnung": "unsicher"},
+    {"typ": "rechenbeispiel", "titel": "Marktgröße", "aufgabe": "Betriebe mal Anteil mal Preis.", "schritte": [{"text": "Einsetzen", "rechnung": "1.850 · 0,3 · 180.000 EUR"}], "ergebnis": "≈ 99,9 Mio. EUR"}
+  ],
+  "offene_fragen": ["Wie viele Betriebe planen Investitionen?"],
+  "quellenverzeichnis": [
+    {"id": "Q-20261109-genesis-3fa2c1", "text": "Destatis GENESIS, Tabelle 42111-0001, abgerufen 09.11.2026, https://genesis.destatis.de/genesisWS/rest/2020/"},
+    {"id": "Q-20261109-ted-9b1c22", "text": "TED, Ausschreibung 2026/S 123-456789, abgerufen 09.11.2026"}
+  ]
+}
+```
+
+| Feld | Pflicht | Bedeutung |
+|---|---|---|
+| `art` | ja | `"bericht"` |
+| `titel` | ja | Titel, höchstens 200 Zeichen, steht auch in der Fußzeile |
+| `untertitel` | nein | steht unter dem Titel, höchstens 200 Zeichen |
+| `rubrik` | nein | kleine Zeile über dem Titel und vorn in der Fußzeile, z. B. `"Wirtschaftlichkeit"`, höchstens 100 Zeichen |
+| `datum` | nein | Stand als `"TT.MM.JJJJ"`, ohne: heutiges Datum |
+| `bloecke` | ja | 1 bis 200 Blöcke in Lesereihenfolge (siehe Zusammenfassung und die Unterschiede oben) |
+| `offene_fragen` | nein | 1 bis 30 Fragen, je Text (höchstens 1000 Zeichen) oder `{"text", "quellen", "kennzeichnung"}` |
+| `quellenverzeichnis` | nein | 1 bis 200 Einträge `{"id", "text"}` (Text höchstens 1000 Zeichen, z. B. Herkunft, Abrufdatum, Link; Links mit `https://` werden anklickbar). Steht am Ende unter „Quellen“. Gibt es das Verzeichnis, muss jede ID aus `quellen` darin stehen. |
+
 ## Folien (wird eine pptx-Datei, 16:9)
 
 Die erste Folie ist immer die Titelfolie (farbiger Balken mit Icon, Titel, Untertitel). Danach folgen die Folien aus
@@ -279,8 +341,9 @@ Punkte und zentrierte Absätze höchstens 300 Zeichen.
 
 ## Arbeitsmappe (wird eine xlsx-Datei für Excel)
 
-Für Tabellen zum Ausfüllen, in denen Excel rechnet, z. B. eine Notentabelle. Du beschreibst nur leere Vorlagen:
-Spalten, Zeilenzahl, Eingabeprüfung und Rechnungen. Werte trägt später die Lehrkraft ein. Jedes Blatt hat oben
+Für Tabellen zum Ausfüllen, in denen Excel rechnet, z. B. eine Notentabelle oder ein Rechenmodell. Du beschreibst
+Spalten, Zeilenzahl, Eingabeprüfung und Rechnungen. Meist bleiben die Zeilen leer und Werte trägt später jemand
+in Excel ein; für ein Rechenmodell kannst du Eingaben mit `werte` vorbelegen (siehe unten). Jedes Blatt hat oben
 den Titel und die Hinweise, darunter die Kopfzeile und die Zeilen. Die Kopfzeile bleibt beim Blättern stehen,
 gedruckt wird A4 quer mit Seitenzahl: auf eine Seite, wenn das Blatt dafür höchstens auf 70 % verkleinert werden
 muss, sonst auf Seitenbreite über mehrere Seiten. Rechenfelder sind grau hinterlegt.
@@ -329,6 +392,7 @@ Ein Blatt hat:
 | `hinweise` | nein | 1 bis 5 Zeilen unter dem Titel (je höchstens 300 Zeichen), z. B. was einzutragen ist und wie gerechnet wird |
 | `fixierte_spalten` | nein | 0 bis 3 Spalten links, die beim Blättern nach rechts stehen bleiben (Standard 0) |
 | `hochformat` | nein | `true` druckt hoch statt quer (Standard `false`) |
+| `werte` | nein | vorbelegte Eingaben, siehe unten |
 
 Jede Spalte hat `id` (Pflicht: Kleinbuchstaben a-z, Ziffern und `_`, am Anfang ein Buchstabe, z. B. `"note1"`, je
 Blatt verschieden), `kopf` (Pflicht, höchstens 50 Zeichen), `art` (Pflicht) und `breite` (optional, 3 bis 60
@@ -355,3 +419,44 @@ Leer-Regel: Eine Rechnung bleibt leer, solange ein Feld fehlt, das sie braucht. 
 `max` nehmen nur die ausgefüllten Felder und bleiben erst leer, wenn alle leer sind. Für einen Ersatzwert bei
 fehlenden Feldern nimm `wenn_leer`. Eine Rechnung darf andere Rechnungen benutzen, aber nicht sich selbst.
 Text-Spalten und `nummer` lassen sich nicht verrechnen.
+
+**Vorbelegte Werte** (`werte`): eine Liste mit höchstens `zeilen` Einträgen, Eintrag 1 füllt die erste Zeile
+unter dem Kopf. Jeder Eintrag ist ein Objekt `{"spalten-id": wert}` nur für `text`- und `zahl`-Spalten; fehlende
+Spalten und `null` bleiben leer, weitere Zeilen ohne Eintrag auch. Zahlen erfüllen die Regeln ihrer Spalte (`ganz`,
+`min`, `max`) und sind dem Betrag nach höchstens 1000000000 (1e9): größere Beträge in einer größeren Einheit
+angeben, z. B. „Umsatz (Mio. EUR)“ im `kopf`. `nummer` und `rechnung` füllen Renderer und Excel. Die Werte sind
+normale Eingaben: Wer die Datei öffnet, kann sie ändern, und Excel rechnet neu. Keine Daten über Personen
+(z. B. Namen von Schülerinnen und Schülern) vorbelegen.
+
+Rechnungen gelten je Zeile. Ein Modell mit Szenarien hat daher je Szenario eine Zeile, die Annahmen als
+zahl-Spalten und den Beleg als text-Spalte:
+
+```json
+{
+  "art": "arbeitsmappe",
+  "titel": "Marktmodell Sortierroboter",
+  "blaetter": [{
+    "name": "Szenarien",
+    "titel": "Marktgröße von unten je Szenario",
+    "hinweise": ["Graue Felder rechnet Excel. Annahmen dürfen geändert werden, die Beleg-Spalte nennt Quelle oder Annahme."],
+    "zeilen": 3,
+    "fixierte_spalten": 1,
+    "spalten": [
+      {"id": "szenario", "kopf": "Szenario", "art": "text", "breite": 14},
+      {"id": "betriebe", "kopf": "Betriebe", "art": "zahl", "ganz": true, "min": 0},
+      {"id": "anteil", "kopf": "Anteil mit Bedarf", "art": "zahl", "min": 0, "max": 1, "nachkommastellen": 2},
+      {"id": "preis", "kopf": "Preis je Zelle (Tsd. EUR)", "art": "zahl", "min": 0, "nachkommastellen": 1},
+      {"id": "markt", "kopf": "Markt (Mio. EUR)", "art": "rechnung", "formel": "betriebe * anteil * preis / 1000", "nachkommastellen": 1},
+      {"id": "beleg", "kopf": "Beleg", "art": "text", "breite": 40}
+    ],
+    "werte": [
+      {"szenario": "vorsichtig", "betriebe": 1850, "anteil": 0.15, "preis": 180, "beleg": "Q-20261109-genesis-3fa2c1; Anteil: Annahme"},
+      {"szenario": "Basis", "betriebe": 1850, "anteil": 0.3, "preis": 180, "beleg": "Q-20261109-genesis-3fa2c1; Anteil: Annahme"},
+      {"szenario": "günstig", "betriebe": 1850, "anteil": 0.45, "preis": null, "beleg": "Preis offen"}
+    ]
+  }]
+}
+```
+
+Zur Kontrolle bekommst du nach dem Bau die vorbelegten Zeilen mit den Ergebnissen der Rechnungen, so wie Excel
+sie zeigt.

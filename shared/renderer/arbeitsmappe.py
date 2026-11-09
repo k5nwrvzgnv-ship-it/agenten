@@ -1,6 +1,7 @@
-"""Arbeitsmappe (xlsx) aus der geprüften Beschreibung bauen: leere Tabellen zum Ausfüllen, in denen Excel rechnet.
+"""Arbeitsmappe (xlsx) aus der geprüften Beschreibung bauen: Tabellen zum Ausfüllen, in denen Excel rechnet.
 
-Je Blatt: Titel, Hinweise, Kopfzeile, dann `zeilen` leere Zeilen. Eingabefelder mit Datenüberprüfung (Excel weist
+Je Blatt: Titel, Hinweise, Kopfzeile, dann `zeilen` Zeilen, leer oder mit vorbelegten Werten (`werte`, z. B. ein
+Rechenmodell mit Annahmen, die man in Excel ändern kann). Eingabefelder mit Datenüberprüfung (Excel weist
 falsche Werte mit deutscher Meldung ab), Rechenfelder grau mit Formeln aus rechnung.py, kein Blattschutz (Jan
 29.10.). Kopf fixiert, Druck A4 quer auf eine Seite, wenn höchstens auf MIN_MASSSTAB verkleinert werden muss (Jan
 29.10.), sonst auf Seitenbreite über mehrere Seiten; Titel bis Kopfzeile auf jeder Seite, unten Seitenzahl.
@@ -70,6 +71,39 @@ def proben(beschreibung: dict) -> str:
             rechts = "; ".join(f"{s['kopf']} {_zeigen(ergebnis[s['id']], s['nachkommastellen'])}"
                                for s in spalten if s["art"] == "rechnung")
             zeilen.append(f"Probe {nr} ({name}): {links} -> {rechts}")
+    return "\n".join(zeilen)
+
+
+def zeile_mit_ergebnissen(blatt: dict, eingaben: dict) -> dict:
+    """Alle Werte einer Zeile: Eingaben (fehlend: leer) und die Rechnungen, wie Excel sie ausrechnet."""
+    spalten = blatt["spalten"]
+    formeln = {s["id"]: s["baum"] for s in spalten if s["art"] == "rechnung"}
+    zahlen = {s["id"]: eingaben.get(s["id"], rechnung.LEER) for s in spalten if s["art"] == "zahl"}
+    texte = {s["id"]: eingaben.get(s["id"], rechnung.LEER) for s in spalten if s["art"] == "text"}
+    return {**texte, **rechnung.zeile_ausrechnen(formeln, [s["id"] for s in spalten], zahlen)}
+
+
+def vorbelegt(beschreibung: dict) -> str:
+    """Kontrolle für Claude: vorbelegte Zeilen je Blatt mit den Ergebnissen der Rechnungen (in Python nachgerechnet,
+    so zeigt sie auch die Datei)."""
+    zeilen = []
+    for blatt in beschreibung["blaetter"]:
+        if not blatt["werte"]:
+            continue
+        zeilen.append(f"Vorbelegte Werte in Blatt „{blatt['name']}“ (Rechnungen vom Renderer nachgerechnet):")
+        for nr, eingaben in enumerate(blatt["werte"], 1):
+            werte = zeile_mit_ergebnissen(blatt, eingaben)
+            teile = []
+            for s in blatt["spalten"]:
+                if s["art"] == "nummer":
+                    continue
+                wert = werte[s["id"]]
+                if s["art"] == "text":
+                    teile.append(f"{s['kopf']} {wert if wert else 'leer'}")
+                else:
+                    stellen = s["nachkommastellen"] if s["art"] == "rechnung" else None
+                    teile.append(f"{s['kopf']} {_zeigen(wert, stellen)}")
+            zeilen.append(f"Zeile {nr}: " + "; ".join(teile))
     return "\n".join(zeilen)
 
 
@@ -207,17 +241,23 @@ def _blatt(ws, blatt: dict, formate: dict):
     hoehen += [ZEILE_PT] * blatt["zeilen"]
 
     erste, letzte_zeile = kopf + 1, kopf + blatt["zeilen"]
-    formeln = {s["id"]: s["baum"] for s in spalten if s["art"] == "rechnung"}
-    # Werte einer leeren Zeile, damit die Datei auch ohne Neuberechnung das Richtige zeigt (z. B. Vorschau am Handy)
-    leer = rechnung.zeile_ausrechnen(formeln, ids, {s["id"]: rechnung.LEER for s in spalten if s["art"] == "zahl"})
+    # Werte jeder Zeile (vorbelegt oder leer) samt Rechnungen, damit die Datei auch ohne Neuberechnung das Richtige
+    # zeigt (z. B. Vorschau am Handy)
+    werte = [zeile_mit_ergebnissen(blatt, blatt["werte"][i] if i < len(blatt["werte"]) else {})
+             for i in range(blatt["zeilen"])]
     for nr, s in enumerate(spalten):
         fmt = formate["zelle"](s["art"], zahlformat(s))
         for z in range(erste, letzte_zeile + 1):
+            wert = werte[z - erste].get(s["id"], rechnung.LEER)
             if s["art"] == "nummer":
                 ws.write_number(z, nr, z - kopf, fmt)
             elif s["art"] == "rechnung":
                 adresse = {sid: f"{rechnung.spaltenbuchstabe(k)}{z + 1}" for k, sid in enumerate(ids)}.__getitem__
-                ws.write_formula(z, nr, rechnung.excel(s["baum"], adresse), fmt, _gespeichert(leer[s["id"]]))
+                ws.write_formula(z, nr, rechnung.excel(s["baum"], adresse), fmt, _gespeichert(wert))
+            elif s["art"] == "zahl" and wert is not rechnung.LEER:
+                ws.write_number(z, nr, wert, fmt)
+            elif s["art"] == "text" and wert:
+                ws.write_string(z, nr, wert, fmt)
             else:
                 ws.write_blank(z, nr, None, fmt)
         regel = pruefregel(s)

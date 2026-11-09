@@ -89,8 +89,15 @@ MAX_PERSONEN = 8
 MAX_PERSON = 100
 MAX_LITERATUR = 50
 MAX_LITERATURANGABE = 1000
+# Bericht
+MAX_RUBRIK = 100
+MAX_QUELLE_ID = 60
+MAX_VERZEICHNIS = 200
+MAX_VERZEICHNIS_TEXT = 1000
+# Arbeitsmappe: vorbelegte Werte
+MAX_WERT_TEXT = 1000
 
-ARTEN = ("arbeitsblatt", "folien", "zusammenfassung", "arbeitsmappe", "expose")
+ARTEN = ("arbeitsblatt", "folien", "zusammenfassung", "arbeitsmappe", "expose", "bericht")
 BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle", "merksatz", "anweisung", "material", "aufgaben",
               "neue_seite")
 ANTWORTARTEN = ("linien", "kasten", "ankreuzen", "satzanfaenge")
@@ -102,6 +109,9 @@ E_BLOCKTYPEN = ("ueberschrift", "absatz", "liste", "tabelle")
 HINWEISARTEN = ("pruefungsrelevant", "organisatorisch")
 KENNZEICHNUNGEN = ("unsicher", "muendlich")
 QUELLENARTEN = ("transkript", "folie", "norm")
+B_HINWEISARTEN = ("wichtig", "einschraenkung")
+B_KENNZEICHNUNGEN = ("annahme", "unsicher")
+B_QUELLENARTEN = ("quelle", "norm")
 SPALTENARTEN = ("nummer", "text", "zahl", "rechnung")
 ICON_NAMEN = NAMEN
 
@@ -111,6 +121,7 @@ _DATUM = re.compile(r"^(\d{2})\.(\d{2})\.(\d{4})$")
 _SEITEN = re.compile(r"^\d{1,4}( ?[-–] ?\d{1,4})?(, ?\d{1,4}( ?[-–] ?\d{1,4})?)*$")  # 4 | 4-5 | 4, 7
 _NUMMER_VORN = re.compile(r"^\d+(\.\d+)+\.?\s|^\d+\.\s")  # "1. ", "1.2 ", nicht "3 Säulen"
 _QUELLE_IM_TEXT = re.compile(r"[\[(](Transkript|Folie)\b")
+_QUELLE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")  # z. B. Q-20261109-genesis-3fa2c1
 _SPALTE_ID = re.compile(r"^[a-z][a-z0-9_]*$")
 _BLATTNAME_VERBOTEN = re.compile(r"[\[\]:*?/\\]")
 _FEHLT = object()
@@ -181,6 +192,8 @@ def _beschreibung(p: "_Pruefer", daten) -> dict | None:
         return _arbeitsmappe(p, daten)
     if art == "expose":
         return _expose(p, daten)
+    if art == "bericht":
+        return _bericht(p, daten)
     erlaubt = ", ".join(_zeigen(a) for a in ARTEN[:-1]) + f" oder {_zeigen(ARTEN[-1])}"
     if art is _FEHLT:
         p.melden("art", f"fehlt, erlaubt sind {erlaubt}")
@@ -447,15 +460,7 @@ def _zusammenfassung(p: "_Pruefer", d: dict) -> dict:
     datum = _datum(p, d.get("datum", _FEHLT), "datum")
     bloecke = p.liste(d.get("bloecke", _FEHLT), "bloecke", 1, MAX_BLOECKE) or []
     gelesen = [_z_block(p, b, f"bloecke[{i}]") for i, b in enumerate(bloecke)]
-    ebene1 = False
-    for i, b in enumerate(gelesen):
-        if b is None or (b["typ"] == "ueberschrift" and b["ebene"] is None):
-            break  # Block schon als Fehler gemeldet, keine Folgefehler
-        if b["typ"] == "ueberschrift":
-            if b["ebene"] == 2 and not ebene1:
-                p.melden(f"bloecke[{i}].ebene", "Ebene 2 vor der ersten Überschrift der Ebene 1, "
-                                                 "erst eine Überschrift mit ebene 1 setzen")
-            ebene1 = ebene1 or b["ebene"] == 1
+    _ebenen_pruefen(p, gelesen)
     selbsttest = []
     if "selbsttest" in d:
         for i, f in enumerate(p.liste(d["selbsttest"], "selbsttest", 1, MAX_SELBSTTEST) or []):
@@ -514,16 +519,23 @@ def _z_block(p: "_Pruefer", b, pfad: str) -> dict | None:
         p.felder(b, pfad, pflicht=("typ", "zeilen"), optional=("titel", "kopf", "erste_spalte_fett") + beleg)
         titel = p.text(b["titel"], f"{pfad}.titel", MAX_TITEL) if "titel" in b else ""
         # Prüfung der Zellen wie beim Arbeitsblatt, ohne zeilenhoehe_cm (keine Ausfülltabellen)
-        tabelle = _tabelle(p, {k: v for k, v in b.items() if k not in ("titel",) + beleg}, pfad)
+        roh = {k: v for k, v in b.items() if k not in ("titel",) + beleg}
+        belege = None
+        if p.zellbelege:
+            roh, belege = _zellbelege(p, roh, pfad)
+        tabelle = _tabelle(p, roh, pfad)
         del tabelle["zeilenhoehe_cm"]
-        return {**tabelle, "titel": titel, **_beleg(p, b, pfad)}
+        ergebnis = {**tabelle, "titel": titel, **_beleg(p, b, pfad)}
+        if p.zellbelege:
+            ergebnis["belege"] = belege
+        return ergebnis
 
     if typ == "hinweis":
         p.felder(b, pfad, pflicht=("typ", "art", "text"), optional=("titel",) + beleg)
         art = b.get("art", _FEHLT)
-        if art is not _FEHLT and art not in HINWEISARTEN:
-            p.melden(f"{pfad}.art", f"muss {' oder '.join(_zeigen(a) for a in HINWEISARTEN)} sein, ist {_zeigen(art)}"
-                                    f"{_aehnlich(art, HINWEISARTEN)}")
+        if art is not _FEHLT and art not in p.hinweisarten:
+            p.melden(f"{pfad}.art", f"muss {' oder '.join(_zeigen(a) for a in p.hinweisarten)} sein, "
+                                    f"ist {_zeigen(art)}{_aehnlich(art, p.hinweisarten)}")
             art = None
         titel = p.text(b["titel"], f"{pfad}.titel", MAX_TITEL) if "titel" in b else ""
         return {"typ": typ, "art": None if art is _FEHLT else art, "titel": titel,
@@ -552,6 +564,92 @@ def _z_block(p: "_Pruefer", b, pfad: str) -> dict | None:
             **_beleg(p, b, pfad)}
 
 
+def _bericht(p: "_Pruefer", d: dict) -> dict:
+    """Bericht: Blöcke wie die Zusammenfassung, Belege als Quellen-ID oder Annahme, ohne Vorlesungskopf."""
+    p.kennzeichnungen, p.quellenarten, p.hinweisarten = B_KENNZEICHNUNGEN, B_QUELLENARTEN, B_HINWEISARTEN
+    p.zellbelege = True
+    p.felder(d, "", pflicht=("art", "titel", "bloecke"),
+             optional=("untertitel", "rubrik", "datum", "offene_fragen", "quellenverzeichnis"))
+    titel = p.text(d.get("titel", _FEHLT), "titel", MAX_TITEL)
+    untertitel = p.text(d["untertitel"], "untertitel", MAX_TITEL) if "untertitel" in d else ""
+    rubrik = p.text(d["rubrik"], "rubrik", MAX_RUBRIK) if "rubrik" in d else ""
+    datum = _datum(p, d["datum"], "datum") if "datum" in d else ""
+    verzeichnis = []
+    if "quellenverzeichnis" in d:  # zuerst, damit die Texte auf IDs geprüft werden können
+        eintraege = p.liste(d["quellenverzeichnis"], "quellenverzeichnis", 1, MAX_VERZEICHNIS) or []
+        for i, e in enumerate(eintraege):
+            epfad = f"quellenverzeichnis[{i}]"
+            if not isinstance(e, dict):
+                p.melden(epfad, f"muss ein Objekt {{\"id\": ..., \"text\": ...}} sein, ist {_zeigen(e)}")
+                continue
+            p.felder(e, epfad, pflicht=("id", "text"))
+            qid = p.text(e.get("id", _FEHLT), f"{epfad}.id", MAX_QUELLE_ID)
+            if qid is not None and not _QUELLE_ID.match(qid):
+                p.melden(f"{epfad}.id", f"nur Buchstaben, Ziffern und . _ : -, ist {_zeigen(qid)}")
+                qid = None
+            if qid is not None and qid in [v["id"] for v in verzeichnis]:
+                p.melden(f"{epfad}.id", f"{_zeigen(qid)} steht schon im Quellenverzeichnis")
+                qid = None
+            text = p.text(e.get("text", _FEHLT), f"{epfad}.text", MAX_VERZEICHNIS_TEXT)
+            if qid is not None:
+                verzeichnis.append({"id": qid, "text": text})
+        p.verzeichnis_ids = tuple(v["id"] for v in verzeichnis)
+    bloecke = p.liste(d.get("bloecke", _FEHLT), "bloecke", 1, MAX_BLOECKE) or []
+    gelesen = [_z_block(p, b, f"bloecke[{i}]") for i, b in enumerate(bloecke)]
+    _ebenen_pruefen(p, gelesen)
+    offene = []
+    if "offene_fragen" in d:
+        fragen = p.liste(d["offene_fragen"], "offene_fragen", 1, MAX_OFFENE_FRAGEN) or []
+        offene = [_punkt(p, f, f"offene_fragen[{i}]", MAX_FRAGE) for i, f in enumerate(fragen)]
+    if "quellenverzeichnis" in d:
+        for pfad, qid in p.benutzte_ids:
+            if qid not in p.verzeichnis_ids:
+                p.melden(pfad, f"{_zeigen(qid)} fehlt im quellenverzeichnis, dort ergänzen oder die ID korrigieren")
+    return {"art": "bericht", "titel": titel, "untertitel": untertitel, "rubrik": rubrik, "datum": datum,
+            "bloecke": gelesen, "offene_fragen": offene, "quellenverzeichnis": verzeichnis}
+
+
+def _ebenen_pruefen(p: "_Pruefer", gelesen: list):
+    """Vor der ersten Überschrift der Ebene 2 muss eine der Ebene 1 stehen."""
+    ebene1 = False
+    for i, b in enumerate(gelesen):
+        if b is None or (b["typ"] == "ueberschrift" and b["ebene"] is None):
+            break  # Block schon als Fehler gemeldet, keine Folgefehler
+        if b["typ"] == "ueberschrift":
+            if b["ebene"] == 2 and not ebene1:
+                p.melden(f"bloecke[{i}].ebene", "Ebene 2 vor der ersten Überschrift der Ebene 1, "
+                                                 "erst eine Überschrift mit ebene 1 setzen")
+            ebene1 = ebene1 or b["ebene"] == 1
+
+
+def _zellbelege(p: "_Pruefer", b: dict, pfad: str) -> tuple[dict, list]:
+    """Bericht: Zellen der Zeilen dürfen {text, quellen, kennzeichnung} sein. Ergebnis: Tabelle mit reinen Texten
+    (für _tabelle) und je Zelle der Beleg oder None."""
+    zeilen = b.get("zeilen", _FEHLT)
+    if not isinstance(zeilen, list):
+        return b, []
+    texte, belege = [], []
+    for i, zeile in enumerate(zeilen):
+        if not isinstance(zeile, list):
+            texte.append(zeile)
+            belege.append([])
+            continue
+        tzeile, bzeile = [], []
+        for j, zelle in enumerate(zeile):
+            if isinstance(zelle, dict):
+                zpfad = f"{pfad}.zeilen[{i}][{j}]"
+                p.felder(zelle, zpfad, pflicht=("text",), optional=("quellen", "kennzeichnung"))
+                tzeile.append(zelle.get("text", ""))
+                beleg = _beleg(p, zelle, zpfad)
+                bzeile.append(beleg if beleg["quellen"] or beleg["kennzeichnung"] else None)
+            else:
+                tzeile.append(zelle)
+                bzeile.append(None)
+        texte.append(tzeile)
+        belege.append(bzeile)
+    return {**b, "zeilen": texte}, belege
+
+
 def _arbeitsmappe(p: "_Pruefer", d: dict) -> dict:
     p.felder(d, "", pflicht=("art", "titel", "blaetter"))
     titel = p.text(d.get("titel", _FEHLT), "titel", MAX_TITEL)
@@ -574,7 +672,7 @@ def _blatt(p: "_Pruefer", b, pfad: str) -> dict | None:
         p.melden(pfad, f"muss ein Objekt {{...}} sein, ist {_zeigen(b)}")
         return None
     p.felder(b, pfad, pflicht=("name", "zeilen", "spalten"),
-             optional=("titel", "hinweise", "fixierte_spalten", "hochformat"))
+             optional=("titel", "hinweise", "fixierte_spalten", "hochformat", "werte"))
     name = p.text(b.get("name", _FEHLT), f"{pfad}.name", MAX_BLATTNAME)
     if name is not None:
         if _BLATTNAME_VERBOTEN.search(name) or name.startswith("'") or name.endswith("'"):
@@ -595,11 +693,14 @@ def _blatt(p: "_Pruefer", b, pfad: str) -> dict | None:
     if fixiert and len(spalten) <= fixiert:
         p.melden(f"{pfad}.fixierte_spalten", f"muss kleiner als die Zahl der Spalten ({len(spalten)}) sein")
     _formeln_pruefen(p, spalten, pfad)
+    zeilen = p.ganzzahl(b.get("zeilen", _FEHLT), f"{pfad}.zeilen", 1, MAX_ZEILEN)
+    werte = _werte(p, b["werte"], spalten, zeilen, f"{pfad}.werte") if "werte" in b else []
     return {
         "name": name,
         "titel": titel,
         "hinweise": hinweise,
-        "zeilen": p.ganzzahl(b.get("zeilen", _FEHLT), f"{pfad}.zeilen", 1, MAX_ZEILEN),
+        "werte": werte,
+        "zeilen": zeilen,
         "fixierte_spalten": fixiert,
         "hochformat": p.wahrheitswert(b["hochformat"], f"{pfad}.hochformat") if "hochformat" in b else False,
         "spalten": spalten,
@@ -662,6 +763,57 @@ def _spalte(p: "_Pruefer", s, pfad: str) -> dict | None:
             except rechnung.FormelFehler as e:
                 p.melden(f"{pfad}.formel", str(e))
     return spalte
+
+
+def _werte(p: "_Pruefer", werte, spalten: list, zeilen: int | None, pfad: str) -> list[dict]:
+    """Vorbelegte Werte: je Zeile ein Objekt {spalten-id: wert} für text- und zahl-Spalten. Ergebnis: je Zeile ein
+    dict mit allen Eingabespalten (fehlend oder null: rechnung.LEER)."""
+    liste = p.liste(werte, pfad, 1, zeilen or MAX_ZEILEN) or []  # höchstens so viele wie zeilen
+    if any(s is None or s["id"] is None for s in spalten):
+        return []  # Spalten schon als Fehler gemeldet
+    nach_id = {s["id"]: s for s in spalten}
+    eingaben = [s["id"] for s in spalten if s["art"] in ("text", "zahl")]
+    ergebnis = []
+    for i, zeile in enumerate(liste):
+        zpfad = f"{pfad}[{i}]"
+        gelesen = {sid: rechnung.LEER for sid in eingaben}
+        if not isinstance(zeile, dict):
+            p.melden(zpfad, f"muss ein Objekt {{\"spalten-id\": wert, ...}} sein, ist {_zeigen(zeile)}")
+            continue
+        for sid, wert in zeile.items():
+            wpfad = f"{zpfad}.{sid}"
+            s = nach_id.get(sid)
+            if s is None:
+                p.melden(wpfad, f"keine Spalte mit dieser id{_aehnlich(sid, eingaben)}, "
+                                f"erlaubt sind: {', '.join(eingaben) or 'keine (keine text- oder zahl-Spalte)'}")
+                continue
+            if s["art"] in ("nummer", "rechnung"):
+                p.melden(wpfad, "Spalte der art " + _zeigen(s["art"]) + " füllt der Renderer bzw. Excel, "
+                                "hier keinen Wert eintragen")
+                continue
+            if wert is None:
+                continue
+            if s["art"] == "text":
+                gelesen[sid] = p.text(wert, wpfad, s["max_zeichen"] or MAX_WERT_TEXT, leer_erlaubt=True)
+                continue
+            if isinstance(wert, bool) or not isinstance(wert, int | float) or not math.isfinite(wert):
+                p.melden(wpfad, f"muss eine Zahl oder null sein, ist {_zeigen(wert)}")
+                continue
+            if abs(wert) > MAX_ZAHL:
+                p.melden(wpfad, f"zu groß ({_zeigen(wert)}, höchstens {MAX_ZAHL:.0e} dem Betrag nach), größere "
+                                "Beträge in einer größeren Einheit angeben (z. B. Mio. EUR, Einheit in kopf)")
+                continue
+            if s["ganz"] and wert != int(wert):
+                p.melden(wpfad, f"muss eine ganze Zahl sein (ganz: true), ist {_zeigen(wert)}")
+                continue
+            if (s["min"] is not None and wert < s["min"]) or (s["max"] is not None and wert > s["max"]):
+                grenzen = f"{_zeigen(s['min']) if s['min'] is not None else '…'} bis " \
+                          f"{_zeigen(s['max']) if s['max'] is not None else '…'}"
+                p.melden(wpfad, f"liegt nicht in min/max der Spalte ({grenzen}), ist {_zeigen(wert)}")
+                continue
+            gelesen[sid] = float(wert)
+        ergebnis.append(gelesen)
+    return ergebnis
 
 
 def _formeln_pruefen(p: "_Pruefer", spalten: list, pfad: str):
@@ -791,11 +943,17 @@ def _punkt(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> dict | None:
 
 
 def _z_text(p: "_Pruefer", wert, pfad: str, max_laenge: int) -> str | None:
-    """Text einer Zusammenfassung. Quellen gehören ins Feld quellen, nicht in den Text."""
+    """Text einer Zusammenfassung oder eines Berichts. Quellen gehören ins Feld quellen, nicht in den Text."""
     text = p.text(wert, pfad, max_laenge)
-    if text and _QUELLE_IM_TEXT.search(text):
+    if not text:
+        return text
+    if _QUELLE_IM_TEXT.search(text):
         p.melden(pfad, "Quellenangabe im Text, bitte ins Feld quellen verschieben "
                        "(z. B. [{\"art\": \"transkript\", \"stelle\": \"4\"}])")
+    gefunden = [q for q in p.verzeichnis_ids if q in text]
+    if gefunden:
+        p.melden(pfad, f"Quellen-ID {_zeigen(gefunden[0])} im Text, bitte ins Feld quellen verschieben "
+                       f"(z. B. [{{\"art\": \"quelle\", \"stelle\": {_zeigen(gefunden[0])}}}])")
     return text
 
 
@@ -803,9 +961,9 @@ def _beleg(p: "_Pruefer", d: dict, pfad: str) -> dict:
     kennzeichnung = d.get("kennzeichnung", _FEHLT)
     if kennzeichnung is _FEHLT:
         kennzeichnung = None
-    elif kennzeichnung not in KENNZEICHNUNGEN:
-        p.melden(f"{pfad}.kennzeichnung", f"muss {' oder '.join(_zeigen(k) for k in KENNZEICHNUNGEN)} sein, "
-                                          f"ist {_zeigen(kennzeichnung)}{_aehnlich(kennzeichnung, KENNZEICHNUNGEN)}")
+    elif kennzeichnung not in p.kennzeichnungen:
+        p.melden(f"{pfad}.kennzeichnung", f"muss {' oder '.join(_zeigen(k) for k in p.kennzeichnungen)} sein, "
+                                          f"ist {_zeigen(kennzeichnung)}{_aehnlich(kennzeichnung, p.kennzeichnungen)}")
         kennzeichnung = None
     return {"quellen": _quellen(p, d, pfad), "kennzeichnung": kennzeichnung}
 
@@ -821,15 +979,21 @@ def _quellen(p: "_Pruefer", d: dict, pfad: str) -> list:
             continue
         p.felder(q, qpfad, pflicht=("art", "stelle"))
         art = q.get("art", _FEHLT)
-        if art is not _FEHLT and art not in QUELLENARTEN:
-            p.melden(f"{qpfad}.art", f"muss einer von {', '.join(_zeigen(a) for a in QUELLENARTEN)} sein, "
-                                     f"ist {_zeigen(art)}{_aehnlich(art, QUELLENARTEN)}")
+        if art is not _FEHLT and art not in p.quellenarten:
+            p.melden(f"{qpfad}.art", f"muss einer von {', '.join(_zeigen(a) for a in p.quellenarten)} sein, "
+                                     f"ist {_zeigen(art)}{_aehnlich(art, p.quellenarten)}")
             continue
         stelle = p.text(q.get("stelle", _FEHLT), f"{qpfad}.stelle", MAX_QUELLE_STELLE)
         if stelle and art in ("transkript", "folie") and not _SEITEN.match(stelle):
             wort = "Seiten" if art == "transkript" else "Foliennummern"
             p.melden(f"{qpfad}.stelle", f"nur {wort} wie \"4\", \"4-5\" oder \"4, 7\", ist {_zeigen(stelle)}")
             continue
+        if stelle and art == "quelle":
+            if len(stelle) > MAX_QUELLE_ID or not _QUELLE_ID.match(stelle):
+                p.melden(f"{qpfad}.stelle", f"nur eine Quellen-ID wie \"Q-20261109-genesis-3fa2c1\" (Buchstaben, "
+                                            f"Ziffern, . _ : -, höchstens {MAX_QUELLE_ID} Zeichen), ist {_zeigen(stelle)}")
+                continue
+            p.benutzte_ids.append((f"{qpfad}.stelle", stelle))
         if art is not _FEHLT and stelle:
             quellen.append({"art": art, "stelle": stelle})
     return quellen
@@ -905,6 +1069,13 @@ class _Pruefer:
 
     def __init__(self):
         self.fehler: list[str] = []
+        # Regeln für Belege und Hinweise: Zusammenfassung (Standard), der Bericht setzt eigene (_bericht)
+        self.kennzeichnungen = KENNZEICHNUNGEN
+        self.quellenarten = QUELLENARTEN
+        self.hinweisarten = HINWEISARTEN
+        self.zellbelege = False  # Tabellenzellen dürfen {text, quellen, kennzeichnung} sein
+        self.verzeichnis_ids: tuple[str, ...] = ()  # IDs aus dem Quellenverzeichnis (nicht im Text erlaubt)
+        self.benutzte_ids: list[tuple[str, str]] = []  # (Pfad, ID) aller Belege der art "quelle"
 
     def melden(self, pfad: str, text: str):
         self.fehler.append(f"{pfad or 'Beschreibung'}: {text}")

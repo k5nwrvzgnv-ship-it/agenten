@@ -125,7 +125,7 @@ def _tabelle(t) -> list[str]:
             if any(zelle._tc is g for g in gesehen):
                 continue
             gesehen.append(zelle._tc)
-            zellen.append(zelle.text.strip() or "…")
+            zellen.append(" ".join(zelle.text.split()) or "…")  # Zeilenumbruch in der Zelle: ein Leerzeichen
         if zellen:
             zeilen.append("| " + " | ".join(zellen) + " |")
     return zeilen
@@ -246,6 +246,9 @@ def _xlsx_blatt(name: str, ws, texte: list[str], stile: list) -> list[str]:
             angaben.append(f"laufende Nummer 1 bis {letzte - kopf}")
         else:
             angaben.append("Eingabe" + (f", {pruefungen[spalte]}" if spalte in pruefungen else ", ohne Prüfung"))
+            gefuellt = sum(1 for z in range(erste, letzte + 1) if zellen.get((z, spalte), ("",))[0] != "")
+            if gefuellt:
+                angaben.append(f"vorbelegt in {gefuellt} von {letzte - kopf} Zeilen")
         if zahlformat != "Standard":
             angaben.append(f"Format {zahlformat}")
         if flaeche:

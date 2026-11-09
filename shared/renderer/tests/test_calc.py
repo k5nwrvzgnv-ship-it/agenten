@@ -79,5 +79,29 @@ class TestCalcRechnetGleich(unittest.TestCase):
                         self.assertAlmostEqual(float(aus_calc), erwartet, delta=0.00006)
 
 
+    def test_vorbelegte_werte_gleich_python(self):
+        """Werte über `werte` statt von Hand eingetragen: Calc rechnet dasselbe wie die gespeicherten Werte."""
+        tmp = Path(tempfile.mkdtemp())
+        d = beschreibung()
+        d["blaetter"][0]["werte"] = [{i: w for i, w in zip("abc", zeile, strict=True)} for zeile in EINGABEN]
+        b = lesen(d)
+        arbeitsmappe.bauen(b, tmp / "werte.xlsx")
+        with open(vorschau.umwandeln(tmp / "werte.xlsx", tmp, "csv"), encoding="utf-8") as f:
+            calc = list(csv.reader(f))
+        spalten = b["blaetter"][0]["spalten"]
+        ids = [s["id"] for s in spalten]
+        for nr, eingaben in enumerate(b["blaetter"][0]["werte"], start=1):
+            python = arbeitsmappe.zeile_mit_ergebnissen(b["blaetter"][0], eingaben)
+            for sid in ids:
+                aus_calc, erwartet = calc[nr][ids.index(sid)], python[sid]
+                with self.subTest(zeile=nr, spalte=sid, calc=aus_calc):
+                    if erwartet is rechnung.LEER:
+                        self.assertEqual(aus_calc, LEER_AUSGABE)
+                    elif erwartet == rechnung.FEHLER:
+                        self.assertEqual(aus_calc, "#DIV/0!")
+                    else:
+                        self.assertAlmostEqual(float(aus_calc), erwartet, delta=0.00006)
+
+
 if __name__ == "__main__":
     unittest.main()
