@@ -119,5 +119,22 @@ def kosten(auftrag_id: str, datei: Path | None = None) -> float | None:
     return round(sum(werte), 4) if werte else None
 
 
+def letzte(anzahl: int = 10, instanz: str | None = None, datei: Path | None = None) -> list[dict]:
+    """Die letzten Läufe einer Instanz (None = Jans), neueste zuerst: {"zeit", "agent", "auftrag", "usd", "ok",
+    "dauer_s", "modell"}."""
+    eigene = [e for e in _eintraege(datei) if e.get("instanz") == instanz]
+    return [{k: e.get(k) for k in ("zeit", "agent", "auftrag", "usd", "ok", "dauer_s", "modell")}
+            for e in reversed(eigene[-anzahl:])]
+
+
+def kosten_je(auftrag_ids: set[str], datei: Path | None = None) -> dict[str, float]:
+    """Kosten (USD) je Auftrag für mehrere Aufträge in einem Durchgang; Aufträge ohne Lauf fehlen."""
+    summe: dict[str, float] = {}
+    for e in _eintraege(datei):
+        if e.get("auftrag") in auftrag_ids:
+            summe[e["auftrag"]] = round(summe.get(e["auftrag"], 0) + (e.get("usd") or 0), 4)
+    return summe
+
+
 def zeit_text(ts: float | None) -> str:
     return datetime.fromtimestamp(ts).strftime("%d.%m. %H:%M") if ts else "?"

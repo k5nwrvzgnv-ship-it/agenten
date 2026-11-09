@@ -65,6 +65,15 @@ class TestVerbrauch(unittest.TestCase):
         verbrauch.protokollieren({"agent": "uni", "auftrag": "a1", "usd": 0.5}, self.datei)
         verbrauch.protokollieren({"agent": "uni", "auftrag": "a2", "usd": 3}, self.datei)
         self.assertEqual(verbrauch.kosten("a1", self.datei), 0.75)
+        self.assertEqual(verbrauch.kosten_je({"a1", "a2", "a9"}, self.datei), {"a1": 0.75, "a2": 3})
+
+    def test_letzte_je_instanz(self):
+        for i in range(4):
+            verbrauch.protokollieren({"agent": "uni", "auftrag": f"a{i}", "usd": i, "ok": True}, self.datei)
+        verbrauch.protokollieren({"agent": "unterricht", "instanz": "lia", "auftrag": "l1", "usd": 9}, self.datei)
+        letzte = verbrauch.letzte(3, datei=self.datei)
+        self.assertEqual([e["auftrag"] for e in letzte], ["a3", "a2", "a1"])
+        self.assertEqual([e["auftrag"] for e in verbrauch.letzte(5, "lia", self.datei)], ["l1"])
 
 
 class TestEinstellungen(unittest.TestCase):

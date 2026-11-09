@@ -116,3 +116,62 @@ class TestSchutz(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDokumentAnsicht(unittest.TestCase):
+    def test_fassungen_haupt_final_und_rueckmeldung(self):
+        kette = [auftrag(U, abgeschlossen="2026-11-09T10:30:00", daten={"kern": "Kurz", "punkte": ["a", 3]},
+                         ergebnis_dateien=["data/x/E.docx", "data/x/E.pdf"]),
+                 auftrag(NB, bezug=U, abgeschlossen="2026-11-09T11:30:00", ergebnis_dateien=["data/x/E2.docx"])]
+        stand = {"final": None, "eigene": [
+            {"n": 1, "name": "Meine.docx", "zeit": "2026-11-09T12:00:00", "art": "fassung", "notiz": ""},
+            {"n": 2, "name": "Notizen.pdf", "zeit": "2026-11-09T12:05:00", "art": "unklar"}]}
+        vorschauen = {U: [(True, True, 2), (True, False, 0)], NB: [(True, False, 0)]}
+        d = logik.dokument_ansicht(kette, [auftrag(FB, bezug=NB, ergebnis="Mache ich")], stand, vorschauen,
+                                   {U: 0.5, NB: 0.25}, {"rueckmeldung": True}, "2026-11-09")
+        self.assertEqual([f["name"] for f in d["fassungen"]], ["Deine Fassung 1", "Fassung 2", "Fassung 1"])
+        self.assertEqual(d["haupt"]["ref"], "eigene-1")
+        self.assertEqual(d["bezug"], NB)  # Rückmeldung an die neueste Fassung des Agenten
+        self.assertEqual(d["kosten"], 0.75)
+        self.assertEqual([a["name"] for a in d["anmerkungen"]], ["Notizen.pdf"])
+        f1 = d["fassungen"][2]
+        self.assertEqual(f1["punkte"], ["a"])
+        self.assertEqual([(x["name"], x["pdf"], x["seiten"]) for x in f1["dateien"]],
+                         [("E.docx", True, 2), ("E.pdf", True, 0)])
+        self.assertTrue(logik.final_erlaubt(U, d))
+        self.assertFalse(logik.final_erlaubt("eigene-2", d))  # nur Anmerkungen, keine Fassung
+        stand["final"] = {"fassung": U}
+        d = logik.dokument_ansicht(kette, [], stand, vorschauen, {}, {"rueckmeldung": False}, "2026-11-09")
+        self.assertEqual(d["haupt"]["ref"], U)
+        self.assertFalse(d["rueckmeldung_moeglich"])
+        self.assertIsNone(d["kosten"])
+
+    def test_laeuft_ohne_fertige_fassung(self):
+        d = logik.dokument_ansicht([auftrag(U, status="neu")], [], {}, {}, {}, None, "2026-11-09")
+        self.assertTrue(d["laeuft"])
+        self.assertIsNone(d["haupt"])
+        self.assertFalse(d["rueckmeldung_moeglich"])
+
+    def test_pruefen_und_namen(self):
+        self.assertEqual(logik.rueckmeldung_pruefen("  x\r\ny ", False), ("x\ny", []))
+        self.assertTrue(logik.rueckmeldung_pruefen("", False)[1])
+        self.assertEqual(logik.rueckmeldung_pruefen("", True)[1], [])
+        self.assertTrue(logik.rueckmeldung_pruefen("x" * 4001, False)[1])
+        self.assertEqual(logik.datei_erlaubt("a.DOCX", {".docx"}), "")
+        self.assertTrue(logik.datei_erlaubt("a.exe", {".docx"}))
+        self.assertEqual(logik.dateiname_bereinigen("..\\..\\böse<>.docx"), "böse__.docx")
+        self.assertEqual(logik.dateiname_bereinigen(".env"), "env")
+
+    def test_wartet_und_kosten(self):
+        docs = [{"marke": "Fassung 1", "rot": False, "zeit": "2026-11-08T10:00"},
+                {"marke": "Fassung 2", "rot": False, "zeit": "2026-10-01T10:00"},
+                {"marke": "Final", "rot": False, "zeit": "2026-11-09T10:00"},
+                {"marke": "Hat nicht geklappt", "rot": True, "zeit": "2026-09-01T10:00"},
+                {"marke": "Läuft", "rot": False, "zeit": "2026-11-09T10:00"}]
+        self.assertEqual([d["marke"] for d in logik.wartet_auf_mich(docs, "2026-11-09")],
+                         ["Fassung 1", "Hat nicht geklappt"])
+        z = logik.kosten_zeilen([{"zeit": 1794256394, "agent": "uni", "auftrag": NB, "usd": 0.123, "ok": True},
+                                 {"zeit": None, "agent": "finance", "auftrag": "x", "usd": None, "ok": False}],
+                                {NB: U}, {U: "Exposé"})
+        self.assertEqual([(x["text"], x["usd"], x["link"], x["ok"]) for x in z],
+                         [("Exposé", "0.12", f"/dokument/{U}", True), ("", "0.00", "", False)])

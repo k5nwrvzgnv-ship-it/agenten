@@ -6,7 +6,11 @@ der Orte (agentkit.orte) mit „+ Seite“, Mitte die Seite des Orts mit Unterse
 legt einen Auftrag an (quelle="arbeitsplatz", ort, art, felder) und startet <agent>.service.
 
 Seiten (GET): /  /ort/<id>  /seite/neu?eltern=<id>  /archiv  /neu?ort=<id>  /neu/<art>?ort=<id>  /dokument/<id>
+  Dateien: /dokument/<id>/datei/<auftrag>/<nr>[/pdf|/seite/<n>]  /dokument/<id>/eigene/<n>
 Formulare (POST): /seite/neu  /ort/<id>/umbenennen|verschieben|archivieren|wiederherstellen  /rueckgaengig  /neu/<art>
+  /dokument/<id>/final|eigene|rueckmeldung (Rückmeldung geht an feedback.service, nur bei Arten mit rueckmeldung)
+Ein Dokument ist eine Kette über bezug; Dateien kommen nur über Auftrag und Nummer in ergebnis_dateien, jeder Pfad
+wird gegen den Agent-Ordner geprüft (dateien.py, Kopie aus shared/webapp).
 
 Aufträge sind ausgeschaltet, bis ARBEITSPLATZ_AUFTRAEGE=echt gesetzt ist (Standard aus: Formular prüft, legt nichts
 an). Orte pflegen geht immer (startet keinen Lauf).
@@ -34,15 +38,16 @@ from zoneinfo import ZoneInfo
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from agentkit import _ablage, arten, auftraege, config, orte
+from agentkit import _ablage, arten, auftraege, config, fassungen, orte, verbrauch
 
+import dateien
 import logik
 
 HIER = Path(__file__).resolve().parent
@@ -67,6 +72,7 @@ KOPFZEILEN = {
     "Cache-Control": "no-store",
 }
 VERALTET = "Die Seite war zu alt. Bitte neu laden und noch einmal versuchen."
+FEHLGESCHLAGEN = "Das ging gerade nicht. Bitte noch einmal versuchen; Einzelheiten stehen im Log."
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/statisch", StaticFiles(directory=HIER / "statisch"), name="statisch")
@@ -135,7 +141,26 @@ def rahmen(baum: list[dict], aktiv: str | None, krumen: dict, neu_hier: str | No
     for z in laeuft:
         z["seit_text"] = logik.zeit_kurz(z["seit"], heute_iso())
     return {"baum": logik.baum_zeilen(baum, aktiv), "krumen": krumen, "neu_hier": neu_hier, "laeuft": laeuft,
-            "auftraege_an": auftraege_an()}
+            "auftraege_an": auftraege_an(), **kosten_spalte(namen)}
+
+
+KOSTEN_ZEILEN = 6
+
+
+def kosten_spalte(namen: dict[str, str]) -> dict:
+    """Kosten heute (Jans Instanz) und die letzten Läufe für die rechte Spalte; Fehler: leer, im Log."""
+    try:
+        heute_ = verbrauch.heute()
+        letzte = verbrauch.letzte(KOSTEN_ZEILEN)
+    except OSError as f:
+        logger.warning("Verbrauch nicht lesbar: %s", f)
+        return {"kosten_heute": None, "kosten_letzte": []}
+    ketten = logik.ketten(alle_auftraege())
+    ursprung_von = {a["id"]: u for u, k in ketten.items() for a in k}
+    titel = {u: logik.titel_von(k, namen) for u, k in ketten.items() if any(a["id"] in
+             {e.get("auftrag") for e in letzte} for a in k)}
+    summe = sum(w["usd"] for name, w in heute_.items() if "/" not in name)
+    return {"kosten_heute": f"{summe:.2f}", "kosten_letzte": logik.kosten_zeilen(letzte, ursprung_von, titel)}
 
 
 def seite(request: Request, vorlage: str, werte: dict, status: int = 200) -> HTMLResponse:
@@ -165,7 +190,11 @@ async def fehlerseite(request: Request, fehler: StarletteHTTPException):
 
 @app.middleware("http")
 async def kopfzeilen(request: Request, call_next):
-    antwort = await call_next(request)
+    try:
+        antwort = await call_next(request)
+    finally:
+        if (form := getattr(request.state, "formular", None)) is not None:
+            await form.close()  # hochgeladene Dateien (temporär) schließen
     if request.url.path.startswith("/statisch/schrift/"):
         antwort.headers["Cache-Control"] = "public, max-age=2592000"
     for name, wert in KOPFZEILEN.items():
@@ -180,6 +209,7 @@ async def formular(request: Request):
         logger.warning("Formular %s von fremder Herkunft abgelehnt", request.url.path)
         raise HTTPException(403)
     form = await request.form(max_files=MAX_DATEIEN, max_fields=200)
+    request.state.formular = form
     return form, logik.token_passt(GEHEIM, str(form.get("token") or ""))
 
 
@@ -231,6 +261,7 @@ def seite_heute(request: Request):
         d["ort_text"] = logik.ort_text(baum, d["ort"])
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
     return seite(request, "heute.html", {"e": {"titel": "Heute"}, "zuletzt": docs[:15],
+                                         "wartet": logik.wartet_auf_mich(docs, heute_iso()),
                                          "oben": orte.kinder(baum, None),
                                          **rahmen(baum, None, logik.krumen(baum, None))})
 
@@ -504,30 +535,220 @@ async def neuer_auftrag(request: Request, kennung: str):
     return RedirectResponse(ziel, status_code=303)
 
 
-# --- Dokument (erste, lesende Fassung; die volle Ansicht kommt in Schritt 4) ------------------------------------
+# --- Dokument ----------------------------------------------------------------------------------------------------
 
-@app.get("/dokument/{ursprung}", response_class=HTMLResponse)
-def seite_dokument(request: Request, ursprung: str):
+def _dokument(ursprung: str) -> tuple[list[dict], list[dict]]:
+    """(Kette, Rückmeldungen an feedback) zum Ursprung; sonst 404. Nur Ketten, deren Ursprung ein Dokument ist."""
     try:
         _ablage.pruefe_id(ursprung)
     except _ablage.AblageFehler:
         raise HTTPException(404) from None
-    baum = baum_laden()
-    namen = arten_namen()
-    kette = logik.ketten(alle_auftraege()).get(ursprung)
+    alle = alle_auftraege()
+    kette = logik.ketten(alle).get(ursprung)
     if not kette or kette[0]["id"] != ursprung:
         raise HTTPException(404)
+    ids = {a["id"] for a in kette}
+    rueck = [a for a in alle if a.get("agent") == "feedback" and a.get("bezug") in ids]
+    return kette, rueck
+
+
+def _stand(ursprung: str) -> dict:
+    try:
+        return fassungen.lesen(ursprung, basis=basis())
+    except (fassungen.FassungFehler, OSError, ValueError) as f:
+        logger.error("Fassungen zu %s nicht lesbar: %s", ursprung, f)
+        return {"final": None, "eigene": []}
+
+
+def _ansicht(kette: list[dict], rueck: list[dict]) -> dict:
+    vorschauen = {a["id"]: dateien.vorschau_info(dateien.agent_ordner(INSTANZ, a.get("agent")),
+                                                 a.get("ergebnis_dateien") or [])
+                  for a in kette if a.get("status") == "erledigt"}
+    art = arten.finden(arten_laden(), kette[0].get("art") or "")
+    try:
+        kosten = verbrauch.kosten_je({a["id"] for a in kette} | {r["id"] for r in rueck})
+    except OSError as f:
+        logger.warning("Verbrauch nicht lesbar: %s", f)
+        kosten = {}
+    return logik.dokument_ansicht(kette, rueck, _stand(kette[0]["id"]), vorschauen, kosten, art, heute_iso())
+
+
+def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: list[str] | None = None,
+                    text: str = "", status: int = 200):
+    kette, rueck = _dokument(ursprung)
+    baum = baum_laden()
+    namen = arten_namen()
     ort = kette[0].get("ort") if any(k["id"] == kette[0].get("ort") for k in baum) else None
     titel = logik.titel_von(kette, namen)
-    marke, rot = logik.marke_von(kette, finals().get(ursprung))
-    fassungen_ = [{"id": a["id"], "status": a.get("status"), "zeit": logik.zeit_kurz(
-        a.get("abgeschlossen") or a.get("erstellt") or "", heute_iso()), "kern": (a.get("daten") or {}).get("kern", ""),
-        "ergebnis": a.get("ergebnis", ""), "dateien": [logik.dateiname(p) for p in a.get("ergebnis_dateien") or []],
-        "text": a.get("text", "")} for a in kette]
+    marke, rot = logik.marke_von(kette, _stand(ursprung).get("final"))
     return seite(request, "dokument.html", {
         "e": {"titel": titel}, "art": namen.get(kette[0].get("art") or "", ""), "marke": marke, "rot": rot,
-        "fassungen": list(reversed(fassungen_)),
-        **rahmen(baum, ort, logik.krumen(baum, ort, titel), f"/neu?ort={quote(ort)}" if ort else "/neu")})
+        "d": _ansicht(kette, rueck), "u": ursprung, "offen": offen, "fehler": fehler or [], "text": text,
+        "eigene_endungen": ",".join(sorted(dateien.EIGENE_ENDUNGEN)),
+        "rueck_endungen": ",".join(sorted(dateien.RUECK_ENDUNGEN)),
+        **rahmen(baum, ort, logik.krumen(baum, ort, titel), f"/neu?ort={quote(ort)}" if ort else "/neu")}, status)
+
+
+@app.get("/dokument/{ursprung}", response_class=HTMLResponse)
+def seite_dokument(request: Request, ursprung: str):
+    return _dokument_seite(request, ursprung, request.query_params.get("offen") or "")
+
+
+def _ergebnisdatei(ursprung: str, auftrag_id: str, nr: int) -> tuple[Path, str]:
+    """Agent-Ordner und relativer Pfad der nr-ten Ergebnisdatei eines fertigen Auftrags der Kette; sonst 404."""
+    kette, _ = _dokument(ursprung)
+    a = next((a for a in kette if a["id"] == auftrag_id), None)
+    pfade = (a or {}).get("ergebnis_dateien") or []
+    wurzel = dateien.agent_ordner(INSTANZ, (a or {}).get("agent"))
+    if a is None or a.get("status") != "erledigt" or wurzel is None or not 0 <= nr < len(pfade):
+        raise HTTPException(404)
+    return wurzel, pfade[nr]
+
+
+def _ausliefern(pfad: Path | None, herunterladen: bool = True) -> FileResponse:
+    if pfad is None:
+        raise HTTPException(404)
+    return FileResponse(pfad, filename=pfad.name if herunterladen else None)
+
+
+@app.get("/dokument/{ursprung}/datei/{auftrag_id}/{nr:int}")
+def datei_original(ursprung: str, auftrag_id: str, nr: int):
+    wurzel, relativ = _ergebnisdatei(ursprung, auftrag_id, nr)
+    return _ausliefern(dateien.sicher(wurzel, relativ, dateien.DOWNLOAD_ENDUNGEN))
+
+
+@app.get("/dokument/{ursprung}/datei/{auftrag_id}/{nr:int}/pdf")
+def datei_pdf(ursprung: str, auftrag_id: str, nr: int):
+    wurzel, relativ = _ergebnisdatei(ursprung, auftrag_id, nr)
+    pdf = dateien.sicher(wurzel, relativ, {".pdf"}) or dateien.vorschau_pdf(wurzel, relativ)
+    return _ausliefern(pdf, herunterladen=False)
+
+
+@app.get("/dokument/{ursprung}/datei/{auftrag_id}/{nr:int}/seite/{seite_nr:int}")
+def datei_seite(ursprung: str, auftrag_id: str, nr: int, seite_nr: int):
+    wurzel, relativ = _ergebnisdatei(ursprung, auftrag_id, nr)
+    seiten = dateien.vorschau_seiten(wurzel, relativ)
+    return _ausliefern(seiten[seite_nr - 1] if 1 <= seite_nr <= len(seiten) else None, herunterladen=False)
+
+
+@app.get("/dokument/{ursprung}/eigene/{n:int}")
+def eigene_datei(ursprung: str, n: int):
+    kette, _ = _dokument(ursprung)
+    eintrag = next((e for e in _stand(ursprung).get("eigene") or [] if e.get("n") == n), None)
+    wurzel = dateien.agent_ordner(INSTANZ, kette[0].get("agent"))
+    if eintrag is None or wurzel is None:
+        raise HTTPException(404)
+    return _ausliefern(dateien.sicher(wurzel, str(eintrag.get("datei") or ""), dateien.RUECK_ENDUNGEN))
+
+
+def _fertig(ursprung: str, was: str) -> RedirectResponse:
+    return RedirectResponse(f"/dokument/{ursprung}?erledigt={was}", status_code=303)
+
+
+@app.post("/dokument/{ursprung}/final", response_class=HTMLResponse)
+async def dokument_final(request: Request, ursprung: str):
+    form, token_ok = await formular(request)
+    kette, rueck = _dokument(ursprung)
+    if not token_ok:
+        return _dokument_seite(request, ursprung, fehler=[VERALTET], status=400)
+    ref, an = str(form.get("ref") or ""), form.get("an") == "1"
+    if not logik.final_erlaubt(ref, _ansicht(kette, rueck)):
+        raise HTTPException(404)
+    try:
+        await run_in_threadpool(fassungen.final_setzen, ursprung, ref if an else None, basis())
+    except (fassungen.FassungFehler, OSError) as f:
+        logger.error("Final nicht gespeichert: %s", f)
+        return _dokument_seite(request, ursprung, fehler=[FEHLGESCHLAGEN], status=500)
+    logger.info("Final %s: %s (%s)", "an" if an else "aus", ursprung, ref)
+    return _fertig(ursprung, "final" if an else "nicht-final")
+
+
+async def _upload_sichern(upload: UploadFile) -> Path:
+    """Upload unter seinem bereinigten Namen in einen neuen Ordner unter data/eingang/ (agentkit verschiebt ihn)."""
+    (DATEN / "eingang").mkdir(parents=True, exist_ok=True)
+    ziel = Path(tempfile.mkdtemp(dir=DATEN / "eingang")) / logik.dateiname_bereinigen(upload.filename or "")
+    groesse = 0
+    with open(ziel, "wb") as f:
+        while block := await upload.read(1 << 20):
+            groesse += len(block)
+            if groesse > _ablage.MAX_ANHANG_BYTES:
+                f.close()
+                shutil.rmtree(ziel.parent, ignore_errors=True)
+                raise ValueError(f"Datei größer als {_ablage.MAX_ANHANG_BYTES // 2**20} MB")
+            f.write(block)
+    return ziel
+
+
+@app.post("/dokument/{ursprung}/eigene", response_class=HTMLResponse)
+async def dokument_eigene(request: Request, ursprung: str):
+    form, token_ok = await formular(request)
+    _dokument(ursprung)
+    datei = form.get("datei")
+    if not token_ok:
+        return _dokument_seite(request, ursprung, "eigene", [VERALTET], status=400)
+    if not isinstance(datei, UploadFile) or not datei.filename:
+        return _dokument_seite(request, ursprung, "eigene", ["Wähle eine Datei aus."], status=400)
+    if fehler := logik.datei_erlaubt(datei.filename, dateien.EIGENE_ENDUNGEN):
+        return _dokument_seite(request, ursprung, "eigene", [fehler], status=400)
+    if ziel := einmal_ziel(request, form):
+        return RedirectResponse(ziel, status_code=303)
+    try:
+        pfad = await _upload_sichern(datei)
+        try:
+            await run_in_threadpool(lambda: fassungen.eigene_dazu(ursprung, pfad, str(form.get("notiz") or "")[:500],
+                                                                  basis=basis(), agenten_dir=agenten_dir()))
+        finally:
+            shutil.rmtree(pfad.parent, ignore_errors=True)
+    except ValueError as f:
+        return _dokument_seite(request, ursprung, "eigene", [str(f)], status=400)
+    except (fassungen.FassungFehler, OSError) as f:
+        logger.error("Eigene Fassung zu %s nicht gespeichert: %s", ursprung, f)
+        return _dokument_seite(request, ursprung, "eigene", [FEHLGESCHLAGEN], status=500)
+    logger.info("Eigene Fassung zu %s gespeichert", ursprung)
+    antwort = _fertig(ursprung, "eigene")
+    einmal_merken(request, form, antwort.headers["location"])
+    return antwort
+
+
+@app.post("/dokument/{ursprung}/rueckmeldung", response_class=HTMLResponse)
+async def dokument_rueckmeldung(request: Request, ursprung: str):
+    form, token_ok = await formular(request)
+    kette, rueck = _dokument(ursprung)
+    datei = form.get("datei")
+    datei = datei if isinstance(datei, UploadFile) and datei.filename else None
+    text = str(form.get("text") or "")
+    if not token_ok:
+        return _dokument_seite(request, ursprung, "rueckmeldung", [VERALTET], text, 400)
+    ansicht = _ansicht(kette, rueck)
+    if not ansicht["rueckmeldung_moeglich"]:
+        raise HTTPException(404)
+    text, fehler = logik.rueckmeldung_pruefen(text, datei is not None)
+    if datei and (f := logik.datei_erlaubt(datei.filename, dateien.RUECK_ENDUNGEN)):
+        fehler.append(f)
+    if not auftraege_an():
+        fehler.append("Aufträge sind gerade ausgeschaltet (ARBEITSPLATZ_AUFTRAEGE). Nichts angelegt.")
+    if fehler:
+        return _dokument_seite(request, ursprung, "rueckmeldung", fehler, text, 400)
+    if ziel := einmal_ziel(request, form):
+        return RedirectResponse(ziel, status_code=303)
+    try:
+        pfad = await _upload_sichern(datei) if datei else None
+        try:
+            fid, _ = await run_in_threadpool(lambda: fassungen.rueckmeldung(
+                ansicht["bezug"], text or "Siehe angehängte Datei.", pfad, basis=basis(), agenten_dir=agenten_dir()))
+        finally:
+            if pfad:
+                shutil.rmtree(pfad.parent, ignore_errors=True)
+    except ValueError as f:
+        return _dokument_seite(request, ursprung, "rueckmeldung", [str(f)], text, 400)
+    except (fassungen.FassungFehler, auftraege.AuftragFehler, OSError) as f:
+        logger.error("Rückmeldung zu %s nicht angelegt: %s", ursprung, f)
+        return _dokument_seite(request, ursprung, "rueckmeldung", [FEHLGESCHLAGEN], text, 500)
+    gestartet = await run_in_threadpool(dienst_starten, "feedback")
+    logger.info("Rückmeldung %s zu %s angelegt (Datei: %s)", fid, ansicht["bezug"], "ja" if datei else "nein")
+    antwort = _fertig(ursprung, "rueckmeldung" if gestartet else "rueckmeldung-wartet")
+    einmal_merken(request, form, antwort.headers["location"])
+    return antwort
 
 
 # --- Start -------------------------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 """Echter Uvicorn auf einem Unix-Socket im Temp-Ordner, Anfragen mit http.client (kein httpx)."""
 
 import hashlib
+import json
 import http.client
 import re
 import shutil
@@ -124,7 +125,7 @@ class Aufbau(unittest.TestCase):
         finally:
             v.close()
 
-    def post(self, pfad, felder, origin="http://localhost", token=True, dateien=None):
+    def post(self, pfad, felder, origin="http://localhost", token=True, dateien=None, feld="dateien"):
         felder = dict(felder)
         if token:
             felder.setdefault("token", app.logik.formular_token(app.GEHEIM))
@@ -140,7 +141,7 @@ class Aufbau(unittest.TestCase):
             for k, w in felder.items():
                 teile.append(f'--{grenze}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{w}\r\n'.encode())
             for name, inhalt in dateien:
-                teile.append(f'--{grenze}\r\nContent-Disposition: form-data; name="dateien"; filename="{name}"\r\n'
+                teile.append(f'--{grenze}\r\nContent-Disposition: form-data; name="{feld}"; filename="{name}"\r\n'
                              f'Content-Type: application/octet-stream\r\n\r\n'.encode() + inhalt + b"\r\n")
             body = b"".join(teile) + f"--{grenze}--\r\n".encode()
             kopf["Content-Type"] = f"multipart/form-data; boundary={grenze}"
@@ -319,3 +320,93 @@ class TestNeu(Aufbau):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDokument(Aufbau):
+    U = "20261109-100000-uni-aaaaaa"
+    NB = "20261109-110000-uni-bbbbbb"
+
+    def setUp(self):
+        super().setUp()
+        self.k = self.ort("Kapitel 3")
+        (self.units / "feedback.service").write_text("")
+        arbeit = self.tmp / "uni" / "data" / "arbeit"
+        (arbeit / "Expose-vorschau").mkdir(parents=True)
+        (arbeit / "Expose.docx").write_bytes(b"DOCX")
+        (arbeit / "Expose-vorschau" / "Expose.pdf").write_bytes(b"%PDF-1.7")
+        for n in (1, 2):
+            (arbeit / "Expose-vorschau" / f"Expose-seite-0{n}.png").write_bytes(b"PNG" + bytes([n]))
+        (self.tmp / "geheim.pdf").write_bytes(b"%PDF geheim")
+        (self.tmp / "uni" / ".env").write_text("X=1")
+        erledigt = self.instanz / "auftraege" / "erledigt"
+        erledigt.mkdir(parents=True)
+        for a in ({"id": self.U, "agent": "uni", "quelle": "arbeitsplatz", "ort": self.k, "art": "expose",
+                   "felder": {"Thema": "Holz"}, "text": "Art: Exposé\nThema: Holz", "status": "erledigt",
+                   "erstellt": "2026-11-09T10:00:00+01:00", "abgeschlossen": "2026-11-09T10:30:00+01:00",
+                   "ergebnis": "fertig", "bezug": None,
+                   "ergebnis_dateien": ["data/arbeit/Expose.docx", "../geheim.pdf", ".env"],
+                   "daten": {"titel": "Exposé Holzschutz", "kern": "Ein Exposé.", "pruefen": "Quellen ansehen"}},
+                  {"id": self.NB, "agent": "uni", "quelle": "telegram", "ort": self.k, "art": "pruefung",
+                   "text": "Prüfung", "status": "erledigt", "erstellt": "2026-11-09T11:00:00+01:00",
+                   "abgeschlossen": "2026-11-09T11:10:00+01:00", "ergebnis": "ok", "ergebnis_dateien": []}):
+            (erledigt / f"{a['id']}.json").write_text(json.dumps(a), encoding="utf-8")
+
+    def test_ansicht_mit_seiten_und_dateien(self):
+        status, html, _ = self.get(f"/dokument/{self.U}")
+        self.assertEqual(status, 200)
+        self.assertIn("Exposé Holzschutz", html)
+        self.assertIn("Quellen ansehen", html)
+        self.assertIn(f"/dokument/{self.U}/datei/{self.U}/0/seite/2", html)
+        self.assertIn("Rückmeldung geben", html)
+        self.assertIn("Kapitel 3", html)  # Brotkrume zum Ort
+        self.assertEqual(self.get(f"/dokument/{self.U}/datei/{self.U}/0")[1], "DOCX")
+        self.assertEqual(self.get(f"/dokument/{self.U}/datei/{self.U}/0/pdf")[1], "%PDF-1.7")
+        status, inhalt, kopf = self.get(f"/dokument/{self.U}/datei/{self.U}/0/seite/1")
+        self.assertEqual((status, inhalt), (200, "PNG\x01"))
+        for pfad in (f"/datei/{self.U}/1", f"/datei/{self.U}/2", f"/datei/{self.U}/3", f"/datei/{self.U}/0/seite/3",
+                     f"/datei/{self.NB}/0", "/eigene/1"):
+            with self.subTest(pfad=pfad):
+                self.assertEqual(self.get(f"/dokument/{self.U}{pfad}")[0], 404)
+        self.assertEqual(self.get(f"/dokument/{self.NB}")[0], 200)
+        self.assertNotIn("Rückmeldung geben", self.get(f"/dokument/{self.NB}")[1])  # pruefung: keine Rückmeldung
+        self.assertIn("Exposé Holzschutz", self.get("/")[1])  # Heute: wartet auf dich
+
+    def test_final_an_und_aus(self):
+        status, _, kopf = self.post(f"/dokument/{self.U}/final", {"ref": self.U, "an": "1"})
+        self.assertEqual((status, kopf["location"]), (303, f"/dokument/{self.U}?erledigt=final"))
+        stand = json.loads((self.instanz / "fassungen" / f"{self.U}.json").read_text())
+        self.assertEqual(stand["final"]["fassung"], self.U)
+        self.assertIn("Nicht mehr final", self.get(f"/dokument/{self.U}")[1])
+        self.post(f"/dokument/{self.U}/final", {"ref": self.U, "an": "0"})
+        self.assertIsNone(json.loads((self.instanz / "fassungen" / f"{self.U}.json").read_text())["final"])
+        self.assertEqual(self.post(f"/dokument/{self.U}/final", {"ref": self.NB, "an": "1"})[0], 404)
+        self.assertEqual(self.post(f"/dokument/{self.U}/final", {"ref": self.U}, origin="https://b.de")[0], 403)
+
+    def test_eigene_fassung(self):
+        status, _, kopf = self.post(f"/dokument/{self.U}/eigene", {"einmal": "e1"},
+                                    dateien=[("Mein Exposé.docx", b"MEINS")], feld="datei")
+        self.assertEqual(status, 303)
+        self.post(f"/dokument/{self.U}/eigene", {"einmal": "e1"}, dateien=[("Mein Exposé.docx", b"MEINS")],
+                  feld="datei")  # Doppelklick
+        stand = json.loads((self.instanz / "fassungen" / f"{self.U}.json").read_text())
+        self.assertEqual([e["name"] for e in stand["eigene"]], ["Mein Exposé.docx"])
+        self.assertEqual(self.get(f"/dokument/{self.U}/eigene/1")[1], "MEINS")
+        html = self.get(f"/dokument/{self.U}")[1]
+        self.assertIn("Deine Fassung 1", html)
+        self.assertEqual(self.post(f"/dokument/{self.U}/eigene", {}, dateien=[("x.exe", b"MZ")], feld="datei")[0],
+                         400)
+
+    def test_rueckmeldung(self):
+        with mock.patch.object(app, "AUFTRAEGE", "aus"):
+            status, html, _ = self.post(f"/dokument/{self.U}/rueckmeldung", {"text": "kürzer"})
+        self.assertEqual(status, 400)
+        self.assertIn("ausgeschaltet", html)
+        self.assertEqual(self.post(f"/dokument/{self.U}/rueckmeldung", {"text": ""})[0], 400)
+        status, _, kopf = self.post(f"/dokument/{self.U}/rueckmeldung", {"text": "Bitte kürzer", "einmal": "r1"})
+        self.assertEqual((status, kopf["location"]), (303, f"/dokument/{self.U}?erledigt=rueckmeldung"))
+        self.post(f"/dokument/{self.U}/rueckmeldung", {"text": "Bitte kürzer", "einmal": "r1"})  # Doppelklick
+        fb = auftraege.neue("feedback", basis=self.instanz / "auftraege")
+        self.assertEqual([(a["bezug"], a["text"]) for a in fb], [(self.U, "Bitte kürzer")])
+        self.assertEqual(self.gestartet, [["systemctl", "--user", "start", "--no-block", "feedback.service"]])
+        self.assertIn("Bitte kürzer", self.get(f"/dokument/{self.U}")[1])
+        self.assertEqual(self.post(f"/dokument/{self.NB}/rueckmeldung", {"text": "x"})[0], 404)

@@ -18,3 +18,15 @@
 .details summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
 .fassungen summary { display: flex; gap: 12px; align-items: baseline; padding: 12px 0; cursor: pointer; }
 .auftrag-text { white-space: pre-line; }
+.seitenbilder { display: flex; flex-direction: column; gap: 16px; }
+.seitenbilder img { display: block; width: 100%; max-width: 760px; border: 1px solid var(--schwarz); background: var(--weiss); }
+.datei-zeile { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.knopf-klein { min-height: 36px; padding: 0 10px; font-size: 13px; }
+.aktionen details { border-top: 1px solid var(--schwarz); padding: 4px 0 12px; }
+.aktionen summary, .fassungen details summary { cursor: pointer; font-weight: 700; }
+.fassungen li { padding-bottom: 10px; }
+.auftrag summary { font-weight: 400; padding: 4px 0; }
+.punkte { border: 0; padding-left: 18px; list-style: disc; }
+.punkte li { border: 0; }
+.rueck { padding: 10px 0; }
+.zeile-kosten .marke { font-size: 13px; }

@@ -5,6 +5,7 @@ Nachbesserungen erben ort (agentkit.auftraege.herkunft_erben), zählen aber zur 
 """
 
 import hmac
+import re
 from urllib.parse import quote, urlsplit
 
 from agentkit import orte
@@ -235,3 +236,136 @@ def zeit_kurz(iso: str, heute: str) -> str:
         return ""
     tag, uhr = iso[:10], iso[11:16]
     return f"heute {uhr}" if tag == heute else f"{tag[8:10]}.{tag[5:7]}. {uhr}"
+
+
+# --- Dokument-Ansicht --------------------------------------------------------------------------------------------
+
+STATUS_TEXT = {"neu": "läuft", "erledigt": "fertig", "fehlgeschlagen": "hat nicht geklappt",
+               "zurueckgezogen": "zurückgezogen"}
+MAX_RUECKMELDUNG = 4000  # Zeichen Text einer Rückmeldung
+
+
+def eigene_ref(n: int) -> str:
+    return f"eigene-{n}"
+
+
+def _datei_zeilen(pfade: list[str], info: list[tuple[bool, bool, int]]) -> list[dict]:
+    zeilen = []
+    info = list(info) + [(False, False, 0)] * (len(pfade) - len(info))
+    for nr, (pfad, (original, pdf, seiten)) in enumerate(zip(pfade, info, strict=False)):
+        endung = pfad.rsplit(".", 1)[-1].lower() if "." in pfad else ""
+        zeilen.append({"nr": nr, "name": dateiname(pfad), "endung": endung, "original": original,
+                       "pdf": pdf or (original and endung == "pdf"), "seiten": seiten})
+    return zeilen
+
+
+def dokument_ansicht(kette: list[dict], rueckmeldungen: list[dict], stand: dict, vorschauen: dict[str, list],
+                     kosten: dict[str, float], art: dict | None, heute: str) -> dict:
+    """Alles für /dokument/<ursprung>.
+    kette: Aufträge der Kette (Ursprung zuerst); rueckmeldungen: Aufträge an feedback mit bezug in der Kette;
+    stand: agentkit.fassungen.lesen(); vorschauen: Auftrag -> dateien.vorschau_info(); kosten: Auftrag -> USD.
+    Fassungen neueste zuerst: Ergebnisse des Agenten („Fassung n“) und eigene Fassungen („Deine Fassung k“),
+    Dateien zur Rückmeldung, die nur Anmerkungen sind, stehen bei den Rückmeldungen. haupt: die finale Fassung,
+    sonst die neueste fertige."""
+    final_ref = (stand.get("final") or {}).get("fassung") or ""
+    eintraege = []
+    n = 0
+    for a in kette:
+        if a.get("status") == "erledigt":
+            n += 1
+        d = a.get("daten") or {}
+        eintraege.append({
+            "ref": a["id"], "art": "agent", "name": f"Fassung {n}" if a.get("status") == "erledigt" else
+            STATUS_TEXT.get(a.get("status"), a.get("status") or "").capitalize(),
+            "status": a.get("status"), "status_text": STATUS_TEXT.get(a.get("status"), a.get("status") or ""),
+            "zeit": a.get("abgeschlossen") or a.get("erstellt") or "",
+            "nachbesserung": a["id"] != kette[0]["id"],
+            "kern": d.get("kern") if isinstance(d.get("kern"), str) else "",
+            "punkte": [p for p in d.get("punkte") or [] if isinstance(p, str)][:12],
+            "pruefen": d.get("pruefen") if isinstance(d.get("pruefen"), str) else "",
+            "ergebnis": a.get("ergebnis", "") if a.get("status") != "erledigt" or not d.get("kern") else "",
+            "auftrag_text": a.get("text", ""), "kosten": kosten.get(a["id"]),
+            "dateien": _datei_zeilen(a.get("ergebnis_dateien") or [], vorschauen.get(a["id"]) or []),
+            "final": final_ref == a["id"], "final_moeglich": a.get("status") == "erledigt"})
+    k = 0
+    anmerkungen = []
+    for e in sorted(stand.get("eigene") or [], key=lambda e: e.get("n", 0)):
+        if (e.get("art") or "fassung") != "fassung":
+            anmerkungen.append({"n": e["n"], "name": e.get("name", ""), "zeit": e.get("zeit", "")})
+            continue
+        k += 1
+        ref = eigene_ref(e["n"])
+        eintraege.append({"ref": ref, "art": "eigene", "name": f"Deine Fassung {k}", "status": "erledigt",
+                          "status_text": "hochgeladen", "zeit": e.get("zeit", ""), "nachbesserung": False,
+                          "kern": e.get("notiz", ""), "punkte": [], "pruefen": "", "ergebnis": "",
+                          "auftrag_text": "", "kosten": None, "eigene_n": e["n"], "datei_name": e.get("name", ""),
+                          "dateien": [], "final": final_ref == ref, "final_moeglich": True})
+    eintraege.sort(key=lambda e: e["zeit"], reverse=True)
+    for e in eintraege:
+        e["zeit_text"] = zeit_kurz(e["zeit"], heute)
+    fertig = [e for e in eintraege if e["status"] == "erledigt"]
+    haupt = next((e for e in eintraege if e["final"]), None) or (fertig[0] if fertig else None)
+    bezug = next((e["ref"] for e in eintraege if e["art"] == "agent" and e["status"] == "erledigt"), "")
+    rueck = [{"id": r["id"], "text": r.get("text", ""), "zeit_text": zeit_kurz(r.get("erstellt") or "", heute),
+              "status_text": STATUS_TEXT.get(r.get("status"), r.get("status") or ""),
+              "antwort": r.get("ergebnis", "") if r.get("status") != "neu" else ""}
+             for r in sorted(rueckmeldungen, key=lambda r: r.get("erstellt") or "", reverse=True)]
+    for a in anmerkungen:
+        a["zeit_text"] = zeit_kurz(a["zeit"], heute)
+    return {"fassungen": eintraege, "haupt": haupt, "bezug": bezug, "laeuft": any(a.get("status") == "neu"
+            for a in kette), "rueckmeldungen": rueck, "anmerkungen": anmerkungen,
+            "rueckmeldung_moeglich": bool(bezug) and (art or {}).get("rueckmeldung", True),
+            "kosten": round(sum(v for v in kosten.values() if v), 2) if kosten else None}
+
+
+def final_erlaubt(ref: str, ansicht: dict) -> bool:
+    return any(e["ref"] == ref and e["final_moeglich"] for e in ansicht["fassungen"])
+
+
+def rueckmeldung_pruefen(text: str, hat_datei: bool) -> tuple[str, list[str]]:
+    text = (text or "").replace("\r\n", "\n").strip()
+    if not text and not hat_datei:
+        return text, ["Schreib, was anders werden soll, oder hänge eine Datei an."]
+    if len(text) > MAX_RUECKMELDUNG:
+        return text, [f"Höchstens {MAX_RUECKMELDUNG} Zeichen."]
+    return text, []
+
+
+def datei_erlaubt(name: str, endungen: set[str]) -> str:
+    """Fehlertext, wenn die Endung nicht passt, sonst ""."""
+    endung = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
+    if endung not in endungen:
+        return f"{name}: nur {', '.join(sorted(e.lstrip('.') for e in endungen))}"
+    return ""
+
+
+def dateiname_bereinigen(name: str) -> str:
+    name = re.sub(r"[^\w.\- ]", "_", (name or "").replace("\\", "/").rsplit("/", 1)[-1]).strip().lstrip(".")
+    return name[:120] or "datei"
+
+
+# --- Heute und Kosten --------------------------------------------------------------------------------------------
+
+WARTET_TAGE = 14
+
+
+def wartet_auf_mich(docs: list[dict], heute: str) -> list[dict]:
+    """Dokumente, bei denen Jan dran ist: fertig, aber nicht final (in den letzten WARTET_TAGE Tagen), und solche, die
+    nicht geklappt haben. docs aus dokumente()."""
+    from datetime import date, timedelta
+    grenze = (date.fromisoformat(heute) - timedelta(days=WARTET_TAGE)).isoformat()
+    return [d for d in docs if d["rot"] or (d["marke"].startswith("Fassung") and d["zeit"][:10] >= grenze)]
+
+
+def kosten_zeilen(laeufe: list[dict], ursprung_von: dict[str, str], titel_von_: dict[str, str]) -> list[dict]:
+    """Letzte Läufe für die rechte Spalte: {"text", "unter", "usd", "link", "ok"}. ursprung_von: Auftrag ->
+    Ursprung des Dokuments, titel_von_: Ursprung -> Titel."""
+    from datetime import datetime
+    zeilen = []
+    for e in laeufe:
+        u = ursprung_von.get(e.get("auftrag") or "")
+        zeilen.append({"text": titel_von_.get(u, "") if u else "", "agent": e.get("agent") or "?",
+                       "usd": f"{(e.get('usd') or 0):.2f}", "ok": bool(e.get("ok")),
+                       "zeit": datetime.fromtimestamp(e["zeit"]).strftime("%d.%m. %H:%M") if e.get("zeit") else "",
+                       "link": f"/dokument/{u}" if u else ""})
+    return zeilen

@@ -81,6 +81,18 @@
   <p class="leer">Gerade läuft nichts.</p>
   {%- endif %}
   {%- if not auftraege_an %}<p class="unter">Aufträge sind ausgeschaltet (Probebetrieb).</p>{% endif %}
+  <h2 class="fragen-titel">Kosten</h2>
+  {%- if kosten_heute is not none %}<p class="unter">Heute {{ kosten_heute }} USD (alle deine Agenten)</p>{% endif %}
+  {%- if kosten_letzte %}
+  <ul>
+    {%- for k in kosten_letzte %}
+    <li>{% if k.link %}<a class="zeile zeile-klein zeile-kosten" href="{{ k.link }}">{% else %}<div class="zeile zeile-klein zeile-kosten">{% endif %}
+      <span class="punkt{% if not k.ok %} punkt-rot{% endif %}" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ k.text or k.agent }}</span><span class="unter">{{ k.agent }} · {{ k.zeit }}{% if not k.ok %} · Fehler{% endif %}</span></span>
+      <span class="marke">{{ k.usd }} $</span>{% if k.link %}</a>{% else %}</div>{% endif %}</li>
+    {%- endfor %}
+  </ul>
+  {%- else %}<p class="leer">Noch keine Läufe.</p>{% endif %}
 </aside>
 </div>
 </body>

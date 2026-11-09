@@ -18,16 +18,28 @@ Schritte 1 bis 3 aus dem Auftrag an Sitzung A:
   Wiederherstellen; Hinweis mit Rückgängig nach jeder Änderung; „+ Neu“ öffnet die Galerie der aktiven Arten, das
   Formular legt den Auftrag an (`quelle="arbeitsplatz"`, ort, art, felder, Dateien) und startet
   `<agent>.service` mit `systemctl --user start --no-block`. Doppelklick legt nichts doppelt an.
-- Dokument-Seite `/dokument/<ursprung>`: erste, nur lesende Fassung (Fassungen mit Stand, Kern, Dateinamen).
+- Dokument-Ansicht `/dokument/<ursprung>` (Schritt 4, 09.11. nachts): oben die finale, sonst neueste fertige
+  Fassung mit Kern, Punkten, „Bitte prüfen“, Original zum Herunterladen, PDF (eigene PDF oder Vorschau des Renderers)
+  und allen Seitenbildern; „Rückmeldung geben“ (Text und/oder Datei, über agentkit.fassungen.rueckmeldung an
+  feedback.service, nur bei Arten mit rueckmeldung und nur mit ARBEITSPLATZ_AUFTRAEGE=echt), „Eigene Fassung
+  hochladen“ (geht immer), alle Fassungen aufklappbar (auch eigene) mit „Als final markieren“, Kosten je Fassung,
+  Rückmeldungen mit Antwort des Feedback-Dienstes.
+- Heute: „Wartet auf dich“ (fertig, nicht final, letzte 14 Tage; und was nicht geklappt hat), Orte, Zuletzt.
+  Rechte Spalte: Läuft gerade, Kosten heute (Jans Instanz) und die letzten 6 Läufe mit Link zum Dokument
+  (agentkit.verbrauch.letzte, kosten_je).
 - Tests: `tests/` (Logik, App über Unix-Socket mit http.client), in pruefen.sh eingetragen.
 
-Noch nicht gebaut (Schritt 4, ab 10.11. morgens): Dokument-Ansicht mit Seitenbildern, PDF und Original, Rückmeldung
-Text/Datei, eigene Fassung, final (agentkit.fassungen), „Heute“ mit „wartet auf mich“, Kosten aus agentkit.verbrauch;
-finance `daten.titel` und `art`. Schritt 5 (Umzug aus uni/portal) erst nach Rücksprache mit der uni-Sitzung.
+Noch offen: finance `daten.titel` und `art` (Schritt 4, letzter Teil). Schritt 5 (Umzug aus uni/portal) erst nach
+Rücksprache mit der koordinierenden Sitzung. „Wartet auf dich“ kennt kein „gesehen“; ein Dokument steht dort, bis es
+final ist oder 14 Tage alt.
 
 ## Technik
 - `logik.py`: reine Logik (Baum-Zeilen, Brotkrumen, Ziele zum Verschieben, Dokumente als Ketten über `bezug` mit
-  Titel und Marke, Läuft gerade, Schutz: Origin, Token, sichere Weiterleitung). Getestet.
+  Titel und Marke, Läuft gerade, Dokument-Ansicht, Wartet auf dich, Kosten-Zeilen, Schutz: Origin, Token, sichere
+  Weiterleitung). Getestet.
+- `dateien.py`: Kopie aus shared/webapp (Pfadprüfung gegen den Agent-Ordner, Vorschau des Renderers
+  `<stem>-vorschau/<stem>-seite-NN.png` und `<stem>.pdf`), dazu .md als Download. URLs tragen Auftrag und Nummer in
+  `ergebnis_dateien`, nie einen Pfad.
 - `app.py`: FastAPI, dünn. Instanz `ARBEITSPLATZ_INSTANZ` (Standard Jans shared-Ordner): `orte.json`,
   `auftraege/`, `fassungen/`. Agent-Ordner = Instanz.parent.
 - Ein Dokument ist eine Kette über `bezug`, deren Ursprung `ort` trägt. Titel: `daten.titel` der neuesten fertigen

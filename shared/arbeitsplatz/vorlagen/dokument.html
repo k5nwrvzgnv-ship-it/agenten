@@ -1,25 +1,124 @@
 {% extends "basis.html" %}
+{#- Dokument-Ansicht: oben die finale (sonst neueste fertige) Fassung mit Seitenbildern, PDF und Original; darunter
+    Rückmeldung, eigene Fassung, alle Fassungen aufklappbar mit „final“ und die Rückmeldungen. -#}
+{%- macro dateiliste(f) -%}
+{%- if f.art == "eigene" %}
+<p class="datei-zeile"><a class="dateiname" href="/dokument/{{ u }}/eigene/{{ f.eigene_n }}">{{ f.datei_name }}</a></p>
+{%- else %}
+{%- for x in f.dateien %}
+<p class="datei-zeile"><span class="dateiname">{{ x.name }}</span>
+  {%- if x.original %} <a class="knopf knopf-klein" href="/dokument/{{ u }}/datei/{{ f.ref }}/{{ x.nr }}">{{ "Herunterladen" if x.endung == "pdf" else "Original (" ~ x.endung ~ ")" }}</a>{% endif %}
+  {%- if x.pdf %} <a class="knopf knopf-klein" href="/dokument/{{ u }}/datei/{{ f.ref }}/{{ x.nr }}/pdf" target="_blank" rel="noopener">PDF ansehen</a>{% endif %}
+  {%- if not x.original %} <span class="unter">nicht verfügbar</span>{% endif %}</p>
+{%- endfor %}
+{%- endif %}
+{%- endmacro -%}
 {% block seitenkopf %}
 <header class="kopf">
-  <span class="datum grau">{{ art }}</span>
+  <span class="datum grau">{{ art }}{% if d.kosten %} · Kosten bisher {{ "%.2f" | format(d.kosten) }} USD{% endif %}</span>
   <h1 class="titel-gross">{{ e.titel }}</h1>
   <span class="marke{% if rot %} marke-rot{% endif %}">{{ marke }}</span>
 </header>
 {% endblock %}
 {% block inhalt %}
-<p class="hinweis">Erste, lesende Ansicht. Seitenbilder, Dateien, Rückmeldung und „final“ folgen.</p>
+{%- set erledigt = request.query_params.get("erledigt") %}
+{%- if erledigt %}
+<p class="hinweis hinweis-erledigt" role="status">{{ {"final": "Als final markiert.", "nicht-final": "Nicht mehr final.",
+  "eigene": "Deine Fassung ist gespeichert.", "rueckmeldung": "Rückmeldung angelegt, der Agent arbeitet daran.",
+  "rueckmeldung-wartet": "Rückmeldung angelegt, der Feedback-Dienst ließ sich aber nicht starten."}.get(erledigt, "") }}</p>
+{%- endif %}
+{%- if fehler %}<div class="fehler" role="alert">{% for f in fehler %}<p>{{ f }}</p>{% endfor %}</div>{% endif %}
+{%- if d.laeuft %}<p class="hinweis">Läuft gerade. Die Seite zeigt das Ergebnis, sobald es fertig ist (neu laden).</p>{% endif %}
+
+{%- set h = d.haupt %}
+{%- if h %}
+<section>
+  <h2>{{ h.name }}{% if h.final %} · final{% endif %} <span class="unter">{{ h.zeit_text }}</span></h2>
+  {%- if h.kern %}<p class="absatz">{{ h.kern }}</p>{% endif %}
+  {%- if h.punkte %}<ul class="punkte">{% for p in h.punkte %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+  {%- if h.pruefen %}<p class="hinweis"><strong>Bitte prüfen:</strong> {{ h.pruefen }}</p>{% endif %}
+  {{ dateiliste(h) }}
+  {%- for x in h.dateien if x.seiten %}
+  <div class="seitenbilder" aria-label="Seiten von {{ x.name }}">
+    {%- for s in range(1, x.seiten + 1) %}
+    <a href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" target="_blank" rel="noopener"><img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" alt="Seite {{ s }} von {{ x.name }}" loading="lazy"></a>
+    {%- endfor %}
+  </div>
+  {%- endfor %}
+</section>
+{%- elif not d.laeuft %}
+<p class="leer">Noch keine fertige Fassung.</p>
+{%- endif %}
+
+<section class="aktionen">
+  {%- if d.rueckmeldung_moeglich %}
+  <details{% if offen == "rueckmeldung" %} open{% endif %}>
+    <summary>Rückmeldung geben</summary>
+    <form class="formular" method="post" action="/dokument/{{ u }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
+      <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+      <label class="feld-titel" for="rueck-text">Was soll anders werden?</label>
+      <textarea id="rueck-text" name="text" rows="5" maxlength="4000">{{ text }}</textarea>
+      <label class="feld-titel" for="rueck-datei">Datei mit Kommentaren <span class="grau">(optional)</span></label>
+      <input id="rueck-datei" type="file" name="datei" accept="{{ rueck_endungen }}">
+      {%- if not auftraege_an %}<p class="unter">Probebetrieb: Rückmeldungen sind ausgeschaltet.</p>{% endif %}
+      <button class="knopf knopf-voll" type="submit">Rückmeldung schicken</button>
+    </form>
+  </details>
+  {%- elif d.bezug %}
+  <p class="unter">Zu dieser Art nimmt der Agent keine Rückmeldung an. Für eine neue Fassung bitte einen neuen Auftrag geben.</p>
+  {%- endif %}
+  {%- if d.bezug %}
+  <details{% if offen == "eigene" %} open{% endif %}>
+    <summary>Eigene Fassung hochladen</summary>
+    <form class="formular" method="post" action="/dokument/{{ u }}/eigene" enctype="multipart/form-data" data-einmal>
+      <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+      <label class="feld-titel" for="eigene-datei">Bearbeitete Datei</label>
+      <input id="eigene-datei" type="file" name="datei" accept="{{ eigene_endungen }}" required>
+      <label class="feld-titel" for="eigene-notiz">Notiz <span class="grau">(optional)</span></label>
+      <input class="feld" id="eigene-notiz" type="text" name="notiz" maxlength="500">
+      <button class="knopf" type="submit">Hochladen</button>
+    </form>
+  </details>
+  {%- endif %}
+</section>
+
 <section class="fassungen">
   <h2>Fassungen</h2>
   <ul>
-    {%- for f in fassungen %}
-    <li><details{% if loop.first %} open{% endif %}><summary><span class="titel">{{ f.zeit }}</span>
-      <span class="unter">{{ {"neu": "läuft", "erledigt": "fertig", "fehlgeschlagen": "hat nicht geklappt", "zurueckgezogen": "zurückgezogen"}.get(f.status, f.status) }}</span></summary>
-      {%- if f.kern %}<p class="absatz">{{ f.kern }}</p>{% endif %}
-      {%- if f.dateien %}<p class="unter">Dateien: {{ f.dateien | join(", ") }}</p>{% endif %}
-      {%- if f.status != "erledigt" and f.ergebnis %}<p class="absatz">{{ f.ergebnis }}</p>{% endif %}
-      <p class="unter auftrag-text">{{ f.text }}</p>
+    {%- for f in d.fassungen %}
+    <li><details{% if f is sameas h %} open{% endif %}><summary><span class="titel">{{ f.name }}</span>
+      <span class="unter">{{ f.zeit_text }} · {{ f.status_text }}{% if f.nachbesserung %} · Nachbesserung{% endif %}{% if f.kosten %} · {{ "%.2f" | format(f.kosten) }} USD{% endif %}</span>
+      {%- if f.final %}<span class="marke-final">final</span>{% endif %}</summary>
+      {%- if f.kern and f is not sameas h %}<p class="absatz">{{ f.kern }}</p>{% endif %}
+      {%- if f.ergebnis %}<p class="absatz auftrag-text">{{ f.ergebnis }}</p>{% endif %}
+      {%- if f is not sameas h %}{{ dateiliste(f) }}{% endif %}
+      {%- if f.final_moeglich %}
+      <form class="inline-form" method="post" action="/dokument/{{ u }}/final">
+        <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="ref" value="{{ f.ref }}">
+        <input type="hidden" name="an" value="{{ '0' if f.final else '1' }}">
+        <button class="knopf knopf-klein" type="submit">{{ "Nicht mehr final" if f.final else "Als final markieren" }}</button>
+      </form>
+      {%- endif %}
+      {%- if f.auftrag_text %}<details class="auftrag"><summary class="unter">Auftrag</summary><p class="unter auftrag-text">{{ f.auftrag_text }}</p></details>{% endif %}
     </details></li>
     {%- endfor %}
   </ul>
 </section>
+
+{%- if d.rueckmeldungen or d.anmerkungen %}
+<section>
+  <h2>Rückmeldungen</h2>
+  <ul>
+    {%- for r in d.rueckmeldungen %}
+    <li class="rueck"><p class="unter">{{ r.zeit_text }} · {{ r.status_text }}</p>
+      <p class="absatz auftrag-text">{{ r.text }}</p>
+      {%- if r.antwort %}<p class="unter auftrag-text">{{ r.antwort }}</p>{% endif %}</li>
+    {%- endfor %}
+    {%- for a in d.anmerkungen %}
+    <li class="rueck"><p class="unter">{{ a.zeit_text }} · Datei zur Rückmeldung</p>
+      <p><a class="dateiname" href="/dokument/{{ u }}/eigene/{{ a.n }}">{{ a.name }}</a></p></li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- endif %}
 {% endblock %}
