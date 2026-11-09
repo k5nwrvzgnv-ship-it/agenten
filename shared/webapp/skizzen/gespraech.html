@@ -7,25 +7,25 @@
    Aufbau: Leiste der Skizze oben, darunter die App: Baum | Mitte (Ebene oder Gespräch) | rechts "An dieser Ebene".
    Gespräche und Material hängen immer an einer Ebene: Klasse/Kurs, Reihe, Stunde. */
 :root {
-  --bg: #ffffff; --fg: #37352f; --leise: #787774; --sehrleise: #9b9a97; --linie: #e9e9e7; --flaeche: #f7f7f5;
+  --bg: #ffffff; --fg: #37352f; --leise: #787774; --sehrleise: #8c8b87; --linie: #e9e9e7; --flaeche: #f7f7f5;
   --hover: rgba(55, 53, 47, .06); --wahl: rgba(55, 53, 47, .09); --akzent: #d44c47; --blau: #2f6fbf; --fokus: #2f6fbf;
   --umkehr: #ffffff; --skizze: #f2d675; --schatten: 0 8px 28px rgba(15, 15, 15, .14), 0 0 0 1px rgba(15, 15, 15, .05);
   --schrift: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #6f6f6b; --linie: #2f2f2f; --flaeche: #202020;
-  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #4f8ad8; --fokus: #7fb0f0;
+  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #7f7f7a; --linie: #2f2f2f; --flaeche: #202020;
+  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #3a74c4; --fokus: #7fb0f0;
   --umkehr: #ffffff; --skizze: #8a7322; --schatten: 0 8px 28px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08); color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #6f6f6b; --linie: #2f2f2f; --flaeche: #202020;
-  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #4f8ad8; --fokus: #7fb0f0;
+  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #7f7f7a; --linie: #2f2f2f; --flaeche: #202020;
+  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #3a74c4; --fokus: #7fb0f0;
   --umkehr: #ffffff; --skizze: #8a7322; --schatten: 0 8px 28px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08); color-scheme: dark }
 
 * { box-sizing: border-box }
 body { background: var(--bg); color: var(--fg); font-family: var(--schrift); font-size: 16px; line-height: 1.5; margin: 0; -webkit-font-smoothing: antialiased }
 button, input, select, textarea { font: inherit; color: inherit }
 button { cursor: pointer }
-:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; border-radius: 4px }
+:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px }
 h1, h2, h3 { text-wrap: balance }
 
 /* Leiste der Skizze: schmal, gelber Streifen oben als Zeichen "nur Skizze" */
@@ -46,14 +46,16 @@ h1, h2, h3 { text-wrap: balance }
 .app.ohne-rechts { grid-template-columns: 240px minmax(0, 1fr) }
 .baum { background: var(--flaeche); padding: 12px 8px 16px; display: flex; flex-direction: column; gap: 1px; min-width: 0; font-size: 14px;
   position: sticky; top: 0; align-self: start; min-height: calc(100vh - 48px) }
+.baum-kopf { display: flex; align-items: center; justify-content: space-between; gap: 8px }
 .baum .name { padding: 6px 10px 12px; font-size: 14px; font-weight: 600 }
+.baum-schalter { display: none }
 .baum .kopf { padding: 16px 10px 4px; font-size: 12px; font-weight: 500; color: var(--sehrleise) }
 .baum .knoten { display: flex; align-items: center }
 .baum .knoten.s1 { padding-left: 14px }
 .baum .knoten.s2 { padding-left: 28px }
 .baum .ort { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; width: 100%; min-width: 0; min-height: 30px;
   padding: 4px 10px 4px 6px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 14px; font-weight: 400; color: var(--fg) }
-.baum > .ort, .baum-fuss .ort { padding-left: 10px }
+.baum > .ort, .baum-fuss .ort { padding-left: 10px; flex: 0 0 auto }
 .baum .ort:hover { background: var(--hover) }
 .baum .ort:disabled { color: var(--sehrleise); cursor: default }
 .baum .ort:disabled:hover { background: transparent }
@@ -139,6 +141,7 @@ main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: col
 .knopf-menue { font-size: 16px; letter-spacing: 1px; min-width: 32px; justify-content: center }
 .menue { position: absolute; top: calc(100% + 4px); left: 0; z-index: 15; min-width: 220px; background: var(--bg); border-radius: 8px; box-shadow: var(--schatten);
   padding: 4px; display: flex; flex-direction: column }
+.menue.rechtsbuendig { left: auto; right: 0 }
 .menue button { border: 0; background: none; text-align: left; padding: 6px 10px; border-radius: 4px; font-size: 14px; color: var(--fg); min-height: 32px }
 .menue button:hover, .menue button:focus-visible { background: var(--hover) }
 @media (hover: none) { .nur-hover { display: none !important } }
@@ -228,6 +231,7 @@ aside .darunter-liste { padding-left: 12px }
 .schliessen:hover { background: var(--hover); color: var(--fg) }
 .seitenbild { display: block; width: 100%; border: 0; padding: 0; background: none; cursor: zoom-in; border-radius: 4px }
 .seitenbild svg, .seitenbild img { display: block; width: 100%; height: auto; border-radius: 3px; background: #fff; box-shadow: 0 0 0 1px var(--linie), 0 2px 10px rgba(15, 15, 15, .08) }
+.vorschau .seitenbild svg { width: auto; max-width: 100%; max-height: 52vh; margin: 0 auto }
 .vnav { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--leise) }
 .vnav .knopf-leise { font-size: 16px; min-width: 32px; justify-content: center }
 .vnav .knopf-leise:disabled { opacity: .35; cursor: default; background: none }
@@ -293,14 +297,22 @@ button.foto:hover { box-shadow: 0 0 0 1px var(--leise) }
 
 @media (max-width: 1100px) {
   .app, .app.ohne-rechts { grid-template-columns: 220px minmax(0, 1fr) }
-  aside.rechts { grid-column: 2; border-left: 0; border-top: 1px solid var(--linie); padding-left: 48px; padding-right: 48px }
+  aside.rechts { grid-column: 2; border-left: 0; border-top: 1px solid var(--linie); padding-left: 48px; padding-right: 48px; position: static; max-height: none }
+  main { padding-left: 32px; padding-right: 32px }
 }
 @media (max-width: 760px) {
   .app, .app.ohne-rechts { grid-template-columns: minmax(0, 1fr) }
-  .baum { padding-bottom: 12px; border-bottom: 1px solid var(--linie); position: static; min-height: 0 }
+  .baum { padding: 8px 8px 8px; border-bottom: 1px solid var(--linie); position: static; min-height: 0 }
+  .baum .name { padding: 6px 10px }
+  .baum-schalter { display: inline-flex }
+  .baum:not(.auf) > :not(.baum-kopf) { display: none }
+  .baum.auf { padding-bottom: 12px }
   .baum-fuss { padding-top: 12px }
   aside.rechts { grid-column: 1; padding-left: 16px; padding-right: 16px }
   main { padding: 16px 16px 40px }
+  .ebene, .gespraech { gap: 28px }
+  .tabelle table { min-width: 460px }
+  .vmeta { margin-left: 0 }
   .titel h1, .luecken h1 { font-size: 26px }
   .lz summary { grid-template-columns: 28px minmax(0, 1fr) }
   .lz .wo { grid-column: 2 }
@@ -355,7 +367,7 @@ function frische() {
   return {
     seite: 'luecken', ebene: 'strafe', gespraech: null, band: '', vorher: null, umbenennen: false,
     anhang: [], entwurf: '', gruendlich: false, netz: false, schicht: null, ablegenDatei: '', heute: false,
-    klapp: {}, archiv: false, darunter: {}, menue: null, kennt: false, rechtsZu: false, vorschau: null, foto: null,
+    klapp: {}, archiv: false, darunter: {}, menue: null, kennt: false, rechtsZu: false, vorschau: null, foto: null, baumAuf: false,
     reihenfrage: { strafe: '', helfen: 'Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?' },
     material: [
       { ort: 'e8', titel: 'Notentabelle Klasse 8 (ohne Namen)', stand: 'final', art: 'tabelle', seiten: 1 },
@@ -471,7 +483,8 @@ function baum() {
     if (auf) E[k].kinder.forEach((c) => { h += knoten(c, stufe + 1); });
     return h;
   };
-  return '<nav class="baum" aria-label="Ordnung"><span class="name">Lias Assistenz</span>' +
+  return '<nav class="baum' + (S.baumAuf ? ' auf' : '') + '" aria-label="Ordnung"><div class="baum-kopf"><span class="name">Lias Assistenz</span>' +
+    '<button type="button" class="knopf-leise baum-schalter" data-akt="baumschmal" aria-expanded="' + S.baumAuf + '">' + (S.baumAuf ? 'Ordnung ▾' : 'Ordnung ▸') + '</button></div>' +
     '<button type="button" class="ort" data-akt="heute"' + (S.heute ? ' aria-current="location"' : '') + '><span class="nm">Heute</span><span class="zahl rot">3</span></button>' +
     '<span class="kopf">Ethik</span>' + knoten('e8', 0) +
     '<span class="kopf">Darstellendes Spiel</span>' + knoten('k11', 0) + knoten('k12', 0) +
@@ -527,10 +540,10 @@ function abschnitt(k, art, titel, holen, zeile, leerText) {
   }
   return h + '</section>';
 }
-function menue(id, punkte) {
+function menue(id, punkte, rechtsbuendig) {
   const auf = S.menue === id;
   return '<div class="menue-halter"><button type="button" class="knopf-leise knopf-menue" data-akt="menue" data-ziel="' + id + '" aria-haspopup="true" aria-expanded="' + auf + '" aria-label="Weitere Aktionen">···</button>' +
-    (auf ? '<div class="menue" role="menu">' + punkte.map((p) => '<button type="button" role="menuitem" data-akt="' + p[0] + '"' + (p[2] ? ' data-ziel="' + p[2] + '"' : '') + '>' + esc(p[1]) + '</button>').join('') + '</div>' : '') + '</div>';
+    (auf ? '<div class="menue' + (rechtsbuendig ? ' rechtsbuendig' : '') + '" role="menu">' + punkte.map((p) => '<button type="button" role="menuitem" data-akt="' + p[0] + '"' + (p[2] ? ' data-ziel="' + p[2] + '"' : '') + '>' + esc(p[1]) + '</button>').join('') + '</div>' : '') + '</div>';
 }
 
 function ebenenAnsicht(k) {
@@ -600,7 +613,7 @@ function gespraechAnsicht(id) {
   if (S.umbenennen) kopf += '<label class="sr" for="gname">Name des Gesprächs</label><input id="gname" value="' + esc(g.name) + '"><button type="button" class="knopf knopf-klein" data-akt="namespeichern">Speichern</button><button type="button" class="knopf-leise" data-akt="nameabbrechen">Abbrechen</button>';
   else kopf += '<h1 class="gname">' + esc(g.name) + '</h1>';
   kopf += '<span class="knoepfe"><button type="button" class="knopf knopf-klein" data-akt="auftrag">Daraus Auftrag machen</button>' +
-    menue('gespraech', [['umbenennen', 'Umbenennen'], ['bisher', 'Was haben wir bisher?'], ['verschieben', g.ort === 'ohne' ? 'An eine Ebene hängen' : 'An andere Ebene hängen']]) +
+    menue('gespraech', [['umbenennen', 'Umbenennen'], ['bisher', 'Was haben wir bisher?'], ['verschieben', g.ort === 'ohne' ? 'An eine Ebene hängen' : 'An andere Ebene hängen']], true) +
     '<button type="button" class="knopf-leise knopf-an" data-akt="rechts" aria-expanded="' + !S.rechtsZu + '" aria-controls="rechts" title="Rechte Spalte ein- oder ausblenden">' +
     '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.2"/></svg>' +
     (g.ort === 'ohne' ? 'Ohne Ort' : 'An ' + ebeneWort(g.ort)) + '</button></span></div>';
@@ -669,7 +682,7 @@ function seiteSVG(m, n) {
   const titel = (x, y, gr, max, mitte) => umbrechen(m.titel, max).map((z, i) => '<text x="' + x + '" y="' + (y + i * gr * 1.25) + '" font-size="' + gr + '" font-weight="600" fill="#37352f" font-family="Inter, Helvetica, Arial, sans-serif"' + (mitte ? ' text-anchor="middle"' : '') + '>' + esc(z) + '</text>').join('');
   let h = '<rect width="' + W + '" height="' + H + '" fill="#ffffff"/>';
   if (quer) {
-    if (n === 0) h += '<rect width="320" height="180" fill="#f4f3ef"/>' + titel(160, 80, 15, 30, true) + balken(110, 112, 100, 4, '#c9c8c3');
+    if (n === 0) h += '<rect width="320" height="180" fill="#f4f3ef"/>' + titel(160, 80, 14, 30, true) + balken(110, 112, 100, 4, '#c9c8c3');
     else {
       h += balken(22, 22, 150 + r() * 80, 7, '#9f9e99');
       const bild = n % 3 === 1;
@@ -683,7 +696,7 @@ function seiteSVG(m, n) {
     if (n === 0) h += '<rect x="110" y="140" width="82" height="70" rx="2" fill="#ecebe7"/>' + absatz(110, 220, 82, 8);
     h += '<text x="105" y="287" font-size="7" fill="#9f9e99" text-anchor="middle" font-family="Georgia, serif">' + (160 + n) + '</text>';
   } else if (m.art === 'tabelle' || m.art === 'pdf') {
-    if (n === 0) h += titel(18, 30, 11, 27); else h += balken(18, 22, 90, 5, '#9f9e99');
+    if (n === 0) h += titel(18, 30, 10, 24); else h += balken(18, 22, 90, 5, '#9f9e99');
     const y0 = n === 0 ? 62 : 40, spalten = m.art === 'pdf' ? 4 : 5, zeilen = m.art === 'pdf' ? 8 : 14;
     const breit = 174 / spalten;
     h += '<rect x="18" y="' + y0 + '" width="174" height="12" fill="#efeeea"/>';
@@ -691,10 +704,10 @@ function seiteSVG(m, n) {
     for (let j = 0; j < spalten; j++) { h += balken(22 + j * breit, y0 + 4.5, breit * 0.55, 3, '#b4b3ae'); for (let i = 0; i < zeilen; i++) if (r() > 0.25) h += balken(22 + j * breit, y0 + 17.5 + i * 14, breit * (0.3 + r() * 0.5)); }
     if (m.art === 'pdf') h += absatz(18, y0 + 140, 174, 6);
   } else if (m.art === 'kriterien') {
-    h += titel(18, 30, 11, 27) + balken(18, 48, 120, 3, '#c9c8c3');
+    h += titel(18, 30, 10, 24) + balken(18, 48, 120, 3, '#c9c8c3');
     for (let i = 0; i < 6; i++) h += '<rect x="18" y="' + (68 + i * 30) + '" width="7" height="7" rx="1" fill="none" stroke="#b4b3ae"/>' + absatz(32, 69 + i * 30, 160, 2);
   } else {
-    if (n === 0) h += titel(18, 32, 12, 23) + balken(18, 32 + umbrechen(m.titel, 23).length * 15, 70, 3, '#c9c8c3');
+    if (n === 0) h += titel(18, 32, 11, 21) + balken(18, 32 + umbrechen(m.titel, 21).length * 14, 70, 3, '#c9c8c3');
     let y = n === 0 ? 70 : 24;
     while (y < 260) {
       const art = r();
@@ -931,8 +944,8 @@ document.addEventListener('click', (e) => {
   if (a !== 'menue') S.menue = null;
   if (a === 'hintergrund') { if (e.target === el) { S.schicht = null; schicht(); } return; }
   switch (a) {
-    case 'heute': speichernEntwurf(); S.vorschau = null; S.heute = true; S.gespraech = null; S.band = ''; S.vorher = null; break;
-    case 'ebene': speichernEntwurf(); S.vorschau = null; S.ebene = el.dataset.ziel; S.gespraech = null; S.heute = false; S.umbenennen = false; S.band = ''; S.vorher = null; break;
+    case 'heute': speichernEntwurf(); S.vorschau = null; S.baumAuf = false; S.heute = true; S.gespraech = null; S.band = ''; S.vorher = null; break;
+    case 'ebene': speichernEntwurf(); S.vorschau = null; S.baumAuf = false; S.ebene = el.dataset.ziel; S.gespraech = null; S.heute = false; S.umbenennen = false; S.band = ''; S.vorher = null; break;
     case 'oeffnen': oeffnen(el.dataset.id); return;
     case 'klappen': speichernEntwurf(); S.klapp[el.dataset.ziel] = !aufgeklappt(el.dataset.ziel); zeichnen(); fokusZurueck(el); return;
     case 'menue': speichernEntwurf(); S.menue = S.menue === el.dataset.ziel ? null : el.dataset.ziel; zeichnen(); fokusZurueck(el);
@@ -957,6 +970,7 @@ document.addEventListener('click', (e) => {
       S.vorschau = null; S.entwurf = ''; S.anhang = [{ name: m.titel, datei: true }];
       oeffnen(id); { const t = $('#text'); if (t) t.focus(); } return;
     }
+    case 'baumschmal': speichernEntwurf(); S.baumAuf = !S.baumAuf; zeichnen(); fokusZurueck(el); return;
     case 'kennt': speichernEntwurf(); S.kennt = !S.kennt; zeichnen(); fokusZurueck(el); return;
     case 'rechts': speichernEntwurf(); S.rechtsZu = !S.rechtsZu; zeichnen(); fokusZurueck(el); return;
     case 'nameabbrechen': S.umbenennen = false; break;

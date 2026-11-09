@@ -1,6 +1,7 @@
 # Plan: Skizze „Gespräch“ ruhiger, mit Dokumentvorschau (UI-Überarbeitung über Nacht)
 
-Stand 10.11.2026. Nur Plan, an der Skizze ist nichts geändert. Gilt für `skizzen/gespraech.html`
+Stand 10.11.2026. Umgesetzt in der Nacht zum 11.11.2026 (Commits „Skizze UI Schritt 0–7“); was gebaut ist und
+was nicht im Browser gesehen wurde, steht in `STATUS.md`, Abschnitt Skizze. Gilt für `skizzen/gespraech.html`
 (veröffentlicht als https://claude.ai/artifact/FcDwRi58HWDJX2TkVu2BEC). Echte Web-App und `webapp.service` bleiben
 unberührt.
 

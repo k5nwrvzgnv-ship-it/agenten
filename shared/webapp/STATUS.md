@@ -323,39 +323,52 @@ Gebaut 04.11. aus dem Befund: Punkte 2, 5, 7, dazu:
   dürfen darum keinen neuen Filter und keine Pflichtwerte aus Python brauchen. Am 04.11. antwortete `webapp.service` so
   rund 14 Minuten mit 500 (etwa 09:01 bis 09:15, im Log nur meine eigene Abfrage). `./pruefen.sh` merkt das nicht.
 
-## Skizze „Gespräch in der Mitte“ (Plan `../../docs/gespraech-plan.md` 4.1, Stand 09.11.2026, nicht mit Lia gesehen)
+## Skizze „Gespräch in der Mitte“ (Plan `../../docs/gespraech-plan.md` 4.1, Stand 11.11.2026 nachts, nicht mit Lia gesehen)
 Klick-Attrappe ohne Claude-Lauf, Code der Web-App und webapp.service unberührt:
 https://claude.ai/artifact/FcDwRi58HWDJX2TkVu2BEC (privat; Jan muss sie über „Teilen“ für Lia freigeben oder
-auf seinem Rechner zeigen). Quelle `skizzen/gespraech.html`, neu veröffentlichen aus diesem Ordner.
-- Jan 10.11.2026: zu dicht, Modernist zu laut, Dokumente immer als Vorschau. Plan für eine ruhigere Oberfläche
-  (Orientierung an Notion bei Schriftgrößen und Dichte, Seitenpanel mit Seitenbildern, Ablauf über Nacht):
-  `ui-plan-notion.md`. Noch nicht umgesetzt, drei Fragen an Jan offen (Abschnitt 5).
-- Eigenes Artifact statt Board im Canvas F8ysVSyr8TjGhFDcyNnejU: Die Canvas-Boards sind Design-Komponenten mit
-  eigenem Format; Gespräch mit Senden, Foto-Vorschau, Kopieren und Überlagerungen geht als normale Seite einfacher
-  und zuverlässiger. Lia bekommt einen Link ohne Canvas-Werkzeuge, das Board „Desktop“ bleibt als Stand vom 30.10.
-- Jan 09.11.2026 zur ersten Fassung: Variante A ist besser, aber die Struktur ging unter; Material und Gespräche
-  sollen an Ebenen hängen (Kurs/Klasse, Reihe, Stunde). Darum nur noch Variante A, B ist entfernt.
-- Teile (Leiste oben, Links `#luecken`, `#skizze`): 1 Lückenliste in Lias Worten mit „Stimmt das? Was fehlt?“;
-  2 die Skizze. Jedes Gespräch und jedes Material hängt an genau einer Ebene: Klasse/Kurs, Reihe, Stunde (oder
-  „ohne Ort“). Klick im Baum öffnet die Ebene: „Gespräche“ und „Material“ je mit „hier an der Reihe“ und „darunter“
-  (je Stunde bzw. Reihe gruppiert, Gruppenname führt zur Ebene), dazu die Liste der Stunden bzw. Reihen mit Zahlen.
-  Der Baum zeigt je Ebene „n Gespr. · n Mat.“ und klappt die Stunden der gewählten Reihe auf. „+ Gespräch an der
-  Stunde/Reihe/Klasse“ legt das Gespräch an der Ebene an, an der man steht. Im Gespräch: rechts „An der …“ mit der
-  Kette Fach › Klasse › Reihe › Stunde (aktuelle Ebene schwarz), Reihenfrage (bei Stunden „aus der Reihe“),
-  Gespräche hier und darunter, Material hier, „+ Datei ablegen“, „An andere Ebene hängen“ (zieht um). Unter dem
-  Eingabefeld „Kennt: …“ mit allem von oben. Eigene Dateien sind Material mit Marke „deine Datei“.
+auf seinem Rechner zeigen). Quelle `skizzen/gespraech.html`, neu veröffentlichen aus diesem Ordner. Prüfen:
+`node skizzen/probelauf.js` (ohne Browser und ohne Pakete: jede Ansicht, Testaufgaben 1–6, Seitenleiste,
+Vorschau jedes Materials, Rot nur bei „wartet“, Dichte je Ansicht).
+- Eigenes Artifact statt Board im Canvas F8ysVSyr8TjGhFDcyNnejU (Gespräch mit Senden, Fotos, Kopieren und
+  Überlagerungen geht als normale Seite einfacher). Das Board „Desktop“ bleibt als Stand vom 30.10.
+- Struktur (Jan 09.11.): nur Variante A. Jedes Gespräch und jedes Material hängt an genau einer Ebene: Klasse/Kurs,
+  Reihe, Stunde (oder „ohne Ort“), mit „hier“ und „darunter“.
+- Oberfläche (Jan 10.11.: zu dicht, Modernist zu laut, Dokumente immer als Vorschau; Plan `ui-plan-notion.md`,
+  über Nacht umgesetzt in 8 Schritten, Commits „Skizze UI Schritt 0–7“). Ruhig nach dem Vorbild Notion bei Dichte
+  und Schrift, ohne dessen Marke: nur Inter 400–600, Größen 12/14/16/20/32 (schmal 26), 1-px-Linien, graue Flächen,
+  gedecktes Blau nur für Hauptknopf und Fokus, Rot nur „wartet“ (Punkt plus Wort). Gilt nur für die Skizze; die
+  echte Web-App bleibt Modernist, Entscheidung nach Lias Test (Jan 10.11.).
+  - Seitenleiste: Auswahl grau, Zahlen nur beim Hover, roter Punkt bei „wartet“ (auch an zugeklappten Eltern),
+    Pfeile zum Auf- und Zuklappen, Archiv zugeklappt, Vorlagen und Ich unten; unter 760 px hinter „Ordnung ▸“.
+  - Ebene: eine Spalte; Titel, Reihenfrage als graue Notiz, „+ Gespräch“, „+ Datei ablegen“, „···“ (Neu aus
+    Vorlage); Gespräche, Material, Stunden bzw. Reihen; „darunter“ zugeklappt mit Zahl und Namen (offen, wenn
+    hier nichts hängt); Stand nur bei wartet, läuft, deine Datei.
+  - Gespräch: Nachrichten ohne Etiketten, Bausteine als graue Fläche mit „Kopieren“ und „Als Reihenfrage
+    übernehmen“; Kopf mit Name, „Daraus Auftrag machen“, „···“ (Umbenennen, Was haben wir bisher?, An andere
+    Ebene hängen) und Schalter für die rechte Spalte (standardmäßig offen, ein- und ausklappbar, Jan 10.11.);
+    unter der Eingabe nur „+ Foto oder Datei“ (Menü: vom Rechner, Beispielfoto), „Optionen“ (gründlich, im
+    Netz), „Senden“; „Kennt …“ zugeklappt. Rechte Spalte: Reihenfrage, Material (Vorschau), Gespräche, darunter
+    zugeklappt; die Kette „Hängt an“ ist weg (die Brotkrumen zeigen sie).
+  - Dokumentvorschau: jedes Material und jede abgelegte Datei öffnet rechts ein Seitenpanel mit gezeichneten
+    Beispielseiten je Art (Word, Folien, Buchseite, Tabelle, Planung, Kriterien; nur der Titel ist echt),
+    Blättern, Seitenbildchen, „Groß ansehen“ (dunkel, Pfeiltasten, Esc), „Darüber sprechen“ (neues Gespräch
+    an derselben Ebene mit der Datei als Anhang), bei „wartet“ „Rückmeldung geben“. Laufendes Material zeigt
+    „Entsteht gerade“. Fotos im Gespräch öffnen groß. Lehnt sich an Ergebnisansicht und Seiten-Betrachter der App an.
+  - Heute: „Wartet auf dich“ zuerst (öffnet die Vorschau), dann „Weiter im Gespräch“, „Alle Gespräche“ zugeklappt.
+    Lückenliste: 7 Lücken sichtbar, Erklärung auf Klick, Rest unter „Weitere 6 anzeigen“, Frage als Notiz.
+  - Dichte (Probelauf, ohne Seitenleiste, sofort sichtbare Wörter vorher → nachher): Lückenliste 331 → 220,
+    Heute 103 → 84, Klasse 8 190 → 84, Reihe Straftheorien 191 → 104, Gespräch g1 384 → 286. Bedienelemente
+    etwa gleich viele, weil Material jetzt klickbar ist. Schriftgrößen im CSS 14 → 6.
+- Gesehen: am 11.11. nachts in Jans Chrome (Windows, breites Fenster): Lückenliste, Reihe, Gespräch, Vorschau,
+  Groß ansehen. Dabei behoben: „Heute“ wuchs in der Seitenleiste in die Höhe; Seitenbild im Panel zu hoch;
+  Titel auf gezeichneten Seiten liefen über den Rand. Nicht im Browser gesehen: schmale Fenster (≤ 1100, ≤ 760),
+  dunkler Modus, Handy. Jan bitte einmal durchklicken, bevor Lia sie sieht.
 - Beispiele: Klasse 8 (Plan bis zum Halbjahr, Notentabelle), Reihe Straftheorien (Reihenfrage finden über zwei Tage
   mit Tabelle, Foto, Bausteinen; Reihenentwurf, Fallsammlung, Planung.pdf), Stunde 2 (Kant einfach erklären,
   Präsentation, Buchseite), Stunde 3 (Einstieg mit einem Fall), Stunde 4 (Arbeitsblatt läuft), Kurs 11 (ohne Reihe,
   Gespräch am Kurs), Kurs 12 (Bewertung am Kurs, Probenplan an der Inszenierung), zwei Gespräche ohne Ort.
-- Klickbar wie zuvor: Kopieren (echt), „Als Reihenfrage übernehmen“ mit Rückgängig, Umbenennen, Foto vom Rechner
-  oder Beispielfoto (bleibt im Browser), „Was haben wir bisher?“, „Daraus Auftrag machen“ (vorbelegt, Ebene fest),
-  „+ Neu aus Vorlage“ an der Ebene, „Heute“ mit „Weiter im Gespräch“. Neue Nachrichten bekommen einen festen
-  Platzhaltertext. „Skizze zurücksetzen“ stellt alles wieder her.
-- Inhalte: Lias Orte aus reihen.toml; alle Gesprächstexte ausgedacht, ohne Namen und ohne Zitate aus ihren Chats.
-  Rot nur bei „wartet“. Wort für Claude im Gespräch: „Claude“ (offen, ob Lia das so will).
-- Geprüft: Syntax und ein Probelauf ohne Browser (jede Ebene zeichnet, Klasse zeigt Gespräche der Stunden, neues
-  Gespräch hängt an der aktuellen Ebene). Im Browser von mir nicht angesehen; Jan bitte einmal durchklicken.
+  Alle Gesprächstexte ausgedacht, ohne Namen und ohne Zitate aus Lias Chats. Wort für Claude: „Claude“ (offen,
+  ob Lia das so will). „Skizze zurücksetzen“ stellt alles wieder her.
 
 Test mit Lia (Plan 4.2, Jan leitet, ca. 20 Min., Rahmen wie `docs/webapp-aufbau.md` 6): erst Teil 1 („Stimmt
 das? Was fehlt?“, Antworten notieren), dann die Aufgaben. Vorlesen in Lias Worten, nichts erklären, Hilfe erst
@@ -364,7 +377,7 @@ nach 2 Minuten.
 | # | Aufgabe (vorlesen) | Erfolg, wenn | richtiger erster Klick |
 |---|---|---|---|
 | 1 | „Du suchst noch eine Reihenfrage für die Strafe-Reihe. Gestern hast du schon mit Claude darüber gesprochen. Mach da weiter und nimm die Frage, die dir gefällt, als Reihenfrage.“ | „Als Reihenfrage übernehmen“ an einem Baustein, rechts steht die neue Frage | Heute „Weiter im Gespräch“ oder Baum: Straftheorien |
-| 2 | „Zeig Claude ein Foto deiner Planung und frag, was er davon hält.“ | Foto (eigenes oder Beispiel) angehängt und gesendet | „Foto oder Datei“ unter dem Eingabefeld |
+| 2 | „Zeig Claude ein Foto deiner Planung und frag, was er davon hält.“ | Foto (eigenes oder Beispiel) angehängt und gesendet | „+ Foto oder Datei“ unter dem Eingabefeld, dann „Beispielfoto nehmen“ oder „Vom Rechner wählen“ |
 | 3 | „Du willst einen Merksatz aus dem Gespräch in dein Arbeitsblatt in Word übernehmen.“ | „Kopieren“ am Baustein Merksatz | Baustein im Gespräch |
 | 4 | „Für die dritte Stunde der Strafe-Reihe hattest du schon mal mit Claude einen Einstieg gesucht. Finde das Gespräch. Dann fang für die vierte Stunde ein neues an.“ | Gespräch „Einstieg mit einem Fall“ geöffnet; neues Gespräch hängt an Stunde 4 | Baum: Straftheorien bzw. Stunde 3 |
 | 5 | „Aus dem Reihenfrage-Gespräch soll jetzt der Reihenentwurf werden. Gib ihn in Auftrag.“ | „Daraus Auftrag machen“, Text geprüft, Abschicken | „Daraus Auftrag machen“ |

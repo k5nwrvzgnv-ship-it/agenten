@@ -109,7 +109,7 @@ function dichte(h) {
 const messung = [];
 function messen(name) {
   // ohne Seitenleiste: die zählt in jeder Ansicht gleich und verdeckt den Unterschied
-  const h = wurzel(); const a = h.indexOf('<nav class="baum"'); const ohneBaum = a < 0 ? h : h.slice(0, a) + h.slice(h.indexOf('</nav>', a) + 6);
+  const h = wurzel(); const a = h.indexOf('<nav class="baum'); const ohneBaum = a < 0 ? h : h.slice(0, a) + h.slice(h.indexOf('</nav>', a) + 6);
   const d = dichte(ohneBaum + schicht());
   messung.push([name, d.bedien, d.zeilen, d.woerter]);
 }
@@ -216,7 +216,7 @@ ok(wurzel().includes('Bewertungskriterien.pdf'), 'T6: Datei nicht an Kurs 12 sic
 ok(wurzel().includes('data-ziel="ohne"'), 'T6: "Gespräche ohne Ort" fehlt im Baum');
 
 // ---------- Seitenleiste: auf- und zuklappen ----------
-const baumHtml = () => { const h = wurzel(); const a = h.indexOf('<nav class="baum"'); return a < 0 ? '' : h.slice(a, h.indexOf('</nav>', a)); };
+const baumHtml = () => { const h = wurzel(); const a = h.indexOf('<nav class="baum'); return a < 0 ? '' : h.slice(a, h.indexOf('</nav>', a)); };
 zuruecksetzen(); klick('ebene', { ziel: 'k11' }, { pruefen: false });
 if (skript.includes("'klappen'")) {
   ok(baumHtml().includes('data-ziel="helfen"'), 'Baum: Reihen der Klasse 8 nicht sichtbar');
