@@ -323,6 +323,44 @@ Gebaut 04.11. aus dem Befund: Punkte 2, 5, 7, dazu:
   dürfen darum keinen neuen Filter und keine Pflichtwerte aus Python brauchen. Am 04.11. antwortete `webapp.service` so
   rund 14 Minuten mit 500 (etwa 09:01 bis 09:15, im Log nur meine eigene Abfrage). `./pruefen.sh` merkt das nicht.
 
+## Skizze „Gespräch in der Mitte“ (Plan `../../docs/gespraech-plan.md` 4.1, gebaut 09.11.2026, nicht mit Lia gesehen)
+Klick-Attrappe ohne Claude-Lauf, Code der Web-App und webapp.service unberührt:
+https://claude.ai/artifact/FcDwRi58HWDJX2TkVu2BEC (privat; Jan muss sie über „Teilen“ für Lia freigeben oder
+auf seinem Rechner zeigen). Quelle `skizzen/gespraech.html`, neu veröffentlichen aus diesem Ordner.
+- Eigenes Artifact statt Board im Canvas F8ysVSyr8TjGhFDcyNnejU: Die Canvas-Boards sind Design-Komponenten mit
+  eigenem Format; Gespräch mit Senden, Foto-Vorschau, Kopieren und zwei Überlagerungen geht als normale Seite
+  einfacher und zuverlässiger. Lia bekommt einen Link ohne Canvas-Werkzeuge, das alte Board „Desktop“ bleibt als
+  Stand vom 30.10. unverändert.
+- Teile (Leiste oben, auch als Link `#luecken`, `#variante-a`, `#variante-b`): 1 Lückenliste in Lias Worten mit
+  „Stimmt das? Was fehlt?“; 2 Variante A (Mitte = Gespräch, rechts „An diesem Ort“: Reihenfrage, Gespräche,
+  Material, eigene Dateien); 3 Variante B (Reiter „Übersicht | Gespräche“, rechts die heutige Spalte „Fragen“).
+- Klickbar: Gespräch „Reihenfrage finden“ an Ethik › 8 › Straftheorien über zwei Tage mit Tabelle, Foto und
+  Bausteinen (Kopieren kopiert wirklich, „Als Reihenfrage übernehmen“ mit Rückgängig), Auswahl und Liste der
+  Gespräche, „+ Gespräch“ (Name aus der ersten Nachricht), Umbenennen, Gespräche ohne Ort (zwei, „An einen Ort
+  hängen“), Gespräche an Kurs 11 und Kurs 12, Foto vom Rechner oder Beispielfoto (bleibt im Browser), „Was haben wir
+  bisher?“, „Daraus Auftrag machen“ (vorbelegt: entschieden, verworfen, Wunsch; Ort fest), „Eigene Datei ablegen“
+  (ganze Reihe oder Stunde, Hinweis keine Schülerdaten), „Heute“ mit „Weiter im Gespräch“. Antworten auf neue
+  Nachrichten sind ein fester Platzhaltertext. „Skizze zurücksetzen“ stellt alles wieder her.
+- Inhalte: Lias Orte aus reihen.toml und dem Board; alle Gesprächstexte sind ausgedacht, ohne Namen und ohne Zitate
+  aus ihren Chats. Rot nur bei „wartet“. Wort für Claude im Gespräch: „Claude“ (offen, ob Lia das so will).
+- Im Browser nur von mir nicht angesehen (Syntax geprüft). Jan bitte einmal durchklicken, bevor Lia es sieht.
+
+Test mit Lia (Plan 4.2, Jan leitet, ca. 20 Min., Rahmen wie `docs/webapp-aufbau.md` 6): erst Teil 1 („Stimmt
+das? Was fehlt?“, Antworten notieren), dann Variante A mit den Aufgaben, dann Variante B kurz mit Aufgabe 1 und 3,
+dann „Welche ist dir lieber?“. Vorlesen in Lias Worten, nichts erklären, Hilfe erst nach 2 Minuten.
+
+| # | Aufgabe (vorlesen) | Erfolg, wenn | richtiger erster Klick |
+|---|---|---|---|
+| 1 | „Du suchst noch eine Reihenfrage für die Strafe-Reihe. Gestern hast du schon mit Claude darüber gesprochen. Mach da weiter und nimm die Frage, die dir gefällt, als Reihenfrage.“ | „Als Reihenfrage übernehmen“ an einem Baustein, rechts steht die neue Frage | Heute „Weiter im Gespräch“ oder Baum: Straftheorien |
+| 2 | „Zeig Claude ein Foto deiner Planung und frag, was er davon hält.“ | Foto (eigenes oder Beispiel) angehängt und gesendet | „Foto oder Datei“ unter dem Eingabefeld |
+| 3 | „Du willst einen Merksatz aus dem Gespräch in dein Arbeitsblatt in Word übernehmen.“ | „Kopieren“ am Baustein Merksatz | Baustein im Gespräch |
+| 4 | „Aus dem Gespräch soll jetzt der Reihenentwurf werden. Gib ihn in Auftrag.“ | „Daraus Auftrag machen“, Text geprüft, Abschicken | „Daraus Auftrag machen“ |
+| 5 | „Leg deine Bewertungskriterien bei der Reihe ab, damit Claude sie immer kennt. Danach: Du hast eine Frage zum Unterrichtsbesuch, die zu keiner Reihe gehört. Wo fragst du?“ | Datei abgelegt; „Gespräche ohne Ort“ geöffnet oder „+ Gespräch“ dort | „+ Datei ablegen“ rechts; Baum „Gespräche ohne Ort“ |
+
+Notieren je Aufgabe: Erfolg (ohne Hilfe / mit Hilfe / nicht), erster Klick, wörtliche Äußerungen, was sie
+experimentell findet, was sie nicht braucht. Danach: „A oder B?“, „Würdest du damit statt in claude.ai chatten? Was
+fehlt dafür?“. Kein Bau ohne ihr Okay (Plan 4.3).
+
 ## Technik
 - `logik.py`: reine Logik (`ketten()`, `heute()`, `ergebnis()`, `verlauf()`, `entwurf()`, Reihen: `reihen_aus()`,
   `reihe_von()`, `zeilen_je_reihe()`, `reihe_ansicht()`, Rahmen: `baum()`, `krumen()`, Stunden, Varianten,
