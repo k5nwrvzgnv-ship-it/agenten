@@ -1004,16 +1004,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Bis dahin Auftrag von Hand anlegen (siehe holzbalkenscan/STATUS.md).
 32. finance vorbereitet (07.11.2026, Auftrag Jan, Plan freigegeben): Gerüst finance/ (agent.py aus der Vorlage,
     systemd/finance.service nicht installiert, tests/test_geruest.py), Übergabe in finance/STATUS.md. Eingetragen:
-    pruefen.sh `finance|python3|tests` (noch keine .venv), [werkzeuge] finance wie uni, ohne [webfetch]-Liste und
-    ohne [weitergabe]; "finance" in AGENTEN (shared/telegram/logik.py, wirkt erst mit installiertem Dienst und
-    Neustart der Zentrale, der noch nicht erfolgt ist). Weiter im Chat ~/agenten/finance.
-    Offen hier: finance/.venv existiert seit 09.11.2026 (Renderer-Pakete, agentkit.pth, Tests damit grün),
-    jetzt Eintrag in pruefen.sh auf `finance|.venv/bin/python|tests` umstellen.
-    Bedarf agentkit (09.11.2026, finance-Chat): agentkit.abruf.laden kann nur GET ohne eigene Header. finance
-    braucht für die Primärdaten POST mit Körper und eigene Header: GENESIS (POST, Header username=Token,
-    password leer), TED (POST JSON), Comtrade (Header Ocp-Apim-Subscription-Key), Jobsuche BA (Header
-    X-API-Key). Vorschlag: laden(..., methode="GET", daten: bytes | None = None, header: dict | None = None),
-    Cache-Schlüssel dann aus URL, Methode und Daten (ohne Header, damit kein Schlüssel im Cache landet).
+    pruefen.sh `finance|.venv/bin/python|tests` (finance/.venv mit agentkit.pth), [werkzeuge] finance wie uni,
+    ohne [webfetch]-Liste und ohne [weitergabe]; "finance" in AGENTEN (shared/telegram/logik.py, wirkt erst mit
+    installiertem Dienst und Neustart der Zentrale, der noch nicht erfolgt ist). Weiter im Chat ~/agenten/finance.
+    Erledigt (09.11.2026, Jan): agentkit.abruf.laden kann jetzt POST und eigene Header, nur als Schlüsselwort:
+    laden(url, allowlist, cache_dir, methode="POST", daten=b"...", header={...}). Cache-Schlüssel aus Methode,
+    URL und Daten (GET ohne Daten wie bisher), Header nie in Cache, Meta oder Fehlertexten; ein eigener
+    User-Agent ersetzt den Standard. Für den finance-Chat (in finance/STATUS.md übernehmen): Die Abrufer für
+    GENESIS, TED, Comtrade und Jobsuche BA können jetzt gebaut werden; Domains der Allowlist gibt finance an.
     Bedarf Renderer (an den Chat shared/renderer/): Für den finance-Bericht passt keine Art. zusammenfassung ist
     auf Vorlesungen zugeschnitten (Pflicht kurs, datum der Vorlesung; quellen nur transkript/folie/norm),
     arbeitsmappe beschreibt nur leere Vorlagen ohne Werte. finance braucht (a) Belege als Quellen-ID

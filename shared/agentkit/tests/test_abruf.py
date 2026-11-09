@@ -22,9 +22,11 @@ class FalschesNetz(urllib.request.BaseHandler):
     def __init__(self, antworten):
         self.antworten = antworten
         self.aufrufe = []
+        self.anfragen = []
 
     def https_open(self, req):
         self.aufrufe.append((req.full_url, req.get_header("User-agent")))
+        self.anfragen.append(req)
         if req.full_url not in self.antworten:
             raise AssertionError(f"unerwartete Anfrage {req.full_url}")
         status, kopf, inhalt = self.antworten[req.full_url]
@@ -224,6 +226,140 @@ class LadenTest(Basis):
     def test_netzfehler(self):
         with self.assertRaisesRegex(abruf.AbrufFehler, "Netzfehler"):
             self.laden(self.URL, {self.URL: (urllib.error.URLError("Name or service not known"), {}, b"")})
+
+
+class PostUndHeaderTest(Basis):
+    TED = "https://api.ted.europa.eu/v3/notices/search"
+    GENESIS = "https://genesis.destatis.de/genesisWS/rest/2020/data/tablefile"
+    JOBS = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs?was=Tischler"
+    LISTE = ALLOWLIST + ["ted.europa.eu", "destatis.de", "arbeitsagentur.de"]
+
+    def laden(self, url, antworten, **kw):
+        self.netz = FalschesNetz(antworten)
+        return abruf.laden(url, self.LISTE, self.cache, _opener=abruf.opener(self.LISTE, self.netz), **kw)
+
+    def alle_cache_texte(self):
+        return "".join(f.read_bytes().decode("utf-8", "replace") for f in self.cache.iterdir())
+
+    def test_post_json_mit_koerper_und_meta(self):
+        daten = json.dumps({"query": "CPV=45000000", "limit": 10}).encode()
+        erg = self.laden(self.TED, {self.TED: (200, {"Content-Type": "application/json"}, b'{"notices": []}')},
+                         methode="POST", daten=daten, header={"Content-Type": "application/json"})
+        anfrage = self.netz.anfragen[0]
+        self.assertEqual(anfrage.get_method(), "POST")
+        self.assertEqual(anfrage.data, daten)
+        self.assertEqual(anfrage.get_header("Content-type"), "application/json")
+        self.assertEqual(anfrage.get_header("User-agent"), abruf.USER_AGENT)
+        self.assertEqual(erg.meta["methode"], "POST")
+        self.assertEqual(erg.meta["daten_sha256"], abruf.hashlib.sha256(daten).hexdigest())
+        self.assertEqual(json.loads(erg.text()), {"notices": []})
+
+    def test_post_cache_je_daten(self):
+        antwort = {self.TED: (200, {}, b"eins")}
+        self.laden(self.TED, antwort, methode="POST", daten=b'{"q": 1}')
+        self.assertTrue(self.laden(self.TED, {}, methode="POST", daten=b'{"q": 1}').aus_cache)
+        # andere Daten, andere Methode: eigener Eintrag, also neue Anfrage
+        erg = self.laden(self.TED, {self.TED: (200, {}, b"zwei")}, methode="POST", daten=b'{"q": 2}')
+        self.assertFalse(erg.aus_cache)
+        erg = self.laden(self.TED, {self.TED: (200, {}, b"drei")})
+        self.assertFalse(erg.aus_cache)
+        self.assertEqual(erg.meta["methode"], "GET")
+        self.assertNotIn("daten_sha256", erg.meta)
+        self.assertEqual(self.laden(self.TED, {}, methode="POST", daten=b'{"q": 1}').inhalt, b"eins")
+        self.assertEqual(len(list(self.cache.glob("*.bin"))), 3)
+
+    def test_post_ohne_daten_eigener_eintrag(self):
+        self.laden(self.TED, {self.TED: (200, {}, b"get")})
+        erg = self.laden(self.TED, {self.TED: (200, {}, b"post")}, methode="post")
+        self.assertFalse(erg.aus_cache)
+        self.assertEqual(self.netz.anfragen[0].get_method(), "POST")
+        self.assertEqual(self.laden(self.TED, {}).inhalt, b"get")
+
+    def test_get_schluessel_wie_bisher(self):
+        # Alte Cache-Einträge (Name = sha256 der URL, Meta ohne "methode") bleiben gültig
+        self.assertEqual(abruf._schluessel(self.TED), abruf.hashlib.sha256(self.TED.encode()).hexdigest())
+        self.laden(self.TED, {self.TED: (200, {}, b"alt")})
+        meta_datei = next(self.cache.glob("*.json"))
+        meta = json.loads(meta_datei.read_text())
+        del meta["methode"]
+        meta_datei.write_text(json.dumps(meta))
+        self.assertTrue(self.laden(self.TED, {}).aus_cache)
+
+    def test_schluessel_ohne_verwechslung(self):
+        self.assertNotEqual(abruf._schluessel("https://a.de/x", "POST", b""),
+                            abruf._schluessel("https://a.de/x", "POST", None) + "x")
+        self.assertNotEqual(abruf._schluessel("https://a.de/x", "POST", b"y"),
+                            abruf._schluessel("https://a.de/xy", "POST", b""))
+
+    def test_header_nie_in_cache_oder_schluessel(self):
+        geheim = "GEHEIMER-TOKEN-123"
+        erg = self.laden(self.GENESIS, {self.GENESIS: (200, {}, b"Tabelle")}, methode="POST",
+                         daten=b"name=61111-0001&format=ffcsv",
+                         header={"username": geheim, "password": "",
+                                 "Content-Type": "application/x-www-form-urlencoded"})
+        anfrage = self.netz.anfragen[0]
+        self.assertEqual(anfrage.get_header("Username"), geheim)
+        self.assertEqual(anfrage.get_header("Password"), "")
+        self.assertNotIn(geheim, json.dumps(erg.meta))
+        self.assertNotIn(geheim, self.alle_cache_texte())
+        # anderer Token, gleiche Anfrage: Cache-Treffer (Header zählen nicht)
+        self.assertTrue(self.laden(self.GENESIS, {}, methode="POST", daten=b"name=61111-0001&format=ffcsv",
+                                   header={"username": "anderer"}).aus_cache)
+
+    def test_header_bei_get(self):
+        self.laden(self.JOBS, {self.JOBS: (200, {}, b"{}")}, header={"X-API-Key": "jobboerse-jobsuche"})
+        self.assertEqual(self.netz.anfragen[0].get_method(), "GET")
+        self.assertEqual(self.netz.anfragen[0].get_header("X-api-key"), "jobboerse-jobsuche")
+        self.assertIsNone(self.netz.anfragen[0].data)
+
+    def test_eigener_user_agent_ersetzt_standard(self):
+        self.laden(self.JOBS, {self.JOBS: (200, {}, b"{}")}, header={"user-agent": "Jobsuche/2.9.2"})
+        self.assertEqual(self.netz.anfragen[0].get_header("User-agent"), "Jobsuche/2.9.2")
+
+    def test_fehlertext_ohne_header_wert(self):
+        geheim = "GEHEIMER-SCHLUESSEL"
+        with self.assertRaises(abruf.AbrufFehler) as fehler:
+            self.laden(self.JOBS, {self.JOBS: (401, {}, b"")}, header={"Ocp-Apim-Subscription-Key": geheim})
+        self.assertIn("HTTP-Fehler 401", str(fehler.exception))
+        self.assertNotIn(geheim, str(fehler.exception))
+        with self.assertRaises(abruf.AbrufFehler) as fehler:
+            self.laden(self.JOBS, {}, header={"X-Key": geheim + "\nX-Boese: 1"})
+        self.assertNotIn(geheim, str(fehler.exception))
+
+    def test_weiterleitung_nimmt_header_mit_aber_nur_erlaubt(self):
+        ziel = "https://www.destatis.de/neu"
+        erg = self.laden(self.GENESIS, {self.GENESIS: (302, {"Location": ziel}, b""), ziel: (200, {}, b"ok")},
+                         header={"username": "t"})
+        self.assertEqual(erg.inhalt, b"ok")
+        self.assertEqual(self.netz.anfragen[1].get_header("Username"), "t")
+        with self.assertRaisesRegex(abruf.AbrufFehler, "Domain nicht erlaubt"):
+            self.laden(self.GENESIS, {self.GENESIS: (302, {"Location": "https://evil.example/x"}, b"")},
+                       header={"username": "t"}, neu=True)
+        self.assertEqual(len(self.netz.anfragen), 1)
+
+    def test_ungueltige_eingaben(self):
+        faelle = [
+            ({"methode": "DELETE"}, "nicht unterstützt"),
+            ({"daten": b"x"}, "GET mit daten"),
+            ({"methode": "POST", "daten": "text"}, "bytes"),
+            ({"header": [("a", "b")]}, "dict"),
+            ({"header": {"a": 1}}, "Ungültiger Wert"),
+            ({"header": {"a:b": "c"}}, "Ungültiger Header-Name"),
+            ({"header": {"a": "b\r\nc: d"}}, "Ungültiger Wert"),
+        ]
+        for kw, muster in faelle:
+            with self.subTest(kw=kw), self.assertRaisesRegex(abruf.AbrufFehler, muster):
+                self.laden(self.TED, {}, **kw)
+        self.assertEqual(self.netz.anfragen, [])
+
+    def test_post_cache_beschaedigt_erkannt(self):
+        self.laden(self.TED, {self.TED: (200, {}, b"eins")}, methode="POST", daten=b"a")
+        meta_datei = next(self.cache.glob("*.json"))
+        meta = json.loads(meta_datei.read_text())
+        meta["daten_sha256"] = "falsch"
+        meta_datei.write_text(json.dumps(meta))
+        with self.assertRaisesRegex(abruf.AbrufFehler, "Cache beschädigt für POST"):
+            self.laden(self.TED, {}, methode="POST", daten=b"a")
 
 
 class PauseTest(Basis):

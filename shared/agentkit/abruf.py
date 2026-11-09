@@ -7,12 +7,22 @@ Grenzen: Zeitlimit, Größe (Standard 30 MB), mindestens 2 s Pause je Host zwisc
 (gilt innerhalb eines Prozesses, Weiterleitungen zählen für den Zielhost mit).
 User-Agent ohne persönliche Daten.
 
-Cache im Ordner des Aufrufers: <sha256 der URL>.bin (Inhalt) und .json (Meta: url, endgueltige_url,
-abgerufen, status, content_type, sha256, groesse). Liegt die URL im Cache, wird nicht neu geladen,
-außer mit neu=True.
+Cache im Ordner des Aufrufers: <Schlüssel>.bin (Inhalt) und .json (Meta: url, methode, endgueltige_url,
+abgerufen, status, content_type, sha256, groesse, bei Daten auch daten_sha256). Liegt die Anfrage im Cache,
+wird nicht neu geladen, außer mit neu=True.
 
     erg = abruf.laden(url, allowlist=["korpora.org"], cache_dir=Path("data/cache"))
     erg.inhalt (bytes), erg.meta (dict), erg.aus_cache, erg.text() (Zeichensatz aus Content-Type)
+
+POST mit Körper und eigene Header (APIs mit Schlüssel):
+
+    erg = abruf.laden(url, allowlist, cache_dir, methode="POST", daten=json.dumps(abfrage).encode(),
+                      header={"Content-Type": "application/json", "X-API-Key": schluessel})
+
+Schlüssel: bei GET ohne Daten sha256 der URL (wie bisher), sonst sha256 aus Methode, URL und Daten.
+Header gehen NIE in Schlüssel, Meta, Cache oder Fehlertexte (dort stehen API-Schlüssel). Eine Anfrage, die
+sich nur in Headern unterscheidet, trifft also denselben Cache-Eintrag. Weiterleitungen nehmen die Header mit,
+aber nur zu Hosts der Allowlist.
 
 HTML als reiner Text (für agentkit.wortlaut.steht_in): html_zu_text(html) bzw. erg.text_ohne_html().
 Ohne script, style, template; Titel, og:title, og:description und description stehen oben im Text.
@@ -203,46 +213,93 @@ def _warten(host: str):
     _zuletzt[host] = _uhr()
 
 
-def _schluessel(url: str) -> str:
-    return hashlib.sha256(url.encode("utf-8")).hexdigest()
+METHODEN = ("GET", "POST")
 
 
-def _aus_cache(cache_dir: Path, url: str) -> Ergebnis | None:
-    name = _schluessel(url)
+def _schluessel(url: str, methode: str = "GET", daten: bytes | None = None) -> str:
+    """GET ohne Daten: sha256 der URL (alte Cache-Einträge bleiben gültig). Sonst aus Methode, URL und Daten.
+
+    Header gehören absichtlich nicht dazu: dort stehen API-Schlüssel."""
+    if methode == "GET" and daten is None:
+        return hashlib.sha256(url.encode("utf-8")).hexdigest()
+    h = hashlib.sha256()
+    for teil in (methode.encode(), url.encode("utf-8"), b"" if daten is None else daten):
+        h.update(len(teil).to_bytes(8, "big"))  # Längen davor: keine Verwechslung an den Grenzen
+        h.update(teil)
+    return h.hexdigest()
+
+
+def _daten_sha256(daten: bytes | None) -> str | None:
+    return None if daten is None else hashlib.sha256(daten).hexdigest()
+
+
+def _aus_cache(cache_dir: Path, url: str, methode: str = "GET", daten: bytes | None = None) -> Ergebnis | None:
+    name = _schluessel(url, methode, daten)
     datei, meta_datei = cache_dir / f"{name}.bin", cache_dir / f"{name}.json"
     if not (datei.exists() and meta_datei.exists()):
         return None
     meta = json.loads(meta_datei.read_text(encoding="utf-8"))
     inhalt = datei.read_bytes()
-    if hashlib.sha256(inhalt).hexdigest() != meta.get("sha256") or meta.get("url") != url:
-        raise AbrufFehler(f"Cache beschädigt für {url} ({datei}). Mit neu=True neu laden.")
+    if (hashlib.sha256(inhalt).hexdigest() != meta.get("sha256") or meta.get("url") != url
+            or meta.get("methode", "GET") != methode or meta.get("daten_sha256") != _daten_sha256(daten)):
+        raise AbrufFehler(f"Cache beschädigt für {methode} {url} ({datei}). Mit neu=True neu laden.")
     return Ergebnis(inhalt, meta, True)
 
 
-def _speichern(cache_dir: Path, url: str, inhalt: bytes, meta: dict):
+def _speichern(cache_dir: Path, name: str, inhalt: bytes, meta: dict):
     cache_dir.mkdir(parents=True, exist_ok=True)
-    name = _schluessel(url)
     for endung, daten in ((".bin", inhalt), (".json", json.dumps(meta, ensure_ascii=False, indent=1).encode())):
         tmp = cache_dir / f".{name}{endung}.tmp"
         tmp.write_bytes(daten)
         tmp.replace(cache_dir / f"{name}{endung}")
 
 
-def laden(url: str, allowlist, cache_dir: Path, neu: bool = False, zeitlimit: float = ZEITLIMIT,
-          max_bytes: int = MAX_BYTES, _opener=None) -> Ergebnis:
-    """Lädt url (nur https, nur Allowlist) oder nimmt sie aus dem Cache. HTML als reiner Text (für agentkit.wortlaut.steht_in): html_zu_text(html) bzw. erg.text_ohne_html().
-Ohne script, style, template; Titel, og:title, og:description und description stehen oben im Text.
+def _header_pruefen(header) -> dict:
+    """Eigene Header als dict str -> str. Der Wert wird in Fehlertexten nie genannt (API-Schlüssel)."""
+    if header is None:
+        return {}
+    if not isinstance(header, dict):
+        raise AbrufFehler("header muss ein dict sein")
+    for name, wert in header.items():
+        if not isinstance(name, str) or not name.strip() or any(z in name for z in "\r\n:"):
+            raise AbrufFehler(f"Ungültiger Header-Name {name!r}")
+        if not isinstance(wert, str) or "\r" in wert or "\n" in wert:
+            raise AbrufFehler(f"Ungültiger Wert für Header {name!r} (muss Text ohne Zeilenumbruch sein)")
+    return dict(header)
 
-Fehler: AbrufFehler."""
+
+def laden(url: str, allowlist, cache_dir: Path, neu: bool = False, zeitlimit: float = ZEITLIMIT,
+          max_bytes: int = MAX_BYTES, _opener=None, *, methode: str = "GET", daten: bytes | None = None,
+          header: dict | None = None) -> Ergebnis:
+    """Lädt url (nur https, nur Allowlist) oder nimmt sie aus dem Cache.
+
+    methode: "GET" oder "POST". daten: Körper als bytes (nur bei POST). header: eigene Header, z. B. API-Schlüssel;
+    sie gehen nicht in Cache, Meta oder Fehlertexte. Ein eigener User-Agent ersetzt den Standard.
+    Fehler: AbrufFehler."""
+    methode = (methode or "").upper()
+    if methode not in METHODEN:
+        raise AbrufFehler(f"Methode {methode!r} nicht unterstützt (erlaubt: {', '.join(METHODEN)})")
+    if daten is not None and not isinstance(daten, (bytes, bytearray)):
+        raise AbrufFehler("daten müssen bytes sein (z. B. json.dumps(...).encode())")
+    if methode == "GET" and daten is not None:
+        raise AbrufFehler("GET mit daten nicht möglich, dafür methode=\"POST\"")
+    daten = None if daten is None else bytes(daten)
+    eigene = _header_pruefen(header)
     host = pruefen(url, allowlist)
     cache_dir = Path(cache_dir)
+    name = _schluessel(url, methode, daten)
     if not neu:
-        treffer = _aus_cache(cache_dir, url)
+        treffer = _aus_cache(cache_dir, url, methode, daten)
         if treffer:
             return treffer
 
     _warten(host)
-    anfrage = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    kopf = {"User-Agent": USER_AGENT}
+    for k, v in eigene.items():  # gleiche Namen ohne Rücksicht auf Groß-/Kleinschreibung ersetzen
+        for alt in [a for a in kopf if a.lower() == k.lower()]:
+            del kopf[alt]
+        kopf[k] = v
+    anfrage = urllib.request.Request(url, data=daten, headers=kopf, method=methode)
     try:
         with (_opener or opener(allowlist)).open(anfrage, timeout=zeitlimit) as antwort:
             endgueltig = antwort.geturl()
@@ -269,6 +326,7 @@ Fehler: AbrufFehler."""
 
     meta = {
         "url": url,
+        "methode": methode,
         "endgueltige_url": endgueltig,
         "abgerufen": datetime.now().astimezone().isoformat(timespec="seconds"),
         "status": status,
@@ -276,5 +334,7 @@ Fehler: AbrufFehler."""
         "sha256": hashlib.sha256(inhalt).hexdigest(),
         "groesse": len(inhalt),
     }
-    _speichern(cache_dir, url, inhalt, meta)
+    if daten is not None:
+        meta["daten_sha256"] = _daten_sha256(daten)
+    _speichern(cache_dir, name, inhalt, meta)
     return Ergebnis(inhalt, meta, False)
