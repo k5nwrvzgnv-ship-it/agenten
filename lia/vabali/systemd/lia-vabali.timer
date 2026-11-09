@@ -1,0 +1,13 @@
+# Vorlage: nach ~/.config/systemd/user/lia-vabali.timer kopieren.
+# Aktivieren: systemctl --user enable --now lia-vabali.timer
+# Alle 15 Minuten von 7:00 bis 22:45 (nachts keine Nachrichten an Lia). Nach dem letzten Tag in suche.toml
+# tut der Agent nichts mehr; dann abschalten: systemctl --user disable --now lia-vabali.timer
+[Unit]
+Description=Freie Massagetermine im vabali prüfen (Lia)
+
+[Timer]
+OnCalendar=*-*-* 07..22:00/15
+Persistent=false
+
+[Install]
+WantedBy=timers.target

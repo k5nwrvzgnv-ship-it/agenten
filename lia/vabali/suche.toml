@@ -1,0 +1,9 @@
+# Was der Agent vabali sucht (Jan 09.11.2026): Einzelmassage 80 Min. im vabali spa Berlin,
+# Beginn spätestens 14:00, am liebsten Di 01.12., sonst die restliche Woche bis So 06.12.
+# Tage in der Vergangenheit überspringt der Agent; nach dem letzten Tag tut er nichts mehr.
+tage = ["2026-12-01", "2026-12-02", "2026-12-03", "2026-12-04", "2026-12-05", "2026-12-06"]
+beginn_bis = "14:00"
+dauer_minuten = 80
+# Partnermassagen (zwei Personen) nicht melden
+partner = false
+link = "https://www.vabali.de/berlin/buchung-shop/#!selectTermin"

@@ -1,0 +1,15 @@
+# Vorlage: nach ~/.config/systemd/user/lia-vabali.service kopieren, dann systemctl --user daemon-reload.
+# Agent vabali für Lia: prüft freie Massagetermine im vabali Berlin (suche.toml), meldet neue an Lia.
+# Gestartet vom Timer lia-vabali.timer, ohne Claude.
+[Unit]
+Description=Lias Agent vabali (freie Massagetermine)
+# Bei Ausfall Meldung an Jan (ausfall@ läuft ohne AGENTKIT_INSTANZ, also in Jans Instanz)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
+WorkingDirectory=/home/agent/agenten/lia/vabali
+ExecStart=/home/agent/agenten/lia/vabali/.venv/bin/python agent.py
+TimeoutStartSec=10min
+MemoryMax=200M
