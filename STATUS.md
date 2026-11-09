@@ -1007,7 +1007,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     pruefen.sh `finance|python3|tests` (noch keine .venv), [werkzeuge] finance wie uni, ohne [webfetch]-Liste und
     ohne [weitergabe]; "finance" in AGENTEN (shared/telegram/logik.py, wirkt erst mit installiertem Dienst und
     Neustart der Zentrale, der noch nicht erfolgt ist). Weiter im Chat ~/agenten/finance.
-    Offen hier: sobald finance/.venv existiert, Eintrag in pruefen.sh auf `.venv/bin/python` umstellen.
+    Offen hier: finance/.venv existiert seit 09.11.2026 (Renderer-Pakete, agentkit.pth, Tests damit grün),
+    jetzt Eintrag in pruefen.sh auf `finance|.venv/bin/python|tests` umstellen.
 33. lia/verwaltung (09.11.2026, Jan, lia-Chat): Lias Agent für Behördenformulare, erster Fall Verbeamtung Berlin
     (Termin 10.11.2026). Füllt das Formularpaket der SenBJF aus data/angaben.toml (Python, ohne Claude), Druck-PDF
     plus Checkliste. Eintrag in pruefen.sh ist gemacht. Bedarf hier, nichts davon eilt:
