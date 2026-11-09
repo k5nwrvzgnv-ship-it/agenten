@@ -167,10 +167,33 @@ Chats seit 24.10. ablesen, was sie dort tut und was die Web-App dafür nicht bie
   conversations.json des Exports ist gelöscht.
 - Umfang: 188 Runden, kompakt ca. 27.000 Tokens. Ein Chat (07.11., Straftheorien, 93 Runden) ist die Hälfte;
   am selben Tag stellte Lia im Web-App-Chat zwei Fragen zum selben Ort (Ethik › 8 › Straftheorien).
-- Befehle: luecken-liste <datum>, luecken-filtern (auswertung.py).
-- Nächste Schritte (je nach Jans Okay): anonymisieren (Namensliste um neue Namen ergänzen, Stichprobe für Jan),
-  dann ein Lauf, der je Aufgabe festhält: was Lia wollte, ob die heutige Web-App es kann (ja/teilweise/nein),
-  was fehlt, mit Zitat als Beleg. Python prüft die Antwort. Ergebnis: kurze Lückenliste hier und in data/luecken/.
+- Befehle (auswertung.py): luecken-liste <datum>, luecken-filtern, luecken-roh (ohne Namensersetzung),
+  luecken-anonym (Namensliste aus Durchgang 1), luecken-lauf. Code luecken.py, Tests tests/test_luecken.py.
+- Jan 09.11.: Namen werden in diesem Durchgang NICHT ersetzt (Aufwand), vermerkt in einwilligung.md.
+- Lauf 09.11. erledigt (Opus, lia/instanz): 2 Pakete für die Aufgaben (eine Nachbesserung wegen eines Fehlers), dann
+  ein Lauf für die Lücken. 2,34 USD, ca. 260.000 Tokens (Schätzung war 0,50–1,20). Jedes Zitat ist von Python als
+  wörtlich in Lias Runden geprüft. Ergebnis data/luecken/ergebnis.json und bericht.md (mit Zitaten, nicht im Repo).
+  Grenze: Einschätzung von Claude, nicht mit Lia abgeglichen; 9 Chats, die Hälfte der Runden aus einem Chat.
+
+### Ergebnis (53 Aufgaben, 188 Runden)
+Ginge heute in der Web-App: ja 15, teilweise 152, nein 21 Runden. Hin und Her war wichtig in 140 Runden.
+| Lücke | Runden | Kern |
+|---|---|---|
+| Langes Gespräch mit vollem Verlauf | 99 | Chat merkt sich nur 6 Fragen, Ortswechsel setzt zurück (lia/chat/chatverlauf.py am_ort) |
+| Lange Antworten und Tabellen im Chat | 59 | schmale Spalte, Antworten gekürzt, keine Tabellen |
+| Fotos, Screenshots, weitere Formate | 39 | nur PDF/Word/PowerPoint |
+| Schnelle Textarbeit ohne neue Datei | 39 | Bausteine kopierbar im Chat verfeinern statt Auftrag mit Fassung |
+| Dateien dauerhaft als Material ablegen | 26 | Datei bei jeder Frage neu hochladen |
+| Eigene Texte und Planungen prüfen | 22 | kein Weg |
+| Mehrere Chats, Chat ohne Ort | 19 | Themenwechsel und Rückkehr über Tage |
+| Reihen selbst anlegen, Reihenfrage ändern | 19 | macht nur Jan |
+| Gezielte Änderung an einer Stelle | 11 | jede Änderung ist eine neue Fassung |
+| Noten berechnen | 10 | Python statt Claude rechnen lassen, Schülerdaten |
+| Langen Text einfügen | 7 | nur über Datei |
+| Auftrag vor dem Start ordnen | 2 | Diktat erst ordnen, dann abschicken |
+| Verlaufsplan als Auftragsart | 2 | nicht in der Galerie |
+Kurz: Lia will einen richtigen Chat (breit, langes Gedächtnis, mehrere Gespräche, Fotos, langer Text), kein
+Auftragsformular. Bedarf als Punkt 36 in der Haupt-STATUS.
 
 ## Regelvorschläge (aus 284 Korrekturen, noch nicht freigegeben)
 Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterricht/STATUS.md eintragen.

@@ -1039,6 +1039,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     claude -p. Linux erlaubt je Argument höchstens 128 KB (MAX_ARG_STRLEN), darüber bricht Popen mit „Argument list
     too long“ ab, bevor ein Lauf startet. Vorschlag: Prompt über stdin übergeben. Bis dahin teilt auswertung in
     Pakete unter 100 KB (luecken.pakete).
+36. Bedarf aus lia/auswertung an shared/webapp und lia/chat (09.11.2026, Jan entscheidet die Reihenfolge): Lias
+    claude.ai-Chats seit 24.10. (9 Chats, 188 Runden) zeigen, warum sie dort statt in der Web-App arbeitet. Größte
+    Lücken nach Runden: langes Gespräch mit vollem Verlauf (99; heute 6 Fragen, Ortswechsel setzt zurück), lange
+    Antworten mit Tabellen in breiter Ansicht (59), Fotos und Screenshots (39), Textbausteine im Chat verfeinern
+    ohne Auftrag (39), Dateien dauerhaft an Reihe/Stunde (26), eigene Texte prüfen (22), mehrere Gespräche auch ohne
+    Ort (19), Reihen selbst anlegen (19). Liste mit allen Lücken: lia/auswertung/STATUS.md, Belege nur auf dem Server
+    (lia/auswertung/data/luecken/bericht.md). Ungeprüft durch Lia.
 
 ## Gelernte Regeln
 - (noch keine)
