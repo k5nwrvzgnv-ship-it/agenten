@@ -32,9 +32,26 @@ geprüfte Geschäftshypothesen. Erstes Thema: „Robotik und KI allgemein und in
   Jahreszahlen in Ziffern. Ein Lauf ohne Ergebnis zählt jetzt als Versuch (Nachbesserung mit Hinweis).
 - Kosten (agentkit.verbrauch, rechnerisch, Jans Abo): 8 Läufe opus, 7,27 USD, 17 Minuten für 4 Schritte
   (0,22 bis 1,68 USD je Lauf; Schritt 1 brauchte 3 Läufe, Schritt 4 zwei). Schätzung für eine vollständige
-  Recherche mit Primärdaten und Schritt 5: 9 bis 12 USD, 20 bis 30 Minuten, 10 bis 13 Läufe.
+  Recherche mit Primärdaten und Schritt 5: 9 bis 12 USD (zweiter Lauf: tatsächlich 5,97 USD).
   Wochenkontingent stieg in diesem Lauf von 93 auf 95 % (Stufe nur_auftraege); eine Recherche kostet also
   rund 2 % des 7-Tage-Fensters.
+
+## Zweiter Lauf (09.11.2026, Jan: "Jetzt starten", Auftrag 20261109-142143-finance-b3c246, gleiches Thema)
+- Wie /finance angelegt (quelle telegram) und über finance.service gestartet. Vollständig: alle 5 Schritte
+  bestanden, jeder im ersten Versuch; Zentrale hat Text, bericht.pdf (19 Seiten Vorschau) und modell.xlsx an Jan
+  geschickt (gemeldet.json).
+- Primärdaten genutzt: 12 von 12 Abfragen geladen (5 Eurostat, 3 Comtrade, 2 TED, 2 Jobsuche), daraus 32
+  Belege in Schritt 2 bis 4 (Schritt 2: 18 von 29 Belegen). GENESIS nicht genutzt (Claude wählte Eurostat),
+  Schritt 1 und 5 nur Webquellen.
+- Hypothesen: Robotik-Integration und Service für Betriebe ohne eigenes Robotik-Personal (Sicherheit mittel);
+  robotergestützte Lohn-Vorfertigung für Zimmereien (niedrig). Schritt 5: je 2 Vergleichsfirmen, Rückrechnung,
+  5 datierte Prognosen (Eurostat sts_inpr_a/sts_inppd_a, Jobsuche; prüfen ab 30.06. bzw. 09.11.2027),
+  4 Entwürfe (nicht angelegt in der Freigabe, siehe Nächste Schritte).
+- Kosten: 6 Läufe opus, 5,97 USD, 17 Minuten. Wochenkontingent 95 -> 98 % (rund 3 % je Recherche).
+- Schwächen: dieselben 14 Webseiten wie im ersten Lauf, weiter Zweitquellen (finviz, inderes, Presseindex,
+  Tagesspiegel, gehalt.de) und keine PDF trotz Prompt; 68 Annahmen, Marktgrößen hängen weiter an Anteil und
+  Preis. Ergebnistext löste Befunde der Sprachprüfung aus (Läufe, Pfad, Hypothese(n)); gekürzt, Lesbarkeit
+  bleibt wegen langer Hypothesentitel über dem Ziel.
 
 ## Auftrag (Jan 07.11.2026, gekürzt)
 Je Thema eine eigene, neue Recherche in fünf Schritten:
@@ -134,15 +151,17 @@ Ausgabe: PDF-Bericht über den Renderer (Art bericht, ergebnis.pdf) und Modellta
   falsches Laden), test_geruest.
 
 ## Nächste Schritte hier
-1. Zweiter echter Lauf mit Primärdaten, geschärften Prompts und Bericht, am besten per `/finance <Thema>`
-   (prüft zugleich den Weg über die Zentrale). Nur nach Jans Okay und mit Blick aufs Wochenkontingent
-   (stand 95 %). Danach Kosten je vollständiger Recherche hier nachtragen.
-2. Den abgebrochenen Probelauf nicht fortsetzen (liegt in erledigt/); bei Bedarf neuen Auftrag anlegen.
-3. Prognosen aus Schritt 5 nach data/prognosen.json und monatlicher Timer (eigene Unit, nur nach Jans Okay).
-4. Entwürfe aus Schritt 5 über shared/freigabe/ anlegen und ausfuehren() bauen.
-5. EPO OPS anbinden, sobald Jan EPO_OPS_KEY und EPO_OPS_SECRET einträgt.
-6. `.env.example` (nur Namen) fehlt noch.
-7. Marge im Modell zeigt #DIV/0!, wenn ein Szenario Umsatz 0 hat (Excel). Bei Bedarf Formel ändern.
+1. Kosten je vollständiger Recherche: rund 6 USD, 6 Läufe, 17 Minuten, etwa 3 % des Wochenkontingents.
+   Neue Läufe nur per /finance von Jan.
+2. Vorschlag an Jan (nicht umgesetzt): Zweitquellen hart begrenzen, z. B. Python lehnt Webquellen von
+   Sammel- und Nachrichtenseiten ab, wenn die Originalseite des Herausgebers erreichbar wäre, oder eine Liste
+   gesperrter Domains. Der Prompt allein hat nicht gewirkt.
+3. GENESIS gezielter nutzen: Tabellensuche (find/find) als eigene Abfrage-Art, damit Claude Codes nicht raten muss.
+4. Prognosen aus Schritt 5 nach data/prognosen.json und monatlicher Timer (eigene Unit, nur nach Jans Okay).
+5. Entwürfe aus Schritt 5 über shared/freigabe/ anlegen und ausfuehren() bauen.
+6. EPO OPS anbinden, sobald Jan EPO_OPS_KEY und EPO_OPS_SECRET einträgt.
+7. `.env.example` (nur Namen) fehlt noch.
+8. Marge im Modell zeigt #DIV/0!, wenn ein Szenario Umsatz 0 hat (Excel). Bei Bedarf Formel ändern.
 
 ## Gelernte Regeln
 - (noch keine)
