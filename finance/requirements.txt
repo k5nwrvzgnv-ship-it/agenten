@@ -1,6 +1,8 @@
-# Pakete des gemeinsamen Renderers (shared/renderer/requirements.txt), sonst Bordmittel. Neue Pakete nur nach Jans Okay.
+# Pakete des gemeinsamen Renderers (shared/renderer/requirements.txt), dazu pypdf (Geschäftsberichte als PDF,
+# Jan 09.11.2026), sonst Bordmittel. Neue Pakete nur nach Jans Okay.
 lxml==6.1.3
 pillow==12.3.0
+pypdf==6.21.0
 pypdfium2==5.14.0
 python-docx==1.2.0
 python-pptx==1.0.2
