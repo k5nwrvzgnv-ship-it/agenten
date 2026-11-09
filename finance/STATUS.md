@@ -5,18 +5,17 @@ Macht zu jedem Thema, das Jan schickt, eine eigene neue Recherche zur Wirtschaft
 Wertschöpfungskette heute Gewinn anfällt, wo Angebot und Nachfrage auseinanderliegen, und höchstens drei
 geprüfte Geschäftshypothesen. Erstes Thema: „Robotik und KI allgemein und in der Holzindustrie“.
 
-## Stand (07.11.2026)
-- Gerüst aus shared/vorlagen/ angelegt (Hauptordner-Chat): agent.py (Beispielgerüst: Freigaben ausführen,
-  Aufträge abarbeiten, Recherche fehlt noch), systemd/finance.service (Vorlage, nicht installiert),
-  tests/test_geruest.py.
-- Noch nicht da: .venv, .env, data/, Dienst, Timer, eigentliche Recherche.
-- Schon eingerichtet außerhalb des Ordners:
-  - pruefen.sh: Eintrag `finance|python3|tests` (System-python3, weil es noch keine .venv gibt).
-  - shared/einstellungen.toml: [werkzeuge] finance = Read, Write, Edit, Glob, Grep, WebSearch, WebFetch.
-    Kein Eintrag unter [webfetch] (WebFetch damit ohne Domaingrenze), keine [weitergabe]-Paare.
-  - shared/telegram/logik.py: "finance" in AGENTEN. Die Zentrale nimmt `/finance <Thema>` erst an, wenn
-    finance.service in ~/.config/systemd/user/ liegt und die Zentrale neu gestartet ist.
-- Bau in diesem Chat (`/home/agent/agenten/finance`), Hauptordner-Chat hat nur vorbereitet.
+## Stand (09.11.2026)
+- Recherche-Ablauf gebaut und getestet (32 Tests grün, mit falschem Claude), aber noch NIE echt gelaufen:
+  kein Dienst installiert, `/finance` kommt in der Zentrale noch nicht an.
+- Zugänge: GENESIS und Comtrade in .env und getestet, EPO wartet auf Bestätigung (siehe Offene Punkte 1).
+- .venv steht. pruefen.sh testet finance noch mit System-python3 (Umstellung beim Hauptordner-Chat), deshalb
+  importieren ablauf.py, schritte.py, pruefung.py, quellen.py kein agentkit; agent.py schon (nur von Hand mit
+  .venv geprüft: Import und echter Webabruf ok).
+- Außerhalb des Ordners eingerichtet (Hauptordner-Chat): pruefen.sh `finance|python3|tests`;
+  shared/einstellungen.toml [werkzeuge] finance = Read, Write, Edit, Glob, Grep, WebSearch, WebFetch (ohne
+  [webfetch]-Liste, ohne [weitergabe]); "finance" in AGENTEN (shared/telegram/logik.py), wirkt erst mit
+  installiertem finance.service und Neustart der Zentrale.
 
 ## Auftrag (Jan 07.11.2026, gekürzt)
 Je Thema eine eigene, neue Recherche in fünf Schritten:
@@ -87,31 +86,52 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
    - Offen: EPO OPS (Jan trägt EPO_OPS_KEY und EPO_OPS_SECRET ein, danach Test).
 2. .venv steht (09.11.2026): Pakete laut requirements.txt (= shared/renderer/requirements.txt), agentkit per
    .pth, Tests damit grün. Weitere Pakete nur nach Jans Okay. Offen: pruefen.sh noch auf `python3`, Umstellung
-   auf `.venv/bin/python` ist in ../STATUS.md (Punkt 32) an den Hauptordner-Chat gemeldet;
-   tests/test_geruest.py beim Bau ersetzen.
+   auf `.venv/bin/python` ist in ../STATUS.md (Punkt 32) an den Hauptordner-Chat gemeldet. Danach einen Test
+   für agent.py mit agentkit ergänzen (Warten bei LimitErreicht, Abschluss des Auftrags).
 3. Dienst einrichten (nach Jans Okay): systemd/finance.service nach ~/.config/systemd/user/ kopieren,
    `systemctl --user daemon-reload`, dann die Zentrale neu starten, damit `/finance` erscheint.
    Monatlicher Prognose-Timer ebenso erst nach Jans Okay.
 4. Kosten je Recherche nach dem ersten echten Lauf beziffern (agentkit.verbrauch).
+5. pypdf für Geschäftsberichte als PDF: Paket fehlt in finance/.venv (uni hat pypdf==6.21.0). Nur nach Jans
+   Okay installieren und in requirements.txt eintragen; bis dahin werden PDF-Webquellen abgelehnt.
+6. `.env.example` (nur Namen) fehlt noch.
 
-## Gebaut (09.11.2026)
-- quellen.py: Ablage in data/quellen/ (<ID>.json Meta, <ID>.roh.<endung> Rohinhalt mit sha256),
-  ID Q-<JJJJMMTT>-<art>-<6 hex>, Arten genesis, eurostat, comtrade, ted, jobsuche, epo, web.
+## Aufbau (gebaut 09.11.2026)
+- agent.py: je Auftrag (Text = Thema) eine Recherche in data/recherchen/<auftrag-id>/; LimitErreicht,
+  KeinPlatz, LaeuftSchon -> Auftrag wartet, fertige Schritte bleiben liegen und werden beim nächsten Lauf nur
+  neu geprüft. web_laden: agentkit.abruf (GET, Allowlist = Host der URL, Cache data/cache), HTML als Text,
+  PDF über agentkit.textfassung (braucht pypdf, fehlt -> WebFehler, siehe Offene Punkte 5).
+  ausfuehren() für Freigaben: noch NotImplementedError, finance legt noch keine Entwürfe an.
+- ablauf.py (ohne agentkit): fünf Schritte nacheinander, je Schritt ein claude-Lauf (art anspruchsvoll),
+  dann Webquellen auflösen, Pflichtfelder und Zahlen prüfen; bei Fehlern bis zu zwei Nachbesserungen mit der
+  Fehlerliste im Prompt, sonst Abbruch der Recherche. bericht_text = Kurztext an Jan (statt PDF, bis Renderer).
+- schritte.py: Aufgaben, Gerüste und Prompt je Schritt, ZAHL_REGELN für Claude, Pflichtfelder je Schritt
+  (2: je Lücke zwei Belege; 3: marktgroesse als berechnet/produkt; 5: Prognosen mit Zahl und Datum in der
+  Zukunft, Entwürfe mit art/an/betreff/text). Webquelle = {"url", "zitat", "beschreibung"} statt Quellen-ID:
+  Python lädt, prüft Zitat wörtlich (agentkit.wortlaut.steht_in) und Zahl im Zitat, legt als "web" ab und
+  ersetzt durch die ID.
 - pruefung.py: Zahl-Objekte {wert, einheit, quelle | annahme | berechnet}; nackte Zahlen sind Fehler (außer
   jahr, von_jahr, bis_jahr, nr); Abgleich mit Rohdaten (auch Tsd/Mio/Mrd, 0,5 %), Webquellen nur Hinweis;
-  berechnet (produkt, quotient, summe, differenz) wird nachgerechnet (1 %), damit auch die Marktgröße von unten;
-  Hypothesen 1 bis 3 mit sicherheit, drei Szenarien, Abbruchkriterien mit Datum in der Zukunft.
-- Beides nur Bordmittel, Tests in tests/test_quellen_pruefung.py.
+  berechnet (produkt, quotient, summe, differenz) nachgerechnet (1 %); Hypothesen 1 bis 3 mit sicherheit,
+  drei Szenarien, Abbruchkriterien mit Datum in der Zukunft.
+- quellen.py: data/quellen/<ID>.json (Meta), <ID>.roh.<endung> (Rohinhalt), maßgeblich index.toml (art, endung,
+  sha256; *.toml darf Claude nicht schreiben, so fällt Umdeklarieren oder Ändern auf).
+  ID Q-<JJJJMMTT>-<art>-<6 hex>, Arten genesis, eurostat, comtrade, ted, jobsuche, epo, web.
+- Tests: tests/test_quellen_pruefung.py, tests/test_ablauf.py (ohne Netz, ohne agentkit).
 
 ## Blockiert (Bedarf in ../STATUS.md, Punkt 32)
-- Abrufer der Primärdaten: agentkit.abruf kann nur GET ohne Header, GENESIS/TED brauchen POST, Comtrade/
-  Jobsuche eigene Header. Nicht selbst nachbauen, Erweiterung im Hauptordner-Chat.
-- Bericht und Modelltabelle: Renderer-Arten passen nicht (zusammenfassung = Vorlesung, arbeitsmappe ohne Werte).
-  Erweiterung im Renderer-Chat.
-- Nächster Schritt hier, unabhängig davon: Schritt-Prompts und Ablauf der fünf Claude-Läufe in agent.py
-  (Ergebnis je Schritt in data/<auftrag>/schritt<n>.json, pruefung.pruefen, bei Fehlern Nachbesserung im
-  selben Schritt). Für Webquellen fehlt noch, wie Claude Rohinhalte ablegt (Write nach data/quellen/ ist
-  ausgeschlossen, weil Python die Ablage führt): Vorschlag, Claude schreibt URL und Zitat, Python lädt nach.
+- Abrufer der Primärdaten (GENESIS, Comtrade, TED, Jobsuche): agentkit.abruf kann nur GET ohne Header.
+  Nicht selbst nachbauen, Erweiterung im Hauptordner-Chat. Bis dahin liegen keine Primärdaten in data/quellen,
+  Claude arbeitet mit Webquellen und Annahmen (Eurostat-API ginge per GET, ist aber noch nicht angebunden).
+- PDF-Bericht und xlsx-Modell: Renderer-Arten passen nicht (zusammenfassung = Vorlesung, arbeitsmappe ohne
+  Werte). Erweiterung im Renderer-Chat. Bis dahin nur bericht_text und die Schritt-JSONs.
+
+## Nächste Schritte hier
+1. Erster echter Probelauf von Hand, nur nach Jans Okay (5 bis 15 Läufe "anspruchsvoll"): Auftrag anlegen
+   (agentkit.auftraege.neuer_auftrag("finance", "<Thema>", quelle="hand")), dann `.venv/bin/python agent.py`.
+   Danach Prompts nach dem Ergebnis schärfen und Kosten beziffern (Offene Punkte 4).
+2. Danach Dienst (Offene Punkte 3), Prognosen in data/prognosen.json und Timer, Entwürfe über die Freigabe.
+3. Abrufer für Primärdaten, sobald agentkit.abruf POST/Header kann; Bericht, sobald der Renderer es kann.
 
 ## Gelernte Regeln
 - (noch keine)
