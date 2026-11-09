@@ -1009,6 +1009,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Neustart der Zentrale, der noch nicht erfolgt ist). Weiter im Chat ~/agenten/finance.
     Offen hier: finance/.venv existiert seit 09.11.2026 (Renderer-Pakete, agentkit.pth, Tests damit grün),
     jetzt Eintrag in pruefen.sh auf `finance|.venv/bin/python|tests` umstellen.
+    Bedarf agentkit (09.11.2026, finance-Chat): agentkit.abruf.laden kann nur GET ohne eigene Header. finance
+    braucht für die Primärdaten POST mit Körper und eigene Header: GENESIS (POST, Header username=Token,
+    password leer), TED (POST JSON), Comtrade (Header Ocp-Apim-Subscription-Key), Jobsuche BA (Header
+    X-API-Key). Vorschlag: laden(..., methode="GET", daten: bytes | None = None, header: dict | None = None),
+    Cache-Schlüssel dann aus URL, Methode und Daten (ohne Header, damit kein Schlüssel im Cache landet).
+    Bedarf Renderer (an den Chat shared/renderer/): Für den finance-Bericht passt keine Art. zusammenfassung ist
+    auf Vorlesungen zugeschnitten (Pflicht kurs, datum der Vorlesung; quellen nur transkript/folie/norm),
+    arbeitsmappe beschreibt nur leere Vorlagen ohne Werte. finance braucht (a) Belege als Quellen-ID
+    (z. B. art "quelle", stelle "Q-20261109-genesis-3fa2c1") und als "annahme", ohne Vorlesungskopf, und
+    (b) eine Arbeitsmappe mit vorbelegten Werten (Eingaben mit Wert, Rechnungen wie bisher). Wie, entscheidet
+    der Renderer-Chat; bis dahin baut finance Bericht und Modell nicht.
 33. lia/verwaltung (09.11.2026, Jan, lia-Chat): Lias Agent für Behördenformulare, erster Fall Verbeamtung Berlin
     (Termin 10.11.2026). Füllt das Formularpaket der SenBJF aus data/angaben.toml (Python, ohne Claude), Druck-PDF
     plus Checkliste. Eintrag in pruefen.sh ist gemacht. Bedarf hier, nichts davon eilt:

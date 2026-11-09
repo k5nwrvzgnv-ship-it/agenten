@@ -94,5 +94,24 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
    Monatlicher Prognose-Timer ebenso erst nach Jans Okay.
 4. Kosten je Recherche nach dem ersten echten Lauf beziffern (agentkit.verbrauch).
 
+## Gebaut (09.11.2026)
+- quellen.py: Ablage in data/quellen/ (<ID>.json Meta, <ID>.roh.<endung> Rohinhalt mit sha256),
+  ID Q-<JJJJMMTT>-<art>-<6 hex>, Arten genesis, eurostat, comtrade, ted, jobsuche, epo, web.
+- pruefung.py: Zahl-Objekte {wert, einheit, quelle | annahme | berechnet}; nackte Zahlen sind Fehler (außer
+  jahr, von_jahr, bis_jahr, nr); Abgleich mit Rohdaten (auch Tsd/Mio/Mrd, 0,5 %), Webquellen nur Hinweis;
+  berechnet (produkt, quotient, summe, differenz) wird nachgerechnet (1 %), damit auch die Marktgröße von unten;
+  Hypothesen 1 bis 3 mit sicherheit, drei Szenarien, Abbruchkriterien mit Datum in der Zukunft.
+- Beides nur Bordmittel, Tests in tests/test_quellen_pruefung.py.
+
+## Blockiert (Bedarf in ../STATUS.md, Punkt 32)
+- Abrufer der Primärdaten: agentkit.abruf kann nur GET ohne Header, GENESIS/TED brauchen POST, Comtrade/
+  Jobsuche eigene Header. Nicht selbst nachbauen, Erweiterung im Hauptordner-Chat.
+- Bericht und Modelltabelle: Renderer-Arten passen nicht (zusammenfassung = Vorlesung, arbeitsmappe ohne Werte).
+  Erweiterung im Renderer-Chat.
+- Nächster Schritt hier, unabhängig davon: Schritt-Prompts und Ablauf der fünf Claude-Läufe in agent.py
+  (Ergebnis je Schritt in data/<auftrag>/schritt<n>.json, pruefung.pruefen, bei Fehlern Nachbesserung im
+  selben Schritt). Für Webquellen fehlt noch, wie Claude Rohinhalte ablegt (Write nach data/quellen/ ist
+  ausgeschlossen, weil Python die Ablage führt): Vorschlag, Claude schreibt URL und Zitat, Python lädt nach.
+
 ## Gelernte Regeln
 - (noch keine)
