@@ -1,5 +1,8 @@
 """Die fünf Schritte einer Recherche: Aufgabe, Prompt, Pflichtfelder, Webquellen (nur Bordmittel, ohne Netz).
 
+Zwei Varianten (variante_aus_text): MARKT (Wirtschaftlichkeit, Geschäftshypothesen; Standard) und AKTIEN
+(Anlagemöglichkeiten: Firmen und ETFs, Kennzahlen aus SEC und Kursen, Anlagethesen; Auftrag "aktien: <Thema>").
+
 Je Schritt schreibt Claude eine JSON-Datei (data/recherchen/<auftrag>/schritt<n>.json). Python prüft sie
 (pruefung.py und hier die Pflichtfelder). Bei Fehlern bekommt Claude die Liste und bessert dieselbe Datei nach.
 
@@ -42,7 +45,7 @@ Regeln für Zahlen (Python prüft jede einzelne, sonst wird die Datei abgelehnt)
   {"wert": 0.3, "einheit": "Anteil", "annahme": "Begründung, warum dieser Wert plausibel ist"}
   {"wert": 0.08, "einheit": "Anteil", "berechnet": {"art": "quotient", "aus": [<Zahl-Objekt>, <Zahl-Objekt>]}}
       (art: produkt, quotient, summe, differenz; Python rechnet nach, höchstens 1 % Abweichung)
-- Keine nackten Zahlen, auch nicht in Listen. Ausnahme: die Felder "jahr", "von_jahr", "bis_jahr", "nr" (ganze Zahl).
+- Keine nackten Zahlen, auch nicht in Listen. Ausnahme: die Felder "jahr", "von_jahr", "bis_jahr", "nr", "cik" (ganze Zahl).
 - Beträge, Anteile und Mengen nicht im Fließtext, sondern als Zahl-Objekt. Jahreszahlen und Daten dürfen im
   Text stehen, und zwar in Ziffern; schreibe Zahlen nie als Wort aus. Was du nicht belegen kannst, ist eine
   Annahme, keine Quelle.
@@ -107,8 +110,8 @@ fünf neue Webseiten insgesamt.""",
 )
 
 
-def schritt(nr: int) -> Schritt:
-    return SCHRITTE[nr - 1]
+def schritt(nr: int, v: "Variante | None" = None) -> Schritt:
+    return (v or MARKT).schritte[nr - 1]
 
 
 def quellenliste(metas: list[dict], ordner_rel: str) -> str:
@@ -119,11 +122,12 @@ def quellenliste(metas: list[dict], ordner_rel: str) -> str:
 
 
 def prompt(s: Schritt, thema: str, ordner_rel: str, quellen_rel: str, metas: list[dict],
-           fehler: list[str] | None = None) -> str:
+           fehler: list[str] | None = None, v: "Variante | None" = None) -> str:
     """Prompt für einen Schritt. Mit fehler: Nachbesserung derselben Datei."""
-    vorige = [f"{ordner_rel}/{schritt(n).datei}" for n in range(1, s.nr)]
+    v = v or MARKT
+    vorige = [f"{ordner_rel}/{schritt(n, v).datei}" for n in range(1, s.nr)]
     teile = [
-        f"Recherche zur Wirtschaftlichkeit, Thema: {thema}",
+        f"{v.kopf}, Thema: {thema}",
         f"Schritt {s.nr} von 5: {s.name}",
     ]
     if fehler:
@@ -133,8 +137,11 @@ def prompt(s: Schritt, thema: str, ordner_rel: str, quellen_rel: str, metas: lis
     teile += [
         "Aufgabe:\n" + s.aufgabe,
         ("Ergebnisse der vorigen Schritte (geprüft, lesen): " + ", ".join(vorige)) if vorige else "",
+        (f"Übersicht der geladenen Abschlüsse und Kurse (zuerst lesen, Werte mit Quellen-ID): "
+         f"{ordner_rel}/{UEBERSICHT}") if v.uebersicht and s.nr >= 2 else "",
         f"Schreibe das Ergebnis als JSON nach {ordner_rel}/{s.datei}, sonst keine Dateien. Gerüst:\n{s.beispiel}",
         ZAHL_REGELN,
+        v.zusatz,
         ARBEITSWEISE,
         "Abgelegte Primärdaten (Quellen-IDs):\n" + quellenliste(metas, quellen_rel),
         "Antworte am Ende mit einem Satz, was in der Datei steht.",
@@ -197,8 +204,10 @@ def _ist_zahl_objekt(x) -> bool:
     return isinstance(x, dict) and "wert" in x
 
 
-def pflichtfelder(nr: int, daten: dict, heute: date) -> list[str]:
+def pflichtfelder(nr: int, daten: dict, heute: date, v: "Variante | None" = None) -> list[str]:
     """Aufbau je Schritt (die Zahlen selbst prüft pruefung.py)."""
+    if v is not None and v.name == "aktien":
+        return pflichtfelder_aktien(nr, daten, heute)
     f: list[str] = []
     if nr == 1:
         if not _ist_text(daten.get("thema")):
@@ -297,3 +306,293 @@ def lesen(pfad) -> tuple[dict | None, str | None]:
     if not isinstance(daten, dict):
         return None, "Ergebnis muss ein JSON-Objekt sein"
     return daten, None
+
+
+# --- Variante AKTIEN: Anlagemöglichkeiten (Firmen, ETFs) ---
+
+UEBERSICHT = "uebersicht.json"  # schreibt Python nach der Phase Primärdaten (nur Variante AKTIEN)
+MAX_FIRMEN, MAX_ETFS = 15, 5
+_SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,14}$")
+THEMENANTEIL = ("hoch", "mittel", "gering")
+BEWERTUNG = ("guenstig", "fair", "teuer", "unklar")
+
+AKTIEN_ZUSATZ = """\
+Hinweise zu Börsendaten:
+- Die SEC-Auszüge und Kurse in der Übersicht stehen in ganzen Einheiten (z. B. 130497000000 USD). Schreibe
+  Beträge in Mio oder Mrd mit passender Einheit ("Mrd USD"); Python erkennt die Umrechnung.
+- Kurs und Abschluss müssen in derselben Währung verrechnet werden. Sonst brauchst du einen Wechselkurs
+  (Eurostat aus der Übersicht oder Annahme) als eigenes Zahl-Objekt in der Rechnung.
+- Anteile und Raten als Dezimalzahl mit Einheit "Anteil" (0.25 statt 25 %), Wachstum als Faktor oder Anteil,
+  wie es die Aufgabe sagt.
+- Du gibst keine Kauf- oder Verkaufsaufträge. Thesen sind prüfbare Aussagen mit Abbruchkriterien."""
+
+SCHRITTE_AKTIEN = (
+    Schritt(1, "Auswahl und Gewinnverteilung", """\
+Zerlege das Thema in Teilbereiche der Wertschöpfungskette (z. B. Chips und Rechenzentren, Komponenten wie
+Antriebe und Sensoren, Roboterhersteller, Software und Modelle, Integratoren, Anwender). Beschreibe je Bereich,
+wo heute der Gewinn anfällt und warum (Marktmacht, Engpass, Wettbewerb).
+Wähle börsennotierte Firmen, die einen wesentlichen Teil ihres Geschäfts im Thema haben: höchstens 15 Firmen
+insgesamt und höchstens 5 ETFs zum Thema. Je Firma: Name, Börsenkürzel wie bei Yahoo Finance ("symbol", z. B.
+NVDA, 6954.T, SIE.DE, ABBN.SW, 2330.TW; nimm die Heimatbörse, damit Kurs und Abschluss möglichst dieselbe
+Währung haben), Land, "cik" (ganze Zahl), wenn die Firma bei der SEC Abschlüsse einreicht (10-K, 20-F, 40-F;
+sonst weglassen), Themenanteil am Geschäft (hoch, mittel, gering) und warum sie dabei ist. CIK und Kürzel
+suchst du per WebSearch/WebFetch heraus (z. B. sec.gov/cgi-bin/browse-edgar), erfinde keine.
+Keine Kennzahlen schätzen: Abschlüsse und Kurse lädt Python nach diesem Schritt. Zahlen in dieser Datei sind
+nur nötig, wenn du einen Gewinnanteil belegen willst.""",
+             '{"thema": "...", "bereiche": [{"name": "...", "gewinn": "wo und warum hier Gewinn anfällt", '
+             '"firmen": [{"name": "...", "symbol": "NVDA", "land": "US", "cik": 1045810, "themenanteil": "hoch", '
+             '"warum": "..."}]}], "etfs": [{"name": "...", "symbol": "...", "warum": "..."}], '
+             '"offene_punkte": ["..."]}'),
+    Schritt(2, "Kennzahlen und Bewertung", """\
+Je Firma aus Schritt 1: Kennzahlen des letzten Geschäftsjahres und Bewertung zum aktuellen Kurs. Belege mit
+den Quellen-IDs aus der Übersicht (SEC-Auszug, Kurs). Für Firmen ohne SEC-Daten nimm den Geschäftsbericht von
+der Investor-Relations-Seite (Webquelle, PDF erlaubt). Rechne mit "berechnet" (Python rechnet nach):
+- operative_marge = quotient(operatives Ergebnis, Umsatz), Einheit "Anteil"
+- umsatzwachstum = quotient(Umsatz letztes Jahr, Umsatz Vorjahr), Einheit "Faktor"
+- freier_cashflow = differenz(operativer Cashflow, Investitionen in Sachanlagen)
+- marktkapitalisierung = produkt(Kurs, ausstehende Aktien)
+- kgv = quotient(Marktkapitalisierung, Nettoergebnis)
+- fcf_rendite = quotient(freier Cashflow, Marktkapitalisierung), Einheit "Anteil"
+Pflicht je Firma: umsatz, operative_marge, marktkapitalisierung; die übrigen, soweit Daten da sind.
+Firmen ohne belastbare Daten nimmst du nicht in "firmen" auf, sondern nennst sie unter "offene_punkte" mit Grund.
+Je ETF: aktueller Kurs und Entwicklung über 5 Jahre = quotient(aktueller Kurs, Monatsschluss vor 5 Jahren),
+laufende Kosten (TER) als Webquelle des Anbieters, wenn erreichbar.""",
+             '{"firmen": [{"name": "...", "symbol": "...", "jahr": 2025, "waehrung": "USD", "umsatz": <Zahl>, '
+             '"umsatzwachstum": <Zahl>, "operative_marge": <Zahl>, "freier_cashflow": <Zahl>, "kurs": <Zahl>, '
+             '"marktkapitalisierung": <Zahl>, "kgv": <Zahl>, "fcf_rendite": <Zahl>, "kommentar": "..."}], '
+             '"etfs": [{"name": "...", "symbol": "...", "kurs": <Zahl>, "entwicklung_5_jahre": <Zahl>, '
+             '"kosten": <Zahl>, "kommentar": "..."}], "offene_punkte": ["..."]}'),
+    Schritt(3, "Was der Kurs einpreist", """\
+Wähle aus Schritt 2 höchstens 8 Firmen, die für das Thema am wichtigsten sind. Je Firma:
+- eingepreistes_wachstum: welches dauerhafte jährliche Wachstum des freien Cashflows der Kurs unterstellt,
+  vereinfacht = differenz(geforderte Rendite, FCF-Rendite). Die geforderte Rendite ist eine Annahme (Begründung,
+  z. B. 0.09 für einen großen, stabilen Konzern, mehr für zyklische oder kleine Firmen); die FCF-Rendite kommt
+  als berechnet aus Schritt 2. Bei negativem freiem Cashflow: stattdessen "eingepreist_text" mit Begründung und
+  eingepreistes_wachstum weglassen.
+- erwartetes_wachstum: was belegbar zu erwarten ist (Ausblick der Firma, Auftragsbestand, Marktwachstum aus
+  Primärdaten oder Verbänden), als Zahl-Objekt.
+- burggraben (Five Forces knapp), zyklus, risiken (Liste), bewertung (guenstig, fair, teuer, unklar) mit
+  begruendung: Ist das eingepreiste Wachstum höher oder niedriger als das erwartete, und wie sicher?""",
+             '{"bewertungen": [{"name": "...", "symbol": "...", "eingepreistes_wachstum": <Zahl mit berechnet '
+             'differenz>, "erwartetes_wachstum": <Zahl>, "burggraben": "...", "zyklus": "...", "risiken": ["..."], '
+             '"bewertung": "fair", "begruendung": "..."}]}'),
+    Schritt(4, "Anlagethesen", """\
+Leite höchstens drei Anlagethesen aus den Schritten 1 bis 3 ab. Eine These betrifft eine Aktie, einen ETF oder
+einen kleinen Korb (höchstens 5 Titel), z. B. auch "breiter ETF statt Einzelaktien, weil ...". Je These:
+These, Begründung mit Zahlen, Instrumente (Name, Symbol), das stärkste Gegenargument, Risiken, drei Szenarien
+(pessimistisch, basis, optimistisch) je mit erwarteter Rendite pro Jahr ("rendite_pa", Einheit "Anteil",
+Kurs plus Dividende) und der Annahme dahinter, Anlagehorizont ("bis_jahr"), Sicherheitsgrad (niedrig, mittel,
+hoch) und VORHER festgelegte Abbruchkriterien mit Prüfdatum (JJJJ-MM-TT, in der Zukunft), die sich an
+Kennzahlen prüfen lassen (z. B. "operative Marge im Abschluss 2027 unter 0.2"). Eine gut belegte These ist
+besser als drei schwache. Ist nichts attraktiv bewertet, darf eine These auch lauten: abwarten bis Bedingung X.""",
+             '{"hypothesen": [{"titel": "...", "these": "...", "begruendung": "...", "instrumente": [{"name": "...", '
+             '"symbol": "..."}], "gegenargument": "...", "risiken": ["..."], "bis_jahr": 2031, "sicherheit": "mittel", '
+             '"szenarien": {"pessimistisch": {"rendite_pa": <Zahl>, "text": "..."}, "basis": {...}, '
+             '"optimistisch": {...}}, "abbruchkriterien": [{"text": "...", "pruefen_bis": "2027-12-31"}]}]}'),
+    Schritt(5, "Gegenprüfung", """\
+Prüfe jede These aus Schritt 4 von außen:
+- vergleich: höchstens zwei Alternativen (Wettbewerber oder breiter ETF) mit derselben Kennzahl, an der die These
+  hängt, als Zahl-Objekt.
+- rueckrechnung: ein bekannter Fall aus den Kursreihen oder Abschlüssen, z. B. was die These vor 3 bis 5 Jahren
+  erwartet hätte und was tatsächlich kam (erwartet und tatsaechlich als Zahl-Objekt), mit Fazit.
+- prognosen: 1 bis 3 datierte Prognosen, die Python später gegen SEC-Abschlüsse oder Kurse prüfen kann.
+  Indikator so genau, dass er abrufbar ist, z. B. "SEC 1045810 umsatz Geschäftsjahr 2027" oder "Kurs NVDA".
+Keine Entwürfe für Mails oder Gespräche. Nutze zuerst die Quellen aus den Schritten 1 bis 4; höchstens fünf
+neue Webseiten insgesamt.""",
+             '{"pruefungen": [{"hypothese": "<titel aus Schritt 4>", "vergleich": [{"name": "...", "ergebnis": "...", '
+             '"zahl": <Zahl>}], "rueckrechnung": {"fall": "...", "erwartet": <Zahl>, "tatsaechlich": <Zahl>, '
+             '"fazit": "..."}, "prognosen": [{"aussage": "...", "indikator": "...", "erwartet": <Zahl>, '
+             '"pruefen_ab": "2027-12-31"}]}]}'),
+)
+
+
+@dataclass(frozen=True)
+class Variante:
+    name: str
+    kopf: str            # erste Zeile jedes Prompts
+    schritte: tuple
+    zusatz: str = ""     # weitere Regeln im Prompt
+    uebersicht: bool = False  # Python legt nach der Phase Primärdaten UEBERSICHT an
+    thesen: str = "Hypothese"  # Wort im Text an Jan (Einzahl)
+
+
+MARKT = Variante("markt", "Recherche zur Wirtschaftlichkeit", SCHRITTE)
+AKTIEN = Variante("aktien", "Recherche zu Anlagemöglichkeiten (Aktien und ETFs)", SCHRITTE_AKTIEN,
+                  zusatz=AKTIEN_ZUSATZ, uebersicht=True, thesen="These")
+_PRAEFIX = re.compile(r"^\s*(aktien|aktie|invest|investment|anlage)\s*:\s*", re.IGNORECASE)
+
+
+def variante_aus_text(text: str) -> tuple[Variante, str]:
+    """Auftragstext -> (Variante, Thema). "aktien: Robotik" -> AKTIEN, "Robotik"; sonst MARKT."""
+    m = _PRAEFIX.match(text or "")
+    if m:
+        return AKTIEN, text[m.end():].strip()
+    return MARKT, (text or "").strip()
+
+
+def _ganze_zahl(x) -> bool:
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def firmen_aus_auswahl(daten: dict) -> tuple[list[dict], list[dict]]:
+    """(Firmen, ETFs) aus Schritt 1 der Variante AKTIEN, nur Einträge mit gültigem Symbol."""
+    firmen = [f for b in daten.get("bereiche") or [] if isinstance(b, dict)
+              for f in b.get("firmen") or [] if isinstance(f, dict) and _SYMBOL.match(str(f.get("symbol", "")))]
+    etfs = [e for e in daten.get("etfs") or [] if isinstance(e, dict) and _SYMBOL.match(str(e.get("symbol", "")))]
+    return firmen, etfs
+
+
+def aktien_abfragen(daten: dict) -> list[dict]:
+    """Abfragen (Format abrufer.py) aus Schritt 1: je Firma Kurs und, mit CIK, SEC; je ETF Kurs. Ohne Claude."""
+    firmen, etfs = firmen_aus_auswahl(daten)
+    abfragen, gesehen = [], set()
+    for f in firmen[:MAX_FIRMEN]:
+        if f["symbol"] not in gesehen:
+            gesehen.add(f["symbol"])
+            abfragen.append({"art": "kurs", "symbol": f["symbol"], "beschreibung": f"Kurs {f.get('name')} ({f['symbol']})"})
+        if _ganze_zahl(f.get("cik")) and f["cik"] > 0:
+            abfragen.append({"art": "sec", "cik": f["cik"],
+                             "beschreibung": f"SEC-Abschlüsse {f.get('name')} (CIK {f['cik']})"})
+    for e in etfs[:MAX_ETFS]:
+        if e["symbol"] not in gesehen:
+            gesehen.add(e["symbol"])
+            abfragen.append({"art": "kurs", "symbol": e["symbol"], "beschreibung": f"Kurs ETF {e.get('name')} ({e['symbol']})"})
+    return abfragen
+
+
+def wechselkurs_abfragen(waehrungen: set[str]) -> list[dict]:
+    """Eurostat-Jahresdurchschnitt der Wechselkurse (1 EUR = x Währung) für alle Nicht-Euro-Währungen."""
+    return [{"art": "eurostat", "datensatz": "ert_bil_eur_a", "filter": {"currency": w, "statinfo": "AVG"},
+             "von_jahr": 2020, "beschreibung": f"Wechselkurs EUR/{w}, Jahresdurchschnitt (Eurostat)"}
+            for w in sorted(x for x in waehrungen if isinstance(x, str) and re.fullmatch(r"[A-Z]{3}", x) and x != "EUR")][:6]
+
+
+def uebersicht(ergebnisse: list[dict], auszuege: dict[str, dict]) -> dict:
+    """Übersicht für Claude aus abfragen_ergebnis (Liste {abfrage, id|fehler}) und den Auszügen je Quellen-ID.
+
+    Je Kurs: aktueller Kurs, Stand, Währung, Monatsschluss vor rund 5 Jahren; je SEC-Firma die letzten 3 Jahre
+    jeder Kennzahl und die ausstehenden Aktien. Werte unverändert aus den Rohdaten (Abgleich in pruefung.py).
+    """
+    kurse, abschluesse, wechselkurse, fehlgeschlagen = [], [], [], []
+    for e in ergebnisse:
+        a, qid = e.get("abfrage") or {}, e.get("id")
+        if not qid:
+            fehlgeschlagen.append(f"{a.get('beschreibung')}: {e.get('fehler')}")
+            continue
+        d = auszuege.get(qid) or {}
+        if a.get("art") == "kurs":
+            reihe = d.get("monatsschluss") or []
+            kurse.append({"quelle": qid, "symbol": d.get("symbol"), "waehrung": d.get("waehrung"),
+                          "kurs_aktuell": d.get("kurs_aktuell"), "stand": d.get("stand"),
+                          "erster_monatsschluss": reihe[0] if reihe else None})
+        elif a.get("art") == "sec":
+            kz = {}
+            for name, w in (d.get("kennzahlen") or {}).items():
+                if "jahre" in w:
+                    kz[name] = {"einheit": w.get("einheit"),
+                                "jahre": [{"bis": j.get("bis"), "wert": j.get("wert")} for j in w["jahre"][:3]]}
+                else:
+                    kz[name] = w
+            abschluesse.append({"quelle": qid, "firma": d.get("firma"), "cik": d.get("cik"), "kennzahlen": kz})
+        else:
+            wechselkurse.append({"quelle": qid, "beschreibung": a.get("beschreibung")})
+    return {"hinweis": "Werte aus den Rohdaten der genannten Quelle; als quelle die Quellen-ID angeben. Vollständige "
+                       "Reihen in der Rohdatei der Quelle.",
+            "kurse": kurse, "abschluesse": abschluesse, "wechselkurse": wechselkurse,
+            "nicht_geladen": fehlgeschlagen}
+
+
+def pflichtfelder_aktien(nr: int, daten: dict, heute: date) -> list[str]:
+    f: list[str] = []
+    if nr == 1:
+        if not _ist_text(daten.get("thema")):
+            f.append("thema: fehlt")
+        anzahl = 0
+        for i, b in enumerate(_liste(daten, "bereiche", f)):
+            if not isinstance(b, dict) or not _ist_text(b.get("name")):
+                f.append(f"bereiche[{i}].name: fehlt")
+                continue
+            for j, fi in enumerate(b.get("firmen") or []):
+                s = f"bereiche[{i}].firmen[{j}]"
+                anzahl += 1
+                if not isinstance(fi, dict) or not _ist_text(fi.get("name")):
+                    f.append(f"{s}.name: fehlt")
+                    continue
+                if not _SYMBOL.match(str(fi.get("symbol", ""))):
+                    f.append(f"{s}.symbol: Börsenkürzel wie bei Yahoo Finance, z. B. NVDA oder 6954.T")
+                if "cik" in fi and not (_ganze_zahl(fi["cik"]) and fi["cik"] > 0):
+                    f.append(f"{s}.cik: ganze Zahl oder weglassen")
+                if fi.get("themenanteil") not in THEMENANTEIL:
+                    f.append(f"{s}.themenanteil: {', '.join(THEMENANTEIL)}")
+        if not 1 <= anzahl <= MAX_FIRMEN:
+            f.append(f"bereiche: 1 bis {MAX_FIRMEN} Firmen insgesamt, nicht {anzahl}")
+        etfs = daten.get("etfs") or []
+        if not isinstance(etfs, list) or len(etfs) > MAX_ETFS:
+            f.append(f"etfs: Liste mit höchstens {MAX_ETFS} Einträgen")
+        else:
+            for j, e in enumerate(etfs):
+                if not isinstance(e, dict) or not _ist_text(e.get("name")) \
+                        or not _SYMBOL.match(str(e.get("symbol", ""))):
+                    f.append(f"etfs[{j}]: name und symbol nötig")
+    elif nr == 2:
+        for i, fi in enumerate(_liste(daten, "firmen", f)):
+            if not isinstance(fi, dict):
+                f.append(f"firmen[{i}]: muss ein Objekt sein")
+                continue
+            for k in ("umsatz", "operative_marge", "marktkapitalisierung"):
+                if not _ist_zahl_objekt(fi.get(k)):
+                    f.append(f"firmen[{i}].{k}: Zahl-Objekt fehlt (sonst Firma unter offene_punkte)")
+    elif nr == 3:
+        for i, b in enumerate(_liste(daten, "bewertungen", f)):
+            if not isinstance(b, dict):
+                f.append(f"bewertungen[{i}]: muss ein Objekt sein")
+                continue
+            if b.get("bewertung") not in BEWERTUNG:
+                f.append(f"bewertungen[{i}].bewertung: {', '.join(BEWERTUNG)}")
+            ew = b.get("eingepreistes_wachstum")
+            if ew is None:
+                if not _ist_text(b.get("eingepreist_text")):
+                    f.append(f"bewertungen[{i}]: eingepreistes_wachstum oder eingepreist_text nötig")
+            elif not _ist_zahl_objekt(ew) or not isinstance(ew.get("berechnet"), dict) \
+                    or ew["berechnet"].get("art") != "differenz":
+                f.append(f"bewertungen[{i}].eingepreistes_wachstum: berechnet, art differenz "
+                         "(geforderte Rendite minus FCF-Rendite)")
+        if len(daten.get("bewertungen") or []) > 8:
+            f.append("bewertungen: höchstens 8 Firmen")
+    elif nr == 4:
+        hyp = daten.get("hypothesen")
+        if not isinstance(hyp, list):
+            f.append("hypothesen: fehlt")
+        else:
+            for i, h in enumerate(hyp):
+                if not isinstance(h, dict):
+                    continue  # meldet pruefung.hypothesen_pruefen
+                inst = h.get("instrumente")
+                if not isinstance(inst, list) or not 1 <= len(inst) <= 5 or not all(
+                        isinstance(x, dict) and _SYMBOL.match(str(x.get("symbol", ""))) for x in inst):
+                    f.append(f"hypothesen[{i}].instrumente: 1 bis 5 Einträge mit name und symbol")
+                if not _ist_text(h.get("gegenargument")):
+                    f.append(f"hypothesen[{i}].gegenargument: fehlt")
+                if not isinstance(h.get("risiken"), list) or not h["risiken"]:
+                    f.append(f"hypothesen[{i}].risiken: mindestens ein Risiko")
+                for name, sz in (h.get("szenarien") or {}).items() if isinstance(h.get("szenarien"), dict) else ():
+                    if not isinstance(sz, dict) or not _ist_zahl_objekt(sz.get("rendite_pa")):
+                        f.append(f"hypothesen[{i}].szenarien.{name}.rendite_pa: Zahl-Objekt fehlt")
+    elif nr == 5:
+        for i, p in enumerate(_liste(daten, "pruefungen", f)):
+            if not isinstance(p, dict):
+                f.append(f"pruefungen[{i}]: muss ein Objekt sein")
+                continue
+            if p.get("entwuerfe"):
+                f.append(f"pruefungen[{i}].entwuerfe: in dieser Recherche keine Entwürfe")
+            prognosen = p.get("prognosen")
+            if not isinstance(prognosen, list) or not 1 <= len(prognosen) <= 3:
+                f.append(f"pruefungen[{i}].prognosen: 1 bis 3 Prognosen")
+                continue
+            for j, pr in enumerate(prognosen):
+                s = f"pruefungen[{i}].prognosen[{j}]"
+                if not isinstance(pr, dict) or not _ist_zahl_objekt(pr.get("erwartet")):
+                    f.append(f"{s}.erwartet: Zahl-Objekt fehlt")
+                elif not pruefung._datum_ok(pr.get("pruefen_ab")) or date.fromisoformat(pr["pruefen_ab"]) <= heute:
+                    f.append(f"{s}.pruefen_ab: Datum JJJJ-MM-TT in der Zukunft")
+    return f

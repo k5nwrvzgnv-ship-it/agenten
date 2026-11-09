@@ -23,7 +23,7 @@ from datetime import datetime
 from pathlib import Path
 
 # Bekannte Arten von Primärdaten (Abrufer in Python) und "web" für Seiten/PDFs, die Claude per WebFetch liest
-ARTEN = ("genesis", "eurostat", "comtrade", "ted", "jobsuche", "epo", "web")
+ARTEN = ("genesis", "eurostat", "comtrade", "ted", "jobsuche", "epo", "sec", "kurs", "web")
 _ID = re.compile(r"^Q-\d{8}-[a-z]+-[0-9a-f]{6}$")
 _ENDUNG = re.compile(r"^[a-z0-9]{1,8}$")
 

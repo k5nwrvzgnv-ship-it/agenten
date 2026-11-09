@@ -101,7 +101,7 @@ def _liste(daten: dict | None, feld: str) -> list[dict]:
 
 
 def beschreibung(thema: str, daten: dict[int, dict], metas: dict[str, dict], heute: date,
-                 abgebrochen: tuple[int, list[str]] | None = None) -> dict:
+                 abgebrochen: tuple[int, list[str]] | None = None, v: schritte.Variante | None = None) -> dict:
     """Renderer-Beschreibung (Art bericht). daten: Nr -> geprüfte Schritt-Daten (nur vorhandene Schritte).
 
     abgebrochen: (Nr, Fehler) des Schritts, an dem die Recherche gescheitert ist.
@@ -111,10 +111,41 @@ def beschreibung(thema: str, daten: dict[int, dict], metas: dict[str, dict], heu
     if abgebrochen:
         nr, fehler = abgebrochen
         b.append({"typ": "hinweis", "art": "einschraenkung", "titel": "Recherche unvollständig",
-                  "text": _text(f"Abgebrochen in Schritt {nr} ({schritte.schritt(nr).name}). Der Bericht enthält "
+                  "text": _text(f"Abgebrochen in Schritt {nr} ({schritte.schritt(nr, v).name}). Der Bericht enthält "
                                 f"nur die geprüften Schritte {', '.join(map(str, fertig)) or '(keine)'}. "
                                 "Verbleibende Fehler: " + "; ".join(fehler[:5]))})
 
+    if v is not None and v.uebersicht:
+        b += _bloecke_aktien(daten)
+        offene_quellen = [daten.get(1), daten.get(2)]
+    else:
+        b += _bloecke_markt(daten)
+        offene_quellen = [daten.get(1)]
+
+    if not b:
+        b.append({"typ": "absatz", "text": "Kein Schritt der Recherche hat die Prüfung bestanden."})
+
+    ids = [i for i in _alle_ids([daten[n] for n in fertig]) if i in metas]
+    verzeichnis = [{"id": i, "text": _text(f"{metas[i].get('beschreibung')}, {metas[i].get('art')}, abgerufen "
+                                           f"{_datum(metas[i].get('abgerufen'))}, {metas[i].get('url')}", 1000)}
+                   for i in ids[:200]]
+    offene = [_text(o, 1000) for d in offene_quellen for o in (d or {}).get("offene_punkte") or []
+              if isinstance(o, str) and o.strip()]
+    rubrik, untertitel = (("Anlagemöglichkeiten", "Firmen, Bewertung und Anlagethesen") if v is not None and v.uebersicht
+                          else ("Wirtschaftlichkeit", "Wertschöpfung, Lücken und Hypothesen"))
+    erg = {"art": "bericht", "rubrik": rubrik, "titel": _text(thema, 200),
+           "untertitel": untertitel, "datum": f"{heute:%d.%m.%Y}", "bloecke": b[:200]}
+    if offene:
+        erg["offene_fragen"] = offene[:30]
+    if verzeichnis:
+        erg["quellenverzeichnis"] = verzeichnis
+    _fremde_ids_entfernen(erg, {v["id"] for v in verzeichnis})
+    return erg
+
+
+def _bloecke_markt(daten: dict[int, dict]) -> list[dict]:
+    """Abschnitte der Variante MARKT (Wertschöpfung, Lücken, Marktgröße, Hypothesen, Prüfung)."""
+    b: list[dict] = []
     s1 = daten.get(1)
     if s1:
         b.append({"typ": "ueberschrift", "text": "Wertschöpfungskette"})
@@ -203,23 +234,7 @@ def beschreibung(thema: str, daten: dict[int, dict], metas: dict[str, dict], heu
                     for e in _liste(p, "entwuerfe")]
             if entw:
                 b.append({"typ": "absatz", "text": "Entwürfe (gehen erst nach Freigabe raus): " + "; ".join(entw)})
-
-    if not b:
-        b.append({"typ": "absatz", "text": "Kein Schritt der Recherche hat die Prüfung bestanden."})
-
-    ids = [i for i in _alle_ids([daten[n] for n in fertig]) if i in metas]
-    verzeichnis = [{"id": i, "text": _text(f"{metas[i].get('beschreibung')}, {metas[i].get('art')}, abgerufen "
-                                           f"{_datum(metas[i].get('abgerufen'))}, {metas[i].get('url')}", 1000)}
-                   for i in ids[:200]]
-    offene = [_text(o, 1000) for o in (s1 or {}).get("offene_punkte") or [] if isinstance(o, str) and o.strip()]
-    erg = {"art": "bericht", "rubrik": "Wirtschaftlichkeit", "titel": _text(thema, 200),
-           "untertitel": "Wertschöpfung, Lücken und Hypothesen", "datum": f"{heute:%d.%m.%Y}", "bloecke": b[:200]}
-    if offene:
-        erg["offene_fragen"] = offene[:30]
-    if verzeichnis:
-        erg["quellenverzeichnis"] = verzeichnis
-    _fremde_ids_entfernen(erg, {v["id"] for v in verzeichnis})
-    return erg
+    return b
 
 
 def aus_ergebnissen(ergebnisse) -> tuple[dict[int, dict], tuple[int, list[str]] | None]:
@@ -319,6 +334,163 @@ def modell(thema: str, daten: dict[int, dict]) -> dict | None:
                               {"id": "e_einheit", "kopf": "Einheit Ergebnis", "art": "text", "breite": 22},
                               {"id": "marge", "kopf": "Marge", "art": "rechnung", "formel": "ergebnis / umsatz",
                                "nachkommastellen": 3},
+                              {"id": "beleg", "kopf": "Beleg", "art": "text", "breite": 40}],
+                          "werte": szen[:500]})
+    if not blaetter_:
+        return None
+    return {"art": "arbeitsmappe", "titel": _text(f"Modell: {thema}", 200), "blaetter": blaetter_}
+
+
+def _absatz(*teile) -> dict | None:
+    text = " ".join(t for t in teile if t)
+    return {"typ": "absatz", "text": _text(text)} if text else None
+
+
+def _bloecke_aktien(daten: dict[int, dict]) -> list[dict]:
+    """Abschnitte der Variante AKTIEN (Auswahl, Kennzahlen, Einpreisung, Thesen, Gegenprüfung)."""
+    b: list[dict] = []
+
+    def dazu(x):
+        if x:
+            b.append(x)
+
+    s1 = daten.get(1)
+    if s1:
+        b.append({"typ": "ueberschrift", "text": "Auswahl und Gewinnverteilung"})
+        zeilen = []
+        for be in _liste(s1, "bereiche"):
+            b.append({"typ": "ueberschrift", "ebene": 2, "text": _text(be.get("name"), 200) or "Bereich"})
+            dazu(_absatz(_text(be.get("gewinn"))))
+            for f in _liste(be, "firmen"):
+                zeilen.append([_text(f.get("name"), MAX_ZELLE), _text(f.get("symbol"), 30), _text(f.get("land"), 30),
+                               _text(f.get("themenanteil"), 30), _text(f.get("warum"), MAX_ZELLE)])
+        dazu(_tabelle("Ausgewählte Firmen", ["Firma", "Symbol", "Land", "Themenanteil", "Warum"], zeilen))
+        zeilen = [[_text(e.get("name"), MAX_ZELLE), _text(e.get("symbol"), 30), _text(e.get("warum"), MAX_ZELLE)]
+                  for e in _liste(s1, "etfs")]
+        dazu(_tabelle("ETFs zum Thema", ["ETF", "Symbol", "Warum"], zeilen))
+
+    s2 = daten.get(2)
+    if s2:
+        b.append({"typ": "ueberschrift", "text": "Kennzahlen und Bewertung"})
+        firmen = _liste(s2, "firmen")
+        dazu(_tabelle("Geschäft im letzten Geschäftsjahr", ["Firma", "Jahr", "Umsatz", "Wachstum (Faktor)",
+                                                            "Operative Marge", "Freier Cashflow"],
+                      [[_text(f.get("name"), MAX_ZELLE), str(f.get("jahr") or ""), zelle(f.get("umsatz")),
+                        zelle(f.get("umsatzwachstum")), zelle(f.get("operative_marge")),
+                        zelle(f.get("freier_cashflow"))] for f in firmen]))
+        dazu(_tabelle("Bewertung zum aktuellen Kurs", ["Firma", "Kurs", "Marktkapitalisierung", "KGV", "FCF-Rendite"],
+                      [[_text(f.get("name"), MAX_ZELLE), zelle(f.get("kurs")), zelle(f.get("marktkapitalisierung")),
+                        zelle(f.get("kgv")), zelle(f.get("fcf_rendite"))] for f in firmen]))
+        kommentare = [f"{_text(f.get('name'), 200)}: {_text(f.get('kommentar'), 600)}" for f in firmen
+                      if f.get("kommentar")]
+        if kommentare:
+            b.append({"typ": "liste", "punkte": kommentare[:50]})
+        dazu(_tabelle("ETFs", ["ETF", "Kurs", "Entwicklung 5 Jahre (Faktor)", "Laufende Kosten"],
+                      [[_text(e.get("name"), MAX_ZELLE), zelle(e.get("kurs")), zelle(e.get("entwicklung_5_jahre")),
+                        zelle(e.get("kosten"))] for e in _liste(s2, "etfs")]))
+
+    s3 = daten.get(3)
+    if s3:
+        b.append({"typ": "ueberschrift", "text": "Was der Kurs einpreist"})
+        for be in _liste(s3, "bewertungen"):
+            b.append({"typ": "ueberschrift", "ebene": 2,
+                      "text": _text(f"{be.get('name')} ({be.get('symbol')}): {be.get('bewertung', 'unklar')}", 200)})
+            dazu(_absatz(_text(be.get("begruendung")), _text(be.get("eingepreist_text"))))
+            dazu(_tabelle("Wachstum", ["", "Wert"], [[k, zelle(be.get(f))] for k, f in
+                                                    (("eingepreist", "eingepreistes_wachstum"),
+                                                     ("erwartet", "erwartetes_wachstum")) if ist_zahl(be.get(f))]))
+            teile = [f"Burggraben: {_text(be.get('burggraben'), 1500)}" if be.get("burggraben") else "",
+                     f"Zyklus: {_text(be.get('zyklus'), 1000)}" if be.get("zyklus") else "",
+                     ("Risiken: " + "; ".join(_text(r, 300) for r in be.get("risiken") or [] if isinstance(r, str)))
+                     if be.get("risiken") else ""]
+            dazu(_absatz(*teile))
+
+    s4 = daten.get(4)
+    if s4:
+        b.append({"typ": "ueberschrift", "text": "Anlagethesen"})
+        for i, h in enumerate(_liste(s4, "hypothesen"), 1):
+            inst = ", ".join(f"{_text(x.get('name'), 100)} ({_text(x.get('symbol'), 30)})" for x in _liste(h, "instrumente"))
+            abbruch = "\n".join(f"- bis {a.get('pruefen_bis')}: {_text(a.get('text'), 600)}"
+                                for a in _liste(h, "abbruchkriterien"))
+            b.append({"typ": "hinweis", "art": "wichtig", "titel": _text(f"These {i}: {h.get('titel')}", 200),
+                      "text": _text(f"{_text(h.get('these'))}\nInstrumente: {inst}\nHorizont bis {h.get('bis_jahr')}, "
+                                    f"Sicherheit: {h.get('sicherheit')}.\nAbbruchkriterien:\n{abbruch}")})
+            dazu(_absatz(_text(h.get("begruendung"))))
+            risiken = "; ".join(_text(r, 300) for r in h.get("risiken") or [] if isinstance(r, str))
+            dazu(_absatz(f"Stärkstes Gegenargument: {_text(h.get('gegenargument'))}" if h.get("gegenargument") else "",
+                         f"Risiken: {risiken}" if risiken else ""))
+            sz = h.get("szenarien") if isinstance(h.get("szenarien"), dict) else {}
+            dazu(_tabelle("Szenarien", ["Szenario", "Rendite pro Jahr", "Annahme dahinter"],
+                          [[name, zelle(x.get("rendite_pa")), _text(x.get("text"), MAX_ZELLE)]
+                           for name, x in sz.items() if isinstance(x, dict)]))
+
+    s5 = daten.get(5)
+    if s5:
+        b.append({"typ": "ueberschrift", "text": "Gegenprüfung"})
+        for p in _liste(s5, "pruefungen"):
+            b.append({"typ": "ueberschrift", "ebene": 2, "text": _text(p.get("hypothese"), 200) or "These"})
+            dazu(_tabelle("Vergleich", ["Alternative", "Ergebnis", "Zahl"],
+                          [[_text(x.get("name"), MAX_ZELLE), _text(x.get("ergebnis"), MAX_ZELLE), zelle(x.get("zahl"))]
+                           for x in _liste(p, "vergleich")]))
+            r = p.get("rueckrechnung") if isinstance(p.get("rueckrechnung"), dict) else None
+            if r:
+                b.append(_tabelle(f"Rückrechnung: {_text(r.get('fall'), 150)}", ["", "Wert"],
+                                  [["erwartet", zelle(r.get("erwartet"))], ["tatsächlich", zelle(r.get("tatsaechlich"))]]))
+                dazu(_absatz(_text(r.get("fazit"))))
+            dazu(_tabelle("Datierte Prognosen", ["Aussage", "Indikator", "Erwartet", "Prüfen ab"],
+                          [[_text(g.get("aussage"), MAX_ZELLE), _text(g.get("indikator"), MAX_ZELLE),
+                            zelle(g.get("erwartet")), str(g.get("pruefen_ab") or "")] for g in _liste(p, "prognosen")],
+                          False))
+    b.append({"typ": "hinweis", "art": "einschraenkung", "titel": "Keine Anlageberatung",
+              "text": "Recherche des Agenten finance aus Abschlüssen, Kursen und Webquellen. Kurse von Yahoo Finance "
+                      "(inoffizielle Schnittstelle). Es wurde nichts gekauft; jede Entscheidung trifft Jan selbst."})
+    return b
+
+
+def modell_aktien(thema: str, daten: dict[int, dict]) -> dict | None:
+    """Arbeitsmappe: Bewertung je Firma und Szenarien je These. None ohne Inhalt."""
+    blaetter_ = []
+    zeilen = []
+    for f in _liste(daten.get(2), "firmen"):
+        z = {"firma": _text(f.get("name"), 200), "symbol": _text(f.get("symbol"), 30)}
+        for feld in ("umsatz", "operative_marge", "marktkapitalisierung", "freier_cashflow", "kgv"):
+            x = f.get(feld)
+            z[feld] = _wert(x)
+            z[f"{feld}_e"] = _text(f"{(x or {}).get('einheit') or ''} [{_beleg_text(x)}]", 200) if ist_zahl(x) else ""
+        zeilen.append(z)
+    if zeilen:
+        spalten = [{"id": "firma", "kopf": "Firma", "art": "text", "breite": 28},
+                   {"id": "symbol", "kopf": "Symbol", "art": "text", "breite": 10}]
+        for feld, kopf in (("umsatz", "Umsatz"), ("operative_marge", "Operative Marge"),
+                           ("marktkapitalisierung", "Marktkapitalisierung"), ("freier_cashflow", "Freier Cashflow"),
+                           ("kgv", "KGV")):
+            spalten += [{"id": feld, "kopf": kopf, "art": "zahl", "nachkommastellen": 3},
+                        {"id": f"{feld}_e", "kopf": f"Einheit/Beleg {kopf}", "art": "text", "breite": 22}]
+        spalten.append({"id": "fcf_rendite", "kopf": "FCF-Rendite", "art": "rechnung",
+                        "formel": "freier_cashflow / marktkapitalisierung", "nachkommastellen": 3})
+        blaetter_.append({"name": "Bewertung", "titel": "Kennzahlen und Bewertung je Firma",
+                          "hinweise": ["FCF-Rendite = freier Cashflow / Marktkapitalisierung, nur bei gleicher Einheit.",
+                                       "Beleg je Wert: Quellen-ID (siehe Bericht) oder Annahme."],
+                          "zeilen": min(len(zeilen), 500), "fixierte_spalten": 2, "spalten": spalten,
+                          "werte": zeilen[:500]})
+    szen = []
+    for h in _liste(daten.get(4), "hypothesen"):
+        sz = h.get("szenarien") if isinstance(h.get("szenarien"), dict) else {}
+        for name, x in sz.items():
+            if isinstance(x, dict):
+                r = x.get("rendite_pa")
+                szen.append({"these": _text(h.get("titel"), 200), "szenario": _text(name, 40), "rendite": _wert(r),
+                             "beleg": _text(_beleg_text(r), 300) if ist_zahl(r) else ""})
+    if szen:
+        blaetter_.append({"name": "Szenarien", "titel": "Szenarien je These",
+                          "hinweise": ["Einsatz in Euro eintragen; Ertrag nach einem Jahr = Einsatz mal Rendite."],
+                          "zeilen": min(len(szen), 500), "fixierte_spalten": 2, "spalten": [
+                              {"id": "these", "kopf": "These", "art": "text", "breite": 34},
+                              {"id": "szenario", "kopf": "Szenario", "art": "text", "breite": 14},
+                              {"id": "rendite", "kopf": "Rendite pro Jahr", "art": "zahl", "nachkommastellen": 3},
+                              {"id": "einsatz", "kopf": "Einsatz EUR", "art": "zahl", "nachkommastellen": 0},
+                              {"id": "ertrag", "kopf": "Ertrag nach 1 Jahr", "art": "rechnung",
+                               "formel": "einsatz * rendite", "nachkommastellen": 0},
                               {"id": "beleg", "kopf": "Beleg", "art": "text", "breite": 40}],
                           "werte": szen[:500]})
     if not blaetter_:

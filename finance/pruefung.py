@@ -23,7 +23,7 @@ from pathlib import Path
 
 import quellen
 
-ZAEHLFELDER = {"jahr", "von_jahr", "bis_jahr", "nr"}
+ZAEHLFELDER = {"jahr", "von_jahr", "bis_jahr", "nr", "cik"}
 RECHENARTEN = {"produkt": None, "quotient": 2, "summe": None, "differenz": 2}  # None = beliebig viele (ab 2)
 SICHERHEIT = ("niedrig", "mittel", "hoch")
 SZENARIEN = ("pessimistisch", "basis", "optimistisch")

@@ -1,4 +1,5 @@
-"""Agent finance: Recherche zur Wirtschaftlichkeit eines Themas (Auftrag per /finance <Thema>).
+"""Agent finance: Recherche zur Wirtschaftlichkeit eines Themas (Auftrag per /finance <Thema>), oder zu
+Anlagemöglichkeiten (Aktien, ETFs) mit /finance aktien: <Thema> (schritte.variante_aus_text).
 
 Ein Lauf: 1. freigegebene Entwürfe ausführen, 2. Aufträge abarbeiten (je Auftrag eine Recherche in fünf
 Schritten, siehe ablauf.py und schritte.py). Claude denkt (ein Lauf je Schritt), Python lädt Webquellen,
@@ -18,6 +19,7 @@ import ablauf
 import abrufer
 import bericht
 import quellen
+import schritte
 
 AGENT = "finance"
 HIER = Path(__file__).resolve().parent
@@ -90,14 +92,16 @@ def abrufen(abfrage: dict, _laden=abruf.laden) -> str:
     return qid
 
 
-def dokumente(thema: str, ergebnisse: list, ordner: Path, _bauen=renderer.bauen) -> tuple[list[Path], list[str]]:
+def dokumente(thema: str, ergebnisse: list, ordner: Path, _bauen=renderer.bauen,
+              v: schritte.Variante | None = None) -> tuple[list[Path], list[str]]:
     """Bericht (PDF, sonst docx) und Modell (xlsx) im Recherche-Ordner. (Dateien, Fehler für Jan)."""
     daten, abbruch = bericht.aus_ergebnissen(ergebnisse)
     metas = {m["id"]: m for m in quellen.alle(QUELLEN)}
     profil = tomllib.loads(PROFIL.read_text(encoding="utf-8"))
     dateien, fehler = [], []
-    auftraege_ = [("Bericht", bericht.beschreibung(thema, daten, metas, date.today(), abbruch), "bericht.docx", True),
-                  ("Modell", bericht.modell(thema, daten), "modell.xlsx", False)]
+    modell = bericht.modell_aktien(thema, daten) if v is not None and v.uebersicht else bericht.modell(thema, daten)
+    auftraege_ = [("Bericht", bericht.beschreibung(thema, daten, metas, date.today(), abbruch, v), "bericht.docx", True),
+                  ("Modell", modell, "modell.xlsx", False)]
     for name, beschreibung, datei, vorschau in auftraege_:
         if beschreibung is None:
             continue
@@ -115,19 +119,19 @@ def dokumente(thema: str, ergebnisse: list, ordner: Path, _bauen=renderer.bauen)
 def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden, abfragen=abrufen) -> None:
     """Eine Recherche. LimitErreicht, KeinPlatz, LaeuftSchon gehen durch (Auftrag wartet)."""
     ordner = RECHERCHEN / a["id"]
-    thema = a["text"].strip()
+    v, thema = schritte.variante_aus_text(a["text"])
 
     def lauf(prompt: str):
         return laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"])
 
     ergebnisse = ablauf.recherche(thema, HIER, ordner, QUELLEN, lauf, laden, wortlaut.steht_in, date.today(),
-                                  abrufen=abfragen)
-    text = ablauf.bericht_text(thema, ergebnisse, str(ordner.relative_to(HIER)))
-    dateien, fehler = dokumente(thema, ergebnisse, ordner)
+                                  abrufen=abfragen, v=v)
+    text = ablauf.bericht_text(thema, ergebnisse, str(ordner.relative_to(HIER)), v)
+    dateien, fehler = dokumente(thema, ergebnisse, ordner, v=v)
     if fehler:
         text += "\n" + "\n".join(f"- {f}" for f in fehler)
     ok = ergebnisse[-1].ok
-    logger.info("Recherche %s: %s", a["id"], "fertig" if ok else "abgebrochen")
+    logger.info("Recherche %s (%s): %s", a["id"], v.name, "fertig" if ok else "abgebrochen")
     auftraege.abschliessen(a["id"], text, status="erledigt" if ok else "fehlgeschlagen", dateien=dateien)
 
 

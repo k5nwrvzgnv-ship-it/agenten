@@ -11,6 +11,12 @@ Abfrage-Formate (je Eintrag ein Objekt mit "art" und "beschreibung"):
     {"art": "comtrade", "melder": 276, "partner": 0, "jahr": 2024, "hs": "847950", "richtung": "X"}
     {"art": "ted", "cpv": "42997300", "von": "2025-01-01", "land": "DEU"}           (land freiwillig)
     {"art": "jobsuche", "was": "Robotik", "wo": "Bayern"}                            (wo freiwillig)
+    {"art": "sec", "cik": 1045810}       Abschlüsse einer bei der SEC gemeldeten Firma (10-K, 20-F, 40-F)
+    {"art": "kurs", "symbol": "NVDA"}    Monatsschlusskurse der letzten 5 Jahre (Yahoo, z. B. 6954.T, SIE.DE)
+
+SEC und Kurs: Die Antworten sind groß (SEC bis 5 MB) bzw. verschachtelt. Abgelegt wird ein Auszug mit den
+Kennzahlen (sec_auszug, kurs_auszug), damit Claude ihn lesen kann; die URL in der Quelle führt zum Original.
+Yahoo ist keine offizielle Schnittstelle (Jan 09.11.2026: genehmigt), sie kann wegfallen.
 """
 
 import io
@@ -19,9 +25,9 @@ import re
 import urllib.parse
 import zipfile
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timezone
 
-ARTEN = ("genesis", "eurostat", "comtrade", "ted", "jobsuche")
+ARTEN = ("genesis", "eurostat", "comtrade", "ted", "jobsuche", "sec", "kurs")
 MAX_ABFRAGEN = 15
 
 GENESIS = "https://genesis.destatis.de/genesisWS/rest/2020/data/tablefile"
@@ -30,6 +36,30 @@ COMTRADE = "https://comtradeapi.un.org/data/v1/get/C/A/HS"
 TED = "https://api.ted.europa.eu/v3/notices/search"
 JOBSUCHE = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs"
 JOBSUCHE_KEY = "jobboerse-jobsuche"  # öffentlicher Schlüssel der Bundesagentur, kein Geheimnis
+SEC = "https://data.sec.gov/api/xbrl/companyfacts/CIK{:010d}.json"
+# Die SEC verlangt eine Kontaktangabe im User-Agent; Jan hat noch keine genannt (STATUS.md, offene Punkte)
+SEC_AGENT = "agenten-finance (privat, nicht kommerziell)"
+KURS = "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=5y&interval=1mo"
+_SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,14}$")
+
+# Kennzahl -> XBRL-Konzepte (us-gaap, sonst ifrs-full), erstes vorhandenes je Periode zählt
+SEC_KONZEPTE = {
+    "umsatz": ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet", "Revenue"),
+    "operatives_ergebnis": ("OperatingIncomeLoss", "ProfitLossFromOperatingActivities"),
+    "nettoergebnis": ("NetIncomeLoss", "ProfitLoss", "ProfitLossAttributableToOwnersOfParent"),
+    "operativer_cashflow": ("NetCashProvidedByUsedInOperatingActivities", "CashFlowsFromUsedInOperatingActivities"),
+    "investitionen_sachanlagen": ("PaymentsToAcquirePropertyPlantAndEquipment",
+                                  "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities"),
+    "forschung_entwicklung": ("ResearchAndDevelopmentExpense", "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"),
+    "eigenkapital": ("StockholdersEquity", "EquityAttributableToOwnersOfParent", "Equity"),
+    "liquide_mittel": ("CashAndCashEquivalentsAtCarryingValue", "CashAndCashEquivalents"),
+    "langfristige_schulden": ("LongTermDebtNoncurrent", "LongTermDebt", "NoncurrentFinancialLiabilities"),
+    "verwaessertes_ergebnis_je_aktie": ("EarningsPerShareDiluted", "DilutedEarningsLossPerShare"),
+    "verwaesserte_aktien": ("WeightedAverageNumberOfDilutedSharesOutstanding",
+                            "WeightedAverageNumberOfSharesOutstandingDiluted"),
+}
+JAHRESFORMEN = ("10-K", "20-F", "40-F", "10-K/A", "20-F/A", "40-F/A")
+SEC_JAHRE = 6
 
 _TABELLE = re.compile(r"^\d{5}-\d{4}$")
 _CODE = re.compile(r"^[A-Za-z0-9_]{1,40}$")
@@ -141,6 +171,14 @@ def anfrage_bauen(abfrage: dict, schluessel: dict) -> Anfrage:
                        {"Content-Type": "application/json"},
                        quelle_url=f"{TED}?{urllib.parse.urlencode({'query': query})}")
 
+    if art == "sec":
+        cik = _code(abfrage.get("cik"), "cik", re.compile(r"^\d{1,10}$"))
+        return Anfrage(art, SEC.format(int(cik)), beschreibung, ["data.sec.gov"], header={"User-Agent": SEC_AGENT})
+
+    if art == "kurs":
+        symbol = _code(abfrage.get("symbol"), "symbol", _SYMBOL)
+        return Anfrage(art, KURS.format(symbol), beschreibung, ["query1.finance.yahoo.com"])
+
     # jobsuche
     werte = {"was": _code(abfrage.get("was"), "was", _TEXT), "size": "25"}
     if abfrage.get("wo"):
@@ -174,7 +212,100 @@ def antwort_pruefen(art: str, inhalt: bytes, content_type: str | None) -> tuple[
         raise AbfrageFehler("TED: Antwort ohne totalNoticeCount")
     if art == "jobsuche" and "maxErgebnisse" not in d:
         raise AbfrageFehler("Jobsuche: Antwort ohne maxErgebnisse")
+    if art == "sec":
+        return _als_json(sec_auszug(d)), "json"
+    if art == "kurs":
+        return _als_json(kurs_auszug(d)), "json"
     return inhalt, "json"
+
+
+def _als_json(d: dict) -> bytes:
+    return json.dumps(d, ensure_ascii=False, indent=1).encode("utf-8")
+
+
+def _tage(von: str, bis: str) -> int:
+    return (date.fromisoformat(bis) - date.fromisoformat(von)).days
+
+
+def _jahreswerte(eintraege: list) -> dict[str, dict]:
+    """Jahreswerte aus Jahresberichten: je Periodenende der zuletzt eingereichte Wert.
+
+    Flussgrößen (mit start) nur bei 330 bis 400 Tagen Dauer, Bestandsgrößen (ohne start) am Periodenende.
+    """
+    erg: dict[str, dict] = {}
+    for e in eintraege:
+        if not isinstance(e, dict) or e.get("form") not in JAHRESFORMEN or e.get("fp") != "FY":
+            continue
+        ende, wert = e.get("end"), e.get("val")
+        if not isinstance(ende, str) or not isinstance(wert, (int, float)) or isinstance(wert, bool):
+            continue
+        try:
+            if e.get("start") and not 330 <= _tage(e["start"], ende) <= 400:
+                continue
+        except ValueError:
+            continue
+        alt = erg.get(ende)
+        if alt is None or str(e.get("filed", "")) > alt["eingereicht"]:
+            erg[ende] = {"von": e.get("start"), "bis": ende, "wert": wert, "form": e["form"],
+                         "eingereicht": str(e.get("filed", ""))}
+    return erg
+
+
+def sec_auszug(d: dict) -> dict:
+    """Kennzahlen der letzten SEC_JAHRE Geschäftsjahre aus companyfacts (oder AbfrageFehler)."""
+    facts = d.get("facts")
+    if not isinstance(facts, dict):
+        raise AbfrageFehler("SEC: Antwort ohne facts (CIK prüfen)")
+    werte = {}
+    for name, konzepte in SEC_KONZEPTE.items():
+        perioden: dict[str, dict] = {}
+        einheit = None
+        for konzept in konzepte:
+            fakt = (facts.get("us-gaap") or {}).get(konzept) or (facts.get("ifrs-full") or {}).get(konzept)
+            if not isinstance(fakt, dict) or not isinstance(fakt.get("units"), dict) or not fakt["units"]:
+                continue
+            e_name, eintraege = next(iter(fakt["units"].items()))
+            if einheit not in (None, e_name):
+                continue  # andere Währung als das erste Konzept: nicht mischen
+            for ende, p in _jahreswerte(eintraege).items():
+                if ende not in perioden:
+                    perioden[ende] = dict(p, konzept=konzept)
+                    einheit = e_name
+        if perioden:
+            werte[name] = {"einheit": einheit,
+                           "jahre": [perioden[k] for k in sorted(perioden, reverse=True)[:SEC_JAHRE]]}
+    aktien = ((facts.get("dei") or {}).get("EntityCommonStockSharesOutstanding") or {}).get("units", {}).get("shares")
+    if isinstance(aktien, list) and aktien:
+        letzte = max((a for a in aktien if isinstance(a, dict) and "end" in a), key=lambda a: a["end"], default=None)
+        if letzte:
+            werte["ausstehende_aktien"] = {"einheit": "Stück", "stand": letzte["end"], "wert": letzte.get("val")}
+    if not werte:
+        raise AbfrageFehler("SEC: keine Jahreskennzahlen gefunden (Firma meldet nicht per XBRL?)")
+    return {"firma": d.get("entityName"), "cik": d.get("cik"),
+            "hinweis": "Auszug aus SEC companyfacts: Jahresberichte, je Periodenende der zuletzt eingereichte Wert",
+            "kennzahlen": werte}
+
+
+def kurs_auszug(d: dict) -> dict:
+    """Aktueller Kurs und Monatsschlusskurse aus Yahoo chart (oder AbfrageFehler)."""
+    try:
+        r = d["chart"]["result"][0]
+        meta, zeiten = r["meta"], r.get("timestamp") or []
+        schluss = r["indicators"]["quote"][0].get("close") or []
+    except (KeyError, IndexError, TypeError):
+        fehler = (d.get("chart") or {}).get("error") if isinstance(d.get("chart"), dict) else None
+        raise AbfrageFehler(f"Kurs: keine Daten ({(fehler or {}).get('description') or 'Symbol prüfen'})") from None
+    kurs = meta.get("regularMarketPrice")
+    if not isinstance(kurs, (int, float)):
+        raise AbfrageFehler("Kurs: kein aktueller Kurs (Symbol prüfen)")
+    reihe = [{"monat": datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m"), "schluss": round(c, 4)}
+             for t, c in zip(zeiten, schluss, strict=False) if isinstance(t, int) and isinstance(c, (int, float))]
+    return {"symbol": meta.get("symbol"), "waehrung": meta.get("currency"), "boerse": meta.get("fullExchangeName"),
+            "kurs_aktuell": kurs,
+            "stand": datetime.fromtimestamp(meta.get("regularMarketTime") or 0, timezone.utc).strftime("%Y-%m-%d"),
+            "hoch_52_wochen": meta.get("fiftyTwoWeekHigh"), "tief_52_wochen": meta.get("fiftyTwoWeekLow"),
+            "hinweis": "Yahoo Finance (inoffizielle Schnittstelle), Monatsschlusskurse ohne Dividenden",
+            "monatsschluss": reihe}
 
 
 def _json(inhalt: bytes, art: str) -> dict:
@@ -187,10 +318,10 @@ def _json(inhalt: bytes, art: str) -> dict:
     return d
 
 
-def abfragen_lesen(daten) -> tuple[list[dict], list[str]]:
-    """Liste aus abfragen.json: (Abfragen, Fehler). Höchstens MAX_ABFRAGEN."""
+def abfragen_lesen(daten, maximal: int = MAX_ABFRAGEN) -> tuple[list[dict], list[str]]:
+    """Liste aus abfragen.json: (Abfragen, Fehler). Höchstens maximal."""
     if not isinstance(daten, dict) or not isinstance(daten.get("abfragen"), list):
         return [], ['abfragen.json: {"abfragen": [...]} erwartet']
     liste = daten["abfragen"]
-    fehler = [f"Nur die ersten {MAX_ABFRAGEN} Abfragen ausgeführt"] if len(liste) > MAX_ABFRAGEN else []
-    return liste[:MAX_ABFRAGEN], fehler
+    fehler = [f"Nur die ersten {maximal} Abfragen ausgeführt"] if len(liste) > maximal else []
+    return liste[:maximal], fehler

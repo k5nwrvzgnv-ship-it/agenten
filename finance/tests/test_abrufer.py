@@ -105,5 +105,73 @@ class AntwortPruefen(unittest.TestCase):
         self.assertEqual(abrufer.abfragen_lesen([])[0], [])
 
 
+
+def fakt(wert, ende, start=None, form="10-K", filed="2026-01-31", fp="FY"):
+    e = {"end": ende, "val": wert, "form": form, "filed": filed, "fp": fp}
+    if start:
+        e["start"] = start
+    return e
+
+
+SEC_ANTWORT = {"cik": 1045810, "entityName": "NVIDIA CORP", "facts": {
+    "dei": {"EntityCommonStockSharesOutstanding": {"units": {"shares": [fakt(24.3e9, "2026-08-01", form="10-Q"),
+                                                                        fakt(24.4e9, "2026-10-01", form="10-Q")]}}},
+    "us-gaap": {
+        "Revenues": {"units": {"USD": [fakt(60.9e9, "2025-01-26", "2024-01-29")]}},
+        "RevenueFromContractWithCustomerExcludingAssessedTax": {"units": {"USD": [
+            fakt(130.5e9, "2026-01-25", "2025-01-27"),
+            fakt(35.1e9, "2025-10-26", "2025-07-28", form="10-Q", fp="Q3"),   # Quartal: nicht
+            fakt(129.0e9, "2026-01-25", "2025-01-27", filed="2025-03-01"),    # älter eingereicht: nicht
+            fakt(30.0e9, "2025-12-31", "2025-10-01")]}},                      # nur 3 Monate: nicht
+        "StockholdersEquity": {"units": {"USD": [fakt(79.3e9, "2026-01-25")]}},
+    }}}
+
+
+class SecUndKurs(unittest.TestCase):
+    def test_sec_anfrage(self):
+        a = bauen(art="sec", cik=1045810)
+        self.assertEqual(a.url, "https://data.sec.gov/api/xbrl/companyfacts/CIK0001045810.json")
+        self.assertEqual(a.allowlist, ["data.sec.gov"])
+        self.assertIn("User-Agent", a.header)
+        with self.assertRaises(abrufer.AbfrageFehler):
+            bauen(art="sec", cik="1045810/../x")
+
+    def test_kurs_anfrage(self):
+        self.assertIn("/chart/6954.T?range=5y", bauen(art="kurs", symbol="6954.T").url)
+        for falsch in ("nvda", "NV DA", "A/B", ""):
+            with self.assertRaises(abrufer.AbfrageFehler):
+                bauen(art="kurs", symbol=falsch)
+
+    def test_sec_auszug_jahreswerte(self):
+        roh, endung = abrufer.antwort_pruefen("sec", json.dumps(SEC_ANTWORT).encode(), "application/json")
+        d = json.loads(roh)
+        self.assertEqual(endung, "json")
+        umsatz = d["kennzahlen"]["umsatz"]
+        self.assertEqual(umsatz["einheit"], "USD")
+        self.assertEqual([j["wert"] for j in umsatz["jahre"]], [130.5e9, 60.9e9])  # beide Konzepte, neuestes zuerst
+        self.assertEqual(d["kennzahlen"]["eigenkapital"]["jahre"][0]["wert"], 79.3e9)  # Bestandsgröße ohne start
+        self.assertEqual(d["kennzahlen"]["ausstehende_aktien"]["wert"], 24.4e9)
+
+    def test_sec_ohne_daten(self):
+        with self.assertRaises(abrufer.AbfrageFehler):
+            abrufer.antwort_pruefen("sec", b'{"facts": {"us-gaap": {}}}', "application/json")
+        with self.assertRaises(abrufer.AbfrageFehler):
+            abrufer.antwort_pruefen("sec", b'{"error": "x"}', "application/json")
+
+    def test_kurs_auszug(self):
+        antwort = {"chart": {"result": [{"meta": {"symbol": "NVDA", "currency": "USD", "regularMarketPrice": 191.2,
+                                                  "regularMarketTime": 1794236676},
+                                         "timestamp": [1762000000, 1764600000],
+                                         "indicators": {"quote": [{"close": [180.123456, None]}]}}]}}
+        d = json.loads(abrufer.antwort_pruefen("kurs", json.dumps(antwort).encode(), "application/json")[0])
+        self.assertEqual((d["kurs_aktuell"], d["waehrung"], d["stand"]), (191.2, "USD", "2026-11-09"))
+        self.assertEqual(d["monatsschluss"], [{"monat": "2025-11", "schluss": 180.1235}])
+
+    def test_kurs_unbekanntes_symbol(self):
+        antwort = b'{"chart": {"result": null, "error": {"description": "No data found"}}}'
+        with self.assertRaisesRegex(abrufer.AbfrageFehler, "No data"):
+            abrufer.antwort_pruefen("kurs", antwort, "application/json")
+
+
 if __name__ == "__main__":
     unittest.main()

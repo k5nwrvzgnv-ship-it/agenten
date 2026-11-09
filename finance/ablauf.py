@@ -78,7 +78,8 @@ def webquellen_aufloesen(daten: dict, quellen_ordner: Path, laden, steht_in) -> 
     return fehler
 
 
-def pruefen(nr: int, pfad: Path, quellen_ordner: Path, laden, steht_in, heute: date) -> SchrittErgebnis:
+def pruefen(nr: int, pfad: Path, quellen_ordner: Path, laden, steht_in, heute: date,
+            v: schritte.Variante | None = None) -> SchrittErgebnis:
     """Liest, löst Webquellen auf, prüft. Geprüfte Daten (mit IDs statt Webangaben) werden zurückgeschrieben."""
     erg = SchrittErgebnis(nr, ok=False)
     daten, f = schritte.lesen(pfad)
@@ -86,7 +87,7 @@ def pruefen(nr: int, pfad: Path, quellen_ordner: Path, laden, steht_in, heute: d
         erg.fehler = [f]
         return erg
     erg.fehler += webquellen_aufloesen(daten, quellen_ordner, laden, steht_in)
-    erg.fehler += schritte.pflichtfelder(nr, daten, heute)
+    erg.fehler += schritte.pflichtfelder(nr, daten, heute, v)
     p = pruefung.pruefen(daten, quellen_ordner, heute)
     erg.fehler += [f for f in p.fehler if f not in erg.fehler]
     erg.hinweise, erg.annahmen, erg.quellen = p.hinweise, p.annahmen, p.benutzte_quellen
@@ -98,26 +99,26 @@ def pruefen(nr: int, pfad: Path, quellen_ordner: Path, laden, steht_in, heute: d
 
 
 def schritt_ausfuehren(s: schritte.Schritt, thema: str, hier: Path, ordner: Path, quellen_ordner: Path,
-                       laufen, laden, steht_in, heute: date) -> SchrittErgebnis:
+                       laufen, laden, steht_in, heute: date, v: schritte.Variante | None = None) -> SchrittErgebnis:
     """laufen(prompt) -> Objekt mit ok und text (agentkit.claude_lauf.Ergebnis)."""
     pfad = ordner / s.datei
     ordner_rel, quellen_rel = str(ordner.relative_to(hier)), str(quellen_ordner.relative_to(hier))
     fehler = None
     if pfad.exists():  # Fortsetzen
-        erg = pruefen(s.nr, pfad, quellen_ordner, laden, steht_in, heute)
+        erg = pruefen(s.nr, pfad, quellen_ordner, laden, steht_in, heute, v)
         if erg.ok:
             return erg
         fehler = erg.fehler
     laeufe = 0
     for _ in range(MAX_VERSUCHE):
-        e = laufen(schritte.prompt(s, thema, ordner_rel, quellen_rel, quellen.alle(quellen_ordner), fehler))
+        e = laufen(schritte.prompt(s, thema, ordner_rel, quellen_rel, quellen.alle(quellen_ordner), fehler, v))
         laeufe += 1
         if not e.ok and not pfad.exists():
             # Meist die Grenze der Arbeitsschritte (leerer Text): nächster Versuch mit diesem Hinweis
             erg = SchrittErgebnis(s.nr, ok=False, fehler=[lauf_fehler(e.text)], laeufe=laeufe)
             fehler = erg.fehler
             continue
-        erg = pruefen(s.nr, pfad, quellen_ordner, laden, steht_in, heute)
+        erg = pruefen(s.nr, pfad, quellen_ordner, laden, steht_in, heute, v)
         erg.laeufe = laeufe
         if erg.ok:
             return erg
@@ -174,25 +175,80 @@ def primaerdaten(thema: str, hier: Path, ordner: Path, quellen_ordner: Path, lau
     return erg
 
 
+def _abfragen_ausfuehren(liste: list[dict], abrufen, erg: SchrittErgebnis) -> list[dict]:
+    ergebnisse = []
+    for abfrage in liste:
+        try:
+            qid = abrufen(abfrage)
+            ergebnisse.append({"abfrage": abfrage, "id": qid})
+            erg.quellen.add(qid)
+        except (WebFehler, abrufer.AbfrageFehler) as w:
+            ergebnisse.append({"abfrage": abfrage, "fehler": str(w)})
+            erg.hinweise.append(f"{abfrage.get('beschreibung')}: {w}")
+    return ergebnisse
+
+
+def _auszuege(ergebnisse: list[dict], quellen_ordner: Path) -> dict[str, dict]:
+    erg = {}
+    for e in ergebnisse:
+        if e.get("id") and (e.get("abfrage") or {}).get("art") in ("sec", "kurs"):
+            try:
+                erg[e["id"]] = json.loads(quellen.rohinhalt(quellen_ordner, e["id"]))
+            except (quellen.QuellenFehler, ValueError):
+                pass
+    return erg
+
+
+def primaerdaten_aktien(ordner: Path, quellen_ordner: Path, abrufen) -> SchrittErgebnis:
+    """Variante AKTIEN: Abfragen ohne Claude aus Schritt 1 (Kurse, SEC), danach Wechselkurse der vorkommenden
+    Währungen; schreibt abfragen_ergebnis.json und die Übersicht für Claude. Bricht nie ab."""
+    erg = SchrittErgebnis(0, ok=True)
+    ziel = ordner / ABFRAGEN_ERGEBNIS
+    if ziel.exists():  # Fortsetzen
+        alt, _ = schritte.lesen(ziel)
+        ergebnisse = (alt or {}).get("ergebnisse", [])
+        erg.quellen = {e["id"] for e in ergebnisse if e.get("id")}
+    else:
+        daten, f = schritte.lesen(ordner / schritte.schritt(1, schritte.AKTIEN).datei)
+        if f:
+            erg.hinweise = [f]
+            return erg
+        ergebnisse = _abfragen_ausfuehren(schritte.aktien_abfragen(daten), abrufen, erg)
+        waehrungen = {a.get("waehrung") for a in _auszuege(ergebnisse, quellen_ordner).values()}
+        for kz in (a.get("kennzahlen") or {} for a in _auszuege(ergebnisse, quellen_ordner).values()):
+            waehrungen |= {w.get("einheit") for w in kz.values() if isinstance(w, dict)}
+        ergebnisse += _abfragen_ausfuehren(schritte.wechselkurs_abfragen(waehrungen), abrufen, erg)
+        ziel.write_text(json.dumps({"ergebnisse": ergebnisse}, ensure_ascii=False, indent=1), encoding="utf-8")
+    ueb = schritte.uebersicht(ergebnisse, _auszuege(ergebnisse, quellen_ordner))
+    (ordner / schritte.UEBERSICHT).write_text(json.dumps(ueb, ensure_ascii=False, indent=1), encoding="utf-8")
+    return erg
+
+
 def recherche(thema: str, hier: Path, ordner: Path, quellen_ordner: Path, laufen, laden, steht_in,
-              heute: date, abrufen=None) -> list[SchrittErgebnis]:
+              heute: date, abrufen=None, v: schritte.Variante | None = None) -> list[SchrittErgebnis]:
     """Alle Schritte; bricht beim ersten Schritt ab, der auch nach Nachbesserung Fehler hat.
 
-    Mit abrufen (agent.py) zwischen Schritt 1 und 2 die Phase Primärdaten (Ergebnis mit nr 0).
+    Mit abrufen (agent.py) zwischen Schritt 1 und 2 die Phase Primärdaten (Ergebnis mit nr 0): bei MARKT plant
+    Claude die Abfragen, bei AKTIEN leitet Python sie aus Schritt 1 ab.
     """
+    v = v or schritte.MARKT
     ordner.mkdir(parents=True, exist_ok=True)
     ergebnisse = []
-    for s in schritte.SCHRITTE:
+    for s in v.schritte:
         if s.nr == 2 and abrufen is not None:
-            ergebnisse.append(primaerdaten(thema, hier, ordner, quellen_ordner, laufen, abrufen))
-        erg = schritt_ausfuehren(s, thema, hier, ordner, quellen_ordner, laufen, laden, steht_in, heute)
+            if v.uebersicht:
+                ergebnisse.append(primaerdaten_aktien(ordner, quellen_ordner, abrufen))
+            else:
+                ergebnisse.append(primaerdaten(thema, hier, ordner, quellen_ordner, laufen, abrufen))
+        erg = schritt_ausfuehren(s, thema, hier, ordner, quellen_ordner, laufen, laden, steht_in, heute, v)
         ergebnisse.append(erg)
         if not erg.ok:
             break
     return ergebnisse
 
 
-def bericht_text(thema: str, ergebnisse: list[SchrittErgebnis], ordner_rel: str) -> str:
+def bericht_text(thema: str, ergebnisse: list[SchrittErgebnis], ordner_rel: str,
+                 v: schritte.Variante | None = None) -> str:
     """Kurzer Text für Jan (Telegram, Sprachprüfung der Zentrale); Bericht und Modell hängen an.
 
     Technische Angaben (Läufe, Pfade, Hinweise) stehen im Log und in den Schritt-Dateien unter ordner_rel.
@@ -200,20 +256,24 @@ def bericht_text(thema: str, ergebnisse: list[SchrittErgebnis], ordner_rel: str)
     letzte = ergebnisse[-1]
     zeilen = [f"Recherche: {thema}"]
     if not letzte.ok:
-        name = schritte.schritt(letzte.nr).name
+        name = schritte.schritt(letzte.nr, v).name
         zeilen.append(f"Abgebrochen bei Schritt {letzte.nr} ({name}). Grund:")
         zeilen += [f"- {f}" for f in letzte.fehler[:5]]
         if len(letzte.fehler) > 5:
             zeilen.append(f"- und {len(letzte.fehler) - 5} weitere")
     else:
         hyp = next((e.daten.get("hypothesen", []) for e in ergebnisse if e.nr == 4 and e.daten), [])
-        zeilen.append(f"Fertig. {len(hyp)} {'Hypothese' if len(hyp) == 1 else 'Hypothesen'}:")
+        wort = (v or schritte.MARKT).thesen
+        zeilen.append(f"Fertig. {len(hyp)} {wort if len(hyp) == 1 else wort + 'n'}:")
         zeilen += [f"- {h.get('titel')} (Sicherheit {h.get('sicherheit')})" for h in hyp]
     quellen_ids = set().union(*(e.quellen for e in ergebnisse))
     annahmen = sum(len(e.annahmen) for e in ergebnisse)
     primaer = next((e for e in ergebnisse if e.nr == 0), None)
-    statistik = f", davon {len(primaer.quellen)} aus Statistiken" if primaer else ""
+    herkunft = "Abschlüssen und Kursen" if (v and v.uebersicht) else "Statistiken"
+    statistik = f", davon {len(primaer.quellen)} aus {herkunft}" if primaer else ""
     zeilen.append(f"Belege: {len(quellen_ids)} Quellen{statistik}. {annahmen} Werte sind Annahmen.")
+    if v and v.uebersicht:
+        zeilen.append("Es wurde nichts gekauft. Die Thesen sind Prüfaussagen, keine Anlageberatung.")
     zeilen.append("Bericht und Modell hängen an.")
     return "\n".join(zeilen)
 
