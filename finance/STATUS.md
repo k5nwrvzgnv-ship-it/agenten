@@ -74,7 +74,11 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
      `https://genesis.destatis.de/genesisWS/rest/2020/` (die alte www-genesis... leitet per 307 um).
      Anmeldung per POST mit Headern `username` = Token, `password` leer. Höchstens 3 parallele Anfragen,
      Anfragen über 15 Minuten werden sonst beendet.
-   - Offen: UN Comtrade, EPO OPS (Jan), Prüfung Eurostat/TED/Jobsuche ohne Konto.
+   - UN Comtrade fertig (09.11.2026): COMTRADE_KEY eingetragen, Testabfrage erfolgreich
+     (`https://comtradeapi.un.org/data/v1/get/C/A/HS?...`, Header `Ocp-Apim-Subscription-Key`).
+     Achtung: die Abfrage DE/2023/HS 8479/Export/Welt lieferte 38 Zeilen statt einer (vermutlich Aufteilung
+     nach Zollverfahren/Transportart, Beschreibungsfelder leer ohne includeDesc) - beim Bau klären.
+   - Offen: EPO OPS (Jan), Prüfung Eurostat/TED/Jobsuche ohne Konto.
 2. .venv anlegen: `python3 -m venv .venv`, agentkit per .pth (siehe ../STATUS.md, Stand), Pakete des
    Renderers laut shared/renderer/requirements.txt. Weitere Pakete nur nach Jans Okay, dann in
    requirements.txt. Danach in pruefen.sh `finance|python3|tests` auf `finance|.venv/bin/python|tests`
