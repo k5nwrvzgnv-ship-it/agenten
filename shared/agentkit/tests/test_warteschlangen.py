@@ -382,6 +382,29 @@ class TestWeitergabe(unittest.TestCase):
             with self.subTest(ort=falsch), self.assertRaises(auftraege.AuftragFehler):
                 auftraege.neuer_auftrag("unterricht", "x", basis=self.basis, ort=falsch)
 
+    def test_neuer_auftrag_mit_art_und_feldern(self):
+        auftraege.neuer_auftrag("dokumente", "Art: Präsentation\nThema: Holz", quelle="arbeitsplatz", basis=self.basis,
+                                ort="modul-holzschutz", art="praesentation", felder={"Thema": "Holz", "Umfang": ""})
+        auftraege.neuer_auftrag("dokumente", "ohne Art", basis=self.basis)
+        mit, ohne = sorted(auftraege.neue(basis=self.basis), key=lambda a: a["text"])
+        self.assertEqual((mit["art"], mit["felder"], mit["ort"]),
+                         ("praesentation", {"Thema": "Holz", "Umfang": ""}, "modul-holzschutz"))
+        self.assertNotIn("art", ohne)
+        self.assertNotIn("felder", ohne)
+        for falsch in ["", "Präsentation", "../x", "-x", "a" * 81]:
+            with self.subTest(art=falsch), self.assertRaises(auftraege.AuftragFehler):
+                auftraege.neuer_auftrag("dokumente", "x", basis=self.basis, art=falsch)
+        for falsch in [["Thema"], {"Thema": 3}, {3: "x"}, {"": "x"}, {"x" * 81: "x"}, {"T": "x" * 20_001},
+                       {str(i): "" for i in range(41)}]:
+            with self.subTest(felder=str(falsch)[:40]), self.assertRaises(auftraege.AuftragFehler):
+                auftraege.neuer_auftrag("dokumente", "x", basis=self.basis, felder=falsch)
+
+    def test_herkunft_erben_nur_mit_art(self):
+        self.assertEqual(auftraege.herkunft_erben({"ort": "s-1", "reihe": "r"}), {})  # Lias Aufträge: nichts
+        self.assertEqual(auftraege.herkunft_erben({"ort": "kapitel-3", "art": "expose", "felder": {"Thema": "x"}}),
+                         {"ort": "kapitel-3", "art": "expose", "felder": {"Thema": "x"}})
+        self.assertEqual(auftraege.herkunft_erben({"art": "expose"}), {"art": "expose"})
+
     def test_dateien_nur_aus_dem_eigenen_ordner(self):
         (self.agenten / "uni" / ".env").write_text("GEHEIM=1")
         (self.agenten / "einkauf" / "x.txt").write_text("x")

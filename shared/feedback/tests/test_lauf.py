@@ -91,11 +91,23 @@ class TestLauf(unittest.TestCase):
         self.assertEqual((nb["id"], nb["bezug"], nb["sitzung"], nb["quelle"]),
                          (f["daten"]["nachbesserung"], self.ergebnis["id"], "s0", "portal-frage"))
         self.assertIn("Kürze auf eine Seite.", nb["text"])
+        self.assertFalse({"ort", "art", "felder"} & set(nb))  # ohne art bleibt alles wie bisher
         self.assertEqual(self.starts, ["lia-recherche"])
         self.assertIn("mache das Ergebnis jetzt noch einmal", f["ergebnis"])
         self.assertEqual(self.klick(self.jan_meldung(f), "Stopp")["ergebnis"],
                          "Gestoppt. Die überarbeitete Fassung kommt nicht. Lia weiß Bescheid.")
         self.assertEqual(auftraege.erledigter(nb["id"], basis=self.basis)["status"], "zurueckgezogen")
+
+    def test_nachbesserung_erbt_ort_und_art(self):
+        (self.units / "lia-recherche.service").write_text("")
+        aid = auftraege.neuer_auftrag("recherche", "Art: Exposé", quelle="arbeitsplatz", basis=self.basis,
+                                      ort="kapitel-3", art="expose", felder={"Thema": "Holz"})
+        self.ergebnis = auftraege.abschliessen(aid, "fertig", basis=self.basis)
+        with mock.patch.object(verbrauch, "kosten", return_value=0.4):
+            self.feedback("zu lang", zuordnung(art="nachbesserung", auftrag="Kürze."))
+        nb = auftraege.neue("recherche", basis=self.basis)[0]
+        self.assertEqual((nb["ort"], nb["art"], nb["felder"], nb["quelle"]),
+                         ("kapitel-3", "expose", {"Thema": "Holz"}, "arbeitsplatz"))
 
     def test_rueckmeldung_mit_word_datei(self):
         """Lias Word-Datei mit Kommentaren: Kommentare gehen in die Zuordnung, die Datei an die Nachbesserung."""

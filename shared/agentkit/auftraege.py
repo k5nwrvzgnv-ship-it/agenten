@@ -56,6 +56,9 @@ ABSCHLUESSE = ("erledigt", "fehlgeschlagen", "zurueckgezogen")  # zurueckgezogen
 MODI = ("erledigen", "lernen")
 REIHE_MUSTER = re.compile(r"[a-z0-9][a-z0-9-]{0,79}")
 ALLE = "*"  # neue(..., dienst=ALLE): Aufträge aller Dienste
+MAX_FELDER = 40  # Formularfelder je Auftrag
+MAX_FELDNAME = 80
+MAX_FELDWERT = 20_000
 
 
 def neuer_auftrag(
@@ -74,6 +77,8 @@ def neuer_auftrag(
     reihe: str | None = None,
     kopieren: bool = False,
     ort: str | None = None,
+    art: str | None = None,
+    felder: dict[str, str] | None = None,
 ) -> str:
     """Legt einen Auftrag an und gibt seine ID zurück.
 
@@ -87,6 +92,10 @@ def neuer_auftrag(
     steht nur im Auftrag, wenn es gesetzt ist.
     ort: id eines Objekts beliebiger Ebene aus agentkit.struktur (Fach, Klasse, Reihe, Stunde), z. B. die Stunde,
     aus der Lia den Auftrag anlegt. Steht neben reihe (das ältere Leser brauchen), nur wenn gesetzt.
+    art: Kennung einer Dokumentart (Arbeitsplatz, shared/arbeitsplatz/arten.toml), Muster wie ort. Agenten lesen
+    a.get("art"); ohne art verhalten sie sich wie bisher.
+    felder: Werte des Formulars der Art, {Feldname: Text}, nur Text (siehe pruefe_felder). Stehen zusätzlich im
+    Auftragstext. art und felder stehen nur im Auftrag, wenn gesetzt.
     kopieren: dateien kopieren statt verschieben (z. B. Lias eigene Fassung, die in agentkit.fassungen bleibt).
     """
     if modus not in MODI:
@@ -100,11 +109,41 @@ def neuer_auftrag(
         raise AuftragFehler(f"Ungültige Reihe: {reihe!r}")
     if ort is not None and not REIHE_MUSTER.fullmatch(ort):
         raise AuftragFehler(f"Ungültiger Ort: {ort!r}")
-    felder = {"quelle": quelle, "modus": modus, "bezug": bezug, "sitzung": sitzung, "meldung": meldung,
+    if art is not None and not REIHE_MUSTER.fullmatch(art):
+        raise AuftragFehler(f"Ungültige Art: {art!r}")
+    if felder is not None:
+        pruefe_felder(felder)
+    eintrag = {"quelle": quelle, "modus": modus, "bezug": bezug, "sitzung": sitzung, "meldung": meldung,
               "dienst": dienst, **({"reihe": reihe} if reihe is not None else {}),
-              **({"ort": ort} if ort is not None else {})}
-    return _anlegen(agent, text, felder, dateien or [], shutil.copy2 if kopieren else shutil.move,
+              **({"ort": ort} if ort is not None else {}),
+              **({"art": art} if art is not None else {}),
+              **({"felder": dict(felder)} if felder is not None else {})}
+    return _anlegen(agent, text, eintrag, dateien or [], shutil.copy2 if kopieren else shutil.move,
                     absender or person(), basis, agenten_dir)
+
+
+def pruefe_felder(felder) -> None:
+    """felder eines Auftrags: dict aus Text nach Text, höchstens MAX_FELDER Einträge, Namen nicht leer und höchstens
+    MAX_FELDNAME Zeichen, Werte höchstens MAX_FELDWERT Zeichen. Sonst AuftragFehler."""
+    if not isinstance(felder, dict):
+        raise AuftragFehler("felder muss ein dict sein")
+    if len(felder) > MAX_FELDER:
+        raise AuftragFehler(f"Mehr als {MAX_FELDER} Felder")
+    for name, wert in felder.items():
+        if not isinstance(name, str) or not isinstance(wert, str):
+            raise AuftragFehler(f"Feld {name!r}: nur Text erlaubt")
+        if not name.strip() or len(name) > MAX_FELDNAME:
+            raise AuftragFehler(f"Ungültiger Feldname: {name[:MAX_FELDNAME]!r}")
+        if len(wert) > MAX_FELDWERT:
+            raise AuftragFehler(f"Feld {name!r} länger als {MAX_FELDWERT} Zeichen")
+
+
+def herkunft_erben(alt: dict) -> dict:
+    """ort, art und felder eines Auftrags für seine Nachbesserung (Arbeitsplatz). Nur Aufträge mit art geben etwas
+    weiter, damit Nachbesserungen ohne art (Telegram, Lias Web-App) unverändert bleiben."""
+    if not alt.get("art"):
+        return {}
+    return {k: alt[k] for k in ("ort", "art", "felder") if alt.get(k) is not None}
 
 
 def weitergeben(

@@ -144,7 +144,8 @@ def anwenden(ort: Ort, fid: str, z: dict, ziel: tuple[Path, str] | None, alt: di
         nb = auftraege.neuer_auftrag(alt["agent"], fb.nachbesserung_text(z, alt, eigene, ort.person()),
                                      quelle=alt.get("quelle") or "telegram", modus=alt.get("modus") or "erledigen",
                                      bezug=alt["id"], sitzung=alt.get("sitzung"), dateien=dateien, kopieren=True,
-                                     absender=ort.person(), basis=ort.auftraege, agenten_dir=ort.agenten_dir)
+                                     absender=ort.person(), basis=ort.auftraege, agenten_dir=ort.agenten_dir,
+                                     **auftraege.herkunft_erben(alt))
         logger.info("Feedback %s: Nachbesserung %s an %s%s", fid, nb, alt["agent"],
                     f" mit eigene-{eigene['n']} ({fassungen.art(eigene)})" if eigene else "")
         starten(ort.dienst(alt["agent"]))
