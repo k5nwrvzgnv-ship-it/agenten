@@ -1035,6 +1035,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     - Bericht: Deckblatt für Abgaben (Name, Matrikelnummer, Betrieb, Zeitraum, Betreuung), Inhaltsverzeichnis,
       Bilder mit Bildunterschrift; "Stand <Datum>" steht immer im Kopf (für eine Abgabe abschaltbar machen).
     Details und Probeläufe: dokumente/STATUS.md.
+35. Bedarf aus lia/auswertung an agentkit.claude_lauf (09.11.2026, nichts eilt): Der Prompt geht als Argument an
+    claude -p. Linux erlaubt je Argument höchstens 128 KB (MAX_ARG_STRLEN), darüber bricht Popen mit „Argument list
+    too long“ ab, bevor ein Lauf startet. Vorschlag: Prompt über stdin übergeben. Bis dahin teilt auswertung in
+    Pakete unter 100 KB (luecken.pakete).
 
 ## Gelernte Regeln
 - (noch keine)

@@ -20,7 +20,7 @@ Zweiter Durchgang (Export vom 09.11.2026, Frage: was fehlt der Web-App), alles u
   luecken-anonym [<uuid-anfang>…]  aufbereiten, Namen aus data/namen.json ersetzen -> data/luecken/eingabe.json,
                    genannte Chats weglassen (ohne neue Namenssuche)
   luecken-roh      nur aufbereiten, ohne Namen zu ersetzen -> data/luecken/eingabe.json (Jans Entscheidung 09.11.)
-  luecken-lauf     ein Lauf (Opus) über eingabe.json, geprüft -> data/luecken/ergebnis.json und bericht.md
+  luecken-lauf     Läufe (Opus) über eingabe.json: je Paket Aufgaben, dann Lücken -> data/luecken/ergebnis.json, bericht.md
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -154,34 +154,52 @@ def luecken_anonym_befehl(weglassen: list[str]) -> int:
 
 
 def luecken_lauf_befehl() -> int:
-    """Ein Lauf (art anspruchsvoll = Opus), bei Fehlern eine Nachbesserung mit der Fehlerliste.
+    """Stufe 1 je Paket ein Lauf (Aufgaben), Stufe 2 ein Lauf (Lücken). Je Lauf art anspruchsvoll (Opus) und
+    bei Fehlern eine Nachbesserung mit der Fehlerliste. Fertige Pakete (data/luecken/paket-n.json) werden übersprungen.
 
     Aufruf mit AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz, damit der Verbrauch bei Lia zählt.
     """
     from agentkit import claude_lauf  # erst hier: braucht die Instanz aus der Umgebung
 
+    def lauf(name: str, text: str, schluessel: str, pruefen) -> list | None:
+        anfang = text
+        for versuch in (1, 2):
+            e = claude_lauf.laufen("auswertung", HIER, text, art="anspruchsvoll", auftrag_id=f"{name}-{versuch}")
+            kosten[0] += e.usd
+            ablage.schreiben(LUECKEN / f"antwort-{name}-{versuch}.txt", e.text)
+            try:
+                daten = luecken.lesen(e.text, schluessel)
+                fehler = pruefen(daten)
+            except (ValueError, json.JSONDecodeError) as f:
+                fehler = [str(f)]
+            print(f"{name}, Versuch {versuch}: {e.usd:.2f} USD, {e.tokens} Tokens, {len(fehler)} Fehler", flush=True)
+            if not fehler:
+                return daten
+            text = anfang + "\n\nDeine letzte Antwort hatte diese Fehler, behebe sie:\n- " + \
+                "\n- ".join(fehler[:40]) + "\n\nDeine letzte Antwort:\n" + e.text
+        print("Auch nach der Nachbesserung fehlerhaft:", *fehler[:20], sep="\n- ")
+        return None
+
+    kosten = [0.0]
     chats = json.loads((LUECKEN / "eingabe.json").read_text(encoding="utf-8"))
-    text = luecken.prompt(chats)
-    gesamt_usd = 0.0
-    for versuch in (1, 2):
-        e = claude_lauf.laufen("auswertung", HIER, text, art="anspruchsvoll", auftrag_id=f"luecken-{versuch}")
-        gesamt_usd += e.usd
-        ablage.schreiben(LUECKEN / f"antwort-{versuch}.txt", e.text)
-        try:
-            daten = luecken.lesen(e.text)
-            fehler = luecken.pruefen(daten, chats)
-        except (ValueError, json.JSONDecodeError) as f:
-            fehler = [str(f)]
-        print(f"Versuch {versuch}: {e.usd:.2f} USD, {e.tokens} Tokens, {len(fehler)} Fehler")
-        if not fehler:
-            ablage.schreiben(LUECKEN / "ergebnis.json", json.dumps(daten, ensure_ascii=False, indent=1))
-            ablage.schreiben(LUECKEN / "bericht.md", luecken.bericht(daten, chats))
-            print(f"Fertig, {gesamt_usd:.2f} USD. Bericht: {LUECKEN / 'bericht.md'}")
-            return 0
-        text = luecken.prompt(chats) + "\n\nDeine letzte Antwort hatte diese Fehler, behebe sie:\n- " + \
-            "\n- ".join(fehler[:40]) + "\n\nDeine letzte Antwort:\n" + e.text
-    print("Auch nach der Nachbesserung fehlerhaft:", *fehler[:20], sep="\n- ")
-    return 1
+    aufgaben = []
+    for i, paket in enumerate(luecken.pakete(chats), 1):
+        datei = LUECKEN / f"paket-{i}.json"
+        if not datei.exists():
+            teil = lauf(f"paket-{i}", luecken.prompt(paket), "aufgaben", lambda d, p=paket: luecken.pruefen(d, p))
+            if teil is None:
+                return 1
+            ablage.schreiben(datei, json.dumps(teil, ensure_ascii=False, indent=1))
+        aufgaben += json.loads(datei.read_text(encoding="utf-8"))
+    liste = lauf("luecken", luecken.prompt_luecken(aufgaben, chats), "luecken",
+                 lambda d: luecken.pruefen_luecken(d, aufgaben))
+    if liste is None:
+        return 1
+    daten = {"aufgaben": aufgaben, "luecken": liste}
+    ablage.schreiben(LUECKEN / "ergebnis.json", json.dumps(daten, ensure_ascii=False, indent=1))
+    ablage.schreiben(LUECKEN / "bericht.md", luecken.bericht(daten, chats))
+    print(f"Fertig, {kosten[0]:.2f} USD in diesem Aufruf. Bericht: {LUECKEN / 'bericht.md'}")
+    return 0
 
 
 def filtern_befehl(projekt_uuids: list[str], liste: Path = ablage.DATEN / "chatliste.tsv", ziel: Path = LIA) -> int:
