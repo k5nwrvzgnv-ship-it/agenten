@@ -238,12 +238,10 @@ Hover, Animation und Abstände sind deshalb morgens von Jan einmal durchzuklicke
 
 ---
 
-## 5. Offene Fragen an Jan
+## 5. Entscheidungen Jan (10.11.2026 abends)
 
-1. **Gilt die Richtung später auch für die echte Web-App?** Modernist mit drei Spalten war deine Wahl vom
-   04.11., und es gibt dort einen Test, der die Schriftgrößen 12 bis 64 festhält. Vorschlag: erst nur die Skizze,
-   nach Lias Test entscheiden.
-2. **Rechte Spalte im Gespräch standardmäßig offen (schmal, wie geplant) oder zu, mit Knopf „An der Reihe“?**
-   Vorschlag: offen, weil Testaufgabe 1 die neue Reihenfrage dort zeigt.
-3. **Nachtlauf als Chat am Stück** (dein Rechner bleibt wach) **oder unbeaufsichtigt auf dem Server** (braucht
-   deine Freigabe)? Vorschlag: Chat am Stück.
+1. Erst nur die Skizze; die echte Web-App bleibt Modernist, Entscheidung nach Lias Test.
+2. Rechte Spalte im Gespräch standardmäßig offen, aber ein- und ausklappbar (Knopf im Gesprächskopf, Zustand
+   bleibt beim Wechsel zwischen Gesprächen).
+3. Nachtlauf als Chat am Stück, ohne weitere Freigaben; Jan schläft, der Chat entscheidet Kleinigkeiten selbst
+   und notiert sie in STATUS.
