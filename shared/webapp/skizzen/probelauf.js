@@ -106,7 +106,9 @@ function dichte(h) {
 }
 const messung = [];
 function messen(name) {
-  const d = dichte(wurzel() + schicht());
+  // ohne Seitenleiste: die zählt in jeder Ansicht gleich und verdeckt den Unterschied
+  const h = wurzel(); const a = h.indexOf('<nav class="baum"'); const ohneBaum = a < 0 ? h : h.slice(0, a) + h.slice(h.indexOf('</nav>', a) + 6);
+  const d = dichte(ohneBaum + schicht());
   messung.push([name, d.bedien, d.zeilen, d.woerter]);
 }
 

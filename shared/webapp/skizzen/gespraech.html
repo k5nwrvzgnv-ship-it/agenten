@@ -144,16 +144,17 @@ main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: col
 @media (hover: none) { .nur-hover { display: none !important } }
 
 /* Gespräch */
-.gespraech { max-width: 760px; width: 100%; display: flex; flex-direction: column; gap: 20px }
-.gkopf { display: flex; flex-direction: column; gap: 4px }
-.gkopf .z { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px }
-.gkopf .gname { font-size: 20px; font-weight: 600; flex: 1 1 auto; line-height: 1.3 }
+.gespraech { max-width: 760px; width: 100%; display: flex; flex-direction: column; gap: 24px }
+.gkopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px }
+.gkopf .gname { margin: 0; font-size: 20px; font-weight: 600; flex: 1 1 auto; line-height: 1.3 }
 .gkopf input { min-height: 32px; border: 1px solid var(--linie); border-radius: 6px; padding: 0 8px; font-size: 16px; font-weight: 500; flex: 1 1 220px; background: var(--bg) }
+.knopf-an { display: inline-flex; align-items: center; gap: 6px }
+.knopf-an .ic { width: 16px; height: 16px }
+.knopf-an[aria-expanded="true"] { background: var(--wahl); color: var(--fg) }
 .verlauf { display: flex; flex-direction: column; gap: 24px }
 .tag { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--sehrleise) }
 .tag::before, .tag::after { content: ""; flex: 1; border-top: 1px solid var(--linie) }
-.msg { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
-.msg .wer { font-size: 12px; color: var(--sehrleise) }
+.msg { display: flex; flex-direction: column; gap: 8px; min-width: 0 }
 .msg.du { align-items: flex-end }
 .msg.du .text { background: var(--flaeche); padding: 10px 14px; border-radius: 12px; max-width: 600px; white-space: pre-wrap }
 .antwort { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
@@ -164,45 +165,56 @@ main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: col
 .tabelle table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px }
 .tabelle th { text-align: left; font-size: 12px; font-weight: 500; color: var(--leise); border-bottom: 1px solid var(--linie); padding: 6px 12px 6px 0 }
 .tabelle td { border-bottom: 1px solid var(--linie); padding: 8px 12px 8px 0; vertical-align: top }
-.baustein { background: var(--flaeche); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px }
+.baustein { background: var(--flaeche); border-radius: 8px; padding: 12px 14px 6px; display: flex; flex-direction: column; gap: 4px }
 .baustein .bt { font-size: 16px; font-weight: 500; line-height: 1.5 }
+.baustein-fuss { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px }
+.baustein .art { font-size: 12px; color: var(--sehrleise) }
+.baustein .knoepfe { gap: 2px; margin-right: -8px }
 .foto { width: 220px; max-width: 100%; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; background: var(--bg) }
 .foto img, .foto svg { display: block; width: 100%; height: auto }
 .foto span { display: block; font-size: 12px; padding: 4px 8px; color: var(--leise) }
 .denkt { font-size: 14px; color: var(--leise) }
 
 .eingabe { border: 1px solid var(--linie); border-radius: 12px; box-shadow: 0 1px 4px rgba(15, 15, 15, .06); display: flex; flex-direction: column;
-  position: sticky; bottom: max(8px, env(safe-area-inset-bottom, 0px)); background: var(--bg) }
-.eingabe textarea { border: 0; resize: vertical; min-height: 72px; padding: 12px 14px 4px; background: transparent; border-radius: 12px; outline-offset: -2px }
+  position: sticky; bottom: max(8px, env(safe-area-inset-bottom, 0px)); background: var(--bg); z-index: 4 }
+.eingabe textarea { border: 0; resize: vertical; min-height: 72px; padding: 12px 14px 4px; background: transparent; border-radius: 12px; outline-offset: -2px; line-height: 1.5 }
 .eingabe .anh { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px }
 .eingabe .anh:empty { display: none }
-.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); border-radius: 6px; padding: 2px 4px 2px 2px; font-size: 12px; max-width: 100% }
-.chip img { width: 36px; height: 36px; object-fit: cover; display: block; border-radius: 4px }
-.chip button { border: 0; background: none; min-height: 28px; padding: 0 4px; color: var(--leise) }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); border-radius: 6px; padding: 2px 2px 2px 6px; font-size: 12px; max-width: 100% }
+.chip img { width: 36px; height: 36px; object-fit: cover; display: block; border-radius: 4px; margin-left: -4px }
+.chip button { border: 0; background: none; min-height: 28px; min-width: 28px; padding: 0 4px; color: var(--leise); border-radius: 4px }
+.chip button:hover { background: var(--hover); color: var(--fg) }
 .eingabe .leiste2 { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 6px 8px }
-.eingabe .links, .eingabe .rechts { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center }
-.eingabe label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--leise) }
-.kennt { font-size: 12px; color: var(--sehrleise); margin: 0 }
-.datei-knopf { position: relative; overflow: hidden }
-.datei-knopf input { position: absolute; inset: 0; opacity: 0; cursor: pointer }
+.eingabe .links, .eingabe .rechts { display: flex; flex-wrap: wrap; gap: 2px; align-items: center }
+.menue.oben { top: auto; bottom: calc(100% + 4px) }
+.menue .check { display: flex; gap: 8px; align-items: center; padding: 6px 10px; font-size: 14px; border-radius: 4px; cursor: pointer }
+.menue .check:hover { background: var(--hover) }
+.menue-datei { position: relative; overflow: hidden; padding: 6px 10px; border-radius: 4px; font-size: 14px; cursor: pointer; min-height: 32px; display: flex; align-items: center }
+.menue-datei:hover, .menue-datei:focus-within { background: var(--hover) }
+.menue-datei input { position: absolute; inset: 0; opacity: 0; cursor: pointer }
+.kennt { font-size: 12px; color: var(--sehrleise); margin: -12px 0 0 }
+.kennt p { margin: 2px 0 0 18px }
+.kennt-knopf { border: 0; background: none; color: var(--sehrleise); font-size: 12px; padding: 2px 6px; margin-left: -6px; border-radius: 4px; display: inline-flex; gap: 6px; align-items: baseline; text-align: left }
+.kennt-knopf:hover { background: var(--hover); color: var(--leise) }
+.kennt-knopf .pf { width: 12px }
 
 /* Rechte Spalte */
-aside.rechts { border-left: 1px solid var(--linie); padding: 16px 16px 32px; display: flex; flex-direction: column; gap: 24px; min-width: 0; font-size: 14px }
+aside.rechts { border-left: 1px solid var(--linie); padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 24px; min-width: 0; font-size: 14px;
+  position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto }
 aside.rechts h2.gross { margin: 0; font-size: 14px; font-weight: 600 }
+aside.rechts p { margin: 0 }
 aside .block { display: flex; flex-direction: column; gap: 4px }
-aside .block ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
-aside .block li { padding: 3px 0; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
-aside .block li small { font-size: 12px; color: var(--sehrleise) }
-aside .block li.unter { padding-left: 12px }
-aside .block li.gk { padding: 8px 0 2px; font-size: 12px; color: var(--sehrleise) }
-aside button.link { border: 0; background: none; padding: 0; text-align: left; color: var(--fg) }
-aside button.link:hover { text-decoration: underline; text-underline-offset: 3px }
-aside .block li[aria-current="true"] button.link { font-weight: 600 }
-aside .rf { font-size: 14px; font-weight: 500; margin: 0 }
-aside .kette { display: flex; flex-direction: column; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden }
-aside .kette div { padding: 4px 10px; font-size: 14px; display: flex; justify-content: space-between; gap: 8px }
-aside .kette div small { color: var(--sehrleise); font-size: 12px }
-aside .kette div.hier { background: var(--wahl); font-weight: 600 }
+aside .blocktitel { font-size: 12px; color: var(--leise) }
+aside .rf { font-size: 14px; font-weight: 500 }
+aside .rliste { display: flex; flex-direction: column; margin: 0 -6px }
+aside .rzeile { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 6px; border: 0; border-radius: 6px; background: none; text-align: left; color: var(--fg); font-size: 14px; width: 100% }
+aside .rzeile:hover { background: var(--hover) }
+aside .rzeile[aria-current="page"] { background: var(--wahl); font-weight: 600 }
+aside .rzeile .ic { flex: 0 0 16px; width: 16px; height: 16px; color: var(--sehrleise) }
+aside .rzeile .nm { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+aside .knopf-leise { margin-left: -8px }
+aside .darunter-knopf { margin-left: -6px; margin-right: 0; font-size: 12px; padding: 4px 6px }
+aside .darunter-liste { padding-left: 12px }
 
 /* Überlagerung */
 .schicht { position: fixed; inset: 0; background: rgba(15, 15, 15, .35); display: flex; justify-content: center; align-items: flex-start; padding: 64px 16px; overflow-y: auto; z-index: 20 }
@@ -284,16 +296,16 @@ const FOTO_BEISPIEL = '<svg viewBox="0 0 220 160" role="img" aria-label="Beispie
   '</g><rect x="150" y="104" width="56" height="30" fill="none" stroke="#c0392b" stroke-width="2"/></svg>';
 
 function baustein(art, text, reihenfrage) {
-  return '<div class="baustein"><span class="augenbraue">Baustein · ' + art + '</span><div class="bt">' + text + '</div><div class="knoepfe">' +
-    '<button type="button" class="knopf knopf-klein" data-akt="kopieren">Kopieren</button>' +
-    (reihenfrage ? '<button type="button" class="knopf knopf-klein" data-akt="reihenfrage">Als Reihenfrage übernehmen</button>' : '') + '</div></div>';
+  return '<div class="baustein"><div class="bt">' + text + '</div><div class="baustein-fuss"><span class="art">' + art + '</span><span class="knoepfe">' +
+    '<button type="button" class="knopf-leise" data-akt="kopieren">Kopieren</button>' +
+    (reihenfrage ? '<button type="button" class="knopf-leise" data-akt="reihenfrage">Als Reihenfrage übernehmen</button>' : '') + '</span></div></div>';
 }
 
 function frische() {
   return {
     seite: 'luecken', ebene: 'strafe', gespraech: null, band: '', vorher: null, umbenennen: false,
     anhang: [], entwurf: '', gruendlich: false, netz: false, schicht: null, ablegenDatei: '', heute: false,
-    klapp: {}, archiv: false, darunter: {}, menue: null,
+    klapp: {}, archiv: false, darunter: {}, menue: null, kennt: false, rechtsZu: false,
     reihenfrage: { strafe: '', helfen: 'Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?' },
     material: [
       { ort: 'e8', titel: 'Notentabelle Klasse 8 (ohne Namen)', stand: 'final' },
@@ -506,16 +518,15 @@ function ebenenAnsicht(k) {
 function nachricht(m) {
   if (m.wer === 'tag') return '<div class="tag">' + esc(m.text) + '</div>';
   if (m.wer === 'du') {
-    let fotos = m.foto === 'beispiel' ? '<div class="foto">' + FOTO_BEISPIEL + '<span>Foto: Planung.heic (Beispiel)</span></div>' : '';
+    let fotos = m.foto === 'beispiel' ? '<div class="foto">' + FOTO_BEISPIEL + '<span>Planung.heic (Beispiel)</span></div>' : '';
     (m.bilder || []).forEach((a) => { fotos += '<div class="foto">' + (a.url ? '<img src="' + a.url + '" alt="">' : '') + '<span>' + esc(a.name) + '</span></div>'; });
-    return '<div class="msg du"><span class="wer">Du · ' + esc(m.zeit) + '</span>' + (m.text ? '<div class="text">' + esc(m.text) + '</div>' : '') + fotos + '</div>';
+    return '<div class="msg du" title="' + esc(m.zeit) + '"><span class="sr">Du, ' + esc(m.zeit) + ':</span>' + (m.text ? '<div class="text">' + esc(m.text) + '</div>' : '') + fotos + '</div>';
   }
-  if (m.wer === 'denkt') return '<div class="msg"><span class="wer">Claude</span><span class="denkt" role="status">denkt nach … seit ' + esc(m.zeit) + '</span></div>';
-  return '<div class="msg"><span class="wer">Claude · ' + esc(m.zeit) + '</span><div class="antwort">' + m.html + '</div></div>';
+  if (m.wer === 'denkt') return '<div class="msg"><span class="denkt" role="status">Claude denkt nach …</span></div>';
+  return '<div class="msg" title="' + esc(m.zeit) + '"><span class="sr">Claude, ' + esc(m.zeit) + ':</span><div class="antwort">' + m.html + '</div></div>';
 }
 
 function kenntZeile(k) {
-  if (k === 'ohne') return 'Dieses Gespräch hängt an keiner Ebene. Es kennt nur deine Regeln.';
   const teile = kette(k).map((x) => {
     const t = [];
     if (E[x].reihenfrage && S.reihenfrage[x]) t.push('Reihenfrage');
@@ -523,62 +534,75 @@ function kenntZeile(k) {
     const m = mHier(x).length; if (m) t.push(m + ' Material');
     return E[x].kurz + (t.length ? ' (' + t.join(', ') + ')' : '');
   });
-  return 'Kennt: ' + teile.join(' › ') + '. Was darüber liegt, kennt es mit.';
+  return teile.join(' › ') + '. Was darüber liegt, kennt das Gespräch mit.';
+}
+function kennt(k) {
+  if (k === 'ohne') return '<p class="kennt">Kennt nur deine Regeln, keine Klasse und keine Reihe.</p>';
+  const n = kette(k).reduce((x, y) => x + mHier(y).length, 0);
+  return '<div class="kennt"><button type="button" class="kennt-knopf" data-akt="kennt" aria-expanded="' + S.kennt + '"><span class="pf">' + (S.kennt ? '▾' : '▸') + '</span>Kennt ' +
+    esc(E[k].typ + ' ' + E[k].kurz) + (reiheVon(k) && S.reihenfrage[reiheVon(k)] ? ', die Reihenfrage' : '') + (n ? ' und ' + n + ' Dateien' : '') + '</button>' +
+    (S.kennt ? '<p>' + esc(kenntZeile(k)) + '</p>' : '') + '</div>';
 }
 
 function gespraechAnsicht(id) {
   const g = S.gespraeche[id];
-  let kopf = '<div class="gkopf"><span class="augenbraue">Gespräch an ' + ebeneWort(g.ort) + (g.ort === 'ohne' ? '' : ' · ' + esc(E[g.ort].typ === 'Stunde' ? E[g.ort].name : E[g.ort].name)) + '</span><div class="z">';
-  if (S.umbenennen) kopf += '<label class="leise" for="gname">Name</label><input id="gname" value="' + esc(g.name) + '"><button type="button" class="knopf knopf-klein" data-akt="namespeichern">Speichern</button>';
-  else kopf += '<span class="gname">' + esc(g.name) + '</span><button type="button" class="knopf-leise" data-akt="umbenennen">Umbenennen</button>';
-  kopf += '<button type="button" class="knopf knopf-klein" data-akt="ebene" data-ziel="' + g.ort + '">‹ Zur ' + esc(g.ort === 'ohne' ? 'Liste' : E[g.ort].typ) + '</button></div></div>';
+  let kopf = '<div class="gkopf">';
+  if (S.umbenennen) kopf += '<label class="sr" for="gname">Name des Gesprächs</label><input id="gname" value="' + esc(g.name) + '"><button type="button" class="knopf knopf-klein" data-akt="namespeichern">Speichern</button><button type="button" class="knopf-leise" data-akt="nameabbrechen">Abbrechen</button>';
+  else kopf += '<h1 class="gname">' + esc(g.name) + '</h1>';
+  kopf += '<span class="knoepfe"><button type="button" class="knopf knopf-klein" data-akt="auftrag">Daraus Auftrag machen</button>' +
+    menue('gespraech', [['umbenennen', 'Umbenennen'], ['bisher', 'Was haben wir bisher?'], ['verschieben', g.ort === 'ohne' ? 'An eine Ebene hängen' : 'An andere Ebene hängen']]) +
+    '<button type="button" class="knopf-leise knopf-an" data-akt="rechts" aria-expanded="' + !S.rechtsZu + '" aria-controls="rechts" title="Rechte Spalte ein- oder ausblenden">' +
+    '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.2"/></svg>' +
+    (g.ort === 'ohne' ? 'Ohne Ort' : 'An ' + ebeneWort(g.ort)) + '</button></span></div>';
 
   const verlauf = '<div class="verlauf" id="verlauf">' + (g.msgs.length ? g.msgs.map(nachricht).join('') :
     '<p class="leise">Frag einfach los, so lang du willst. Das Gespräch hängt an ' + ebeneWort(g.ort) + (g.ort === 'ohne' ? '' : ' ' + esc(E[g.ort].kurz)) + '. Den Namen schlage ich nach deiner ersten Nachricht vor.</p>') + '</div>';
 
   const anh = S.anhang.map((a, i) => '<span class="chip">' + (a.url ? '<img src="' + a.url + '" alt="">' : '') + esc(a.name) +
-    '<button type="button" data-akt="anhangweg" data-i="' + i + '" aria-label="' + esc(a.name) + ' entfernen">weg</button></span>').join('');
+    '<button type="button" data-akt="anhangweg" data-i="' + i + '" aria-label="' + esc(a.name) + ' entfernen">×</button></span>').join('');
 
-  const eingabe = '<form class="eingabe" id="eingabe"><label for="text" class="leise" style="padding:10px 14px 0">Nachricht</label>' +
-    '<textarea id="text" placeholder="Schreib oder füge einen langen Text ein. Keine Namen von Schüler*innen.">' + esc(S.entwurf) + '</textarea>' +
+  const anhAuf = S.menue === 'anhang', optAuf = S.menue === 'optionen';
+  const eingabe = '<form class="eingabe" id="eingabe">' +
+    '<textarea id="text" aria-label="Nachricht" placeholder="Schreib oder füge einen langen Text ein. Keine Namen von Schüler*innen.">' + esc(S.entwurf) + '</textarea>' +
     '<div class="anh">' + anh + '</div><div class="leiste2"><div class="links">' +
-    '<span class="knopf knopf-klein datei-knopf">Foto oder Datei<input type="file" id="foto" accept="image/*,.heic,.pdf,.docx,.pptx" multiple aria-label="Foto oder Datei anhängen"></span>' +
-    '<button type="button" class="knopf-leise" data-akt="beispielfoto">Beispielfoto nehmen</button>' +
-    '<label class="check"><input type="checkbox" id="gruendlich"' + (S.gruendlich ? ' checked' : '') + '> gründlich</label>' +
-    '<label class="check"><input type="checkbox" id="netz"' + (S.netz ? ' checked' : '') + '> Im Netz nachsehen</label></div>' +
-    '<div class="rechts"><button type="button" class="knopf-leise" data-akt="bisher">Was haben wir bisher?</button>' +
-    '<button type="button" class="knopf knopf-klein" data-akt="auftrag">Daraus Auftrag machen</button>' +
-    '<button type="submit" class="knopf knopf-voll">Senden</button></div></div></form>' +
-    '<p class="kennt">' + esc(kenntZeile(g.ort)) + '</p>';
+    '<div class="menue-halter"><button type="button" class="knopf-leise" data-akt="menue" data-ziel="anhang" aria-haspopup="true" aria-expanded="' + anhAuf + '">+ Foto oder Datei</button>' +
+    (anhAuf ? '<div class="menue oben" role="menu"><label class="menue-datei" role="menuitem">Vom Rechner wählen …<input type="file" id="foto" accept="image/*,.heic,.pdf,.docx,.pptx" multiple aria-label="Foto oder Datei vom Rechner wählen"></label>' +
+      '<button type="button" role="menuitem" data-akt="beispielfoto">Beispielfoto nehmen</button></div>' : '') + '</div>' +
+    '<div class="menue-halter"><button type="button" class="knopf-leise" data-akt="menue" data-ziel="optionen" aria-haspopup="true" aria-expanded="' + optAuf + '">Optionen' +
+    (S.gruendlich || S.netz ? ' · ' + [S.gruendlich ? 'gründlich' : '', S.netz ? 'im Netz' : ''].filter(Boolean).join(', ') : '') + '</button>' +
+    (optAuf ? '<div class="menue oben" role="menu"><label class="check"><input type="checkbox" id="gruendlich"' + (S.gruendlich ? ' checked' : '') + '> gründlich (dauert länger)</label>' +
+      '<label class="check"><input type="checkbox" id="netz"' + (S.netz ? ' checked' : '') + '> Im Netz nachsehen</label></div>' : '') + '</div></div>' +
+    '<div class="rechts"><button type="submit" class="knopf knopf-voll">Senden</button></div></div></form>' + kennt(g.ort);
   return '<section class="gespraech" aria-label="Gespräch">' + kopf + verlauf + eingabe + '</section>';
 }
 
-// ---------- Rechte Spalte: An dieser Ebene ----------
+// ---------- Rechte Spalte: An dieser Ebene (ein- und ausklappbar) ----------
 function rechts(k) {
-  const e = E[k];
-  let h = '<aside class="rechts" aria-label="An dieser Ebene"><h2 class="gross">An ' + ebeneWort(k) + '</h2>';
-  if (k === 'ohne') return h + '<p class="leise" style="margin:0">Dieses Gespräch kennt keine Klasse, Reihe oder Stunde. Gehört es doch irgendwo hin, häng es dort an.</p><div><button type="button" class="knopf knopf-klein" data-akt="verschieben">An eine Ebene hängen</button></div>' + listeRechts('ohne') + '</aside>';
-  h += '<div class="block"><span class="augenbraue">Hängt an</span><div class="kette">' +
-    [{ t: fachVon(k), k: null }].concat(kette(k).map((x) => ({ t: E[x].typ + ': ' + (E[x].typ === 'Stunde' ? E[x].kurz : E[x].kurz), k: x }))).map((z) =>
-      '<div' + (z.k === k ? ' class="hier"' : '') + '><span>' + esc(z.t) + '</span>' + (z.k ? '<small>' + (zahlen(gHier(z.k).length, mHier(z.k).length) || '') + '</small>' : '') + '</div>').join('') +
-    '</div><div><button type="button" class="knopf-leise" data-akt="verschieben">An andere Ebene hängen</button></div></div>';
+  let h = '<aside class="rechts" id="rechts" aria-label="An dieser Ebene"><h2 class="gross">' + (k === 'ohne' ? 'Ohne Ort' : 'An ' + ebeneWort(k) + ' ' + esc(E[k].kurz)) + '</h2>';
+  if (k === 'ohne') return h + '<p class="leise">Dieses Gespräch kennt keine Klasse, Reihe oder Stunde. Gehört es doch irgendwo hin, häng es dort an.</p>' +
+    '<div><button type="button" class="knopf knopf-klein" data-akt="verschieben">An eine Ebene hängen</button></div>' + listeRechts('ohne') + '</aside>';
   const r = reiheVon(k);
-  if (r) h += '<div class="block"><span class="augenbraue">Reihenfrage' + (r !== k ? ' (aus der Reihe)' : '') + '</span><p class="rf">' + (S.reihenfrage[r] ? esc(S.reihenfrage[r]) : '<span class="leise">noch offen</span>') + '</p></div>';
+  if (r) h += '<div class="block"><span class="blocktitel">Reihenfrage' + (r !== k ? ' aus der Reihe' : '') + '</span><p class="rf">' + (S.reihenfrage[r] ? esc(S.reihenfrage[r]) : '<span class="leise">noch offen</span>') + '</p></div>';
+  h += '<div class="block"><span class="blocktitel">Material</span><div class="rliste">' +
+    (mHier(k).map((m) => '<button type="button" class="rzeile" data-akt="vorschau" data-m="' + S.material.indexOf(m) + '">' + ICON_D + '<span class="nm">' + esc(m.titel) + '</span>' +
+      (m.rot ? '<span class="punkt-rot" title="wartet auf dich"></span><span class="sr">wartet auf dich</span>' : '') + '</button>').join('') || '<p class="leer">noch keins</p>') +
+    '</div><div><button type="button" class="knopf-leise" data-akt="ablegen">+ Datei ablegen</button></div></div>';
   h += listeRechts(k);
-  h += '<div class="block"><span class="augenbraue">Material an ' + ebeneWort(k) + '</span><ul>' +
-    (mHier(k).map((m) => '<li><span>' + esc(m.titel) + '</span><small' + (m.rot ? ' class="rot"' : '') + '>' + esc(m.stand.split(' · ').pop()) + '</small></li>').join('') || '<li><small>noch keins</small></li>') +
-    '</ul><div class="knoepfe"><button type="button" class="knopf knopf-klein" data-akt="ablegen">+ Datei ablegen</button><button type="button" class="knopf-leise" data-akt="ebene" data-ziel="' + k + '">Alles an ' + ebeneWort(k) + '</button></div>' +
-    '<small class="leise">Gespräche hier kennen dieses Material und das darüber. Keine Schülerdaten.</small></div>';
   return h + '</aside>';
 }
 function listeRechts(k) {
-  let li = gHier(k).map((i) => '<li' + (S.gespraech === i ? ' aria-current="true"' : '') + '><button type="button" class="link" data-akt="oeffnen" data-id="' + i + '">' + esc(S.gespraeche[i].name) + '</button><small>' + esc(S.gespraeche[i].zuletzt.split(' ')[0]) + '</small></li>').join('');
-  if (k !== 'ohne') unter(k).forEach((d) => {
-    const ids = gHier(d); if (!ids.length) return;
-    li += '<li class="gk">darunter: ' + esc(relName(d, k)) + '</li>' + ids.map((i) => '<li class="unter"><button type="button" class="link" data-akt="oeffnen" data-id="' + i + '">' + esc(S.gespraeche[i].name) + '</button><small>' + esc(S.gespraeche[i].zuletzt.split(' ')[0]) + '</small></li>').join('');
-  });
-  return '<div class="block"><span class="augenbraue">Gespräche an ' + ebeneWort(k) + '</span><ul>' + (li || '<li><small>noch keins</small></li>') + '</ul>' +
-    '<div><button type="button" class="knopf knopf-klein" data-akt="neu">+ Gespräch an ' + ebeneWort(k) + '</button></div></div>';
+  const zeile = (i) => '<button type="button" class="rzeile" data-akt="oeffnen" data-id="' + i + '"' + (S.gespraech === i ? ' aria-current="page"' : '') + '>' + ICON_G + '<span class="nm">' + esc(S.gespraeche[i].name) + '</span></button>';
+  let h = '<div class="block"><span class="blocktitel">Gespräche</span><div class="rliste">' + (gHier(k).map(zeile).join('') || '<p class="leer">noch keins</p>') + '</div>';
+  if (k !== 'ohne') {
+    const gruppen = unter(k).map((d) => [d, gHier(d)]).filter((x) => x[1].length);
+    const n = gruppen.reduce((x, y) => x + y[1].length, 0);
+    const schl = k + ':rg'; const auf = !!S.darunter[schl];
+    if (n) {
+      h += '<button type="button" class="darunter-knopf" data-akt="darunter" data-ziel="' + schl + '" aria-expanded="' + auf + '"><span class="pf">' + (auf ? '▾' : '▸') + '</span>' + n + ' darunter</button>';
+      if (auf) h += '<div class="darunter-liste">' + gruppen.map((x) => '<div class="gruppe"><button type="button" data-akt="ebene" data-ziel="' + x[0] + '">' + esc(relName(x[0], k)) + '</button></div><div class="rliste">' + x[1].map(zeile).join('') + '</div>').join('') + '</div>';
+    }
+  }
+  return h + '<div><button type="button" class="knopf-leise" data-akt="neu">+ Gespräch</button></div></div>';
 }
 
 function heute() {
@@ -597,7 +621,7 @@ function seiteSkizze() {
   const k = S.ebene;
   let mitte, rechtsSp = '';
   if (S.heute) mitte = heute();
-  else if (S.gespraech) { mitte = gespraechAnsicht(S.gespraech); rechtsSp = rechts(k); }
+  else if (S.gespraech) { mitte = gespraechAnsicht(S.gespraech); rechtsSp = S.rechtsZu ? '' : rechts(k); }
   else mitte = ebenenAnsicht(k);
   return '<div class="app' + (rechtsSp ? '' : ' ohne-rechts') + '">' + baum() + '<main>' + krumen(k) + band() + mitte + '</main>' + rechtsSp + '</div>';
 }
@@ -744,7 +768,7 @@ function anhaengen(dateien) {
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-akt]');
-  if (!el) { if (S.menue) { speichernEntwurf(); S.menue = null; zeichnen(); } return; }
+  if (!el) { if (S.menue && !e.target.closest('.menue')) { speichernEntwurf(); S.menue = null; zeichnen(); } return; }
   const a = el.dataset.akt;
   if (a !== 'menue') S.menue = null;
   if (a === 'hintergrund') { if (e.target === el) { S.schicht = null; schicht(); } return; }
@@ -757,6 +781,9 @@ document.addEventListener('click', (e) => {
       { const erstes = document.querySelector('.menue [role="menuitem"]'); if (erstes && S.menue) erstes.focus(); } return;
     case 'darunter': { speichernEntwurf(); const b = el.getAttribute('aria-expanded') === 'true'; S.darunter[el.dataset.ziel] = !b; zeichnen(); fokusZurueck(el); return; }
     case 'vorschau': S.band = 'Die Vorschau von „' + esc(S.material[Number(el.dataset.m)].titel) + '“ kommt im nächsten Schritt.'; break;
+    case 'kennt': speichernEntwurf(); S.kennt = !S.kennt; zeichnen(); fokusZurueck(el); return;
+    case 'rechts': speichernEntwurf(); S.rechtsZu = !S.rechtsZu; zeichnen(); fokusZurueck(el); return;
+    case 'nameabbrechen': S.umbenennen = false; break;
     case 'archiv': speichernEntwurf(); S.archiv = !S.archiv; zeichnen(); fokusZurueck(el); return;
     case 'neu': {
       speichernEntwurf();
@@ -777,7 +804,7 @@ document.addEventListener('click', (e) => {
     }
     case 'rueckgaengig': if (S.vorher) S.reihenfrage[S.vorher.r] = S.vorher.alt; S.vorher = null; S.band = 'Zurückgenommen: Reihenfrage wie vorher.'; break;
     case 'bandzu': S.band = ''; break;
-    case 'beispielfoto': speichernEntwurf(); S.anhang.push({ name: 'Planung.heic (Beispiel)', beispiel: true }); break;
+    case 'beispielfoto': speichernEntwurf(); { const t = $('#text'); if (t) setTimeout(() => { const n = $('#text'); if (n) n.focus(); }, 0); } S.anhang.push({ name: 'Planung.heic (Beispiel)', beispiel: true }); break;
     case 'anhangweg': speichernEntwurf(); S.anhang.splice(Number(el.dataset.i), 1); break;
     case 'bisher': {
       speichernEntwurf();
@@ -811,14 +838,14 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('change', (e) => {
-  if (e.target.id === 'foto') anhaengen(e.target.files);
-  else if (e.target.id === 'gruendlich') S.gruendlich = e.target.checked;
-  else if (e.target.id === 'netz') S.netz = e.target.checked;
+  if (e.target.id === 'foto') { S.menue = null; anhaengen(e.target.files); }
+  else if (e.target.id === 'gruendlich') { S.gruendlich = e.target.checked; speichernEntwurf(); zeichnen(); const c = $('#gruendlich'); if (c) c.focus(); }
+  else if (e.target.id === 'netz') { S.netz = e.target.checked; speichernEntwurf(); zeichnen(); const c = $('#netz'); if (c) c.focus(); }
   else if (e.target.id === 'ablegedatei' && e.target.files[0]) { S.ablegenDatei = e.target.files[0].name; schicht(); }
 });
 document.addEventListener('submit', (e) => { if (e.target.id === 'eingabe') { e.preventDefault(); senden(); } });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && S.menue) { S.menue = null; zeichnen(); const k = document.querySelector('.knopf-menue'); if (k) k.focus(); return; }
+  if (e.key === 'Escape' && S.menue) { const m = S.menue; speichernEntwurf(); S.menue = null; zeichnen(); const k = document.querySelector('[data-akt="menue"][data-ziel="' + m + '"]'); if (k) k.focus(); return; }
   if (e.key === 'Escape' && S.schicht) { S.schicht = null; schicht(); }
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.id === 'text') { e.preventDefault(); senden(); }
 });
