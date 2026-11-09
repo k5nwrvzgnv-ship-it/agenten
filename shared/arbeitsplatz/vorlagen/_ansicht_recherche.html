@@ -1,0 +1,58 @@
+{#- Recherche mit geprüften Belegen (aus uni/portal/projekt_recherche.html). eigen: ansichten.recherche() -#}
+<section class="eigen">
+  <h2>Recherche</h2>
+  {%- if eigen.leer %}
+  <p class="leer">Keine geprüfte Recherche gefunden.</p>
+  {%- else %}
+  <nav class="varianten" aria-label="Ansicht">
+    {%- for id, titel in eigen.ansichten.items() %}
+    <a class="variante{% if eigen.ansicht == id %} variante-hier{% endif %}" href="/dokument/{{ u }}?ansicht={{ id }}#recherche">{{ titel }}</a>
+    {%- endfor %}
+  </nav>
+  {%- set inhalt = eigen.inhalt %}
+  {%- if eigen.ansicht == "aussagen" %}
+  <nav class="varianten" aria-label="Status" id="recherche">
+    <a class="variante{% if not inhalt.status %} variante-hier{% endif %}" href="/dokument/{{ u }}?ansicht=aussagen{% if inhalt.frage %}&amp;frage={{ inhalt.frage }}{% endif %}#recherche">alle</a>
+    {%- for id, titel in eigen.status_namen.items() %}
+    <a class="variante{% if inhalt.status == id %} variante-hier{% endif %}" href="/dokument/{{ u }}?ansicht=aussagen&amp;status={{ id }}{% if inhalt.frage %}&amp;frage={{ inhalt.frage }}{% endif %}#recherche">{{ titel }} ({{ eigen.zahlen[id] }})</a>
+    {%- endfor %}
+  </nav>
+  {%- if inhalt.frage %}<p class="absatz"><a href="/dokument/{{ u }}?ansicht=aussagen{% if inhalt.status %}&amp;status={{ inhalt.status }}{% endif %}#recherche">Alle Fragen zeigen</a></p>{% endif %}
+  <p class="unter">{{ inhalt.anzahl }} Aussagen</p>
+  {%- for g in inhalt.gruppen %}
+  <h3>{% if g.id %}{{ g.id }}: {% endif %}{{ g.frage }}</h3>
+  {%- if g.id and not inhalt.frage %}<p class="unter"><a href="/dokument/{{ u }}?ansicht=aussagen&amp;frage={{ g.id }}{% if inhalt.status %}&amp;status={{ inhalt.status }}{% endif %}#recherche">Nur diese Frage</a> · {{ g.gesamt }} Aussagen insgesamt</p>{% endif %}
+  {%- for o in g.offen %}<p class="hinweis">Offen: {{ o }}</p>{% endfor %}
+  <ul>
+    {%- for a in g.aussagen %}
+    <li><details><summary class="aussage"><span>{{ a.text }}</span> <span class="marke status-{{ a.status }}">{{ a.status_text }}</span></summary>
+      {%- if a.fehlt %}<p class="absatz"><strong>Fehlt:</strong> {{ a.fehlt }}</p>{% endif %}
+      {%- for b in a.belege %}
+      {%- if b.zitat %}<blockquote class="zitat{% if not b.bestanden %} zitat-falsch{% endif %}">{{ b.zitat }}</blockquote>{% endif %}
+      <p class="unter">{% if b.link %}<a href="{{ b.link }}" rel="noopener noreferrer">{{ b.url }}</a>{% elif b.datei %}{{ b.datei }}{% if b.seite %}, Seite {{ b.seite }}{% endif %}{% else %}{{ b.url }}{% endif %}{% if b.vermerk %} · {{ b.vermerk }}{% endif %}</p>
+      {%- else %}<p class="unter">Ohne Beleg.</p>{% endfor %}
+    </details></li>
+    {%- else %}<li><span class="unter">Keine Aussage mit diesem Status.</span></li>{% endfor %}
+  </ul>
+  {%- endfor %}
+  {%- elif eigen.ansicht == "quellen" %}
+  <ul id="recherche">
+    {%- for q in inhalt %}
+    <li class="rueck"><span class="titel">{% if q.link %}<a href="{{ q.link }}" rel="noopener noreferrer">{{ q.titel }}</a>{% else %}{{ q.titel }}{% endif %}</span><br>
+      <span class="unter">{{ q.autoren }}{% if q.jahr %} ({{ q.jahr }}){% endif %}{% if q.doi_link %} · DOI <a href="{{ q.doi_link }}" rel="noopener noreferrer">{{ q.doi }}</a>{% endif %} · {% if q.zitierfaehig %}zitierfähig{% else %}nicht zitierfähig{% endif %}{% if q.vermerk %} · {{ q.vermerk }}{% endif %}</span></li>
+    {%- endfor %}
+  </ul>
+  {%- elif eigen.ansicht == "luecken" %}
+  <h3 id="recherche">Widersprüche ({{ inhalt.widersprueche | length }})</h3>
+  <ul>{% for w in inhalt.widersprueche %}<li class="rueck">{{ w.worum }} <span class="unter">{{ w.ids | join(", ") }}</span></li>{% endfor %}</ul>
+  <h3>Lücken ({{ inhalt.luecken | length }})</h3>
+  <ul>{% for l in inhalt.luecken %}<li class="rueck">{{ l }}</li>{% endfor %}</ul>
+  {%- else %}
+  <h3 id="recherche">Literatursuche{% if inhalt.datenbank %}: {{ inhalt.datenbank }}{% endif %}</h3>
+  {%- if inhalt.suchen %}
+  <p class="unter">{% if inhalt.datum %}Stand {{ inhalt.datum }}{% endif %}{% if inhalt.arbeiten %} · {{ inhalt.arbeiten }} Arbeiten ohne Doppelte{% endif %}</p>
+  <ul>{% for s in inhalt.suchen %}<li class="rueck"><span class="titel">{{ s.nr }}: {{ s.titel }}</span><br><code>{{ s.suchstring }}</code></li>{% endfor %}</ul>
+  {%- else %}<p class="leer">Keine Literatursuche hinterlegt.</p>{% endif %}
+  {%- endif %}
+  {%- endif %}
+</section>

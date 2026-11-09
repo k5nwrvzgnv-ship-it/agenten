@@ -1,0 +1,40 @@
+{#- Ergebnis einer mündlichen Übung (aus uni/portal/uebung.html), nur lesend. eigen: ansichten.pruefung() -#}
+<section class="eigen">
+  <h2>Auswertung</h2>
+  {%- if eigen.leer %}
+  <p class="leer">Noch keine Auswertung. <a href="{{ eigen.link }}" rel="noopener">Im Portal ansehen</a></p>
+  {%- else %}
+  {%- if eigen.gesamt %}<p class="absatz">{{ eigen.gesamt }}</p>{% endif %}
+  <h3>Bewertung je Rubrikpunkt</h3>
+  <ul>
+    {%- for p in eigen.punkte %}
+    <li class="rueck"><span class="titel">{{ p.titel }}{% if p.teil %} <span class="unter">({{ p.teil }})</span>{% endif %}</span>
+      <span class="marke">{{ p.stufe_text or p.stufe }}</span>
+      <p class="absatz">{{ p.begruendung }}</p>
+      {%- for z in p.zitate or [] %}<blockquote class="zitat{% if not z.belegt %} zitat-falsch{% endif %}">„{{ z.text }}“{% if not z.belegt %} <span class="unter">(nicht im Transkript gefunden)</span>{% endif %}</blockquote>{% endfor %}
+    </li>
+    {%- endfor %}
+  </ul>
+  <h3>Lücken je Thema</h3>
+  {%- if eigen.luecken %}
+  <ul>
+    {%- for g in eigen.luecken %}
+    <li class="rueck"><span class="titel">{{ g.titel }}</span> <span class="unter">Score {{ g.score }}</span>
+      {%- for l in g.eintraege %}<p class="absatz">{{ l.was }}</p>{% if l.zitat %}<blockquote class="zitat">„{{ l.zitat }}“</blockquote>{% endif %}{% endfor %}</li>
+    {%- endfor %}
+  </ul>
+  {%- else %}<p class="leer">Keine Lücken genannt.</p>{% endif %}
+  <h3>Vorgeschlagene Karten</h3>
+  <ul>
+    {%- for v in eigen.neu %}
+    <li class="rueck"><span class="titel">{{ v.frage }}</span> <span class="marke">{{ "übernommen" if v.uebernommen else "neu" }}</span>
+      <p class="unter">{{ v.titel }}</p><p class="absatz auftrag-text">{{ v.antwort }}</p></li>
+    {%- endfor %}
+    {%- for v in eigen.faellig %}
+    <li class="rueck"><span class="titel">{{ v.frage }}</span> <span class="marke">{{ "vorgemerkt" if v.uebernommen else "wiederholen" }}</span></li>
+    {%- endfor %}
+    {%- if not eigen.neu and not eigen.faellig %}<li><span class="unter">Keine Vorschläge.</span></li>{% endif %}
+  </ul>
+  {%- endif %}
+  <p><a class="knopf" href="{{ eigen.link }}" rel="noopener">{% if eigen.offen %}{{ eigen.offen }} Karten im Portal übernehmen{% else %}Im Portal öffnen{% endif %}</a></p>
+</section>

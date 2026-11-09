@@ -30,3 +30,8 @@
 .punkte li { border: 0; }
 .rueck { padding: 10px 0; }
 .zeile-kosten .marke { font-size: 13px; }
+.md-kopf { margin: 18px 0 6px; }
+.md .punkte { margin: 6px 0; }
+.eigen h3 { margin: 18px 0 6px; font-size: 16px; }
+.aussage { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; cursor: pointer; }
+.zitat-falsch { color: var(--grau); text-decoration: line-through; }

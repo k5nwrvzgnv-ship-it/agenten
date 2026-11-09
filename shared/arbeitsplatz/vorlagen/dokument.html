@@ -1,4 +1,5 @@
 {% extends "basis.html" %}
+{% from "_markdown.html" import bloecke %}
 {#- Dokument-Ansicht: oben die finale (sonst neueste fertige) Fassung mit Seitenbildern, PDF und Original; darunter
     Rückmeldung, eigene Fassung, alle Fassungen aufklappbar mit „final“ und die Rückmeldungen. -#}
 {%- macro dateiliste(f) -%}
@@ -45,9 +46,18 @@
     {%- endfor %}
   </div>
   {%- endfor %}
+  {%- if md %}{{ bloecke(md) }}{% endif %}
 </section>
 {%- elif not d.laeuft %}
 <p class="leer">Noch keine fertige Fassung.</p>
+{%- endif %}
+
+{%- if eigen and eigen.name == "recherche" %}{% include "_ansicht_recherche.html" %}
+{%- elif eigen and eigen.name == "pruefung" %}{% include "_ansicht_pruefung.html" %}
+{%- elif eigen and eigen.name == "karten" %}
+<section class="eigen"><h2>Karten</h2>
+  <p class="absatz">Die Karten liegen im Modul. Üben geht vorerst im Portal.</p>
+  <p><a class="knopf knopf-voll" href="{{ eigen.link }}" rel="noopener">Karten üben</a></p></section>
 {%- endif %}
 
 <section class="aktionen">

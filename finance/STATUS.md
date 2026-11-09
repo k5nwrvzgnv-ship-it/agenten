@@ -18,6 +18,13 @@ Bewertung, höchstens drei Anlagethesen). Keine Käufe, keine Entwürfe nach au�
   geprüften Schritten und gehen mit dem Ergebnis an Jan.
 - 74 Tests grün, pruefen.sh testet finance mit .venv/bin/python.
 
+## Aufträge aus dem Arbeitsplatz (09.11.2026 nachts, Sitzung A zu docs/arbeitsplatz-plan.md)
+- Auftrag mit `art` (shared/arbeitsplatz/arten.toml): wirtschaftlichkeit -> Variante markt, anlage -> Variante aktien,
+  Thema aus `felder["Thema"]`; der Text wird dann nicht gedeutet (schritte.variante_aus_auftrag). Ohne `art`
+  (Telegram /finance) wie bisher über variante_aus_text. Auftrag mit art ohne Thema: fehlgeschlagen ohne Lauf.
+- Ergebnis trägt `daten = {"titel": "Wirtschaftlichkeit: <Thema>"}` bzw. "Anlagemöglichkeiten: <Thema>" (Name im
+  Arbeitsplatz). Ohne `kern` zeigt Telegram weiter den Ergebnistext. Kein echter Lauf aus dem Arbeitsplatz bisher.
+
 ## Variante aktien (gebaut 09.11.2026, Jan: "Erst Agent erweitern", "Ja, so bauen")
 - Auslöser: Auftragstext beginnt mit "aktien:" (auch aktie/invest/investment/anlage), schritte.variante_aus_text.
   Ohne Präfix wie bisher MARKT. Die Zentrale bleibt unverändert.

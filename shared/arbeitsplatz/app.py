@@ -22,6 +22,7 @@ Start: .venv/bin/python app.py   (Unix-Socket data/arbeitsplatz.sock, änderbar 
 Instanz: ARBEITSPLATZ_INSTANZ (Standard: Jans shared-Ordner); orte.json, auftraege/, fassungen/ liegen dort.
 """
 
+import json
 import logging
 import os
 import re
@@ -47,6 +48,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from agentkit import _ablage, arten, auftraege, config, fassungen, orte, verbrauch
 
+import ansichten
 import dateien
 import logik
 
@@ -581,9 +583,12 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
     ort = kette[0].get("ort") if any(k["id"] == kette[0].get("ort") for k in baum) else None
     titel = logik.titel_von(kette, namen)
     marke, rot = logik.marke_von(kette, _stand(ursprung).get("final"))
+    d = _ansicht(kette, rueck)
+    art = arten.finden(arten_laden(), kette[0].get("art") or "")
     return seite(request, "dokument.html", {
         "e": {"titel": titel}, "art": namen.get(kette[0].get("art") or "", ""), "marke": marke, "rot": rot,
-        "d": _ansicht(kette, rueck), "u": ursprung, "offen": offen, "fehler": fehler or [], "text": text,
+        "d": d, "u": ursprung, "eigen": eigene_ansicht(request, kette, art, d["haupt"]),
+        "md": markdown_von(kette, d["haupt"]), "offen": offen, "fehler": fehler or [], "text": text,
         "eigene_endungen": ",".join(sorted(dateien.EIGENE_ENDUNGEN)),
         "rueck_endungen": ",".join(sorted(dateien.RUECK_ENDUNGEN)),
         **rahmen(baum, ort, logik.krumen(baum, ort, titel), f"/neu?ort={quote(ort)}" if ort else "/neu")}, status)
@@ -592,6 +597,75 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
 @app.get("/dokument/{ursprung}", response_class=HTMLResponse)
 def seite_dokument(request: Request, ursprung: str):
     return _dokument_seite(request, ursprung, request.query_params.get("offen") or "")
+
+
+MAX_JSON = 20 * 2**20  # größere Dateien liest die Ansicht nicht
+
+
+def _json(wurzel: Path, relativ: str, leer):
+    """JSON-Datei im Agent-Ordner (geprüft wie Downloads), sonst leer."""
+    pfad = dateien.sicher(wurzel, relativ, {".json"})
+    if pfad is None or pfad.stat().st_size > MAX_JSON:
+        return leer
+    try:
+        daten = json.loads(pfad.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as f:
+        logger.warning("%s nicht lesbar: %s", relativ, f)
+        return leer
+    return daten if isinstance(daten, type(leer)) else leer
+
+
+def eigene_ansicht(request: Request, kette: list[dict], art: dict | None, haupt: dict | None) -> dict | None:
+    """Abschnitt der eigenen Ansicht einer Art (recherche, pruefung, karten) aus daten.ansicht der neuesten fertigen
+    Fassung, die eine hat. None: keine eigene Ansicht oder nichts zu zeigen."""
+    name = (art or {}).get("ansicht") or ""
+    if name not in ("recherche", "pruefung", "karten"):
+        return None
+    wurzel = dateien.agent_ordner(INSTANZ, kette[0].get("agent"))
+    angabe = next(((a.get("daten") or {}).get("ansicht") for a in reversed(kette)
+                   if a.get("status") == "erledigt" and (a.get("daten") or {}).get("ansicht")), None)
+    if wurzel is None or angabe is None:
+        return None
+    q = request.query_params
+    if name == "recherche":
+        ordner = ansichten.recherche_ordner(angabe)
+        geprueft = _json(wurzel, f"{ordner}/geprueft.json", {}) if ordner else {}
+        if not geprueft:
+            return {"name": name, "leer": True}
+        return {"name": name, **ansichten.recherche(geprueft, q.get("ansicht"), q.get("status"), q.get("frage"))}
+    mu = ansichten.modul_und_uebung(angabe)
+    if mu is None:
+        return None
+    modul, uebung = mu
+    if name == "karten" or uebung is None:
+        return {"name": "karten", "modul": modul, "link": ansichten.portal_link(modul)}
+    basis_ = f"data/lernen/{modul}"
+    auswertung = _json(wurzel, f"{basis_}/uebungen/{uebung}/auswertung.json", {})
+    if not auswertung:
+        return {"name": name, "leer": True, "link": ansichten.portal_link(modul, uebung)}
+    return {"name": name, "link": ansichten.portal_link(modul, uebung), **ansichten.pruefung(
+        auswertung, _json(wurzel, f"{basis_}/uebungen/{uebung}/kartenstand.json", {}),
+        _json(wurzel, f"{basis_}/pruefungsplan.json", {}), _json(wurzel, f"{basis_}/karten.json", []))}
+
+
+MAX_MD = 2 * 2**20
+
+
+def markdown_von(kette: list[dict], haupt: dict | None) -> list[dict]:
+    """Inhalt der ersten .md-Datei der Hauptfassung als Blöcke (Recherchebericht von uni), sonst []."""
+    if not haupt or haupt["art"] != "agent":
+        return []
+    a = next((a for a in kette if a["id"] == haupt["ref"]), None)
+    wurzel = dateien.agent_ordner(INSTANZ, (a or {}).get("agent"))
+    for rel in (a or {}).get("ergebnis_dateien") or []:
+        if rel.lower().endswith(".md") and wurzel is not None:
+            pfad = dateien.sicher(wurzel, rel, {".md"})
+            if pfad is not None and pfad.stat().st_size <= MAX_MD:
+                try:
+                    return ansichten.markdown_bloecke(pfad.read_text(encoding="utf-8"))
+                except (OSError, UnicodeDecodeError) as f:
+                    logger.warning("%s nicht lesbar: %s", rel, f)
+    return []
 
 
 def _ergebnisdatei(ursprung: str, auftrag_id: str, nr: int) -> tuple[Path, str]:

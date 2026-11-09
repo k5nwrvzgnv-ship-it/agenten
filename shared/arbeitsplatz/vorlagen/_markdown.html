@@ -1,0 +1,11 @@
+{#- Markdown-Blöcke (ansichten.markdown_bloecke), Text wird maskiert. -#}
+{%- macro inline(teile) %}{% for t in teile %}{% if t.fett %}<strong>{{ t.text }}</strong>{% else %}{{ t.text }}{% endif %}{% endfor %}{% endmacro -%}
+{%- macro bloecke(md) -%}
+<div class="md">
+{%- for b in md %}
+{%- if b.art == "kopf" %}<h{{ b.ebene }} class="md-kopf">{{ b.text }}</h{{ b.ebene }}>
+{%- elif b.art == "punkte" %}<ul class="punkte">{% for p in b.punkte %}<li>{{ inline(p) }}</li>{% endfor %}</ul>
+{%- else %}<p class="absatz">{{ inline(b.teile) }}</p>{% endif %}
+{%- endfor %}
+</div>
+{%- endmacro -%}

@@ -410,3 +410,81 @@ class TestDokument(Aufbau):
         self.assertEqual(self.gestartet, [["systemctl", "--user", "start", "--no-block", "feedback.service"]])
         self.assertIn("Bitte kürzer", self.get(f"/dokument/{self.U}")[1])
         self.assertEqual(self.post(f"/dokument/{self.NB}/rueckmeldung", {"text": "x"})[0], 404)
+
+
+class TestEigeneAnsichten(Aufbau):
+    R = "20261109-120000-uni-cccccc"
+    P = "20261109-130000-uni-dddddd"
+    UE = "20261109-130000-abcdef"
+
+    def setUp(self):
+        super().setUp()
+        (self.tmp / "arten.toml").write_text(ARTEN + """
+[[art]]
+kennung = "recherche"
+name = "Research-Bericht"
+beschreibung = "x"
+agent = "uni"
+aktiv = true
+ansicht = "recherche"
+rueckmeldung = false
+
+[[art]]
+kennung = "pruefung2"
+name = "Prüfung"
+beschreibung = "x"
+agent = "uni"
+aktiv = true
+ansicht = "pruefung"
+rueckmeldung = false
+""", encoding="utf-8")
+        uni = self.tmp / "uni"
+        r = uni / "data" / "recherchen" / self.R / "recherche"
+        r.mkdir(parents=True)
+        (r / "geprueft.json").write_text(json.dumps({"fragen": [{"id": "F1", "frage": "Wirkt <Borsalz>?"}],
+                                                     "aussagen": [{"id": "A1", "frage": "F1", "text": "Ja",
+                                                                   "status": "gesichert"}]}), encoding="utf-8")
+        (r.parent / "Recherchebericht.md").write_text("# Bericht\n\nBorsalz **wirkt**.\n", encoding="utf-8")
+        m = uni / "data" / "lernen" / "holzschutz"
+        (m / "uebungen" / self.UE).mkdir(parents=True)
+        (m / "uebungen" / self.UE / "auswertung.json").write_text(json.dumps(
+            {"gesamt": "Solide", "punkte": [{"titel": "Fachwissen", "stufe": "teilweise", "stufe_text": "teilweise",
+                                             "begruendung": "fehlt etwas"}],
+             "karten_neu": [{"thema": "t1", "frage": "Was ist Borsalz?", "antwort": "Salz"}]}), encoding="utf-8")
+        (m / "pruefungsplan.json").write_text(json.dumps({"themen": [{"id": "t1", "titel": "Salze"}]}))
+        (m / "karten.json").write_text("[]")
+        erledigt = self.instanz / "auftraege" / "erledigt"
+        erledigt.mkdir(parents=True)
+        for a in ({"id": self.R, "art": "recherche", "ergebnis_dateien": [f"data/recherchen/{self.R}/Recherchebericht.md"],
+                   "daten": {"titel": "Borsalz", "ansicht": {"recherche": f"data/recherchen/{self.R}/recherche"}}},
+                  {"id": self.P, "art": "pruefung2", "ergebnis_dateien": [],
+                   "daten": {"titel": "Übung", "ansicht": {"modul": "holzschutz", "uebung": self.UE}}}):
+            a.update({"agent": "uni", "status": "erledigt", "text": "x", "erstellt": "2026-11-09T12:00:00+01:00",
+                      "abgeschlossen": "2026-11-09T12:30:00+01:00", "ergebnis": "fertig"})
+            (erledigt / f"{a['id']}.json").write_text(json.dumps(a), encoding="utf-8")
+
+    def test_recherche(self):
+        status, html, _ = self.get(f"/dokument/{self.R}")
+        self.assertEqual(status, 200)
+        self.assertIn("Wirkt &lt;Borsalz&gt;?", html)
+        self.assertIn("<strong>wirkt</strong>", html)  # Recherchebericht.md
+        self.assertIn("gesichert (1)", html)
+        self.assertNotIn("Rückmeldung geben", html)
+        self.assertIn("Literatursuche", self.get(f"/dokument/{self.R}?ansicht=suche")[1])
+        self.assertEqual(self.get(f"/dokument/{self.R}/datei/{self.R}/0")[1], "# Bericht\n\nBorsalz **wirkt**.\n")
+
+    def test_pruefung(self):
+        html = self.get(f"/dokument/{self.P}")[1]
+        self.assertIn("Solide", html)
+        self.assertIn("Was ist Borsalz?", html)
+        self.assertIn(f"https://uni.meldro.de/modul/holzschutz/uebung/{self.UE}", html)
+        self.assertIn("1 Karten im Portal übernehmen", html)
+
+    def test_boese_ansicht_zeigt_nichts(self):
+        pfad = self.instanz / "auftraege" / "erledigt" / f"{self.R}.json"
+        a = json.loads(pfad.read_text())
+        a["daten"]["ansicht"] = {"recherche": "data/recherchen/../../../shared"}
+        pfad.write_text(json.dumps(a))
+        status, html, _ = self.get(f"/dokument/{self.R}")
+        self.assertEqual(status, 200)
+        self.assertNotIn("Wirkt", html)

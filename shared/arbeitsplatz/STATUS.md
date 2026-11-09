@@ -7,8 +7,8 @@ Neutrale Web-Oberfläche über Jans Agenten (uni, dokumente, finance): freier Ba
 Lias App `shared/webapp` ist Muster und Quelle (CSS, Schrift, htmx kopiert), wird nicht verändert.
 `uni/portal` bleibt bis zur Abnahme unverändert.
 
-## Stand (09.11.2026, abends)
-Schritte 1 bis 3 aus dem Auftrag an Sitzung A:
+## Stand (09.11.2026, nachts)
+Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A:
 - agentkit: `neuer_auftrag(..., art=, felder=)`; Nachbesserungen des Feedback-Dienstes erben `ort`, `art`, `felder`,
   wenn der Ursprung eine `art` hat (`auftraege.herkunft_erben`, Lia unverändert).
 - agentkit: `orte` (Baum in `<instanz>/orte.json`, Sperre, Rückgängig über `<instanz>/orte-aktionen.json`) und
@@ -27,11 +27,16 @@ Schritte 1 bis 3 aus dem Auftrag an Sitzung A:
 - Heute: „Wartet auf dich“ (fertig, nicht final, letzte 14 Tage; und was nicht geklappt hat), Orte, Zuletzt.
   Rechte Spalte: Läuft gerade, Kosten heute (Jans Instanz) und die letzten 6 Läufe mit Link zum Dokument
   (agentkit.verbrauch.letzte, kosten_je).
-- Tests: `tests/` (Logik, App über Unix-Socket mit http.client), in pruefen.sh eingetragen.
+- Eigene Ansichten (Schritt 5, lesend, `ansichten.py`, übernommen aus uni/portal/projekt.py und uebungen.py):
+  recherche zeigt Recherchebericht.md und die geprüfte Recherche (Reiter Aussagen mit Status- und Fragefilter,
+  Quellen, Lücken und Widersprüche, Literatursuche); pruefung zeigt Einschätzung, Bewertung je Rubrikpunkt, Lücken
+  je Thema und vorgeschlagene Karten, „Übernehmen“ geht über den Link ins Portal; karten verlinkt aufs Portal
+  (Üben braucht fsrs aus uni/.venv, nicht in dieser .venv ohne Jans Okay). Pfade kommen aus `daten.ansicht` des
+  Ergebnisses (uni) und werden gegen den Agent-Ordner geprüft.
+- finance: Aufträge nach `art` und Feld Thema, Ergebnis mit `daten.titel` (siehe finance/STATUS.md).
+- Tests: `tests/` (Logik, Ansichten, App über Unix-Socket mit http.client), in pruefen.sh eingetragen.
 
-Noch offen: finance `daten.titel` und `art` (Schritt 4, letzter Teil). Schritt 5 (Umzug aus uni/portal) erst nach
-Rücksprache mit der koordinierenden Sitzung. „Wartet auf dich“ kennt kein „gesehen“; ein Dokument steht dort, bis es
-final ist oder 14 Tage alt.
+„Wartet auf dich“ kennt kein „gesehen“; ein Dokument steht dort, bis es final ist oder 14 Tage alt.
 
 ## Technik
 - `logik.py`: reine Logik (Baum-Zeilen, Brotkrumen, Ziele zum Verschieben, Dokumente als Ketten über `bezug` mit
@@ -69,8 +74,12 @@ final ist oder 14 Tage alt.
 - Caddy (von außen mit Passwort) macht Jan als root nach der Abnahme.
 
 ## Offene Punkte
-1. Schritt 4 und 5 (siehe oben).
-2. Orte liegen in `shared/orte.json` (nicht im Repo, wie die Aufträge). Sicherung prüfen.
+1. Umzug, Rest: Orte „Forschungsprojekt Fehlstellen“, „Modul Holzschutz“, „Finanzen“ sind noch nicht angelegt.
+   Alte Ergebnisse (Exposé-Kette 20261102-165741-uni-ac9dcc, finance-Läufe) tragen kein `ort` und erscheinen daher an
+   keinem Ort. Vorschlag (nicht gebaut, wartet auf Okay): Zuordnung alter Ursprünge zu Orten in einer eigenen Datei
+   der App statt die Aufträge zu ändern.
+2. Echte Läufe aus der App erst 10.11. 15 Uhr (ARBEITSPLATZ_AUFTRAEGE bleibt bis dahin aus).
+3. Orte liegen in `shared/orte.json` (nicht im Repo, wie die Aufträge). Sicherung prüfen.
 
 ## Gelernte Regeln
 (noch keine)
