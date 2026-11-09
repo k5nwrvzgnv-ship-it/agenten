@@ -157,6 +157,21 @@ B. Blindvergleich (wartet auf den unterricht-Chat):
    Grenze: Das alte Ergebnis ist Lias Endstand nach ihren Korrekturen, das neue ein erster Versuch. Ziel ist,
    dass neu mindestens gleichauf liegt; ein Rückstand zeigt, wo Regeln und Reihenkontext fehlen.
 
+## Zweiter Durchgang „luecken“: Was fehlt der Web-App? (seit 09.11.2026)
+Anlass (Jan 09.11.): Lia nutzt die Web-App kaum und chattet weiter in claude.ai („das Chatten fehlt“). Aus ihren
+Chats seit 24.10. ablesen, was sie dort tut und was die Web-App dafür nicht bietet.
+- Lias Okay 09.11.2026 ohne Einschränkungen (einwilligung.md), gleiche Regeln und Löschtermine.
+- Export vom 09.11. (nur conversations, 30 Tage) entpackt, ZIP auf dem Server gelöscht. 103 Chats ab 10.10.,
+  davon 41 ab 24.10. Zuordnung nach Titeln von Jan bestätigt (data/luecken/chatliste.tsv): Lia 9, Jan 16, privat 15,
+  leer 1. Unklare Titel zählen als privat (im Zweifel gegen Lia). Lias 9 Chats in data/luecken/chats.json, die
+  conversations.json des Exports ist gelöscht.
+- Umfang: 188 Runden, kompakt ca. 27.000 Tokens. Ein Chat (07.11., Straftheorien, 93 Runden) ist die Hälfte;
+  am selben Tag stellte Lia im Web-App-Chat zwei Fragen zum selben Ort (Ethik › 8 › Straftheorien).
+- Befehle: luecken-liste <datum>, luecken-filtern (auswertung.py).
+- Nächste Schritte (je nach Jans Okay): anonymisieren (Namensliste um neue Namen ergänzen, Stichprobe für Jan),
+  dann ein Lauf, der je Aufgabe festhält: was Lia wollte, ob die heutige Web-App es kann (ja/teilweise/nein),
+  was fehlt, mit Zitat als Beleg. Python prüft die Antwort. Ergebnis: kurze Lückenliste hier und in data/luecken/.
+
 ## Regelvorschläge (aus 284 Korrekturen, noch nicht freigegeben)
 Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterricht/STATUS.md eintragen.
 1. Was einem Philosophen zugeschrieben wird, braucht einen Beleg (Werk, Stelle). Eigene didaktische Vereinfachung
@@ -228,7 +243,7 @@ Erst nach Okay von Jan/Lia in lia/instanz/regeln.md (allgemein) oder lia/unterri
    5 mit fachlicher Korrektheit zuerst und Testfall im Begleittext; 6 vorerst für alle Klassen; 7; 8; 9; 10 mit Paarform in Entwürfen, sonst Sternchen). Offen: 11.
 2. Schritt 8 ausgesetzt (Jan 23.10.). Wieder aufnehmen: Lia bekommt data/pruefung/kodierbogen.html, ihre CSV mit
    `kodierung` auswerten; Blindvergleich, sobald der unterricht-Chat P01–P17 abgelegt hat.
-4. Löschung der Rohdaten spätestens 31.12.2026 (auch wenn Schritt 8 ausfällt): data/lia/chats.json, data/namen.json,
+4. Löschung der Rohdaten spätestens 31.12.2026 (auch wenn Schritt 8 ausfällt): data/lia/chats.json, data/luecken/chats.json, data/namen.json,
    data/lia/zuordnung.json, data/export/ (users.json), data/chatliste.tsv. Danach nur Anonymisiertes.
 3. Instanz für die claude-Läufe in Schritt 6: Vorschlag AGENTKIT_INSTANZ=lia/instanz (es sind Lias Daten).
 
