@@ -1,0 +1,146 @@
+# Dokumentarten des Arbeitsplatzes (Format: docs/arbeitsplatz-plan.md, Abschnitt "Arten-Datei").
+# Geprüft von agentkit.arten (Tests in shared/agentkit/tests/test_arten.py prüfen diese Datei).
+# Nur Arten mit aktiv = true stehen in der Galerie. material: "nein" | "optional" (Standard) | "pflicht".
+# Felder: art = zeile | text | auswahl | zahl, pflicht, werte (nur bei auswahl), hilfe (kurzer Hinweis im Formular).
+# Die Felder sind ein erster Entwurf (Sitzung A, 09.11.); die Agenten lesen sie aus a["felder"] und dem Auftragstext.
+
+[[art]]
+kennung = "recherche"
+name = "Research-Bericht"
+beschreibung = "Recherche zu einer Frage mit geprüften Belegen"
+agent = "uni"
+aktiv = true
+ausgabe = ["pdf", "docx"]
+ansicht = "recherche"
+[[art.feld]]
+name = "Frage"
+art = "text"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "expose"
+name = "Exposé"
+beschreibung = "Exposé für eine Arbeit, als Word und PDF"
+agent = "uni"
+aktiv = true
+ausgabe = ["pdf", "docx"]
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "zusammenfassung"
+name = "Vorlesungszusammenfassung"
+beschreibung = "Zusammenfassung einer Vorlesung aus Folien und Transkript"
+agent = "dokumente"
+aktiv = true
+ausgabe = ["pdf", "docx"]
+material = "pflicht"
+[[art.feld]]
+name = "Vorlesung"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "wirtschaftlichkeit"
+name = "Wirtschaftlichkeit"
+beschreibung = "Recherche zur Wirtschaftlichkeit eines Themas, jede Zahl mit Quelle"
+agent = "finance"
+aktiv = true
+ausgabe = ["pdf"]
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "anlage"
+name = "Anlagemöglichkeiten"
+beschreibung = "Firmen und ETFs zu einem Thema mit Kennzahlen, Bewertung und Anlagethesen"
+agent = "finance"
+aktiv = true
+ausgabe = ["pdf"]
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "lernkarten"
+name = "Lernkarten"
+beschreibung = "Karten zum Üben aus Unterlagen eines Moduls"
+agent = "uni"
+aktiv = true
+ansicht = "karten"
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "pruefung"
+name = "Mündliche Prüfung üben"
+beschreibung = "Fragen wie in der mündlichen Prüfung, mit Auswertung"
+agent = "uni"
+aktiv = true
+ansicht = "pruefung"
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "praesentation"
+name = "Präsentation"
+beschreibung = "Folien aus Material oder Stichpunkten, als PowerPoint und PDF"
+agent = "dokumente"
+aktiv = false
+ausgabe = ["pptx", "pdf"]
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Umfang"
+art = "auswahl"
+werte = ["5 Folien", "10 Folien", "20 Folien"]
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+
+[[art]]
+kennung = "bericht"
+name = "Bericht (z. B. Praktikumsbericht)"
+beschreibung = "Bericht aus Material und Stichpunkten, als Word und PDF"
+agent = "dokumente"
+aktiv = false
+ausgabe = ["docx", "pdf"]
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Hinweise"
+art = "text"

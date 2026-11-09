@@ -61,3 +61,8 @@ lia/instanz/fassungen/
 lia/instanz/lerngruppen.toml
 # Sperre für Lesen-Ändern-Schreiben von reihen.toml (agentkit.strukturpflege)
 lia/instanz/.reihen.sperre
+
+# Orte des Arbeitsplatzes (agentkit.orte): Baum, Aktionen für Rückgängig, Sperre
+shared/orte.json
+shared/orte-aktionen.json
+shared/.orte.sperre
