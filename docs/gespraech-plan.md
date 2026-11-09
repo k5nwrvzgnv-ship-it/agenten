@@ -1,7 +1,7 @@
 # Plan: Gespräch in die Mitte der Web-App (Lia)
 
-Stand 09.11.2026. Nur Plan, nichts gebaut. Gebaut wird erst nach Lias Okay zur Skizze (Abschnitt 4) und Jans
-Entscheidungen (Abschnitt 3).
+Stand 09.11.2026. Nur Plan, nichts gebaut. Jans Entscheidungen 09.11.2026: alle fünf Empfehlungen aus Abschnitt 3
+angenommen. Gebaut wird erst nach Lias Okay zur Skizze (Abschnitt 4).
 
 Anlass: Lia nutzt die Web-App (shared/webapp, lia.meldro.de) kaum und chattet weiter in claude.ai („das Chatten
 fehlt“). Auswertung ihrer 9 claude.ai-Chats seit 24.10. (lia/auswertung, Lauf luecken, 09.11.): 188 Runden, nur 15
@@ -145,30 +145,30 @@ Aufwand grob: klein.
 
 ---
 
-## 3. Entscheidungen für Jan
+## 3. Entscheidungen (Jan 09.11.2026: alle wie empfohlen)
 
 1. **Gedächtnis: claude-Sitzung fortsetzen statt der letzten 6 Fragen.** `agentkit.claude_lauf` kann das schon
    (`lernsitzung`, `sitzung_fortsetzen`, `--resume`). Dafür darf lia/chat die Sitzungen der Gespräche nicht mehr
    nach jedem Lauf löschen. Vorteil: voller Verlauf ohne eigene Kürzung, frühere Nachrichten werden vom Zwischenspeicher
    billiger. Risiko: sehr lange Gespräche (93 Runden) stoßen an die Kontextgrenze; Ausweg „Zusammenfassen und in
    neuem Gespräch weiter“. Gegenmodell: Verlauf selbst in den Prompt legen (volle Kontrolle, aber jedes Mal neu
-   bezahlt und an der 128-KB-Grenze). **Empfehlung: Sitzung fortsetzen.**
+   bezahlt und an der 128-KB-Grenze). **Empfehlung: Sitzung fortsetzen. Jan 09.11.2026: ja.**
 2. **Werkzeug Read für Fotos.** Heute läuft lia/chat ohne Werkzeuge. Fotos kann Claude nur über Read sehen. Read nur
    für den Ordner der Dateien dieses Gesprächs (Erlaubnis in `--settings`, Rest verboten), keine anderen Werkzeuge;
    ob die Grenze hält, vorher in agentkit testen (Hauptordner-Chat). Pages-Dateien nicht (kein lesbares Format ohne
-   neues Paket), Lia exportiert als PDF. **Empfehlung: ja, mit Pfadgrenze und Test.**
+   neues Paket), Lia exportiert als PDF. **Empfehlung: ja, mit Pfadgrenze und Test. Jan 09.11.2026: ja.**
 3. **Aufbau „Desktop zuerst“, Modernist, drei Spalten bleiben, die Mitte wechselt.** Mitte = Gespräch, rechts „An
    diesem Ort“ (Reihenfrage, Gespräche, Material, eigene Dateien); die Reihen-Übersicht bleibt einen Klick entfernt.
    Alternative: Gespräch nur als eigener Reiter neben der Übersicht, rechte Spalte unverändert. **Empfehlung: erste
-   Variante, in der Skizze beide zeigen und Lia wählen lassen.** Handy: wie bisher untereinander.
+   Variante, in der Skizze beide zeigen und Lia wählen lassen. Jan 09.11.2026: okay.** Handy: wie bisher untereinander.
 4. **Kosten je Gespräch auf Lias Kontingent.** Heute ca. 0,03 USD je kurzer Frage (Sonnet). Ein langes Gespräch kostet
    deutlich mehr, weil der Verlauf mitgeht; wie viel, wird im ersten echten Lauf gemessen, nicht geschätzt. Lias
    Läufe brauchen nach CLAUDE.md kein Okay von Jan; Qualität geht vor Kosten (Jan 29.10.). Vorschlag: Standard
    Sonnet, „gründlich“ (Opus) als Schalter je Gespräch statt je Frage; bei vollem Kontingent Hinweis mit Uhrzeit wie
-   heute; keine Zähler für Lia. Jan sieht die Kosten im Leitstand. **Empfehlung: so, nach zwei Wochen Kosten ansehen.**
+   heute; keine Zähler für Lia. Jan sieht die Kosten im Leitstand. **Empfehlung: so, nach zwei Wochen Kosten ansehen. Jan 09.11.2026: okay.**
 5. **Aufbewahrung.** Heute 30 Tage ab Frage. Für Gespräche über Tage: 30 Tage ab der letzten Nachricht, dann
    samt claude-Sitzung und Dateien gelöscht; Lia kann ein Gespräch vorher selbst löschen. Daten können Schülerbezug
-   haben, darum kein „für immer“. **Empfehlung: 30 Tage ab letzter Nachricht.**
+   haben, darum kein „für immer“. **Empfehlung: 30 Tage ab letzter Nachricht. Jan 09.11.2026: okay.**
 
 ---
 
