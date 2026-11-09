@@ -17,6 +17,9 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
 Zweiter Durchgang (Export vom 09.11.2026, Frage: was fehlt der Web-App), alles unter data/luecken/:
   luecken-liste <JJJJ-MM-TT>  Chats ab diesem Datum -> data/luecken/chatliste.tsv (nur Titel), Spalte wer korrigieren
   luecken-filtern  bestätigte Chats nach data/luecken/chats.json, danach die conversations.json des Exports löschen
+  luecken-anonym [<uuid-anfang>…]  aufbereiten, Namen aus data/namen.json ersetzen -> data/luecken/anonym.json,
+                   genannte Chats weglassen (ohne neue Namenssuche, Jan 09.11.)
+  luecken-lauf     ein Lauf (Opus) über anonym.json, geprüft -> data/luecken/ergebnis.json und bericht.md
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -31,6 +34,7 @@ import anonym
 import auswahl
 import einordnen
 import export
+import luecken
 import pruefsatz
 import pruefung
 import rangliste
@@ -100,6 +104,10 @@ def main(argumente: list[str]) -> int:
         return filtern_befehl(argumente[1:])
     if befehl == "luecken-liste" and len(argumente) == 2:
         return luecken_liste_befehl(argumente[1])
+    if befehl == "luecken-anonym":
+        return luecken_anonym_befehl(argumente[1:])
+    if befehl == "luecken-lauf":
+        return luecken_lauf_befehl()
     if befehl == "luecken-filtern":
         return filtern_befehl([], LUECKEN / "chatliste.tsv", LUECKEN)
     if befehl:
@@ -123,6 +131,51 @@ def luecken_liste_befehl(datum: str) -> int:
     anzahl = Counter(z.rsplit("\t", 1)[1] for z in tsv.splitlines()[1:])
     print(f"{ziel}: {sum(anzahl.values())} Chats ab {datum}, Vorschlag {dict(anzahl)}. Spalte wer korrigieren.")
     return 0
+
+
+def luecken_anonym_befehl(weglassen: list[str]) -> int:
+    """Wie anonymisieren, aber für data/luecken/ und mit der Namensliste aus dem ersten Durchgang."""
+    namen = json.loads((ablage.DATEN / "namen.json").read_text(encoding="utf-8"))
+    ersetzer = anonym.Ersetzer(namen)
+    chats = anonym.aufbereiten(json.loads((LUECKEN / "chats.json").read_text(encoding="utf-8")))
+    chats = [c for c in chats if not any(c["uuid"].startswith(w) for w in weglassen)]
+    ergebnis = ersetzer.alles(chats)
+    ablage.schreiben(LUECKEN / "anonym.json", json.dumps(ergebnis, ensure_ascii=False, indent=1))
+    reste = anonym.reste(ergebnis, namen)
+    print(f"{len(ergebnis)} Chats nach {LUECKEN / 'anonym.json'}, {sum(ersetzer.treffer.values())} Namen ersetzt.")
+    print("Reste aus der Namensliste:", reste or "keine")
+    return 1 if reste else 0
+
+
+def luecken_lauf_befehl() -> int:
+    """Ein Lauf (art anspruchsvoll = Opus), bei Fehlern eine Nachbesserung mit der Fehlerliste.
+
+    Aufruf mit AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz, damit der Verbrauch bei Lia zählt.
+    """
+    from agentkit import claude_lauf  # erst hier: braucht die Instanz aus der Umgebung
+
+    chats = json.loads((LUECKEN / "anonym.json").read_text(encoding="utf-8"))
+    text = luecken.prompt(chats)
+    gesamt_usd = 0.0
+    for versuch in (1, 2):
+        e = claude_lauf.laufen("auswertung", HIER, text, art="anspruchsvoll", auftrag_id=f"luecken-{versuch}")
+        gesamt_usd += e.usd
+        ablage.schreiben(LUECKEN / f"antwort-{versuch}.txt", e.text)
+        try:
+            daten = luecken.lesen(e.text)
+            fehler = luecken.pruefen(daten, chats)
+        except (ValueError, json.JSONDecodeError) as f:
+            fehler = [str(f)]
+        print(f"Versuch {versuch}: {e.usd:.2f} USD, {e.tokens} Tokens, {len(fehler)} Fehler")
+        if not fehler:
+            ablage.schreiben(LUECKEN / "ergebnis.json", json.dumps(daten, ensure_ascii=False, indent=1))
+            ablage.schreiben(LUECKEN / "bericht.md", luecken.bericht(daten, chats))
+            print(f"Fertig, {gesamt_usd:.2f} USD. Bericht: {LUECKEN / 'bericht.md'}")
+            return 0
+        text = luecken.prompt(chats) + "\n\nDeine letzte Antwort hatte diese Fehler, behebe sie:\n- " + \
+            "\n- ".join(fehler[:40]) + "\n\nDeine letzte Antwort:\n" + e.text
+    print("Auch nach der Nachbesserung fehlerhaft:", *fehler[:20], sep="\n- ")
+    return 1
 
 
 def filtern_befehl(projekt_uuids: list[str], liste: Path = ablage.DATEN / "chatliste.tsv", ziel: Path = LIA) -> int:
