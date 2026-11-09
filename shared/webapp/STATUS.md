@@ -327,6 +327,9 @@ Gebaut 04.11. aus dem Befund: Punkte 2, 5, 7, dazu:
 Klick-Attrappe ohne Claude-Lauf, Code der Web-App und webapp.service unberührt:
 https://claude.ai/artifact/FcDwRi58HWDJX2TkVu2BEC (privat; Jan muss sie über „Teilen“ für Lia freigeben oder
 auf seinem Rechner zeigen). Quelle `skizzen/gespraech.html`, neu veröffentlichen aus diesem Ordner.
+- Jan 10.11.2026: zu dicht, Modernist zu laut, Dokumente immer als Vorschau. Plan für eine ruhigere Oberfläche
+  (Orientierung an Notion bei Schriftgrößen und Dichte, Seitenpanel mit Seitenbildern, Ablauf über Nacht):
+  `ui-plan-notion.md`. Noch nicht umgesetzt, drei Fragen an Jan offen (Abschnitt 5).
 - Eigenes Artifact statt Board im Canvas F8ysVSyr8TjGhFDcyNnejU: Die Canvas-Boards sind Design-Komponenten mit
   eigenem Format; Gespräch mit Senden, Foto-Vorschau, Kopieren und Überlagerungen geht als normale Seite einfacher
   und zuverlässiger. Lia bekommt einen Link ohne Canvas-Werkzeuge, das Board „Desktop“ bleibt als Stand vom 30.10.
