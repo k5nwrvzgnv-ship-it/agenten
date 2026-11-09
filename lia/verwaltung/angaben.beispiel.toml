@@ -1,0 +1,95 @@
+# Vorlage für data/angaben.toml (dort mit echten Daten, chmod 600, nie ins Repo).
+# Fehlt ein Wert, bleibt das Feld frei und steht in der Checkliste unter "noch von Hand".
+# Datum immer TT.MM.JJJJ. Alle Werte hier sind erfunden.
+
+[person]
+anrede = "Frau"
+nachname = "Muster"
+geburtsname = ""
+vornamen = "Erika Anna"
+geburtsdatum = "01.02.1995"
+geburtsort = "Berlin"
+strasse = "Beispielstraße 1"
+plz = "10115"
+ort = "Berlin"
+telefon = "030 1234567"
+email = "erika@example.org"
+deutsch = true
+
+[familie]
+stand = "ledig"  # ledig, verheiratet, lebenspartnerschaft, geschieden, verwitwet, aufgehoben, ueberlebend
+seit = ""        # bei verheiratet usw.
+# partner_name = "Max Muster"
+# partner_geburtsdatum = "01.01.1990"
+# partner_oeffentlicher_dienst = false
+schwerbehindert = false
+gleichgestellt = false
+# [[familie.kinder]]
+# name = "Kim Muster"
+# geburtsdatum = "01.01.2020"
+
+[dienst]
+schule = "Pankow / 03X01"
+personalnummer = ""
+arbeitszeit = "vollzeit"  # vollzeit oder teilzeit
+# teilzeit_stunden = "20"
+# pflichtstunden = "26"
+volle_lehrbefaehigung = true
+vorbereitungsdienst_bei = "Lehramtsanwärterin, SenBJF Berlin"
+vorbereitungsdienst_von = "01.02.2025"
+vorbereitungsdienst_bis = "31.01.2027"
+laufbahnpruefung = "Lehramts an Integrierten Sekundarschulen und Gymnasien"
+# laufbahnpruefung_am = "15.01.2027"
+# laufbahnpruefung_note = "1,7"
+personalakte_anfordern = false
+
+[geld]
+bank = "Beispielbank"
+iban = "DE02 1203 0000 0000 2020 51"
+# kontoinhaber_abweichend = ""
+steuer_id = "12345678901"
+steuerklasse = "1"
+kirche = "keine"  # keine, ev oder rk
+sv_nummer = "12010295M123"
+krankenkasse = "Beispiel-BKK"
+firmenticket = "deutschlandticket"  # deutschlandticket, vbb oder nein
+vl = false
+riester = false
+
+[erklaerungen]
+keine_verurteilungen = true
+keine_verfahren = true
+keine_zwangsvollstreckung = true
+akteneinsicht_hpr = true
+akteneinsicht_einigungsstelle = true
+
+[lebenslauf.schule]
+name = "Beispiel-Gymnasium, Berlin"
+von = "08/2007"
+bis = "06/2014"
+abschluss = "Abitur 2014"
+
+[lebenslauf.studium]
+fach = "Deutsch, Ethik (Lehramt)"
+von = "10/2014"
+bis = "09/2020"
+abschluss = "Master of Education"
+am = "30.09.2020"
+ergebnis = "1,5"
+hochschule = "Beispiel-Universität Berlin"
+
+[[lebenslauf.taetigkeiten]]
+stelle = "Beispiel GmbH"
+art = "Studentische Aushilfe"
+von = "10/2016"
+bis = "09/2019"
+grund = "Ende des Vertrags"
+
+[[lebenslauf.oeffentlicher_dienst]]
+behoerde = "SenBJF Berlin"
+art = "Beamtin auf Widerruf"
+amt = "Lehramtsanwärterin"
+gruppe = ""
+von = "01.02.2025"
+bis = ""
+grund = ""

@@ -1008,6 +1008,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     ohne [weitergabe]; "finance" in AGENTEN (shared/telegram/logik.py, wirkt erst mit installiertem Dienst und
     Neustart der Zentrale, der noch nicht erfolgt ist). Weiter im Chat ~/agenten/finance.
     Offen hier: sobald finance/.venv existiert, Eintrag in pruefen.sh auf `.venv/bin/python` umstellen.
+33. lia/verwaltung (09.11.2026, Jan, lia-Chat): Lias Agent für Behördenformulare, erster Fall Verbeamtung Berlin
+    (Termin 10.11.2026). Füllt das Formularpaket der SenBJF aus data/angaben.toml (Python, ohne Claude), Druck-PDF
+    plus Checkliste. Eintrag in pruefen.sh ist gemacht. Bedarf hier, nichts davon eilt:
+    - Lias Zentrale nimmt keine Antworten auf Meldungen an (portal.py kennt meldungen.nimmt_antwort nicht, eine
+      Antwort auf ein Ergebnis wird Feedback). Für Rückfragen eines Agenten an Lia wäre das nötig. Lia will
+      Angaben für verwaltung aber ohnehin nicht über Telegram geben (Jan 09.11.); deshalb zurückgestellt.
+    - Kein Dienst lia-verwaltung: Der Agent läuft von Hand (siehe lia/verwaltung/STATUS.md).
 
 ## Gelernte Regeln
 - (noch keine)

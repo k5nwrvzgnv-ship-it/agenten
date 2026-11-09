@@ -1,0 +1,2 @@
+# Formulare füllen (Jan 09.11.2026: pypdf wie lia/chat, kein neues Paket)
+pypdf==6.21.0

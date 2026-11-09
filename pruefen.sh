@@ -34,6 +34,7 @@ TESTS=(
   "lia/recherche|.venv/bin/python|tests"
   "lia/theater|.venv/bin/python|tests"
   "lia/chat|.venv/bin/python|tests"
+  "lia/verwaltung|.venv/bin/python|tests"
 )
 
 for eintrag in "${TESTS[@]}"; do
