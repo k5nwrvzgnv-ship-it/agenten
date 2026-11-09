@@ -69,6 +69,16 @@ class Variante(unittest.TestCase):
         self.assertEqual(schritte.variante_aus_text("Robotik in der Holzindustrie"),
                          (schritte.MARKT, "Robotik in der Holzindustrie"))
 
+    def test_art_aus_dem_arbeitsplatz(self):
+        a = {"text": "Art: Anlagemöglichkeiten\nThema: Robotik", "art": "anlage", "felder": {"Thema": " Robotik "}}
+        self.assertEqual(schritte.variante_aus_auftrag(a), (A, "Robotik"))
+        a = {"text": "aktien: täuscht", "art": "wirtschaftlichkeit", "felder": {"Thema": "Holzbau"}}
+        self.assertEqual(schritte.variante_aus_auftrag(a), (schritte.MARKT, "Holzbau"))  # Text wird nicht gedeutet
+        self.assertEqual(schritte.variante_aus_auftrag({"text": "aktien: KI"}), (A, "KI"))  # Telegram wie bisher
+        self.assertEqual(schritte.variante_aus_auftrag({"text": "x", "art": "anlage"})[1], "")
+        self.assertEqual(schritte.titel(A, "Robotik"), "Anlagemöglichkeiten: Robotik")
+        self.assertEqual(schritte.titel(schritte.MARKT, "Holzbau"), "Wirtschaftlichkeit: Holzbau")
+
     def test_prompt_nennt_variante_und_uebersicht(self):
         p = schritte.prompt(schritte.schritt(2, A), "KI", "r", "q", [], v=A)
         self.assertIn("Anlagemöglichkeiten", p)

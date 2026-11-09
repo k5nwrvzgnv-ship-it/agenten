@@ -147,7 +147,11 @@ def dokumente(thema: str, ergebnisse: list, ordner: Path, _bauen=renderer.bauen,
 def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden, abfragen=abrufen) -> None:
     """Eine Recherche. LimitErreicht, KeinPlatz, LaeuftSchon gehen durch (Auftrag wartet)."""
     ordner = RECHERCHEN / a["id"]
-    v, thema = schritte.variante_aus_text(a["text"])
+    v, thema = schritte.variante_aus_auftrag(a)
+    if a.get("art") and not thema:  # Arbeitsplatz ohne Thema; Telegram bleibt wie bisher
+        auftraege.abschliessen(a["id"], "Kein Thema angegeben. Bitte den Auftrag mit Thema neu geben.",
+                               status="fehlgeschlagen")
+        return
 
     def lauf(prompt: str):
         return laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"])
@@ -160,7 +164,8 @@ def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden, ab
         text += "\n" + "\n".join(f"- {f}" for f in fehler)
     ok = ergebnisse[-1].ok
     logger.info("Recherche %s (%s): %s", a["id"], v.name, "fertig" if ok else "abgebrochen")
-    auftraege.abschliessen(a["id"], text, status="erledigt" if ok else "fehlgeschlagen", dateien=dateien)
+    auftraege.abschliessen(a["id"], text, status="erledigt" if ok else "fehlgeschlagen", dateien=dateien,
+                           daten={"titel": schritte.titel(v, thema)})  # nur titel: Telegram zeigt weiter den Text
 
 
 def auftraege_abarbeiten(laufen=claude_lauf.laufen, laden=web_laden) -> None:

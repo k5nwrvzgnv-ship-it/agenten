@@ -71,9 +71,6 @@ ausgabe = ["pdf"]
 name = "Thema"
 art = "zeile"
 pflicht = true
-[[art.feld]]
-name = "Hinweise"
-art = "text"
 
 [[art]]
 kennung = "anlage"
@@ -86,9 +83,6 @@ ausgabe = ["pdf"]
 name = "Thema"
 art = "zeile"
 pflicht = true
-[[art.feld]]
-name = "Hinweise"
-art = "text"
 
 [[art]]
 kennung = "lernkarten"

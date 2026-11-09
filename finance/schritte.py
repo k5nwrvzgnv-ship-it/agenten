@@ -436,6 +436,24 @@ def variante_aus_text(text: str) -> tuple[Variante, str]:
     return MARKT, (text or "").strip()
 
 
+ARTEN = {"wirtschaftlichkeit": MARKT, "anlage": AKTIEN}  # Arten des Arbeitsplatzes (shared/arbeitsplatz/arten.toml)
+TITEL = {"markt": "Wirtschaftlichkeit", "aktien": "Anlagemöglichkeiten"}
+
+
+def variante_aus_auftrag(a: dict) -> tuple[Variante, str]:
+    """Auftrag -> (Variante, Thema). Mit art aus dem Arbeitsplatz zählen art und das Feld Thema, der Text wird nicht
+    gedeutet; ohne art wie bisher variante_aus_text (Telegram)."""
+    if a.get("art") in ARTEN:
+        thema = str((a.get("felder") or {}).get("Thema") or "").strip()
+        return ARTEN[a["art"]], thema
+    return variante_aus_text(a.get("text") or "")
+
+
+def titel(v: Variante, thema: str) -> str:
+    """Name des Dokuments für den Arbeitsplatz (daten.titel)."""
+    return f"{TITEL.get(v.name, v.kopf)}: {thema}"
+
+
 def _ganze_zahl(x) -> bool:
     return isinstance(x, int) and not isinstance(x, bool)
 
