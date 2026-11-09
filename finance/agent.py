@@ -7,6 +7,7 @@ legt sie ab (quellen.py) und prüft jede Zahl (pruefung.py).
 """
 
 import tempfile
+import time
 import tomllib
 from datetime import date
 from pathlib import Path
@@ -78,13 +79,40 @@ def web_laden(url: str, _laden=abruf.laden) -> ablauf.Web:
         raise ablauf.WebFehler(str(f)) from f
 
 
+_epo = {"token": None, "bis": 0.0}  # Token nur im Speicher dieses Laufs
+
+
+def epo_token(_laden=abruf.laden, _uhr=time.monotonic) -> str:
+    """OPS-Token (gilt 20 Minuten). Der Abruf landet nur in einem Wegwerf-Cache, nie in data/cache."""
+    if _epo["token"] and _uhr() < _epo["bis"]:
+        return _epo["token"]
+    anfrage = abrufer.epo_token_anfrage(cfg)
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            erg = _laden(anfrage.url, allowlist=anfrage.allowlist, cache_dir=Path(tmp), methode=anfrage.methode,
+                         daten=anfrage.daten, header=anfrage.header, neu=True)
+        except abruf.AbrufFehler as f:
+            raise ablauf.WebFehler(f"EPO-Token: {f}") from f
+    _epo["token"], _epo["bis"] = abrufer.epo_token_lesen(erg.inhalt), _uhr() + abrufer.EPO_GUELTIG
+    return _epo["token"]
+
+
 def abrufen(abfrage: dict, _laden=abruf.laden) -> str:
     """Eine Abfrage von Claude ausführen und ablegen: Quellen-ID oder AbfrageFehler/WebFehler (Text für Claude)."""
-    anfrage = abrufer.anfrage_bauen(abfrage, cfg)
+    schluessel = cfg
+    if isinstance(abfrage, dict) and abfrage.get("art") == "epo":
+        abrufer.epo_cql(abfrage)  # erst prüfen, dann Token holen
+        schluessel = {**cfg, "EPO_TOKEN": epo_token(_laden)}
+    anfrage = abrufer.anfrage_bauen(abfrage, schluessel)
     try:
         erg = _laden(anfrage.url, allowlist=anfrage.allowlist, cache_dir=CACHE, methode=anfrage.methode,
                      daten=anfrage.daten, header=anfrage.header, neu=True)  # Primärdaten immer frisch
     except abruf.AbrufFehler as f:
+        if anfrage.art == "epo" and "HTTP-Fehler 404" in str(f):  # OPS: keine Treffer
+            qid = quellen.speichern(QUELLEN, "epo", anfrage.quelle_url, abrufer.epo_leer(anfrage),
+                                    anfrage.beschreibung, endung="json")
+            logger.info("Primärdaten %s (keine Treffer): %s", qid, anfrage.beschreibung)
+            return qid
         raise ablauf.WebFehler(str(f)) from f
     roh, endung = abrufer.antwort_pruefen(anfrage.art, erg.inhalt, erg.meta.get("content_type"))
     qid = quellen.speichern(QUELLEN, anfrage.art, anfrage.quelle_url, roh, anfrage.beschreibung, endung=endung)

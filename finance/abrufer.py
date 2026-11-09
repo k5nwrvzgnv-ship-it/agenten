@@ -13,22 +13,34 @@ Abfrage-Formate (je Eintrag ein Objekt mit "art" und "beschreibung"):
     {"art": "jobsuche", "was": "Robotik", "wo": "Bayern"}                            (wo freiwillig)
     {"art": "sec", "cik": 1045810}       Abschlüsse einer bei der SEC gemeldeten Firma (10-K, 20-F, 40-F)
     {"art": "kurs", "symbol": "NVDA"}    Monatsschlusskurse der letzten 5 Jahre (Yahoo, z. B. 6954.T, SIE.DE)
+    {"art": "epo", "begriffe": "timber", "anmelder": "Weinig", "cpc": "B27B", "land": "EP",
+     "von_jahr": 2020, "bis_jahr": 2024}   Patentveröffentlichungen (EPO OPS, weltweit), mindestens eins von
+                                         begriffe, anmelder, cpc; Rest freiwillig
 
 SEC und Kurs: Die Antworten sind groß (SEC bis 5 MB) bzw. verschachtelt. Abgelegt wird ein Auszug mit den
 Kennzahlen (sec_auszug, kurs_auszug), damit Claude ihn lesen kann; die URL in der Quelle führt zum Original.
 Yahoo ist keine offizielle Schnittstelle (Jan 09.11.2026: genehmigt), sie kann wegfallen.
+
+EPO: Erst holt agent.py mit EPO_OPS_KEY und EPO_OPS_SECRET einen Token (epo_token_anfrage, gilt 20 Minuten,
+nur in einem Wegwerf-Cache), dann sucht anfrage_bauen mit {"EPO_TOKEN": ...} in published-data/search/biblio.
+Abgelegt wird ein Auszug (epo_auszug): Trefferzahl und die ersten 25 Veröffentlichungen. Keine Treffer meldet
+OPS als HTTP 404; agent.py legt dann epo_leer ab (Trefferzahl 0 ist auch ein Beleg). OPS drosselt die Suche
+(etwa 5 je Minute), daher höchstens MAX_EPO Abfragen je Liste.
 """
 
+import base64
 import io
 import json
 import re
 import urllib.parse
+import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 
-ARTEN = ("genesis", "eurostat", "comtrade", "ted", "jobsuche", "sec", "kurs")
+ARTEN = ("genesis", "eurostat", "comtrade", "ted", "jobsuche", "sec", "kurs", "epo")
 MAX_ABFRAGEN = 15
+MAX_EPO = 4
 
 GENESIS = "https://genesis.destatis.de/genesisWS/rest/2020/data/tablefile"
 EUROSTAT = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
@@ -41,6 +53,14 @@ SEC = "https://data.sec.gov/api/xbrl/companyfacts/CIK{:010d}.json"
 SEC_AGENT = "agenten-finance (privat, nicht kommerziell)"
 KURS = "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=5y&interval=1mo"
 _SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,14}$")
+EPO_TOKEN_URL = "https://ops.epo.org/3.2/auth/accesstoken"
+EPO_SUCHE = "https://ops.epo.org/3.2/rest-services/published-data/search/biblio"
+EPO_TREFFER = 25
+EPO_GUELTIG = 15 * 60  # Sekunden; OPS sagt 20 Minuten, mit Abstand
+_EPO_WORTE = re.compile(r"^[\wäöüÄÖÜß .&-]{2,60}$")  # ohne Anführungszeichen: kein Ausbruch aus der CQL
+_CPC = re.compile(r"^[A-H]\d{2}([A-Z](\d{1,4}(/\d{1,6})?)?)?$")
+_LAND = re.compile(r"^[A-Z]{2}$")
+_NS = {"ex": "http://www.epo.org/exchange", "ops": "http://ops.epo.org"}
 
 # Kennzahl -> XBRL-Konzepte (us-gaap, sonst ifrs-full), erstes vorhandenes je Periode zählt
 SEC_KONZEPTE = {
@@ -179,12 +199,105 @@ def anfrage_bauen(abfrage: dict, schluessel: dict) -> Anfrage:
         symbol = _code(abfrage.get("symbol"), "symbol", _SYMBOL)
         return Anfrage(art, KURS.format(symbol), beschreibung, ["query1.finance.yahoo.com"])
 
+    if art == "epo":
+        cql = epo_cql(abfrage)
+        url = f"{EPO_SUCHE}?{urllib.parse.urlencode({'q': cql, 'Range': f'1-{EPO_TREFFER}'})}"
+        return Anfrage(art, url, beschreibung, ["ops.epo.org"],
+                       header={"Authorization": f"Bearer {_schluessel(schluessel, 'EPO_TOKEN')}",
+                               "Accept": "application/xml"})
+
     # jobsuche
     werte = {"was": _code(abfrage.get("was"), "was", _TEXT), "size": "25"}
     if abfrage.get("wo"):
         werte["wo"] = _code(abfrage["wo"], "wo", _TEXT)
     return Anfrage(art, f"{JOBSUCHE}?{urllib.parse.urlencode(werte)}", beschreibung, ["rest.arbeitsagentur.de"],
                    header={"X-API-Key": JOBSUCHE_KEY})
+
+
+def epo_cql(abfrage: dict) -> str:
+    """CQL-Suche aus geprüften Teilen (oder AbfrageFehler)."""
+    teile = []
+    if abfrage.get("begriffe"):
+        teile.append(f'ta="{_code(abfrage["begriffe"], "begriffe", _EPO_WORTE).strip()}"')
+    if abfrage.get("anmelder"):
+        teile.append(f'pa="{_code(abfrage["anmelder"], "anmelder", _EPO_WORTE).strip()}"')
+    if abfrage.get("cpc"):
+        teile.append(f'cpc="{_code(abfrage["cpc"], "cpc", _CPC)}"')
+    if not teile:
+        raise AbfrageFehler("epo: mindestens eins von begriffe, anmelder, cpc")
+    if abfrage.get("land"):
+        teile.append(f"pn={_code(abfrage['land'], 'land', _LAND)}")
+    if "von_jahr" in abfrage or "bis_jahr" in abfrage:
+        von = _jahr(abfrage.get("von_jahr", 1990), "von_jahr")
+        bis = _jahr(abfrage.get("bis_jahr", 2100), "bis_jahr")
+        if von > bis:
+            raise AbfrageFehler("von_jahr liegt nach bis_jahr")
+        teile.append(f'pd within "{von} {bis}"')
+    return " and ".join(teile)
+
+
+def epo_token_anfrage(schluessel: dict) -> Anfrage:
+    """Token-Abruf bei OPS (POST mit Basic-Auth aus Key und Secret)."""
+    paar = f"{_schluessel(schluessel, 'EPO_OPS_KEY')}:{_schluessel(schluessel, 'EPO_OPS_SECRET')}"
+    return Anfrage("epo", EPO_TOKEN_URL, "EPO-Token", ["ops.epo.org"], "POST", b"grant_type=client_credentials",
+                   {"Authorization": "Basic " + base64.b64encode(paar.encode()).decode(),
+                    "Content-Type": "application/x-www-form-urlencoded"})
+
+
+def epo_token_lesen(inhalt: bytes) -> str:
+    d = _json(inhalt, "EPO-Token")
+    token = d.get("access_token")
+    if not isinstance(token, str) or not token or d.get("status") not in (None, "approved"):
+        raise AbfrageFehler(f"EPO: kein Token erhalten (Status {d.get('status')!r}), Key und Secret prüfen")
+    return token
+
+
+def _text(e, pfad: str) -> str | None:
+    x = e.find(pfad, _NS)
+    return x.text.strip() if x is not None and x.text and x.text.strip() else None
+
+
+def epo_auszug(inhalt: bytes) -> dict:
+    """Trefferzahl und Veröffentlichungen aus OPS biblio-search (oder AbfrageFehler)."""
+    try:
+        wurzel = ET.fromstring(inhalt)
+    except ET.ParseError:
+        raise AbfrageFehler("EPO: Antwort ist kein XML") from None
+    suche = wurzel.find("ops:biblio-search", _NS)
+    if suche is None or not (suche.get("total-result-count") or "").isdigit():
+        raise AbfrageFehler("EPO: Antwort ohne Trefferzahl")
+    liste = []
+    for doc in suche.iterfind(".//ex:exchange-document", _NS):
+        bib = doc.find("ex:bibliographic-data", _NS)
+        if bib is None:
+            continue
+        titel = {t.get("lang"): (t.text or "").strip() for t in bib.iterfind("ex:invention-title", _NS)}
+        anmelder = [n.text.strip() for n in bib.iterfind(
+            "ex:parties/ex:applicants/ex:applicant[@data-format='epodoc']/ex:applicant-name/ex:name", _NS)
+            if n.text and n.text.strip()]
+        cpc = []
+        for k in bib.iterfind("ex:patent-classifications/ex:patent-classification", _NS):
+            teile = [_text(k, f"ex:{t}") or "" for t in ("section", "class", "subclass", "main-group", "subgroup")]
+            code = f"{''.join(teile[:3])}{teile[3]}/{teile[4]}"
+            if code not in cpc:
+                cpc.append(code)
+        datum = _text(bib, "ex:publication-reference/ex:document-id[@document-id-type='docdb']/ex:date") or ""
+        liste.append({
+            "nummer": f"{doc.get('country', '')}{doc.get('doc-number', '')}{doc.get('kind', '')}",
+            "veroeffentlicht": f"{datum[:4]}-{datum[4:6]}-{datum[6:8]}" if len(datum) == 8 else datum,
+            "titel": titel.get("en") or next(iter(titel.values()), None),
+            "anmelder": anmelder[:5], "cpc": cpc[:5], "familie": doc.get("family-id")})
+    return {"suche": _text(suche, "ops:query"), "treffer_gesamt": int(suche.get("total-result-count")),
+            "hinweis": f"EPO OPS (Espacenet-Daten, weltweit): Trefferzahl aller Veröffentlichungen (ein Patent kann "
+                       f"in mehreren Ländern veröffentlicht sein, Familie gleich), dazu die ersten {EPO_TREFFER}",
+            "veroeffentlichungen": liste}
+
+
+def epo_leer(anfrage: Anfrage) -> bytes:
+    """Auszug für eine Suche ohne Treffer (OPS antwortet mit HTTP 404)."""
+    q = urllib.parse.parse_qs(urllib.parse.urlsplit(anfrage.url).query).get("q", [""])[0]
+    return _als_json({"suche": q, "treffer_gesamt": 0, "hinweis": "EPO OPS: keine Treffer (HTTP 404 No results found)",
+                      "veroeffentlichungen": []})
 
 
 def antwort_pruefen(art: str, inhalt: bytes, content_type: str | None) -> tuple[bytes, str]:
@@ -203,6 +316,8 @@ def antwort_pruefen(art: str, inhalt: bytes, content_type: str | None) -> tuple[
         if inhalt.strip():
             return inhalt, "csv"
         raise AbfrageFehler("GENESIS: leere Antwort")
+    if art == "epo":
+        return _als_json(epo_auszug(inhalt)), "json"
     d = _json(inhalt, art)
     if art == "eurostat" and not d.get("value"):
         raise AbfrageFehler("Eurostat: keine Werte (Datensatz oder Filter prüfen)")
@@ -324,4 +439,14 @@ def abfragen_lesen(daten, maximal: int = MAX_ABFRAGEN) -> tuple[list[dict], list
         return [], ['abfragen.json: {"abfragen": [...]} erwartet']
     liste = daten["abfragen"]
     fehler = [f"Nur die ersten {maximal} Abfragen ausgeführt"] if len(liste) > maximal else []
-    return liste[:maximal], fehler
+    liste, epo = liste[:maximal], 0
+    behalten = []
+    for a in liste:
+        if isinstance(a, dict) and a.get("art") == "epo":
+            epo += 1
+            if epo > MAX_EPO:
+                continue
+        behalten.append(a)
+    if epo > MAX_EPO:
+        fehler.append(f"Nur die ersten {MAX_EPO} EPO-Abfragen ausgeführt (OPS drosselt die Suche)")
+    return behalten, fehler

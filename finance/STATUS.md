@@ -12,8 +12,8 @@ Bewertung, höchstens drei Anlagethesen). Keine Käufe, keine Entwürfe nach au�
   gestartet; `/finance <Thema>` wird angenommen und startet den Dienst. Probestart ohne Auftrag fehlerfrei.
 - pypdf==6.21.0 in .venv und requirements.txt (Jan 09.11.); web_laden liest echte Geschäftsberichte als PDF
   (geprüft mit Hermle GB 2024, 283.000 Zeichen Text).
-- Primärdaten angebunden (abrufer.py): GENESIS, Eurostat, Comtrade, TED, Jobsuche; je einmal echt geprüft.
-  EPO fehlt noch (Schlüssel).
+- Primärdaten angebunden (abrufer.py): GENESIS, Eurostat, Comtrade, TED, Jobsuche, EPO; je einmal echt geprüft
+  (EPO 09.11.2026: drei Suchen, eine ohne Treffer, keine Geheimnisse in Ablage oder Cache).
 - Bericht als PDF (Renderer-Art bericht) und Modell als xlsx (arbeitsmappe) entstehen ohne Claude aus den
   geprüften Schritten und gehen mit dem Ergebnis an Jan.
 - 74 Tests grün, pruefen.sh testet finance mit .venv/bin/python.
@@ -120,8 +120,16 @@ Ausgabe: PDF-Bericht über den Renderer (Art bericht, ergebnis.pdf) und Modellta
   in bericht.py; Format siehe shared/renderer/FORMAT.md.
 
 ## Zugänge und Schnittstellen
+- EPO OPS (09.11.2026): Abfrage-Art epo mit begriffe (Titel/Kurzfassung), anmelder, cpc, land, von_jahr,
+  bis_jahr. agent.epo_token holt den Token (Basic-Auth Key:Secret, nur Wegwerf-Cache, 15 Min. im Speicher),
+  Suche über published-data/search/biblio, abgelegt wird ein Auszug (Trefferzahl, erste 25 mit Titel,
+  Anmelder, CPC, Familie). Keine Treffer = HTTP 404, wird als Quelle mit 0 Treffern abgelegt. Höchstens
+  4 EPO-Abfragen je Liste (OPS drosselt die Suche, Header x-throttling-control: search=green:5).
+  Trefferzahl zählt Veröffentlichungen, nicht Erfindungen (eine Familie kann viele Länder haben).
 - `finance/.env` (chmod 600): GENESIS_TOKEN, GENESIS_BENUTZER, GENESIS_PASSWORT, COMTRADE_KEY, EPO_OPS_KEY,
-  EPO_OPS_SECRET. EPO-Werte trägt Jan noch ein, danach Test.
+  EPO_OPS_SECRET. EPO-Werte eingetragen 09.11.2026, Test ok (Token über
+  `POST https://ops.epo.org/3.2/auth/accesstoken`, Basic-Auth Key:Secret, grant_type=client_credentials, gilt
+  20 Min.; Suche `GET /3.2/rest-services/published-data/search?q=...` liefert XML, Header x-throttling-control beachten).
 - GENESIS: `POST https://genesis.destatis.de/genesisWS/rest/2020/data/tablefile`, Header `username` = Token,
   `password` leer, Formular name/startyear/endyear/format=ffcsv; Antwort ZIP mit CSV, Fehler als JSON
   (Status.Code, z. B. 104 = keine Objekte). Höchstens 3 parallele Anfragen, über 15 Minuten wird beendet.
@@ -197,10 +205,9 @@ Ausgabe: PDF-Bericht über den Renderer (Art bericht, ergebnis.pdf) und Modellta
 3. GENESIS gezielter nutzen: Tabellensuche (find/find) als eigene Abfrage-Art, damit Claude Codes nicht raten muss.
 4. Prognosen aus Schritt 5 nach data/prognosen.json und monatlicher Timer (eigene Unit, nur nach Jans Okay).
 5. Entwürfe aus Schritt 5 über shared/freigabe/ anlegen und ausfuehren() bauen.
-6. EPO OPS anbinden, sobald Jan EPO_OPS_KEY und EPO_OPS_SECRET einträgt.
-7. `.env.example` (nur Namen) fehlt noch.
-8. Marge im Modell zeigt #DIV/0!, wenn ein Szenario Umsatz 0 hat (Excel). Bei Bedarf Formel ändern.
-9. aktien: weitere SEC-Konzepte für Investitionen ergänzen (FCF fehlt sonst); Firmen ohne SEC über
+6. EPO in einem echten /finance-Lauf beobachten: nutzt Claude die Patentsuche sinnvoll, reichen 4 Abfragen?
+7. Marge im Modell zeigt #DIV/0!, wenn ein Szenario Umsatz 0 hat (Excel). Bei Bedarf Formel ändern.
+8. aktien: weitere SEC-Konzepte für Investitionen ergänzen (FCF fehlt sonst); Firmen ohne SEC über
    Geschäftsberichte (PDF der Investorenseite) als eigene Abfrage-Art; ETF-Factsheets (TER, Positionen).
 
 ## Gelernte Regeln

@@ -152,8 +152,8 @@ def prompt(s: Schritt, thema: str, ordner_rel: str, quellen_rel: str, metas: lis
 ABFRAGEN_AUFGABE = """\
 Plane Abfragen von Primärdaten, die Python für dich ausführt und unter einer Quellen-ID ablegt. Die Daten
 nutzt du in Schritt 2 (Lücken zwischen Angebot und Nachfrage) und später als Beleg. Lies dafür die
-Wertschöpfungskette aus Schritt 1. Plane 6 bis 12 Abfragen, die Produktion, Preise, Handel, Ausschreibungen
-und Stellen für die Stufen des Themas abdecken. Codes (GENESIS-Tabellen, Eurostat-Datensätze, HS- und
+Wertschöpfungskette aus Schritt 1. Plane 6 bis 12 Abfragen, die Produktion, Preise, Handel, Ausschreibungen,
+Stellen und, wo Technik eine Rolle spielt, Patente für die Stufen des Themas abdecken. Codes (GENESIS-Tabellen, Eurostat-Datensätze, HS- und
 CPV-Codes) suchst du per WebSearch/WebFetch heraus; erfinde keine.
 
 Formate (je Eintrag "art" und "beschreibung", sonst nur diese Felder):
@@ -168,6 +168,12 @@ Formate (je Eintrag "art" und "beschreibung", sonst nur diese Felder):
     EU-Ausschreibungen (TED) je CPV-Code (8 Ziffern), land freiwillig (ISO-3)
 {"art": "jobsuche", "was": "Robotik Holz", "wo": "Bayern", "beschreibung": "..."}
     Stellenanzeigen der Bundesagentur (Anzahl in maxErgebnisse), wo freiwillig
+{"art": "epo", "begriffe": "timber drying", "anmelder": "Weinig", "cpc": "B27B", "land": "EP", "von_jahr": 2020,
+ "bis_jahr": 2024, "beschreibung": "..."}
+    Patentveröffentlichungen weltweit (EPO, Espacenet): Trefferzahl und die ersten 25 mit Titel, Anmelder, CPC.
+    Mindestens eins von begriffe (englische Wörter in Titel/Kurzfassung, ohne Anführungszeichen), anmelder,
+    cpc (z. B. B27B oder B27B31/006); land (Veröffentlichungsland, 2 Buchstaben, EP = Europapatent) und Jahre
+    freiwillig. Höchstens 4 EPO-Abfragen. Für einen Trend dieselbe Suche mit verschiedenen Jahren.
 """
 
 
