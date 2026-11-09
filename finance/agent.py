@@ -1,21 +1,29 @@
-"""Agent finance: Recherchen zur Wirtschaftlichkeit eines Themas (Gerüst aus shared/vorlagen).
+"""Agent finance: Recherche zur Wirtschaftlichkeit eines Themas (Auftrag per /finance <Thema>).
 
-Ein Lauf: 1. freigegebene Entwürfe ausführen, 2. Aufträge abarbeiten.
-Zeitgesteuerte Aufgaben kommen je nach Agent dazu.
+Ein Lauf: 1. freigegebene Entwürfe ausführen, 2. Aufträge abarbeiten (je Auftrag eine Recherche in fünf
+Schritten, siehe ablauf.py und schritte.py). Claude denkt (ein Lauf je Schritt), Python lädt Webquellen,
+legt sie ab (quellen.py) und prüft jede Zahl (pruefung.py).
 """
 
+import tempfile
+from datetime import date
 from pathlib import Path
 
-from agentkit import auftraege, claude_lauf, config, freigabe, log
+from agentkit import abruf, auftraege, claude_lauf, config, freigabe, log, textfassung, wortlaut
+
+import ablauf
 
 AGENT = "finance"
 HIER = Path(__file__).resolve().parent
+QUELLEN = HIER / "data" / "quellen"
+RECHERCHEN = HIER / "data" / "recherchen"
+CACHE = HIER / "data" / "cache"
 logger = log.hole_logger(HIER, AGENT)
 cfg = config.lade_config(HIER)
 
 
 def ausfuehren(entwurf: dict) -> str:
-    """Hier handelt der Python-Code nach Jans Freigabe (Mail senden usw.). Gibt das Ergebnis zurück."""
+    """Hier handelt der Python-Code nach Jans Freigabe. finance legt noch keine Entwürfe an."""
     raise NotImplementedError(entwurf["typ"])
 
 
@@ -34,21 +42,57 @@ def freigegebene_ausfuehren() -> None:
             freigabe.ausfuehrung_abschliessen(e["id"], f"Fehler: {f}", erfolgreich=False)
 
 
-def auftraege_abarbeiten() -> None:
+def web_laden(url: str, _laden=abruf.laden) -> ablauf.Web:
+    """Webquelle holen (nur GET, Cache in data/cache). HTML als Text, PDF über agentkit.textfassung."""
+    try:
+        erg = _laden(url, allowlist=[ablauf.host(url)], cache_dir=CACHE)
+    except abruf.AbrufFehler as f:
+        raise ablauf.WebFehler(str(f)) from f
+    art = (erg.meta.get("content_type") or "").lower()
+    try:
+        if "pdf" in art or url.lower().endswith(".pdf"):
+            with tempfile.TemporaryDirectory() as tmp:
+                pfad = Path(tmp) / "quelle.pdf"
+                pfad.write_bytes(erg.inhalt)
+                try:
+                    text = textfassung.als_text(pfad)
+                except ImportError as f:
+                    raise ablauf.WebFehler("PDF kann finance noch nicht lesen (Paket pypdf fehlt)") from f
+            if not text:
+                raise ablauf.WebFehler("PDF ohne lesbaren Text")
+            return ablauf.Web(erg.inhalt, text, "pdf")
+        if "html" in art:
+            return ablauf.Web(erg.inhalt, erg.text_ohne_html(), "html")
+        return ablauf.Web(erg.inhalt, erg.text(), "txt")
+    except abruf.AbrufFehler as f:
+        raise ablauf.WebFehler(str(f)) from f
+
+
+def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden) -> None:
+    """Eine Recherche. LimitErreicht, KeinPlatz, LaeuftSchon gehen durch (Auftrag wartet)."""
+    ordner = RECHERCHEN / a["id"]
+    thema = a["text"].strip()
+
+    def lauf(prompt: str):
+        return laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"])
+
+    ergebnisse = ablauf.recherche(thema, HIER, ordner, QUELLEN, lauf, laden, wortlaut.steht_in, date.today())
+    text = ablauf.bericht_text(thema, ergebnisse, str(ordner.relative_to(HIER)))
+    ok = ergebnisse[-1].ok
+    logger.info("Recherche %s: %s", a["id"], "fertig" if ok else "abgebrochen")
+    auftraege.abschliessen(a["id"], text, status="erledigt" if ok else "fehlgeschlagen")
+
+
+def auftraege_abarbeiten(laufen=claude_lauf.laufen, laden=web_laden) -> None:
     for a in auftraege.neue(AGENT):
         try:
-            e = claude_lauf.laufen(AGENT, HIER, a["text"], art="anspruchsvoll", auftrag_id=a["id"],
-                                   lernsitzung=a["modus"] == "lernen")
+            recherche_abarbeiten(a, laufen, laden)
         except (claude_lauf.LimitErreicht, claude_lauf.KeinPlatz, claude_lauf.LaeuftSchon) as f:
-            logger.info("Auftrag %s wartet: %s", a["id"], f)  # bleibt in neu/, nächster Lauf
+            logger.info("Auftrag %s wartet: %s", a["id"], f)  # bleibt in neu/, fertige Schritte bleiben liegen
             return
         except claude_lauf.LaufFehler as f:
-            auftraege.abschliessen(a["id"], str(f), status="fehlgeschlagen")
-            continue
-        # Hier aus e.text bzw. den von Claude geschriebenen Dateien Entwürfe anlegen:
-        # freigabe.neuer_entwurf(AGENT, titel, inhalt, typ="mail", daten={...})
-        auftraege.abschliessen(a["id"], e.text if e.ok else f"Fehler: {e.text}",
-                               status="erledigt" if e.ok else "fehlgeschlagen")
+            logger.warning("Auftrag %s fehlgeschlagen: %s", a["id"], f)
+            auftraege.abschliessen(a["id"], f"Fehler: {f}", status="fehlgeschlagen")
 
 
 if __name__ == "__main__":

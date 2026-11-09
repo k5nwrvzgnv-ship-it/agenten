@@ -55,6 +55,20 @@ class TestQuellen(unittest.TestCase):
         with self.assertRaisesRegex(quellen.QuellenFehler, "verändert"):
             quellen.rohinhalt(self.ordner, qid)
 
+    def test_umdeklarieren_faellt_auf(self):
+        qid = quellen.speichern(self.ordner, "genesis", "https://genesis.destatis.de/x", b"1", "t", zeit=ZEIT)
+        pfad = self.ordner / f"{qid}.json"
+        m = json.loads(pfad.read_text())
+        pfad.write_text(json.dumps({**m, "art": "web"}))
+        with self.assertRaisesRegex(quellen.QuellenFehler, "Beschreibung .* verändert"):
+            quellen.meta(self.ordner, qid)
+
+    def test_ohne_indexeintrag_keine_quelle(self):
+        qid = quellen.speichern(self.ordner, "ted", "https://api.ted.europa.eu/x", b"1", "t", zeit=ZEIT)
+        (self.ordner / quellen.INDEX).write_text("")
+        with self.assertRaisesRegex(quellen.QuellenFehler, "gibt es nicht"):
+            quellen.meta(self.ordner, qid)
+
     def test_zahlen_im_rohinhalt(self):
         werte = quellen.zahlen_im_rohinhalt(ROH)
         self.assertIn(9487189.307, werte)

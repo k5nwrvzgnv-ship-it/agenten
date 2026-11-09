@@ -8,12 +8,17 @@ ID: Q-<JJJJMMTT>-<art>-<6 Zeichen sha256 aus url und Inhalt>, z. B. Q-20261109-g
 Gleiche URL mit gleichem Inhalt ergibt dieselbe ID (kein Doppel). Ändert sich der Inhalt, entsteht eine
 neue ID, die alte bleibt als Beleg erhalten.
 
+Maßgeblich ist index.toml im selben Ordner: je ID art, endung und sha256. Claude darf im Agent-Ordner schreiben,
+aber keine *.toml (Schreibschutz in agentkit.claude_lauf). Eine geänderte Meta-Datei (z. B. Art "web" statt
+"genesis", um den Abgleich zu umgehen) oder geänderte Rohdaten fallen damit auf.
+
 Claude zitiert nur IDs, die hier liegen. pruefung.py gleicht Zahlen mit den Rohdaten ab (zahlen_im_rohinhalt).
 """
 
 import hashlib
 import json
 import re
+import tomllib
 from datetime import datetime
 from pathlib import Path
 
@@ -51,7 +56,7 @@ def speichern(ordner: Path, art: str, url: str, inhalt: bytes, beschreibung: str
     qid = neue_id(art, url, inhalt, zeit)
     ordner = Path(ordner)
     meta_pfad = ordner / f"{qid}.json"
-    if meta_pfad.exists():
+    if qid in _index(ordner):
         return qid
     ordner.mkdir(parents=True, exist_ok=True)
     (ordner / f"{qid}.roh.{endung}").write_bytes(inhalt)
@@ -60,17 +65,36 @@ def speichern(ordner: Path, art: str, url: str, inhalt: bytes, beschreibung: str
             "groesse": len(inhalt), "endung": endung}
     tmp = meta_pfad.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
-    tmp.replace(meta_pfad)  # Meta zuletzt: ohne Meta gilt die Quelle als nicht vorhanden
+    tmp.replace(meta_pfad)
+    with open(ordner / INDEX, "a", encoding="utf-8") as f:  # Index zuletzt: ohne Eintrag gibt es die Quelle nicht
+        f.write(f'"{qid}" = {{ art = "{art}", endung = "{endung}", sha256 = "{meta['sha256']}" }}\n')
     return qid
+
+
+INDEX = "index.toml"
+
+
+def _index(ordner: Path) -> dict:
+    pfad = Path(ordner) / INDEX
+    if not pfad.exists():
+        return {}
+    try:
+        return tomllib.loads(pfad.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as f:
+        raise QuellenFehler(f"{pfad} ist beschädigt: {f}") from f
 
 
 def meta(ordner: Path, qid: str) -> dict:
     if not ist_id(qid):
         raise QuellenFehler(f"Keine Quellen-ID: {qid!r}")
+    eintrag = _index(ordner).get(qid)
     pfad = Path(ordner) / f"{qid}.json"
-    if not pfad.exists():
+    if eintrag is None or not pfad.exists():
         raise QuellenFehler(f"Quelle {qid} gibt es nicht")
-    return json.loads(pfad.read_text(encoding="utf-8"))
+    m = json.loads(pfad.read_text(encoding="utf-8"))
+    if any(m.get(k) != v for k, v in eintrag.items()):
+        raise QuellenFehler(f"Beschreibung von {qid} wurde nach dem Abruf verändert")
+    return m
 
 
 def rohinhalt(ordner: Path, qid: str) -> bytes:
@@ -87,8 +111,7 @@ def alle(ordner: Path) -> list[dict]:
     ordner = Path(ordner)
     if not ordner.exists():
         return []
-    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(ordner.glob("Q-*.json"))
-            if ".roh." not in p.name]
+    return [meta(ordner, qid) for qid in sorted(_index(ordner))]
 
 
 # Zahlen in Rohdaten: 1234, -1.5, 1.234,5 (deutsch), 1,234.5 (englisch), 4.2549E6
