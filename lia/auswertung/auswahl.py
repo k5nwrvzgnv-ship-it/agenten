@@ -80,6 +80,13 @@ def bestaetigte_lia(tsv: str) -> set[str]:
     return lia
 
 
+def ab_datum(gespraeche: list[dict], datum: str) -> list[dict]:
+    """Nur Chats, die am Datum (JJJJ-MM-TT) oder später zuletzt geändert wurden (zweiter Durchgang „luecken“)."""
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", datum):
+        raise ValueError(f"Datum als JJJJ-MM-TT erwartet, nicht {datum!r}")
+    return [g for g in gespraeche if (g.get("updated_at") or g.get("created_at") or "")[:10] >= datum]
+
+
 def filtern(gespraeche: list[dict], lia: set[str]) -> list[dict]:
     """Nur Lias Chats. Bricht ab, wenn eine bestätigte UUID im Export fehlt (falsche Liste)."""
     behalten = [g for g in gespraeche if g.get("uuid") in lia]

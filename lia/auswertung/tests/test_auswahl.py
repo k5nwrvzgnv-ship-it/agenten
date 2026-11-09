@@ -78,3 +78,15 @@ class Filtern(unittest.TestCase):
     def test_fehlende_uuid_bricht_ab(self):
         with self.assertRaises(ValueError):
             auswahl.filtern([chat("a", "x", "y")], {"a", "z"})
+
+
+class AbDatum(unittest.TestCase):
+    def test_nach_letzter_aenderung(self):
+        alt = chat("1", "a", "x", datum="2026-10-20T10:00:00Z")
+        weiter = dict(chat("2", "b", "x", datum="2026-10-20T10:00:00Z"), updated_at="2026-10-24T08:00:00Z")
+        neu = chat("3", "c", "x", datum="2026-11-01T10:00:00Z")
+        self.assertEqual([g["uuid"] for g in auswahl.ab_datum([alt, weiter, neu], "2026-10-24")], ["2", "3"])
+
+    def test_falsches_datum(self):
+        with self.assertRaises(ValueError):
+            auswahl.ab_datum([], "24.10.2026")

@@ -1,6 +1,8 @@
 # Auswertung deiner Claude-Chats – kurze Erklärung für Lia
 
 Fassung vom 23.10.2026. Lia hat am 23.10.2026 ohne Einschränkungen zugestimmt.
+Zweiter Export (Chats ab 24.10.2026, Frage: was fehlt der Web-App): Lia hat am 09.11.2026 ohne Einschränkungen
+zugestimmt (an Jan, von Jan im Chat weitergegeben). Es gelten dieselben Regeln und Löschtermine wie unten.
 
 ## Worum es geht
 Du hast über Jans claude.ai-Konto viele Chats für die Schule geführt. Jan möchte daraus lernen, welche

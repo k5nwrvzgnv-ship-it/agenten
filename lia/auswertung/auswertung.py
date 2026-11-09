@@ -14,6 +14,9 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
   kodierung <csv>  Lias Antworten mit Claudes Einordnung vergleichen
   vergleichsbogen <ordner>  Blindvergleich aus <ordner>/P01.txt … (neue Ergebnisse von lia/unterricht)
   vergleich <csv>  Lias Blindvergleich auswerten
+Zweiter Durchgang (Export vom 09.11.2026, Frage: was fehlt der Web-App), alles unter data/luecken/:
+  luecken-liste <JJJJ-MM-TT>  Chats ab diesem Datum -> data/luecken/chatliste.tsv (nur Titel), Spalte wer korrigieren
+  luecken-filtern  bestätigte Chats nach data/luecken/chats.json, danach die conversations.json des Exports löschen
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -36,6 +39,7 @@ import statistik
 HIER = ablage.HIER
 EXPORT = ablage.DATEN / "export"
 LIA = ablage.DATEN / "lia"
+LUECKEN = ablage.DATEN / "luecken"
 
 
 def main(argumente: list[str]) -> int:
@@ -94,6 +98,10 @@ def main(argumente: list[str]) -> int:
         return pruefung_befehl(befehl, argumente[1:])
     if befehl == "filtern":
         return filtern_befehl(argumente[1:])
+    if befehl == "luecken-liste" and len(argumente) == 2:
+        return luecken_liste_befehl(argumente[1])
+    if befehl == "luecken-filtern":
+        return filtern_befehl([], LUECKEN / "chatliste.tsv", LUECKEN)
     if befehl:
         print(__doc__)
         return 1
@@ -101,9 +109,25 @@ def main(argumente: list[str]) -> int:
     return 0
 
 
-def filtern_befehl(projekt_uuids: list[str]) -> int:
-    """Lias Chats und die genannten Projekte nach data/lia/, danach Export-Chats und -Projekte löschen."""
-    lia = auswahl.bestaetigte_lia((ablage.DATEN / "chatliste.tsv").read_text(encoding="utf-8"))
+def luecken_liste_befehl(datum: str) -> int:
+    """Chatliste für den zweiten Durchgang, nur Chats ab datum. Bestehende Liste wird nie überschrieben."""
+    ziel = LUECKEN / "chatliste.tsv"
+    if ziel.exists():
+        print(f"{ziel} gibt es schon (vielleicht mit Korrekturen). Erst von Hand umbenennen.")
+        return 1
+    quelle = EXPORT / "conversations-000" / "conversations.json"
+    gespraeche = auswahl.ab_datum(json.loads(quelle.read_text(encoding="utf-8")), datum)
+    tsv = auswahl.chatliste(gespraeche)
+    ablage.datenordner(LUECKEN)
+    ablage.schreiben(ziel, tsv)
+    anzahl = Counter(z.rsplit("\t", 1)[1] for z in tsv.splitlines()[1:])
+    print(f"{ziel}: {sum(anzahl.values())} Chats ab {datum}, Vorschlag {dict(anzahl)}. Spalte wer korrigieren.")
+    return 0
+
+
+def filtern_befehl(projekt_uuids: list[str], liste: Path = ablage.DATEN / "chatliste.tsv", ziel: Path = LIA) -> int:
+    """Lias Chats und die genannten Projekte nach ziel, danach Export-Chats und -Projekte löschen."""
+    lia = auswahl.bestaetigte_lia(liste.read_text(encoding="utf-8"))
     quelle = EXPORT / "conversations-000" / "conversations.json"
     chats = auswahl.filtern(json.loads(quelle.read_text(encoding="utf-8")), lia)
     projekte_dir = EXPORT / "projects-000" / "projects"
@@ -112,7 +136,7 @@ def filtern_befehl(projekt_uuids: list[str]) -> int:
         if not p.is_file():
             print(f"Projekt fehlt: {p.name}")
             return 1
-    ziel = ablage.datenordner(LIA)
+    ziel = ablage.datenordner(ziel)
     ablage.schreiben(ziel / "chats.json", json.dumps(chats, ensure_ascii=False))
     ablage.datenordner(ziel / "projekte")
     for p in projekte:
@@ -121,7 +145,8 @@ def filtern_befehl(projekt_uuids: list[str]) -> int:
         print("Kontrolle fehlgeschlagen, nichts gelöscht.")
         return 1
     quelle.unlink()
-    shutil.rmtree(projekte_dir)
+    if projekte:
+        shutil.rmtree(projekte_dir)
     print(f"{len(chats)} Chats und {len(projekte)} Projekte nach {ziel}. Übrige Chats und Projekte gelöscht.")
     return 0
 
