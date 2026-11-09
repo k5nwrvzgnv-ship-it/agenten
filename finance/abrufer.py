@@ -135,7 +135,7 @@ def anfrage_bauen(abfrage: dict, schluessel: dict) -> Anfrage:
         if abfrage.get("land"):
             query += f" AND buyer-country={_code(abfrage['land'], 'land', re.compile(r'^[A-Z]{3}$'))}"
         koerper = {"query": query, "fields": ["publication-number", "publication-date", "buyer-country",
-                                              "notice-title"], "limit": 50}
+                                              "notice-title"], "limit": 10}  # Gesamtzahl in totalNoticeCount
         daten = json.dumps(koerper).encode()
         return Anfrage(art, TED, beschreibung, ["api.ted.europa.eu"], "POST", daten,
                        {"Content-Type": "application/json"},

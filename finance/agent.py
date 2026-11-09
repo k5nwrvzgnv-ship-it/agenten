@@ -12,6 +12,8 @@ from pathlib import Path
 from agentkit import abruf, auftraege, claude_lauf, config, freigabe, log, textfassung, wortlaut
 
 import ablauf
+import abrufer
+import quellen
 
 AGENT = "finance"
 HIER = Path(__file__).resolve().parent
@@ -68,7 +70,21 @@ def web_laden(url: str, _laden=abruf.laden) -> ablauf.Web:
         raise ablauf.WebFehler(str(f)) from f
 
 
-def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden) -> None:
+def abrufen(abfrage: dict, _laden=abruf.laden) -> str:
+    """Eine Abfrage von Claude ausführen und ablegen: Quellen-ID oder AbfrageFehler/WebFehler (Text für Claude)."""
+    anfrage = abrufer.anfrage_bauen(abfrage, cfg)
+    try:
+        erg = _laden(anfrage.url, allowlist=anfrage.allowlist, cache_dir=CACHE, methode=anfrage.methode,
+                     daten=anfrage.daten, header=anfrage.header, neu=True)  # Primärdaten immer frisch
+    except abruf.AbrufFehler as f:
+        raise ablauf.WebFehler(str(f)) from f
+    roh, endung = abrufer.antwort_pruefen(anfrage.art, erg.inhalt, erg.meta.get("content_type"))
+    qid = quellen.speichern(QUELLEN, anfrage.art, anfrage.quelle_url, roh, anfrage.beschreibung, endung=endung)
+    logger.info("Primärdaten %s: %s", qid, anfrage.beschreibung)
+    return qid
+
+
+def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden, abfragen=abrufen) -> None:
     """Eine Recherche. LimitErreicht, KeinPlatz, LaeuftSchon gehen durch (Auftrag wartet)."""
     ordner = RECHERCHEN / a["id"]
     thema = a["text"].strip()
@@ -76,7 +92,8 @@ def recherche_abarbeiten(a: dict, laufen=claude_lauf.laufen, laden=web_laden) ->
     def lauf(prompt: str):
         return laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"])
 
-    ergebnisse = ablauf.recherche(thema, HIER, ordner, QUELLEN, lauf, laden, wortlaut.steht_in, date.today())
+    ergebnisse = ablauf.recherche(thema, HIER, ordner, QUELLEN, lauf, laden, wortlaut.steht_in, date.today(),
+                                  abrufen=abfragen)
     text = ablauf.bericht_text(thema, ergebnisse, str(ordner.relative_to(HIER)))
     ok = ergebnisse[-1].ok
     logger.info("Recherche %s: %s", a["id"], "fertig" if ok else "abgebrochen")

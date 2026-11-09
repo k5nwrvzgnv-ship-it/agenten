@@ -44,7 +44,15 @@ Regeln für Zahlen (Python prüft jede einzelne, sonst wird die Datei abgelehnt)
       (art: produkt, quotient, summe, differenz; Python rechnet nach, höchstens 1 % Abweichung)
 - Keine nackten Zahlen, auch nicht in Listen. Ausnahme: die Felder "jahr", "von_jahr", "bis_jahr", "nr" (ganze Zahl).
 - Zahlen im Fließtext vermeiden. Was du nicht belegen kannst, ist eine Annahme, keine Quelle.
-- Erfinde keine Quellen-IDs und keine Zitate."""
+- Erfinde keine Quellen-IDs und keine Zitate.
+- Webquellen: die Originalseite des Herausgebers (Investor Relations, Destatis, Verband, Behörde) statt
+  Nachrichtenportalen oder Sammelseiten, wenn sie erreichbar ist. PDFs (Geschäftsberichte) sind erlaubt, Python
+  liest ihren Text selbst. Weil WebFetch PDFs nur in Auszügen zeigt, dort ein kurzes Zitat wählen: die Zahl mit
+  den zwei, drei Wörtern unmittelbar davor, genau wie im Dokument."""
+
+ARBEITSWEISE = """Arbeitsweise: Du hast höchstens 30 Arbeitsschritte (jeder Werkzeugaufruf zählt), danach wird der Lauf ohne
+Ergebnis abgebrochen. Schreibe die Datei vollständig, spätestens wenn etwa die Hälfte verbraucht ist, und
+verbessere sie danach mit Edit. Eine gültige Datei mit offenen Punkten ist besser als keine."""
 
 SCHRITTE = (
     Schritt(1, "Wertschöpfungskette", """\
@@ -66,7 +74,9 @@ Jede Lücke braucht mindestens zwei Belege aus verschiedenen Quellen.""",
     Schritt(3, "Ursachen und Marktgröße", """\
 Begründe je Lücke aus Schritt 2, warum sie besteht und ob sie bleibt: Engpass (Fachkräfte, Kapital,
 Technik, Regulierung), Five Forces, Zyklus. Rechne die Marktgröße von unten: Zahl der Kunden mal Anteil mit
-Bedarf mal Preis je Kunde und Jahr, als Zahl-Objekt mit "berechnet": {"art": "produkt", ...}.""",
+Bedarf mal Preis je Kunde und Jahr, als Zahl-Objekt mit "berechnet": {"art": "produkt", ...}. Die Zahl der
+Kunden kommt aus einer Quelle; Anteil und Preis möglichst auch (Preislisten, Förderprogramme, Umfragen,
+Stellenanzeigen). Was Annahme bleibt, benennst du in "begruendung" als größte Unsicherheit.""",
              '{"luecken": [{"titel": "...", "ursache": "...", "bleibt": "ja|nein|unklar", "begruendung": "...", '
              '"five_forces": {"rivalitaet": "...", "neue_anbieter": "...", "ersatz": "...", "kunden": "...", '
              '"lieferanten": "..."}, "zyklus": "...", "marktgroesse": <Zahl mit berechnet produkt>}]}'),
@@ -83,7 +93,10 @@ Prüfe jede Hypothese aus Schritt 4 von außen: Vergleichsfirmen (wer macht das 
 Rückrechnung an einem bekannten Fall (stimmt das Modell für eine Firma, deren Zahlen bekannt sind?),
 datierte Prognosen, die später automatisch gegen die Statistik geprüft werden (Indikator so genau benennen,
 dass Python ihn abrufen kann, z. B. GENESIS-Tabelle und Merkmal), und Entwürfe für Kundengespräche und
-Angebotsanfragen. Die Entwürfe werden NICHT verschickt; Jan gibt sie einzeln frei.""",
+Angebotsanfragen. Die Entwürfe werden NICHT verschickt; Jan gibt sie einzeln frei.
+Umfang je Hypothese: höchstens zwei Vergleichsfirmen, eine Rückrechnung, ein bis zwei Prognosen, höchstens
+zwei Entwürfe. Nutze zuerst die Quellen aus den Schritten 1 bis 4 und die abgelegten Primärdaten; höchstens
+fünf neue Webseiten insgesamt.""",
              '{"pruefungen": [{"hypothese": "<titel aus Schritt 4>", "vergleichsfirmen": [{"name": "...", '
              '"ergebnis": "...", "zahl": <Zahl>}], "rueckrechnung": {"fall": "...", "erwartet": <Zahl>, '
              '"tatsaechlich": <Zahl>, "fazit": "..."}, "prognosen": [{"aussage": "...", "indikator": "...", '
@@ -120,10 +133,50 @@ def prompt(s: Schritt, thema: str, ordner_rel: str, quellen_rel: str, metas: lis
         ("Ergebnisse der vorigen Schritte (geprüft, lesen): " + ", ".join(vorige)) if vorige else "",
         f"Schreibe das Ergebnis als JSON nach {ordner_rel}/{s.datei}, sonst keine Dateien. Gerüst:\n{s.beispiel}",
         ZAHL_REGELN,
+        ARBEITSWEISE,
         "Abgelegte Primärdaten (Quellen-IDs):\n" + quellenliste(metas, quellen_rel),
         "Antworte am Ende mit einem Satz, was in der Datei steht.",
     ]
     return "\n\n".join(t for t in teile if t)
+
+
+ABFRAGEN_AUFGABE = """\
+Plane Abfragen von Primärdaten, die Python für dich ausführt und unter einer Quellen-ID ablegt. Die Daten
+nutzt du in Schritt 2 (Lücken zwischen Angebot und Nachfrage) und später als Beleg. Lies dafür die
+Wertschöpfungskette aus Schritt 1. Plane 6 bis 12 Abfragen, die Produktion, Preise, Handel, Ausschreibungen
+und Stellen für die Stufen des Themas abdecken. Codes (GENESIS-Tabellen, Eurostat-Datensätze, HS- und
+CPV-Codes) suchst du per WebSearch/WebFetch heraus; erfinde keine.
+
+Formate (je Eintrag "art" und "beschreibung", sonst nur diese Felder):
+{"art": "genesis", "tabelle": "42111-0001", "von_jahr": 2020, "bis_jahr": 2025, "beschreibung": "..."}
+    Destatis GENESIS-Online, Tabellencode NNNNN-NNNN
+{"art": "eurostat", "datensatz": "sts_inpr_a", "filter": {"geo": "DE", "nace_r2": "C16"}, "von_jahr": 2020,
+ "beschreibung": "..."}   Eurostat-Datensatz mit Filtern je Dimension (nur Codes)
+{"art": "comtrade", "melder": 276, "partner": 0, "jahr": 2024, "hs": "847950", "richtung": "X",
+ "beschreibung": "..."}   UN Comtrade; melder/partner M49-Code (276 Deutschland, 0 Welt), HS mit 2, 4 oder 6
+    Ziffern, richtung X Export, M Import
+{"art": "ted", "cpv": "42997300", "von": "2025-01-01", "land": "DEU", "beschreibung": "..."}
+    EU-Ausschreibungen (TED) je CPV-Code (8 Ziffern), land freiwillig (ISO-3)
+{"art": "jobsuche", "was": "Robotik Holz", "wo": "Bayern", "beschreibung": "..."}
+    Stellenanzeigen der Bundesagentur (Anzahl in maxErgebnisse), wo freiwillig
+"""
+
+
+def abfragen_prompt(thema: str, ordner_rel: str, fehler: list[str] | None = None) -> str:
+    """Prompt für die Phase Primärdaten (zwischen Schritt 1 und 2). Claude schreibt abfragen.json."""
+    teile = [f"Recherche zur Wirtschaftlichkeit, Thema: {thema}", "Vorbereitung für Schritt 2: Primärdaten"]
+    if fehler:
+        teile.append("Diese Abfragen sind fehlgeschlagen. Schreibe abfragen.json neu, nur mit korrigierten oder "
+                     "ersetzenden Abfragen (die erfolgreichen liegen schon ab):\n"
+                     + "\n".join(f"- {f}" for f in fehler[:30]))
+    teile += [
+        ABFRAGEN_AUFGABE,
+        f"Ergebnis von Schritt 1 (lesen): {ordner_rel}/{schritt(1).datei}",
+        f'Schreibe {ordner_rel}/abfragen.json als {{"abfragen": [...]}}, sonst keine Dateien.',
+        ARBEITSWEISE,
+        "Antworte am Ende mit einem Satz, was in der Datei steht.",
+    ]
+    return "\n\n".join(teile)
 
 
 def _ist_text(x) -> bool:

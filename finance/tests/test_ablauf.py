@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 
 import ablauf
+import abrufer
 import quellen
 import schritte
 
@@ -57,6 +58,9 @@ class FalschesClaude:
 
     def __call__(self, prompt: str):
         self.prompts.append(prompt)
+        if "Vorbereitung für Schritt 2: Primärdaten" in prompt:
+            (self.ordner / ablauf.ABFRAGEN).write_text(json.dumps(self.plan[0].pop(0)))
+            return Lauf(True, "ok")
         nr = int(prompt.split("Schritt ")[1].split(" ")[0])
         (self.ordner / f"schritt{nr}.json").write_text(json.dumps(self.plan[nr].pop(0)))
         return Lauf(True, "ok")
@@ -150,7 +154,80 @@ class TestAblauf(Basis):
         self.assertIn("Zeitlimit", erg[0].fehler[0])
 
 
+    def test_lauf_ohne_ergebnis_wird_wiederholt(self):
+        claude = FalschesClaude(self.ordner, {1: [GUELTIG[1]]})
+        antworten = [Lauf(False, ""), None]
+
+        def laufen(prompt):
+            a = antworten.pop(0)
+            return a if a else claude(prompt)
+
+        e = ablauf.schritt_ausfuehren(schritte.schritt(1), "Robotik", self.hier, self.ordner, self.quellen,
+                                      laufen, laden, steht_in, HEUTE)
+        self.assertTrue(e.ok, e.fehler)
+        self.assertEqual(e.laeufe, 2)
+        self.assertIn("Grenze der Arbeitsschritte", claude.prompts[0])
+
+
+class FalscherAbruf:
+    """Gibt für gültige Jobsuche-Abfragen eine ID, sonst AbfrageFehler."""
+
+    def __init__(self):
+        self.abfragen = []
+
+    def __call__(self, abfrage):
+        self.abfragen.append(abfrage)
+        if abfrage.get("art") == "jobsuche":
+            return f"Q-20261109-jobsuche-{len(self.abfragen):06x}"
+        raise abrufer.AbfrageFehler("tabelle: ungültiger Wert")
+
+
+JOB = {"art": "jobsuche", "was": "Robotik", "beschreibung": "Stellen"}
+FALSCH = {"art": "genesis", "tabelle": "x", "beschreibung": "Produktion"}
+
+
+class TestPrimaerdaten(Basis):
+    def phase(self, claude, abruf):
+        return ablauf.primaerdaten("Robotik", self.hier, self.ordner, self.quellen, claude, abruf)
+
+    def test_fehlgeschlagene_abfrage_wird_einmal_nachgebessert(self):
+        claude = FalschesClaude(self.ordner, {0: [{"abfragen": [JOB, FALSCH]}, {"abfragen": [dict(JOB, wo="Bayern")]}]})
+        abruf = FalscherAbruf()
+        e = self.phase(claude, abruf)
+        self.assertTrue(e.ok)
+        self.assertEqual((e.laeufe, len(e.quellen), e.hinweise), (2, 2, []))
+        self.assertIn("abfragen[1]: tabelle: ungültiger Wert", claude.prompts[1])
+        gespeichert = json.loads((self.ordner / ablauf.ABFRAGEN_ERGEBNIS).read_text())["ergebnisse"]
+        self.assertEqual([("id" in g) for g in gespeichert], [True, False, True])
+
+    def test_bleibende_fehler_brechen_nicht_ab_und_fortsetzen_ohne_lauf(self):
+        claude = FalschesClaude(self.ordner, {0: [{"abfragen": [FALSCH]}, {"abfragen": [FALSCH]}]})
+        e = self.phase(claude, FalscherAbruf())
+        self.assertTrue(e.ok)
+        self.assertEqual(len(e.hinweise), 1)
+        e2 = self.phase(lambda p: self.fail("kein Lauf beim Fortsetzen"), FalscherAbruf())
+        self.assertEqual(e2.laeufe, 0)
+
+    def test_recherche_mit_primaerdaten(self):
+        plan = {n: [d] for n, d in GUELTIG.items()}
+        plan[0] = [{"abfragen": [JOB]}]
+        claude = FalschesClaude(self.ordner, plan)
+        erg = ablauf.recherche("Robotik", self.hier, self.ordner, self.quellen, claude, laden, steht_in, HEUTE,
+                               abrufen=FalscherAbruf())
+        self.assertEqual([e.nr for e in erg], [1, 0, 2, 3, 4, 5])
+        self.assertTrue(all(e.ok for e in erg), [e.fehler for e in erg])
+        self.assertIn("Primärdaten: 1 Abfragen abgelegt.", ablauf.bericht_text("Robotik", erg, "x"))
+
+
 class TestSchritte(unittest.TestCase):
+    def test_prompt_arbeitsweise_und_grenzen_schritt5(self):
+        p = schritte.prompt(schritte.schritt(5), "Robotik", "data/recherchen/a1", "data/quellen", [])
+        self.assertIn("höchstens 30 Arbeitsschritte", p)
+        self.assertIn("höchstens zwei Vergleichsfirmen", p)
+        a = schritte.abfragen_prompt("Robotik", "data/recherchen/a1", ["abfragen[0]: x"])
+        self.assertIn("data/recherchen/a1/abfragen.json", a)
+        self.assertIn("abfragen[0]: x", a)
+
     def test_pflichtfelder(self):
         self.assertIn("mindestens zwei Belege", schritte.pflichtfelder(2, {"luecken": [{"belege": []}]}, HEUTE)[0])
         f = schritte.pflichtfelder(3, {"luecken": [{"bleibt": "vielleicht", "marktgroesse": annahme(1)}]}, HEUTE)

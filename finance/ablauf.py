@@ -11,11 +11,15 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import abrufer
 import pruefung
 import quellen
 import schritte
 
 MAX_VERSUCHE = 3  # erster Lauf und zwei Nachbesserungen je Schritt
+MAX_ABFRAGE_LAEUFE = 2  # Primärdaten: Plan und eine Nachbesserung für fehlgeschlagene Abfragen
+ABFRAGEN = "abfragen.json"  # schreibt Claude
+ABFRAGEN_ERGEBNIS = "abfragen_ergebnis.json"  # schreibt Python; liegt sie vor, ist die Phase erledigt
 
 
 @dataclass
@@ -108,8 +112,11 @@ def schritt_ausfuehren(s: schritte.Schritt, thema: str, hier: Path, ordner: Path
     for _ in range(MAX_VERSUCHE):
         e = laufen(schritte.prompt(s, thema, ordner_rel, quellen_rel, quellen.alle(quellen_ordner), fehler))
         laeufe += 1
-        if not e.ok:
-            return SchrittErgebnis(s.nr, ok=False, fehler=[f"Claude-Lauf fehlgeschlagen: {e.text}"], laeufe=laeufe)
+        if not e.ok and not pfad.exists():
+            # Meist die Grenze der Arbeitsschritte (leerer Text): nächster Versuch mit diesem Hinweis
+            erg = SchrittErgebnis(s.nr, ok=False, fehler=[lauf_fehler(e.text)], laeufe=laeufe)
+            fehler = erg.fehler
+            continue
         erg = pruefen(s.nr, pfad, quellen_ordner, laden, steht_in, heute)
         erg.laeufe = laeufe
         if erg.ok:
@@ -118,12 +125,66 @@ def schritt_ausfuehren(s: schritte.Schritt, thema: str, hier: Path, ordner: Path
     return erg
 
 
+def lauf_fehler(text: str) -> str:
+    text = (text or "").strip()
+    return (f"Claude-Lauf fehlgeschlagen: {text}" if text else
+            "Claude-Lauf ohne Ergebnis abgebrochen, vermutlich Grenze der Arbeitsschritte erreicht: "
+            "schreibe die Datei früher und recherchiere weniger")
+
+
+def primaerdaten(thema: str, hier: Path, ordner: Path, quellen_ordner: Path, laufen, abrufen) -> SchrittErgebnis:
+    """Phase zwischen Schritt 1 und 2: Claude plant Abfragen (abfragen.json), Python führt sie aus.
+
+    abrufen(abfrage) -> Quellen-ID, sonst WebFehler oder abrufer.AbfrageFehler (agent.py, über agentkit.abruf).
+    Bricht die Recherche nie ab: ohne Primärdaten arbeitet Schritt 2 mit Webquellen und Annahmen.
+    """
+    erg = SchrittErgebnis(0, ok=True)
+    ziel = ordner / ABFRAGEN_ERGEBNIS
+    if ziel.exists():  # Fortsetzen
+        alt, _ = schritte.lesen(ziel)
+        erg.quellen = {e["id"] for e in (alt or {}).get("ergebnisse", []) if e.get("id")}
+        return erg
+    ordner_rel = str(ordner.relative_to(hier))
+    ergebnisse: list[dict] = []
+    fehler: list[str] | None = None
+    for _ in range(MAX_ABFRAGE_LAEUFE):
+        pfad = ordner / ABFRAGEN
+        pfad.unlink(missing_ok=True)
+        e = laufen(schritte.abfragen_prompt(thema, ordner_rel, fehler))
+        erg.laeufe += 1
+        daten, f = schritte.lesen(pfad)
+        if f:
+            fehler = [f if e.ok else lauf_fehler(e.text)]
+            erg.hinweise = fehler
+            continue
+        liste, hinweis = abrufer.abfragen_lesen(daten)
+        fehler = [] if liste else hinweis
+        for i, abfrage in enumerate(liste):
+            try:
+                qid = abrufen(abfrage)
+                ergebnisse.append({"abfrage": abfrage, "id": qid})
+                erg.quellen.add(qid)
+            except (WebFehler, abrufer.AbfrageFehler) as w:
+                ergebnisse.append({"abfrage": abfrage, "fehler": str(w)})
+                fehler.append(f"abfragen[{i}]: {w}")
+        erg.hinweise = (hinweis if liste else []) + fehler
+        if not fehler:
+            break
+    ziel.write_text(json.dumps({"ergebnisse": ergebnisse}, ensure_ascii=False, indent=1), encoding="utf-8")
+    return erg
+
+
 def recherche(thema: str, hier: Path, ordner: Path, quellen_ordner: Path, laufen, laden, steht_in,
-              heute: date) -> list[SchrittErgebnis]:
-    """Alle Schritte; bricht beim ersten Schritt ab, der auch nach Nachbesserung Fehler hat."""
+              heute: date, abrufen=None) -> list[SchrittErgebnis]:
+    """Alle Schritte; bricht beim ersten Schritt ab, der auch nach Nachbesserung Fehler hat.
+
+    Mit abrufen (agent.py) zwischen Schritt 1 und 2 die Phase Primärdaten (Ergebnis mit nr 0).
+    """
     ordner.mkdir(parents=True, exist_ok=True)
     ergebnisse = []
     for s in schritte.SCHRITTE:
+        if s.nr == 2 and abrufen is not None:
+            ergebnisse.append(primaerdaten(thema, hier, ordner, quellen_ordner, laufen, abrufen))
         erg = schritt_ausfuehren(s, thema, hier, ordner, quellen_ordner, laufen, laden, steht_in, heute)
         ergebnisse.append(erg)
         if not erg.ok:
@@ -148,6 +209,11 @@ def bericht_text(thema: str, ergebnisse: list[SchrittErgebnis], ordner_rel: str)
     quellen_ids = set().union(*(e.quellen for e in ergebnisse))
     annahmen = sum(len(e.annahmen) for e in ergebnisse)
     hinweise = sum(len(e.hinweise) for e in ergebnisse)
+    primaer = next((e for e in ergebnisse if e.nr == 0), None)
+    if primaer:
+        zeilen.append(f"Primärdaten: {len(primaer.quellen)} Abfragen abgelegt"
+                      + (f", {len(primaer.hinweise)} Hinweise (siehe abfragen_ergebnis.json)." if primaer.hinweise
+                         else "."))
     zeilen.append(f"{len(quellen_ids)} Quellen, {annahmen} Annahmen, {hinweise} Zahlen aus Webquellen ohne Rohdaten-"
                   f"abgleich. Läufe: {sum(e.laeufe for e in ergebnisse)}.")
     zeilen.append(f"Dateien: finance/{ordner_rel}/schritt1.json bis schritt{letzte.nr}.json "
