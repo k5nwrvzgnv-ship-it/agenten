@@ -170,6 +170,24 @@ Ausgabe: PDF-Bericht über den Renderer (Art bericht, ergebnis.pdf) und Modellta
 - Tests: test_quellen_pruefung, test_ablauf, test_abrufer, test_bericht (ohne Netz), test_agent (mit agentkit,
   falsches Laden), test_geruest.
 
+## Dritter Lauf (09.11.2026, Variante aktien, Auftrag 20261109-162430-finance-fa0f3f)
+- Thema "Robotik und KI – Unternehmen und Investmentmöglichkeiten". Alle 5 Schritte bestanden. Nach Schritt 3
+  pausiert (5h-Kontingent 101 %), um 18:02 von Hand neu gestartet, um 18:10 fertig. Die Zentrale hat das Ergebnis
+  gemeldet (bericht.pdf mit 21 Seiten Vorschau, modell.xlsx).
+- Primärdaten: 33 von 33 Abfragen geladen (15 Firmen, 5 ETFs, 4 Wechselkurse); 40 Quellen, davon 33 aus
+  Abschlüssen und Kursen; 57 Annahmen. In Schritt 2 bewertet: NVIDIA, TSMC, ASML, Teradyne, Cognex, Intuitive,
+  Alphabet, Rockwell.
+- Thesen: Korb aus Intuitive Surgical und ASML (fair bewertet, Basis rund 9,3 % pro Jahr, Sicherheit mittel);
+  Robotik-ETF 2B76.DE (Sicherheit niedrig; TER und Zusammensetzung ungeprüft); Cognex abwarten (teuer).
+  Gegenprüfung: Rückrechnung ab Ende 2021 bestätigt den Korb knapp (1,59 statt 1,56 erwartet; ASML über,
+  Intuitive unter der Erwartung). Für den ETF zeigt BOTZ eine Auswahl im Nachhinein (31,8 statt 49,2).
+- Kosten: 9 Läufe, 6,85 USD, darunter ein abgewiesener Lauf.
+- Schwächen: Firmen ohne SEC-Meldung (Fanuc, Yaskawa, Keyence, Harmonic Drive, Siemens, ABB) fielen heraus,
+  das Ergebnis ist deshalb US-lastig. Bei NVIDIA, Intuitive und Rockwell fehlen die Investitionen der letzten Jahre im
+  SEC-Auszug, also auch der FCF (vermutlich fehlen Konzepte wie PaymentsToAcquireProductiveAssets in
+  abrufer.SEC_KONZEPTE). Die Marktkapitalisierung beruht teils auf verwässerten Aktien. ETF-Kosten hat der Lauf nicht geladen
+  (Anbieterseite gesperrt).
+
 ## Nächste Schritte hier
 1. Kosten je vollständiger Recherche: rund 6 USD, 6 Läufe, 17 Minuten, etwa 3 % des Wochenkontingents.
    Neue Läufe nur per /finance von Jan.
@@ -182,6 +200,8 @@ Ausgabe: PDF-Bericht über den Renderer (Art bericht, ergebnis.pdf) und Modellta
 6. EPO OPS anbinden, sobald Jan EPO_OPS_KEY und EPO_OPS_SECRET einträgt.
 7. `.env.example` (nur Namen) fehlt noch.
 8. Marge im Modell zeigt #DIV/0!, wenn ein Szenario Umsatz 0 hat (Excel). Bei Bedarf Formel ändern.
+9. aktien: weitere SEC-Konzepte für Investitionen ergänzen (FCF fehlt sonst); Firmen ohne SEC über
+   Geschäftsberichte (PDF der Investorenseite) als eigene Abfrage-Art; ETF-Factsheets (TER, Positionen).
 
 ## Gelernte Regeln
 - (noch keine)
