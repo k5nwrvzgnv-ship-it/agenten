@@ -1046,6 +1046,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     ohne Auftrag (39), Dateien dauerhaft an Reihe/Stunde (26), eigene Texte prüfen (22), mehrere Gespräche auch ohne
     Ort (19), Reihen selbst anlegen (19). Liste mit allen Lücken: lia/auswertung/STATUS.md, Belege nur auf dem Server
     (lia/auswertung/data/luecken/bericht.md). Ungeprüft durch Lia.
+    Plan: docs/gespraech-plan.md (Gespräch in die Mitte der Web-App). Jans Entscheidungen 09.11.2026 (alle wie
+    empfohlen): Gedächtnis über claude_lauf sitzung_fortsetzen, Read für Fotos mit Pfadgrenze, drei Spalten mit dem
+    Gespräch in der Mitte, Kosten auf Lias Kontingent (Sonnet, gründlich je Gespräch), Aufbewahrung 30 Tage ab letzter
+    Nachricht. Als Nächstes entsteht im shared/webapp-Chat die Klick-Attrappe für Lia; gebaut wird erst nach Lias Okay.
+    Bedarf an agentkit (Plan Schritt 4.3.2, nur notiert, nicht gebaut): prüfen, ob agentkit.claude_lauf Read mit
+    Pfadgrenze erlaubt; falls nötig Art "Projekt" in agentkit.struktur/strukturpflege ergänzen.
 
 ## Gelernte Regeln
 - (noch keine)
