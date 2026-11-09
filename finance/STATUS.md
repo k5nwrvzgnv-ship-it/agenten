@@ -5,17 +5,36 @@ Macht zu jedem Thema, das Jan schickt, eine eigene neue Recherche zur Wirtschaft
 Wertschöpfungskette heute Gewinn anfällt, wo Angebot und Nachfrage auseinanderliegen, und höchstens drei
 geprüfte Geschäftshypothesen. Erstes Thema: „Robotik und KI allgemein und in der Holzindustrie“.
 
-## Stand (09.11.2026)
-- Recherche-Ablauf gebaut und getestet (32 Tests grün, mit falschem Claude), aber noch NIE echt gelaufen:
-  kein Dienst installiert, `/finance` kommt in der Zentrale noch nicht an.
-- Zugänge: GENESIS und Comtrade in .env und getestet, EPO wartet auf Bestätigung (siehe Offene Punkte 1).
-- .venv steht. pruefen.sh testet finance noch mit System-python3 (Umstellung beim Hauptordner-Chat), deshalb
-  importieren ablauf.py, schritte.py, pruefung.py, quellen.py kein agentkit; agent.py schon (nur von Hand mit
-  .venv geprüft: Import und echter Webabruf ok).
-- Außerhalb des Ordners eingerichtet (Hauptordner-Chat): pruefen.sh `finance|python3|tests`;
-  shared/einstellungen.toml [werkzeuge] finance = Read, Write, Edit, Glob, Grep, WebSearch, WebFetch (ohne
-  [webfetch]-Liste, ohne [weitergabe]); "finance" in AGENTEN (shared/telegram/logik.py), wirkt erst mit
-  installiertem finance.service und Neustart der Zentrale.
+## Stand (09.11.2026, abends)
+- Läuft als Dienst: finance.service liegt in ~/.config/systemd/user/ (oneshot, kein Timer), Zentrale neu
+  gestartet; `/finance <Thema>` wird angenommen und startet den Dienst. Probestart ohne Auftrag fehlerfrei.
+- pypdf==6.21.0 in .venv und requirements.txt (Jan 09.11.); web_laden liest echte Geschäftsberichte als PDF
+  (geprüft mit Hermle GB 2024, 283.000 Zeichen Text).
+- Primärdaten angebunden (abrufer.py): GENESIS, Eurostat, Comtrade, TED, Jobsuche; je einmal echt geprüft.
+  EPO fehlt noch (Schlüssel).
+- Bericht als PDF (Renderer-Art bericht) und Modell als xlsx (arbeitsmappe) entstehen ohne Claude aus den
+  geprüften Schritten und gehen mit dem Ergebnis an Jan.
+- 59 Tests grün, pruefen.sh testet finance mit .venv/bin/python.
+
+## Erster echter Lauf (09.11.2026, Auftrag 20261109-133235-finance-4fdc5f, Thema Robotik und KI/Holzindustrie)
+- Vor Abrufern und Bericht gestartet, also nur Webquellen und Annahmen. Schritte 1 bis 4 bestanden, Schritt 5
+  scheiterte: Lauf erreichte die Grenze von 30 Arbeitsschritten, bevor schritt5.json geschrieben war.
+- Ergebnis: 13 Webquellen mit wörtlichem Zitat (NVIDIA, ABB, Teradyne, Dürr, Stora Enso, West Fraser, IFR, EPO,
+  BA, Holzbau-Lagebericht über Presseindex u. a.), 57 Annahmen, 5 Lücken mit Marktgröße von unten, 2 Hypothesen
+  (Arbeitsvorbereitung/Abbunddaten als Dienst für Zimmereien, Sicherheit mittel; Nachrüstung und Service-Abos für
+  Holzbearbeitungsmaschinen, niedrig), je mit Abbruchkriterien 2027. Bericht und Modell nachträglich gebaut:
+  data/recherchen/20261109-133235-finance-4fdc5f/bericht-vorschau/bericht.pdf und modell.xlsx.
+- Schwächen: keine Primärdaten; PDFs gemieden ("nicht wörtlich zitierbar"); mehrere Zweitquellen (finviz,
+  inderes, Presseindex); Marktgrößen hängen je an zwei Annahmen (Anteil mit Bedarf, Preis); Jahreszahlen als
+  Wort ausgeschrieben. Daraufhin geschärft (schritte.py, mit Tests): Arbeitsweise mit Grenze der
+  Arbeitsschritte (Datei früh schreiben), Originalquellen vor Portalen, PDF mit kurzem Zitat, Anteil und Preis
+  möglichst belegen, Schritt 5 enger (je Hypothese höchstens 2 Vergleichsfirmen, 5 neue Webseiten insgesamt),
+  Jahreszahlen in Ziffern. Ein Lauf ohne Ergebnis zählt jetzt als Versuch (Nachbesserung mit Hinweis).
+- Kosten (agentkit.verbrauch, rechnerisch, Jans Abo): 8 Läufe opus, 7,27 USD, 17 Minuten für 4 Schritte
+  (0,22 bis 1,68 USD je Lauf; Schritt 1 brauchte 3 Läufe, Schritt 4 zwei). Schätzung für eine vollständige
+  Recherche mit Primärdaten und Schritt 5: 9 bis 12 USD, 20 bis 30 Minuten, 10 bis 13 Läufe.
+  Wochenkontingent stieg in diesem Lauf von 93 auf 95 % (Stufe nur_auftraege); eine Recherche kostet also
+  rund 2 % des 7-Tage-Fensters.
 
 ## Auftrag (Jan 07.11.2026, gekürzt)
 Je Thema eine eigene, neue Recherche in fünf Schritten:
@@ -30,7 +49,7 @@ Je Thema eine eigene, neue Recherche in fünf Schritten:
 5. Externe Prüfung je Hypothese: Vergleichsfirmen, Rückrechnung an einem bekannten Fall, datierte Prognosen
    (werden später automatisch gegen die Statistik geprüft), Entwürfe für Kundengespräche und
    Angebotsanfragen über die Freigabe (shared/freigabe/).
-Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und Modelltabelle als xlsx
+Ausgabe: PDF-Bericht über den Renderer (Art bericht, ergebnis.pdf) und Modelltabelle als xlsx
 (Art arbeitsmappe). Ohne Quelle keine Zahl; nicht Belegbares als Annahme markieren.
 
 ## Entscheidungen
@@ -60,41 +79,25 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
   Statistik und meldet das Ergebnis an Jan (agentkit.meldungen).
 - Entwürfe für Kundengespräche und Angebotsanfragen nur über shared/freigabe/ (agentkit.freigabe),
   ausgeführt genau einmal nach Jans Freigabe.
-- Bericht und Modelltabelle über shared/renderer (Art zusammenfassung -> PDF, Art arbeitsmappe -> xlsx),
-  Format siehe shared/renderer/FORMAT.md.
+- Bericht und Modelltabelle über shared/renderer (Art bericht -> PDF, Art arbeitsmappe -> xlsx), gebaut
+  in bericht.py; Format siehe shared/renderer/FORMAT.md.
 
-## Offene Punkte
-1. Konten und Schlüssel legt Jan selbst an und trägt sie in `finance/.env` ein (chmod 600, Vorlage
-   `.env.example` im Repo, nur Namen ohne Werte): Destatis GENESIS, UN Comtrade, EPO OPS. Eurostat, TED und
-   die Jobsuche der Bundesagentur prüfen, ob sie ohne Konto gehen.
-   - `finance/.env` existiert (chmod 600) mit GENESIS_TOKEN, GENESIS_BENUTZER, GENESIS_PASSWORT,
-     COMTRADE_KEY, EPO_OPS_KEY, EPO_OPS_SECRET. `.env.example` fehlt noch.
-   - GENESIS fertig (09.11.2026): GENESIS_TOKEN eingetragen, Login-Check erfolgreich. Adresse jetzt
-     `https://genesis.destatis.de/genesisWS/rest/2020/` (die alte www-genesis... leitet per 307 um).
-     Anmeldung per POST mit Headern `username` = Token, `password` leer. Höchstens 3 parallele Anfragen,
-     Anfragen über 15 Minuten werden sonst beendet.
-   - UN Comtrade fertig (09.11.2026): COMTRADE_KEY eingetragen, Testabfrage erfolgreich
-     (`https://comtradeapi.un.org/data/v1/get/C/A/HS?...`, Header `Ocp-Apim-Subscription-Key`).
-     Achtung: die Abfrage DE/2023/HS 8479/Export/Welt lieferte 38 Zeilen statt einer (vermutlich Aufteilung
-     nach Zollverfahren/Transportart, Beschreibungsfelder leer ohne includeDesc) - beim Bau klären.
-   - Ohne Konto geprüft (09.11.2026, je eine Testabfrage HTTP 200):
-     Eurostat `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/<datensatz>?...`;
-     TED `POST https://api.ted.europa.eu/v3/notices/search` (JSON query, z. B. classification-cpv=42997300
-     Industrieroboter: 2739 Treffer); Jobsuche BA `https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs`
-     mit öffentlichem Header `X-API-Key: jobboerse-jobsuche` (v4 liefert 403; Treffer in `ergebnisliste`,
-     Gesamtzahl `maxErgebnisse`).
-   - Offen: EPO OPS (Jan trägt EPO_OPS_KEY und EPO_OPS_SECRET ein, danach Test).
-2. .venv steht (09.11.2026): Pakete laut requirements.txt (= shared/renderer/requirements.txt), agentkit per
-   .pth, Tests damit grün. Weitere Pakete nur nach Jans Okay. Offen: pruefen.sh noch auf `python3`, Umstellung
-   auf `.venv/bin/python` ist in ../STATUS.md (Punkt 32) an den Hauptordner-Chat gemeldet. Danach einen Test
-   für agent.py mit agentkit ergänzen (Warten bei LimitErreicht, Abschluss des Auftrags).
-3. Dienst einrichten (nach Jans Okay): systemd/finance.service nach ~/.config/systemd/user/ kopieren,
-   `systemctl --user daemon-reload`, dann die Zentrale neu starten, damit `/finance` erscheint.
-   Monatlicher Prognose-Timer ebenso erst nach Jans Okay.
-4. Kosten je Recherche nach dem ersten echten Lauf beziffern (agentkit.verbrauch).
-5. pypdf für Geschäftsberichte als PDF: Paket fehlt in finance/.venv (uni hat pypdf==6.21.0). Nur nach Jans
-   Okay installieren und in requirements.txt eintragen; bis dahin werden PDF-Webquellen abgelehnt.
-6. `.env.example` (nur Namen) fehlt noch.
+## Zugänge und Schnittstellen
+- `finance/.env` (chmod 600): GENESIS_TOKEN, GENESIS_BENUTZER, GENESIS_PASSWORT, COMTRADE_KEY, EPO_OPS_KEY,
+  EPO_OPS_SECRET. EPO-Werte trägt Jan noch ein, danach Test.
+- GENESIS: `POST https://genesis.destatis.de/genesisWS/rest/2020/data/tablefile`, Header `username` = Token,
+  `password` leer, Formular name/startyear/endyear/format=ffcsv; Antwort ZIP mit CSV, Fehler als JSON
+  (Status.Code, z. B. 104 = keine Objekte). Höchstens 3 parallele Anfragen, über 15 Minuten wird beendet.
+  Tabellensuche ginge über `find/find` (term, category=tables), ist nicht angebunden.
+- UN Comtrade: `GET https://comtradeapi.un.org/data/v1/get/C/A/HS?...`, Header `Ocp-Apim-Subscription-Key`.
+  Mit partner2Code=0, customsCode=C00, motCode=0 genau eine Zeile (sonst eine je Zollverfahren/Transportart).
+- Eurostat (ohne Konto): `GET https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/<datensatz>?...`
+- TED (ohne Konto): `POST https://api.ted.europa.eu/v3/notices/search`, JSON {query, fields, limit}; Gesamtzahl in
+  totalNoticeCount. Jede Meldung trägt Links in 24 Sprachen, daher limit 10.
+- Jobsuche BA (ohne Konto): `GET https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs`, Header
+  `X-API-Key: jobboerse-jobsuche` (öffentlich), Gesamtzahl maxErgebnisse.
+- Dienst: systemd/finance.service (Vorlage) = ~/.config/systemd/user/finance.service. Nach Änderung der Vorlage:
+  kopieren, `systemctl --user daemon-reload`. Neue Pakete nur nach Jans Okay.
 
 ## Aufbau (gebaut 09.11.2026)
 - agent.py: je Auftrag (Text = Thema) eine Recherche in data/recherchen/<auftrag-id>/; LimitErreicht,
@@ -103,8 +106,18 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
   PDF über agentkit.textfassung (braucht pypdf, fehlt -> WebFehler, siehe Offene Punkte 5).
   ausfuehren() für Freigaben: noch NotImplementedError, finance legt noch keine Entwürfe an.
 - ablauf.py (ohne agentkit): fünf Schritte nacheinander, je Schritt ein claude-Lauf (art anspruchsvoll),
-  dann Webquellen auflösen, Pflichtfelder und Zahlen prüfen; bei Fehlern bis zu zwei Nachbesserungen mit der
-  Fehlerliste im Prompt, sonst Abbruch der Recherche. bericht_text = Kurztext an Jan (statt PDF, bis Renderer).
+  dann Webquellen auflösen, Pflichtfelder und Zahlen prüfen; bei Fehlern (auch Lauf ohne Ergebnis) bis zu zwei
+  Nachbesserungen mit der Fehlerliste im Prompt, sonst Abbruch der Recherche. Zwischen Schritt 1 und 2 Phase
+  Primärdaten (Ergebnis nr 0): Claude schreibt abfragen.json (6 bis 12, höchstens 15), Python führt aus, ein
+  Nachbesserungslauf für fehlgeschlagene; Ergebnis in abfragen_ergebnis.json (liegt sie vor, wird die Phase
+  übersprungen); bricht nie ab. bericht_text = Kurztext an Jan.
+- abrufer.py (ohne Netz): Abfrage-Formate je Art (Docstring), strenge Prüfung (nur Codes, Ziffern, Datum),
+  Anfrage bauen, Antwort prüfen (GENESIS: ZIP -> CSV, Fehler-JSON; Comtrade mit partner2Code/customsCode/motCode
+  = genau eine Zeile; TED limit 10, Gesamtzahl totalNoticeCount; Jobsuche maxErgebnisse).
+- bericht.py (ohne Netz, ohne Claude): Beschreibung Art bericht (Abschnitte je Schritt, Zahlen als Tabellen-
+  zellen mit Quellen-ID oder [Annahme], Quellen-IDs aus Fließtext entfernt, Quellenverzeichnis aus data/quellen,
+  offene_punkte aus Schritt 1 als offene Fragen, Hinweis bei Abbruch) und Art arbeitsmappe (Blatt Marktgröße:
+  bis 4 Faktoren, Excel multipliziert; Blatt Szenarien mit Marge).
 - schritte.py: Aufgaben, Gerüste und Prompt je Schritt, ZAHL_REGELN für Claude, Pflichtfelder je Schritt
   (2: je Lücke zwei Belege; 3: marktgroesse als berechnet/produkt; 5: Prognosen mit Zahl und Datum in der
   Zukunft, Entwürfe mit art/an/betreff/text). Webquelle = {"url", "zitat", "beschreibung"} statt Quellen-ID:
@@ -117,21 +130,19 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
 - quellen.py: data/quellen/<ID>.json (Meta), <ID>.roh.<endung> (Rohinhalt), maßgeblich index.toml (art, endung,
   sha256; *.toml darf Claude nicht schreiben, so fällt Umdeklarieren oder Ändern auf).
   ID Q-<JJJJMMTT>-<art>-<6 hex>, Arten genesis, eurostat, comtrade, ted, jobsuche, epo, web.
-- Tests: tests/test_quellen_pruefung.py, tests/test_ablauf.py (ohne Netz, ohne agentkit).
-
-## Blockiert (Bedarf in ../STATUS.md, Punkt 32)
-- Abrufer der Primärdaten (GENESIS, Comtrade, TED, Jobsuche): agentkit.abruf kann nur GET ohne Header.
-  Nicht selbst nachbauen, Erweiterung im Hauptordner-Chat. Bis dahin liegen keine Primärdaten in data/quellen,
-  Claude arbeitet mit Webquellen und Annahmen (Eurostat-API ginge per GET, ist aber noch nicht angebunden).
-- PDF-Bericht und xlsx-Modell: Renderer-Arten passen nicht (zusammenfassung = Vorlesung, arbeitsmappe ohne
-  Werte). Erweiterung im Renderer-Chat. Bis dahin nur bericht_text und die Schritt-JSONs.
+- Tests: test_quellen_pruefung, test_ablauf, test_abrufer, test_bericht (ohne Netz), test_agent (mit agentkit,
+  falsches Laden), test_geruest.
 
 ## Nächste Schritte hier
-1. Erster echter Probelauf von Hand, nur nach Jans Okay (5 bis 15 Läufe "anspruchsvoll"): Auftrag anlegen
-   (agentkit.auftraege.neuer_auftrag("finance", "<Thema>", quelle="hand")), dann `.venv/bin/python agent.py`.
-   Danach Prompts nach dem Ergebnis schärfen und Kosten beziffern (Offene Punkte 4).
-2. Danach Dienst (Offene Punkte 3), Prognosen in data/prognosen.json und Timer, Entwürfe über die Freigabe.
-3. Abrufer für Primärdaten, sobald agentkit.abruf POST/Header kann; Bericht, sobald der Renderer es kann.
+1. Zweiter echter Lauf mit Primärdaten, geschärften Prompts und Bericht, am besten per `/finance <Thema>`
+   (prüft zugleich den Weg über die Zentrale). Nur nach Jans Okay und mit Blick aufs Wochenkontingent
+   (stand 95 %). Danach Kosten je vollständiger Recherche hier nachtragen.
+2. Den abgebrochenen Probelauf nicht fortsetzen (liegt in erledigt/); bei Bedarf neuen Auftrag anlegen.
+3. Prognosen aus Schritt 5 nach data/prognosen.json und monatlicher Timer (eigene Unit, nur nach Jans Okay).
+4. Entwürfe aus Schritt 5 über shared/freigabe/ anlegen und ausfuehren() bauen.
+5. EPO OPS anbinden, sobald Jan EPO_OPS_KEY und EPO_OPS_SECRET einträgt.
+6. `.env.example` (nur Namen) fehlt noch.
+7. Marge im Modell zeigt #DIV/0!, wenn ein Szenario Umsatz 0 hat (Excel). Bei Bedarf Formel ändern.
 
 ## Gelernte Regeln
 - (noch keine)
