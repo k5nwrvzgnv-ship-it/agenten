@@ -1,24 +1,32 @@
 # Dokumentarten des Arbeitsplatzes (Format: docs/arbeitsplatz-plan.md, Abschnitt "Arten-Datei").
-# Geprüft von agentkit.arten (Tests in shared/agentkit/tests/test_arten.py prüfen diese Datei).
-# Nur Arten mit aktiv = true stehen in der Galerie. material: "nein" | "optional" (Standard) | "pflicht".
+# Geprüft von agentkit.arten (shared/agentkit/tests/test_arten.py prüft diese Datei).
+# Nur Arten mit aktiv = true stehen in der Galerie.
+# material: "nein" | "optional" (Standard) | "pflicht"; material_oder = "<Feld>": dieses Feld oder eine Datei ist Pflicht.
+# rueckmeldung = false: der Agent nimmt zu dieser Art keine Rückmeldung an (Standard true).
 # Felder: art = zeile | text | auswahl | zahl, pflicht, werte (nur bei auswahl), hilfe (kurzer Hinweis im Formular).
-# Die Felder sind ein erster Entwurf (Sitzung A, 09.11.); die Agenten lesen sie aus a["felder"] und dem Auftragstext.
+# Felder von uni (Sitzung B, 182498d) und dokumente (Sitzung C, 6ef033f, e122de8). Die Agenten lesen die Feldnamen.
 
 [[art]]
 kennung = "recherche"
 name = "Research-Bericht"
-beschreibung = "Recherche zu einer Frage mit geprüften Belegen"
+beschreibung = "Recherche zu einem Thema mit geprüften Belegen"
 agent = "uni"
 aktiv = true
-ausgabe = ["pdf", "docx"]
+ausgabe = ["md"]
 ansicht = "recherche"
+material = "nein"
+rueckmeldung = false
 [[art.feld]]
-name = "Frage"
-art = "text"
+name = "Thema"
+art = "zeile"
 pflicht = true
 [[art.feld]]
-name = "Hinweise"
+name = "Fragestellung"
 art = "text"
+[[art.feld]]
+name = "Umfang"
+art = "auswahl"
+werte = ["kurz", "gründlich"]
 
 [[art]]
 kennung = "expose"
@@ -27,6 +35,7 @@ beschreibung = "Exposé für eine Arbeit, als Word und PDF"
 agent = "uni"
 aktiv = true
 ausgabe = ["pdf", "docx"]
+material = "pflicht"
 [[art.feld]]
 name = "Thema"
 art = "zeile"
@@ -84,48 +93,71 @@ art = "text"
 [[art]]
 kennung = "lernkarten"
 name = "Lernkarten"
-beschreibung = "Karten zum Üben aus Unterlagen eines Moduls"
+beschreibung = "Karten zum Üben aus dem Prüfungsplan eines Moduls"
 agent = "uni"
 aktiv = true
 ansicht = "karten"
+material = "nein"
+rueckmeldung = false
 [[art.feld]]
-name = "Thema"
-art = "zeile"
+name = "Modul"
+art = "auswahl"
+werte = ["Holzschutz"]
 pflicht = true
 [[art.feld]]
-name = "Hinweise"
+name = "Themen"
+art = "text"
+[[art.feld]]
+name = "Wichtigkeit ab"
+art = "auswahl"
+werte = ["5", "4", "3"]
+[[art.feld]]
+name = "Hinweis"
 art = "text"
 
 [[art]]
 kennung = "pruefung"
 name = "Mündliche Prüfung üben"
-beschreibung = "Fragen wie in der mündlichen Prüfung, mit Auswertung"
+beschreibung = "Auswertung einer geübten mündlichen Prüfung aus dem Transkript"
 agent = "uni"
 aktiv = true
 ansicht = "pruefung"
+material_oder = "Transkript"
+rueckmeldung = false
 [[art.feld]]
-name = "Thema"
-art = "zeile"
+name = "Modul"
+art = "auswahl"
+werte = ["Holzschutz"]
 pflicht = true
 [[art.feld]]
-name = "Hinweise"
+name = "Titel"
+art = "zeile"
+[[art.feld]]
+name = "Transkript"
 art = "text"
+hilfe = "Text einfügen oder unten als Datei (.txt, .md, .json) anhängen"
 
 [[art]]
 kennung = "praesentation"
 name = "Präsentation"
 beschreibung = "Folien aus Material oder Stichpunkten, als PowerPoint und PDF"
 agent = "dokumente"
-aktiv = false
+aktiv = true
 ausgabe = ["pptx", "pdf"]
 [[art.feld]]
 name = "Thema"
 art = "zeile"
 pflicht = true
 [[art.feld]]
+name = "Zielgruppe"
+art = "zeile"
+[[art.feld]]
 name = "Umfang"
 art = "auswahl"
-werte = ["5 Folien", "10 Folien", "20 Folien"]
+werte = ["5 Folien", "10 Folien", "15 Folien", "20 Folien"]
+[[art.feld]]
+name = "Stichpunkte"
+art = "text"
 [[art.feld]]
 name = "Hinweise"
 art = "text"
@@ -135,12 +167,27 @@ kennung = "bericht"
 name = "Bericht (z. B. Praktikumsbericht)"
 beschreibung = "Bericht aus Material und Stichpunkten, als Word und PDF"
 agent = "dokumente"
-aktiv = false
+aktiv = true
 ausgabe = ["docx", "pdf"]
+[[art.feld]]
+name = "Art des Berichts"
+art = "auswahl"
+werte = ["Praktikumsbericht", "Projektbericht", "Laborbericht", "Exkursionsbericht", "Sonstiger"]
 [[art.feld]]
 name = "Thema"
 art = "zeile"
 pflicht = true
 [[art.feld]]
-name = "Hinweise"
+name = "Gliederungswunsch"
+art = "text"
+[[art.feld]]
+name = "Umfang"
+art = "auswahl"
+werte = ["2 Seiten", "5 Seiten", "10 Seiten", "15 Seiten"]
+[[art.feld]]
+name = "Angaben"
+art = "text"
+hilfe = "Betrieb, Zeitraum, Betreuung"
+[[art.feld]]
+name = "Stichpunkte"
 art = "text"

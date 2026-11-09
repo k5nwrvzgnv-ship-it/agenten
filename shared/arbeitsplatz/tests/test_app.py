@@ -46,6 +46,18 @@ aktiv = true
 material = "pflicht"
 
 [[art]]
+kennung = "pruefung"
+name = "Prüfung"
+beschreibung = "Auswertung"
+agent = "uni"
+aktiv = true
+material_oder = "Transkript"
+rueckmeldung = false
+[[art.feld]]
+name = "Transkript"
+art = "text"
+
+[[art]]
 kennung = "bericht"
 name = "Bericht"
 beschreibung = "Noch nicht fertig"
@@ -284,6 +296,13 @@ class TestNeu(Aufbau):
         self.assertEqual([Path(p).name for p in a["dateien"]], ["Folien.pdf", "Folien-2.pdf"])
         self.assertTrue((self.tmp / "uni" / a["dateien"][0]).exists())
         self.assertEqual(list((self.tmp / "webdaten" / "eingang").iterdir()), [])  # nichts liegen geblieben
+
+    def test_transkript_oder_datei(self):
+        status, html, _ = self.post("/neu/pruefung", {"ort": self.k}, dateien=[])
+        self.assertIn("Transkript: bitte ausfüllen oder eine Datei anhängen", html)
+        self.assertEqual(self.post("/neu/pruefung", {"ort": self.k, "feld-0": "Frage: ..."})[0], 303)
+        self.assertEqual(self.post("/neu/pruefung", {"ort": self.k}, dateien=[("pruefung.json", b"{}")])[0], 303)
+        self.assertIn("(statt Transkript)", self.get(f"/neu/pruefung?ort={self.k}")[1])
 
     def test_ohne_unit_wartet(self):
         (self.units / "uni.service").unlink()

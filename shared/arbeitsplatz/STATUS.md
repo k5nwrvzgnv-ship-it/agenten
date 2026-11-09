@@ -32,10 +32,13 @@ finance `daten.titel` und `art`. Schritt 5 (Umzug aus uni/portal) erst nach Rüc
   `auftraege/`, `fassungen/`. Agent-Ordner = Instanz.parent.
 - Ein Dokument ist eine Kette über `bezug`, deren Ursprung `ort` trägt. Titel: `daten.titel` der neuesten fertigen
   Fassung, sonst Dateiname der ersten Ergebnisdatei, sonst „<Art>: <erstes Feld>“.
-- `arten.toml`: Format wie im Plan, zusätzlich `material` ("nein" | "optional" Standard | "pflicht") und je Feld
-  `hilfe`. praesentation und bericht stehen auf `aktiv = false`, bis Sitzung C meldet, dass sie gehen.
-  Die Felder je Art sind ein erster Entwurf (meist Thema/Frage + Hinweise).
-- Uploads: höchstens 10 Dateien, je 50 MB, Endungen pdf, docx, pptx, xlsx, txt, md, png, jpg, vtt, srt; liegen kurz in
+- `arten.toml`: Format wie im Plan, zusätzlich je Art `material` ("nein" | "optional" Standard | "pflicht"),
+  `material_oder = "<Feld>"` (dieses Feld oder eine Datei ist Pflicht, bei pruefung: Transkript) und
+  `rueckmeldung = false` (Agent nimmt keine Rückmeldung an: recherche, lernkarten, pruefung laut uni; die
+  Dokument-Ansicht in Schritt 4 zeigt dann keinen Knopf „Rückmeldung“), je Feld `hilfe`.
+  Felder von Sitzung B (uni, 182498d) und C (dokumente, 6ef033f, e122de8) übernommen; alle neun Arten aktiv
+  (praesentation und bericht nach Probeläufen, gemeldet von der koordinierenden Sitzung).
+- Uploads: höchstens 10 Dateien, je 50 MB, Endungen pdf, docx, pptx, xlsx, txt, md, png, jpg, vtt, srt, json; liegen kurz in
   `data/eingang/`, agentkit verschiebt sie nach `<agent>/data/eingang/<auftrag>/`.
 - Schutz: Origin muss zum Host passen, Formular-Token (geheim je Start), CSP ohne fremde Quellen, no-store.
 - `statisch/`: stil.css, Schrift, htmx, einmal.js aus shared/webapp kopiert (nicht dort ändern);

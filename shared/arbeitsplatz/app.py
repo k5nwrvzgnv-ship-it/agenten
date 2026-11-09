@@ -56,7 +56,7 @@ UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 GEHEIM = secrets.token_bytes(32)
 ZONE = ZoneInfo("Europe/Berlin")
 MAX_DATEIEN = 10
-ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".md", ".png", ".jpg", ".jpeg", ".vtt", ".srt")
+ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".md", ".png", ".jpg", ".jpeg", ".vtt", ".srt", ".json")
 QUELLE = "arbeitsplatz"
 logger = logging.getLogger("arbeitsplatz")
 
@@ -476,10 +476,7 @@ async def neuer_auftrag(request: Request, kennung: str):
     except arten.ArtFehler as f:
         fehler, werte = str(f).split("; "), eingabe
     hochgeladen = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
-    if art["material"] == "pflicht" and not hochgeladen:
-        fehler.append("Material: bitte mindestens eine Datei anhängen")
-    if art["material"] == "nein" and hochgeladen:
-        fehler.append("Diese Art nimmt keine Dateien")
+    fehler += arten.material_fehler(art, werte, len(hochgeladen))
     if not ort:
         fehler.append("Ort: bitte wählen, wo das Dokument liegen soll")
     if not auftraege_an():

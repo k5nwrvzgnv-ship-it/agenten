@@ -21,7 +21,7 @@
   {%- for f in art.feld %}
   {%- set name = "feld-" ~ loop.index0 %}
   <section>
-    <label class="feld-titel" for="{{ name }}">{{ f.name }}{% if not f.pflicht %} <span class="grau">(optional)</span>{% endif %}</label>
+    <label class="feld-titel" for="{{ name }}">{{ f.name }}{% if f.name == art.material_oder %} <span class="grau">(oder als Datei unten)</span>{% elif not f.pflicht %} <span class="grau">(optional)</span>{% endif %}</label>
     {%- if f.hilfe %}<p class="unter">{{ f.hilfe }}</p>{% endif %}
     {%- if f.art == "text" %}
     <textarea id="{{ name }}" name="{{ name }}" rows="5"{% if f.pflicht %} required{% endif %}>{{ werte.get(f.name, "") }}</textarea>
@@ -37,7 +37,7 @@
   {%- endfor %}
   {%- if art.material != "nein" %}
   <section>
-    <label class="feld-titel" for="dateien">Material{% if art.material == "optional" %} <span class="grau">(optional)</span>{% endif %}</label>
+    <label class="feld-titel" for="dateien">Material{% if art.material_oder %} <span class="grau">(statt {{ art.material_oder }})</span>{% elif art.material == "optional" %} <span class="grau">(optional)</span>{% endif %}</label>
     <p class="unter">PDF, Word, PowerPoint, Excel, Text oder Bilder, höchstens 10 Dateien</p>
     <input id="dateien" type="file" name="dateien" multiple{% if art.material == "pflicht" %} required{% endif %}>
   </section>

@@ -46,6 +46,8 @@ class TestArten(unittest.TestCase):
         alle = arten.laden()  # shared/arbeitsplatz/arten.toml mit den echten Agenten
         self.assertEqual(len({a["kennung"] for a in alle}), len(alle))
         self.assertIn("recherche", [a["kennung"] for a in arten.aktive(alle)])
+        pruefung = arten.finden(alle, "pruefung")
+        self.assertEqual((pruefung["material_oder"], pruefung["rueckmeldung"]), ("Transkript", False))
 
     def test_gut(self):
         self.assertEqual(self.fehler(GUT), [])
@@ -76,6 +78,29 @@ class TestArten(unittest.TestCase):
         datei.write_text(faelle["Agent fehlt"], encoding="utf-8")
         with self.assertRaises(arten.ArtFehler):
             arten.laden(datei, self.agenten)
+
+    def test_material_oder_und_rueckmeldung(self):
+        text = GUT.replace('ansicht = ""', 'ansicht = ""\nmaterial_oder = "Hinweise"\nrueckmeldung = false')
+        self.assertEqual(self.fehler(text), [])
+        datei = self.agenten / "arten.toml"
+        datei.write_text(text, encoding="utf-8")
+        art = arten.laden(datei, self.agenten)[0]
+        self.assertFalse(art["rueckmeldung"])
+        self.assertEqual(arten.material_fehler(art, {"Hinweise": ""}, 0), ["Hinweise: bitte ausfüllen oder eine Datei anhängen"])
+        self.assertEqual(arten.material_fehler(art, {"Hinweise": "x"}, 0), [])
+        self.assertEqual(arten.material_fehler(art, {"Hinweise": ""}, 1), [])
+        self.assertTrue(self.fehler(GUT.replace('ansicht = ""', 'ansicht = ""\nmaterial_oder = "Gibt es nicht"')))
+        self.assertTrue(self.fehler(GUT.replace('ansicht = ""', 'ansicht = ""\nmaterial = "pflicht"\nmaterial_oder = "Thema"')))
+        self.assertTrue(self.fehler(GUT.replace('ansicht = ""', 'ansicht = ""\nrueckmeldung = "nein"')))
+        standard = arten.laden(self.schreibe(GUT), self.agenten)[0]
+        self.assertTrue(standard["rueckmeldung"])
+        self.assertEqual(arten.material_fehler({**standard, "material": "pflicht"}, {}, 0),
+                         ["Material: bitte mindestens eine Datei anhängen"])
+
+    def schreibe(self, text):
+        datei = self.agenten / "arten2.toml"
+        datei.write_text(text, encoding="utf-8")
+        return datei
 
     def test_formular(self):
         datei = self.agenten / "arten.toml"

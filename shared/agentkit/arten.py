@@ -2,7 +2,9 @@
 
 Eine Art ist eine Arbeitsanweisung: Kennung, Name, Beschreibung, zuständiger Agent, aktiv (nur aktive stehen in der
 Galerie), Ausgabe (Dateiformate), Ansicht ("" = Standardansicht) und die Felder des Formulars. material sagt, ob das
-Formular Dateien annimmt: "nein", "optional" (Standard) oder "pflicht".
+Formular Dateien annimmt: "nein", "optional" (Standard) oder "pflicht". material_oder = "<Feldname>": dieses Feld oder
+mindestens eine Datei ist Pflicht (z. B. Transkript als Text oder als Datei). rueckmeldung = false: der Agent nimmt zu
+dieser Art keine Rückmeldung an, die App bietet sie nicht an (Standard true).
 
 Aufruf:
   from agentkit import arten
@@ -22,7 +24,8 @@ DATEI = config.KONTINGENT_DIR / "arbeitsplatz" / "arten.toml"
 FELDARTEN = ("zeile", "text", "auswahl", "zahl")
 AUSGABEN = ("pdf", "docx", "pptx", "xlsx", "md", "html")
 MATERIAL = ("nein", "optional", "pflicht")
-ART_SCHLUESSEL = {"kennung", "name", "beschreibung", "agent", "aktiv", "ausgabe", "ansicht", "material", "feld"}
+ART_SCHLUESSEL = {"kennung", "name", "beschreibung", "agent", "aktiv", "ausgabe", "ansicht", "material", "feld",
+                  "material_oder", "rueckmeldung"}
 FELD_SCHLUESSEL = {"name", "art", "pflicht", "werte", "hilfe"}
 MAX_ZEILE = 500
 MAX_TEXT = auftraege.MAX_FELDWERT
@@ -76,6 +79,12 @@ def pruefen(daten: dict, agenten_dir: Path | None = None) -> list[str]:
             fehler.append(f"{wo}: ansicht ungültig")
         if art.get("material", "optional") not in MATERIAL:
             fehler.append(f"{wo}: material nur {', '.join(MATERIAL)}")
+        if not isinstance(art.get("rueckmeldung", True), bool):
+            fehler.append(f"{wo}: rueckmeldung muss true oder false sein")
+        if "material_oder" in art:
+            namen = [f.get("name") for f in art.get("feld", []) if isinstance(f, dict)]
+            if art["material_oder"] not in namen or art.get("material", "optional") != "optional":
+                fehler.append(f"{wo}: material_oder muss ein Feld nennen, material dann optional")
         fehler += _felder_pruefen(wo, art.get("feld", []))
     return fehler
 
@@ -126,7 +135,7 @@ def laden(datei: Path | None = None, agenten_dir: Path | None = None) -> list[di
         raise ArtFehler(f"{datei} nicht lesbar: {f}") from f
     if fehler := pruefen(daten, agenten_dir):
         raise ArtFehler(f"{datei}: " + "; ".join(fehler))
-    return [{"ansicht": "", "material": "optional", "ausgabe": [], **a,
+    return [{"ansicht": "", "material": "optional", "material_oder": "", "rueckmeldung": True, "ausgabe": [], **a,
              "feld": [{"pflicht": False, "hilfe": "", **f} for f in a.get("feld", [])]} for a in daten["art"]]
 
 
@@ -161,6 +170,17 @@ def formular_pruefen(art: dict, eingabe: dict) -> dict[str, str]:
     if fehler:
         raise ArtFehler("; ".join(fehler))
     return werte
+
+
+def material_fehler(art: dict, werte: dict[str, str], anzahl_dateien: int) -> list[str]:
+    """Passt die Zahl der Dateien zu material und material_oder der Art? Fehlertexte für das Formular."""
+    if art["material"] == "pflicht" and not anzahl_dateien:
+        return ["Material: bitte mindestens eine Datei anhängen"]
+    if art["material"] == "nein" and anzahl_dateien:
+        return ["Diese Art nimmt keine Dateien"]
+    if art.get("material_oder") and not anzahl_dateien and not werte.get(art["material_oder"]):
+        return [f"{art['material_oder']}: bitte ausfüllen oder eine Datei anhängen"]
+    return []
 
 
 def auftragstext(art: dict, werte: dict[str, str]) -> str:
