@@ -17,9 +17,10 @@ Aufruf: .venv/bin/python auswertung.py <befehl>
 Zweiter Durchgang (Export vom 09.11.2026, Frage: was fehlt der Web-App), alles unter data/luecken/:
   luecken-liste <JJJJ-MM-TT>  Chats ab diesem Datum -> data/luecken/chatliste.tsv (nur Titel), Spalte wer korrigieren
   luecken-filtern  bestätigte Chats nach data/luecken/chats.json, danach die conversations.json des Exports löschen
-  luecken-anonym [<uuid-anfang>…]  aufbereiten, Namen aus data/namen.json ersetzen -> data/luecken/anonym.json,
-                   genannte Chats weglassen (ohne neue Namenssuche, Jan 09.11.)
-  luecken-lauf     ein Lauf (Opus) über anonym.json, geprüft -> data/luecken/ergebnis.json und bericht.md
+  luecken-anonym [<uuid-anfang>…]  aufbereiten, Namen aus data/namen.json ersetzen -> data/luecken/eingabe.json,
+                   genannte Chats weglassen (ohne neue Namenssuche)
+  luecken-roh      nur aufbereiten, ohne Namen zu ersetzen -> data/luecken/eingabe.json (Jans Entscheidung 09.11.)
+  luecken-lauf     ein Lauf (Opus) über eingabe.json, geprüft -> data/luecken/ergebnis.json und bericht.md
 Ohne Befehl wird nur data/ angelegt. Plan und weitere Schritte in STATUS.md.
 """
 
@@ -106,6 +107,11 @@ def main(argumente: list[str]) -> int:
         return luecken_liste_befehl(argumente[1])
     if befehl == "luecken-anonym":
         return luecken_anonym_befehl(argumente[1:])
+    if befehl == "luecken-roh":
+        chats = anonym.aufbereiten(json.loads((LUECKEN / "chats.json").read_text(encoding="utf-8")))
+        ablage.schreiben(LUECKEN / "eingabe.json", json.dumps(chats, ensure_ascii=False, indent=1))
+        print(f"{len(chats)} Chats ohne Namensersetzung nach {LUECKEN / 'eingabe.json'}.")
+        return 0
     if befehl == "luecken-lauf":
         return luecken_lauf_befehl()
     if befehl == "luecken-filtern":
@@ -140,9 +146,9 @@ def luecken_anonym_befehl(weglassen: list[str]) -> int:
     chats = anonym.aufbereiten(json.loads((LUECKEN / "chats.json").read_text(encoding="utf-8")))
     chats = [c for c in chats if not any(c["uuid"].startswith(w) for w in weglassen)]
     ergebnis = ersetzer.alles(chats)
-    ablage.schreiben(LUECKEN / "anonym.json", json.dumps(ergebnis, ensure_ascii=False, indent=1))
+    ablage.schreiben(LUECKEN / "eingabe.json", json.dumps(ergebnis, ensure_ascii=False, indent=1))
     reste = anonym.reste(ergebnis, namen)
-    print(f"{len(ergebnis)} Chats nach {LUECKEN / 'anonym.json'}, {sum(ersetzer.treffer.values())} Namen ersetzt.")
+    print(f"{len(ergebnis)} Chats nach {LUECKEN / 'eingabe.json'}, {sum(ersetzer.treffer.values())} Namen ersetzt.")
     print("Reste aus der Namensliste:", reste or "keine")
     return 1 if reste else 0
 
@@ -154,7 +160,7 @@ def luecken_lauf_befehl() -> int:
     """
     from agentkit import claude_lauf  # erst hier: braucht die Instanz aus der Umgebung
 
-    chats = json.loads((LUECKEN / "anonym.json").read_text(encoding="utf-8"))
+    chats = json.loads((LUECKEN / "eingabe.json").read_text(encoding="utf-8"))
     text = luecken.prompt(chats)
     gesamt_usd = 0.0
     for versuch in (1, 2):
