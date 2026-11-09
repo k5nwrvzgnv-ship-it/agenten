@@ -3,7 +3,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Inter+Tight:wght@600;800&display=swap">
 <style>
 /* Modernist wie lia.meldro.de: schwarz auf weiß, harte Linien, ein Rot nur für "wartet auf dich".
-   Aufbau: Leiste der Skizze oben, darunter die App mit drei Spalten Baum | Mitte | rechts. */
+   Aufbau: Leiste der Skizze oben, darunter die App: Baum | Mitte (Ebene oder Gespräch) | rechts "An dieser Ebene".
+   Gespräche und Material hängen immer an einer Ebene: Klasse/Kurs, Reihe, Stunde. */
 :root {
   --bg: #ffffff; --fg: #111111; --leise: #5c5c5c; --flaeche: #f4f4f2; --baum: #fafafa;
   --linie: #111111; --duenn: #d6d6d2; --akzent: #d4290f; --fokus: #1f4fd1; --umkehr: #ffffff;
@@ -32,30 +33,33 @@ h1, h2, h3 { text-wrap: balance }
   padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center }
 .leiste strong { font-family: var(--titel); font-size: 18px; font-weight: 800; letter-spacing: -.01em }
-.leiste nav { display: flex; flex-wrap: wrap; gap: 0 }
+.leiste nav { display: flex; flex-wrap: wrap }
 .leiste nav a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 2px solid var(--linie); margin-right: -2px;
   color: var(--fg); text-decoration: none; font-weight: 700; background: var(--bg) }
 .leiste nav a[aria-current="page"] { background: var(--fg); color: var(--umkehr) }
-.leiste .hinweis { font-size: 13px; color: var(--fg); flex: 1 1 260px }
+.leiste .hinweis { font-size: 13px; flex: 1 1 260px }
 .leiste .zurueck { border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; padding: 8px 0 }
 
 /* App */
-.app { display: grid; grid-template-columns: 260px minmax(0, 1fr) 320px; min-height: calc(100vh - 64px) }
-.app.ohne-rechts { grid-template-columns: 260px minmax(0, 1fr) }
+.app { display: grid; grid-template-columns: 270px minmax(0, 1fr) 320px; min-height: calc(100vh - 64px) }
+.app.ohne-rechts { grid-template-columns: 270px minmax(0, 1fr) }
 .baum { background: var(--baum); border-right: 3px solid var(--linie); padding: 20px 12px 32px; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
 .baum .name { padding: 0 10px 14px; font-family: var(--titel); font-size: 22px; font-weight: 800; letter-spacing: -.02em }
 .baum .kopf { padding: 16px 10px 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise) }
-.baum button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 36px;
-  padding: 6px 10px; border: 0; background: transparent; text-align: left; font-weight: 500 }
-.baum button.e1 { padding-left: 26px; font-weight: 400 }
-.baum button.e2 { padding-left: 42px; font-weight: 400; font-size: 14px; color: var(--leise) }
+.baum button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 34px;
+  padding: 5px 10px; border: 0; background: transparent; text-align: left; font-weight: 600 }
+.baum button.e1 { padding-left: 26px; font-weight: 500 }
+.baum button.e2 { padding-left: 42px; font-weight: 400; font-size: 14px }
+.baum button:disabled { color: var(--leise); cursor: default; font-weight: 400 }
 .baum button[aria-current="location"] { background: var(--fg); color: var(--umkehr); font-weight: 700 }
-.baum .zahl { font-size: 12px; font-weight: 700; color: var(--akzent) }
+.baum button.im-pfad { box-shadow: inset 3px 0 0 var(--fg) }
+.baum .zahl { font-size: 12px; font-weight: 700; color: var(--leise); white-space: nowrap; font-variant-numeric: tabular-nums }
+.baum .zahl.rot { color: var(--akzent) }
 .baum button[aria-current="location"] .zahl { color: var(--umkehr) }
 
 main { min-width: 0; padding: 20px 40px 48px; display: flex; flex-direction: column; gap: 20px }
-.oben { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; min-height: 40px }
-.krumen { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--leise) }
+.krumen { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--leise); align-items: center }
+.krumen button { border: 0; background: none; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; font-size: 13px }
 .krumen b { color: var(--fg) }
 .hinweisband { margin: 0; padding: 12px 16px; border: 2px solid var(--linie); font-weight: 500; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 5 }
 
@@ -63,26 +67,46 @@ main { min-width: 0; padding: 20px 40px 48px; display: flex; flex-direction: col
 .knopf-voll { background: var(--fg); color: var(--umkehr) }
 .knopf-klein { min-height: 32px; padding: 0 10px; font-size: 14px; border-width: 1px }
 .knopf-leise { border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; padding: 0 4px; min-height: 32px }
+.knoepfe { display: flex; flex-wrap: wrap; gap: 8px }
 
-.titel { border-bottom: 3px solid var(--linie); padding-bottom: 12px; display: flex; flex-direction: column; gap: 4px }
+.titel { border-bottom: 3px solid var(--linie); padding-bottom: 12px; display: flex; flex-direction: column; gap: 6px }
 .augenbraue { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise) }
 .titel h1 { margin: 0; font-family: var(--titel); font-size: 40px; font-weight: 800; line-height: 1.05; letter-spacing: -.03em }
 .titel p { margin: 0 }
+.ebenenmarke { display: inline-flex; align-self: flex-start; padding: 2px 8px; border: 2px solid var(--linie); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
+
+/* Ebenen-Ansicht */
+.ebene { max-width: 840px; width: 100%; display: flex; flex-direction: column; gap: 28px }
+.spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px }
+.abschnitt { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.gruppe { margin: 14px 0 2px; font-size: 13px; font-weight: 700; display: flex; gap: 6px; align-items: baseline }
+.gruppe button { border: 0; background: none; padding: 0; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-align: left }
+.gruppe .ebenenwort { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); font-weight: 700 }
+.liste { display: flex; flex-direction: column }
+.liste .zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border: 0; border-top: 1px solid var(--linie); background: none; text-align: left; width: 100% }
+.liste .zeile:last-child { border-bottom: 1px solid var(--linie) }
+.liste .zeile b { display: block; font-size: 16px }
+.liste .zeile small { font-size: 13px; color: var(--leise) }
+.liste button.zeile:hover b { text-decoration: underline }
+.marke { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; align-self: center; white-space: nowrap }
+.rot { color: var(--akzent) }
+.leer { font-size: 14px; color: var(--leise); padding: 10px 0; border-top: 1px solid var(--duenn); margin: 0 }
+.darunter .zeile b { font-size: 16px }
+.leise { color: var(--leise); font-size: 13px }
 
 /* Gespräch */
 .gespraech { max-width: 840px; width: 100%; display: flex; flex-direction: column; gap: 18px }
-.gkopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; border-bottom: 3px solid var(--linie); padding-bottom: 10px }
-.gkopf select { min-height: 40px; border: 2px solid var(--linie); background: var(--bg); font-weight: 700; padding: 0 8px; max-width: 100% }
-.gkopf .gname { font-family: var(--titel); font-size: 22px; font-weight: 800; letter-spacing: -.02em; flex: 1 1 auto }
+.gkopf { display: flex; flex-direction: column; gap: 6px; border-bottom: 3px solid var(--linie); padding-bottom: 10px }
+.gkopf .z { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px }
+.gkopf .gname { font-family: var(--titel); font-size: 26px; font-weight: 800; letter-spacing: -.02em; flex: 1 1 auto; line-height: 1.15 }
 .gkopf input { min-height: 40px; border: 2px solid var(--linie); padding: 0 8px; font-weight: 700; flex: 1 1 220px; background: var(--bg) }
 .verlauf { display: flex; flex-direction: column; gap: 22px }
 .tag { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise) }
 .tag::before, .tag::after { content: ""; flex: 1; border-top: 1px solid var(--duenn) }
 .msg { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
 .msg .wer { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--leise) }
-.msg.du .text { background: var(--flaeche); padding: 12px 16px; max-width: 640px; white-space: pre-wrap }
 .msg.du { align-items: flex-end }
-.msg.du .wer { text-align: right }
+.msg.du .text { background: var(--flaeche); padding: 12px 16px; max-width: 640px; white-space: pre-wrap }
 .antwort { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
 .antwort h3 { margin: 8px 0 0; font-size: 16px; font-weight: 700 }
 .antwort p, .antwort ul { margin: 0 }
@@ -92,9 +116,7 @@ main { min-width: 0; padding: 20px 40px 48px; display: flex; flex-direction: col
 .tabelle th { text-align: left; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid var(--linie); padding: 8px 10px 6px 0 }
 .tabelle td { border-bottom: 1px solid var(--duenn); padding: 8px 10px 8px 0; vertical-align: top }
 .baustein { border: 2px solid var(--linie); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px }
-.baustein .bk { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap }
 .baustein .bt { font-size: 18px; font-weight: 700; line-height: 1.35 }
-.baustein .bf { display: flex; flex-wrap: wrap; gap: 8px }
 .foto { width: 220px; max-width: 100%; border: 1px solid var(--linie); background: var(--bg) }
 .foto img, .foto svg { display: block; width: 100%; height: auto }
 .foto span { display: block; font-size: 12px; padding: 4px 8px; border-top: 1px solid var(--linie); color: var(--leise) }
@@ -110,38 +132,25 @@ main { min-width: 0; padding: 20px 40px 48px; display: flex; flex-direction: col
 .eingabe .leiste2 { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 8px 10px; border-top: 1px solid var(--duenn) }
 .eingabe .links, .eingabe .rechts { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center }
 .eingabe label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px }
-.kennt { font-size: 13px; color: var(--leise) }
+.kennt { font-size: 13px; color: var(--leise); margin: 0 }
 .datei-knopf { position: relative; overflow: hidden }
 .datei-knopf input { position: absolute; inset: 0; opacity: 0; cursor: pointer }
 
-/* Listen */
-.liste { display: flex; flex-direction: column }
-.liste .zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 12px 0; border: 0; border-top: 1px solid var(--linie); background: none; text-align: left; width: 100% }
-.liste .zeile:last-child { border-bottom: 1px solid var(--linie) }
-.liste .zeile b { display: block; font-size: 17px }
-.liste .zeile small { font-size: 13px; color: var(--leise) }
-.liste .marke { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; align-self: center }
-.rot { color: var(--akzent) }
-h2.abschnitt { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
-
 /* Rechte Spalte */
 aside.rechts { border-left: 3px solid var(--linie); padding: 20px 18px 32px; display: flex; flex-direction: column; gap: 22px; min-width: 0 }
-aside.rechts h2 { margin: 0; font-family: var(--titel); font-size: 22px; font-weight: 800; letter-spacing: -.02em }
+aside.rechts h2.gross { margin: 0; font-family: var(--titel); font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15 }
 aside .block { display: flex; flex-direction: column; gap: 6px }
 aside .block ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
 aside .block li { border-top: 1px solid var(--duenn); padding: 6px 0; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
-aside .block li button.link { border: 0; background: none; padding: 0; text-align: left; text-decoration: underline; text-underline-offset: 3px; font-weight: 500 }
+aside .block li.unter { padding-left: 12px }
+aside .block li.gk { border-top: 0; padding: 8px 0 2px; font-size: 12px; font-weight: 700; color: var(--leise) }
+aside button.link { border: 0; background: none; padding: 0; text-align: left; text-decoration: underline; text-underline-offset: 3px; font-weight: 500 }
 aside .block li[aria-current="true"] button.link { font-weight: 700; text-decoration: none }
-aside .rf { font-size: 15px; font-weight: 700 }
-aside small, .leise { color: var(--leise); font-size: 13px }
-.altchat { display: flex; flex-direction: column; gap: 10px; font-size: 14px }
-.altchat textarea { min-height: 64px; border: 2px solid var(--linie); padding: 8px; background: var(--bg); resize: vertical }
-.altchat .f { background: var(--flaeche); padding: 8px 10px }
-
-/* Reiter (Variante B) */
-.reiter { display: flex; gap: 0; border-bottom: 3px solid var(--linie) }
-.reiter button { min-height: 44px; padding: 0 18px; border: 2px solid var(--linie); border-bottom: 0; margin-right: -2px; background: var(--bg); font-weight: 700 }
-.reiter button[aria-selected="true"] { background: var(--fg); color: var(--umkehr) }
+aside .rf { font-size: 15px; font-weight: 700; margin: 0 }
+aside .kette { display: flex; flex-direction: column; gap: 0; border: 2px solid var(--linie) }
+aside .kette div { padding: 6px 10px; border-top: 1px solid var(--duenn); font-size: 14px; display: flex; justify-content: space-between; gap: 8px }
+aside .kette div:first-child { border-top: 0 }
+aside .kette div.hier { background: var(--fg); color: var(--umkehr); font-weight: 700 }
 
 /* Überlagerung */
 .schicht { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; justify-content: center; align-items: flex-start; padding: 48px 16px; overflow-y: auto; z-index: 20 }
@@ -150,13 +159,12 @@ aside small, .leise { color: var(--leise); font-size: 13px }
 .fenster label { font-weight: 700; display: flex; flex-direction: column; gap: 6px }
 .fenster textarea, .fenster select { border: 2px solid var(--linie); padding: 10px; background: var(--bg); font-weight: 400 }
 .fenster textarea { min-height: 220px; resize: vertical }
-.fenster .reihe { display: flex; flex-wrap: wrap; gap: 10px }
 .ablegefeld { border: 2px dashed var(--linie); padding: 24px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center }
 
 /* Lückenliste */
 .luecken { max-width: 900px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 24px }
 .luecken h1 { margin: 0; font-family: var(--titel); font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -.035em }
-.luecken .zahlen { display: flex; flex-wrap: wrap; gap: 0; border-top: 3px solid var(--linie); border-bottom: 3px solid var(--linie) }
+.luecken .zahlen { display: flex; flex-wrap: wrap; border-top: 3px solid var(--linie); border-bottom: 3px solid var(--linie) }
 .luecken .zahlen div { flex: 1 1 180px; padding: 14px 16px 14px 0 }
 .luecken .zahlen b { display: block; font-family: var(--titel); font-size: 40px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.1 }
 .lz { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 4px 16px; padding: 12px 0; border-top: 1px solid var(--linie); align-items: start }
@@ -174,6 +182,7 @@ aside small, .leise { color: var(--leise); font-size: 13px }
   .app, .app.ohne-rechts { grid-template-columns: 240px minmax(0, 1fr) }
   aside.rechts { grid-column: 2; border-left: 0; border-top: 3px solid var(--linie); padding-left: 40px; padding-right: 40px }
 }
+@media (max-width: 860px) { .spalten { grid-template-columns: minmax(0, 1fr) } }
 @media (max-width: 760px) {
   .app, .app.ohne-rechts { grid-template-columns: minmax(0, 1fr) }
   .baum { border-right: 0; border-bottom: 3px solid var(--linie) }
@@ -191,8 +200,7 @@ aside small, .leise { color: var(--leise); font-size: 13px }
   <strong>Skizze: Gespräch in der Mitte</strong>
   <nav aria-label="Teile der Skizze">
     <a href="#luecken" data-seite="luecken">1 Was fehlt</a>
-    <a href="#variante-a" data-seite="a">2 Variante A</a>
-    <a href="#variante-b" data-seite="b">3 Variante B</a>
+    <a href="#skizze" data-seite="skizze">2 So könnte es aussehen</a>
   </nav>
   <span class="hinweis">Nur ein Bild zum Klicken. Niemand antwortet wirklich, nichts wird gespeichert oder verschickt. Alle Texte sind Beispiele.</span>
   <button type="button" class="zurueck" id="zuruecksetzen">Skizze zurücksetzen</button>
@@ -204,135 +212,216 @@ aside small, .leise { color: var(--leise); font-size: 13px }
 (function () {
 'use strict';
 
-// ---------- Daten (Beispiele, Orte wie in Lias App) ----------
-const ORTE = {
-  strafe:  { art: 'Reihe', pfad: ['Ethik', '8'], titel: 'Straftheorien', stand: 'läuft', reihe: true,
-             reihenfrage: '', stunden: ['Einstieg: Ist Gefängnis gerecht?', 'Kant: Vergeltung', 'Anwendung Kant', 'von Liszt: Wozu strafen?', 'Prüfungsstunde: Anwendung von Liszt'],
-             material: [['Reihenentwurf Straftheorien', 'Fassung 2 · wartet', true], ['Präsentation Kant: Vergeltung', 'Stunde 2'], ['Fallsammlung Straftheorien', 'final'], ['Arbeitsblatt von Liszt', 'Stunde 4 · läuft']] },
-  helfen:  { art: 'Reihe', pfad: ['Ethik', '8'], titel: 'Helfen', stand: 'abgeschlossen', reihe: true,
-             reihenfrage: 'Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?', stunden: ['Stunde 1', 'Stunde 2', 'Stunde 3', 'Stunde 4', 'Stunde 5', 'Stunde 6'],
-             material: [['Reihenentwurf Helfen', 'final'], ['Lernerfolgskontrolle mit Bewertung', 'final']] },
-  kurs11:  { art: 'Kurs', pfad: ['Darstellendes Spiel'], titel: 'Kurs 11 · 2026/27', stand: 'noch keine Reihen', reihe: false, stunden: [], material: [] },
-  wahnsinn:{ art: 'Inszenierung', pfad: ['Darstellendes Spiel', 'Kurs 12'], titel: 'Der nackte Wahnsinn', stand: 'läuft', reihe: true,
-             reihenfrage: '', frageWort: 'Rahmen', rahmen: '35 bis 40 Minuten, 18 Spieler*innen, drei Akte.',
-             stunden: [], material: [['Spielfassung (Kürzung)', 'Fassung 3 · wartet', true], ['Szenenaufgabe „Stück im Stück“', '']] },
-  ohne:    { art: 'Ohne Ort', pfad: [], titel: 'Ohne Ort', stand: '', reihe: false, stunden: [], material: [] }
+// ---------- Ebenen: Fach > Klasse/Kurs > Reihe > Stunde (Lias Orte wie in der App) ----------
+const STUNDEN = ['Einstieg: Ist Gefängnis gerecht?', 'Kant: Vergeltung', 'Anwendung Kant', 'von Liszt: Wozu strafen?', 'Prüfungsstunde: Anwendung von Liszt'];
+const E = {
+  e8:       { typ: 'Klasse', fach: 'Ethik', name: 'Klasse 8 · 2026/27', kurz: '8', eltern: null, kinder: ['strafe', 'helfen'] },
+  strafe:   { typ: 'Reihe', name: 'Straftheorien', kurz: 'Straftheorien', eltern: 'e8', kinder: ['s1', 's2', 's3', 's4', 's5'], stand: 'läuft', reihenfrage: true },
+  helfen:   { typ: 'Reihe', name: 'Helfen', kurz: 'Helfen', eltern: 'e8', kinder: [], stand: 'abgeschlossen', reihenfrage: true },
+  k11:      { typ: 'Kurs', fach: 'Darstellendes Spiel', name: 'Kurs 11 · 2026/27', kurz: 'Kurs 11', eltern: null, kinder: [] },
+  k12:      { typ: 'Kurs', fach: 'Darstellendes Spiel', name: 'Kurs 12 · 2026/27', kurz: 'Kurs 12', eltern: null, kinder: ['wahnsinn'] },
+  wahnsinn: { typ: 'Inszenierung', name: 'Der nackte Wahnsinn', kurz: 'Der nackte Wahnsinn', eltern: 'k12', kinder: [], stand: 'läuft', rahmen: '35 bis 40 Minuten, 18 Spieler*innen, drei Akte.' },
+  ohne:     { typ: 'Ohne Ort', name: 'Gespräche ohne Ort', kurz: 'Ohne Ort', eltern: null, kinder: [] }
 };
+STUNDEN.forEach((t, i) => { E['s' + (i + 1)] = { typ: 'Stunde', name: 'Stunde ' + (i + 1) + ' · ' + t, kurz: 'Stunde ' + (i + 1), titel: t, eltern: 'strafe', kinder: [], marke: i === 4 ? 'Examen' : '' }; });
 
 const FOTO_BEISPIEL = '<svg viewBox="0 0 220 160" role="img" aria-label="Beispielfoto: handschriftliche Planung auf kariertem Papier"><rect width="220" height="160" fill="#f7f3e8"/><g stroke="#d9d3c2" stroke-width="1">' +
   Array.from({length: 15}, (_, i) => '<line x1="0" y1="' + (i * 11 + 4) + '" x2="220" y2="' + (i * 11 + 4) + '"/>').join('') +
   Array.from({length: 20}, (_, i) => '<line y1="0" x1="' + (i * 11 + 4) + '" y2="160" x2="' + (i * 11 + 4) + '"/>').join('') +
   '</g><g stroke="#2b3a67" stroke-width="2" fill="none" stroke-linecap="round"><path d="M14 22 q8 -6 16 0 t16 0 t16 0 t16 0"/>' +
   [44, 66, 88, 110, 132].map((y, i) => '<text x="12" y="' + (y + 4) + '" font-size="12" fill="#2b3a67" stroke="none" font-family="Georgia, serif">' + (i + 1) + '</text><path d="M28 ' + y + ' q10 -5 20 0 t20 0 t20 0 t' + (20 + i * 4) + ' 0' + (i % 2 ? ' t18 0' : '') + '"/>').join('') +
-  '</g><rect x="150" y="38" width="56" height="30" fill="none" stroke="#c0392b" stroke-width="2"/></svg>';
+  '</g><rect x="150" y="104" width="56" height="30" fill="none" stroke="#c0392b" stroke-width="2"/></svg>';
+
+function baustein(art, text, reihenfrage) {
+  return '<div class="baustein"><span class="augenbraue">Baustein · ' + art + '</span><div class="bt">' + text + '</div><div class="knoepfe">' +
+    '<button type="button" class="knopf knopf-klein" data-akt="kopieren">Kopieren</button>' +
+    (reihenfrage ? '<button type="button" class="knopf knopf-klein" data-akt="reihenfrage">Als Reihenfrage übernehmen</button>' : '') + '</div></div>';
+}
 
 function frische() {
   return {
-    seite: 'luecken', ort: 'strafe', ansicht: 'gespraech', gespraech: 'g1', reiterB: 'uebersicht', bOffen: false,
-    reihenfrage: { strafe: '', helfen: ORTE.helfen.reihenfrage }, vorher: null,
-    dateien: { strafe: [['Planung Straftheorien.pdf', 'ganze Reihe · 03.11.'], ['Leben leben 2, S. 160–161.pdf', 'Stunde 2 · 28.10.']], wahnsinn: [['Szenenliste Akt 1.docx', 'ganze Reihe · 30.10.']] },
-    band: '', umbenennen: false, anhang: [], entwurf: '', gruendlich: false, netz: false, schicht: null, ablegenDatei: '',
-    altchat: [['Was heißt „Vergeltung“ einfach erklärt?', 'Etwas Böses wird mit einer Strafe beantwortet, die dazu passt. Es geht um Ausgleich, nicht um Nutzen.']],
+    seite: 'luecken', ebene: 'strafe', gespraech: null, band: '', vorher: null, umbenennen: false,
+    anhang: [], entwurf: '', gruendlich: false, netz: false, schicht: null, ablegenDatei: '', heute: false,
+    reihenfrage: { strafe: '', helfen: 'Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?' },
+    material: [
+      { ort: 'e8', titel: 'Notentabelle Klasse 8 (ohne Namen)', stand: 'final' },
+      { ort: 'strafe', titel: 'Reihenentwurf Straftheorien', stand: 'Fassung 2 · wartet', rot: true },
+      { ort: 'strafe', titel: 'Fallsammlung Straftheorien', stand: 'final' },
+      { ort: 'strafe', titel: 'Planung Straftheorien.pdf', stand: 'deine Datei' },
+      { ort: 's1', titel: 'Umfrage vor der Reihe', stand: 'setzt du selbst ein' },
+      { ort: 's2', titel: 'Präsentation Kant: Vergeltung', stand: 'Fassung 2 · wartet', rot: true },
+      { ort: 's2', titel: 'Leben leben 2, S. 160–161.pdf', stand: 'deine Datei' },
+      { ort: 's4', titel: 'Arbeitsblatt von Liszt', stand: 'läuft' },
+      { ort: 'helfen', titel: 'Reihenentwurf Helfen', stand: 'final' },
+      { ort: 'helfen', titel: 'Lernerfolgskontrolle mit Bewertung', stand: 'final' },
+      { ort: 'wahnsinn', titel: 'Spielfassung (Kürzung)', stand: 'Fassung 3 · wartet', rot: true },
+      { ort: 'wahnsinn', titel: 'Szenenaufgabe „Stück im Stück“', stand: '' },
+      { ort: 'wahnsinn', titel: 'Szenenliste Akt 1.docx', stand: 'deine Datei' }
+    ],
     gespraeche: {
-      g1: { ort: 'strafe', name: 'Reihenfrage finden', zuletzt: 'heute 09:12', msgs: GESPRAECH_REIHENFRAGE() },
-      g2: { ort: 'strafe', name: 'Stunde 3: Einstieg mit einem Fall', zuletzt: 'Fr 06.11.', msgs: [
+      g1: { ort: 'strafe', name: 'Reihenfrage finden', zuletzt: 'heute 09:06', msgs: [
+        { wer: 'tag', text: 'Gestern, Sonntag 08.11.' },
+        { wer: 'du', zeit: '20:14', text: 'Ich suche eine Reihenfrage für die Straftheorien. Thema Gefängnis, erst Kant, dann von Liszt. Die Frage soll die Klasse wirklich betreffen.' },
+        { wer: 'claude', zeit: '20:15', html:
+          '<p>Ich kenne die Reihe mit fünf Stunden, Kant in Stunde 2 und 3, von Liszt in Stunde 4 und die Prüfungsstunde. Drei Kandidaten im Vergleich:</p>' +
+          '<div class="tabelle"><table><thead><tr><th>Reihenfrage</th><th>Kant</th><th>von Liszt</th><th>Für Klasse 8</th></tr></thead><tbody>' +
+          '<tr><td>Wozu sperren wir Menschen ein?</td><td>passt</td><td>passt gut</td><td>offen, eher abstrakt</td></tr>' +
+          '<tr><td>Ist eine Strafe gerecht, wenn sie niemandem nützt?</td><td>passt gut</td><td>Gegenposition</td><td>streitbar, braucht Beispiel</td></tr>' +
+          '<tr><td>Wozu bestrafen wir: damit es gerecht ist oder damit es besser wird?</td><td>passt gut</td><td>passt gut</td><td>klar, zwei Seiten</td></tr>' +
+          '</tbody></table></div><h3>Mein Vorschlag</h3><p>Die dritte Frage, weil sie beide Positionen schon im Satz trägt.</p>' +
+          baustein('Reihenfrage', 'Wozu bestrafen wir: damit es gerecht ist oder damit es besser wird?', true) },
+        { wer: 'tag', text: 'Heute, Montag 09.11.' },
+        { wer: 'du', zeit: '09:05', text: 'Die Richtung gefällt mir, aber für die 8 noch zu abstrakt. Hier meine Planung als Foto.', foto: 'beispiel' },
+        { wer: 'claude', zeit: '09:06', html:
+          '<p>Auf dem Foto sehe ich fünf Stunden. Bei Stunde 4 hast du etwas rot umrandet, vermutlich den Fall für von Liszt. Daran kann die Frage hängen:</p>' +
+          baustein('Reihenfrage, konkreter', 'Muss jemand ins Gefängnis, auch wenn danach niemand mehr in Gefahr ist?', true) +
+          '<p>Dazu passt ein Merksatz für Stunde 4:</p>' +
+          baustein('Merksatz', 'Von Liszt: Eine Strafe ist nur dann richtig, wenn sie hilft, dass keine neuen Taten passieren.') } ] },
+      g2: { ort: 's3', name: 'Einstieg mit einem Fall', zuletzt: 'Fr 06.11.', msgs: [
         { wer: 'tag', text: 'Freitag, 06.11.' },
-        { wer: 'du', zeit: '17:40', text: 'Ich brauche für Stunde 3 einen Fall, an dem die Klasse Kant anwenden kann. Alltagsnah, nicht zu brutal.' },
+        { wer: 'du', zeit: '17:40', text: 'Ich brauche für diese Stunde einen Fall, an dem die Klasse Kant anwenden kann. Alltagsnah, nicht zu brutal.' },
         { wer: 'claude', zeit: '17:41', html: '<p>Zwei Fälle, die in einer 8. Klasse gut tragen:</p><ul><li><b>Der zerkratzte Fahrradständer:</b> Jemand beschädigt absichtlich Räder. Was wäre eine gerechte Strafe nach Kant?</li><li><b>Die geklaute Klassenkasse:</b> Das Geld ist wieder da. Muss trotzdem bestraft werden?</li></ul><p>Der zweite passt besser, weil er schon zur Frage von Stunde 4 führt.</p>' } ] },
-      g3: { ort: 'strafe', name: 'Kant einfach erklären', zuletzt: 'Mi 04.11.', msgs: [
+      g3: { ort: 's2', name: 'Kant einfach erklären', zuletzt: 'Mi 04.11.', msgs: [
         { wer: 'tag', text: 'Mittwoch, 04.11.' },
         { wer: 'du', zeit: '20:02', text: 'Wie erkläre ich Kants Straftheorie in zwei Sätzen für Achtklässler?' },
-        { wer: 'claude', zeit: '20:02', html: '<p>Vorschlag:</p>' + baustein('merksatz', 'Merksatz', 'Wer etwas Unrechtes tut, soll eine Strafe bekommen, die zu seiner Tat passt. Die Strafe ist gerecht, auch wenn sie niemandem nützt.') } ] },
+        { wer: 'claude', zeit: '20:02', html: '<p>Vorschlag:</p>' + baustein('Merksatz', 'Wer etwas Unrechtes tut, soll eine Strafe bekommen, die zu seiner Tat passt. Die Strafe ist gerecht, auch wenn sie niemandem nützt.') } ] },
+      g8: { ort: 'e8', name: 'Plan bis zum Halbjahr', zuletzt: 'So 01.11.', msgs: [
+        { wer: 'tag', text: 'Sonntag, 01.11.' },
+        { wer: 'du', zeit: '15:30', text: 'Welche Reihen schaffe ich mit der 8 bis zum Halbjahr, wenn Straftheorien bis Mitte Dezember läuft?' },
+        { wer: 'claude', zeit: '15:31', html: '<div class="tabelle"><table><thead><tr><th>Zeitraum</th><th>Reihe</th><th>Hinweis</th></tr></thead><tbody><tr><td>bis Mitte Dezember</td><td>Straftheorien</td><td>mit Prüfungsstunde</td></tr><tr><td>Januar</td><td>neue Reihe, Thema offen</td><td>etwa 5 Stunden</td></tr><tr><td>Ende Januar</td><td>Puffer und Noten</td><td>Notentabelle liegt bei der Klasse</td></tr></tbody></table></div>' } ] },
       g4: { ort: 'wahnsinn', name: 'Probenplan bis zur Premiere', zuletzt: 'Do 05.11.', msgs: [
         { wer: 'tag', text: 'Donnerstag, 05.11.' },
         { wer: 'du', zeit: '16:15', text: 'Wir haben noch sieben Proben bis zur Premiere. Wie verteile ich die drei Akte?' },
         { wer: 'claude', zeit: '16:16', html: '<div class="tabelle"><table><thead><tr><th>Probe</th><th>Schwerpunkt</th><th>Ziel</th></tr></thead><tbody><tr><td>1–2</td><td>Akt 1</td><td>Auftritte und Abgänge sitzen</td></tr><tr><td>3–4</td><td>Akt 2</td><td>Tempo hinter der Bühne</td></tr><tr><td>5</td><td>Akt 3</td><td>Chaos, aber verabredet</td></tr><tr><td>6–7</td><td>Durchläufe</td><td>Zeit messen, Übergänge</td></tr></tbody></table></div>' } ] },
-      g5: { ort: 'ohne', name: 'Unterrichtsbesuch vorbereiten', zuletzt: 'gestern 18:30', msgs: [
+      g9: { ort: 'k12', name: 'Praxis fair bewerten', zuletzt: 'Mo 02.11.', msgs: [
+        { wer: 'tag', text: 'Montag, 02.11.' },
+        { wer: 'du', zeit: '19:00', text: 'Nach welchen Kriterien bewerte ich die Probenarbeit im Kurs, ohne dass nur die Lauten gut abschneiden?' },
+        { wer: 'claude', zeit: '19:01', html: '<p>Vier Kriterien, je gleich gewichtet: Verlässlichkeit, Arbeit in der Gruppe, Umsetzung von Rückmeldungen, Entwicklung über die Zeit. Lautstärke und Rollengröße zählen nicht.</p>' } ] },
+      g7: { ort: 'k11', name: 'Ideen für den Kursbeginn', zuletzt: 'Di 03.11.', msgs: [
+        { wer: 'tag', text: 'Dienstag, 03.11.' },
+        { wer: 'du', zeit: '21:10', text: 'Neuer Kurs 11, noch ohne Reihe. Womit fange ich an, damit sich die Gruppe kennenlernt?' },
+        { wer: 'claude', zeit: '21:11', html: '<p>Drei Einstiege, die ohne Vorwissen gehen: Raumlauf mit Tempowechseln, Namen mit Geste, Standbild in Gruppen zu einem Wort. Daraus kann später die erste Reihe werden.</p>' } ] },
+      g5: { ort: 'ohne', name: 'Unterrichtsbesuch vorbereiten', zuletzt: 'gestern 18:21', msgs: [
         { wer: 'tag', text: 'Gestern' },
         { wer: 'du', zeit: '18:20', text: 'Nächste Woche habe ich einen Unterrichtsbesuch. Was muss bis wann fertig sein?' },
-        { wer: 'claude', zeit: '18:21', html: '<p>Eine Liste zum Abhaken, rückwärts vom Besuch gerechnet:</p><div class="tabelle"><table><thead><tr><th>Wann</th><th>Was</th><th>Erledigt</th></tr></thead><tbody><tr><td>5 Tage vorher</td><td>Stundenziel und Verlauf stehen</td><td>☐</td></tr><tr><td>3 Tage vorher</td><td>Entwurf an die Fachleitung</td><td>☐</td></tr><tr><td>1 Tag vorher</td><td>Material drucken, Technik prüfen</td><td>☐</td></tr><tr><td>am Tag</td><td>Sitzplan und Entwurf für die Gäste</td><td>☐</td></tr></tbody></table></div><p>Wenn du willst, hänge ich das Gespräch an die Reihe, in der der Besuch liegt.</p>' } ] },
+        { wer: 'claude', zeit: '18:21', html: '<p>Eine Liste zum Abhaken, rückwärts vom Besuch gerechnet:</p><div class="tabelle"><table><thead><tr><th>Wann</th><th>Was</th><th>Erledigt</th></tr></thead><tbody><tr><td>5 Tage vorher</td><td>Stundenziel und Verlauf stehen</td><td>☐</td></tr><tr><td>3 Tage vorher</td><td>Entwurf an die Fachleitung</td><td>☐</td></tr><tr><td>1 Tag vorher</td><td>Material drucken, Technik prüfen</td><td>☐</td></tr><tr><td>am Tag</td><td>Sitzplan und Entwurf für die Gäste</td><td>☐</td></tr></tbody></table></div><p>Wenn du willst, hänge ich das Gespräch an die Stunde, in der der Besuch liegt.</p>' } ] },
       g6: { ort: 'ohne', name: 'Woche sortieren', zuletzt: 'Sa 07.11.', msgs: [
         { wer: 'tag', text: 'Samstag, 07.11.' },
         { wer: 'du', zeit: '10:05', text: 'Ich habe zu viel auf dem Zettel. Hilf mir, die Woche zu sortieren.' },
-        { wer: 'claude', zeit: '10:06', html: '<p>Schreib mir einfach alles untereinander, auch unordentlich. Ich sortiere nach „muss diese Woche“, „kann warten“ und „gehört jemand anderem“.</p>' } ] },
-      g7: { ort: 'kurs11', name: 'Ideen für den Kursbeginn', zuletzt: 'Di 03.11.', msgs: [
-        { wer: 'tag', text: 'Dienstag, 03.11.' },
-        { wer: 'du', zeit: '21:10', text: 'Neuer Kurs 11, noch ohne Reihe. Womit fange ich an, damit sich die Gruppe kennenlernt?' },
-        { wer: 'claude', zeit: '21:11', html: '<p>Drei Einstiege, die ohne Vorwissen gehen: Raumlauf mit Tempowechseln, Namen mit Geste, Standbild in Gruppen zu einem Wort. Daraus kann später die erste Reihe werden.</p>' } ] }
+        { wer: 'claude', zeit: '10:06', html: '<p>Schreib mir einfach alles untereinander, auch unordentlich. Ich sortiere nach „muss diese Woche“, „kann warten“ und „gehört jemand anderem“.</p>' } ] }
     }
   };
-}
-
-function baustein(id, art, text, reihenfrage) {
-  return '<div class="baustein" data-baustein="' + id + '"><div class="bk"><span class="augenbraue">Baustein · ' + art + '</span></div>' +
-    '<div class="bt">' + text + '</div><div class="bf">' +
-    '<button type="button" class="knopf knopf-klein" data-akt="kopieren">Kopieren</button>' +
-    (reihenfrage ? '<button type="button" class="knopf knopf-klein" data-akt="reihenfrage">Als Reihenfrage übernehmen</button>' : '') +
-    '</div></div>';
-}
-
-function GESPRAECH_REIHENFRAGE() {
-  return [
-    { wer: 'tag', text: 'Gestern, Sonntag 08.11.' },
-    { wer: 'du', zeit: '20:14', text: 'Ich suche eine Reihenfrage für die Straftheorien. Thema Gefängnis, erst Kant, dann von Liszt. Die Frage soll die Klasse wirklich betreffen.' },
-    { wer: 'claude', zeit: '20:15', html:
-      '<p>Ich kenne die Reihe mit fünf Stunden, Kant in Stunde 2 und 3, von Liszt in Stunde 4 und die Prüfungsstunde. Drei Kandidaten im Vergleich:</p>' +
-      '<div class="tabelle"><table><thead><tr><th>Reihenfrage</th><th>Kant</th><th>von Liszt</th><th>Für Klasse 8</th></tr></thead><tbody>' +
-      '<tr><td>Wozu sperren wir Menschen ein?</td><td>passt</td><td>passt gut</td><td>offen, eher abstrakt</td></tr>' +
-      '<tr><td>Ist eine Strafe gerecht, wenn sie niemandem nützt?</td><td>passt gut</td><td>Gegenposition</td><td>streitbar, braucht Beispiel</td></tr>' +
-      '<tr><td>Wozu bestrafen wir: damit es gerecht ist oder damit es besser wird?</td><td>passt gut</td><td>passt gut</td><td>klar, zwei Seiten</td></tr>' +
-      '</tbody></table></div>' +
-      '<h3>Mein Vorschlag</h3><p>Die dritte Frage, weil sie beide Positionen schon im Satz trägt.</p>' +
-      baustein('rf1', 'Reihenfrage', 'Wozu bestrafen wir: damit es gerecht ist oder damit es besser wird?', true) },
-    { wer: 'tag', text: 'Heute, Montag 09.11.' },
-    { wer: 'du', zeit: '09:05', text: 'Die Richtung gefällt mir, aber für die 8 noch zu abstrakt. Hier meine Planung als Foto.', foto: 'beispiel' },
-    { wer: 'claude', zeit: '09:06', html:
-      '<p>Auf dem Foto sehe ich fünf Stunden. Bei Stunde 4 hast du etwas rot umrandet, vermutlich den Fall für von Liszt. Daran kann die Frage hängen:</p>' +
-      baustein('rf2', 'Reihenfrage, konkreter', 'Muss jemand ins Gefängnis, auch wenn danach niemand mehr in Gefahr ist?', true) +
-      '<p>Dazu passt ein Merksatz für Stunde 4:</p>' +
-      baustein('ms1', 'Merksatz', 'Von Liszt: Eine Strafe ist nur dann richtig, wenn sie hilft, dass keine neuen Taten passieren.') }
-  ];
 }
 
 let S = frische();
 
 // ---------- Hilfen ----------
-const $ = (s, w) => (w || document).querySelector(s);
+const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ortPfad = (k) => { const o = ORTE[k]; return k === 'ohne' ? 'Ohne Ort' : o.pfad.concat([o.titel]).join(' › '); };
-const gespraecheAm = (k) => Object.keys(S.gespraeche).filter((id) => S.gespraeche[id].ort === k);
 const jetzt = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const kette = (k) => { const r = []; for (let x = k; x; x = E[x].eltern) r.unshift(x); return r; };      // von oben bis k
+const fachVon = (k) => E[kette(k)[0]].fach;
+const pfad = (k) => k === 'ohne' ? 'Ohne Ort' : [fachVon(k)].concat(kette(k).map((x) => E[x].kurz)).join(' › ');
+const unter = (k) => E[k].kinder.reduce((a, c) => a.concat([c], unter(c)), []);                    // alle darunter, in Reihenfolge
+const gHier = (k) => Object.keys(S.gespraeche).filter((id) => S.gespraeche[id].ort === k);
+const mHier = (k) => S.material.filter((m) => m.ort === k);
+const gAlle = (k) => [k].concat(unter(k)).reduce((n, x) => n + gHier(x).length, 0);
+const mAlle = (k) => [k].concat(unter(k)).reduce((n, x) => n + mHier(x).length, 0);
+const ebeneWort = (k) => ({ Klasse: 'der Klasse', Kurs: 'dem Kurs', Reihe: 'der Reihe', Stunde: 'der Stunde', Inszenierung: 'der Inszenierung', 'Ohne Ort': 'ohne Ort' }[E[k].typ]);
+const relName = (d, k) => kette(d).slice(kette(k).length).map((x) => E[x].typ === 'Stunde' ? E[x].name : E[x].kurz).join(' › ');
+const reiheVon = (k) => kette(k).find((x) => E[x].reihenfrage);
+const zahlen = (g, m) => [g ? g + ' Gespr.' : '', m ? m + ' Mat.' : ''].filter(Boolean).join(' · ');
 
 // ---------- Baum ----------
 function baum() {
-  const b = (label, ziel, cls, zahl) => {
-    const cur = ziel === S.ort && S.ansicht !== 'heute' || (ziel === 'heute' && S.ansicht === 'heute');
-    return '<button type="button" class="' + (cls || '') + '" data-akt="ort" data-ziel="' + ziel + '"' + (cur ? ' aria-current="location"' : '') + '><span>' + label + '</span>' + (zahl ? '<span class="zahl">' + zahl + '</span>' : '') + '</button>';
+  const offen = kette(S.ebene);
+  const knoten = (k, cls) => {
+    const cur = !S.heute && k === S.ebene;
+    const imPfad = !S.heute && !cur && offen.includes(k);
+    const z = zahlen(gHier(k).length, mHier(k).length);
+    let h = '<button type="button" class="' + (cls || '') + (imPfad ? ' im-pfad' : '') + '" data-akt="ebene" data-ziel="' + k + '"' + (cur ? ' aria-current="location"' : '') + '>' +
+      '<span>' + esc(E[k].typ === 'Stunde' ? (E[k].kurz.replace('Stunde ', '') + '  ' + E[k].titel) : E[k].name.replace(' · 2026/27', '')) + '</span>' + (z ? '<span class="zahl">' + z + '</span>' : '') + '</button>';
+    if (E[k].typ === 'Reihe' && offen.includes(k)) E[k].kinder.forEach((c) => { h += knoten(c, 'e2'); });
+    return h;
   };
-  const nGes = (k) => { const n = gespraecheAm(k).length; return n ? '<small class="leise"> · ' + n + '</small>' : ''; };
   return '<nav class="baum" aria-label="Ordnung"><span class="name">Lias Assistenz</span>' +
-    b('Heute', 'heute', '', '2') +
-    '<span class="kopf">Ethik</span>' +
-    '<button type="button" disabled><span>Klasse 8 · 2026/27</span></button>' +
-    b('Straftheorien' + nGes('strafe'), 'strafe', 'e1') +
-    b('Helfen (abgeschlossen)', 'helfen', 'e1') +
+    '<button type="button" data-akt="heute"' + (S.heute ? ' aria-current="location"' : '') + '><span>Heute</span><span class="zahl rot">3</span></button>' +
+    '<span class="kopf">Ethik</span>' + knoten('e8') + knoten('strafe', 'e1') + knoten('helfen', 'e1') +
     '<button type="button" disabled><span>Archiv: Klasse 7 · 2025/26</span></button>' +
-    '<span class="kopf">Darstellendes Spiel</span>' +
-    b('Kurs 11 · 2026/27' + nGes('kurs11'), 'kurs11') +
-    '<button type="button" disabled><span>Kurs 12 · 2026/27</span></button>' +
-    b('Der nackte Wahnsinn' + nGes('wahnsinn'), 'wahnsinn', 'e1') +
+    '<span class="kopf">Darstellendes Spiel</span>' + knoten('k11') + knoten('k12') + knoten('wahnsinn', 'e1') +
     '<button type="button" disabled><span>Archiv: Kurs 11 · 2025/26</span></button>' +
-    '<span class="kopf">Mehr</span>' +
-    b('Gespräche ohne Ort' + nGes('ohne'), 'ohne') +
+    '<span class="kopf">Mehr</span>' + knoten('ohne') +
     '<button type="button" disabled><span>Vorlagen</span></button><button type="button" disabled><span>Ich</span></button></nav>';
+}
+
+function krumen(k) {
+  if (S.heute) return '<nav class="krumen" aria-label="Brotkrumen"><b>Heute</b></nav>';
+  if (k === 'ohne') return '<nav class="krumen" aria-label="Brotkrumen"><b>Gespräche ohne Ort</b></nav>';
+  const ks = kette(k);
+  return '<nav class="krumen" aria-label="Brotkrumen"><span>' + esc(fachVon(k)) + ' ›</span>' +
+    ks.map((x, i) => i === ks.length - 1 && !S.gespraech ? '<b>' + esc(E[x].kurz) + '</b>' :
+      '<button type="button" data-akt="ebene" data-ziel="' + x + '">' + esc(E[x].kurz) + '</button><span>›</span>').join('') +
+    (S.gespraech ? '<b>' + esc(S.gespraeche[S.gespraech].name) + '</b>' : '') + '</nav>';
+}
+
+// ---------- Ebenen-Ansicht: was hier hängt und was darunter liegt ----------
+function zeileG(id, mitOrt) {
+  const g = S.gespraeche[id];
+  const n = g.msgs.filter((m) => m.wer === 'du' || m.wer === 'claude').length;
+  return '<button type="button" class="zeile" data-akt="oeffnen" data-id="' + id + '"><span><b>' + esc(g.name) + '</b><small>' + (mitOrt ? esc(pfad(g.ort)) + ' · ' : '') + n + ' Nachrichten · zuletzt ' + esc(g.zuletzt) + '</small></span><span class="marke">öffnen</span></button>';
+}
+function zeileM(m) {
+  return '<div class="zeile"><span><b>' + esc(m.titel) + '</b></span><span class="marke' + (m.rot ? ' rot' : '') + '">' + esc(m.stand) + '</span></div>';
+}
+function gruppiert(k, holen, zeile, leerText) {
+  let h = '<h3 class="gruppe"><span class="ebenenwort">hier an ' + ebeneWort(k) + '</span></h3>';
+  const hier = holen(k);
+  h += hier.length ? '<div class="liste">' + hier.map(zeile).join('') + '</div>' : '<p class="leer">' + leerText + '</p>';
+  unter(k).forEach((d) => {
+    const da = holen(d);
+    if (!da.length) return;
+    h += '<h3 class="gruppe"><span class="ebenenwort">darunter</span><button type="button" data-akt="ebene" data-ziel="' + d + '">' + esc(relName(d, k)) + '</button></h3>' +
+      '<div class="liste">' + da.map(zeile).join('') + '</div>';
+  });
+  return h;
+}
+
+function ebenenAnsicht(k) {
+  const e = E[k];
+  let kopf = '<header class="titel"><span class="ebenenmarke">' + esc(e.typ) + '</span>' +
+    '<span class="augenbraue">' + (k === 'ohne' ? 'Verwaltung, Privates, alles ohne Klasse' : esc(pfad(k)) + (e.stand ? ' · ' + esc(e.stand) : '') + (e.marke ? ' · ' + esc(e.marke) : '')) + '</span>' +
+    '<h1>' + esc(e.typ === 'Stunde' ? e.titel : e.name) + '</h1>';
+  if (e.reihenfrage) kopf += '<p>' + (S.reihenfrage[k] ? '<b>Reihenfrage:</b> ' + esc(S.reihenfrage[k]) : '<span class="leise">Reihenfrage noch offen.</span>') + '</p>';
+  else if (e.rahmen) kopf += '<p>' + esc(e.rahmen) + '</p>';
+  else if (e.typ === 'Stunde') kopf += '<p class="leise">Gehört zur Reihe ' + esc(E[e.eltern].name) + '. Gespräche hier kennen auch Reihenfrage und Material der Reihe.</p>';
+  kopf += '<div class="knoepfe" style="margin-top:6px"><button type="button" class="knopf knopf-voll" data-akt="neu">+ Gespräch an ' + ebeneWort(k) + '</button>' +
+    (k === 'ohne' ? '' : '<button type="button" class="knopf" data-akt="ablegen">+ Datei ablegen</button><button type="button" class="knopf" data-akt="auftragleer">+ Neu aus Vorlage</button>') + '</div></header>';
+
+  if (k === 'ohne') {
+    const ids = gHier('ohne');
+    return '<section class="ebene">' + kopf + '<div><h2 class="abschnitt">Gespräche</h2><div class="liste">' + ids.map((i) => zeileG(i)).join('') + '</div></div>' +
+      '<p class="leise">Gespräche bleiben 30 Tage nach der letzten Nachricht, dann werden sie gelöscht.</p></section>';
+  }
+
+  const gesp = '<div><h2 class="abschnitt"><span>Gespräche</span><span class="leise">' + gAlle(k) + '</span></h2>' + gruppiert(k, (x) => gHier(x), (id) => zeileG(id), 'Noch kein Gespräch hier.') + '</div>';
+  const mat = '<div><h2 class="abschnitt"><span>Material</span><span class="leise">' + mAlle(k) + '</span></h2>' + gruppiert(k, mHier, zeileM, 'Noch kein Material hier.') + '</div>';
+
+  let darunter = '';
+  if (e.kinder.length) {
+    darunter = '<div class="darunter"><h2 class="abschnitt"><span>' + esc({ Klasse: 'Reihen', Kurs: 'Reihen', Reihe: 'Stunden' }[e.typ] || 'Darunter') + '</span></h2><div class="liste">' +
+      e.kinder.map((c) => '<button type="button" class="zeile" data-akt="ebene" data-ziel="' + c + '"><span><b>' + esc(E[c].typ === 'Stunde' ? E[c].name : E[c].name) + '</b><small>' +
+        (zahlen(gAlle(c), mAlle(c)) || 'noch leer') + (E[c].marke ? ' · ' + E[c].marke : '') + '</small></span><span class="marke">' + esc(E[c].stand || '') + '</span></button>').join('') + '</div></div>';
+  } else if (e.typ === 'Kurs' || e.typ === 'Klasse') {
+    darunter = '<div class="darunter"><h2 class="abschnitt">Reihen</h2><p class="leer">Noch keine Reihe. Gespräche und Material können trotzdem schon am Kurs hängen.</p></div>';
+  }
+  return '<section class="ebene">' + kopf + '<div class="spalten">' + gesp + mat + '</div>' + darunter + '</section>';
 }
 
 // ---------- Gespräch ----------
 function nachricht(m) {
   if (m.wer === 'tag') return '<div class="tag">' + esc(m.text) + '</div>';
   if (m.wer === 'du') {
-    let fotos = '';
-    if (m.foto === 'beispiel') fotos = '<div class="foto">' + FOTO_BEISPIEL + '<span>Foto: Planung.heic (Beispiel)</span></div>';
+    let fotos = m.foto === 'beispiel' ? '<div class="foto">' + FOTO_BEISPIEL + '<span>Foto: Planung.heic (Beispiel)</span></div>' : '';
     (m.bilder || []).forEach((a) => { fotos += '<div class="foto">' + (a.url ? '<img src="' + a.url + '" alt="">' : '') + '<span>' + esc(a.name) + '</span></div>'; });
     return '<div class="msg du"><span class="wer">Du · ' + esc(m.zeit) + '</span>' + (m.text ? '<div class="text">' + esc(m.text) + '</div>' : '') + fotos + '</div>';
   }
@@ -341,45 +430,33 @@ function nachricht(m) {
 }
 
 function kenntZeile(k) {
-  const o = ORTE[k];
-  if (k === 'ohne') return 'Dieses Gespräch hat keinen Ort. Es kennt nur deine Regeln.';
-  const t = [];
-  if (o.reihe) t.push((S.reihenfrage[k] ? 'Reihenfrage' : 'Reihenfrage offen'));
-  if (o.stunden.length) t.push(o.stunden.length + ' Stunden');
-  if (o.material.length) t.push(o.material.length + ' Material');
-  const d = (S.dateien[k] || []).length;
-  if (d) t.push(d + ' eigene ' + (d === 1 ? 'Datei' : 'Dateien'));
-  return 'Kennt: ' + ortPfad(k) + (t.length ? ' · ' + t.join(', ') : '');
+  if (k === 'ohne') return 'Dieses Gespräch hängt an keiner Ebene. Es kennt nur deine Regeln.';
+  const teile = kette(k).map((x) => {
+    const t = [];
+    if (E[x].reihenfrage && S.reihenfrage[x]) t.push('Reihenfrage');
+    if (E[x].typ === 'Reihe' && E[x].kinder.length) t.push(E[x].kinder.length + ' Stunden');
+    const m = mHier(x).length; if (m) t.push(m + ' Material');
+    return E[x].kurz + (t.length ? ' (' + t.join(', ') + ')' : '');
+  });
+  return 'Kennt: ' + teile.join(' › ') + '. Was darüber liegt, kennt es mit.';
 }
 
-function gespraechAnsicht(id, mitAuswahl) {
+function gespraechAnsicht(id) {
   const g = S.gespraeche[id];
-  const ids = gespraecheAm(g.ort);
-  let kopf = '<div class="gkopf">';
-  if (S.umbenennen) {
-    kopf += '<label class="leise" for="gname">Name</label><input id="gname" value="' + esc(g.name) + '"><button type="button" class="knopf knopf-klein" data-akt="namespeichern">Speichern</button>';
-  } else {
-    if (mitAuswahl && ids.length > 1) {
-      kopf += '<label class="leise" for="gwahl">Gespräch</label><select id="gwahl" data-akt="wahl">' +
-        ids.map((i) => '<option value="' + i + '"' + (i === id ? ' selected' : '') + '>' + esc(S.gespraeche[i].name) + '</option>').join('') + '</select>';
-    } else {
-      kopf += '<span class="gname">' + esc(g.name) + '</span>';
-    }
-    kopf += '<button type="button" class="knopf-leise" data-akt="umbenennen">Umbenennen</button>';
-  }
-  kopf += '<span style="flex:1"></span><button type="button" class="knopf knopf-klein" data-akt="liste">Alle Gespräche hier</button>' +
-    '<button type="button" class="knopf knopf-klein knopf-voll" data-akt="neu">+ Gespräch</button></div>';
+  let kopf = '<div class="gkopf"><span class="augenbraue">Gespräch an ' + ebeneWort(g.ort) + (g.ort === 'ohne' ? '' : ' · ' + esc(E[g.ort].typ === 'Stunde' ? E[g.ort].name : E[g.ort].name)) + '</span><div class="z">';
+  if (S.umbenennen) kopf += '<label class="leise" for="gname">Name</label><input id="gname" value="' + esc(g.name) + '"><button type="button" class="knopf knopf-klein" data-akt="namespeichern">Speichern</button>';
+  else kopf += '<span class="gname">' + esc(g.name) + '</span><button type="button" class="knopf-leise" data-akt="umbenennen">Umbenennen</button>';
+  kopf += '<button type="button" class="knopf knopf-klein" data-akt="ebene" data-ziel="' + g.ort + '">‹ Zur ' + esc(g.ort === 'ohne' ? 'Liste' : E[g.ort].typ) + '</button></div></div>';
 
   const verlauf = '<div class="verlauf" id="verlauf">' + (g.msgs.length ? g.msgs.map(nachricht).join('') :
-    '<p class="leise">Frag einfach los, so lang du willst. Den Namen schlage ich nach deiner ersten Nachricht vor, du kannst ihn ändern.</p>') + '</div>';
+    '<p class="leise">Frag einfach los, so lang du willst. Das Gespräch hängt an ' + ebeneWort(g.ort) + (g.ort === 'ohne' ? '' : ' ' + esc(E[g.ort].kurz)) + '. Den Namen schlage ich nach deiner ersten Nachricht vor.</p>') + '</div>';
 
   const anh = S.anhang.map((a, i) => '<span class="chip">' + (a.url ? '<img src="' + a.url + '" alt="">' : '') + esc(a.name) +
     '<button type="button" data-akt="anhangweg" data-i="' + i + '" aria-label="' + esc(a.name) + ' entfernen">weg</button></span>').join('');
 
   const eingabe = '<form class="eingabe" id="eingabe"><label for="text" class="leise" style="padding:10px 14px 0">Nachricht</label>' +
     '<textarea id="text" placeholder="Schreib oder füge einen langen Text ein. Keine Namen von Schüler*innen.">' + esc(S.entwurf) + '</textarea>' +
-    '<div class="anh">' + anh + '</div>' +
-    '<div class="leiste2"><div class="links">' +
+    '<div class="anh">' + anh + '</div><div class="leiste2"><div class="links">' +
     '<span class="knopf knopf-klein datei-knopf">Foto oder Datei<input type="file" id="foto" accept="image/*,.heic,.pdf,.docx,.pptx" multiple aria-label="Foto oder Datei anhängen"></span>' +
     '<button type="button" class="knopf-leise" data-akt="beispielfoto">Beispielfoto nehmen</button>' +
     '<label class="check"><input type="checkbox" id="gruendlich"' + (S.gruendlich ? ' checked' : '') + '> gründlich</label>' +
@@ -388,188 +465,122 @@ function gespraechAnsicht(id, mitAuswahl) {
     '<button type="button" class="knopf knopf-klein" data-akt="auftrag">Daraus Auftrag machen</button>' +
     '<button type="submit" class="knopf knopf-voll">Senden</button></div></div></form>' +
     '<p class="kennt">' + esc(kenntZeile(g.ort)) + '</p>';
-
   return '<section class="gespraech" aria-label="Gespräch">' + kopf + verlauf + eingabe + '</section>';
 }
 
-function listeAnsicht(k) {
-  const ids = gespraecheAm(k);
-  const o = ORTE[k];
-  return '<section class="gespraech"><header class="titel"><span class="augenbraue">' + (k === 'ohne' ? 'Ohne Ort: Verwaltung, Privates, alles andere' : esc(o.art) + ' · Gespräche') + '</span>' +
-    '<h1>' + (k === 'ohne' ? 'Gespräche ohne Ort' : 'Gespräche: ' + esc(o.titel)) + '</h1></header>' +
-    '<div><button type="button" class="knopf knopf-voll" data-akt="neu">+ Gespräch</button></div>' +
-    (ids.length ? '<div class="liste">' + ids.map((i) => {
-      const g = S.gespraeche[i]; const n = g.msgs.filter((m) => m.wer === 'du' || m.wer === 'claude').length;
-      return '<button type="button" class="zeile" data-akt="oeffnen" data-id="' + i + '"><span><b>' + esc(g.name) + '</b><small>' + n + ' Nachrichten · zuletzt ' + esc(g.zuletzt) + '</small></span><span class="marke">öffnen</span></button>';
-    }).join('') + '</div>' : '<p class="leise">Noch kein Gespräch hier.</p>') +
-    '<p class="leise">Gespräche bleiben 30 Tage nach der letzten Nachricht, dann werden sie gelöscht. Du kannst eines auch vorher löschen.</p></section>';
+// ---------- Rechte Spalte: An dieser Ebene ----------
+function rechts(k) {
+  const e = E[k];
+  let h = '<aside class="rechts" aria-label="An dieser Ebene"><h2 class="gross">An ' + ebeneWort(k) + '</h2>';
+  if (k === 'ohne') return h + '<p class="leise" style="margin:0">Dieses Gespräch kennt keine Klasse, Reihe oder Stunde. Gehört es doch irgendwo hin, häng es dort an.</p><div><button type="button" class="knopf knopf-klein" data-akt="verschieben">An eine Ebene hängen</button></div>' + listeRechts('ohne') + '</aside>';
+  h += '<div class="block"><span class="augenbraue">Hängt an</span><div class="kette">' +
+    [{ t: fachVon(k), k: null }].concat(kette(k).map((x) => ({ t: E[x].typ + ': ' + (E[x].typ === 'Stunde' ? E[x].kurz : E[x].kurz), k: x }))).map((z) =>
+      '<div' + (z.k === k ? ' class="hier"' : '') + '><span>' + esc(z.t) + '</span>' + (z.k ? '<small>' + (zahlen(gHier(z.k).length, mHier(z.k).length) || '') + '</small>' : '') + '</div>').join('') +
+    '</div><div><button type="button" class="knopf-leise" data-akt="verschieben">An andere Ebene hängen</button></div></div>';
+  const r = reiheVon(k);
+  if (r) h += '<div class="block"><span class="augenbraue">Reihenfrage' + (r !== k ? ' (aus der Reihe)' : '') + '</span><p class="rf">' + (S.reihenfrage[r] ? esc(S.reihenfrage[r]) : '<span class="leise">noch offen</span>') + '</p></div>';
+  h += listeRechts(k);
+  h += '<div class="block"><span class="augenbraue">Material an ' + ebeneWort(k) + '</span><ul>' +
+    (mHier(k).map((m) => '<li><span>' + esc(m.titel) + '</span><small' + (m.rot ? ' class="rot"' : '') + '>' + esc(m.stand.split(' · ').pop()) + '</small></li>').join('') || '<li><small>noch keins</small></li>') +
+    '</ul><div class="knoepfe"><button type="button" class="knopf knopf-klein" data-akt="ablegen">+ Datei ablegen</button><button type="button" class="knopf-leise" data-akt="ebene" data-ziel="' + k + '">Alles an ' + ebeneWort(k) + '</button></div>' +
+    '<small class="leise">Gespräche hier kennen dieses Material und das darüber. Keine Schülerdaten.</small></div>';
+  return h + '</aside>';
 }
-
-function uebersicht(k, mitDateien) {
-  const o = ORTE[k];
-  const rf = S.reihenfrage[k];
-  let h = '<section class="gespraech"><header class="titel"><span class="augenbraue">' + esc(o.art) + ' · ' + esc(o.stand) + '</span><h1>' + esc(o.titel) + '</h1>' +
-    (o.reihe ? '<p>' + (o.rahmen ? esc(o.rahmen) : rf ? esc(rf) : '<span class="leise">Reihenfrage noch offen.</span>') + '</p>' : '') + '</header>';
-  if (o.material.length) h += '<div><h2 class="abschnitt">Material</h2><div class="liste">' + o.material.map((m) =>
-    '<div class="zeile"><span><b>' + esc(m[0]) + '</b></span><span class="marke' + (m[2] ? ' rot' : '') + '">' + esc(m[1]) + '</span></div>').join('') + '</div></div>';
-  if (o.stunden.length) h += '<div><h2 class="abschnitt">Stunden</h2><div class="liste">' + o.stunden.map((s, i) =>
-    '<div class="zeile"><span><b>' + (i + 1) + '  ' + esc(s) + '</b></span><span></span></div>').join('') + '</div></div>';
-  if (mitDateien) h += eigeneDateien(k, true);
-  return h + '</section>';
-}
-
-function eigeneDateien(k, gross) {
-  const d = S.dateien[k] || [];
-  if (gross) return '<div><h2 class="abschnitt">Eigene Dateien</h2><div class="liste">' + (d.length ? d.map((f) =>
-    '<div class="zeile"><span><b>' + esc(f[0]) + '</b><small>' + esc(f[1]) + '</small></span><span></span></div>').join('') : '') + '</div>' +
-    '<p style="margin:10px 0 0"><button type="button" class="knopf knopf-klein" data-akt="ablegen">+ Eigene Datei ablegen</button></p></div>';
-  return '<div class="block"><h2 class="abschnitt">Eigene Dateien</h2><ul>' + d.map((f) => '<li><span>' + esc(f[0]) + '</span><small>' + esc(f[1].split(' · ')[0]) + '</small></li>').join('') +
-    '</ul><div><button type="button" class="knopf knopf-klein" data-akt="ablegen">+ Datei ablegen</button></div><small>Gespräche hier kennen diese Dateien. Keine Schülerdaten.</small></div>';
+function listeRechts(k) {
+  let li = gHier(k).map((i) => '<li' + (S.gespraech === i ? ' aria-current="true"' : '') + '><button type="button" class="link" data-akt="oeffnen" data-id="' + i + '">' + esc(S.gespraeche[i].name) + '</button><small>' + esc(S.gespraeche[i].zuletzt.split(' ')[0]) + '</small></li>').join('');
+  if (k !== 'ohne') unter(k).forEach((d) => {
+    const ids = gHier(d); if (!ids.length) return;
+    li += '<li class="gk">darunter: ' + esc(relName(d, k)) + '</li>' + ids.map((i) => '<li class="unter"><button type="button" class="link" data-akt="oeffnen" data-id="' + i + '">' + esc(S.gespraeche[i].name) + '</button><small>' + esc(S.gespraeche[i].zuletzt.split(' ')[0]) + '</small></li>').join('');
+  });
+  return '<div class="block"><span class="augenbraue">Gespräche an ' + ebeneWort(k) + '</span><ul>' + (li || '<li><small>noch keins</small></li>') + '</ul>' +
+    '<div><button type="button" class="knopf knopf-klein" data-akt="neu">+ Gespräch an ' + ebeneWort(k) + '</button></div></div>';
 }
 
 function heute() {
-  const zuletzt = ['g1', 'g5'];
-  return '<section class="gespraech"><header class="titel"><h1>Heute</h1><p>Hallo Lia. <span class="rot">2</span> Sachen warten auf dich.</p></header>' +
-    '<div><h2 class="abschnitt">Weiter im Gespräch</h2><div class="liste">' + zuletzt.map((i) => {
-      const g = S.gespraeche[i];
-      return '<button type="button" class="zeile" data-akt="oeffnen" data-id="' + i + '"><span><b>' + esc(g.name) + '</b><small>' + esc(ortPfad(g.ort)) + ' · zuletzt ' + esc(g.zuletzt) + '</small></span><span class="marke">weiter</span></button>';
-    }).join('') + '</div></div>' +
-    '<div><h2 class="abschnitt">Wartet auf dich</h2><div class="liste">' +
-    '<div class="zeile"><span><b>Reihenentwurf Straftheorien</b><small>Ethik › 8 › Straftheorien</small></span><span class="marke rot">Fassung 2 · wartet</span></div>' +
-    '<div class="zeile"><span><b>Spielfassung (Kürzung)</b><small>Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn</small></span><span class="marke rot">Fassung 3 · wartet</span></div>' +
-    '</div></div><p class="leise">Wie heute in der App, dazu oben die letzten Gespräche.</p></section>';
-}
-
-// ---------- Rechte Spalte ----------
-function rechtsA(k) {
-  const o = ORTE[k];
-  const ids = gespraecheAm(k);
-  let h = '<aside class="rechts" aria-label="An diesem Ort"><h2>An diesem Ort</h2>';
-  if (k === 'ohne') return h + '<p class="leise">Gespräche ohne Ort kennen keine Reihe. Wenn ein Gespräch doch zu einer Reihe gehört, kannst du es dorthin verschieben.</p><button type="button" class="knopf knopf-klein" data-akt="verschieben">An einen Ort hängen</button></aside>';
-  if (o.reihe && !o.rahmen) {
-    const rf = S.reihenfrage[k];
-    h += '<div class="block"><h2 class="abschnitt">Reihenfrage</h2><p class="rf" style="margin:0">' + (rf ? esc(rf) : '<span class="leise">noch offen</span>') + '</p><div><button type="button" class="knopf-leise" data-akt="rfaendern">ändern</button></div></div>';
-  } else if (o.rahmen) {
-    h += '<div class="block"><h2 class="abschnitt">Rahmen</h2><p style="margin:0">' + esc(o.rahmen) + '</p></div>';
-  }
-  h += '<div class="block"><h2 class="abschnitt">Gespräche (' + ids.length + ')</h2><ul>' + ids.map((i) =>
-    '<li' + (S.ansicht === 'gespraech' && S.gespraech === i ? ' aria-current="true"' : '') + '><button type="button" class="link" data-akt="oeffnen" data-id="' + i + '">' + esc(S.gespraeche[i].name) + '</button><small>' + esc(S.gespraeche[i].zuletzt.split(' ')[0]) + '</small></li>').join('') +
-    '</ul><div><button type="button" class="knopf knopf-klein" data-akt="neu">+ Gespräch</button></div></div>';
-  if (o.material.length) h += '<div class="block"><h2 class="abschnitt">Material</h2><ul>' + o.material.map((m) => '<li><span>' + esc(m[0]) + '</span><small' + (m[2] ? ' class="rot"' : '') + '>' + esc(m[1].split(' · ').pop()) + '</small></li>').join('') + '</ul><div><button type="button" class="knopf-leise" data-akt="uebersicht">Übersicht der ' + esc(o.art === 'Reihe' ? 'Reihe' : o.art) + ' öffnen</button></div></div>';
-  h += eigeneDateien(k, false);
-  return h + '</aside>';
-}
-
-function rechtsB(k) {
-  return '<aside class="rechts" aria-label="Fragen"><h2>Fragen</h2><div class="altchat"><small>Ich weiß: ' + esc(ortPfad(k)) + '</small>' +
-    S.altchat.map((f) => '<div class="f"><b>' + esc(f[0]) + '</b></div><div>' + esc(f[1]) + '</div>').join('') +
-    '<label for="altfrage" class="leise">Kurze Frage</label><textarea id="altfrage" placeholder="Frage …"></textarea>' +
-    '<div><button type="button" class="knopf knopf-klein knopf-voll" data-akt="altfragen">Fragen</button></div>' +
-    '<small>Wie heute: kurz, merkt sich nur die letzten Fragen. Für längere Gespräche: Reiter „Gespräche“.</small></div></aside>';
-}
-
-// ---------- Seiten ----------
-function krumen(k) {
-  if (S.ansicht === 'heute') return '<nav class="krumen" aria-label="Brotkrumen"><b>Heute</b></nav>';
-  const o = ORTE[k];
-  return '<nav class="krumen" aria-label="Brotkrumen">' + (k === 'ohne' ? '<b>Gespräche ohne Ort</b>' : o.pfad.map((p) => '<span>' + esc(p) + ' ›</span>').join('') + '<b>' + esc(o.titel) + '</b>') + '</nav>';
+  return '<section class="ebene"><header class="titel"><h1>Heute</h1><p>Hallo Lia. <span class="rot">3</span> Sachen warten auf dich.</p></header>' +
+    '<div><h2 class="abschnitt">Weiter im Gespräch</h2><div class="liste">' + ['g1', 'g5', 'g2'].map((i) => zeileG(i, true)).join('') + '</div></div>' +
+    '<div><h2 class="abschnitt">Wartet auf dich</h2><div class="liste">' + S.material.filter((m) => m.rot).map((m) =>
+      '<button type="button" class="zeile" data-akt="ebene" data-ziel="' + m.ort + '"><span><b>' + esc(m.titel) + '</b><small>' + esc(pfad(m.ort)) + '</small></span><span class="marke rot">' + esc(m.stand) + '</span></button>').join('') + '</div></div></section>';
 }
 
 function band() {
   if (!S.band) return '';
-  return '<p class="hinweisband" role="status"><span>' + S.band + '</span>' + (S.vorher !== null ? '<button type="button" class="knopf knopf-klein" data-akt="rueckgaengig">Rückgängig</button>' : '<button type="button" class="knopf-leise" data-akt="bandzu">Schließen</button>') + '</p>';
+  return '<p class="hinweisband" role="status"><span>' + S.band + '</span>' + (S.vorher ? '<button type="button" class="knopf knopf-klein" data-akt="rueckgaengig">Rückgängig</button>' : '<button type="button" class="knopf-leise" data-akt="bandzu">Schließen</button>') + '</p>';
 }
 
-function seiteA() {
-  const k = S.ort;
-  let mitte;
-  if (S.ansicht === 'heute') mitte = heute();
-  else if (S.ansicht === 'liste') mitte = listeAnsicht(k);
-  else if (S.ansicht === 'uebersicht') mitte = '<div><button type="button" class="knopf knopf-klein" data-akt="zurueckgespraech">‹ Zurück zum Gespräch</button></div>' + uebersicht(k, true);
-  else mitte = gespraechAnsicht(S.gespraech, true);
-  const rechts = S.ansicht === 'heute' ? '' : rechtsA(k);
-  return '<div class="app' + (rechts ? '' : ' ohne-rechts') + '">' + baum() + '<main>' +
-    '<div class="oben">' + krumen(k) + '</div>' + band() + mitte + '</main>' + rechts + '</div>';
+function seiteSkizze() {
+  const k = S.ebene;
+  let mitte, rechtsSp = '';
+  if (S.heute) mitte = heute();
+  else if (S.gespraech) { mitte = gespraechAnsicht(S.gespraech); rechtsSp = rechts(k); }
+  else mitte = ebenenAnsicht(k);
+  return '<div class="app' + (rechtsSp ? '' : ' ohne-rechts') + '">' + baum() + '<main>' + krumen(k) + band() + mitte + '</main>' + rechtsSp + '</div>';
 }
 
-function seiteB() {
-  const k = S.ort;
-  let mitte;
-  if (S.ansicht === 'heute') mitte = heute();
-  else if (k === 'ohne') mitte = S.ansicht === 'gespraech' ? gespraechAnsicht(S.gespraech, false) : listeAnsicht(k);
-  else {
-    const o = ORTE[k];
-    const n = gespraecheAm(k).length;
-    mitte = '<div class="reiter" role="tablist"><button type="button" role="tab" data-akt="reiter" data-r="uebersicht" aria-selected="' + (S.reiterB === 'uebersicht') + '">Übersicht</button>' +
-      '<button type="button" role="tab" data-akt="reiter" data-r="gespraeche" aria-selected="' + (S.reiterB === 'gespraeche') + '">Gespräche (' + n + ')</button></div>';
-    if (S.reiterB === 'uebersicht') mitte += uebersicht(k, true);
-    else if (S.bOffen && S.ansicht === 'gespraech') mitte += gespraechAnsicht(S.gespraech, false);
-    else mitte += listeAnsicht(k);
-    void o;
-  }
-  return '<div class="app">' + baum() + '<main><div class="oben">' + krumen(k) + '</div>' + band() + mitte + '</main>' + rechtsB(k) + '</div>';
-}
-
+// ---------- Lückenliste ----------
 const LUECKEN = [
-  [99, 'Ein langes Gespräch, das sich alles merkt, auch am nächsten Tag', 'Heute merkt sich die App nur die letzten 6 Fragen und fängt neu an, wenn du die Reihe wechselst.', 'a'],
-  [59, 'Ausführliche Antworten, auch mit Tabellen', 'Die Spalte rechts ist schmal, die Antworten sind gekürzt.', 'a'],
-  [39, 'Fotos und Bildschirmfotos zeigen', 'Bisher gehen nur PDF, Word und PowerPoint.', 'a'],
-  [39, 'Texte schnell gemeinsam verbessern und kopieren', 'Bisher entsteht für jede Änderung ein Auftrag mit neuer Datei.', 'a'],
-  [26, 'Eigene Dateien einmal ablegen', 'Bisher lädst du sie bei jeder Frage neu hoch.', 'a'],
-  [22, 'Eigene Planungen und Texte prüfen lassen', 'Dafür gibt es keinen Weg.', 'a'],
-  [19, 'Mehrere Gespräche, auch ohne Reihe', 'Für Verwaltung, Privates und Themen, zu denen du nach Tagen zurückkommst.', 'a'],
-  [19, 'Reihen selbst anlegen, Reihenfrage ändern', 'Geht inzwischen in der App, war in deinen Chats noch nicht da.', ''],
-  [11, 'Nur eine Stelle im Dokument ändern', 'Jede Änderung wird eine ganze neue Fassung.', 'später'],
-  [10, 'Noten ausrechnen', 'Berührt Schülerdaten, braucht einen eigenen Plan.', 'später'],
-  [7, 'Langen Text einfach einfügen', 'Bisher nur über eine Datei.', 'a'],
-  [2, 'Ein Diktat erst ordnen, dann abschicken', 'Gedanken sammeln, daraus einen sauberen Auftrag machen.', 'a'],
-  [2, 'Verlaufsplan als Vorlage', 'Fehlt in den Vorlagen.', 'später']
+  [99, 'Ein langes Gespräch, das sich alles merkt, auch am nächsten Tag', 'Heute merkt sich die App nur die letzten 6 Fragen und fängt neu an, wenn du die Reihe wechselst.', 1],
+  [59, 'Ausführliche Antworten, auch mit Tabellen', 'Die Spalte rechts ist schmal, die Antworten sind gekürzt.', 1],
+  [39, 'Fotos und Bildschirmfotos zeigen', 'Bisher gehen nur PDF, Word und PowerPoint.', 1],
+  [39, 'Texte schnell gemeinsam verbessern und kopieren', 'Bisher entsteht für jede Änderung ein Auftrag mit neuer Datei.', 1],
+  [26, 'Eigene Dateien einmal ablegen', 'Bisher lädst du sie bei jeder Frage neu hoch.', 1],
+  [22, 'Eigene Planungen und Texte prüfen lassen', 'Dafür gibt es keinen Weg.', 1],
+  [19, 'Mehrere Gespräche, auch ohne Reihe', 'Für Verwaltung, Privates und Themen, zu denen du nach Tagen zurückkommst.', 1],
+  [19, 'Reihen selbst anlegen, Reihenfrage ändern', 'Geht inzwischen in der App, war in deinen Chats noch nicht da.', 0],
+  [11, 'Nur eine Stelle im Dokument ändern', 'Jede Änderung wird eine ganze neue Fassung.', 2],
+  [10, 'Noten ausrechnen', 'Berührt Schülerdaten, braucht einen eigenen Plan.', 2],
+  [7, 'Langen Text einfach einfügen', 'Bisher nur über eine Datei.', 1],
+  [2, 'Ein Diktat erst ordnen, dann abschicken', 'Gedanken sammeln, daraus einen sauberen Auftrag machen.', 1],
+  [2, 'Verlaufsplan als Vorlage', 'Fehlt in den Vorlagen.', 2]
 ];
-
 function seiteLuecken() {
   return '<div class="luecken"><header style="display:flex;flex-direction:column;gap:10px"><span class="augenbraue">Aus deinen Chats seit 24.10.</span>' +
     '<h1>Was dir in der App fehlt</h1><p style="margin:0;max-width:65ch">Claude hat deine 9 Chats in claude.ai seit dem 24.10. gelesen und für jede Runde gefragt: Ginge das auch in der App? Das ist Claudes Einschätzung, nicht deine. Die Hälfte der Runden stammt aus einem langen Chat zu den Straftheorien.</p></header>' +
     '<div class="zahlen"><div><b>188</b>Runden Hin und Her</div><div><b>15</b>gingen schon genauso in der App</div><div><b>140</b>lebten vom Hin und Her</div></div>' +
     '<div><h2 class="abschnitt">Was fehlt, nach Runden</h2>' + LUECKEN.map((l) =>
       '<div class="lz"><span class="n">' + l[0] + '</span><div style="min-width:0"><b>' + esc(l[1]) + '</b><p>' + esc(l[2]) + '</p></div>' +
-      '<span class="wo">' + (l[3] === 'a' ? '<a href="#variante-a">in der Skizze</a>' : l[3] === 'später' ? 'später' : 'gibt es') + '</span>' +
+      '<span class="wo">' + (l[3] === 1 ? '<a href="#skizze">in der Skizze</a>' : l[3] === 2 ? 'später' : 'gibt es') + '</span>' +
       '<div class="balken" aria-hidden="true"><i style="width:' + Math.round(l[0] / 99 * 100) + '%"></i></div></div>').join('') + '</div>' +
     '<p class="leise" style="margin:0">Eine Runde kann mehrere Lücken haben, darum ergibt die Summe nicht 188.</p>' +
     '<div class="frage">Stimmt das? Was fehlt?<small>Was davon brauchst du wirklich, was nicht? Fehlt etwas, das du in claude.ai jede Woche machst?</small></div>' +
-    '<p><a class="knopf knopf-voll" href="#variante-a" style="text-decoration:none">Weiter zur Skizze</a></p></div>';
+    '<p><a class="knopf knopf-voll" href="#skizze" style="text-decoration:none">Weiter zur Skizze</a></p></div>';
 }
 
 // ---------- Überlagerungen ----------
+function ortZiele(gewaehlt) {
+  return ['e8', 'strafe', 's1', 's2', 's3', 's4', 's5', 'helfen', 'k11', 'k12', 'wahnsinn'].map((x) =>
+    '<option value="' + x + '"' + (x === gewaehlt ? ' selected' : '') + '>' + esc(pfad(x)) + ' (' + E[x].typ + ')</option>').join('');
+}
 function schicht() {
   const w = $('#schicht');
   if (!S.schicht) { w.innerHTML = ''; return; }
-  const k = S.gespraeche[S.gespraech] ? S.gespraeche[S.gespraech].ort : S.ort;
+  const k = S.gespraech ? S.gespraeche[S.gespraech].ort : S.ebene;
   let h = '';
-  if (S.schicht === 'auftrag') {
+  if (S.schicht === 'auftrag' || S.schicht === 'auftragleer') {
+    const ausGespraech = S.schicht === 'auftrag';
     const rf = S.reihenfrage.strafe || 'Muss jemand ins Gefängnis, auch wenn danach niemand mehr in Gefahr ist?';
-    const text = k === 'strafe' ?
-      'Reihenentwurf für die Reihe Straftheorien, Klasse 8.\n\nEntschieden:\n- Reihenfrage: „' + rf + '“\n- erst Kant (Vergeltung), dann von Liszt (Wozu strafen?)\n- fünf Stunden wie auf dem Foto meiner Planung, Stunde 5 ist die Prüfungsstunde\n- Merksatz von Liszt für Stunde 4 aus dem Gespräch\n\nVerworfen:\n- „Wozu sperren wir Menschen ein?“ (zu offen)\n\nWunsch:\n- Einstieg über einen Fall aus dem Schulalltag'
-      : 'Aus dem Gespräch „' + S.gespraeche[S.gespraech].name + '“:\n\nEntschieden:\n- …\n\nWunsch:\n- …';
-    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><span class="augenbraue">Neu aus dem Gespräch</span><h2 id="ftitel">Daraus Auftrag machen</h2>' +
-      '<p style="margin:0">Ich habe das Gespräch zu einem Auftrag geordnet. Ändere, was nicht stimmt. Erst „Abschicken“ startet etwas.</p>' +
+    let text = '';
+    if (ausGespraech && S.gespraech === 'g1') text = 'Reihenentwurf für die Reihe Straftheorien, Klasse 8.\n\nEntschieden:\n- Reihenfrage: „' + rf + '“\n- erst Kant (Vergeltung), dann von Liszt (Wozu strafen?)\n- fünf Stunden wie auf dem Foto meiner Planung, Stunde 5 ist die Prüfungsstunde\n- Merksatz von Liszt für Stunde 4 aus dem Gespräch\n\nVerworfen:\n- „Wozu sperren wir Menschen ein?“ (zu offen)\n\nWunsch:\n- Einstieg über einen Fall aus dem Schulalltag';
+    else if (ausGespraech) text = 'Aus dem Gespräch „' + S.gespraeche[S.gespraech].name + '“:\n\nEntschieden:\n- …\n\nWunsch:\n- …';
+    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><span class="augenbraue">' + (ausGespraech ? 'Neu aus dem Gespräch' : 'Neu aus Vorlage') + '</span><h2 id="ftitel">' + (ausGespraech ? 'Daraus Auftrag machen' : 'Neuer Auftrag') + '</h2>' +
+      (ausGespraech ? '<p style="margin:0">Ich habe das Gespräch zu einem Auftrag geordnet. Ändere, was nicht stimmt. Erst „Abschicken“ startet etwas.</p>' : '') +
       '<label for="vorlage">Vorlage<select id="vorlage"><option>Reihenentwurf</option><option>Arbeitsblatt</option><option>Präsentation</option><option>Lernerfolgskontrolle</option></select></label>' +
-      '<p style="margin:0"><b>Ort:</b> ' + esc(ortPfad(k)) + (k === 'strafe' ? ' · ganze Reihe' : '') + '</p>' +
+      '<p style="margin:0"><b>Hängt an:</b> ' + esc(pfad(k)) + ' (' + esc(E[k].typ) + '). Das Ergebnis liegt dann dort als Material.</p>' +
       '<label for="atext">Was soll entstehen?<textarea id="atext">' + esc(text) + '</textarea></label>' +
-      '<p class="leise" style="margin:0">Das Gespräch geht als Grundlage mit. Keine Namen von Schüler*innen.</p>' +
-      '<div class="reihe"><button type="button" class="knopf knopf-voll" data-akt="abschicken">Abschicken</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
+      '<p class="leise" style="margin:0">' + (ausGespraech ? 'Das Gespräch geht als Grundlage mit. ' : '') + 'Keine Namen von Schüler*innen.</p>' +
+      '<div class="knoepfe"><button type="button" class="knopf knopf-voll" data-akt="abschicken">Abschicken</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
   } else if (S.schicht === 'ablegen') {
-    const o = ORTE[k];
-    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><span class="augenbraue">' + esc(ortPfad(k)) + '</span><h2 id="ftitel">Eigene Datei ablegen</h2>' +
-      '<p style="margin:0">Die Datei bleibt hier liegen. Jedes Gespräch an diesem Ort kennt sie, du musst sie nicht neu hochladen.</p>' +
-      '<label for="gilt">Gehört zu<select id="gilt"><option>ganze ' + esc(o.art) + '</option>' + o.stunden.map((s, i) => '<option>Stunde ' + (i + 1) + '</option>').join('') + '</select></label>' +
+    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><span class="augenbraue">Eigene Datei</span><h2 id="ftitel">Datei ablegen</h2>' +
+      '<p style="margin:0">Die Datei hängt dann an dieser Ebene. Jedes Gespräch hier und darunter kennt sie, du musst sie nicht neu hochladen.</p>' +
+      '<label for="gilt">Hängt an<select id="gilt">' + ortZiele(k) + '</select></label>' +
       '<div class="ablegefeld"><span class="knopf datei-knopf">Datei wählen<input type="file" id="ablegedatei" aria-label="Datei wählen"></span><span class="leise">Word, PDF, PowerPoint, Foto</span>' +
       (S.ablegenDatei ? '<b>' + esc(S.ablegenDatei) + '</b>' : '<button type="button" class="knopf-leise" data-akt="beispieldatei">oder Beispiel nehmen: Bewertungskriterien.pdf</button>') + '</div>' +
       '<p style="margin:0"><b>Keine Schülerdaten:</b> keine Namen, Noten oder Fotos von Arbeiten mit Namen.</p>' +
-      '<div class="reihe"><button type="button" class="knopf knopf-voll" data-akt="ablegenok"' + (S.ablegenDatei ? '' : ' disabled') + '>Ablegen</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
+      '<div class="knoepfe"><button type="button" class="knopf knopf-voll" data-akt="ablegenok"' + (S.ablegenDatei ? '' : ' disabled') + '>Ablegen</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
   } else if (S.schicht === 'verschieben') {
-    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><h2 id="ftitel">An einen Ort hängen</h2><p style="margin:0">In der Skizze nur angedeutet: Hier wählst du Fach, Klasse und Reihe. Das Gespräch kennt danach alles, was an diesem Ort liegt.</p>' +
-      '<label for="wohin">Ort<select id="wohin"><option>Ethik › 8 › Straftheorien</option><option>Ethik › 8 › Helfen</option><option>Darstellendes Spiel › Kurs 11 · 2026/27</option><option>Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn</option></select></label>' +
-      '<div class="reihe"><button type="button" class="knopf" data-akt="schliessen">Schließen</button></div></div>';
+    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><h2 id="ftitel">An eine Ebene hängen</h2><p style="margin:0">Das Gespräch zieht mit seinem ganzen Verlauf um und kennt danach alles, was an der neuen Ebene und darüber liegt.</p>' +
+      '<label for="wohin">Ebene<select id="wohin">' + ortZiele(k === 'ohne' ? 'strafe' : k) + '</select></label>' +
+      '<div class="knoepfe"><button type="button" class="knopf knopf-voll" data-akt="verschiebenok">Umhängen</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
   }
   w.innerHTML = '<div class="schicht" data-akt="hintergrund">' + h + '</div>';
   const erstes = w.querySelector('textarea, select, button');
@@ -581,19 +592,17 @@ function zeichnen() {
   document.querySelectorAll('.leiste nav a').forEach((a) => a.toggleAttribute('aria-current', false));
   const aktiv = document.querySelector('.leiste nav a[data-seite="' + S.seite + '"]');
   if (aktiv) aktiv.setAttribute('aria-current', 'page');
-  const w = $('#wurzel');
-  w.innerHTML = S.seite === 'luecken' ? seiteLuecken() : S.seite === 'a' ? seiteA() : seiteB();
+  $('#wurzel').innerHTML = S.seite === 'luecken' ? seiteLuecken() : seiteSkizze();
   schicht();
 }
-
 function speichernEntwurf() { const t = $('#text'); if (t) S.entwurf = t.value; }
+function ansEnde() { const v = $('#verlauf'); if (v && v.lastElementChild) v.lastElementChild.scrollIntoView({ block: 'nearest' }); }
 
 // ---------- Handlungen ----------
 function oeffnen(id) {
   speichernEntwurf();
-  S.gespraech = id; S.ort = S.gespraeche[id].ort; S.ansicht = 'gespraech'; S.umbenennen = false; S.reiterB = 'gespraeche'; S.bOffen = true;
-  zeichnen();
-  const v = $('#verlauf'); if (v && v.lastElementChild) v.lastElementChild.scrollIntoView({ block: 'nearest' });
+  S.gespraech = id; S.ebene = S.gespraeche[id].ort; S.heute = false; S.umbenennen = false;
+  zeichnen(); ansEnde();
 }
 
 function senden() {
@@ -603,36 +612,30 @@ function senden() {
   const z = jetzt();
   const bilder = S.anhang.filter((a) => !a.beispiel);
   const beispiel = S.anhang.some((a) => a.beispiel);
-  if (!g.msgs.some((m) => m.text === 'Heute, Montag 09.11.' || m.text === 'Heute')) g.msgs.push({ wer: 'tag', text: 'Heute' });
+  if (!g.msgs.some((m) => m.wer === 'tag' && /^Heute/.test(m.text))) g.msgs.push({ wer: 'tag', text: 'Heute' });
   g.msgs.push({ wer: 'du', zeit: z, text: t.trim(), bilder, foto: beispiel ? 'beispiel' : undefined });
   const erste = g.msgs.filter((m) => m.wer === 'du').length === 1;
   if (erste && g.name === 'Neues Gespräch' && t.trim()) g.name = t.trim().split(/\s+/).slice(0, 5).join(' ').replace(/[.,:;?!]+$/, '');
   g.zuletzt = 'heute ' + z;
   g.msgs.push({ wer: 'denkt', zeit: z });
   S.entwurf = ''; S.anhang = [];
-  zeichnen();
-  const v = $('#verlauf'); if (v) v.lastElementChild.scrollIntoView({ block: 'nearest' });
+  zeichnen(); ansEnde();
   setTimeout(() => {
     g.msgs = g.msgs.filter((m) => m.wer !== 'denkt');
-    const mitFoto = bilder.length || beispiel;
     g.msgs.push({ wer: 'claude', zeit: jetzt(), html:
-      '<p>' + (mitFoto ? 'Hier würde ich zuerst sagen, was ich auf dem Foto sehe, und dann antworten. ' : '') +
+      '<p>' + (bilder.length || beispiel ? 'Hier würde ich zuerst sagen, was ich auf dem Foto sehe, und dann antworten. ' : '') +
       'In der Skizze antworte ich nicht wirklich. Im echten Gespräch stünde hier die Antwort, so lang wie nötig, mit Überschriften, Tabellen und Bausteinen zum Kopieren.' +
       (S.gruendlich ? ' Mit „gründlich“ dauert es länger und geht tiefer.' : '') + '</p>' +
       (erste ? '<p class="leise">Name vorgeschlagen: „' + esc(g.name) + '“. Ändern über „Umbenennen“.</p>' : '') });
-    if (S.seite !== 'luecken') zeichnen();
+    if (S.seite === 'skizze') { speichernEntwurf(); zeichnen(); }
   }, 1400);
 }
 
 function kopieren(knopf) {
-  const text = knopf.closest('.baustein').querySelector('.bt').textContent;
+  const bt = knopf.closest('.baustein').querySelector('.bt');
   const fertig = () => { knopf.textContent = 'Kopiert'; setTimeout(() => { knopf.textContent = 'Kopieren'; }, 1600); };
-  const notfalls = () => {
-    const r = document.createRange(); r.selectNodeContents(knopf.closest('.baustein').querySelector('.bt'));
-    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-    knopf.textContent = 'Markiert, jetzt kopieren';
-  };
-  try { navigator.clipboard.writeText(text).then(fertig, notfalls); } catch (e) { notfalls(); }
+  const notfalls = () => { const r = document.createRange(); r.selectNodeContents(bt); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); knopf.textContent = 'Markiert, jetzt kopieren'; };
+  try { navigator.clipboard.writeText(bt.textContent).then(fertig, notfalls); } catch (e) { notfalls(); }
 }
 
 function anhaengen(dateien) {
@@ -653,30 +656,14 @@ document.addEventListener('click', (e) => {
   if (!el) return;
   const a = el.dataset.akt;
   if (a === 'hintergrund') { if (e.target === el) { S.schicht = null; schicht(); } return; }
-  if (el.tagName === 'SELECT') return;
   switch (a) {
-    case 'ort': {
-      speichernEntwurf();
-      const z = el.dataset.ziel; S.umbenennen = false; S.band = ''; S.vorher = null;
-      if (z === 'heute') { S.ansicht = 'heute'; break; }
-      S.ort = z; S.bOffen = false;
-      const ids = gespraecheAm(z);
-      if (S.seite === 'a') {
-        if (z === 'ohne') S.ansicht = 'liste';
-        else if (ids.length) { S.ansicht = 'gespraech'; S.gespraech = ids[0]; }
-        else S.ansicht = 'uebersicht';
-      } else { S.ansicht = z === 'ohne' ? 'liste' : 'uebersicht'; S.reiterB = 'uebersicht'; }
-      break;
-    }
+    case 'heute': speichernEntwurf(); S.heute = true; S.gespraech = null; S.band = ''; S.vorher = null; break;
+    case 'ebene': speichernEntwurf(); S.ebene = el.dataset.ziel; S.gespraech = null; S.heute = false; S.umbenennen = false; S.band = ''; S.vorher = null; break;
     case 'oeffnen': oeffnen(el.dataset.id); return;
-    case 'liste': speichernEntwurf(); S.ansicht = 'liste'; S.bOffen = false; break;
-    case 'uebersicht': speichernEntwurf(); S.ansicht = 'uebersicht'; break;
-    case 'zurueckgespraech': { const ids = gespraecheAm(S.ort); if (ids.length) { oeffnen(ids.includes(S.gespraech) ? S.gespraech : ids[0]); return; } S.ansicht = 'liste'; break; }
-    case 'reiter': S.reiterB = el.dataset.r; S.bOffen = false; S.ansicht = el.dataset.r === 'gespraeche' ? 'liste' : 'uebersicht'; break;
     case 'neu': {
       speichernEntwurf();
       const id = 'n' + Date.now();
-      S.gespraeche[id] = { ort: S.ort, name: 'Neues Gespräch', zuletzt: 'gerade eben', msgs: [] };
+      S.gespraeche[id] = { ort: S.ebene, name: 'Neues Gespräch', zuletzt: 'gerade eben', msgs: [] };
       S.entwurf = ''; oeffnen(id); const t = $('#text'); if (t) t.focus(); return;
     }
     case 'umbenennen': speichernEntwurf(); S.umbenennen = true; zeichnen(); { const i = $('#gname'); if (i) { i.focus(); i.select(); } } return;
@@ -684,56 +671,51 @@ document.addEventListener('click', (e) => {
     case 'kopieren': kopieren(el); return;
     case 'reihenfrage': {
       speichernEntwurf();
-      const k = S.gespraeche[S.gespraech].ort;
-      const text = el.closest('.baustein').querySelector('.bt').textContent;
-      S.vorher = { k, alt: S.reihenfrage[k] || '' };
-      S.reihenfrage[k] = text;
-      S.band = 'Als Reihenfrage von ' + esc(ORTE[k].titel) + ' übernommen.';
+      const r = reiheVon(S.gespraeche[S.gespraech].ort) || 'strafe';
+      S.vorher = { r, alt: S.reihenfrage[r] || '' };
+      S.reihenfrage[r] = el.closest('.baustein').querySelector('.bt').textContent;
+      S.band = 'Als Reihenfrage von ' + esc(E[r].name) + ' übernommen.';
       break;
     }
-    case 'rueckgaengig': if (S.vorher) { S.reihenfrage[S.vorher.k] = S.vorher.alt; } S.vorher = null; S.band = 'Zurückgenommen: Reihenfrage wie vorher.'; break;
+    case 'rueckgaengig': if (S.vorher) S.reihenfrage[S.vorher.r] = S.vorher.alt; S.vorher = null; S.band = 'Zurückgenommen: Reihenfrage wie vorher.'; break;
     case 'bandzu': S.band = ''; break;
-    case 'rfaendern': S.vorher = null; S.band = 'Hier öffnet sich die Maske „Reihenfrage ändern“, die es in der App schon gibt.'; break;
     case 'beispielfoto': speichernEntwurf(); S.anhang.push({ name: 'Planung.heic (Beispiel)', beispiel: true }); break;
     case 'anhangweg': speichernEntwurf(); S.anhang.splice(Number(el.dataset.i), 1); break;
     case 'bisher': {
       speichernEntwurf();
       const g = S.gespraeche[S.gespraech];
-      g.msgs.push({ wer: 'claude', zeit: jetzt(), html: '<h3>Was wir bisher haben</h3><ul>' +
-        (g.ort === 'strafe' && S.gespraech === 'g1' ?
-          '<li><b>Gewählt:</b> Reihenfrage mit Gefängnis-Bezug' + (S.reihenfrage.strafe ? ' (übernommen)' : ' (noch nicht übernommen)') + '</li><li><b>Verworfen:</b> „Wozu sperren wir Menschen ein?“, zu offen; die Fassung mit „gerecht oder besser“ war für Klasse 8 zu abstrakt</li><li><b>Offen:</b> Fall für Stunde 4</li>'
-          : '<li>Hier stünde eine kurze Zusammenfassung: was gewählt, was verworfen, was offen ist.</li>') + '</ul>' });
-      zeichnen(); const v = $('#verlauf'); if (v) v.lastElementChild.scrollIntoView({ block: 'nearest' }); return;
+      g.msgs.push({ wer: 'claude', zeit: jetzt(), html: '<h3>Was wir bisher haben</h3><ul>' + (S.gespraech === 'g1' ?
+        '<li><b>Gewählt:</b> Reihenfrage mit Gefängnis-Bezug' + (S.reihenfrage.strafe ? ' (übernommen)' : ' (noch nicht übernommen)') + '</li><li><b>Verworfen:</b> „Wozu sperren wir Menschen ein?“, zu offen; die Fassung mit „gerecht oder besser“ war für Klasse 8 zu abstrakt</li><li><b>Offen:</b> Fall für Stunde 4</li>'
+        : '<li>Hier stünde eine kurze Zusammenfassung: was gewählt, was verworfen, was offen ist.</li>') + '</ul>' });
+      zeichnen(); ansEnde(); return;
     }
-    case 'auftrag': speichernEntwurf(); S.schicht = 'auftrag'; schicht(); return;
+    case 'auftrag': case 'auftragleer': case 'verschieben': speichernEntwurf(); S.schicht = a; schicht(); return;
     case 'ablegen': speichernEntwurf(); S.schicht = 'ablegen'; S.ablegenDatei = ''; schicht(); return;
-    case 'verschieben': S.schicht = 'verschieben'; schicht(); return;
     case 'beispieldatei': S.ablegenDatei = 'Bewertungskriterien.pdf'; schicht(); return;
     case 'ablegenok': {
-      const k = S.ansicht === 'gespraech' && S.gespraeche[S.gespraech] ? S.gespraeche[S.gespraech].ort : S.ort;
-      const gilt = ($('#gilt') || {}).value || 'ganze Reihe';
-      (S.dateien[k] = S.dateien[k] || []).push([S.ablegenDatei, gilt + ' · heute']);
-      S.schicht = null; S.vorher = null; S.band = 'Abgelegt: ' + esc(S.ablegenDatei) + '. Gespräche an diesem Ort kennen die Datei jetzt.';
+      const ziel = ($('#gilt') || {}).value || S.ebene;
+      S.material.push({ ort: ziel, titel: S.ablegenDatei, stand: 'deine Datei' });
+      S.schicht = null; S.vorher = null;
+      S.band = 'Abgelegt an ' + esc(pfad(ziel)) + ': ' + esc(S.ablegenDatei) + '. Gespräche dort und darunter kennen die Datei jetzt.';
+      break;
+    }
+    case 'verschiebenok': {
+      const ziel = ($('#wohin') || {}).value;
+      if (S.gespraech && ziel) { S.gespraeche[S.gespraech].ort = ziel; S.ebene = ziel; }
+      S.schicht = null; S.vorher = null; S.band = 'Umgehängt an ' + esc(pfad(ziel)) + '.';
       break;
     }
     case 'abschicken': S.schicht = null; S.vorher = null; S.band = 'In der echten App würde der Auftrag jetzt starten und unter „Läuft gerade“ stehen. Die Skizze schickt nichts ab.'; break;
     case 'schliessen': S.schicht = null; schicht(); return;
-    case 'altfragen': {
-      const t = ($('#altfrage') || {}).value || '';
-      if (t.trim()) S.altchat.push([t.trim(), 'Kurze Antwort wie heute in der rechten Spalte (Skizze).']);
-      if (S.altchat.length > 3) S.altchat.shift();
-      break;
-    }
     default: return;
   }
   zeichnen();
 });
 
 document.addEventListener('change', (e) => {
-  if (e.target.id === 'gwahl') { oeffnen(e.target.value); }
-  else if (e.target.id === 'foto') { anhaengen(e.target.files); }
-  else if (e.target.id === 'gruendlich') { S.gruendlich = e.target.checked; }
-  else if (e.target.id === 'netz') { S.netz = e.target.checked; }
+  if (e.target.id === 'foto') anhaengen(e.target.files);
+  else if (e.target.id === 'gruendlich') S.gruendlich = e.target.checked;
+  else if (e.target.id === 'netz') S.netz = e.target.checked;
   else if (e.target.id === 'ablegedatei' && e.target.files[0]) { S.ablegenDatei = e.target.files[0].name; schicht(); }
 });
 document.addEventListener('submit', (e) => { if (e.target.id === 'eingabe') { e.preventDefault(); senden(); } });
@@ -744,16 +726,14 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('paste', (e) => {
   if (e.target.id !== 'text' || !e.clipboardData) return;
   const bilder = Array.from(e.clipboardData.files || []).filter((f) => f.type.startsWith('image/'));
-  if (bilder.length) { e.preventDefault(); anhaengen(bilder.map((f) => new File([f], f.name || 'Bildschirmfoto.png', { type: f.type }))); }
+  if (bilder.length) { e.preventDefault(); anhaengen(bilder); }
 });
-
 $('#zuruecksetzen').addEventListener('click', () => { const seite = S.seite; S = frische(); S.seite = seite; zeichnen(); });
 
 function nachHash() {
   const h = location.hash.replace('#', '');
   speichernEntwurf();
-  S.seite = h === 'variante-a' ? 'a' : h === 'variante-b' ? 'b' : 'luecken';
-  if (S.seite === 'b' && S.ansicht === 'gespraech' && !S.bOffen) { S.reiterB = 'gespraeche'; S.bOffen = true; }
+  S.seite = (h === 'skizze' || h === 'variante-a' || h === 'variante-b') ? 'skizze' : 'luecken';
   S.band = ''; S.vorher = null;
   zeichnen();
   window.scrollTo(0, 0);
