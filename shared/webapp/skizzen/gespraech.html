@@ -99,27 +99,49 @@ main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: col
 .augenbraue { font-size: 12px; font-weight: 400; color: var(--leise) }
 .titel h1 { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em }
 .titel p { margin: 0 }
-.ebenenmarke { display: inline-flex; align-self: flex-start; font-size: 12px; color: var(--leise) }
 
 /* Ebenen-Ansicht */
-.ebene { max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 32px }
-.spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
-.abschnitt { margin: 0 0 4px; font-size: 20px; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
-.abschnitt .leise { font-size: 14px; font-weight: 400 }
-.gruppe { margin: 12px 0 2px; font-size: 14px; font-weight: 500; color: var(--leise); display: flex; gap: 6px; align-items: baseline }
-.gruppe button { border: 0; background: none; padding: 0; color: var(--leise); font-weight: 500; text-align: left }
-.gruppe button:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 3px }
-.gruppe .ebenenwort { font-size: 12px; color: var(--sehrleise); font-weight: 400 }
+.ebene { max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 36px }
+.titel .meta { font-size: 14px; color: var(--leise) }
+.notiz { background: var(--flaeche); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px }
+.notiz-titel { font-size: 12px; color: var(--leise) }
+.kopf-knoepfe { margin-top: 8px }
+.abschnitt-block { display: flex; flex-direction: column; gap: 4px }
+.abschnitt { margin: 0 0 4px; font-size: 20px; font-weight: 600 }
 .liste { display: flex; flex-direction: column; margin: 0 -8px }
-.liste .zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 6px 8px; border: 0; border-radius: 6px; background: none; text-align: left; width: 100%; color: var(--fg) }
+.liste .zeile { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 8px; border: 0; border-radius: 6px; background: none; text-align: left; width: 100%; color: var(--fg) }
 .liste button.zeile:hover { background: var(--hover) }
-.liste .zeile b { display: block; font-size: 16px; font-weight: 500 }
-.liste .zeile small { font-size: 12px; color: var(--leise) }
-.marke { font-size: 12px; font-weight: 400; color: var(--leise); align-self: center; white-space: nowrap }
+.zeile .ic { flex: 0 0 16px; width: 16px; height: 16px; color: var(--sehrleise) }
+.zeile .zt { flex: 1 1 auto; min-width: 0 }
+.liste .zeile b { display: block; font-size: 16px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.liste .zeile small { display: block; font-size: 12px; color: var(--leise) }
+.marke { font-size: 12px; font-weight: 400; color: var(--sehrleise); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px }
+.marke:empty { display: none }
 .rot { color: var(--akzent) }
 .marke.rot { font-weight: 500 }
-.leer { font-size: 14px; color: var(--sehrleise); padding: 6px 0; margin: 0 }
+.nur-hover { display: none }
+.zeile:hover .nur-hover, .zeile:focus-visible .nur-hover { display: inline }
+.zeile:hover .marke:not(.rot), .zeile:focus-visible .marke:not(.rot) { display: none }
+.hinweis-hover { font-size: 12px; color: var(--leise); white-space: nowrap }
+.leer { font-size: 14px; color: var(--sehrleise); padding: 4px 0; margin: 0 }
 .leise { color: var(--leise); font-size: 14px }
+.titel .leise { margin: 0 }
+.darunter-knopf { align-self: flex-start; display: inline-flex; align-items: baseline; gap: 6px; border: 0; background: none; color: var(--leise); font-size: 14px;
+  padding: 4px 8px; margin: 2px -8px 0; border-radius: 6px; text-align: left }
+.darunter-knopf:hover { background: var(--hover); color: var(--fg) }
+.darunter-knopf .pf { font-size: 12px; width: 12px }
+.darunter-knopf .wo { color: var(--sehrleise); font-size: 12px }
+.darunter-liste { padding-left: 18px; display: flex; flex-direction: column }
+.gruppe { margin: 10px 0 2px }
+.gruppe button { border: 0; background: none; padding: 0; color: var(--leise); font-size: 12px; text-align: left }
+.gruppe button:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 3px }
+.menue-halter { position: relative; display: inline-flex }
+.knopf-menue { font-size: 16px; letter-spacing: 1px; min-width: 32px; justify-content: center }
+.menue { position: absolute; top: calc(100% + 4px); left: 0; z-index: 15; min-width: 220px; background: var(--bg); border-radius: 8px; box-shadow: var(--schatten);
+  padding: 4px; display: flex; flex-direction: column }
+.menue button { border: 0; background: none; text-align: left; padding: 6px 10px; border-radius: 4px; font-size: 14px; color: var(--fg); min-height: 32px }
+.menue button:hover, .menue button:focus-visible { background: var(--hover) }
+@media (hover: none) { .nur-hover { display: none !important } }
 
 /* Gespräch */
 .gespraech { max-width: 760px; width: 100%; display: flex; flex-direction: column; gap: 20px }
@@ -212,7 +234,6 @@ aside .kette div.hier { background: var(--wahl); font-weight: 600 }
   .app, .app.ohne-rechts { grid-template-columns: 220px minmax(0, 1fr) }
   aside.rechts { grid-column: 2; border-left: 0; border-top: 1px solid var(--linie); padding-left: 48px; padding-right: 48px }
 }
-@media (max-width: 860px) { .spalten { grid-template-columns: minmax(0, 1fr) } }
 @media (max-width: 760px) {
   .app, .app.ohne-rechts { grid-template-columns: minmax(0, 1fr) }
   .baum { padding-bottom: 12px; border-bottom: 1px solid var(--linie); position: static; min-height: 0 }
@@ -272,7 +293,7 @@ function frische() {
   return {
     seite: 'luecken', ebene: 'strafe', gespraech: null, band: '', vorher: null, umbenennen: false,
     anhang: [], entwurf: '', gruendlich: false, netz: false, schicht: null, ablegenDatei: '', heute: false,
-    klapp: {}, archiv: false,
+    klapp: {}, archiv: false, darunter: {}, menue: null,
     reihenfrage: { strafe: '', helfen: 'Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?' },
     material: [
       { ort: 'e8', titel: 'Notentabelle Klasse 8 (ohne Namen)', stand: 'final' },
@@ -408,57 +429,77 @@ function krumen(k) {
     (S.gespraech ? '<b>' + esc(S.gespraeche[S.gespraech].name) + '</b>' : '') + '</nav>';
 }
 
-// ---------- Ebenen-Ansicht: was hier hängt und was darunter liegt ----------
+// ---------- Ebenen-Ansicht: was hier hängt, darunter zugeklappt ----------
+const ICON_G = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+const ICON_D = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.8h5.2l2.8 2.8v9.6H4z M9 1.8v3h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+const kurzStand = (m) => m.rot ? 'wartet' : (m.stand === 'läuft' || m.stand === 'deine Datei' ? m.stand : '');
 function zeileG(id, mitOrt) {
   const g = S.gespraeche[id];
-  const n = g.msgs.filter((m) => m.wer === 'du' || m.wer === 'claude').length;
-  return '<button type="button" class="zeile" data-akt="oeffnen" data-id="' + id + '"><span><b>' + esc(g.name) + '</b><small>' + (mitOrt ? esc(pfad(g.ort)) + ' · ' : '') + n + ' Nachrichten · zuletzt ' + esc(g.zuletzt) + '</small></span><span class="marke">öffnen</span></button>';
+  return '<button type="button" class="zeile" data-akt="oeffnen" data-id="' + id + '">' + ICON_G + '<span class="zt"><b>' + esc(g.name) + '</b>' +
+    (mitOrt ? '<small>' + esc(pfad(g.ort)) + '</small>' : '') + '</span><span class="marke">' + esc(g.zuletzt) + '</span></button>';
 }
-function zeileM(m) {
-  return '<div class="zeile"><span><b>' + esc(m.titel) + '</b></span><span class="marke' + (m.rot ? ' rot' : '') + '">' + esc(m.stand) + '</span></div>';
+function zeileM(m, mitOrt) {
+  const i = S.material.indexOf(m); const st = kurzStand(m);
+  return '<button type="button" class="zeile" data-akt="vorschau" data-m="' + i + '">' + ICON_D + '<span class="zt"><b>' + esc(m.titel) + '</b>' +
+    (mitOrt ? '<small>' + esc(pfad(m.ort)) + '</small>' : '') + '</span>' +
+    (m.rot ? '<span class="marke rot"><span class="punkt-rot"></span> wartet</span>' : '<span class="marke">' + esc(st) + '</span>') +
+    '<span class="nur-hover hinweis-hover">Vorschau</span></button>';
 }
-function gruppiert(k, holen, zeile, leerText) {
-  let h = '<h3 class="gruppe"><span class="ebenenwort">hier an ' + ebeneWort(k) + '</span></h3>';
+// Abschnitt mit "hier" offen und "darunter" zugeklappt (offen, wenn hier nichts hängt).
+function abschnitt(k, art, titel, holen, zeile, leerText) {
   const hier = holen(k);
-  h += hier.length ? '<div class="liste">' + hier.map(zeile).join('') + '</div>' : '<p class="leer">' + leerText + '</p>';
-  unter(k).forEach((d) => {
-    const da = holen(d);
-    if (!da.length) return;
-    h += '<h3 class="gruppe"><span class="ebenenwort">darunter</span><button type="button" data-akt="ebene" data-ziel="' + d + '">' + esc(relName(d, k)) + '</button></h3>' +
-      '<div class="liste">' + da.map(zeile).join('') + '</div>';
-  });
-  return h;
+  const gruppen = unter(k).map((d) => [d, holen(d)]).filter((x) => x[1].length);
+  const nUnter = gruppen.reduce((n, x) => n + x[1].length, 0);
+  const schl = k + ':' + art;
+  const auf = S.darunter[schl] !== undefined ? S.darunter[schl] : !hier.length;
+  let h = '<section class="abschnitt-block"><h2 class="abschnitt">' + titel + '</h2>';
+  h += hier.length ? '<div class="liste">' + hier.map((x) => zeile(x)).join('') + '</div>' : (nUnter ? '' : '<p class="leer">' + leerText + '</p>');
+  if (nUnter) {
+    const namen = gruppen.map((x) => E[x[0]].kurz);
+    h += '<button type="button" class="darunter-knopf" data-akt="darunter" data-ziel="' + schl + '" aria-expanded="' + auf + '">' +
+      '<span class="pf">' + (auf ? '▾' : '▸') + '</span>' + (hier.length ? nUnter + ' weitere darunter' : nUnter + ' darunter') +
+      '<span class="wo">' + esc(namen.slice(0, 3).join(', ') + (namen.length > 3 ? ' …' : '')) + '</span></button>';
+    if (auf) h += '<div class="darunter-liste">' + gruppen.map((x) =>
+      '<div class="gruppe"><button type="button" data-akt="ebene" data-ziel="' + x[0] + '">' + esc(relName(x[0], k)) + '</button></div>' +
+      '<div class="liste">' + x[1].map((y) => zeile(y)).join('') + '</div>').join('') + '</div>';
+  }
+  return h + '</section>';
+}
+function menue(id, punkte) {
+  const auf = S.menue === id;
+  return '<div class="menue-halter"><button type="button" class="knopf-leise knopf-menue" data-akt="menue" data-ziel="' + id + '" aria-haspopup="true" aria-expanded="' + auf + '" aria-label="Weitere Aktionen">···</button>' +
+    (auf ? '<div class="menue" role="menu">' + punkte.map((p) => '<button type="button" role="menuitem" data-akt="' + p[0] + '"' + (p[2] ? ' data-ziel="' + p[2] + '"' : '') + '>' + esc(p[1]) + '</button>').join('') + '</div>' : '') + '</div>';
 }
 
 function ebenenAnsicht(k) {
   const e = E[k];
-  let kopf = '<header class="titel"><span class="ebenenmarke">' + esc(e.typ) + '</span>' +
-    '<span class="augenbraue">' + (k === 'ohne' ? 'Verwaltung, Privates, alles ohne Klasse' : esc(pfad(k)) + (e.stand ? ' · ' + esc(e.stand) : '') + (e.marke ? ' · ' + esc(e.marke) : '')) + '</span>' +
-    '<h1>' + esc(e.typ === 'Stunde' ? e.titel : e.name) + '</h1>';
-  if (e.reihenfrage) kopf += '<p>' + (S.reihenfrage[k] ? '<b>Reihenfrage:</b> ' + esc(S.reihenfrage[k]) : '<span class="leise">Reihenfrage noch offen.</span>') + '</p>';
-  else if (e.rahmen) kopf += '<p>' + esc(e.rahmen) + '</p>';
-  else if (e.typ === 'Stunde') kopf += '<p class="leise">Gehört zur Reihe ' + esc(E[e.eltern].name) + '. Gespräche hier kennen auch Reihenfrage und Material der Reihe.</p>';
-  kopf += '<div class="knoepfe" style="margin-top:6px"><button type="button" class="knopf knopf-voll" data-akt="neu">+ Gespräch an ' + ebeneWort(k) + '</button>' +
-    (k === 'ohne' ? '' : '<button type="button" class="knopf" data-akt="ablegen">+ Datei ablegen</button><button type="button" class="knopf" data-akt="auftragleer">+ Neu aus Vorlage</button>') + '</div></header>';
+  const meta = k === 'ohne' ? 'Verwaltung, Privates, alles ohne Klasse' :
+    [e.typ, e.stand, e.marke, e.typ === 'Reihe' && e.kinder.length ? e.kinder.length + ' Stunden' : ''].filter(Boolean).join(' · ');
+  let kopf = '<header class="titel"><h1>' + esc(e.typ === 'Stunde' ? e.titel : e.name) + '</h1><p class="meta">' + esc(meta) + '</p>';
+  if (e.reihenfrage) kopf += '<div class="notiz"><span class="notiz-titel">Reihenfrage</span>' + (S.reihenfrage[k] ? esc(S.reihenfrage[k]) : '<span class="leise">noch offen</span>') + '</div>';
+  else if (e.rahmen) kopf += '<p class="leise">' + esc(e.rahmen) + '</p>';
+  else if (e.typ === 'Stunde') kopf += '<p class="leise">Gespräche hier kennen auch Reihenfrage und Material der Reihe ' + esc(E[e.eltern].name) + '.</p>';
+  kopf += '<div class="knoepfe kopf-knoepfe"><button type="button" class="knopf knopf-voll" data-akt="neu">+ Gespräch</button>' +
+    (k === 'ohne' ? '' : '<button type="button" class="knopf" data-akt="ablegen">+ Datei ablegen</button>' + menue('ebene', [['auftragleer', 'Neu aus Vorlage']])) + '</div></header>';
 
   if (k === 'ohne') {
-    const ids = gHier('ohne');
-    return '<section class="ebene">' + kopf + '<div><h2 class="abschnitt">Gespräche</h2><div class="liste">' + ids.map((i) => zeileG(i)).join('') + '</div></div>' +
-      '<p class="leise">Gespräche bleiben 30 Tage nach der letzten Nachricht, dann werden sie gelöscht.</p></section>';
+    return '<div class="ebene">' + kopf + '<section class="abschnitt-block"><h2 class="abschnitt">Gespräche</h2><div class="liste">' + gHier('ohne').map((i) => zeileG(i)).join('') + '</div></section>' +
+      '<p class="leise">Gespräche bleiben 30 Tage nach der letzten Nachricht, dann werden sie gelöscht.</p></div>';
   }
-
-  const gesp = '<div><h2 class="abschnitt"><span>Gespräche</span><span class="leise">' + gAlle(k) + '</span></h2>' + gruppiert(k, (x) => gHier(x), (id) => zeileG(id), 'Noch kein Gespräch hier.') + '</div>';
-  const mat = '<div><h2 class="abschnitt"><span>Material</span><span class="leise">' + mAlle(k) + '</span></h2>' + gruppiert(k, mHier, zeileM, 'Noch kein Material hier.') + '</div>';
-
-  let darunter = '';
+  let h = '<div class="ebene">' + kopf + abschnitt(k, 'g', 'Gespräche', gHier, zeileG, 'Noch kein Gespräch hier.') +
+    abschnitt(k, 'm', 'Material', mHier, zeileM, 'Noch kein Material hier.');
   if (e.kinder.length) {
-    darunter = '<div class="darunter"><h2 class="abschnitt"><span>' + esc({ Klasse: 'Reihen', Kurs: 'Reihen', Reihe: 'Stunden' }[e.typ] || 'Darunter') + '</span></h2><div class="liste">' +
-      e.kinder.map((c) => '<button type="button" class="zeile" data-akt="ebene" data-ziel="' + c + '"><span><b>' + esc(E[c].typ === 'Stunde' ? E[c].name : E[c].name) + '</b><small>' +
-        (zahlen(gAlle(c), mAlle(c)) || 'noch leer') + (E[c].marke ? ' · ' + E[c].marke : '') + '</small></span><span class="marke">' + esc(E[c].stand || '') + '</span></button>').join('') + '</div></div>';
+    h += '<section class="abschnitt-block"><h2 class="abschnitt">' + esc({ Klasse: 'Reihen', Kurs: 'Reihen', Reihe: 'Stunden' }[e.typ] || 'Darunter') + '</h2><div class="liste">' +
+      e.kinder.map((c) => {
+        const rot = wartetAn(c) || unter(c).some(wartetAn);
+        return '<button type="button" class="zeile" data-akt="ebene" data-ziel="' + c + '"><span class="zt"><b>' + esc(E[c].name) + '</b></span>' +
+          (rot ? '<span class="marke rot"><span class="punkt-rot"></span> wartet</span>' : '<span class="marke">' + esc(E[c].marke || (E[c].stand === 'abgeschlossen' ? 'abgeschlossen' : '')) + '</span>') +
+          '<span class="nur-hover hinweis-hover">' + esc(zahlen(gAlle(c), mAlle(c)) || 'noch leer') + '</span></button>';
+      }).join('') + '</div></section>';
   } else if (e.typ === 'Kurs' || e.typ === 'Klasse') {
-    darunter = '<div class="darunter"><h2 class="abschnitt">Reihen</h2><p class="leer">Noch keine Reihe. Gespräche und Material können trotzdem schon am Kurs hängen.</p></div>';
+    h += '<section class="abschnitt-block"><h2 class="abschnitt">Reihen</h2><p class="leer">Noch keine Reihe. Gespräche und Material können trotzdem schon am Kurs hängen.</p></section>';
   }
-  return '<section class="ebene">' + kopf + '<div class="spalten">' + gesp + mat + '</div>' + darunter + '</section>';
+  return h + '</div>';
 }
 
 // ---------- Gespräch ----------
@@ -703,14 +744,19 @@ function anhaengen(dateien) {
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-akt]');
-  if (!el) return;
+  if (!el) { if (S.menue) { speichernEntwurf(); S.menue = null; zeichnen(); } return; }
   const a = el.dataset.akt;
+  if (a !== 'menue') S.menue = null;
   if (a === 'hintergrund') { if (e.target === el) { S.schicht = null; schicht(); } return; }
   switch (a) {
     case 'heute': speichernEntwurf(); S.heute = true; S.gespraech = null; S.band = ''; S.vorher = null; break;
     case 'ebene': speichernEntwurf(); S.ebene = el.dataset.ziel; S.gespraech = null; S.heute = false; S.umbenennen = false; S.band = ''; S.vorher = null; break;
     case 'oeffnen': oeffnen(el.dataset.id); return;
     case 'klappen': speichernEntwurf(); S.klapp[el.dataset.ziel] = !aufgeklappt(el.dataset.ziel); zeichnen(); fokusZurueck(el); return;
+    case 'menue': speichernEntwurf(); S.menue = S.menue === el.dataset.ziel ? null : el.dataset.ziel; zeichnen(); fokusZurueck(el);
+      { const erstes = document.querySelector('.menue [role="menuitem"]'); if (erstes && S.menue) erstes.focus(); } return;
+    case 'darunter': { speichernEntwurf(); const b = el.getAttribute('aria-expanded') === 'true'; S.darunter[el.dataset.ziel] = !b; zeichnen(); fokusZurueck(el); return; }
+    case 'vorschau': S.band = 'Die Vorschau von „' + esc(S.material[Number(el.dataset.m)].titel) + '“ kommt im nächsten Schritt.'; break;
     case 'archiv': speichernEntwurf(); S.archiv = !S.archiv; zeichnen(); fokusZurueck(el); return;
     case 'neu': {
       speichernEntwurf();
@@ -772,6 +818,7 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('submit', (e) => { if (e.target.id === 'eingabe') { e.preventDefault(); senden(); } });
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && S.menue) { S.menue = null; zeichnen(); const k = document.querySelector('.knopf-menue'); if (k) k.focus(); return; }
   if (e.key === 'Escape' && S.schicht) { S.schicht = null; schicht(); }
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.id === 'text') { e.preventDefault(); senden(); }
 });

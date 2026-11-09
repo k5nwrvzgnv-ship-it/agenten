@@ -153,7 +153,7 @@ function zuruecksetzen() { ausloesen('zuruecksetzen:click', {}); seite('skizze')
 // Menüs oder Zugeklapptes, die der Probelauf öffnen darf, bevor er ein Element sucht. Jede Ansicht kann sie anbieten.
 function oeffneFallsNoetig(akt) {
   if (gezeichnet().includes('data-akt="' + akt + '"')) return;
-  ['menue', 'anhangmenue', 'darunter', 'optionen'].forEach((m) => {
+  ['menue', 'anhangmenue', 'darunter', 'optionen', 'rechtsauf'].forEach((m) => {
     if (!gezeichnet().includes('data-akt="' + akt + '"') && gezeichnet().includes('data-akt="' + m + '"')) {
       const t = (gezeichnet().match(new RegExp('<[^>]*data-akt="' + m + '"[^>]*>', 'g')) || []);
       t.forEach((tag) => {
@@ -228,7 +228,7 @@ if (skript.includes("'klappen'")) {
 }
 
 // ---------- Vorschau (ab Schritt 5) ----------
-if (skript.includes("'vorschau'")) {
+if (skript.includes('function vorschauPanel')) {
   zuruecksetzen(); klick('ebene', { ziel: 'strafe' }, { pruefen: false });
   const ids = [];
   const re = /data-akt="vorschau"[^>]*data-m="(\d+)"|data-m="(\d+)"[^>]*data-akt="vorschau"/g; let m;
