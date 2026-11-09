@@ -68,6 +68,13 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
 1. Konten und Schlüssel legt Jan selbst an und trägt sie in `finance/.env` ein (chmod 600, Vorlage
    `.env.example` im Repo, nur Namen ohne Werte): Destatis GENESIS, UN Comtrade, EPO OPS. Eurostat, TED und
    die Jobsuche der Bundesagentur prüfen, ob sie ohne Konto gehen.
+   - `finance/.env` existiert (chmod 600) mit GENESIS_TOKEN, GENESIS_BENUTZER, GENESIS_PASSWORT,
+     COMTRADE_KEY, EPO_OPS_KEY, EPO_OPS_SECRET. `.env.example` fehlt noch.
+   - GENESIS fertig (09.11.2026): GENESIS_TOKEN eingetragen, Login-Check erfolgreich. Adresse jetzt
+     `https://genesis.destatis.de/genesisWS/rest/2020/` (die alte www-genesis... leitet per 307 um).
+     Anmeldung per POST mit Headern `username` = Token, `password` leer. Höchstens 3 parallele Anfragen,
+     Anfragen über 15 Minuten werden sonst beendet.
+   - Offen: UN Comtrade, EPO OPS (Jan), Prüfung Eurostat/TED/Jobsuche ohne Konto.
 2. .venv anlegen: `python3 -m venv .venv`, agentkit per .pth (siehe ../STATUS.md, Stand), Pakete des
    Renderers laut shared/renderer/requirements.txt. Weitere Pakete nur nach Jans Okay, dann in
    requirements.txt. Danach in pruefen.sh `finance|python3|tests` auf `finance|.venv/bin/python|tests`
