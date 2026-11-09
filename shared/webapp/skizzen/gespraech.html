@@ -216,6 +216,45 @@ aside .knopf-leise { margin-left: -8px }
 aside .darunter-knopf { margin-left: -6px; margin-right: 0; font-size: 12px; padding: 4px 6px }
 aside .darunter-liste { padding-left: 12px }
 
+/* Dokumentvorschau: Seitenpanel rechts über der Seite, groß als dunkle Überlagerung */
+.vorschau { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); background: var(--bg); box-shadow: var(--schatten); z-index: 12;
+  display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 24px; overflow-y: auto; font-size: 14px }
+.vkopf { display: flex; gap: 8px; align-items: flex-start }
+.vkopf .ic { flex: 0 0 16px; width: 16px; height: 16px; margin-top: 3px; color: var(--sehrleise) }
+.vkopf h2 { margin: 0; font-size: 16px; font-weight: 600; flex: 1 1 auto; line-height: 1.4 }
+.vmeta { margin: -6px 0 0 24px; font-size: 12px; color: var(--leise); display: flex; flex-wrap: wrap; gap: 2px 12px }
+.vmeta .rot { display: inline-flex; align-items: center; gap: 6px; font-weight: 500 }
+.schliessen { flex: 0 0 32px; width: 32px; height: 32px; border: 0; background: none; border-radius: 6px; color: var(--leise); font-size: 20px; line-height: 1 }
+.schliessen:hover { background: var(--hover); color: var(--fg) }
+.seitenbild { display: block; width: 100%; border: 0; padding: 0; background: none; cursor: zoom-in; border-radius: 4px }
+.seitenbild svg, .seitenbild img { display: block; width: 100%; height: auto; border-radius: 3px; background: #fff; box-shadow: 0 0 0 1px var(--linie), 0 2px 10px rgba(15, 15, 15, .08) }
+.vnav { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--leise) }
+.vnav .knopf-leise { font-size: 16px; min-width: 32px; justify-content: center }
+.vnav .knopf-leise:disabled { opacity: .35; cursor: default; background: none }
+.daumen { display: flex; gap: 8px; overflow-x: auto; padding: 3px 3px 8px }
+.daumen button { flex: 0 0 48px; border: 0; padding: 0; background: none; border-radius: 3px; opacity: .65 }
+.daumen.quer button { flex-basis: 76px }
+.daumen button:hover { opacity: 1 }
+.daumen button[aria-current="page"] { opacity: 1; outline: 2px solid var(--blau); outline-offset: 1px }
+.daumen svg { display: block; width: 100%; height: auto; background: #fff; box-shadow: 0 0 0 1px var(--linie) }
+.entsteht { background: var(--flaeche); border-radius: 8px; padding: 32px 20px; text-align: center }
+.entsteht p { margin: 0 }
+.schicht.dunkel { background: rgba(15, 15, 15, .82); padding: 16px }
+.betrachter { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 10px; color: #f1f1ef; align-items: center }
+.bkopf { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 14px }
+.bkopf b { font-weight: 600; flex: 1 1 auto }
+.bkopf .knopf-leise, .betrachter .schliessen { color: #d6d6d3 }
+.bkopf .knopf-leise:hover, .betrachter .schliessen:hover { background: rgba(255, 255, 255, .12); color: #fff }
+.bkopf .knopf-leise:disabled { opacity: .35; background: none }
+.betrachter .seitenbild { width: auto; cursor: pointer }
+.betrachter .seitenbild svg, .betrachter .seitenbild img { width: auto; height: calc(100vh - 120px); max-width: 100%; box-shadow: 0 4px 24px rgba(0, 0, 0, .4) }
+.betrachter .seitenbild.quer svg { width: min(100%, 1000px); height: auto; max-height: calc(100vh - 120px) }
+.betrachter .foto-gross { cursor: default }
+.betrachter .foto-gross svg { height: auto; width: min(100%, 720px) }
+.bhinweis { margin: 0; font-size: 12px; color: #a9a9a5 }
+button.foto { padding: 0; text-align: left; cursor: zoom-in; color: inherit }
+button.foto:hover { box-shadow: 0 0 0 1px var(--leise) }
+
 /* Überlagerung */
 .schicht { position: fixed; inset: 0; background: rgba(15, 15, 15, .35); display: flex; justify-content: center; align-items: flex-start; padding: 64px 16px; overflow-y: auto; z-index: 20 }
 .fenster { background: var(--bg); border-radius: 10px; box-shadow: var(--schatten); width: 100%; max-width: 640px; padding: 24px; display: flex; flex-direction: column; gap: 14px; font-size: 14px }
@@ -305,22 +344,22 @@ function frische() {
   return {
     seite: 'luecken', ebene: 'strafe', gespraech: null, band: '', vorher: null, umbenennen: false,
     anhang: [], entwurf: '', gruendlich: false, netz: false, schicht: null, ablegenDatei: '', heute: false,
-    klapp: {}, archiv: false, darunter: {}, menue: null, kennt: false, rechtsZu: false,
+    klapp: {}, archiv: false, darunter: {}, menue: null, kennt: false, rechtsZu: false, vorschau: null, foto: null,
     reihenfrage: { strafe: '', helfen: 'Muss ich fremden Menschen in Not genauso helfen wie Nahestehenden?' },
     material: [
-      { ort: 'e8', titel: 'Notentabelle Klasse 8 (ohne Namen)', stand: 'final' },
-      { ort: 'strafe', titel: 'Reihenentwurf Straftheorien', stand: 'Fassung 2 · wartet', rot: true },
-      { ort: 'strafe', titel: 'Fallsammlung Straftheorien', stand: 'final' },
-      { ort: 'strafe', titel: 'Planung Straftheorien.pdf', stand: 'deine Datei' },
-      { ort: 's1', titel: 'Umfrage vor der Reihe', stand: 'setzt du selbst ein' },
-      { ort: 's2', titel: 'Präsentation Kant: Vergeltung', stand: 'Fassung 2 · wartet', rot: true },
-      { ort: 's2', titel: 'Leben leben 2, S. 160–161.pdf', stand: 'deine Datei' },
-      { ort: 's4', titel: 'Arbeitsblatt von Liszt', stand: 'läuft' },
-      { ort: 'helfen', titel: 'Reihenentwurf Helfen', stand: 'final' },
-      { ort: 'helfen', titel: 'Lernerfolgskontrolle mit Bewertung', stand: 'final' },
-      { ort: 'wahnsinn', titel: 'Spielfassung (Kürzung)', stand: 'Fassung 3 · wartet', rot: true },
-      { ort: 'wahnsinn', titel: 'Szenenaufgabe „Stück im Stück“', stand: '' },
-      { ort: 'wahnsinn', titel: 'Szenenliste Akt 1.docx', stand: 'deine Datei' }
+      { ort: 'e8', titel: 'Notentabelle Klasse 8 (ohne Namen)', stand: 'final', art: 'tabelle', seiten: 1 },
+      { ort: 'strafe', titel: 'Reihenentwurf Straftheorien', stand: 'Fassung 2 · wartet', rot: true, art: 'word', seiten: 3, fassung: 2 },
+      { ort: 'strafe', titel: 'Fallsammlung Straftheorien', stand: 'final', art: 'word', seiten: 4 },
+      { ort: 'strafe', titel: 'Planung Straftheorien.pdf', stand: 'deine Datei', art: 'pdf', seiten: 2 },
+      { ort: 's1', titel: 'Umfrage vor der Reihe', stand: 'setzt du selbst ein', art: 'word', seiten: 1 },
+      { ort: 's2', titel: 'Präsentation Kant: Vergeltung', stand: 'Fassung 2 · wartet', rot: true, art: 'folien', seiten: 8, fassung: 2 },
+      { ort: 's2', titel: 'Leben leben 2, S. 160–161.pdf', stand: 'deine Datei', art: 'buch', seiten: 2 },
+      { ort: 's4', titel: 'Arbeitsblatt von Liszt', stand: 'läuft', art: 'word', seiten: 0 },
+      { ort: 'helfen', titel: 'Reihenentwurf Helfen', stand: 'final', art: 'word', seiten: 3 },
+      { ort: 'helfen', titel: 'Lernerfolgskontrolle mit Bewertung', stand: 'final', art: 'word', seiten: 2 },
+      { ort: 'wahnsinn', titel: 'Spielfassung (Kürzung)', stand: 'Fassung 3 · wartet', rot: true, art: 'word', seiten: 12, fassung: 3 },
+      { ort: 'wahnsinn', titel: 'Szenenaufgabe „Stück im Stück“', stand: '', art: 'word', seiten: 1 },
+      { ort: 'wahnsinn', titel: 'Szenenliste Akt 1.docx', stand: 'deine Datei', art: 'tabelle', seiten: 2 }
     ],
     gespraeche: {
       g1: { ort: 'strafe', name: 'Reihenfrage finden', zuletzt: 'heute 09:06', msgs: [
@@ -515,11 +554,11 @@ function ebenenAnsicht(k) {
 }
 
 // ---------- Gespräch ----------
-function nachricht(m) {
+function nachricht(m, i) {
   if (m.wer === 'tag') return '<div class="tag">' + esc(m.text) + '</div>';
   if (m.wer === 'du') {
-    let fotos = m.foto === 'beispiel' ? '<div class="foto">' + FOTO_BEISPIEL + '<span>Planung.heic (Beispiel)</span></div>' : '';
-    (m.bilder || []).forEach((a) => { fotos += '<div class="foto">' + (a.url ? '<img src="' + a.url + '" alt="">' : '') + '<span>' + esc(a.name) + '</span></div>'; });
+    let fotos = m.foto === 'beispiel' ? '<button type="button" class="foto" data-akt="fotoansicht" data-i="' + i + '" data-b="beispiel" aria-label="Foto Planung.heic groß ansehen">' + FOTO_BEISPIEL + '<span>Planung.heic (Beispiel)</span></button>' : '';
+    (m.bilder || []).forEach((a, j) => { fotos += '<button type="button" class="foto" data-akt="fotoansicht" data-i="' + i + '" data-b="' + j + '" aria-label="Foto ' + esc(a.name) + ' groß ansehen">' + (a.url ? '<img src="' + a.url + '" alt="">' : '') + '<span>' + esc(a.name) + '</span></button>'; });
     return '<div class="msg du" title="' + esc(m.zeit) + '"><span class="sr">Du, ' + esc(m.zeit) + ':</span>' + (m.text ? '<div class="text">' + esc(m.text) + '</div>' : '') + fotos + '</div>';
   }
   if (m.wer === 'denkt') return '<div class="msg"><span class="denkt" role="status">Claude denkt nach …</span></div>';
@@ -555,7 +594,7 @@ function gespraechAnsicht(id) {
     '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.2"/></svg>' +
     (g.ort === 'ohne' ? 'Ohne Ort' : 'An ' + ebeneWort(g.ort)) + '</button></span></div>';
 
-  const verlauf = '<div class="verlauf" id="verlauf">' + (g.msgs.length ? g.msgs.map(nachricht).join('') :
+  const verlauf = '<div class="verlauf" id="verlauf">' + (g.msgs.length ? g.msgs.map((m, i) => nachricht(m, i)).join('') :
     '<p class="leise">Frag einfach los, so lang du willst. Das Gespräch hängt an ' + ebeneWort(g.ort) + (g.ort === 'ohne' ? '' : ' ' + esc(E[g.ort].kurz)) + '. Den Namen schlage ich nach deiner ersten Nachricht vor.</p>') + '</div>';
 
   const anh = S.anhang.map((a, i) => '<span class="chip">' + (a.url ? '<img src="' + a.url + '" alt="">' : '') + esc(a.name) +
@@ -605,6 +644,95 @@ function listeRechts(k) {
   return h + '<div><button type="button" class="knopf-leise" data-akt="neu">+ Gespräch</button></div></div>';
 }
 
+// ---------- Dokumentvorschau: gezeichnete Beispielseiten, Seitenpanel, groß ansehen ----------
+// Keine echten Inhalte: nur der Titel auf Seite 1, sonst graue Balken. Papier bleibt hell, auch im dunklen Modus.
+const ARTNAME = { word: 'Word', folien: 'PowerPoint', pdf: 'PDF', buch: 'PDF', tabelle: 'Word', kriterien: 'PDF' };
+function zufall(text, n) { let h = 7 + n * 31; for (const c of text) h = (h * 33 + c.charCodeAt(0)) % 9973; return () => { h = (h * 73 + 41) % 9973; return h / 9973; }; }
+function umbrechen(t, max) { const w = t.split(' '); const z = ['']; w.forEach((x) => { if ((z[z.length - 1] + ' ' + x).trim().length > max) z.push(x); else z[z.length - 1] = (z[z.length - 1] + ' ' + x).trim(); }); return z.slice(0, 3); }
+function seiteSVG(m, n) {
+  const quer = m.art === 'folien';
+  const W = quer ? 320 : 210, H = quer ? 180 : 297;
+  const r = zufall(m.titel, n);
+  const balken = (x, y, w, h, f) => '<rect x="' + x + '" y="' + y + '" width="' + Math.round(w) + '" height="' + (h || 3) + '" rx="1.5" fill="' + (f || '#dcdcd8') + '"/>';
+  const absatz = (x, y, w, zeilen) => { let h = ''; for (let i = 0; i < zeilen; i++) h += balken(x, y + i * 7, i === zeilen - 1 ? w * (0.4 + r() * 0.4) : w * (0.88 + r() * 0.12)); return h; };
+  const titel = (x, y, gr, max, mitte) => umbrechen(m.titel, max).map((z, i) => '<text x="' + x + '" y="' + (y + i * gr * 1.25) + '" font-size="' + gr + '" font-weight="600" fill="#37352f" font-family="Inter, Helvetica, Arial, sans-serif"' + (mitte ? ' text-anchor="middle"' : '') + '>' + esc(z) + '</text>').join('');
+  let h = '<rect width="' + W + '" height="' + H + '" fill="#ffffff"/>';
+  if (quer) {
+    if (n === 0) h += '<rect width="320" height="180" fill="#f4f3ef"/>' + titel(160, 80, 15, 30, true) + balken(110, 112, 100, 4, '#c9c8c3');
+    else {
+      h += balken(22, 22, 150 + r() * 80, 7, '#9f9e99');
+      const bild = n % 3 === 1;
+      for (let i = 0; i < 4; i++) h += '<circle cx="27" cy="' + (56 + i * 22) + '" r="2" fill="#b4b3ae"/>' + balken(36, 54 + i * 22, (bild ? 120 : 220) * (0.6 + r() * 0.4), 4);
+      if (bild) h += '<rect x="186" y="48" width="112" height="96" rx="3" fill="#ecebe7"/><path d="M196 134 l26 -32 l20 22 l14 -14 l32 24z" fill="#d6d5d0"/>';
+      h += '<text x="300" y="170" font-size="7" fill="#b4b3ae" text-anchor="end" font-family="Inter, Arial, sans-serif">' + (n + 1) + '</text>';
+    }
+  } else if (m.art === 'buch') {
+    h += balken(18, 18, 80, 5, '#9f9e99');
+    for (let s2 = 0; s2 < 2; s2++) { const x = 18 + s2 * 92; h += absatz(x, 34, 82, n === 0 && s2 === 1 ? 14 : 30); }
+    if (n === 0) h += '<rect x="110" y="140" width="82" height="70" rx="2" fill="#ecebe7"/>' + absatz(110, 220, 82, 8);
+    h += '<text x="105" y="287" font-size="7" fill="#9f9e99" text-anchor="middle" font-family="Georgia, serif">' + (160 + n) + '</text>';
+  } else if (m.art === 'tabelle' || m.art === 'pdf') {
+    if (n === 0) h += titel(18, 30, 11, 27); else h += balken(18, 22, 90, 5, '#9f9e99');
+    const y0 = n === 0 ? 62 : 40, spalten = m.art === 'pdf' ? 4 : 5, zeilen = m.art === 'pdf' ? 8 : 14;
+    const breit = 174 / spalten;
+    h += '<rect x="18" y="' + y0 + '" width="174" height="12" fill="#efeeea"/>';
+    for (let i = 0; i <= zeilen; i++) h += '<line x1="18" x2="192" y1="' + (y0 + 12 + i * 14) + '" y2="' + (y0 + 12 + i * 14) + '" stroke="#e3e2de" stroke-width=".8"/>';
+    for (let j = 0; j < spalten; j++) { h += balken(22 + j * breit, y0 + 4.5, breit * 0.55, 3, '#b4b3ae'); for (let i = 0; i < zeilen; i++) if (r() > 0.25) h += balken(22 + j * breit, y0 + 17.5 + i * 14, breit * (0.3 + r() * 0.5)); }
+    if (m.art === 'pdf') h += absatz(18, y0 + 140, 174, 6);
+  } else if (m.art === 'kriterien') {
+    h += titel(18, 30, 11, 27) + balken(18, 48, 120, 3, '#c9c8c3');
+    for (let i = 0; i < 6; i++) h += '<rect x="18" y="' + (68 + i * 30) + '" width="7" height="7" rx="1" fill="none" stroke="#b4b3ae"/>' + absatz(32, 69 + i * 30, 160, 2);
+  } else {
+    if (n === 0) h += titel(18, 32, 12, 23) + balken(18, 32 + umbrechen(m.titel, 23).length * 15, 70, 3, '#c9c8c3');
+    let y = n === 0 ? 70 : 24;
+    while (y < 260) {
+      const art = r();
+      if (art < 0.18 && y < 200) { h += '<rect x="18" y="' + y + '" width="174" height="44" rx="2" fill="none" stroke="#dcdcd8"/>' + '<circle cx="28" cy="' + (y + 10) + '" r="4.5" fill="#ecebe7"/>' + absatz(38, y + 8, 146, 3); y += 54; }
+      else { const z = 3 + Math.floor(r() * 4); h += absatz(18, y, 174, z); y += z * 7 + 9; }
+    }
+    h += '<text x="192" y="287" font-size="7" fill="#b4b3ae" text-anchor="end" font-family="Inter, Arial, sans-serif">' + (n + 1) + '</text>';
+  }
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(m.titel) + ', Seite ' + (n + 1) + ' (gezeichnetes Beispiel)">' + h + '</svg>';
+}
+
+function vorschauPanel() {
+  const v = S.vorschau; if (!v) return '';
+  const m = S.material[v.m];
+  const meta = [ARTNAME[m.art] || 'Datei', m.seiten ? m.seiten + (m.seiten === 1 ? ' Seite' : ' Seiten') : '', m.fassung ? 'Fassung ' + m.fassung : ''].filter(Boolean).join(' · ');
+  let h = '<aside class="vorschau" id="vorschau" aria-label="Vorschau ' + esc(m.titel) + '"><div class="vkopf">' + ICON_D + '<h2>' + esc(m.titel) + '</h2>' +
+    '<button type="button" class="schliessen" data-akt="vorschauzu" aria-label="Vorschau schließen">×</button></div>' +
+    '<p class="vmeta"><span>' + esc(meta) + '</span>' + (m.rot ? '<span class="rot"><span class="punkt-rot"></span> wartet auf dich</span>' : '') +
+    (m.stand === 'deine Datei' ? '<span>deine Datei</span>' : '') + '<span>' + esc(pfad(m.ort)) + '</span></p>';
+  if (!m.seiten) return h + '<div class="entsteht"><p>Entsteht gerade.</p><p class="leise">Die Vorschau erscheint, sobald die erste Fassung fertig ist.</p></div></aside>';
+  const letzte = v.s === m.seiten - 1;
+  h += '<button type="button" class="seitenbild" data-akt="' + (letzte ? 'gross' : 'seite') + '" data-r="1" aria-label="' + (letzte ? 'Groß ansehen' : 'Nächste Seite') + '">' + seiteSVG(m, v.s) + '</button>' +
+    '<div class="vnav"><button type="button" class="knopf-leise" data-akt="seite" data-r="-1"' + (v.s === 0 ? ' disabled' : '') + ' aria-label="Vorige Seite">‹</button>' +
+    '<span>Seite ' + (v.s + 1) + ' von ' + m.seiten + '</span><button type="button" class="knopf-leise" data-akt="seite" data-r="1"' + (letzte ? ' disabled' : '') + ' aria-label="Nächste Seite">›</button></div>';
+  if (m.seiten > 1) h += '<div class="daumen' + (m.art === 'folien' ? ' quer' : '') + '">' + Array.from({ length: m.seiten }, (_, i) =>
+    '<button type="button" data-akt="seitewahl" data-s="' + i + '"' + (i === v.s ? ' aria-current="page"' : '') + ' aria-label="Seite ' + (i + 1) + '">' + seiteSVG(m, i) + '</button>').join('') + '</div>';
+  h += '<div class="knoepfe">' + (m.rot ? '<button type="button" class="knopf knopf-voll" data-akt="rueckmeldung">Rückmeldung geben</button><button type="button" class="knopf" data-akt="darueber">Darüber sprechen</button>'
+    : '<button type="button" class="knopf knopf-voll" data-akt="darueber">Darüber sprechen</button>') +
+    '<button type="button" class="knopf-leise" data-akt="gross">Groß ansehen</button><button type="button" class="knopf-leise" data-akt="original">In ' + esc(ARTNAME[m.art] === 'PDF' ? 'PDF-Ansicht' : ARTNAME[m.art] || 'Word') + ' öffnen</button></div>';
+  if (m.stand === 'deine Datei') h += '<p class="leise">Gespräche an dieser Ebene und darunter kennen die Datei.</p>';
+  return h + '</aside>';
+}
+function betrachter() {
+  const v = S.vorschau; const m = S.material[v.m];
+  const letzte = v.s === m.seiten - 1;
+  return '<div class="betrachter" role="dialog" aria-modal="true" aria-label="' + esc(m.titel) + ' groß"><div class="bkopf"><b>' + esc(m.titel) + '</b><span>Seite ' + (v.s + 1) + ' von ' + m.seiten + '</span>' +
+    '<button type="button" class="knopf-leise" data-akt="seite" data-r="-1"' + (v.s === 0 ? ' disabled' : '') + ' aria-label="Vorige Seite">‹ Vorige</button>' +
+    '<button type="button" class="knopf-leise" data-akt="seite" data-r="1"' + (letzte ? ' disabled' : '') + ' aria-label="Nächste Seite">Nächste ›</button>' +
+    '<button type="button" class="schliessen" data-akt="schliessen" aria-label="Große Ansicht schließen">×</button></div>' +
+    '<button type="button" class="seitenbild' + (m.art === 'folien' ? ' quer' : '') + '" data-akt="seite" data-r="1" aria-label="Nächste Seite">' + seiteSVG(m, v.s) + '</button>' +
+    '<p class="bhinweis">Pfeiltasten blättern, Esc schließt.</p></div>';
+}
+function fotoBetrachter() {
+  const f = S.foto;
+  return '<div class="betrachter" role="dialog" aria-modal="true" aria-label="Foto ' + esc(f.name) + '"><div class="bkopf"><b>' + esc(f.name) + '</b><span>Foto im Gespräch</span>' +
+    '<button type="button" class="schliessen" data-akt="schliessen" aria-label="Foto schließen">×</button></div>' +
+    '<div class="seitenbild foto-gross">' + (f.url ? '<img src="' + f.url + '" alt="' + esc(f.name) + '">' : FOTO_BEISPIEL) + '</div></div>';
+}
+
 function heute() {
   return '<section class="ebene"><header class="titel"><h1>Heute</h1><p>Hallo Lia. <span class="rot">3</span> Sachen warten auf dich.</p></header>' +
     '<div><h2 class="abschnitt">Weiter im Gespräch</h2><div class="liste">' + ['g1', 'g5', 'g2'].map((i) => zeileG(i, true)).join('') + '</div></div>' +
@@ -623,7 +751,7 @@ function seiteSkizze() {
   if (S.heute) mitte = heute();
   else if (S.gespraech) { mitte = gespraechAnsicht(S.gespraech); rechtsSp = S.rechtsZu ? '' : rechts(k); }
   else mitte = ebenenAnsicht(k);
-  return '<div class="app' + (rechtsSp ? '' : ' ohne-rechts') + '">' + baum() + '<main>' + krumen(k) + band() + mitte + '</main>' + rechtsSp + '</div>';
+  return '<div class="app' + (rechtsSp ? '' : ' ohne-rechts') + '">' + baum() + '<main>' + krumen(k) + band() + mitte + '</main>' + rechtsSp + '</div>' + vorschauPanel();
 }
 
 // ---------- Lückenliste ----------
@@ -691,8 +819,10 @@ function schicht() {
       '<label for="wohin">Ebene<select id="wohin">' + ortZiele(k === 'ohne' ? 'strafe' : k) + '</select></label>' +
       '<div class="knoepfe"><button type="button" class="knopf knopf-voll" data-akt="verschiebenok">Umhängen</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
   }
-  w.innerHTML = '<div class="schicht" data-akt="hintergrund">' + h + '</div>';
-  const erstes = w.querySelector('textarea, select, button');
+  if (S.schicht === 'gross') h = betrachter();
+  if (S.schicht === 'foto') h = fotoBetrachter();
+  w.innerHTML = '<div class="schicht' + (S.schicht === 'gross' || S.schicht === 'foto' ? ' dunkel' : '') + '" data-akt="hintergrund">' + h + '</div>';
+  const erstes = w.querySelector(S.schicht === 'gross' || S.schicht === 'foto' ? '.schliessen' : 'textarea, select, button');
   if (erstes) erstes.focus();
 }
 
@@ -710,12 +840,21 @@ function fokusZurueck(el) {
   ['ziel', 'id', 'm'].forEach((x) => { if (d[x]) sel += '[data-' + x + '="' + d[x] + '"]'; });
   const neu = document.querySelector(sel); if (neu && neu.focus) neu.focus();
 }
+function blaettern(r) {
+  const v = S.vorschau; if (!v) return;
+  const m = S.material[v.m];
+  const neu = Math.max(0, Math.min(m.seiten - 1, v.s + r));
+  if (neu === v.s && S.schicht !== 'gross' && r > 0) { S.schicht = 'gross'; schicht(); return; }
+  speichernEntwurf(); v.s = neu;
+  if (S.schicht === 'gross') { zeichnen(); const z = document.querySelector('.betrachter .seitenbild'); if (z) z.focus(); }
+  else { zeichnen(); const z = document.querySelector('#vorschau .seitenbild'); if (z) z.focus(); }
+}
 function speichernEntwurf() { const t = $('#text'); if (t) S.entwurf = t.value; }
 function ansEnde() { const v = $('#verlauf'); if (v && v.lastElementChild) v.lastElementChild.scrollIntoView({ block: 'nearest' }); }
 
 // ---------- Handlungen ----------
 function oeffnen(id) {
-  speichernEntwurf();
+  speichernEntwurf(); S.vorschau = null;
   S.gespraech = id; S.ebene = S.gespraeche[id].ort; S.heute = false; S.umbenennen = false;
   zeichnen(); ansEnde();
 }
@@ -773,14 +912,32 @@ document.addEventListener('click', (e) => {
   if (a !== 'menue') S.menue = null;
   if (a === 'hintergrund') { if (e.target === el) { S.schicht = null; schicht(); } return; }
   switch (a) {
-    case 'heute': speichernEntwurf(); S.heute = true; S.gespraech = null; S.band = ''; S.vorher = null; break;
-    case 'ebene': speichernEntwurf(); S.ebene = el.dataset.ziel; S.gespraech = null; S.heute = false; S.umbenennen = false; S.band = ''; S.vorher = null; break;
+    case 'heute': speichernEntwurf(); S.vorschau = null; S.heute = true; S.gespraech = null; S.band = ''; S.vorher = null; break;
+    case 'ebene': speichernEntwurf(); S.vorschau = null; S.ebene = el.dataset.ziel; S.gespraech = null; S.heute = false; S.umbenennen = false; S.band = ''; S.vorher = null; break;
     case 'oeffnen': oeffnen(el.dataset.id); return;
     case 'klappen': speichernEntwurf(); S.klapp[el.dataset.ziel] = !aufgeklappt(el.dataset.ziel); zeichnen(); fokusZurueck(el); return;
     case 'menue': speichernEntwurf(); S.menue = S.menue === el.dataset.ziel ? null : el.dataset.ziel; zeichnen(); fokusZurueck(el);
       { const erstes = document.querySelector('.menue [role="menuitem"]'); if (erstes && S.menue) erstes.focus(); } return;
     case 'darunter': { speichernEntwurf(); const b = el.getAttribute('aria-expanded') === 'true'; S.darunter[el.dataset.ziel] = !b; zeichnen(); fokusZurueck(el); return; }
-    case 'vorschau': S.band = 'Die Vorschau von „' + esc(S.material[Number(el.dataset.m)].titel) + '“ kommt im nächsten Schritt.'; break;
+    case 'vorschau': speichernEntwurf(); S.vorschau = { m: Number(el.dataset.m), s: 0 }; zeichnen(); { const z = document.querySelector('#vorschau .schliessen'); if (z) z.focus(); } return;
+    case 'vorschauzu': { const m = S.vorschau ? S.vorschau.m : null; speichernEntwurf(); S.vorschau = null; zeichnen(); const z = document.querySelector('[data-akt="vorschau"][data-m="' + m + '"]'); if (z) z.focus(); return; }
+    case 'seite': blaettern(Number(el.dataset.r)); return;
+    case 'seitewahl': speichernEntwurf(); S.vorschau.s = Number(el.dataset.s); zeichnen(); fokusZurueck(el); return;
+    case 'gross': speichernEntwurf(); S.schicht = 'gross'; schicht(); return;
+    case 'fotoansicht': {
+      const msg = S.gespraeche[S.gespraech].msgs[Number(el.dataset.i)];
+      S.foto = el.dataset.b === 'beispiel' ? { name: 'Planung.heic (Beispiel)' } : msg.bilder[Number(el.dataset.b)];
+      S.schicht = 'foto'; schicht(); return;
+    }
+    case 'rueckmeldung': S.band = 'In der echten App öffnet sich hier die Rückmeldung zu „' + esc(S.material[S.vorschau.m].titel) + '“. Die Skizze schickt nichts ab.'; break;
+    case 'original': S.band = 'In der echten App lädt das die Datei herunter oder öffnet sie. In der Skizze passiert nichts.'; break;
+    case 'darueber': {
+      speichernEntwurf();
+      const m = S.material[S.vorschau.m]; const id = 'n' + Date.now();
+      S.gespraeche[id] = { ort: m.ort, name: 'Über ' + m.titel.replace(/\.(pdf|docx|pptx)$/, ''), zuletzt: 'gerade eben', msgs: [] };
+      S.vorschau = null; S.entwurf = ''; S.anhang = [{ name: m.titel, datei: true }];
+      oeffnen(id); { const t = $('#text'); if (t) t.focus(); } return;
+    }
     case 'kennt': speichernEntwurf(); S.kennt = !S.kennt; zeichnen(); fokusZurueck(el); return;
     case 'rechts': speichernEntwurf(); S.rechtsZu = !S.rechtsZu; zeichnen(); fokusZurueck(el); return;
     case 'nameabbrechen': S.umbenennen = false; break;
@@ -819,7 +976,8 @@ document.addEventListener('click', (e) => {
     case 'beispieldatei': S.ablegenDatei = 'Bewertungskriterien.pdf'; schicht(); return;
     case 'ablegenok': {
       const ziel = ($('#gilt') || {}).value || S.ebene;
-      S.material.push({ ort: ziel, titel: S.ablegenDatei, stand: 'deine Datei' });
+      const endung = (S.ablegenDatei.split('.').pop() || '').toLowerCase();
+      S.material.push({ ort: ziel, titel: S.ablegenDatei, stand: 'deine Datei', art: S.ablegenDatei === 'Bewertungskriterien.pdf' ? 'kriterien' : endung === 'pptx' ? 'folien' : endung === 'pdf' ? 'pdf' : 'word', seiten: endung === 'pptx' ? 4 : 1 });
       S.schicht = null; S.vorher = null;
       S.band = 'Abgelegt an ' + esc(pfad(ziel)) + ': ' + esc(S.ablegenDatei) + '. Gespräche dort und darunter kennen die Datei jetzt.';
       break;
@@ -831,7 +989,7 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'abschicken': S.schicht = null; S.vorher = null; S.band = 'In der echten App würde der Auftrag jetzt starten und unter „Läuft gerade“ stehen. Die Skizze schickt nichts ab.'; break;
-    case 'schliessen': S.schicht = null; schicht(); return;
+    case 'schliessen': { const war = S.schicht; S.schicht = null; schicht(); if (war === 'gross') { const z = document.querySelector('#vorschau .seitenbild'); if (z) z.focus(); } return; }
     default: return;
   }
   zeichnen();
@@ -846,7 +1004,10 @@ document.addEventListener('change', (e) => {
 document.addEventListener('submit', (e) => { if (e.target.id === 'eingabe') { e.preventDefault(); senden(); } });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && S.menue) { const m = S.menue; speichernEntwurf(); S.menue = null; zeichnen(); const k = document.querySelector('[data-akt="menue"][data-ziel="' + m + '"]'); if (k) k.focus(); return; }
-  if (e.key === 'Escape' && S.schicht) { S.schicht = null; schicht(); }
+  if (e.key === 'Escape' && S.schicht) { const war = S.schicht; S.schicht = null; schicht(); if (war === 'gross') { const z = document.querySelector('#vorschau .seitenbild'); if (z) z.focus(); } return; }
+  if (e.key === 'Escape' && S.vorschau) { const m = S.vorschau.m; S.vorschau = null; speichernEntwurf(); zeichnen(); const z = document.querySelector('[data-akt="vorschau"][data-m="' + m + '"]'); if (z) z.focus(); return; }
+  const tippen = e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT');
+  if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && S.vorschau && !tippen && (S.schicht === 'gross' || !S.schicht)) { e.preventDefault(); blaettern(e.key === 'ArrowRight' ? 1 : -1); return; }
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.id === 'text') { e.preventDefault(); senden(); }
 });
 document.addEventListener('paste', (e) => {

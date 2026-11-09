@@ -247,9 +247,10 @@ if (skript.includes('function vorschauPanel')) {
       const mm = tag.match(/data-m="(\d+)"/); if (!mm) return;
       klick('vorschau', { m: mm[1] }, { pruefen: false }); zeitAblaufen();
       const h = wurzel() + schicht();
+      if (h.includes('Entsteht gerade')) { klick('vorschauzu', {}, { pruefen: false }); n += 1; return; }
       ok(/Seite 1 von \d+/.test(h), 'Vorschau ' + k + '/' + mm[1] + ': Seitenzahl fehlt');
-      ok(/<svg/.test(h), 'Vorschau ' + k + '/' + mm[1] + ': Seitenbild fehlt');
-      if (h.includes('data-akt="seite"')) { klick('seite', { r: '1' }, { pruefen: false }); ok(/Seite 2 von/.test(wurzel() + schicht()) || /von 1\b/.test(h), 'Vorschau blättert nicht'); }
+      ok(/<svg[^>]*aria-label="[^"]*Seite 1/.test(h), 'Vorschau ' + k + '/' + mm[1] + ': Seitenbild fehlt');
+      if (!/von 1</.test(h)) { klick('seite', { r: '1' }, { pruefen: false }); ok(/Seite 2 von/.test(wurzel() + schicht()), 'Vorschau ' + k + '/' + mm[1] + ' blättert nicht'); }
       klick('gross', {}, { pruefen: false }); ok(/Seite \d+ von/.test(schicht()), 'Groß ansehen fehlt');
       taste('ArrowRight'); taste('Escape');
       klick('vorschauzu', {}, { pruefen: false });
@@ -259,6 +260,16 @@ if (skript.includes('function vorschauPanel')) {
   ok(n >= 10, 'Vorschau: zu wenige Materialien geöffnet (' + n + ')');
   // Messung einer offenen Vorschau
   ansicht('Vorschau offen', () => { klick('ebene', { ziel: 'strafe' }, { pruefen: false }); klick('vorschau', { m: '1' }, { pruefen: false }); });
+  // Darüber sprechen: neues Gespräch an derselben Ebene mit der Datei als Anhang
+  klick('ebene', { ziel: 'strafe' }, { pruefen: false }); klick('vorschau', { m: '2' }, { pruefen: false }); klick('darueber', {}, { wo: 'Vorschau' });
+  ok(wurzel().includes('Über Fallsammlung Straftheorien') && wurzel().includes('class="chip"'), 'Darüber sprechen: Gespräch mit Anhang fehlt');
+  // Foto im Gespräch groß
+  zuruecksetzen(); klick('oeffnen', { id: 'g1' }, { pruefen: false }); klick('fotoansicht', { i: '4', b: 'beispiel' }, { wo: 'Foto im Gespräch' });
+  ok(schicht().includes('Foto im Gespräch'), 'Foto groß fehlt'); taste('Escape');
+  // abgelegte Datei hat eine Vorschau
+  zuruecksetzen(); klick('ebene', { ziel: 'k12' }, { pruefen: false }); klick('ablegen', {}, { pruefen: false }); klick('beispieldatei', {}, { pruefen: false }); klick('ablegenok', {}, { pruefen: false });
+  const neuM = (wurzel().match(/data-akt="vorschau" data-m="(\d+)"/g) || []).map((x) => x.match(/\d+/)[0]).pop();
+  klick('vorschau', { m: neuM }, { pruefen: false }); ok(/Bewertungskriterien\.pdf, Seite 1/.test(wurzel()), 'Abgelegte Datei: Vorschau fehlt');
   console.log('ok      Vorschau: ' + n + ' Materialien geöffnet');
 }
 
