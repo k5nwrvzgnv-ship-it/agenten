@@ -48,6 +48,15 @@ class TestPersonalfragebogen(unittest.TestCase):
         with self.assertRaises(ValueError):
             felder("fin770", beispiel(familie={"stand": "single"}))
 
+    def test_kenntnisse_und_ehrenamt(self):
+        w = felder("fin770", beispiel())
+        self.assertEqual(w["Besondere Kenntnisse und Fertigkeiten insbesondere für die auszuübende Tätigkeit14a_2"],
+                         "Führerschein Klasse B")
+        self.assertIn("Hausaufgabenhilfe", w["Ehrenamtliche Tätigkeiten zB Betreuung im Jugendbereich Wahrnehmung "
+                                             "karitativer Aufgaben14b"])
+        with self.assertRaises(ValueError):
+            felder("fin770", beispiel(lebenslauf={"ehrenamt": "kein Array"}))
+
     def test_staatspruefung_bestanden(self):
         w = felder("fin770", beispiel(dienst={"laufbahnpruefung_am": "15.01.2027", "laufbahnpruefung_note": "2,0"}))
         self.assertEqual((w["Kontrollkästchen35"], w["Text43"], w["Ergebnis_2"]), ("/Ja", "15.01.2027", "2,0"))

@@ -114,6 +114,16 @@ def _personalfragebogen(a: Angaben, stichtag: date) -> dict:
         w["Kontrollkästchen35"] = JA
         w["Text43"] = a.datum("dienst.laufbahnpruefung_am")
 
+    # Seite 2 unten: besondere Kenntnisse (14a) und Ehrenamt (14b), je bis 3 Zeilen
+    kenntnisse = ("Besondere Kenntnisse und Fertigkeiten insbesondere für die auszuübende Tätigkeit14a", 3)
+    ehrenamt = ("Ehrenamtliche Tätigkeiten zB Betreuung im Jugendbereich Wahrnehmung karitativer Aufgaben14b", 3)
+    for (feld, anzahl), pfad in ((kenntnisse, "lebenslauf.kenntnisse"), (ehrenamt, "lebenslauf.ehrenamt")):
+        zeilen = a.daten.get("lebenslauf", {}).get(pfad.split(".")[1], [])
+        if not isinstance(zeilen, list) or not all(isinstance(z, str) for z in zeilen):
+            raise ValueError(f"{pfad}: Liste von Texten erwartet")
+        for i, zeile in enumerate(zeilen[:anzahl]):
+            w[feld if i == 0 else f"{feld}_{i + 1}"] = zeile
+
     # Seite 3: Tätigkeiten außerhalb (15) und im öffentlichen Dienst (16), Vorbereitungsdienst
     for i, t in enumerate(a.liste("lebenslauf.taetigkeiten")[:5]):
         n = i + 1
@@ -167,15 +177,28 @@ def _einstellungserklaerung(zwangsvollstreckung_keine: str):
 
 # ---------- 5 Familienzuschlag Fin 708 (S. 19-23), nur verheiratet oder mit Kindern ----------
 
+FAMILIENSTAND_708 = {"ledig": "Kontrollkästchen61", "verheiratet": "Kontrollkästchen62",
+                     "lebenspartnerschaft": "Kontrollkästchen62", "geschieden": "Kontrollkästchen63",
+                     "aufgehoben": "Kontrollkästchen63", "verwitwet": "Kontrollkästchen64",
+                     "ueberlebend": "Kontrollkästchen64"}
+
+
 def _familienzuschlag(a: Angaben, stichtag: date) -> dict:
-    return _ohne_leere({
+    # Feldnamen täuschen: "Personalnummer" (Kammfeld) steht unter "Dienststelle", "Telefonnummer" unter
+    # "Personalnummer". Kinder-Tabelle (Namen, Kindergeld) bleibt für Lia: dort gibt es kein Namensfeld.
+    w = {
         "Name/Geburtsname": a.nachname_mit_geburtsname(),
         "Vorname": a.text("person.vornamen"),
         "Geburtsdatum_af_date": a.datum("person.geburtsdatum"),
-        "Personalnummer": a.text("dienst.personalnummer"),
-        "Telefonnummer": a.text("person.telefon"),
-        "Anschrift": a.anschrift(),
-    })
+        "Telefonnummer": a.text("dienst.personalnummer", merken=False),
+        "Anschrift": ", ".join(x for x in (a.anschrift(), a.text("person.telefon")) if x),
+    }
+    stand = a.text("familie.stand", merken=False)
+    if stand in FAMILIENSTAND_708:
+        w[FAMILIENSTAND_708[stand]] = JA
+    if stand and stand != "ledig":
+        w["verheirateteingetragene Lebenspartnerschaft"] = a.datum("familie.seit")  # Zeile "seit dem"
+    return _ohne_leere(w)
 
 
 def _familie_bedingung(a: Angaben) -> tuple[bool | None, str]:
@@ -355,7 +378,7 @@ FORMULARE = [
              _einstellungserklaerung("/2"), von_hand=["Datum oben", "Unterschrift (S. 2)"]),
     Formular("fin708", 5, "Erklärung zum Familienzuschlag (Fin 708)", [19, 20, 21, 22, 23], _familienzuschlag,
              bedingung=_familie_bedingung,
-             von_hand=["Angaben zu Ehegatte/Kindern und Kindergeld", UNTERSCHRIFT]),
+             von_hand=["Dienststelle", "Abschnitt II: Kinder (Name, Kindergeld) und folgende Seiten", UNTERSCHRIFT]),
     Formular("zsp1360", 6, "Erklärung zu den Kinderbetreuungszeiten (ZS P 1.360)", [27, 28],
              bedingung=_kinder_bedingung, von_hand=["alles", UNTERSCHRIFT]),
     Formular("zsp0006", 7, "Einverständnis Personalaktenanforderung (ZS P 0.006)", [29],

@@ -78,6 +78,10 @@ am = "30.09.2020"
 ergebnis = "1,5"
 hochschule = "Beispiel-Universität Berlin"
 
+[lebenslauf]
+kenntnisse = ["Englisch C2", "Führerschein Klasse B"]  # höchstens 3 Zeilen
+ehrenamt = ["Hausaufgabenhilfe, Beispielverein (2019-2020)"]  # höchstens 3 Zeilen
+
 [[lebenslauf.taetigkeiten]]
 stelle = "Beispiel GmbH"
 art = "Studentische Aushilfe"
