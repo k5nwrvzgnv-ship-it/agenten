@@ -98,6 +98,8 @@ function taste(key, extra) {
 // ---------- Dichte ----------
 // Sofort sichtbar = gezeichnet und nicht nur beim Hover (Klasse "hover-akt"); Zugeklapptes zeichnet die Skizze nicht.
 function dichte(h) {
+  // geschlossene <details>: nur die Zusammenfassung ist sichtbar (innerste zuerst)
+  for (let alt = ''; alt !== h;) { alt = h; h = h.replace(/<details(?![^>]*\bopen)[^>]*>(<summary[\s\S]*?<\/summary>)(?:(?!<details)[\s\S])*?<\/details>/, '$1'); }
   const tags = h.match(/<(button|a|input|select|textarea)\b[^>]*>/g) || [];
   const bedien = tags.filter((t) => !/class="[^"]*\bhover-akt\b/.test(t) && !/type="file"/.test(t)).length;
   const zeilen = (h.match(/class="[^"]*\bzeile\b/g) || []).length;

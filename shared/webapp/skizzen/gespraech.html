@@ -266,18 +266,28 @@ button.foto:hover { box-shadow: 0 0 0 1px var(--leise) }
 .ablegefeld { border: 1px dashed var(--linie); border-radius: 8px; padding: 24px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center }
 
 /* Lückenliste */
-.luecken { max-width: 760px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px }
-.luecken h1 { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em }
-.luecken .zahlen { display: flex; flex-wrap: wrap; gap: 8px 32px; font-size: 14px; color: var(--leise) }
+.luecken { max-width: 720px; margin: 0 auto; padding-block: 48px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px }
+.luecken p { margin: 0 }
+.luecken .einleitung { max-width: 62ch; color: var(--fg) }
+.luecken .zahlen { display: flex; flex-wrap: wrap; gap: 8px 40px; font-size: 14px; color: var(--leise) }
 .luecken .zahlen b { display: block; font-size: 20px; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums }
-.lz { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--linie); align-items: start }
-.lz .n { font-size: 14px; font-weight: 600; color: var(--leise); font-variant-numeric: tabular-nums; text-align: right; padding-top: 1px }
-.lz .balken { grid-column: 2; height: 3px; background: var(--linie); border-radius: 2px; margin-top: 4px }
+.lz-liste { display: flex; flex-direction: column; margin: 4px -8px 0 }
+.lz summary { list-style: none; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 8px; border-radius: 6px; cursor: pointer }
+.lz summary::-webkit-details-marker { display: none }
+.lz summary:hover { background: var(--hover) }
+.lz .n { font-size: 14px; font-weight: 600; color: var(--leise); font-variant-numeric: tabular-nums; text-align: right }
+.lz .lt { min-width: 0; display: flex; flex-direction: column; gap: 6px }
+.lz b { font-size: 16px; font-weight: 400 }
+.lz .balken { display: block; height: 3px; background: var(--linie); border-radius: 2px; max-width: 320px }
 .lz .balken i { display: block; height: 100%; background: var(--sehrleise); border-radius: 2px }
-.lz b { font-size: 16px; font-weight: 500 }
-.lz p { margin: 2px 0 0; color: var(--leise); font-size: 14px }
-.lz .wo { font-size: 12px; color: var(--leise); white-space: nowrap }
-.lz .wo a { color: var(--leise) }
+.lz .wo { font-size: 12px; color: var(--sehrleise); white-space: nowrap }
+.lz p { margin: 0 8px 8px 52px; color: var(--leise); font-size: 14px }
+.mehr > summary { display: inline-flex; color: var(--leise); font-size: 14px; padding: 4px 8px; margin: 4px -8px; border-radius: 6px; cursor: pointer; list-style: none }
+.mehr > summary::-webkit-details-marker { display: none }
+.mehr > summary::before { content: "▸"; font-size: 12px; margin-right: 6px }
+.mehr[open] > summary::before { content: "▾" }
+.mehr > summary:hover { background: var(--hover); color: var(--fg) }
+.mehr .leise { margin-top: 8px }
 .frage { background: var(--flaeche); border-radius: 8px; padding: 16px 20px; font-size: 20px; font-weight: 600; line-height: 1.3 }
 .frage small { display: block; font-size: 14px; font-weight: 400; color: var(--leise); margin-top: 6px }
 
@@ -292,8 +302,9 @@ button.foto:hover { box-shadow: 0 0 0 1px var(--leise) }
   aside.rechts { grid-column: 1; padding-left: 16px; padding-right: 16px }
   main { padding: 16px 16px 40px }
   .titel h1, .luecken h1 { font-size: 26px }
-  .lz { grid-template-columns: 32px minmax(0, 1fr) }
+  .lz summary { grid-template-columns: 28px minmax(0, 1fr) }
   .lz .wo { grid-column: 2 }
+  .lz p { margin-left: 48px }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
 </style>
@@ -734,10 +745,15 @@ function fotoBetrachter() {
 }
 
 function heute() {
-  return '<section class="ebene"><header class="titel"><h1>Heute</h1><p>Hallo Lia. <span class="rot">3</span> Sachen warten auf dich.</p></header>' +
-    '<div><h2 class="abschnitt">Weiter im Gespräch</h2><div class="liste">' + ['g1', 'g5', 'g2'].map((i) => zeileG(i, true)).join('') + '</div></div>' +
-    '<div><h2 class="abschnitt">Wartet auf dich</h2><div class="liste">' + S.material.filter((m) => m.rot).map((m) =>
-      '<button type="button" class="zeile" data-akt="ebene" data-ziel="' + m.ort + '"><span><b>' + esc(m.titel) + '</b><small>' + esc(pfad(m.ort)) + '</small></span><span class="marke rot">' + esc(m.stand) + '</span></button>').join('') + '</div></div></section>';
+  const wartet = S.material.filter((m) => m.rot);
+  const oben = ['g1', 'g5', 'g2'];
+  const rest = Object.keys(S.gespraeche).filter((i) => !oben.includes(i) && S.gespraeche[i].msgs.length);
+  const auf = !!S.darunter['heute:g'];
+  return '<div class="ebene"><header class="titel"><h1>Heute</h1><p class="meta">Hallo Lia. ' + (wartet.length ? '<span class="rot">' + wartet.length + '</span> Sachen warten auf dich.' : 'Nichts wartet auf dich.') + '</p></header>' +
+    '<section class="abschnitt-block"><h2 class="abschnitt">Wartet auf dich</h2><div class="liste">' + wartet.map((m) => zeileM(m, true)).join('') + '</div></section>' +
+    '<section class="abschnitt-block"><h2 class="abschnitt">Weiter im Gespräch</h2><div class="liste">' + oben.map((i) => zeileG(i, true)).join('') + '</div>' +
+    (rest.length ? '<button type="button" class="darunter-knopf" data-akt="darunter" data-ziel="heute:g" aria-expanded="' + auf + '"><span class="pf">' + (auf ? '▾' : '▸') + '</span>Alle Gespräche (' + rest.length + ' weitere)</button>' +
+      (auf ? '<div class="liste">' + rest.map((i) => zeileG(i, true)).join('') + '</div>' : '') : '') + '</section></div>';
 }
 
 function band() {
@@ -771,16 +787,19 @@ const LUECKEN = [
   [2, 'Verlaufsplan als Vorlage', 'Fehlt in den Vorlagen.', 2]
 ];
 function seiteLuecken() {
-  return '<div class="luecken"><header style="display:flex;flex-direction:column;gap:10px"><span class="augenbraue">Aus deinen Chats seit 24.10.</span>' +
-    '<h1>Was dir in der App fehlt</h1><p style="margin:0;max-width:65ch">Claude hat deine 9 Chats in claude.ai seit dem 24.10. gelesen und für jede Runde gefragt: Ginge das auch in der App? Das ist Claudes Einschätzung, nicht deine. Die Hälfte der Runden stammt aus einem langen Chat zu den Straftheorien.</p></header>' +
+  const zeile = (l) => '<details class="lz"><summary><span class="n">' + l[0] + '</span><span class="lt"><b>' + esc(l[1]) + '</b>' +
+    '<span class="balken" aria-hidden="true"><i style="width:' + Math.round(l[0] / 99 * 100) + '%"></i></span></span>' +
+    '<span class="wo">' + (l[3] === 1 ? 'in der Skizze' : l[3] === 2 ? 'später' : 'gibt es schon') + '</span></summary><p>' + esc(l[2]) + '</p></details>';
+  const sichtbar = LUECKEN.slice(0, 7), weitere = LUECKEN.slice(7);
+  return '<div class="luecken"><header class="titel"><h1>Was dir in der App fehlt</h1><p class="meta">Aus deinen 9 Chats in claude.ai seit dem 24.10.</p></header>' +
+    '<p class="einleitung">Claude hat jede Runde Hin und Her gelesen und gefragt: Ginge das auch in der App? Das ist Claudes Einschätzung, nicht deine. Die Hälfte der Runden stammt aus einem langen Chat zu den Straftheorien.</p>' +
     '<div class="zahlen"><div><b>188</b>Runden Hin und Her</div><div><b>15</b>gingen schon genauso in der App</div><div><b>140</b>lebten vom Hin und Her</div></div>' +
-    '<div><h2 class="abschnitt">Was fehlt, nach Runden</h2>' + LUECKEN.map((l) =>
-      '<div class="lz"><span class="n">' + l[0] + '</span><div style="min-width:0"><b>' + esc(l[1]) + '</b><p>' + esc(l[2]) + '</p></div>' +
-      '<span class="wo">' + (l[3] === 1 ? '<a href="#skizze">in der Skizze</a>' : l[3] === 2 ? 'später' : 'gibt es') + '</span>' +
-      '<div class="balken" aria-hidden="true"><i style="width:' + Math.round(l[0] / 99 * 100) + '%"></i></div></div>').join('') + '</div>' +
-    '<p class="leise" style="margin:0">Eine Runde kann mehrere Lücken haben, darum ergibt die Summe nicht 188.</p>' +
+    '<section class="abschnitt-block"><h2 class="abschnitt">Was fehlt, nach Runden</h2><p class="leise">Ein Klick auf eine Zeile zeigt, was heute anders ist.</p>' +
+    '<div class="lz-liste">' + sichtbar.map(zeile).join('') + '</div>' +
+    '<details class="mehr"><summary>Weitere ' + weitere.length + ' anzeigen</summary><div class="lz-liste">' + weitere.map(zeile).join('') + '</div>' +
+    '<p class="leise">Eine Runde kann mehrere Lücken haben, darum ergibt die Summe nicht 188.</p></details></section>' +
     '<div class="frage">Stimmt das? Was fehlt?<small>Was davon brauchst du wirklich, was nicht? Fehlt etwas, das du in claude.ai jede Woche machst?</small></div>' +
-    '<p><a class="knopf knopf-voll" href="#skizze" style="text-decoration:none">Weiter zur Skizze</a></p></div>';
+    '<p><a class="knopf knopf-voll" href="#skizze">Weiter zur Skizze</a></p></div>';
 }
 
 // ---------- Überlagerungen ----------
@@ -800,22 +819,22 @@ function schicht() {
     if (ausGespraech && S.gespraech === 'g1') text = 'Reihenentwurf für die Reihe Straftheorien, Klasse 8.\n\nEntschieden:\n- Reihenfrage: „' + rf + '“\n- erst Kant (Vergeltung), dann von Liszt (Wozu strafen?)\n- fünf Stunden wie auf dem Foto meiner Planung, Stunde 5 ist die Prüfungsstunde\n- Merksatz von Liszt für Stunde 4 aus dem Gespräch\n\nVerworfen:\n- „Wozu sperren wir Menschen ein?“ (zu offen)\n\nWunsch:\n- Einstieg über einen Fall aus dem Schulalltag';
     else if (ausGespraech) text = 'Aus dem Gespräch „' + S.gespraeche[S.gespraech].name + '“:\n\nEntschieden:\n- …\n\nWunsch:\n- …';
     h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><span class="augenbraue">' + (ausGespraech ? 'Neu aus dem Gespräch' : 'Neu aus Vorlage') + '</span><h2 id="ftitel">' + (ausGespraech ? 'Daraus Auftrag machen' : 'Neuer Auftrag') + '</h2>' +
-      (ausGespraech ? '<p style="margin:0">Ich habe das Gespräch zu einem Auftrag geordnet. Ändere, was nicht stimmt. Erst „Abschicken“ startet etwas.</p>' : '') +
+      (ausGespraech ? '<p>Ich habe das Gespräch zu einem Auftrag geordnet. Ändere, was nicht stimmt. Erst „Abschicken“ startet etwas.</p>' : '') +
       '<label for="vorlage">Vorlage<select id="vorlage"><option>Reihenentwurf</option><option>Arbeitsblatt</option><option>Präsentation</option><option>Lernerfolgskontrolle</option></select></label>' +
-      '<p style="margin:0"><b>Hängt an:</b> ' + esc(pfad(k)) + ' (' + esc(E[k].typ) + '). Das Ergebnis liegt dann dort als Material.</p>' +
+      '<p><b>Hängt an:</b> ' + esc(pfad(k)) + ' (' + esc(E[k].typ) + '). Das Ergebnis liegt dann dort als Material.</p>' +
       '<label for="atext">Was soll entstehen?<textarea id="atext">' + esc(text) + '</textarea></label>' +
-      '<p class="leise" style="margin:0">' + (ausGespraech ? 'Das Gespräch geht als Grundlage mit. ' : '') + 'Keine Namen von Schüler*innen.</p>' +
+      '<p class="leise">' + (ausGespraech ? 'Das Gespräch geht als Grundlage mit. ' : '') + 'Keine Namen von Schüler*innen.</p>' +
       '<div class="knoepfe"><button type="button" class="knopf knopf-voll" data-akt="abschicken">Abschicken</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
   } else if (S.schicht === 'ablegen') {
     h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><span class="augenbraue">Eigene Datei</span><h2 id="ftitel">Datei ablegen</h2>' +
-      '<p style="margin:0">Die Datei hängt dann an dieser Ebene. Jedes Gespräch hier und darunter kennt sie, du musst sie nicht neu hochladen.</p>' +
+      '<p>Die Datei hängt dann an dieser Ebene. Jedes Gespräch hier und darunter kennt sie, du musst sie nicht neu hochladen.</p>' +
       '<label for="gilt">Hängt an<select id="gilt">' + ortZiele(k) + '</select></label>' +
       '<div class="ablegefeld"><span class="knopf datei-knopf">Datei wählen<input type="file" id="ablegedatei" aria-label="Datei wählen"></span><span class="leise">Word, PDF, PowerPoint, Foto</span>' +
       (S.ablegenDatei ? '<b>' + esc(S.ablegenDatei) + '</b>' : '<button type="button" class="knopf-leise" data-akt="beispieldatei">oder Beispiel nehmen: Bewertungskriterien.pdf</button>') + '</div>' +
-      '<p style="margin:0"><b>Keine Schülerdaten:</b> keine Namen, Noten oder Fotos von Arbeiten mit Namen.</p>' +
+      '<p><b>Keine Schülerdaten:</b> keine Namen, Noten oder Fotos von Arbeiten mit Namen.</p>' +
       '<div class="knoepfe"><button type="button" class="knopf knopf-voll" data-akt="ablegenok"' + (S.ablegenDatei ? '' : ' disabled') + '>Ablegen</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
   } else if (S.schicht === 'verschieben') {
-    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><h2 id="ftitel">An eine Ebene hängen</h2><p style="margin:0">Das Gespräch zieht mit seinem ganzen Verlauf um und kennt danach alles, was an der neuen Ebene und darüber liegt.</p>' +
+    h = '<div class="fenster" role="dialog" aria-modal="true" aria-labelledby="ftitel"><h2 id="ftitel">An eine Ebene hängen</h2><p>Das Gespräch zieht mit seinem ganzen Verlauf um und kennt danach alles, was an der neuen Ebene und darüber liegt.</p>' +
       '<label for="wohin">Ebene<select id="wohin">' + ortZiele(k === 'ohne' ? 'strafe' : k) + '</select></label>' +
       '<div class="knoepfe"><button type="button" class="knopf knopf-voll" data-akt="verschiebenok">Umhängen</button><button type="button" class="knopf" data-akt="schliessen">Abbrechen</button></div></div>';
   }
