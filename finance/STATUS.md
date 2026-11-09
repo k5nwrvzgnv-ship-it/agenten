@@ -4,6 +4,8 @@
 Macht zu jedem Thema, das Jan schickt, eine eigene neue Recherche zur Wirtschaftlichkeit: wo in der
 Wertschöpfungskette heute Gewinn anfällt, wo Angebot und Nachfrage auseinanderliegen, und höchstens drei
 geprüfte Geschäftshypothesen. Erstes Thema: „Robotik und KI allgemein und in der Holzindustrie“.
+Zweite Variante (Jan 09.11.2026): `/finance aktien: <Thema>` recherchiert Anlagemöglichkeiten (Firmen, ETFs,
+Bewertung, höchstens drei Anlagethesen). Keine Käufe, keine Entwürfe nach außen.
 
 ## Stand (09.11.2026, abends)
 - Läuft als Dienst: finance.service liegt in ~/.config/systemd/user/ (oneshot, kein Timer), Zentrale neu
@@ -14,7 +16,25 @@ geprüfte Geschäftshypothesen. Erstes Thema: „Robotik und KI allgemein und in
   EPO fehlt noch (Schlüssel).
 - Bericht als PDF (Renderer-Art bericht) und Modell als xlsx (arbeitsmappe) entstehen ohne Claude aus den
   geprüften Schritten und gehen mit dem Ergebnis an Jan.
-- 59 Tests grün, pruefen.sh testet finance mit .venv/bin/python.
+- 74 Tests grün, pruefen.sh testet finance mit .venv/bin/python.
+
+## Variante aktien (gebaut 09.11.2026, Jan: "Erst Agent erweitern", "Ja, so bauen")
+- Auslöser: Auftragstext beginnt mit "aktien:" (auch aktie/invest/investment/anlage), schritte.variante_aus_text.
+  Ohne Präfix wie bisher MARKT. Die Zentrale bleibt unverändert.
+- Schritte (schritte.SCHRITTE_AKTIEN): 1 Auswahl und Gewinnverteilung (höchstens 15 Firmen mit Yahoo-Symbol und
+  ggf. SEC-CIK, höchstens 5 ETFs), dann Primärdaten OHNE Claude (ablauf.primaerdaten_aktien: je Firma Kurs, mit
+  CIK SEC-Abschlüsse, je ETF Kurs, danach Eurostat-Wechselkurse ert_bil_eur_a der vorkommenden Währungen;
+  Python schreibt uebersicht.json mit Werten und Quellen-IDs), 2 Kennzahlen und Bewertung (Marge, Wachstum, FCF,
+  Marktkapitalisierung, KGV, FCF-Rendite als berechnet), 3 Was der Kurs einpreist (geforderte Rendite minus
+  FCF-Rendite, höchstens 8 Firmen), 4 Anlagethesen (instrumente, gegenargument, risiken, rendite_pa je Szenario,
+  Abbruchkriterien), 5 Gegenprüfung (Vergleich, Rückrechnung, 1 bis 3 Prognosen, keine Entwürfe).
+- abrufer.py: Arten sec (data.sec.gov companyfacts, abgelegt wird ein Auszug: 11 Kennzahlen, letzte 6
+  Geschäftsjahre aus 10-K/20-F/40-F, ausstehende Aktien) und kurs (Yahoo chart, 5 Jahre Monatsschluss, Auszug).
+  Echt geprüft mit NVIDIA und ASML (SEC) sowie NVDA und 6954.T (Kurs). Stooq geht nicht (Browser-Prüfung).
+- bericht.py: _bloecke_aktien (Rubrik Anlagemöglichkeiten, Hinweis "Keine Anlageberatung") und modell_aktien
+  (Blätter Bewertung und Szenarien mit Einsatz/Ertrag).
+- Offen: SEC verlangt eine Kontaktangabe im User-Agent (abrufer.SEC_AGENT hat keine); Jan hat noch keine
+  genannt. Yahoo ist inoffiziell (Jan: genehmigt) und kann wegfallen.
 
 ## Erster echter Lauf (09.11.2026, Auftrag 20261109-133235-finance-4fdc5f, Thema Robotik und KI/Holzindustrie)
 - Vor Abrufern und Bericht gestartet, also nur Webquellen und Annahmen. Schritte 1 bis 4 bestanden, Schritt 5
