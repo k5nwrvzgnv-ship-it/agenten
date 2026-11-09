@@ -1,196 +1,208 @@
 <title>Skizze Gespräch für Lia</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Inter+Tight:wght@600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 <style>
-/* Modernist wie lia.meldro.de: schwarz auf weiß, harte Linien, ein Rot nur für "wartet auf dich".
+/* Ruhige Oberfläche (Plan ui-plan-notion.md): eine Schrift (Inter 400/500/600), Größen 12/14/16/20/32 (schmal 26),
+   1-px-Linien nur wo nötig, graue Flächen, ein gedecktes Blau für Hauptknopf und Fokus, Rot nur für "wartet".
    Aufbau: Leiste der Skizze oben, darunter die App: Baum | Mitte (Ebene oder Gespräch) | rechts "An dieser Ebene".
    Gespräche und Material hängen immer an einer Ebene: Klasse/Kurs, Reihe, Stunde. */
 :root {
-  --bg: #ffffff; --fg: #111111; --leise: #5c5c5c; --flaeche: #f4f4f2; --baum: #fafafa;
-  --linie: #111111; --duenn: #d6d6d2; --akzent: #d4290f; --fokus: #1f4fd1; --umkehr: #ffffff;
-  --skizze: #fff4c2;
-  --schrift: Inter, "Helvetica Neue", Arial, sans-serif;
-  --titel: "Inter Tight", Inter, "Helvetica Neue", Arial, sans-serif;
+  --bg: #ffffff; --fg: #37352f; --leise: #787774; --sehrleise: #9b9a97; --linie: #e9e9e7; --flaeche: #f7f7f5;
+  --hover: rgba(55, 53, 47, .06); --wahl: rgba(55, 53, 47, .09); --akzent: #d44c47; --blau: #2f6fbf; --fokus: #2f6fbf;
+  --umkehr: #ffffff; --skizze: #f2d675; --schatten: 0 8px 28px rgba(15, 15, 15, .14), 0 0 0 1px rgba(15, 15, 15, .05);
+  --schrift: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #141414; --fg: #f2f2ef; --leise: #a9a9a3; --flaeche: #222221; --baum: #1a1a1a;
-  --linie: #f2f2ef; --duenn: #3a3a38; --akzent: #ff6a4d; --fokus: #8fb0ff; --umkehr: #141414;
-  --skizze: #3b3517; color-scheme: dark } }
+  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #6f6f6b; --linie: #2f2f2f; --flaeche: #202020;
+  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #4f8ad8; --fokus: #7fb0f0;
+  --umkehr: #ffffff; --skizze: #8a7322; --schatten: 0 8px 28px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08); color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #141414; --fg: #f2f2ef; --leise: #a9a9a3; --flaeche: #222221; --baum: #1a1a1a;
-  --linie: #f2f2ef; --duenn: #3a3a38; --akzent: #ff6a4d; --fokus: #8fb0ff; --umkehr: #141414;
-  --skizze: #3b3517; color-scheme: dark }
+  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #6f6f6b; --linie: #2f2f2f; --flaeche: #202020;
+  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #4f8ad8; --fokus: #7fb0f0;
+  --umkehr: #ffffff; --skizze: #8a7322; --schatten: 0 8px 28px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08); color-scheme: dark }
 
 * { box-sizing: border-box }
-body { background: var(--bg); color: var(--fg); font-family: var(--schrift); font-size: 15px; line-height: 1.5; margin: 0 }
+body { background: var(--bg); color: var(--fg); font-family: var(--schrift); font-size: 16px; line-height: 1.5; margin: 0; -webkit-font-smoothing: antialiased }
 button, input, select, textarea { font: inherit; color: inherit }
 button { cursor: pointer }
-:focus-visible { outline: 3px solid var(--fokus); outline-offset: 2px }
+:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; border-radius: 4px }
 h1, h2, h3 { text-wrap: balance }
 
-/* Leiste der Skizze */
-.leiste { background: var(--skizze); border-bottom: 3px solid var(--linie);
-  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center }
-.leiste strong { font-family: var(--titel); font-size: 18px; font-weight: 800; letter-spacing: -.01em }
-.leiste nav { display: flex; flex-wrap: wrap }
-.leiste nav a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 2px solid var(--linie); margin-right: -2px;
-  color: var(--fg); text-decoration: none; font-weight: 700; background: var(--bg) }
-.leiste nav a[aria-current="page"] { background: var(--fg); color: var(--umkehr) }
-.leiste .hinweis { font-size: 13px; flex: 1 1 260px }
-.leiste .zurueck { border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; padding: 8px 0 }
+/* Leiste der Skizze: schmal, gelber Streifen oben als Zeichen "nur Skizze" */
+.leiste { background: var(--bg); border-top: 4px solid var(--skizze); border-bottom: 1px solid var(--linie); min-height: 44px;
+  padding-block: 4px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: center; font-size: 14px }
+.leiste strong { font-size: 14px; font-weight: 600 }
+.leiste nav { display: flex; flex-wrap: wrap; gap: 4px }
+.leiste nav a { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 6px; color: var(--leise); text-decoration: none; font-weight: 500 }
+.leiste nav a:hover { background: var(--hover); color: var(--fg) }
+.leiste nav a[aria-current="page"] { color: var(--fg); background: var(--wahl) }
+.leiste .hinweis { font-size: 12px; color: var(--leise); flex: 1 1 260px }
+.leiste .zurueck { border: 0; background: none; color: var(--leise); font-size: 12px; padding: 6px 8px; border-radius: 6px }
+.leiste .zurueck:hover { background: var(--hover); color: var(--fg) }
 
 /* App */
-.app { display: grid; grid-template-columns: 270px minmax(0, 1fr) 320px; min-height: calc(100vh - 64px) }
-.app.ohne-rechts { grid-template-columns: 270px minmax(0, 1fr) }
-.baum { background: var(--baum); border-right: 3px solid var(--linie); padding: 20px 12px 32px; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
-.baum .name { padding: 0 10px 14px; font-family: var(--titel); font-size: 22px; font-weight: 800; letter-spacing: -.02em }
-.baum .kopf { padding: 16px 10px 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise) }
-.baum button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 34px;
-  padding: 5px 10px; border: 0; background: transparent; text-align: left; font-weight: 600 }
-.baum button.e1 { padding-left: 26px; font-weight: 500 }
-.baum button.e2 { padding-left: 42px; font-weight: 400; font-size: 14px }
-.baum button:disabled { color: var(--leise); cursor: default; font-weight: 400 }
-.baum button[aria-current="location"] { background: var(--fg); color: var(--umkehr); font-weight: 700 }
-.baum button.im-pfad { box-shadow: inset 3px 0 0 var(--fg) }
-.baum .zahl { font-size: 12px; font-weight: 700; color: var(--leise); white-space: nowrap; font-variant-numeric: tabular-nums }
-.baum .zahl.rot { color: var(--akzent) }
-.baum button[aria-current="location"] .zahl { color: var(--umkehr) }
+.app { display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; min-height: calc(100vh - 48px) }
+.app.ohne-rechts { grid-template-columns: 240px minmax(0, 1fr) }
+.baum { background: var(--flaeche); padding: 12px 8px 32px; display: flex; flex-direction: column; gap: 1px; min-width: 0; font-size: 14px }
+.baum .name { padding: 6px 10px 12px; font-size: 14px; font-weight: 600 }
+.baum .kopf { padding: 16px 10px 4px; font-size: 12px; font-weight: 500; color: var(--sehrleise) }
+.baum button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 30px;
+  padding: 4px 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 14px; font-weight: 400; color: var(--fg) }
+.baum button:hover { background: var(--hover) }
+.baum button.e1 { padding-left: 24px }
+.baum button.e2 { padding-left: 38px; color: var(--leise) }
+.baum button:disabled { color: var(--sehrleise); cursor: default }
+.baum button:disabled:hover { background: transparent }
+.baum button[aria-current="location"] { background: var(--wahl); font-weight: 600; color: var(--fg) }
+.baum button.im-pfad { font-weight: 500 }
+.baum .zahl { font-size: 12px; font-weight: 400; color: var(--sehrleise); white-space: nowrap; font-variant-numeric: tabular-nums }
+.baum .zahl.rot { color: var(--akzent); font-weight: 500 }
 
-main { min-width: 0; padding: 20px 40px 48px; display: flex; flex-direction: column; gap: 20px }
-.krumen { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--leise); align-items: center }
-.krumen button { border: 0; background: none; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; font-size: 13px }
-.krumen b { color: var(--fg) }
-.hinweisband { margin: 0; padding: 12px 16px; border: 2px solid var(--linie); font-weight: 500; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 5 }
+main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: column; gap: 24px }
+.krumen { display: flex; flex-wrap: wrap; gap: 2px; font-size: 14px; color: var(--leise); align-items: center }
+.krumen button { border: 0; background: none; padding: 2px 6px; border-radius: 4px; color: var(--leise); font-size: 14px }
+.krumen button:hover { background: var(--hover); color: var(--fg) }
+.krumen b { color: var(--fg); font-weight: 500; padding: 2px 6px }
+.hinweisband { margin: 0; padding: 8px 8px 8px 14px; border-radius: 8px; background: var(--flaeche); box-shadow: 0 0 0 1px var(--linie); font-size: 14px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5 }
 
-.knopf { min-height: 40px; padding: 0 14px; border: 2px solid var(--linie); background: var(--bg); font-weight: 700; display: inline-flex; align-items: center; gap: 6px }
-.knopf-voll { background: var(--fg); color: var(--umkehr) }
-.knopf-klein { min-height: 32px; padding: 0 10px; font-size: 14px; border-width: 1px }
-.knopf-leise { border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; padding: 0 4px; min-height: 32px }
-.knoepfe { display: flex; flex-wrap: wrap; gap: 8px }
+.knopf { min-height: 32px; padding: 0 12px; border: 1px solid var(--linie); border-radius: 6px; background: var(--bg); font-size: 14px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 6px; color: var(--fg); text-decoration: none }
+.knopf:hover { background: var(--hover) }
+.knopf:disabled { opacity: .45; cursor: default }
+.knopf-voll { background: var(--blau); border-color: var(--blau); color: var(--umkehr) }
+.knopf-voll:hover { background: var(--blau); filter: brightness(1.08) }
+.knopf-klein { min-height: 28px; padding: 0 10px }
+.knopf-leise { border: 0; background: none; color: var(--leise); font-size: 14px; font-weight: 500; padding: 0 8px; min-height: 28px; border-radius: 6px }
+.knopf-leise:hover { background: var(--hover); color: var(--fg) }
+.knoepfe { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
 
-.titel { border-bottom: 3px solid var(--linie); padding-bottom: 12px; display: flex; flex-direction: column; gap: 6px }
-.augenbraue { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise) }
-.titel h1 { margin: 0; font-family: var(--titel); font-size: 40px; font-weight: 800; line-height: 1.05; letter-spacing: -.03em }
+.titel { display: flex; flex-direction: column; gap: 8px }
+.augenbraue { font-size: 12px; font-weight: 400; color: var(--leise) }
+.titel h1 { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em }
 .titel p { margin: 0 }
-.ebenenmarke { display: inline-flex; align-self: flex-start; padding: 2px 8px; border: 2px solid var(--linie); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
+.ebenenmarke { display: inline-flex; align-self: flex-start; font-size: 12px; color: var(--leise) }
 
 /* Ebenen-Ansicht */
-.ebene { max-width: 840px; width: 100%; display: flex; flex-direction: column; gap: 28px }
-.spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px }
-.abschnitt { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
-.gruppe { margin: 14px 0 2px; font-size: 13px; font-weight: 700; display: flex; gap: 6px; align-items: baseline }
-.gruppe button { border: 0; background: none; padding: 0; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-align: left }
-.gruppe .ebenenwort { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); font-weight: 700 }
-.liste { display: flex; flex-direction: column }
-.liste .zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border: 0; border-top: 1px solid var(--linie); background: none; text-align: left; width: 100% }
-.liste .zeile:last-child { border-bottom: 1px solid var(--linie) }
-.liste .zeile b { display: block; font-size: 16px }
-.liste .zeile small { font-size: 13px; color: var(--leise) }
-.liste button.zeile:hover b { text-decoration: underline }
-.marke { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; align-self: center; white-space: nowrap }
+.ebene { max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 32px }
+.spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
+.abschnitt { margin: 0 0 4px; font-size: 20px; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.abschnitt .leise { font-size: 14px; font-weight: 400 }
+.gruppe { margin: 12px 0 2px; font-size: 14px; font-weight: 500; color: var(--leise); display: flex; gap: 6px; align-items: baseline }
+.gruppe button { border: 0; background: none; padding: 0; color: var(--leise); font-weight: 500; text-align: left }
+.gruppe button:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 3px }
+.gruppe .ebenenwort { font-size: 12px; color: var(--sehrleise); font-weight: 400 }
+.liste { display: flex; flex-direction: column; margin: 0 -8px }
+.liste .zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 6px 8px; border: 0; border-radius: 6px; background: none; text-align: left; width: 100%; color: var(--fg) }
+.liste button.zeile:hover { background: var(--hover) }
+.liste .zeile b { display: block; font-size: 16px; font-weight: 500 }
+.liste .zeile small { font-size: 12px; color: var(--leise) }
+.marke { font-size: 12px; font-weight: 400; color: var(--leise); align-self: center; white-space: nowrap }
 .rot { color: var(--akzent) }
-.leer { font-size: 14px; color: var(--leise); padding: 10px 0; border-top: 1px solid var(--duenn); margin: 0 }
-.darunter .zeile b { font-size: 16px }
-.leise { color: var(--leise); font-size: 13px }
+.marke.rot { font-weight: 500 }
+.leer { font-size: 14px; color: var(--sehrleise); padding: 6px 0; margin: 0 }
+.leise { color: var(--leise); font-size: 14px }
 
 /* Gespräch */
-.gespraech { max-width: 840px; width: 100%; display: flex; flex-direction: column; gap: 18px }
-.gkopf { display: flex; flex-direction: column; gap: 6px; border-bottom: 3px solid var(--linie); padding-bottom: 10px }
-.gkopf .z { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px }
-.gkopf .gname { font-family: var(--titel); font-size: 26px; font-weight: 800; letter-spacing: -.02em; flex: 1 1 auto; line-height: 1.15 }
-.gkopf input { min-height: 40px; border: 2px solid var(--linie); padding: 0 8px; font-weight: 700; flex: 1 1 220px; background: var(--bg) }
-.verlauf { display: flex; flex-direction: column; gap: 22px }
-.tag { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise) }
-.tag::before, .tag::after { content: ""; flex: 1; border-top: 1px solid var(--duenn) }
-.msg { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
-.msg .wer { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--leise) }
+.gespraech { max-width: 760px; width: 100%; display: flex; flex-direction: column; gap: 20px }
+.gkopf { display: flex; flex-direction: column; gap: 4px }
+.gkopf .z { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px }
+.gkopf .gname { font-size: 20px; font-weight: 600; flex: 1 1 auto; line-height: 1.3 }
+.gkopf input { min-height: 32px; border: 1px solid var(--linie); border-radius: 6px; padding: 0 8px; font-size: 16px; font-weight: 500; flex: 1 1 220px; background: var(--bg) }
+.verlauf { display: flex; flex-direction: column; gap: 24px }
+.tag { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--sehrleise) }
+.tag::before, .tag::after { content: ""; flex: 1; border-top: 1px solid var(--linie) }
+.msg { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.msg .wer { font-size: 12px; color: var(--sehrleise) }
 .msg.du { align-items: flex-end }
-.msg.du .text { background: var(--flaeche); padding: 12px 16px; max-width: 640px; white-space: pre-wrap }
+.msg.du .text { background: var(--flaeche); padding: 10px 14px; border-radius: 12px; max-width: 600px; white-space: pre-wrap }
 .antwort { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
-.antwort h3 { margin: 8px 0 0; font-size: 16px; font-weight: 700 }
+.antwort h3 { margin: 8px 0 0; font-size: 16px; font-weight: 600 }
 .antwort p, .antwort ul { margin: 0 }
-.antwort ul { padding-left: 20px }
+.antwort ul { padding-left: 22px }
 .tabelle { overflow-x: auto; max-width: 100% }
-.tabelle table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px }
-.tabelle th { text-align: left; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid var(--linie); padding: 8px 10px 6px 0 }
-.tabelle td { border-bottom: 1px solid var(--duenn); padding: 8px 10px 8px 0; vertical-align: top }
-.baustein { border: 2px solid var(--linie); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px }
-.baustein .bt { font-size: 18px; font-weight: 700; line-height: 1.35 }
-.foto { width: 220px; max-width: 100%; border: 1px solid var(--linie); background: var(--bg) }
+.tabelle table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px }
+.tabelle th { text-align: left; font-size: 12px; font-weight: 500; color: var(--leise); border-bottom: 1px solid var(--linie); padding: 6px 12px 6px 0 }
+.tabelle td { border-bottom: 1px solid var(--linie); padding: 8px 12px 8px 0; vertical-align: top }
+.baustein { background: var(--flaeche); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px }
+.baustein .bt { font-size: 16px; font-weight: 500; line-height: 1.5 }
+.foto { width: 220px; max-width: 100%; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; background: var(--bg) }
 .foto img, .foto svg { display: block; width: 100%; height: auto }
-.foto span { display: block; font-size: 12px; padding: 4px 8px; border-top: 1px solid var(--linie); color: var(--leise) }
+.foto span { display: block; font-size: 12px; padding: 4px 8px; color: var(--leise) }
 .denkt { font-size: 14px; color: var(--leise) }
 
-.eingabe { border: 2px solid var(--linie); display: flex; flex-direction: column; position: sticky; bottom: env(safe-area-inset-bottom, 0px); background: var(--bg) }
-.eingabe textarea { border: 0; resize: vertical; min-height: 96px; padding: 12px 14px; background: var(--bg) }
-.eingabe .anh { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px }
+.eingabe { border: 1px solid var(--linie); border-radius: 12px; box-shadow: 0 1px 4px rgba(15, 15, 15, .06); display: flex; flex-direction: column;
+  position: sticky; bottom: max(8px, env(safe-area-inset-bottom, 0px)); background: var(--bg) }
+.eingabe textarea { border: 0; resize: vertical; min-height: 72px; padding: 12px 14px 4px; background: transparent; border-radius: 12px; outline-offset: -2px }
+.eingabe .anh { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px }
 .eingabe .anh:empty { display: none }
-.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); padding: 2px 4px 2px 2px; font-size: 13px; max-width: 100% }
-.chip img { width: 40px; height: 40px; object-fit: cover; display: block }
-.chip button { border: 0; background: none; min-height: 28px; padding: 0 4px; text-decoration: underline }
-.eingabe .leiste2 { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 8px 10px; border-top: 1px solid var(--duenn) }
-.eingabe .links, .eingabe .rechts { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center }
-.eingabe label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px }
-.kennt { font-size: 13px; color: var(--leise); margin: 0 }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); border-radius: 6px; padding: 2px 4px 2px 2px; font-size: 12px; max-width: 100% }
+.chip img { width: 36px; height: 36px; object-fit: cover; display: block; border-radius: 4px }
+.chip button { border: 0; background: none; min-height: 28px; padding: 0 4px; color: var(--leise) }
+.eingabe .leiste2 { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; padding: 6px 8px }
+.eingabe .links, .eingabe .rechts { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center }
+.eingabe label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--leise) }
+.kennt { font-size: 12px; color: var(--sehrleise); margin: 0 }
 .datei-knopf { position: relative; overflow: hidden }
 .datei-knopf input { position: absolute; inset: 0; opacity: 0; cursor: pointer }
 
 /* Rechte Spalte */
-aside.rechts { border-left: 3px solid var(--linie); padding: 20px 18px 32px; display: flex; flex-direction: column; gap: 22px; min-width: 0 }
-aside.rechts h2.gross { margin: 0; font-family: var(--titel); font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15 }
-aside .block { display: flex; flex-direction: column; gap: 6px }
+aside.rechts { border-left: 1px solid var(--linie); padding: 16px 16px 32px; display: flex; flex-direction: column; gap: 24px; min-width: 0; font-size: 14px }
+aside.rechts h2.gross { margin: 0; font-size: 14px; font-weight: 600 }
+aside .block { display: flex; flex-direction: column; gap: 4px }
 aside .block ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
-aside .block li { border-top: 1px solid var(--duenn); padding: 6px 0; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
+aside .block li { padding: 3px 0; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
+aside .block li small { font-size: 12px; color: var(--sehrleise) }
 aside .block li.unter { padding-left: 12px }
-aside .block li.gk { border-top: 0; padding: 8px 0 2px; font-size: 12px; font-weight: 700; color: var(--leise) }
-aside button.link { border: 0; background: none; padding: 0; text-align: left; text-decoration: underline; text-underline-offset: 3px; font-weight: 500 }
-aside .block li[aria-current="true"] button.link { font-weight: 700; text-decoration: none }
-aside .rf { font-size: 15px; font-weight: 700; margin: 0 }
-aside .kette { display: flex; flex-direction: column; gap: 0; border: 2px solid var(--linie) }
-aside .kette div { padding: 6px 10px; border-top: 1px solid var(--duenn); font-size: 14px; display: flex; justify-content: space-between; gap: 8px }
-aside .kette div:first-child { border-top: 0 }
-aside .kette div.hier { background: var(--fg); color: var(--umkehr); font-weight: 700 }
+aside .block li.gk { padding: 8px 0 2px; font-size: 12px; color: var(--sehrleise) }
+aside button.link { border: 0; background: none; padding: 0; text-align: left; color: var(--fg) }
+aside button.link:hover { text-decoration: underline; text-underline-offset: 3px }
+aside .block li[aria-current="true"] button.link { font-weight: 600 }
+aside .rf { font-size: 14px; font-weight: 500; margin: 0 }
+aside .kette { display: flex; flex-direction: column; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden }
+aside .kette div { padding: 4px 10px; font-size: 14px; display: flex; justify-content: space-between; gap: 8px }
+aside .kette div small { color: var(--sehrleise); font-size: 12px }
+aside .kette div.hier { background: var(--wahl); font-weight: 600 }
 
 /* Überlagerung */
-.schicht { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; justify-content: center; align-items: flex-start; padding: 48px 16px; overflow-y: auto; z-index: 20 }
-.fenster { background: var(--bg); border: 3px solid var(--linie); width: 100%; max-width: 720px; padding: 24px; display: flex; flex-direction: column; gap: 14px }
-.fenster h2 { margin: 0; font-family: var(--titel); font-size: 28px; font-weight: 800; letter-spacing: -.02em }
-.fenster label { font-weight: 700; display: flex; flex-direction: column; gap: 6px }
-.fenster textarea, .fenster select { border: 2px solid var(--linie); padding: 10px; background: var(--bg); font-weight: 400 }
-.fenster textarea { min-height: 220px; resize: vertical }
-.ablegefeld { border: 2px dashed var(--linie); padding: 24px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center }
+.schicht { position: fixed; inset: 0; background: rgba(15, 15, 15, .35); display: flex; justify-content: center; align-items: flex-start; padding: 64px 16px; overflow-y: auto; z-index: 20 }
+.fenster { background: var(--bg); border-radius: 10px; box-shadow: var(--schatten); width: 100%; max-width: 640px; padding: 24px; display: flex; flex-direction: column; gap: 14px; font-size: 14px }
+.fenster h2 { margin: 0; font-size: 20px; font-weight: 600 }
+.fenster p { margin: 0 }
+.fenster label { font-weight: 500; display: flex; flex-direction: column; gap: 6px }
+.fenster textarea, .fenster select { border: 1px solid var(--linie); border-radius: 6px; padding: 8px 10px; background: var(--bg); font-weight: 400; font-size: 14px }
+.fenster textarea { min-height: 220px; resize: vertical; line-height: 1.5 }
+.ablegefeld { border: 1px dashed var(--linie); border-radius: 8px; padding: 24px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center }
 
 /* Lückenliste */
-.luecken { max-width: 900px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 24px }
-.luecken h1 { margin: 0; font-family: var(--titel); font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -.035em }
-.luecken .zahlen { display: flex; flex-wrap: wrap; border-top: 3px solid var(--linie); border-bottom: 3px solid var(--linie) }
-.luecken .zahlen div { flex: 1 1 180px; padding: 14px 16px 14px 0 }
-.luecken .zahlen b { display: block; font-family: var(--titel); font-size: 40px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.1 }
-.lz { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 4px 16px; padding: 12px 0; border-top: 1px solid var(--linie); align-items: start }
-.lz .n { font-family: var(--titel); font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right }
-.lz .balken { grid-column: 2; height: 6px; background: var(--duenn) }
-.lz .balken i { display: block; height: 100%; background: var(--fg) }
-.lz b { font-size: 17px }
+.luecken { max-width: 760px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px }
+.luecken h1 { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em }
+.luecken .zahlen { display: flex; flex-wrap: wrap; gap: 8px 32px; font-size: 14px; color: var(--leise) }
+.luecken .zahlen b { display: block; font-size: 20px; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums }
+.lz { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--linie); align-items: start }
+.lz .n { font-size: 14px; font-weight: 600; color: var(--leise); font-variant-numeric: tabular-nums; text-align: right; padding-top: 1px }
+.lz .balken { grid-column: 2; height: 3px; background: var(--linie); border-radius: 2px; margin-top: 4px }
+.lz .balken i { display: block; height: 100%; background: var(--sehrleise); border-radius: 2px }
+.lz b { font-size: 16px; font-weight: 500 }
 .lz p { margin: 2px 0 0; color: var(--leise); font-size: 14px }
-.lz .wo { font-size: 13px; white-space: nowrap }
-.lz .wo a { color: var(--fg) }
-.frage { border: 3px solid var(--linie); padding: 20px 24px; font-family: var(--titel); font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1.05 }
-.frage small { display: block; font-family: var(--schrift); font-size: 15px; font-weight: 400; letter-spacing: 0; margin-top: 10px }
+.lz .wo { font-size: 12px; color: var(--leise); white-space: nowrap }
+.lz .wo a { color: var(--leise) }
+.frage { background: var(--flaeche); border-radius: 8px; padding: 16px 20px; font-size: 20px; font-weight: 600; line-height: 1.3 }
+.frage small { display: block; font-size: 14px; font-weight: 400; color: var(--leise); margin-top: 6px }
 
 @media (max-width: 1100px) {
-  .app, .app.ohne-rechts { grid-template-columns: 240px minmax(0, 1fr) }
-  aside.rechts { grid-column: 2; border-left: 0; border-top: 3px solid var(--linie); padding-left: 40px; padding-right: 40px }
+  .app, .app.ohne-rechts { grid-template-columns: 220px minmax(0, 1fr) }
+  aside.rechts { grid-column: 2; border-left: 0; border-top: 1px solid var(--linie); padding-left: 48px; padding-right: 48px }
 }
 @media (max-width: 860px) { .spalten { grid-template-columns: minmax(0, 1fr) } }
 @media (max-width: 760px) {
   .app, .app.ohne-rechts { grid-template-columns: minmax(0, 1fr) }
-  .baum { border-right: 0; border-bottom: 3px solid var(--linie) }
+  .baum { padding-bottom: 12px; border-bottom: 1px solid var(--linie) }
   aside.rechts { grid-column: 1; padding-left: 16px; padding-right: 16px }
   main { padding: 16px 16px 40px }
-  .titel h1, .luecken h1 { font-size: 32px }
-  .frage { font-size: 28px }
-  .lz { grid-template-columns: 40px minmax(0, 1fr) }
+  .titel h1, .luecken h1 { font-size: 26px }
+  .lz { grid-template-columns: 32px minmax(0, 1fr) }
   .lz .wo { grid-column: 2 }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
