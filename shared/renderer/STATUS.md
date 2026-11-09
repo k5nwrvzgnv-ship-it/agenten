@@ -3,12 +3,17 @@
 ## Zweck
 Gemeinsame Bibliothek für Jan und Lia: Claude schreibt eine JSON-Beschreibung, Python baut daraus ein Arbeitsblatt
 (docx) oder Folien (pptx) im Stil von Lias Material, eine Zusammenfassung (docx) in Jans Stil, ein Exposé (docx nach
-Jans HNEE-Formatvorlage) oder eine Arbeitsmappe (xlsx, Tabellen zum Ausfüllen mit Rechnungen), mit Kontrolltext und Vorschaubildern für Claude. Claude führt nie Code aus. Nutzer: Lias Material-Agent (Übergabe
-`../../docs/uebergabe-lia-dokumente.md`), Jans dokumente-Agent (Zusammenfassungen, Hauptordner-STATUS Punkt 3a) und uni
-(Exposé, Hauptordner-STATUS Punkt 26 a). Grundlage: `../../docs/lia-architektur.md`, Abschnitt 2.1 (Rolle material).
+Jans HNEE-Formatvorlage), einen Bericht (docx/PDF mit Belegen als Quellen-ID) oder eine Arbeitsmappe (xlsx, Tabellen
+zum Ausfüllen mit Rechnungen, auf Wunsch mit vorbelegten Werten), mit Kontrolltext und Vorschaubildern für Claude.
+Claude führt nie Code aus. Nutzer: Lias Material-Agent (Übergabe
+`../../docs/uebergabe-lia-dokumente.md`), Jans dokumente-Agent (Zusammenfassungen, Hauptordner-STATUS Punkt 3a), uni
+(Exposé, Hauptordner-STATUS Punkt 26 a) und finance (Bericht und Modell-Arbeitsmappe, Hauptordner-STATUS Punkt 32). Grundlage: `../../docs/lia-architektur.md`, Abschnitt 2.1 (Rolle material).
 
-## Stand (03.11.2026)
-Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 178 Tests).
+## Stand (09.11.2026)
+Kern fertig, alle Schritte committet, `./pruefen.sh` grün (Renderer: 196 Tests).
+Art `bericht` und `werte` in der Arbeitsmappe fertig (09.11., Auftrag Jan über den Hauptordner-Chat für finance):
+Beispiele aus FORMAT.md gebaut (`data/nachbau/finance/`, Vorschau angesehen, Calc rechnet die vorbelegten Werte wie
+Python). Offen: finance stellt um (Bedarf in `../../STATUS.md` 32), Jan sieht den ersten echten Bericht an.
 Art `expose` fertig (03.11., Plan von Jan freigegeben): Uni-Exposé vom 02.11. nachgebaut (`data/nachbau/expose/`,
 Vorschau neben der Formatvorlage angesehen, Maße stimmen). Offen: Jan öffnet es in Word (Silbentrennung, Rahmen
 unten auf dem Deckblatt), uni stellt von .md auf `renderer.bauen` um (Bedarf in `../../STATUS.md` 26 a). lia/unterricht nutzt Arbeitsblatt
@@ -31,11 +36,12 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 ```
 - Format für Claude: `FORMAT.md` (gehört in den Skill des Agenten). Art `arbeitsblatt` -> .docx, `folien` -> .pptx,
   `zusammenfassung` -> .docx (Jan bekommt das PDF aus der Vorschau, `ergebnis.pdf`), `arbeitsmappe` -> .xlsx
-  (ohne Vorlage; der Kontrolltext endet mit Proben, die Python nachgerechnet hat), `expose` -> .docx (PDF wie bei der
-  Zusammenfassung; der Kontrolltext endet mit den Stellen „[OFFEN: …]“).
+  (ohne Vorlage; der Kontrolltext endet mit den vorbelegten Zeilen samt Ergebnissen und mit Proben, die Python
+  nachgerechnet hat), `expose` -> .docx (PDF wie bei der Zusammenfassung; der Kontrolltext endet mit den Stellen
+  „[OFFEN: …]“), `bericht` -> .docx (PDF wie bei der Zusammenfassung).
 - Profil: dict, z. B. aus TOML. Vorlage mit Lias Stil: `beispiele/profil-lia-stil.toml` (ohne Namen, Fach und
   Lehrkraft trägt ihr Agent ein), mit Jans Stil: `beispiele/profil-jan-zusammenfassung.toml` (`erstellt_von` trägt
-  der dokumente-Agent ein), fürs Exposé: `beispiele/profil-jan-expose.toml` (`logo` = Pfad zur PNG trägt uni ein).
+  der dokumente-Agent ein, passt auch für den Bericht), fürs Exposé: `beispiele/profil-jan-expose.toml` (`logo` = Pfad zur PNG trägt uni ein).
   Felder und Standardwerte: `design.py`.
 - Vorlage: .docx/.pptx des Agenten (`<agent>/data/vorlagen/`); .dotx/.potx vorher mit `vorlage_umwandeln()`.
 - Vorschau: `<ziel ohne Endung>-vorschau/` mit PNG je Seite und PDF. Scheitert sie, steht der Grund in `hinweise`
@@ -47,8 +53,11 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 - `__init__.py`: `bauen`, `Ergebnis`, `pruefen`, `vorlage_umwandeln`, `BeschreibungUngueltig`.
 - `pruefung.py`: strenge Prüfung (reine Logik), `lesen()` liefert die Beschreibung mit allen Standardwerten. Grenzen
   stehen oben im Modul und in `FORMAT.md`, bei Änderung beide anpassen (`tests/test_format.py` prüft die Beispiele).
-- `arbeitsblatt.py`, `folien.py`, `zusammenfassung.py`, `expose.py`, `arbeitsmappe.py`: bauen aus der gelesenen
-  Beschreibung. `expose.py` erbt wie die Zusammenfassung von `arbeitsblatt._Bau`.
+- `arbeitsblatt.py`, `folien.py`, `zusammenfassung.py`, `expose.py`, `bericht.py`, `arbeitsmappe.py`: bauen aus der
+  gelesenen Beschreibung. `expose.py` erbt wie die Zusammenfassung von `arbeitsblatt._Bau`, `bericht.py` von
+  `zusammenfassung._Bau` (eigener Kopf, Fußzeile, Tabelle, Hinweis, Belege; nutzt `expose.LINK` und
+  `expose._spaltenbreiten`). Die Prüfung des Berichts nutzt `_z_block` der Zusammenfassung; Kennzeichen, Quellen-
+  und Hinweisarten stehen dafür im `_Pruefer` (Standard: Zusammenfassung, `_bericht` setzt eigene).
   `rechnung.py`: Rechensprache der Arbeitsmappe (reine Logik: zerlegen, gegen Spalten prüfen, Kreise, nach Excel
   übersetzen, in Python nachrechnen). Die Zusammenfassung
   erbt Seite, Schrift und XML-Hilfen vom Arbeitsblatt (`arbeitsblatt._Bau`), Änderungen dort wirken auf beide. `design.py`: Profil. `icons.py`: 55 Icons
@@ -121,6 +130,9 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 ## Entscheidungen (Jan, 21./22.10.)
 - Lias Stil ist der Maßstab. Das Profil gibt der Agent mit, der Renderer enthält keine Daten einer Person.
 - Formate docx und pptx. PDF entsteht nur als Teil der Vorschau, als Ausgabe für Lia ist es nicht vereinbart.
+- Bericht und vorbelegte Werte (Renderer-Chat 09.11., Jan hat den Auftrag freigegeben): eigene Art statt
+  Umbau der Zusammenfassung (deren Kopf und Kennzeichen bleiben unverändert); Werte als Erweiterung der
+  Arbeitsmappe, bestehende Beschreibungen bleiben gültig.
 - Kontrolle durch Claude: Vorschaubilder und Kontrolltext.
 - Vorlagen schlank: Kopf-/Fußzeilen, Logo, Ränder bzw. Master und Hintergrund aus der Vorlage, Inhalte im Stil des
   Profils. Fehlen der Word-Vorlage Listen- oder Überschriftenstile, setzt der Renderer Zeichen von Hand bzw. legt
@@ -137,9 +149,12 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 - Erst die Vorschau ansehen, dann „fertig“ sagen.
 
 ## Arbeitsmappe (Excel, gebaut 29.10. nach Jans Plan-Freigabe)
-- Format: `FORMAT.md`, Abschnitt Arbeitsmappe. Leere Vorlagen: Blätter mit Titel, Hinweisen, Spalten (`nummer`,
-  `text`, `zahl`, `rechnung`) und Zeilenzahl. Keine vorbelegten Werte und keine Auswahllisten (später nur erweitern;
-  keine Schülerdaten über Claude).
+- Format: `FORMAT.md`, Abschnitt Arbeitsmappe. Blätter mit Titel, Hinweisen, Spalten (`nummer`, `text`, `zahl`,
+  `rechnung`) und Zeilenzahl. Keine Auswahllisten. Seit 09.11. optional `werte` je Blatt (für finance-Modelle):
+  je Zeile ein Objekt für text- und zahl-Spalten, geprüft gegen ganz/min/max und |x| <= 1e9 (größere Beträge in
+  größerer Einheit, sonst wiese die Datenüberprüfung in Excel sie ab). FORMAT.md sagt: keine Daten über Personen
+  vorbelegen (keine Schülerdaten über Claude). Rechnungen nur innerhalb einer Zeile, keine Bezüge auf andere Zeilen
+  oder Blätter (z. B. Wachstum Jahr zu Jahr): bei Bedarf erweitern.
 - Formeln: Claude schreibt die Rechensprache (`mittelwert(n1:n5)`, `wenn_leer(2/3 * schnitt + 1/3 * lek, schnitt)`),
   nie Excel. `rechnung.py` erzeugt die Excel-Formel aus dem Baum. Leer-Regel: leer, solange ein benutzter Wert fehlt
   (summe/mittelwert/min/max: erst wenn alle fehlen), Excel `IF(COUNT(..)=0,"",..)`. COUNT statt ISBLANK, weil eine
@@ -149,7 +164,8 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
   kein Blattschutz, Kopf fixiert, A4 quer auf eine Seite, wenn dafür höchstens auf 70 % verkleinert wird
   (`MIN_MASSSTAB`, Schätzung `massstab_eine_seite`), sonst auf Seitenbreite; Titel bis Kopf auf jeder Seite,
   „Seite x von y“.
-  Gespeicherte Werte = Werte einer leeren Zeile (sonst zeigen Programme ohne Neuberechnung 0).
+  Gespeicherte Werte der Rechenfelder = Ergebnis der Zeile (vorbelegt oder leer), sonst zeigen Programme ohne
+  Neuberechnung 0.
 - Calc rechnet xlsx beim Laden nur neu mit `OOXMLRecalcMode` = 0 im Profil; `vorschau.umwandeln` schreibt das in jedes
   frische Profil. CSV-Ausgabe (`umwandeln(.., "csv")`) zeigt volle Genauigkeit, nur das erste Blatt.
 - Entscheidungen Jan 29.10.: Calc installiert, kein Blattschutz, Nachkommastellen nur Anzeige, ohne LEK zählt der
@@ -157,6 +173,17 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
 - Offen: Jan öffnet `data/nachbau/notentabelle/Notentabelle.xlsx` in Excel (Eingabeprüfung, Rechnung, Druck).
   Handvorlage des lia-Chats zum Vergleich fehlt auf dem Server. 35 Zeilen passen auf eine Druckseite (Maßstab
   etwa 80 %, Vorschau 30.10. neu gebaut und angesehen).
+
+## Bericht (gebaut 09.11. für finance)
+- Format: `FORMAT.md`, Abschnitt Bericht. Blöcke wie die Zusammenfassung, ohne Kurs/Vorlesungsdatum/Selbsttest;
+  Kopf: `rubrik`, Titel, Untertitel, „Stand“ (`datum` oder heute), „erstellt von“ aus dem Profil.
+- Belege: art `quelle` (ID, Zeichen `A-Za-z0-9._:-`, bis 60) oder `norm`; Kennzeichen `annahme`, `unsicher`.
+  Hinweisarten `wichtig` (Farbe `pruefungsrelevant`) und `einschraenkung` (Farbe `organisatorisch`).
+- Tabellenzellen dürfen `{text, quellen, kennzeichnung}` sein: Beleg klein in eigener Zeile der Zelle, Spalten-
+  breite nach Inhalt (Beleg zählt mit 0,8), Zahlen ab der zweiten Spalte rechtsbündig (`ZAHL_IN_ZELLE`).
+- `quellenverzeichnis` am Ende („Quellen“, ID fett, Text hängend, Links anklickbar). Gibt es eins, muss jede
+  benutzte ID darin stehen; IDs des Verzeichnisses in Texten sind ein Fehler (in Tabellenzellen erlaubt).
+- Kontrolltext: Zeilenumbrüche in Tabellenzellen erscheinen als Leerzeichen (gilt für alle docx-Arten).
 
 ## Offene Punkte
 1. Logo der HNEE: liegt bisher nur weiß als SVG vor (für dunklen Grund). Besser eine offizielle grüne Logo-Datei
@@ -170,7 +197,7 @@ ergebnis.pfad, ergebnis.kontrolltext, ergebnis.bilder, ergebnis.pdf, ergebnis.hi
    Icons im Folieninhalt etwas größer, Zeilennummern im Material (Lias Hilfen verweisen auf Zeilen).
 5. Exposé: Jan öffnet `data/nachbau/expose/Expose.docx` in Word (Silbentrennung, Rahmen unten, Links). Wunsch für
    später: Silbentrennung in der Vorschau (`hyphen-de` als root installieren).
-6. Später für Jans dokumente-Agent: weitere Arten (Brief, Bericht), Bearbeiten bestehender
+6. Später für Jans dokumente-Agent: weitere Arten (Brief; Bericht gibt es seit 09.11.), Bearbeiten bestehender
    Dateien (Anforderungen in `../../dokumente/STATUS.md`).
 
 ## Gelernte Regeln

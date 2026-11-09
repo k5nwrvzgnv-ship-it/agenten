@@ -1012,12 +1012,13 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     URL und Daten (GET ohne Daten wie bisher), Header nie in Cache, Meta oder Fehlertexten; ein eigener
     User-Agent ersetzt den Standard. Für den finance-Chat (in finance/STATUS.md übernehmen): Die Abrufer für
     GENESIS, TED, Comtrade und Jobsuche BA können jetzt gebaut werden; Domains der Allowlist gibt finance an.
-    Bedarf Renderer (an den Chat shared/renderer/): Für den finance-Bericht passt keine Art. zusammenfassung ist
-    auf Vorlesungen zugeschnitten (Pflicht kurs, datum der Vorlesung; quellen nur transkript/folie/norm),
-    arbeitsmappe beschreibt nur leere Vorlagen ohne Werte. finance braucht (a) Belege als Quellen-ID
-    (z. B. art "quelle", stelle "Q-20261109-genesis-3fa2c1") und als "annahme", ohne Vorlesungskopf, und
-    (b) eine Arbeitsmappe mit vorbelegten Werten (Eingaben mit Wert, Rechnungen wie bisher). Wie, entscheidet
-    der Renderer-Chat; bis dahin baut finance Bericht und Modell nicht.
+    Renderer erledigt (09.11.2026, Renderer-Chat): finance nutzt für den Bericht die neue Art `bericht` (.docx,
+    PDF aus `ergebnis.pdf`; Belege {"art": "quelle", "stelle": "<Quellen-ID>"}, Kennzeichen "annahme"/"unsicher",
+    Belege auch je Tabellenzelle, `quellenverzeichnis` mit Abgleich der IDs, kein Kurs/Vorlesungsdatum, Profil
+    wie beispiele/profil-jan-zusammenfassung.toml) und für das Modell die Art `arbeitsmappe` mit dem neuen Feld
+    `werte` je Blatt (vorbelegte Eingaben, Excel rechnet, Beträge <= 1e9, sonst größere Einheit). Format:
+    shared/renderer/FORMAT.md, Abschnitte Bericht und Arbeitsmappe. Offen beim finance-Chat: umstellen (STATUS
+    dort nennt noch Art zusammenfassung).
 33. lia/verwaltung (09.11.2026, Jan, lia-Chat): Lias Agent für Behördenformulare, erster Fall Verbeamtung Berlin
     (Termin 10.11.2026). Füllt das Formularpaket der SenBJF aus data/angaben.toml (Python, ohne Claude), Druck-PDF
     plus Checkliste. Eintrag in pruefen.sh ist gemacht. Bedarf hier, nichts davon eilt:
