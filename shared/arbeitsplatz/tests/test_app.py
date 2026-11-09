@@ -488,3 +488,17 @@ rueckmeldung = false
         status, html, _ = self.get(f"/dokument/{self.R}")
         self.assertEqual(status, 200)
         self.assertNotIn("Wirkt", html)
+
+
+class TestZuordnungApp(TestDokument):
+    def test_altes_ergebnis_am_ort(self):
+        pfad = self.instanz / "auftraege" / "erledigt" / f"{self.U}.json"
+        a = json.loads(pfad.read_text())
+        del a["ort"]
+        pfad.write_text(json.dumps(a))
+        self.assertNotIn("Exposé Holzschutz", self.get(f"/ort/{self.k}")[1])
+        (self.instanz / "orte-zuordnung.json").write_text(json.dumps({"zuordnung": {self.U: self.k}}))
+        self.assertIn("Exposé Holzschutz", self.get(f"/ort/{self.k}")[1])
+        self.assertIn(f'href="/ort/{self.k}"', self.get(f"/dokument/{self.U}")[1].split('aria-label="Brotkrumen"')[1][:600])
+        (self.instanz / "orte-zuordnung.json").write_text("kaputt")
+        self.assertEqual(self.get(f"/ort/{self.k}")[0], 200)

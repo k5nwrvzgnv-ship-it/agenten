@@ -175,3 +175,17 @@ class TestDokumentAnsicht(unittest.TestCase):
                                 {NB: U}, {U: "Exposé"})
         self.assertEqual([(x["text"], x["usd"], x["link"], x["ok"]) for x in z],
                          [("Exposé", "0.12", f"/dokument/{U}", True), ("", "0.00", "", False)])
+
+
+class TestZuordnung(unittest.TestCase):
+    def test_alte_ergebnisse_ueber_zuordnung(self):
+        alle = [auftrag(U, ergebnis_dateien=["a/E.pdf"]), auftrag(NB, bezug=U),
+                auftrag("20261109-120000-uni-dddddd", ort="hier")]
+        z = logik.zuordnung_pruefen({"zuordnung": {U: "expose", "../x": "expose", NB: "Böse Id", "x": 3}})
+        self.assertEqual(z, {U: "expose"})
+        self.assertEqual([d["id"] for d in logik.dokumente(alle, "expose", {}, {}, z)], [U])
+        self.assertEqual(logik.dokumente(alle, "expose", {}, {}), [])
+        self.assertEqual(len(logik.dokumente(alle, None, {}, {}, z)), 2)
+        # Feld ort im Auftrag geht vor
+        self.assertEqual(logik.ort_von({"id": U, "ort": "hier"}, {U: "expose"}), "hier")
+        self.assertEqual(logik.zuordnung_pruefen([]), {})

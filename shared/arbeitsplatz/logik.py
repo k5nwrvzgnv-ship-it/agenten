@@ -9,6 +9,8 @@ import re
 from urllib.parse import quote, urlsplit
 
 from agentkit import orte
+from agentkit._ablage import ID_MUSTER as ID_AUFTRAG
+from agentkit.auftraege import REIHE_MUSTER as ORT_ID
 
 ORT_TRENNER = " › "
 TITEL_LANG = 90
@@ -190,25 +192,40 @@ def marke_von(kette: list[dict], final: dict | None) -> tuple[str, bool]:
     return f"Fassung {len(fertig)}", False
 
 
+def ort_von(ursprung: dict, zuordnung: dict[str, str]) -> str | None:
+    """Ort eines Dokuments: Feld ort des Ursprungs, sonst die Zuordnung alter Ergebnisse (orte-zuordnung.json)."""
+    return ursprung.get("ort") or zuordnung.get(ursprung["id"])
+
+
+def zuordnung_pruefen(daten) -> dict[str, str]:
+    """Inhalt von orte-zuordnung.json ({"zuordnung": {ursprung: ort}}) -> nur gültige Paare."""
+    roh = daten.get("zuordnung") if isinstance(daten, dict) else None
+    if not isinstance(roh, dict):
+        return {}
+    return {u: o for u, o in roh.items() if isinstance(u, str) and isinstance(o, str)
+            and ID_AUFTRAG.match(u) and ORT_ID.fullmatch(o)}
+
+
 def dokumente(auftraege: list[dict], ort_id: str | None, arten_namen: dict[str, str],
-              finals: dict[str, dict | None]) -> list[dict]:
+              finals: dict[str, dict | None], zuordnung: dict[str, str] | None = None) -> list[dict]:
     """Dokumente, deren Ursprung am Ort ort_id liegt (None: alle mit Ort), neueste Änderung zuerst.
-    finals: Ursprung -> final-Eintrag aus agentkit.fassungen (oder None).
+    finals: Ursprung -> final-Eintrag aus agentkit.fassungen (oder None). zuordnung: siehe ort_von.
     Je Dokument {"id" (Ursprung), "titel", "art", "agent", "marke", "rot", "zeit", "link", "ort", "fassungen"}."""
     ergebnis = []
     for u, kette in ketten(auftraege).items():
         ursprung = kette[0]
         if ursprung["id"] != u:  # Ursprung nicht mehr da: Kette ohne Kopf, nicht zeigen
             continue
-        if ort_id is None and not ursprung.get("ort"):
+        ort = ort_von(ursprung, zuordnung or {})
+        if ort_id is None and not ort:
             continue
-        if ort_id is not None and ursprung.get("ort") != ort_id:
+        if ort_id is not None and ort != ort_id:
             continue
         marke, rot = marke_von(kette, finals.get(u))
         zeit = max((a.get("abgeschlossen") or a.get("erstellt") or "") for a in kette)
         ergebnis.append({"id": u, "titel": titel_von(kette, arten_namen), "art": arten_namen.get(ursprung.get("art")
                          or "", ""), "agent": ursprung.get("agent", ""), "marke": marke, "rot": rot, "zeit": zeit,
-                         "link": f"/dokument/{u}", "ort": ursprung.get("ort"),
+                         "link": f"/dokument/{u}", "ort": ort,
                          "fassungen": sum(1 for a in kette if a.get("status") == "erledigt")})
     return sorted(ergebnis, key=lambda d: (d["zeit"], d["id"]), reverse=True)
 

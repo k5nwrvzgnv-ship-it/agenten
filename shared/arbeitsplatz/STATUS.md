@@ -74,12 +74,24 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Caddy (von außen mit Passwort) macht Jan als root nach der Abnahme.
 
 ## Offene Punkte
-1. Umzug, Rest: Orte „Forschungsprojekt Fehlstellen“, „Modul Holzschutz“, „Finanzen“ sind noch nicht angelegt.
-   Alte Ergebnisse (Exposé-Kette 20261102-165741-uni-ac9dcc, finance-Läufe) tragen kein `ort` und erscheinen daher an
-   keinem Ort. Vorschlag (nicht gebaut, wartet auf Okay): Zuordnung alter Ursprünge zu Orten in einer eigenen Datei
-   der App statt die Aufträge zu ändern.
-2. Echte Läufe aus der App erst 10.11. 15 Uhr (ARBEITSPLATZ_AUFTRAEGE bleibt bis dahin aus).
-3. Orte liegen in `shared/orte.json` (nicht im Repo, wie die Aufträge). Sicherung prüfen.
+1. Umzug (09.11. nachts): Orte auf Jans Instanz angelegt: „Forschungsprojekt Fehlstellen“ mit „Exposé“, „Recherche“,
+   „Interviews“, „Schriftlicher Teil“; „Modul Holzschutz“; „Finanzen“. Alte Ergebnisse ohne Feld `ort` ordnet
+   `shared/orte-zuordnung.json` zu (`{"zuordnung": {ursprung: ort}}`, nicht im Repo, Aufträge bleiben unverändert;
+   das Feld `ort` eines Auftrags geht vor). Zugeordnet, weil eindeutig: Exposé-Kette 20261102-165741-uni-ac9dcc ->
+   Exposé; finance 4fdc5f, b3c246, fa0f3f -> Finanzen; Zusammenfassung 20261022-225119-dokumente-8e2548
+   („Vorlesung Integrierter Holzschutz“) -> Modul Holzschutz. Prüfungsübungen gibt es noch nicht als Aufträge.
+   Ohne Ort, weil nicht eindeutig (Jan entscheidet): 20261104-163834-uni-2ee98f (Exposé überarbeiten, eigene Kette),
+   20261103-104356-uni-49cf67 (Recherche für Henri zum Forschungsprojekt), 20261106-141103-uni-6e2f35 (Recherche
+   Smartphone-Photogrammetrie), 20261027-171320-uni-a4ca81 (Lernblatt Exkursion Holzschutz),
+   20261022-082205-uni-f0e6f1 (Transkript Holzschutz aufbereitet), 20261030-150241-uni-a54f6f (Vorlesung Sanierung
+   im Holzbau), die Probeläufe von dokumente 20261109-211357-...-a51635 (Präsentation) und -211605-...-c7647f
+   (Bericht) sowie alle übrigen Telegram-Aufträge (Mails, Termine, Fragen).
+   Zuordnen geht bisher nur über die Datei, nicht in der Oberfläche.
+2. ARBEITSPLATZ_AUFTRAEGE bleibt bis zu den echten Läufen aus.
+3. `shared/orte.json` und `orte-zuordnung.json` sind nicht im Repo und damit nicht in der nächtlichen Sicherung
+   (nur git push). Ins Repo käme die Datei nur über einen Weg wie commit-daten.sh; die Frage legt die koordinierende
+   Sitzung Jan am 10.11. vor. Bis dahin kein eigener Sicherungsweg.
+4. Echte Läufe 10.11. ab 15 Uhr: alle Arten außer Exposé, Recherche nur „kurz“ (Jans Entscheidung, siehe Plan).
 
 ## Gelernte Regeln
 (noch keine)

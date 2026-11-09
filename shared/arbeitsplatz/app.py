@@ -132,6 +132,20 @@ def finals() -> dict[str, dict | None]:
     return ergebnis
 
 
+ZUORDNUNG = "orte-zuordnung.json"  # alte Ergebnisse ohne Feld ort -> Ort (die Aufträge bleiben unverändert)
+
+
+def zuordnung() -> dict[str, str]:
+    pfad = INSTANZ / ZUORDNUNG
+    if not pfad.exists():
+        return {}
+    try:
+        return logik.zuordnung_pruefen(json.loads(pfad.read_text(encoding="utf-8")))
+    except (OSError, ValueError) as f:
+        logger.error("%s nicht lesbar: %s", ZUORDNUNG, f)
+        return {}
+
+
 def heute_iso() -> str:
     return datetime.now(ZONE).date().isoformat()
 
@@ -258,7 +272,7 @@ def seite_heute(request: Request):
     baum = baum_laden()
     namen = arten_namen()
     alle = alle_auftraege()
-    docs = logik.dokumente(alle, None, namen, finals())
+    docs = logik.dokumente(alle, None, namen, finals(), zuordnung())
     for d in docs:
         d["ort_text"] = logik.ort_text(baum, d["ort"])
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
@@ -272,7 +286,7 @@ def seite_heute(request: Request):
 def seite_ort(request: Request, ort_id: str):
     baum = baum_laden()
     k = ort_oder_404(baum, ort_id)
-    docs = logik.dokumente(alle_auftraege(), ort_id, arten_namen(), finals())
+    docs = logik.dokumente(alle_auftraege(), ort_id, arten_namen(), finals(), zuordnung())
     for d in docs:
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
     return seite(request, "ort.html", {
@@ -580,7 +594,8 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
     kette, rueck = _dokument(ursprung)
     baum = baum_laden()
     namen = arten_namen()
-    ort = kette[0].get("ort") if any(k["id"] == kette[0].get("ort") for k in baum) else None
+    ort = logik.ort_von(kette[0], zuordnung())
+    ort = ort if any(k["id"] == ort for k in baum) else None
     titel = logik.titel_von(kette, namen)
     marke, rot = logik.marke_von(kette, _stand(ursprung).get("final"))
     d = _ansicht(kette, rueck)
