@@ -28,7 +28,7 @@ class TestAbrufen(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.quellen = Path(self.tmp.name)
-        patch = mock.patch.multiple(agent, QUELLEN=self.quellen, cfg={"COMTRADE_KEY": "geheim"})
+        patch = mock.patch.multiple(agent, QUELLEN=self.quellen, cfg={"COMTRADE_KEY": "geheim"}, logger=mock.DEFAULT)
         patch.start()
         self.addCleanup(patch.stop)
         self.addCleanup(self.tmp.cleanup)

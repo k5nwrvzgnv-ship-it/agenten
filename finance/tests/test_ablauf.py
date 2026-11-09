@@ -99,8 +99,8 @@ class TestAblauf(Basis):
         self.assertEqual(len(claude.prompts), 5)
         self.assertIn("data/recherchen/a1/schritt1.json", claude.prompts[1])  # vorige Schritte werden genannt
         text = ablauf.bericht_text("Robotik", erg, "data/recherchen/a1")
-        self.assertIn("Fertig, 1 Hypothese(n)", text)
-        self.assertIn("Nachrüstung (Sicherheit: mittel)", text)
+        self.assertIn("Fertig. 1 Hypothese:", text)
+        self.assertIn("Nachrüstung (Sicherheit mittel)", text)
 
     def test_webquelle_wird_abgelegt_und_ersetzt(self):
         claude = FalschesClaude(self.ordner, {1: [GUELTIG[1]]})
@@ -131,7 +131,7 @@ class TestAblauf(Basis):
         self.assertFalse(erg[0].ok)
         self.assertEqual(erg[0].laeufe, 3)
         self.assertIn("steht nicht im Zitat", erg[0].fehler[0])
-        self.assertIn("Abgebrochen in Schritt 1", ablauf.bericht_text("Robotik", erg, "x"))
+        self.assertIn("Abgebrochen bei Schritt 1", ablauf.bericht_text("Robotik", erg, "x"))
 
     def test_zitat_nicht_auf_seite_und_seite_nicht_ladbar(self):
         daten = {"a": web(8.2, zitat="erfundenes Zitat 8,2"), "b": web(8.2, url="https://weg.de/x")}
@@ -216,7 +216,7 @@ class TestPrimaerdaten(Basis):
                                abrufen=FalscherAbruf())
         self.assertEqual([e.nr for e in erg], [1, 0, 2, 3, 4, 5])
         self.assertTrue(all(e.ok for e in erg), [e.fehler for e in erg])
-        self.assertIn("Primärdaten: 1 Abfragen abgelegt.", ablauf.bericht_text("Robotik", erg, "x"))
+        self.assertIn("davon 1 aus Statistiken", ablauf.bericht_text("Robotik", erg, "x"))
 
 
 class TestSchritte(unittest.TestCase):

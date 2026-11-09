@@ -193,30 +193,28 @@ def recherche(thema: str, hier: Path, ordner: Path, quellen_ordner: Path, laufen
 
 
 def bericht_text(thema: str, ergebnisse: list[SchrittErgebnis], ordner_rel: str) -> str:
-    """Kurzer Text für Jan (Telegram); Bericht und Modell hängen an (agent.dokumente)."""
+    """Kurzer Text für Jan (Telegram, Sprachprüfung der Zentrale); Bericht und Modell hängen an.
+
+    Technische Angaben (Läufe, Pfade, Hinweise) stehen im Log und in den Schritt-Dateien unter ordner_rel.
+    """
     letzte = ergebnisse[-1]
     zeilen = [f"Recherche: {thema}"]
     if not letzte.ok:
         name = schritte.schritt(letzte.nr).name
-        zeilen.append(f"Abgebrochen in Schritt {letzte.nr} ({name}) nach {letzte.laeufe} Läufen. Verbleibende Fehler:")
-        zeilen += [f"- {f}" for f in letzte.fehler[:10]]
-        if len(letzte.fehler) > 10:
-            zeilen.append(f"- ... und {len(letzte.fehler) - 10} weitere")
+        zeilen.append(f"Abgebrochen bei Schritt {letzte.nr} ({name}). Grund:")
+        zeilen += [f"- {f}" for f in letzte.fehler[:5]]
+        if len(letzte.fehler) > 5:
+            zeilen.append(f"- und {len(letzte.fehler) - 5} weitere")
     else:
         hyp = next((e.daten.get("hypothesen", []) for e in ergebnisse if e.nr == 4 and e.daten), [])
-        zeilen.append(f"Fertig, {len(hyp)} Hypothese(n):")
-        zeilen += [f"- {h.get('titel')} (Sicherheit: {h.get('sicherheit')})" for h in hyp]
+        zeilen.append(f"Fertig. {len(hyp)} {'Hypothese' if len(hyp) == 1 else 'Hypothesen'}:")
+        zeilen += [f"- {h.get('titel')} (Sicherheit {h.get('sicherheit')})" for h in hyp]
     quellen_ids = set().union(*(e.quellen for e in ergebnisse))
     annahmen = sum(len(e.annahmen) for e in ergebnisse)
-    hinweise = sum(len(e.hinweise) for e in ergebnisse)
     primaer = next((e for e in ergebnisse if e.nr == 0), None)
-    if primaer:
-        zeilen.append(f"Primärdaten: {len(primaer.quellen)} Abfragen abgelegt"
-                      + (f", {len(primaer.hinweise)} Hinweise (siehe abfragen_ergebnis.json)." if primaer.hinweise
-                         else "."))
-    zeilen.append(f"{len(quellen_ids)} Quellen, {annahmen} Annahmen, {hinweise} Zahlen aus Webquellen ohne Rohdaten-"
-                  f"abgleich. Läufe: {sum(e.laeufe for e in ergebnisse)}.")
-    zeilen.append(f"Bericht (PDF) und Modell (xlsx) im Anhang, Schritt-Dateien in finance/{ordner_rel}/.")
+    statistik = f", davon {len(primaer.quellen)} aus Statistiken" if primaer else ""
+    zeilen.append(f"Belege: {len(quellen_ids)} Quellen{statistik}. {annahmen} Werte sind Annahmen.")
+    zeilen.append("Bericht und Modell hängen an.")
     return "\n".join(zeilen)
 
 

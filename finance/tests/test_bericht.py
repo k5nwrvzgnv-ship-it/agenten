@@ -95,7 +95,8 @@ class Dokumente(unittest.TestCase):
                 raise renderer.BeschreibungUngueltig(["blaetter[0]: kaputt"])
             return mock.Mock(pdf=ziel.with_suffix(".pdf"), pfad=ziel, hinweise=[])
 
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(agent, "QUELLEN", Path(tmp)):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(agent, "QUELLEN", Path(tmp)), \
+                mock.patch.object(agent, "logger"):  # nicht ins echte Log schreiben
             dateien, fehler = agent.dokumente("Robotik", erg, Path(tmp), _bauen=bauen)
         self.assertEqual([d.name for d in dateien], ["bericht.pdf"])
         self.assertEqual(aufrufe[0], ("bericht", "bericht.docx", True, "Agent finance"))
