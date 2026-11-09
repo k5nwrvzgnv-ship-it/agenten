@@ -1,0 +1,15 @@
+{
+  "art": "bericht",
+  "rubrik": "Praktikumsbericht",
+  "titel": "Praktikum im Sägewerk",
+  "untertitel": "Bericht über das Pflichtpraktikum",
+  "bloecke": [
+    {"typ": "ueberschrift", "text": "Einleitung"},
+    {"typ": "absatz", "text": "Mein Praktikum habe ich im Sägewerk verbracht. Zeitraum: [OFFEN: Beginn und Ende des Praktikums]."},
+    {"typ": "ueberschrift", "text": "Tätigkeiten"},
+    {"typ": "liste", "punkte": ["Rundholz vermessen", "Schnittholz sortieren"]},
+    {"typ": "ueberschrift", "text": "Reflexion"},
+    {"typ": "absatz", "text": "[OFFEN: Was hast du im Praktikum gelernt?]"}
+  ],
+  "offene_fragen": ["Wie heißt die Betreuerin im Betrieb?"]
+}

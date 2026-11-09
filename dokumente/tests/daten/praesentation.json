@@ -1,0 +1,18 @@
+{
+  "art": "folien",
+  "titel": "Holzfeuchte messen",
+  "untertitel": "Kurzvortrag im Seminar Holzphysik",
+  "icon": "lupe",
+  "folien": [
+    {"titel": "Warum die Holzfeuchte zählt", "icons": ["achtung"], "inhalt": [
+      {"typ": "punkte", "punkte": ["Holz quillt und schwindet mit der Feuchte", "Pilze brauchen Feuchte über etwa 20 %"]}]},
+    {"titel": "Darrmethode", "inhalt": [
+      {"typ": "kasten", "titel": "Ablauf", "absaetze": ["Probe wiegen, bei 103 °C trocknen, erneut wiegen."]},
+      {"typ": "text", "text": "u = (m_u − m_0) / m_0 · 100 %"}]},
+    {"titel": "Ergebnis unserer Messung", "inhalt": [
+      {"typ": "zentriert", "absaetze": ["[OFFEN: Messwerte der Gruppe fehlen im Material]"]}]},
+    {"titel": "Fazit", "inhalt": [{"typ": "spalten", "spalten": [
+      {"titel": "Darrmethode", "text": "genau, aber zerstörend"},
+      {"titel": "Widerstandsmessung", "text": "schnell, vor Ort"}]}]}
+  ]
+}

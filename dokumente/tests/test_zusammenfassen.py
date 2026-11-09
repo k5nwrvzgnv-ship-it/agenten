@@ -133,7 +133,7 @@ class TestAblauf(unittest.TestCase):
 
     def test_gerade_durch(self):
         f = self.lauf([{"beschreibung.json": BEISPIEL}, {"kontrolle.json": OK, "antwort": "Kurzfassung"}])
-        self.assertEqual(f.docx.name, "integrierter-holzschutz-grundlagen.docx")
+        self.assertEqual(f.datei.name, "integrierter-holzschutz-grundlagen.docx")
         self.assertEqual(f.pdf, self.ordner / "integrierter-holzschutz-grundlagen.pdf")
         self.assertTrue(f.pdf.is_file())
         self.assertEqual((f.kontrollen, f.antwort, f.sitzung), (1, "Kurzfassung", "sitzung-1"))

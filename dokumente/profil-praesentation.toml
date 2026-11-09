@@ -1,0 +1,11 @@
+# Design-Profil für Jans Präsentationen (Renderer-Art "folien", Art praesentation im Arbeitsplatz).
+# Werte und Bedeutung: ../shared/renderer/design.py. HNEE-Farben wie in profil-zusammenfassung.toml:
+# Burnham 00261E (dunkelgrün) für Titel, Striche, Balken; Kästen hellgrau.
+
+folien_schrift = "Calibri"
+folien_titelschrift = "Calibri"
+
+[farben]
+akzent = "00261E"      # HNEE Burnham: Titel, Strich, Balken der Titelfolie und der Kästen, Leitfrage
+kasten = "F2F2F2"      # Kästen, Spalten, Auswahl (hellgrau)
+satzanfang = "196B24"  # Satzanfänge, Smiley (Standard des Renderers)
