@@ -78,11 +78,17 @@ Ausgabe: PDF-Bericht über den Renderer (Art zusammenfassung, ergebnis.pdf) und 
      (`https://comtradeapi.un.org/data/v1/get/C/A/HS?...`, Header `Ocp-Apim-Subscription-Key`).
      Achtung: die Abfrage DE/2023/HS 8479/Export/Welt lieferte 38 Zeilen statt einer (vermutlich Aufteilung
      nach Zollverfahren/Transportart, Beschreibungsfelder leer ohne includeDesc) - beim Bau klären.
-   - Offen: EPO OPS (Jan), Prüfung Eurostat/TED/Jobsuche ohne Konto.
-2. .venv anlegen: `python3 -m venv .venv`, agentkit per .pth (siehe ../STATUS.md, Stand), Pakete des
-   Renderers laut shared/renderer/requirements.txt. Weitere Pakete nur nach Jans Okay, dann in
-   requirements.txt. Danach in pruefen.sh `finance|python3|tests` auf `finance|.venv/bin/python|tests`
-   umstellen (Bedarf an den Hauptordner-Chat, in ../STATUS.md eintragen) und tests/test_geruest.py ersetzen.
+   - Ohne Konto geprüft (09.11.2026, je eine Testabfrage HTTP 200):
+     Eurostat `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/<datensatz>?...`;
+     TED `POST https://api.ted.europa.eu/v3/notices/search` (JSON query, z. B. classification-cpv=42997300
+     Industrieroboter: 2739 Treffer); Jobsuche BA `https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs`
+     mit öffentlichem Header `X-API-Key: jobboerse-jobsuche` (v4 liefert 403; Treffer in `ergebnisliste`,
+     Gesamtzahl `maxErgebnisse`).
+   - Offen: EPO OPS (Jan trägt EPO_OPS_KEY und EPO_OPS_SECRET ein, danach Test).
+2. .venv steht (09.11.2026): Pakete laut requirements.txt (= shared/renderer/requirements.txt), agentkit per
+   .pth, Tests damit grün. Weitere Pakete nur nach Jans Okay. Offen: pruefen.sh noch auf `python3`, Umstellung
+   auf `.venv/bin/python` ist in ../STATUS.md (Punkt 32) an den Hauptordner-Chat gemeldet;
+   tests/test_geruest.py beim Bau ersetzen.
 3. Dienst einrichten (nach Jans Okay): systemd/finance.service nach ~/.config/systemd/user/ kopieren,
    `systemctl --user daemon-reload`, dann die Zentrale neu starten, damit `/finance` erscheint.
    Monatlicher Prognose-Timer ebenso erst nach Jans Okay.
