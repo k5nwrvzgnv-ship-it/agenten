@@ -1,0 +1,237 @@
+<title>Arbeitsplatz Entwurf</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap">
+<style>
+/* Layout: drei Spalten wie Lias App (Baum | Seite | Läuft gerade), Modernist: schwarz auf weiß, Rot nur für "wartet auf dich" */
+:root{
+  --bg:#ffffff; --fg:#111111; --leise:#6b6b6b; --linie:#e3e3e3; --flaeche:#f5f5f4; --rot:#d4291b; --ok:#1f7a3d;
+  --schrift:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --titel:"Inter Tight","Inter",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121212;--fg:#ededed;--leise:#9a9a9a;--linie:#2c2c2c;--flaeche:#1c1c1c;--rot:#ff5a4a;--ok:#4cc27a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121212;--fg:#ededed;--leise:#9a9a9a;--linie:#2c2c2c;--flaeche:#1c1c1c;--rot:#ff5a4a;--ok:#4cc27a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--schrift);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+.hinweis-entwurf{font-size:12px;color:var(--leise);border-bottom:1px solid var(--linie);padding-bottom:8px;margin-bottom:16px}
+.rahmen{display:grid;grid-template-columns:240px minmax(0,1fr) 260px;gap:32px;max-width:1300px;margin:0 auto}
+@media (max-width:1000px){.rahmen{grid-template-columns:200px minmax(0,1fr)}.rechts{grid-column:1/-1}}
+@media (max-width:640px){.rahmen{grid-template-columns:minmax(0,1fr)}.baum{order:2}.mitte{order:1}.rechts{order:3}}
+nav.baum{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.baum a{color:var(--fg);text-decoration:none;padding:4px 8px;border-radius:4px;display:flex;justify-content:space-between;gap:8px}
+.baum a:hover,.baum a:focus-visible{background:var(--flaeche);outline:none}
+.baum a.aktiv{background:var(--fg);color:var(--bg)}
+.baum .t1{padding-left:20px}.baum .t2{padding-left:32px}.baum .t3{padding-left:44px}
+.baum .plus{color:var(--leise);font-size:12px}
+.baum .abschnitt{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise);margin:14px 8px 4px}
+.zahl{color:var(--rot);font-weight:600}
+.krumen{font-size:12px;color:var(--leise);margin-bottom:6px}
+.krumen a{color:var(--leise)}
+h1{font-family:var(--titel);font-size:40px;line-height:1.1;margin:0 0 8px;text-wrap:balance}
+h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise);margin:28px 0 8px;font-weight:600}
+.kopf{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.knopf{font:inherit;font-weight:500;border:1px solid var(--fg);background:var(--bg);color:var(--fg);padding:7px 14px;border-radius:4px;cursor:pointer;text-decoration:none;display:inline-block}
+.knopf.voll{background:var(--fg);color:var(--bg)}
+.knopf:focus-visible{outline:2px solid var(--rot);outline-offset:2px}
+.zeilen{display:flex;flex-direction:column;border-top:1px solid var(--linie)}
+.zeile{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--linie);color:var(--fg);text-decoration:none}
+.zeile:hover .name{text-decoration:underline}
+.name{font-weight:500}.unter{font-size:12px;color:var(--leise)}
+.marke{font-size:12px;white-space:nowrap}
+.marke.wartet{color:var(--rot);font-weight:600}.marke.final{color:var(--ok)}.marke.laeuft{color:var(--leise)}
+.galerie{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.karte{border:1px solid var(--linie);border-radius:6px;padding:14px;text-align:left;font:inherit;background:var(--bg);color:var(--fg);cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.karte:hover,.karte:focus-visible{border-color:var(--fg);outline:none}
+.karte .agent{font-size:12px;color:var(--leise)}
+.karte.aus{opacity:.5;cursor:default}
+form{display:flex;flex-direction:column;gap:14px;max-width:560px}
+label{display:flex;flex-direction:column;gap:4px;font-weight:500}
+input,select,textarea{font:inherit;padding:8px;border:1px solid var(--linie);border-radius:4px;background:var(--bg);color:var(--fg)}
+textarea{min-height:90px}
+.ort-chip{font-size:12px;background:var(--flaeche);padding:6px 10px;border-radius:4px;align-self:flex-start}
+.doc{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:24px}
+@media (max-width:640px){.doc{grid-template-columns:minmax(0,1fr)}}
+.seite{aspect-ratio:1/1.414;max-width:100%;border:1px solid var(--linie);background:var(--flaeche);padding:18px;display:flex;flex-direction:column;gap:6px}
+.seite i{display:block;height:6px;background:var(--linie);border-radius:2px}
+.knoepfe{display:flex;flex-direction:column;gap:8px}
+.rechts{font-size:13px;display:flex;flex-direction:column;gap:6px}
+.lauf{border-top:1px solid var(--linie);padding:8px 0}
+.kosten{font-variant-numeric:tabular-nums;color:var(--leise)}
+.bestaetigt{background:var(--flaeche);padding:10px 14px;border-radius:4px;margin-bottom:12px}
+</style>
+
+<div class="hinweis-entwurf">Entwurf zum Anklicken. Inhalte sind Beispiele aus deinen echten Orten, nichts davon ist gebaut oder verbunden.</div>
+
+<div class="rahmen">
+  <nav class="baum" aria-label="Orte">
+    <a href="#heute" data-ziel="heute">Heute <span class="zahl">2</span></a>
+    <div class="abschnitt">Orte</div>
+    <a href="#projekt" data-ziel="projekt">Forschungsprojekt Fehlstellen</a>
+    <a href="#expose" class="t1" data-ziel="expose">Exposé</a>
+    <a href="#projekt" class="t1" data-ziel="projekt">Recherche</a>
+    <a href="#projekt" class="t1" data-ziel="projekt">Interviews</a>
+    <a href="#projekt" class="t1" data-ziel="projekt">Schriftlicher Teil</a>
+    <a href="#projekt" class="t2" data-ziel="projekt">Kapitel 1 Einleitung</a>
+    <a href="#projekt" class="t2" data-ziel="projekt">Kapitel 2 Stand der Technik</a>
+    <a href="#projekt" class="t1 plus" data-ziel="projekt">+ Seite</a>
+    <a href="#modul" data-ziel="modul">Modul Holzschutz</a>
+    <a href="#finanzen" data-ziel="finanzen">Finanzen</a>
+    <a href="#heute" class="plus" data-ziel="heute">+ Seite</a>
+    <div class="abschnitt">Mehr</div>
+    <a href="#arten" data-ziel="arten">Dokumentarten</a>
+  </nav>
+
+  <main class="mitte">
+    <section id="v-heute">
+      <div class="krumen">Heute</div>
+      <h1>Heute</h1>
+      <h2>Wartet auf dich</h2>
+      <div class="zeilen">
+        <a class="zeile" href="#dokument"><span><span class="name">Exposé Fehlstellenerkennung</span><br><span class="unter">Forschungsprojekt Fehlstellen › Exposé · Fassung 3 nach deiner Rückmeldung</span></span><span class="marke wartet">wartet auf dich</span></a>
+        <a class="zeile" href="#finanzen"><span><span class="name">Robotik und KI in der Holzindustrie</span><br><span class="unter">Finanzen · Wirtschaftlichkeit</span></span><span class="marke wartet">neu</span></a>
+      </div>
+      <h2>Fertig</h2>
+      <div class="zeilen">
+        <a class="zeile" href="#modul"><span><span class="name">Lernkarten Holzschutzmittel</span><br><span class="unter">Modul Holzschutz</span></span><span class="marke final">final</span></a>
+      </div>
+    </section>
+
+    <section id="v-projekt" hidden>
+      <div class="krumen"><a href="#heute">Heute</a></div>
+      <div class="kopf"><h1>Forschungsprojekt Fehlstellen</h1><a class="knopf voll" href="#neu">+ Neu hier</a></div>
+      <h2>Seiten</h2>
+      <div class="zeilen">
+        <a class="zeile" href="#expose"><span class="name">Exposé</span><span class="marke">1 Dokument</span></a>
+        <a class="zeile" href="#projekt"><span class="name">Recherche</span><span class="marke">2 Berichte</span></a>
+        <a class="zeile" href="#projekt"><span class="name">Interviews</span><span class="marke">leer</span></a>
+        <a class="zeile" href="#projekt"><span class="name">Schriftlicher Teil</span><span class="marke">2 Unterseiten</span></a>
+      </div>
+      <h2>Dokumente hier</h2>
+      <div class="zeilen">
+        <a class="zeile" href="#projekt"><span><span class="name">Kamera oder RealSense</span><br><span class="unter">Research-Bericht</span></span><span class="marke final">final</span></a>
+      </div>
+    </section>
+
+    <section id="v-expose" hidden>
+      <div class="krumen"><a href="#heute">Heute</a> › <a href="#projekt">Forschungsprojekt Fehlstellen</a></div>
+      <div class="kopf"><h1>Exposé</h1><a class="knopf voll" href="#neu">+ Neu hier</a></div>
+      <h2>Dokumente hier</h2>
+      <div class="zeilen">
+        <a class="zeile" href="#dokument"><span><span class="name">Exposé Fehlstellenerkennung</span><br><span class="unter">Exposé · Fassung 3</span></span><span class="marke wartet">wartet auf dich</span></a>
+      </div>
+    </section>
+
+    <section id="v-modul" hidden>
+      <div class="krumen"><a href="#heute">Heute</a></div>
+      <div class="kopf"><h1>Modul Holzschutz</h1><a class="knopf voll" href="#neu">+ Neu hier</a></div>
+      <h2>Dokumente hier</h2>
+      <div class="zeilen">
+        <a class="zeile" href="#modul"><span><span class="name">Lernkarten Holzschutzmittel</span><br><span class="unter">Lernkarten · eigene Ansicht: üben</span></span><span class="marke final">final</span></a>
+        <a class="zeile" href="#modul"><span><span class="name">Probeprüfung 04.11.</span><br><span class="unter">Mündliche Prüfung üben · eigene Ansicht: Auswertung</span></span><span class="marke">ausgewertet</span></a>
+        <a class="zeile" href="#modul"><span><span class="name">Vorlesung 5 Chemischer Holzschutz</span><br><span class="unter">Vorlesungszusammenfassung</span></span><span class="marke laeuft">läuft seit 21:02</span></a>
+      </div>
+    </section>
+
+    <section id="v-finanzen" hidden>
+      <div class="krumen"><a href="#heute">Heute</a></div>
+      <div class="kopf"><h1>Finanzen</h1><a class="knopf voll" href="#neu">+ Neu hier</a></div>
+      <h2>Dokumente hier</h2>
+      <div class="zeilen">
+        <a class="zeile" href="#finanzen"><span><span class="name">Robotik und KI in der Holzindustrie</span><br><span class="unter">Wirtschaftlichkeit · Bericht und Modell (Excel)</span></span><span class="marke wartet">neu</span></a>
+        <a class="zeile" href="#finanzen"><span><span class="name">Robotik und KI: Anlagemöglichkeiten</span><br><span class="unter">Anlagemöglichkeiten</span></span><span class="marke">Fassung 1</span></a>
+      </div>
+    </section>
+
+    <section id="v-neu" hidden>
+      <div class="krumen"><a href="#heute">Heute</a> › <a href="#projekt">Forschungsprojekt Fehlstellen</a> › Neu</div>
+      <h1>Was soll entstehen?</h1>
+      <p class="unter">Für: Forschungsprojekt Fehlstellen. Nur Arten, die ein Agent wirklich kann, sind wählbar.</p>
+      <div class="galerie">
+        <button class="karte" data-gehe="formular"><b>Präsentation</b><span class="unter">Folien aus Material oder Stichpunkten</span><span class="agent">PowerPoint und PDF</span></button>
+        <button class="karte" data-gehe="formular"><b>Research-Bericht</b><span class="unter">Aussagen mit Belegen zu einer Frage</span><span class="agent">PDF, Belege im Browser</span></button>
+        <button class="karte" data-gehe="formular"><b>Exposé</b><span class="unter">Fassung nach deinen Kommentaren</span><span class="agent">Word und PDF</span></button>
+        <button class="karte" data-gehe="formular"><b>Bericht</b><span class="unter">z. B. Praktikumsbericht, Lücken als [OFFEN]</span><span class="agent">Word und PDF</span></button>
+        <button class="karte" data-gehe="formular"><b>Vorlesungszusammenfassung</b><span class="unter">aus Folien und Skript</span><span class="agent">Word und PDF</span></button>
+        <button class="karte" data-gehe="formular"><b>Lernkarten</b><span class="unter">zum Üben im Browser</span><span class="agent">eigene Ansicht</span></button>
+        <button class="karte" data-gehe="formular"><b>Mündliche Prüfung üben</b><span class="unter">Transkript hochladen, Auswertung</span><span class="agent">eigene Ansicht</span></button>
+        <button class="karte" data-gehe="formular"><b>Wirtschaftlichkeit</b><span class="unter">Wo liegt Gewinn, drei Hypothesen</span><span class="agent">PDF und Excel</span></button>
+      </div>
+    </section>
+
+    <section id="v-formular" hidden>
+      <div class="krumen"><a href="#heute">Heute</a> › <a href="#projekt">Forschungsprojekt Fehlstellen</a> › <a href="#neu">Neu</a> › Präsentation</div>
+      <h1>Präsentation</h1>
+      <form id="formular-praes">
+        <span class="ort-chip">Ort: Forschungsprojekt Fehlstellen</span>
+        <label for="f-thema">Thema<input id="f-thema" value="Zwischenstand Fehlstellenerkennung für Böhme"></label>
+        <label for="f-ziel">Für wen<input id="f-ziel" value="Betreuer und Gruppe, 10 Minuten"></label>
+        <label for="f-umfang">Umfang<select id="f-umfang"><option>5 Folien</option><option selected>10 Folien</option><option>20 Folien</option></select></label>
+        <label for="f-material">Material<textarea id="f-material">Nimm das aktuelle Exposé und den Recherche-Bericht Kamera oder RealSense.</textarea></label>
+        <label for="f-datei">Dateien<input id="f-datei" type="file" multiple></label>
+        <div><button class="knopf voll" type="submit">Abschicken</button></div>
+      </form>
+    </section>
+
+    <section id="v-dokument" hidden>
+      <div id="bestaetigung" class="bestaetigt" hidden>Ist unterwegs. Das Ergebnis erscheint hier und unter Heute.</div>
+      <div class="krumen"><a href="#heute">Heute</a> › <a href="#projekt">Forschungsprojekt Fehlstellen</a> › <a href="#expose">Exposé</a></div>
+      <h1>Exposé Fehlstellenerkennung</h1>
+      <p class="unter">Exposé · Word · Fassung 3 vom 09.11., 18:40 · <span class="marke wartet">wartet auf dich</span></p>
+      <div class="doc">
+        <div class="seite" aria-label="Vorschau Seite 1"><b>Automatisierte Fehlstellenerkennung an Lamellen</b><i></i><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i></div>
+        <div class="knoepfe">
+          <button class="knopf voll" type="button">Rückmeldung geben</button>
+          <button class="knopf" type="button">In Word öffnen</button>
+          <button class="knopf" type="button">PDF</button>
+          <button class="knopf" type="button">Eigene Fassung hochladen</button>
+          <button class="knopf" type="button">Als final markieren</button>
+        </div>
+      </div>
+      <h2>Das Wichtigste</h2>
+      <p>Kapitel 3 neu gegliedert, zwei Quellen ersetzt. Offen: Lieferzustand der Lamellen (sortiert oder unsortiert).</p>
+      <h2>Fassungen</h2>
+      <div class="zeilen">
+        <div class="zeile"><span><span class="name">Fassung 3</span><br><span class="unter">vom Agenten, 09.11. 18:40, nach deiner Rückmeldung</span></span><span class="marke">steht oben</span></div>
+        <div class="zeile"><span><span class="name">Deine Anmerkungen</span><br><span class="unter">kommentare.pdf, 6 Kommentare</span></span><span class="marke"></span></div>
+        <div class="zeile"><span><span class="name">Fassung 2</span><br><span class="unter">vom Agenten, 03.11.</span></span><span class="marke"></span></div>
+      </div>
+    </section>
+
+    <section id="v-arten" hidden>
+      <div class="krumen"><a href="#heute">Heute</a></div>
+      <h1>Dokumentarten</h1>
+      <p class="unter">Kommen aus einer Datei. Neue Art = neuer Eintrag, kein neuer Code, solange ein Agent sie kann.</p>
+      <div class="zeilen">
+        <div class="zeile"><span class="name">Research-Bericht</span><span class="marke">uni · läuft</span></div>
+        <div class="zeile"><span class="name">Exposé</span><span class="marke">uni · läuft</span></div>
+        <div class="zeile"><span class="name">Lernkarten</span><span class="marke">uni · läuft</span></div>
+        <div class="zeile"><span class="name">Mündliche Prüfung üben</span><span class="marke">uni · läuft</span></div>
+        <div class="zeile"><span class="name">Vorlesungszusammenfassung</span><span class="marke">dokumente · läuft</span></div>
+        <div class="zeile"><span class="name">Wirtschaftlichkeit, Anlagemöglichkeiten</span><span class="marke">finance · läuft</span></div>
+        <div class="zeile"><span class="name">Präsentation</span><span class="marke laeuft">dokumente · im Bau</span></div>
+        <div class="zeile"><span class="name">Bericht</span><span class="marke laeuft">dokumente · im Bau</span></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="rechts" aria-label="Läuft gerade">
+    <h2 style="margin-top:0">Läuft gerade</h2>
+    <div class="lauf"><b>Vorlesung 5 Chemischer Holzschutz</b><br><span class="unter">Modul Holzschutz · seit 21:02</span></div>
+    <h2>Letzte Läufe</h2>
+    <div class="lauf kosten">Exposé Fassung 3 · 0,82 USD</div>
+    <div class="lauf kosten">Robotik und KI · 6,85 USD</div>
+    <div class="lauf kosten">Kontingent diese Woche · 41 %</div>
+  </aside>
+</div>
+
+<script>
+const ansichten=["heute","projekt","expose","modul","finanzen","neu","formular","dokument","arten"];
+function zeigen(){
+  const h=(location.hash||"#heute").slice(1); const ziel=ansichten.includes(h)?h:"heute";
+  ansichten.forEach(a=>{document.getElementById("v-"+a).hidden=(a!==ziel)});
+  document.querySelectorAll(".baum a").forEach(a=>a.classList.toggle("aktiv",a.getAttribute("href")==="#"+ziel&&!a.classList.contains("plus")&&a.textContent.trim()!=="Recherche"&&a.textContent.trim()!=="Interviews"&&!a.classList.contains("t2")&&a.textContent.trim()!=="Schriftlicher Teil"));
+  if(ziel!=="dokument")document.getElementById("bestaetigung").hidden=true;
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-gehe]").forEach(b=>b.addEventListener("click",()=>{location.hash=b.dataset.gehe}));
+document.getElementById("formular-praes").addEventListener("submit",e=>{e.preventDefault();location.hash="dokument";setTimeout(()=>{document.getElementById("bestaetigung").hidden=false},0)});
+window.addEventListener("hashchange",zeigen); zeigen();
+</script>
