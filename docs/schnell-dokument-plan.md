@@ -1,6 +1,7 @@
 # Plan: Schnelle Dokumente und kleine Änderungen (Lia)
 
-Stand 10.11.2026. Nur Plan, nichts gebaut. Entscheidungen bei Jan (Abschnitt 6).
+Stand 10.11.2026. Nur Plan, nichts gebaut. Jans Entscheidungen 10.11.2026: alle sechs Empfehlungen aus Abschnitt 6
+angenommen.
 
 ## 1. Anlass
 Lia (über Jan, 10.11.2026): In claude.ai ist sie schneller, auch wenn sie 100 Prompts braucht, weil **kleine
@@ -82,7 +83,7 @@ Je Schritt ein Commit über commit.sh, `./pruefen.sh` grün (nur mit Sperre), Te
   Wünsche an den gründlichen Weg.
 - Claude könnte einen großen Wunsch für klein halten (oder umgekehrt). Probe und die zwei Wochen zeigen, wie oft.
 
-## 6. Entscheidungen für Jan
+## 6. Entscheidungen (Jan 10.11.2026: alle wie empfohlen)
 1. **Eigener Agent `lia/schnell`** statt eines Modus in lia/unterricht und lia/theater? Ein Ort für alles Schnelle,
    die gründlichen Agenten bleiben unverändert. **Empfehlung: ja.**
 2. **Rückmeldung am Dokument geht immer zuerst an den schnellen Weg**, Claude entscheidet klein oder groß, groß

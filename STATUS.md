@@ -1102,7 +1102,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Drop. Probe 10.11. (claude 2.1.304): Grep/Glob halten die Read-Pfadgrenze, eigener MCP-Server mit Bordmitteln
     geht mit claude -p (allow/deny je Werkzeug). Dieser Plan ruht: Lia (über Jan, 10.11.) störte vor allem, dass
     kleine Änderungen an Dokumenten ewig dauern (Nachbesserungen 7–67 min) und dass schnelle Dokumente anderer Art
-    fehlen. Neuer Plan dafür: docs/schnell-dokument-plan.md (Agent lia/schnell, Entscheidungen bei Jan, Abschnitt 6).
+    fehlen. Neuer Plan dafür: docs/schnell-dokument-plan.md (Agent lia/schnell). Jan 10.11.2026: alle sechs
+    Entscheidungen wie empfohlen (eigener Agent lia/schnell, Rückmeldung am Dokument zuerst schnell, groß geht von
+    selbst an die gründliche Nachbesserung, schnelle Dokumente mit Hinweis ohne Quellenprüfung, Sonnet, Schalter für
+    die alte Oberfläche der Web-App, Pakete wie lia/unterricht). Bau nach Plan Abschnitt 4, je Ordner im eigenen
+    Chat: (1) Hauptordner: [weitergabe] schnell, feedback „nur lernen“; (2) lia/schnell; (3) shared/webapp.
     Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
     weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
     reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.
