@@ -47,7 +47,7 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 - Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
   schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
-## UX-Befund und Umbauplan (Stand 10.11.2026, Schritte 1 bis 3 gebaut)
+## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 4 gebaut, 4 noch ohne Neustart)
 `befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
 `umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
 ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Wird
@@ -73,8 +73,18 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   Löschen (Stunde); Bearbeiten, Stundenplan, Zusatztermin (Klasse). Auf den Seiten keine Knopfreihen und Formularzeilen
   mehr. Im Archiv „Wiederherstellen“ am Hinweis. Einzelheiten und Abweichungen im Plan. Rundgang 10.11. gegen 8791:
   615 Seiten, alle 200, `lia/instanz` unverändert. Nicht im Browser angesehen (Menü auf und zu, Formulare im Menü bei
-  schmalem Fenster, Ziehen der Stunden mit dem Formular im zugeklappten „···“). Nächster Schritt: 4 (direkt am Ding,
-  JavaScript; braucht Python-Neustart für die Titel-Routen).
+  schmalem Fenster, Ziehen der Stunden mit dem Formular im zugeklappten „···“).
+- Schritt 4 gebaut und committet (Jans Okay 10.11.): Titel anklicken und umbenennen (Reihe, Klasse, Stunde, Gespräch;
+  `_direkt.html`, `statisch/direkt.js`), Datei auf die Seite ziehen oder „Datei“ im „+“ öffnet die Auswahl, Regeltext
+  erst mit gewählter Datei, Stunden per Finger ziehen (`ziehen.js`). Neue Routen `/reihe/<id>/titel`,
+  `/klasse/<id>/titel`. Live sind Vorlagen und JS: Stunde und Gespräch lassen sich schon am Titel umbenennen, Reihe und
+  Klasse erst nach dem Neustart (die Vorlagen fragen `titel_aktion` ab, das nur das neue Python liefert). Rundgang
+  11.11. gegen 8791 (altes Python, neue Vorlagen): 615 Seiten, alle 200, `lia/instanz` unverändert.
+  OFFEN: Neustart `systemctl --user restart webapp.service` (wartet auf Jans Okay), danach Rundgang wiederholen.
+  OFFEN: Pflicht-Probe im Browser (Plan Schritt 4): Titel klicken/Enter/Esc, „Datei“ im „+“, Datei ziehen, Stunde
+  ziehen mit Maus und am iPad mit Finger. Nicht gemacht: Jans Chrome nicht verbunden, headless Chromium auf dem
+  Server ohne Systembibliotheken. Nur Unittests (ohne JavaScript) und `node --check`.
+  Nächster Schritt danach: 5 (Raster mit rechter Spalte).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).
