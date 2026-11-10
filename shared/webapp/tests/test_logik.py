@@ -850,6 +850,27 @@ class TestReihen(unittest.TestCase):
             {"titel": "Kurze Sätze", "unter": "30.10.2026"}]}])
         self.assertEqual(logik.regel("Ohne Datum"), {"titel": "Ohne Datum", "unter": ""})
 
+    def test_regeln_mit_folgezeilen(self):
+        """Eingerückte Folgezeilen gehören zur Regel davor (lia/theater/STATUS.md bricht lange Regeln um)."""
+        status = ("## Gelernte Regeln\n"
+                  "- 01.11.2026: Rollentabellen enthalten keine Zitate, nur Stichpunkte zu den\n"
+                  "  Charaktereigenschaften.\n"
+                  "- 08.11.2026: Mini-Plots sind eigene Geschichten. (Feedback 20261108-143254-feedback-c0a861)\n"
+                  "\n"
+                  "  Nach einer Leerzeile nicht mehr.\n"
+                  "Freier Text beendet auch.\n"
+                  "  nicht angehängt\n"
+                  "## Aufbau\n"
+                  "  - fremd\n")
+        self.assertEqual(logik._regel_zeilen(status, "Gelernte Regeln"), [
+            "01.11.2026: Rollentabellen enthalten keine Zitate, nur Stichpunkte zu den Charaktereigenschaften.",
+            "08.11.2026: Mini-Plots sind eigene Geschichten. (Feedback 20261108-143254-feedback-c0a861)"])
+        g = logik.regeln_aus([("theater", status)])
+        self.assertEqual([r["titel"] for r in g[0]["regeln"]], [
+            "Rollentabellen enthalten keine Zitate, nur Stichpunkte zu den Charaktereigenschaften.",
+            "Mini-Plots sind eigene Geschichten."])
+        self.assertEqual(logik._regel_zeilen("  vorher\n## Gelernte Regeln\n  ohne Punkt\n", "Gelernte Regeln"), [])
+
     def test_varianten(self):
         self.assertEqual(logik.varianten_waehlen(["hilfekarten", "tuerkisch", "einfach", "einfach"]),
                          ["einfach", "hilfekarten"])  # Türkisch gibt es nicht mehr (Jan 30.10.)

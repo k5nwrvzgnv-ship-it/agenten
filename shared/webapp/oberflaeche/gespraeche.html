@@ -13,7 +13,6 @@
 </header>
 {% endblock %}
 {% block inhalt %}
-{%- if request.query_params.get("erledigt") == "gespraech-geloescht" %}<p class="hinweis hinweis-erledigt" role="status">Gespräch gelöscht.</p>{% endif %}
 <section aria-labelledby="ab-g">
   <h2 id="ab-g">Gespräche</h2>
   {%- if zeilen %}<ul class="liste">{% for z in zeilen %}{{ gespraech_zeile(z) }}{% endfor %}</ul>

@@ -45,6 +45,9 @@
 </div>
 {%- elif request.query_params.get("erledigt") == "nichts" %}
 <p class="hinweis aktion-hinweis" role="status">Nichts geändert.</p>
+{%- elif request.query_params.get("erledigt") == "gespraech-geloescht" %}
+{#- Nach „Gespräch löschen“ leitet app.py an den Ort des Gesprächs (Klasse, Reihe, Stunde) oder nach /gespraeche #}
+<p class="hinweis hinweis-erledigt aktion-hinweis" role="status">Gespräch gelöscht.</p>
 {%- endif %}
 {% block inhalt %}{% endblock %}
 </main>

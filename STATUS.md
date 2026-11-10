@@ -1142,6 +1142,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Ordnersuche durch die deny-Regel oder durch das Überspringen versteckter Dateien fehlt; Dateien, die nicht
     .env/.env.* heißen, schützt beides nicht (wie bei Read). lia/chat nutzt `suchen=True` seit 10.11.2026 (Übersicht
     im Prompt 45 auf 32 KB, echter Lauf in lia/chat/STATUS.md). Erledigt.
+39. Bedarf aus shared/webapp an agentkit.regeln und lia/theater (10.11.2026, UX-Befund, nichts eilt): In
+    `lia/theater/STATUS.md`, Abschnitt „Gelernte Regeln“, steht die Regel vom 08.11. zwischen der Regel vom 01.11.
+    und deren Folgezeile „  Charaktereigenschaften.“; Lia sieht auf „Ich“ die erste Regel abgebrochen. Ursachen in
+    `agentkit/regeln.py`: (a) `_einfuegen` setzt die neue Zeile hinter den letzten „- “-Punkt und übersieht
+    eingerückte Folgezeilen; (b) `zeile_eintragen` stellt das Datum davor, obwohl der Text schon mit „Lia,
+    08.11.2026:“ beginnt (doppeltes Datum); (c) `_lies_regeln` liest wie bisher die Web-App nur „- “-Zeilen, die
+    Agenten sehen die Folgezeile also nicht. Zu tun im Hauptordner: (a) hinter Folgezeilen einfügen, (c) Folgezeilen
+    anhängen (die Web-App macht das seit 10.11. in `logik._regel_zeilen`), (b) Datum/Name am Textanfang nicht
+    doppeln, jeweils mit Test; dann die Theater-STATUS reparieren (Folgezeile zurück an die Regel vom 01.11.).
+    Bis dahin zeigt die Web-App „Charaktereigenschaften.“ am Ende der Regel vom 08.11.
 
 ## Gelernte Regeln
 - (noch keine)

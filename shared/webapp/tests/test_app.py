@@ -675,6 +675,19 @@ class TestOrdnung(Aufbau):
             self.assertEqual(self.hole(f"/gespraech/{gid}")[0].status, 404)
             self.assertEqual(self.hole("/gespraech/zzz")[0].status, 404)
 
+    def test_gespraech_geloescht_meldung(self):
+        """Nach „Gespräch löschen“ sieht Lia die Meldung auch an Reihe und Klasse, nicht nur ohne Ort (Befund UX)."""
+        ordner = self.tmp / "chat"
+        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
+            for ort, link in (("strafe", "/reihe/strafe"), ("ethik-8", "/klasse/ethik-8"), ("", "/gespraeche")):
+                gid = self.post("/gespraech/neu", {"ort": ort})[0].getheader("location").rsplit("/", 1)[1]
+                ziel = self.post(f"/gespraech/{gid}/loeschen", {})[0].getheader("location")
+                self.assertEqual(ziel, link + "?erledigt=gespraech-geloescht")
+                r, html = self.hole(ziel)
+                self.assertEqual(r.status, 200)
+                self.assertEqual(html.count("Gespräch gelöscht."), 1, link)
+            self.assertNotIn("Gespräch gelöscht.", self.hole("/reihe/strafe")[1])
+
     def post(self, pfad, felder, token=True):
         body, art = multipart({**({"token": app.logik.formular_token(app.GEHEIM)} if token else {}), **felder}, [])
         return self.hole(pfad, "POST", body=body,

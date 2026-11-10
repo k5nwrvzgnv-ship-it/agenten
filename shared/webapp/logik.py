@@ -1500,13 +1500,20 @@ def gestaltung(profil_: dict) -> list[dict]:
 
 
 def _regel_zeilen(text: str, ueberschrift: str) -> list[str]:
-    """Listenzeilen ("- …") unter einer Überschrift "## …" bis zur nächsten."""
-    zeilen, drin = [], False
+    """Listenzeilen ("- …") unter einer Überschrift "## …" bis zur nächsten. Eingerückte Folgezeilen gehören zum
+    Punkt davor (Regeln über mehrere Zeilen, z. B. lia/theater/STATUS.md); eine Leerzeile oder eine andere Zeile
+    beendet den Punkt."""
+    zeilen, drin, offen = [], False, False
     for z in text.splitlines():
         if z.startswith("## "):
-            drin = z[3:].strip() == ueberschrift
+            drin, offen = z[3:].strip() == ueberschrift, False
         elif drin and z.startswith("- "):
             zeilen.append(z[2:].strip())
+            offen = True
+        elif drin and offen and z[:1] in (" ", "\t") and z.strip():
+            zeilen[-1] += " " + z.strip()
+        else:
+            offen = False
     return zeilen
 
 
