@@ -180,7 +180,10 @@ def karte(lia: Path, gespraeche: Path, ohne_gespraech: str = "") -> str:
     katalog = _katalog(lia)
     if katalog:
         teile.append("### Katalog von Lias Material aus früheren Reihen\nTextfassungen ihrer Dokumente; die "
-                     "Überschrift nennt den Ordner, je Zeile: Datei relativ dazu | Art | Varianten | Anfang.\n\n"
+                     "Überschrift nennt den Ordner, je Zeile: Datei relativ dazu | Art | Varianten | Anfang. Die "
+                     "Zeilen „Außerdem, nur Dateinamen“ sparen nur Platz: Auch diese Dateien (Feedback, Bewertung, "
+                     "Türkisch) liegen als Text im Ordner der Überschrift und sind lesbar, nur die mit „(ohne Text)“ "
+                     "nicht.\n\n"
                      + katalog)
     liste = dateiliste(lia)
     if liste:

@@ -69,6 +69,7 @@ class Wissen(unittest.TestCase):
                       "Zeilen.", k)
         # Katalog mit absoluten Ordnern, auch mit Klammern im Namen
         self.assertIn(f"### Ethik / Kurs (1) ({self.lia}/unterricht/data/wissen/text/Ethik/Kurs (1)/)", k)
+        self.assertIn("sparen nur Platz", k)  # echter Lauf 10.11.: Claude hielt sie für unlesbar
         # weitere Dateien ohne Code, Zugangsdaten, .venv, Logs, Katalog-Ordner, chat, .claude
         self.assertIn(f"- {self.lia}/examen/data/reihe/runde-1/: skizze.md", k)
         self.assertIn("chats.json", k)

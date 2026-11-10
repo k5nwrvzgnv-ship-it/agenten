@@ -20,6 +20,12 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
   lese_ordner-Läufe im selben Arbeitsordner data/nur_lesen/, die Zahl der Lese-Ordner ändert daran nichts.
   Grenze: Ohne Glob und Grep (agentkit sperrt sie im Nur-Lesen-Lauf) findet Claude nur Dateien aus der Übersicht;
   in großen Ordnern stehen nur die 10 jüngsten Namen (Bedarf Punkt 38 der Haupt-STATUS).
+- Echt 10.11.2026 über den Dienst (Testgespräch an Straftheorien, danach gelöscht): Lias Frage „hast du alle
+  Materialien … Kriterien für eine gute Reihe/Einheit?“: Claude las Kriterien_gute_Unterrichtseinheit.txt, gab die
+  12 Kriterien richtig wieder und zählte Lias übrige Grundlagen auf; 15 s, 2 Schritte, 0,16 USD (erste Nachricht mit
+  Übersicht). Fehler darin: Katalog-Zeilen „nur Dateinamen“ hielt er für unlesbar, seitdem erklärt die Übersicht
+  sie. Folgefrage „was haben mir die Seminarleiter in den Feedbacks … rückgemeldet?“: fortgesetzt, 6 Schritte
+  (Feedback-Dateien, entwicklung.md gelesen), 19 s, 0,24 USD, gegliedert nach wiederkehrenden Themen, ohne Namen.
 - Gespräche gebaut, mit Tests ohne Netz (tests/test_gespraech.py) und echtem Lauf über den Dienst (10.11.):
   drei Nachrichten an der Reihe Straftheorien (eine mit Foto, zwei fortgesetzt), dann bisher und auftrag.
   Je 8–15 s Lauf, 0,05–0,09 USD je Nachricht (steigt mit dem Verlauf), Sonderläufe ca. 20 s, 0,07 USD; zusammen
