@@ -726,7 +726,7 @@ class TestOrdnung(Aufbau):
         self.assertIn('<span class="abschnitt-nr">01</span>Proben', html)  # Nummern zählen nur Gezeigtes
         # Klasse ohne Stundenplan: nur der Link, kein Erklärsatz
         _, html = self.hole("/klasse/darstellendes-spiel-kurs-12")
-        self.assertIn('<a href="/klasse/darstellendes-spiel-kurs-12/stundenplan">Stundenplan eintragen</a>', html)
+        self.assertIn('href="/klasse/darstellendes-spiel-kurs-12/stundenplan">Stundenplan eintragen</a>', html)
         self.assertNotIn("Noch kein Stundenplan", html)
         self.assertNotIn(leer, html)  # die Klasse hat eine Reihe
         # im Archiv ohne den Teil mit „+“
@@ -736,6 +736,53 @@ class TestOrdnung(Aufbau):
                                    {"bestaetigt": "1"})[0].status, 303)
         _, html = self.hole(f"{theater}/stunde/1")
         self.assertIn('<p class="leer noch-leer">Noch leer.</p>', html)
+
+    def punkte(self, html):
+        """Inhalt des „···“ der Seite (umbauplan-ux.md Schritt 3); None, wenn es keins gibt."""
+        teile = html.split('<details class="menue-halter punkte"')
+        if len(teile) == 1:
+            return None
+        self.assertEqual(len(teile), 2, "genau ein „···“ je Seite")
+        return teile[1].split("</details>")[0]
+
+    def test_seltenes_im_punkte_menue(self):
+        """umbauplan-ux.md Schritt 3: Bearbeiten, Archiv, Termine, Verschieben … im „···“, auf der Seite nur Inhalt."""
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Bentham"})[0].status, 303)
+        erwartet = {
+            "/reihe/strafe": ['href="/reihe/strafe/bearbeiten"', 'href="/reihe/strafe/kopieren"',
+                              'href="/reihe/strafe/termine"', 'action="/stunden/verschieben" id="verschieben"',
+                              'action="/objekt/strafe/archivieren"'],
+            "/reihe/strafe/stunde/1": ['action="/stunde/', "Verschieben nach", 'action="/objekt/', "Ausblenden",
+                                       "Löschen"],
+            "/klasse/ethik-8": ['href="/klasse/ethik-8/bearbeiten"', "Stundenplan eintragen"],
+        }
+        for pfad, teile in erwartet.items():
+            _, html = self.hole(pfad)
+            menue = self.punkte(html)
+            self.assertIsNotNone(menue, pfad)
+            for teil in teile:
+                self.assertIn(teil, menue, pfad)
+            # außerhalb der Menüs keine Formular-Zeilen und keine Knopfreihen mehr
+            mitte = html.split('<nav class="baum"')[0].split("</header>", 1)[1]
+            for alt in ("zeile-form", "knoepfe-unten", ">Bearbeiten</a>", 'id="bearbeiten"', ">Termine</a>"):
+                self.assertNotIn(alt, mitte, pfad)
+        # Fehler beim Ändern der Stunde: Meldung auf der Seite, „···“ offen mit dem Eingegebenen
+        sid = self.stunden()[0]["id"]
+        r, html = self.post(f"/stunde/{sid}/aendern", {"thema": "x" * 500, "marke": "", "alt_thema": "Kant",
+                                                       "alt_marke": ""})
+        self.assertEqual(r.status, 400)
+        self.assertIn('<details class="menue-halter punkte" open>', html)
+        self.assertIn('class="fehler" role="alert"', html.split('<nav class="baum"')[0].split("</header>", 1)[1])
+        # Im Archiv: Wiederherstellen am Hinweis, im „···“ nur Bearbeiten und Übernehmen
+        self.assertEqual(self.post("/objekt/strafe/archivieren", {"bestaetigt": "1"})[0].status, 303)
+        _, html = self.hole("/reihe/strafe")
+        self.assertIn('class="hinweis archiv-hinweis"', html)
+        self.assertIn('action="/objekt/strafe/wiederherstellen"', html.split('class="hinweis archiv-hinweis"')[1])
+        menue = self.punkte(html)
+        for weg in ("archivieren", "termine", "verschieben", "zeitlich"):
+            self.assertNotIn(weg, menue)
+        self.assertIsNone(self.punkte(self.hole("/reihe/strafe/stunde/1")[1]))  # Stunde im Archiv: nichts zu tun
 
     def test_heute_ohne_leere_abschnitte(self):
         ordner = self.tmp / "chat"
@@ -800,9 +847,8 @@ class TestOrdnung(Aufbau):
             "abgeschlossen": "2026-10-30T15:10:00+01:00", "ergebnis": "x", "ergebnis_dateien": []})
         _, html = self.hole("/reihe/strafe")
         self.assertNotIn("Noch keine", html)
-        self.assertNotIn('id="ab2"', html)  # Abschnitt „Stunden“ ohne Überschrift, Termine bleiben (bis Schritt 3)
-        self.assertIn('id="stunden"', html)
-        self.assertIn('href="/reihe/strafe/termine"', html)
+        self.assertNotIn('id="stunden"', html)  # ohne Stunden kein Abschnitt; „Termine“ steht im „···“
+        self.assertIn('href="/reihe/strafe/termine"', html.split('class="menue-halter punkte"')[1].split("</details>")[0])
         self.assertNotIn("Gehört zu", self.hole("/ergebnis/20261030-160000-unterricht-cccccc")[1])
         r, _ = self.post("/reihe/strafe/stunden", {"thema": "  Einstieg  "})
         self.assertEqual(r.status, 303)

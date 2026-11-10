@@ -25,6 +25,8 @@
 {#- Klasse, Reihe, Stunde und Heute setzen hier ihr „+“ (_plus.html); die übrigen Seiten mit Ort (Material) behalten
     vorerst „+ Neu hier“ (umbauplan-ux.md Schritt 6) -#}
 {%- block plus %}{% if neu_hier %}<a class="knopf{% block neu_klasse %} knopf-voll{% endblock %}" href="{{ neu_hier }}">+ Neu hier</a>{% endif %}{% endblock %}
+{#- Klasse, Reihe und Stunde setzen hier ihr „···“ (_plus.html punkte, umbauplan-ux.md Schritt 3) -#}
+{%- block punkte %}{% endblock %}
 </div>
 {% block seitenkopf %}
 <header class="kopf">

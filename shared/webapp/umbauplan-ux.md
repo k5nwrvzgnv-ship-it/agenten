@@ -91,7 +91,17 @@ Leertexte noch. Tests: neu `test_nur_zeigen_was_da_ist`, `test_heute_ohne_leere_
 - Tests: `test_app.py` („Noch kein Gespräch hier.“, „Noch nichts zur ganzen Reihe.“, „Noch keine Stunden.“,
   „Weiter im Gespräch“), `test_pflege_app.py` („Noch keine“). Neu: leere Reihe ohne Abschnitte, mit der leisen Zeile.
 
-## Schritt 3: Seltenes ins „···“
+## Schritt 3: Seltenes ins „···“ (gebaut 10.11.2026)
+
+Gebaut, nur Vorlagen und CSS: Makro `punkte` in `_plus.html`, Block `punkte` in `basis.html` rechts neben dem „+“.
+Abweichungen: „Stunde verschieben“ steht sichtbar im „···“ der Reihe statt unsichtbar (ohne JavaScript und auf dem iPad
+sonst nur über die Stunde); `ziehen.js` füllt weiter dasselbe Formular `#verschieben`. Im Archiv bleibt
+„Wiederherstellen“ am Hinweis „Im Archiv …“ (dort das Naheliegende), im „···“ dann nur Bearbeiten und Übernehmen; die
+Stunde im Archiv hat kein „···“. Die Klasse hat im „···“ Bearbeiten (Archivieren steht dort in der Maske, wie bisher),
+„Stundenplan eintragen“ bzw. „ändern“ und Zusatztermin; der Abschnitt „Termine“ erscheint nur mit Stundenplan, Terminen
+oder Hinweis. Fehler (z. B. Thema zu lang) stehen oben auf der Seite, an der Stunde ist das „···“ dann offen. „fällt
+aus“ je Termin bleibt an der Terminzeile (direkt am Ding). Tests: neu `test_seltenes_im_punkte_menue`, angepasst
+`test_stunden`, `test_nur_zeigen_was_da_ist`; `test_pflege_app.py` lief unverändert grün.
 
 - Dateien: `reihe.html:20–28` (Bearbeiten, Archivieren, In andere Klasse übernehmen), `:81–94` (Termine, Reihe
   beginnt am), `stunde.html:20–61` (ganzer Bearbeiten-Block: Marke, Verschieben, Kopieren, fällt aus, Ausblenden,

@@ -35,3 +35,13 @@
 {%- endif %}
 {{ plus(n.e) }}
 {%- endmacro -%}
+{#- Das „···“ einer Seite (umbauplan-ux.md Schritt 3): Seltenes (Bearbeiten, Archiv, Termine, Verschieben …) neben dem
+    „+“, Inhalt per {% call punkte() %} … {% endcall %}. offen: aufgeklappt, z. B. wenn ein Formular darin einen Fehler
+    hatte. Geht ohne JavaScript (details). -#}
+{%- macro punkte(offen=false) -%}
+<details class="menue-halter punkte"{% if offen %} open{% endif %}>
+  <summary class="knopf knopf-leise punkte-knopf" aria-label="Weitere Aktionen" title="Weitere Aktionen">···</summary>
+  <div class="menue">{{ caller() }}
+  </div>
+</details>
+{%- endmacro -%}

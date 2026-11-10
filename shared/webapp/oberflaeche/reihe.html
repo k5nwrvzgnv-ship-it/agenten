@@ -1,13 +1,52 @@
 {#- Reihe: Reihenfrage, schon Behandeltes, Material zur ganzen Reihe, darunter die Stunden (bzw. Proben) mit Datum und
-    Material. Pflegen (Bauschritt 5): „+ Stunde“, „Verschieben nach …“ (ein Griff; Ziehen per JavaScript nur
-    zusätzlich, statisch/ziehen.js füllt dasselbe Formular), Termine, Reihe beginnt am …, Bearbeiten, Archivieren. -#}
+    Material. Neues über das „+“, Seltenes im „···“ (umbauplan-ux.md Schritt 3): Bearbeiten, Archivieren, In eine andere
+    Klasse, Termine, Reihe beginnt am …, Stunde verschieben (ein Griff; Ziehen per JavaScript nur zusätzlich,
+    statisch/ziehen.js füllt dasselbe Formular #verschieben im „···“). -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
 {%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
-{%- from "_plus.html" import ebene -%}
+{%- from "_plus.html" import ebene, punkte -%}
 {%- block plus %}{{ ebene(gs=gespraeche, neu_hier=neu_hier, stunde_an=p.reihe.id if p and not p.archiv else none,
     wort=e.wort, ablage=ablage, archiv=p and p.archiv) }}{% endblock %}
+{%- block punkte %}
+{%- if p %}
+{%- call punkte() %}
+    <a class="knopf knopf-leise" href="/reihe/{{ p.reihe.id }}/bearbeiten">Bearbeiten</a>
+    <a class="knopf knopf-leise" href="/reihe/{{ p.reihe.id }}/kopieren">In eine andere Klasse übernehmen</a>
+    {%- if not p.archiv %}
+    <a class="knopf knopf-leise" href="/reihe/{{ p.reihe.id }}/termine">Termine</a>
+    {%- if p.termine_fehler %}<p class="unter">{{ p.termine_fehler }}</p>{% endif %}
+    {%- if p.termine and e.stunden %}
+    <form method="post" action="/reihe/{{ p.reihe.id }}/zeitlich">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label class="unter" for="start">Die Reihe beginnt am</label>
+      <select id="start" name="start">
+        {%- for t in p.termine %}<option value="{{ t.wert }}"{% if t.wert == p.start %} selected{% endif %}>{{ t.text }}</option>{% endfor %}
+      </select>
+      <button class="knopf knopf-klein" type="submit">Verschieben</button>
+    </form>
+    {%- endif %}
+    {%- if e.stunden %}
+    <form method="post" action="/stunden/verschieben" id="verschieben">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label class="unter" for="v-stunde">{{ e.wort }} verschieben</label>
+      <select id="v-stunde" name="stunde">
+        {%- for s in e.stunden %}<option value="{{ s.id }}">{{ e.wort }} {{ s.nr }}: {{ s.titel }}</option>{% endfor %}
+      </select>
+      <label class="unter" for="v-ziel">nach</label>
+      {{ ziele_auswahl(p.ziele, id="v-ziel") }}
+      <button class="knopf knopf-klein" type="submit">Verschieben</button>
+    </form>
+    {%- endif %}
+    <form method="post" action="/objekt/{{ p.reihe.id }}/archivieren">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button class="knopf knopf-leise" type="submit">Archivieren</button>
+    </form>
+    {%- endif %}
+{%- endcall %}
+{%- endif %}
+{%- endblock %}
 {%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
@@ -19,20 +58,12 @@
 {% block inhalt %}
 {{ gespraeche_abschnitt(gespraeche) }}
 {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
-{%- if p %}
-<div class="knoepfe knoepfe-unten">
-  <a class="knopf" href="/reihe/{{ p.reihe.id }}/bearbeiten">Bearbeiten</a>
-  {%- if p.selbst_archiviert %}
-  {{ knopf("/objekt/" ~ p.reihe.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}
-  {%- elif not p.archiv %}
-  {{ knopf("/objekt/" ~ p.reihe.id ~ "/archivieren", "Archivieren", token) }}
-  {%- endif %}
-  <a class="knopf" href="/reihe/{{ p.reihe.id }}/kopieren">In eine andere Klasse übernehmen</a>
-</div>
-{%- if p.archiv %}
-<p class="hinweis">Im Archiv{% if p.klasse_archiviert %} (mit der ganzen Klasse; wiederherstellen geht dort){% endif %}. Alles
-  darin bleibt erhalten.</p>
-{%- endif %}
+{%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
+{#- Im Archiv ist Wiederherstellen das Naheliegende: bleibt am Hinweis statt im „···“ -#}
+{%- if p and p.archiv %}
+<div class="hinweis archiv-hinweis"><span>Im Archiv{% if p.klasse_archiviert %} (mit der ganzen Klasse; wiederherstellen geht
+  dort){% endif %}. Alles darin bleibt erhalten.</span>
+  {%- if p.selbst_archiviert %} {{ knopf("/objekt/" ~ p.reihe.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}{% endif %}</div>
 {%- endif %}
 {%- if e.behandelt %}<p class="absatz unter"><b>Schon behandelt:</b> {{ e.behandelt }}</p>{% endif %}
 {#- Nur zeigen, was da ist (umbauplan-ux.md Schritt 2): leere Abschnitte fallen weg, die Nummern zählen mit -#}
@@ -47,10 +78,8 @@
 </section>
 {%- endif %}
 {{ ablage_abschnitt(ablage) }}
-{#- Ohne Stunden ohne Überschrift; Termine und Fehler bleiben bis Schritt 3 (dann im „···“) -#}
-{%- if e.stunden or fehler or (p and not p.archiv) %}
-<section{% if e.stunden %} aria-labelledby="ab2"{% endif %} id="stunden">
-  {%- if e.stunden %}
+{%- if e.stunden %}
+<section aria-labelledby="ab2" id="stunden">
   {%- set nr.n = nr.n + 1 %}
   <h2 id="ab2"><span class="abschnitt-nr">{{ "%02d" % nr.n }}</span>{{ e.wort_mehrzahl }}</h2>
   <ul class="stunden-liste">
@@ -62,37 +91,6 @@
     </a></li>
     {%- endfor %}
   </ul>
-  {%- endif %}
-  {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
-  {%- if p and not p.archiv %}
-  {#- Neue Stunde über das „+“ oben (Thema offen); das Thema schreibt Lia danach in der Stunde -#}
-  {%- if e.stunden %}
-  <form class="zeile-form" method="post" action="/stunden/verschieben" id="verschieben">
-    <input type="hidden" name="token" value="{{ token }}">
-    <label for="v-stunde">Verschieben:</label>
-    <select id="v-stunde" name="stunde">
-      {%- for s in e.stunden %}<option value="{{ s.id }}">{{ e.wort }} {{ s.nr }}: {{ s.titel }}</option>{% endfor %}
-    </select>
-    <label for="v-ziel">nach</label>
-    {{ ziele_auswahl(p.ziele, id="v-ziel") }}
-    <button class="knopf" type="submit">Verschieben</button>
-  </form>
-  {%- endif %}
-  <div class="knoepfe knoepfe-unten">
-    <a class="knopf" href="/reihe/{{ p.reihe.id }}/termine">Termine</a>
-  </div>
-  {%- if p.termine_fehler %}<p class="hinweis">{{ p.termine_fehler }}</p>{% endif %}
-  {%- if p.termine and e.stunden %}
-  <form class="zeile-form" method="post" action="/reihe/{{ p.reihe.id }}/zeitlich">
-    <input type="hidden" name="token" value="{{ token }}">
-    <label for="start">Die Reihe beginnt am</label>
-    <select id="start" name="start">
-      {%- for t in p.termine %}<option value="{{ t.wert }}"{% if t.wert == p.start %} selected{% endif %}>{{ t.text }}</option>{% endfor %}
-    </select>
-    <button class="knopf" type="submit">Verschieben</button>
-  </form>
-  {%- endif %}
-  {%- endif %}
 </section>
 {%- endif %}
 {%- if e.ausgeblendete %}
