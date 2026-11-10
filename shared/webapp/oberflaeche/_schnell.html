@@ -1,0 +1,6 @@
+{#- Wunsch an lia/schnell, solange die Antwort fehlt (htmx, /teile/schnell/<id>): fragt nach a.takt Sekunden wieder
+    nach; ist sie da, lädt die Seite neu (HX-Redirect, app.py). Ohne JavaScript: „Neu laden“. -#}
+<div class="hinweis" id="schnell" role="status" hx-get="/teile/schnell/{{ wid }}?zurueck={{ zurueck | urlencode }}&amp;n={{ n + 1 }}" hx-trigger="load delay:{{ a.takt }}s" hx-swap="outerHTML">
+  <b>{{ a.text }}</b> {{ a.unter }}
+  <a href="{{ zurueck }}{% if not zurueck.startswith('/neu/schnell/') %}?schnell={{ wid }}{% endif %}#schnell">Neu laden</a>
+</div>

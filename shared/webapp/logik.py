@@ -898,7 +898,7 @@ VORLAGEN = {
                         ("material", "Material", "Requisiten, Texte, Musik", True, "Material")]},
 }
 EXTRA_MAX = 1500
-# „Anderes Dokument“ über lia/schnell: nur in der Galerie, wenn der schnelle Weg an ist (WEBAPP_SCHNELL=an)
+# „Anderes Dokument“ über lia/schnell: in der Galerie, sobald Neu eingeschaltet ist (app.schnell)
 VORLAGE_DOKUMENT = {"name": "Anderes Dokument", "text": "Checkliste, Handout, Tabelle … schnell", "bild": "ab",
                     "agent": "schnell", "schnell": True, "frage": "Was brauchst du?",
                     "hint": "Checkliste für den Wandertag, Handout mit den drei Straftheorien …",

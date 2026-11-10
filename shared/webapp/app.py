@@ -71,7 +71,8 @@ und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
 ergebnis_dateien, nie über einen Pfad aus der URL; jeder Pfad wird gegen den Agent-Ordner geprüft (dateien.py).
 
-Schneller Weg (lia/schnell, docs/schnell-dokument-plan.md), nur mit WEBAPP_SCHNELL=an, alter Oberfläche und Neu:
+Schneller Weg (lia/schnell, docs/schnell-dokument-plan.md), immer, wenn Neu eingeschaltet ist, in beiden
+Oberflächen; kein eigener Schalter (Jan 10.11.2026: eine knappe Änderung geht von selbst schnell):
   POST /ergebnis/<id>/rueckmeldung ohne Datei an Dokumenten von unterricht, theater, schnell geht an
        lia/schnell (schnittstelle.aendern) statt an den Feedback-Dienst; danach /ergebnis/<id>?schnell=<wunsch>
   POST /neu mit art=dokument („Anderes Dokument“) geht an schnittstelle.dokument; danach /neu/schnell/<wunsch>
@@ -134,8 +135,7 @@ INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or ECHTE_INSTANZ)
 NEUER_AUFTRAG = os.environ.get("WEBAPP_NEUER_AUFTRAG", "")  # "", "test" oder "echt" (siehe oben)
 CHAT = os.environ.get("WEBAPP_CHAT", "") == "an"  # Spalte „Fragen“ an den Chat-Agenten (Lias Kontingent)
 # Schneller Weg über lia/schnell (docs/schnell-dokument-plan.md): Rückmeldung am Dokument und „Anderes Dokument“.
-# Nur mit WEBAPP_SCHNELL=an, alter Oberfläche und eingeschaltetem Neu; im Testbetrieb landen Wünsche in DATEN.
-SCHNELL = os.environ.get("WEBAPP_SCHNELL", "") == "an"
+# Immer, wenn Neu eingeschaltet ist (kein eigener Schalter); im Testbetrieb landen Wünsche in DATEN.
 SCHNELL_DIR = HIER.parent.parent / "lia" / "schnell"
 # Ablage schnell geänderter Fassungen samt Seitenbildern: <ursprung>/eigene-<n>/<datei> (lia/schnell/STATUS.md)
 SCHNELL_FASSUNGEN = SCHNELL_DIR / "data" / "fassungen"
@@ -285,9 +285,9 @@ _SCHNELL_MODUL: list = []
 
 
 def schnell():
-    """Schnittstelle von lia/schnell (schnittstelle.py, nur Bordmittel) oder None, wenn der schnelle Weg aus ist.
+    """Schnittstelle von lia/schnell (schnittstelle.py, nur Bordmittel) oder None, wenn Neu und Rückmeldung aus sind.
     Eigener Modulname, weil lia/chat auch ein Modul schnittstelle hat."""
-    if not (SCHNELL and alt() and neu_modus()):
+    if not neu_modus():
         return None
     if not _SCHNELL_MODUL:
         spec = importlib.util.spec_from_file_location("schnell_schnittstelle", SCHNELL_DIR / "schnittstelle.py")

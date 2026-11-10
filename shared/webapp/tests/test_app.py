@@ -1192,9 +1192,12 @@ class TestMaterial(Aufbau):
         self.assertEqual(r.status, 400)
         self.assertIn("Wähle eine Datei aus.", html)
 
+    # Die Rückmeldungs-Tests hier prüfen den gründlichen Weg über den Feedback-Dienst (mit Datei, andere Agenten);
+    # ohne Datei ginge es an lia/schnell, darum dort app.schnell -> None. Den schnellen Weg prüft test_schnell.py.
     def test_rueckmeldung_je_datei(self):
         ursprung = "20261030-140944-unterricht-93e29e"
-        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten"):
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten"), \
+                mock.patch.object(app, "schnell", lambda: None):
             _, html = self.hole(self.URL)
             link = f"{self.URL}?offen=rueckmeldung&amp;fassung={ursprung}&amp;datei=0#rueckmeldung"
             self.assertIn(f'<a class="knopf" href="{link}">Rückmeldung</a>', html)
@@ -1225,7 +1228,8 @@ class TestMaterial(Aufbau):
     def test_rueckmeldung_doppelklick_ein_auftrag(self):
         """Befund 03.11. Punkt 1: Ein Doppelklick schickt denselben POST zweimal, die zweite Antwort sieht Lia."""
         with mock.patch.object(app, "NEUER_AUFTRAG", "echt"), mock.patch.object(app, "agent_starten") as start, \
-                mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"):
+                mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"), \
+                mock.patch.object(app, "schnell", lambda: None):
             for _ in range(2):
                 r, _ = self.sende("/rueckmeldung", {"text": "Bitte kürzer"}, [("Kommentare.docx", b"KOMM")])
                 self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=rueckmeldung"))
@@ -1238,7 +1242,7 @@ class TestMaterial(Aufbau):
             self.assertEqual(len(self.neue()), 2)
 
     def test_rueckmeldung_gleichzeitig_ein_auftrag(self):
-        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), \
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "schnell", lambda: None), \
                 mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T18:00:00+01:00"):
             antworten = []
             faeden = [threading.Thread(target=lambda: antworten.append(self.sende("/rueckmeldung", {"text": "Kürzer"})[0]))
