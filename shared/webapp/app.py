@@ -104,7 +104,9 @@ from agentkit import auftraege, config, fassungen, freigabe, struktur, termine
 from agentkit import strukturpflege as sp
 from agentkit._ablage import AblageFehler, pruefe_id
 
+import ablage
 import dateien
+import gespraech
 import logik
 import ordnung
 import pflege
@@ -316,6 +318,7 @@ def _reihe_seite(request: Request, reihe_id: str, fehler: list[str] | None = Non
         "e": e, "token": logik.formular_token(GEHEIM), "fehler": fehler or [], "thema": thema,
         "thema_max": pflege.LAENGE["thema"], "p": reihe_pflege(struktur_(), reihe_id),
         "hinweis": "" if fehler else logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
+        "ablage": ablage_daten(reihe["id"], logik.reihe_link(reihe), request),
         **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))}, status_code=status)
 
 
@@ -345,6 +348,7 @@ def _stunde_seite(request: Request, reihe_id: str, nr_text: str, hinweis: str = 
         "e": e, "reihe": reihe, "token": logik.formular_token(GEHEIM), "hinweis": hinweis, "fehler": fehler or [],
         "thema": thema if fehler else stunden[nr - 1]["thema"], "thema_max": pflege.LAENGE["thema"],
         "p": stunde_pflege(struktur_(), reihe_id, nr),
+        "ablage": ablage_daten(stunden[nr - 1]["id"], logik.stunde_link(reihe, nr), request),
         **rahmen(reihen, logik.krumen(e["unter"], reihe), reihe["id"], neu_hier=_neu_hier(reihe, nr), stunde=nr)},
         status_code=status)
 
@@ -1544,7 +1548,73 @@ def seite_klasse(request: Request, gruppe_id: str):
         raise HTTPException(404)
     return vorlagen.TemplateResponse(request, "klasse.html", {
         "e": e, "token": logik.formular_token(GEHEIM), "p": klasse_pflege(struktur_(), gruppe_id),
+        "ablage": ablage_daten(gruppe_id, logik.klasse_link(e["gruppe"]), request),
         **rahmen(reihen, logik.krumen_klasse(e["gruppe"]), logik.klasse_aktiv(gruppe_id))})
+
+
+# --- Gespräche und Ablage am Ort (bauplan-gespraech.md) -----------------------------------------------------------
+# Ort = Klasse/Kurs, Reihe oder Stunde mit fester id aus agentkit.struktur. Ablage: <instanz>/ablage/<ort-id>/.
+
+
+def orte_() -> dict[str, dict]:
+    reihen, gruppen = ordnung_laden()
+    return gespraech.orte(reihen, gruppen)
+
+
+def ablage_daten(ort_id: str, zurueck: str, request: Request) -> dict:
+    """Werte für den Abschnitt „Deine Dateien“ an einer Ebene (oberflaeche/_ort.html)."""
+    code = request.query_params.get("ablagefehler") or ""
+    return {"ort_id": ort_id, "dateien": ablage.liste(INSTANZ, ort_id), "zurueck": zurueck,
+            "fehler": ablage.FEHLER.get(code, ""), "token": logik.formular_token(GEHEIM),
+            "erledigt": request.query_params.get("erledigt") in ("abgelegt", "entfernt")}
+
+
+@app.post("/ablage/{ort_id}")
+async def ablage_hochladen(request: Request, ort_id: str):
+    """Eigene Dateien am Ort ablegen (ohne Auftrag, startet nichts). Danach zurück an die Ebene."""
+    o = orte_().get(ort_id)
+    if o is None or o["archiv"]:
+        raise HTTPException(404)
+    form = await formular_lesen(request, "Ablage", 5)
+    hochgeladen = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
+    ziel = o["link"]
+    try:
+        if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+            return RedirectResponse(f"{ziel}?ablagefehler=veraltet#ablage", status_code=303)
+        namen = {d["name"] for d in ablage.liste(INSTANZ, ort_id)}
+        for d in hochgeladen:
+            neu = ablage.name_bereinigen(d.filename)
+            code = ablage.pruefen(d.filename, d.size or 0, len(namen - {neu}))
+            if code:
+                return RedirectResponse(f"{ziel}?ablagefehler={code}#ablage", status_code=303)
+            namen.add(ablage.ablegen(INSTANZ, ort_id, d.filename, d.file))
+        logger.info("Ablage %s: %d Dateien", ort_id, len(hochgeladen))
+    finally:
+        for d in hochgeladen:
+            await d.close()
+    return RedirectResponse(f"{ziel}?erledigt=abgelegt#ablage", status_code=303)
+
+
+@app.post("/ablage/{ort_id}/entfernen")
+async def ablage_entfernen(request: Request, ort_id: str):
+    o = orte_().get(ort_id)
+    if o is None:
+        raise HTTPException(404)
+    form = await formular_lesen(request, "Ablage entfernen", 0)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return RedirectResponse(f"{o['link']}?ablagefehler=veraltet#ablage", status_code=303)
+    ablage.entfernen(INSTANZ, ort_id, str(form.get("name") or ""))
+    return RedirectResponse(f"{o['link']}?erledigt=entfernt#ablage", status_code=303)
+
+
+@app.get("/ablage/{ort_id}/{name}")
+def ablage_datei(ort_id: str, name: str):
+    """Abgelegte Datei: Fotos und PDF im Browser, sonst als Download."""
+    p = ablage.pfad(INSTANZ, ort_id, name)
+    if p is None:
+        raise HTTPException(404)
+    zeigen = p.suffix.lower() in ablage.FOTOS | {".pdf"}
+    return FileResponse(p, media_type=ablage.MEDIENTYP[p.suffix.lower()], filename=None if zeigen else p.name)
 
 
 _lese_fehler: list[str] = []  # wie _reihen_fehler: Fehler im Profil nur einmal loggen

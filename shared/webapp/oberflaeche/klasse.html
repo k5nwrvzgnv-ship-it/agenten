@@ -2,6 +2,7 @@
     das nur zur Klasse gehört (Notentabelle, Sitzplan), steht in noch keiner Datei: dafür der leere Zustand. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
+{%- from "_ort.html" import ablage_abschnitt -%}
 {%- from "_pflege.html" import knopf -%}
 {%- macro termin_zeile(t, k) -%}
 <li class="termin-zeile{% if t.ausgefallen %} termin-aus{% endif %}">
@@ -79,9 +80,5 @@
   {%- endif %}
 </section>
 {%- endif %}
-<section aria-labelledby="ab3">
-  <h2 id="ab3"><span class="abschnitt-nr">{{ "03" if p else "02" }}</span>Zur ganzen Klasse</h2>
-  <p class="leer">Noch nichts. Hier steht später, was zu keiner Reihe gehört, zum Beispiel eine Notentabelle.
-    Bis dahin findest du es in „Heute“.</p>
-</section>
+{{ ablage_abschnitt(ablage) }}
 {% endblock %}

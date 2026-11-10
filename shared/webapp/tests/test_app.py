@@ -548,10 +548,39 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.status, 200)
         for text in ('<li aria-current="page">Klasse 8</li>', '<li><a href="/fach/ethik">Ethik</a>',
                      'aria-current="page"><span>Klasse 8</span>', '<a class="zeile" href="/reihe/strafe">',
-                     "Wozu &lt;strafen&gt; wir?", "1 Sache", "Zur ganzen Klasse"):
+                     "Wozu &lt;strafen&gt; wir?", "1 Sache", "Deine Dateien"):
             self.assertIn(text, html)
         self.assertEqual(self.hole("/klasse/ethik-9")[0].status, 404)
         self.assertEqual(self.hole("/klasse/darstellendes-spiel-kurs-12")[0].status, 200)
+
+    def test_ablage(self):
+        def hoch(ort, dateien_, origin="http://localhost"):
+            body, art = multipart({"token": app.logik.formular_token(app.GEHEIM)}, dateien_)
+            return self.hole(f"/ablage/{ort}", "POST", body=body,
+                             kopf={"Content-Type": art, "Content-Length": str(len(body)), "Origin": origin})[0]
+        r = hoch("darstellendes-spiel-kurs-12", [("../Kriterien Theater.pdf", b"%PDF-1"), ("Probe.JPG", b"jpg")])
+        self.assertEqual((r.status, r.getheader("location")),
+                         (303, "/klasse/darstellendes-spiel-kurs-12?erledigt=abgelegt#ablage"))
+        ordner = self.instanz / "ablage" / "darstellendes-spiel-kurs-12"
+        self.assertEqual(sorted(x.name for x in ordner.iterdir()), ["Kriterien Theater.pdf", "Probe.jpg"])
+        _, html = self.hole("/klasse/darstellendes-spiel-kurs-12?erledigt=abgelegt")
+        for text in ("Kriterien Theater.pdf", 'href="/ablage/darstellendes-spiel-kurs-12/Kriterien%20Theater.pdf"',
+                     "Gespräche hier und darunter kennen deine Dateien", "PDF · deine Datei", "Foto · deine Datei"):
+            self.assertIn(text, html)
+        r, inhalt = self.hole("/ablage/darstellendes-spiel-kurs-12/Probe.jpg", roh=True)
+        self.assertEqual((r.status, r.getheader("Content-Type"), inhalt), (200, "image/jpeg", b"jpg"))
+        for falsch in ("/ablage/darstellendes-spiel-kurs-12/..%2F..%2F.env", "/ablage/x/Probe.jpg",
+                       "/ablage/darstellendes-spiel-kurs-12/fehlt.pdf"):
+            self.assertEqual(self.hole(falsch)[0].status, 404, falsch)
+        self.assertEqual(hoch("strafe", [("IMG_1.heic", b"x")]).getheader("location"),
+                         "/reihe/strafe?ablagefehler=heic#ablage")
+        self.assertIn("HEIC", self.hole("/reihe/strafe?ablagefehler=heic")[1])
+        self.assertEqual(hoch("strafe", [("a.pdf", b"x")], origin="https://boese.example").status, 403)
+        self.assertEqual(hoch("gibt-es-nicht", [("a.pdf", b"x")]).status, 404)
+        self.assertFalse((self.instanz / "ablage" / "strafe").exists())
+        r, _ = self.post("/ablage/darstellendes-spiel-kurs-12/entfernen", {"name": "Probe.jpg"})
+        self.assertEqual(r.getheader("location"), "/klasse/darstellendes-spiel-kurs-12?erledigt=entfernt#ablage")
+        self.assertEqual([x.name for x in ordner.iterdir()], ["Kriterien Theater.pdf"])
 
     def post(self, pfad, felder, token=True):
         body, art = multipart({**({"token": app.logik.formular_token(app.GEHEIM)} if token else {}), **felder}, [])

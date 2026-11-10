@@ -172,3 +172,45 @@ def bloecke(text: str, bausteine: bool = True) -> list[dict]:
 def bausteine_von(bl: list[dict]) -> list[dict]:
     """Alle Bausteine einer Antwort, in Reihenfolge (für „Als Reihenfrage übernehmen“ und Tests)."""
     return [b["baustein"] for b in bl if "baustein" in b]
+
+
+# --- Ebenen: Klasse/Kurs, Reihe, Stunde (Jan 09.11.: jedes Gespräch und jede Datei hängt an genau einer) -----------
+EBENEN_WORT = {"klasse": "Klasse", "reihe": "Reihe", "stunde": "Stunde"}
+
+
+def orte(reihen: list[dict], gruppen: list[dict]) -> dict[str, dict]:
+    """Alle Orte nach ihrer festen id: {"ebene", "id", "name", "pfad" (für Lia, „Ethik › Klasse 8 › Straftheorien“),
+    "link", "eltern" (id oder None), "reihe_id" (bei Reihe und Stunde), "archiv"}. Stunden: nur sichtbare."""
+    out: dict[str, dict] = {}
+    for g in gruppen:
+        out[g["gruppe_id"]] = {"ebene": "klasse", "id": g["gruppe_id"], "name": g["gruppe"],
+                               "pfad": f"{g['fach']} › {g['gruppe']}", "link": logik.klasse_link(g), "eltern": None,
+                               "reihe_id": "", "archiv": g["archiv"]}
+    for r in reihen:
+        pfad = f"{r['fach']} › {r['gruppe']} › {r['titel']}"
+        out[r["id"]] = {"ebene": "reihe", "id": r["id"], "name": r["titel"], "pfad": pfad, "link": logik.reihe_link(r),
+                        "eltern": r["gruppe_id"] if r["gruppe_id"] in out else None, "reihe_id": r["id"],
+                        "archiv": r["archiv"]}
+        wort = logik.stunden_wort(r)[0]
+        for nr, st in enumerate(logik.reihe_stunden(r), 1):
+            name = f"{wort} {nr}" + (f": {st['thema']}" if st.get("thema") else "")
+            out[st["id"]] = {"ebene": "stunde", "id": st["id"], "name": name, "pfad": f"{pfad} › {wort} {nr}",
+                             "link": logik.stunde_link(r, nr), "eltern": r["id"], "reihe_id": r["id"],
+                             "archiv": r["archiv"]}
+    return out
+
+
+def kette(orte_: dict[str, dict], ort_id: str | None) -> list[dict]:
+    """Der Ort und alles darüber, oberstes zuerst (Klasse, Reihe, Stunde). Unbekannt: leer."""
+    out, gesehen = [], set()
+    while ort_id and ort_id in orte_ and ort_id not in gesehen:
+        gesehen.add(ort_id)
+        out.insert(0, orte_[ort_id])
+        ort_id = orte_[ort_id]["eltern"]
+    return out
+
+
+def darunter(orte_: dict[str, dict], ort_id: str) -> list[str]:
+    """ids aller Orte unter diesem (Reihen und Stunden einer Klasse, Stunden einer Reihe), in Reihenfolge."""
+    kinder = [o["id"] for o in orte_.values() if o["eltern"] == ort_id]
+    return [x for k in kinder for x in (k, *darunter(orte_, k))]

@@ -55,5 +55,24 @@ class Bloecke(unittest.TestCase):
         self.assertEqual(g.klartext("Siehe [KMK](https://kmk.org) und **fett**\n1. eins"), "Siehe KMK und fett\n1. eins")
 
 
+GRUPPEN = [{"gruppe_id": "ethik-8", "gruppe": "Klasse 8", "fach": "Ethik", "fach_id": "ethik", "archiv": False}]
+REIHEN = [{"id": "strafe", "titel": "Straftheorien", "gruppe_id": "ethik-8", "gruppe": "Klasse 8", "fach": "Ethik",
+           "archiv": False, "agenten": [], "stunden": [{"id": "s1", "thema": "Einstieg"}, {"id": "s2", "thema": ""}]}]
+
+
+class Orte(unittest.TestCase):
+    def test_orte_kette_darunter(self):
+        o = g.orte(REIHEN, GRUPPEN)
+        self.assertEqual(set(o), {"ethik-8", "strafe", "s1", "s2"})
+        self.assertEqual((o["s1"]["name"], o["s1"]["pfad"], o["s1"]["link"]),
+                         ("Stunde 1: Einstieg", "Ethik › Klasse 8 › Straftheorien › Stunde 1", "/reihe/strafe/stunde/1"))
+        self.assertEqual(o["s2"]["name"], "Stunde 2")
+        self.assertEqual([x["id"] for x in g.kette(o, "s2")], ["ethik-8", "strafe", "s2"])
+        self.assertEqual(g.kette(o, "fehlt"), [])
+        self.assertEqual(g.darunter(o, "ethik-8"), ["strafe", "s1", "s2"])
+        theater = {**REIHEN[0], "id": "w", "agenten": ["theater"], "stunden": [{"id": "p1", "thema": "Akt 1"}]}
+        self.assertEqual(g.orte([theater], GRUPPEN)["p1"]["name"], "Probe 1: Akt 1")
+
+
 if __name__ == "__main__":
     unittest.main()

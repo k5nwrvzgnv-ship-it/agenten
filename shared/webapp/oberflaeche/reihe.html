@@ -3,6 +3,7 @@
     zusätzlich, statisch/ziehen.js füllt dasselbe Formular), Termine, Reihe beginnt am …, Bearbeiten, Archivieren. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
+{%- from "_ort.html" import ablage_abschnitt -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
@@ -38,6 +39,7 @@
   <p class="leer">Noch nichts zur ganzen Reihe.</p>
   {%- endif %}
 </section>
+{{ ablage_abschnitt(ablage) }}
 <section aria-labelledby="ab2" id="stunden">
   <h2 id="ab2"><span class="abschnitt-nr">02</span>{{ e.wort_mehrzahl }}</h2>
   {%- if e.stunden %}

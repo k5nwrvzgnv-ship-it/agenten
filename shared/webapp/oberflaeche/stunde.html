@@ -2,6 +2,7 @@
     Ausfall, Kopieren, Ausblenden, Löschen (nur ohne Material). Material ordnet Lia in seiner Ansicht zu. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
+{%- from "_ort.html" import ablage_abschnitt -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {% block inhalt %}
 {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
@@ -14,6 +15,7 @@
     „Gehört zu: {{ e.wort }} {{ e.nr }}“.</p>
   {%- endif %}
 </section>
+{{ ablage_abschnitt(ablage) }}
 {%- if p and not p.archiv %}
 <section aria-labelledby="ab2" id="bearbeiten">
   <h2 id="ab2"><span class="abschnitt-nr">02</span>Bearbeiten</h2>

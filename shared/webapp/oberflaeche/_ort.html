@@ -1,0 +1,33 @@
+{#- Bausteine einer Ebene (Klasse/Kurs, Reihe, Stunde): eigene Dateien am Ort (ablage.py) und Gespräche. -#}
+{%- macro ablage_abschnitt(a) -%}
+<section aria-labelledby="ab-ablage" id="ablage">
+  <h2 id="ab-ablage">Deine Dateien</h2>
+  {%- if a.erledigt %}<p class="hinweis hinweis-erledigt" role="status">Erledigt. Gespräche hier und darunter kennen deine Dateien.</p>{% endif %}
+  {%- if a.fehler %}<p class="fehler" role="alert">{{ a.fehler }}</p>{% endif %}
+  {%- if a.dateien %}
+  <ul class="liste">
+    {%- for d in a.dateien %}
+    <li class="zeile">
+      <span class="punkt" aria-hidden="true"></span>
+      <span class="text"><a class="titel" href="/ablage/{{ a.ort_id }}/{{ d.name | urlencode }}"{% if d.foto or d.art == "PDF" %} target="_blank" rel="noopener"{% endif %}>{{ d.name }}</a>
+        <span class="unter">{{ d.art }} · deine Datei</span></span>
+      <form class="inline-form" method="post" action="/ablage/{{ a.ort_id }}/entfernen">
+        <input type="hidden" name="token" value="{{ a.token }}">
+        <input type="hidden" name="name" value="{{ d.name }}">
+        <button class="knopf knopf-leise" type="submit" aria-label="{{ d.name }} entfernen">Entfernen</button>
+      </form>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="leer">Noch keine. Leg hier ab, was Claude immer kennen soll: deine Planung, eine Buchseite, Kriterien.</p>
+  {%- endif %}
+  <form class="ablage-form" method="post" action="/ablage/{{ a.ort_id }}" enctype="multipart/form-data" data-einmal>
+    <input type="hidden" name="token" value="{{ a.token }}">
+    <label class="knopf datei-knopf">+ Datei ablegen
+      <input type="file" name="dateien" multiple accept=".pdf,.docx,.pptx,.xlsx,.jpg,.jpeg,.png,image/jpeg,image/png"></label>
+    <button class="knopf" type="submit">Hochladen</button>
+    <span class="unter">PDF, Word, PowerPoint, Excel, Fotos; je bis 20 MB. Keine Schülerdaten.</span>
+  </form>
+</section>
+{%- endmacro -%}
