@@ -1100,7 +1100,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     8). Jans Antworten 10.11.: überfordernd war alles (Länge, Gliederung, Oberfläche ringsum, dass Claude nichts tun
     kann); unintuitiv sind alle Bearbeiten-Flächen (Stunden, Reihen und Klassen, Ablage, Masken), Wunsch Drag and
     Drop. Probe 10.11. (claude 2.1.304): Grep/Glob halten die Read-Pfadgrenze, eigener MCP-Server mit Bordmitteln
-    geht mit claude -p (allow/deny je Werkzeug). Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
+    geht mit claude -p (allow/deny je Werkzeug). Dieser Plan ruht: Lia (über Jan, 10.11.) störte vor allem, dass
+    kleine Änderungen an Dokumenten ewig dauern (Nachbesserungen 7–67 min) und dass schnelle Dokumente anderer Art
+    fehlen. Neuer Plan dafür: docs/schnell-dokument-plan.md (Agent lia/schnell, Entscheidungen bei Jan, Abschnitt 6).
+    Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
     weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
     reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.
 

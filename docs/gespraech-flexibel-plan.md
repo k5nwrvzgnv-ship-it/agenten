@@ -1,6 +1,7 @@
 # Plan: Gespräch wie eine Claude-Code-Sitzung (Punkt 37)
 
-Stand 10.11.2026. Nur Plan, nichts gebaut. Grundlage: Punkt 37 und 36 der Haupt-STATUS, `docs/gespraech-plan.md`,
+Stand 10.11.2026. Nur Plan, nichts gebaut. **Ruht** seit Lias Rückmeldung am selben Tag (kleine Änderungen an
+Dokumenten dauern zu lange): Vorrang hat `docs/schnell-dokument-plan.md`. Grundlage: Punkt 37 und 36 der Haupt-STATUS, `docs/gespraech-plan.md`,
 `shared/webapp/bauplan-gespraech.md`, `lia/chat/STATUS.md`, `agentkit.claude_lauf`, `strukturpflege`, `feedback`.
 Die Entscheidungen trifft Jan, Fragen am Ende (Abschnitt 8).
 
