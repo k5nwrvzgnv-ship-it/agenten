@@ -1113,8 +1113,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     `quelle`, `felder` und `still=True` (Zentrale meldet und startet nichts, der Absender startet den Empfänger; nötig,
     weil Lias Zentrale sonst Lia „… ist noch nicht eingerichtet“ schickt). Feedback mit Feld `feedback_modus`
     „nur_lernen“: nie Nachbesserung, ohne Regel oder Notiz keine Meldung an Jan. Tests in agentkit, telegram, feedback.
-    Offen: Die Zentralen laufen noch mit altem Code. Vor dem ersten echten Lauf von lia/schnell mit stiller Weitergabe
-    `systemctl --user restart lia-zentrale.service agentenzentrale.service` (nur mit Jans Okay). Bekannte Schwäche
+    Eingeschaltet 10.11.2026 12:04 (Jans Okay): Zentralen mit neuem Code neu gestartet, webapp.service mit
+    `WEBAPP_SCHNELL=an` (alte Oberfläche, „Anderes Dokument“ in Neu sichtbar). Nächster Schritt: Probe mit Lia
+    (Plan Schritt 4), dabei htmx-Abfrage im Browser und Speicher-Spitze eines echten Laufs ansehen. Bekannte Schwäche
     des gründlichen Wegs (unverändert): Der Feedback-Dienst kann einen großen Änderungswunsch als Regel statt als
     Nachbesserung einordnen; lia/schnell umgeht das, weil es große Wünsche direkt als Nachbesserung weitergibt.
     Schritt 2 (lia/schnell, 10.11.): gebaut und an Kopien echt gemessen (Änderungen 13–23 s, schnelles Dokument 65 s,
