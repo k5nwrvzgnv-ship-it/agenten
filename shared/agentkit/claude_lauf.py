@@ -55,14 +55,17 @@ OHNE_DATEIZUGRIFF = ("WebSearch", "WebFetch")
 
 
 def rechte(werkzeuge: list[str], domains: list[str] | None = None,
-           lese_ordner: list[Path] | None = None) -> dict:
+           lese_ordner: list[Path] | None = None, suchen: bool = False) -> dict:
     """Rechte für --settings. Mit domains ([webfetch] in einstellungen.toml) ist WebFetch nur für diese
     Domains und ihre Subdomains erlaubt; alles andere lehnt claude -p ab (keine Rückfrage möglich).
 
     Mit lese_ordner (geprüfte, absolute Ordner, siehe lese_ordner_pruefen) gilt nur noch: Read in diesen Ordnern
     (Read(//<ordner>/**)) und die Werkzeuge ohne Dateizugriff (WebSearch, WebFetch mit domains), wenn sie in
-    werkzeuge stehen; alles andere ist verboten.
+    werkzeuge stehen; alles andere ist verboten. suchen=True (nur mit lese_ordner) erlaubt dazu Glob und Grep mit
+    derselben Grenze (Glob(//<ordner>/**), Grep(//<ordner>/**)); .env bleibt für Read und Grep gesperrt.
     """
+    if suchen and lese_ordner is None:
+        raise ValueError("suchen geht nur mit lese_ordner")
     erlaubt = [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]
     if domains is not None and "WebFetch" in erlaubt:
         erlaubt.remove("WebFetch")
@@ -70,11 +73,13 @@ def rechte(werkzeuge: list[str], domains: list[str] | None = None,
     if lese_ordner is not None:
         # Read(**/.env) aus VERBOTEN gilt nur unterhalb des Arbeitsordners (echter Lauf 10.11.2026: .env im
         # Lese-Ordner war lesbar), darum je Ordner eigene Sperren mit absolutem Pfad.
-        env_sperre = [f"Read(/{o}/**/{m})" for o in lese_ordner for m in (".env", ".env.*")]
-        netz = [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]  # deny ginge vor allow: freigegebene nicht sperren
-        sperre = [w for w in NUR_LESEN_VERBOTEN if w not in netz]
+        lesen = ("Read", "Grep", "Glob") if suchen else ("Read",)
+        env_sperre = [f"{w}(/{o}/**/{m})" for w in lesen if w != "Glob" for o in lese_ordner
+                      for m in (".env", ".env.*")]
+        frei = [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF] + list(lesen)  # deny ginge vor allow
+        sperre = [w for w in NUR_LESEN_VERBOTEN if w not in frei]
         return {"permissions": {"deny": VERBOTEN + env_sperre + sperre,
-                                "allow": [f"Read(/{o}/**)" for o in lese_ordner] + erlaubt}}
+                                "allow": [f"{w}(/{o}/**)" for w in lesen for o in lese_ordner] + erlaubt}}
     return {"permissions": {"deny": VERBOTEN, "allow": erlaubt}}
 
 
@@ -83,6 +88,8 @@ def rechte(werkzeuge: list[str], domains: list[str] | None = None,
 # (lehnt alles ab, was keine allow-Regel hat). Lesen im Arbeitsordner erlaubt claude -p aber immer von selbst,
 # auch in dontAsk. Darum läuft claude in einem leeren Ordner data/nur_lesen/ des Agenten, nicht im Agent-Ordner.
 # Symlinks im erlaubten Ordner auf Dateien außerhalb lehnt claude ebenfalls ab. .env bleibt gesperrt (siehe rechte).
+# Mit suchen=True dazu Glob und Grep, nur in den Lese-Ordnern (echter Lauf 10.11.2026, claude 2.1.304: Suche außerhalb
+# abgelehnt, Grep über den Ordner liefert keine .env-Inhalte).
 # Fortsetzen (sitzung_fortsetzen) geht nur zwischen Läufen derselben Art, weil claude Sitzungen je Arbeitsordner führt.
 NUR_LESEN_VERBOTEN = ("Bash", "Edit", "Write", "Grep", "Glob", "NotebookEdit", "WebFetch", "WebSearch")
 NUR_LESEN_CWD = Path("data") / "nur_lesen"
@@ -260,12 +267,14 @@ def befehl(
     sitzung_neu: str | None = None,
     sitzung_fortsetzen: str | None = None,
     lese_ordner: list[Path] | None = None,
+    suchen: bool = False,
 ) -> list[str]:
     """Befehlszeile für claude -p. lese_ordner: schon geprüfte Ordner (lese_ordner_pruefen), dann nur Read dort
-    und die Werkzeuge ohne Dateizugriff aus einstellungen.toml."""
+    (mit suchen=True auch Glob und Grep) und die Werkzeuge ohne Dateizugriff aus einstellungen.toml."""
     werkzeuge = einstellungen.werkzeuge(cfg, agent)
     if lese_ordner is not None:
-        werkzeuge = ["Read"] + [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]
+        werkzeuge = (["Read", "Glob", "Grep"] if suchen else ["Read"]) + [w for w in werkzeuge
+                                                                          if w in OHNE_DATEIZUGRIFF]
     modus = "acceptEdits" if lese_ordner is None else "dontAsk"
     cmd = [
         CLAUDE_BIN, "-p", prompt,
@@ -275,7 +284,7 @@ def befehl(
         "--tools", *werkzeuge,
         "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
         "--permission-mode", modus,
-        "--settings", json.dumps(rechte(werkzeuge, einstellungen.webfetch_domains(cfg, agent), lese_ordner)),
+        "--settings", json.dumps(rechte(werkzeuge, einstellungen.webfetch_domains(cfg, agent), lese_ordner, suchen)),
         "--append-system-prompt", grundregel(config.person()) + "\n\n" + regeln.regeln_als_text(agent_dir),
     ]
     if sitzung_fortsetzen:
@@ -420,6 +429,7 @@ def laufen(
     ereignis_dir: Path | None = None,
     auftrag_basis: Path | None = None,
     lese_ordner: list[Path] | None = None,
+    suchen: bool = False,
 ) -> Ergebnis:
     """Führt einen claude-Lauf aus. art: "routine" oder "anspruchsvoll".
 
@@ -430,7 +440,8 @@ def laufen(
     die Warteschlange (Standard wie agentkit.auftraege).
     lese_ordner: Liste absoluter Ordner. Dann darf Claude nur Read in diesen Ordnern (z. B. Fotos eines Gesprächs)
     und WebSearch/WebFetch wie eingestellt, sonst kein Werkzeug und keinen Pfad; Antwort nur als Text
-    (Ergebnis.text). ValueError bei ungeeignetem Ordner.
+    (Ergebnis.text). ValueError bei ungeeignetem Ordner. suchen=True erlaubt dazu Glob und Grep in diesen Ordnern
+    (Dateien finden und durchsuchen), ohne lese_ordner ValueError.
     """
     lauf_id = uuid.uuid4().hex[:12]
 
@@ -439,16 +450,18 @@ def laufen(
 
     try:
         return _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis, lese_ordner)
+                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis, lese_ordner, suchen)
     except Exception as f:
         ev("lauf.fehler", grund=FEHLERGRUND.get(type(f).__name__, "technik"))
         raise
 
 
 def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-            cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None, lese_ordner=None) -> Ergebnis:
+            cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None, lese_ordner=None, suchen=False) -> Ergebnis:
     cfg = cfg or einstellungen.lade()
     agent_dir = Path(agent_dir)
+    if suchen and lese_ordner is None:
+        raise ValueError("suchen geht nur mit lese_ordner")
     if lese_ordner is not None:
         lese_ordner = lese_ordner_pruefen(lese_ordner, agent_dir)
     stufe = verbrauch.stufe(verbrauch.letzter_stand(protokoll), cfg)
@@ -464,7 +477,7 @@ def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_f
     else:
         modell = cfg["modelle"]["anspruchsvoll"]
     sitzung_neu = str(uuid.uuid4()) if lernsitzung and not sitzung_fortsetzen else None
-    cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen, lese_ordner)
+    cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen, lese_ordner, suchen)
     quelle = cfg.get("konto", {}).get("quelle", "token")
     env = umgebung(quelle)
 

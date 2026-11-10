@@ -188,6 +188,49 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertIn("Read(//srv/a/fotos/**/.env)", r["deny"])
         self.assertIn("Read(//srv/a/fotos/**/.env.*)", r["deny"])
 
+    def test_nur_lesen_rechte_mit_suchen(self):
+        o, p = Path("/srv/a/fotos"), Path("/srv/b")
+        r = claude_lauf.rechte(["Read", "WebSearch"], None, [o, p], suchen=True)["permissions"]
+        self.assertEqual(r["allow"], ["Read(//srv/a/fotos/**)", "Read(//srv/b/**)", "Grep(//srv/a/fotos/**)",
+                                      "Grep(//srv/b/**)", "Glob(//srv/a/fotos/**)", "Glob(//srv/b/**)", "WebSearch"])
+        for w in ("Grep", "Glob", "WebSearch"):  # deny ginge vor allow
+            self.assertNotIn(w, r["deny"])
+        for w in ("Bash", "Edit", "Write", "NotebookEdit", "WebFetch"):
+            self.assertIn(w, r["deny"])
+        for o_ in ("//srv/a/fotos", "//srv/b"):
+            for w in ("Read", "Grep"):
+                for m in (".env", ".env.*"):
+                    self.assertIn(f"{w}({o_}/**/{m})", r["deny"])
+        # ohne suchen wie bisher: Grep und Glob gesperrt, nur Read frei
+        ohne = claude_lauf.rechte(["Read"], None, [o])["permissions"]
+        self.assertEqual(ohne["allow"], ["Read(//srv/a/fotos/**)"])
+        self.assertIn("Grep", ohne["deny"])
+        self.assertIn("Glob", ohne["deny"])
+        with self.assertRaises(ValueError):
+            claude_lauf.rechte(["Read"], None, None, suchen=True)
+
+    def test_nur_lesen_lauf_mit_suchen(self):
+        ort = self.agent_dir / "data" / "ort"
+        ort.mkdir(parents=True)
+        cfg = copy.deepcopy(CFG)
+        cfg["werkzeuge"]["uni"] = ["Read", "Write", "WebSearch"]
+        cwd = self.agent_dir / "data" / "nur_lesen"
+        self.assertTrue(self.lauf(cfg=cfg, lese_ordner=[ort], suchen=True).ok)
+        a = json.loads((cwd / "args.json").read_text())
+        self.assertEqual(a[a.index("--tools") + 1: a.index("--strict-mcp-config")],
+                         ["Read", "Glob", "Grep", "WebSearch"])
+        self.assertEqual(a[a.index("--permission-mode") + 1], "dontAsk")
+        rechte = json.loads(a[a.index("--settings") + 1])["permissions"]
+        self.assertIn(f"Grep(/{ort.resolve()}/**)", rechte["allow"])
+        self.assertIn(f"Glob(/{ort.resolve()}/**)", rechte["allow"])
+        self.assertIn(f"Grep(/{ort.resolve()}/**/.env)", rechte["deny"])
+        for f in cwd.iterdir():
+            f.unlink()
+        # suchen ohne lese_ordner: kein Lauf
+        with self.assertRaises(ValueError):
+            self.lauf(cfg=cfg, suchen=True)
+        self.assertFalse((self.agent_dir / "args.json").exists())
+
     def test_nur_lesen_ordner_pruefen(self):
         fotos = self.agent_dir / "data" / "gespraeche" / "g1"
         fotos.mkdir(parents=True)

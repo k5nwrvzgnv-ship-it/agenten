@@ -1132,14 +1132,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
     weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
     reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.
-38. Bedarf aus lia/chat an agentkit.claude_lauf (10.11.2026, Jan entscheidet): Lias Gespräche dürfen jetzt in allen
-    Lia-Ordnern lesen (Jan: „Lias Chat soll alles wissen“, Zugang Lia + Auswertung; lia/chat/STATUS.md). Im
-    Nur-Lesen-Lauf (lese_ordner) sperrt agentkit aber Glob und Grep (NUR_LESEN_VERBOTEN), Claude kann darum keine
-    Ordner auflisten oder durchsuchen und findet nur, was in der Übersicht im Prompt steht (heute ca. 45 KB, in großen
-    Ordnern nur die 10 jüngsten Dateinamen). Wunsch: Glob und Grep im Nur-Lesen-Lauf erlauben, mit derselben
-    Pfadgrenze wie Read (allow je Lese-Ordner, .env weiter gesperrt), am besten über einen Parameter (z. B.
-    `suchen=True`), damit andere Nutzer von lese_ordner unverändert bleiben. Laut Probe 10.11. (Punkt 37) halten
-    Grep/Glob die Read-Pfadgrenze. Danach baut lia/chat die Übersicht kleiner.
+38. Glob und Grep im Nur-Lesen-Lauf für lia/chat (10.11.2026): Teil agentkit erledigt (Jans Okay 10.11.).
+    `claude_lauf.laufen(..., lese_ordner=[...], suchen=True)` (auch `befehl`, `rechte`) gibt zu Read auch Glob und
+    Grep frei, je Lese-Ordner `Glob(//<o>/**)`, `Grep(//<o>/**)`, dazu deny `Grep(//<o>/**/.env)` und `.env.*` wie
+    bei Read. Ohne `suchen` unverändert (Grep/Glob gesperrt), `suchen` ohne lese_ordner: ValueError. Echter Lauf
+    10.11. (claude 2.1.304, Sonnet, 0,05 USD, Testordner mit .env und .env.lokal): Glob und Grep im Ordner gehen,
+    Grep über den ganzen Ordner (auch mit glob ".env*") liefert keine .env-Inhalte, Glob listet .env nicht, Grep/Read
+    direkt auf .env abgelehnt, Glob/Grep außerhalb und im Elternordner abgelehnt. Ungeklärt, ob die .env bei der
+    Ordnersuche durch die deny-Regel oder durch das Überspringen versteckter Dateien fehlt; Dateien, die nicht
+    .env/.env.* heißen, schützt beides nicht (wie bei Read). Offen: lia/chat nutzt `suchen=True` und baut die
+    Übersicht im Prompt kleiner (lia/chat-Chat).
 
 ## Gelernte Regeln
 - (noch keine)
