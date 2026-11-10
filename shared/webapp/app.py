@@ -71,6 +71,10 @@ und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
 ergebnis_dateien, nie über einen Pfad aus der URL; jeder Pfad wird gegen den Agent-Ordner geprüft (dateien.py).
 
+Oberfläche: WEBAPP_OBERFLAECHE=alt (Standard) nutzt vorlagen/ und stil.css mit der Spalte „Fragen“ (POST /fragen,
+GET /teile/frage/<id>); =neu nutzt oberflaeche/ und ruhig.css mit Gesprächen und Ablage am Ort (bauplan-gespraech.md,
+nicht freigegeben). Die Routen der jeweils anderen Oberfläche geben 404.
+
 Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET; mit WEBAPP_PORT=8791 auf 127.0.0.1:8791
        statt Socket, so läuft der Dienst systemd/webapp.service hinter Caddy)
 """
@@ -120,6 +124,8 @@ ECHTE_INSTANZ = HIER.parent.parent / "lia" / "instanz"
 INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or ECHTE_INSTANZ)
 NEUER_AUFTRAG = os.environ.get("WEBAPP_NEUER_AUFTRAG", "")  # "", "test" oder "echt" (siehe oben)
 CHAT = os.environ.get("WEBAPP_CHAT", "") == "an"  # Spalte „Fragen“ an den Chat-Agenten (Lias Kontingent)
+# alt: vorlagen/ + stil.css (freigegeben, Lia sieht sie); neu: oberflaeche/ + ruhig.css (Gespräch in der Mitte, ruht)
+OBERFLAECHE = "neu" if os.environ.get("WEBAPP_OBERFLAECHE") == "neu" else "alt"
 CHAT_DIR = HIER.parent.parent / "lia" / "chat"
 CHAT_ORDNER = CHAT_DIR / "data"  # Warteschlange des Chat-Agenten (lia/chat/schnittstelle.py)
 DATEN = HIER / "data"
@@ -154,7 +160,21 @@ async def lebenslauf(_app):
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lebenslauf)
 app.mount("/statisch", StaticFiles(directory=HIER / "statisch"), name="statisch")
-vorlagen = Jinja2Templates(directory=HIER / "oberflaeche")  # neue Oberfläche (bauplan-gespraech.md); vorlagen/ nur für den alten Dienst bis zum Neustart
+_OBERFLAECHEN = {"alt": Jinja2Templates(directory=HIER / "vorlagen"), "neu": Jinja2Templates(directory=HIER / "oberflaeche")}
+
+
+class _Vorlagen:
+    """Vorlagen der eingestellten Oberfläche; zur Laufzeit gewählt, damit die Tests beide prüfen können."""
+
+    def TemplateResponse(self, *args, **kwargs):  # noqa: N802 (Name wie bei Starlette)
+        return _OBERFLAECHEN[OBERFLAECHE].TemplateResponse(*args, **kwargs)
+
+
+vorlagen = _Vorlagen()
+
+
+def alt() -> bool:
+    return OBERFLAECHE != "neu"
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -231,6 +251,21 @@ def chat():
     return schnittstelle
 
 
+def _fragen(reihen: list[dict], aktiv: str, stunde: int | None) -> dict | None:
+    """Werte der Spalte „Fragen“ (alte Oberfläche) für den Ort der Seite; None, wenn der Chat aus ist (Platzhalter)."""
+    modul = chat()
+    if modul is None:
+        return None
+    reihe = next((r for r in reihen if r["id"] == aktiv), None)
+    st = _stunde_tupel(reihe, stunde)
+    try:
+        verlauf = modul.verlauf(CHAT_ORDNER)
+    except (OSError, ValueError) as fehler_:
+        logger.error("Chat-Verlauf nicht lesbar: %s", fehler_)
+        verlauf = []
+    return logik.fragen_spalte(verlauf, reihe, st)
+
+
 def _stunde_tupel(reihe: dict | None, nr: int | None) -> tuple[int, str] | None:
     if not reihe or not nr:
         return None
@@ -249,11 +284,14 @@ def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int
     s = struktur_()
     pflegen_ = s is not None and s.format == "neu"  # die App schreibt nur das neue Format (agentkit.strukturpflege)
     baum = logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde, ordnung_laden()[1], logik.faecher_aus(s), pflegen_)
+    werte = {"baum": baum, "krumen": krumen, "neu_hier": neu_hier if neu_modus() else ""}
+    if alt():  # Spalte „Fragen“ rechts
+        return {**werte, "fragen": _fragen(reihen, aktiv, stunde), "fragen_token": logik.formular_token(GEHEIM),
+                "frage_fehler": logik.FRAGE_FEHLER}
     if chat() is not None:  # Gespräche ohne Ort gleich unter „Heute“ (Skizze)
         baum.insert(1, {"art": "eintrag", "text": "Gespräche ohne Ort", "link": "/gespraeche", "tiefe": 0, "zahl": "",
                         "aktiv": aktiv == "ohne-ort"})
-    return {"baum": baum, "krumen": krumen,
-            "neu_hier": neu_hier if neu_modus() else ""}
+    return werte
 
 
 def neu_modus() -> str:
@@ -283,13 +321,74 @@ def teil_heute(request: Request):
                                                                "weiter": weiter_im_gespraech()})
 
 
+@app.post("/fragen")
+async def frage_stellen(request: Request):
+    """Frage an den Chat-Agenten (alte Oberfläche); danach zurück auf die Seite, die Antwort lädt htmx nach
+    (/teile/frage/<id>). Dateien legt die Web-App in EINGANG ab, die Schnittstelle verschiebt sie; was übrig bleibt
+    (auch bei FrageFehler), räumt die Web-App weg."""
+    modul = chat()
+    if modul is None or not alt():
+        raise HTTPException(404)
+    form = await formular_lesen(request, "Frage", logik.FRAGE_DATEIEN_MAX, logik.NEU_DATEIEN_MAX)  # zu viele: Satz
+    dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
+    try:
+        return await _frage_weitergeben(modul, form, dateien_)
+    finally:
+        for d in dateien_:
+            await d.close()
+
+
+async def _frage_weitergeben(modul, form, dateien_: list[UploadFile]) -> RedirectResponse:
+    zurueck = logik.zurueck_pfad(str(form.get("zurueck") or ""))
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return RedirectResponse(f"{zurueck}?fragefehler=veraltet#fragen", status_code=303)
+    text, netz, gruendlich = str(form.get("text") or ""), form.get("netz") == "1", form.get("gruendlich") == "1"
+    code = "leer" if not text.strip() else logik.frage_dateien_pruefen([(d.filename, d.size or 0) for d in dateien_])
+    if code:
+        return RedirectResponse(f"{zurueck}?fragefehler={code}#fragen", status_code=303)
+    reihen = reihen_laden()
+    reihe = None if form.get("ohne") else next((r for r in reihen if r["id"] == str(form.get("reihe") or "")), None)
+    stunde = _stunde_tupel(reihe, logik.stunde_nummer(str(form.get("stunde") or ""), 999))
+    EINGANG.mkdir(parents=True, exist_ok=True)
+    ordner = Path(tempfile.mkdtemp(dir=EINGANG))
+    try:  # je Datei ein Unterordner wie bei Neuer Auftrag
+        uploads = [(d.filename, datei_ablegen(d, ordner / str(nr))) for nr, d in enumerate(dateien_)]
+        stunde_id = logik.reihe_stunden(reihe)[stunde[0] - 1]["id"] if stunde else ""
+        fid = modul.frage_stellen(text, logik.frage_ort(reihe, stunde, [], stunde_id), gruendlich, CHAT_ORDNER,
+                                  netz=netz, dateien=uploads)
+    except modul.FrageFehler as fehler_:
+        logger.warning("Frage abgewiesen: %s", fehler_)
+        code = logik.frage_fehler_schluessel(text, str(fehler_))
+        return RedirectResponse(f"{zurueck}?fragefehler={code}#fragen", status_code=303)
+    except OSError as fehler_:
+        logger.error("Frage nicht gestellt: %s", fehler_)
+        return RedirectResponse(f"{zurueck}?fragefehler=technik#fragen", status_code=303)
+    finally:
+        shutil.rmtree(ordner, ignore_errors=True)
+    logger.info("Frage %s gestellt (%s, %s, %s, %d Dateien)", fid, reihe["id"] if reihe else "ohne Ort",
+                "gründlich" if gruendlich else "schnell", "mit Netz" if netz else "ohne Netz", len(uploads))
+    return RedirectResponse(f"{zurueck}?frage={fid}#fragen", status_code=303)
+
+
+@app.get("/teile/frage/{frage_id}", response_class=HTMLResponse)
+def teil_frage(request: Request, frage_id: str):
+    """Antwort auf eine Frage für htmx (alte Oberfläche): solange sie fehlt, „Denkt nach“ mit Nachfragen in 2 s."""
+    modul = chat()
+    if modul is None or not alt() or not logik.chat_id_gueltig(frage_id):
+        raise HTTPException(404)
+    antwort = modul.antwort_holen(frage_id, CHAT_ORDNER)
+    return vorlagen.TemplateResponse(request, "_frage.html", {
+        "id": frage_id, "a": logik.fragen_eintrag(antwort) if antwort else None,
+        "fehler": (antwort or {}).get("fehler"), "wartet": antwort is None})
+
+
 WEITER_ANZAHL = 3  # „Weiter im Gespräch“ in Heute, der Rest unter „Alle Gespräche“ (zugeklappt)
 
 
 def weiter_im_gespraech() -> dict | None:
-    """Jüngste Gespräche für Heute (None, wenn der Chat aus ist)."""
+    """Jüngste Gespräche für Heute (None, wenn der Chat aus ist oder die alte Oberfläche gilt)."""
     modul = chat()
-    if modul is None:
+    if modul is None or alt():
         return None
     try:
         alle = modul.gespraeche(None, CHAT_ORDNER)
@@ -469,9 +568,10 @@ def aktion_hinweis(aktion_id: str | None) -> dict | None:
             "hinweise": _NACH_AKTION.get(aktion_id, [])}
 
 
-vorlagen.env.globals["aktion_hinweis"] = aktion_hinweis
-vorlagen.env.globals["formular_token"] = lambda: logik.formular_token(GEHEIM)
-vorlagen.env.globals["einmal_kennung"] = lambda: secrets.token_hex(8)
+for _v in _OBERFLAECHEN.values():
+    _v.env.globals["aktion_hinweis"] = aktion_hinweis
+    _v.env.globals["formular_token"] = lambda: logik.formular_token(GEHEIM)
+    _v.env.globals["einmal_kennung"] = lambda: secrets.token_hex(8)
 
 
 _EINMAL: dict[str, asyncio.Future] = {}  # Formular-Kennung -> Ziel der Weiterleitung (nur die letzten, siehe einmal)
@@ -1595,7 +1695,7 @@ def ablage_daten(ort_id: str, zurueck: str, request: Request) -> dict:
 @app.post("/ablage/{ort_id}")
 async def ablage_hochladen(request: Request, ort_id: str):
     """Eigene Dateien am Ort ablegen (ohne Auftrag, startet nichts). Danach zurück an die Ebene."""
-    o = orte_().get(ort_id)
+    o = None if alt() else orte_().get(ort_id)
     if o is None or o["archiv"]:
         raise HTTPException(404)
     form = await formular_lesen(request, "Ablage", 5)
@@ -1620,7 +1720,7 @@ async def ablage_hochladen(request: Request, ort_id: str):
 
 @app.post("/ablage/{ort_id}/entfernen")
 async def ablage_entfernen(request: Request, ort_id: str):
-    o = orte_().get(ort_id)
+    o = None if alt() else orte_().get(ort_id)
     if o is None:
         raise HTTPException(404)
     form = await formular_lesen(request, "Ablage entfernen", 0)
@@ -1633,7 +1733,7 @@ async def ablage_entfernen(request: Request, ort_id: str):
 @app.get("/ablage/{ort_id}/{name}")
 def ablage_datei(ort_id: str, name: str):
     """Abgelegte Datei: Fotos und PDF im Browser, sonst als Download."""
-    p = ablage.pfad(INSTANZ, ort_id, name)
+    p = None if alt() else ablage.pfad(INSTANZ, ort_id, name)
     if p is None:
         raise HTTPException(404)
     zeigen = p.suffix.lower() in ablage.FOTOS | {".pdf"}
@@ -1647,7 +1747,7 @@ GESPRAECH_DATEIEN = 8  # 5 Fotos + 3 Dateien je Nachricht (lia/chat prüft genau
 
 def _chat_an():
     modul = chat()
-    if modul is None:
+    if modul is None or alt():
         raise HTTPException(404)
     return modul
 
@@ -1666,9 +1766,9 @@ def _ort_feld(o: dict | None) -> dict | None:
 
 
 def gespraeche_hier(ort_id: str, jetzt: datetime | None = None) -> dict | None:
-    """Gespräche an einer Ebene und darunter für Klasse, Reihe, Stunde (None, wenn der Chat aus ist)."""
+    """Gespräche an einer Ebene und darunter für Klasse, Reihe, Stunde (None, wenn der Chat aus ist oder alt gilt)."""
     modul = chat()
-    if modul is None:
+    if modul is None or alt():
         return None
     orte = orte_()
     o = orte.get(ort_id)
@@ -1900,7 +2000,7 @@ def teil_sonder(request: Request, gid: str, nid: str):
 @app.get("/gespraech/{gid}/datei/{nid}/{name}")
 def gespraech_datei(gid: str, nid: str, name: str):
     """Foto oder Datei aus einer Nachricht (lia/chat legt sie unter data/gespraeche/<id>/<nachricht>/ ab)."""
-    if not (logik.chat_id_gueltig(gid) and logik.chat_id_gueltig(nid)) or chat() is None:
+    if not (logik.chat_id_gueltig(gid) and logik.chat_id_gueltig(nid)) or chat() is None or alt():
         raise HTTPException(404)
     p = dateien.sicher(CHAT_ORDNER / "gespraeche" / gid, Path(nid) / name, ablage.ENDUNGEN)
     if p is None:
@@ -1916,7 +2016,7 @@ async def baustein_reihenfrage(request: Request):
     gid, reihe_id = str(form.get("gespraech") or ""), str(form.get("reihe") or "")
     text = " ".join(str(form.get("text") or "").split())
     zurueck = f"/gespraech/{gid}" if logik.chat_id_gueltig(gid) else "/"
-    s = struktur_()
+    s = None if alt() else struktur_()
     r = s.objekt(reihe_id) if s is not None and s.format == "neu" else None
     if r is None or r["ebene"] != "reihe" or not text:
         raise HTTPException(404)
@@ -2075,7 +2175,10 @@ def seite_neu(request: Request):
     q = request.query_params
     text, aus = "", ""
     gid, nid = q.get("aus_gespraech") or "", q.get("ergebnis") or ""
-    if chat() is not None and logik.chat_id_gueltig(gid) and logik.chat_id_gueltig(nid):
+    if alt() and chat() is not None and logik.chat_id_gueltig(q.get("aus") or ""):  # Spalte „Fragen“
+        aus = q.get("aus") or ""
+        text = logik.text_aus_chat(next((e for e in chat().verlauf(CHAT_ORDNER) if e.get("id") == aus), None))
+    elif chat() is not None and logik.chat_id_gueltig(gid) and logik.chat_id_gueltig(nid):
         a = chat().antwort_holen(nid, CHAT_ORDNER)  # „Daraus Auftrag machen“: von Claude geordneter Auftragstext
         if a and a.get("ok", True):
             text, aus = (a.get("text") or "").strip(), f"aus_gespraech={gid}&ergebnis={nid}"

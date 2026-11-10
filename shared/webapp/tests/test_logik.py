@@ -1003,7 +1003,7 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.text_aus_chat({"frage": "Was?", "antwort": "**V** a."}), "Was?\n\nV a.")
         aus = "aus_gespraech=0123456789ab&ergebnis=ba9876543210"
         self.assertEqual(logik.neu_link("r", None, "", aus), "/neu?reihe=r&" + aus)
-        self.assertEqual(logik.neu_link("r", None, "", "0123456789ab"), "/neu?reihe=r")
+        self.assertEqual(logik.neu_link("r", None, "", "0123456789ab"), "/neu?reihe=r&aus=0123456789ab")  # alt
         self.assertEqual(logik.neu_link("r", None, "", "../x"), "/neu?reihe=r")
 
     def test_formatvorlagen(self):

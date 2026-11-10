@@ -47,6 +47,8 @@ class FesteZeit(datetime):
 class Aufbau(unittest.TestCase):
     """Echter Uvicorn auf einem Socket im Temp-Ordner, Instanz mit Beispielaufträgen."""
 
+    oberflaeche = "neu"  # die Tests hier prüfen oberflaeche/; die alte (vorlagen/) prüft test_alt.py
+
     def setUp(self):
         for zeit in (mock.patch.object(app, "datetime", FesteZeit), mock.patch.dict(app._EINMAL, clear=True),
                      mock.patch("agentkit._ablage.jetzt", lambda: "2026-10-30T17:59:00+01:00")):
@@ -98,7 +100,7 @@ class Aufbau(unittest.TestCase):
         (self.instanz / ".env").chmod(0o600)
         self.meldungen = []  # Meldungen an Jan (agentkit.strukturpflege) gehen in Tests nur hierher
         for name, wert in (("INSTANZ", self.instanz), ("DATEN", self.tmp / "webdaten"),
-                           ("MELDEN", self.meldungen.append)):
+                           ("MELDEN", self.meldungen.append), ("OBERFLAECHE", self.oberflaeche)):
             patch = mock.patch.object(app, name, wert)
             patch.start()
             self.addCleanup(patch.stop)
