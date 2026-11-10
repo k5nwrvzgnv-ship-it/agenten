@@ -16,11 +16,11 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
 - Read-Grenze: agentkit.claude_lauf `lese_ordner` (Hauptordner-Sitzung „agentkit: Read mit Pfadgrenze testen“).
   Im echten Lauf wollte Claude eine Datei außerhalb gar nicht erst öffnen (lehnte selbst ab); dass die Grenze
   technisch hält, belegt der agentkit-Test, nicht dieser Lauf.
-- Websuche in Gesprächen: agentkit erlaubt mit lese_ordner auch WebSearch/WebFetch, sobald es in den
-  Werkzeugen steht (Hauptordner-Sitzung, Stand 10.11. im Arbeitsbaum, Commit dort ausstehend). lia/chat schaltet
-  das je Lauf über die eigene cfg-Kopie (geprüft: ohne Häkchen nur Read, mit Häkchen Read, WebSearch, WebFetch auf
-  [webfetch] recherche). Echt im Gespräch noch nicht gelaufen. Fehlt es in agentkit, läuft netz=True ohne Netz
-  und die Antwort trägt `"netz": false` (gespraechlauf.netz_moeglich).
+- Websuche in Gesprächen (agentkit 059a9b2: lese_ordner mit WebSearch/WebFetch): lia/chat schaltet sie je Lauf
+  über die eigene cfg-Kopie (ohne Häkchen nur Read, mit Häkchen dazu WebSearch und WebFetch auf [webfetch]
+  recherche). Echt 10.11.: Frage zur bpb mit Netz 45 s, 5 Schritte, 0,14 USD, mit Quellen; Folgenachricht ohne
+  Netz fortgesetzt, 4 s, aber 0,21 USD (die Webinhalte gehen im Verlauf mit). WebFetch auf ein PDF lieferte nur
+  unlesbaren Datenstrom, Claude sagte das offen. Testgespräch danach gelöscht.
 
 ## Stand der alten Spalte „Fragen“ (03.11.2026)
 - Läuft seit 30.10. (Dienste lia-chat.path, lia-chat-aufraeumen.timer täglich 03:40). Die Web-App ist angeschlossen
@@ -165,8 +165,7 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
   Dateien einer Frage zusammen höchstens 60.000 Zeichen.
 
 ## Offene Punkte
-1. agentkit-Commit von lese_ordner (mit Netz) abwarten; bis dahin hängt lia/chat im Repo an ungespeichertem
-   agentkit-Code. Danach ein echter Gesprächslauf mit netz=True.
+1. Kosten: Nachrichten nach einer Websuche sind teurer (Webinhalte im Verlauf). Nach zwei Wochen ansehen.
 2. Web-App: auf die Gespräche umschalten (Bauplan Schritt 6). Danach als Vorschlag an Jan: frage_stellen,
    chatverlauf, data/verlauf.jsonl und die alten Punkte (stunde_id, Häkchen und Datei-Feld der alten Spalte,
    Punkt 24 der Haupt-STATUS) wegräumen.
