@@ -7,25 +7,26 @@ Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Moderni
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
 ## Oberfläche und schneller Weg (Stand 10.11.2026, Plan `../../docs/schnell-dokument-plan.md` Schritt 3)
-Der laufende `webapp.service` (Start 04.11., Code fd5c5e4) zeigt die alte Oberfläche. Neustart noch nicht gemacht,
-er braucht Jans Okay.
-- Schalter `WEBAPP_OBERFLAECHE` (Entscheidung 6.5): ohne Angabe oder `alt` gelten `vorlagen/` + `stil.css` mit der
-  Spalte „Fragen“ (`/fragen`, `/teile/frage/<id>` wieder da), `neu` nimmt `oberflaeche/` + `ruhig.css` mit Gesprächen
-  und Ablage. Die Routen der jeweils anderen Oberfläche geben 404. Die Unit braucht dafür nichts: Ein Neustart mit
-  heutigem Code zeigt Lia dieselbe Oberfläche. Geprüft 10.11.: die alte Testreihe von fd5c5e4 (100 Tests) lief grün
-  gegen den neuen Code; Rundgang über 401 echte Seiten (lia/instanz, Token herausgerechnet) gleich dem laufenden
-  Dienst, alle 200. Tests: `tests/test_alt.py`; `test_app.py` und `test_pflege_app.py` prüfen `oberflaeche/`.
-- `vorlagen/` und `stil.css` wirken sofort auf den laufenden Dienst. Neue Werte dort nur hinter `if` (der alte Code
-  kennt sie nicht), keine neuen Filter; danach den Rundgang gegen 127.0.0.1:8791 wiederholen. `ergebnis.html` ist so
-  geändert (10.11.), geprüft: alle 401 Seiten 200 und gleich.
-- Schneller Weg über lia/schnell (Schnittstelle: Abschnitt „Schnittstelle“ in `../../lia/schnell/STATUS.md`), nur mit
-  `WEBAPP_SCHNELL=an`, alter Oberfläche und eingeschaltetem Neu (heute in der Unit: aus, also für Lia unsichtbar):
+`webapp.service` läuft seit 10.11. 12:30 auf ad9539a mit `WEBAPP_OBERFLAECHE=neu` (Jans Okay 10.11.): Lia sieht
+`oberflaeche/` + `ruhig.css` mit Gesprächen und Ablage. Die Unit im Repo ist gleich der installierten. Nach dem Neustart
+geprüft (nur lesend): Rundgang über 113 Seiten ab `/` gegen 127.0.0.1:8791, alle 200, „Anderes Dokument“ unter Neu
+sichtbar, Rückmeldung-Formular da, kein Fehler im Log. Die alte Oberfläche ist für Lia nicht tragbar (Jan 10.11.);
+die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
+- Schalter `WEBAPP_OBERFLAECHE`: `neu` nimmt `oberflaeche/` + `ruhig.css`, ohne Angabe oder `alt` gelten `vorlagen/` +
+  `stil.css` mit der Spalte „Fragen“ (`/fragen`, `/teile/frage/<id>`). Die Routen der jeweils anderen Oberfläche geben
+  404. Tests: `test_app.py`, `test_pflege_app.py` und `test_schnell.py` (TestSchnellNeu) prüfen `oberflaeche/`,
+  `test_alt.py` und `test_schnell.py` (TestSchnell) die alte.
+- `oberflaeche/` und `ruhig.css` wirken sofort auf den laufenden Dienst, Python erst nach dem Neustart. Nach Änderungen
+  dort den Rundgang gegen 127.0.0.1:8791 wiederholen.
+- Schneller Weg über lia/schnell (Schnittstelle: Abschnitt „Schnittstelle“ in `../../lia/schnell/STATUS.md`): ohne
+  eigenen Schalter (Jan 10.11.: eine knappe Änderung soll von selbst schnell gehen, keine Wahl für Lia), in beiden
+  Oberflächen, immer wenn Neu eingeschaltet ist (`WEBAPP_NEUER_AUFTRAG`, `app.schnell`):
   - Rückmeldung am Dokument ohne Datei an Dokumenten von unterricht, theater, schnell geht an `schnittstelle.aendern`
     statt an den Feedback-Dienst (`logik.schnell_ziel`): an einer Datei genau diese (mit Seite), zum Ganzen die
     neueste Fassung, wenn sie schnell geändert ist (`eigene=n`) oder vom Assistenten mit genau einer Datei. Mit
-    Datei, bei Lias eigener Datei als neuester Fassung, mehreren Dateien oder anderen Agenten: wie bisher an
+    Datei, bei Lias eigener Datei als neuester Fassung, mehreren Dateien oder anderen Agenten: gründlich an
     feedback. „Zu groß“ gibt lia/schnell selbst gründlich weiter.
-  - „Neu“ hat die Karte „Anderes Dokument“ (`logik.VORLAGE_DOKUMENT`, nur mit Schalter): Text, Ort, bis 5 Dateien an
+  - „Neu“ hat die Karte „Anderes Dokument“ (`logik.VORLAGE_DOKUMENT`): Text, Ort, bis 5 Dateien an
     `schnittstelle.dokument`, danach Warteseite `/neu/schnell/<id>`, fertig weiter zur Ansicht des Auftrags.
   - Anzeige: Seite mit `?schnell=<id>` zeigt „Wird geändert …“ (bzw. „Wird erstellt …“) und fragt per htmx alle
     2 s `/teile/schnell/<id>` ab, nach 3 Minuten „dauert länger“ und alle 10 s. Mit Antwort HX-Redirect auf die
@@ -33,19 +34,18 @@ er braucht Jans Okay.
     2 Minuten wird nicht neu gestellt (im Speicher).
   - Schnell geänderte Fassungen (Notiz beginnt mit „Schnell geändert: “) heißen „von mir“; ist die neueste eine
     solche mit Seitenbildern, steht sie oben (Bilder, PDF, Word). Bilder neben der Datei im Agent-Ordner (dort legt
-    lia/schnell sie seit be38551 ab, einen Augenblick nach dem Eintrag), sonst aus
-    `lia/schnell/data/fassungen/<ursprung>/eigene-<n>/` (Routen `/ergebnis/<id>/eigene/<n>/seite/<m>`, `…/pdf`).
-    Kennzeichen `schnittstelle.NOTIZ_PRAEFIX` (zugesichert, Test gleicht ab); `schnittstelle.schnell_fassung()`
-    gäbe es auch, die App braucht es nicht.
-    Schnelle Dokumente tragen nur `ort`; `logik.reihe_von` liest daraus die Reihe (nur für agent schnell).
+    lia/schnell sie seit be38551 ab), sonst aus `lia/schnell/data/fassungen/<ursprung>/eigene-<n>/` (Routen
+    `/ergebnis/<id>/eigene/<n>/seite/<m>`, `…/pdf`). Kennzeichen `schnittstelle.NOTIZ_PRAEFIX` (zugesichert, Test
+    gleicht ab). Schnelle Dokumente tragen nur `ort`; `logik.reihe_von` liest daraus die Reihe (nur agent schnell).
   - Echt startet die App nach jedem Wunsch `lia-schnell.service` (zusätzlich zur Pfad-Unit); Testbetrieb schreibt
     nach `data/schnell-test/`, kein Agent liest das.
-  - Nur in der alten Oberfläche; in `oberflaeche/` nichts davon.
-- Einschalten (Jans Okay, nicht gemacht): zuerst die Dienste von lia/schnell installieren (dortige STATUS, offene
-  Punkte 1), dann in `systemd/webapp.service` `Environment=WEBAPP_SCHNELL=an` ergänzen, nach
-  `~/.config/systemd/user/` kopieren, `systemctl --user daemon-reload`, `systemctl --user restart webapp.service`.
-  Danach Probe mit Lia (Plan Schritt 4). Ein Neustart ohne den Schalter ändert für Lia nichts.
-- Nicht im Browser geprüft: htmx-Abfrage und HX-Redirect (nur über den Socket getestet). Bei der Probe ansehen.
+  - Im Gespräch (lia/chat) gibt es keinen schnellen Weg: Schreibt Lia eine Änderung dort statt in „Rückmeldung
+    geben“, geht sie an lia/chat.
+- Probe 10.11. auf der Test-Instanz (8795, neue Oberfläche, Testbetrieb, Antwort von lia/schnell von Hand über die
+  Schnittstelle geschrieben): Rückmeldung ohne Datei an lia/schnell, „Wird geändert …“ mit htmx, HX-Redirect, Satz
+  oben, schnelle Fassung oben mit Seitenbild, PDF und Word; „Anderes Dokument“ bis zur Warteseite; 81 Seiten 200.
+- Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
+  schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
 ## Umbau „Gespräch in der Mitte“ (Stand 10.11.2026, Plan `bauplan-gespraech.md`, Jans Okay 10.11.)
 Gebaut und committet (Bauplan-Schritte 1–6): `gespraech.py` (Markdown mit Überschriften, Tabellen, Bausteinen;
@@ -62,8 +62,8 @@ Nur mit `WEBAPP_OBERFLAECHE=neu` (siehe oben); dort ist die Spalte „Fragen“ 
 Probe 10.11.2026 (Bauplan Schritt 7) mit Jan abgebrochen: Reihenfrage übernehmen, Foto senden und Auftrag ordnen
 liefen technisch, aber Jan findet das Gespräch zu starr und überfordernd (Zielbild „wie eine Claude-Code-Sitzung“,
 keine weiteren Knöpfe, auch „Als Reihenfrage übernehmen“ zu starr). Zielbild und Befund: Punkt 37 der Haupt-STATUS.
-Testgespräche gelöscht, Test-App gestoppt. Nicht umschalten: webapp.service zeigt weiter `vorlagen/` und `stil.css`.
-Bau hier ruht, bis der Plan aus Punkt 37 steht. Test-Instanz starten: `WEBAPP_INSTANZ=$PWD/data/test/instanz
+Testgespräche gelöscht. Jan hat am 10.11. trotzdem umgeschaltet (siehe oben): Die alte Oberfläche ist nicht tragbar,
+die neue „ansich nicht schlecht“. Weiterbau nach dem Plan aus Punkt 37. Test-Instanz starten: `WEBAPP_INSTANZ=$PWD/data/test/instanz
 WEBAPP_NEUER_AUFTRAG=test WEBAPP_CHAT=an WEBAPP_OBERFLAECHE=neu WEBAPP_PORT=8795` (8793/8794 sind uni-Portal und Arbeitsplatz), vorher
 `data/test/aufbauen.py`. Achtung: lia/chat liest immer `lia/instanz`; Orte, die nur die Test-Instanz hat (neue
 Stunden, „Kant: Vergeltung“, „von Liszt“), kennt Claude nicht.
@@ -498,7 +498,7 @@ WEBAPP_NEUER_AUFTRAG=test`, anderer Socket `WEBAPP_SOCKET=/pfad`, Port `WEBAPP_P
   ohnehin erst nach K1, K3 und Jans Okay zum Dienst Zugang; bis dahin nur Jans Tunnel.
 
 ## Offene Punkte
-11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. `webapp.service` läuft seit 04.11. 09:28 mit Jans Okay auf dem Code von 6bb96f1. Im Browser noch nicht geprüft: Sperre der Knöpfe und Darstellung des großen Knopfs. Die übrigen Formulare der Struktur-Pflege (etwa „+ Klasse“, Termine, Übernehmen, Kopieren) sind auf Doppelklick nicht gemessen. Offen für Jan: `data/test/aufbauen.py` ins Repo holen? Benutzeroberfläche und Design: siehe Abschnitt „Gestaltung“. Nach dem Neustart geprüft (04.11., laut Hauptordner-Chat, nur Abruf): `/`, `/neu`, `/ich`, `/vorlagen`, eine Reihe, `/fach/neu` und ein Ergebnis antworten 200, kein Fehler im Log, `lia/instanz/reihen.toml` unverändert. Im Browser belegt ist nur: Jan hat auf der Testinstanz eine neue Klasse und eine neue Reihe angelegt („erstmal ganz gut geklappt“). Offen, im Browser nicht geprüft: Punkte 2, 5 und 7, Rot, Knöpfe, Wörter und Schrift, auch die Messung, ob der Hinweis mit Rückgängig im Bild bleibt.
+11. Befund 03.11. (Prüflauf ohne Lia, Vorhersagen, Liste der Verbesserungen, nichts davon bestätigt): `data/ia/befund-2026-11-03.md` (nicht im Repo). Gebaut: Punkte 1, 3 und 8 (Jans Wahl); der Rest ist nicht beauftragt, Jan entscheidet. Wie der Dienst heute läuft: Abschnitt „Oberfläche und schneller Weg“. Im Browser noch nicht geprüft: Sperre der Knöpfe und Darstellung des großen Knopfs. Die übrigen Formulare der Struktur-Pflege (etwa „+ Klasse“, Termine, Übernehmen, Kopieren) sind auf Doppelklick nicht gemessen. Offen für Jan: `data/test/aufbauen.py` ins Repo holen? Benutzeroberfläche und Design: siehe Abschnitt „Gestaltung“. Nach dem Neustart geprüft (04.11., laut Hauptordner-Chat, nur Abruf): `/`, `/neu`, `/ich`, `/vorlagen`, eine Reihe, `/fach/neu` und ein Ergebnis antworten 200, kein Fehler im Log, `lia/instanz/reihen.toml` unverändert. Im Browser belegt ist nur: Jan hat auf der Testinstanz eine neue Klasse und eine neue Reihe angelegt („erstmal ganz gut geklappt“). Offen, im Browser nicht geprüft: Punkte 2, 5 und 7, Rot, Knöpfe, Wörter und Schrift, auch die Messung, ob der Hinweis mit Rückgängig im Bild bleibt.
 10. webapp.service mit dem lia/chat-Ausbau (Netz, Dateien, Links) neu gestartet (Jans Okay 03.11.), die Seite
     liefert Häkchen und Datei-Feld aus. Offen: einmal im Browser in lia.meldro.de prüfen (Datei hochladen, Link
     öffnet neuen Tab).

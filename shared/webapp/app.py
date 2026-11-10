@@ -81,8 +81,8 @@ Oberflächen; kein eigener Schalter (Jan 10.11.2026: eine knappe Änderung geht 
   Im Testbetrieb landen Wünsche in data/schnell-test/ (kein Agent liest sie).
 
 Oberfläche: WEBAPP_OBERFLAECHE=alt (Standard) nutzt vorlagen/ und stil.css mit der Spalte „Fragen“ (POST /fragen,
-GET /teile/frage/<id>); =neu nutzt oberflaeche/ und ruhig.css mit Gesprächen und Ablage am Ort (bauplan-gespraech.md,
-nicht freigegeben). Die Routen der jeweils anderen Oberfläche geben 404.
+GET /teile/frage/<id>); =neu nutzt oberflaeche/ und ruhig.css mit Gesprächen und Ablage am Ort (bauplan-gespraech.md;
+so läuft webapp.service seit 10.11.2026). Die Routen der jeweils anderen Oberfläche geben 404.
 
 Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET; mit WEBAPP_PORT=8791 auf 127.0.0.1:8791
        statt Socket, so läuft der Dienst systemd/webapp.service hinter Caddy)
@@ -139,7 +139,7 @@ CHAT = os.environ.get("WEBAPP_CHAT", "") == "an"  # Spalte „Fragen“ an den C
 SCHNELL_DIR = HIER.parent.parent / "lia" / "schnell"
 # Ablage schnell geänderter Fassungen samt Seitenbildern: <ursprung>/eigene-<n>/<datei> (lia/schnell/STATUS.md)
 SCHNELL_FASSUNGEN = SCHNELL_DIR / "data" / "fassungen"
-# alt: vorlagen/ + stil.css (freigegeben, Lia sieht sie); neu: oberflaeche/ + ruhig.css (Gespräch in der Mitte, ruht)
+# alt: vorlagen/ + stil.css (Spalte „Fragen“); neu: oberflaeche/ + ruhig.css (Gespräch in der Mitte, Lia sieht sie)
 OBERFLAECHE = "neu" if os.environ.get("WEBAPP_OBERFLAECHE") == "neu" else "alt"
 CHAT_DIR = HIER.parent.parent / "lia" / "chat"
 CHAT_ORDNER = CHAT_DIR / "data"  # Warteschlange des Chat-Agenten (lia/chat/schnittstelle.py)

@@ -15,9 +15,9 @@ WorkingDirectory=/home/agent/agenten/shared/webapp
 Environment=WEBAPP_PORT=8791
 Environment=WEBAPP_NEUER_AUFTRAG=echt
 Environment=WEBAPP_CHAT=an
-# Schneller Weg über lia/schnell (docs/schnell-dokument-plan.md, Jan 10.11.2026). Oberfläche bleibt die alte
-# (WEBAPP_OBERFLAECHE ohne Angabe = alt).
-Environment=WEBAPP_SCHNELL=an
+# Neue Oberfläche mit dem Gespräch in der Mitte (Jan 10.11.2026). Der schnelle Weg über lia/schnell braucht keinen
+# Schalter: Er gilt immer, sobald Neu eingeschaltet ist (WEBAPP_NEUER_AUFTRAG).
+Environment=WEBAPP_OBERFLAECHE=neu
 ExecStart=/home/agent/agenten/shared/webapp/.venv/bin/python app.py
 Restart=on-failure
 RestartSec=10
