@@ -131,5 +131,26 @@ class TestTexte(unittest.TestCase):
         self.assertEqual(index.finden("m1"), {"instanz": str(self.instanz), "feedback_id": "f1"})
 
 
+
+class TestNurLernen(unittest.TestCase):
+    def test_erkennen(self):
+        self.assertTrue(fb.nur_lernen({"felder": {"feedback_modus": "nur_lernen"}}))
+        for a in ({}, {"felder": None}, {"felder": {"feedback_modus": "anders"}}):
+            self.assertFalse(fb.nur_lernen(a))
+
+    def test_nachbesserung_wird_keine(self):
+        z = {"art": "nachbesserung", "auftrag": "Kürzer.", "regel": ""}
+        self.assertEqual(fb.fuer_nur_lernen(z), {"art": "keine", "auftrag": "", "regel": ""})
+        regel = {"art": "regel", "auftrag": "", "regel": "Kurz."}
+        self.assertIs(fb.fuer_nur_lernen(regel), regel)
+
+    def test_prompt_mit_hinweis(self):
+        args = ("Lia", "unterricht", {"text": "Blatt"}, "einfacher", "", ["unterricht"])
+        self.assertNotIn("schon gemacht", fb.prompt(*args))
+        text = fb.prompt(*args, lernen=True)
+        self.assertTrue(text.rstrip().endswith("Ergebnis betrifft."))
+        self.assertIn('Wähle darum nie "nachbesserung"', text)
+
+
 if __name__ == "__main__":
     unittest.main()

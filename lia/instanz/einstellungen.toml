@@ -1,0 +1,8 @@
+# Einstellungen nur für Lias Instanz (agentkit.einstellungen): hier dürfen nur [werkzeuge], [webfetch] und
+# [weitergabe] stehen. [werkzeuge] und [webfetch] ergänzen shared/einstellungen.toml, [weitergabe] gilt nur hier.
+
+# Aufträge von Agent an Agent (agentkit.auftraege.weitergeben): Absender = [Empfänger].
+# schnell (docs/schnell-dokument-plan.md, Jan 10.11.2026): ist ein Änderungswunsch zu groß für den schnellen Weg,
+# geht er als Nachbesserung an unterricht bzw. theater; nach einer kleinen Änderung geht er nur zum Lernen an feedback.
+[weitergabe]
+schnell = ["unterricht", "theater", "feedback"]

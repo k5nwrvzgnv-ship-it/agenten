@@ -97,6 +97,7 @@ from logik import (
     stufe_text,
     unklar_text,
     verbrauch_text,
+    weitergabe_beachten,
     weitergabe_text,
 )
 import panel
@@ -747,7 +748,7 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
             geaendert = True
 
     for a in auftraege.neue():  # Aufträge von Agent an Agent: Jan Bescheid geben, Empfänger starten
-        if a.get("von") and a["id"] not in gemeldet.listen["weitergaben"]:
+        if weitergabe_beachten(a) and a["id"] not in gemeldet.listen["weitergaben"]:
             dienst_da = a["agent"] in AGENTEN and (UNIT_DIR / f"{a['agent']}.service").exists()
             logger.info("Weitergabe %s: %s -> %s (Dienst da: %s)", a["id"], a["von"], a["agent"], dienst_da)
             if text := weitergabe_text(a, dienst_da):

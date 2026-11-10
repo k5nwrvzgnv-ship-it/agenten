@@ -272,6 +272,11 @@ class TestWeitergabe(unittest.TestCase):
         self.assertIn("Dokumente ist aber noch nicht eingerichtet", text)
         self.assertNotIn(self.A["id"], text)
 
+    def test_stille_weitergabe_beachtet_die_zentrale_nicht(self):
+        self.assertTrue(logik.weitergabe_beachten(self.A))
+        self.assertFalse(logik.weitergabe_beachten({**self.A, "still": True}))
+        self.assertFalse(logik.weitergabe_beachten({**self.A, "von": None}))  # Jans eigener Auftrag
+
     def test_ergebnis_ohne_technik(self):
         a = {**self.A, "ergebnis": "Zusammenfassung fertig. Bitte GK 4 prüfen."}
         self.assertEqual(auftrag_nachricht(a), ["<b>Dokumente</b>\nZusammenfassung fertig. Bitte GK 4 prüfen."])

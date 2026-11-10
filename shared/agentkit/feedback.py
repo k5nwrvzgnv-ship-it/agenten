@@ -38,6 +38,10 @@ MAX_NACHBESSERUNGEN = 1  # je Ergebnis automatisch (nicht für Lia)
 KNOPF_STOPP = "Stopp"
 KNOPF_UEBERNEHMEN = "Übernehmen"
 KNOPF_VERWERFEN = "Verwerfen"
+# Feedback nur zum Lernen (Feld feedback_modus im Auftrag): Die Änderung am Ergebnis ist schon gemacht (lia/schnell,
+# docs/schnell-dokument-plan.md). Keine Nachbesserung; Jan bekommt nur eine Meldung, wenn etwas gelernt wird.
+FELD_MODUS = "feedback_modus"
+NUR_LERNEN = "nur_lernen"
 
 
 class FeedbackFehler(Exception):
@@ -129,16 +133,36 @@ def kurz_zeilen(text: str, laenge: int) -> str:
     return text if len(text) <= laenge else text[: laenge - 1] + "…"
 
 
+def nur_lernen(feedback_auftrag: dict) -> bool:
+    """Ist dieser Feedback-Auftrag nur zum Lernen (die Änderung ist schon gemacht)?"""
+    return (feedback_auftrag.get("felder") or {}).get(FELD_MODUS) == NUR_LERNEN
+
+
+NUR_LERNEN_HINWEIS = """
+# Wichtig: Die Änderung ist schon gemacht
+Das Ergebnis wurde nach diesem Feedback schon geändert. Wähle darum nie "nachbesserung", nur "regel", "notiz" oder
+"keine": "regel", wenn {person} damit etwas will, das auch für künftige Ergebnisse gilt; "keine", wenn es nur dieses
+Ergebnis betrifft.
+"""
+
+
+def fuer_nur_lernen(z: dict) -> dict:
+    """Zuordnung für ein Feedback nur zum Lernen: Eine Nachbesserung wird "keine" (die Änderung ist schon gemacht)."""
+    if z["art"] != "nachbesserung":
+        return z
+    return {**z, "art": "keine", "auftrag": ""}
+
+
 def prompt(person: str, agent: str, auftrag: dict, feedback_text: str, regeln_text: str, agenten_liste: list[str],
-           fassung: str = "") -> str:
-    """fassung: fassung_abschnitt(), wenn eine Datei mitkam."""
+           fassung: str = "", lernen: bool = False) -> str:
+    """fassung: fassung_abschnitt(), wenn eine Datei mitkam. lernen: Feedback nur zum Lernen (nur_lernen)."""
     return PROMPT.format(
         person=person, agent=agent, auftrag=kurz(auftrag.get("text", ""), 1500),
         ergebnis=kurz(auftrag.get("ergebnis", ""), 3000) or "(kein Text, nur Dateien)",
         feedback=feedback_text.strip() or "(kein Text, nur die Datei unten)", fassung=fassung,
         regeln=regeln_text.strip() or "(keine)",
         alle=ALLE, oberflaeche=OBERFLAECHE, agenten=", ".join(agenten_liste) or "(keine)",
-    )
+    ) + (NUR_LERNEN_HINWEIS.format(person=person) if lernen else "")
 
 
 def zuordnung_lesen(antwort: str, agenten_liste: list[str]) -> dict:

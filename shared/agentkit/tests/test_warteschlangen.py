@@ -325,6 +325,52 @@ class TestWeitergabe(unittest.TestCase):
             auftraege.weitergeben("uni", "dokumente", "x", None, cfg={}, basis=self.basis, agenten_dir=self.agenten)
         self.assertEqual(auftraege.neue(basis=self.basis), [])
 
+    def test_nachbesserung_erbt_vom_bezug(self):
+        cfg = {"weitergabe": {"schnell": ["unterricht", "feedback"]}}
+        for a in ("schnell", "unterricht", "feedback"):
+            (self.agenten / a).mkdir()
+        alt = auftraege.neuer_auftrag("unterricht", "Arbeitsblatt Kant", quelle="portal-material", sitzung="s1",
+                                      ort="reihe-1", art="arbeitsblatt", felder={"thema": "Kant"}, basis=self.basis)
+        auftraege.abschliessen(alt, "fertig", sitzung="s1", basis=self.basis)  # Sitzung des Laufs
+        aid = auftraege.weitergeben("schnell", "unterricht", "Ganz neu mit Quellen", None, cfg=cfg, basis=self.basis,
+                                    agenten_dir=self.agenten, bezug=alt, nachbesserung=True, still=True)
+        a = auftraege.neue("unterricht", basis=self.basis)[0]
+        self.assertEqual((a["id"], a["von"], a["bezug"], a["quelle"], a["sitzung"], a["ort"], a["art"], a["felder"],
+                          a["still"]),
+                         (aid, "schnell", alt, "portal-material", "s1", "reihe-1", "arbeitsblatt", {"thema": "Kant"},
+                          True))
+        with self.assertRaises(auftraege.AuftragFehler):  # nur an den Agenten des Bezugs
+            auftraege.weitergeben("schnell", "feedback", "x", None, cfg=cfg, basis=self.basis,
+                                  agenten_dir=self.agenten, bezug=alt, nachbesserung=True)
+        with self.assertRaises(auftraege.AuftragFehler):  # ohne Bezug keine Nachbesserung
+            auftraege.weitergeben("schnell", "unterricht", "x", None, cfg=cfg, basis=self.basis,
+                                  agenten_dir=self.agenten, nachbesserung=True)
+        for falsch in ["20261022-120000-uni-abcdef", "../x"]:
+            with self.subTest(bezug=falsch), self.assertRaises(auftraege.AuftragFehler):
+                auftraege.weitergeben("schnell", "unterricht", "x", None, cfg=cfg, basis=self.basis,
+                                      agenten_dir=self.agenten, bezug=falsch)
+
+    def test_feedback_mit_bezug_quelle_und_feldern(self):
+        cfg = {"weitergabe": {"schnell": ["feedback"]}}
+        for a in ("schnell", "unterricht", "feedback"):
+            (self.agenten / a).mkdir()
+        alt = auftraege.neuer_auftrag("unterricht", "Arbeitsblatt", basis=self.basis)
+        auftraege.weitergeben("schnell", "feedback", "Aufgabe 2 einfacher", None, cfg=cfg, basis=self.basis,
+                              agenten_dir=self.agenten, bezug=alt, quelle="feedback",
+                              felder={"feedback_modus": "nur_lernen"}, still=True)
+        a = auftraege.neue("feedback", basis=self.basis)[0]
+        self.assertEqual((a["bezug"], a["quelle"], a["felder"], a["still"], a["sitzung"]),
+                         (alt, "feedback", {"feedback_modus": "nur_lernen"}, True, None))
+        with self.assertRaises(auftraege.AuftragFehler):
+            auftraege.weitergeben("schnell", "feedback", "x", None, cfg=cfg, basis=self.basis,
+                                  agenten_dir=self.agenten, felder={"a": 1})
+
+    def test_ohne_neue_angaben_wie_bisher(self):
+        self.weitergeben()
+        a = auftraege.neue("dokumente", basis=self.basis)[0]
+        self.assertNotIn("still", a)
+        self.assertNotIn("felder", a)
+
     def test_keine_kette(self):
         aid = self.weitergeben()
         cfg = {"weitergabe": {"dokumente": ["uni"]}}

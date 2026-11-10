@@ -29,7 +29,8 @@ Erlaubt ist nur, was in [weitergabe] in einstellungen.toml steht. Dateien werden
 (der Absender behält seine), der Auftrag trägt von=<Absender> und aus_auftrag=<Auftrag,
 aus dem die Weitergabe kommt>. Ein weitergegebener Auftrag darf nicht weitergegeben werden,
 damit sich Agenten nicht im Kreis beauftragen. Die Zentrale meldet Jan jede Weitergabe und
-startet den Empfänger; das Ergebnis geht wie jedes an Jan.
+startet den Empfänger; das Ergebnis geht wie jedes an Jan. Ausnahme still=True: Die Zentrale meldet nichts und
+startet nichts, das macht der Absender (z. B. lia/schnell, Nachbesserung oder Feedback nach einer kleinen Änderung).
 
 Rückfragen per Meldung (siehe meldungen): Klick oder Antwort auf eine Meldung wird ein
 Auftrag mit meldung=<Meldungs-ID> und dienst=<Dienst der Meldung>. Jeder Dienst holt
@@ -155,11 +156,22 @@ def weitergeben(
     cfg: dict | None = None,
     basis: Path | None = None,
     agenten_dir: Path | None = None,
+    bezug: str | None = None,
+    nachbesserung: bool = False,
+    quelle: str | None = None,
+    felder: dict[str, str] | None = None,
+    still: bool = False,
 ) -> str:
     """Auftrag von Agent von an Agent an, gibt seine ID zurück.
 
     aus_auftrag: Auftrag, den von gerade bearbeitet (None bei Läufen ohne Auftrag, z. B. Timer).
     dateien: im Ordner von (absolut oder relativ dazu), werden in den Ordner von an kopiert.
+    bezug: ID eines vorhandenen Auftrags derselben Ablage (z. B. das Ergebnis, zu dem Feedback gehört).
+    nachbesserung: der neue Auftrag ist eine Nachbesserung des Auftrags bezug, wie sie der Feedback-Dienst anlegt:
+    an muss dessen Agent sein, quelle, modus, sitzung und Herkunft (ort, art, felder) kommen von dort.
+    quelle: sonst "agent:<von>" (z. B. "feedback" für Feedback, das die Zentrale nicht als Ergebnis zeigt).
+    felder: wie bei neuer_auftrag (nur Text, siehe pruefe_felder).
+    still: die Zentrale meldet die Weitergabe nicht und startet den Empfänger nicht; der Absender startet ihn.
     """
     _ablage.pruefe_agent(von)
     _ablage.pruefe_agent(an)
@@ -171,11 +183,28 @@ def weitergeben(
         if herkunft.get("von"):
             raise AuftragFehler(f"{aus_auftrag} kam von {herkunft['von']}, weitergegebene Aufträge "
                                 "werden nicht weitergegeben")
+    if felder is not None:
+        pruefe_felder(felder)
+    eintrag = {"quelle": quelle or f"agent:{von}", "modus": "erledigen", "bezug": None, "sitzung": None,
+               "meldung": None, "dienst": None}
+    if bezug is not None:
+        _ablage.pruefe_id(bezug)
+        alt = _finden(bezug, basis)
+        eintrag["bezug"] = bezug
+        if nachbesserung:
+            if alt["agent"] != an:
+                raise AuftragFehler(f"Nachbesserung von {bezug} geht nur an {alt['agent']}, nicht an {an}")
+            eintrag.update(quelle=alt.get("quelle") or eintrag["quelle"], modus=alt.get("modus") or "erledigen",
+                           sitzung=alt.get("sitzung"), **herkunft_erben(alt))
+    elif nachbesserung:
+        raise AuftragFehler("Eine Nachbesserung braucht bezug")
+    if felder is not None:  # zu geerbten Feldern einer Nachbesserung dazu
+        eintrag["felder"] = {**eintrag.get("felder", {}), **felder}
+        pruefe_felder(eintrag["felder"])
+    eintrag.update(von=von, aus_auftrag=aus_auftrag, **({"still": True} if still else {}))
     agenten_dir = agenten_dir or AGENTEN_DIR
     quellen = [agenten_dir / von / p for p in _ablage.anhaenge_pruefen(agenten_dir / von, dateien or [])]
-    felder = {"quelle": f"agent:{von}", "modus": "erledigen", "bezug": None, "sitzung": None, "meldung": None,
-              "dienst": None, "von": von, "aus_auftrag": aus_auftrag}
-    return _anlegen(an, text, felder, quellen, shutil.copy2, von, basis, agenten_dir)
+    return _anlegen(an, text, eintrag, quellen, shutil.copy2, von, basis, agenten_dir)
 
 
 def _anlegen(agent: str, text: str, felder: dict, dateien: list[Path], ablegen, absender: str,

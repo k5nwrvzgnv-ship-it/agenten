@@ -235,6 +235,39 @@ class TestLauf(unittest.TestCase):
         self.assertIn("Jan schaut es sich an", f["ergebnis"])
         self.assertIn("Damit wusste ich nichts anzufangen", self.jan_meldung()["text"])
 
+    def lernen(self, text, antwort):
+        """Wie lia/schnell nach einer kleinen Änderung: Feedback nur zum Lernen, still weitergegeben."""
+        cfg = {"weitergabe": {"schnell": ["feedback"]}}
+        (self.instanz.parent / "schnell").mkdir(exist_ok=True)
+        (self.instanz.parent / "feedback").mkdir(exist_ok=True)
+        fid = auftraege.weitergeben("schnell", "feedback", text, None, cfg=cfg, basis=self.basis,
+                                    agenten_dir=self.instanz.parent, bezug=self.ergebnis["id"], quelle="feedback",
+                                    felder={"feedback_modus": "nur_lernen"}, still=True)
+        laeufe = []
+
+        def laufen(*a, **k):
+            laeufe.append(a[2])
+            return antwort
+        lauf.feedback_bearbeiten(self.ort, auftraege.neue("feedback", basis=self.basis)[0], laufen=laufen)
+        self.assertIn("Die Änderung ist schon gemacht", laeufe[0])
+        return auftraege.erledigter(fid, basis=self.basis)
+
+    def test_nur_lernen_ohne_nachbesserung_und_ohne_meldung(self):
+        (self.units / "lia-recherche.service").write_text("")
+        f = self.lernen("Aufgabe 2 einfacher", zuordnung(art="nachbesserung", auftrag="Aufgabe 2 vereinfachen."))
+        self.assertEqual(auftraege.neue("recherche", basis=self.basis), [])  # keine zweite Änderung
+        self.assertEqual((f["daten"]["zuordnung"]["art"], f["daten"]["meldung"]), ("keine", None))
+        self.assertEqual(meldungen.neue(basis=self.jan / "meldungen"), [])  # Jan wird nicht gestört
+        self.assertEqual(self.starts, [])
+        f = self.lernen("hm", claude_lauf.Ergebnis(text="weiß nicht", sitzung=None, ok=True))
+        self.assertEqual(f["ergebnis"], "Danke, ist angekommen.")
+        self.assertEqual(meldungen.neue(basis=self.jan / "meldungen"), [])
+
+    def test_nur_lernen_regel_mit_stopp_fuer_jan(self):
+        f = self.lernen("Merksätze immer fett", zuordnung(regel="Merksätze stehen fett."))
+        self.assertIn("Merksätze stehen fett.", (self.instanz / "regeln.md").read_text(encoding="utf-8"))
+        self.assertEqual(self.jan_meldung(f)["knoepfe"], [["Stopp"]])
+
     def test_ergebnis_fehlt(self):
         auftraege.neuer_auftrag("feedback", "x", quelle="feedback", bezug="20260101-000000-uni-abcdef", basis=self.basis)
         lauf.feedback_bearbeiten(self.ort, auftraege.neue("feedback", basis=self.basis)[0], laufen=None)

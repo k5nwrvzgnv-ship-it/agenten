@@ -438,6 +438,12 @@ def auftrag_nachricht(auftrag: dict) -> list[str]:
     return mit_absender(auftrag["agent"], auftrag.get("ergebnis") or OHNE_GRUND, "hat nicht geklappt")
 
 
+def weitergabe_beachten(auftrag: dict) -> bool:
+    """Auftrag von Agent an Agent, um den sich die Zentrale kümmert (melden, Empfänger starten). Stille Weitergaben
+    (still=True, z. B. lia/schnell nach einer kleinen Änderung) startet der Absender selbst."""
+    return bool(auftrag.get("von")) and not auftrag.get("still")
+
+
 def weitergabe_text(auftrag: dict, dienst_da: bool) -> list[str] | None:
     """Info an Jan zu einem Auftrag von Agent an Agent: nur wenn er liegen bleibt, sonst None."""
     if dienst_da:

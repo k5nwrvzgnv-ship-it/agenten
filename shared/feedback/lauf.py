@@ -6,6 +6,8 @@ Zwei Arten von Aufträgen (Logik in agentkit.feedback):
   Jan bekommt eine Meldung mit Knopf, die Person die Bestätigung als Ergebnis dieses Auftrags.
   Hat die Person eine Datei mitgeschickt (agentkit.fassungen, bearbeitete Fassung, Anmerkungen oder unklar), gehen
   ihre Kommentare bzw. Anmerkungen in die Zuordnung und die Datei als Kopie an die Nachbesserung.
+- Feedback nur zum Lernen (Feld feedback_modus "nur_lernen", von lia/schnell nach einer kleinen Änderung): wie oben,
+  aber nie eine Nachbesserung (die Änderung ist schon gemacht); ohne Regel oder Notiz keine Meldung an Jan.
 - Jans Klick auf diese Meldung (Feld meldung, nur in Jans Instanz): Stopp/Rückgängig nimmt zurück,
   Übernehmen/Verwerfen entscheidet einen Vorschlag. Der Fall kann in einer anderen Instanz liegen (Lia),
   der Index data/meldungen.json sagt, wo.
@@ -169,20 +171,26 @@ def feedback_bearbeiten(ort: Ort, a: dict, laufen=claude_lauf.laufen) -> None:
                                "fehlgeschlagen", basis=ort.auftraege)
         return
     agent, person = alt["agent"], ort.person()
+    lernen = fb.nur_lernen(a)  # die Änderung ist schon gemacht (lia/schnell): keine Nachbesserung
     agenten_liste = fb.agenten(ort.agenten_dir)
     eigene, kommentare = eigene_fassung(ort, alt)
     e = laufen(fb.AGENT, HIER / "data" / (config.INSTANZ_NAME or "jan"),
                fb.prompt(person, agent, alt, a["text"], regeln.regeln_als_text(ort.agenten_dir / agent), agenten_liste,
-                         fb.fassung_abschnitt(person, eigene, kommentare, anmerkungen(ort, alt, eigene))),
+                         fb.fassung_abschnitt(person, eigene, kommentare, anmerkungen(ort, alt, eigene)), lernen),
                art="routine", auftrag_id=fid)
     try:
         z = fb.zuordnung_lesen(e.text if e.ok else "", agenten_liste)
     except fb.FeedbackFehler as f:
         logger.error("Feedback %s nicht zugeordnet: %s (Antwort: %s)", fid, f, fb.kurz(e.text, 300))
+        if lernen:  # die Änderung selbst ist gemacht, es fehlt nur das Lernen: nicht melden
+            auftraege.abschliessen(fid, "Danke, ist angekommen.", basis=ort.auftraege)
+            return
         jan_melden(f"Feedback von {person} zu {fb.agent_name(agent)}: „{fb.kurz(a['text'], 300)}“\n"
                    "Damit wusste ich nichts anzufangen. Sieh es dir bitte selbst an.")
         auftraege.abschliessen(fid, "Danke, ist angekommen. Jan schaut es sich an.", basis=ort.auftraege)
         return
+    if lernen:
+        z = fb.fuer_nur_lernen(z)
     lage = fb.Lage(nachbesserungen_bisher(ort, alt["id"]), verbrauch.kosten(alt["id"]),
                    (UNIT_DIR / f"{ort.dienst(agent)}.service").exists(), grenzen=ort.ist_jan)
     ok, grund = fb.entscheiden(z, lage)
@@ -194,7 +202,9 @@ def feedback_bearbeiten(ort: Ort, a: dict, laufen=claude_lauf.laufen) -> None:
         knoepfe = []  # nichts zurückzunehmen
     elif ort.ist_jan and ok:
         knoepfe = [["Rückgängig"]]
-    mid = jan_melden(text, knoepfe)
+    mid = None
+    if not (lernen and ok and z["art"] == "keine"):  # kleine Änderung ohne Gelerntes: Jan nicht stören
+        mid = jan_melden(text, knoepfe)
     if knoepfe:
         INDEX.merken(mid, ort.instanz, fid)
     fall["meldung"] = mid
