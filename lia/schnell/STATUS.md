@@ -89,6 +89,8 @@ nach außen.
   - Seitenbilder: neben jeder Datei liegt `<stem>-vorschau/` mit `<stem>.pdf` und `<stem>-seite-NN.png`, wie bei
     Ergebnisdateien, auch neben der eigenen Fassung im Ordner des Agenten der Kette (`<agent>/<eintrag["datei"]>`,
     kopiert gleich nach `eigene_dazu`, also wenige Millisekunden später als der Eintrag). dateien.vorschau_info geht.
+    Zugesichert (die Web-App liest dort, 10.11.2026): die Kopie in lia/schnell unter
+    `data/fassungen/<ursprung>/eigene-<n>/<stem>-vorschau/` (daneben Datei und beschreibung.json) bleibt ebenfalls.
 - Kennzeichen „von schnell“ (zugesichert): Die Notiz jeder schnell geänderten eigenen Fassung beginnt mit
   `schnittstelle.NOTIZ_PRAEFIX` („Schnell geändert: “, danach Lias Wunsch, zusammen bis 300 Zeichen). Fester:
   `schnittstelle.schnell_fassung(ursprung, n) -> bool` (True, wenn schnell ihre Beschreibung hat; nur diese
