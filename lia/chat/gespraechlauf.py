@@ -3,7 +3,7 @@
 Eine Nachricht setzt die claude-Sitzung des Gesprächs fort (claude_lauf lernsitzung/sitzung_fortsetzen, Jan
 09.11.2026). Jeder Gesprächslauf läuft mit claude_lauf lese_ordner: Claude darf mit Read in Lias Ordnern lesen
 (wissen.lese_ordner: alles unter lia/ außer lia/chat, dazu data/gespraeche; Jan 10.11.2026 „Lias Chat soll alles
-wissen“), die Übersicht dazu geht in den Prompt (wissen.karte). Weil claude Sitzungen je Arbeitsordner führt
+wissen“), dort auch Glob und Grep (suchen), die Übersicht dazu geht in den Prompt (wissen.karte). Weil claude Sitzungen je Arbeitsordner führt
 (lese_ordner läuft immer in data/nur_lesen/), muss jeder Lauf eines Gesprächs dieselbe Art haben, sonst ginge
 Fortsetzen nicht; wie viele Lese-Ordner es sind, ändert daran nichts. Fotos aus
 Lias Ablage am Ort werden dafür in den Gesprächsordner kopiert (ablage/<ort-id>/). Sonderläufe „bisher“ und „auftrag“ laufen ohne
@@ -37,7 +37,7 @@ PROMPT_BYTES = 120_000  # claude -p nimmt höchstens 128 KB je Argument
 DATEI_ZEICHEN = 60_000  # Text aus Dateien einer Nachricht zusammen
 ABLAGE_ZEICHEN = 40_000  # Text aus der Ablage je Lauf zusammen
 KARTE = "karte.txt"  # im Gesprächsordner: die Übersicht über Lias Wissen, die Claude zuletzt bekommen hat
-WISSEN_SCHRITTE = 12  # Lesen in Lias Wissen: je Datei ein Schritt
+WISSEN_SCHRITTE = 15  # Suchen und Lesen in Lias Wissen: je Glob, Grep oder Datei ein Schritt
 
 TEXTE = {
     "limit": "Gerade ist die Rechenzeit aufgebraucht. Schreib bitte ab {zeit} noch einmal.",
@@ -84,9 +84,10 @@ def claude_gespraech(prompt: str, *, gruendlich: bool, kennung: str, netz: bool 
                      lese_ordner: list[Path] | None = None, fotos: int = 0, sitzung: str | None = None,
                      neu: bool = True, sonder: bool = False) -> claude_lauf.Ergebnis:
     """lese_ordner: Ordner, in denen Read erlaubt ist (vorhanden, absolut). Mehr als der Gesprächsordner heißt:
-    Lias Wissen ist an (mehr Schritte und Zeit)."""
-    cfg = lauf_einstellungen(gruendlich, netz, fotos, sonder=sonder, wissen_an=len(lese_ordner or []) > 1)
-    zusatz = {} if sonder else {"lese_ordner": list(lese_ordner)}
+    Lias Wissen ist an (dazu Glob und Grep in diesen Ordnern, mehr Schritte und Zeit)."""
+    wissen_an = len(lese_ordner or []) > 1
+    cfg = lauf_einstellungen(gruendlich, netz, fotos, sonder=sonder, wissen_an=wissen_an)
+    zusatz = {} if sonder else {"lese_ordner": list(lese_ordner), "suchen": wissen_an}
     return claude_lauf.laufen(AGENT, HIER, prompt, art="anspruchsvoll" if gruendlich else "routine",
                               lernsitzung=neu and not sonder, sitzung_fortsetzen=None if neu else sitzung,
                               auftrag_id=f"chat-{kennung}", cfg=cfg, **zusatz)

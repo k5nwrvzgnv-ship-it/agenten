@@ -70,23 +70,25 @@ class Wissen(unittest.TestCase):
         # Katalog mit absoluten Ordnern, auch mit Klammern im Namen
         self.assertIn(f"### Ethik / Kurs (1) ({self.lia}/unterricht/data/wissen/text/Ethik/Kurs (1)/)", k)
         self.assertIn("sparen nur Platz", k)  # echter Lauf 10.11.: Claude hielt sie für unlesbar
-        # weitere Dateien ohne Code, Zugangsdaten, .venv, Logs, Katalog-Ordner, chat, .claude
-        self.assertIn(f"- {self.lia}/examen/data/reihe/runde-1/: skizze.md", k)
-        self.assertIn("chats.json", k)
-        for nicht in ("agent.py", ".env", "GEHEIM", "u.log", ".venv", "AB1.docx", "Jans Uni", "notizen.md",
-                      "/chat/"):
-            self.assertNotIn(nicht, k.split("### Weitere Dateien")[1], nicht)
+        # Ordner mit Zahl lesbarer Dateien: ohne Code, .env, .venv, Logs, chat, .claude
+        ordner = k.split("### Ordner")[1].split("###")[0]
+        self.assertIn(f"- {self.lia}/unterricht/ (5 Dateien)", ordner)
+        self.assertIn(f"- {self.lia}/examen/data/reihe/ (1 Datei)", ordner)
+        self.assertIn(f"- {self.lia}/auswertung/data/lia/ (1 Datei)", ordner)
+        for nicht in ("runde-1", ".venv", "logs", "/chat", ".claude", "komisch"):
+            self.assertNotIn(nicht, ordner, nicht)
+        self.assertIn("Glob", wissen.prompt_teil(k))
 
-    def test_dateiliste_fasst_tiefe_ordner_zusammen(self):
+    def test_ordneruebersicht_nur_bis_zur_tiefe(self):
         for i in range(30):
             p = self.lia / "theater" / "data" / f"runde-{i:02d}" / "bilder" / f"seite-{i}.png"
             p.parent.mkdir(parents=True)
             p.write_bytes(b"x")
-        fein = wissen.dateiliste(self.lia, grenze=100_000)
-        self.assertIn("/theater/data/runde-07/bilder/: seite-7.png", fein)
-        grob = wissen.dateiliste(self.lia, grenze=1_000)
-        self.assertLessEqual(len(grob), 1_000)
-        self.assertIn("weitere (.png)", grob)
+        text = wissen.ordneruebersicht(self.lia)
+        self.assertIn(f"- {self.lia}/theater/data/ (30 Dateien)", text)
+        self.assertIn(f"- {self.lia}/theater/data/runde-07/ (1 Datei)", text)
+        self.assertNotIn("bilder", text)
+        self.assertNotIn("runde-07", wissen.ordneruebersicht(self.lia, tiefe=2))
 
     def test_andere_gespraeche_ohne_das_eigene(self):
         daten = Path(self.tmp.name) / "data"
@@ -153,8 +155,8 @@ class ImGespraech(Basis):
         self.abarbeiten(fake)
         p3 = fake.aufrufe[2]
         self.assertIn("Neu in Lias Ablage", p3["prompt"])
-        self.assertIn("runde-2/: bogen.md", p3["prompt"])
-        self.assertIn("### Weitere Dateien", p3["prompt"])
+        self.assertIn(f"- {self.lia}/examen/data/reihe/ (2 Dateien)", p3["prompt"])
+        self.assertIn("### Ordner", p3["prompt"])
         self.assertNotIn("Kriterien_gute", p3["prompt"])
 
     def test_verlorene_sitzung_bekommt_wieder_alles(self):
@@ -175,7 +177,7 @@ class Grenzen(unittest.TestCase):
         cfg = {"werkzeuge": {}, "lauf": {}, "webfetch": {}}
         c = gespraechlauf.lauf_einstellungen(False, False, 0, cfg, wissen_an=True)
         self.assertEqual(c["werkzeuge"]["chat"], ["Read"])
-        self.assertEqual((c["lauf"]["max_schritte"], c["lauf"]["max_minuten"]), (15, 6))
+        self.assertEqual((c["lauf"]["max_schritte"], c["lauf"]["max_minuten"]), (18, 6))
         c = gespraechlauf.lauf_einstellungen(False, False, 0, cfg, sonder=True, wissen_an=True)
         self.assertEqual((c["werkzeuge"]["chat"], c["lauf"]["max_schritte"]), ([""], 3))
 
@@ -195,8 +197,9 @@ class Grenzen(unittest.TestCase):
         finally:
             gespraechlauf.claude_lauf.laufen = alt
         self.assertEqual(aufrufe[0]["lese_ordner"], [Path("/a"), Path("/b")])
-        self.assertEqual(aufrufe[0]["cfg"]["lauf"]["max_schritte"], 15)
+        self.assertEqual(aufrufe[0]["cfg"]["lauf"]["max_schritte"], 18)
         self.assertEqual(aufrufe[1]["cfg"]["lauf"]["max_schritte"], 3)
+        self.assertEqual((aufrufe[0]["suchen"], aufrufe[1]["suchen"]), (True, False))
 
 
 if __name__ == "__main__":

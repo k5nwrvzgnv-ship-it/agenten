@@ -11,21 +11,26 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
 - Lias Wissen im Gespräch (Jan 10.11.2026, „Lias Chat soll alles wissen“, Zugang „Lia + Auswertung“): Claude darf
   mit Read in allen Ordnern unter lia/ lesen außer lia/chat (davon nur data/gespraeche, Lias Gespräche) und Ordnern
   mit Punkt (lia/.claude: Kopien des ganzen Repos). Nicht: Jans Agenten, shared/, ~/.claude; .env sperrt agentkit in
-  jedem Lese-Ordner. Neue Lia-Ordner gehören von selbst dazu. Die Übersicht (wissen.karte: Grundlagen mit einem Satz,
-  Zweck jedes Lia-Agenten, Katalog von lia/unterricht mit absoluten Pfaden, weitere Dateien je Ordner bis 20.000
-  Zeichen, Lias andere Gespräche) geht mit der ersten Nachricht einer Sitzung mit, heute ca. 45 KB (ca. 12.000
-  Tokens); fortgesetzt nur, was seit der letzten Übersicht dazukam (data/gespraeche/<id>/karte.txt). Der Prompt
-  sagt: passt die Nachricht, erst lesen, dann antworten, Quelle nennen, nie „ich sehe nichts“ ohne Blick in die
-  Übersicht. Mit Wissen 12 Schritte und 2 min mehr. Fortsetzen der Sitzung geht weiter: Alle Gesprächsläufe sind
-  lese_ordner-Läufe im selben Arbeitsordner data/nur_lesen/, die Zahl der Lese-Ordner ändert daran nichts.
-  Grenze: Ohne Glob und Grep (agentkit sperrt sie im Nur-Lesen-Lauf) findet Claude nur Dateien aus der Übersicht;
-  in großen Ordnern stehen nur die 10 jüngsten Namen (Bedarf Punkt 38 der Haupt-STATUS).
+  jedem Lese-Ordner. Neue Lia-Ordner gehören von selbst dazu. In denselben Ordnern auch Glob und Grep
+  (claude_lauf suchen=True, agentkit bc71bff): Claude findet und durchsucht Dateien selbst. Die Übersicht
+  (wissen.karte: Grundlagen mit einem Satz, Zweck jedes Lia-Agenten, Katalog von lia/unterricht mit absoluten
+  Pfaden, Ordner bis Tiefe 3 mit Dateizahl, Lias andere Gespräche) geht mit der ersten Nachricht einer Sitzung mit,
+  heute ca. 32 KB; fortgesetzt nur, was seit der letzten Übersicht dazukam (data/gespraeche/<id>/karte.txt). Der
+  Prompt sagt: passt die Nachricht, erst suchen und lesen, dann antworten, Quelle nennen, nie „ich sehe nichts“
+  ohne nachzusehen. Mit Wissen 15 Schritte und 2 min mehr. Fortsetzen der Sitzung geht weiter: Alle
+  Gesprächsläufe sind lese_ordner-Läufe im selben Arbeitsordner data/nur_lesen/, die Zahl der Lese-Ordner ändert
+  daran nichts.
 - Echt 10.11.2026 über den Dienst (Testgespräch an Straftheorien, danach gelöscht): Lias Frage „hast du alle
   Materialien … Kriterien für eine gute Reihe/Einheit?“: Claude las Kriterien_gute_Unterrichtseinheit.txt, gab die
   12 Kriterien richtig wieder und zählte Lias übrige Grundlagen auf; 15 s, 2 Schritte, 0,16 USD (erste Nachricht mit
   Übersicht). Fehler darin: Katalog-Zeilen „nur Dateinamen“ hielt er für unlesbar, seitdem erklärt die Übersicht
   sie. Folgefrage „was haben mir die Seminarleiter in den Feedbacks … rückgemeldet?“: fortgesetzt, 6 Schritte
   (Feedback-Dateien, entwicklung.md gelesen), 19 s, 0,24 USD, gegliedert nach wiederkehrenden Themen, ohne Namen.
+- Echt mit Glob/Grep (10.11.2026, 14:51, Testgespräch gelöscht): „welche fälle hat die recherche … gefunden? und
+  welche passen am besten?“: Claude fand selbst recherche/STATUS.md und das Dossier, nannte die fünf Fälle mit
+  Eignung und Risiken, Reihenfragen als Bausteine und offene Rückfragen; 27 s, 6 Schritte, 0,29 USD. Danach die
+  Kriterien-Frage fortgesetzt: 12 Kriterien richtig, 14 s, 0,33 USD (der Verlauf geht mit). Rest: Er behauptete
+  wieder, von einigen Feedbacks gebe es nur den Dateinamen (las sie in dieser Antwort nicht nach).
 - Gespräche gebaut, mit Tests ohne Netz (tests/test_gespraech.py) und echtem Lauf über den Dienst (10.11.):
   drei Nachrichten an der Reihe Straftheorien (eine mit Foto, zwei fortgesetzt), dann bisher und auftrag.
   Je 8–15 s Lauf, 0,05–0,09 USD je Nachricht (steigt mit dem Verlauf), Sonderläufe ca. 20 s, 0,07 USD; zusammen
@@ -187,9 +192,8 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
   Dateien einer Frage zusammen höchstens 60.000 Zeichen.
 
 ## Offene Punkte
-0. Glob und Grep im Nur-Lesen-Lauf (agentkit, Punkt 38 der Haupt-STATUS, Jan entscheidet): Dann sucht Claude in
-   Lias Ordnern selbst, die Übersicht kann kleiner werden (Grundlagen, Agenten, Katalog). Kosten der Übersicht
-   (ca. 12.000 Tokens je neue Sitzung) nach zwei Wochen ansehen.
+0. Kosten mit Lias Wissen (erste Nachricht ca. 0,16–0,29 USD, Folgenachrichten steigen mit dem Gelesenen) nach
+   zwei Wochen ansehen. Beobachten: Claude hält Katalog-Zeilen „nur Dateinamen“ manchmal noch für unlesbar.
 1. Kosten: Nachrichten nach einer Websuche sind teurer (Webinhalte im Verlauf). Nach zwei Wochen ansehen.
 2. Web-App: auf die Gespräche umschalten (Bauplan Schritt 6). Danach als Vorschlag an Jan: frage_stellen,
    chatverlauf, data/verlauf.jsonl und die alten Punkte (stunde_id, Häkchen und Datei-Feld der alten Spalte,

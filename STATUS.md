@@ -1140,8 +1140,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Grep über den ganzen Ordner (auch mit glob ".env*") liefert keine .env-Inhalte, Glob listet .env nicht, Grep/Read
     direkt auf .env abgelehnt, Glob/Grep außerhalb und im Elternordner abgelehnt. Ungeklärt, ob die .env bei der
     Ordnersuche durch die deny-Regel oder durch das Überspringen versteckter Dateien fehlt; Dateien, die nicht
-    .env/.env.* heißen, schützt beides nicht (wie bei Read). Offen: lia/chat nutzt `suchen=True` und baut die
-    Übersicht im Prompt kleiner (lia/chat-Chat).
+    .env/.env.* heißen, schützt beides nicht (wie bei Read). lia/chat nutzt `suchen=True` seit 10.11.2026 (Übersicht
+    im Prompt 45 auf 32 KB, echter Lauf in lia/chat/STATUS.md). Erledigt.
 
 ## Gelernte Regeln
 - (noch keine)
