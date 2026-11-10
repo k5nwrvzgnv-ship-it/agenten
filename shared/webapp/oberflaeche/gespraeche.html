@@ -1,0 +1,23 @@
+{#- Gespräche ohne Ort: Verwaltung, Privates, alles ohne Klasse. -#}
+{% extends "basis.html" %}
+{%- from "_ort.html" import gespraech_zeile -%}
+{% block skripte %}<script src="/statisch/einmal.js" defer></script>{% endblock %}
+{% block seitenkopf %}
+<header class="kopf">
+  <h1 class="titel-gross">Gespräche ohne Ort</h1>
+  <p class="unter">Verwaltung, Privates, alles, was zu keiner Klasse gehört.</p>
+  <form method="post" action="/gespraech/neu" data-einmal>
+    <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="ort" value="">
+    <button class="knopf knopf-voll" type="submit">+ Gespräch</button>
+  </form>
+</header>
+{% endblock %}
+{% block inhalt %}
+{%- if request.query_params.get("erledigt") == "gespraech-geloescht" %}<p class="hinweis hinweis-erledigt" role="status">Gespräch gelöscht.</p>{% endif %}
+<section aria-labelledby="ab-g">
+  <h2 id="ab-g">Gespräche</h2>
+  {%- if zeilen %}<ul class="liste">{% for z in zeilen %}{{ gespraech_zeile(z) }}{% endfor %}</ul>
+  {%- else %}<p class="leer">Noch keins.</p>{% endif %}
+</section>
+<p class="unter">Gespräche bleiben 30 Tage nach der letzten Nachricht, dann werden sie gelöscht.</p>
+{% endblock %}

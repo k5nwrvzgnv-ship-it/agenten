@@ -582,6 +582,87 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.getheader("location"), "/klasse/darstellendes-spiel-kurs-12?erledigt=entfernt#ablage")
         self.assertEqual([x.name for x in ordner.iterdir()], ["Kriterien Theater.pdf"])
 
+    def test_gespraech(self):
+        """Gespräch in der Mitte über die echte Schnittstelle von lia/chat (Ordner im Temp, kein Claude-Lauf)."""
+        ordner = self.tmp / "chat"
+        self.assertEqual(self.post("/gespraech/neu", {"ort": "strafe"})[0].status, 404)  # Chat aus
+        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
+            modul = app.chat()
+            _, html = self.hole("/reihe/strafe")
+            self.assertIn("Noch kein Gespräch hier.", html)
+            self.assertIn('href="/gespraeche"><span>Gespräche ohne Ort</span>', html)
+            r, _ = self.post("/gespraech/neu", {"ort": "strafe"})
+            self.assertEqual(r.status, 303)
+            gid = r.getheader("location").rsplit("/", 1)[1]
+            self.assertEqual(modul.gespraech(gid, ordner)["ort"], {"ebene": "reihe", "id": "strafe"})
+            r, html = self.hole(f"/gespraech/{gid}")
+            self.assertEqual(r.status, 200)
+            for text in ("Frag einfach los", 'action="/gespraech/' + gid + '/nachricht"', "Daraus Auftrag machen",
+                         "Was haben wir bisher?", "Reihenfrage", "Wozu &lt;strafen&gt; wir?", 'class="rahmen"',
+                         '<a href="/reihe/strafe">Straftheorien</a>', "gespraech.js"):
+                self.assertIn(text, html)
+            body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "text": "Such mir eine Reihenfrage",
+                                   "gruendlich": "1"}, [("Planung.JPG", b"jpg"), ("Text.pdf", b"%PDF")])
+            r, _ = self.hole(f"/gespraech/{gid}/nachricht", "POST", body=body, kopf={
+                "Content-Type": art, "Content-Length": str(len(body)), "Origin": "http://localhost"})
+            self.assertEqual((r.status, r.getheader("location")), (303, f"/gespraech/{gid}#ende"))
+            g = modul.gespraech(gid, ordner)
+            (e,) = g["eintraege"]
+            self.assertEqual((e["text"], e["fotos"], e["dateien"], e["gruendlich"], g["laeuft"]),
+                             ("Such mir eine Reihenfrage", ["Planung.jpg"], ["Text.pdf"], True, True))
+            _, html = self.hole(f"/gespraech/{gid}")
+            self.assertIn("Claude denkt nach", html)
+            self.assertIn(f'hx-get="/teile/gespraech/{gid}"', html)
+            _, html = self.hole("/")
+            self.assertIn("Weiter im Gespräch", html)
+            self.assertIn("Claude antwortet …", html)
+            r, foto = self.hole(f"/gespraech/{gid}/datei/{e['id']}/Planung.jpg", roh=True)
+            self.assertEqual((r.status, r.getheader("Content-Type"), foto), (200, "image/jpeg", b"jpg"))
+            self.assertEqual(self.hole(f"/gespraech/{gid}/datei/{e['id']}/..%2F{gid}.json")[0].status, 404)
+            # zweite Nachricht, solange Claude antwortet: Satz von lia/chat, kein fremder Text in der URL
+            r, _ = self.post(f"/gespraech/{gid}/nachricht", {"text": "Und?"})
+            self.assertRegex(r.getheader("location"), rf"^/gespraech/{gid}\?fehler=[0-9a-f]{{8}}#eingabe$")
+            self.assertIn("Claude antwortet noch", self.hole(r.getheader("location").split("#")[0])[1])
+            self.assertEqual(list((self.tmp / "eingang").iterdir()), [])  # Uploads immer weggeräumt
+            # Antwort von Claude mit Baustein (wie der Agent sie schreibt)
+            import gespraechablage
+            with gespraechablage.sperre(ordner):
+                roh = gespraechablage.lesen(gid, ordner)
+                roh["eintraege"][0]["stand"] = "beantwortet"
+                roh["eintraege"].append({"id": "a" * 12, "rolle": "claude", "zeit": roh["eintraege"][0]["zeit"],
+                                         "text": "| A | B |\n|---|---|\n| 1 | 2 |\n\n```baustein reihenfrage\n"
+                                                 "Ist Strafe **gerecht**?\n```", "ok": True})
+                gespraechablage.schreiben(roh, ordner)
+            _, teil = self.hole(f"/teile/gespraech/{gid}")
+            self.assertNotIn("hx-get", teil)
+            for text in ("<th>A</th>", "<td>2</td>", 'data-kopie="Ist Strafe gerecht?"', "Als Reihenfrage übernehmen",
+                         'name="text" value="Ist Strafe gerecht?"'):
+                self.assertIn(text, teil)
+            r, _ = self.post("/baustein/reihenfrage", {"reihe": "strafe", "gespraech": gid, "text": "Ist Strafe gerecht?"})
+            self.assertEqual(r.status, 303)
+            self.assertRegex(r.getheader("location"), rf"^/gespraech/{gid}\?aktion=")
+            self.assertEqual(app.struktur.laden(self.instanz).reihe("strafe")["reihenfrage"], "Ist Strafe gerecht?")
+            # Listen: an der Reihe, darunter an der Klasse
+            self.assertIn("Such mir eine Reihenfrage", self.hole("/reihe/strafe")[1])
+            self.assertIn("1 darunter", self.hole("/klasse/ethik-8")[1])
+            # Daraus Auftrag machen: Sonderlauf, Ergebnis in Neu
+            r, _ = self.post(f"/gespraech/{gid}/sonder", {"art": "auftrag"})
+            nid = r.getheader("location").split("sonder=")[1].split("&")[0]
+            self.assertIn("ordnet das Gespräch", self.hole(f"/teile/sonder/{gid}/{nid}?art=auftrag")[1])
+            modul.antwort_schreiben({"id": nid, "ok": True, "text": "Reihenentwurf: Strafe, entschieden: Kant."}, ordner)
+            teil = self.hole(f"/teile/sonder/{gid}/{nid}?art=auftrag")[1]
+            self.assertIn(f'href="/neu?aus_gespraech={gid}&amp;ergebnis={nid}&amp;reihe=strafe"', teil)
+            _, html = self.hole(f"/neu?art=arbeitsblatt&aus_gespraech={gid}&ergebnis={nid}&reihe=strafe")
+            self.assertIn("Reihenentwurf: Strafe, entschieden: Kant.</textarea>", html)
+            # Umhängen, ohne Ort, Löschen
+            self.assertEqual(self.post(f"/gespraech/{gid}/umhaengen", {"ort": ""})[0].status, 303)
+            self.assertIn("Such mir eine Reihenfrage", self.hole("/gespraeche")[1])
+            r, _ = self.post(f"/gespraech/{gid}/loeschen", {})
+            self.assertEqual(r.getheader("location"), "/gespraeche?erledigt=gespraech-geloescht")
+            self.assertIsNone(modul.gespraech(gid, ordner))
+            self.assertEqual(self.hole(f"/gespraech/{gid}")[0].status, 404)
+            self.assertEqual(self.hole("/gespraech/zzz")[0].status, 404)
+
     def post(self, pfad, felder, token=True):
         body, art = multipart({**({"token": app.logik.formular_token(app.GEHEIM)} if token else {}), **felder}, [])
         return self.hole(pfad, "POST", body=body,

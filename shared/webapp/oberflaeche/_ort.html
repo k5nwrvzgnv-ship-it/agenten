@@ -31,3 +31,31 @@
   </form>
 </section>
 {%- endmacro -%}
+{%- macro gespraech_zeile(z) -%}
+<li><a class="zeile" href="{{ z.link }}">
+  <span class="punkt{% if z.neu %} punkt-rot{% endif %}" aria-hidden="true"></span>
+  <span class="text"><span class="titel">{{ z.name }}</span>{% if z.unter %}<span class="unter">{{ z.unter }}</span>{% endif %}</span>
+  <span class="marke{% if z.neu %} marke-rot{% endif %}">{% if z.laeuft %}Claude antwortet …{% elif z.neu %}neue Antwort{% else %}{{ z.zuletzt }}{% endif %}</span>
+</a></li>
+{%- endmacro -%}
+{%- macro gespraeche_abschnitt(gs) -%}
+{%- if gs %}
+<section aria-labelledby="ab-gespraeche" id="gespraeche">
+  <h2 id="ab-gespraeche">Gespräche</h2>
+  {%- if gs.hier %}<ul class="liste">{% for z in gs.hier %}{{ gespraech_zeile(z) }}{% endfor %}</ul>
+  {%- elif not gs.darunter %}<p class="leer">Noch kein Gespräch hier.</p>{% endif %}
+  {%- if gs.darunter %}
+  <details class="mehr darunter"{% if not gs.hier %} open{% endif %}>
+    <summary>{{ gs.darunter | length }} {{ "weitere " if gs.hier }}darunter</summary>
+    <ul class="liste">{% for z in gs.darunter %}{{ gespraech_zeile(z) }}{% endfor %}</ul>
+  </details>
+  {%- endif %}
+  {%- if not gs.archiv %}
+  <form method="post" action="/gespraech/neu" data-einmal>
+    <input type="hidden" name="token" value="{{ gs.token }}"><input type="hidden" name="ort" value="{{ gs.ort_id }}">
+    <button class="knopf knopf-voll" type="submit">+ Gespräch</button>
+  </form>
+  {%- endif %}
+</section>
+{%- endif %}
+{%- endmacro -%}

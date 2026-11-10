@@ -3,7 +3,7 @@
     zusätzlich, statisch/ziehen.js füllt dasselbe Formular), Termine, Reihe beginnt am …, Bearbeiten, Archivieren. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt -%}
+{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
@@ -14,6 +14,7 @@
 </header>
 {% endblock %}
 {% block inhalt %}
+{{ gespraeche_abschnitt(gespraeche) }}
 {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
 {%- if p %}
 <div class="knoepfe knoepfe-unten">

@@ -1,0 +1,16 @@
+{#- Ergebnis von „Was haben wir bisher?“ bzw. „Daraus Auftrag machen“ (lia/chat, Lauf ohne Eintrag im Verlauf). -#}
+{%- from "_markdown.html" import bloecke as zeige with context -%}
+{%- if a is none %}
+<div class="hinweis" id="sonder" hx-get="/teile/sonder/{{ g.id }}/{{ nid }}?art={{ art }}" hx-trigger="every 2s" hx-swap="outerHTML">
+  <p class="denkt" role="status">{% if art == "auftrag" %}Claude ordnet das Gespräch zu einem Auftrag …{% else %}Claude fasst zusammen …{% endif %}</p>
+</div>
+{%- elif not a.get("ok", true) %}
+<p class="fehler" id="sonder" role="alert">{{ a.text or "Das hat nicht geklappt. Versuch es bitte noch einmal." }}</p>
+{%- else %}
+<div class="hinweis antwort" id="sonder">
+  <p class="notiz-titel">{% if art == "auftrag" %}Vorschlag für den Auftrag{% else %}Was wir bisher haben{% endif %}</p>
+  {{ zeige(bloecke, "") }}
+  {%- if neu_link %}<p><a class="knopf knopf-voll" href="{{ neu_link }}">Text prüfen und abschicken</a></p>
+  {%- elif art == "auftrag" %}<p class="unter">Aufträge sind gerade ausgeschaltet.</p>{% endif %}
+</div>
+{%- endif %}

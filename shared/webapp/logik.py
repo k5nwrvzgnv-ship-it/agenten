@@ -829,11 +829,12 @@ VORLAGE_FREI = {"name": "Neuer Auftrag", "frage": "Was brauchst du?",
 
 
 def neu_link(reihe_id: str = "", stunde: int | None = None, art_: str = "", aus: str = "") -> str:
-    """Link auf „Neu“ mit vorbelegtem Ort (und Art). aus: id einer Chat-Antwort („Daraus Auftrag machen“)."""
+    """Link auf „Neu“ mit vorbelegtem Ort (und Art). aus: „aus_gespraech=<id>&ergebnis=<id>“ („Daraus Auftrag
+    machen“ im Gespräch: der von Claude geordnete Text)."""
     teile = [f"art={art_}"] if art_ else []
     teile += [f"reihe={reihe_id}"] if reihe_id else []
     teile += [f"stunde={stunde}"] if reihe_id and stunde else []
-    teile += [f"aus={aus}"] if chat_id_gueltig(aus) else []
+    teile += [aus] if re.fullmatch(r"aus_gespraech=[0-9a-f]{12}&ergebnis=[0-9a-f]{12}", aus or "") else []
     return "/neu" + ("?" + "&".join(teile) if teile else "")
 
 

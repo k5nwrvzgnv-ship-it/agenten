@@ -1,5 +1,6 @@
 {#- Inhalt von Heute. Jede Zeile nennt ihren Ort (Brotkrume). Zeilen mit link führen zur Ergebnis- bzw. Entwurf-Ansicht (nur lesend). -#}
 {%- from "_zeile.html" import zeile -%}
+{%- from "_ort.html" import gespraech_zeile -%}
 <header class="kopf">
   <span class="datum">{{ h.datum }}</span>
   <h1>Heute</h1>
@@ -42,4 +43,15 @@
   <p class="leer">{{ leer }}</p>
   {%- endif %}
 </section>
+{%- if loop.first and weiter %}
+<section aria-labelledby="ab-weiter">
+  <h2 id="ab-weiter">Weiter im Gespräch</h2>
+  {%- if weiter.oben %}<ul class="liste">{% for z in weiter.oben %}{{ gespraech_zeile(z) }}{% endfor %}</ul>
+  {%- else %}<p class="leer">Noch kein Gespräch. Fang an einer Reihe oder unter „Gespräche ohne Ort“ an.</p>{% endif %}
+  {%- if weiter.rest %}
+  <details class="mehr"><summary>Alle Gespräche ({{ weiter.rest | length }} weitere)</summary>
+    <ul class="liste">{% for z in weiter.rest %}{{ gespraech_zeile(z) }}{% endfor %}</ul></details>
+  {%- endif %}
+</section>
+{%- endif %}
 {%- endfor %}

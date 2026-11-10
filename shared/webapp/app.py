@@ -248,8 +248,11 @@ def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int
     stunden = {aktiv: logik.reihe_stunden(reihe)} if reihe else {}
     s = struktur_()
     pflegen_ = s is not None and s.format == "neu"  # die App schreibt nur das neue Format (agentkit.strukturpflege)
-    return {"baum": logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde, ordnung_laden()[1],
-                               logik.faecher_aus(s), pflegen_), "krumen": krumen,
+    baum = logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde, ordnung_laden()[1], logik.faecher_aus(s), pflegen_)
+    if chat() is not None:  # Gespräche ohne Ort gleich unter „Heute“ (Skizze)
+        baum.insert(1, {"art": "eintrag", "text": "Gespräche ohne Ort", "link": "/gespraeche", "tiefe": 0, "zahl": "",
+                        "aktiv": aktiv == "ohne-ort"})
+    return {"baum": baum, "krumen": krumen,
             "neu_hier": neu_hier if neu_modus() else ""}
 
 
@@ -268,7 +271,7 @@ def seite_heute(request: Request):
     h = heute_daten(reihen)
     return vorlagen.TemplateResponse(request, "heute.html", {
         "h": h, "neu": neu_modus(), "abgeschickt": request.query_params.get("abgeschickt") == "1",
-        "token": logik.formular_token(GEHEIM),
+        "token": logik.formular_token(GEHEIM), "weiter": weiter_im_gespraech(),
         "hinweis": logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
         **rahmen(reihen, logik.krumen(), "heute", h["anzahl_wartet"])})
 
@@ -276,7 +279,26 @@ def seite_heute(request: Request):
 @app.get("/teile/heute", response_class=HTMLResponse)
 def teil_heute(request: Request):
     return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus(),
-                                                               "token": logik.formular_token(GEHEIM)})
+                                                               "token": logik.formular_token(GEHEIM),
+                                                               "weiter": weiter_im_gespraech()})
+
+
+WEITER_ANZAHL = 3  # „Weiter im Gespräch“ in Heute, der Rest unter „Alle Gespräche“ (zugeklappt)
+
+
+def weiter_im_gespraech() -> dict | None:
+    """Jüngste Gespräche für Heute (None, wenn der Chat aus ist)."""
+    modul = chat()
+    if modul is None:
+        return None
+    try:
+        alle = modul.gespraeche(None, CHAT_ORDNER)
+    except (OSError, ValueError) as fehler_:
+        logger.error("Gespräche nicht lesbar: %s", fehler_)
+        return {"oben": [], "rest": []}
+    orte, jetzt = orte_(), datetime.now(ZONE)
+    zeilen = [gespraech.liste_zeile(k, orte, jetzt) for k in alle if k.get("nachrichten")]
+    return {"oben": zeilen[:WEITER_ANZAHL], "rest": zeilen[WEITER_ANZAHL:]}
 
 
 @app.get("/unterricht")
@@ -318,7 +340,7 @@ def _reihe_seite(request: Request, reihe_id: str, fehler: list[str] | None = Non
         "e": e, "token": logik.formular_token(GEHEIM), "fehler": fehler or [], "thema": thema,
         "thema_max": pflege.LAENGE["thema"], "p": reihe_pflege(struktur_(), reihe_id),
         "hinweis": "" if fehler else logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
-        "ablage": ablage_daten(reihe["id"], logik.reihe_link(reihe), request),
+        "ablage": ablage_daten(reihe["id"], logik.reihe_link(reihe), request), "gespraeche": gespraeche_hier(reihe["id"]),
         **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))}, status_code=status)
 
 
@@ -349,6 +371,7 @@ def _stunde_seite(request: Request, reihe_id: str, nr_text: str, hinweis: str = 
         "thema": thema if fehler else stunden[nr - 1]["thema"], "thema_max": pflege.LAENGE["thema"],
         "p": stunde_pflege(struktur_(), reihe_id, nr),
         "ablage": ablage_daten(stunden[nr - 1]["id"], logik.stunde_link(reihe, nr), request),
+        "gespraeche": gespraeche_hier(stunden[nr - 1]["id"]),
         **rahmen(reihen, logik.krumen(e["unter"], reihe), reihe["id"], neu_hier=_neu_hier(reihe, nr), stunde=nr)},
         status_code=status)
 
@@ -1548,7 +1571,7 @@ def seite_klasse(request: Request, gruppe_id: str):
         raise HTTPException(404)
     return vorlagen.TemplateResponse(request, "klasse.html", {
         "e": e, "token": logik.formular_token(GEHEIM), "p": klasse_pflege(struktur_(), gruppe_id),
-        "ablage": ablage_daten(gruppe_id, logik.klasse_link(e["gruppe"]), request),
+        "ablage": ablage_daten(gruppe_id, logik.klasse_link(e["gruppe"]), request), "gespraeche": gespraeche_hier(gruppe_id),
         **rahmen(reihen, logik.krumen_klasse(e["gruppe"]), logik.klasse_aktiv(gruppe_id))})
 
 
@@ -1616,6 +1639,282 @@ def ablage_datei(ort_id: str, name: str):
     zeigen = p.suffix.lower() in ablage.FOTOS | {".pdf"}
     return FileResponse(p, media_type=ablage.MEDIENTYP[p.suffix.lower()], filename=None if zeigen else p.name)
 
+
+# Gespräche: Ablage und Claude-Läufe macht lia/chat (schnittstelle.py); die App zeigt, nimmt Nachrichten an und
+# schreibt nur Uploads in EINGANG (lia/chat verschiebt sie). Nur mit WEBAPP_CHAT=an (Läufe auf Lias Kontingent).
+GESPRAECH_DATEIEN = 8  # 5 Fotos + 3 Dateien je Nachricht (lia/chat prüft genau)
+
+
+def _chat_an():
+    modul = chat()
+    if modul is None:
+        raise HTTPException(404)
+    return modul
+
+
+def _gespraech(modul, gid: str) -> dict:
+    if not logik.chat_id_gueltig(gid):
+        raise HTTPException(404)
+    g = modul.gespraech(gid, CHAT_ORDNER)
+    if g is None:
+        raise HTTPException(404)
+    return g
+
+
+def _ort_feld(o: dict | None) -> dict | None:
+    return {"ebene": o["ebene"], "id": o["id"]} if o else None
+
+
+def gespraeche_hier(ort_id: str, jetzt: datetime | None = None) -> dict | None:
+    """Gespräche an einer Ebene und darunter für Klasse, Reihe, Stunde (None, wenn der Chat aus ist)."""
+    modul = chat()
+    if modul is None:
+        return None
+    orte = orte_()
+    o = orte.get(ort_id)
+    jetzt = jetzt or datetime.now(ZONE)
+    try:
+        alle = modul.gespraeche(None, CHAT_ORDNER)
+    except (OSError, ValueError) as fehler_:
+        logger.error("Gespräche nicht lesbar: %s", fehler_)
+        alle = []
+    unter = set(gespraech.darunter(orte, ort_id))
+    hier = [gespraech.liste_zeile(k, orte, jetzt, False) for k in alle if (k.get("ort") or {}).get("id") == ort_id]
+    weiter = [gespraech.liste_zeile(k, orte, jetzt) for k in alle if (k.get("ort") or {}).get("id") in unter]
+    return {"ort_id": ort_id, "ebene": o["ebene"] if o else "", "hier": hier, "darunter": weiter,
+            "archiv": bool(o and o["archiv"]), "token": logik.formular_token(GEHEIM)}
+
+
+@app.post("/gespraech/neu")
+async def gespraech_neu(request: Request):
+    """Neues Gespräch an einer Ebene (Feld ort = id) oder ohne Ort; Name kommt aus der ersten Nachricht."""
+    modul = _chat_an()
+    form = await formular_lesen(request, "Gespräch anlegen", 0)
+    ort_id = str(form.get("ort") or "")
+    o = orte_().get(ort_id) if ort_id else None
+    if ort_id and o is None:
+        raise HTTPException(404)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return RedirectResponse((o["link"] if o else "/gespraeche") + "?erledigt=veraltet", status_code=303)
+    gid = modul.gespraech_anlegen("", _ort_feld(o), CHAT_ORDNER)
+    logger.info("Gespräch %s angelegt (%s)", gid, ort_id or "ohne Ort")
+    return RedirectResponse(f"/gespraech/{gid}", status_code=303)
+
+
+@app.get("/gespraeche", response_class=HTMLResponse)
+def seite_gespraeche(request: Request):
+    """Gespräche ohne Ort (Verwaltung, Privates, alles ohne Klasse)."""
+    modul = _chat_an()
+    orte, jetzt = orte_(), datetime.now(ZONE)
+    zeilen = [gespraech.liste_zeile(k, orte, jetzt, False) for k in modul.gespraeche(modul.OHNE_ORT, CHAT_ORDNER)]
+    return vorlagen.TemplateResponse(request, "gespraeche.html", {
+        "e": {"titel": "Gespräche ohne Ort"}, "zeilen": zeilen, "token": logik.formular_token(GEHEIM),
+        **rahmen(reihen_laden(), logik.krumen("Gespräche ohne Ort"), "ohne-ort")})
+
+
+def _gespraech_werte(request: Request, modul, g: dict) -> dict:
+    orte, jetzt = orte_(), datetime.now(ZONE)
+    o = gespraech.ort_von(g.get("ort"), orte)
+    reihe_id = gespraech.reihenfrage_moeglich(o)
+    reihen = reihen_laden()
+    reihe = next((r for r in reihen if r["id"] == reihe_id), None)
+    rechts_ort = o["id"] if o else ""
+    try:
+        andere = [gespraech.liste_zeile(k, orte, jetzt, False) for k in
+                  modul.gespraeche(_ort_feld(o) if o else modul.OHNE_ORT, CHAT_ORDNER)]
+    except (OSError, ValueError):
+        andere = []
+    q = request.query_params
+    return {"g": g, "ort": o, "verlauf": gespraech.verlauf(g, jetzt), "reihe": reihe,
+            "reihenfrage_ziel": reihe_id, "andere": andere,
+            "ablage_liste": [{"ort": x, "dateien": ablage.liste(INSTANZ, x["id"])} for x in gespraech.kette(orte, rechts_ort)],
+            "ziele": [x for x in orte.values() if not x["archiv"]], "token": logik.formular_token(GEHEIM),
+            "fehler": GESPRAECH_FEHLER.get(q.get("fehler") or "", ""),
+            "sonder": q.get("sonder") or "", "sonder_art": q.get("art") or "",
+            "max_text": getattr(modul, "MAX_TEXT", 60000)}
+
+
+GESPRAECH_FEHLER: dict[str, str] = {}  # ?fehler=<Schlüssel> -> Satz für Lia (im Speicher, die URL trägt keinen Text)
+
+
+def _krumen_gespraech(o: dict | None, name: str, reihen: list[dict]) -> dict:
+    if o is None:
+        return {"teile": [{"text": "Gespräche ohne Ort", "link": "/gespraeche"}], "hier": logik.kurz(name, 60)}
+    teile = [{"text": x["name"], "link": x["link"]} for x in gespraech.kette(orte_(), o["id"])]
+    return {"teile": teile, "hier": logik.kurz(name, 60)}
+
+
+@app.get("/gespraech/{gid}", response_class=HTMLResponse)
+def seite_gespraech(request: Request, gid: str):
+    modul = _chat_an()
+    g = _gespraech(modul, gid)
+    try:
+        modul.gesehen(gid, CHAT_ORDNER)
+    except (OSError, ValueError) as fehler_:
+        logger.warning("Gespräch %s: gesehen nicht gespeichert: %s", gid, fehler_)
+    w = _gespraech_werte(request, modul, g)
+    reihen = reihen_laden()
+    o = w["ort"]
+    aktiv = (o["reihe_id"] if o and o["ebene"] != "klasse" else logik.klasse_aktiv(o["id"])) if o else "ohne-ort"
+    stunde = None
+    if o and o["ebene"] == "stunde":
+        stunde = int(o["link"].rsplit("/", 1)[1])
+    return vorlagen.TemplateResponse(request, "gespraech.html", {
+        **w, "e": {"titel": g.get("name") or "Neues Gespräch"},
+        **rahmen(reihen, _krumen_gespraech(o, g.get("name") or "Neues Gespräch", reihen), aktiv, stunde=stunde)})
+
+
+@app.get("/teile/gespraech/{gid}", response_class=HTMLResponse)
+def teil_gespraech(request: Request, gid: str):
+    """Verlauf für htmx, solange Claude antwortet (alle 2 s)."""
+    modul = _chat_an()
+    g = _gespraech(modul, gid)
+    return vorlagen.TemplateResponse(request, "_verlauf.html", _gespraech_werte(request, modul, g))
+
+
+@app.post("/gespraech/{gid}/nachricht")
+async def gespraech_nachricht(request: Request, gid: str):
+    """Lias Nachricht mit Fotos und Dateien. Uploads liegen kurz in EINGANG; lia/chat verschiebt sie, den Rest
+    (auch bei Fehlern) räumt die App weg."""
+    modul = _chat_an()
+    _gespraech(modul, gid)
+    form = await formular_lesen(request, "Nachricht", GESPRAECH_DATEIEN, max_felder=10)
+    hochgeladen = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
+    zurueck = f"/gespraech/{gid}"
+    EINGANG.mkdir(parents=True, exist_ok=True)
+    ordner = Path(tempfile.mkdtemp(dir=EINGANG))
+    try:
+        if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+            return _gespraech_fehler(zurueck, "Die Seite war veraltet. Bitte schick die Nachricht noch einmal.")
+        uploads = [(d.filename, datei_ablegen(d, ordner / str(nr))) for nr, d in enumerate(hochgeladen)]
+        nid = modul.nachricht(gid, str(form.get("text") or ""), uploads, form.get("gruendlich") == "1",
+                              form.get("netz") == "1", CHAT_ORDNER)
+        logger.info("Gespräch %s: Nachricht %s (%d Anhänge)", gid, nid, len(uploads))
+    except modul.GespraechFehler as fehler_:
+        logger.warning("Gespräch %s: Nachricht abgewiesen: %s", gid, fehler_)
+        return _gespraech_fehler(zurueck, str(fehler_))
+    except OSError as fehler_:
+        logger.error("Gespräch %s: Nachricht nicht angenommen: %s", gid, fehler_)
+        return _gespraech_fehler(zurueck, logik.FEHLGESCHLAGEN)
+    finally:
+        shutil.rmtree(ordner, ignore_errors=True)
+        for d in hochgeladen:
+            await d.close()
+    return RedirectResponse(f"{zurueck}#ende", status_code=303)
+
+
+def _gespraech_fehler(ziel: str, satz: str) -> RedirectResponse:
+    """Fehlersatz für Lia: im Speicher unter einem Schlüssel, die URL trägt nur den Schlüssel (kein fremder Text)."""
+    schluessel = secrets.token_hex(4)
+    GESPRAECH_FEHLER[schluessel] = satz
+    for alt in list(GESPRAECH_FEHLER)[:-100]:
+        del GESPRAECH_FEHLER[alt]
+    return RedirectResponse(f"{ziel}?fehler={schluessel}#eingabe", status_code=303)
+
+
+@app.post("/gespraech/{gid}/umbenennen")
+async def gespraech_umbenennen(request: Request, gid: str):
+    modul = _chat_an()
+    _gespraech(modul, gid)
+    form = await formular_lesen(request, "Umbenennen", 0)
+    if logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        try:
+            modul.umbenennen(gid, str(form.get("name") or ""), CHAT_ORDNER)
+        except modul.GespraechFehler as fehler_:
+            return _gespraech_fehler(f"/gespraech/{gid}", str(fehler_))
+    return RedirectResponse(f"/gespraech/{gid}", status_code=303)
+
+
+@app.post("/gespraech/{gid}/umhaengen")
+async def gespraech_umhaengen(request: Request, gid: str):
+    modul = _chat_an()
+    _gespraech(modul, gid)
+    form = await formular_lesen(request, "Umhängen", 0)
+    ort_id = str(form.get("ort") or "")
+    o = orte_().get(ort_id) if ort_id else None
+    if logik.token_passt(GEHEIM, str(form.get("token") or "")) and (o or not ort_id):
+        modul.umhaengen(gid, _ort_feld(o), CHAT_ORDNER)
+    return RedirectResponse(f"/gespraech/{gid}", status_code=303)
+
+
+@app.post("/gespraech/{gid}/loeschen")
+async def gespraech_loeschen(request: Request, gid: str):
+    modul = _chat_an()
+    g = _gespraech(modul, gid)
+    form = await formular_lesen(request, "Gespräch löschen", 0)
+    o = gespraech.ort_von(g.get("ort"), orte_())
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return RedirectResponse(f"/gespraech/{gid}", status_code=303)
+    modul.loeschen(gid, CHAT_ORDNER)
+    logger.info("Gespräch %s gelöscht", gid)
+    return RedirectResponse((o["link"] if o else "/gespraeche") + "?erledigt=gespraech-geloescht", status_code=303)
+
+
+@app.post("/gespraech/{gid}/sonder")
+async def gespraech_sonder(request: Request, gid: str):
+    """„Was haben wir bisher?“ (art=bisher) und „Daraus Auftrag machen“ (art=auftrag): ein Lauf ohne Eintrag im
+    Verlauf; das Ergebnis lädt htmx unter dem Gespräch (/teile/sonder/<id>)."""
+    modul = _chat_an()
+    _gespraech(modul, gid)
+    form = await formular_lesen(request, "Sonderlauf", 0)
+    art = str(form.get("art") or "")
+    if art not in ("bisher", "auftrag") or not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return RedirectResponse(f"/gespraech/{gid}", status_code=303)
+    try:
+        nid = (modul.bisher if art == "bisher" else modul.auftrag_ordnen)(gid, CHAT_ORDNER)
+    except modul.GespraechFehler as fehler_:
+        return _gespraech_fehler(f"/gespraech/{gid}", str(fehler_))
+    return RedirectResponse(f"/gespraech/{gid}?sonder={nid}&art={art}#sonder", status_code=303)
+
+
+@app.get("/teile/sonder/{gid}/{nid}", response_class=HTMLResponse)
+def teil_sonder(request: Request, gid: str, nid: str):
+    modul = _chat_an()
+    g = _gespraech(modul, gid)
+    if not logik.chat_id_gueltig(nid):
+        raise HTTPException(404)
+    a = modul.antwort_holen(nid, CHAT_ORDNER)
+    art = request.query_params.get("art") or "bisher"
+    o = gespraech.ort_von(g.get("ort"), orte_())
+    neu_link = ""
+    if a and a.get("ok", True) and art == "auftrag" and neu_modus():
+        r = o["reihe_id"] if o else ""
+        neu_link = f"/neu?aus_gespraech={gid}&ergebnis={nid}" + (f"&reihe={r}" if r else "")
+    return vorlagen.TemplateResponse(request, "_sonder.html", {
+        "g": g, "nid": nid, "art": art, "a": a, "bloecke": gespraech.bloecke((a or {}).get("text") or ""),
+        "neu_link": neu_link})
+
+
+@app.get("/gespraech/{gid}/datei/{nid}/{name}")
+def gespraech_datei(gid: str, nid: str, name: str):
+    """Foto oder Datei aus einer Nachricht (lia/chat legt sie unter data/gespraeche/<id>/<nachricht>/ ab)."""
+    if not (logik.chat_id_gueltig(gid) and logik.chat_id_gueltig(nid)) or chat() is None:
+        raise HTTPException(404)
+    p = dateien.sicher(CHAT_ORDNER / "gespraeche" / gid, Path(nid) / name, ablage.ENDUNGEN)
+    if p is None:
+        raise HTTPException(404)
+    zeigen = p.suffix.lower() in ablage.FOTOS | {".pdf"}
+    return FileResponse(p, media_type=ablage.MEDIENTYP[p.suffix.lower()], filename=None if zeigen else p.name)
+
+
+@app.post("/baustein/reihenfrage")
+async def baustein_reihenfrage(request: Request):
+    """„Als Reihenfrage übernehmen“ an einem Baustein: über agentkit.strukturpflege, mit Rückgängig."""
+    form = await formular_lesen(request, "Reihenfrage übernehmen", 0)
+    gid, reihe_id = str(form.get("gespraech") or ""), str(form.get("reihe") or "")
+    text = " ".join(str(form.get("text") or "").split())
+    zurueck = f"/gespraech/{gid}" if logik.chat_id_gueltig(gid) else "/"
+    s = struktur_()
+    r = s.objekt(reihe_id) if s is not None and s.format == "neu" else None
+    if r is None or r["ebene"] != "reihe" or not text:
+        raise HTTPException(404)
+    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
+        return _gespraech_fehler(zurueck, "Die Seite war veraltet. Bitte noch einmal.")
+    aus, fehler_ = await pflegen("reihe_aendern", {"reihe": reihe_id, "reihenfrage": text},
+                                 {reihe_id: {"reihenfrage": r["reihenfrage"]}})
+    if aus is None:
+        return _gespraech_fehler(zurueck, fehler_)
+    return nach(zurueck, aus)
 
 _lese_fehler: list[str] = []  # wie _reihen_fehler: Fehler im Profil nur einmal loggen
 
@@ -1762,9 +2061,12 @@ def seite_neu(request: Request):
     if not neu_modus():
         raise HTTPException(404)
     q = request.query_params
-    text, aus = "", q.get("aus") or ""
-    if aus and chat() is not None:  # „Daraus Auftrag machen“: Frage und Antwort als Wunsch
-        text = logik.text_aus_chat(next((e for e in chat().verlauf(CHAT_ORDNER) if e.get("id") == aus), None))
+    text, aus = "", ""
+    gid, nid = q.get("aus_gespraech") or "", q.get("ergebnis") or ""
+    if chat() is not None and logik.chat_id_gueltig(gid) and logik.chat_id_gueltig(nid):
+        a = chat().antwort_holen(nid, CHAT_ORDNER)  # „Daraus Auftrag machen“: von Claude geordneter Auftragstext
+        if a and a.get("ok", True):
+            text, aus = (a.get("text") or "").strip(), f"aus_gespraech={gid}&ergebnis={nid}"
     return _formular(request, text=text, reihe=q.get("reihe") or "", art=q.get("art") or "",
                      stunde=q.get("stunde") or "", aus=aus if text else "")
 

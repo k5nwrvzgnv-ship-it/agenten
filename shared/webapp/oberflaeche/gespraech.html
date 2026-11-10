@@ -1,0 +1,106 @@
+{#- Gespräch in der Mitte (Skizze skizzen/gespraech.html): Kopf mit Name, „Daraus Auftrag machen“ und „···“, Verlauf,
+    Eingabe mit Fotos/Dateien und Optionen; rechts, was das Gespräch kennt (Reihenfrage, deine Dateien, Gespräche). -#}
+{% extends "basis.html" %}
+{% block titel %}{{ e.titel }}{% endblock %}
+{% block rahmen_klasse %}{% endblock %}
+{% block skripte %}<script src="/statisch/htmx-2.0.4.min.js" defer></script><script src="/statisch/gespraech.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endblock %}
+{% block main_klasse %} gespraech-seite{% endblock %}
+{% block seitenkopf %}{% endblock %}
+{% block inhalt %}
+<section class="gespraech" aria-label="Gespräch">
+  <div class="gkopf">
+    <h1 class="gname">{{ e.titel }}</h1>
+    <span class="knoepfe">
+      <form class="inline-form" method="post" action="/gespraech/{{ g.id }}/sonder" data-einmal>
+        <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="auftrag">
+        <button class="knopf knopf-klein" type="submit">Daraus Auftrag machen</button>
+      </form>
+      <details class="menue-halter">
+        <summary class="knopf knopf-leise" aria-label="Weitere Aktionen">···</summary>
+        <div class="menue">
+          <form method="post" action="/gespraech/{{ g.id }}/sonder" data-einmal>
+            <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="bisher">
+            <button class="knopf knopf-leise" type="submit">Was haben wir bisher?</button>
+          </form>
+          <form method="post" action="/gespraech/{{ g.id }}/umbenennen">
+            <input type="hidden" name="token" value="{{ token }}">
+            <label class="unter" for="g-name">Umbenennen</label>
+            <input class="feld" id="g-name" name="name" value="{{ g.name }}" maxlength="80" required>
+            <button class="knopf knopf-klein" type="submit">Speichern</button>
+          </form>
+          <form method="post" action="/gespraech/{{ g.id }}/umhaengen">
+            <input type="hidden" name="token" value="{{ token }}">
+            <label class="unter" for="g-ort">{{ "An andere Ebene hängen" if ort else "An eine Ebene hängen" }}</label>
+            <select class="feld" id="g-ort" name="ort">
+              <option value="">ohne Ort</option>
+              {%- for z in ziele %}<option value="{{ z.id }}"{% if ort and ort.id == z.id %} selected{% endif %}>{{ z.pfad }}</option>{% endfor %}
+            </select>
+            <button class="knopf knopf-klein" type="submit">Umhängen</button>
+          </form>
+          <form method="post" action="/gespraech/{{ g.id }}/loeschen" data-einmal>
+            <input type="hidden" name="token" value="{{ token }}">
+            <button class="knopf knopf-leise" type="submit">Gespräch löschen</button>
+          </form>
+        </div>
+      </details>
+    </span>
+  </div>
+  {% include "_verlauf.html" %}
+  {%- if sonder %}
+  <div hx-get="/teile/sonder/{{ g.id }}/{{ sonder }}?art={{ sonder_art }}" hx-trigger="load" hx-swap="outerHTML" id="sonder">
+    <p class="denkt" role="status">Einen Moment …</p>
+  </div>
+  {%- endif %}
+  {%- if fehler %}<p class="fehler" role="alert" id="fehler">{{ fehler }}</p>{% endif %}
+  <form class="eingabe" id="eingabe" method="post" action="/gespraech/{{ g.id }}/nachricht" enctype="multipart/form-data" data-einmal>
+    <input type="hidden" name="token" value="{{ token }}">
+    <label class="unsichtbar" for="text">Nachricht</label>
+    <textarea id="text" name="text" maxlength="{{ max_text }}" placeholder="Schreib oder füge einen langen Text ein. Keine Namen von Schüler*innen."{% if g.laeuft %} disabled{% endif %}></textarea>
+    <p class="gewaehlt" id="gewaehlt" aria-live="polite"></p>
+    <div class="eingabe-leiste">
+      <div class="links">
+        <label class="knopf knopf-leise datei-knopf">+ Foto oder Datei
+          <input id="anhang" type="file" name="dateien" multiple accept="image/jpeg,image/png,.jpg,.jpeg,.png,.pdf,.docx,.pptx"></label>
+        <label><input type="checkbox" name="gruendlich" value="1"> gründlich</label>
+        <label title="Dann geht der Text deiner Nachricht als Suchanfrage ins Netz, also keine Namen."><input type="checkbox" name="netz" value="1"> im Netz</label>
+      </div>
+      <button class="knopf knopf-voll" type="submit"{% if g.laeuft %} disabled{% endif %}>Senden</button>
+    </div>
+  </form>
+  <details class="kennt">
+    <summary>{% if ort %}Kennt {{ ort.pfad }}{% if reihe and reihe.reihenfrage %}, die Reihenfrage{% endif %} und deine Dateien dort{% else %}Kennt nur deine Regeln, keine Klasse und keine Reihe{% endif %}</summary>
+    <p>Was darüber liegt, kennt das Gespräch mit. Gespräche bleiben 30 Tage nach der letzten Nachricht, dann werden sie gelöscht.</p>
+  </details>
+</section>
+{% endblock %}
+{% block rechts %}
+<aside class="rechts" aria-label="Was dieses Gespräch kennt">
+  {%- if ort %}
+  {%- if reihe %}
+  <div class="block"><p class="blocktitel">Reihenfrage{% if ort.ebene == "stunde" %} aus der Reihe{% endif %}</p>
+    <p>{% if reihe.reihenfrage %}{{ reihe.reihenfrage }}{% else %}<span class="unter">noch offen</span>{% endif %}</p></div>
+  {%- endif %}
+  {%- for x in ablage_liste %}
+  {%- if x.dateien or loop.last %}
+  <div class="block"><p class="blocktitel">Deine Dateien{% if not loop.last %} an {{ x.ort.name }}{% endif %}</p>
+    <ul class="rliste">
+      {%- for d in x.dateien %}<li><a class="rzeile" href="/ablage/{{ x.ort.id }}/{{ d.name | urlencode }}" target="_blank" rel="noopener"><span class="nm">{{ d.name }}</span></a></li>{% endfor %}
+    </ul>
+    {%- if loop.last %}<p><a class="knopf knopf-leise" href="{{ x.ort.link }}#ablage">+ Datei ablegen</a></p>{% endif %}
+  </div>
+  {%- endif %}
+  {%- endfor %}
+  {%- else %}
+  <p class="unter">Dieses Gespräch kennt keine Klasse, Reihe oder Stunde. Gehört es doch irgendwo hin, häng es über „···“ dort an.</p>
+  {%- endif %}
+  <div class="block"><p class="blocktitel">Gespräche {% if ort %}hier{% else %}ohne Ort{% endif %}</p>
+    <ul class="rliste">
+      {%- for z in andere %}<li><a class="rzeile" href="{{ z.link }}"{% if z.id == g.id %} aria-current="page"{% endif %}><span class="nm">{{ z.name }}</span>{% if z.neu %}<span class="punkt punkt-rot" title="neue Antwort"></span>{% endif %}</a></li>{% endfor %}
+    </ul>
+    <form method="post" action="/gespraech/neu" data-einmal>
+      <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="ort" value="{{ ort.id if ort else '' }}">
+      <button class="knopf knopf-leise" type="submit">+ Gespräch</button>
+    </form>
+  </div>
+</aside>
+{% endblock %}

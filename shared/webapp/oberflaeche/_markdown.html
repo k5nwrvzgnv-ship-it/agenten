@@ -1,0 +1,32 @@
+{#- Antworten von Claude als HTML (gespraech.bloecke), nur Text mit Autoescape. Bausteine brauchen im Kontext
+    g, token und reihenfrage_ziel (darum import … with context). -#}
+{%- macro teile(liste) %}{% for t in liste %}{% if t.link %}<a href="{{ t.link }}" rel="noopener noreferrer" target="_blank">{% endif %}{% if t.code %}<code>{% endif %}{% if t.fett %}<b>{% endif %}{% if t.kursiv %}<i>{% endif %}{{ t.text }}{% if t.kursiv %}</i>{% endif %}{% if t.fett %}</b>{% endif %}{% if t.code %}</code>{% endif %}{% if t.link %}</a>{% endif %}{% endfor %}{% endmacro %}
+{%- macro bloecke(liste, bid) %}
+{%- for b in liste %}
+{%- if b.ueberschrift is defined %}{% if b.stufe == 2 %}<h3>{{ teile(b.ueberschrift) }}</h3>{% else %}<h4>{{ teile(b.ueberschrift) }}</h4>{% endif %}
+{%- elif b.absatz is defined %}<p>{{ teile(b.absatz) }}</p>
+{%- elif b.punkte is defined %}{% if b.nummeriert %}<ol>{% else %}<ul>{% endif %}{% for p in b.punkte %}<li>{{ teile(p) }}</li>{% endfor %}{% if b.nummeriert %}</ol>{% else %}</ul>{% endif %}
+{%- elif b.zitat is defined %}<blockquote class="zitat">{{ teile(b.zitat) }}</blockquote>
+{%- elif b.linie is defined %}<hr>
+{%- elif b.code is defined %}<pre>{{ b.code }}</pre>
+{%- elif b.tabelle is defined %}<div class="tabelle"><table><thead><tr>{% for k in b.tabelle.kopf %}<th>{{ teile(k) }}</th>{% endfor %}</tr></thead><tbody>{% for z in b.tabelle.zeilen %}<tr>{% for c in z %}<td>{{ teile(c) }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+{%- elif b.baustein is defined %}
+<div class="baustein">
+  <div class="baustein-text">{{ bloecke(b.baustein.bloecke, "") }}</div>
+  <div class="baustein-fuss"><span class="art">{{ b.baustein.name }}</span>
+    <span class="knoepfe">
+      <button class="knopf knopf-leise" type="button" data-kopie="{{ b.baustein.kopie }}">Kopieren</button>
+      {%- if reihenfrage_ziel and g %}
+      <form class="inline-form" method="post" action="/baustein/reihenfrage">
+        <input type="hidden" name="token" value="{{ token }}">
+        <input type="hidden" name="reihe" value="{{ reihenfrage_ziel }}">
+        <input type="hidden" name="gespraech" value="{{ g.id }}">
+        <input type="hidden" name="text" value="{{ b.baustein.kopie }}">
+        <button class="knopf knopf-leise" type="submit">Als Reihenfrage übernehmen</button>
+      </form>
+      {%- endif %}
+    </span></div>
+</div>
+{%- endif %}
+{%- endfor %}
+{%- endmacro %}

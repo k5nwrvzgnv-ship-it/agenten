@@ -2,7 +2,7 @@
     das nur zur Klasse gehört (Notentabelle, Sitzplan), steht in noch keiner Datei: dafür der leere Zustand. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt -%}
+{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
 {%- from "_pflege.html" import knopf -%}
 {%- macro termin_zeile(t, k) -%}
 <li class="termin-zeile{% if t.ausgefallen %} termin-aus{% endif %}">
@@ -24,6 +24,7 @@
 </li>
 {%- endmacro -%}
 {% block inhalt %}
+{{ gespraeche_abschnitt(gespraeche) }}
 {%- if p %}
 <div class="knoepfe knoepfe-unten">
   {%- if p.archiv %}

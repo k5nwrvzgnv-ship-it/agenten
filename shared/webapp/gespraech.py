@@ -16,6 +16,7 @@ Teile: {"text", "fett", "kursiv", "code", "link" (nur bei Links)}.
 """
 
 import re
+from datetime import datetime
 
 import logik
 
@@ -214,3 +215,82 @@ def darunter(orte_: dict[str, dict], ort_id: str) -> list[str]:
     """ids aller Orte unter diesem (Reihen und Stunden einer Klasse, Stunden einer Reihe), in Reihenfolge."""
     kinder = [o["id"] for o in orte_.values() if o["eltern"] == ort_id]
     return [x for k in kinder for x in (k, *darunter(orte_, k))]
+
+
+# --- Gespräch als Ansicht (Daten von lia/chat: schnittstelle.gespraech(), gespraeche()) -------------------------------
+FOTO_ENDUNGEN = (".jpg", ".jpeg", ".png")
+WOCHENTAGE = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
+FEHLER_SATZ = "Das hat nicht geklappt. Schick die Nachricht bitte noch einmal."
+
+
+def _zeit(text: str | None) -> datetime | None:
+    try:
+        return datetime.fromisoformat(text) if text else None
+    except ValueError:
+        return None
+
+
+def tag_text(z: datetime, jetzt: datetime) -> str:
+    z = z.astimezone(jetzt.tzinfo)
+    if z.date() == jetzt.date():
+        return "Heute"
+    if (jetzt.date() - z.date()).days == 1:
+        return "Gestern"
+    return f"{WOCHENTAGE[z.weekday()]} {z:%d.%m.}"
+
+
+def zuletzt_text(text: str | None, jetzt: datetime) -> str:
+    """„heute 14:16“, „gestern“, „Mo 09.11.“ für Listen."""
+    z = _zeit(text)
+    if z is None:
+        return ""
+    t = tag_text(z, jetzt)
+    return f"heute {z.astimezone(jetzt.tzinfo):%H:%M}" if t == "Heute" else t.lower() if t == "Gestern" else t
+
+
+def ort_von(ort: dict | None, orte_: dict[str, dict]) -> dict | None:
+    """Ort eines Gesprächs aus den Orten der App; None: ohne Ort oder unbekannt (z. B. Stunde gelöscht)."""
+    if not isinstance(ort, dict):
+        return None
+    o = orte_.get(str(ort.get("id") or ""))
+    return o if o and o["ebene"] == ort.get("ebene") else None
+
+
+def liste_zeile(k: dict, orte_: dict[str, dict], jetzt: datetime, mit_ort: bool = True) -> dict:
+    """Eine Zeile in Listen der Gespräche (kurz() von lia/chat)."""
+    o = ort_von(k.get("ort"), orte_)
+    return {"id": k["id"], "name": k.get("name") or "Neues Gespräch", "link": f"/gespraech/{k['id']}",
+            "unter": (o["pfad"] if o else "ohne Ort") if mit_ort else "", "zuletzt": zuletzt_text(k.get("zuletzt"), jetzt),
+            "laeuft": bool(k.get("laeuft")), "neu": bool(k.get("neu"))}
+
+
+def verlauf(g: dict, jetzt: datetime) -> list[dict]:
+    """Nachrichten mit Tagestrennern: {"tag"}, {"du": True, "text", "fotos", "dateien", "zeit"},
+    {"claude": True, "bloecke", "zeit", "fehler"} und am Ende {"denkt": True}, solange Lias Nachricht wartet.
+    Fotos und Dateien als {"name", "link"} (Route /gespraech/<id>/datei/<nachricht>/<name>)."""
+    out, tag = [], None
+    for e in g.get("eintraege", []):
+        z = _zeit(e.get("zeit"))
+        if z is not None and tag_text(z, jetzt) != tag:
+            tag = tag_text(z, jetzt)
+            out.append({"tag": tag})
+        zeit = f"{z.astimezone(jetzt.tzinfo):%H:%M}" if z else ""
+        if e.get("rolle") == "lia":
+            basis = f"/gespraech/{g['id']}/datei/{e.get('id', '')}/"
+            out.append({"du": True, "text": e.get("text") or "", "zeit": zeit,
+                        "fotos": [{"name": n, "link": basis + n} for n in e.get("fotos") or []],
+                        "dateien": [{"name": n, "link": basis + n} for n in e.get("dateien") or []],
+                        "fehler": e.get("stand") == "fehler"})
+        elif e.get("rolle") == "claude":
+            ok = e.get("ok", True) and not e.get("fehler")
+            out.append({"claude": True, "zeit": zeit, "fehler": not ok,
+                        "bloecke": bloecke(e.get("text") or "") if ok else [],
+                        "satz": "" if ok else (e.get("text") or FEHLER_SATZ)})
+    if g.get("laeuft"):
+        out.append({"denkt": True})
+    return out
+
+
+def reihenfrage_moeglich(o: dict | None) -> str:
+    """id der Reihe, deren Reihenfrage ein Baustein übernehmen darf (Gespräch an Reihe oder Stunde), sonst ""."""
+    return o["reihe_id"] if o and o["ebene"] in ("reihe", "stunde") and not o["archiv"] else ""
