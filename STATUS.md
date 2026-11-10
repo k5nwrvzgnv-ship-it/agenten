@@ -1106,7 +1106,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Entscheidungen wie empfohlen (eigener Agent lia/schnell, Rückmeldung am Dokument zuerst schnell, groß geht von
     selbst an die gründliche Nachbesserung, schnelle Dokumente mit Hinweis ohne Quellenprüfung, Sonnet, Schalter für
     die alte Oberfläche der Web-App, Pakete wie lia/unterricht). Bau nach Plan Abschnitt 4, je Ordner im eigenen
-    Chat: (1) Hauptordner: [weitergabe] schnell, feedback „nur lernen“; (2) lia/schnell; (3) shared/webapp.
+    Chat: (1) Hauptordner: erledigt 10.11. (e9f2945, unten); (2) lia/schnell; (3) shared/webapp.
+    Schritt 1 (Hauptordner), anders als im Plan angenommen: [weitergabe] steht in `lia/instanz/einstellungen.toml`
+    (Lias Instanz erbt Jans Weitergaben nie), schnell = unterricht, theater, feedback. `auftraege.weitergeben` kann
+    jetzt `bezug`, `nachbesserung=True` (erbt quelle, modus, sitzung, Herkunft vom Bezug wie der Feedback-Dienst),
+    `quelle`, `felder` und `still=True` (Zentrale meldet und startet nichts, der Absender startet den Empfänger; nötig,
+    weil Lias Zentrale sonst Lia „… ist noch nicht eingerichtet“ schickt). Feedback mit Feld `feedback_modus`
+    „nur_lernen“: nie Nachbesserung, ohne Regel oder Notiz keine Meldung an Jan. Tests in agentkit, telegram, feedback.
+    Offen: Die Zentralen laufen noch mit altem Code. Vor dem ersten echten Lauf von lia/schnell mit stiller Weitergabe
+    `systemctl --user restart lia-zentrale.service agentenzentrale.service` (nur mit Jans Okay). Bekannte Schwäche
+    des gründlichen Wegs (unverändert): Der Feedback-Dienst kann einen großen Änderungswunsch als Regel statt als
+    Nachbesserung einordnen; lia/schnell umgeht das, weil es große Wünsche direkt als Nachbesserung weitergibt.
     Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
     weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
     reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.
