@@ -1077,6 +1077,30 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     absolute Sperre je Ordner. Zweiter echter Lauf mit [werkzeuge] Read/WebSearch/WebFetch und [webfetch] bpb.de
     (0,05 USD): Bild beschrieben, bpb.de abgerufen, WebSearch ging; verweigert: WebFetch example.com, Read
     probe/geheim.txt. Tests ohne Netz: agentkit/tests/test_claude_lauf.py (test_nur_lesen_*).
+37. Bedarf aus der Probe der Web-App (10.11.2026, Jan, Test-Instanz, Bauplan-Schritt 7 abgebrochen): Das Gespräch
+    in der Mitte ist zu starr und überfordernd. Jan: Es soll sein wie eine Claude-Code-Sitzung. Befund: Claude bekommt
+    je Nachricht nur einen Ortstext (Fach, Klasse, Reihe, Lerngruppe, Notizen), liest keine Dateien (nur Fotos und auf
+    Wunsch das Netz), kann nichts tun außer Text, kennt die Agenten nicht; „Daraus Auftrag machen“ füllt nur das
+    Formular der festen Auftragsarten. Jans Zielbild:
+    - Kennt alles, was zum Ort gehört: liest und sucht in Lias Instanz (reihen.toml, Entwürfe, Fassungen, Ablage,
+      Regeln) und in den Ergebnissen der Agenten. Antwortet aus dem Ort heraus, z. B. „laut Reihenentwurf ist für
+      diese Stunde … angedacht“ oder „diese Stunde hängt an keiner Reihe: an Straftheorien hängen oder gleich eine
+      neue Reihe mit Stunden entwerfen?“.
+    - Handelt im Gespräch, nicht über Knöpfe (Jan: „willst du 1000 Knöpfe entwickeln“, auch „Als Reihenfrage
+      übernehmen“ ist schon zu starr): Lia sagt es, Claude macht es. Mit „Claude denkt, Python handelt“ vereinbar über
+      wenige allgemeine Werkzeuge, die Python bereitstellt und prüft (Idee, ungeprüft: eigener MCP-Server in
+      agentkit), etwa Struktur ändern über strukturpflege mit Rückgängig, Datei ablegen, Auftrag an einen Agenten
+      geben. Nach außen weiter nur über die Freigabe.
+    - Flexible Agenten statt fester Auftragsarten: Agenten beschreiben ihre Fähigkeiten, Claude prüft im Gespräch, ob
+      ein Auftrag damit geht. Fehlt etwas, sagt er es und macht daraus einen kleinen Ausbau-Auftrag an eine
+      Claude-Code-Sitzung im zuständigen Ordner, mit Jans Zustimmung.
+    - Lernt von Lia und verbessert sich selbst (aufbauend auf agentkit.feedback), zunehmend automatisierter Betrieb.
+    Berührt CLAUDE.md (Architektur, „Agenten ändern keinen Code“), agentkit.claude_lauf (Werkzeuge über Read hinaus),
+    lia/chat und shared/webapp. Als Nächstes: Plan im Hauptordner-Chat, Entscheidungen bei Jan. Offen bei Jan: was am
+    Chat überfordernd war (Länge und Gliederung der Antworten oder die Oberfläche); welche Bearbeiten-Fläche
+    unintuitiv ist (Wunsch: Drag and Drop). Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
+    weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
+    reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.
 
 ## Gelernte Regeln
 - (noch keine)

@@ -19,16 +19,14 @@ Orte, Kette, darunter; Verlauf), `ablage.py` (eigene Dateien an `lia/instanz/abl
   Link auf Ergebnis/Betrachter bzw. Datei), „Darüber sprechen“ an Material/Ablage, Ebenen-Kopf ruhiger (Pflege-
   Knöpfe ins „···“), roter Punkt im Baum (der Baum hat noch kein Zuklappen). Aufräumen alter Chat-Logik in
   `logik.py` (fragen_spalte, frage_ort …) nur nach Vorschlag an Jan.
-Nächste Schritte:
-1. Mit Jan klären, wie Aufgabe 6 getestet wird: `CHAT_ORDNER` ist fest `lia/chat/data` (echte Warteschlange, Lias
-   Kontingent), und lia/chat liest die Ablage aus `lia/instanz`, nicht aus der Test-Instanz. Vorschlag: Aufgaben
-   1–5 in der Test-Instanz, Aufgabe 6 (Datei ablegen, Claude kennt sie) nach dem Umschalten mit einer harmlosen
-   Testdatei, danach entfernen.
-2. Probe in der Test-Instanz (Bauplan Schritt 7, Start siehe „Starten und ansehen“, mit `WEBAPP_CHAT=an`, eigener
-   Port/Socket): Gespräche mit Foto, langem Text, Baustein kopieren, Daraus Auftrag machen. Testgespräche danach
-   löschen (sie liegen in der echten Warteschlange lia/chat/data).
-3. Umschalten: `systemctl --user restart webapp.service` nur mit Jans Okay, danach alle Seiten abrufen, Log prüfen.
-4. Danach diesen Abschnitt, „Technik“ und „Skizze“ auf den neuen Stand; Aufräum-Vorschlag (`vorlagen/`, `stil.css`).
+Probe 10.11.2026 (Bauplan Schritt 7) mit Jan abgebrochen: Reihenfrage übernehmen, Foto senden und Auftrag ordnen
+liefen technisch, aber Jan findet das Gespräch zu starr und überfordernd (Zielbild „wie eine Claude-Code-Sitzung“,
+keine weiteren Knöpfe, auch „Als Reihenfrage übernehmen“ zu starr). Zielbild und Befund: Punkt 37 der Haupt-STATUS.
+Testgespräche gelöscht, Test-App gestoppt. Nicht umschalten: webapp.service zeigt weiter `vorlagen/` und `stil.css`.
+Bau hier ruht, bis der Plan aus Punkt 37 steht. Test-Instanz starten: `WEBAPP_INSTANZ=$PWD/data/test/instanz
+WEBAPP_NEUER_AUFTRAG=test WEBAPP_CHAT=an WEBAPP_PORT=8795` (8793/8794 sind uni-Portal und Arbeitsplatz), vorher
+`data/test/aufbauen.py`. Achtung: lia/chat liest immer `lia/instanz`; Orte, die nur die Test-Instanz hat (neue
+Stunden, „Kant: Vergeltung“, „von Liszt“), kennt Claude nicht.
 
 ## Stand (03.11.2026, Struktur pflegen siehe eigener Abschnitt)
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
