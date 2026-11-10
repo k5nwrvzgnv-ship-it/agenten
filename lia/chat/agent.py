@@ -67,8 +67,10 @@ def claude_fragen(prompt: str, gruendlich: bool, frage_id: str, netz: bool = Fal
 
 
 def sitzung_loeschen(sitzung: str | None, ordner: Path = SITZUNGEN) -> None:
+    """Sitzungsdatei und den Ordner gleichen Namens (claude legt dort z. B. Webabrufe ab)."""
     if sitzung:
         (ordner / f"{Path(sitzung).name}.jsonl").unlink(missing_ok=True)
+        shutil.rmtree(ordner / Path(sitzung).name, ignore_errors=True)
 
 
 def dateien_text(frage: dict, ordner: Path = DATEN) -> str:

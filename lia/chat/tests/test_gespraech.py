@@ -305,13 +305,15 @@ class Ablauf(Basis):
         lose.write_text("{}")
         os.utime(lose, (time.time() - 7200,) * 2)
         os.utime(self.sitzungen / "s-alt.jsonl", (time.time() - 7200,) * 2)
+        (self.sitzungen / "s-alt" / "tool-results").mkdir(parents=True)
+        (self.sitzungen / "s-frisch").mkdir()
         jung = self.sitzungen / "laeuft-gerade.jsonl"
         jung.write_text("{}")
         agent.aufraeumen(self.daten, self.sitzungen, self.sitzungen)
         self.assertIsNone(sch.gespraech(alt_, self.daten))
         self.assertFalse(ga.dateien_ordner(alt_, self.daten).exists())
         self.assertIsNotNone(sch.gespraech(frisch, self.daten))
-        self.assertEqual(sorted(p.name for p in self.sitzungen.iterdir()), ["laeuft-gerade.jsonl", "s-frisch.jsonl"])
+        self.assertEqual(sorted(p.name for p in self.sitzungen.iterdir()), ["laeuft-gerade.jsonl", "s-frisch", "s-frisch.jsonl"])
 
     def test_alte_frage_laeuft_weiter(self):
         fid = sch.frage_stellen("Alte Spalte?", None, ordner=self.daten)

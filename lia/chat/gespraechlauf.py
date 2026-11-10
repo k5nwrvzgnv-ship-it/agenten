@@ -327,11 +327,12 @@ def aufraeumen(daten: Path, sitzungen: list[Path], heute=None) -> int:
             if ga.alt(g, heute=heute):
                 ga.loeschen(g["id"], daten)
                 weg += 1
-        behalten = {f"{Path(g['sitzung']).name}.jsonl" for g in ga.alle(daten) if g.get("sitzung")}
+        behalten = {Path(g["sitzung"]).name for g in ga.alle(daten) if g.get("sitzung")}
     for p in {p for o in sitzungen if o.exists() for p in o.glob("*.jsonl")}:
         try:
-            if p.name not in behalten and time.time() - p.stat().st_mtime > 3600:
+            if p.stem not in behalten and time.time() - p.stat().st_mtime > 3600:
                 p.unlink()
+                shutil.rmtree(p.with_suffix(""), ignore_errors=True)  # Ordner gleichen Namens (Webabrufe)
                 weg += 1
         except FileNotFoundError:
             continue

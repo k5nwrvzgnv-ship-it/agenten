@@ -232,6 +232,7 @@ class Agent(unittest.TestCase):
         sitzungen.mkdir()
         (sitzungen / "s1.jsonl").write_text("x")
         (sitzungen / "s2.jsonl").write_text("x")
+        (sitzungen / "s1").mkdir()
         agent.sitzung_loeschen("s1", sitzungen)
         agent.sitzung_loeschen(None, sitzungen)
         self.assertEqual([p.name for p in sitzungen.iterdir()], ["s2.jsonl"])
