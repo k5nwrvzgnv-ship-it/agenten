@@ -624,11 +624,21 @@ class TestOrdnung(Aufbau):
             self.assertRegex(r.getheader("location"), rf"^/gespraech/{gid}\?fehler=[0-9a-f]{{8}}#eingabe$")
             self.assertIn("Claude antwortet noch", self.hole(r.getheader("location").split("#")[0])[1])
             self.assertEqual(list((self.tmp / "eingang").iterdir()), [])  # Uploads immer weggeräumt
-            # Antwort von Claude mit Baustein (wie der Agent sie schreibt)
+            # Fehlschlag (wie der Agent ihn schreibt): Satz aus antwort_holen unter Lias Nachricht
             import gespraechablage
             with gespraechablage.sperre(ordner):
                 roh = gespraechablage.lesen(gid, ordner)
-                roh["eintraege"][0]["stand"] = "beantwortet"
+                roh["eintraege"][0].update(stand="fehler", fehler="limit")
+                gespraechablage.schreiben(roh, ordner)
+            modul.antwort_schreiben({"id": e["id"], "ok": False, "fehler": "limit",
+                                     "text": "Gerade ist das Kontingent aufgebraucht, wieder frei ab 14:30."}, ordner)
+            teil = self.hole(f"/teile/gespraech/{gid}")[1]
+            self.assertIn("wieder frei ab 14:30.", teil)
+            self.assertNotIn("hx-get", teil)
+            # Antwort von Claude mit Baustein (wie der Agent sie schreibt)
+            with gespraechablage.sperre(ordner):
+                roh = gespraechablage.lesen(gid, ordner)
+                roh["eintraege"][0].update(stand="fertig", fehler=None)
                 roh["eintraege"].append({"id": "a" * 12, "rolle": "claude", "zeit": roh["eintraege"][0]["zeit"],
                                          "text": "| A | B |\n|---|---|\n| 1 | 2 |\n\n```baustein reihenfrage\n"
                                                  "Ist Strafe **gerecht**?\n```", "ok": True})

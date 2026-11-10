@@ -1724,8 +1724,15 @@ def _gespraech_werte(request: Request, modul, g: dict) -> dict:
                   modul.gespraeche(_ort_feld(o) if o else modul.OHNE_ORT, CHAT_ORDNER)]
     except (OSError, ValueError):
         andere = []
+    saetze = {}
+    for e in g.get("eintraege", []):
+        if e.get("rolle") == "lia" and e.get("stand") == "fehler" and logik.chat_id_gueltig(str(e.get("id") or "")):
+            try:
+                saetze[e["id"]] = str((modul.antwort_holen(e["id"], CHAT_ORDNER) or {}).get("text") or "")
+            except (OSError, ValueError) as fehler_:
+                logger.warning("Gespräch %s: Fehlersatz nicht lesbar: %s", g.get("id"), fehler_)
     q = request.query_params
-    return {"g": g, "ort": o, "verlauf": gespraech.verlauf(g, jetzt), "reihe": reihe,
+    return {"g": g, "ort": o, "verlauf": gespraech.verlauf(g, jetzt, saetze), "reihe": reihe,
             "reihenfrage_ziel": reihe_id, "andere": andere,
             "ablage_liste": [{"ort": x, "dateien": ablage.liste(INSTANZ, x["id"])} for x in gespraech.kette(orte, rechts_ort)],
             "ziele": [x for x in orte.values() if not x["archiv"]], "token": logik.formular_token(GEHEIM),
@@ -1766,9 +1773,14 @@ def seite_gespraech(request: Request, gid: str):
 
 @app.get("/teile/gespraech/{gid}", response_class=HTMLResponse)
 def teil_gespraech(request: Request, gid: str):
-    """Verlauf für htmx, solange Claude antwortet (alle 2 s)."""
+    """Verlauf für htmx, solange Claude antwortet (alle 2 s). Ist die Antwort da, gilt sie als gesehen."""
     modul = _chat_an()
     g = _gespraech(modul, gid)
+    if not g.get("laeuft"):
+        try:
+            modul.gesehen(gid, CHAT_ORDNER)
+        except (OSError, ValueError) as fehler_:
+            logger.warning("Gespräch %s: gesehen nicht gespeichert: %s", gid, fehler_)
     return vorlagen.TemplateResponse(request, "_verlauf.html", _gespraech_werte(request, modul, g))
 
 

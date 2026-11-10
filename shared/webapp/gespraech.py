@@ -264,10 +264,12 @@ def liste_zeile(k: dict, orte_: dict[str, dict], jetzt: datetime, mit_ort: bool 
             "laeuft": bool(k.get("laeuft")), "neu": bool(k.get("neu"))}
 
 
-def verlauf(g: dict, jetzt: datetime) -> list[dict]:
-    """Nachrichten mit Tagestrennern: {"tag"}, {"du": True, "text", "fotos", "dateien", "zeit"},
+def verlauf(g: dict, jetzt: datetime, saetze: dict[str, str] | None = None) -> list[dict]:
+    """Nachrichten mit Tagestrennern: {"tag"}, {"du": True, "text", "fotos", "dateien", "zeit", "fehler", "satz"},
     {"claude": True, "bloecke", "zeit", "fehler"} und am Ende {"denkt": True}, solange Lias Nachricht wartet.
-    Fotos und Dateien als {"name", "link"} (Route /gespraech/<id>/datei/<nachricht>/<name>)."""
+    Fotos und Dateien als {"name", "link"} (Route /gespraech/<id>/datei/<nachricht>/<name>).
+    Schlägt eine Antwort fehl, trägt lia/chat das an Lias Eintrag ein (stand "fehler"); den Satz für Lia liefert
+    antwort_holen, die App reicht ihn als saetze {nachricht_id: Satz} herein (sonst FEHLER_SATZ)."""
     out, tag = [], None
     for e in g.get("eintraege", []):
         z = _zeit(e.get("zeit"))
@@ -280,7 +282,8 @@ def verlauf(g: dict, jetzt: datetime) -> list[dict]:
             out.append({"du": True, "text": e.get("text") or "", "zeit": zeit,
                         "fotos": [{"name": n, "link": basis + n} for n in e.get("fotos") or []],
                         "dateien": [{"name": n, "link": basis + n} for n in e.get("dateien") or []],
-                        "fehler": e.get("stand") == "fehler"})
+                        "fehler": e.get("stand") == "fehler",
+                        "satz": ((saetze or {}).get(e.get("id", "")) or FEHLER_SATZ) if e.get("stand") == "fehler" else ""})
         elif e.get("rolle") == "claude":
             ok = e.get("ok", True) and not e.get("fehler")
             out.append({"claude": True, "zeit": zeit, "fehler": not ok,

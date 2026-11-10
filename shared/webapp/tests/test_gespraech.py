@@ -74,5 +74,22 @@ class Orte(unittest.TestCase):
         self.assertEqual(g.orte([theater], GRUPPEN)["p1"]["name"], "Probe 1: Akt 1")
 
 
+class Verlauf(unittest.TestCase):
+    def test_fehler_an_lias_eintrag(self):
+        from datetime import datetime, timezone
+        jetzt = datetime(2026, 11, 10, 15, tzinfo=timezone.utc)
+        zeit = "2026-11-10T14:00:00+00:00"
+        gs = {"id": "g" * 12, "laeuft": False, "eintraege": [
+            {"id": "a" * 12, "rolle": "lia", "zeit": zeit, "text": "Hallo", "stand": "fehler", "fehler": "limit"},
+            {"id": "b" * 12, "rolle": "lia", "zeit": zeit, "text": "Nochmal", "stand": "fertig"},
+            {"id": "b" * 12, "rolle": "claude", "zeit": zeit, "text": "Gern."}]}
+        v = g.verlauf(gs, jetzt, {"a" * 12: "Dein Kontingent ist erschöpft, wieder frei 31.10. 14:30."})
+        self.assertEqual(v[0], {"tag": "Heute"})
+        self.assertEqual((v[1]["fehler"], v[1]["satz"]), (True, "Dein Kontingent ist erschöpft, wieder frei 31.10. 14:30."))
+        self.assertEqual((v[2]["fehler"], v[2]["satz"]), (False, ""))
+        self.assertFalse(v[3]["fehler"])
+        self.assertEqual(g.verlauf(gs, jetzt)[1]["satz"], g.FEHLER_SATZ)
+
+
 if __name__ == "__main__":
     unittest.main()

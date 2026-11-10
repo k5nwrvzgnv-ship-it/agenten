@@ -13,6 +13,9 @@
     {%- for d in m.dateien %}<a class="chip" href="{{ d.link }}" target="_blank" rel="noopener">{{ d.name }}</a>{% endfor %}
   </div>{% endif %}
 </div>
+{%- if m.fehler %}
+<div class="msg"><div class="antwort antwort-fehler" role="status"><p>{{ m.satz }}</p></div></div>
+{%- endif %}
 {%- elif m.claude %}
 <div class="msg"><span class="unsichtbar">Claude, {{ m.zeit }}:</span>
   <div class="antwort{% if m.fehler %} antwort-fehler{% endif %}">{% if m.fehler %}<p>{{ m.satz }}</p>{% else %}{{ bloecke(m.bloecke, loop.index) }}{% endif %}</div>
