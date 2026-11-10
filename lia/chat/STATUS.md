@@ -16,8 +16,11 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
 - Read-Grenze: agentkit.claude_lauf `lese_ordner` (Hauptordner-Sitzung „agentkit: Read mit Pfadgrenze testen“).
   Im echten Lauf wollte Claude eine Datei außerhalb gar nicht erst öffnen (lehnte selbst ab); dass die Grenze
   technisch hält, belegt der agentkit-Test, nicht dieser Lauf.
-- Websuche in Gesprächen geht noch nicht: agentkit erlaubt mit lese_ordner nur Read (Bedarf an agentkit, siehe
-  Offene Punkte). Bis dahin läuft eine Nachricht mit netz=True ohne Netz, die Antwort trägt dann `"netz": false`.
+- Websuche in Gesprächen: agentkit erlaubt mit lese_ordner auch WebSearch/WebFetch, sobald es in den
+  Werkzeugen steht (Hauptordner-Sitzung, Stand 10.11. im Arbeitsbaum, Commit dort ausstehend). lia/chat schaltet
+  das je Lauf über die eigene cfg-Kopie (geprüft: ohne Häkchen nur Read, mit Häkchen Read, WebSearch, WebFetch auf
+  [webfetch] recherche). Echt im Gespräch noch nicht gelaufen. Fehlt es in agentkit, läuft netz=True ohne Netz
+  und die Antwort trägt `"netz": false` (gespraechlauf.netz_moeglich).
 
 ## Stand der alten Spalte „Fragen“ (03.11.2026)
 - Läuft seit 30.10. (Dienste lia-chat.path, lia-chat-aufraeumen.timer täglich 03:40). Die Web-App ist angeschlossen
@@ -162,10 +165,8 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
   Dateien einer Frage zusammen höchstens 60.000 Zeichen.
 
 ## Offene Punkte
-1. Bedarf an agentkit (an die Sitzung „agentkit: Read mit Pfadgrenze testen“ geschickt, 10.11.): `lese_ordner`
-   zusammen mit WebSearch/WebFetch (Domains) erlauben. Gesprächsläufe brauchen immer lese_ordner (gleicher
-   Arbeitsordner, sonst kein Fortsetzen); erst dann wirkt Lias Häkchen „Im Netz nachsehen“ im Gespräch.
-   gespraechlauf.netz_moeglich() merkt es von selbst, sobald rechte() WebSearch mit lese_ordner erlaubt.
+1. agentkit-Commit von lese_ordner (mit Netz) abwarten; bis dahin hängt lia/chat im Repo an ungespeichertem
+   agentkit-Code. Danach ein echter Gesprächslauf mit netz=True.
 2. Web-App: auf die Gespräche umschalten (Bauplan Schritt 6). Danach als Vorschlag an Jan: frage_stellen,
    chatverlauf, data/verlauf.jsonl und die alten Punkte (stunde_id, Häkchen und Datei-Feld der alten Spalte,
    Punkt 24 der Haupt-STATUS) wegräumen.
