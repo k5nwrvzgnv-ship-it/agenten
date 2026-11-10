@@ -159,6 +159,10 @@ class TestSchnell(AltAufbau):
         return self.hole(pfad, "POST", body=body, kopf={"Content-Type": art, "Content-Length": str(len(body)),
                                                          "Origin": "http://localhost"})
 
+    def test_kennzeichen_wie_in_lia_schnell(self):
+        """Die Web-App erkennt schnell geänderte Fassungen am Notiz-Anfang, den lia/schnell zusichert."""
+        self.assertEqual(app.logik.SCHNELL_NOTIZ, self.modul.NOTIZ_PRAEFIX)
+
     def test_rueckmeldung_geht_an_schnell(self):
         r, _ = self.post(f"/ergebnis/{KOPF}/rueckmeldung", {"text": "Aufgabe 2 einfacher"})
         self.assertEqual(r.status, 303)

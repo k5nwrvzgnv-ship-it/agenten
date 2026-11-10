@@ -32,8 +32,11 @@ er braucht Jans Okay.
     Seite, Claudes Satz steht oben (Fehler rot). Ohne JavaScript: „Neu laden“. Doppelklick: gleicher Wunsch in
     2 Minuten wird nicht neu gestellt (im Speicher).
   - Schnell geänderte Fassungen (Notiz beginnt mit „Schnell geändert: “) heißen „von mir“; ist die neueste eine
-    solche mit Seitenbildern, steht sie oben (Bilder, PDF, Word). Bilder neben der Datei im Agent-Ordner, sonst aus
+    solche mit Seitenbildern, steht sie oben (Bilder, PDF, Word). Bilder neben der Datei im Agent-Ordner (dort legt
+    lia/schnell sie seit be38551 ab, einen Augenblick nach dem Eintrag), sonst aus
     `lia/schnell/data/fassungen/<ursprung>/eigene-<n>/` (Routen `/ergebnis/<id>/eigene/<n>/seite/<m>`, `…/pdf`).
+    Kennzeichen `schnittstelle.NOTIZ_PRAEFIX` (zugesichert, Test gleicht ab); `schnittstelle.schnell_fassung()`
+    gäbe es auch, die App braucht es nicht.
     Schnelle Dokumente tragen nur `ort`; `logik.reihe_von` liest daraus die Reihe (nur für agent schnell).
   - Echt startet die App nach jedem Wunsch `lia-schnell.service` (zusätzlich zur Pfad-Unit); Testbetrieb schreibt
     nach `data/schnell-test/`, kein Agent liest das.
