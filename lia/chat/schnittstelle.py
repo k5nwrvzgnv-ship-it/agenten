@@ -1,6 +1,10 @@
 """Schnittstelle der Web-App zum Chat-Agenten (nur Python-Bordmittel, zum Importieren aus shared/webapp).
 
-Ablauf: frage_stellen() legt Lias Dateien nach data/dateien/<id>/ und dann data/fragen/<id>.json an. systemd
+Gespräche (neu 10.11.2026, Bauplan shared/webapp/bauplan-gespraech.md): gespraech_anlegen(), gespraeche(),
+gespraech(), umbenennen(), umhaengen(), loeschen(), gesehen(), nachricht(), bisher(), auftrag_ordnen(); die Antwort
+holt antwort_holen(nachricht_id). Format: STATUS.md, Abschnitt „Gespräche“.
+
+Alte Spalte „Fragen“ (bis die Web-App umgeschaltet hat): frage_stellen() legt Lias Dateien nach data/dateien/<id>/ und dann data/fragen/<id>.json an. systemd
 (lia-chat.path) startet daraufhin lia-chat.service, der Agent schreibt data/antworten/<id>.json und löscht die Frage. Die Web-App fragt mit antwort_holen(id) nach,
 bis die Antwort da ist (Vorschlag: alle 2 s). Format beider Dateien: STATUS.md, Abschnitt „Schnittstelle“.
 """
@@ -13,6 +17,8 @@ import uuid
 from pathlib import Path
 
 import chatverlauf as _verlauf
+import gespraechablage as _g
+from gespraechablage import OHNE_ORT, GespraechFehler  # noqa: F401 - für die Web-App
 
 ORDNER = Path(__file__).resolve().parent / "data"
 MAX_ZEICHEN = 4000
@@ -146,3 +152,170 @@ def wartet(frage_id: str, ordner: Path = ORDNER) -> bool:
 def verlauf(ordner: Path = ORDNER) -> list[dict]:
     """Beantwortete Fragen der letzten 30 Tage, älteste zuerst."""
     return _verlauf.lesen(ordner)
+
+
+# --- Gespräche ---------------------------------------------------------------------------------------------------
+
+MAX_TEXT = 60_000  # Zeichen je Nachricht (claude -p lehnt Prompts über 128 KB ab)
+FOTO_ENDUNGEN = (".jpg", ".jpeg", ".png")
+HEIC_ENDUNGEN = (".heic", ".heif")
+MAX_FOTOS = 5
+HEIC_SATZ = ("HEIC-Fotos kann ich noch nicht lesen. Stell am iPhone bitte unter Einstellungen › Kamera › Formate "
+             "„Maximale Kompatibilität“ ein oder schick das Foto als Bildschirmfoto (PNG).")
+
+
+def _neue_id() -> str:
+    return uuid.uuid4().hex[:12]
+
+
+def gespraech_anlegen(name: str = "", ort: dict | None = None, ordner: Path = ORDNER) -> str:
+    """Neues, leeres Gespräch. name leer: Name kommt aus der ersten Nachricht (name_vorschlag True). Gibt die id."""
+    g = _g.neu(_neue_id(), _g.name_pruefen(name), _g.ort_pruefen(ort))
+    with _g.sperre(ordner):
+        _g.schreiben(g, ordner)
+    return g["id"]
+
+
+def gespraeche(ort: dict | str | None = None, ordner: Path = ORDNER) -> list[dict]:
+    """Übersichten, jüngste zuerst. ort None: alle; OHNE_ORT: nur ohne Ort; {"ebene", "id"}: genau dort."""
+    gs = _g.alle(ordner)
+    if ort == OHNE_ORT:
+        gs = [g for g in gs if g.get("ort") is None]
+    elif ort is not None:
+        ziel = _g.ort_pruefen(ort)
+        gs = [g for g in gs if g.get("ort") == ziel]
+    return sorted((_g.kurz(g) for g in gs), key=lambda k: k["zuletzt"] or "", reverse=True)
+
+
+def gespraech(gid: str, ordner: Path = ORDNER) -> dict | None:
+    """Das ganze Gespräch (mit eintraege, laeuft) oder None."""
+    g = _g.lesen(gid, ordner)
+    if g is None:
+        return None
+    return {**{k: v for k, v in g.items() if k not in ("sitzung", "kontext")}, "laeuft": _g.laeuft(g)}
+
+
+def _aendern(gid: str, ordner: Path, aenderung) -> dict:
+    """aenderung(g) unter der Sperre auf das Gespräch anwenden und speichern. Unbekannt: GespraechFehler."""
+    with _g.sperre(ordner):
+        g = _g.lesen(gid, ordner)
+        if g is None:
+            raise GespraechFehler("Dieses Gespräch gibt es nicht mehr.")
+        aenderung(g)
+        _g.schreiben(g, ordner)
+    return g
+
+
+def umbenennen(gid: str, name: str, ordner: Path = ORDNER) -> None:
+    name = _g.name_pruefen(name)
+    if not name:
+        raise GespraechFehler("Der Name ist leer.")
+    _aendern(gid, ordner, lambda g: g.update(name=name, name_vorschlag=False))
+
+
+def umhaengen(gid: str, ort: dict | None, ordner: Path = ORDNER) -> None:
+    """Gespräch an einen anderen Ort (oder ohne Ort). Claude bekommt den neuen Ort mit der nächsten Nachricht."""
+    ort = _g.ort_pruefen(ort)
+    _aendern(gid, ordner, lambda g: g.update(ort=ort))
+
+
+def gesehen(gid: str, ordner: Path = ORDNER) -> None:
+    """Lia hat das Gespräch angesehen: „neu“ in der Übersicht fällt weg."""
+    _aendern(gid, ordner, lambda g: g.update(gesehen=sum(e.get("rolle") == "claude" for e in g["eintraege"])))
+
+
+def loeschen(gid: str, ordner: Path = ORDNER) -> bool:
+    """Gespräch samt Dateien weg; die claude-Sitzung löscht der Agent beim nächsten Aufräumen (sie gehört dann
+    zu keinem Gespräch mehr). Gibt False, wenn es das Gespräch nicht gab."""
+    with _g.sperre(ordner):
+        return _g.loeschen(gid, ordner) is not None
+
+
+def _art(name: str) -> str:
+    endung = os.path.splitext(name)[1].lower()
+    if endung in HEIC_ENDUNGEN:
+        raise GespraechFehler(HEIC_SATZ)
+    if endung in FOTO_ENDUNGEN:
+        return "foto"
+    if endung in ENDUNGEN:
+        return "datei"
+    raise GespraechFehler("Im Gespräch gehen Fotos (JPG, PNG), PDF, Word und PowerPoint.")
+
+
+def anhaenge_pruefen(dateien) -> tuple[list[str], list[str], list[tuple[str, Path]]]:
+    """[(Name, Pfad)] prüfen: Fotos bis 5, Dateien bis 3, je bis 20 MB. Gibt (Fotos, Dateien, [(Name, Pfad)]) mit
+    bereinigten Namen."""
+    fotos, andere, paare = [], [], []
+    for name, quelle in dateien:
+        n = dateiname(name)
+        (fotos if _art(n) == "foto" else andere).append(n)
+        paare.append((n, Path(quelle)))
+        if not Path(quelle).is_file():
+            raise GespraechFehler("Eine Datei ist nicht angekommen.")
+        if Path(quelle).stat().st_size > MAX_BYTES:
+            raise GespraechFehler("Eine Datei ist zu groß (höchstens 20 MB).")
+    if len(fotos) > MAX_FOTOS:
+        raise GespraechFehler(f"Höchstens {MAX_FOTOS} Fotos je Nachricht.")
+    if len(andere) > MAX_DATEIEN:
+        raise GespraechFehler(f"Höchstens {MAX_DATEIEN} Dateien je Nachricht.")
+    if len(set(fotos + andere)) != len(fotos) + len(andere):
+        raise GespraechFehler("Zwei Dateien mit demselben Namen.")
+    return fotos, andere, paare
+
+
+def nachricht(gid: str, text: str, dateien: list[tuple[str, Path]] | None = None, gruendlich: bool = False,
+              netz: bool = False, ordner: Path = ORDNER) -> str:
+    """Lias Nachricht ins Gespräch und in die Warteschlange. Gibt die nachricht_id (für antwort_holen).
+
+    dateien: [(Name wie hochgeladen, Pfad)]; Fotos JPG/PNG bis 5, PDF/Word/PowerPoint bis 3, je bis 20 MB. Sie
+    werden nach data/gespraeche/<id>/<nachricht_id>/ verschoben und bleiben bis zum Löschen des Gesprächs.
+    Ungültig: GespraechFehler mit Satz für Lia; dann bleibt alles, wo es war.
+    """
+    text = text.strip() if isinstance(text, str) else ""
+    dateien = list(dateien or [])
+    if not text and not dateien:
+        raise GespraechFehler("Die Nachricht ist leer.")
+    if len(text) > MAX_TEXT:
+        raise GespraechFehler(f"Die Nachricht ist zu lang (höchstens {MAX_TEXT:,} Zeichen).".replace(",", "."))
+    fotos, andere, paare = anhaenge_pruefen(dateien)
+    nid = _neue_id()
+    eintrag = {"id": nid, "rolle": "lia", "zeit": _g.zeit_text(), "text": text, "fotos": fotos, "dateien": andere,
+               "gruendlich": gruendlich is True, "netz": netz is True, "stand": "wartet", "fehler": None}
+    with _g.sperre(ordner):
+        g = _g.lesen(gid, ordner)
+        if g is None:
+            raise GespraechFehler("Dieses Gespräch gibt es nicht mehr.")
+        if _g.laeuft(g):
+            raise GespraechFehler("Claude antwortet noch auf deine letzte Nachricht. Warte bitte kurz.")
+        ziel = _g.dateien_ordner(gid, ordner) / nid
+        for name, quelle in paare:
+            ziel.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(quelle), ziel / name)
+        if g.get("name_vorschlag") and not g["eintraege"]:
+            g["name"] = _g.name_aus_text(text or (fotos + andere)[0])
+        g["eintraege"].append(eintrag)
+        g["zuletzt"] = eintrag["zeit"]
+        _g.schreiben(g, ordner)
+        _schreiben(Path(ordner) / "fragen" / f"{nid}.json", {"art": "nachricht", "id": nid, "gespraech": gid})
+    return nid
+
+
+def _sonderlauf(gid: str, art: str, ordner: Path) -> str:
+    g = _g.lesen(gid, ordner)
+    if g is None:
+        raise GespraechFehler("Dieses Gespräch gibt es nicht mehr.")
+    if not any(e.get("rolle") == "claude" for e in g["eintraege"]):
+        raise GespraechFehler("Im Gespräch steht noch nichts, das ich ordnen könnte.")
+    nid = _neue_id()
+    _schreiben(Path(ordner) / "fragen" / f"{nid}.json", {"art": art, "id": nid, "gespraech": gid})
+    return nid
+
+
+def bisher(gid: str, ordner: Path = ORDNER) -> str:
+    """„Was haben wir bisher?“: Zusammenfassung des Gesprächs, steht nicht im Verlauf. Gibt die nachricht_id."""
+    return _sonderlauf(gid, "bisher", ordner)
+
+
+def auftrag_ordnen(gid: str, ordner: Path = ORDNER) -> str:
+    """„Auftrag ordnen“: Auftragstext aus dem Gespräch (für „Neu“), steht nicht im Verlauf. Gibt die nachricht_id."""
+    return _sonderlauf(gid, "auftrag", ordner)

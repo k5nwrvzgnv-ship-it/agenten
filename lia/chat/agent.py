@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import chatverlauf
+import gespraechlauf
 import kontext
 import schnittstelle
 from agentkit import claude_lauf, config, einstellungen, log, meldungen, struktur, textfassung, verbrauch
@@ -21,8 +22,8 @@ AGENT = "chat"
 HIER = Path(__file__).resolve().parent
 DATEN = HIER / "data"
 logger = log.hole_logger(HIER, AGENT)
-# Sitzungen, die claude -p selbst ablegt (Ordnername = Arbeitsordner mit - statt /). Werden gleich gelöscht,
-# der Verlauf steht nur in data/verlauf.jsonl (30 Tage).
+# Sitzungen, die claude -p selbst ablegt (Ordnername = Arbeitsordner mit - statt /). Die der alten Spalte
+# „Fragen“ werden gleich gelöscht (Verlauf in data/verlauf.jsonl), die der Gespräche erst mit dem Gespräch.
 SITZUNGEN = Path.home() / ".claude" / "projects" / str(HIER).replace("/", "-")
 NETZ_DOMAINS_VON = "recherche"  # WebFetch nur auf die Liste von Lias Recherche (einstellungen.toml)
 NETZ_SCHRITTE = 8  # Suchen und Seiten öffnen sind je ein Schritt
@@ -158,14 +159,69 @@ def frage_lesen(pfad: Path) -> dict:
     return schnittstelle.frage_pruefen(roh)
 
 
-def fragen_abarbeiten(instanz: Path = config.SHARED_DIR, ordner: Path = DATEN, **kw) -> int:
-    """Alle wartenden Fragen der Reihe nach (älteste zuerst), auch solche, die währenddessen dazukommen."""
+GESPRAECH_ARTEN = ("nachricht", "bisher", "auftrag")
+
+
+def gespraech_abarbeiten(pfad: Path, instanz: Path, ordner: Path, sitzungen: Path = gespraechlauf.GESPRAECH_SITZUNGEN,
+                         sonder_sitzungen: Path = SITZUNGEN, claude=gespraechlauf.claude_gespraech,
+                         melden=jan_melden, netz_an=gespraechlauf.netz_moeglich) -> bool:
+    """Eintrag für ein Gespräch ({"art", "id", "gespraech"}) beantworten. False, wenn es keiner ist."""
+    try:
+        job = json.loads(pfad.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(job, dict) or job.get("art") not in GESPRAECH_ARTEN:
+        return False
+    if not (schnittstelle.ID_MUSTER.match(str(job.get("id"))) and schnittstelle.ID_MUSTER.match(
+            str(job.get("gespraech")))) or job["id"] != pfad.stem:
+        logger.warning("%s: Gesprächs-Eintrag ungültig", pfad.name)
+    elif job["art"] == "nachricht":
+        schnittstelle.antwort_schreiben(gespraechlauf.nachricht_beantworten(
+            job, instanz, ordner, sitzungen, claude=claude, melden=melden, netz_an=netz_an,
+            sitzung_loeschen=lambda s: sitzung_loeschen(s, sitzungen)), ordner)
+    else:
+        schnittstelle.antwort_schreiben(gespraechlauf.sonder_beantworten(
+            job, instanz, ordner, claude=claude, melden=melden,
+            sitzung_loeschen=lambda s: sitzung_loeschen(s, sonder_sitzungen)), ordner)
+    pfad.unlink(missing_ok=True)
+    return True
+
+
+def gespraech_fehler(pfad: Path, ordner: Path) -> None:
+    """Nach einem Fehler im Code: Antwort „technik“, Nachricht als fehlgeschlagen markieren, Eintrag weg (sonst
+    startet lia-chat.path den Dienst immer wieder)."""
+    try:
+        job = json.loads(pfad.read_text(encoding="utf-8"))
+        if schnittstelle.ID_MUSTER.match(str(job.get("id"))):
+            schnittstelle.antwort_schreiben(gespraechlauf._antwort(job, False, gespraechlauf.TEXTE["technik"],
+                                                                   "technik"), ordner)
+            if schnittstelle.ID_MUSTER.match(str(job.get("gespraech"))):
+                gespraechlauf._fehler_eintragen(job["gespraech"], job["id"], "technik", ordner)
+    except Exception:  # noqa: BLE001 - Aufräumen nach dem Fehler darf nicht selbst hängen bleiben
+        logger.exception("%s: Fehler nicht eintragbar", pfad.name)
+    pfad.unlink(missing_ok=True)
+
+
+def fragen_abarbeiten(instanz: Path = config.SHARED_DIR, ordner: Path = DATEN, gespraech_kw: dict | None = None,
+                      **kw) -> int:
+    """Alle wartenden Fragen und Gesprächs-Nachrichten der Reihe nach (älteste zuerst), auch solche, die
+    währenddessen dazukommen. gespraech_kw: für Tests (claude, melden, sitzungen)."""
     chatverlauf.aufraeumen(ordner)
     gesehen, anzahl = set(), 0
     while neue := sorted((p for p in (ordner / "fragen").glob("*.json") if p.name not in gesehen),
                          key=lambda p: p.stat().st_mtime):
         for pfad in neue:
             gesehen.add(pfad.name)
+            try:
+                if gespraech_abarbeiten(pfad, instanz, ordner, **(gespraech_kw or {})):
+                    anzahl += 1
+                    continue
+            except Exception as f:  # Fehler im eigenen Code: Lia bekommt einen Satz, Jan die Ursache
+                logger.exception("%s: Gesprächs-Eintrag fehlgeschlagen", pfad.name)
+                (gespraech_kw or {}).get("melden", jan_melden)(
+                    f"Gesprächs-Eintrag {pfad.name} fehlgeschlagen: {type(f).__name__}: {f}")
+                gespraech_fehler(pfad, ordner)
+                continue
             try:
                 frage = frage_lesen(pfad)
             except schnittstelle.FrageFehler as f:
@@ -184,12 +240,11 @@ def fragen_abarbeiten(instanz: Path = config.SHARED_DIR, ordner: Path = DATEN, *
     return anzahl
 
 
-def aufraeumen(ordner: Path = DATEN, sitzungen: Path = SITZUNGEN) -> None:
-    """Täglich (lia-chat-aufraeumen.timer): alter Verlauf, alte Antworten, liegengebliebene claude-Sitzungen."""
-    weg = chatverlauf.aufraeumen(ordner)
-    for p in sitzungen.glob("*.jsonl") if sitzungen.exists() else []:
-        p.unlink()
-        weg += 1
+def aufraeumen(ordner: Path = DATEN, sitzungen: Path = SITZUNGEN,
+               gespraech_sitzungen: Path = gespraechlauf.GESPRAECH_SITZUNGEN) -> None:
+    """Täglich (lia-chat-aufraeumen.timer): alter Verlauf, alte Antworten, Gespräche 30 Tage nach der letzten
+    Nachricht (samt Dateien und Sitzung), claude-Sitzungen, die zu keinem Gespräch gehören."""
+    weg = chatverlauf.aufraeumen(ordner) + gespraechlauf.aufraeumen(ordner, [sitzungen, gespraech_sitzungen])
     logger.info("Aufräumen: %d gelöscht", weg)
 
 

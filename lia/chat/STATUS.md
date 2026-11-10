@@ -1,12 +1,25 @@
 # Status: Agent chat (Lia)
 
 ## Zweck
-Beantwortet Lias Fragen in der rechten Spalte „Fragen“ der Web-App (shared/webapp), kurz und mit dem Ort als
-Kontext („Ethik › 8 › Straftheorien“) oder ohne Ort, auch ganz allgemeine Fragen. Auf Lias Wunsch mit Websuche und
-mit Dateien (PDF, Word, PowerPoint). Startet nie einen Auftrag und handelt nie nach außen; „Daraus Auftrag machen“
-macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.2026.
+Gespräche für Lia in der Web-App (shared/webapp, „Gespräch in der Mitte“, Bauplan shared/webapp/bauplan-gespraech.md,
+Jans Okay 10.11.2026): mehrere Gespräche, je an einer Klasse, Reihe oder Stunde oder ohne Ort, mit vollem Verlauf
+über die claude-Sitzung, Fotos, Dateien, Lias Ablage am Ort, „Was haben wir bisher?“ und „Auftrag ordnen“. Daneben
+läuft die alte Spalte „Fragen“ weiter, bis die Web-App umgeschaltet hat. Startet nie einen Auftrag und handelt nie
+nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: plan.md (Jan 30.10.2026).
 
-## Stand (03.11.2026)
+## Stand (10.11.2026)
+- Gespräche gebaut, mit Tests ohne Netz (tests/test_gespraech.py) und echtem Lauf über den Dienst (10.11.):
+  drei Nachrichten an der Reihe Straftheorien (eine mit Foto, zwei fortgesetzt), dann bisher und auftrag.
+  Je 8–15 s Lauf, 0,05–0,09 USD je Nachricht (steigt mit dem Verlauf), Sonderläufe ca. 20 s, 0,07 USD; zusammen
+  0,35 USD. Foto richtig gelesen, Gedächtnis über die Sitzung hielt, Bausteine und Überschriften kamen wie verlangt.
+  Testgespräch, Sitzung und Antworten danach gelöscht. Die Web-App nutzt die Gespräche noch nicht.
+- Read-Grenze: agentkit.claude_lauf `lese_ordner` (Hauptordner-Sitzung „agentkit: Read mit Pfadgrenze testen“).
+  Im echten Lauf wollte Claude eine Datei außerhalb gar nicht erst öffnen (lehnte selbst ab); dass die Grenze
+  technisch hält, belegt der agentkit-Test, nicht dieser Lauf.
+- Websuche in Gesprächen geht noch nicht: agentkit erlaubt mit lese_ordner nur Read (Bedarf an agentkit, siehe
+  Offene Punkte). Bis dahin läuft eine Nachricht mit netz=True ohne Netz, die Antwort trägt dann `"netz": false`.
+
+## Stand der alten Spalte „Fragen“ (03.11.2026)
 - Läuft seit 30.10. (Dienste lia-chat.path, lia-chat-aufraeumen.timer täglich 03:40). Die Web-App ist angeschlossen
   (`WEBAPP_CHAT=an`), schickt aber noch kein `netz` und keine `dateien` (Bedarf in Punkt 24 der Haupt-STATUS).
   Lia selbst hat bisher keine Frage gestellt.
@@ -28,16 +41,74 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
   (lia-chat.service ist oneshot und startet je Frage neu).
 
 ## Aufbau
-- Code: agent.py (Einstieg, Fehlertexte, claude_lauf, Text aus Dateien), kontext.py (Reihe über
-  agentkit.struktur, Kontext-Text, Prompt; rein), chatverlauf.py (Verlauf, Aufräumen), schnittstelle.py (für die Web-App, nur
-  Bordmittel), tests/.
+- Code: agent.py (Einstieg, Warteschlange data/fragen/, alte Fragen, Aufräumen), gespraechlauf.py (Gespräche
+  beantworten, Ablage, Sonderläufe, Aufräumen der Gespräche), gespraechablage.py (Gespräch als Datei, Sperre; nur
+  Bordmittel), kontext.py (Ort über agentkit.struktur, Prompts; rein), chatverlauf.py (Verlauf der alten Spalte),
+  schnittstelle.py (für die Web-App, nur Bordmittel), tests/.
 - .venv: lia/chat/.venv, agentkit per .pth, Pakete aus requirements.txt (pypdf, python-docx, python-pptx samt
   Abhängigkeiten, Versionen wie lia/unterricht; Jan 02.11.2026). Kein openpyxl, also kein Excel.
-- Dienste: Vorlagen in systemd/, installiert in ~/.config/systemd/user/, AGENTKIT_INSTANZ=lia/instanz.
-- Laufzeitdaten: data/ (fragen/, antworten/, dateien/<id>/, tmp/, verlauf.jsonl), Logs: logs/ (ohne Frage- und
-  Antworttext, ohne Dateinamen und Adressen).
+- Dienste: Vorlagen in systemd/, installiert in ~/.config/systemd/user/, AGENTKIT_INSTANZ=lia/instanz. Gespräche
+  laufen über dieselben Dienste (lia-chat.path auf data/fragen/), nichts an den Diensten geändert.
+- Laufzeitdaten: data/ (fragen/, antworten/, gespraeche/, dateien/<id>/, nur_lesen/ (muss leer bleiben), tmp/,
+  verlauf.jsonl). Logs: logs/ (ohne Nachrichtentext, Dateinamen und Adressen).
+- claude-Sitzungen: alte Fragen und Sonderläufe in ~/.claude/projects/-home-agent-agenten-lia-chat/ (gleich nach dem
+  Lauf gelöscht), Gespräche in ~/.claude/projects/-home-agent-agenten-lia-chat-data-nur-lesen/ (Arbeitsordner der
+  lese_ordner-Läufe), gelöscht mit dem Gespräch.
 
-## Schnittstelle (für shared/webapp)
+## Gespräche (Schnittstelle für shared/webapp)
+`sys.path` um lia/chat ergänzen, dann `import schnittstelle` (nur Bordmittel). Alle Funktionen haben `ordner=`
+(Standard lia/chat/data). Ungültiges: `schnittstelle.GespraechFehler` (ValueError), Text ist ein Satz für Lia.
+- `ort`: `None` (ohne Ort) oder `{"ebene": "klasse"|"reihe"|"stunde", "id": "<id aus agentkit.struktur>"}`, nur
+  diese zwei Felder. Geprüft wird nur die Form; ob es die id gibt, sieht der Agent (sonst Hinweis „Ort gibt es
+  nicht mehr“ an Claude). Kontext je Ebene aus lia/instanz/reihen.toml: Klasse = Fach, Klasse, Lerngruppe, Reihen
+  mit Stand und Reihenfrage; Reihe = wie bisher (Reihenfrage, Lerngruppe, Notizen, Behandelt, Merksätze, Stunden);
+  Stunde = Reihe plus „Gerade offen: Stunde n: Thema“.
+- `gespraech_anlegen(name="", ort=None) -> id` (12 Hex). Name bis 80 Zeichen; leer = Name aus der ersten
+  Nachricht (erste Zeile, bis ca. 50 Zeichen, `name_vorschlag` bleibt True, bis Lia umbenennt).
+- `gespraeche(ort=None) -> list` jüngste zuerst. `ort=None`: alle; `schnittstelle.OHNE_ORT` ("ohne"): nur ohne Ort;
+  ein ort-Dict: genau dort (nicht darunter, das setzt die Web-App aus der Struktur zusammen). Je Eintrag:
+  `{"id", "name", "ort", "angelegt", "zuletzt", "nachrichten" (Zahl der Einträge), "laeuft" (Antwort steht aus),
+  "neu" (Antwort, die Lia noch nicht gesehen hat), "vorschau" (letzter Eintrag, bis 160 Zeichen, ein Absatz)}`.
+  Neue Gespräche ohne Nachricht heißen in der Liste „Neues Gespräch“.
+- `gespraech(id) -> dict | None`: `{"id", "name", "name_vorschlag", "ort", "angelegt", "zuletzt", "gesehen" (Zahl
+  gesehener Antworten), "laeuft", "eintraege": [...]}`, Einträge älteste zuerst:
+  - Lia: `{"id": nachricht_id, "rolle": "lia", "zeit", "text", "fotos": [Namen], "dateien": [Namen],
+    "gruendlich", "netz", "stand": "wartet"|"fertig"|"fehler", "fehler": None|Fehlerart}`
+  - Claude: `{"id": nachricht_id (dieselbe wie Lias Nachricht), "rolle": "claude", "zeit", "text", "gruendlich",
+    "netz"}`. Nur erfolgreiche Antworten stehen hier; Fehlertexte nur in der Antwort (antwort_holen).
+  - Anhänge liegen in `data/gespraeche/<id>/<nachricht_id>/<Name>` (für Anzeige und Download der Web-App).
+- `umbenennen(id, name)`, `umhaengen(id, ort)` (Claude bekommt den neuen Ort mit der nächsten Nachricht),
+  `gesehen(id)` (setzt „neu“ zurück), `loeschen(id) -> bool` (Gespräch und Dateien sofort, die claude-Sitzung beim
+  nächsten Aufräumen). Unbekannte id: GespraechFehler (loeschen: False).
+- `nachricht(id, text, dateien=None, gruendlich=False, netz=False) -> nachricht_id`. text bis 60.000 Zeichen (leer
+  nur mit Anhang). `dateien`: Liste `(Name wie hochgeladen, Pfad)`; Fotos .jpg/.jpeg/.png bis 5, .pdf/.docx/.pptx bis
+  3, je bis 20 MB. HEIC/HEIF: GespraechFehler mit Satz für Lia (iPhone auf „Maximale Kompatibilität“ oder
+  Bildschirmfoto). Die Dateien werden verschoben (bei Fehler bleibt alles liegen). Solange eine Antwort aussteht
+  (`laeuft`), ist keine zweite Nachricht möglich (GespraechFehler). `gruendlich` = Opus (Schalter je Gespräch hält
+  die Web-App und schickt ihn mit jeder Nachricht), sonst Sonnet.
+- `bisher(id) -> nachricht_id` („Was haben wir bisher?“: ### Entschieden, ### Verworfen, ### Offen, Bausteine) und
+  `auftrag_ordnen(id) -> nachricht_id` (Auftragstext in Lias Ich-Form, schlichter Text bis ca. 3.000 Zeichen, ohne
+  Tabellen und Codeblöcke: Wunsch, entschieden, verworfen, offen; für das Feld in „Neu“). Laufen ohne Sitzung über
+  den Verlauf als Text, ihre Antwort kommt nicht ins Gespräch. Gespräch ohne Antwort: GespraechFehler.
+- `antwort_holen(nachricht_id) -> dict | None` (None = noch nicht fertig; Vorschlag: alle 2 s):
+  `{"id", "gespraech", "art": "nachricht"|"bisher"|"auftrag", "zeit", "ok", "text", "fehler", "wieder_frei",
+  "chip" ("Ethik › 8 › Straftheorien › Stunde 2"), "gruendlich", "netz"}`. `fehler`: None, "limit" (`wieder_frei`
+  z. B. "31.10. 14:30"), "belegt", "zeit", "technik" (Jan hat eine Meldung), "ungueltig" (Gespräch gelöscht). Bei
+  Fehlern steht in `text` ein Satz für Lia, Lias Eintrag hat dann `stand` "fehler" und sie kann neu schicken.
+- Antworttext ist Markdown: Überschriften (##, ###), Listen, Tabellen, **fett**, Links, mit Netz „Quellen:“ als
+  `[Titel](URL)`. Bausteine als Codeblock mit Sprache `baustein <art>`, art aus reihenfrage, merksatz,
+  arbeitsauftrag, fall, text; im Block nur der Text (Absätze, Listen). Bausteine können eingerückt in Listen stehen.
+- Zeiten: schnell meist 10–20 s, Grenze 4 min (gründlich 8 min, mit Netz je 2 min mehr), plus bis 1 min Warten
+  auf einen Platz.
+- Ablage am Ort: Dateien direkt in `lia/instanz/ablage/<id>/` für den Ort und die Ebenen darüber (Fach, Klasse,
+  Reihe, Stunde) gehen mit: PDF/Word/PowerPoint als Text (zusammen bis 40.000 Zeichen), JPG/PNG als Foto (bis 5 je
+  Lauf, die jüngsten; in den Gesprächsordner kopiert, weil Read nur dort darf), Excel nur mit Hinweis (kein
+  openpyxl). Jede Datei geht einmal je Gespräch mit (geänderte erneut); eine abgelegte Datei, die später dazukommt,
+  mit der nächsten Nachricht.
+- Aufbewahrung (Jan 09.11.2026): 30 Tage ab der letzten Nachricht, dann Gespräch, Dateien und Sitzung weg (täglich
+  03:40, lia-chat-aufraeumen.timer).
+
+## Alte Spalte „Fragen“ (Schnittstelle bis zum Umschalten)
 - `sys.path` um lia/chat ergänzen, dann `import schnittstelle` (nur Python-Bordmittel, Module schnittstelle und
   chatverlauf):
   - `frage_stellen(text, ort=None, gruendlich=False, ordner=ORDNER, netz=False, dateien=None) -> id` (12
@@ -63,6 +134,15 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
   Agenten. Antwortzeit schnell ca. 10 s, gründlich (Opus) ca. 2–3 min, Zeitgrenze 2 bzw. 5 min.
 
 ## Entscheidungen
+- 09./10.11.2026 (Jan, gespraech-plan 3 und Bauplan): Sitzung fortsetzen statt letzter 6 Fragen, Read für Fotos
+  mit Pfadgrenze, Sonnet Standard und gründlich (Opus) je Gespräch, Kosten auf Lias Kontingent, 30 Tage ab
+  letzter Nachricht. HEIC vorerst abgelehnt (bräuchte ein Paket).
+- 10.11.2026: Gespräche laufen über dieselbe Warteschlange data/fragen/ (Eintrag mit "art"), also ohne neuen Dienst.
+  Eine Nachricht nach der anderen je Gespräch (eine Sitzung verträgt keine zwei Läufe zugleich).
+- 10.11.2026: Sonderläufe ohne Sitzung über den Verlauf als Text (bis 90.000 Zeichen, älteste zuerst weg), damit
+  sie nicht im Gespräch landen. Geht eine Sitzung verloren oder liefert Fortsetzen nichts, startet der Agent
+  einmal neu mit dem Verlauf als Text. Prompt höchstens 120 KB (claude -p: 128 KB), gekürzt wird zuerst Verlauf,
+  dann Ablage, dann Dateien, nie Lias Nachricht.
 - 30.10.2026 (Jan): Plan wie plan.md, mit Ordner, .venv und Diensten. Verlauf 30 Tage, Wartegrenze auf einen Platz
   1 min (kein eigener Platz für den Chat).
 - 30.10.2026: Warteschlange in Dateien statt Unix-Socket (kein Dauerdienst, Muster wie shared/auftraege).
@@ -82,11 +162,18 @@ macht die Web-App. Plan: plan.md (Jans Okay 30.10.2026), Ausbau Jans Okay 02.11.
   Dateien einer Frage zusammen höchstens 60.000 Zeichen.
 
 ## Offene Punkte
-1. Web-App: `stunde_id` im Ort mitschicken, sobald ihre Stunden aus reihen.toml kommen (Strukturplan Bauschritt 5).
-2. Web-App: Häkchen „Im Netz nachsehen“, Datei-Feld und Links in der Anzeige (Bedarf in Punkt 24 der Haupt-STATUS).
-3. Fotos (JPG/PNG) im Chat: bräuchten Read auf data/dateien/<id>/; erst nach dem Test mit Lia und Jans Okay.
-4. Sauberer als das Löschen der Sitzungen: Option `--no-session-persistence` in agentkit.claude_lauf
-   (Hauptordner-Chat, kein Muss).
+1. Bedarf an agentkit (an die Sitzung „agentkit: Read mit Pfadgrenze testen“ geschickt, 10.11.): `lese_ordner`
+   zusammen mit WebSearch/WebFetch (Domains) erlauben. Gesprächsläufe brauchen immer lese_ordner (gleicher
+   Arbeitsordner, sonst kein Fortsetzen); erst dann wirkt Lias Häkchen „Im Netz nachsehen“ im Gespräch.
+   gespraechlauf.netz_moeglich() merkt es von selbst, sobald rechte() WebSearch mit lese_ordner erlaubt.
+2. Web-App: auf die Gespräche umschalten (Bauplan Schritt 6). Danach als Vorschlag an Jan: frage_stellen,
+   chatverlauf, data/verlauf.jsonl und die alten Punkte (stunde_id, Häkchen und Datei-Feld der alten Spalte,
+   Punkt 24 der Haupt-STATUS) wegräumen.
+3. Echt noch nicht gesehen: lange Gespräche (Kontextgrenze, Kosten nach zwei Wochen ansehen, gespraech-plan 3.4),
+   Ablage am Ort mit echten Dateien (die Web-App schreibt sie noch nicht), gründlich (Opus) im Gespräch.
+4. Aufräumen löscht in ~/.claude/projects/-home-agent-agenten-lia-chat/ jede Sitzung ohne Gespräch, die älter als
+   1 h ist, also auch Sitzungen eines Entwickler-Chats, der in lia/chat gestartet wurde (vorher: alle, täglich).
+   Sauberer: `--no-session-persistence` in agentkit.claude_lauf für Läufe ohne Fortsetzen (Hauptordner-Chat).
 
 ## Gelernte Regeln
 - (noch keine)

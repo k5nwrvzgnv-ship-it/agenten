@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -234,6 +235,7 @@ class Agent(unittest.TestCase):
         agent.sitzung_loeschen("s1", sitzungen)
         agent.sitzung_loeschen(None, sitzungen)
         self.assertEqual([p.name for p in sitzungen.iterdir()], ["s2.jsonl"])
+        os.utime(sitzungen / "s2.jsonl", (0, 0))  # ohne Gespräch und älter als 1 h: Aufräumen löscht sie
         agent.aufraeumen(self.ordner, sitzungen)
         self.assertEqual(list(sitzungen.iterdir()), [])
 
