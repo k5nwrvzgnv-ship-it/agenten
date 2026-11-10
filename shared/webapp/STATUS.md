@@ -6,12 +6,49 @@ Ergebnisse mit Vorschau, Feedback und Entwürfe. Plan: `../../docs/webapp-plan.m
 Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Modernist“ (Board ModHeute im Canvas
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
+## Oberfläche und schneller Weg (Stand 10.11.2026, Plan `../../docs/schnell-dokument-plan.md` Schritt 3)
+Der laufende `webapp.service` (Start 04.11., Code fd5c5e4) zeigt die alte Oberfläche. Neustart noch nicht gemacht,
+er braucht Jans Okay.
+- Schalter `WEBAPP_OBERFLAECHE` (Entscheidung 6.5): ohne Angabe oder `alt` gelten `vorlagen/` + `stil.css` mit der
+  Spalte „Fragen“ (`/fragen`, `/teile/frage/<id>` wieder da), `neu` nimmt `oberflaeche/` + `ruhig.css` mit Gesprächen
+  und Ablage. Die Routen der jeweils anderen Oberfläche geben 404. Die Unit braucht dafür nichts: Ein Neustart mit
+  heutigem Code zeigt Lia dieselbe Oberfläche. Geprüft 10.11.: die alte Testreihe von fd5c5e4 (100 Tests) lief grün
+  gegen den neuen Code; Rundgang über 401 echte Seiten (lia/instanz, Token herausgerechnet) gleich dem laufenden
+  Dienst, alle 200. Tests: `tests/test_alt.py`; `test_app.py` und `test_pflege_app.py` prüfen `oberflaeche/`.
+- `vorlagen/` und `stil.css` wirken sofort auf den laufenden Dienst. Neue Werte dort nur hinter `if` (der alte Code
+  kennt sie nicht), keine neuen Filter; danach den Rundgang gegen 127.0.0.1:8791 wiederholen. `ergebnis.html` ist so
+  geändert (10.11.), geprüft: alle 401 Seiten 200 und gleich.
+- Schneller Weg über lia/schnell (Schnittstelle: Abschnitt „Schnittstelle“ in `../../lia/schnell/STATUS.md`), nur mit
+  `WEBAPP_SCHNELL=an`, alter Oberfläche und eingeschaltetem Neu (heute in der Unit: aus, also für Lia unsichtbar):
+  - Rückmeldung am Dokument ohne Datei an Dokumenten von unterricht, theater, schnell geht an `schnittstelle.aendern`
+    statt an den Feedback-Dienst (`logik.schnell_ziel`): an einer Datei genau diese (mit Seite), zum Ganzen die
+    neueste Fassung, wenn sie schnell geändert ist (`eigene=n`) oder vom Assistenten mit genau einer Datei. Mit
+    Datei, bei Lias eigener Datei als neuester Fassung, mehreren Dateien oder anderen Agenten: wie bisher an
+    feedback. „Zu groß“ gibt lia/schnell selbst gründlich weiter.
+  - „Neu“ hat die Karte „Anderes Dokument“ (`logik.VORLAGE_DOKUMENT`, nur mit Schalter): Text, Ort, bis 5 Dateien an
+    `schnittstelle.dokument`, danach Warteseite `/neu/schnell/<id>`, fertig weiter zur Ansicht des Auftrags.
+  - Anzeige: Seite mit `?schnell=<id>` zeigt „Wird geändert …“ (bzw. „Wird erstellt …“) und fragt per htmx alle
+    2 s `/teile/schnell/<id>` ab, nach 3 Minuten „dauert länger“ und alle 10 s. Mit Antwort HX-Redirect auf die
+    Seite, Claudes Satz steht oben (Fehler rot). Ohne JavaScript: „Neu laden“. Doppelklick: gleicher Wunsch in
+    2 Minuten wird nicht neu gestellt (im Speicher).
+  - Schnell geänderte Fassungen (Notiz beginnt mit „Schnell geändert: “) heißen „von mir“; ist die neueste eine
+    solche mit Seitenbildern, steht sie oben (Bilder, PDF, Word). Bilder neben der Datei im Agent-Ordner, sonst aus
+    `lia/schnell/data/fassungen/<ursprung>/eigene-<n>/` (Routen `/ergebnis/<id>/eigene/<n>/seite/<m>`, `…/pdf`).
+    Schnelle Dokumente tragen nur `ort`; `logik.reihe_von` liest daraus die Reihe (nur für agent schnell).
+  - Echt startet die App nach jedem Wunsch `lia-schnell.service` (zusätzlich zur Pfad-Unit); Testbetrieb schreibt
+    nach `data/schnell-test/`, kein Agent liest das.
+  - Nur in der alten Oberfläche; in `oberflaeche/` nichts davon.
+- Einschalten (Jans Okay, nicht gemacht): zuerst die Dienste von lia/schnell installieren (dortige STATUS, offene
+  Punkte 1), dann in `systemd/webapp.service` `Environment=WEBAPP_SCHNELL=an` ergänzen, nach
+  `~/.config/systemd/user/` kopieren, `systemctl --user daemon-reload`, `systemctl --user restart webapp.service`.
+  Danach Probe mit Lia (Plan Schritt 4). Ein Neustart ohne den Schalter ändert für Lia nichts.
+- Nicht im Browser geprüft: htmx-Abfrage und HX-Redirect (nur über den Socket getestet). Bei der Probe ansehen.
+
 ## Umbau „Gespräch in der Mitte“ (Stand 10.11.2026, Plan `bauplan-gespraech.md`, Jans Okay 10.11.)
 Gebaut und committet (Bauplan-Schritte 1–6): `gespraech.py` (Markdown mit Überschriften, Tabellen, Bausteinen;
 Orte, Kette, darunter; Verlauf), `ablage.py` (eigene Dateien an `lia/instanz/ablage/<ort-id>/`), Routen in `app.py`
 (Block „Gespräche und Ablage am Ort“), neue Oberfläche `oberflaeche/` + `statisch/ruhig.css` + `gespraech.js`.
-`app.py` lädt schon `oberflaeche/`; der laufende `webapp.service` zeigt bis zum Neustart noch `vorlagen/` und
-`stil.css` (diese beiden nie ändern, sie wirken sofort auf den alten Dienst). Spalte „Fragen“ im neuen Code weg.
+Nur mit `WEBAPP_OBERFLAECHE=neu` (siehe oben); dort ist die Spalte „Fragen“ weg.
 - Schnittstelle zu lia/chat geprüft: Claude-Einträge `rolle: "claude"`, nur erfolgreiche; Fehlschläge stehen an
   Lias Eintrag (`stand: "fehler"`), den Satz für Lia holt die App über `antwort_holen` und zeigt ihn unter der
   Nachricht. lia/chat liest die Ablage aus `lia/instanz/ablage/<id>/` (gleicher Pfad wie die App schreibt).
@@ -24,7 +61,7 @@ liefen technisch, aber Jan findet das Gespräch zu starr und überfordernd (Ziel
 keine weiteren Knöpfe, auch „Als Reihenfrage übernehmen“ zu starr). Zielbild und Befund: Punkt 37 der Haupt-STATUS.
 Testgespräche gelöscht, Test-App gestoppt. Nicht umschalten: webapp.service zeigt weiter `vorlagen/` und `stil.css`.
 Bau hier ruht, bis der Plan aus Punkt 37 steht. Test-Instanz starten: `WEBAPP_INSTANZ=$PWD/data/test/instanz
-WEBAPP_NEUER_AUFTRAG=test WEBAPP_CHAT=an WEBAPP_PORT=8795` (8793/8794 sind uni-Portal und Arbeitsplatz), vorher
+WEBAPP_NEUER_AUFTRAG=test WEBAPP_CHAT=an WEBAPP_OBERFLAECHE=neu WEBAPP_PORT=8795` (8793/8794 sind uni-Portal und Arbeitsplatz), vorher
 `data/test/aufbauen.py`. Achtung: lia/chat liest immer `lia/instanz`; Orte, die nur die Test-Instanz hat (neue
 Stunden, „Kant: Vergeltung“, „von Liszt“), kennt Claude nicht.
 

@@ -3,7 +3,8 @@
     eigene Fassung und Variante öffnen sich über ?offen=…, Formulare mit Token (app.py). -#}
 {% extends "basis.html" %}
 {#- Skript nur, wenn ein Formular mit data-einmal auf der Seite steht -#}
-{%- block skripte %}{{ super() }}{% if offen or nochmal or (variante_moeglich and varianten.gewuenscht) %}<script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
+{%- block skripte %}{{ super() }}{% if offen or nochmal or (variante_moeglich and varianten.gewuenscht) %}<script src="/statisch/einmal.js" defer></script>{% endif %}
+{%- if schnell and not fragen %}<script src="/statisch/htmx-2.0.4.min.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="material-kopf">
   {%- if e.art_zeile %}<span class="material-art">{{ e.art_zeile }}</span>{% endif %}
@@ -67,7 +68,8 @@
 </form>
 {%- endmacro %}
 
-{%- if hinweis %}<p class="hinweis hinweis-erledigt{% if hinweis_fehler %} hinweis-fehler{% endif %}" role="status">{{ hinweis }}</p>{% endif %}
+{%- if schnell %}{% with wid = schnell_id, a = schnell, zurueck = basis_url, n = 0 %}{% include "_schnell.html" %}{% endwith %}{% endif %}
+{%- if hinweis %}<p class="hinweis hinweis-erledigt{% if hinweis_fehler %} hinweis-fehler{% endif %}"{% if schnell_id %} id="schnell"{% endif %} role="status">{{ hinweis }}</p>{% endif %}
 {%- if variante_art or varianten.gemacht or varianten.gewuenscht or variante_moeglich %}
 {#- Varianten (Board „Desktop“): normal ist das Original, jede Variante ein eigener Auftrag mit eigener Ansicht -#}
 <div class="varianten">
@@ -135,9 +137,17 @@
 {%- else %}
 {%- if e.zuletzt_fehlgeschlagen %}<p class="hinweis hinweis-fehler">Deine letzte Rückmeldung hat nicht geklappt: {{ e.zuletzt_fehlgeschlagen }}</p>{{ nochmal_knopf() }}{% endif %}
 {%- set einzeln = e.dateien | length == 1 and e.dateien[0].seiten %}
+{#- Neueste Fassung schnell geändert (lia/schnell) und mit Seitenbildern: sie steht oben -#}
+{%- set so = e.schnell_oben %}
 <div class="material">
-  <div class="material-links{% if einzeln %} material-seiten{% endif %}">
-    {%- if einzeln %}
+  <div class="material-links{% if einzeln or so %} material-seiten{% endif %}">
+    {%- if so %}
+    {%- for m in range(1, [so.seiten, 2] | min + 1) %}
+    <a class="blatt" href="{{ basis_url }}/eigene/{{ so.n }}/seite/{{ m }}" aria-label="{{ so.datei_name }}, Seite {{ m }} von {{ so.seiten }} ansehen">
+      <img src="{{ basis_url }}/eigene/{{ so.n }}/seite/{{ m }}" alt="" loading="lazy">
+    </a>
+    {%- endfor %}
+    {%- elif einzeln %}
     {%- set d = e.dateien[0] %}
     {%- for m in range(1, [d.seiten, 2] | min + 1) %}
     <a class="blatt" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/ansehen?seite={{ m }}" aria-label="{{ d.name }}, Seite {{ m }} von {{ d.seiten }} ansehen">
@@ -151,7 +161,10 @@
     {%- endif %}
   </div>
   <div class="material-knoepfe">
-    {%- if einzeln %}
+    {%- if so %}
+    {%- if so.pdf %}<a class="knopf knopf-spalte" href="{{ basis_url }}/eigene/{{ so.n }}/pdf">PDF zum Drucken</a>{% endif %}
+    <a class="knopf knopf-spalte" href="{{ basis_url }}/eigene/{{ so.n }}" download>{{ so.knopf }}</a>
+    {%- elif einzeln %}
     {%- for k in e.dateien[0].knoepfe | sort(attribute="pfad") %}
     <a class="knopf knopf-spalte" href="/ergebnis/{{ e.dateien[0].auftrag }}/datei/{{ e.dateien[0].nr }}{{ k.pfad }}" download>{{ k.lang }}</a>
     {%- endfor %}
@@ -165,7 +178,8 @@
     {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf knopf-spalte", e.aktuell_name) }}</div>{% endif %}
   </div>
 </div>
-{%- if einzeln %}<span class="unter">{{ e.dateien[0].name }} · {{ e.dateien[0].seiten_text }}{% if e.dateien_aus %} · aus {{ e.dateien_aus }}{% endif %}. Tipp auf eine Seite, um sie durchzublättern.</span>
+{%- if so %}<span class="unter">{{ so.datei_name }} · {{ so.seiten_text }} · {{ so.name }}, schnell geändert: „{{ so.wunsch }}“</span>
+{%- elif einzeln %}<span class="unter">{{ e.dateien[0].name }} · {{ e.dateien[0].seiten_text }}{% if e.dateien_aus %} · aus {{ e.dateien_aus }}{% endif %}. Tipp auf eine Seite, um sie durchzublättern.</span>
 {%- elif e.dateien_aus %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
 {%- if e.oben_hinweis %}<p class="hinweis">{{ e.oben_hinweis }}</p>{% endif %}
 

@@ -27,7 +27,7 @@ FERTIG_ANZAHL = 10  # so viele fertige Aufträge zeigt "Heute", der Rest kommt s
 FEHLGESCHLAGEN = "Das hat leider nicht geklappt. Sag Jan bitte Bescheid."  # wie portal_logik.FEHLGESCHLAGEN
 
 # Art aus Lias Sicht: erst nach quelle (Art im Portal), sonst nach dem zuständigen Agenten
-ARTEN_NACH_QUELLE = {"portal-frage": "Frage", "portal-woche": "Woche"}
+ARTEN_NACH_QUELLE = {"portal-frage": "Frage", "portal-woche": "Woche", "schnell-dokument": "Dokument"}
 ARTEN_NACH_AGENT = {"unterricht": "Material", "theater": "Theater", "recherche": "Recherche", "examen": "Examen"}
 DATEIARTEN = {".pdf": ("PDF", "PDFs"), ".docx": ("Word-Datei", "Word-Dateien"),
               ".pptx": ("PowerPoint-Datei", "PowerPoint-Dateien"), ".xlsx": ("Excel-Datei", "Excel-Dateien")}
@@ -488,7 +488,8 @@ def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[
     for ref, a in zeitfolge(kette, eigene):
         if a.get("eigene"):
             schritte.append({
-                "art": "eigene", "name": namen[ref], "ref": ref, "von": "von dir", "aktuell": False,
+                "art": "eigene", "name": namen[ref], "ref": ref, "von": "von mir" if ist_schnell(a) else "von dir",
+                "aktuell": False,
                 "zeit": zeit_text(a.get("zeit"), jetzt), "beschreibung": a.get("notiz") or "",
                 "datei": {"name": datei_name(a.get("name") or ""), "nr": int(ref.rsplit("-", 1)[1]),
                           "knopf": DATEIKNOEPFE.get(Path(a.get("name") or "").suffix.lower(), "Datei")},
@@ -520,10 +521,13 @@ def verlauf(kette: list[dict], aktuell: dict | None, vorschauen: dict[str, list[
 
 
 def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int]]], jetzt: datetime,
-             eigene: list[dict] = (), final_ref: str = "") -> dict:
+             eigene: list[dict] = (), final_ref: str = "",
+             eigene_vorschau: dict[int, tuple[bool, bool, int]] | None = None) -> dict:
     """Material-Ansicht eines Auftrags samt Feedback-Schleife (kette aus ketten(), Board "Desktop"): neueste
     Fassung des Assistenten oben, darunter die Fassungen. vorschauen: je Auftrags-ID die Vorschau-Infos seiner
-    Ergebnisdateien (siehe dateien_ansicht). eigene, final_ref: was die Web-App selbst speichert (zustand.py)."""
+    Ergebnisdateien (siehe dateien_ansicht). eigene, final_ref: was die Web-App selbst speichert (zustand.py).
+    eigene_vorschau: je n einer eigenen Fassung (Datei da, Vorschau-PDF da, Seiten). Ist die neueste Fassung eine
+    schnell geänderte (lia/schnell) mit Seitenbildern, steht sie oben ("schnell_oben")."""
     nach_id = {a["id"]: a for a in kette}
     k, f = kopf(kette), fassungen(kette)
     fertig = [a for a in f if a.get("status") in ("erledigt", "fehlgeschlagen")]
@@ -541,6 +545,7 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
     # Ist Lias Datei die neueste Fassung, gilt der große Knopf ihr, oben steht aber weiter die des Assistenten
     eigene_neueste = finalbar[-1] if aktuell is not None and finalbar and finalbar[-1]["art"] == "eigene" else None
     knopf = eigene_neueste or next((x for x in finalbar if x["ref"] == oben), None)
+    schnell_oben = _schnell_oben(eigene_neueste, eigene, eigene_vorschau or {})
     if final:
         marke = "Final"
     elif laufend:
@@ -562,9 +567,9 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
         "aktuell_ref": knopf["ref"] if knopf else "",
         "aktuell_name": knopf["name"] if knopf and len(finalbar) > 1 else "",
         "aktuell_final": bool(final and knopf) and final["ref"] == knopf["ref"],
-        "oben_hinweis": (f"Oben steht noch: {next(x['name'] for x in schritte if x.get('id') == oben)}. Deine Datei "
-                         f"ist {eigene_neueste['name']}, du findest sie unten bei den Fassungen."
-                         if eigene_neueste else ""),
+        "oben_hinweis": _oben_hinweis(eigene_neueste, schnell_oben, eigene,
+                                      next((x["name"] for x in schritte if x.get("id") == oben), "")),
+        "schnell_oben": schnell_oben,
         "titel": titel(k, nach_id, TITEL_LANG),
         "wunsch": kurz(wunsch(k), TITEL_LANG) if _dateititel(k) else "",
         "unter": " · ".join(x for x in (art(k), zeit_text(juengste.get("abgeschlossen"), jetzt)) if x),
@@ -582,6 +587,97 @@ def ergebnis(kette: list[dict], vorschauen: dict[str, list[tuple[bool, bool, int
                         if dateien_ and dateien_von is not aktuell else ""),
         "verlauf": schritte,
     }
+
+
+def _eigener_eintrag(schritt: dict | None, eigene: list[dict]) -> dict | None:
+    if not schritt:
+        return None
+    n = int(schritt["ref"].rsplit("-", 1)[1])
+    return eigene[n - 1] if 0 < n <= len(eigene) else None
+
+
+def _oben_hinweis(eigene_neueste: dict | None, schnell_oben: dict | None, eigene: list[dict], oben_name: str) -> str:
+    if not eigene_neueste or schnell_oben:
+        return ""
+    if ist_schnell(_eigener_eintrag(eigene_neueste, eigene)):
+        return (f"Oben steht noch: {oben_name}. Die schnell geänderte {eigene_neueste['name']} findest du unten bei "
+                "den Fassungen.")
+    return f"Oben steht noch: {oben_name}. Deine Datei ist {eigene_neueste['name']}, du findest sie unten bei den Fassungen."
+
+
+def _schnell_oben(eigene_neueste: dict | None, eigene: list[dict],
+                  vorschau: dict[int, tuple[bool, bool, int]]) -> dict | None:
+    """Die neueste Fassung, wenn lia/schnell sie gebaut hat und Seitenbilder da sind: Werte für oben."""
+    e = _eigener_eintrag(eigene_neueste, eigene)
+    if not ist_schnell(e):
+        return None
+    n = eigene_neueste["datei"]["nr"]
+    da, hat_pdf, seiten = vorschau.get(n, (False, False, 0))
+    if not da or not seiten:
+        return None
+    endung = Path(e.get("name") or "").suffix.lower()
+    return {"n": n, "name": eigene_neueste["name"], "datei_name": datei_name(e.get("name") or ""),
+            "seiten": seiten, "seiten_text": seiten_text(seiten), "pdf": hat_pdf and endung != ".pdf",
+            "knopf": OEFFNEN.get(endung, "Herunterladen"), "wunsch": e["notiz"][len(SCHNELL_NOTIZ):].strip()}
+
+
+# --- Schneller Weg (lia/schnell, docs/schnell-dokument-plan.md) -----------------------------------------------------
+SCHNELL_NOTIZ = "Schnell geändert: "  # Anfang der Notiz einer schnell geänderten Fassung (lia/schnell, logik.notiz)
+SCHNELL_AGENTEN = ("unterricht", "theater", "schnell")  # deren Dokumente ändert lia/schnell (dort GRUENDLICH + schnell)
+SCHNELL_DATEIEN_MAX = 5  # lia/schnell, schnittstelle.MAX_DATEIEN
+SCHNELL_LANGE = 90  # Abfragen (alle 2 s, also 3 Minuten), danach „dauert länger“ und alle 10 s
+
+
+def ist_schnell(eigener_eintrag: dict | None) -> bool:
+    """Eigene Fassung aus agentkit.fassungen, die lia/schnell gebaut hat (Notiz beginnt mit SCHNELL_NOTIZ)."""
+    return bool(eigener_eintrag) and str(eigener_eintrag.get("notiz") or "").startswith(SCHNELL_NOTIZ)
+
+
+def schnell_ziel(kette: list[dict], ziel: dict | None, eigene: list[dict], mit_datei: bool) -> dict | None:
+    """Argumente für schnittstelle.aendern (bezug, nr, eigene, seite), wenn eine Rückmeldung den schnellen Weg geht;
+    None: wie bisher an den Feedback-Dienst. Schnell gehen nur Rückmeldungen ohne Datei an Dokumenten von
+    SCHNELL_AGENTEN: an einer Datei (ziel aus rueckmeldung_ziel) genau diese; zum Ganzen die neueste Fassung, wenn
+    sie eine schnell geänderte ist oder die des Assistenten mit genau einer Datei. Ist Lias eigene Datei die
+    neueste, geht es gründlich (dafür gibt es keine Beschreibung)."""
+    k = kopf(kette)
+    if mit_datei or k.get("agent") not in SCHNELL_AGENTEN:
+        return None
+    if ziel:
+        return {"bezug": ziel["fassung"], "nr": ziel["nr"], "eigene": None, "seite": ziel["seite"] or None}
+    erledigt = [a for a in fassungen(kette) if a.get("status") == "erledigt"]
+    if not erledigt:
+        return None
+    for ref, a in reversed(zeitfolge(kette, eigene)):
+        if a.get("eigene"):
+            if a.get("art") in KEINE_FASSUNG:
+                continue
+            if not ist_schnell(a):
+                return None
+            return {"bezug": erledigt[-1]["id"], "nr": 0, "eigene": int(a.get("n") or ref.rsplit("-", 1)[1]),
+                    "seite": None}
+        if a.get("status") == "erledigt" and a.get("agent") != "feedback" and a.get("ergebnis_dateien"):
+            if len(a["ergebnis_dateien"]) != 1:
+                return None
+            return {"bezug": a["id"], "nr": 0, "eigene": None, "seite": None}
+    return None
+
+
+def schnell_anzeige(antwort: dict | None, art_: str = "aenderung", abfragen: int = 0) -> dict:
+    """Was die Seite zu einem Wunsch an lia/schnell zeigt. Ohne Antwort: wartet (Text, nächste Abfrage in s)."""
+    if antwort is None:
+        lange = abfragen >= SCHNELL_LANGE
+        text = ("Wird erstellt …" if art_ == "dokument" else "Wird geändert …")
+        unter = ("Das dauert länger als sonst. Die neue Fassung erscheint hier, sobald sie fertig ist." if lange
+                 else "Das dauert meist unter einer Minute.")
+        return {"wartet": True, "text": text, "unter": unter, "takt": 10 if lange else 2}
+    ok, stand = antwort.get("ok") is True, str(antwort.get("stand") or "")
+    text = " ".join(str(antwort.get("text") or "").split()) or ("Geändert." if ok else FEHLGESCHLAGEN)
+    return {"wartet": False, "text": text, "fehler": not ok or stand == "fehler", "stand": stand}
+
+
+def schnell_ort(reihe_id: str | None, stunde_id: str | None) -> str | None:
+    """Feld ort für schnittstelle.dokument (agentkit.struktur): die Stunde, sonst die Reihe, sonst None."""
+    return stunde_id or reihe_id or None
 
 
 VERALTET = "Die Seite war veraltet. Bitte wähle die Dateien neu und schick es noch einmal ab."
@@ -802,6 +898,17 @@ VORLAGEN = {
                         ("material", "Material", "Requisiten, Texte, Musik", True, "Material")]},
 }
 EXTRA_MAX = 1500
+# „Anderes Dokument“ über lia/schnell: nur in der Galerie, wenn der schnelle Weg an ist (WEBAPP_SCHNELL=an)
+VORLAGE_DOKUMENT = {"name": "Anderes Dokument", "text": "Checkliste, Handout, Tabelle … schnell", "bild": "ab",
+                    "agent": "schnell", "schnell": True, "frage": "Was brauchst du?",
+                    "hint": "Checkliste für den Wandertag, Handout mit den drei Straftheorien …",
+                    "hinweis": "Kommt meist in unter einer Minute, ohne Recherche und ohne Quellenprüfung. Für "
+                               "Material mit Quellen nimm Arbeitsblatt oder Präsentation. Bis zu 5 Dateien."}
+
+
+def vorlage(art_: str, schnell: bool = False) -> dict | None:
+    """Vorlage einer Art; „dokument“ nur mit schnellem Weg."""
+    return VORLAGE_DOKUMENT if art_ == "dokument" and schnell else VORLAGEN.get(art_)
 
 
 def vorlage_agent(art_: str) -> tuple[str, str]:
@@ -848,9 +955,12 @@ def text_aus_chat(eintrag: dict | None) -> str:
     return f"{eintrag.get('frage') or ''}\n\n{antwort}".strip()[:NEU_TEXT_MAX]
 
 
-def galerie(reihe_id: str = "", stunde: int | None = None, fach: str = "", aus: str = "") -> list[dict]:
-    """Vorlagen für einen Ort: alle für alle Fächer, dazu die des Fachs der Reihe (ohne Ort: alle)."""
-    return [{"art": k, **v, "link": neu_link(reihe_id, stunde, k, aus)} for k, v in VORLAGEN.items()
+def galerie(reihe_id: str = "", stunde: int | None = None, fach: str = "", aus: str = "",
+            schnell: bool = False) -> list[dict]:
+    """Vorlagen für einen Ort: alle für alle Fächer, dazu die des Fachs der Reihe (ohne Ort: alle). schnell: dazu
+    „Anderes Dokument“ (lia/schnell) als letzte Karte."""
+    alle = {**VORLAGEN, "dokument": VORLAGE_DOKUMENT} if schnell else VORLAGEN
+    return [{"art": k, **v, "link": neu_link(reihe_id, stunde, k, aus)} for k, v in alle.items()
             if not v.get("fach") or not fach or v["fach"] == fach]
 
 
@@ -1001,10 +1111,15 @@ def reihe_stunden(reihe: dict) -> list[dict]:
 
 
 def reihe_von(eintrag: dict, reihen: list[dict]) -> dict | None:
-    """Reihe eines Auftrags oder Entwurfs: Feld "reihe", sonst der Agent, wenn er zu genau einer Reihe gehört."""
+    """Reihe eines Auftrags oder Entwurfs: Feld "reihe", sonst der Agent, wenn er zu genau einer Reihe gehört
+    (schnelle Dokumente: ihr Feld ort)."""
     gesetzt = eintrag.get("reihe")
     if gesetzt:
         return next((r for r in reihen if r["id"] == gesetzt), None)
+    if eintrag.get("agent") == "schnell":  # schnelle Dokumente tragen nur ort (Reihe oder Stunde, agentkit.struktur)
+        ort = eintrag.get("ort")
+        return next((r for r in reihen if ort and (r["id"] == ort or ort in {s["id"] for s in reihe_stunden(r)})),
+                    None)
     treffer = [r for r in reihen if eintrag.get("agent") and eintrag["agent"] in r["agenten"]]
     return treffer[0] if len(treffer) == 1 else None
 

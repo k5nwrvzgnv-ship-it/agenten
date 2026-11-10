@@ -1052,3 +1052,79 @@ class TestReihen(unittest.TestCase):
         k = logik.krumen("Ablauf", None, {"text": "Umfrage " * 20, "link": "/ergebnis/x"})
         self.assertEqual([x["link"] for x in k["teile"]], ["/", "/ergebnis/x"])
         self.assertLessEqual(len(k["teile"][1]["text"]), logik.KRUME_LANG)
+
+
+class TestSchnell(unittest.TestCase):
+    """Schneller Weg über lia/schnell (docs/schnell-dokument-plan.md): wohin eine Rückmeldung geht, was oben steht."""
+
+    def setUp(self):
+        self.a = auftrag("20261030-140944-unterricht-93e29e", ergebnis_dateien=["d/Blatt.docx"])
+        self.schnell = {"n": 1, "name": "Blatt.docx", "datei": "data/eingang/x/eigene-1/Blatt.docx",
+                        "notiz": "Schnell geändert: Aufgabe 2 einfacher", "zeit": "2026-10-30T14:20:00+01:00",
+                        "art": "fassung"}
+
+    def test_ziel_der_rueckmeldung(self):
+        a = self.a
+        self.assertEqual(logik.schnell_ziel([a], None, [], False),
+                         {"bezug": a["id"], "nr": 0, "eigene": None, "seite": None})
+        self.assertIsNone(logik.schnell_ziel([a], None, [], True))  # mit Datei: gründlich wie bisher
+        ziel = {"fassung": a["id"], "nr": 0, "seite": 3}
+        self.assertEqual(logik.schnell_ziel([a], ziel, [], False)["seite"], 3)
+        self.assertEqual(logik.schnell_ziel([a], {**ziel, "seite": ""}, [], False)["seite"], None)
+        # neueste Fassung schnell geändert: die nächste Änderung baut darauf auf
+        self.assertEqual(logik.schnell_ziel([a], None, [self.schnell], False),
+                         {"bezug": a["id"], "nr": 0, "eigene": 1, "seite": None})
+        # Lias eigene Datei ist die neueste: gründlich; ihre Anmerkungen zählen nicht als Fassung
+        lia = {**self.schnell, "notiz": "mit Kommentaren"}
+        self.assertIsNone(logik.schnell_ziel([a], None, [lia], False))
+        anm = {**lia, "art": "anmerkungen", "zeit": "2026-10-30T14:30:00+01:00"}
+        self.assertEqual(logik.schnell_ziel([a], None, [self.schnell, anm], False)["eigene"], 1)
+        zwei = auftrag(a["id"], ergebnis_dateien=["d/a.docx", "d/b.docx"])
+        self.assertIsNone(logik.schnell_ziel([zwei], None, [], False))  # zum Ganzen: welche Datei?
+        self.assertIsNone(logik.schnell_ziel([auftrag("20261030-140944-examen-93e29e")], None, [], False))
+        self.assertIsNone(logik.schnell_ziel([auftrag(a["id"], status="fehlgeschlagen")], None, [], False))
+        # Antwort ohne Dateien nach der Fassung: es gilt die Fassung mit Datei
+        nb = auftrag("20261030-150000-unterricht-bbbbbb", bezug=a["id"], abgeschlossen="2026-10-30T15:00:00+01:00",
+                     text="Nachbesserung zu deinem Ergebnis")
+        self.assertEqual(logik.schnell_ziel([a, nb], None, [], False)["bezug"], a["id"])
+
+    def test_schnelle_fassung_oben(self):
+        e = logik.ergebnis([self.a], {self.a["id"]: [(True, True, 2)]}, JETZT, [self.schnell], "",
+                           {1: (True, True, 3)})
+        self.assertEqual(e["schnell_oben"], {"n": 1, "name": "Fassung 2", "datei_name": "Blatt", "seiten": 3,
+                                             "seiten_text": "3 Seiten", "pdf": True, "knopf": "In Word öffnen",
+                                             "wunsch": "Aufgabe 2 einfacher"})
+        self.assertEqual(e["oben_hinweis"], "")
+        self.assertEqual([x["von"] for x in e["verlauf"]], ["von mir", "von mir"])
+        ohne = logik.ergebnis([self.a], {self.a["id"]: [(True, True, 2)]}, JETZT, [self.schnell], "", {})
+        self.assertIsNone(ohne["schnell_oben"])
+        self.assertIn("Die schnell geänderte Fassung 2 findest du unten", ohne["oben_hinweis"])
+        lia = logik.ergebnis([self.a], {self.a["id"]: [(True, True, 2)]}, JETZT, [{**self.schnell, "notiz": "x"}])
+        self.assertIsNone(lia["schnell_oben"])
+        self.assertIn("Deine Datei ist Fassung 2", lia["oben_hinweis"])  # wie bisher
+        self.assertEqual(lia["verlauf"][-1]["von"], "von dir")
+
+    def test_anzeige(self):
+        w = logik.schnell_anzeige(None)
+        self.assertEqual((w["wartet"], w["text"], w["takt"]), (True, "Wird geändert …", 2))
+        lange = logik.schnell_anzeige(None, "dokument", logik.SCHNELL_LANGE)
+        self.assertEqual((lange["text"], lange["takt"]), ("Wird erstellt …", 10))
+        self.assertIn("länger als sonst", lange["unter"])
+        fertig = logik.schnell_anzeige({"ok": True, "stand": "fertig", "text": "Aufgabe 2\n ist einfacher."})
+        self.assertEqual((fertig["wartet"], fertig["text"], fertig["fehler"]), (False, "Aufgabe 2 ist einfacher.", False))
+        f = logik.schnell_anzeige({"ok": False, "stand": "fehler", "text": ""})
+        self.assertEqual((f["text"], f["fehler"]), (logik.FEHLGESCHLAGEN, True))
+
+    def test_galerie_ort_und_reihe(self):
+        self.assertNotIn("dokument", [g["art"] for g in logik.galerie()])
+        g = logik.galerie("r", 2, "Ethik", schnell=True)
+        self.assertEqual((g[-1]["art"], g[-1]["link"]), ("dokument", "/neu?art=dokument&reihe=r&stunde=2"))
+        self.assertIsNone(logik.vorlage("dokument"))
+        self.assertTrue(logik.vorlage("dokument", True)["schnell"])
+        self.assertEqual((logik.schnell_ort("r", "s"), logik.schnell_ort("r", None), logik.schnell_ort(None, None)),
+                         ("s", "r", None))
+        reihen = [{"id": "r", "agenten": [], "stunden": [{"id": "s1", "thema": "A"}]}]
+        self.assertEqual(logik.reihe_von({"agent": "schnell", "ort": "r"}, reihen)["id"], "r")
+        self.assertEqual(logik.reihe_von({"agent": "schnell", "ort": "s1"}, reihen)["id"], "r")
+        self.assertIsNone(logik.reihe_von({"agent": "unterricht", "ort": "r"}, reihen))  # nur schnelle Dokumente
+        self.assertEqual(logik.art({"agent": "schnell", "quelle": "schnell-dokument"}), "Dokument")

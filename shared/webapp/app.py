@@ -71,6 +71,14 @@ und ein Token aus dem Formular (geheim je Start der App) muss stimmen.
 IDs werden mit agentkit geprüft und nur in der Instanz gesucht. Dateien kommen nur über ihre Nummer in
 ergebnis_dateien, nie über einen Pfad aus der URL; jeder Pfad wird gegen den Agent-Ordner geprüft (dateien.py).
 
+Schneller Weg (lia/schnell, docs/schnell-dokument-plan.md), nur mit WEBAPP_SCHNELL=an, alter Oberfläche und Neu:
+  POST /ergebnis/<id>/rueckmeldung ohne Datei an Dokumenten von unterricht, theater, schnell geht an
+       lia/schnell (schnittstelle.aendern) statt an den Feedback-Dienst; danach /ergebnis/<id>?schnell=<wunsch>
+  POST /neu mit art=dokument („Anderes Dokument“) geht an schnittstelle.dokument; danach /neu/schnell/<wunsch>
+  GET  /teile/schnell/<wunsch>?zurueck=<pfad>   „Wird geändert …“ (htmx alle 2 s), mit Antwort HX-Redirect
+  GET  /ergebnis/<id>/eigene/<n>/seite/<m>, …/pdf   Seitenbilder einer schnell geänderten Fassung
+  Im Testbetrieb landen Wünsche in data/schnell-test/ (kein Agent liest sie).
+
 Oberfläche: WEBAPP_OBERFLAECHE=alt (Standard) nutzt vorlagen/ und stil.css mit der Spalte „Fragen“ (POST /fragen,
 GET /teile/frage/<id>); =neu nutzt oberflaeche/ und ruhig.css mit Gesprächen und Ablage am Ort (bauplan-gespraech.md,
 nicht freigegeben). Die Routen der jeweils anderen Oberfläche geben 404.
@@ -80,6 +88,7 @@ Start: .venv/bin/python app.py   (Socket-Pfad änderbar mit WEBAPP_SOCKET; mit W
 """
 
 import asyncio
+import importlib.util
 import logging
 import os
 import re
@@ -124,6 +133,12 @@ ECHTE_INSTANZ = HIER.parent.parent / "lia" / "instanz"
 INSTANZ = Path(os.environ.get("WEBAPP_INSTANZ") or ECHTE_INSTANZ)
 NEUER_AUFTRAG = os.environ.get("WEBAPP_NEUER_AUFTRAG", "")  # "", "test" oder "echt" (siehe oben)
 CHAT = os.environ.get("WEBAPP_CHAT", "") == "an"  # Spalte „Fragen“ an den Chat-Agenten (Lias Kontingent)
+# Schneller Weg über lia/schnell (docs/schnell-dokument-plan.md): Rückmeldung am Dokument und „Anderes Dokument“.
+# Nur mit WEBAPP_SCHNELL=an, alter Oberfläche und eingeschaltetem Neu; im Testbetrieb landen Wünsche in DATEN.
+SCHNELL = os.environ.get("WEBAPP_SCHNELL", "") == "an"
+SCHNELL_DIR = HIER.parent.parent / "lia" / "schnell"
+# Ablage schnell geänderter Fassungen samt Seitenbildern: <ursprung>/eigene-<n>/<datei> (lia/schnell/STATUS.md)
+SCHNELL_FASSUNGEN = SCHNELL_DIR / "data" / "fassungen"
 # alt: vorlagen/ + stil.css (freigegeben, Lia sieht sie); neu: oberflaeche/ + ruhig.css (Gespräch in der Mitte, ruht)
 OBERFLAECHE = "neu" if os.environ.get("WEBAPP_OBERFLAECHE") == "neu" else "alt"
 CHAT_DIR = HIER.parent.parent / "lia" / "chat"
@@ -264,6 +279,27 @@ def _fragen(reihen: list[dict], aktiv: str, stunde: int | None) -> dict | None:
         logger.error("Chat-Verlauf nicht lesbar: %s", fehler_)
         verlauf = []
     return logik.fragen_spalte(verlauf, reihe, st)
+
+
+_SCHNELL_MODUL: list = []
+
+
+def schnell():
+    """Schnittstelle von lia/schnell (schnittstelle.py, nur Bordmittel) oder None, wenn der schnelle Weg aus ist.
+    Eigener Modulname, weil lia/chat auch ein Modul schnittstelle hat."""
+    if not (SCHNELL and alt() and neu_modus()):
+        return None
+    if not _SCHNELL_MODUL:
+        spec = importlib.util.spec_from_file_location("schnell_schnittstelle", SCHNELL_DIR / "schnittstelle.py")
+        modul = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modul)
+        _SCHNELL_MODUL.append(modul)
+    return _SCHNELL_MODUL[0]
+
+
+def schnell_ordner() -> Path:
+    """Warteschlange von lia/schnell; im Testbetrieb ein Ordner der Web-App (kein Agent liest ihn)."""
+    return SCHNELL_DIR / "data" if neu_modus() == "echt" else DATEN / "schnell-test"
 
 
 def _stunde_tupel(reihe: dict | None, nr: int | None) -> tuple[int, str] | None:
@@ -2145,7 +2181,7 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
     """Galerie (ohne art) bzw. Formular einer Vorlage, Ort aus reihe und stunde vorbelegt."""
     reihen = reihen_laden()
     ort_reihe, ort_stunde = _ort(reihen, reihe, stunde)
-    vorlage = logik.VORLAGEN.get(art) or (logik.VORLAGE_FREI if fehler else None)
+    vorlage = logik.vorlage(art, schnell() is not None) or (logik.VORLAGE_FREI if fehler else None)
     stunden = logik.reihe_stunden(ort_reihe) if ort_reihe else []
     return vorlagen.TemplateResponse(request, "neu.html", {
         # Stunde wählbar, wenn die Reihe welche hat; eine unbekannte aus der URL fällt nicht still weg (Nr. 2)
@@ -2157,7 +2193,8 @@ def _formular(request: Request, text: str = "", fehler: list[str] | None = None,
         "modus": neu_modus(), "token": logik.formular_token(GEHEIM), "text": text, "fehler": fehler or [],
         "art": art if vorlage else "", "vorlage": vorlage, "varianten": logik.VARIANTEN,
         "galerie": logik.galerie(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None,
-                                 ort_reihe["fach"] if ort_reihe else "", aus), "extra": extra or {},
+                                 ort_reihe["fach"] if ort_reihe else "", aus, schnell() is not None),
+        "extra": extra or {},
         "andere": logik.neu_link(ort_reihe["id"] if ort_reihe else "", ort_stunde[0] if ort_stunde else None),
         "reihen": [] if ort_reihe else logik.reihen_auswahl(reihen), "reihe": ort_reihe["id"] if ort_reihe else reihe,
         "ort_fest": bool(ort_reihe), "stunde": ort_stunde[0] if ort_stunde else "",
@@ -2244,7 +2281,7 @@ async def neu_abschicken(request: Request):
     form = await formular_lesen(request, "Neuer Auftrag", logik.NEU_DATEIEN_MAX)
     text, gewaehlt = str(form.get("text") or ""), str(form.get("reihe") or "")
     art, stunde_text = str(form.get("art") or ""), str(form.get("stunde") or "")
-    if art not in logik.VORLAGEN:
+    if logik.vorlage(art, schnell() is not None) is None:
         art = ""
     extra, fehler_extra = logik.extra_werte(art, lambda name: str(form.get(name) or ""))
     if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
@@ -2263,6 +2300,8 @@ async def neu_abschicken(request: Request):
     # „Auch als“: der Material-Agent baut die Varianten im selben Lauf (Zeile im Auftragstext, lia/unterricht)
     auch_als = logik.varianten_waehlen([str(w) for w in form.getlist("varianten")]) \
         if (logik.VORLAGEN.get(art) or {}).get("varianten") else []
+    if art == "dokument":  # „Anderes Dokument“: schneller Weg über lia/schnell
+        return await _schnell_dokument(request, text, reihe, stunde_text, stunde_id, dateien_)
     auftragstext = logik.text_mit_reihe(text, reihe, reihen, stunde, art, extra, auch_als)
     # Doppelklick: Lia sieht die Antwort der zweiten Anfrage, also dieselbe Bestätigung. Zwischen Prüfen und Anlegen
     # liegt kein await, gleichzeitige Anfragen kommen sich nicht in die Quere.
@@ -2352,7 +2391,12 @@ def _material(kette: list[dict], kopf: dict) -> tuple[dict, list[dict], dict]:
                                                  a.get("ergebnis_dateien") or [])
                   for a in logik.fassungen(kette) if a.get("status") == "erledigt"}
     final_ref = (z["final"].get(kopf["id"]) or {}).get("fassung") or ""
-    return logik.ergebnis(kette, vorschauen, datetime.now(ZONE), eigene, final_ref), eigene, z
+    eigene_vorschau = {}
+    for n, e in enumerate(eigene, 1):
+        if logik.ist_schnell(e):
+            wurzel, relativ = _vorschau_ort(kopf, e)
+            eigene_vorschau[n] = dateien.vorschau_info(wurzel, [relativ])[0]
+    return logik.ergebnis(kette, vorschauen, datetime.now(ZONE), eigene, final_ref, eigene_vorschau), eigene, z
 
 
 def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str = "", hinweis: str = "",
@@ -2362,6 +2406,9 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
         q = request.query_params
         ziel = logik.rueckmeldung_ziel(kette, q.get("fassung"), q.get("datei"), q.get("seite"))
     e, _, z = _material(kette, kopf)
+    wunsch = _schnell_wunsch(request)
+    if wunsch and not wunsch[1]["wartet"] and not fehler:  # Antwort von lia/schnell oben als Hinweis
+        hinweis = wunsch[1]["text"]
     reihen = reihen_laden()
     reihe = logik.reihe_von(kopf, reihen)
     stunden = logik.reihe_stunden(reihe) if reihe else []
@@ -2386,7 +2433,10 @@ def _ergebnis_seite(request: Request, kette: list[dict], kopf: dict, offen: str 
         "neu_link": logik.neu_link(reihe["id"] if reihe and reihe["laufend"] else ""),
         "e": e, "kopf_id": kopf["id"], "basis_url": logik.ergebnis_link(kopf), "token": logik.formular_token(GEHEIM),
         "aktionen": neu_modus(), "offen": offen if offen in ("rueckmeldung", "eigene", "variante") else "",
-        "hinweis": hinweis, "hinweis_fehler": hinweis == logik.FEHLGESCHLAGEN, "fehler": fehler or [], "text": text,
+        "hinweis": hinweis, "hinweis_fehler": hinweis == logik.FEHLGESCHLAGEN or bool(
+            wunsch and not wunsch[1]["wartet"] and wunsch[1]["fehler"]),
+        "schnell": wunsch[1] if wunsch and wunsch[1]["wartet"] else None, "schnell_id": wunsch[0] if wunsch else "",
+        "fehler": fehler or [], "text": text,
         "text_max": logik.NEU_TEXT_MAX,
         "rueck_endungen": ",".join(logik.RUECK_ENDUNGEN), "eigene_endungen": ",".join(logik.EIGENE_ENDUNGEN),
         **rahmen(reihen, logik.krumen(e["titel"], reihe, ueber), reihe["id"] if reihe else "",
@@ -2713,6 +2763,11 @@ async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
         if fehler:
             return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=fehler, text=text, status=400,
                                    ziel=ziel)
+        modul = schnell()
+        ziel_schnell = logik.schnell_ziel(kette, ziel, list(zustand_().lesen()["eigene"].get(kopf["id"]) or []),
+                                          datei is not None) if modul else None
+        if ziel_schnell:  # kleine Änderung über lia/schnell (zu groß: der Agent gibt sie selbst gründlich weiter)
+            return _schnell_aendern(request, modul, kette, kopf, ziel, ziel_schnell, text)
         auftragstext = logik.rueckmeldung_text(text, datei.filename if datei else "", ziel)
         # Doppelklick: Lia sieht die Antwort der zweiten Anfrage, also dieselbe Bestätigung. Prüfen und Anlegen liegen
         # ohne await hintereinander, gleichzeitige Anfragen kommen sich dazwischen nicht in die Quere.
@@ -2737,6 +2792,186 @@ async def ergebnis_rueckmeldung(request: Request, eintrag_id: str):
     if modus == "echt":
         agent_starten("feedback")
     return _fertig(kopf, "rueckmeldung" if modus == "echt" else "rueckmeldung-test")
+
+
+# --- Schneller Weg (lia/schnell) ----------------------------------------------------------------------------------
+# Wünsche gehen über lia/schnell/schnittstelle.py; die Seite fragt per htmx alle 2 s nach (/teile/schnell/<id>), bis
+# die Antwort da ist, und lädt dann neu (HX-Redirect auf die Seite mit ?schnell=<id>, die Antwort steht oben).
+_SCHNELL_LETZTE: dict[tuple, tuple[str, float]] = {}  # Doppelklick: gleicher Wunsch -> (id, Zeitpunkt)
+SCHNELL_DOPPELT_S = 120
+
+
+def _schnell_doppelt(schluessel: tuple) -> str:
+    jetzt = datetime.now(ZONE).timestamp()
+    for k in [k for k, (_, t) in _SCHNELL_LETZTE.items() if jetzt - t > SCHNELL_DOPPELT_S]:
+        del _SCHNELL_LETZTE[k]
+    return (_SCHNELL_LETZTE.get(schluessel) or ("", 0))[0]
+
+
+def _schnell_wunsch(request: Request) -> tuple[str, dict] | None:
+    """(id, Anzeige) zu ?schnell=<id> auf der Seite; None ohne gültige id oder ohne schnellen Weg."""
+    modul, wid = schnell(), request.query_params.get("schnell") or ""
+    if modul is None or not modul.ID_MUSTER.match(wid):
+        return None
+    antwort = modul.antwort_holen(wid, schnell_ordner())
+    if antwort is None and not modul.wartet(wid, schnell_ordner()):
+        return None  # unbekannt (oder längst aufgeräumt)
+    return wid, logik.schnell_anzeige(antwort)
+
+
+def _schnell_aendern(request: Request, modul, kette: list[dict], kopf: dict, ziel: dict | None, z: dict,
+                     text: str):
+    schluessel = ("aendern", z["bezug"], z["nr"], z["eigene"], z["seite"], text)
+    wid = _schnell_doppelt(schluessel)
+    if wid:
+        logger.info("Gleicher Wunsch an schnell gerade schon gestellt (%s), verworfen", wid)
+    else:
+        try:
+            wid = modul.aendern(z["bezug"], text, nr=z["nr"], eigene=z["eigene"], seite=z["seite"],
+                                ordner=schnell_ordner())
+        except modul.WunschFehler as fehler_:
+            logger.warning("Wunsch an schnell abgewiesen: %s", fehler_)
+            return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[str(fehler_)], text=text,
+                                   status=400, ziel=ziel)
+        except OSError as fehler_:
+            logger.error("Wunsch an schnell nicht gestellt: %s", fehler_)
+            return _ergebnis_seite(request, kette, kopf, "rueckmeldung", fehler=[logik.FEHLGESCHLAGEN], text=text,
+                                   status=500, ziel=ziel)
+        _SCHNELL_LETZTE[schluessel] = (wid, datetime.now(ZONE).timestamp())
+        logger.info("Wunsch %s an schnell zu %s (Datei %s, eigene %s)", wid, z["bezug"], z["nr"], z["eigene"])
+        if neu_modus() == "echt":
+            agent_starten("schnell")
+    return RedirectResponse(f"{logik.ergebnis_link(kopf)}?schnell={wid}#schnell", status_code=303)
+
+
+async def _schnell_dokument(request: Request, text: str, reihe: str | None, stunde_text: str,
+                            stunde_id: str | None, dateien_: list[UploadFile]):
+    """„Anderes Dokument“ an lia/schnell; danach die Warteseite /neu/schnell/<id>."""
+    modul = schnell()
+    namen = [logik.dateiname_bereinigen(d.filename) for d in dateien_]
+    try:
+        if len(dateien_) > logik.SCHNELL_DATEIEN_MAX:
+            return _formular(request, text, [f"Höchstens {logik.SCHNELL_DATEIEN_MAX} Dateien."], 400, reihe or "",
+                             "dokument", stunde_text)
+        ort = logik.schnell_ort(reihe, stunde_id)
+        schluessel = ("dokument", text, ort, tuple(namen))
+        wid = _schnell_doppelt(schluessel)
+        if wid:
+            logger.info("Gleiches Dokument an schnell gerade schon bestellt (%s), verworfen", wid)
+            return RedirectResponse(f"/neu/schnell/{wid}", status_code=303)
+        EINGANG.mkdir(parents=True, exist_ok=True)
+        ordner = Path(tempfile.mkdtemp(dir=EINGANG))
+        try:
+            uploads = [(d.filename, datei_ablegen(d, ordner / str(nr))) for nr, d in enumerate(dateien_)]
+            wid = modul.dokument(text, ort, uploads, ordner=schnell_ordner())
+        except modul.WunschFehler as fehler_:
+            logger.warning("Dokument an schnell abgewiesen: %s", fehler_)
+            return _formular(request, text, [str(fehler_)], 400, reihe or "", "dokument", stunde_text)
+        except OSError as fehler_:
+            logger.error("Dokument an schnell nicht bestellt: %s", fehler_)
+            return _formular(request, text, [logik.FEHLGESCHLAGEN], 500, reihe or "", "dokument", stunde_text)
+        finally:
+            shutil.rmtree(ordner, ignore_errors=True)
+    finally:
+        for d in dateien_:
+            await d.close()
+    _SCHNELL_LETZTE[schluessel] = (wid, datetime.now(ZONE).timestamp())
+    logger.info("Dokument %s an schnell (Ort %s, %d Dateien)", wid, ort or "keiner", len(namen))
+    if neu_modus() == "echt":
+        agent_starten("schnell")
+    return RedirectResponse(f"/neu/schnell/{wid}", status_code=303)
+
+
+def _schnell_an(wid: str):
+    modul = schnell()
+    if modul is None or not modul.ID_MUSTER.match(wid):
+        raise HTTPException(404)
+    return modul
+
+
+@app.get("/neu/schnell/{wid}", response_class=HTMLResponse)
+def seite_schnell(request: Request, wid: str):
+    """Warteseite für „Anderes Dokument“. Ist das Dokument fertig, geht es zu seiner Ansicht."""
+    modul = _schnell_an(wid)
+    antwort = modul.antwort_holen(wid, schnell_ordner())
+    if antwort is None and not modul.wartet(wid, schnell_ordner()):
+        raise HTTPException(404)
+    ziel = _schnell_ziel_link(wid, antwort, f"/neu/schnell/{wid}")
+    if antwort is not None and ziel != f"/neu/schnell/{wid}":
+        return RedirectResponse(ziel, status_code=303)
+    return vorlagen.TemplateResponse(request, "schnell.html", {
+        "e": {"titel": "Anderes Dokument"}, "wid": wid, "a": logik.schnell_anzeige(antwort, "dokument"),
+        "zurueck": f"/neu/schnell/{wid}", "n": 0, "neu_link": logik.neu_link("", None, "dokument"),
+        **rahmen(reihen_laden(), logik.krumen("Anderes Dokument"))})
+
+
+def _schnell_ziel_link(wid: str, antwort: dict | None, zurueck: str) -> str:
+    """Wohin die Seite nach der Antwort lädt: ein fertiges Dokument zu seiner Ansicht, sonst zurück mit ?schnell."""
+    auftrag = str((antwort or {}).get("auftrag") or "")
+    if antwort and antwort.get("art") == "dokument" and antwort.get("ok") is True and auftrag:
+        try:
+            pruefe_id(auftrag)
+            return f"/ergebnis/{auftrag}?schnell={wid}#schnell"
+        except AblageFehler:
+            logger.error("Antwort %s von schnell mit ungültigem Auftrag", wid)
+    if zurueck.startswith("/neu/schnell/"):
+        return zurueck
+    return f"{zurueck}?schnell={wid}#schnell"
+
+
+@app.get("/teile/schnell/{wid}", response_class=HTMLResponse)
+def teil_schnell(request: Request, wid: str):
+    """Für htmx: solange die Antwort fehlt, „Wird geändert …“ mit erneuter Abfrage; danach HX-Redirect."""
+    modul = _schnell_an(wid)
+    q = request.query_params
+    zurueck = logik.zurueck_pfad(q.get("zurueck") or "")
+    n = min(int(q.get("n") or 0) if (q.get("n") or "").isdigit() else 0, 100000)
+    art_ = "dokument" if zurueck.startswith("/neu/schnell/") else "aenderung"
+    antwort = modul.antwort_holen(wid, schnell_ordner())
+    if antwort is not None:
+        r = HTMLResponse("")
+        r.headers["HX-Redirect"] = _schnell_ziel_link(wid, antwort, zurueck)
+        return r
+    return vorlagen.TemplateResponse(request, "_schnell.html", {
+        "wid": wid, "a": logik.schnell_anzeige(None, art_, n), "zurueck": zurueck, "n": n})
+
+
+@app.get("/ergebnis/{eintrag_id}/eigene/{nr:int}/seite/{seite:int}")
+def eigene_seite(eintrag_id: str, nr: int, seite: int):
+    """Seitenbild einer schnell geänderten Fassung (lia/schnell legt es neben die Datei)."""
+    wurzel, relativ = _eigene_vorschau(eintrag_id, nr)
+    seiten = dateien.vorschau_seiten(wurzel, relativ)
+    return _ausliefern(seiten[seite - 1] if 1 <= seite <= len(seiten) else None, herunterladen=False)
+
+
+@app.get("/ergebnis/{eintrag_id}/eigene/{nr:int}/pdf")
+def eigene_pdf(eintrag_id: str, nr: int):
+    wurzel, relativ = _eigene_vorschau(eintrag_id, nr)
+    return _ausliefern(dateien.vorschau_pdf(wurzel, relativ), herunterladen=False)
+
+
+def _eigene_vorschau(eintrag_id: str, nr: int) -> tuple[Path, str]:
+    _, kopf = _kopf_fuer_post(eintrag_id)
+    eintrag = next((e for e in zustand_().lesen()["eigene"].get(kopf["id"]) or [] if e.get("n") == nr), None)
+    if eintrag is None or not logik.ist_schnell(eintrag):
+        raise HTTPException(404)
+    wurzel, relativ = _vorschau_ort(kopf, eintrag)
+    if wurzel is None:
+        raise HTTPException(404)
+    return wurzel, relativ
+
+
+def _vorschau_ort(kopf: dict, eintrag: dict) -> tuple[Path | None, str]:
+    """(Wurzel, relativer Pfad der Datei), neben der die Seitenbilder einer schnell geänderten Fassung liegen: neben
+    der Datei im Agent-Ordner, sonst in der Ablage von lia/schnell (data/fassungen/<ursprung>/eigene-<n>/)."""
+    wurzel = dateien.agent_ordner(INSTANZ, kopf.get("agent"))
+    datei = str(eintrag.get("datei") or "")
+    if wurzel is not None and dateien.vorschau_seiten(wurzel, datei):
+        return wurzel, datei
+    name = Path(datei).name
+    if not isinstance(eintrag.get("n"), int) or not name or name.startswith("."):
+        return wurzel, datei
+    return SCHNELL_FASSUNGEN, f"{kopf['id']}/eigene-{eintrag['n']}/{name}"
 
 
 @app.get("/ergebnis/{eintrag_id}/eigene/{nr:int}")
