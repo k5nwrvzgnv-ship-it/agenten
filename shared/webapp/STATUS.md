@@ -6,6 +6,30 @@ Ergebnisse mit Vorschau, Feedback und Entwürfe. Plan: `../../docs/webapp-plan.m
 Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Modernist“ (Board ModHeute im Canvas
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
+## Umbau „Gespräch in der Mitte“ (Stand 10.11.2026, Plan `bauplan-gespraech.md`, Jans Okay 10.11.)
+Gebaut und committet (Bauplan-Schritte 1–6): `gespraech.py` (Markdown mit Überschriften, Tabellen, Bausteinen;
+Orte, Kette, darunter; Verlauf), `ablage.py` (eigene Dateien an `lia/instanz/ablage/<ort-id>/`), Routen in `app.py`
+(Block „Gespräche und Ablage am Ort“), neue Oberfläche `oberflaeche/` + `statisch/ruhig.css` + `gespraech.js`.
+`app.py` lädt schon `oberflaeche/`; der laufende `webapp.service` zeigt bis zum Neustart noch `vorlagen/` und
+`stil.css` (diese beiden nie ändern, sie wirken sofort auf den alten Dienst). Spalte „Fragen“ im neuen Code weg.
+- Schnittstelle zu lia/chat geprüft: Claude-Einträge `rolle: "claude"`, nur erfolgreiche; Fehlschläge stehen an
+  Lias Eintrag (`stand: "fehler"`), den Satz für Lia holt die App über `antwort_holen` und zeigt ihn unter der
+  Nachricht. lia/chat liest die Ablage aus `lia/instanz/ablage/<id>/` (gleicher Pfad wie die App schreibt).
+- Nicht gebaut (für Testaufgaben 1–6 nicht nötig, Jan entscheidet): Vorschau-Panel für Material und Ablage (heute
+  Link auf Ergebnis/Betrachter bzw. Datei), „Darüber sprechen“ an Material/Ablage, Ebenen-Kopf ruhiger (Pflege-
+  Knöpfe ins „···“), roter Punkt im Baum (der Baum hat noch kein Zuklappen). Aufräumen alter Chat-Logik in
+  `logik.py` (fragen_spalte, frage_ort …) nur nach Vorschlag an Jan.
+Nächste Schritte:
+1. Mit Jan klären, wie Aufgabe 6 getestet wird: `CHAT_ORDNER` ist fest `lia/chat/data` (echte Warteschlange, Lias
+   Kontingent), und lia/chat liest die Ablage aus `lia/instanz`, nicht aus der Test-Instanz. Vorschlag: Aufgaben
+   1–5 in der Test-Instanz, Aufgabe 6 (Datei ablegen, Claude kennt sie) nach dem Umschalten mit einer harmlosen
+   Testdatei, danach entfernen.
+2. Probe in der Test-Instanz (Bauplan Schritt 7, Start siehe „Starten und ansehen“, mit `WEBAPP_CHAT=an`, eigener
+   Port/Socket): Gespräche mit Foto, langem Text, Baustein kopieren, Daraus Auftrag machen. Testgespräche danach
+   löschen (sie liegen in der echten Warteschlange lia/chat/data).
+3. Umschalten: `systemctl --user restart webapp.service` nur mit Jans Okay, danach alle Seiten abrufen, Log prüfen.
+4. Danach diesen Abschnitt, „Technik“ und „Skizze“ auf den neuen Stand; Aufräum-Vorschlag (`vorlagen/`, `stil.css`).
+
 ## Stand (03.11.2026, Struktur pflegen siehe eigener Abschnitt)
 Bauschritt 1 und die Ergebnis-/Entwurf-Ansicht (nur lesend) fertig und committet, Aufträge mit Feedback-Schleife
 als ein Auftrag mit Verlauf (Jans Anmerkung 30.10.), „Neuer Auftrag“ für Material im Testbetrieb (Jans Okay 30.10.),
