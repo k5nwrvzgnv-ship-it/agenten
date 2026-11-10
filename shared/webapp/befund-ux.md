@@ -171,7 +171,9 @@ weg vom Material, leerer Abschnitt erklärt einen anderen Weg) und an der Textme
 
 ## Die fünf Änderungen mit der größten Wirkung (Vorschlag, kein Umbau ohne dein Okay)
 
-Umsetzung in kleinen Schritten: `umbauplan-ux.md`.
+Umsetzung in kleinen Schritten: `umbauplan-ux.md`. Dort geändert nach Jans Rückmeldung (10.11.): statt „ein blauer
+Knopf“ ein „+“ pro Seite mit Auswahl, was neu entstehen soll; Ändern direkt am Ding (Ziehen, Titel anklicken), das
+„···“ nur für den Rest. Vorschlag 2 unten ist damit überholt, 1, 3, 4 und 5 gehen im Plan auf.
 
 **1. Ein Raster für Klasse, Reihe und Stunde: Hauptspalte plus rechte Spalte.**
 Links (~640 px) steht, was man tut: Gespräche, Stunden, Ergebnisse. Rechts (~280 px, wie `aside.rechts` auf der Gespräch-Seite) steht der Kontext: Reihenfrage, Dateien, Termine, „Schon behandelt“. Pflege-Seiten werden einspaltig und mittig (max. ~640 px). Das behebt „rechts frei, Mitte voll“ und macht die Gespräch-Seite zum Normalfall statt zur Ausnahme.

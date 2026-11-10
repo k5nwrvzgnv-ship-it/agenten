@@ -49,9 +49,10 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 
 ## UX-Befund und Umbauplan (Stand 10.11.2026, wartet auf Jans Freigabe)
 `befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
-`umbauplan-ux.md` (Schritte 0–9, je Dateien, was Lia sieht, Tests). Noch nichts davon gebaut; Jan entscheidet
-Freigabe, Schritt 0 (Probe-Kopie) und welcher Knopf blau ist. Die Zeilennummern im Befund gelten für den Commit des
-Befunds. Behoben aus „Nebenbei gefunden“:
+`umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
+ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Noch nichts davon
+gebaut, wartet auf Jans Freigabe. Zwischenstände darf Lia sehen (Jan 10.11.), also keine Probe-Kopie. Die
+Zeilennummern im Befund und Plan gelten für Commit bf2e0d9. Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).
 - `logik._regel_zeilen` hängt eingerückte Folgezeilen an die Regel davor (`test_regeln_mit_folgezeilen`). Die
