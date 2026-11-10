@@ -169,6 +169,82 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertEqual(rechte["allow"], ["WebFetch(domain:gesetze-im-internet.de)",
                                            "WebFetch(domain:*.gesetze-im-internet.de)"])
 
+    def test_nur_lesen_rechte(self):
+        o = Path("/srv/a/fotos")
+        r = claude_lauf.rechte(["Read", "Write"], None, [o])["permissions"]
+        self.assertEqual(r["allow"], ["Read(//srv/a/fotos/**)"])  # // = absoluter Pfad in Rechte-Regeln
+        for w in ("Bash", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch"):
+            self.assertIn(w, r["deny"])
+        # Netz-Werkzeuge aus den Einstellungen bleiben (WebFetch nur auf die Domains), dann nicht in deny
+        n = claude_lauf.rechte(["Read", "Write", "WebSearch", "WebFetch"], ["bpb.de"], [o])["permissions"]
+        self.assertEqual(n["allow"], ["Read(//srv/a/fotos/**)", "WebSearch", "WebFetch(domain:bpb.de)",
+                                      "WebFetch(domain:*.bpb.de)"])
+        self.assertNotIn("WebFetch", n["deny"])
+        self.assertNotIn("WebSearch", n["deny"])
+        self.assertIn("Write", n["deny"])
+        self.assertIn("Read(//srv/a/fotos/**/.env)", n["deny"])
+        # .env bleibt auch im erlaubten Ordner gesperrt (die relative Regel allein reicht dort nicht)
+        self.assertIn("Read(**/.env)", r["deny"])
+        self.assertIn("Read(//srv/a/fotos/**/.env)", r["deny"])
+        self.assertIn("Read(//srv/a/fotos/**/.env.*)", r["deny"])
+
+    def test_nur_lesen_ordner_pruefen(self):
+        fotos = self.agent_dir / "data" / "gespraeche" / "g1"
+        fotos.mkdir(parents=True)
+        ablage = self.tmp / "ablage" / "ort-1"
+        ablage.mkdir(parents=True)
+        self.assertEqual(claude_lauf.lese_ordner_pruefen([fotos, ablage], self.agent_dir),
+                         [fotos.resolve(), ablage.resolve()])
+        # Symlink auf einen Ordner wird aufgelöst und dann wie das Ziel geprüft
+        (self.tmp / "link").symlink_to(self.agent_dir)
+        schlecht = [Path("data/gespraeche/g1"), self.tmp / "fehlt", self.agent_dir, self.tmp, Path("/"),
+                    self.tmp / "link", fotos / ".." / ".." / ".."]
+        stern = self.tmp / "a*b"
+        stern.mkdir()
+        schlecht.append(stern)
+        for o in schlecht:
+            with self.subTest(o=o), self.assertRaises(ValueError):
+                claude_lauf.lese_ordner_pruefen([o], self.agent_dir)
+        with self.assertRaises(ValueError):
+            claude_lauf.lese_ordner_pruefen([], self.agent_dir)
+
+    def test_nur_lesen_lauf(self):
+        fotos = self.agent_dir / "data" / "gespraeche" / "g1"
+        fotos.mkdir(parents=True)
+        cfg = copy.deepcopy(CFG)
+        cfg["werkzeuge"]["uni"] = ["Read", "Write", "Edit", "Glob", "Grep"]
+        cwd = self.agent_dir / "data" / "nur_lesen"
+        self.assertTrue(self.lauf(cfg=cfg, lese_ordner=[fotos]).ok)
+        a = json.loads((cwd / "args.json").read_text())  # das Fake schreibt in seinen Arbeitsordner
+        self.assertEqual(a[a.index("--tools") + 1: a.index("--strict-mcp-config")], ["Read"])
+        self.assertEqual(a[a.index("--permission-mode") + 1], "dontAsk")
+        rechte = json.loads(a[a.index("--settings") + 1])["permissions"]
+        self.assertEqual(rechte["allow"], [f"Read(/{fotos.resolve()}/**)"])
+        # liegt etwas im Arbeitsordner (hier vom Fake), startet kein weiterer Lauf
+        with self.assertRaises(claude_lauf.LaufFehler):
+            self.lauf(cfg=cfg, lese_ordner=[fotos])
+        for f in cwd.iterdir():
+            f.unlink()
+        with self.assertRaises(ValueError):
+            self.lauf(cfg=cfg, lese_ordner=[self.agent_dir])
+        self.assertFalse(any(cwd.iterdir()))
+        # mit Netz-Werkzeugen in den Einstellungen: Read plus diese, WebFetch nur auf [webfetch]
+        cfg["werkzeuge"]["uni"] += ["WebSearch", "WebFetch"]
+        cfg["webfetch"] = {"uni": ["bpb.de"]}
+        self.lauf(cfg=cfg, lese_ordner=[fotos])
+        a = json.loads((cwd / "args.json").read_text())
+        self.assertEqual(a[a.index("--tools") + 1: a.index("--strict-mcp-config")], ["Read", "WebSearch", "WebFetch"])
+        rechte = json.loads(a[a.index("--settings") + 1])["permissions"]
+        self.assertIn("WebFetch(domain:bpb.de)", rechte["allow"])
+        self.assertNotIn("WebFetch", rechte["allow"])
+        for f in cwd.iterdir():
+            f.unlink()
+        # ohne lese_ordner unverändert
+        self.lauf(cfg=cfg)
+        a = self.args()
+        self.assertEqual(a[a.index("--permission-mode") + 1], "acceptEdits")
+        self.assertIn("Write", a[a.index("--tools") + 1: a.index("--strict-mcp-config")])
+
     def test_limit_erreicht(self):
         os.environ["FAKE_MODUS"] = "limit"
         with self.assertRaises(claude_lauf.LimitErreicht):

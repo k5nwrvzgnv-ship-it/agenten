@@ -54,14 +54,73 @@ VERBOTEN += [f"{w}(**/{m})" for w in ("Edit", "Write") for m in GESCHUETZT]
 OHNE_DATEIZUGRIFF = ("WebSearch", "WebFetch")
 
 
-def rechte(werkzeuge: list[str], domains: list[str] | None = None) -> dict:
+def rechte(werkzeuge: list[str], domains: list[str] | None = None,
+           lese_ordner: list[Path] | None = None) -> dict:
     """Rechte für --settings. Mit domains ([webfetch] in einstellungen.toml) ist WebFetch nur für diese
-    Domains und ihre Subdomains erlaubt; alles andere lehnt claude -p ab (keine Rückfrage möglich)."""
+    Domains und ihre Subdomains erlaubt; alles andere lehnt claude -p ab (keine Rückfrage möglich).
+
+    Mit lese_ordner (geprüfte, absolute Ordner, siehe lese_ordner_pruefen) gilt nur noch: Read in diesen Ordnern
+    (Read(//<ordner>/**)) und die Werkzeuge ohne Dateizugriff (WebSearch, WebFetch mit domains), wenn sie in
+    werkzeuge stehen; alles andere ist verboten.
+    """
     erlaubt = [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]
     if domains is not None and "WebFetch" in erlaubt:
         erlaubt.remove("WebFetch")
         erlaubt += [f"WebFetch(domain:{p}{d})" for d in domains for p in ("", "*.")]
+    if lese_ordner is not None:
+        # Read(**/.env) aus VERBOTEN gilt nur unterhalb des Arbeitsordners (echter Lauf 10.11.2026: .env im
+        # Lese-Ordner war lesbar), darum je Ordner eigene Sperren mit absolutem Pfad.
+        env_sperre = [f"Read(/{o}/**/{m})" for o in lese_ordner for m in (".env", ".env.*")]
+        netz = [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]  # deny ginge vor allow: freigegebene nicht sperren
+        sperre = [w for w in NUR_LESEN_VERBOTEN if w not in netz]
+        return {"permissions": {"deny": VERBOTEN + env_sperre + sperre,
+                                "allow": [f"Read(/{o}/**)" for o in lese_ordner] + erlaubt}}
     return {"permissions": {"deny": VERBOTEN, "allow": erlaubt}}
+
+
+# Nur-Lesen-Lauf (lese_ordner), getestet 10.11.2026 mit claude 2.1.304: Claude bekommt nur Read (dazu WebSearch/
+# WebFetch, wenn für den Agenten eingetragen), Modus dontAsk
+# (lehnt alles ab, was keine allow-Regel hat). Lesen im Arbeitsordner erlaubt claude -p aber immer von selbst,
+# auch in dontAsk. Darum läuft claude in einem leeren Ordner data/nur_lesen/ des Agenten, nicht im Agent-Ordner.
+# Symlinks im erlaubten Ordner auf Dateien außerhalb lehnt claude ebenfalls ab. .env bleibt gesperrt (siehe rechte).
+# Fortsetzen (sitzung_fortsetzen) geht nur zwischen Läufen derselben Art, weil claude Sitzungen je Arbeitsordner führt.
+NUR_LESEN_VERBOTEN = ("Bash", "Edit", "Write", "Grep", "Glob", "NotebookEdit", "WebFetch", "WebSearch")
+NUR_LESEN_CWD = Path("data") / "nur_lesen"
+# In Rechte-Regeln haben diese Zeichen eine Bedeutung (Muster, Klammern): solche Ordner werden abgelehnt.
+_REGEL_ZEICHEN = set("*?[]{}()\\\n\r\"'")
+
+
+def lese_ordner_pruefen(ordner: list, agent_dir: Path) -> list[Path]:
+    """Erlaubte Lese-Ordner prüfen und auflösen (Symlinks, ..). ValueError, wenn einer nicht passt:
+    nicht absolut, kein vorhandener Ordner, Wurzel, Zeichen mit Bedeutung in Rechte-Regeln, oder er enthält den
+    Agent-Ordner (dann läge Code und Einrichtung offen). Unterordner des Agent-Ordners (z. B. data/...) gehen."""
+    if not ordner:
+        raise ValueError("lese_ordner: mindestens ein Ordner nötig")
+    agent = Path(agent_dir).resolve()
+    geprueft = []
+    for o in ordner:
+        o = Path(o)
+        if not o.is_absolute():
+            raise ValueError(f"lese_ordner: {o} ist kein absoluter Pfad")
+        echt = o.resolve()
+        if not echt.is_dir():
+            raise ValueError(f"lese_ordner: {o} ist kein vorhandener Ordner")
+        if echt == Path("/") or set(str(echt)) & _REGEL_ZEICHEN:
+            raise ValueError(f"lese_ordner: {o} ist als Grenze nicht erlaubt")
+        if agent == echt or echt in agent.parents:
+            raise ValueError(f"lese_ordner: {o} enthält den Agent-Ordner")
+        geprueft.append(echt)
+    return geprueft
+
+
+def nur_lesen_cwd(agent_dir: Path) -> Path:
+    """Leerer Arbeitsordner für Nur-Lesen-Läufe (wird angelegt). LaufFehler, wenn etwas darin liegt."""
+    cwd = Path(agent_dir) / NUR_LESEN_CWD
+    cwd.mkdir(parents=True, exist_ok=True)
+    if any(cwd.iterdir()):
+        raise LaufFehler(f"{cwd} muss leer sein (Claude dürfte dort alles lesen)")
+    return cwd
+
 
 def grundregel(person: str = "Jan") -> str:
     return (
@@ -200,8 +259,14 @@ def befehl(
     cfg: dict,
     sitzung_neu: str | None = None,
     sitzung_fortsetzen: str | None = None,
+    lese_ordner: list[Path] | None = None,
 ) -> list[str]:
+    """Befehlszeile für claude -p. lese_ordner: schon geprüfte Ordner (lese_ordner_pruefen), dann nur Read dort
+    und die Werkzeuge ohne Dateizugriff aus einstellungen.toml."""
     werkzeuge = einstellungen.werkzeuge(cfg, agent)
+    if lese_ordner is not None:
+        werkzeuge = ["Read"] + [w for w in werkzeuge if w in OHNE_DATEIZUGRIFF]
+    modus = "acceptEdits" if lese_ordner is None else "dontAsk"
     cmd = [
         CLAUDE_BIN, "-p", prompt,
         "--output-format", "stream-json", "--verbose",
@@ -209,8 +274,8 @@ def befehl(
         "--model", modell,
         "--tools", *werkzeuge,
         "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
-        "--permission-mode", "acceptEdits",
-        "--settings", json.dumps(rechte(werkzeuge, einstellungen.webfetch_domains(cfg, agent))),
+        "--permission-mode", modus,
+        "--settings", json.dumps(rechte(werkzeuge, einstellungen.webfetch_domains(cfg, agent), lese_ordner)),
         "--append-system-prompt", grundregel(config.person()) + "\n\n" + regeln.regeln_als_text(agent_dir),
     ]
     if sitzung_fortsetzen:
@@ -354,6 +419,7 @@ def laufen(
     protokoll: Path | None = None,
     ereignis_dir: Path | None = None,
     auftrag_basis: Path | None = None,
+    lese_ordner: list[Path] | None = None,
 ) -> Ergebnis:
     """Führt einen claude-Lauf aus. art: "routine" oder "anspruchsvoll".
 
@@ -362,6 +428,9 @@ def laufen(
     Schreibt Ereignisse (agentkit.ereignis): lauf.gestartet, werkzeug (live), lauf.beendet, lauf.fehler.
     Mit auftrag_id endet der Lauf, sobald der Auftrag zurückgezogen wird (Zurueckgezogen); auftrag_basis ist
     die Warteschlange (Standard wie agentkit.auftraege).
+    lese_ordner: Liste absoluter Ordner. Dann darf Claude nur Read in diesen Ordnern (z. B. Fotos eines Gesprächs)
+    und WebSearch/WebFetch wie eingestellt, sonst kein Werkzeug und keinen Pfad; Antwort nur als Text
+    (Ergebnis.text). ValueError bei ungeeignetem Ordner.
     """
     lauf_id = uuid.uuid4().hex[:12]
 
@@ -370,16 +439,18 @@ def laufen(
 
     try:
         return _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis)
+                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis, lese_ordner)
     except Exception as f:
         ev("lauf.fehler", grund=FEHLERGRUND.get(type(f).__name__, "technik"))
         raise
 
 
 def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-            cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None) -> Ergebnis:
+            cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None, lese_ordner=None) -> Ergebnis:
     cfg = cfg or einstellungen.lade()
     agent_dir = Path(agent_dir)
+    if lese_ordner is not None:
+        lese_ordner = lese_ordner_pruefen(lese_ordner, agent_dir)
     stufe = verbrauch.stufe(verbrauch.letzter_stand(protokoll), cfg)
     if stufe == "limit":
         raise LimitErreicht(verbrauch.letzter_stand(protokoll).get("reset_status"))
@@ -393,7 +464,7 @@ def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_f
     else:
         modell = cfg["modelle"]["anspruchsvoll"]
     sitzung_neu = str(uuid.uuid4()) if lernsitzung and not sitzung_fortsetzen else None
-    cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen)
+    cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen, lese_ordner)
     quelle = cfg.get("konto", {}).get("quelle", "token")
     env = umgebung(quelle)
 
@@ -410,7 +481,8 @@ def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_f
             if auftrag_id and _ablage_id(auftrag_id):
                 def abbrechen():
                     return auftraege.zurueckgezogen(auftrag_id, auftrag_basis)
-            ausgabe, abbruch = ausfuehren(cmd, agent_dir, env, cfg["lauf"]["max_minuten"] * 60, bei_zeile, abbrechen)
+            cwd = agent_dir if lese_ordner is None else nur_lesen_cwd(agent_dir)
+            ausgabe, abbruch = ausfuehren(cmd, cwd, env, cfg["lauf"]["max_minuten"] * 60, bei_zeile, abbrechen)
             if abbruch == "abbruch":
                 ergebnis = Ergebnis(text="Zurückgezogen", sitzung=sitzung_neu or sitzung_fortsetzen, ok=False)
             elif abbruch == "zeit":

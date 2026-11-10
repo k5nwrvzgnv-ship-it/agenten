@@ -1059,8 +1059,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     `lia/instanz/ablage/<ort-id>/` als Kontext, Bausteine im Prompt, „Was haben wir bisher?“, „Auftrag ordnen“.
     Schnittstelle siehe Bauplan Abschnitt 1.
     Read mit Pfadgrenze (10.11.2026, claude 2.1.304): `claude_lauf.laufen(..., lese_ordner=[ordner, ...])`. Dann hat
-    Claude nur Read, Modus dontAsk, allow nur `Read(//<ordner>/**)`, deny Bash/Edit/Write/Grep/Glob/NotebookEdit/
-    WebFetch/WebSearch und `.env`/`.env.*` je Ordner; Antwort nur als Text. claude läuft dabei im leeren Ordner
+    Claude nur Read, Modus dontAsk, allow nur `Read(//<ordner>/**)`, deny Bash/Edit/Write/Grep/Glob/NotebookEdit
+    und `.env`/`.env.*` je Ordner; Antwort nur als Text. WebSearch/WebFetch kommen dazu, wenn sie für den Agenten
+    unter [werkzeuge] stehen (WebFetch weiter nur auf [webfetch]); sonst sind auch sie gesperrt (Bedarf lia/chat:
+    alle Gesprächsläufe mit lese_ordner, Häkchen „Im Netz nachsehen“ bleibt). claude läuft dabei im leeren Ordner
     `<agent>/data/nur_lesen/` (Lesen im Arbeitsordner erlaubt claude -p sonst immer von selbst, auch in dontAsk;
     Probe: geheim.txt im Agent-Ordner war mit cwd = Agent-Ordner lesbar). Python prüft die Ordner vorher
     (`lese_ordner_pruefen`: absolut, vorhanden, aufgelöst, nicht `/`, keine Musterzeichen, enthält nicht den
@@ -1072,7 +1074,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     ablage/ort-1/notiz.txt gelesen; verweigert (permission_denials): probe/geheim.txt (Agent-Ordner), g1/link.txt
     (Symlink im erlaubten Ordner auf geheim.txt), g1/.env, g1/.env.lokal. Befund dabei: `Read(**/.env)` aus VERBOTEN
     greift nur unterhalb des Arbeitsordners; im ersten Lauf ohne eigene Sperre war g1/.env lesbar, darum die
-    absolute Sperre je Ordner. Tests ohne Netz: agentkit/tests/test_claude_lauf.py (test_nur_lesen_*).
+    absolute Sperre je Ordner. Zweiter echter Lauf mit [werkzeuge] Read/WebSearch/WebFetch und [webfetch] bpb.de
+    (0,05 USD): Bild beschrieben, bpb.de abgerufen, WebSearch ging; verweigert: WebFetch example.com, Read
+    probe/geheim.txt. Tests ohne Netz: agentkit/tests/test_claude_lauf.py (test_nur_lesen_*).
 
 ## Gelernte Regeln
 - (noch keine)
