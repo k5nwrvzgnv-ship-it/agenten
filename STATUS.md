@@ -1118,7 +1118,8 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     des gründlichen Wegs (unverändert): Der Feedback-Dienst kann einen großen Änderungswunsch als Regel statt als
     Nachbesserung einordnen; lia/schnell umgeht das, weil es große Wünsche direkt als Nachbesserung weitergibt.
     Schritt 2 (lia/schnell, 10.11.): gebaut und an Kopien echt gemessen (Änderungen 13–23 s, schnelles Dokument 65 s,
-    je unter 0,01 USD), Schnittstelle für die Web-App in lia/schnell/STATUS.md; Dienste noch nicht installiert.
+    je unter 0,01 USD), Schnittstelle für die Web-App in lia/schnell/STATUS.md; Dienste installiert (Jans Okay
+    10.11., lia-schnell.path aktiv).
     Bedarf daraus: (a) unterricht und theater: Eine gründliche Nachbesserung nach schnellen Änderungen baut auf der
     eigenen alten Beschreibung bzw. dem Ablauf auf; die schnelle Fassung kommt nur als Datei (fassungen.grundlage bzw.
     Anhang) und kann verloren gehen. Besser: Gibt es zur Grundlage `lia/schnell/data/fassungen/<ursprung>/eigene-<n>/

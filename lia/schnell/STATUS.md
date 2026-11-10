@@ -7,8 +7,10 @@ einer Minute. Was zu groß ist, geht von selbst als gründliche Nachbesserung an
 nach außen.
 
 ## Stand (10.11.2026)
-- Gebaut mit Tests ohne Netz (tests/, 36 Tests, in pruefen.sh). Dienst-Vorlagen in systemd/, **noch nicht
-  installiert** (wartet auf Jans Okay). Die Web-App nutzt den Agenten noch nicht (Plan Schritt 3, eigener Chat).
+- Gebaut mit Tests ohne Netz (tests/, 37 Tests, in pruefen.sh). Dienste installiert und eingeschaltet (Jans Okay
+  10.11.2026): lia-schnell.path wartet auf data/wuensche/. Probe über den Dienst mit einem Wunsch an einen
+  unbekannten Auftrag (ohne claude, Lias Daten unberührt): Antwort „ungueltig“ 0,4 s nach dem Ablegen, also kostet der
+  Start des Dienstes fast nichts. Die Web-App nutzt den Agenten noch nicht (Plan Schritt 3, eigener Chat).
 - Echter Lauf an Kopien (10.11., claude und Renderer echt, Kette und Agenten-Ordner als Kopie, Lias Instanz
   unberührt). Zeit = vom Lesen des Wunschs bis zur abgelegten Fassung, ohne Start des Dienstes:
 
@@ -117,8 +119,8 @@ nach außen.
   verloren).
 
 ## Offene Punkte
-1. Dienste installieren (Jans Okay ausstehend), vorher Neustart der Zentralen (Haupt-STATUS Punkt 37). Danach ein
-   Lauf über den Dienst: Zeit mit Start und Speicher-Spitze messen.
+1. Vor der ersten echten Weitergabe (zu groß, Lernen) die Zentralen neu starten (Haupt-STATUS Punkt 37, Jans
+   Okay). Speicher-Spitze eines echten Laufs über den Dienst (claude und Renderer) ist noch nicht gemessen.
 2. Web-App (Plan Schritt 3, eigener Chat, baut gerade): Anbinden; schnell geänderte Fassungen oben mit
    Seitenbildern statt als „von dir“ (Kennzeichen siehe Schnittstelle).
 3. Gründliche Nachbesserung nach schnellen Änderungen: unterricht kopiert die Beschreibung des letzten eigenen
