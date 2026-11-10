@@ -47,6 +47,20 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 - Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
   schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
+## UX-Befund und Umbauplan (Stand 10.11.2026, wartet auf Jans Freigabe)
+`befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
+`umbauplan-ux.md` (Schritte 0–9, je Dateien, was Lia sieht, Tests). Noch nichts davon gebaut; Jan entscheidet
+Freigabe, Schritt 0 (Probe-Kopie) und welcher Knopf blau ist. Die Zeilennummern im Befund gelten für den Commit des
+Befunds. Behoben aus „Nebenbei gefunden“:
+- „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
+  (`test_gespraech_geloescht_meldung`).
+- `logik._regel_zeilen` hängt eingerückte Folgezeilen an die Regel davor (`test_regeln_mit_folgezeilen`). Die
+  Theater-STATUS selbst ist noch falsch (Folgezeile hinter der Regel vom 08.11., doppeltes Datum); Ursache in
+  `agentkit/regeln.py`, Bedarf Punkt 39 der Haupt-STATUS. Bis dahin hängt „Charaktereigenschaften.“ auf „Ich“ an
+  der Regel vom 08.11.
+- Test-Instanz 8795 am 10.11. neu aufgebaut (`data/test/aufbauen.py`), darin ein Test-Auftrag „Arbeitsblatt: Probe
+  Befund …“ an Stunde 1 von Straftheorien (nachgeklickter Alltagsweg). Instanz danach beendet.
+
 ## Umbau „Gespräch in der Mitte“ (Stand 10.11.2026, Plan `bauplan-gespraech.md`, Jans Okay 10.11.)
 Gebaut und committet (Bauplan-Schritte 1–6): `gespraech.py` (Markdown mit Überschriften, Tabellen, Bausteinen;
 Orte, Kette, darunter; Verlauf), `ablage.py` (eigene Dateien an `lia/instanz/ablage/<ort-id>/`), Routen in `app.py`
