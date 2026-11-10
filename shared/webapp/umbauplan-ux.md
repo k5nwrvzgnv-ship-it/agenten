@@ -70,7 +70,18 @@ vorher „+ Neu hier“ nur an laufenden Reihen). Tests: `test_plus_je_seite`, a
   HTML-Prüfungen anpassen), Heute-Tests (`knopf-gross`). Neu: je Seite genau ein „+“ mit den Einträgen der Tabelle,
   im Archiv kein „+“.
 
-## Schritt 2: Nur zeigen, was da ist
+## Schritt 2: Nur zeigen, was da ist (gebaut 10.11.2026)
+
+Gebaut wie unten, nur Vorlagen und CSS. Abweichungen und Einzelheiten: „Deine Dateien“ bleibt ohne Dateien im HTML
+(Sprungziel `#ablage` für „Datei“ im „+“ und die Weiterleitungen der Ablage), `ruhig.css` zeigt den Abschnitt dann nur
+angesprungen (`:target`), mit Fehler oder Erledigt-Meldung immer. Ohne Stunden bleiben an der Reihe „Termine“, deren
+Hinweis und Fehler ohne Überschrift stehen (bis Schritt 3). Die Klasse ohne Stundenplan zeigt nur den Link
+„Stundenplan eintragen“; „Keine kommenden Termine.“ ist weg. Abschnittsnummern zählen nur Gezeigtes. Die leise Zeile
+(`noch_leer` in `_ort.html`) steht, wenn an der Ebene kein Gespräch, kein Material, keine Datei, keine (ausgeblendete)
+Stunde und an der Klasse kein Termin ist; im Archiv ohne „Mit + fängst du an.“ Heute: „Weiter im Gespräch“ nur mit
+Gesprächen, auch wenn sonst kein Abschnitt da ist. Die Fach-Seite (`fach.html`) ist nicht Teil des Schritts und hat ihre
+Leertexte noch. Tests: neu `test_nur_zeigen_was_da_ist`, `test_heute_ohne_leere_abschnitte`; angepasst `test_reihe`,
+`test_gespraech`, `test_stunden`, `test_aendern_kopieren_ausblenden_loeschen`.
 
 - Dateien: `_ort.html:23` und `:46` (Leertexte Dateien und Gespräche), `reihe.html:35–42`, `:57`, `stunde.html:10–18`,
   `klasse.html:39–46`, `:62–68`, `_heute.html:19–23`, `:46–56`. Leere Abschnitte fallen ganz weg. Ist eine Seite

@@ -47,18 +47,26 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 - Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
   schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
-## UX-Befund und Umbauplan (Stand 10.11.2026, wartet auf Jans Freigabe)
+## UX-Befund und Umbauplan (Stand 10.11.2026, Schritte 1 und 2 gebaut)
 `befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
 `umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
-ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Noch nichts davon
-gebaut, wartet auf Jans Freigabe. Zwischenstände darf Lia sehen (Jan 10.11.), also keine Probe-Kopie. Die
+ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Wird
+schrittweise freigegeben (Jan 10.11.). Zwischenstände darf Lia sehen (Jan 10.11.), also keine Probe-Kopie. Die
 Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
 - Schritt 1 gebaut (Jans Okay 10.11., live): Klasse, Reihe, Stunde und Heute haben oben rechts ein „+“
   (`oberflaeche/_plus.html`, Block `plus` in `basis.html`) mit Gespräch, Material …, Stunde bzw. Probe, Reihe, Datei,
   je nach Seite; „Datei“ springt vorerst zum Abschnitt „Deine Dateien“ (richtig in Schritt 4). Weg sind „+ Neu hier“
   (außer Ergebnis), „+ Gespräch“ im Abschnitt, Formular „+ Stunde“, Knopf „+ Reihe“ und „Neuer Auftrag +“. Nur
   Vorlagen und CSS, kein Neustart nötig. Rundgang 10.11. gegen 8791: 162 Seiten ohne Fehler. Nicht im Browser
-  angesehen (Menü auf und zu, schmales Fenster). Nächster Schritt: 2 (nur zeigen, was da ist).
+  angesehen (Menü auf und zu, schmales Fenster).
+- Schritt 2 gebaut (Jans Okay 10.11., live, nur Vorlagen und CSS): Leere Abschnitte fallen weg (Gespräche, Zur ganzen
+  Reihe, Stunden-Überschrift, Material der Stunde, Reihen der Klasse, auf Heute „Wartet auf dich“, „Läuft gerade“,
+  „Weiter im Gespräch“). Ganz leere Ebene: leise Zeile „Noch leer. Mit + fängst du an.“ (`_ort.html` `noch_leer`, im
+  Archiv nur „Noch leer.“). „Deine Dateien“ ohne Dateien nur sichtbar, wenn „Datei“ im „+“ dorthin springt
+  (`.ablage-zu:not(:target)` in `ruhig.css`) oder Fehler/Meldung da ist. Klasse ohne Stundenplan: nur Link
+  „Stundenplan eintragen“. Einzelheiten im Plan. Rundgang 10.11. gegen 8791: 615 Seiten (mit Abfrage-Links, darum
+  mehr als bei Schritt 1), alle 200, 14 Seiten mit der leisen Zeile, `lia/instanz` unverändert. Nicht im Browser
+  angesehen (Sprung auf `#ablage` per „+“, schmales Fenster). Nächster Schritt: 3 (Seltenes ins „···“).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).

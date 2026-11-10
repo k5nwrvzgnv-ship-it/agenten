@@ -2,26 +2,26 @@
     Ausfall, Kopieren, Ausblenden, Löschen (nur ohne Material). Material ordnet Lia in seiner Ansicht zu. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
+{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- from "_plus.html" import ebene -%}
 {%- block plus %}{{ ebene(gs=gespraeche, neu_hier=neu_hier, ablage=ablage, archiv=p and p.archiv) }}{% endblock %}
 {% block inhalt %}
 {{ gespraeche_abschnitt(gespraeche) }}
 {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
+{#- Nur zeigen, was da ist (umbauplan-ux.md Schritt 2); „Bearbeiten“ bleibt bis Schritt 3 (dann im „···“) -#}
+{%- if not (gespraeche and (gespraeche.hier or gespraeche.darunter)) and not e.zeilen
+      and not ablage.dateien %}{{ noch_leer(p and p.archiv) }}{% endif %}
+{%- if e.zeilen %}
 <section aria-labelledby="ab1">
   <h2 id="ab1"><span class="abschnitt-nr">01</span>Material</h2>
-  {%- if e.zeilen %}
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
-  {%- else %}
-  <p class="leer">Noch kein Material für diese {{ e.wort }}. Öffne ein Material der Reihe und wähl dort
-    „Gehört zu: {{ e.wort }} {{ e.nr }}“.</p>
-  {%- endif %}
 </section>
+{%- endif %}
 {{ ablage_abschnitt(ablage) }}
 {%- if p and not p.archiv %}
 <section aria-labelledby="ab2" id="bearbeiten">
-  <h2 id="ab2"><span class="abschnitt-nr">02</span>Bearbeiten</h2>
+  <h2 id="ab2"><span class="abschnitt-nr">{{ "02" if e.zeilen else "01" }}</span>Bearbeiten</h2>
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
   <form class="zeile-form" method="post" action="/stunde/{{ p.stunde.id }}/aendern">
     <input type="hidden" name="token" value="{{ token }}">

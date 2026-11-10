@@ -1,6 +1,12 @@
-{#- Bausteine einer Ebene (Klasse/Kurs, Reihe, Stunde): eigene Dateien am Ort (ablage.py) und Gespräche. -#}
+{#- Bausteine einer Ebene (Klasse/Kurs, Reihe, Stunde): eigene Dateien am Ort (ablage.py) und Gespräche. Leere
+    Abschnitte fallen weg (umbauplan-ux.md Schritt 2); ist die ganze Ebene leer, steht dort noch_leer(). -#}
+{%- macro noch_leer(archiv=false) -%}
+<p class="leer noch-leer">Noch leer.{% if not archiv %} Mit + fängst du an.{% endif %}</p>
+{%- endmacro -%}
+{#- Ohne Dateien bleibt der Abschnitt im HTML (Sprungziel #ablage für „Datei“ im „+“ und für die Weiterleitungen der
+    Ablage in app.py), ruhig.css zeigt ihn dann nur, wenn er angesprungen ist (:target), mit Fehler oder Meldung immer. -#}
 {%- macro ablage_abschnitt(a) -%}
-<section aria-labelledby="ab-ablage" id="ablage">
+<section aria-labelledby="ab-ablage" id="ablage"{% if not (a.dateien or a.fehler or a.erledigt) %} class="ablage-zu"{% endif %}>
   <h2 id="ab-ablage">Deine Dateien</h2>
   {%- if a.erledigt %}<p class="hinweis hinweis-erledigt" role="status">Erledigt. Gespräche hier und darunter kennen deine Dateien.</p>{% endif %}
   {%- if a.fehler %}<p class="fehler" role="alert">{{ a.fehler }}</p>{% endif %}
@@ -20,7 +26,7 @@
     {%- endfor %}
   </ul>
   {%- else %}
-  <p class="leer">Noch keine. Leg hier ab, was Claude immer kennen soll: deine Planung, eine Buchseite, Kriterien.</p>
+  <p class="absatz unter">Was Claude immer kennen soll: deine Planung, eine Buchseite, Kriterien.</p>
   {%- endif %}
   <form class="ablage-form" method="post" action="/ablage/{{ a.ort_id }}" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ a.token }}">
@@ -39,11 +45,10 @@
 </a></li>
 {%- endmacro -%}
 {%- macro gespraeche_abschnitt(gs) -%}
-{%- if gs %}
+{%- if gs and (gs.hier or gs.darunter) %}
 <section aria-labelledby="ab-gespraeche" id="gespraeche">
   <h2 id="ab-gespraeche">Gespräche</h2>
-  {%- if gs.hier %}<ul class="liste">{% for z in gs.hier %}{{ gespraech_zeile(z) }}{% endfor %}</ul>
-  {%- elif not gs.darunter %}<p class="leer">Noch kein Gespräch hier.</p>{% endif %}
+  {%- if gs.hier %}<ul class="liste">{% for z in gs.hier %}{{ gespraech_zeile(z) }}{% endfor %}</ul>{% endif %}
   {%- if gs.darunter %}
   <details class="mehr darunter"{% if not gs.hier %} open{% endif %}>
     <summary>{{ gs.darunter | length }} {{ "weitere " if gs.hier }}darunter</summary>

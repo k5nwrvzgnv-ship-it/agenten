@@ -3,7 +3,7 @@
     zusätzlich, statisch/ziehen.js füllt dasselbe Formular), Termine, Reihe beginnt am …, Bearbeiten, Archivieren. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
+{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- from "_plus.html" import ebene -%}
 {%- block plus %}{{ ebene(gs=gespraeche, neu_hier=neu_hier, stunde_an=p.reihe.id if p and not p.archiv else none,
@@ -35,18 +35,24 @@
 {%- endif %}
 {%- endif %}
 {%- if e.behandelt %}<p class="absatz unter"><b>Schon behandelt:</b> {{ e.behandelt }}</p>{% endif %}
+{#- Nur zeigen, was da ist (umbauplan-ux.md Schritt 2): leere Abschnitte fallen weg, die Nummern zählen mit -#}
+{%- set nr = namespace(n=0) %}
+{%- if not (gespraeche and (gespraeche.hier or gespraeche.darunter)) and not e.zeilen and not e.stunden
+      and not ablage.dateien and not e.ausgeblendete %}{{ noch_leer(p and p.archiv) }}{% endif %}
+{%- if e.zeilen %}
+{%- set nr.n = nr.n + 1 %}
 <section aria-labelledby="ab1">
-  <h2 id="ab1"><span class="abschnitt-nr">01</span>Zur ganzen Reihe</h2>
-  {%- if e.zeilen %}
+  <h2 id="ab1"><span class="abschnitt-nr">{{ "%02d" % nr.n }}</span>Zur ganzen Reihe</h2>
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
-  {%- else %}
-  <p class="leer">Noch nichts zur ganzen Reihe.</p>
-  {%- endif %}
 </section>
+{%- endif %}
 {{ ablage_abschnitt(ablage) }}
-<section aria-labelledby="ab2" id="stunden">
-  <h2 id="ab2"><span class="abschnitt-nr">02</span>{{ e.wort_mehrzahl }}</h2>
+{#- Ohne Stunden ohne Überschrift; Termine und Fehler bleiben bis Schritt 3 (dann im „···“) -#}
+{%- if e.stunden or fehler or (p and not p.archiv) %}
+<section{% if e.stunden %} aria-labelledby="ab2"{% endif %} id="stunden">
   {%- if e.stunden %}
+  {%- set nr.n = nr.n + 1 %}
+  <h2 id="ab2"><span class="abschnitt-nr">{{ "%02d" % nr.n }}</span>{{ e.wort_mehrzahl }}</h2>
   <ul class="stunden-liste">
     {%- for s in e.stunden %}
     <li data-stunde="{{ s.id }}"{% if p and not p.archiv %} draggable="true"{% endif %}><a class="zeile zeile-stunde" href="{{ s.link }}">
@@ -56,8 +62,6 @@
     </a></li>
     {%- endfor %}
   </ul>
-  {%- else %}
-  <p class="leer">Noch keine {{ e.wort_mehrzahl }}. Leg sie an, wenn du magst; Material kann auch bei der ganzen Reihe bleiben.</p>
   {%- endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
   {%- if p and not p.archiv %}
@@ -90,9 +94,11 @@
   {%- endif %}
   {%- endif %}
 </section>
+{%- endif %}
 {%- if e.ausgeblendete %}
+{%- set nr.n = nr.n + 1 %}
 <section aria-labelledby="ab3" id="ausgeblendet">
-  <h2 id="ab3"><span class="abschnitt-nr">03</span>Ausgeblendete {{ e.wort_mehrzahl }}</h2>
+  <h2 id="ab3"><span class="abschnitt-nr">{{ "%02d" % nr.n }}</span>Ausgeblendete {{ e.wort_mehrzahl }}</h2>
   <ul>
     {%- for s in e.ausgeblendete %}
     <li><div class="zeile zeile-stunde">

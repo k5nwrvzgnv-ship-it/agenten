@@ -2,7 +2,7 @@
     das nur zur Klasse gehört (Notentabelle, Sitzplan), steht in noch keiner Datei: dafür der leere Zustand. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
+{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
 {%- from "_pflege.html" import knopf -%}
 {%- from "_plus.html" import ebene -%}
 {%- block plus %}{{ ebene(gs=gespraeche, reihe_neu="/klasse/" ~ p.klasse.id ~ "/reihe/neu" if p else "", ablage=ablage,
@@ -37,17 +37,18 @@
   <a class="knopf" href="/klasse/{{ p.klasse.id }}/bearbeiten">Bearbeiten</a>
 </div>
 {%- endif %}
+{#- Nur zeigen, was da ist (umbauplan-ux.md Schritt 2); Termine zählen als Inhalt -#}
+{%- if not (gespraeche and (gespraeche.hier or gespraeche.darunter)) and not e.zeilen and not ablage.dateien
+      and not (p and (p.kommend or p.vergangen)) %}{{ noch_leer(p and p.archiv) }}{% endif %}
+{%- if e.zeilen %}
 <section aria-labelledby="ab1">
   <h2 id="ab1"><span class="abschnitt-nr">01</span>Reihen</h2>
-  {%- if e.zeilen %}
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
-  {%- else %}
-  <p class="leer">Noch keine Reihe.</p>
-  {%- endif %}
 </section>
-{%- if p %}
+{%- endif %}
+{%- if p and (p.stundenplan or p.termine_fehler or p.kommend or p.vergangen or not p.archiv) %}
 <section aria-labelledby="ab2" id="termine">
-  <h2 id="ab2"><span class="abschnitt-nr">02</span>Termine</h2>
+  <h2 id="ab2"><span class="abschnitt-nr">{{ "02" if e.zeilen else "01" }}</span>Termine</h2>
   {%- if p.stundenplan %}<p class="absatz unter">Stundenplan: {{ p.stundenplan }} · <a href="/klasse/{{ p.klasse.id }}/stundenplan">ändern</a></p>{% endif %}
   {%- if p.termine_fehler %}
   <p class="hinweis">{{ p.termine_fehler }}</p>
@@ -60,12 +61,10 @@
   {%- endif %}
   {%- if p.kommend %}
   <ul class="termine">{% for t in p.kommend %}{{ termin_zeile(t, p.klasse) }}{% endfor %}</ul>
-  {%- else %}
-  <p class="leer">Keine kommenden Termine.</p>
   {%- endif %}
-  {%- elif not p.archiv %}
-  <p class="leer">Noch kein Stundenplan. <a href="/klasse/{{ p.klasse.id }}/stundenplan">Stundenplan eintragen</a>, dann
-    entstehen die Termine ohne Ferien und Feiertage.</p>
+  {%- elif not p.archiv and not p.stundenplan %}
+  {#- Einziger Weg zum Stundenplan, solange er fehlt -#}
+  <p class="absatz"><a href="/klasse/{{ p.klasse.id }}/stundenplan">Stundenplan eintragen</a></p>
   {%- endif %}
   {%- if not p.archiv and (p.kommend or p.vergangen) %}
   <form class="zeile-form" method="post" action="/klasse/{{ p.klasse.id }}/zusatztermin">

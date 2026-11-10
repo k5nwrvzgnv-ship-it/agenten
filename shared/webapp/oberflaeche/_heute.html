@@ -13,16 +13,28 @@
 {%- endif %}
 {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
 
-{#- (Name, Zeilen, Punkt offen, Text wenn leer; ohne Text fehlt der leere Abschnitt) #}
-{%- set abschnitte = [("Wartet auf dich", h.wartet, false, "Nichts offen."),
-                      ("Läuft gerade", h.laeuft, true, "Gerade läuft nichts."),
-                      ("Fertig", h.fertig, false, ""), ("Hat nicht geklappt", h.fehlgeschlagen, false, "")] %}
+{#- „Weiter im Gespräch“: nur mit Gesprächen; steht hinter dem ersten gezeigten Abschnitt oder allein -#}
+{%- macro weiter_abschnitt(w) -%}
+{%- if w and (w.oben or w.rest) %}
+<section aria-labelledby="ab-weiter">
+  <h2 id="ab-weiter">Weiter im Gespräch</h2>
+  {%- if w.oben %}<ul class="liste">{% for z in w.oben %}{{ gespraech_zeile(z) }}{% endfor %}</ul>{% endif %}
+  {%- if w.rest %}
+  <details class="mehr"><summary>Alle Gespräche ({{ w.rest | length }} weitere)</summary>
+    <ul class="liste">{% for z in w.rest %}{{ gespraech_zeile(z) }}{% endfor %}</ul></details>
+  {%- endif %}
+</section>
+{%- endif %}
+{%- endmacro -%}
+{#- (Name, Zeilen, Punkt offen). Nur zeigen, was da ist (umbauplan-ux.md Schritt 2): leere Abschnitte fallen weg, die
+    Begrüßung sagt schon, wenn nichts wartet. #}
+{%- set abschnitte = [("Wartet auf dich", h.wartet, false), ("Läuft gerade", h.laeuft, true),
+                      ("Fertig", h.fertig, false), ("Hat nicht geklappt", h.fehlgeschlagen, false)] %}
 {%- set nummer = namespace(n=0) %}
-{%- for name, zeilen, offen, leer in abschnitte if zeilen or leer %}
+{%- for name, zeilen, offen in abschnitte if zeilen %}
 {%- set nummer.n = nummer.n + 1 %}
 <section aria-labelledby="ab{{ nummer.n }}">
   <h2 id="ab{{ nummer.n }}"><span class="abschnitt-nr">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
-  {%- if zeilen %}
   <ul>{% for z in zeilen %}{{ zeile(z, offen) }}
     {%- if z.zurueck_id and neu %}
     {#- Zwei Schritte ohne JavaScript (Befund 03.11. Punkt 7): Ein Klick allein ändert nichts. „Nein“ lädt die Seite neu. #}
@@ -37,19 +49,7 @@
     </details></li>
     {%- endif %}{% endfor %}</ul>
   {%- if name == "Fertig" and h.fertig_weitere %}<p class="leer">und {{ h.fertig_weitere }} ältere</p>{% endif %}
-  {%- else %}
-  <p class="leer">{{ leer }}</p>
-  {%- endif %}
 </section>
-{%- if loop.first and weiter %}
-<section aria-labelledby="ab-weiter">
-  <h2 id="ab-weiter">Weiter im Gespräch</h2>
-  {%- if weiter.oben %}<ul class="liste">{% for z in weiter.oben %}{{ gespraech_zeile(z) }}{% endfor %}</ul>
-  {%- else %}<p class="leer">Noch kein Gespräch. Fang an einer Reihe oder unter „Gespräche ohne Ort“ an.</p>{% endif %}
-  {%- if weiter.rest %}
-  <details class="mehr"><summary>Alle Gespräche ({{ weiter.rest | length }} weitere)</summary>
-    <ul class="liste">{% for z in weiter.rest %}{{ gespraech_zeile(z) }}{% endfor %}</ul></details>
-  {%- endif %}
-</section>
-{%- endif %}
+{%- if loop.first %}{{ weiter_abschnitt(weiter) }}{% endif %}
 {%- endfor %}
+{%- if not nummer.n %}{{ weiter_abschnitt(weiter) }}{% endif %}

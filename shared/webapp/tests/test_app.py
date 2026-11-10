@@ -538,7 +538,8 @@ class TestOrdnung(Aufbau):
         self.assertNotIn("20261030", self.sichtbar(html))
         r, html = self.hole("/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn")
         self.assertEqual(r.status, 200)
-        self.assertIn("Noch nichts zur ganzen Reihe.", html)
+        self.assertNotIn("Zur ganzen Reihe", html)  # leere Abschnitte fallen weg (umbauplan-ux.md Schritt 2)
+        self.assertNotIn("Noch nichts", html)
         self.assertEqual(self.plus(html), ["Material …", "Probe", "Datei"])  # Theater-Agent: Proben statt Stunden
         self.assertIn("Reihenfrage noch offen", html)  # Chrome-Test Nr. 5
         self.assertNotIn("Reihenfrage noch offen", self.hole("/reihe/strafe")[1])
@@ -590,8 +591,9 @@ class TestOrdnung(Aufbau):
         self.assertEqual(self.post("/gespraech/neu", {"ort": "strafe"})[0].status, 404)  # Chat aus
         with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
             modul = app.chat()
+            self.assertNotIn("Weiter im Gespräch", self.hole("/")[1])  # erst mit einem Gespräch
             _, html = self.hole("/reihe/strafe")
-            self.assertIn("Noch kein Gespräch hier.", html)
+            self.assertNotIn('id="gespraeche"', html)  # ohne Gespräche kein Abschnitt
             self.assertIn('href="/gespraeche"><span>Gespräche ohne Ort</span>', html)
             r, _ = self.post("/gespraech/neu", {"ort": "strafe"})
             self.assertEqual(r.status, 303)
@@ -697,6 +699,65 @@ class TestOrdnung(Aufbau):
         menue = teile[1].split("</details>")[0]
         return re.findall(r'<(?:button|a) class="knopf knopf-leise"[^>]*>([^<]+)</(?:button|a)>', menue)
 
+    def test_nur_zeigen_was_da_ist(self):
+        """umbauplan-ux.md Schritt 2: leere Abschnitte fallen weg, eine ganz leere Ebene sagt es in einer leisen Zeile."""
+        leer = "Noch leer. Mit + fängst du an."
+        theater = "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn"
+        _, html = self.hole(theater)
+        mitte = html.split('<nav class="baum"')[0]
+        self.assertIn(leer, mitte)
+        self.assertNotIn("Noch kein", mitte)
+        # nur die versteckte Ablage hat eine Überschrift; ihr Formular bleibt Sprungziel für „Datei“ im „+“
+        self.assertEqual(re.findall(r'<h2 id="([^"]+)"', mitte), ["ab-ablage"])
+        self.assertIn('id="ablage" class="ablage-zu"', mitte)
+        self.assertIn('action="/ablage/darstellendes-spiel-kurs-12-der-nackte-wahnsinn"', mitte)
+        self.assertIn('href="#ablage"', mitte)
+        # mit Fehler oder Meldung ist die Ablage offen
+        self.assertNotIn("ablage-zu", self.hole(theater + "?ablagefehler=heic")[1])
+        self.assertNotIn("ablage-zu", self.hole(theater + "?erledigt=entfernt")[1])
+        # Stunde ohne Material, Gespräch und Datei: leise Zeile, kein Abschnitt „Material“
+        self.assertEqual(self.post(f"{theater}/stunden", {"thema": "Szene 1"})[0].status, 303)
+        _, html = self.hole(f"{theater}/stunde/1")
+        self.assertIn(leer, html)
+        self.assertNotIn('id="ab1"', html.split('id="bearbeiten"')[0])
+        # sobald etwas da ist (hier eine Probe), fällt die leise Zeile an der Reihe weg
+        _, html = self.hole(theater)
+        self.assertNotIn(leer, html)
+        self.assertIn('<span class="abschnitt-nr">01</span>Proben', html)  # Nummern zählen nur Gezeigtes
+        # Klasse ohne Stundenplan: nur der Link, kein Erklärsatz
+        _, html = self.hole("/klasse/darstellendes-spiel-kurs-12")
+        self.assertIn('<a href="/klasse/darstellendes-spiel-kurs-12/stundenplan">Stundenplan eintragen</a>', html)
+        self.assertNotIn("Noch kein Stundenplan", html)
+        self.assertNotIn(leer, html)  # die Klasse hat eine Reihe
+        # im Archiv ohne den Teil mit „+“
+        _, html = self.hole("/reihe/strafe")
+        self.assertNotIn("Noch leer", html)
+        self.assertEqual(self.post("/objekt/darstellendes-spiel-kurs-12-der-nackte-wahnsinn/archivieren",
+                                   {"bestaetigt": "1"})[0].status, 303)
+        _, html = self.hole(f"{theater}/stunde/1")
+        self.assertIn('<p class="leer noch-leer">Noch leer.</p>', html)
+
+    def test_heute_ohne_leere_abschnitte(self):
+        ordner = self.tmp / "chat"
+        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
+            _, html = self.hole("/")
+        self.assertIn("Wartet auf dich</h2>", html)  # hier wartet etwas, aber nichts läuft, kein Gespräch
+        for weg in ("Läuft gerade</h2>", "Gerade läuft nichts.", "Weiter im Gespräch", "Noch kein Gespräch"):
+            self.assertNotIn(weg, html)
+        # ganz leeres Heute (Vorlage direkt): kein Abschnitt; „Weiter im Gespräch“ steht dann allein da
+        h = {"datum": "Di 10.11.", "begruessung": "Hallo Lia.", "anzahl_wartet": 0,
+             "wartet_text": "Gerade wartet nichts auf dich.", "wartet": [], "laeuft": [], "fertig": [],
+             "fehlgeschlagen": []}
+        vorlage = app._OBERFLAECHEN["neu"].env.get_template("_heute.html")
+        html = vorlage.render(h=h, weiter=None)
+        self.assertIn("Gerade wartet nichts auf dich.", html)
+        self.assertNotIn("<section", html)
+        self.assertNotIn("Nichts offen.", html)
+        html = vorlage.render(h=h, weiter={"oben": [{"link": "/gespraech/a", "name": "Kant", "zuletzt": "heute"}],
+                                           "rest": []})
+        self.assertEqual(re.findall(r'<h2 id="([^"]+)"', html), ["ab-weiter"])
+        self.assertIn('href="/gespraech/a"', html)
+
     def test_plus_je_seite(self):
         """Ein „+“ oben rechts statt „+ Neu hier“, „+ Gespräch“, „+ Stunde“, „+ Reihe“ und „Neuer Auftrag“."""
         self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
@@ -738,7 +799,10 @@ class TestOrdnung(Aufbau):
             "status": "erledigt", "reihe": "strafe", "erstellt": "2026-10-30T15:00:00+01:00",
             "abgeschlossen": "2026-10-30T15:10:00+01:00", "ergebnis": "x", "ergebnis_dateien": []})
         _, html = self.hole("/reihe/strafe")
-        self.assertIn("Noch keine Stunden.", html)
+        self.assertNotIn("Noch keine", html)
+        self.assertNotIn('id="ab2"', html)  # Abschnitt „Stunden“ ohne Überschrift, Termine bleiben (bis Schritt 3)
+        self.assertIn('id="stunden"', html)
+        self.assertIn('href="/reihe/strafe/termine"', html)
         self.assertNotIn("Gehört zu", self.hole("/ergebnis/20261030-160000-unterricht-cccccc")[1])
         r, _ = self.post("/reihe/strafe/stunden", {"thema": "  Einstieg  "})
         self.assertEqual(r.status, 303)
@@ -747,8 +811,9 @@ class TestOrdnung(Aufbau):
         r, html = self.hole("/reihe/strafe/stunde/2")
         self.assertEqual(r.status, 200)
         for text in ("Kant &lt;Vergeltung&gt;", "Stunde 2", '<a href="/reihe/strafe">Straftheorien</a>',
-                     "Noch kein Material für diese Stunde."):
+                     "Noch leer. Mit + fängst du an."):
             self.assertIn(text, html)
+        self.assertNotIn("Öffne ein Material", html)  # Umweg zum Material steht nicht mehr da
         for falsch in ("/reihe/strafe/stunde/3", "/reihe/strafe/stunde/0", "/reihe/strafe/stunde/x",
                        "/reihe/gibts-nicht/stunde/1"):
             self.assertEqual(self.hole(falsch)[0].status, 404, falsch)

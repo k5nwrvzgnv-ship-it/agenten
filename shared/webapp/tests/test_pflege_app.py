@@ -661,7 +661,8 @@ class TestStunde(Pflege):
         self.assertIn("ausgeblendet", html)
         teil = html.split("Ausgeblendete Stunden")[1]
         self.assertIn("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", teil)
-        self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", html.split("Zur ganzen Reihe")[1].split("Ausgeblendete")[0])
+        self.assertNotIn("Arbeitsblatt &lt;Kant&gt;", html.split("Ausgeblendete Stunden")[0])
+        self.assertNotIn("Zur ganzen Reihe", html)  # leer, fällt weg (umbauplan-ux.md Schritt 2)
         self.ok(f"/objekt/{st['id']}/wiederherstellen", {})
         self.assertEqual(self.s().objekt(st["id"])["nr"], 1)
         # leere Stunde: Löschen geht
