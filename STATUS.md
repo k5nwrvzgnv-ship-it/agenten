@@ -1096,9 +1096,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
       Claude-Code-Sitzung im zuständigen Ordner, mit Jans Zustimmung.
     - Lernt von Lia und verbessert sich selbst (aufbauend auf agentkit.feedback), zunehmend automatisierter Betrieb.
     Berührt CLAUDE.md (Architektur, „Agenten ändern keinen Code“), agentkit.claude_lauf (Werkzeuge über Read hinaus),
-    lia/chat und shared/webapp. Als Nächstes: Plan im Hauptordner-Chat, Entscheidungen bei Jan. Offen bei Jan: was am
-    Chat überfordernd war (Länge und Gliederung der Antworten oder die Oberfläche); welche Bearbeiten-Fläche
-    unintuitiv ist (Wunsch: Drag and Drop). Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
+    lia/chat und shared/webapp. Plan: docs/gespraech-flexibel-plan.md (10.11.2026, Entscheidungen bei Jan, Abschnitt
+    8). Jans Antworten 10.11.: überfordernd war alles (Länge, Gliederung, Oberfläche ringsum, dass Claude nichts tun
+    kann); unintuitiv sind alle Bearbeiten-Flächen (Stunden, Reihen und Klassen, Ablage, Masken), Wunsch Drag and
+    Drop. Probe 10.11. (claude 2.1.304): Grep/Glob halten die Read-Pfadgrenze, eigener MCP-Server mit Bordmitteln
+    geht mit claude -p (allow/deny je Werkzeug). Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
     weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
     reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.
 
