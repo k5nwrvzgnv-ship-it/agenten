@@ -1,0 +1,73 @@
+{#- Rahmen für alle Seiten (bauplan-gespraech.md, Skizze skizzen/gespraech.html): Seitenleiste | Mitte | rechts (nur
+    im Gespräch, Block „rechts“). Im HTML steht die Mitte vorn, damit sie bei schmalem Fenster oben steht; die Spalten
+    ordnet ruhig.css. Die alte Spalte „Fragen“ ist weg, Gespräche haben eigene Seiten. -#}
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titel %}{{ e.titel }}{% endblock %}</title>
+<link rel="stylesheet" href="/statisch/ruhig.css">
+{%- block skripte %}{% endblock %}
+</head>
+<body>
+<div class="rahmen{% block rahmen_klasse %} ohne-rechts{% endblock %}">
+<main class="inhalt{% block main_klasse %} einzeln{% endblock %}">
+<div class="krumen-zeile">
+<nav class="krumen" aria-label="Brotkrumen">
+  <ol>
+    {%- for k in krumen.teile %}
+    <li>{% if k.link %}<a href="{{ k.link }}">{{ k.text }}</a>{% else %}<span>{{ k.text }}</span>{% endif %}<span class="trenner" aria-hidden="true">›</span></li>
+    {%- endfor %}
+    <li aria-current="page">{{ krumen.hier }}</li>
+  </ol>
+</nav>
+{%- if neu_hier %}<a class="knopf{% block neu_klasse %} knopf-voll{% endblock %}" href="{{ neu_hier }}">+ Neu hier</a>{% endif %}
+</div>
+{% block seitenkopf %}
+<header class="kopf">
+  {%- if e.unter %}<span class="datum grau">{{ e.unter }}</span>{% endif %}
+  <h1 class="titel-gross">{{ e.titel }}</h1>
+</header>
+{% endblock %}
+{%- set ah = aktion_hinweis(request.query_params.get("aktion")) %}
+{%- if ah %}
+<div class="hinweis hinweis-erledigt aktion-hinweis" role="status">
+  <div class="aktion-zeile"><span>{{ ah.text }}</span>
+    {%- if ah.zurueck %}<span aria-hidden="true">·</span>
+    <form class="inline-form" method="post" action="/rueckgaengig">
+      <input type="hidden" name="token" value="{{ formular_token() }}">
+      <input type="hidden" name="aktion" value="{{ ah.id }}">
+      <input type="hidden" name="zurueck" value="{{ request.url.path }}">
+      <button class="knopf-link" type="submit">Rückgängig</button>
+    </form>{% endif %}</div>
+  {%- for h in ah.hinweise %}<p class="absatz unter">{{ h }}</p>{% endfor %}
+</div>
+{%- elif request.query_params.get("erledigt") == "nichts" %}
+<p class="hinweis aktion-hinweis" role="status">Nichts geändert.</p>
+{%- endif %}
+{% block inhalt %}{% endblock %}
+</main>
+<nav class="baum" aria-label="Fächer und Reihen">
+  <a class="baum-name" href="/">Deine Assistenz</a>
+  <ul>
+    {%- for b in baum %}
+    {%- if b.art == "fach" and b.link %}
+    <li><a class="baum-fach" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}>{{ b.text }}</a></li>
+    {%- elif b.art == "fach" %}
+    <li class="baum-fach">{{ b.text }}</li>
+    {%- elif b.art == "neu" %}
+    <li><a class="baum-eintrag baum-neu tiefe-{{ b.tiefe }}" href="{{ b.link }}"><span>{{ b.text }}</span></a></li>
+    {%- elif b.art == "gruppe" %}
+    <li><a class="baum-eintrag baum-gruppe" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}><span>{{ b.text }}</span></a></li>
+    {%- else %}
+    <li><a class="baum-eintrag tiefe-{{ b.tiefe }}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
+      {%- if b.zahl %}<span class="baum-zahl">{{ b.zahl }}</span>{% endif %}</a></li>
+    {%- endif %}
+    {%- endfor %}
+  </ul>
+</nav>
+{%- block rechts %}{% endblock %}
+</div>
+</body>
+</html>

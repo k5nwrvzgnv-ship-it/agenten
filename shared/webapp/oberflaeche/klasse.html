@@ -1,0 +1,87 @@
+{#- Klasse/Kurs: Reihen, Termine aus dem Stundenplan (Ausfall, Zusatztermin), „+ Reihe“ und „Bearbeiten“. Material,
+    das nur zur Klasse gehört (Notentabelle, Sitzplan), steht in noch keiner Datei: dafür der leere Zustand. -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{%- from "_pflege.html" import knopf -%}
+{%- macro termin_zeile(t, k) -%}
+<li class="termin-zeile{% if t.ausgefallen %} termin-aus{% endif %}">
+  <span class="termin-datum">{{ t.text }}</span>
+  <span class="text">
+    {%- if t.ausgefallen %}<span class="unter">fällt aus</span>
+    {%- elif t.stunde %}<a href="/reihe/{{ t.stunde.reihe_id }}{% if t.stunde.nr %}/stunde/{{ t.stunde.nr }}{% endif %}">{{ t.stunde.reihe }} · {% if t.stunde.nr %}Stunde {{ t.stunde.nr }}: {% endif %}{{ t.stunde.thema }}</a>
+    {%- else %}<span class="unter">frei</span>{% endif %}
+    {%- if t.zusatz %}<span class="unter"> · Zusatztermin</span>{% endif %}
+  </span>
+  {%- if not p.archiv %}
+  {%- if t.ausgefallen %}
+  {{ knopf("/klasse/" ~ k.id ~ "/ausfall-aufheben", "findet doch statt", token, [("termin", t.kennung)], leise=true) }}
+  {%- else %}
+  <a class="knopf knopf-leise" href="/klasse/{{ k.id }}/ausfall?termin={{ t.kennung }}">fällt aus</a>
+  {%- if t.zusatz and not t.stunde %}{{ knopf("/klasse/" ~ k.id ~ "/zusatztermin-entfernen", "entfernen", token, [("termin", t.kennung)], leise=true) }}{% endif %}
+  {%- endif %}
+  {%- endif %}
+</li>
+{%- endmacro -%}
+{% block inhalt %}
+{%- if p %}
+<div class="knoepfe knoepfe-unten">
+  {%- if p.archiv %}
+  <p class="hinweis">Im Archiv. Alles darin bleibt erhalten.</p>
+  {%- if p.selbst_archiviert %}{{ knopf("/objekt/" ~ p.klasse.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}{% endif %}
+  {%- else %}
+  <a class="knopf knopf-voll" href="/klasse/{{ p.klasse.id }}/reihe/neu">+ Reihe</a>
+  {%- endif %}
+  <a class="knopf" href="/klasse/{{ p.klasse.id }}/bearbeiten">Bearbeiten</a>
+</div>
+{%- endif %}
+<section aria-labelledby="ab1">
+  <h2 id="ab1"><span class="abschnitt-nr">01</span>Reihen</h2>
+  {%- if e.zeilen %}
+  <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
+  {%- else %}
+  <p class="leer">Noch keine Reihe.</p>
+  {%- endif %}
+</section>
+{%- if p %}
+<section aria-labelledby="ab2" id="termine">
+  <h2 id="ab2"><span class="abschnitt-nr">02</span>Termine</h2>
+  {%- if p.stundenplan %}<p class="absatz unter">Stundenplan: {{ p.stundenplan }} · <a href="/klasse/{{ p.klasse.id }}/stundenplan">ändern</a></p>{% endif %}
+  {%- if p.termine_fehler %}
+  <p class="hinweis">{{ p.termine_fehler }}</p>
+  {%- elif p.kommend or p.vergangen %}
+  {%- if p.vergangen %}
+  <details class="termine-vorher">
+    <summary>Vergangene Termine ({{ p.vergangen|length }})</summary>
+    <ul class="termine">{% for t in p.vergangen %}{{ termin_zeile(t, p.klasse) }}{% endfor %}</ul>
+  </details>
+  {%- endif %}
+  {%- if p.kommend %}
+  <ul class="termine">{% for t in p.kommend %}{{ termin_zeile(t, p.klasse) }}{% endfor %}</ul>
+  {%- else %}
+  <p class="leer">Keine kommenden Termine.</p>
+  {%- endif %}
+  {%- elif not p.archiv %}
+  <p class="leer">Noch kein Stundenplan. <a href="/klasse/{{ p.klasse.id }}/stundenplan">Stundenplan eintragen</a>, dann
+    entstehen die Termine ohne Ferien und Feiertage.</p>
+  {%- endif %}
+  {%- if not p.archiv and (p.kommend or p.vergangen) %}
+  <form class="zeile-form" method="post" action="/klasse/{{ p.klasse.id }}/zusatztermin">
+    <input type="hidden" name="token" value="{{ token }}">
+    <span class="unter">Zusatztermin:</span>
+    <label class="unsichtbar" for="zusatz-datum">Datum</label>
+    <input class="feld" id="zusatz-datum" type="date" name="datum" required>
+    <label class="unsichtbar" for="zusatz-stunde">Stunde</label>
+    <select id="zusatz-stunde" name="stunde">
+      {%- for n in p.stunden_wahl %}<option value="{{ n }}">{{ n }}. Stunde</option>{% endfor %}
+    </select>
+    <button class="knopf" type="submit">Dazu</button>
+  </form>
+  {%- endif %}
+</section>
+{%- endif %}
+<section aria-labelledby="ab3">
+  <h2 id="ab3"><span class="abschnitt-nr">{{ "03" if p else "02" }}</span>Zur ganzen Klasse</h2>
+  <p class="leer">Noch nichts. Hier steht später, was zu keiner Reihe gehört, zum Beispiel eine Notentabelle.
+    Bis dahin findest du es in „Heute“.</p>
+</section>
+{% endblock %}

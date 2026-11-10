@@ -1,0 +1,41 @@
+{#- Fach anlegen (nur Name, Plan Abschnitt 5) bzw. bearbeiten (Name, Kurzform), dazu Archivieren, Wiederherstellen,
+    Löschen (nur, wenn nichts dranhängt). Geschrieben wird über agentkit.strukturpflege (app.py). -#}
+{% extends "basis.html" %}
+{%- block skripte %}{{ super() }}{% if not fach %}<script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
+{%- from "_pflege.html" import fehler_liste, knopf -%}
+{% block inhalt %}
+{{ fehler_liste(fehler) }}
+<form class="formular" method="post" action="{{ '/fach/neu' if not fach else '/fach/' ~ fach.id ~ '/bearbeiten' }}"{% if not fach %} data-einmal{% endif %}>
+  <input type="hidden" name="token" value="{{ token }}">
+  {%- if not fach %}
+  <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+  {%- endif %}
+  <section>
+    <label class="feld-titel" for="name">Name des Fachs</label>
+    <input class="feld" id="name" name="name" type="text" maxlength="{{ laenge.name }}" value="{{ werte.name }}"
+           required placeholder="zum Beispiel Ethik">
+    {%- if fach %}
+    <input type="hidden" name="alt_name" value="{{ fach.name }}">
+    <label class="feld-titel" for="kurzform">Kurzform (freiwillig)</label>
+    <input class="feld" id="kurzform" name="kurzform" type="text" maxlength="{{ laenge.kurzform }}"
+           value="{{ werte.kurzform }}" placeholder="zum Beispiel DS">
+    <input type="hidden" name="alt_kurzform" value="{{ fach.kurzform }}">
+    {%- endif %}
+  </section>
+  <button class="knopf knopf-voll" type="submit">{{ "Anlegen" if not fach else "Speichern" }}</button>
+</form>
+{%- if fach %}
+<section aria-labelledby="mehr">
+  <h2 id="mehr"><span class="abschnitt-nr">02</span>Mehr</h2>
+  <div class="knoepfe knoepfe-unten">
+    {%- if fach.archiviert %}
+    {{ knopf("/objekt/" ~ fach.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}
+    {%- else %}
+    {{ knopf("/objekt/" ~ fach.id ~ "/archivieren", "Archivieren", token) }}
+    {%- endif %}
+    {%- if loeschen %}{{ knopf("/objekt/" ~ fach.id ~ "/loeschen", "Löschen", token) }}{% endif %}
+  </div>
+  {%- if not loeschen %}<p class="unter">Löschen geht nicht, daran hängt: {{ haken }}. Archivieren geht immer.</p>{% endif %}
+</section>
+{%- endif %}
+{% endblock %}

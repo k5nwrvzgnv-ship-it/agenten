@@ -1,0 +1,45 @@
+{#- Offener Entwurf. Bei Entwürfen, die Lia selbst einsetzt (typ entwurf), entscheidet sie hier: „Setze ich selbst
+    ein“ oder „Brauche ich nicht“, rückgängig machbar (gespeichert in der Web-App, nicht in der Freigabe).
+    Entwürfe nach außen entscheidet Jan (CLAUDE.md). -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+{%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
+<p class="hinweis">{{ e.entschieden or e.hinweis }}.</p>
+{%- if e.lia_darf %}
+<div class="knoepfe">
+  {%- if e.entschieden %}
+  <form class="final-form" method="post" action="{{ link }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="stand" value="">
+    <button class="knopf" type="submit">Rückgängig</button>
+  </form>
+  {%- else %}
+  <form class="final-form" method="post" action="{{ link }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="stand" value="selbst">
+    <button class="knopf knopf-voll" type="submit">Setze ich selbst ein</button>
+  </form>
+  <form class="final-form" method="post" action="{{ link }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="stand" value="nein">
+    <button class="knopf" type="submit">Brauche ich nicht</button>
+  </form>
+  {%- endif %}
+</div>
+<span class="unter">Änderungswünsche zu diesem Entwurf gehen im Moment noch über Jan.</span>
+{%- endif %}
+<section>
+  <h2><span class="abschnitt-nr">01</span>Text</h2>
+  <div class="entwurf">{{ e.inhalt }}</div>
+</section>
+{%- if e.details %}
+<section>
+  <h2><span class="abschnitt-nr">02</span>Details</h2>
+  <dl class="details">
+    {%- for name, wert in e.details %}
+    <div><dt>{{ name }}</dt><dd>{{ wert }}</dd></div>
+    {%- endfor %}
+  </dl>
+</section>
+{%- endif %}
+{% endblock %}

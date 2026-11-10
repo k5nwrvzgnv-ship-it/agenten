@@ -151,7 +151,7 @@ class TestApp(Aufbau):
 
     def test_rahmen(self):
         _, html = self.hole("/")
-        for text in ('<nav class="baum"', '<aside class="fragen"', "Kommt bald.", '<nav class="krumen"',
+        for text in ('<nav class="baum"', '<nav class="krumen"',
                      '<li aria-current="page">Heute</li>', 'aria-current="page"><span>Heute</span>'
                      '<span class="baum-zahl">2</span>', 'hx-get="/teile/heute"'):
             self.assertIn(text, html)
@@ -181,26 +181,25 @@ class TestApp(Aufbau):
         self.assertEqual(self.hole("/openapi.json")[0].status, 404)
 
     def test_statisch(self):
-        r, css = self.hole("/statisch/stil.css")
+        r, css = self.hole("/statisch/ruhig.css")
         self.assertEqual(r.status, 200)
-        self.assertIn("--akzent: #d4290f", css)
+        self.assertIn("--akzent: #d44c47", css)
         self.assertEqual(self.hole("/statisch/../app.py")[0].status, 404)
         # Befund 03.11. Punkt 5: Der Hinweis mit Rückgängig bleibt nach dem Sprung im Bild. Gemessen wird im Browser.
         self.assertRegex(css, r"\.aktion-hinweis \{ position: sticky; top: 0;")
 
     def test_schriftgroessen(self):
-        """Befund 03.11., Teil D: vorher 11 Schriftgrößen, je Seite 7 bis 9. Neue Größen müssen hier begründet werden."""
-        _, css = self.hole("/statisch/stil.css")
-        self.assertEqual({int(n) for n in re.findall(r"font-size: (\d+)px", css)}, {12, 14, 16, 18, 22, 40, 64})
+        """Ruhige Oberfläche (ui-plan-notion.md): 12/14/16/20/32, schmal 26. Neue Größen müssen hier begründet werden."""
+        _, css = self.hole("/statisch/ruhig.css")
+        self.assertEqual({int(n) for n in re.findall(r"font-size: (\d+)px", css)}, {12, 14, 16, 20, 26, 32})
 
     def test_rot_nur_fuer_wartendes_und_fehler(self):
         """Befund 03.11., Kapitel 4: Rot sagt nur noch „schau hier hin“. Neue rote Stellen müssen hier begründet werden."""
-        _, css = self.hole("/statisch/stil.css")
+        _, css = self.hole("/statisch/ruhig.css")
         css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
         rot = {w.strip() for sel, inhalt in re.findall(r"([^{}]+)\{([^{}]*)\}", css) if "var(--akzent)" in inhalt
                for w in sel.split(",")}
-        self.assertEqual(rot, {".baum-zahl", ".akzent", ".punkt-rot", ".marke-rot", ".hinweis-fehler", ".fehler",
-                               ".fragen-fehler"})
+        self.assertEqual(rot, {".baum-zahl", ".akzent", ".punkt-rot", ".marke-rot", ".hinweis-fehler", ".fehler"})
 
     def test_ergebnis(self):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
@@ -889,102 +888,6 @@ class TestOrdnung(Aufbau):
         self.assertEqual(a["text"], "Spielfassung: Der nackte Wahnsinn\nLänge: 35–40 Minuten\nSpieler*innen: 18\n"
                                     "Was bleiben muss: Akt 1\nTreppe\n\nReihe: Der nackte Wahnsinn (Darstellendes Spiel, Kurs 12)")
 
-    def test_fragen_spalte(self):
-        self.assertIn("Kommt bald", self.hole("/reihe/strafe")[1])  # ohne WEBAPP_CHAT nur Platzhalter
-        self.assertEqual(self.post("/fragen", {"text": "x"})[0].status, 404)
-        ordner = self.tmp / "chat"
-        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
-            _, html = self.hole("/reihe/strafe")
-            for text in ("Ich weiß:</span> Ethik › Klasse 8 › Straftheorien", 'name="ohne"', 'action="/fragen"',
-                         "htmx-2.0.4.min.js"):
-                self.assertIn(text, html)
-            r, _ = self.post("/fragen", {"text": "Was heißt Vergeltung?", "reihe": "strafe", "zurueck": "/reihe/strafe"})
-            self.assertEqual(r.status, 303)
-            fid = r.getheader("location").split("frage=")[1].split("#")[0]
-            frage = json.loads((ordner / "fragen" / f"{fid}.json").read_text())
-            self.assertEqual((frage["text"], frage["ort"]["reihe"], frage["ort"]["chip"]),
-                             ("Was heißt Vergeltung?", "strafe", "Ethik › Klasse 8 › Straftheorien"))
-            # aus einer Stunde: Nummer, Thema und ihre id (lia/chat, freiwillig seit Bauschritt 2)
-            self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
-            sid = self.stunden()[0]["id"]
-            r2, _ = self.post("/fragen", {"text": "Und Kant?", "reihe": "strafe", "stunde": "1",
-                                          "zurueck": "/reihe/strafe/stunde/1"})
-            fid2 = r2.getheader("location").split("frage=")[1].split("#")[0]
-            ort = json.loads((ordner / "fragen" / f"{fid2}.json").read_text())["ort"]
-            self.assertEqual((ort["stunde"], ort["stunde_thema"], ort["stunde_id"]), (1, "Kant", sid))
-            _, html = self.hole(f"/reihe/strafe?frage={fid}")
-            self.assertIn(f'hx-get="/teile/frage/{fid}"', html)
-            _, teil = self.hole(f"/teile/frage/{fid}")
-            self.assertIn("Denkt nach", teil)
-            app.chat().antwort_schreiben({"id": fid, "ok": True, "text": "**Vergeltung** heißt <b>x</b>", "fehler": None},
-                                         ordner)
-            _, teil = self.hole(f"/teile/frage/{fid}")
-            self.assertIn("<b>Vergeltung</b> heißt &lt;b&gt;x&lt;/b&gt;", teil)
-            self.assertNotIn("hx-get", teil)
-            (ordner / "verlauf.jsonl").write_text(json.dumps({"id": fid, "reihe": "strafe", "chip": "Ethik › Klasse 8",
-                                                              "frage": "Was heißt Vergeltung?",
-                                                              "antwort": "**Vergeltung** heißt Ausgleich."}) + "\n")
-            _, html = self.hole("/reihe/strafe")
-            self.assertIn('<p class="fragen-frage">Was heißt Vergeltung?</p>', html)
-            self.assertIn(f'href="/neu?reihe=strafe&amp;aus={fid}">Daraus Auftrag machen</a>', html)
-            _, html = self.hole(f"/neu?reihe=strafe&aus={fid}")
-            self.assertIn(f"aus={fid}", html)  # Galerie trägt die Antwort weiter
-            _, html = self.hole(f"/neu?art=arbeitsblatt&reihe=strafe&aus={fid}")
-            self.assertIn("Was heißt Vergeltung?\n\nVergeltung heißt Ausgleich.</textarea>", html)
-            r, _ = self.post("/fragen", {"text": " ", "zurueck": "https://boese.example/x"})
-            self.assertEqual(r.getheader("location"), "/?fragefehler=leer#fragen")
-            self.assertIn("Schreib kurz deine Frage.", self.hole("/?fragefehler=leer")[1])
-            self.assertEqual(self.hole("/teile/frage/../../x")[0].status, 404)
-
-    def test_fragen_netz_und_dateien(self):
-        ordner, eingang = self.tmp / "chat", self.tmp / "eingang"
-
-        def frage(dateien_, status=303, **felder):
-            body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "text": "Fass zusammen",
-                                   "zurueck": "/", **felder}, dateien_)
-            r, _ = self.hole("/fragen", "POST", body=body, kopf={"Content-Type": art, "Content-Length": str(len(body)),
-                                                                  "Origin": "http://localhost"})
-            self.assertEqual(r.status, status)
-            self.assertEqual(list(eingang.iterdir()) if eingang.exists() else [], [])  # Uploads immer weggeräumt
-            return r.getheader("location")
-
-        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner), \
-                mock.patch.object(app, "EINGANG", eingang):
-            _, html = self.hole("/")
-            for text in ('enctype="multipart/form-data"', 'name="netz" value="1"', "Im Netz nachsehen",
-                         "als Suchanfrage ins Netz, also keine Namen", 'type="file" name="dateien" multiple',
-                         'accept=".pdf,.docx,.pptx"'):
-                self.assertIn(text, html)
-            ort = frage([("../Text.pdf", b"%PDF-1"), ("Folien.pptx", b"PK")], netz="1")
-            fid = ort.split("frage=")[1].split("#")[0]
-            fid2 = frage([]).split("frage=")[1].split("#")[0]
-            f = json.loads((ordner / "fragen" / f"{fid}.json").read_text())
-            self.assertEqual((f["netz"], f["dateien"], f["gruendlich"]), (True, ["Text.pdf", "Folien.pptx"], False))
-            self.assertEqual((ordner / "dateien" / fid / "Text.pdf").read_bytes(), b"%PDF-1")
-            self.assertEqual(json.loads((ordner / "fragen" / f"{fid2}.json").read_text())["netz"], False)
-            frage([("a.pdf", b"x")] * 11, 400)  # mehr als 10 Teile liest die App gar nicht erst
-            for dateien_, code in (([("a.pdf", b"x")] * 4, "dateien"),
-                                   ([("Tabelle.xlsx", b"x")], "dateiart"), ([("a.pdf", b"")], "dateileer"),
-                                   ([("a.pdf", b"x"), ("A.pdf", b"y")], "dateiname")):
-                self.assertEqual(frage(dateien_), f"/?fragefehler={code}#fragen")
-            self.assertIn("Höchstens 3 Dateien je Frage.", self.hole("/?fragefehler=dateien")[1])
-            modul = app.chat()
-            with mock.patch.object(modul, "frage_stellen", side_effect=modul.FrageFehler("Eine Datei ist zu groß")):
-                self.assertEqual(frage([("a.pdf", b"x")]), "/?fragefehler=dateigross#fragen")
-            self.assertEqual(len(list((ordner / "fragen").iterdir())), 2)
-            (ordner / "verlauf.jsonl").write_text(json.dumps({
-                "id": fid, "reihe": "", "chip": "", "frage": "Fass zusammen", "netz": True,
-                "dateien": ["Text.pdf", "Folien.pptx"], "dateitext": "GEHEIMER INHALT",
-                "antwort": "Kurz.\n\nQuellen:\n- [Kant <b>](https://de.wikipedia.org/wiki/Kant?a=1&b=2)\n"
-                           "- [weg](javascript:alert(1))"}) + "\n")
-            _, html = self.hole("/")
-            self.assertIn('<p class="unter fragen-dateien">mit Datei: Text.pdf, Folien.pptx</p>', html)
-            self.assertNotIn("GEHEIMER INHALT", html)
-            self.assertIn('<li><a href="https://de.wikipedia.org/wiki/Kant?a=1&amp;b=2" rel="noopener noreferrer" '
-                          'target="_blank">Kant &lt;b&gt;</a></li>', html)
-            self.assertIn("<li>[weg](javascript:alert(1))</li>", html)
-            self.assertNotIn('href="javascript', html)
-
     def test_zurueckziehen(self):
         self.assertEqual(self.post("/neu", {"text": "Blatt", "art": "arbeitsblatt"})[0].status, 303)
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")
@@ -1033,7 +936,7 @@ class TestSchrift(Aufbau):
         self.assertIn("Open Font License", (ordner / "LIZENZ-OFL.txt").read_text())
 
     def test_auslieferung(self):
-        _, css = self.hole("/statisch/stil.css")
+        _, css = self.hole("/statisch/ruhig.css")
         self.assertIn('url("schrift/inter.woff2")', css)
         self.assertNotIn("http", css)  # nur dieser Server
         for name in ("inter.woff2", "inter-tight.woff2"):

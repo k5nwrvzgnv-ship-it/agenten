@@ -1,0 +1,32 @@
+{#- Stundenplan der Klasse (Plan 2a.1 Schritt 1 und 5): ganz eintragen bzw. ändern, oder ab einem Stichtag neu
+    (Halbjahr: die Stunden danach behalten ihre Reihenfolge und bekommen die neuen Daten). -#}
+{% extends "basis.html" %}
+{%- from "_pflege.html" import fehler_liste, stundenplan, zeitraum -%}
+{% block inhalt %}
+{{ fehler_liste(fehler) }}
+<form class="formular" method="post" action="/klasse/{{ klasse.id }}/stundenplan">
+  <input type="hidden" name="token" value="{{ token }}">
+  <section>
+    <h2><span class="abschnitt-nr">01</span>Wann hast du die Klasse jede Woche?</h2>
+    {{ stundenplan(zeilen, anzahl, tage, stunden_wahl) }}
+  </section>
+  <section>
+    <h2><span class="abschnitt-nr">02</span>Ab wann gilt das?</h2>
+    {%- if hat_plan %}
+    <fieldset class="auswahl auswahl-spalte">
+      <legend class="unsichtbar">Ab wann</legend>
+      <label><input type="radio" name="wie" value="ab"{% if werte.wie == "ab" %} checked{% endif %}> ab einem Stichtag
+        (zum Beispiel zum 2. Halbjahr). Stunden ab dann bekommen die neuen Daten, in derselben Reihenfolge.</label>
+      <label class="plan-zeilen"><span class="unter">Stichtag</span>
+        <input class="feld" type="date" name="stichtag" value="{{ werte.stichtag }}"></label>
+      <label><input type="radio" name="wie" value="ganz"{% if werte.wie == "ganz" %} checked{% endif %}> für den ganzen
+        Zeitraum (geht nur, solange keine Stunde dadurch ihren Termin verliert)</label>
+    </fieldset>
+    {%- else %}
+    <input type="hidden" name="wie" value="ganz">
+    {%- endif %}
+    {{ zeitraum(werte) }}
+  </section>
+  <button class="knopf knopf-voll" type="submit">Speichern</button>
+</form>
+{% endblock %}

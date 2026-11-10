@@ -1,0 +1,6 @@
+{#- Kurze Meldung nach einer Aktion, die nicht ging (Text für Lia), mit Weg zurück. -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+<p class="fehler" role="alert">{{ text }}</p>
+<a class="knopf" href="{{ zurueck }}">Zurück</a>
+{% endblock %}

@@ -14,7 +14,6 @@ Die App selbst läuft ohne AGENTKIT_INSTANZ. Logik in logik.py (getestet), hier 
 GET:
   /                                     Seite Heute
   /teile/heute                          Inhalt von Heute (htmx lädt ihn jede Minute neu)
-  /teile/frage/<id>                     Antwort des Chat-Agenten für die Spalte „Fragen“ (htmx, alle 2 s)
   /ergebnis/<id>                        Auftrag mit Feedback-Schleife: neueste Fassung und Verlauf (auch
                                         fehlgeschlagene mit Grund). IDs von Nachbesserungen und Rückmeldungen
                                         leiten auf den Ursprung um.
@@ -37,7 +36,6 @@ GET:
   /neu                                  Galerie der Vorlagen bzw. Formular (?art=…), Ort vorbelegt (?reihe=…&stunde=n),
                                         nur wenn eingeschaltet
 POST:
-  /fragen                               Frage an den Chat-Agenten (lia/chat), nur mit WEBAPP_CHAT=an
   /neu                                  legt einen Auftrag an (agentkit.auftraege.neuer_auftrag mit basis=)
   /ergebnis/<id>/rueckmeldung           Rückmeldung an den Feedback-Dienst (Auftrag an feedback, bezug = Fassung),
                                         wie Neuer Auftrag nur im Testbetrieb oder echt; eine Datei wird je nach Art Fassung oder Anmerkung
@@ -154,7 +152,7 @@ async def lebenslauf(_app):
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lebenslauf)
 app.mount("/statisch", StaticFiles(directory=HIER / "statisch"), name="statisch")
-vorlagen = Jinja2Templates(directory=HIER / "vorlagen")
+vorlagen = Jinja2Templates(directory=HIER / "oberflaeche")  # neue Oberfläche (bauplan-gespraech.md); vorlagen/ nur für den alten Dienst bis zum Neustart
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -231,21 +229,6 @@ def chat():
     return schnittstelle
 
 
-def _fragen(reihen: list[dict], aktiv: str, stunde: int | None) -> dict | None:
-    """Werte der Spalte „Fragen“ für den Ort der Seite; None, wenn der Chat aus ist (dann Platzhalter)."""
-    modul = chat()
-    if modul is None:
-        return None
-    reihe = next((r for r in reihen if r["id"] == aktiv), None)
-    st = _stunde_tupel(reihe, stunde)
-    try:
-        verlauf = modul.verlauf(CHAT_ORDNER)
-    except (OSError, ValueError) as fehler_:
-        logger.error("Chat-Verlauf nicht lesbar: %s", fehler_)
-        verlauf = []
-    return logik.fragen_spalte(verlauf, reihe, st)
-
-
 def _stunde_tupel(reihe: dict | None, nr: int | None) -> tuple[int, str] | None:
     if not reihe or not nr:
         return None
@@ -265,8 +248,7 @@ def rahmen(reihen: list[dict], krumen: dict, aktiv: str = "", anzahl_wartet: int
     pflegen_ = s is not None and s.format == "neu"  # die App schreibt nur das neue Format (agentkit.strukturpflege)
     return {"baum": logik.baum(reihen, anzahl_wartet, aktiv, stunden, stunde, ordnung_laden()[1],
                                logik.faecher_aus(s), pflegen_), "krumen": krumen,
-            "neu_hier": neu_hier if neu_modus() else "", "fragen": _fragen(reihen, aktiv, stunde),
-            "fragen_token": logik.formular_token(GEHEIM), "frage_fehler": logik.FRAGE_FEHLER}
+            "neu_hier": neu_hier if neu_modus() else ""}
 
 
 def neu_modus() -> str:
@@ -293,67 +275,6 @@ def seite_heute(request: Request):
 def teil_heute(request: Request):
     return vorlagen.TemplateResponse(request, "_heute.html", {"h": heute_daten(), "neu": neu_modus(),
                                                                "token": logik.formular_token(GEHEIM)})
-
-
-@app.post("/fragen")
-async def frage_stellen(request: Request):
-    """Frage an den Chat-Agenten; danach zurück auf die Seite, die Antwort lädt htmx nach (/teile/frage/<id>).
-    Dateien legt die Web-App in EINGANG ab, die Schnittstelle verschiebt sie; was übrig bleibt (auch bei
-    FrageFehler), räumt die Web-App weg."""
-    modul = chat()
-    if modul is None:
-        raise HTTPException(404)
-    form = await formular_lesen(request, "Frage", logik.FRAGE_DATEIEN_MAX, logik.NEU_DATEIEN_MAX)  # zu viele: Satz
-    dateien_ = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
-    try:
-        return await _frage_weitergeben(modul, form, dateien_)
-    finally:
-        for d in dateien_:
-            await d.close()
-
-
-async def _frage_weitergeben(modul, form, dateien_: list[UploadFile]) -> RedirectResponse:
-    zurueck = logik.zurueck_pfad(str(form.get("zurueck") or ""))
-    if not logik.token_passt(GEHEIM, str(form.get("token") or "")):
-        return RedirectResponse(f"{zurueck}?fragefehler=veraltet#fragen", status_code=303)
-    text, netz, gruendlich = str(form.get("text") or ""), form.get("netz") == "1", form.get("gruendlich") == "1"
-    code = "leer" if not text.strip() else logik.frage_dateien_pruefen([(d.filename, d.size or 0) for d in dateien_])
-    if code:
-        return RedirectResponse(f"{zurueck}?fragefehler={code}#fragen", status_code=303)
-    reihen = reihen_laden()
-    reihe = None if form.get("ohne") else next((r for r in reihen if r["id"] == str(form.get("reihe") or "")), None)
-    stunde = _stunde_tupel(reihe, logik.stunde_nummer(str(form.get("stunde") or ""), 999))
-    EINGANG.mkdir(parents=True, exist_ok=True)
-    ablage = Path(tempfile.mkdtemp(dir=EINGANG))
-    try:  # je Datei ein Unterordner wie bei Neuer Auftrag
-        uploads = [(d.filename, datei_ablegen(d, ablage / str(nr))) for nr, d in enumerate(dateien_)]
-        stunde_id = logik.reihe_stunden(reihe)[stunde[0] - 1]["id"] if stunde else ""
-        fid = modul.frage_stellen(text, logik.frage_ort(reihe, stunde, [], stunde_id), gruendlich, CHAT_ORDNER,
-                                  netz=netz, dateien=uploads)
-    except modul.FrageFehler as fehler_:
-        logger.warning("Frage abgewiesen: %s", fehler_)
-        code = logik.frage_fehler_schluessel(text, str(fehler_))
-        return RedirectResponse(f"{zurueck}?fragefehler={code}#fragen", status_code=303)
-    except OSError as fehler_:
-        logger.error("Frage nicht gestellt: %s", fehler_)
-        return RedirectResponse(f"{zurueck}?fragefehler=technik#fragen", status_code=303)
-    finally:
-        shutil.rmtree(ablage, ignore_errors=True)
-    logger.info("Frage %s gestellt (%s, %s, %s, %d Dateien)", fid, reihe["id"] if reihe else "ohne Ort",
-                "gründlich" if gruendlich else "schnell", "mit Netz" if netz else "ohne Netz", len(uploads))
-    return RedirectResponse(f"{zurueck}?frage={fid}#fragen", status_code=303)
-
-
-@app.get("/teile/frage/{frage_id}", response_class=HTMLResponse)
-def teil_frage(request: Request, frage_id: str):
-    """Antwort auf eine Frage für htmx: solange sie fehlt, „Denkt nach“ mit erneutem Nachfragen in 2 s."""
-    modul = chat()
-    if modul is None or not logik.chat_id_gueltig(frage_id):
-        raise HTTPException(404)
-    antwort = modul.antwort_holen(frage_id, CHAT_ORDNER)
-    return vorlagen.TemplateResponse(request, "_frage.html", {
-        "id": frage_id, "a": logik.fragen_eintrag(antwort) if antwort else None,
-        "fehler": (antwort or {}).get("fehler"), "wartet": antwort is None})
 
 
 @app.get("/unterricht")

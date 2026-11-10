@@ -1,0 +1,53 @@
+{#- Ich: Lias Regeln aus regeln.md und den gelernten Regeln der Agenten (nur lesend), dazu die Schule (Bundesland für
+    Ferien und Feiertage) und „Letzte Änderungen“ an der Struktur mit Rückgängig (Bauschritt 5). -#}
+{% extends "basis.html" %}
+{%- from "_zeile.html" import zeile -%}
+{% block inhalt %}
+{%- for g in gruppen %}
+<section aria-labelledby="ab{{ loop.index }}">
+  <h2 id="ab{{ loop.index }}"><span class="abschnitt-nr">{{ "%02d" | format(loop.index) }}</span>{{ g.titel }}</h2>
+  <ul>{% for r in g.regeln %}{{ zeile(r) }}{% endfor %}</ul>
+</section>
+{%- else %}
+<p class="leer">Noch keine Regeln.</p>
+{%- endfor %}
+<p class="absatz unter">Neue Regeln entstehen aus deinen Rückmeldungen. Eine Regel ändern oder streichen kann
+  nur Jan.</p>
+{%- if p.pflegen %}
+<section aria-labelledby="schule-titel" id="schule">
+  <h2 id="schule-titel">Schule</h2>
+  <form class="zeile-form" method="post" action="/schule">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label for="bundesland">Bundesland (für Ferien und Feiertage)</label>
+    <select id="bundesland" name="bundesland">
+      {%- if not p.bundesland %}<option value="">–</option>{% endif %}
+      {%- for kurz, lang in p.bundeslaender.items() %}<option value="{{ kurz }}"{% if p.bundesland == kurz %} selected{% endif %}>{{ lang }}</option>{% endfor %}
+    </select>
+    <button class="knopf" type="submit">Speichern</button>
+  </form>
+</section>
+{%- endif %}
+<section aria-labelledby="aenderungen-titel" id="aenderungen">
+  <h2 id="aenderungen-titel">Letzte Änderungen</h2>
+  {%- if p.aenderungen %}
+  <ul>
+    {%- for a in p.aenderungen %}
+    <li><div class="zeile">
+      <span class="punkt punkt-offen" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ a.text }}</span><span class="unter">{{ a.zeit }}{% if a.hinweis %} · {{ a.hinweis }}{% endif %}</span></span>
+      {%- if a.zurueck %}
+      <form class="inline-form" method="post" action="/rueckgaengig">
+        <input type="hidden" name="token" value="{{ token }}">
+        <input type="hidden" name="aktion" value="{{ a.id }}">
+        <input type="hidden" name="zurueck" value="/ich">
+        <button class="knopf knopf-klein" type="submit">Rückgängig</button>
+      </form>
+      {%- endif %}
+    </div></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="leer">Noch keine Änderungen an Fächern, Klassen, Reihen und Stunden.</p>
+  {%- endif %}
+</section>
+{% endblock %}

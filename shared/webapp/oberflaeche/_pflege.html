@@ -1,0 +1,95 @@
+{#- Bausteine der Masken (Struktur pflegen, Bauschritt 5). Alles ohne JavaScript; jedes Formular trägt das Token. -#}
+
+{%- macro fehler_liste(fehler) -%}
+{%- if fehler %}
+<div class="fehler" role="alert">
+  {%- for f in fehler %}<p>{{ f }}</p>{% endfor %}
+</div>
+{%- endif %}
+{%- endmacro -%}
+
+{#- Ein Knopf mit Wirkung (POST), z. B. Archivieren. felder: (name, wert) -#}
+{%- macro knopf(action, text, token, felder=[], voll=false, leise=false) -%}
+<form class="inline-form" method="post" action="{{ action }}">
+  <input type="hidden" name="token" value="{{ token }}">
+  {%- for name, wert in felder %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
+  <button class="knopf{% if voll %} knopf-voll{% elif leise %} knopf-leise{% endif %}" type="submit">{{ text }}</button>
+</form>
+{%- endmacro -%}
+
+{#- Stundenplan: je Zeile ein wiederkehrender Termin (Wochentag, Unterrichtsstunde, Einzel- oder Doppelstunde),
+    „+ weiterer Termin“ schickt das Formular ohne zu speichern und zeigt eine Zeile mehr. -#}
+{%- macro stundenplan(zeilen, anzahl, tage, stunden_wahl) -%}
+<input type="hidden" name="zeilen" value="{{ anzahl }}">
+<div class="plan-zeilen">
+  {%- for z in zeilen %}
+  <fieldset class="plan-zeile">
+    <legend class="unsichtbar">Termin {{ loop.index }}</legend>
+    <label><span class="unter">Wochentag</span>
+      <select name="tag-{{ loop.index0 }}">
+        <option value="">–</option>
+        {%- for kurz, lang in tage.items() %}<option value="{{ kurz }}"{% if z.tag == kurz %} selected{% endif %}>{{ lang }}</option>{% endfor %}
+      </select></label>
+    <label><span class="unter">Stunde</span>
+      <select name="stunde-{{ loop.index0 }}">
+        <option value="">–</option>
+        {%- for n in stunden_wahl %}<option value="{{ n }}"{% if z.stunde == n|string %} selected{% endif %}>{{ n }}.</option>{% endfor %}
+      </select></label>
+    <label><span class="unter">Länge</span>
+      <select name="laenge-{{ loop.index0 }}">
+        <option value="1"{% if z.laenge != "2" %} selected{% endif %}>Einzelstunde</option>
+        <option value="2"{% if z.laenge == "2" %} selected{% endif %}>Doppelstunde</option>
+      </select></label>
+  </fieldset>
+  {%- endfor %}
+</div>
+<button class="knopf knopf-klein" type="submit" name="mehr" value="1" formnovalidate>+ weiterer Termin</button>
+{%- endmacro -%}
+
+{%- macro zeitraum(werte) -%}
+<div class="plan-zeilen">
+  <label><span class="unter">ab</span> <input class="feld" type="date" name="ab" value="{{ werte.ab }}"></label>
+  <label><span class="unter">bis</span> <input class="feld" type="date" name="bis" value="{{ werte.bis }}"></label>
+</div>
+<span class="unter">Leer lassen: das ganze Schuljahr (nach den Sommerferien bis vor die nächsten). Ferien und Feiertage
+  rechnet die App selbst heraus.</span>
+{%- endmacro -%}
+
+{#- Freie Termine zuteilen: „ab …, n Termine“ oder einzeln mit Häkchen (Plan 2a.1). -#}
+{%- macro termine_wahl(frei, ab_wahl, werte, termine_fehler="") -%}
+{%- if termine_fehler %}
+<p class="hinweis">{{ termine_fehler }}</p>
+{%- elif not frei %}
+<p class="unter">Die Klasse hat noch keine freien Termine. Den Stundenplan trägst du in der Klasse ein; Stunden ohne
+  Termin gehen auch.</p>
+{%- else %}
+<div class="plan-zeilen">
+  <label><span class="unter">ab</span>
+    <select name="ab">
+      {%- for a in ab_wahl %}<option value="{{ a.wert }}"{% if a.wert == werte.ab %} selected{% endif %}>{{ a.text }}</option>{% endfor %}
+    </select></label>
+  <label><span class="unter">so viele Termine</span>
+    <input class="feld feld-zahl" type="number" name="anzahl" min="0" max="{{ frei|length }}" value="{{ werte.anzahl }}"></label>
+</div>
+<details class="termin-wahl"{% if werte.gewaehlt %} open{% endif %}>
+  <summary>oder einzeln auswählen</summary>
+  <fieldset class="auswahl auswahl-spalte">
+    <legend class="unsichtbar">Freie Termine</legend>
+    {%- for t in frei %}
+    <label><input type="checkbox" name="termin" value="{{ t.wert }}"{% if t.wert in werte.gewaehlt %} checked{% endif %}> {{ t.text.split(" · ")[0] }}</label>
+    {%- endfor %}
+  </fieldset>
+</details>
+{%- endif %}
+{%- endmacro -%}
+
+{#- „Verschieben nach …“: ein Griff, gruppiert nach Stelle in der Reihe, Termin, andere Reihe. -#}
+{%- macro ziele_auswahl(ziele, name="ziel", id="ziel") -%}
+<select name="{{ name }}" id="{{ id }}">
+  {%- for g in ziele %}
+  <optgroup label="{{ g.titel }}">
+    {%- for z in g.ziele %}<option value="{{ z.wert }}">{{ z.text }}</option>{% endfor %}
+  </optgroup>
+  {%- endfor %}
+</select>
+{%- endmacro -%}

@@ -1,0 +1,45 @@
+{#- Inhalt von Heute. Jede Zeile nennt ihren Ort (Brotkrume). Zeilen mit link führen zur Ergebnis- bzw. Entwurf-Ansicht (nur lesend). -#}
+{%- from "_zeile.html" import zeile -%}
+<header class="kopf">
+  <span class="datum">{{ h.datum }}</span>
+  <h1>Heute</h1>
+  <p class="gruss">{{ h.begruessung }}
+    {%- if h.anzahl_wartet %} <span class="akzent">{{ h.anzahl_wartet }}</span>{% endif %} {{ h.wartet_text }}</p>
+</header>
+{%- if neu %}
+<a class="knopf-gross" href="/neu">Neuer Auftrag<span aria-hidden="true">+</span></a>
+{%- endif %}
+{%- if abgeschickt %}
+<p class="hinweis">Dein Auftrag ist unterwegs. Er steht unter „Läuft gerade“.</p>
+{%- endif %}
+{%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}
+
+{#- (Name, Zeilen, Punkt offen, Text wenn leer; ohne Text fehlt der leere Abschnitt) #}
+{%- set abschnitte = [("Wartet auf dich", h.wartet, false, "Nichts offen."),
+                      ("Läuft gerade", h.laeuft, true, "Gerade läuft nichts."),
+                      ("Fertig", h.fertig, false, ""), ("Hat nicht geklappt", h.fehlgeschlagen, false, "")] %}
+{%- set nummer = namespace(n=0) %}
+{%- for name, zeilen, offen, leer in abschnitte if zeilen or leer %}
+{%- set nummer.n = nummer.n + 1 %}
+<section aria-labelledby="ab{{ nummer.n }}">
+  <h2 id="ab{{ nummer.n }}"><span class="abschnitt-nr">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
+  {%- if zeilen %}
+  <ul>{% for z in zeilen %}{{ zeile(z, offen) }}
+    {%- if z.zurueck_id and neu %}
+    {#- Zwei Schritte ohne JavaScript (Befund 03.11. Punkt 7): Ein Klick allein ändert nichts. „Nein“ lädt die Seite neu. #}
+    <li class="zeile-aktion"><details class="nachfrage">
+      <summary class="knopf knopf-klein">Zurückziehen</summary>
+      <form class="nachfrage-form" method="post" action="/auftrag/{{ z.zurueck_id }}/zurueckziehen" data-einmal>
+        <input type="hidden" name="token" value="{{ token }}">
+        <span>Wirklich zurückziehen? Ich höre dann damit auf.</span>
+        <button class="knopf knopf-klein" type="submit">Ja, zurückziehen</button>
+        <a class="knopf knopf-klein" href="/">Nein</a>
+      </form>
+    </details></li>
+    {%- endif %}{% endfor %}</ul>
+  {%- if name == "Fertig" and h.fertig_weitere %}<p class="leer">und {{ h.fertig_weitere }} ältere</p>{% endif %}
+  {%- else %}
+  <p class="leer">{{ leer }}</p>
+  {%- endif %}
+</section>
+{%- endfor %}

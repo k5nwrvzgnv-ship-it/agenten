@@ -1,0 +1,14 @@
+{#- Heute in der Mitte des Rahmens. htmx lädt den Inhalt jede Minute neu (/teile/heute). -#}
+{% extends "basis.html" %}
+{% block titel %}Heute{% endblock %}
+{% block skripte %}
+<script src="/statisch/htmx-2.0.4.min.js" defer></script>
+{%- if neu %}<script src="/statisch/einmal.js" defer></script>{% endif %}
+{%- endblock %}
+{% block main_klasse %}{% endblock %}
+{% block seitenkopf %}{% endblock %}
+{% block inhalt %}
+<div id="heute" class="heute" hx-get="/teile/heute" hx-trigger="every 60s" hx-swap="innerHTML">
+{% include "_heute.html" %}
+</div>
+{% endblock %}

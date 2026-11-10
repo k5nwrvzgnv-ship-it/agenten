@@ -1,0 +1,33 @@
+{#- Termine einer Reihe (Aktionsmatrix 4.5): freie Termine zuteilen (Stunden ohne Termin bekommen sie der Reihe nach,
+    sonst entstehen neue mit offenem Thema) oder Termine freigeben (leere Stunden verschwinden, andere bleiben ohne). -#}
+{% extends "basis.html" %}
+{%- from "_pflege.html" import fehler_liste, termine_wahl -%}
+{% block inhalt %}
+{{ fehler_liste(fehler) }}
+<form class="formular" method="post" action="/reihe/{{ reihe.id }}/termine">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="was" value="zuteilen">
+  <section>
+    <h2><span class="abschnitt-nr">01</span>Freie Termine dazunehmen</h2>
+    {{ termine_wahl(frei, ab_wahl, werte, termine_fehler) }}
+  </section>
+  {%- if frei %}<button class="knopf knopf-voll" type="submit">Zuteilen</button>{% endif %}
+</form>
+{%- if eigene %}
+<form class="formular" method="post" action="/reihe/{{ reihe.id }}/termine">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="was" value="freigeben">
+  <section>
+    <h2><span class="abschnitt-nr">02</span>Termine abgeben</h2>
+    <span class="unter">Stunden ohne Thema und Material verschwinden dabei, die anderen bleiben ohne Termin in der Reihe.</span>
+    <fieldset class="auswahl auswahl-spalte">
+      <legend class="unsichtbar">Termine der Reihe</legend>
+      {%- for t in eigene %}
+      <label><input type="checkbox" name="frei" value="{{ t.kennung }}"> {{ t.text }} · Stunde {{ t.stunde.nr or "–" }}: {{ t.stunde.thema }}</label>
+      {%- endfor %}
+    </fieldset>
+  </section>
+  <button class="knopf" type="submit">Abgeben</button>
+</form>
+{%- endif %}
+{% endblock %}

@@ -1050,8 +1050,29 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     empfohlen): Gedächtnis über claude_lauf sitzung_fortsetzen, Read für Fotos mit Pfadgrenze, drei Spalten mit dem
     Gespräch in der Mitte, Kosten auf Lias Kontingent (Sonnet, gründlich je Gespräch), Aufbewahrung 30 Tage ab letzter
     Nachricht. Als Nächstes entsteht im shared/webapp-Chat die Klick-Attrappe für Lia; gebaut wird erst nach Lias Okay.
-    Bedarf an agentkit (Plan Schritt 4.3.2, nur notiert, nicht gebaut): prüfen, ob agentkit.claude_lauf Read mit
-    Pfadgrenze erlaubt; falls nötig Art "Projekt" in agentkit.struktur/strukturpflege ergänzen.
+    Bedarf an agentkit (Plan Schritt 4.3.2): Read mit Pfadgrenze ist gebaut (unten); offen bleibt nur, falls nötig,
+    Art "Projekt" in agentkit.struktur/strukturpflege.
+    Jan 10.11.2026: Die echte Web-App wird jetzt umgebaut und echt getestet, ohne vorher Lias Okay (hebt 4.3 und
+    „Modernist bis nach Lias Test“ auf). Bauplan: shared/webapp/bauplan-gespraech.md (Jans Okay 10.11.). Bedarf daraus,
+    je im eigenen Chat (Jans Okay 10.11.): (a) Hauptordner/agentkit: Read mit Pfadgrenze, erledigt (unten); (b) lia/chat:
+    Gespräch als Objekt mit Ebene (Klasse/Reihe/Stunde/ohne Ort), Sitzung fortsetzen, Fotos über Read, Ablage
+    `lia/instanz/ablage/<ort-id>/` als Kontext, Bausteine im Prompt, „Was haben wir bisher?“, „Auftrag ordnen“.
+    Schnittstelle siehe Bauplan Abschnitt 1.
+    Read mit Pfadgrenze (10.11.2026, claude 2.1.304): `claude_lauf.laufen(..., lese_ordner=[ordner, ...])`. Dann hat
+    Claude nur Read, Modus dontAsk, allow nur `Read(//<ordner>/**)`, deny Bash/Edit/Write/Grep/Glob/NotebookEdit/
+    WebFetch/WebSearch und `.env`/`.env.*` je Ordner; Antwort nur als Text. claude läuft dabei im leeren Ordner
+    `<agent>/data/nur_lesen/` (Lesen im Arbeitsordner erlaubt claude -p sonst immer von selbst, auch in dontAsk;
+    Probe: geheim.txt im Agent-Ordner war mit cwd = Agent-Ordner lesbar). Python prüft die Ordner vorher
+    (`lese_ordner_pruefen`: absolut, vorhanden, aufgelöst, nicht `/`, keine Musterzeichen, enthält nicht den
+    Agent-Ordner) und startet nicht, wenn in nur_lesen/ etwas liegt. Sitzungen führt claude je Arbeitsordner: Fortsetzen
+    geht nur zwischen Läufen mit lese_ordner (geprüft: Sitzung angelegt, fortgesetzt, Antwort aus dem Verlauf).
+    Echter Lauf im Scratchpad (Probe-Agent, Konto token, sonnet, 0,02 USD), Aufruf
+    `laufen("probe", <probe>, prompt, lese_ordner=[<probe>/data/gespraeche/g1, <ablage>/ort-1])`, Ausgabe gekürzt:
+    bild.png (64x64, roter Kreis, blaues Quadrat) „Lesen ging, roter Kreis links neben blauem Quadrat“;
+    ablage/ort-1/notiz.txt gelesen; verweigert (permission_denials): probe/geheim.txt (Agent-Ordner), g1/link.txt
+    (Symlink im erlaubten Ordner auf geheim.txt), g1/.env, g1/.env.lokal. Befund dabei: `Read(**/.env)` aus VERBOTEN
+    greift nur unterhalb des Arbeitsordners; im ersten Lauf ohne eigene Sperre war g1/.env lesbar, darum die
+    absolute Sperre je Ordner. Tests ohne Netz: agentkit/tests/test_claude_lauf.py (test_nur_lesen_*).
 
 ## Gelernte Regeln
 - (noch keine)

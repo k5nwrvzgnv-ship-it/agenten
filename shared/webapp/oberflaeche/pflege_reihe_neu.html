@@ -1,0 +1,25 @@
+{#- Reihe anlegen (Plan 2a.1 Schritt 2): Pflicht nur der Titel, die Klasse ist der Ort. In derselben Maske, aber
+    freiwillig: freie Termine zuteilen (je Termin eine Stunde, Thema offen) oder Stunden ohne Termin. -#}
+{% extends "basis.html" %}
+{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>{% endblock %}
+{%- from "_pflege.html" import fehler_liste, termine_wahl -%}
+{% block inhalt %}
+{{ fehler_liste(fehler) }}
+<form class="formular" method="post" action="/klasse/{{ klasse.id }}/reihe/neu" data-einmal>
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+  <section>
+    <h2><span class="abschnitt-nr">01</span><label for="titel">Titel</label></h2>
+    <input class="feld" id="titel" name="titel" type="text" maxlength="{{ laenge.titel }}" value="{{ werte.titel }}"
+           required placeholder="zum Beispiel Würde des Menschen">
+  </section>
+  <section>
+    <h2><span class="abschnitt-nr">02</span>Termine <span class="unter">(freiwillig)</span></h2>
+    <span class="unter">Je Termin entsteht eine Stunde, das Thema trägst du später ein.</span>
+    {{ termine_wahl(frei, ab_wahl, werte, termine_fehler) }}
+    <label class="plan-zeilen"><span class="unter">Stunden ohne Termin</span>
+      <input class="feld feld-zahl" type="number" name="ohne" min="0" max="60" value="{{ werte.ohne }}"></label>
+  </section>
+  <button class="knopf knopf-voll" type="submit">Anlegen</button>
+</form>
+{% endblock %}
