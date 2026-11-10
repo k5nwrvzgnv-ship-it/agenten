@@ -1117,6 +1117,16 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     `systemctl --user restart lia-zentrale.service agentenzentrale.service` (nur mit Jans Okay). Bekannte Schwäche
     des gründlichen Wegs (unverändert): Der Feedback-Dienst kann einen großen Änderungswunsch als Regel statt als
     Nachbesserung einordnen; lia/schnell umgeht das, weil es große Wünsche direkt als Nachbesserung weitergibt.
+    Schritt 2 (lia/schnell, 10.11.): gebaut und an Kopien echt gemessen (Änderungen 13–23 s, schnelles Dokument 65 s,
+    je unter 0,01 USD), Schnittstelle für die Web-App in lia/schnell/STATUS.md; Dienste noch nicht installiert.
+    Bedarf daraus: (a) unterricht und theater: Eine gründliche Nachbesserung nach schnellen Änderungen baut auf der
+    eigenen alten Beschreibung bzw. dem Ablauf auf; die schnelle Fassung kommt nur als Datei (fassungen.grundlage bzw.
+    Anhang) und kann verloren gehen. Besser: Gibt es zur Grundlage `lia/schnell/data/fassungen/<ursprung>/eigene-<n>/
+    beschreibung.json`, darauf aufsetzen. (b) Lias Zentrale: Schnelle Dokumente sind erledigte Aufträge des Agenten
+    schnell und gehen auch nach Telegram; eine Antwort oder ein Feedback-Knopf dort würde einen Auftrag an schnell, den
+    niemand abarbeitet (lia/schnell liest nur data/wuensche/). Entweder dort nicht senden bzw. ohne Knöpfe oder
+    lia/schnell nimmt Aufträge an. (c) Web-App: schnell geänderte Fassungen erscheinen als eigene Fassung „von dir“
+    (Notiz beginnt mit „Schnell geändert:“).
     Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
     weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
     reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.

@@ -1,0 +1,18 @@
+# Vorlage: nach ~/.config/systemd/user/lia-schnell.service kopieren, dann systemctl --user daemon-reload.
+# Agent schnell für Lia (kleine Änderungen an Dokumenten, schnelle Dokumente). Gestartet von lia-schnell.path.
+[Unit]
+Description=Lias Agent schnell (kleine Änderungen und schnelle Dokumente)
+# Bei Ausfall Meldung an Jan (ausfall@ läuft ohne AGENTKIT_INSTANZ, also in Jans Instanz)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=10min
+StartLimitBurst=30
+
+[Service]
+Type=oneshot
+Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
+WorkingDirectory=/home/agent/agenten/lia/schnell
+ExecStart=/home/agent/agenten/lia/schnell/.venv/bin/python agent.py
+# Mehrere Wünsche nacheinander, je höchstens 2 Läufe zu 4 min plus 1 min Warten auf einen Platz
+TimeoutStartSec=30min
+# claude rund 250 MB, danach der Renderer mit Vorschau bis 220 MB (nacheinander, Plan Abschnitt 4)
+MemoryMax=600M

@@ -1,0 +1,13 @@
+# Vorlage: nach ~/.config/systemd/user/lia-schnell.path kopieren, daemon-reload, dann
+# systemctl --user enable --now lia-schnell.path
+# Startet lia-schnell.service, sobald in data/wuensche/ eine Datei liegt (die Web-App legt sie dort ab).
+[Unit]
+Description=Wartende Wünsche an Lias Agent schnell
+
+[Path]
+DirectoryNotEmpty=/home/agent/agenten/lia/schnell/data/wuensche
+MakeDirectory=yes
+Unit=lia-schnell.service
+
+[Install]
+WantedBy=default.target
