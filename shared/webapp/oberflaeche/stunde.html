@@ -6,6 +6,17 @@
 {%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- from "_plus.html" import ebene, punkte -%}
+{%- from "_direkt.html" import titel -%}
+{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
+{% block seitenkopf %}
+<header class="kopf">
+  {%- if e.unter %}<span class="datum grau">{{ e.unter }}</span>{% endif %}
+  {#- Thema anklicken, umbenennen (Schritt 4) über dieselbe Route wie „Thema und Marke“ im „···“ -#}
+  {{ titel(e.titel, aktion="/stunde/" ~ p.stunde.id ~ "/aendern" if p and not p.archiv else "", feld="thema",
+           wert=p.stunde.thema if p else "", felder=[("marke", p.stunde.marke), ("alt_thema", p.stunde.thema),
+           ("alt_marke", p.stunde.marke)] if p else [], max=thema_max, leer="Thema (darf offen bleiben)") }}
+</header>
+{% endblock %}
 {%- block plus %}{{ ebene(gs=gespraeche, neu_hier=neu_hier, ablage=ablage, archiv=p and p.archiv) }}{% endblock %}
 {#- Mit Fehler (z. B. Thema zu lang) steht das „···“ offen, damit das Eingegebene sichtbar bleibt -#}
 {%- block punkte %}

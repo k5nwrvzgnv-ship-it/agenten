@@ -279,6 +279,11 @@ a.zeile:hover, a.zeile:focus-visible { background: var(--hover); }
 .termin-aus .termin-datum { text-decoration: line-through; color: var(--leise); }
 .stunden-liste li[draggable="true"] { cursor: grab; }
 .wird-gezogen { opacity: .4; }
+/* Ziehen per Finger (ziehen.js, Schritt 4): kein Menü und keine Textauswahl beim Halten, Linie zeigt die Stelle */
+.stunden-liste li[draggable="true"] a { -webkit-touch-callout: none; }
+@media (pointer: coarse) { .stunden-liste li[draggable="true"] { -webkit-user-select: none; user-select: none; } }
+.ziel-davor { box-shadow: inset 0 2px 0 var(--blau); }
+.ziel-danach { box-shadow: inset 0 -2px 0 var(--blau); }
 
 /* Gespräch in der Mitte */
 .gespraech { display: flex; flex-direction: column; gap: 24px; }
@@ -337,6 +342,28 @@ a.zeile:hover, a.zeile:focus-visible { background: var(--hover); }
 .ablage-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
 /* Ohne Dateien nur sichtbar, wenn „Datei“ im „+“ hierher springt (umbauplan-ux.md Schritt 2, ohne JavaScript) */
 .ablage-zu:not(:target) { display: none; }
+section.ablage-zu.ablage-offen { display: flex; }
+
+/* Direkt am Ding (Schritt 4, statisch/direkt.js). [hidden] gilt auch für Elemente mit eigenem display. */
+[hidden] { display: none !important; }
+[data-direkt-titel] { cursor: text; border-radius: 6px; }
+[data-direkt-titel]:hover { background: var(--hover); box-shadow: 0 0 0 4px var(--hover); }
+.direkt-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
+.direkt-feld { flex: 1 1 100%; min-width: 0; padding: 2px 6px; margin: -3px -7px; border: 1px solid var(--linie);
+  border-radius: 6px; background: var(--bg); color: var(--fg); font-family: inherit; }
+.direkt-knoepfe { display: inline-flex; gap: 8px; }
+/* Ablage: Regel und „Ablegen“ erst, wenn eine Datei gewählt ist; ohne JavaScript immer */
+.ablage-ab { display: none; }
+.ablage-gewaehlt { font-weight: 500; overflow-wrap: anywhere; }
+.ablage-gewaehlt:empty { display: none; }
+.mit-js .ablage-form:not(.datei-da) .ablage-regel, .mit-js .ablage-form:not(.datei-da) button[type="submit"] { display: none; }
+.mit-js .ablage-form.datei-da .datei-knopf { display: none; }
+.mit-js .ablage-form.datei-da .ablage-ab { display: inline-flex; }
+.mit-js .ablage-form.datei-da .ablage-regel { flex-basis: 100%; }
+body.datei-ueber .inhalt { outline: 2px dashed var(--blau); outline-offset: -8px; }
+body.datei-ueber::after { content: "Loslassen: Datei hier ablegen"; position: fixed; left: 50%; bottom: 24px;
+  transform: translateX(-50%); z-index: 30; padding: 8px 14px; border-radius: 8px; background: var(--blau);
+  color: var(--umkehr); font-size: 14px; pointer-events: none; }
 
 @media (max-width: 1100px) {
   .rahmen { grid-template-columns: 220px minmax(0, 1fr); grid-template-areas: "baum inhalt" "baum rechts"; }

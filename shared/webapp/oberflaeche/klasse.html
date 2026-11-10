@@ -5,6 +5,16 @@
 {%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
 {%- from "_pflege.html" import knopf -%}
 {%- from "_plus.html" import ebene, punkte -%}
+{%- from "_direkt.html" import titel -%}
+{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
+{% block seitenkopf %}
+<header class="kopf">
+  {%- if e.unter %}<span class="datum grau">{{ e.unter }}</span>{% endif %}
+  {#- Name anklicken, umbenennen (Schritt 4): das Feld ist der Name („8“ wird „Klasse 8“), nicht der angezeigte Titel -#}
+  {{ titel(e.titel, aktion=titel_aktion if titel_aktion and p and not p.archiv else "", feld="name", wert=p.klasse.name if p else "",
+           felder=[("alt_name", p.klasse.name if p else "")], max=titel_max or 40, leer="zum Beispiel 8 oder Kurs 11") }}
+</header>
+{% endblock %}
 {%- block plus %}{{ ebene(gs=gespraeche, reihe_neu="/klasse/" ~ p.klasse.id ~ "/reihe/neu" if p else "", ablage=ablage,
     archiv=p and p.archiv) }}{% endblock %}
 {%- block punkte %}

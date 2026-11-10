@@ -1,15 +1,17 @@
 {#- Gespräch in der Mitte (Skizze skizzen/gespraech.html): Kopf mit Name, „Daraus Auftrag machen“ und „···“, Verlauf,
     Eingabe mit Fotos/Dateien und Optionen; rechts, was das Gespräch kennt (Reihenfrage, deine Dateien, Gespräche). -#}
 {% extends "basis.html" %}
+{%- from "_direkt.html" import titel -%}
 {% block titel %}{{ e.titel }}{% endblock %}
 {% block rahmen_klasse %}{% endblock %}
-{% block skripte %}<script src="/statisch/htmx-2.0.4.min.js" defer></script><script src="/statisch/gespraech.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endblock %}
+{% block skripte %}<script src="/statisch/htmx-2.0.4.min.js" defer></script><script src="/statisch/gespraech.js" defer></script><script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block main_klasse %} gespraech-seite{% endblock %}
 {% block seitenkopf %}{% endblock %}
 {% block inhalt %}
 <section class="gespraech" aria-label="Gespräch">
   <div class="gkopf">
-    <h1 class="gname">{{ e.titel }}</h1>
+    {#- Name anklicken, umbenennen (umbauplan-ux.md Schritt 4); „Umbenennen“ im „···“ bleibt der Weg ohne JavaScript -#}
+    {{ titel(e.titel, aktion="/gespraech/" ~ g.id ~ "/umbenennen", feld="name", wert=g.name, max=80, klasse="gname") }}
     <span class="knoepfe">
       <form class="inline-form" method="post" action="/gespraech/{{ g.id }}/sonder" data-einmal>
         <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="auftrag">

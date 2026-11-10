@@ -476,6 +476,7 @@ def _reihe_seite(request: Request, reihe_id: str, fehler: list[str] | None = Non
         "thema_max": pflege.LAENGE["thema"], "p": reihe_pflege(struktur_(), reihe_id),
         "hinweis": "" if fehler else logik.HINWEISE.get(request.query_params.get("erledigt") or "", ""),
         "ablage": ablage_daten(reihe["id"], logik.reihe_link(reihe), request), "gespraeche": gespraeche_hier(reihe["id"]),
+        "titel_aktion": f"/reihe/{reihe_id}/titel", "titel_max": pflege.LAENGE["titel"],
         **rahmen(reihen, logik.krumen(reihe=reihe), reihe["id"], neu_hier=_neu_hier(reihe))}, status_code=status)
 
 
@@ -1314,6 +1315,38 @@ async def reihe_bearbeiten(request: Request, reihe_id: str):
     return _reihe_bearbeiten_seite(request, s, r, werte, fehler, 400)
 
 
+async def _titel_aendern(request: Request, objekt_id: str, ebene: str, feld: str, operation: str, wofuer: str):
+    """Nur den Titel (Reihe) bzw. Namen (Klasse) ändern: Titel anklicken, umbenennen (umbauplan-ux.md Schritt 4,
+    statisch/direkt.js). Die Masken „Bearbeiten“ verlangen alle Felder. Fehler als Meldung mit Weg zurück."""
+    s = struktur_()
+    _objekt(s, objekt_id, ebene)
+    form, token_ok = await pflege_formular(request, wofuer)
+    w = _wert(form)
+    zurueck = f"/{ebene}/{objekt_id}"
+    wert, fehler = pflege.text(w(feld), feld, pflege.PFLICHT[ebene])
+    if not token_ok:
+        fehler = [pflege.VERALTET]
+    if not fehler:
+        neu, gesehen = pflege.geaendert({feld: (wert, w(f"alt_{feld}"))})
+        if not neu:
+            return RedirectResponse(f"{zurueck}?erledigt=nichts", status_code=303)
+        aus, text_ = await pflegen(operation, {ebene: objekt_id, **neu}, {objekt_id: gesehen})
+        if aus:
+            return nach(zurueck, aus)
+        fehler = [text_]
+    return _meldung(request, wofuer, " ".join(fehler), zurueck, 400)
+
+
+@app.post("/reihe/{reihe_id}/titel", response_class=HTMLResponse)
+async def reihe_titel(request: Request, reihe_id: str):
+    return await _titel_aendern(request, reihe_id, "reihe", "titel", "reihe_aendern", "Reihe umbenennen")
+
+
+@app.post("/klasse/{klasse_id}/titel", response_class=HTMLResponse)
+async def klasse_titel(request: Request, klasse_id: str):
+    return await _titel_aendern(request, klasse_id, "klasse", "name", "klasse_aendern", "Klasse umbenennen")
+
+
 async def _reihe_aktion(request: Request, reihe_id: str, wofuer: str, operation: str, argumente: Callable,
                         ziel: str = ""):
     """Aktion an der Reihe aus ihrer Ansicht (ein Knopf, eine Auswahl); belegtes Ziel: einmal fragen."""
@@ -1708,6 +1741,7 @@ def seite_klasse(request: Request, gruppe_id: str):
     return vorlagen.TemplateResponse(request, "klasse.html", {
         "e": e, "token": logik.formular_token(GEHEIM), "p": klasse_pflege(struktur_(), gruppe_id),
         "ablage": ablage_daten(gruppe_id, logik.klasse_link(e["gruppe"]), request), "gespraeche": gespraeche_hier(gruppe_id),
+        "titel_aktion": f"/klasse/{gruppe_id}/titel", "titel_max": pflege.LAENGE["name"],
         **rahmen(reihen, logik.krumen_klasse(e["gruppe"]), logik.klasse_aktiv(gruppe_id))})
 
 

@@ -7,6 +7,7 @@
 {%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- from "_plus.html" import ebene, punkte -%}
+{%- from "_direkt.html" import titel -%}
 {%- block plus %}{{ ebene(gs=gespraeche, neu_hier=neu_hier, stunde_an=p.reihe.id if p and not p.archiv else none,
     wort=e.wort, ablage=ablage, archiv=p and p.archiv) }}{% endblock %}
 {%- block punkte %}
@@ -47,11 +48,13 @@
 {%- endcall %}
 {%- endif %}
 {%- endblock %}
-{%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
+{%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script>{% endif %}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
   <span class="datum grau">{{ e.unter }}</span>
-  <h1 class="titel-gross">{{ e.titel }}</h1>
+  {#- Titel anklicken, umbenennen (Schritt 4); titel_aktion kommt erst von der neuen App (Vorlagen wirken vor dem Neustart) -#}
+  {{ titel(e.titel, aktion=titel_aktion if titel_aktion and p and not p.archiv else "", feld="titel", wert=p.reihe.titel if p else "",
+           felder=[("alt_titel", p.reihe.titel if p else "")], max=titel_max or 120) }}
   {%- if e.reihenfrage %}<p class="absatz">{{ e.reihenfrage }}</p>{% else %}<p class="absatz unter">Reihenfrage noch offen</p>{% endif %}
 </header>
 {% endblock %}

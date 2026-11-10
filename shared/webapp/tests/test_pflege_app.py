@@ -513,6 +513,56 @@ class TestReihe(Pflege):
                                                 "merksaetze": "A\nB"})
         self.assertEqual((self.s().reihe(STRAFE)["stand"], self.s().reihe(STRAFE)["merksaetze"]), ("laufend", ["A", "B"]))
 
+    def test_titel_direkt(self):
+        """umbauplan-ux.md Schritt 4: Titel anklicken, umbenennen. Eigene Routen nur für Titel bzw. Namen; Jans
+        Änderung an anderen Feldern bleibt, gleichzeitig geänderter Titel: neu laden."""
+        _, html = self.hole(f"/reihe/{STRAFE}")
+        self.assertIn('<h1 class="titel-gross" data-direkt-titel>Straftheorien</h1>', html)
+        self.assertIn(f'action="/reihe/{STRAFE}/titel"', html)
+        self.assertIn('<input type="hidden" name="alt_titel" value="Straftheorien">', html)
+        self.datei.write_text(self.text().replace("Lia sucht noch nach einer guten.", "Jan war hier."),
+                              encoding="utf-8")
+        ziel = self.ok(f"/reihe/{STRAFE}/titel", {"titel": " Strafe ", "alt_titel": "Straftheorien"})
+        self.assertTrue(ziel.startswith(f"/reihe/{STRAFE}?aktion="))
+        r = self.s().reihe(STRAFE)
+        self.assertEqual(r["titel"], "Strafe")
+        self.assertTrue(r["notizen"].endswith("Jan war hier."))
+        self.assertIn("(jetzt „Strafe“)", self.hole(ziel)[1])
+        r_, _ = self.post(f"/reihe/{STRAFE}/titel", {"titel": "Strafe", "alt_titel": "Strafe"})
+        self.assertEqual(r_.getheader("location"), f"/reihe/{STRAFE}?erledigt=nichts")
+        r_, html = self.post(f"/reihe/{STRAFE}/titel", {"titel": "", "alt_titel": "Strafe"})
+        self.assertEqual(r_.status, 400)
+        self.assertIn(pflege.PFLICHT["reihe"], html)
+        self.assertIn(f'href="/reihe/{STRAFE}"', html)  # Weg zurück
+        r_, html = self.post(f"/reihe/{STRAFE}/titel", {"titel": "Noch anders", "alt_titel": "Straftheorien"})
+        self.assertEqual(r_.status, 400)  # Titel ist inzwischen ein anderer
+        self.assertIn(pflege.NEU_LADEN, html)
+        self.assertEqual(self.s().reihe(STRAFE)["titel"], "Strafe")
+        # Klasse: das Feld ist der Name („8“), angezeigt wird „Klasse 8“
+        _, html = self.hole("/klasse/ethik-8")
+        self.assertIn('<h1 class="titel-gross" data-direkt-titel>Klasse 8</h1>', html)
+        self.assertIn('name="name" type="text" value="8"', html)
+        self.ok("/klasse/ethik-8/titel", {"name": "8a", "alt_name": "8"})
+        self.assertEqual(self.s().objekt("ethik-8")["name"], "8a")
+        self.assertEqual(self.post("/klasse/gibt-es-nicht/titel", {"name": "x", "alt_name": ""})[0].status, 404)
+        self.assertEqual(self.post(f"/klasse/{STRAFE}/titel", {"name": "x", "alt_name": ""})[0].status, 404)
+        # Stunde: dasselbe Formular wie „Thema und Marke“, mit der Marke unverändert
+        self.ok(f"/reihe/{STRAFE}/stunden", {"thema": "Kant"})
+        sid = self.s().reihe(STRAFE)["stunden"][0]["id"]
+        self.ok(f"/stunde/{sid}/aendern", {"thema": "Kant", "marke": "Prüfung", "alt_thema": "Kant", "alt_marke": ""})
+        _, html = self.hole(f"/reihe/{STRAFE}/stunde/1")
+        kopf = html.split('<header class="kopf">')[1].split("</header>")[0]
+        for teil in ("data-direkt-titel>Kant</h1>", f'action="/stunde/{sid}/aendern"',
+                     '<input type="hidden" name="marke" value="Prüfung">', 'name="thema" type="text" value="Kant"'):
+            self.assertIn(teil, kopf)
+        self.ok(f"/stunde/{sid}/aendern", {"thema": "Kant und Hegel", "marke": "Prüfung", "alt_thema": "Kant",
+                                           "alt_marke": "Prüfung"})
+        self.assertEqual((self.s().objekt(sid)["thema"], self.s().objekt(sid)["marke"]), ("Kant und Hegel", "Prüfung"))
+        # im Archiv: kein Umbenennen am Titel
+        self.ok(f"/objekt/{STRAFE}/archivieren", {})
+        for pfad in (f"/reihe/{STRAFE}", f"/reihe/{STRAFE}/stunde/1"):
+            self.assertNotIn("data-direkt-titel", self.hole(pfad)[1], pfad)
+
     def test_kopieren_und_verschieben(self):
         """Lia-Test Aufgabe 2: Freundschaft aus der 7 vom letzten Jahr in die neue 9, in die ersten sechs Termine;
         das Original bleibt im Archiv."""
@@ -760,6 +810,8 @@ class TestSchutz(Pflege):
             ("/klasse/ethik-8/zusatztermin", {"datum": "2026-12-02", "stunde": "5"}),
             ("/klasse/ethik-8/reihe/neu", {"titel": "X"}),
             (f"/reihe/{STRAFE}/bearbeiten", {"titel": "X", "alt_titel": "Straftheorien"}),
+            (f"/reihe/{STRAFE}/titel", {"titel": "X", "alt_titel": "Straftheorien"}),
+            ("/klasse/ethik-8/titel", {"name": "X", "alt_name": "8"}),
             (f"/reihe/{STRAFE}/verschieben", {"klasse": "darstellendes-spiel-kurs-11"}),
             (f"/reihe/{STRAFE}/kopieren", {"klasse": "darstellendes-spiel-kurs-11"}),
             (f"/reihe/{STRAFE}/stunden", {"thema": "x"}), (f"/stunde/{sid}/aendern", {"thema": "x", "alt_thema": "Kant"}),

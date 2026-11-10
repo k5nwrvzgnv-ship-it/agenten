@@ -28,12 +28,16 @@
   {%- else %}
   <p class="absatz unter">Was Claude immer kennen soll: deine Planung, eine Buchseite, Kriterien.</p>
   {%- endif %}
+  {#- Mit JavaScript (statisch/direkt.js, Schritt 4): „Datei“ im „+“ öffnet gleich die Auswahl, eine Datei lässt sich auf
+      die Seite ziehen; danach eine Zeile mit Dateiname, Regel und „Ablegen“. Die Regel steht dann nur in diesem Moment da. -#}
   <form class="ablage-form" method="post" action="/ablage/{{ a.ort_id }}" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ a.token }}">
     <label class="knopf datei-knopf">+ Datei ablegen
       <input type="file" name="dateien" multiple accept=".pdf,.docx,.pptx,.xlsx,.jpg,.jpeg,.png,image/jpeg,image/png"></label>
-    <button class="knopf" type="submit">Hochladen</button>
-    <span class="unter">PDF, Word, PowerPoint, Excel, Fotos; je bis 20 MB. Keine Schülerdaten.</span>
+    <span class="ablage-gewaehlt" aria-live="polite"></span>
+    <button class="knopf knopf-voll" type="submit">Ablegen</button>
+    <button class="knopf knopf-leise ablage-ab" type="button">Abbrechen</button>
+    <span class="unter ablage-regel">PDF, Word, PowerPoint, Excel, Fotos; je bis 20 MB. Keine Schülerdaten.</span>
   </form>
 </section>
 {%- endmacro -%}

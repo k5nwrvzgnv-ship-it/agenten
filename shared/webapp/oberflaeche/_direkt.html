@@ -1,0 +1,21 @@
+{#- Direkt am Ding (umbauplan-ux.md Schritt 4). Titel anklicken, umbenennen: Der Titel steht wie bisher da, dahinter ein
+    verstecktes Formular mit genau den Feldern der bestehenden Route. statisch/direkt.js zeigt es beim Anklicken (Enter
+    speichert, Esc bricht ab). Ohne JavaScript bleibt das Formular versteckt, der Weg geht über „···“ bzw. die Maske.
+    text: angezeigter Titel; aktion: POST-Ziel; feld/wert: das eine Eingabefeld; felder: weitere (name, wert) wie alt_…;
+    max: Länge; leer: Platzhalter; klasse: Klasse des Titels (h1). -#}
+{%- macro titel(text, aktion="", feld="", wert="", felder=[], max=200, leer="", klasse="titel-gross") -%}
+<h1 class="{{ klasse }}"{% if aktion %} data-direkt-titel{% endif %}>{{ text }}</h1>
+{%- if aktion %}
+<form class="direkt-form" method="post" action="{{ aktion }}" hidden data-einmal>
+  <input type="hidden" name="token" value="{{ formular_token() }}">
+  {%- for name, w in felder %}<input type="hidden" name="{{ name }}" value="{{ w }}">{% endfor %}
+  <label class="unsichtbar" for="direkt-{{ feld }}">Neuer Name</label>
+  <input class="direkt-feld {{ klasse }}" id="direkt-{{ feld }}" name="{{ feld }}" type="text" value="{{ wert }}"
+    maxlength="{{ max }}" placeholder="{{ leer }}" autocomplete="off">
+  <span class="direkt-knoepfe">
+    <button class="knopf knopf-klein knopf-voll" type="submit">Speichern</button>
+    <button class="knopf knopf-klein knopf-leise" type="button" data-direkt-ab>Abbrechen</button>
+  </span>
+</form>
+{%- endif %}
+{%- endmacro -%}

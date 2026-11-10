@@ -784,6 +784,43 @@ class TestOrdnung(Aufbau):
             self.assertNotIn(weg, menue)
         self.assertIsNone(self.punkte(self.hole("/reihe/strafe/stunde/1")[1]))  # Stunde im Archiv: nichts zu tun
 
+    def test_direkt_am_ding(self):
+        """umbauplan-ux.md Schritt 4: Titel tragen ihr verstecktes Formular, die Ablage hat Zeile und Regel für
+        direkt.js; ohne JavaScript bleiben „···“, Masken und „+ Datei ablegen“."""
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+        for pfad in ("/reihe/strafe", "/reihe/strafe/stunde/1", "/klasse/ethik-8"):
+            _, html = self.hole(pfad)
+            self.assertIn('<script src="/statisch/direkt.js" defer></script>', html, pfad)
+            self.assertEqual(html.count("data-direkt-titel"), 1, pfad)
+            self.assertIn('<form class="direkt-form" method="post"', html, pfad)
+            self.assertIn(" hidden data-einmal>", html, pfad)  # ohne JavaScript unsichtbar
+            form = html.split('class="ablage-form"')[1].split("</form>")[0]
+            for teil in ('type="file" name="dateien"', '<button class="knopf knopf-voll" type="submit">Ablegen</button>',
+                         'class="unter ablage-regel">PDF, Word', "Keine Schülerdaten", 'class="ablage-gewaehlt"'):
+                self.assertIn(teil, form, pfad)
+            self.assertIsNotNone(self.punkte(html), pfad)  # Weg ohne JavaScript
+        # Gespräch: Name anklicken, dieselbe Route wie „Umbenennen“ im „···“
+        ordner = self.tmp / "chat"
+        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
+            gid = self.post("/gespraech/neu", {"ort": "strafe"})[0].getheader("location").rsplit("/", 1)[1]
+            _, html = self.hole(f"/gespraech/{gid}")
+        self.assertIn('<h1 class="gname" data-direkt-titel>', html)
+        self.assertEqual(html.count(f'action="/gespraech/{gid}/umbenennen"'), 2)
+        self.assertIn("direkt.js", html)
+        # Die laufende App (vor dem Neustart) kennt die Titel-Routen nicht: dann kein Umbenennen an Reihe und Klasse
+        echt = app._Vorlagen.TemplateResponse
+
+        def alte_app(selbst, request, name, kontext, *rest, **kw):
+            return echt(selbst, request, name, {k: v for k, v in kontext.items() if not k.startswith("titel_")},
+                        *rest, **kw)
+        with mock.patch.object(app._Vorlagen, "TemplateResponse", alte_app):
+            for pfad in ("/reihe/strafe", "/klasse/ethik-8"):
+                r, html = self.hole(pfad)
+                self.assertEqual(r.status, 200, pfad)
+                self.assertNotIn("data-direkt-titel", html, pfad)
+                self.assertNotIn("/titel", html, pfad)
+            self.assertIn("data-direkt-titel", self.hole("/reihe/strafe/stunde/1")[1])  # Stunde: alte Route
+
     def test_heute_ohne_leere_abschnitte(self):
         ordner = self.tmp / "chat"
         with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
