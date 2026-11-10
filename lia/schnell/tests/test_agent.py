@@ -8,7 +8,7 @@ import agent
 import logik
 import renderer
 import schnittstelle
-from agentkit import auftraege, claude_lauf, fassungen
+from agentkit import auftraege, claude_lauf, fassungen, feedback
 
 LIA = Path(__file__).resolve().parents[2]
 BLATT = {"art": "arbeitsblatt", "titel": "Warum strafen wir?", "bloecke": [
@@ -99,6 +99,25 @@ class Aenderung(Basis):
         neu2 = json.loads((self.daten / "fassungen" / self.ergebnis / "eigene-2" / "beschreibung.json").read_text())
         self.assertEqual((neu2["titel"], len(neu2["bloecke"])), ("Strafe", 2))
 
+    def test_seitenbilder_neben_der_eigenen_fassung(self):
+        def bauen(b, ziel, profil=None):
+            renderer.bauen(b, ziel, profil, vorschau=False)
+            (ziel.parent / f"{ziel.stem}-vorschau").mkdir()
+            (ziel.parent / f"{ziel.stem}-vorschau" / f"{ziel.stem}-seite-01.png").write_bytes(b"png")
+
+        u = self.umgebung(Fake(LOESCHEN))
+        u.bauen = bauen
+        a = agent.bearbeiten(self.wunsch(), u)
+        f = a["fassung"]
+        vorschau = self.agenten / "unterricht" / f["vorschau"]
+        self.assertEqual(vorschau, (self.agenten / "unterricht" / f["datei"]).parent / "Arbeitsblatt Strafe-vorschau")
+        self.assertTrue((vorschau / "Arbeitsblatt Strafe-seite-01.png").is_file())
+        self.assertTrue(schnittstelle.schnell_fassung(self.ergebnis, 1, self.daten))
+        self.assertFalse(schnittstelle.schnell_fassung(self.ergebnis, 2, self.daten))
+        self.assertFalse(schnittstelle.schnell_fassung("../x", 1, self.daten))
+        notiz = fassungen.lesen(self.ergebnis, self.basis)["eigene"][0]["notiz"]
+        self.assertTrue(notiz.startswith(schnittstelle.NOTIZ_PRAEFIX))
+
     def test_zu_gross_geht_gruendlich(self):
         a = agent.bearbeiten(self.wunsch("Neue Fälle mit Quellen"), self.umgebung(Fake(ZU_GROSS)))
         self.assertEqual((a["ok"], a["stand"], a["auftrag"]), (True, "gruendlich", "20261110-120000-unterricht-abcdef"))
@@ -154,7 +173,7 @@ class Aenderung(Basis):
         agent.bearbeiten(self.wunsch(), self.umgebung(Fake(LOESCHEN), cfg))
         w = self.weitergaben[0]
         self.assertEqual((w["an"], w["bezug"], w["quelle"], w["felder"], w["still"]),
-                         ("feedback", self.ergebnis, "feedback", {"feedback_modus": "nur_lernen"}, True))
+                         ("feedback", self.ergebnis, "feedback", {feedback.FELD_MODUS: feedback.NUR_LERNEN}, True))
         self.assertEqual(self.gestartet, ["feedback"])
 
     def test_unbekannt_und_fehler(self):

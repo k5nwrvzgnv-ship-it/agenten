@@ -84,8 +84,17 @@ nach außen.
   - `fehler`: None, "limit" (`wieder_frei` z. B. "31.10. 14:30"), "belegt", "zeit", "technik" (Jan hat eine
     Meldung), "ungueltig" (Dokument oder Wunsch unbekannt). Bei Fehlern steht in `text` ein Satz für Lia.
   - `fassung` (bei fertig): `{"agent" (der Kette), "bezug", "ursprung", "eigene" (n der neuen eigenen Fassung, bei
-    schnellen Dokumenten None), "name", "datei" (relativ zum Ordner von agent), "vorschau" (Ordner mit PNG je Seite
-    und PDF, relativ zu lia/schnell, oder None)}`. Schnelles Dokument: `auftrag` = ID des erledigten Auftrags.
+    schnellen Dokumenten None), "name", "datei" (relativ zum Ordner von agent), "vorschau" (relativ zum Ordner von
+    agent, oder None)}`. Schnelles Dokument: `auftrag` = ID des erledigten Auftrags.
+  - Seitenbilder: neben jeder Datei liegt `<stem>-vorschau/` mit `<stem>.pdf` und `<stem>-seite-NN.png`, wie bei
+    Ergebnisdateien, auch neben der eigenen Fassung im Ordner des Agenten der Kette (`<agent>/<eintrag["datei"]>`,
+    kopiert gleich nach `eigene_dazu`, also wenige Millisekunden später als der Eintrag). dateien.vorschau_info geht.
+- Kennzeichen „von schnell“ (zugesichert): Die Notiz jeder schnell geänderten eigenen Fassung beginnt mit
+  `schnittstelle.NOTIZ_PRAEFIX` („Schnell geändert: “, danach Lias Wunsch, zusammen bis 300 Zeichen). Fester:
+  `schnittstelle.schnell_fassung(ursprung, n) -> bool` (True, wenn schnell ihre Beschreibung hat; nur diese
+  lassen sich mit `aendern(…, eigene=n)` wieder schnell ändern).
+- Welche Dokumente: `aendern()` nimmt Ergebnisse von unterricht, theater und schnell an (andere Agenten:
+  „ungueltig“). Rückmeldungen mit Datei und zu anderen Agenten schickt die Web-App wie bisher an feedback.
   - `text`: Claudes Satz, was geändert ist (bzw. was das Dokument enthält, mit dem Hinweis am Ende).
 - Zeiten: Änderung meist 13–25 s, schnelles Dokument um 1 min; Grenze je Lauf 4 min, höchstens 2 Läufe, plus bis
   1 min Warten auf einen Platz.
@@ -108,8 +117,8 @@ nach außen.
 ## Offene Punkte
 1. Dienste installieren (Jans Okay ausstehend), vorher Neustart der Zentralen (Haupt-STATUS Punkt 37). Danach ein
    Lauf über den Dienst: Zeit mit Start und Speicher-Spitze messen.
-2. Web-App (Plan Schritt 3): Anbinden. Schnell geänderte Fassungen zeigt sie heute als eigene Fassung „von dir“; die
-   Notiz beginnt mit „Schnell geändert:“.
+2. Web-App (Plan Schritt 3, eigener Chat, baut gerade): Anbinden; schnell geänderte Fassungen oben mit
+   Seitenbildern statt als „von dir“ (Kennzeichen siehe Schnittstelle).
 3. Gründliche Nachbesserung nach schnellen Änderungen: unterricht kopiert die Beschreibung des letzten eigenen
    Ergebnisses, theater baut aus seinem Ablauf neu. Schnelle Änderungen kommen dort nur über die angehängte Datei
    (fassungen.grundlage bzw. Anhang) an und können verloren gehen. Bedarf in Haupt-STATUS Punkt 37.

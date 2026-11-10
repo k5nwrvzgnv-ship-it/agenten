@@ -16,6 +16,8 @@ import json
 import re
 from pathlib import Path
 
+from schnittstelle import NOTIZ_PRAEFIX
+
 # Formen für schnelle Dokumente (Entscheidung 6.3): wie Lias Material aus lia/unterricht
 DOKUMENT_ARTEN = {"arbeitsblatt": ".docx", "folien": ".pptx", "arbeitsmappe": ".xlsx"}
 # Abschnitte aus shared/renderer/FORMAT.md je art (Überschrift beginnt so)
@@ -369,8 +371,9 @@ def dateiname(beschreibung: dict) -> str:
 
 
 def notiz(wunsch: str) -> str:
-    """Notiz der neuen Fassung in agentkit.fassungen (die Web-App zeigt sie an der Fassung)."""
-    return kurz(f"Schnell geändert: {wunsch}", MAX_NOTIZ)
+    """Notiz der neuen Fassung in agentkit.fassungen (die Web-App zeigt sie an der Fassung). Beginnt immer mit
+    NOTIZ_PRAEFIX (zugesichert für die Web-App, schnittstelle.schnell_fassung)."""
+    return kurz(f"{NOTIZ_PRAEFIX}{wunsch}", MAX_NOTIZ)
 
 
 def nachbesserung_text(auftrag: dict, datei_name: str, wunsch: str, grundlage: str = "") -> str:

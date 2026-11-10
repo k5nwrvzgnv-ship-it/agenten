@@ -25,7 +25,8 @@ from typing import Callable
 import logik
 import renderer
 import schnittstelle
-from agentkit import auftraege, claude_lauf, config, einstellungen, fassungen, log, meldungen, regeln, struktur
+from agentkit import auftraege, claude_lauf, config, einstellungen, fassungen, feedback, log, meldungen, regeln
+from agentkit import struktur
 from agentkit import textfassung, verbrauch
 
 AGENT = "schnell"
@@ -240,7 +241,7 @@ def lernen(w: dict, u: Umgebung, d: Dokument) -> None:
     try:
         u.weitergeben(AGENT, "feedback", f"Zur Datei „{d.name}“: {w['text']}", None, cfg=u.cfg, basis=u.basis,
                       agenten_dir=u.agenten_dir, bezug=d.ergebnis["id"], quelle="feedback",
-                      felder={"feedback_modus": "nur_lernen"}, still=True)
+                      felder={feedback.FELD_MODUS: feedback.NUR_LERNEN}, still=True)
         u.starten("feedback")
     except (auftraege.AuftragFehler, OSError) as f:
         logger.error("Wunsch %s: Lernen nicht weitergegeben: %s", w["id"], f)
@@ -308,17 +309,20 @@ def aenderung(w: dict, u: Umgebung) -> dict:
                                             u.agenten_dir)
         finally:
             shutil.rmtree(abgabe, ignore_errors=True)
+        # Seitenbilder neben die Datei im Ordner der Kette, wie bei Ergebnisdateien (die Web-App liest sie dort)
+        datei = u.agenten_dir / d.agent / eintrag["datei"]
+        vorschau = datei.parent / f"{datei.stem}-vorschau"
+        if (arbeit / vorschau.name).is_dir():
+            shutil.copytree(arbeit / vorschau.name, vorschau, dirs_exist_ok=True)
         ablage = u.daten / "fassungen" / d.ursprung / f"eigene-{eintrag['n']}"
         ablage.parent.mkdir(parents=True, exist_ok=True)
         shutil.rmtree(ablage, ignore_errors=True)
         arbeit.rename(ablage)
     finally:
         shutil.rmtree(arbeit, ignore_errors=True)
-    vorschau = ablage / f"{Path(d.name).stem}-vorschau"
     fassung = {"agent": d.agent, "bezug": d.ergebnis["id"], "ursprung": d.ursprung, "eigene": eintrag["n"],
                "name": eintrag["name"], "datei": eintrag["datei"],
-               "vorschau": str(vorschau.relative_to(HIER)) if vorschau.is_dir() and vorschau.is_relative_to(HIER)
-               else None}
+               "vorschau": str(vorschau.relative_to(u.agenten_dir / d.agent)) if vorschau.is_dir() else None}
     lernen(w, u, d)
     return antwort(w, True, a.get("antwort") or TEXTE["geaendert"], "fertig", fassung=fassung)
 

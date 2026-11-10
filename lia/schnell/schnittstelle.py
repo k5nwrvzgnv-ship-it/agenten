@@ -25,6 +25,7 @@ ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".jpg", ".jpeg", ".png")
 FOTO_ENDUNGEN = (".jpg", ".jpeg", ".png")
 MAX_DATEIEN = 5
 MAX_BYTES = 20 * 1024 * 1024
+NOTIZ_PRAEFIX = "Schnell geändert: "  # Notiz jeder schnell geänderten eigenen Fassung (zugesichert)
 _UNERLAUBT = re.compile(r"[^\w .()-]")
 
 
@@ -154,3 +155,11 @@ def antwort_holen(wunsch_id: str, ordner: Path = ORDNER) -> dict | None:
 def wartet(wunsch_id: str, ordner: Path = ORDNER) -> bool:
     """True, solange der Wunsch noch in der Warteschlange liegt."""
     return bool(ID_MUSTER.match(wunsch_id or "")) and (Path(ordner) / "wuensche" / f"{wunsch_id}.json").exists()
+
+
+def schnell_fassung(ursprung: str, n: int, ordner: Path = ORDNER) -> bool:
+    """Stammt die eigene Fassung n der Kette ursprung von schnell? (Dann gibt es ihre Beschreibung hier, und sie lässt
+    sich wieder schnell ändern.) Festes Kennzeichen neben dem Notiz-Präfix NOTIZ_PRAEFIX."""
+    if not AUFTRAG_MUSTER.match(ursprung or "") or not isinstance(n, int) or isinstance(n, bool) or n < 1:
+        return False
+    return (Path(ordner) / "fassungen" / ursprung / f"eigene-{n}" / "beschreibung.json").is_file()
