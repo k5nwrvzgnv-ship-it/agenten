@@ -5,6 +5,9 @@
 {%- from "_zeile.html" import zeile -%}
 {%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
+{%- from "_plus.html" import ebene -%}
+{%- block plus %}{{ ebene(gs=gespraeche, neu_hier=neu_hier, stunde_an=p.reihe.id if p and not p.archiv else none,
+    wort=e.wort, ablage=ablage, archiv=p and p.archiv) }}{% endblock %}
 {%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script><script src="/statisch/einmal.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
@@ -58,14 +61,7 @@
   {%- endif %}
   {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
   {%- if p and not p.archiv %}
-  <form class="zeile-form" method="post" action="/reihe/{{ p.reihe.id }}/stunden" data-einmal>
-    <input type="hidden" name="token" value="{{ token }}">
-    <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
-    <label class="unsichtbar" for="thema">Thema der neuen {{ e.wort }}</label>
-    <input id="thema" name="thema" type="text" maxlength="{{ thema_max }}" value="{{ thema }}"
-           placeholder="Thema (darf offen bleiben)">
-    <button class="knopf" type="submit">+ {{ e.wort }}</button>
-  </form>
+  {#- Neue Stunde über das „+“ oben (Thema offen); das Thema schreibt Lia danach in der Stunde -#}
   {%- if e.stunden %}
   <form class="zeile-form" method="post" action="/stunden/verschieben" id="verschieben">
     <input type="hidden" name="token" value="{{ token }}">

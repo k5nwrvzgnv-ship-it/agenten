@@ -49,7 +49,14 @@ Was das „+“ je Seite anbietet:
   (Schritt 4), bleibt ein Weg ohne: das „···“ führt dann zu den heutigen Masken.
 - Kein neues Paket, keine fremden Skripte, CSP bleibt `'self'`.
 
-## Schritt 1: Das Plus
+## Schritt 1: Das Plus (gebaut 10.11.2026)
+
+Gebaut wie unten, mit einer Abweichung: Die Ergebnis-Seite behält „+ Neu hier“ bis Schritt 6, und „Gespräche ohne Ort“
+behält ihren Knopf „+ Gespräch“ (dort gibt es nur das eine). Eine abgeschlossene Reihe bietet kein „Material …“ (wie
+vorher „+ Neu hier“ nur an laufenden Reihen). Tests: `test_plus_je_seite`, angepasst `test_reihe`,
+`test_neu_hier_mit_art_und_stunde`, `test_formular_und_einstieg_in_heute`, `test_neu_stunde_waehlen`,
+`test_baum_mit_neu_und_altes_format_ohne_masken`.
+
 
 - Dateien: neu `oberflaeche/_plus.html` (Makro, Einträge je Seite), `basis.html:25` („+ Neu hier“ wird das „+“),
   `_ort.html:53–58` („+ Gespräch“ unten im Abschnitt weg, wandert ins „+“), `reihe.html:60–68` (Formular „+ Stunde“

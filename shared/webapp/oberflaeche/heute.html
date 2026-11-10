@@ -5,6 +5,10 @@
 <script src="/statisch/htmx-2.0.4.min.js" defer></script>
 {%- if neu %}<script src="/statisch/einmal.js" defer></script>{% endif %}
 {%- endblock %}
+{%- from "_plus.html" import plus -%}
+{#- Das „+“ steht außerhalb des Teils, den htmx jede Minute neu lädt (sonst klappte das Menü dabei zu) -#}
+{%- block plus %}{{ plus(([{"text": "Gespräch", "aktion": "/gespraech/neu", "felder": [("ort", "")]}] if weiter is not none else [])
+    + ([{"text": "Material …", "link": "/neu"}] if neu else [])) }}{% endblock %}
 {% block main_klasse %}{% endblock %}
 {% block seitenkopf %}{% endblock %}
 {% block inhalt %}

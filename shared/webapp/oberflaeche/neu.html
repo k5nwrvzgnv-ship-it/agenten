@@ -1,5 +1,5 @@
 {#- Neu (Board „Desktop“, Ansicht Neu): ohne art die Galerie der Vorlagen, mit art das kurze Formular dieser Art.
-    Der Ort (Reihe, Stunde) ist vorbelegt, wenn Lia „+ Neu hier“ an einem Ort drückt; sonst wählt sie die Reihe.
+    Der Ort (Reihe, Stunde) ist vorbelegt, wenn Lia im „+“ an einem Ort „Material …“ wählt; sonst wählt sie die Reihe.
     Formular ohne JavaScript, Schutz über Origin-Prüfung und Token (app.py). -#}
 {% extends "basis.html" %}
 {%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>{% endblock %}
@@ -23,7 +23,7 @@
   {%- endfor %}
 </div>
 <p class="unter">Weitere Arten kommen, sobald ich sie bauen kann.
-  {%- if not ort_fest %} Tipp: Mit „+ Neu hier“ in einer Reihe oder Stunde ist der Ort schon eingetragen.{% endif %}</p>
+  {%- if not ort_fest %} Tipp: Mit „+“ in einer Reihe oder Stunde ist der Ort schon eingetragen.{% endif %}</p>
 {%- else %}
 <form class="formular" method="post" action="/neu" enctype="multipart/form-data" data-einmal>
   <input type="hidden" name="token" value="{{ token }}">
@@ -77,7 +77,7 @@
       {%- endfor %}
     </select>
     <span class="unter">Ordnet den Auftrag in deiner Übersicht ein und sagt mir, zu welcher Reihe er gehört.
-      Er gilt dann für die ganze Reihe; für eine Stunde nimm „+ Neu hier“ in der Stunde.</span>
+      Er gilt dann für die ganze Reihe; für eine Stunde nimm „+“ in der Stunde.</span>
   </section>
   {%- endif %}
   {%- if vorlage.varianten %}

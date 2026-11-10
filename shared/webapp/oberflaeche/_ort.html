@@ -50,12 +50,7 @@
     <ul class="liste">{% for z in gs.darunter %}{{ gespraech_zeile(z) }}{% endfor %}</ul>
   </details>
   {%- endif %}
-  {%- if not gs.archiv %}
-  <form method="post" action="/gespraech/neu" data-einmal>
-    <input type="hidden" name="token" value="{{ gs.token }}"><input type="hidden" name="ort" value="{{ gs.ort_id }}">
-    <button class="knopf knopf-voll" type="submit">+ Gespräch</button>
-  </form>
-  {%- endif %}
+  {#- Neues Gespräch über das „+“ der Seite (_plus.html) -#}
 </section>
 {%- endif %}
 {%- endmacro -%}

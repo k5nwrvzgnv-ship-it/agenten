@@ -425,8 +425,8 @@ class TestNeuerAuftrag(Aufbau):
         for text in ("Testbetrieb", 'enctype="multipart/form-data"', 'name="token"',
                      "Bitte keine Namen", 'type="file"', "Abschicken"):
             self.assertIn(text, html)
-        self.assertIn('href="/neu"', self.hole("/")[1])
-        self.assertIn('href="/neu"', self.hole("/teile/heute")[1])
+        self.assertIn('<a class="knopf knopf-leise" href="/neu">Material …</a>', self.hole("/")[1])
+        self.assertNotIn('href="/neu"', self.hole("/teile/heute")[1])  # das „+“ steht außerhalb des htmx-Teils
 
     def test_fremde_herkunft_und_falsches_token_legen_nichts_an(self):
         self.assertEqual(self.schicke(origin=None)[0].status, 403)
@@ -539,7 +539,7 @@ class TestOrdnung(Aufbau):
         r, html = self.hole("/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn")
         self.assertEqual(r.status, 200)
         self.assertIn("Noch nichts zur ganzen Reihe.", html)
-        self.assertIn("+ Probe", html)  # Reihe des Theater-Agenten: Proben statt Stunden
+        self.assertEqual(self.plus(html), ["Material …", "Probe", "Datei"])  # Theater-Agent: Proben statt Stunden
         self.assertIn("Reihenfrage noch offen", html)  # Chrome-Test Nr. 5
         self.assertNotIn("Reihenfrage noch offen", self.hole("/reihe/strafe")[1])
         _, html = self.hole("/entwurf/20261025-003745-examen-0c44bf")  # Ort als Brotkrume mit Link zur Reihe
@@ -687,6 +687,41 @@ class TestOrdnung(Aufbau):
                 self.assertEqual(r.status, 200)
                 self.assertEqual(html.count("Gespräch gelöscht."), 1, link)
             self.assertNotIn("Gespräch gelöscht.", self.hole("/reihe/strafe")[1])
+
+    def plus(self, html):
+        """Einträge im „+“ der Seite (umbauplan-ux.md Schritt 1); None, wenn es keins gibt."""
+        teile = html.split('<details class="menue-halter plus">')
+        if len(teile) == 1:
+            return None
+        self.assertEqual(len(teile), 2, "genau ein „+“ je Seite")
+        menue = teile[1].split("</details>")[0]
+        return re.findall(r'<(?:button|a) class="knopf knopf-leise"[^>]*>([^<]+)</(?:button|a)>', menue)
+
+    def test_plus_je_seite(self):
+        """Ein „+“ oben rechts statt „+ Neu hier“, „+ Gespräch“, „+ Stunde“, „+ Reihe“ und „Neuer Auftrag“."""
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+        ordner = self.tmp / "chat"
+        with mock.patch.object(app, "CHAT", True), mock.patch.object(app, "CHAT_ORDNER", ordner):
+            seiten = {"/": ["Gespräch", "Material …"], "/klasse/ethik-8": ["Gespräch", "Reihe", "Datei"],
+                      "/reihe/strafe": ["Gespräch", "Material …", "Stunde", "Datei"],
+                      "/reihe/strafe/stunde/1": ["Gespräch", "Material …", "Datei"]}
+            for pfad, eintraege in seiten.items():
+                _, html = self.hole(pfad)
+                self.assertEqual(self.plus(html), eintraege, pfad)
+                for alt in ("+ Neu hier", "+ Gespräch", "+ Stunde", ">+ Reihe</a>", "knopf-gross"):
+                    self.assertNotIn(alt, html.split('<nav class="baum"')[0], pfad)
+            # „Stunde“ im „+“ legt eine Stunde mit offenem Thema an (dasselbe Formular wie früher „+ Stunde“)
+            _, html = self.hole("/reihe/strafe")
+            self.assertIn('<input type="hidden" name="thema" value="">', html)
+            r, _ = self.post("/reihe/strafe/stunden", {"thema": ""})
+            self.assertRegex(r.getheader("location"), r"^/reihe/strafe\?aktion=")
+            self.assertEqual([s["thema"] for s in self.stunden()], ["Kant", ""])
+            # „Gespräch“ im „+“ hängt das Gespräch an den Ort der Seite
+            self.assertIn('<input type="hidden" name="ort" value="strafe">', html)
+        # ohne Chat und ohne Neu bleibt auf der Stunde nur „Datei“
+        with mock.patch.object(app, "NEUER_AUFTRAG", ""):
+            self.assertEqual(self.plus(self.hole("/reihe/strafe/stunde/1")[1]), ["Datei"])
+            self.assertIsNone(self.plus(self.hole("/")[1]))
 
     def post(self, pfad, felder, token=True):
         body, art = multipart({**({"token": app.logik.formular_token(app.GEHEIM)} if token else {}), **felder}, [])
@@ -860,7 +895,8 @@ class TestOrdnung(Aufbau):
     def test_neu_hier_mit_art_und_stunde(self):
         self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
         _, html = self.hole("/reihe/strafe/stunde/1")
-        self.assertIn('<a class="knopf knopf-voll" href="/neu?reihe=strafe&amp;stunde=1">+ Neu hier</a>', html)
+        self.assertIn('<a class="knopf knopf-leise" href="/neu?reihe=strafe&amp;stunde=1">Material …</a>', html)
+        self.assertNotIn("+ Neu hier", html)  # seit umbauplan-ux.md Schritt 1 im „+“
         self.assertIn('href="/neu?reihe=strafe"', self.hole("/reihe/strafe")[1])
         _, html = self.hole("/neu?reihe=strafe&stunde=1")
         self.assertIn('href="/neu?art=tabelle&amp;reihe=strafe&amp;stunde=1"', html)
@@ -885,7 +921,7 @@ class TestOrdnung(Aufbau):
         b = next(x for x in app.auftraege.neue(basis=self.instanz / "auftraege") if x["id"] != a["id"])
         self.assertEqual((b["text"], b["ort"]), ("x\n\nReihe: Straftheorien (Ethik, Klasse 8)", "strafe"))
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
-            self.assertNotIn("+ Neu hier", self.hole("/reihe/strafe")[1])
+            self.assertNotIn('href="/neu?reihe=strafe"', self.hole("/reihe/strafe")[1])
 
     def test_neu_stunde_waehlen(self):  # Chrome-Test Nr. 2
         _, html = self.hole("/neu?art=arbeitsblatt&reihe=strafe")  # Reihe ohne Stunden
@@ -901,7 +937,7 @@ class TestOrdnung(Aufbau):
         r, _ = self.post("/neu", {"text": "Blatt Kant", "art": "arbeitsblatt", "reihe": "strafe", "stunde": "1"})
         self.assertEqual(r.getheader("location"), "/reihe/strafe/stunde/1?erledigt=auftrag-test")
         _, html = self.hole("/neu?art=arbeitsblatt")  # Reihe aus der Auswahl: gilt für die ganze Reihe
-        self.assertIn("für eine Stunde nimm „+ Neu hier“ in der Stunde", html)
+        self.assertIn("für eine Stunde nimm „+“ in der Stunde", html)
 
     def test_stunden_aus_der_datei_regel_23(self):
         """Stunden in reihen.toml (neues Format): Auftrag aus einer Stunde trägt ihre id als ort, das Material folgt

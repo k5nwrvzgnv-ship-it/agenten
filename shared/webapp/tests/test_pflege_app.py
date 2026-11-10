@@ -109,12 +109,13 @@ class TestLesen(Pflege):
         _, html = self.hole(f"/reihe/{STRAFE}")
         for text in ('href="/fach/neu"><span>+ Fach</span>', 'href="/fach/ethik/klasse/neu"><span>+ Klasse oder Kurs',
                      'href="/klasse/ethik-8/reihe/neu"><span>+ Reihe</span>', f'href="/reihe/{STRAFE}/bearbeiten"',
-                     "Archivieren", "In eine andere Klasse übernehmen", "+ Stunde"):
+                     "Archivieren", "In eine andere Klasse übernehmen", f'action="/reihe/{STRAFE}/stunden"'):
             self.assertIn(text, html)
         self.assertNotIn('href="/klasse/ethik-7-2025-26/reihe/neu"', html)  # Archiv: keine „+ Neu“-Knöpfe
         _, html = self.hole("/reihe/ethik-7-freundschaft")
         self.assertIn("Im Archiv (mit der ganzen Klasse", html)
-        self.assertNotIn("+ Stunde", html)
+        self.assertNotIn('action="/reihe/ethik-7-freundschaft/stunden"', html)
+        self.assertNotIn('class="menue-halter plus"', html)  # Archiv: kein „+“
         self.datei.write_text('[[reihe]]\nid = "r"\nfach = "Ethik"\nklasse = "8"\ntitel = "Alt"\n', encoding="utf-8")
         self.assertNotIn("+ Fach", self.hole("/")[1])
         for pfad in ("/fach/neu", "/fach/ethik/klasse/neu", "/reihe/r/bearbeiten"):

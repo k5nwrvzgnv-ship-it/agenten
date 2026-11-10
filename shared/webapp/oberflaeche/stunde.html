@@ -4,6 +4,8 @@
 {%- from "_zeile.html" import zeile -%}
 {%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
+{%- from "_plus.html" import ebene -%}
+{%- block plus %}{{ ebene(gs=gespraeche, neu_hier=neu_hier, ablage=ablage, archiv=p and p.archiv) }}{% endblock %}
 {% block inhalt %}
 {{ gespraeche_abschnitt(gespraeche) }}
 {%- if hinweis %}<p class="hinweis hinweis-erledigt" role="status">{{ hinweis }}</p>{% endif %}

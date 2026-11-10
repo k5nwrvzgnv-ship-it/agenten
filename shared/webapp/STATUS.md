@@ -52,7 +52,14 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 `umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
 ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Noch nichts davon
 gebaut, wartet auf Jans Freigabe. Zwischenstände darf Lia sehen (Jan 10.11.), also keine Probe-Kopie. Die
-Zeilennummern im Befund und Plan gelten für Commit bf2e0d9. Behoben aus „Nebenbei gefunden“:
+Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
+- Schritt 1 gebaut (Jans Okay 10.11., live): Klasse, Reihe, Stunde und Heute haben oben rechts ein „+“
+  (`oberflaeche/_plus.html`, Block `plus` in `basis.html`) mit Gespräch, Material …, Stunde bzw. Probe, Reihe, Datei,
+  je nach Seite; „Datei“ springt vorerst zum Abschnitt „Deine Dateien“ (richtig in Schritt 4). Weg sind „+ Neu hier“
+  (außer Ergebnis), „+ Gespräch“ im Abschnitt, Formular „+ Stunde“, Knopf „+ Reihe“ und „Neuer Auftrag +“. Nur
+  Vorlagen und CSS, kein Neustart nötig. Rundgang 10.11. gegen 8791: 162 Seiten ohne Fehler. Nicht im Browser
+  angesehen (Menü auf und zu, schmales Fenster). Nächster Schritt: 2 (nur zeigen, was da ist).
+Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).
 - `logik._regel_zeilen` hängt eingerückte Folgezeilen an die Regel davor (`test_regeln_mit_folgezeilen`). Die

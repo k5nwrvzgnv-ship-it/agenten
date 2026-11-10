@@ -1,0 +1,37 @@
+{#- Das „+“ einer Seite (umbauplan-ux.md Schritt 1): ein Knopf oben rechts, darunter die Liste, was hier neu entstehen
+    kann. Einträge: {"text", "link"} (Link) oder {"text", "aktion", "felder": [(name, wert)]} (Formular mit Token,
+    abgeschickt per POST). Ohne Einträge (Archiv, Neu und Chat aus) kein „+“. Geht ohne JavaScript (details). -#}
+{%- macro plus(eintraege) -%}
+{%- if eintraege %}
+<details class="menue-halter plus">
+  <summary class="knopf knopf-voll plus-knopf" aria-label="Neu hier" title="Neu hier"><span aria-hidden="true">+</span></summary>
+  <div class="menue">
+    {%- for e in eintraege %}
+    {%- if e.aktion %}
+    <form method="post" action="{{ e.aktion }}" data-einmal>
+      <input type="hidden" name="token" value="{{ formular_token() }}">
+      {%- for name, wert in e.felder %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
+      <button class="knopf knopf-leise" type="submit">{{ e.text }}</button>
+    </form>
+    {%- else %}
+    <a class="knopf knopf-leise" href="{{ e.link }}">{{ e.text }}</a>
+    {%- endif %}
+    {%- endfor %}
+  </div>
+</details>
+{%- endif %}
+{%- endmacro -%}
+{#- Einträge einer Ebene (Klasse, Reihe, Stunde) aus dem, was die Seite ohnehin hat: gs (gespraeche_am_ort, None bei Chat
+    aus), neu_hier (Link nach Neu, leer bei Neu aus), stunde_an (Reihe für „Stunde“), reihe_neu (Link „Reihe“ der
+    Klasse), ablage (Dateien am Ort), archiv. Reihenfolge wie im Plan: Gespräch, Material, Stunde bzw. Reihe, Datei. -#}
+{%- macro ebene(gs=none, neu_hier="", stunde_an=none, wort="Stunde", reihe_neu="", ablage=none, archiv=false) -%}
+{%- set n = namespace(e=[]) %}
+{%- if not archiv %}
+{%- if gs and not gs.archiv %}{% set n.e = n.e + [{"text": "Gespräch", "aktion": "/gespraech/neu", "felder": [("ort", gs.ort_id)]}] %}{% endif %}
+{%- if neu_hier %}{% set n.e = n.e + [{"text": "Material …", "link": neu_hier}] %}{% endif %}
+{%- if stunde_an %}{% set n.e = n.e + [{"text": wort, "aktion": "/reihe/" ~ stunde_an ~ "/stunden", "felder": [("einmal", einmal_kennung()), ("thema", "")]}] %}{% endif %}
+{%- if reihe_neu %}{% set n.e = n.e + [{"text": "Reihe", "link": reihe_neu}] %}{% endif %}
+{%- if ablage %}{% set n.e = n.e + [{"text": "Datei", "link": "#ablage"}] %}{% endif %}
+{%- endif %}
+{{ plus(n.e) }}
+{%- endmacro -%}

@@ -4,6 +4,9 @@
 {%- from "_zeile.html" import zeile -%}
 {%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt -%}
 {%- from "_pflege.html" import knopf -%}
+{%- from "_plus.html" import ebene -%}
+{%- block plus %}{{ ebene(gs=gespraeche, reihe_neu="/klasse/" ~ p.klasse.id ~ "/reihe/neu" if p else "", ablage=ablage,
+    archiv=p and p.archiv) }}{% endblock %}
 {%- macro termin_zeile(t, k) -%}
 <li class="termin-zeile{% if t.ausgefallen %} termin-aus{% endif %}">
   <span class="termin-datum">{{ t.text }}</span>
@@ -30,8 +33,6 @@
   {%- if p.archiv %}
   <p class="hinweis">Im Archiv. Alles darin bleibt erhalten.</p>
   {%- if p.selbst_archiviert %}{{ knopf("/objekt/" ~ p.klasse.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}{% endif %}
-  {%- else %}
-  <a class="knopf knopf-voll" href="/klasse/{{ p.klasse.id }}/reihe/neu">+ Reihe</a>
   {%- endif %}
   <a class="knopf" href="/klasse/{{ p.klasse.id }}/bearbeiten">Bearbeiten</a>
 </div>
