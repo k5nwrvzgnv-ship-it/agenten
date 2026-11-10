@@ -123,7 +123,8 @@ main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: col
 .marke.rot { font-weight: 500 }
 .nur-hover { display: none }
 .zeile:hover .nur-hover, .zeile:focus-visible .nur-hover { display: inline }
-.zeile:hover .marke:not(.rot), .zeile:focus-visible .marke:not(.rot) { display: none }
+@media (hover: hover) { .zeile:hover .marke:not(.rot) { display: none } }
+.zeile:focus-visible .marke:not(.rot) { display: none }
 .hinweis-hover { font-size: 12px; color: var(--leise); white-space: nowrap }
 .leer { font-size: 14px; color: var(--sehrleise); padding: 4px 0; margin: 0 }
 .leise { color: var(--leise); font-size: 14px }
@@ -144,7 +145,8 @@ main { min-width: 0; padding: 16px 48px 64px; display: flex; flex-direction: col
 .menue.rechtsbuendig { left: auto; right: 0 }
 .menue button { border: 0; background: none; text-align: left; padding: 6px 10px; border-radius: 4px; font-size: 14px; color: var(--fg); min-height: 32px }
 .menue button:hover, .menue button:focus-visible { background: var(--hover) }
-@media (hover: none) { .nur-hover { display: none !important } }
+/* Touch (Plan: Zeilenaktionen bleiben sichtbar, sonst findet Lia sie am iPad nicht); Zahlen im Baum bleiben weg */
+@media (hover: none) { .baum .nur-hover { display: none !important } .hinweis-hover.nur-hover { display: inline } }
 
 /* Gespräch */
 .gespraech { max-width: 760px; width: 100%; display: flex; flex-direction: column; gap: 24px }
@@ -231,7 +233,8 @@ aside .darunter-liste { padding-left: 12px }
 .schliessen:hover { background: var(--hover); color: var(--fg) }
 .seitenbild { display: block; width: 100%; border: 0; padding: 0; background: none; cursor: zoom-in; border-radius: 4px }
 .seitenbild svg, .seitenbild img { display: block; width: 100%; height: auto; border-radius: 3px; background: #fff; box-shadow: 0 0 0 1px var(--linie), 0 2px 10px rgba(15, 15, 15, .08) }
-.vorschau .seitenbild svg { width: auto; max-width: 100%; max-height: 52vh; margin: 0 auto }
+.vorschau .seitenbild svg { width: min(100%, calc(52vh * 210 / 297)); height: auto; margin: 0 auto }
+.vorschau .seitenbild.quer svg { width: min(100%, calc(52vh * 320 / 180)) }
 .vnav { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--leise) }
 .vnav .knopf-leise { font-size: 16px; min-width: 32px; justify-content: center }
 .vnav .knopf-leise:disabled { opacity: .35; cursor: default; background: none }
@@ -250,9 +253,9 @@ aside .darunter-liste { padding-left: 12px }
 .bkopf .knopf-leise, .betrachter .schliessen { color: #d6d6d3 }
 .bkopf .knopf-leise:hover, .betrachter .schliessen:hover { background: rgba(255, 255, 255, .12); color: #fff }
 .bkopf .knopf-leise:disabled { opacity: .35; background: none }
-.betrachter .seitenbild { width: auto; cursor: pointer }
-.betrachter .seitenbild svg, .betrachter .seitenbild img { width: auto; height: calc(100vh - 120px); max-width: 100%; box-shadow: 0 4px 24px rgba(0, 0, 0, .4) }
-.betrachter .seitenbild.quer svg { width: min(100%, 1000px); height: auto; max-height: calc(100vh - 120px) }
+.betrachter .seitenbild { width: 100%; cursor: pointer }
+.betrachter .seitenbild svg, .betrachter .seitenbild img { width: min(100%, calc((100vh - 120px) * 210 / 297)); height: auto; margin: 0 auto; box-shadow: 0 4px 24px rgba(0, 0, 0, .4) }
+.betrachter .seitenbild.quer svg { width: min(100%, 1000px, calc((100vh - 120px) * 320 / 180)) }
 .betrachter .foto-gross { cursor: default }
 .betrachter .foto-gross svg { height: auto; width: min(100%, 720px) }
 .bhinweis { margin: 0; font-size: 12px; color: #a9a9a5 }
@@ -297,7 +300,7 @@ button.foto:hover { box-shadow: 0 0 0 1px var(--leise) }
 
 @media (max-width: 1100px) {
   .app, .app.ohne-rechts { grid-template-columns: 220px minmax(0, 1fr) }
-  aside.rechts { grid-column: 2; border-left: 0; border-top: 1px solid var(--linie); padding-left: 48px; padding-right: 48px; position: static; max-height: none }
+  aside.rechts { grid-column: 2; border-left: 0; border-top: 1px solid var(--linie); padding-left: 32px; padding-right: 32px; position: static; max-height: none }
   main { padding-left: 32px; padding-right: 32px }
 }
 @media (max-width: 760px) {
@@ -313,6 +316,7 @@ button.foto:hover { box-shadow: 0 0 0 1px var(--leise) }
   .ebene, .gespraech { gap: 28px }
   .tabelle table { min-width: 460px }
   .vmeta { margin-left: 0 }
+  .vorschau { width: 100%; box-shadow: none; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
   .titel h1, .luecken h1 { font-size: 26px }
   .lz summary { grid-template-columns: 28px minmax(0, 1fr) }
   .lz .wo { grid-column: 2 }
@@ -555,7 +559,7 @@ function ebenenAnsicht(k) {
   else if (e.rahmen) kopf += '<p class="leise">' + esc(e.rahmen) + '</p>';
   else if (e.typ === 'Stunde') kopf += '<p class="leise">Gespräche hier kennen auch Reihenfrage und Material der Reihe ' + esc(E[e.eltern].name) + '.</p>';
   kopf += '<div class="knoepfe kopf-knoepfe"><button type="button" class="knopf knopf-voll" data-akt="neu">+ Gespräch</button>' +
-    (k === 'ohne' ? '' : '<button type="button" class="knopf" data-akt="ablegen">+ Datei ablegen</button>' + menue('ebene', [['auftragleer', 'Neu aus Vorlage']])) + '</div></header>';
+    (k === 'ohne' ? '' : '<button type="button" class="knopf" data-akt="ablegen">+ Datei ablegen</button>' + menue('ebene', [['auftragleer', 'Neu aus Vorlage']], true)) + '</div></header>';
 
   if (k === 'ohne') {
     return '<div class="ebene">' + kopf + '<section class="abschnitt-block"><h2 class="abschnitt">Gespräche</h2><div class="liste">' + gHier('ohne').map((i) => zeileG(i)).join('') + '</div></section>' +
@@ -867,10 +871,27 @@ function zeichnen() {
   schicht();
 }
 // Nach dem Neuzeichnen den Fokus auf das gleiche Bedienelement setzen (Auf- und Zuklappen per Tastatur).
-function fokusZurueck(el) {
+// Gleiche Knöpfe gibt es mehrfach (Mitte, rechte Spalte, Heute): darum Wahl plus Stelle unter den gleichen.
+let fokusMerk = null, vorschauVon = null;
+function fokusSel(el) {
   const d = el.dataset; let sel = '[data-akt="' + d.akt + '"]';
   ['ziel', 'id', 'm'].forEach((x) => { if (d[x]) sel += '[data-' + x + '="' + d[x] + '"]'; });
-  const neu = document.querySelector(sel); if (neu && neu.focus) neu.focus();
+  return { sel, i: Math.max(0, Array.prototype.indexOf.call(document.querySelectorAll(sel), el)) };
+}
+function fokusSetzen(f) {
+  if (!f) return false;
+  const alle = document.querySelectorAll(f.sel); const neu = alle[f.i] || alle[0] || document.querySelector(f.sel);
+  if (neu && neu.focus) { neu.focus(); return true; }
+  return false;
+}
+function fokusZurueck(el) {
+  const f = fokusSel(el);
+  fokusSetzen(fokusMerk && fokusMerk.sel === f.sel ? fokusMerk : f);
+}
+function vorschauZu() {
+  const m = S.vorschau ? S.vorschau.m : null; speichernEntwurf(); S.vorschau = null; zeichnen();
+  if (!fokusSetzen(vorschauVon)) { const z = document.querySelector('[data-akt="vorschau"][data-m="' + m + '"]'); if (z) z.focus(); }
+  vorschauVon = null;
 }
 function blaettern(r) {
   const v = S.vorschau; if (!v) return;
@@ -941,6 +962,7 @@ document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-akt]');
   if (!el) { if (S.menue && !e.target.closest('.menue')) { speichernEntwurf(); S.menue = null; zeichnen(); } return; }
   const a = el.dataset.akt;
+  fokusMerk = fokusSel(el);
   if (a !== 'menue') S.menue = null;
   if (a === 'hintergrund') { if (e.target === el) { S.schicht = null; schicht(); } return; }
   switch (a) {
@@ -951,8 +973,8 @@ document.addEventListener('click', (e) => {
     case 'menue': speichernEntwurf(); S.menue = S.menue === el.dataset.ziel ? null : el.dataset.ziel; zeichnen(); fokusZurueck(el);
       { const erstes = document.querySelector('.menue [role="menuitem"]'); if (erstes && S.menue) erstes.focus(); } return;
     case 'darunter': { speichernEntwurf(); const b = el.getAttribute('aria-expanded') === 'true'; S.darunter[el.dataset.ziel] = !b; zeichnen(); fokusZurueck(el); return; }
-    case 'vorschau': speichernEntwurf(); S.vorschau = { m: Number(el.dataset.m), s: 0 }; zeichnen(); { const z = document.querySelector('#vorschau .schliessen'); if (z) z.focus(); } return;
-    case 'vorschauzu': { const m = S.vorschau ? S.vorschau.m : null; speichernEntwurf(); S.vorschau = null; zeichnen(); const z = document.querySelector('[data-akt="vorschau"][data-m="' + m + '"]'); if (z) z.focus(); return; }
+    case 'vorschau': speichernEntwurf(); vorschauVon = fokusMerk; S.vorschau = { m: Number(el.dataset.m), s: 0 }; zeichnen(); { const z = document.querySelector('#vorschau .schliessen'); if (z) z.focus(); } return;
+    case 'vorschauzu': vorschauZu(); return;
     case 'seite': blaettern(Number(el.dataset.r)); return;
     case 'seitewahl': speichernEntwurf(); S.vorschau.s = Number(el.dataset.s); zeichnen(); fokusZurueck(el); return;
     case 'gross': speichernEntwurf(); S.schicht = 'gross'; schicht(); return;
@@ -1038,7 +1060,7 @@ document.addEventListener('submit', (e) => { if (e.target.id === 'eingabe') { e.
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && S.menue) { const m = S.menue; speichernEntwurf(); S.menue = null; zeichnen(); const k = document.querySelector('[data-akt="menue"][data-ziel="' + m + '"]'); if (k) k.focus(); return; }
   if (e.key === 'Escape' && S.schicht) { const war = S.schicht; S.schicht = null; schicht(); if (war === 'gross') { const z = document.querySelector('#vorschau .seitenbild'); if (z) z.focus(); } return; }
-  if (e.key === 'Escape' && S.vorschau) { const m = S.vorschau.m; S.vorschau = null; speichernEntwurf(); zeichnen(); const z = document.querySelector('[data-akt="vorschau"][data-m="' + m + '"]'); if (z) z.focus(); return; }
+  if (e.key === 'Escape' && S.vorschau) { vorschauZu(); return; }
   const tippen = e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT');
   if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && S.vorschau && !tippen && (S.schicht === 'gross' || !S.schicht)) { e.preventDefault(); blaettern(e.key === 'ArrowRight' ? 1 : -1); return; }
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.id === 'text') { e.preventDefault(); senden(); }

@@ -280,6 +280,12 @@ const groessen = Array.from(new Set((css.match(/font-size:\s*(\d+)px/g) || []).m
 console.log('Dichte (sofort sichtbare Bedienelemente / Zeilen / Wörter):');
 messung.forEach(([n, b, z, w]) => console.log('  ' + n.padEnd(26) + String(b).padStart(4) + String(z).padStart(5) + String(w).padStart(6)));
 console.log('Schriftgrößen im CSS (' + groessen.length + '): ' + groessen.join(', '));
+// Schmal, Touch, Vorschau (ohne Browser nur am CSS und am gezeichneten HTML prüfbar)
+const schmal = css.slice(css.indexOf('@media (max-width: 760px)'));
+ok(/@media \(hover: none\) \{[^\n]*\.hinweis-hover\.nur-hover \{ display: inline \}/.test(css), 'Touch: Zeilenaktionen (Vorschau) müssen sichtbar bleiben');
+ok(/\.vorschau \{ width: 100%/.test(schmal), 'Schmal: Vorschau als ganze Seite');
+ok(!/height: calc\(100vh - 120px\)/.test(css), 'Groß ansehen: feste Höhe gibt weiße Ränder');
+ok(!/\.zeile:hover \.marke[^{]*\{ display: none \}/.test(css.replace(/@media \(hover: hover\) \{ \.zeile:hover/, '')), 'Touch: Stand darf nach Antippen nicht verschwinden');
 console.log('Linien 3px: ' + (css.match(/3px solid/g) || []).length + ', uppercase: ' + (css.match(/uppercase/g) || []).length);
 if (fehler) { console.log('PROBELAUF: ' + fehler + ' Fehler'); process.exit(1); }
 console.log('PROBELAUF GRÜN');
