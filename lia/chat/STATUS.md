@@ -8,6 +8,18 @@ läuft die alte Spalte „Fragen“ weiter, bis die Web-App umgeschaltet hat. St
 nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: plan.md (Jan 30.10.2026).
 
 ## Stand (10.11.2026)
+- Lias Wissen im Gespräch (Jan 10.11.2026, „Lias Chat soll alles wissen“, Zugang „Lia + Auswertung“): Claude darf
+  mit Read in allen Ordnern unter lia/ lesen außer lia/chat (davon nur data/gespraeche, Lias Gespräche) und Ordnern
+  mit Punkt (lia/.claude: Kopien des ganzen Repos). Nicht: Jans Agenten, shared/, ~/.claude; .env sperrt agentkit in
+  jedem Lese-Ordner. Neue Lia-Ordner gehören von selbst dazu. Die Übersicht (wissen.karte: Grundlagen mit einem Satz,
+  Zweck jedes Lia-Agenten, Katalog von lia/unterricht mit absoluten Pfaden, weitere Dateien je Ordner bis 20.000
+  Zeichen, Lias andere Gespräche) geht mit der ersten Nachricht einer Sitzung mit, heute ca. 45 KB (ca. 12.000
+  Tokens); fortgesetzt nur, was seit der letzten Übersicht dazukam (data/gespraeche/<id>/karte.txt). Der Prompt
+  sagt: passt die Nachricht, erst lesen, dann antworten, Quelle nennen, nie „ich sehe nichts“ ohne Blick in die
+  Übersicht. Mit Wissen 12 Schritte und 2 min mehr. Fortsetzen der Sitzung geht weiter: Alle Gesprächsläufe sind
+  lese_ordner-Läufe im selben Arbeitsordner data/nur_lesen/, die Zahl der Lese-Ordner ändert daran nichts.
+  Grenze: Ohne Glob und Grep (agentkit sperrt sie im Nur-Lesen-Lauf) findet Claude nur Dateien aus der Übersicht;
+  in großen Ordnern stehen nur die 10 jüngsten Namen (Bedarf Punkt 38 der Haupt-STATUS).
 - Gespräche gebaut, mit Tests ohne Netz (tests/test_gespraech.py) und echtem Lauf über den Dienst (10.11.):
   drei Nachrichten an der Reihe Straftheorien (eine mit Foto, zwei fortgesetzt), dann bisher und auftrag.
   Je 8–15 s Lauf, 0,05–0,09 USD je Nachricht (steigt mit dem Verlauf), Sonderläufe ca. 20 s, 0,07 USD; zusammen
@@ -45,7 +57,8 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
 
 ## Aufbau
 - Code: agent.py (Einstieg, Warteschlange data/fragen/, alte Fragen, Aufräumen), gespraechlauf.py (Gespräche
-  beantworten, Ablage, Sonderläufe, Aufräumen der Gespräche), gespraechablage.py (Gespräch als Datei, Sperre; nur
+  beantworten, Ablage, Sonderläufe, Aufräumen der Gespräche), wissen.py (Lese-Ordner und Übersicht über Lias Wissen;
+  rein, Grundlagen-Liste KERN von Hand gepflegt), gespraechablage.py (Gespräch als Datei, Sperre; nur
   Bordmittel), kontext.py (Ort über agentkit.struktur, Prompts; rein), chatverlauf.py (Verlauf der alten Spalte),
   schnittstelle.py (für die Web-App, nur Bordmittel), tests/.
 - .venv: lia/chat/.venv, agentkit per .pth, Pakete aus requirements.txt (pypdf, python-docx, python-pptx samt
@@ -101,8 +114,8 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
 - Antworttext ist Markdown: Überschriften (##, ###), Listen, Tabellen, **fett**, Links, mit Netz „Quellen:“ als
   `[Titel](URL)`. Bausteine als Codeblock mit Sprache `baustein <art>`, art aus reihenfrage, merksatz,
   arbeitsauftrag, fall, text; im Block nur der Text (Absätze, Listen). Bausteine können eingerückt in Listen stehen.
-- Zeiten: schnell meist 10–20 s, Grenze 4 min (gründlich 8 min, mit Netz je 2 min mehr), plus bis 1 min Warten
-  auf einen Platz.
+- Zeiten: schnell meist 10–20 s (mit Lesen in Lias Wissen länger), Grenze 6 min (gründlich 10 min, mit Netz je
+  2 min mehr), plus bis 1 min Warten auf einen Platz.
 - Ablage am Ort: Dateien direkt in `lia/instanz/ablage/<id>/` für den Ort und die Ebenen darüber (Fach, Klasse,
   Reihe, Stunde) gehen mit: PDF/Word/PowerPoint als Text (zusammen bis 40.000 Zeichen), JPG/PNG als Foto (bis 5 je
   Lauf, die jüngsten; in den Gesprächsordner kopiert, weil Read nur dort darf), Excel nur mit Hinweis (kein
@@ -137,6 +150,9 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
   Agenten. Antwortzeit schnell ca. 10 s, gründlich (Opus) ca. 2–3 min, Zeitgrenze 2 bzw. 5 min.
 
 ## Entscheidungen
+- 10.11.2026 (Jan): „Lias Chat soll alles wissen“, Zugang „Lia + Auswertung“: alle Lia-Ordner samt UBs+Feedback
+  (Namen von Erwachsenen) und lia/auswertung (claude.ai-Export, kann auch Chats von Jan enthalten); nicht der ganze
+  Server (Jans Mails, Uni, Zugänge). Schülernamen gibt Claude nie wieder (Prompt).
 - 09./10.11.2026 (Jan, gespraech-plan 3 und Bauplan): Sitzung fortsetzen statt letzter 6 Fragen, Read für Fotos
   mit Pfadgrenze, Sonnet Standard und gründlich (Opus) je Gespräch, Kosten auf Lias Kontingent, 30 Tage ab
   letzter Nachricht. HEIC vorerst abgelehnt (bräuchte ein Paket).
@@ -165,6 +181,9 @@ nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: pla
   Dateien einer Frage zusammen höchstens 60.000 Zeichen.
 
 ## Offene Punkte
+0. Glob und Grep im Nur-Lesen-Lauf (agentkit, Punkt 38 der Haupt-STATUS, Jan entscheidet): Dann sucht Claude in
+   Lias Ordnern selbst, die Übersicht kann kleiner werden (Grundlagen, Agenten, Katalog). Kosten der Übersicht
+   (ca. 12.000 Tokens je neue Sitzung) nach zwei Wochen ansehen.
 1. Kosten: Nachrichten nach einer Websuche sind teurer (Webinhalte im Verlauf). Nach zwei Wochen ansehen.
 2. Web-App: auf die Gespräche umschalten (Bauplan Schritt 6). Danach als Vorschlag an Jan: frage_stellen,
    chatverlauf, data/verlauf.jsonl und die alten Punkte (stunde_id, Häkchen und Datei-Feld der alten Spalte,

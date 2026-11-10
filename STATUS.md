@@ -1132,6 +1132,14 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Stand Web-App: Umbau gebaut, nicht umgeschaltet, webapp.service zeigt
     weiter die alte Oberfläche; Bau dort ruht bis zum Plan. Testhinweis: Die Test-Instanz der Web-App hat eine eigene
     reihen.toml, lia/chat liest immer lia/instanz; neu angelegte Test-Orte kennt Claude darum nicht.
+38. Bedarf aus lia/chat an agentkit.claude_lauf (10.11.2026, Jan entscheidet): Lias Gespräche dürfen jetzt in allen
+    Lia-Ordnern lesen (Jan: „Lias Chat soll alles wissen“, Zugang Lia + Auswertung; lia/chat/STATUS.md). Im
+    Nur-Lesen-Lauf (lese_ordner) sperrt agentkit aber Glob und Grep (NUR_LESEN_VERBOTEN), Claude kann darum keine
+    Ordner auflisten oder durchsuchen und findet nur, was in der Übersicht im Prompt steht (heute ca. 45 KB, in großen
+    Ordnern nur die 10 jüngsten Dateinamen). Wunsch: Glob und Grep im Nur-Lesen-Lauf erlauben, mit derselben
+    Pfadgrenze wie Read (allow je Lese-Ordner, .env weiter gesperrt), am besten über einen Parameter (z. B.
+    `suchen=True`), damit andere Nutzer von lese_ordner unverändert bleiben. Laut Probe 10.11. (Punkt 37) halten
+    Grep/Glob die Read-Pfadgrenze. Danach baut lia/chat die Übersicht kleiner.
 
 ## Gelernte Regeln
 - (noch keine)

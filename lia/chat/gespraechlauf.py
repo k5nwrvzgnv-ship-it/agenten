@@ -1,9 +1,11 @@
 """Gespräche beantworten (Teil des Agenten chat, gestartet aus agent.py für Einträge mit "art" in data/fragen/).
 
 Eine Nachricht setzt die claude-Sitzung des Gesprächs fort (claude_lauf lernsitzung/sitzung_fortsetzen, Jan
-09.11.2026). Jeder Gesprächslauf läuft mit claude_lauf lese_ordner = Ordner dieses Gesprächs (data/gespraeche/<id>/):
-Claude darf nur dort lesen (Fotos über Read), und weil claude Sitzungen je Arbeitsordner führt (lese_ordner läuft
-in data/nur_lesen/), muss jeder Lauf eines Gesprächs dieselbe Art haben, sonst ginge Fortsetzen nicht. Fotos aus
+09.11.2026). Jeder Gesprächslauf läuft mit claude_lauf lese_ordner: Claude darf mit Read in Lias Ordnern lesen
+(wissen.lese_ordner: alles unter lia/ außer lia/chat, dazu data/gespraeche; Jan 10.11.2026 „Lias Chat soll alles
+wissen“), die Übersicht dazu geht in den Prompt (wissen.karte). Weil claude Sitzungen je Arbeitsordner führt
+(lese_ordner läuft immer in data/nur_lesen/), muss jeder Lauf eines Gesprächs dieselbe Art haben, sonst ginge
+Fortsetzen nicht; wie viele Lese-Ordner es sind, ändert daran nichts. Fotos aus
 Lias Ablage am Ort werden dafür in den Gesprächsordner kopiert (ablage/<ort-id>/). Sonderläufe „bisher“ und „auftrag“ laufen ohne
 Sitzung über den Verlauf als Text, ihre Antwort kommt nicht ins Gespräch.
 """
@@ -18,6 +20,7 @@ from pathlib import Path
 import gespraechablage as ga
 import kontext
 import schnittstelle
+import wissen
 from agentkit import claude_lauf, einstellungen, struktur, textfassung, verbrauch
 
 AGENT = "chat"
@@ -33,6 +36,8 @@ ABLAGE_FOTOS = 5  # je Lauf höchstens so viele Fotos aus der Ablage (die jüngs
 PROMPT_BYTES = 120_000  # claude -p nimmt höchstens 128 KB je Argument
 DATEI_ZEICHEN = 60_000  # Text aus Dateien einer Nachricht zusammen
 ABLAGE_ZEICHEN = 40_000  # Text aus der Ablage je Lauf zusammen
+KARTE = "karte.txt"  # im Gesprächsordner: die Übersicht über Lias Wissen, die Claude zuletzt bekommen hat
+WISSEN_SCHRITTE = 12  # Lesen in Lias Wissen: je Datei ein Schritt
 
 TEXTE = {
     "limit": "Gerade ist die Rechenzeit aufgebraucht. Schreib bitte ab {zeit} noch einmal.",
@@ -55,8 +60,9 @@ def netz_moeglich() -> bool:
 
 
 def lauf_einstellungen(gruendlich: bool, netz: bool, fotos: int, cfg: dict | None = None,
-                       sonder: bool = False) -> dict:
-    """Werkzeuge und Grenzen für einen Gesprächslauf. Read nur mit Fotos, WebSearch/WebFetch nur mit netz."""
+                       sonder: bool = False, wissen_an: bool = False) -> dict:
+    """Werkzeuge und Grenzen für einen Gesprächslauf. Read mit Fotos oder Lias Wissen, WebSearch/WebFetch nur mit
+    netz. Lias Wissen bringt mehr Schritte (je gelesene Datei einer) und 2 Minuten mehr."""
     cfg = copy.deepcopy(cfg or einstellungen.lade())
     werkzeuge = []
     if netz and not sonder:
@@ -64,22 +70,23 @@ def lauf_einstellungen(gruendlich: bool, netz: bool, fotos: int, cfg: dict | Non
         werkzeuge += ["WebSearch", "WebFetch"] if domains else ["WebSearch"]
         if domains:
             cfg.setdefault("webfetch", {})[AGENT] = list(domains)
-    if fotos and not sonder:
+    if (fotos or wissen_an) and not sonder:
         werkzeuge.append("Read")
     cfg["werkzeuge"][AGENT] = werkzeuge or [""]
-    schritte = 3 + (fotos if not sonder else 0) + (8 if netz and not sonder else 0)
-    minuten = (8 if gruendlich else 4) + (2 if netz and not sonder else 0)
+    lesen = wissen_an and not sonder
+    schritte = 3 + (fotos if not sonder else 0) + (8 if netz and not sonder else 0) + (WISSEN_SCHRITTE if lesen else 0)
+    minuten = (8 if gruendlich else 4) + (2 if netz and not sonder else 0) + (2 if lesen else 0)
     cfg["lauf"].update(max_schritte=schritte, max_minuten=minuten, warten_minuten=1)
     return cfg
 
 
 def claude_gespraech(prompt: str, *, gruendlich: bool, kennung: str, netz: bool = False,
-                     lese_ordner: Path | None = None, fotos: int = 0, sitzung: str | None = None,
+                     lese_ordner: list[Path] | None = None, fotos: int = 0, sitzung: str | None = None,
                      neu: bool = True, sonder: bool = False) -> claude_lauf.Ergebnis:
-    cfg = lauf_einstellungen(gruendlich, netz, fotos, sonder=sonder)
-    zusatz = {} if sonder else {"lese_ordner": [lese_ordner]}
-    if not sonder:
-        lese_ordner.mkdir(parents=True, exist_ok=True)
+    """lese_ordner: Ordner, in denen Read erlaubt ist (vorhanden, absolut). Mehr als der Gesprächsordner heißt:
+    Lias Wissen ist an (mehr Schritte und Zeit)."""
+    cfg = lauf_einstellungen(gruendlich, netz, fotos, sonder=sonder, wissen_an=len(lese_ordner or []) > 1)
+    zusatz = {} if sonder else {"lese_ordner": list(lese_ordner)}
     return claude_lauf.laufen(AGENT, HIER, prompt, art="anspruchsvoll" if gruendlich else "routine",
                               lernsitzung=neu and not sonder, sitzung_fortsetzen=None if neu else sitzung,
                               auftrag_id=f"chat-{kennung}", cfg=cfg, **zusatz)
@@ -211,9 +218,27 @@ def _fehler_eintragen(gid: str, nid: str, art: str, daten: Path) -> None:
         ga.schreiben(g, daten)
 
 
+def wissen_teil(lia: Path | None, daten: Path, gid: str, gordner: Path, erste: bool) -> tuple[str, str]:
+    """(Prompt-Abschnitt zu Lias Wissen, neue Übersicht). Neue Sitzung: ganze Übersicht samt Anleitung;
+    fortgesetzt: nur, was seit der letzten Übersicht (gordner/KARTE) dazukam. Ohne lia: ("", "")."""
+    if lia is None:
+        return "", ""
+    karte = wissen.karte(lia, ga.ordner_von(daten), gid)
+    try:
+        alt = "" if erste else (gordner / KARTE).read_text(encoding="utf-8")
+    except OSError:
+        alt = ""
+    if not alt:  # neue Sitzung oder Gespräch von vor der Übersicht
+        return wissen.prompt_teil(karte), karte
+    return wissen.prompt_teil(wissen.neu_in_karte(alt, karte), neu=False), karte
+
+
 def nachricht_beantworten(job: dict, instanz: Path, daten: Path, sitzungen: Path, claude=claude_gespraech,
-                          melden=print, sitzung_loeschen=None, netz_an=netz_moeglich) -> dict:
-    """Lias Nachricht job["id"] im Gespräch job["gespraech"] beantworten. Gibt die Antwort (auch bei Fehlern)."""
+                          melden=print, sitzung_loeschen=None, netz_an=netz_moeglich,
+                          lia: Path | None = None) -> dict:
+    """Lias Nachricht job["id"] im Gespräch job["gespraech"] beantworten. Gibt die Antwort (auch bei Fehlern).
+    lia: Lias Ordner (wissen.LIA); dann darf Claude dort lesen und bekommt die Übersicht. None: nur der
+    Gesprächsordner (Fotos)."""
     gid, nid = job["gespraech"], job["id"]
     g = ga.lesen(gid, daten)
     eintrag = next((e for e in (g or {}).get("eintraege", []) if e["id"] == nid and e["rolle"] == "lia"), None)
@@ -223,6 +248,8 @@ def nachricht_beantworten(job: dict, instanz: Path, daten: Path, sitzungen: Path
     s = _struktur(instanz, melden)
     chip, ort_text = kontext.ort_kontext(g.get("ort"), s)
     gordner = ga.dateien_ordner(gid, daten)
+    gordner.mkdir(parents=True, exist_ok=True)
+    lese = wissen.lese_ordner(lia, ga.ordner_von(daten).resolve()) if lia is not None else [gordner.resolve()]
     davor = [e for e in g["eintraege"] if e is not eintrag]
     erste = not sitzung_da(g.get("sitzung"), sitzungen)
     gesendet = [] if erste else list(g.get("kontext", {}).get("ablage", []))
@@ -232,15 +259,18 @@ def nachricht_beantworten(job: dict, instanz: Path, daten: Path, sitzungen: Path
     dtext = dateien_text([gordner / nid / n for n in eintrag["dateien"]]) if eintrag["dateien"] else ""
     vorher_netz = any(e.get("netz") for e in davor if e.get("rolle") == "lia")
 
+    karten = {}
+
     def prompt_bauen(erste_: bool) -> str:
         verlauf = kontext.verlauf_text(davor) if erste_ and davor else ""
-        teile = dict(ablage=ablage, dateien=dtext, verlauf=verlauf)
+        wtext, karten["neu"] = wissen_teil(lia, daten, gid, gordner, erste_)
+        teile = dict(ablage=ablage, dateien=dtext, verlauf=verlauf, wissen=wtext)
         ort_neu = not erste_ and ort_text != g.get("kontext", {}).get("ort")
         ohne = len(kontext.gespraech_prompt(eintrag["text"], erste=erste_, gruendlich=gruendlich, netz=netz,
                                             vorher_netz=vorher_netz, ort_text=ort_text, ort_neu=ort_neu,
                                             fotos=[str(p) for p in fotos]).encode()) + 200
         rest = PROMPT_BYTES - ohne
-        for k in ("verlauf", "ablage", "dateien"):  # zuerst Verlauf, dann Ablage, dann Dateien kürzen
+        for k in ("verlauf", "wissen", "ablage", "dateien"):  # zuerst Verlauf, dann Übersicht, Ablage, Dateien
             andere = sum(len(v.encode()) for kk, v in teile.items() if kk != k)
             if andere + len(teile[k].encode()) > rest:
                 teile[k] = kuerzen(teile[k], max(rest - andere, 0))
@@ -248,12 +278,13 @@ def nachricht_beantworten(job: dict, instanz: Path, daten: Path, sitzungen: Path
                                         vorher_netz=vorher_netz, ort_text=ort_text,
                                         ort_neu=ort_neu,
                                         ablage=teile["ablage"], dateien=teile["dateien"],
-                                        fotos=[str(p) for p in fotos], verlauf=teile["verlauf"])
+                                        fotos=[str(p) for p in fotos], verlauf=teile["verlauf"],
+                                        wissen=teile["wissen"])
 
     alle_fotos = len(fotos) + len(ablage_fotos)
 
     def lauf(erste_: bool):
-        return claude(prompt_bauen(erste_), gruendlich=gruendlich, kennung=nid, netz=netz, lese_ordner=gordner,
+        return claude(prompt_bauen(erste_), gruendlich=gruendlich, kennung=nid, netz=netz, lese_ordner=lese,
                       fotos=alle_fotos, sitzung=g.get("sitzung"), neu=erste_)
 
     e, fehler, frei = _rufen(lambda: lauf(erste), nid, melden)
@@ -291,6 +322,8 @@ def nachricht_beantworten(job: dict, instanz: Path, daten: Path, sitzungen: Path
         g["kontext"] = {"ort": ort_text, "ablage": gesendet + ablage_neu}
         g["zuletzt"] = a["zeit"]
         ga.schreiben(g, daten)
+        if karten.get("neu"):
+            (gordner / KARTE).write_text(karten["neu"], encoding="utf-8")
     return a
 
 

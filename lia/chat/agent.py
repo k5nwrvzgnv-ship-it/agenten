@@ -16,6 +16,7 @@ import chatverlauf
 import gespraechlauf
 import kontext
 import schnittstelle
+import wissen
 from agentkit import claude_lauf, config, einstellungen, log, meldungen, struktur, textfassung, verbrauch
 
 AGENT = "chat"
@@ -166,7 +167,7 @@ GESPRAECH_ARTEN = ("nachricht", "bisher", "auftrag")
 
 def gespraech_abarbeiten(pfad: Path, instanz: Path, ordner: Path, sitzungen: Path = gespraechlauf.GESPRAECH_SITZUNGEN,
                          sonder_sitzungen: Path = SITZUNGEN, claude=gespraechlauf.claude_gespraech,
-                         melden=jan_melden, netz_an=gespraechlauf.netz_moeglich) -> bool:
+                         melden=jan_melden, netz_an=gespraechlauf.netz_moeglich, lia: Path | None = wissen.LIA) -> bool:
     """Eintrag für ein Gespräch ({"art", "id", "gespraech"}) beantworten. False, wenn es keiner ist."""
     try:
         job = json.loads(pfad.read_text(encoding="utf-8"))
@@ -180,7 +181,7 @@ def gespraech_abarbeiten(pfad: Path, instanz: Path, ordner: Path, sitzungen: Pat
     elif job["art"] == "nachricht":
         schnittstelle.antwort_schreiben(gespraechlauf.nachricht_beantworten(
             job, instanz, ordner, sitzungen, claude=claude, melden=melden, netz_an=netz_an,
-            sitzung_loeschen=lambda s: sitzung_loeschen(s, sitzungen)), ordner)
+            sitzung_loeschen=lambda s: sitzung_loeschen(s, sitzungen), lia=lia), ordner)
     else:
         schnittstelle.antwort_schreiben(gespraechlauf.sonder_beantworten(
             job, instanz, ordner, claude=claude, melden=melden,

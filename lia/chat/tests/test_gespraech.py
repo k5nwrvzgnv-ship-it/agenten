@@ -49,6 +49,7 @@ class Basis(unittest.TestCase):
             o.mkdir()
         (self.instanz / "reihen.toml").write_text(NEU, encoding="utf-8")
         self.meldungen = []
+        self.lia = None  # Lias Ordner für wissen; None: nur der Gesprächsordner
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -67,7 +68,7 @@ class Basis(unittest.TestCase):
             return e
         return agent.fragen_abarbeiten(self.instanz, self.daten, gespraech_kw={
             "claude": claude, "melden": self.meldungen.append, "sitzungen": self.sitzungen,
-            "sonder_sitzungen": self.sitzungen, "netz_an": lambda: True})
+            "sonder_sitzungen": self.sitzungen, "netz_an": lambda: True, "lia": self.lia})
 
 
 class Ablage(Basis):
@@ -162,7 +163,7 @@ class Ablauf(Basis):
         self.assertNotIn("Reihenfrage", p2["prompt"])
         foto = ga.dateien_ordner(g, self.daten) / n2 / "tafel.jpg"
         self.assertIn(str(foto), p2["prompt"])
-        self.assertEqual(p2["lese_ordner"], ga.dateien_ordner(g, self.daten))
+        self.assertEqual(p2["lese_ordner"], [ga.dateien_ordner(g, self.daten).resolve()])
         # dritte nach Umhängen: neuer Ort geht mit
         sch.umhaengen(g, KLASSE, self.daten)
         sch.nachricht(g, "Und für Kurs 11?", ordner=self.daten, gruendlich=True)
