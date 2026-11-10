@@ -361,8 +361,14 @@ Vorschau jedes Materials, Rot nur bei „wartet“, Dichte je Ansicht).
     etwa gleich viele, weil Material jetzt klickbar ist. Schriftgrößen im CSS 14 → 6.
 - Gesehen: am 11.11. nachts in Jans Chrome (Windows, breites Fenster): Lückenliste, Reihe, Gespräch, Vorschau,
   Groß ansehen. Dabei behoben: „Heute“ wuchs in der Seitenleiste in die Höhe; Seitenbild im Panel zu hoch;
-  Titel auf gezeichneten Seiten liefen über den Rand. Nicht im Browser gesehen: schmale Fenster (≤ 1100, ≤ 760),
-  dunkler Modus, Handy. Jan bitte einmal durchklicken, bevor Lia sie sieht.
+  Titel auf gezeichneten Seiten liefen über den Rand. Schmal (≤ 1100, ≤ 760), Handy und dunkel am 10.11. nur im
+  Code durchgesehen, nicht im Browser (Jans Chrome war minimiert; headless Chromium auf dem Server fehlen
+  Systembibliotheken libatk, libasound u. a.). Dabei behoben: Seitenbilder in „Groß ansehen“ und Vorschau mit
+  weißen Rändern (feste Höhe), Vorschau unter 760 px jetzt ganzseitig, Ebenen-Menü „···“ lief am Handy rechts
+  hinaus, Zeilenaktion „Vorschau“ war auf Touch ganz versteckt (Plan: sichtbar), Stand verschwand nach Antippen,
+  Fokus nach Schließen der Vorschau landete beim ersten gleichen Knopf statt beim Auslöser. Offen: „sehr leise“
+  `#8c8b87` hat hell nur etwa 3,4 : 1 (12-px-Texte: Zahlen, Köpfe, Bausteinart), unter AA; Jan entscheidet.
+  Jan bitte schmal, Handy (iPad) und dunkel einmal selbst durchklicken, bevor Lia sie sieht.
 - Beispiele: Klasse 8 (Plan bis zum Halbjahr, Notentabelle), Reihe Straftheorien (Reihenfrage finden über zwei Tage
   mit Tabelle, Foto, Bausteinen; Reihenentwurf, Fallsammlung, Planung.pdf), Stunde 2 (Kant einfach erklären,
   Präsentation, Buchseite), Stunde 3 (Einstieg mit einem Fall), Stunde 4 (Arbeitsblatt läuft), Kurs 11 (ohne Reihe,
