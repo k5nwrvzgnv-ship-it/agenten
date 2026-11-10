@@ -368,7 +368,7 @@ Vorschau jedes Materials, Rot nur bei „wartet“, Dichte je Ansicht).
   hinaus, Zeilenaktion „Vorschau“ war auf Touch ganz versteckt (Plan: sichtbar), Stand verschwand nach Antippen,
   Fokus nach Schließen der Vorschau landete beim ersten gleichen Knopf statt beim Auslöser. Offen: „sehr leise“
   `#8c8b87` hat hell nur etwa 3,4 : 1 (12-px-Texte: Zahlen, Köpfe, Bausteinart), unter AA; Jan entscheidet.
-  Jan bitte schmal, Handy (iPad) und dunkel einmal selbst durchklicken, bevor Lia sie sieht.
+  Jan 10.11. nach dem Durchsehen: „passt erstmal so“. Nächster Schritt: Jan teilt die Skizze mit Lia, dann Test.
 - Beispiele: Klasse 8 (Plan bis zum Halbjahr, Notentabelle), Reihe Straftheorien (Reihenfrage finden über zwei Tage
   mit Tabelle, Foto, Bausteinen; Reihenentwurf, Fallsammlung, Planung.pdf), Stunde 2 (Kant einfach erklären,
   Präsentation, Buchseite), Stunde 3 (Einstieg mit einem Fall), Stunde 4 (Arbeitsblatt läuft), Kurs 11 (ohne Reihe,
