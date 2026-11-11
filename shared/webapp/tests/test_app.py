@@ -748,6 +748,9 @@ class TestOrdnung(Aufbau):
     def test_seltenes_im_punkte_menue(self):
         """umbauplan-ux.md Schritt 3: Bearbeiten, Archiv, Termine, Verschieben … im „···“, auf der Seite nur Inhalt."""
         self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+        # eine einzelne Stunde: kein „Verschieben“ in der Reihe (nur „vor Stunde 1“), wohl aber an der Stunde
+        self.assertNotIn('id="verschieben"', self.hole("/reihe/strafe")[1])
+        self.assertIn('id="verschieben"', self.punkte(self.hole("/reihe/strafe/stunde/1")[1]))
         self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Bentham"})[0].status, 303)
         erwartet = {
             "/reihe/strafe": ['href="/reihe/strafe/bearbeiten"', 'href="/reihe/strafe/kopieren"',

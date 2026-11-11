@@ -81,9 +81,16 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   schon vor dem Neustart). `webapp.service` am 11.11. 07:43 mit Jans Okay neu gestartet; danach Rundgang 615 Seiten,
   alle 200, Reihe und Klasse tragen das Umbenennen, neue Routen antworten (fremde Herkunft: 403), Log ohne Fehler,
   `lia/instanz` unverändert.
-  OFFEN: Pflicht-Probe im Browser (Plan Schritt 4): Titel klicken/Enter/Esc, „Datei“ im „+“, Datei ziehen, Stunde
-  ziehen mit Maus und am iPad mit Finger. Nicht gemacht: Jans Chrome nicht verbunden, headless Chromium auf dem
-  Server ohne Systembibliotheken. Nur Unittests (ohne JavaScript) und `node --check`.
+  Browser-Probe 11.11. (Claude im Chrome-Seitenfenster bei Jan, lia.meldro.de, nichts gespeichert, Absenden und
+  Schreib-Aufrufe im Browser abgefangen): ok sind Titel der Reihe und der Stunde (Klick, Feld markiert, Esc und
+  „Abbrechen“), „+“ und „···“ auf und zu, beide Menüs im Fenster auch bei 401 px, kein waagrechtes Scrollen, Rahmen
+  und Hinweis beim Ziehen einer Datei über die Seite, Konsole ohne Fehler. Daraus behoben: „Stunde verschieben“ im
+  „···“ der Reihe erst ab zwei Stunden (bei einer bot es nur „vor Stunde 1“).
+  OFFEN, nur von Hand: Datei loslassen (Zeile mit Name, Regel, „Ablegen“; der nachgestellte Drop war im Seitenfenster
+  gesperrt), „Datei“ im „+“ (öffnet ein Dateifenster), Stunde ziehen mit Maus und am iPad mit Finger (Reihe hatte nur
+  eine Stunde), Enter speichert (bewusst nicht auf Lias Daten).
+  Befund für später (Schritt 5): Bei ≤ 760 px steht die Seitenleiste unter dem Inhalt. „Stunde verschieben“ ist im
+  „···“ ein offenes Formular, kein einzelner Menüpunkt.
   Nächster Schritt danach: 5 (Raster mit rechter Spalte).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort

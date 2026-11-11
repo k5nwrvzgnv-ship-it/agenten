@@ -28,7 +28,8 @@
       <button class="knopf knopf-klein" type="submit">Verschieben</button>
     </form>
     {%- endif %}
-    {%- if e.stunden %}
+    {#- Erst ab zwei Stunden (Browser-Probe 11.11.): eine einzelne Stunde verschiebt Lia an der Stunde selbst -#}
+    {%- if e.stunden | length > 1 %}
     <form method="post" action="/stunden/verschieben" id="verschieben">
       <input type="hidden" name="token" value="{{ token }}">
       <label class="unter" for="v-stunde">{{ e.wort }} verschieben</label>
