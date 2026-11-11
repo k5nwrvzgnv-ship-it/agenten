@@ -63,6 +63,8 @@ a.baum-fach:hover, a.baum-fach[aria-current] { color: var(--fg); }
 .baum-zahl { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--akzent); }
 .baum-zahl::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .baum-neu { color: var(--sehrleise); }
+.baum-stand { flex: none; margin-right: auto; width: 7px; height: 7px; border: 1px solid var(--sehrleise); border-radius: 50%; }
+.baum-fertig { color: var(--sehrleise); }
 .baum-neu:hover { color: var(--fg); }
 .baum-fuss { margin-top: auto; padding-top: 24px; }
 

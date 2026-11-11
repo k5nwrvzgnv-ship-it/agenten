@@ -68,7 +68,11 @@
     {%- elif b.art == "gruppe" %}
     <li><a class="baum-eintrag baum-gruppe" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% endif %}><span>{{ b.text }}</span></a></li>
     {%- else %}
-    <li><a class="baum-eintrag tiefe-{{ b.tiefe }}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
+    {#- Stand der Reihe (logik.baum „stand“): in Planung ein leiser hohler Punkt, abgeschlossen graue Schrift; der
+        Text steht im title und für Vorleser. Ohne „stand“ (App vor dem Neustart) wie bisher. -#}
+    <li><a class="baum-eintrag tiefe-{{ b.tiefe }}{% if b.stand == 'abgeschlossen' %} baum-fertig{% endif %}" href="{{ b.link }}"{% if b.stand_text %} title="{{ b.stand_text }}"{% endif %}{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
+      {%- if b.stand_text %}<span class="unsichtbar">, {{ b.stand_text }}</span>{% endif %}
+      {%- if b.stand == "geplant" %}<span class="baum-stand" aria-hidden="true"></span>{% endif %}
       {%- if b.zahl %}<span class="baum-zahl">{{ b.zahl }}</span>{% endif %}</a></li>
     {%- endif %}
     {%- endfor %}

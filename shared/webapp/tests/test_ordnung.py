@@ -2,6 +2,7 @@
 Datei, neues Format, Testregeln 7 und 22 aus Abschnitt 10 (lesend)."""
 
 import json
+import re
 import shutil
 import tempfile
 import unittest
@@ -15,6 +16,24 @@ import ordnung
 DATEN = Path(__file__).parent / "daten"
 JETZT = datetime(2026, 10, 30, 15, 0, tzinfo=ZoneInfo("Europe/Berlin"))
 STUNDEN = [{"id": "s-1", "thema": "Einstieg"}, {"id": "s-2", "thema": "Kant", "marke": "UB"}]
+
+
+def wie_frueher(baum: list[dict]) -> list[dict]:
+    """Baum so, wie er vor dem 11.11. aussah: Stand im Namen („(in Planung)“) statt als Kennzeichen, Stunde
+    „1  Thema“ statt „1 · Thema“, „Ich“ statt „Deine Regeln“. Sonst muss alles gleich bleiben."""
+    zusatz = {"geplant": " (in Planung)", "abgeschlossen": " (abgeschlossen)"}
+    alt = []
+    for e in baum:
+        e = dict(e)
+        stand = e.pop("stand", None)
+        e.pop("stand_text", None)
+        e["text"] = e["text"] + zusatz.get(stand, "") if stand else e["text"]
+        if e.get("tiefe") == 2:
+            e["text"] = re.sub(r"^(\d+) · ", r"\1  ", e["text"])
+        if e.get("link") == "/ich":
+            e["text"] = "Ich"
+        alt.append(e)
+    return alt
 
 
 def bild(reihen: list[dict], gruppen: list[dict] | None = None) -> dict:
@@ -31,9 +50,9 @@ def bild(reihen: list[dict], gruppen: list[dict] | None = None) -> dict:
         k.pop("gruppe", None)  # vorher stand hier die erste Reihe der Klasse (nur für krumen_klasse)
         k.pop("reihe", None)
     return {
-        "baum": {a: logik.baum(reihen, 3, a, gruppen=gruppen) for a in aktive},
-        "baum_stunde": logik.baum(reihen, 0, "ethik-8-straftheorien", {"ethik-8-straftheorien": STUNDEN}, 2,
-                                  gruppen),
+        "baum": {a: wie_frueher(logik.baum(reihen, 3, a, gruppen=gruppen)) for a in aktive},
+        "baum_stunde": wie_frueher(logik.baum(reihen, 0, "ethik-8-straftheorien", {"ethik-8-straftheorien": STUNDEN},
+                                              2, gruppen)),
         "krumen": {r["id"]: [logik.krumen(reihe=r), logik.krumen("Neu", r), logik.krumen_klasse(r)] for r in reihen},
         "klasse": klassen,
         "fach": {f: logik.fach_ansicht(f, reihen, zeilen_je, gruppen) for f in fids},
@@ -56,7 +75,8 @@ def _wie_vorher(a: dict) -> dict:
 
 
 def baum_texte(reihen: list[dict], gruppen: list[dict], aktiv: str = "") -> list[str]:
-    return [e["text"] for e in logik.baum(reihen, 0, aktiv, gruppen=gruppen)]
+    """Texte im Baum wie vor dem 11.11. (Stand im Namen, wie_frueher)."""
+    return [e["text"] for e in wie_frueher(logik.baum(reihen, 0, aktiv, gruppen=gruppen))]
 
 
 class Instanz(unittest.TestCase):
@@ -127,9 +147,9 @@ class TestNeuesFormat(Instanz):
         self.assertEqual(sorted(g["gruppe_id"] for g in neu_g), sorted(g["gruppe_id"] for g in alt_g))
         for aktiv in ["heute", "ethik-8-straftheorien", "ethik-7-freundschaft", logik.klasse_aktiv(platzhalter)]:
             with self.subTest(aktiv=aktiv):
-                erwartet = [e for e in logik.baum(alt_r, 0, aktiv, gruppen=alt_g)
+                erwartet = [e for e in wie_frueher(logik.baum(alt_r, 0, aktiv, gruppen=alt_g))
                             if e.get("link") != f"/reihe/{platzhalter}"]
-                self.assertEqual(logik.baum(neu_r, 0, aktiv, gruppen=neu_g), erwartet)
+                self.assertEqual(wie_frueher(logik.baum(neu_r, 0, aktiv, gruppen=neu_g)), erwartet)
         # Brotkrumen und Auswahl nennen den Titel ohne „(in Planung)“, sonst gleich
         alt_b = json.loads(json.dumps(bild([r for r in alt_r if r["id"] != platzhalter], alt_g), ensure_ascii=False)
                            .replace("Straftheorien (in Planung)", "Straftheorien"))
@@ -197,7 +217,7 @@ class TestNeuesFormat(Instanz):
             a = logik.reihe_ansicht(r, reihen, [], JETZT, stunden_=st, stunde_von=z["stunde_von"])
             self.assertEqual([(s["nr"], s["titel"]) for s in a["stunden"]], list(enumerate(nummern, 1)))
             self.assertEqual([e["text"] for e in logik.baum(reihen, 0, r["id"], {r["id"]: st}, kant, gruppen)
-                              if e.get("aktiv")], [f"{kant}  Kant"])
+                              if e.get("aktiv")], [f"{kant} · Kant"])
         # ausgeblendet: das Material fällt an die ganze Reihe zurück, die Zuordnung bleibt gespeichert
         reihen, _ = self.laden(nachher.replace('thema = "Kant"\n', 'thema = "Kant"\narchiviert = "2026-11-03"\n'))
         self.assertEqual(list(logik.material_je_stunde(zeilen, z["stunde_von"], reihen[0]["stunden"])), [0])
@@ -228,7 +248,7 @@ class TestNeuesFormat(Instanz):
                 texte = baum_texte(reihen, gruppen, rid)
                 self.assertLess(texte.index(fach), texte.index(gruppe))
                 self.assertLess(texte.index(gruppe), texte.index(titel))
-                aktiv = [e for e in logik.baum(reihen, 0, rid, gruppen=gruppen) if e.get("aktiv")]
+                aktiv = [e for e in wie_frueher(logik.baum(reihen, 0, rid, gruppen=gruppen)) if e.get("aktiv")]
                 self.assertEqual([(e["text"], e["link"]) for e in aktiv], [(titel, f"/reihe/{rid}")])
                 self.assertEqual(logik.reihe_von({"agent": "examen"}, reihen)["id"], rid)
                 self.assertEqual(logik.reihe_von({"agent": "unterricht", "reihe": rid}, reihen)["id"], rid)

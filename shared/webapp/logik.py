@@ -1030,10 +1030,10 @@ OHNE_REIHE = "ohne"
 ORT_TRENNER = " › "
 KRUME_LANG = 60  # letzte Brotkrume (z. B. ein langer Ergebnistitel)
 THEMA_OFFEN = "Thema offen"  # Stunde ohne thema (Plan 4.4: das Thema darf offen bleiben)
+SEITE_REGELN = "Deine Regeln"  # Seite /ich, bis 11.11. „Ich“ (Jan 11.11.)
 OHNE_TITEL = "Noch ohne Titel"  # Reihe ohne titel in reihen.toml (nicht „Kurs 11 / Kurs 11“, Chrome-Test Nr. 9)
-# Stand einer Reihe hinter dem Titel im Baum bzw. als Marke in der Klasse. „geplant“ gilt sonst als laufend (Plan
-# Abschnitt 3): „(in Planung)“ stand bis zur Migration im Titel, so sieht der Baum danach gleich aus.
-STAND_ZUSATZ = {"geplant": " (in Planung)", "abgeschlossen": " (abgeschlossen)"}
+# Stand einer Reihe als Marke in der Klasse und als Kennzeichen im Baum („stand“: leiser Punkt bzw. graue Schrift,
+# umbauplan-ux.md „Später“, Jan 11.11.), nicht mehr als „(in Planung)“ im Namen. „geplant“ gilt sonst als laufend.
 STAND_MARKE = {"geplant": "In Planung", "abgeschlossen": "Abgeschlossen"}
 
 
@@ -1337,11 +1337,12 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[
             for r in reihen_:
                 if r["archiv"] and not g["archiv"] and aktiv != r["id"]:
                     continue
-                eintraege.append({"art": "eintrag", "text": r["titel"] + STAND_ZUSATZ.get(r["stand"], ""),
+                eintraege.append({"art": "eintrag", "text": r["titel"], "stand": r["stand"],
+                                  "stand_text": STAND_MARKE.get(r["stand"], ""),
                                   "link": reihe_link(r), "tiefe": 1, "zahl": "",
                                   "aktiv": aktiv == r["id"] and not aktiv_stunde})
                 if aktiv == r["id"]:
-                    eintraege += [{"art": "eintrag", "text": f"{nr}  {s['thema'] or THEMA_OFFEN}",
+                    eintraege += [{"art": "eintrag", "text": f"{nr} · {s['thema'] or THEMA_OFFEN}",
                                    "link": stunde_link(r, nr), "tiefe": 2, "zahl": "", "aktiv": aktiv_stunde == nr}
                                   for nr, s in enumerate((stunden or {}).get(r["id"]) or [], 1)]
             if pflegen and drin and not g["archiv"]:
@@ -1355,7 +1356,7 @@ def baum(reihen: list[dict], anzahl_wartet: int, aktiv: str = "", stunden: dict[
     eintraege += [{"art": "fach", "text": "Mehr"},
                   {"art": "eintrag", "text": "Vorlagen", "link": "/vorlagen", "tiefe": 0, "zahl": "",
                    "aktiv": aktiv == "vorlagen"},
-                  {"art": "eintrag", "text": "Ich", "link": "/ich", "tiefe": 0, "zahl": "", "aktiv": aktiv == "ich"}]
+                  {"art": "eintrag", "text": SEITE_REGELN, "link": "/ich", "tiefe": 0, "zahl": "", "aktiv": aktiv == "ich"}]
     return eintraege
 
 

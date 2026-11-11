@@ -767,15 +767,18 @@ class TestReihen(unittest.TestCase):
         r = reihen(ETHIK, THEATER, {**ETHIK, "agenten": [], "titel": "Helfen", "stand": "abgeschlossen"})
         b = logik.baum(r, 2, "heute")
         self.assertEqual([(e["text"], e.get("link", "")) for e in b[-3:]], [("Mehr", ""), ("Vorlagen", "/vorlagen"),
-                                                                           ("Ich", "/ich")])
+                                                                           ("Deine Regeln", "/ich")])
         b = b[:-3]
         self.assertEqual([(e["art"], e["text"], e.get("link", ""), e.get("tiefe")) for e in b], [
             ("eintrag", "Heute", "/", 0), ("fach", "Ethik", "/fach/ethik", None), ("gruppe", "Klasse 8", "/klasse/ethik-8", 0),
-            ("eintrag", "Straftheorien (in Planung)", "/reihe/ethik-8-straftheorien", 1),
-            ("eintrag", "Helfen (abgeschlossen)", "/reihe/ethik-8-helfen", 1),
+            ("eintrag", "Straftheorien (in Planung)", "/reihe/ethik-8-straftheorien", 1),  # so heißt sie hier
+            ("eintrag", "Helfen", "/reihe/ethik-8-helfen", 1),
             ("fach", "Darstellendes Spiel", "/fach/darstellendes-spiel", None), ("gruppe", "Kurs 12", "/klasse/darstellendes-spiel-kurs-12", 0),
             ("eintrag", "Der nackte Wahnsinn", "/reihe/darstellendes-spiel-kurs-12-der-nackte-wahnsinn", 1)])
         self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), (2, True, False))
+        # Stand als Kennzeichen statt im Namen (umbauplan-ux.md „Später“, Jan 11.11.)
+        self.assertEqual([(e.get("stand"), e.get("stand_text")) for e in (b[4], b[7])],
+                         [("abgeschlossen", "Abgeschlossen"), ("laufend", "")])
         b = logik.baum(r, 0, "ethik-8-straftheorien")
         self.assertEqual((b[0]["zahl"], b[0]["aktiv"], b[3]["aktiv"]), ("", False, True))
         self.assertEqual(logik.baum([], 1)[:1], [{"art": "eintrag", "text": "Heute", "link": "/", "tiefe": 0,
@@ -962,8 +965,8 @@ class TestReihen(unittest.TestCase):
         self.assertEqual(logik.stunde_ansicht(ethik, 2, logik.reihe_stunden(ethik), [], {})["unter"], "Stunde 2 · UB")
         b = logik.baum(r, 0)
         self.assertIn("Archiv: Klasse 7 · 2025/26", [e["text"] for e in b])
-        self.assertNotIn("Freundschaft (abgeschlossen)", [e["text"] for e in b])  # eingeklappt
-        self.assertIn("Freundschaft (abgeschlossen)", [e["text"] for e in logik.baum(r, 0, archiv["id"])])
+        self.assertNotIn("Freundschaft", [e["text"] for e in b])  # eingeklappt
+        self.assertIn("Freundschaft", [e["text"] for e in logik.baum(r, 0, archiv["id"])])
 
     def test_fach_ansicht(self):
         r = reihen(ETHIK, THEATER, {**ETHIK, "agenten": [], "titel": "Helfen", "stand": "abgeschlossen"},

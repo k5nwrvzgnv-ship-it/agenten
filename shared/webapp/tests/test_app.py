@@ -1053,6 +1053,8 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.status, 200)
         self.assertIn("Immer &lt;Du&gt;", html)
         self.assertNotIn("Neue Regeln entstehen", html)  # Schritt 7: nur bei leerer Liste als Teil der Leerzeile
+        self.assertIn('<h1 class="titel-gross">Deine Regeln</h1>', html)  # bis 11.11. „Ich“ (Jan 11.11.)
+        self.assertIn('<a class="baum-eintrag tiefe-0" href="/ich" aria-current="page"><span>Deine Regeln</span></a>', html)
         self.assertIn("Für alles", html)
         self.assertNotIn("feedback", self.sichtbar(html))
         (self.tmp / "unterricht" / "profil.toml").write_text("kaputt = [")
@@ -1069,9 +1071,9 @@ class TestOrdnung(Aufbau):
         self.post("/reihe/strafe/stunden", {"thema": "Einstieg"})
         self.assertNotIn("Einstieg", self.hole("/")[1])  # Stunden nur unter der gezeigten Reihe
         _, html = self.hole("/reihe/strafe")
-        self.assertIn('<a class="baum-eintrag tiefe-2" href="/reihe/strafe/stunde/1"><span>1  Einstieg</span></a>', html)
+        self.assertIn('<a class="baum-eintrag tiefe-2" href="/reihe/strafe/stunde/1"><span>1 · Einstieg</span></a>', html)
         _, html = self.hole("/reihe/strafe/stunde/1")
-        self.assertIn('href="/reihe/strafe/stunde/1" aria-current="page"><span>1  Einstieg</span>', html)
+        self.assertIn('href="/reihe/strafe/stunde/1" aria-current="page"><span>1 · Einstieg</span>', html)
         self.assertIn('<a class="baum-eintrag tiefe-1" href="/reihe/strafe"><span>', html)  # Reihe nicht markiert
 
     def test_formatvorlagen(self):
@@ -1186,7 +1188,10 @@ class TestOrdnung(Aufbau):
         schreibe(self.instanz / "fassungen" / "x.json", {"ursprung": "x"})
         _, html = self.hole("/reihe/strafe")
         self.assertIn("Ethik · Klasse 8 · in Planung", html)
-        self.assertIn('<span>Straftheorien (in Planung)</span>', html)
+        # Stand als Kennzeichen: Name allein, leiser Punkt, Text im title und für Vorleser (Jan 11.11.)
+        self.assertIn('title="In Planung" aria-current="page"><span>Straftheorien</span><span class="unsichtbar">, '
+                      'In Planung</span><span class="baum-stand" aria-hidden="true"></span>', html)
+        self.assertNotIn("(in Planung)", html)
         r, _ = self.post("/neu", {"text": "Blatt Kant", "art": "arbeitsblatt", "reihe": "strafe", "stunde": "2"})
         self.assertEqual(r.getheader("location"), "/reihe/strafe/stunde/2?erledigt=auftrag-test")
         (a,) = app.auftraege.neue(basis=self.instanz / "auftraege")

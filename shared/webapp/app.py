@@ -1040,7 +1040,7 @@ async def stundenplan(request: Request, klasse_id: str):
     if not token_ok:
         fehler = [pflege.VERALTET]
     if not fehler and kal is None and (zeitplan or wie == "ab"):
-        fehler = [pflege.BUNDESLAND_FEHLT + " Du kannst es unter „Ich“ eintragen."]
+        fehler = [pflege.BUNDESLAND_FEHLT + " Du kannst es unter „Deine Regeln“ eintragen."]
     if not fehler and wie == "ab":
         stichtag = pflege.datum(w("stichtag"))
         ende = max((e["bis"] for e in k["zeitplan"]), default="")
@@ -1093,7 +1093,7 @@ async def uebernehmen(request: Request, klasse_id: str):
         return _uebernehmen_seite(request, s, k, werte, zeilen_, anzahl)
     fehler = [pflege.VERALTET] if not token_ok else fehler + f_sj + f_plan
     if not fehler and zeitplan and kalender_(s) is None:
-        fehler = [pflege.BUNDESLAND_FEHLT + " Du kannst es unter „Ich“ eintragen."]
+        fehler = [pflege.BUNDESLAND_FEHLT + " Du kannst es unter „Deine Regeln“ eintragen."]
     if not fehler:
         aus, text_ = await pflegen("klasse_kopieren", {
             "klasse": klasse_id, "name": name, "schuljahr": schuljahr, "zeitplan": zeitplan or None,
@@ -1110,7 +1110,7 @@ def _termine_von(s, klassen_id: str) -> tuple[list[dict], str]:
     if not (k["zeitplan"] or k["zusatz"]):
         return [], ""
     if k["zeitplan"] and not s.schule.get("bundesland"):
-        return [], pflege.BUNDESLAND_FEHLT + " Du kannst es unter „Ich“ eintragen."
+        return [], pflege.BUNDESLAND_FEHLT + " Du kannst es unter „Deine Regeln“ eintragen."
     try:
         return pflege.termine_liste(s, klassen_id, s.kalender() if k["zeitplan"] else None, heute()), ""
     except termine.TermineFehler as fehler_:
@@ -2195,9 +2195,9 @@ async def formatvorlage_entfernen(request: Request):
 @app.get("/ich", response_class=HTMLResponse)
 def seite_ich(request: Request):
     return vorlagen.TemplateResponse(request, "ich.html", {
-        "e": {"titel": "Ich", "unter": "Was ich über deine Wünsche weiß."},
+        "e": {"titel": logik.SEITE_REGELN, "unter": "Was ich über deine Wünsche weiß."},
         "gruppen": logik.regeln_aus(ordnung.regeltexte(INSTANZ)), "token": logik.formular_token(GEHEIM),
-        "p": ich_pflege(), **rahmen(reihen_laden(), logik.krumen("Ich"), "ich")})
+        "p": ich_pflege(), **rahmen(reihen_laden(), logik.krumen(logik.SEITE_REGELN), "ich")})
 
 
 def _ort(reihen: list[dict], reihe_id: str, stunde_text: str) -> tuple[dict | None, tuple[int, str] | None]:
