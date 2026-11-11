@@ -1,29 +1,106 @@
 {% extends "basis.html" %}
 {% from "_markdown.html" import bloecke %}
-{%- from "_plus.html" import plus -%}
-{#- Das „+“: nicht blau, der Hauptknopf der Seite ist die Rückmeldung -#}
-{%- block plus %}{{ plus([{"text": "Dokument …", "link": neu_hier}], voll=false) }}{% endblock %}
-{#- Dokument-Ansicht: oben die finale (sonst neueste fertige) Fassung mit Seitenbildern, PDF und Original; darunter
-    Rückmeldung, eigene Fassung, alle Fassungen aufklappbar mit „final“ und die Rückmeldungen. -#}
-{%- macro dateiliste(f) -%}
-{%- if f.art == "eigene" %}
-<p class="datei-zeile"><a class="dateiname" href="/dokument/{{ u }}/eigene/{{ f.eigene_n }}">{{ f.datei_name }}</a></p>
-{%- else %}
-{%- for x in f.dateien %}
-<p class="datei-zeile"><span class="dateiname">{{ x.name }}</span>
-  {%- if x.original %} <a class="knopf knopf-klein" href="/dokument/{{ u }}/datei/{{ f.ref }}/{{ x.nr }}">{{ "Herunterladen" if x.endung == "pdf" else "Original (" ~ x.endung ~ ")" }}</a>{% endif %}
-  {%- if x.pdf %} <a class="knopf knopf-klein" href="/dokument/{{ u }}/datei/{{ f.ref }}/{{ x.nr }}/pdf" target="_blank" rel="noopener">PDF ansehen</a>{% endif %}
-  {%- if not x.original %} <span class="unter">nicht verfügbar</span>{% endif %}</p>
-{%- endfor %}
-{%- endif %}
-{%- endmacro -%}
+{%- from "_plus.html" import plus, punkte -%}
+{#- Dokument-Seite (umbauplan-ux.md Schritt 5, nach Lias ergebnis.html): Kopf, Dateien (je Datei ein Download-Symbol),
+    das Wichtigste, darunter immer das Feld für die Rückmeldung (nur bei Arten mit rueckmeldung), die eigene Ansicht
+    (Recherche, Prüfung, Karten), ganz unten eine geschlossene Klappe „Verlauf“. Im „···“: final markieren, eigene
+    Fassung hochladen. Ohne JavaScript geht alles (details, Formulare mit Token); ?offen=eigene öffnet das „···“. -#}
+{%- block skripte %}{{ super() }}
+<script src="/statisch/direkt.js" defer></script>
+<script src="/statisch/anhang.js" defer></script>
+{%- endblock %}
+{%- set h = d.haupt %}
+{%- macro final_knopf(f, klasse) %}
+<form class="final-form" method="post" action="/dokument/{{ u }}/final">
+  <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="ref" value="{{ f.ref }}">
+  <input type="hidden" name="an" value="{{ '0' if f.final else '1' }}">
+  <button class="{{ klasse }}" type="submit">{{ "Nicht mehr final" if f.final else "Als final markieren" }}</button>
+</form>
+{%- endmacro %}
+{#- Download-Symbol einer Datei: PDF ansehen und das Original, je nachdem, was da ist -#}
+{%- macro laden(eintraege) %}
+<details class="menue-halter laden">
+  <summary class="knopf knopf-leise laden-knopf" aria-label="Herunterladen" title="Herunterladen"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+  <div class="menue">
+    {%- for k in eintraege %}
+    <a class="knopf knopf-leise" href="{{ k.link }}"{% if k.laden %} download{% else %} target="_blank" rel="noopener"{% endif %}>{{ k.text }}</a>
+    {%- endfor %}
+  </div>
+</details>
+{%- endmacro %}
+{%- set ORIGINAL = {"docx": "Word-Datei", "pptx": "PowerPoint-Datei", "xlsx": "Excel-Datei", "md": "Markdown-Datei",
+                    "pdf": "PDF herunterladen", "txt": "Textdatei"} %}
+{%- macro datei_laden(f, x) %}
+{%- set basis = "/dokument/" ~ u ~ "/datei/" ~ f.ref ~ "/" ~ x.nr %}
+{%- set n = namespace(e=[]) %}
+{%- if x.pdf %}{% set n.e = n.e + [{"text": "PDF ansehen", "link": basis ~ "/pdf", "laden": false}] %}{% endif %}
+{%- if x.original %}{% set n.e = n.e + [{"text": ORIGINAL.get(x.endung, "Original (" ~ x.endung ~ ")"), "link": basis, "laden": true}] %}{% endif %}
+{%- if n.e %}{{ laden(n.e) }}{% else %}<span class="unter">nicht verfügbar</span>{% endif %}
+{%- endmacro %}
+{#- Dateien einer Fassung: je Datei eine Zeile mit Download-Symbol; mit Seitenbildern die erste Seite klein -#}
+{%- macro dateiliste(f) %}
+<div class="dateien">
+  {%- if f.art == "eigene" %}
+  <div class="datei"><span class="dateiname">{{ f.datei_name }}</span>
+    {{ laden([{"text": "Herunterladen", "link": "/dokument/" ~ u ~ "/eigene/" ~ f.eigene_n, "laden": true}]) }}</div>
+  {%- else %}
+  {%- for x in f.dateien %}
+  {%- set seite1 = "/dokument/" ~ u ~ "/datei/" ~ f.ref ~ "/" ~ x.nr ~ "/seite/1" %}
+  <div class="datei{% if x.seiten %} datei-karte{% endif %}">
+    {%- if x.seiten %}
+    <a class="vorschau" href="{{ seite1 }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true"><img src="{{ seite1 }}" alt="" loading="lazy"></a>
+    <span class="datei-text"><span class="dateiname">{{ x.name }}</span><span class="unter">{{ x.seiten }} {{ "Seite" if x.seiten == 1 else "Seiten" }}</span></span>
+    {%- else %}
+    <span class="dateiname">{{ x.name }}</span>
+    {%- endif %}
+    {{ datei_laden(f, x) }}
+  </div>
+  {%- endfor %}
+  {%- endif %}
+</div>
+{%- endmacro %}
+{%- macro wichtigstes(f) %}
+  {%- if f.kern %}<p class="absatz">{{ f.kern }}</p>{% endif %}
+  {%- if f.punkte %}<ul class="punkte">{% for p in f.punkte %}<li><span class="nr" aria-hidden="true">–</span><span>{{ p }}</span></li>{% endfor %}</ul>{% endif %}
+  {%- if f.pruefen %}<p class="hinweis"><strong>Bitte prüfen:</strong> {{ f.pruefen }}</p>{% endif %}
+{%- endmacro %}
+
 {% block seitenkopf %}
-<header class="kopf">
-  <span class="datum grau">{{ art }}{% if d.kosten %} · Kosten bisher {{ "%.2f" | format(d.kosten) }} USD{% endif %}</span>
+<header class="material-kopf">
+  <span class="material-art">{{ art }}{% if h %}{% if art %} · {% endif %}{{ h.zeit_text }}{% endif %}{% if d.kosten %} · Kosten bisher {{ "%.2f" | format(d.kosten) }} USD{% endif %}</span>
   <h1 class="titel-gross">{{ e.titel }}</h1>
-  <span class="marke{% if rot %} marke-rot{% endif %}">{{ marke }}</span>
+  <span class="material-marke{% if rot %} marke-rot{% elif marke == 'Final' %} marke-final{% endif %}">{{ marke }}</span>
 </header>
 {% endblock %}
+{#- Das „+“: nicht blau, der Hauptknopf der Seite ist „Senden“ der Rückmeldung -#}
+{%- block plus %}{{ plus([{"text": "Dokument …", "link": neu_hier}], voll=false) }}{% endblock %}
+{#- Im „···“: final für die Fassung oben, eigene Fassung hochladen. Mit Fehler beim Hochladen offen. -#}
+{%- block punkte %}
+{%- if d.bezug or (h and h.final_moeglich) %}
+{%- call punkte(offen=offen == "eigene") %}
+    {%- if h and h.final_moeglich %}{{ final_knopf(h, "knopf knopf-leise") }}{% endif %}
+    {%- if d.bezug %}
+    {#- Ein Eintrag wie „+ Datei anhängen“; mit JavaScript erst nach der Wahl Name, Notiz, „Hochladen“, „Abbrechen“.
+        Ohne JavaScript steht alles da. -#}
+    <form class="datei-zeile" method="post" action="/dokument/{{ u }}/eigene" enctype="multipart/form-data" id="eigene" data-einmal data-datei-zeile>
+      <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+      {%- if offen == "eigene" %}{% for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}{% endif %}
+      <label class="knopf knopf-leise datei-knopf">Eigene Fassung hochladen …
+        <input id="eigene-datei" name="datei" type="file" accept="{{ eigene_endungen }}"></label>
+      <span class="datei-zeile-name" aria-live="polite"></span>
+      <span class="unter datei-zeile-regel">Deine Datei gilt als neue Fassung, der Agent ändert nichts.</span>
+      <label class="unsichtbar" for="eigene-notiz">Notiz</label>
+      <input class="feld datei-zeile-regel" id="eigene-notiz" type="text" name="notiz" maxlength="500" placeholder="Notiz (wenn du magst)">
+      <span class="datei-zeile-knoepfe">
+        <button class="knopf knopf-klein" type="submit">Hochladen</button>
+        <button class="knopf knopf-leise datei-zeile-ab" type="button">Abbrechen</button>
+      </span>
+    </form>
+    {%- endif %}
+{%- endcall %}
+{%- endif %}
+{%- endblock %}
+
 {% block inhalt %}
 {%- set erledigt = request.query_params.get("erledigt") %}
 {%- if erledigt %}
@@ -31,28 +108,73 @@
   "eigene": "Deine Fassung ist gespeichert.", "rueckmeldung": "Rückmeldung angelegt, der Agent arbeitet daran.",
   "rueckmeldung-wartet": "Rückmeldung angelegt, der Feedback-Dienst ließ sich aber nicht starten."}.get(erledigt, "") }}</p>
 {%- endif %}
-{%- if fehler %}<div class="fehler" role="alert">{% for f in fehler %}<p>{{ f }}</p>{% endfor %}</div>{% endif %}
+{%- if fehler and offen not in ("eigene", "rueckmeldung") %}<div class="fehler" role="alert">{% for f in fehler %}<p>{{ f }}</p>{% endfor %}</div>{% endif %}
 {%- if d.laeuft %}<p class="hinweis">Läuft gerade. Die Seite zeigt das Ergebnis, sobald es fertig ist (neu laden).</p>{% endif %}
 
-{%- set h = d.haupt %}
 {%- if h %}
-<section>
-  <h2>{{ h.name }}{% if h.final %} · final{% endif %} <span class="unter">{{ h.zeit_text }}</span></h2>
-  {%- if h.kern %}<p class="absatz">{{ h.kern }}</p>{% endif %}
-  {%- if h.punkte %}<ul class="punkte">{% for p in h.punkte %}<li><span class="nr" aria-hidden="true">–</span><span>{{ p }}</span></li>{% endfor %}</ul>{% endif %}
-  {%- if h.pruefen %}<p class="hinweis"><strong>Bitte prüfen:</strong> {{ h.pruefen }}</p>{% endif %}
-  {{ dateiliste(h) }}
-  {%- for x in h.dateien if x.seiten %}
-  <div class="seitenbilder" aria-label="Seiten von {{ x.name }}">
-    {%- for s in range(1, x.seiten + 1) %}
-    <a href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" target="_blank" rel="noopener"><img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" alt="Seite {{ s }} von {{ x.name }}" loading="lazy"></a>
+{%- set x1 = h.dateien[0] if h.dateien | length == 1 and h.dateien[0].seiten else none %}
+<div class="material">
+  {%- if x1 %}
+  {#- Eine Datei mit Seitenbildern: die ersten zwei Seiten groß, alle Seiten in einer Klappe -#}
+  <div class="material-seiten">
+    {%- for s in range(1, [x1.seiten, 2] | min + 1) %}
+    <a class="blatt" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/seite/{{ s }}" target="_blank" rel="noopener" aria-label="{{ x1.name }}, Seite {{ s }} von {{ x1.seiten }} ansehen">
+      <img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/seite/{{ s }}" alt="" loading="lazy"></a>
     {%- endfor %}
   </div>
+  <div class="material-zeile">
+    <span class="unter">{{ x1.name }} · {{ x1.seiten }} {{ "Seite" if x1.seiten == 1 else "Seiten" }}</span>
+    {{ datei_laden(h, x1) }}
+  </div>
+  {%- elif h.dateien or h.art == "eigene" %}
+  {{ dateiliste(h) }}
+  {%- endif %}
+  {%- for x in h.dateien if x.seiten > 2 or (x.seiten and not x1) %}
+  <details class="mehr">
+    <summary>{{ "Alle " ~ x.seiten ~ " Seiten" if x1 else x.name ~ ": alle Seiten" }}</summary>
+    <div class="seitenbilder" aria-label="Seiten von {{ x.name }}">
+      {%- for s in range(1, x.seiten + 1) %}
+      <a href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" target="_blank" rel="noopener"><img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" alt="Seite {{ s }} von {{ x.name }}" loading="lazy"></a>
+      {%- endfor %}
+    </div>
+  </details>
   {%- endfor %}
-  {%- if md %}{{ bloecke(md) }}{% endif %}
+</div>
+{%- if h.kern or h.punkte or h.pruefen %}
+{%- if h.dateien or h.art == "eigene" %}
+<section>
+  <h2>Das Wichtigste</h2>
+  {{ wichtigstes(h) }}
 </section>
+{%- else %}
+<div class="material-text">{{ wichtigstes(h) }}</div>
+{%- endif %}
+{%- endif %}
+{%- if md %}{{ bloecke(md) }}{% endif %}
 {%- elif not d.laeuft %}
 <p class="leer">Noch keine fertige Fassung.</p>
+{%- endif %}
+
+{#- Rückmeldung wie im Gespräch: immer da, kein Knopf davor; nur bei Arten, deren Agent Rückmeldungen annimmt. Eine
+    Datei auf die Seite gezogen hängt sich hier an (direkt.js, data-ablegen; anhang.js zeigt den Namen). -#}
+{%- if d.rueckmeldung_moeglich %}
+<section class="rueckmeldung" id="rueckmeldung" aria-label="Rückmeldung">
+  {%- if offen == "rueckmeldung" %}{% for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}{% endif %}
+  <form class="eingabe" method="post" action="/dokument/{{ u }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
+    <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+    <label class="unsichtbar" for="rueck-text">Was soll anders werden?</label>
+    <textarea id="rueck-text" name="text" rows="3" maxlength="4000"{% if offen == "rueckmeldung" and fehler %} autofocus{% endif %} placeholder="Was soll anders werden?">{{ text if offen == "rueckmeldung" else "" }}</textarea>
+    <p class="gewaehlt" id="gewaehlt" aria-live="polite"></p>
+    <div class="eingabe-leiste">
+      <div class="links">
+        <label class="knopf knopf-leise datei-knopf" title="Datei mit Kommentaren, z. B. Word oder PDF. Eine Datei allein reicht auch.">+ Datei anhängen
+          <input id="anhang" name="datei" type="file" accept="{{ rueck_endungen }}" data-ablegen></label>
+        {%- if not auftraege_an %}<span>Probebetrieb: Rückmeldungen sind aus.</span>{% endif %}
+      </div>
+      <button class="knopf{% if not (h and h.final) %} knopf-voll{% endif %}" type="submit">Senden</button>
+    </div>
+  </form>
+</section>
 {%- endif %}
 
 {%- if eigen and eigen.name == "recherche" %}{% include "_ansicht_recherche.html" %}
@@ -60,78 +182,63 @@
 {%- elif eigen and eigen.name == "karten" %}
 <section class="eigen"><h2>Karten</h2>
   <p class="absatz">Die Karten liegen im Modul. Üben geht vorerst im Portal.</p>
-  <p><a class="knopf knopf-voll" href="{{ eigen.link }}" rel="noopener">Karten üben</a></p></section>
+  <p><a class="knopf" href="{{ eigen.link }}" rel="noopener">Karten üben</a></p></section>
 {%- endif %}
 
-<section class="aktionen">
-  {%- if d.rueckmeldung_moeglich %}
-  <details{% if offen == "rueckmeldung" %} open{% endif %}>
-    <summary>Rückmeldung geben</summary>
-    <form class="formular" method="post" action="/dokument/{{ u }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
-      <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
-      <label class="feld-titel" for="rueck-text">Was soll anders werden?</label>
-      <textarea id="rueck-text" name="text" rows="5" maxlength="4000">{{ text }}</textarea>
-      <label class="feld-titel" for="rueck-datei">Datei mit Kommentaren <span class="grau">(optional)</span></label>
-      <input id="rueck-datei" type="file" name="datei" accept="{{ rueck_endungen }}">
-      {%- if not auftraege_an %}<p class="unter">Probebetrieb: Rückmeldungen sind ausgeschaltet.</p>{% endif %}
-      <button class="knopf knopf-voll" type="submit">Rückmeldung schicken</button>
-    </form>
-  </details>
-  {%- elif d.bezug %}
-  <p class="unter">Zu dieser Art nimmt der Agent keine Rückmeldung an. Für eine neue Fassung bitte einen neuen Auftrag geben.</p>
-  {%- endif %}
-  {%- if d.bezug %}
-  <details{% if offen == "eigene" %} open{% endif %}>
-    <summary>Eigene Fassung hochladen</summary>
-    <form class="formular" method="post" action="/dokument/{{ u }}/eigene" enctype="multipart/form-data" data-einmal>
-      <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
-      <label class="feld-titel" for="eigene-datei">Bearbeitete Datei</label>
-      <input id="eigene-datei" type="file" name="datei" accept="{{ eigene_endungen }}" required>
-      <label class="feld-titel" for="eigene-notiz">Notiz <span class="grau">(optional)</span></label>
-      <input class="feld" id="eigene-notiz" type="text" name="notiz" maxlength="500">
-      <button class="knopf" type="submit">Hochladen</button>
-    </form>
-  </details>
-  {%- endif %}
-</section>
-
-<section class="fassungen">
-  <h2>Fassungen</h2>
-  <ul>
-    {%- for f in d.fassungen %}
-    <li><details{% if f is sameas h %} open{% endif %}><summary><span class="titel">{{ f.name }}</span>
-      <span class="unter">{{ f.zeit_text }} · {{ f.status_text }}{% if f.nachbesserung %} · Nachbesserung{% endif %}{% if f.kosten %} · {{ "%.2f" | format(f.kosten) }} USD{% endif %}</span>
-      {%- if f.final %}<span class="marke-final">final</span>{% endif %}</summary>
-      {%- if f.kern and f is not sameas h %}<p class="absatz">{{ f.kern }}</p>{% endif %}
-      {%- if f.ergebnis %}<p class="absatz auftrag-text">{{ f.ergebnis }}</p>{% endif %}
-      {%- if f is not sameas h %}{{ dateiliste(f) }}{% endif %}
-      {%- if f.final_moeglich %}
-      <form class="inline-form" method="post" action="/dokument/{{ u }}/final">
-        <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="ref" value="{{ f.ref }}">
-        <input type="hidden" name="an" value="{{ '0' if f.final else '1' }}">
-        <button class="knopf knopf-klein" type="submit">{{ "Nicht mehr final" if f.final else "Als final markieren" }}</button>
-      </form>
+{#- Verlauf: eine geschlossene Klappe, erst ab der zweiten Station (eine Fassung allein steht schon oben) -#}
+{%- set zahl_f = d.fassungen | selectattr("final_moeglich") | list | length %}
+{%- set zahl_r = d.rueckmeldungen | length + d.anmerkungen | length %}
+{%- if d.fassungen | length + zahl_r > 1 %}
+{%- set teile = ([zahl_f ~ (" Fassung" if zahl_f == 1 else " Fassungen")] if zahl_f else [])
+              + ([zahl_r ~ (" Rückmeldung" if zahl_r == 1 else " Rückmeldungen")] if zahl_r else []) %}
+<details class="mehr verlauf-klappe"{% if offen == "verlauf" %} open{% endif %}>
+  <summary>Verlauf{% if teile %}: {{ teile | join(", ") }}{% endif %}</summary>
+  <div class="fassungen">
+  {%- for f in d.fassungen %}
+  <div class="fassung-zeile">
+    <span class="fassung-name">{{ f.name }}</span>
+    <span class="fassung-text">
+      <span>{{ f.zeit_text }} · {{ f.status_text }}{% if f.nachbesserung %} · Nachbesserung{% endif %}{% if f.kosten %} · {{ "%.2f" | format(f.kosten) }} USD{% endif %}</span>
+      {%- if f.ergebnis %}<span class="unter auftrag-text">{{ f.ergebnis }}</span>{% endif %}
+      {%- if f is not sameas h and (f.kern or f.punkte or f.dateien or f.art == "eigene") %}
+      <details>
+        <summary>ansehen</summary>
+        <div class="schritt-inhalt">
+          {{ wichtigstes(f) }}
+          {%- if f.dateien or f.art == "eigene" %}{{ dateiliste(f) }}{% endif %}
+        </div>
+      </details>
       {%- endif %}
-      {%- if f.auftrag_text %}<details class="auftrag"><summary class="unter">Auftrag</summary><p class="unter auftrag-text">{{ f.auftrag_text }}</p></details>{% endif %}
-    </details></li>
-    {%- endfor %}
-  </ul>
-</section>
-
-{%- if d.rueckmeldungen or d.anmerkungen %}
-<section>
-  <h2>Rückmeldungen</h2>
-  <ul>
-    {%- for r in d.rueckmeldungen %}
-    <li class="rueck"><p class="unter">{{ r.zeit_text }} · {{ r.status_text }}</p>
-      <p class="absatz auftrag-text">{{ r.text }}</p>
-      {%- if r.antwort %}<p class="unter auftrag-text">{{ r.antwort }}</p>{% endif %}</li>
-    {%- endfor %}
-    {%- for a in d.anmerkungen %}
-    <li class="rueck"><p class="unter">{{ a.zeit_text }} · Datei zur Rückmeldung</p>
-      <p><a class="dateiname" href="/dokument/{{ u }}/eigene/{{ a.n }}">{{ a.name }}</a></p></li>
-    {%- endfor %}
-  </ul>
-</section>
+      {%- if f.auftrag_text %}<details class="auftrag"><summary>Auftrag</summary><p class="unter auftrag-text">{{ f.auftrag_text }}</p></details>{% endif %}
+    </span>
+    <span class="fassung-marke">
+      {%- if f.final %}<span class="material-marke marke-final">Final</span>{% elif f is sameas h %}<span class="unter">steht oben</span>{% endif %}
+      {%- if f.final_moeglich and f is not sameas h %}{{ final_knopf(f, "knopf knopf-klein") }}{% endif %}
+    </span>
+  </div>
+  {%- endfor %}
+  {%- for r in d.rueckmeldungen %}
+  <div class="fassung-zeile fassung-rueckmeldung">
+    <span class="fassung-name">Rückmeldung</span>
+    <span class="fassung-text">
+      <span>von dir, {{ r.zeit_text }} · {{ r.status_text }}</span>
+      <span class="zitat auftrag-text">{{ r.text }}</span>
+      {%- if r.antwort %}<span class="unter auftrag-text">{{ r.antwort }}</span>{% endif %}
+    </span>
+    <span class="fassung-marke"></span>
+  </div>
+  {%- endfor %}
+  {%- for a in d.anmerkungen %}
+  <div class="fassung-zeile fassung-rueckmeldung">
+    <span class="fassung-name">Datei</span>
+    <span class="fassung-text">
+      <span>zur Rückmeldung, {{ a.zeit_text }}</span>
+      <a class="dateiname" href="/dokument/{{ u }}/eigene/{{ a.n }}">{{ a.name }}</a>
+    </span>
+    <span class="fassung-marke"></span>
+  </div>
+  {%- endfor %}
+  </div>
+</details>
 {%- endif %}
 {% endblock %}

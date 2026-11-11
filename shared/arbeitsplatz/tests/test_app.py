@@ -467,7 +467,7 @@ class TestDokument(Aufbau):
         self.assertIn("Exposé Holzschutz", html)
         self.assertIn("Quellen ansehen", html)
         self.assertIn(f"/dokument/{self.U}/datei/{self.U}/0/seite/2", html)
-        self.assertIn("Rückmeldung geben", html)
+        self.assertIn('id="rueckmeldung"', html)
         self.assertIn("Kapitel 3", html)  # Brotkrume zum Ort
         self.assertEqual(self.get(f"/dokument/{self.U}/datei/{self.U}/0")[1], "DOCX")
         self.assertEqual(self.get(f"/dokument/{self.U}/datei/{self.U}/0/pdf")[1], "%PDF-1.7")
@@ -478,8 +478,42 @@ class TestDokument(Aufbau):
             with self.subTest(pfad=pfad):
                 self.assertEqual(self.get(f"/dokument/{self.U}{pfad}")[0], 404)
         self.assertEqual(self.get(f"/dokument/{self.NB}")[0], 200)
-        self.assertNotIn("Rückmeldung geben", self.get(f"/dokument/{self.NB}")[1])  # pruefung: keine Rückmeldung
+        self.assertNotIn('id="rueckmeldung"', self.get(f"/dokument/{self.NB}")[1])  # pruefung: keine Rückmeldung
         self.assertIn("Exposé Holzschutz", self.get("/")[1])  # Heute: wartet auf dich
+
+    def test_dokument_ruhig(self):
+        """umbauplan-ux.md Schritt 5: genau ein blauer Knopf („Senden“), Feld nur bei Arten mit rueckmeldung, Final
+        und eigene Fassung im „···“, Download-Symbol je Datei, Verlauf als geschlossene Klappe erst ab zwei."""
+        html = self.get(f"/dokument/{self.U}")[1]
+        self.assertEqual(html.count("knopf-voll"), 1)
+        self.assertIn('<button class="knopf knopf-voll" type="submit">Senden</button>', html)
+        self.assertIn('placeholder="Was soll anders werden?"', html)
+        self.assertIn('id="anhang" name="datei" type="file"', html)
+        self.assertIn("data-ablegen", html.split('id="rueckmeldung"')[1])
+        punkte = html.split('class="menue-halter punkte"')[1].split("</details>")[0]
+        self.assertIn("Als final markieren", punkte)
+        self.assertIn(f'action="/dokument/{self.U}/eigene"', punkte)
+        self.assertIn("Eigene Fassung hochladen …", punkte)
+        self.assertNotIn("Verlauf", html)  # eine Fassung allein steht oben
+        self.assertIn('class="menue-halter laden"', html)
+        self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0" download>Word-Datei</a>', html)
+        self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0/pdf" target="_blank"', html)
+        self.assertIn('class="menue-halter plus"', html)
+        self.assertNotIn("knopf-voll plus-knopf", html)
+        # ?offen=eigene öffnet das „···“
+        self.assertIn('class="menue-halter punkte" open', self.get(f"/dokument/{self.U}?offen=eigene")[1])
+        # zweite Station (Rückmeldung): Klappe „Verlauf“, geschlossen, mit Zahlen; final: kein blauer Knopf mehr
+        self.post(f"/dokument/{self.U}/rueckmeldung", {"text": "Bitte kürzer", "einmal": "v1"})
+        self.post(f"/dokument/{self.U}/final", {"ref": self.U, "an": "1"})
+        html = self.get(f"/dokument/{self.U}")[1]
+        self.assertIn('<details class="mehr verlauf-klappe">', html)
+        self.assertIn("<summary>Verlauf: 1 Fassung, 1 Rückmeldung</summary>", html)
+        self.assertNotIn("knopf-voll", html)
+        self.assertIn("Nicht mehr final", html.split('class="menue-halter punkte"')[1].split("</details>")[0])
+        # Art ohne Rückmeldung: kein Feld, kein Satz dazu
+        html = self.get(f"/dokument/{self.NB}")[1]
+        self.assertNotIn("Was soll anders werden", html)
+        self.assertNotIn("nimmt der Agent keine Rückmeldung", html)
 
     def test_final_an_und_aus(self):
         status, _, kopf = self.post(f"/dokument/{self.U}/final", {"ref": self.U, "an": "1"})
@@ -579,7 +613,7 @@ rueckmeldung = false
         self.assertIn("Wirkt &lt;Borsalz&gt;?", html)
         self.assertIn("<strong>wirkt</strong>", html)  # Recherchebericht.md
         self.assertIn("gesichert (1)", html)
-        self.assertNotIn("Rückmeldung geben", html)
+        self.assertNotIn('id="rueckmeldung"', html)
         self.assertIn("Literatursuche", self.get(f"/dokument/{self.R}?ansicht=suche")[1])
         self.assertEqual(self.get(f"/dokument/{self.R}/datei/{self.R}/0")[1], "# Bericht\n\nBorsalz **wirkt**.\n")
 
