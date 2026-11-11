@@ -5,6 +5,9 @@
 # Die Lerngruppe steht nicht hier, sondern je Klasse in lerngruppen.toml (nicht im Repo, F6).
 # Noch ohne [schule] bundesland und Stundenplan (Jan 03.11.2026: kommen später über die Maske).
 
+[schule]
+bundesland = "BE"
+
 [[fach]]
 id = "ethik"
 name = "Ethik"
