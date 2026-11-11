@@ -47,7 +47,7 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 - Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
   schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
-## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 4 gebaut und live)
+## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 5 gebaut und live)
 `befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
 `umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
 ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Wird
@@ -89,9 +89,21 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   OFFEN, nur von Hand: Datei loslassen (Zeile mit Name, Regel, „Ablegen“; der nachgestellte Drop war im Seitenfenster
   gesperrt), „Datei“ im „+“ (öffnet ein Dateifenster), Stunde ziehen mit Maus und am iPad mit Finger (Reihe hatte nur
   eine Stunde), Enter speichert (bewusst nicht auf Lias Daten).
-  Befund für später (Schritt 5): Bei ≤ 760 px steht die Seitenleiste unter dem Inhalt. „Stunde verschieben“ ist im
-  „···“ ein offenes Formular, kein einzelner Menüpunkt.
-  Nächster Schritt danach: 5 (Raster mit rechter Spalte).
+  Befund für später: „Stunde verschieben“ ist im „···“ ein offenes Formular, kein einzelner Menüpunkt.
+- Schritt 5 gebaut (Jans Okay 11.11., live, nur Vorlagen und CSS): Klasse, Reihe und Stunde haben wie das Gespräch
+  rechts eine Spalte (`aside.rechts`, Makro `rechts_spalte` in `_ort.html`): Deine Dateien (Sprungziel `#ablage`),
+  Termine (Klasse: ganzer Abschnitt mit „fällt aus“, `#termine`; Reihe: Daten der Stunden; Stunde: ihr Termin),
+  Schon behandelt (Reihe), Reihenfrage aus der Reihe (Stunde). Raster in `ruhig.css`: Mitte bis 736 px (640 px Text)
+  und rechts 280 px zusammen mittig neben der Seitenleiste, auch im Gespräch; Masken, Heute, Material einspaltig und
+  mittig. Ohne Kontext ist die Spalte `rechts-still` und per CSS `:has` unsichtbar, bis „Datei“ im „+“ sie öffnet.
+  Bei Lia heute: nur „Straftheorien“ zeigt rechts etwas (Schon behandelt), alle anderen Ebenen haben noch keine
+  Dateien und Termine. Rundgang 11.11. gegen 8791: 615 Seiten, alle 200, `lia/instanz` unverändert.
+  NICHT im Browser angesehen (Chrome nicht verbunden): Breite 1440/1280/1100/760/401 px, Klasse mit vielen Terminen
+  in der Spalte (eigenes Scrollen), „Datei“ im „+“ bei stiller Spalte (Spalte erscheint, Auswahl öffnet sich), Ziehen
+  einer Datei. `:has` braucht Safari 15.4 bzw. Chrome 105; ältere Browser zeigen die stille Spalte als leeren Rand.
+  Bei ≤ 760 px bleibt die Reihenfolge Inhalt, rechte Spalte, Seitenleiste (Befund der Probe 11.11.). Vorschlag an Jan,
+  nicht gebaut: Seitenleiste schmal oben als Klappe („Fächer und Reihen“), damit sie auf dem Handy nicht ganz unten steht.
+  Nächster Schritt: 6 (Ergebnis-Seite).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).

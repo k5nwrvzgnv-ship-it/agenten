@@ -1,12 +1,14 @@
 {#- Stunde (bzw. Probe) einer Reihe: Material, Dateien, Gespräche. Im „···“ (umbauplan-ux.md Schritt 3): Thema und Marke,
     „Verschieben nach …“ (Stelle, Termin, andere Reihe), Kopieren, fällt aus, Ausblenden, Löschen (nur ohne Material).
-    Material ordnet Lia in seiner Ansicht zu. -#}
+    Material ordnet Lia in seiner Ansicht zu. Rechts (Schritt 5): Deine Dateien, Termin, Reihenfrage aus der Reihe. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
+{%- from "_ort.html" import gespraeche_abschnitt, noch_leer, rechts_spalte -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- from "_plus.html" import ebene, punkte -%}
 {%- from "_direkt.html" import titel -%}
+{%- set rechts_still = not (ablage.dateien or ablage.fehler or ablage.erledigt or (p and p.termin) or reihe.reihenfrage) %}
+{% block rahmen_klasse %}{% endblock %}
 {%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
@@ -82,5 +84,20 @@
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
 </section>
 {%- endif %}
-{{ ablage_abschnitt(ablage) }}
+{% endblock %}
+{% block rechts %}
+{%- call rechts_spalte(ablage, rechts_still, "Zur " ~ e.wort) %}
+{%- if p and p.termin %}
+<section aria-labelledby="ab-termin">
+  <h2 id="ab-termin">Termin</h2>
+  <p>{{ p.termin }}</p>
+</section>
+{%- endif %}
+{%- if reihe.reihenfrage %}
+<section aria-labelledby="ab-reihenfrage">
+  <h2 id="ab-reihenfrage">Reihenfrage aus der Reihe</h2>
+  <p><a href="/reihe/{{ reihe.id }}">{{ reihe.reihenfrage }}</a></p>
+</section>
+{%- endif %}
+{%- endcall %}
 {% endblock %}

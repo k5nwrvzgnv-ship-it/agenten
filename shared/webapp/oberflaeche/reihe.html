@@ -1,10 +1,10 @@
-{#- Reihe: Reihenfrage, schon Behandeltes, Material zur ganzen Reihe, darunter die Stunden (bzw. Proben) mit Datum und
-    Material. Neues über das „+“, Seltenes im „···“ (umbauplan-ux.md Schritt 3): Bearbeiten, Archivieren, In eine andere
-    Klasse, Termine, Reihe beginnt am …, Stunde verschieben (ein Griff; Ziehen per JavaScript nur zusätzlich,
-    statisch/ziehen.js füllt dasselbe Formular #verschieben im „···“). -#}
+{#- Reihe: in der Mitte Gespräche, Material zur ganzen Reihe, darunter die Stunden (bzw. Proben) mit Datum und Material;
+    rechts (Schritt 5) Deine Dateien, Termine, Schon behandelt. Neues über das „+“, Seltenes im „···“ (umbauplan-ux.md
+    Schritt 3): Bearbeiten, Archivieren, In eine andere Klasse, Termine, Reihe beginnt am …, Stunde verschieben (ein
+    Griff; Ziehen per JavaScript nur zusätzlich, statisch/ziehen.js füllt dasselbe Formular #verschieben im „···“). -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
+{%- from "_ort.html" import gespraeche_abschnitt, noch_leer, rechts_spalte -%}
 {%- from "_pflege.html" import knopf, ziele_auswahl -%}
 {%- from "_plus.html" import ebene, punkte -%}
 {%- from "_direkt.html" import titel -%}
@@ -49,6 +49,10 @@
 {%- endcall %}
 {%- endif %}
 {%- endblock %}
+{#- Rechte Spalte (umbauplan-ux.md Schritt 5): Termine sind die Daten der Stunden, je ein Link auf die Stunde -#}
+{%- set mit_datum = e.stunden | selectattr("datum") | list %}
+{%- set rechts_still = not (ablage.dateien or ablage.fehler or ablage.erledigt or mit_datum or e.behandelt) %}
+{% block rahmen_klasse %}{% endblock %}
 {%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script>{% endif %}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
@@ -69,7 +73,6 @@
   dort){% endif %}. Alles darin bleibt erhalten.</span>
   {%- if p.selbst_archiviert %} {{ knopf("/objekt/" ~ p.reihe.id ~ "/wiederherstellen", "Wiederherstellen", token, voll=true) }}{% endif %}</div>
 {%- endif %}
-{%- if e.behandelt %}<p class="absatz unter"><b>Schon behandelt:</b> {{ e.behandelt }}</p>{% endif %}
 {#- Nur zeigen, was da ist (umbauplan-ux.md Schritt 2): leere Abschnitte fallen weg, die Nummern zählen mit -#}
 {%- set nr = namespace(n=0) %}
 {%- if not (gespraeche and (gespraeche.hier or gespraeche.darunter)) and not e.zeilen and not e.stunden
@@ -81,7 +84,6 @@
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
 </section>
 {%- endif %}
-{{ ablage_abschnitt(ablage) }}
 {%- if e.stunden %}
 <section aria-labelledby="ab2" id="stunden">
   {%- set nr.n = nr.n + 1 %}
@@ -112,4 +114,20 @@
   </ul>
 </section>
 {%- endif %}
+{% endblock %}
+{% block rechts %}
+{%- call rechts_spalte(ablage, rechts_still, "Zur Reihe") %}
+{%- if mit_datum %}
+<section aria-labelledby="ab-termine">
+  <h2 id="ab-termine">Termine</h2>
+  <p>{% for s in mit_datum %}<a href="{{ s.link }}" title="{{ e.wort }} {{ s.nr }}: {{ s.titel }}">{{ s.datum }}</a>{{ ", " if not loop.last }}{% endfor %}</p>
+</section>
+{%- endif %}
+{%- if e.behandelt %}
+<section aria-labelledby="ab-behandelt">
+  <h2 id="ab-behandelt">Schon behandelt</h2>
+  <p>{{ e.behandelt }}</p>
+</section>
+{%- endif %}
+{%- endcall %}
 {% endblock %}

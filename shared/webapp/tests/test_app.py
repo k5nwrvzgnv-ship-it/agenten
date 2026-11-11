@@ -707,10 +707,13 @@ class TestOrdnung(Aufbau):
         mitte = html.split('<nav class="baum"')[0]
         self.assertIn(leer, mitte)
         self.assertNotIn("Noch kein", mitte)
-        # nur die versteckte Ablage hat eine Überschrift; ihr Formular bleibt Sprungziel für „Datei“ im „+“
-        self.assertEqual(re.findall(r'<h2 id="([^"]+)"', mitte), ["ab-ablage"])
-        self.assertIn('id="ablage" class="ablage-zu"', mitte)
-        self.assertIn('action="/ablage/darstellendes-spiel-kurs-12-der-nackte-wahnsinn"', mitte)
+        # keine Überschrift in der Mitte; die versteckte Ablage steht in der stillen rechten Spalte (Schritt 5) und
+        # bleibt Sprungziel für „Datei“ im „+“
+        self.assertEqual(re.findall(r'<h2 id="([^"]+)"', mitte), [])
+        rechts = html.split('<aside class="rechts rechts-still" aria-label="Zur Reihe">')[1].split("</aside>")[0]
+        self.assertEqual(re.findall(r'<h2 id="([^"]+)"', rechts), ["ab-ablage"])
+        self.assertIn('id="ablage" class="ablage-zu"', rechts)
+        self.assertIn('action="/ablage/darstellendes-spiel-kurs-12-der-nackte-wahnsinn"', rechts)
         self.assertIn('href="#ablage"', mitte)
         # mit Fehler oder Meldung ist die Ablage offen
         self.assertNotIn("ablage-zu", self.hole(theater + "?ablagefehler=heic")[1])
@@ -736,6 +739,52 @@ class TestOrdnung(Aufbau):
                                    {"bestaetigt": "1"})[0].status, 303)
         _, html = self.hole(f"{theater}/stunde/1")
         self.assertIn('<p class="leer noch-leer">Noch leer.</p>', html)
+
+    def rechts(self, html):
+        """Rechte Spalte der Seite (umbauplan-ux.md Schritt 5): (Klasse des aside, aria-label, Inhalt); None ohne."""
+        m = re.search(r'<aside class="([^"]+)" aria-label="([^"]+)">(.*?)</aside>', html, re.S)
+        return m.groups() if m else None
+
+    def test_rechte_spalte(self):
+        """umbauplan-ux.md Schritt 5: Klasse, Reihe und Stunde haben wie das Gespräch rechts eine Spalte mit dem
+        Kontext (Deine Dateien, Termine, Schon behandelt, Reihenfrage), in der Mitte steht, was Lia tut."""
+        self.assertEqual(self.post("/reihe/strafe/stunden", {"thema": "Kant"})[0].status, 303)
+        for pfad, name in (("/reihe/strafe", "Zur Reihe"), ("/reihe/strafe/stunde/1", "Zur Stunde"),
+                           ("/klasse/ethik-8", "Zur Klasse")):
+            _, html = self.hole(pfad)
+            self.assertIn('<div class="rahmen">', html, pfad)  # Raster mit rechter Spalte
+            klasse, label, rechts = self.rechts(html)
+            self.assertEqual(label, name)
+            self.assertEqual(html.count("<aside"), 1, pfad)
+            self.assertIn('id="ablage"', rechts, pfad)  # Sprungziel für „Datei“ im „+“ und die Weiterleitungen
+            self.assertIn('<form class="ablage-form"', rechts, pfad)
+            mitte = html.split('<nav class="baum"')[0]
+            self.assertNotIn('id="ablage"', mitte, pfad)
+            self.assertNotIn("Schon behandelt", mitte, pfad)
+        # Reihe: Schon behandelt rechts; die Reihenfrage bleibt im Kopf
+        klasse, _, rechts = self.rechts(self.hole("/reihe/strafe")[1])
+        self.assertEqual(klasse, "rechts")
+        self.assertIn('<h2 id="ab-behandelt">Schon behandelt</h2>', rechts)
+        self.assertIn("Kant; Bentham", rechts)
+        self.assertNotIn('id="ab-termine"', rechts)  # Stunden ohne Termin
+        # Stunde: Reihenfrage aus der Reihe, als Link zur Reihe
+        _, _, rechts = self.rechts(self.hole("/reihe/strafe/stunde/1")[1])
+        self.assertIn('<a href="/reihe/strafe">Wozu &lt;strafen&gt; wir?</a>', rechts)
+        # Klasse ohne Dateien und Termine: Spalte still (CSS zeigt sie erst, wenn „Datei“ dorthin springt)
+        klasse, _, rechts = self.rechts(self.hole("/klasse/ethik-8")[1])
+        self.assertEqual(klasse, "rechts rechts-still")
+        self.assertNotIn('id="termine"', rechts)
+        # mit einer Datei ist sie nicht mehr still, die Datei steht rechts (Hochladen prüft test_ablage)
+        (self.instanz / "ablage" / "ethik-8").mkdir(parents=True)
+        (self.instanz / "ablage" / "ethik-8" / "Planung.pdf").write_bytes(b"%PDF-1.4 x")
+        klasse, _, rechts = self.rechts(self.hole("/klasse/ethik-8")[1])
+        self.assertEqual(klasse, "rechts")
+        self.assertIn("Planung.pdf", rechts)
+        # Masken, Heute und Material bleiben einspaltig
+        for pfad in ("/", "/reihe/strafe/bearbeiten", "/klasse/ethik-8/bearbeiten"):
+            html = self.hole(pfad)[1]
+            self.assertIn('<div class="rahmen ohne-rechts">', html, pfad)
+            self.assertNotIn("<aside", html, pfad)
 
     def punkte(self, html):
         """Inhalt des „···“ der Seite (umbauplan-ux.md Schritt 3); None, wenn es keins gibt."""

@@ -1,11 +1,15 @@
-{#- Klasse/Kurs: Reihen, Termine aus dem Stundenplan (Ausfall je Termin), Dateien, Gespräche. Neue Reihe über das „+“,
-    im „···“ (umbauplan-ux.md Schritt 3): Bearbeiten (dort auch Archivieren), Stundenplan, Zusatztermin. -#}
+{#- Klasse/Kurs: in der Mitte Gespräche und Reihen, rechts (Schritt 5) Deine Dateien und Termine aus dem Stundenplan
+    (Ausfall je Termin, Sprungziel #termine). Neue Reihe über das „+“, im „···“ (umbauplan-ux.md Schritt 3):
+    Bearbeiten (dort auch Archivieren), Stundenplan, Zusatztermin. -#}
 {% extends "basis.html" %}
 {%- from "_zeile.html" import zeile -%}
-{%- from "_ort.html" import ablage_abschnitt, gespraeche_abschnitt, noch_leer -%}
+{%- from "_ort.html" import gespraeche_abschnitt, noch_leer, rechts_spalte -%}
 {%- from "_pflege.html" import knopf -%}
 {%- from "_plus.html" import ebene, punkte -%}
 {%- from "_direkt.html" import titel -%}
+{%- set mit_terminen = p and (p.stundenplan or p.termine_fehler or p.kommend or p.vergangen) %}
+{%- set rechts_still = not (ablage.dateien or ablage.fehler or ablage.erledigt or mit_terminen) %}
+{% block rahmen_klasse %}{% endblock %}
 {%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
@@ -74,9 +78,12 @@
   <ul>{% for z in e.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
 </section>
 {%- endif %}
-{%- if p and (p.stundenplan or p.termine_fehler or p.kommend or p.vergangen) %}
+{% endblock %}
+{% block rechts %}
+{%- call rechts_spalte(ablage, rechts_still, "Zur Klasse") %}
+{%- if mit_terminen %}
 <section aria-labelledby="ab2" id="termine">
-  <h2 id="ab2"><span class="abschnitt-nr">{{ "02" if e.zeilen else "01" }}</span>Termine</h2>
+  <h2 id="ab2">Termine</h2>
   {%- if p.stundenplan %}<p class="absatz unter">Stundenplan: {{ p.stundenplan }} · <a href="/klasse/{{ p.klasse.id }}/stundenplan">ändern</a></p>{% endif %}
   {%- if p.termine_fehler %}
   <p class="hinweis">{{ p.termine_fehler }}</p>
@@ -93,5 +100,5 @@
   {%- endif %}
 </section>
 {%- endif %}
-{{ ablage_abschnitt(ablage) }}
+{%- endcall %}
 {% endblock %}

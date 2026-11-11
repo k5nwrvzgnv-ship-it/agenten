@@ -605,6 +605,28 @@ class TestReihe(Pflege):
         self.assertEqual(r2.status, 400)
         self.assertIn("Bitte Termine anhaken", html)
 
+    def test_termine_in_der_rechten_spalte(self):
+        """umbauplan-ux.md Schritt 5: Termine stehen rechts; an der Klasse mit „fällt aus“ und Sprungziel #termine,
+        an der Reihe als Daten der Stunden (je ein Link), an der Stunde ihr Termin mit Stunde."""
+        frei = self.mit_plan()
+        r = self.reihe("Würde", anzahl=2)
+        def teile(pfad):
+            html = self.hole(pfad)[1]
+            rechts = html.split('<aside class="rechts" aria-label="')[1].split("</aside>")[0]
+            return html.split('<nav class="baum"')[0], rechts
+        mitte, rechts = teile("/klasse/ethik-8")
+        self.assertIn('<section aria-labelledby="ab2" id="termine">', rechts)
+        self.assertIn("Stundenplan: Di 3. Std.", rechts)
+        self.assertIn(f'href="/klasse/ethik-8/ausfall?termin={frei[0]}">fällt aus</a>', rechts)
+        self.assertNotIn('id="termine"', mitte)
+        mitte, rechts = teile(f"/reihe/{r['id']}")
+        tage = [app.logik.termin_kurz(k) for k in frei[:2]]
+        self.assertIn(f'<a href="/reihe/{r["id"]}/stunde/1" title="Stunde 1: Thema offen">{tage[0]}</a>, '
+                      f'<a href="/reihe/{r["id"]}/stunde/2"', rechts)
+        self.assertIn('<h2 id="ab-termine">Termine</h2>', rechts)
+        _, rechts = teile(f"/reihe/{r['id']}/stunde/2")
+        self.assertIn(f"<p>{termine.anzeige(frei[1])}</p>", rechts)
+
     def test_zeitlich_verschieben_regel_33(self):
         """Testregel 33: Die Reihe beginnt an einem belegten Termin; einmal fragen, dann „nachrücken“ (die getroffene
         Reihe rückt dahinter) oder „tauschen“; ids, Themen, Material bleiben; Rückgängig stellt alles her."""

@@ -1,5 +1,5 @@
-{#- Bausteine einer Ebene (Klasse/Kurs, Reihe, Stunde): eigene Dateien am Ort (ablage.py) und Gespräche. Leere
-    Abschnitte fallen weg (umbauplan-ux.md Schritt 2); ist die ganze Ebene leer, steht dort noch_leer(). -#}
+{#- Bausteine einer Ebene (Klasse/Kurs, Reihe, Stunde): eigene Dateien am Ort (ablage.py), Gespräche, rechte Spalte.
+    Leere Abschnitte fallen weg (umbauplan-ux.md Schritt 2); ist die ganze Ebene leer, steht dort noch_leer(). -#}
 {%- macro noch_leer(archiv=false) -%}
 <p class="leer noch-leer">Noch leer.{% if not archiv %} Mit + fängst du an.{% endif %}</p>
 {%- endmacro -%}
@@ -40,6 +40,15 @@
     <span class="unter ablage-regel">PDF, Word, PowerPoint, Excel, Fotos; je bis 20 MB. Keine Schülerdaten.</span>
   </form>
 </section>
+{%- endmacro -%}
+{#- Rechte Spalte einer Ebene (umbauplan-ux.md Schritt 5): oben „Deine Dateien“, darunter der Kontext der Seite
+    (caller: Termine, Schon behandelt, Reihenfrage). Die Spalte steht immer im HTML, weil „Deine Dateien“ dort auch ohne
+    Dateien Sprungziel bleibt. still: außer der zugeklappten Ablage nichts zu zeigen, dann ohne Linie und Abstand. -#}
+{%- macro rechts_spalte(a, still, name) -%}
+<aside class="rechts{% if still %} rechts-still{% endif %}" aria-label="{{ name }}">
+{{ ablage_abschnitt(a) }}
+{{- caller() }}
+</aside>
 {%- endmacro -%}
 {%- macro gespraech_zeile(z) -%}
 <li><a class="zeile" href="{{ z.link }}">

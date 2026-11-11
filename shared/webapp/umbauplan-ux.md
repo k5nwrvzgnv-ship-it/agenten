@@ -141,7 +141,22 @@ Enter speichert. Einzelheiten in STATUS.md.
 - Tests: POST-Wege bleiben, neue Titel-Routen mit Tests; HTML: Titel tragen die nötigen Daten. Pflicht: Probe im
   Browser (Mac und iPad, falls Lia es nutzt), weil die Unittests kein JavaScript ausführen.
 
-## Schritt 5: Raster mit rechter Spalte
+## Schritt 5: Raster mit rechter Spalte (gebaut 11.11.2026, live; nicht im Browser angesehen)
+
+Gebaut, nur Vorlagen und CSS: Makro `rechts_spalte` in `_ort.html` (aside `rechts` mit „Deine Dateien“ oben, darunter
+der Kontext der Seite). Reihe: Termine (die Daten der Stunden, je ein Link auf die Stunde), Schon behandelt (aus der
+Mitte nach rechts). Stunde: Termin mit Stunde („Di 11.11., 3. Std.“), Reihenfrage aus der Reihe (Link zur Reihe).
+Klasse: der ganze Abschnitt Termine (Stundenplan, vergangene, kommende, „fällt aus“, Sprungziel `#termine`). Raster
+in `ruhig.css`: Seitenleiste 240 px, dann Mitte (bis 736 px, also 640 px Text) und rechts 280 px zusammen mittig im
+übrigen Platz; Seiten ohne rechte Spalte (Masken, Heute, Material, Fach) einspaltig bis 820 px und mittig. Das Gespräch
+hat dasselbe Raster (vorher Mitte bis 820, rechts 300). Umbruch unter 1100 px und unter 760 px wie bisher. Abweichung:
+Die Spalte steht an Klasse, Reihe und Stunde immer im HTML, weil `#ablage` dort Sprungziel bleibt. Ist außer der
+zugeklappten Ablage nichts da, heißt sie `rechts-still` und ist per CSS (`:has`) unsichtbar, bis „Datei“ im „+“ dorthin
+springt oder `direkt.js` `.ablage-offen` setzt; die Mitte steht dann an derselben Stelle wie mit Spalte. „Leer“
+(`noch_leer`) zählt weiter die ganze Seite (Termine und Dateien rechts eingeschlossen). Tests: neu
+`test_rechte_spalte` (`test_app.py`), `test_termine_in_der_rechten_spalte` (`test_pflege_app.py`); angepasst
+`test_nur_zeigen_was_da_ist`. `test_schnell.py` lief unverändert grün. Rundgang 11.11. gegen 8791: 615 Seiten, alle 200,
+`lia/instanz` unverändert.
 
 - Dateien: `basis.html:14`, `reihe.html`, `stunde.html`, `klasse.html` (Block `rechts`: Deine Dateien, Termine, Schon
   behandelt; wie `gespraech.html:76–106`), `ruhig.css:30–35` (Mitte ~640 px, rechts ~280 px; Masken einspaltig und
