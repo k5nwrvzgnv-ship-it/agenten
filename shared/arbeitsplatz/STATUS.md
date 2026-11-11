@@ -60,7 +60,8 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   `data/vorschau/<auftrag>/<nr>/`, beim ersten Öffnen im Hintergrund, in einem eigenen Prozess mit 1 GB Grenze
   (`vorschau_lauf.py`, `systemd-run --user --scope`). Betrachter `…/ansehen?seite=m` mit Blättern.
 - Rückmeldung zu einer Datei oder Seite (Schritt 7), Heute lädt sich jede Minute neu (Schritt 8).
-- Schritte 6 und 7 sind Python und wirken erst nach dem nächsten Neustart (wartet auf Jans Okay); Schritt 8 wirkt sofort.
+- Schritte 6 bis 8 live seit dem Neustart 11.11. 16:36 mit Jans Okay: 11 Vorschauen ohne Fehler erstellt, alle 7
+  Dokumente mit Dateien haben Seitenbilder (vorher 1), Dienst 57 MB, Rundgang 466 Abrufe alle 200.
 - Ohne JavaScript geht alles über `<details>` und Formulare. Browser-Probe bei Jan steht aus (siehe Offene Punkte).
 - Live seit dem Neustart 11.11. 15:42 mit Jans Okay (Rundgang 145 Abrufe, alle 200; `/neu/datei` antwortet).
 

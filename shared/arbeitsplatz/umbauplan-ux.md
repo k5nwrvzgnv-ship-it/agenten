@@ -151,7 +151,7 @@ was man final markieren kann, als Rückmeldungen auch die Dateien zur Rückmeldu
   Fassung im „···“, Verlauf geschlossen mit Zahlen); angepasst die Dokument-Tests („Rückmeldung geben“,
   „Fassungen“). Browser-Probe bei Jan: Datei anhängen, Datei auf die Seite ziehen, eigene Fassung im „···“.
 
-## Schritt 6: Vorschau und Betrachter (Python, Neustart; Jans Okay 11.11.2026 nach der Abnahme, gebaut 11.11.)
+## Schritt 6: Vorschau und Betrachter (Python; Jans Okay 11.11.2026 nach der Abnahme; live seit dem Neustart 11.11. 16:36)
 
 Befund Jan 11.11.: „keine Vorschau bei Dokumenten“. Seitenbilder kamen nur vom Renderer (`<stem>-vorschau/`);
 Ergebnisse von uni und finance sind meist PDFs oder Word-Dateien ohne diesen Ordner (auf Heute 1 von 11 mit Bildern).
@@ -170,7 +170,7 @@ Ergebnisse von uni und finance sind meist PDFs oder Word-Dateien ohne diesen Ord
 - Tests: `tests/test_vorschau.py`, `test_betrachter`, `test_eigene_vorschau_fuer_pdf_ohne_renderer`,
   `TestBetrachterUndZiel` (test_logik).
 
-## Schritt 7: Rückmeldung zu einer Datei oder Seite (Python, Neustart; gebaut 11.11.)
+## Schritt 7: Rückmeldung zu einer Datei oder Seite (Python; live seit dem Neustart 11.11. 16:36)
 
 Wie Lias `logik.rueckmeldung_ziel`: Im Download-Menü „Rückmeldung zu dieser Datei“, im Betrachter „… zu dieser
 Seite“. Das Feld zeigt dann „Zu „Expose.pdf“, Seite 3 (Fassung 2). Stattdessen zum Ganzen“; die Rückmeldung geht an
