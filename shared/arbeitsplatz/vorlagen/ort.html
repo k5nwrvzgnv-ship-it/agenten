@@ -1,6 +1,18 @@
 {% extends "basis.html" %}
 {% from "_dokumente.html" import liste %}
 {%- from "_plus.html" import plus, punkte -%}
+{%- from "_direkt.html" import titel -%}
+{%- block skripte %}{{ super() }}
+<script src="/statisch/direkt.js" defer></script>
+{%- endblock %}
+{#- Titel anklicken, umbenennen (Schritt 3) über die bestehende Route; eine eben über „+“ angelegte „Neue Seite“ steht
+    gleich zum Umbenennen offen -#}
+{% block seitenkopf %}
+<header class="kopf">
+  {{ titel(ort.titel, "/ort/" ~ ort.id ~ "/umbenennen", "titel", ort.titel,
+           offen=ort.titel == "Neue Seite" and request.query_params.get("aktion")) }}
+</header>
+{% endblock %}
 {#- Ort (umbauplan-ux.md Schritt 2): Kopf mit „+“ (Seite, Dokument …) und „···“ (Umbenennen, Verschieben, Unterseiten
     ordnen, Archivieren), darunter nur, was da ist. Im Archiv kein „+“; „Wiederherstellen“ steht am Hinweis. -#}
 {#- ↑ bzw. ↓ einer Unterseite im „···“; geht es nicht weiter, ein leerer Platz gleicher Breite -#}

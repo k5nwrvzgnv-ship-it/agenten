@@ -241,13 +241,39 @@ class TestSeiten(Aufbau):
         self.assertIn('aria-label="C nach oben"', punkte)
         self.assertNotIn('aria-label="C nach unten"', punkte)
         # außerhalb des „···“ keine Formulare mehr (keine offenen Masken, keine ↑/↓)
-        mitte = html.split("</details>\n</div>")[1].split("</main>")[0]
+        mitte = html.split("</header>")[1].split("</main>")[0]
         self.assertNotIn("<form", mitte)
         # ↓ an A schiebt A hinter B
         self.post(f"/ort/{a}/verschieben", {"eltern": p, "position": "1", "zurueck": f"/ort/{p}"})
         self.assertEqual([k["id"] for k in orte.kinder(orte.laden(self.instanz), p)], [b, a, c])
         # nur eine Unterseite: nichts zu ordnen
         self.assertNotIn("Unterseiten ordnen", self.get(f"/ort/{a}")[1])
+
+    def test_direkt_am_ding(self):
+        """umbauplan-ux.md Schritt 3: Titel des Orts anklicken (Formular an die bestehende Route), Datei ins Formular
+        ziehen (data-ablegen); direkt.js ist da."""
+        p = self.ort("Projekt")
+        html = self.get(f"/ort/{p}")[1]
+        self.assertIn('<script src="/statisch/direkt.js" defer></script>', html)
+        kopf = html.split('<header class="kopf">')[1].split("</header>")[0]
+        self.assertIn('<h1 class="titel-gross" data-direkt-titel>Projekt</h1>', kopf)
+        self.assertIn(f'action="/ort/{p}/umbenennen" hidden', kopf)
+        self.assertIn('name="titel" type="text" value="Projekt"', kopf)
+        self.assertIn('name="token"', kopf)
+        self.assertEqual(self.get("/statisch/direkt.js")[0], 200)
+        # eine eben über „+“ angelegte „Neue Seite“ steht gleich zum Umbenennen offen, später nicht mehr
+        ort_url = self.post("/seite/neu", {"eltern": p, "titel": "Neue Seite", "einmal": "d1"})[2]["location"]
+        self.assertIn("data-direkt-offen", self.get(ort_url)[1])
+        self.assertNotIn("data-direkt-offen", self.get(ort_url.split("?")[0])[1])
+        self.assertNotIn("data-direkt-offen", html)
+        # Umbenennen wie aus dem Feld: nur „titel“ und Token
+        kopf = self.post(f"/ort/{p}/umbenennen", {"titel": "Projekt Fehlstellen"})[2]
+        self.assertTrue(kopf["location"].startswith(f"/ort/{p}?aktion="))
+        self.assertIn("Projekt Fehlstellen", self.get(f"/ort/{p}")[1])
+        # Formular einer Art: das Feld Material ist das Ziel zum Ziehen
+        html = self.get(f"/neu/zusammenfassung?ort={p}")[1]
+        self.assertIn('name="dateien" multiple data-ablegen', html)
+        self.assertIn("/statisch/direkt.js", html)
 
     def test_nur_zeigen_was_da_ist(self):
         """Leere Abschnitte fallen weg; ganz leer: eine leise Zeile."""

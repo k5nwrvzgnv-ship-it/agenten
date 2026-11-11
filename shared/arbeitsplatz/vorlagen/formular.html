@@ -1,4 +1,8 @@
 {% extends "basis.html" %}
+{#- Datei auf die Seite ziehen legt sie ins Feld „Material“ (direkt.js, data-ablegen, umbauplan-ux.md Schritt 3) -#}
+{%- block skripte %}{{ super() }}
+<script src="/statisch/direkt.js" defer></script>
+{%- endblock %}
 {% block inhalt %}
 <p class="absatz">{{ art.beschreibung }}</p>
 {%- if fehler %}<div class="fehler" role="alert">{% for f in fehler %}<p>{{ f }}</p>{% endfor %}</div>{% endif %}
@@ -38,8 +42,8 @@
   {%- if art.material != "nein" %}
   <section>
     <label class="feld-titel" for="dateien">Material{% if art.material_oder %} <span class="grau">(statt {{ art.material_oder }})</span>{% elif art.material == "optional" %} <span class="grau">(optional)</span>{% endif %}</label>
-    <p class="unter">PDF, Word, PowerPoint, Excel, Text oder Bilder, höchstens 10 Dateien</p>
-    <input id="dateien" type="file" name="dateien" multiple{% if art.material == "pflicht" %} required{% endif %}>
+    <p class="unter">PDF, Word, PowerPoint, Excel, Text oder Bilder, höchstens 10 Dateien. Auch auf die Seite ziehen.</p>
+    <input id="dateien" type="file" name="dateien" multiple data-ablegen{% if art.material == "pflicht" %} required{% endif %}>
   </section>
   {%- endif %}
   <button class="knopf knopf-voll" type="submit">Auftrag geben</button>
