@@ -3,10 +3,15 @@
 {%- from "_plus.html" import plus -%}
 {#- Heute: Mitte mit Wartet auf dich, Orte, Zuletzt (nur, was da ist); rechts Läuft gerade und Kosten (die einzige rechte Spalte) -#}
 {% block rahmen_klasse %}{% endblock %}
+{#- htmx lädt Heute jede Minute neu (umbauplan-ux.md Schritt 8, wie Lias Heute): dieselbe Seite, daraus die Mitte
+    (#heute) und per hx-select-oob die rechte Spalte (#rechts-heute). Das „+“ steht außerhalb und klappt nicht zu. -#}
+{%- block skripte %}{{ super() }}
+<script src="/statisch/htmx-2.0.4.min.js" defer></script>
+{%- endblock %}
 {%- block plus %}{{ plus([{"text": "Seite", "aktion": "/seite/neu", "felder": [("eltern", ""), ("titel", "Neue Seite"), ("einmal", einmal_kennung())]},
                          {"text": "Dokument …", "link": "/neu"}]) }}{% endblock %}
 {% block inhalt %}
-<div class="heute">
+<div id="heute" class="heute" hx-get="/" hx-trigger="every 60s" hx-select="#heute" hx-swap="outerHTML" hx-select-oob="#rechts-heute">
 {%- if wartet %}
 <section>
   <h2>Wartet auf dich</h2>
@@ -36,7 +41,7 @@
 </div>
 {% endblock %}
 {% block rechts %}
-<aside class="rechts" aria-label="Läuft gerade">
+<aside id="rechts-heute" class="rechts" aria-label="Läuft gerade">
   <section class="block">
     <h2>Läuft gerade</h2>
     {%- if laeuft %}

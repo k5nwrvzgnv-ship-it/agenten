@@ -181,7 +181,12 @@ class TestSeiten(Aufbau):
         self.assertIn('href="/statisch/ruhig.css"', html)
         self.assertNotIn("stil.css", html)
         self.assertIn('<div class="rahmen">', html)
-        self.assertIn('<aside class="rechts" aria-label="Läuft gerade">', html)
+        self.assertIn('<aside id="rechts-heute" class="rechts" aria-label="Läuft gerade">', html)
+        # Heute lädt sich jede Minute neu (Schritt 8): Mitte und rechte Spalte aus derselben Seite
+        self.assertIn('<script src="/statisch/htmx-2.0.4.min.js" defer></script>', html)
+        self.assertIn('hx-get="/" hx-trigger="every 60s" hx-select="#heute" hx-swap="outerHTML" '
+                      'hx-select-oob="#rechts-heute"', html)
+        self.assertEqual(html.count('id="heute"'), 1)
         self.assertEqual(self.get("/statisch/ruhig.css")[0], 200)
         self.assertEqual(self.get("/statisch/stil.css")[0], 404)
         p = self.ort("Projekt")
