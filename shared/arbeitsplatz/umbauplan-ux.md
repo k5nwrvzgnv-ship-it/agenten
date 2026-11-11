@@ -102,7 +102,7 @@ steht aus.
 - Tests: Ort-HTML trägt `data-direkt-titel` und das Formular mit Token an `/ort/<id>/umbenennen`. Browser-Probe bei
   Jan: Anklicken, Enter, Esc, Datei ins Formular ziehen.
 
-## Schritt 4: Datei am Ort (Python, Neustart) (Jan 11.11.: A; gebaut 11.11.2026, wirkt nach dem Neustart)
+## Schritt 4: Datei am Ort (Python, Neustart) (Jan 11.11.: A; gebaut 11.11.2026, live seit dem Neustart 11.11. 15:42)
 
 Gebaut wie A. Der Ordner heißt `data/eingang/gelegt-<kennung>` (Kennung aus `mkdtemp`), die Galerie zeigt dann
 „Was soll daraus werden?“ und „Dabei: …“. Ist die Kennung verbraucht oder gelöscht: Hinweis in der Galerie, Fehler im

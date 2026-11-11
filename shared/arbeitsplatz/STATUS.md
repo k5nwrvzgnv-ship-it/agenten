@@ -57,8 +57,7 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   zwei Seiten groß, alle in einer Klappe; im „···“ final und „Eigene Fassung hochladen …“ (`?offen=eigene` öffnet es);
   Verlauf als geschlossene Klappe ab zwei Stationen. `statisch/anhang.js` zeigt den Namen der angehängten Datei.
 - Ohne JavaScript geht alles über `<details>` und Formulare. Browser-Probe bei Jan steht aus (siehe Offene Punkte).
-- Neustart des Dienstes für die Datei am Ort steht aus (wartet auf Jans Okay). Bis dahin führt „Datei“ am Ort ins
-  Leere (404), alles andere wirkt schon.
+- Live seit dem Neustart 11.11. 15:42 mit Jans Okay (Rundgang 145 Abrufe, alle 200; `/neu/datei` antwortet).
 
 ## Technik
 - `logik.py`: reine Logik (Baum-Zeilen, Brotkrumen, Ziele zum Verschieben, Dokumente als Ketten über `bezug` mit
