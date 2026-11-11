@@ -1,5 +1,6 @@
 {#- Reihe anlegen (Plan 2a.1 Schritt 2): Pflicht nur der Titel, die Klasse ist der Ort. In derselben Maske, aber
-    freiwillig: freie Termine zuteilen (je Termin eine Stunde, Thema offen) oder Stunden ohne Termin. -#}
+    freiwillig: freie Termine zuteilen (je Termin eine Stunde, Thema offen) oder Stunden ohne Termin. Ohne freie
+    Termine nur die Zahl der Stunden, ohne Erklärsatz (umbauplan-ux.md Schritt 7). -#}
 {% extends "basis.html" %}
 {%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>{% endblock %}
 {%- from "_pflege.html" import fehler_liste, termine_wahl -%}
@@ -14,11 +15,15 @@
            required placeholder="zum Beispiel Würde des Menschen">
   </section>
   <section>
+    {%- if frei or termine_fehler %}
     <h2><span class="abschnitt-nr">02</span>Termine <span class="unter">(freiwillig)</span></h2>
-    <span class="unter">Je Termin entsteht eine Stunde, das Thema trägst du später ein.</span>
     {{ termine_wahl(frei, ab_wahl, werte, termine_fehler) }}
     <label class="plan-zeilen"><span class="unter">Stunden ohne Termin</span>
       <input class="feld feld-zahl" type="number" name="ohne" min="0" max="60" value="{{ werte.ohne }}"></label>
+    {%- else %}
+    <h2><span class="abschnitt-nr">02</span><label for="ohne">Stunden</label> <span class="unter">(freiwillig)</span></h2>
+    <input class="feld feld-zahl" id="ohne" type="number" name="ohne" min="0" max="60" value="{{ werte.ohne }}">
+    {%- endif %}
   </section>
   <button class="knopf knopf-voll" type="submit">Anlegen</button>
 </form>

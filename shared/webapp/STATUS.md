@@ -47,7 +47,7 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 - Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
   schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
-## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 6 gebaut und live)
+## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 7 gebaut und live)
 `befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
 `umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
 ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Wird
@@ -133,7 +133,26 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   Befunde, Vorschlag an Jan, nicht gebaut: (b) Das „+“ hat auf Material ohne
   Variante nur „Material …“; bleibt bewusst ein „+“ wie auf jeder Seite. (c) Bei 407 px bricht die Brotkrumen-Zeile
   um, „+“ und „···“ stehen in eigener Zeile (alle Seiten, nicht nur Ergebnis).
-  Nächster Schritt: 7 (Gespräch-Seite und restliche Texte).
+- Schritt 7 gebaut (Jans Okay 11.11., live, nur Vorlagen): Der Kopf des Gesprächs zeigt nur Name und „···“; „Daraus
+  Auftrag machen“ ist der erste Eintrag im „···“. „Frag einfach los, so lang du willst. Keine Namen von Schüler*innen.“
+  ist der Platzhalter des Felds; ein leeres Gespräch zeigt keinen Text mehr. Was das Gespräch kennt, sagt nur die Klappe
+  „Kennt …“ (auch „30 Tage“ steht nur noch dort); der Satz „Dieses Gespräch kennt keine Klasse …“ rechts ist weg.
+  Weniger Text: Gespräche ohne Ort ohne „30 Tage“-Zeile; Neu ohne „Weitere Arten kommen …“ samt Tipp, „Lieber
+  sprechen?“, Satz unter „Auch als“, Überarbeiten-Hinweis und „Beachtet: …“ (der Ort steht oben im Kopf), am Dateifeld
+  nur „PDF, Word, PowerPoint, Excel oder Foto, bis 20 MB je Datei.“; Vorlagen ein Satz statt drei; Ich ohne „Neue
+  Regeln entstehen …“ (nur bei leerer Liste als „Noch keine Regeln. Sie entstehen aus deinen Rückmeldungen.“); Reihe
+  anlegen ohne „Je Termin entsteht …“, ohne freie Termine nur „02 Stunden (freiwillig)“ mit Zahlenfeld statt
+  Erklärsatz und „Stunden ohne Termin“. `app.py` reicht `beachte` noch an `neu.html`, ungenutzt (Python, beim
+  nächsten Neustart aufräumen). Rundgang 11.11. gegen 8791: 600 Seiten, alle 200, `lia/instanz` unverändert; das
+  einzige Gespräch (an einer Reihe) und alle fünf „Reihe anlegen“ live per Abruf geprüft.
+  NICHT im Browser angesehen (Chrome nicht verbunden): Kopf des Gesprächs mit „···“ allein, „···“ mit „Daraus Auftrag
+  machen“ auf und zu, Platzhalter im Feld (Länge, Umbruch bei 407 px), Neu-Formular und Reihe anlegen ohne die Texte.
+  Nicht im Plan, darum nicht gekürzt (Vorschlag an Jan): `neu.html:64–65` „Gilt für die ganze Reihe …“ und `:76–77`
+  „Ordnet den Auftrag in deiner Übersicht ein …“, `gespraeche.html:8` Untertitel, „+ Gespräch“ als blauer Knopf auf
+  Gespräche ohne Ort, Leerzeile „Noch keine. Später: gelungene Blätter …“ unter Muster in Vorlagen.
+  Nächster Schritt: Jan entscheidet zwischen „Später“ im Plan (Ändern im Gespräch, Stand der Reihe als Kennzeichen,
+  „Fertig“ je Reihe; braucht Python und Neustart) und den offenen Befunden oben (4: „Stunde verschieben“ als
+  Menüpunkt; 5: Seitenleiste auf dem Handy; 6: (c) Brotkrumen bei 407 px; Schritt 7: die Texte darüber).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).

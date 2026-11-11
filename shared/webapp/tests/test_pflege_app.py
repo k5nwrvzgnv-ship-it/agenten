@@ -460,8 +460,10 @@ class TestReihe(Pflege):
         frei = self.mit_plan()
         vorher, aktionen = self.text(), len(self.letzte())
         _, html = self.hole("/klasse/ethik-8/reihe/neu")
-        for text in ('name="titel"', 'name="anzahl"', 'name="termin"', 'name="ohne"', termine.anzeige(frei[0])):
+        for text in ('name="titel"', 'name="anzahl"', 'name="termin"', 'name="ohne"', termine.anzeige(frei[0]),
+                     "Stunden ohne Termin"):
             self.assertIn(text, html)
+        self.assertNotIn("Je Termin entsteht", html)  # umbauplan-ux.md Schritt 7
         r, html = self.post("/klasse/ethik-8/reihe/neu", {"titel": " "})
         self.assertEqual(r.status, 400)
         self.assertIn(pflege.PFLICHT["reihe"], html)
@@ -478,6 +480,12 @@ class TestReihe(Pflege):
         # einzeln angehakt; ohne Stundenplan nur Stunden ohne Termin
         self.ok("/klasse/ethik-8/reihe/neu", {"titel": "Würde", "termin": [frei[1], frei[3]]})
         self.assertEqual([s["termin"] for s in self.s().reihe("ethik-8-wuerde")["stunden"]], [frei[1], frei[3]])
+        # ohne Stundenplan: nur die Zahl der Stunden, ohne Erklärsatz (umbauplan-ux.md Schritt 7)
+        _, html = self.hole("/klasse/darstellendes-spiel-kurs-11/reihe/neu")
+        self.assertIn('<label for="ohne">Stunden</label>', html)
+        self.assertIn('id="ohne" type="number" name="ohne"', html)
+        for text in ("noch keine freien Termine", "Stunden ohne Termin", 'name="anzahl"'):
+            self.assertNotIn(text, html)
         self.ok("/klasse/darstellendes-spiel-kurs-11/reihe/neu", {"titel": "Körper", "ohne": "3"})
         r = self.s().reihe("darstellendes-spiel-kurs-11-koerper")
         self.assertEqual([(s["termin"], s["thema"]) for s in r["stunden"]], [("", "")] * 3)

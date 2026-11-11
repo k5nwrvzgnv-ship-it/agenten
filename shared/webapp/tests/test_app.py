@@ -427,6 +427,12 @@ class TestNeuerAuftrag(Aufbau):
         for text in ("Testbetrieb", 'enctype="multipart/form-data"', 'name="token"',
                      "Bitte keine Namen", 'type="file"', "Abschicken"):
             self.assertIn(text, html)
+        # Schritt 7 (umbauplan-ux.md): keine Erklärtexte mehr im Formular und unter der Galerie
+        for text in ("Lieber sprechen?", "Zum Beispiel ein altes Blatt", "Soll etwas, das ich schon gemacht habe",
+                     "Beachtet:"):
+            self.assertNotIn(text, html)
+        self.assertIn("bis 20 MB je Datei", html)
+        self.assertNotIn("Weitere Arten kommen", self.hole("/neu")[1])
         self.assertIn('<a class="knopf knopf-leise" href="/neu">Material …</a>', self.hole("/")[1])
         self.assertNotIn('href="/neu"', self.hole("/teile/heute")[1])  # das „+“ steht außerhalb des htmx-Teils
 
@@ -607,6 +613,17 @@ class TestOrdnung(Aufbau):
                          "Was haben wir bisher?", "Reihenfrage", "Wozu &lt;strafen&gt; wir?", 'class="rahmen"',
                          '<a href="/reihe/strafe">Straftheorien</a>', "gespraech.js"):
                 self.assertIn(text, html)
+            # Schritt 7 (umbauplan-ux.md): Kopf nur Name und „···“, „Daraus Auftrag machen“ steht im „···“;
+            # „Frag einfach los …“ ist der Platzhalter, und was das Gespräch kennt, sagt nur die Klappe „Kennt …“
+            kopf = html.split('<div class="gkopf">')[1].split('class="verlauf"')[0]
+            menue = kopf.split('<div class="menue">')[1]
+            self.assertIn("Daraus Auftrag machen", menue)
+            self.assertLess(menue.index("Daraus Auftrag machen"), menue.index("Was haben wir bisher?"))
+            self.assertNotIn("Daraus Auftrag machen", kopf.split('<details class="menue-halter">')[0])
+            self.assertIn('placeholder="Frag einfach los, so lang du willst.', html)
+            self.assertNotIn('<p class="leer">', html.split('id="verlauf"')[1].split('id="ende"')[0])
+            self.assertNotIn("Das Gespräch hängt an", html)
+            self.assertEqual(html.count("Kennt "), 1)
             body, art = multipart({"token": app.logik.formular_token(app.GEHEIM), "text": "Such mir eine Reihenfrage",
                                    "gruendlich": "1"}, [("Planung.JPG", b"jpg"), ("Text.pdf", b"%PDF")])
             r, _ = self.hole(f"/gespraech/{gid}/nachricht", "POST", body=body, kopf={
@@ -672,7 +689,12 @@ class TestOrdnung(Aufbau):
             self.assertIn("Reihenentwurf: Strafe, entschieden: Kant.</textarea>", html)
             # Umhängen, ohne Ort, Löschen
             self.assertEqual(self.post(f"/gespraech/{gid}/umhaengen", {"ort": ""})[0].status, 303)
-            self.assertIn("Such mir eine Reihenfrage", self.hole("/gespraeche")[1])
+            _, html = self.hole("/gespraeche")
+            self.assertIn("Such mir eine Reihenfrage", html)
+            self.assertNotIn("30 Tage", html)  # steht nur noch in der Klappe „Kennt …“ (Schritt 7)
+            _, html = self.hole(f"/gespraech/{gid}")
+            self.assertIn("Kennt nur deine Regeln", html)
+            self.assertNotIn("Dieses Gespräch kennt keine", html)
             r, _ = self.post(f"/gespraech/{gid}/loeschen", {})
             self.assertEqual(r.getheader("location"), "/gespraeche?erledigt=gespraech-geloescht")
             self.assertIsNone(modul.gespraech(gid, ordner))
@@ -1025,9 +1047,12 @@ class TestOrdnung(Aufbau):
         self.assertEqual(r.status, 200)
         for text in ("Calibri 11 pt", "Arbeitsblatt", "Präsentation", "Tabelle", "Muster", 'href="/vorlagen" aria-current="page"'):
             self.assertIn(text, html)
+        self.assertIn("Daraus nehme ich Kopf- und Fußzeile, Logo und Ränder. Die neueste je Sorte gilt.", html)
+        self.assertNotIn("Folienmaster", html)  # Schritt 7: kurzer Satz statt Erklärtext
         r, html = self.hole("/ich")
         self.assertEqual(r.status, 200)
         self.assertIn("Immer &lt;Du&gt;", html)
+        self.assertNotIn("Neue Regeln entstehen", html)  # Schritt 7: nur bei leerer Liste als Teil der Leerzeile
         self.assertIn("Für alles", html)
         self.assertNotIn("feedback", self.sichtbar(html))
         (self.tmp / "unterricht" / "profil.toml").write_text("kaputt = [")
@@ -1112,8 +1137,9 @@ class TestOrdnung(Aufbau):
         self.assertIn('href="/neu?art=tabelle&amp;reihe=strafe&amp;stunde=1"', html)
         _, html = self.hole("/neu?art=praesentation&reihe=strafe&stunde=1")
         for text in ("für Ethik › Klasse 8 › Straftheorien › Stunde 1", '<input type="hidden" name="reihe" value="strafe">',
-                     '<input type="hidden" name="stunde" value="1">', "Beachtet: Ethik › Klasse 8 › Straftheorien › Stunde 1"):
+                     '<input type="hidden" name="stunde" value="1">'):
             self.assertIn(text, html)
+        self.assertEqual(html.count("Ethik › Klasse 8 › Straftheorien › Stunde 1"), 1)  # nur oben, kein „Beachtet:“ mehr
         self.assertNotIn('<select id="reihe"', html)
         r, _ = self.post("/neu", {"text": "Folien Kant", "art": "praesentation", "reihe": "strafe", "stunde": "1"})
         self.assertEqual((r.status, r.getheader("location")), (303, "/reihe/strafe/stunde/1?erledigt=auftrag-test"))

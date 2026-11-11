@@ -22,8 +22,6 @@
   </a>
   {%- endfor %}
 </div>
-<p class="unter">Weitere Arten kommen, sobald ich sie bauen kann.
-  {%- if not ort_fest %} Tipp: Mit „+“ in einer Reihe oder Stunde ist der Ort schon eingetragen.{% endif %}</p>
 {%- else %}
 <form class="formular" method="post" action="/neu" enctype="multipart/form-data" data-einmal>
   <input type="hidden" name="token" value="{{ token }}">
@@ -39,7 +37,6 @@
     {%- else %}
     <textarea id="wunsch" name="text" rows="6" maxlength="{{ text_max }}" required
               placeholder="{{ vorlage.hint }}">{{ text }}</textarea>
-    <span class="unter">Lieber sprechen? Tipp auf das Mikrofon deiner Tastatur.</span>
     {%- endif %}
     {%- for name, frage, hint, lang, _ in vorlage.extra or [] %}
     <label class="feld-titel" for="f-{{ name }}">{{ frage }}</label>
@@ -86,18 +83,14 @@
     {%- for k, v in varianten.items() %}
     <label><input type="checkbox" name="varianten" value="{{ k }}"> {{ v.name }}</label>
     {%- endfor %}
-    <span class="unter">Ich baue sie gleich mit, als eigene Dateien neben dem normalen Blatt.</span>
   </fieldset>
   {%- endif %}
   <section>
     <h2><span class="abschnitt-nr">{{ "03" if reihen or stunden_wahl else "02" }}</span><label for="dateien">Datei, wenn du magst</label></h2>
     <input id="dateien" name="dateien" type="file" multiple accept="{{ endungen }},image/*">
-    <span class="unter">Zum Beispiel ein altes Blatt als Vorlage. PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.
-      Soll etwas, das ich schon gemacht habe, überarbeitet werden? Öffne es unter <a href="/">Heute</a> und
-      gib dort eine Rückmeldung, auch mit einer Datei.</span>
+    <span class="unter">PDF, Word, PowerPoint, Excel oder Foto, bis {{ max_mb }} MB je Datei.</span>
   </section>
-  <p class="hinweis">Beachtet: {% if beachte %}{{ beachte }}, {% endif %}deine Gestaltung und deine Regeln.
-    <b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p>
+  <p class="hinweis"><b>Bitte keine Namen</b> von Schülerinnen und Schülern, auch nicht auf Fotos.</p>
   <button class="knopf-gross" type="submit">Abschicken<span aria-hidden="true">→</span></button>
   <a class="knopf" href="{{ andere }}">Andere Vorlage</a>
 </form>

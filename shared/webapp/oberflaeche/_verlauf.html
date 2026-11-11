@@ -1,6 +1,6 @@
 {#- Verlauf eines Gesprächs (gespraech.verlauf). Solange Claude antwortet, lädt htmx ihn alle 2 s neu
     (/teile/gespraech/<id>); danach steht kein hx-get mehr darin. Bausteine mit „Kopieren“ (statisch/gespraech.js) und
-    an Reihe/Stunde „Als Reihenfrage übernehmen“. -#}
+    an Reihe/Stunde „Als Reihenfrage übernehmen“. Leer ist er leer: „Frag einfach los …“ steht im Platzhalter des Felds. -#}
 {%- from "_markdown.html" import bloecke with context -%}
 <div class="verlauf" id="verlauf"{% if g.laeuft %} hx-get="/teile/gespraech/{{ g.id }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
 {%- for m in verlauf %}
@@ -23,8 +23,6 @@
 {%- elif m.denkt %}
 <div class="msg"><p class="denkt" role="status">Claude denkt nach …</p></div>
 {%- endif %}
-{%- else %}
-<p class="leer">Frag einfach los, so lang du willst. {% if ort %}Das Gespräch hängt an {{ ort.pfad }}.{% else %}Das Gespräch hängt an keiner Klasse.{% endif %} Den Namen schlage ich nach deiner ersten Nachricht vor.</p>
 {%- endfor %}
 <span id="ende"></span>
 </div>

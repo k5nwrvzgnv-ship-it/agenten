@@ -1,5 +1,6 @@
-{#- Gespräch in der Mitte (Skizze skizzen/gespraech.html): Kopf mit Name, „Daraus Auftrag machen“ und „···“, Verlauf,
-    Eingabe mit Fotos/Dateien und Optionen; rechts, was das Gespräch kennt (Reihenfrage, deine Dateien, Gespräche). -#}
+{#- Gespräch in der Mitte (Skizze skizzen/gespraech.html): Kopf mit Name und „···“ (darin „Daraus Auftrag machen“,
+    umbauplan-ux.md Schritt 7), Verlauf, Eingabe mit Fotos/Dateien und Optionen; rechts, was das Gespräch kennt
+    (Reihenfrage, deine Dateien, Gespräche). Was es kennt, sagt im Text nur die Klappe „Kennt …“ unter dem Feld. -#}
 {% extends "basis.html" %}
 {%- from "_direkt.html" import titel -%}
 {% block titel %}{{ e.titel }}{% endblock %}
@@ -13,13 +14,13 @@
     {#- Name anklicken, umbenennen (umbauplan-ux.md Schritt 4); „Umbenennen“ im „···“ bleibt der Weg ohne JavaScript -#}
     {{ titel(e.titel, aktion="/gespraech/" ~ g.id ~ "/umbenennen", feld="name", wert=g.name, max=80, klasse="gname") }}
     <span class="knoepfe">
-      <form class="inline-form" method="post" action="/gespraech/{{ g.id }}/sonder" data-einmal>
-        <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="auftrag">
-        <button class="knopf knopf-klein" type="submit">Daraus Auftrag machen</button>
-      </form>
       <details class="menue-halter">
         <summary class="knopf knopf-leise" aria-label="Weitere Aktionen">···</summary>
         <div class="menue">
+          <form method="post" action="/gespraech/{{ g.id }}/sonder" data-einmal>
+            <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="auftrag">
+            <button class="knopf knopf-leise" type="submit">Daraus Auftrag machen</button>
+          </form>
           <form method="post" action="/gespraech/{{ g.id }}/sonder" data-einmal>
             <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="art" value="bisher">
             <button class="knopf knopf-leise" type="submit">Was haben wir bisher?</button>
@@ -57,7 +58,7 @@
   <form class="eingabe" id="eingabe" method="post" action="/gespraech/{{ g.id }}/nachricht" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ token }}">
     <label class="unsichtbar" for="text">Nachricht</label>
-    <textarea id="text" name="text" maxlength="{{ max_text }}" placeholder="Schreib oder füge einen langen Text ein. Keine Namen von Schüler*innen."{% if g.laeuft %} disabled{% endif %}></textarea>
+    <textarea id="text" name="text" maxlength="{{ max_text }}" placeholder="Frag einfach los, so lang du willst. Keine Namen von Schüler*innen."{% if g.laeuft %} disabled{% endif %}></textarea>
     <p class="gewaehlt" id="gewaehlt" aria-live="polite"></p>
     <div class="eingabe-leiste">
       <div class="links">
@@ -92,8 +93,6 @@
   </div>
   {%- endif %}
   {%- endfor %}
-  {%- else %}
-  <p class="unter">Dieses Gespräch kennt keine Klasse, Reihe oder Stunde. Gehört es doch irgendwo hin, häng es über „···“ dort an.</p>
   {%- endif %}
   <div class="block"><p class="blocktitel">Gespräche {% if ort %}hier{% else %}ohne Ort{% endif %}</p>
     <ul class="rliste">
