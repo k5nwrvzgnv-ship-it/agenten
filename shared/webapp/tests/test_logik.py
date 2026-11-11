@@ -242,6 +242,35 @@ class TestHeute(unittest.TestCase):
         self.assertEqual(h["fertig_weitere"], 2)
         self.assertEqual(h["fertig"][0]["unter"], "Material · Mi 21.10.")  # neueste zuerst
 
+    def test_fertig_je_reihe(self):
+        """Jan 11.11.: „Fertig“ als Klappe je Reihe an der Stelle des neuesten, ohne Reihe einzeln, auch bei einem."""
+        w, s = "Darstellendes Spiel › Kurs 12 › Der nackte Wahnsinn", "Ethik › Klasse 8 › Straftheorien"
+        z = [({"titel": "Fassung", "reihe": w}, "So 08.11."), ({"titel": "Notentabelle", "reihe": ""}, "Fr 30.10."),
+             ({"titel": "Rollentabelle", "reihe": w}, "So 01.11."), ({"titel": "Dossier", "reihe": s}, "Di 27.10.")]
+        e, weitere = logik.fertig_je_reihe(z)
+        self.assertEqual([(x["art"], x.get("titel") or x["zeile"]["titel"], x.get("unter", "")) for x in e], [
+            ("reihe", "Der nackte Wahnsinn", "2 Ergebnisse · zuletzt So 08.11."),
+            ("einzeln", "Notentabelle", ""), ("reihe", "Straftheorien", "1 Ergebnis · Di 27.10.")])
+        self.assertEqual((e[0]["ort"], [x["titel"] for x in e[0]["zeilen"]], weitere),
+                         ("Darstellendes Spiel › Kurs 12", ["Fassung", "Rollentabelle"], 0))
+        self.assertEqual({x["reihe"] for x in e[0]["zeilen"]}, {""})  # die Brotkrume steht schon an der Klappe
+        self.assertEqual(z[0][0]["reihe"], w)  # Eingabe bleibt unverändert
+        e, weitere = logik.fertig_je_reihe(z, anzahl=1)  # Grenze zählt Einträge, „ältere“ die Ergebnisse dahinter
+        self.assertEqual((len(e), weitere), (1, 2))
+        self.assertEqual(logik.fertig_je_reihe([]), ([], 0))
+
+    def test_heute_fertig_gruppen(self):
+        alt = [auftrag(f"A{i}", abgeschlossen=f"2026-10-{10 + i:02d}T10:00:00+01:00") for i in range(12)]
+        h = logik.heute([], alt, [], JETZT)  # ohne Reihen: alle einzeln, Grenze wie bisher
+        self.assertEqual(([x["art"] for x in h["fertig_gruppen"]], h["fertig_gruppen_weitere"]),
+                         (["einzeln"] * logik.FERTIG_ANZAHL, 2))
+        zeit = "2026-10-21T10:00:00+01:00"
+        h = logik.heute([], [auftrag("20261029-150107-theater-0baec0", agent="theater", abgeschlossen=zeit),
+                             auftrag("20261030-150107-theater-0baec1", agent="theater", abgeschlossen=zeit)], [], JETZT,
+                        reihen=reihen())
+        (g,) = h["fertig_gruppen"]
+        self.assertEqual((g["titel"], g["unter"], len(h["fertig"])), ("Der nackte Wahnsinn", "2 Ergebnisse · zuletzt Mi 21.10.", 2))
+
     def test_feedback_schleife_ist_eine_zeile(self):
         alt, fb, nb = theater_kette()
         h = logik.heute([], [nb, fb, alt], [], JETZT)

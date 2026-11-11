@@ -923,6 +923,23 @@ class TestOrdnung(Aufbau):
         html = vorlage.render(h=h, weiter={"oben": [{"link": "/gespraech/a", "name": "Kant", "zuletzt": "heute"}],
                                            "rest": []})
         self.assertEqual(re.findall(r'<h2 id="([^"]+)"', html), ["ab-weiter"])
+        # „Fertig“ je Reihe als Klappe (Jan 11.11.); ohne fertig_gruppen (App vor dem Neustart) Zeilen wie bisher
+        zeile = {"titel": "Rollentabelle", "unter": "Theater · So 01.11.", "link": "/ergebnis/r", "reihe": ""}
+        h_f = {**h, "fertig": [zeile], "fertig_weitere": 0}
+        alt = vorlage.render(h=h_f, weiter=None)
+        self.assertIn('<a class="zeile" href="/ergebnis/r">', alt)
+        self.assertNotIn("fertig-reihe", alt)
+        gruppiert = vorlage.render(h={**h_f, "fertig_gruppen_weitere": 3, "fertig_gruppen": [
+            {"art": "reihe", "titel": "Der nackte Wahnsinn", "unter": "1 Ergebnis · So 01.11.",
+             "ort": "Darstellendes Spiel › Kurs 12", "zeilen": [zeile]},
+            {"art": "einzeln", "zeile": {**zeile, "titel": "Notentabelle", "link": "/ergebnis/n"}}]}, weiter=None)
+        klappe = gruppiert.split('<details class="fertig-reihe">')[1].split("</details>")[0]
+        for text in ('<span class="titel">Der nackte Wahnsinn</span><span class="unter">1 Ergebnis · So 01.11.</span>',
+                     '<span class="unter ort">Darstellendes Spiel › Kurs 12</span>', 'href="/ergebnis/r"'):
+            self.assertIn(text, klappe)
+        self.assertNotIn("Notentabelle", klappe)
+        self.assertIn('href="/ergebnis/n"', gruppiert.split("</details>")[1])
+        self.assertIn("und 3 ältere", gruppiert)
         self.assertIn('href="/gespraech/a"', html)
 
     def test_plus_je_seite(self):

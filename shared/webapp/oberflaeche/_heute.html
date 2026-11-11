@@ -35,6 +35,22 @@
 {%- set nummer.n = nummer.n + 1 %}
 <section aria-labelledby="ab{{ nummer.n }}">
   <h2 id="ab{{ nummer.n }}"><span class="abschnitt-nr">{{ "%02d" % nummer.n }}</span>{{ name }}</h2>
+  {%- if name == "Fertig" and h.fertig_gruppen is defined %}
+  {#- je Reihe eine Klappe mit Anzahl und Datum, ohne Reihe einzeln (logik.fertig_je_reihe, Jan 11.11.); ohne
+      fertig_gruppen (App vor dem Neustart) wie bisher -#}
+  <ul>{% for g in h.fertig_gruppen %}
+    {%- if g.art == "reihe" %}
+    <li><details class="fertig-reihe"><summary><span class="zeile">
+      <span class="punkt" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ g.titel }}</span><span class="unter">{{ g.unter }}</span>
+        {%- if g.ort %}<span class="unter ort">{{ g.ort }}</span>{% endif %}</span>
+      <span class="klappe-zeichen" aria-hidden="true"></span></span></summary>
+      <ul class="fertig-reihe-liste">{% for z in g.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
+    </details></li>
+    {%- else %}{{ zeile(g.zeile) }}{% endif %}
+  {%- endfor %}</ul>
+  {%- if h.fertig_gruppen_weitere %}<p class="leer">und {{ h.fertig_gruppen_weitere }} ältere</p>{% endif %}
+  {%- else %}
   <ul>{% for z in zeilen %}{{ zeile(z, offen) }}
     {%- if z.zurueck_id and neu %}
     {#- Zwei Schritte ohne JavaScript (Befund 03.11. Punkt 7): Ein Klick allein ändert nichts. „Nein“ lädt die Seite neu. #}
@@ -49,6 +65,7 @@
     </details></li>
     {%- endif %}{% endfor %}</ul>
   {%- if name == "Fertig" and h.fertig_weitere %}<p class="leer">und {{ h.fertig_weitere }} ältere</p>{% endif %}
+  {%- endif %}
 </section>
 {%- if loop.first %}{{ weiter_abschnitt(weiter) }}{% endif %}
 {%- endfor %}

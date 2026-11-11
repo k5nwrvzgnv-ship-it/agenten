@@ -255,6 +255,33 @@ def ketten_zeile(kette: list[dict], jetzt: datetime, marke: str = "") -> dict:
                   ergebnis_link(k))
 
 
+def fertig_je_reihe(paare: list[tuple[dict, str]], anzahl: int = FERTIG_ANZAHL) -> tuple[list[dict], int]:
+    """„Fertig“ auf Heute je Reihe zusammengefasst (umbauplan-ux.md „Später“, Jan 11.11.: Klappe je Reihe).
+
+    paare: (Zeile mit "reihe" wie in heute, Zeit der jüngsten Fassung), neueste zuerst. Je Reihe ein Eintrag an der
+    Stelle ihres neuesten Ergebnisses, auch bei nur einem: {"art": "reihe", "titel", "unter" („5 Ergebnisse · zuletzt
+    So 08.11.“), "ort" (Fach › Klasse), "zeilen" (ohne die Brotkrume, die sagt schon die Klappe)}. Ohne Reihe bleibt
+    die Zeile einzeln: {"art": "einzeln", "zeile"}. Gezeigt werden höchstens anzahl Einträge; die Zahl zählt die
+    Ergebnisse dahinter (für „und N ältere“)."""
+    eintraege, je_reihe = [], {}
+    for zeile, zeit in paare:
+        ort = zeile.get("reihe") or ""
+        if not ort:
+            eintraege.append({"art": "einzeln", "zeile": zeile})
+            continue
+        if ort not in je_reihe:
+            *oben, name = ort.split(ORT_TRENNER)
+            je_reihe[ort] = {"art": "reihe", "titel": name, "ort": ORT_TRENNER.join(oben), "zeit": zeit, "zeilen": []}
+            eintraege.append(je_reihe[ort])
+        je_reihe[ort]["zeilen"].append({**zeile, "reihe": ""})
+    for e in je_reihe.values():
+        n, zeit = len(e["zeilen"]), e.pop("zeit")
+        e["unter"] = " · ".join(x for x in ("1 Ergebnis" if n == 1 else f"{n} Ergebnisse",
+                                            (f"zuletzt {zeit}" if n > 1 else zeit) if zeit else "") if x)
+    weitere = sum(len(e["zeilen"]) if e["art"] == "reihe" else 1 for e in eintraege[anzahl:])
+    return eintraege[:anzahl], weitere
+
+
 def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt: datetime,
           person: str = "Lia", reihen: list[dict] | None = None, finale: set[str] | None = None,
           ersetzt: set[str] = frozenset()) -> dict:
@@ -294,8 +321,11 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
                                           hinweis="Arbeitet an deiner Rückmeldung" if len(kette) > 1 else "",
                                           link=ergebnis_link(k) if zeigbar(k) else ""), k),
                        "zurueck_id": laufend_["id"]})  # nur im Formular „Zurückziehen“, nie sichtbar
-    rest = [mit_reihe(ketten_zeile(k, jetzt, "Final" if kopf(k)["id"] in finale else ""), kopf(k))
-            for k in ergebnisse if k not in neu]
+    rest_paare = [(mit_reihe(ketten_zeile(k, jetzt, "Final" if kopf(k)["id"] in finale else ""), kopf(k)),
+                   zeit_text(fassungen(k)[-1].get("abgeschlossen"), jetzt))
+                  for k in ergebnisse if k not in neu]
+    rest = [z for z, _ in rest_paare]
+    gruppen, gruppen_weitere = fertig_je_reihe(rest_paare)
     fehlgeschlagen = [mit_reihe({**ketten_zeile(k, jetzt), "hinweis": "", "grund": kurz(grund(fassungen(k)[-1], jetzt), 300)},
                                 kopf(k))
                       for k in fertige if fassungen(k)[-1].get("status") == "fehlgeschlagen"
@@ -311,6 +341,8 @@ def heute(neue: list[dict], erledigte: list[dict], entwuerfe: list[dict], jetzt:
         "laeuft": laeuft,
         "fertig": rest[:FERTIG_ANZAHL],
         "fertig_weitere": max(0, len(rest) - FERTIG_ANZAHL),
+        "fertig_gruppen": gruppen,  # oberflaeche/_heute.html; „fertig“ bleibt für die alte Oberfläche
+        "fertig_gruppen_weitere": gruppen_weitere,
         "fehlgeschlagen": fehlgeschlagen,
     }
 

@@ -130,6 +130,12 @@ a.zeile:hover, a.zeile:focus-visible { background: var(--hover); }
 .leer { margin: 0; padding: 4px 0; font-size: 14px; color: var(--sehrleise); }
 .zeile-stunde { grid-template-columns: 24px minmax(0, 1fr) auto; }
 .zeile .stunde-nr { font-size: 14px; color: var(--sehrleise); font-variant-numeric: tabular-nums; text-align: right; }
+.fertig-reihe > summary { display: block; list-style: none; cursor: pointer; }
+.fertig-reihe > summary::-webkit-details-marker { display: none; }
+.klappe-zeichen::before { content: "▸"; font-size: 12px; color: var(--leise); }
+.fertig-reihe[open] .klappe-zeichen::before { content: "▾"; }
+.fertig-reihe-liste { padding-left: 18px; }
+.fertig-reihe > summary:hover .zeile, .fertig-reihe > summary:focus-visible .zeile { background: var(--hover); }
 .zeile-aktion { display: flex; justify-content: flex-end; padding: 0 8px 8px; }
 .mehr > summary { display: inline-flex; color: var(--leise); font-size: 14px; padding: 4px 8px; margin: 4px -8px; border-radius: 6px;
   cursor: pointer; list-style: none; }
