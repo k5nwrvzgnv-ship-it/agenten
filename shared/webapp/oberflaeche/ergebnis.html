@@ -1,9 +1,14 @@
-{#- Material-Ansicht (Board „Desktop“): Kopf mit Art, Titel und Marke; links die ersten Seiten bzw. die Dateien,
-    rechts die Knöpfe; darunter „Das Wichtigste“ und die Fassungen (neueste oben). Ohne JavaScript: Rückmeldung,
-    eigene Fassung und Variante öffnen sich über ?offen=…, Formulare mit Token (app.py). -#}
+{#- Material-Ansicht (umbauplan-ux.md Schritt 6): Kopf, Dateien (je Datei ein Download-Symbol mit PDF/Word und
+    „Rückmeldung zu dieser Datei“), „Das Wichtigste“, darunter immer das Feld für die Rückmeldung wie im Gespräch, dann
+    eine geschlossene Klappe „Verlauf“ mit den Fassungen. Im „+“: Material …, Variante. Im „···“: Als final markieren,
+    Eigene Fassung hochladen, Reihe und Stunde zuordnen. Ohne JavaScript geht alles (details, Formulare mit Token);
+    ?offen=rueckmeldung (mit fassung/datei/seite) setzt das Ziel der Rückmeldung, ?offen=eigene öffnet das „···“,
+    ?offen=variante die Tafel „Variante“ (app.py). -#}
 {% extends "basis.html" %}
-{#- Skript nur, wenn ein Formular mit data-einmal auf der Seite steht -#}
-{%- block skripte %}{{ super() }}{% if offen or nochmal or (variante_moeglich and varianten.gewuenscht) %}<script src="/statisch/einmal.js" defer></script>{% endif %}
+{%- from "_plus.html" import plus, punkte -%}
+{#- einmal.js sperrt Knöpfe nach dem Absenden; gespraech.js zeigt die angehängte Datei (#anhang, #gewaehlt) -#}
+{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>
+{%- if aktionen %}<script src="/statisch/gespraech.js" defer></script>{% endif %}
 {%- if schnell %}<script src="/statisch/htmx-2.0.4.min.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
 <header class="material-kopf">
@@ -13,8 +18,63 @@
   {%- if e.marke %}<span class="material-marke{% if e.marke == 'Final' %} marke-final{% elif e.marke == 'Neu · wartet' %} marke-rot{% endif %}">{{ e.marke }}</span>{% endif %}
 </header>
 {% endblock %}
-{#- Hauptknopf der Seite ist „Rückmeldung geben“: Sonst stünde „+ Neu hier“ schwarz daneben -#}
-{% block neu_klasse %}{% endblock %}
+{#- Das „+“: hier nicht blau, der Hauptknopf der Seite ist „Senden“ der Rückmeldung -#}
+{%- block plus %}
+{%- set n = namespace(e=[]) %}
+{%- if neu_hier %}{% set n.e = n.e + [{"text": "Material …", "link": neu_hier}] %}{% endif %}
+{%- if variante_moeglich %}{% set n.e = n.e + [{"text": "Variante", "link": basis_url ~ "?offen=variante#variante"}] %}{% endif %}
+{{ plus(n.e, voll=false) }}
+{%- endblock %}
+{%- macro final_knopf(ref, ist_final, klasse, name="") %}
+<form class="final-form" method="post" action="{{ basis_url }}/final">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="ref" value="{{ ref }}">
+  <input type="hidden" name="an" value="{{ '0' if ist_final else '1' }}">
+  <button class="{{ klasse }}" type="submit">{{ "Final · rückgängig" if ist_final else (name ~ " als final markieren" if name else "Als final markieren") }}</button>
+</form>
+{%- endmacro %}
+{#- Im „···“: Final der Fassung oben, eigene Fassung, Zuordnung zu Reihe und Stunde. Mit Fehler beim Hochladen offen. -#}
+{%- block punkte %}
+{%- if not e.fehlgeschlagen or reihe_wahl or stunden %}
+{%- call punkte(offen=offen == "eigene") %}
+    {%- if e.aktuell_ref %}{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf knopf-leise", e.aktuell_name) }}{% endif %}
+    {%- if not e.fehlgeschlagen %}
+    <form method="post" action="{{ basis_url }}/eigene" enctype="multipart/form-data" id="eigene" data-einmal>
+      <input type="hidden" name="token" value="{{ token }}">
+      {%- if offen == "eigene" %}{% for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}{% endif %}
+      <label class="unter" for="eigene-datei">Eigene Fassung hochladen (Word, PowerPoint, Excel oder PDF).
+        Deine Datei gilt, ich ändere nichts.</label>
+      <input id="eigene-datei" name="datei" type="file" accept="{{ eigene_endungen }}" required>
+      <button class="knopf knopf-klein" type="submit">Hochladen</button>
+    </form>
+    {%- endif %}
+    {%- if reihe_wahl %}
+    <form method="post" action="{{ basis_url }}/reihe">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label class="unter" for="reihe-wahl">Gehört zu Reihe</label>
+      <select id="reihe-wahl" name="reihe">
+        {%- for r in reihe_wahl %}
+        <option value="{{ r.id }}"{% if r.gewaehlt %} selected{% endif %}>{{ r.text }}</option>
+        {%- endfor %}
+      </select>
+      <button class="knopf knopf-klein" type="submit">Zuordnen</button>
+    </form>
+    {%- endif %}
+    {%- if stunden %}
+    <form method="post" action="{{ basis_url }}/stunde">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label class="unter" for="stunde-wahl">Gehört zu</label>
+      <select id="stunde-wahl" name="nr">
+        {%- for s in stunden %}
+        <option value="{{ s.nr }}"{% if s.nr == stunde_nr %} selected{% endif %}>{{ s.text }}</option>
+        {%- endfor %}
+      </select>
+      <button class="knopf knopf-klein" type="submit">Einordnen</button>
+    </form>
+    {%- endif %}
+{%- endcall %}
+{%- endif %}
+{%- endblock %}
 {% block inhalt %}
 {%- macro inhalt(x) %}
   {%- if x.kern %}<p class="absatz">{{ x.kern }}</p>{% endif %}
@@ -29,6 +89,25 @@
   {%- endif %}
   {%- endfor %}
   {%- if x.pruefen %}<p class="hinweis"><b>Bitte prüfen:</b> {{ x.pruefen }}</p>{% endif %}
+{%- endmacro %}
+{#- Download-Symbol einer Datei: Auswahl der Formate (eintraege: {"text", "link", "laden"}) und, wenn Rückmeldungen
+    gehen, „Rückmeldung zu dieser Datei“ (rueck: Link mit ?offen=rueckmeldung&fassung=…&datei=…) -#}
+{%- macro laden(eintraege, rueck="") %}
+<details class="menue-halter laden">
+  <summary class="knopf knopf-leise laden-knopf" aria-label="Herunterladen" title="Herunterladen"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+  <div class="menue">
+    {%- for k in eintraege %}
+    <a class="knopf knopf-leise" href="{{ k.link }}"{% if k.laden %} download{% endif %}>{{ k.text }}</a>
+    {%- endfor %}
+    {%- if rueck %}<a class="knopf knopf-leise" href="{{ rueck }}">Rückmeldung zu dieser Datei</a>{% endif %}
+  </div>
+</details>
+{%- endmacro %}
+{%- macro datei_laden(d) %}
+{%- set basis = "/ergebnis/" ~ d.auftrag ~ "/datei/" ~ d.nr %}
+{%- set n = namespace(e=[]) %}
+{%- for k in d.knoepfe %}{% set n.e = n.e + [{"text": k.lang, "link": basis ~ k.pfad, "laden": true}] %}{% endfor %}
+{{ laden(n.e, basis_url ~ "?offen=rueckmeldung&fassung=" ~ d.auftrag ~ "&datei=" ~ d.nr ~ "#rueckmeldung" if aktionen else "") }}
 {%- endmacro %}
 {%- macro dateiliste(liste) %}
   {#- Je Datei eine Zeile; mit Seitenbildern als Karte mit der ersten Seite klein, Klick öffnet den Betrachter -#}
@@ -47,31 +126,17 @@
       {%- else %}
       <span class="dateiname">{{ d.name }}</span>
       {%- endif %}
-      <span class="knoepfe">
-      {%- for k in d.knoepfe %}
-        <a class="knopf" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}{{ k.pfad }}" download>{{ k.text }}</a>
-      {%- endfor %}
-      {%- if aktionen %}
-        <a class="knopf" href="{{ basis_url }}?offen=rueckmeldung&amp;fassung={{ d.auftrag }}&amp;datei={{ d.nr }}#rueckmeldung">Rückmeldung</a>
-      {%- endif %}
-      </span>
+      {{ datei_laden(d) }}
     </div>
     {%- endfor %}
   </div>
 {%- endmacro %}
-{%- macro final_knopf(ref, ist_final, klasse, name="") %}
-<form class="final-form" method="post" action="{{ basis_url }}/final">
-  <input type="hidden" name="token" value="{{ token }}">
-  <input type="hidden" name="ref" value="{{ ref }}">
-  <input type="hidden" name="an" value="{{ '0' if ist_final else '1' }}">
-  <button class="{{ klasse }}" type="submit">{{ "Final · rückgängig" if ist_final else (name ~ " als final markieren" if name else "Als final markieren") }}</button>
-</form>
-{%- endmacro %}
 
 {%- if schnell %}{% with wid = schnell_id, a = schnell, zurueck = basis_url, n = 0 %}{% include "_schnell.html" %}{% endwith %}{% endif %}
 {%- if hinweis %}<p class="hinweis hinweis-erledigt{% if hinweis_fehler %} hinweis-fehler{% endif %}"{% if schnell_id %} id="schnell"{% endif %} role="status">{{ hinweis }}</p>{% endif %}
-{%- if variante_art or varianten.gemacht or varianten.gewuenscht or variante_moeglich %}
-{#- Varianten (Board „Desktop“): normal ist das Original, jede Variante ein eigener Auftrag mit eigener Ansicht -#}
+{%- if variante_art or varianten.gemacht or varianten.gewuenscht %}
+{#- Varianten (Board „Desktop“): normal ist das Original, jede Variante ein eigener Auftrag mit eigener Ansicht.
+    Eine neue Variante gibt es im „+“. -#}
 <div class="varianten">
   <span class="varianten-titel">Varianten:</span>
   {%- if variante_art %}<a class="variante" href="{{ original_link }}">normal</a>
@@ -89,7 +154,6 @@
     <button class="knopf knopf-klein" type="submit">{{ w.name }} anfordern</button>
   </form>
   {%- endfor %}
-  <a class="knopf knopf-klein{% if offen == 'variante' %} knopf-voll{% endif %}" href="{{ basis_url }}?offen=variante#variante">+ Variante</a>
   {%- elif varianten.gewuenscht and not variante_art %}
   <span class="unter">Gewünscht: {{ varianten.gewuenscht | map(attribute="name") | join(", ") }}. Anfordern geht, sobald das Blatt fertig ist.</span>
   {%- endif %}
@@ -140,87 +204,42 @@
 {#- Neueste Fassung schnell geändert (lia/schnell) und mit Seitenbildern: sie steht oben -#}
 {%- set so = e.schnell_oben %}
 <div class="material">
-  <div class="material-links{% if einzeln or so %} material-seiten{% endif %}">
-    {%- if so %}
+  {%- if so %}
+  <div class="material-seiten">
     {%- for m in range(1, [so.seiten, 2] | min + 1) %}
     <a class="blatt" href="{{ basis_url }}/eigene/{{ so.n }}/seite/{{ m }}" aria-label="{{ so.datei_name }}, Seite {{ m }} von {{ so.seiten }} ansehen">
       <img src="{{ basis_url }}/eigene/{{ so.n }}/seite/{{ m }}" alt="" loading="lazy">
     </a>
     {%- endfor %}
-    {%- elif einzeln %}
-    {%- set d = e.dateien[0] %}
+  </div>
+  <div class="material-zeile">
+    <span class="unter">{{ so.datei_name }} · {{ so.seiten_text }} · {{ so.name }}, schnell geändert: „{{ so.wunsch }}“</span>
+    {%- set n = namespace(e=[]) %}
+    {%- if so.pdf %}{% set n.e = n.e + [{"text": "PDF zum Drucken", "link": basis_url ~ "/eigene/" ~ so.n ~ "/pdf", "laden": false}] %}{% endif %}
+    {%- set n.e = n.e + [{"text": so.knopf, "link": basis_url ~ "/eigene/" ~ so.n, "laden": true}] %}
+    {{ laden(n.e) }}
+  </div>
+  {%- elif einzeln %}
+  {%- set d = e.dateien[0] %}
+  <div class="material-seiten">
     {%- for m in range(1, [d.seiten, 2] | min + 1) %}
     <a class="blatt" href="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/ansehen?seite={{ m }}" aria-label="{{ d.name }}, Seite {{ m }} von {{ d.seiten }} ansehen">
       <img src="/ergebnis/{{ d.auftrag }}/datei/{{ d.nr }}/seite/{{ m }}" alt="" loading="lazy">
     </a>
     {%- endfor %}
-    {%- elif e.dateien %}
-    {{ dateiliste(e.dateien) }}
-    {%- else %}
-    <div class="material-text">{{ inhalt(e) }}</div>
-    {%- endif %}
   </div>
-  <div class="material-knoepfe">
-    {%- if so %}
-    {%- if so.pdf %}<a class="knopf knopf-spalte" href="{{ basis_url }}/eigene/{{ so.n }}/pdf">PDF zum Drucken</a>{% endif %}
-    <a class="knopf knopf-spalte" href="{{ basis_url }}/eigene/{{ so.n }}" download>{{ so.knopf }}</a>
-    {%- elif einzeln %}
-    {%- for k in e.dateien[0].knoepfe | sort(attribute="pfad") %}
-    <a class="knopf knopf-spalte" href="/ergebnis/{{ e.dateien[0].auftrag }}/datei/{{ e.dateien[0].nr }}{{ k.pfad }}" download>{{ k.lang }}</a>
-    {%- endfor %}
-    {%- endif %}
-    {%- set haupt = offen or ("" if e.aktuell_final else "rueckmeldung") %}
-    <a class="knopf knopf-spalte{% if haupt == 'rueckmeldung' %} knopf-voll{% endif %}" href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Rückmeldung geben</a>
-    <span class="unter knopf-satz">Ich ändere es für dich.</span>
-    <a class="knopf knopf-spalte{% if haupt == 'eigene' %} knopf-voll{% endif %}" href="{{ basis_url }}?offen=eigene#eigene">Eigene Fassung hochladen</a>
-    <span class="unter knopf-satz">Deine Datei gilt, ich ändere nichts.</span>
-    {#- „Final“ abgesetzt am Ende (Chrome-Test Nr. 11); rückgängig machbar, darum ohne Rückfrage #}
-    {%- if e.aktuell_ref %}<div class="knopf-abgesetzt">{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf knopf-spalte", e.aktuell_name) }}</div>{% endif %}
+  <div class="material-zeile">
+    <span class="unter">{{ d.name }} · {{ d.seiten_text }}{% if e.dateien_aus %} · aus {{ e.dateien_aus }}{% endif %}. Tipp auf eine Seite, um sie durchzublättern.</span>
+    {{ datei_laden(d) }}
   </div>
-</div>
-{%- if so %}<span class="unter">{{ so.datei_name }} · {{ so.seiten_text }} · {{ so.name }}, schnell geändert: „{{ so.wunsch }}“</span>
-{%- elif einzeln %}<span class="unter">{{ e.dateien[0].name }} · {{ e.dateien[0].seiten_text }}{% if e.dateien_aus %} · aus {{ e.dateien_aus }}{% endif %}. Tipp auf eine Seite, um sie durchzublättern.</span>
-{%- elif e.dateien_aus %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
-{%- if e.oben_hinweis %}<p class="hinweis">{{ e.oben_hinweis }}</p>{% endif %}
-
-{%- if offen == "rueckmeldung" %}
-<div class="tafel" id="rueckmeldung">
-  {%- if aktionen %}
-  {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Rückmeldung bleibt in der Testumgebung, es startet nichts.</p>{% endif %}
-  {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
-  <form class="formular" method="post" action="{{ basis_url }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
-    <input type="hidden" name="token" value="{{ token }}">
-    {%- if ziel %}
-    <input type="hidden" name="fassung" value="{{ ziel.fassung }}">
-    <input type="hidden" name="dnr" value="{{ ziel.nr }}">
-    <input type="hidden" name="seite" value="{{ ziel.seite }}">
-    <p class="absatz">Zu {{ ziel.text }}{% if ziel.fassung_name and e.verlauf | length > 1 %} ({{ ziel.fassung_name }}){% endif %}.
-      <a href="{{ basis_url }}?offen=rueckmeldung#rueckmeldung">Stattdessen zum Ganzen</a></p>
-    {%- endif %}
-    <label class="tafel-titel" for="rueck-text">Was soll anders werden?</label>
-    <textarea id="rueck-text" name="text" rows="3" maxlength="{{ text_max }}">{{ text }}</textarea>
-    <label class="datei-wahl" for="rueck-datei">Datei anhängen (Word, PDF, Foto). Eine Datei allein reicht auch.
-      <input id="rueck-datei" name="datei" type="file" accept="{{ rueck_endungen }},image/*"></label>
-    <button class="knopf knopf-voll" type="submit">Neue Fassung anfordern</button>
-  </form>
-  <span class="unter">Bitte keine Namen von Schüler*innen.</span>
+  {%- elif e.dateien %}
+  {{ dateiliste(e.dateien) }}
+  {%- if e.dateien_aus %}<span class="unter">Aus {{ e.dateien_aus }}</span>{% endif %}
   {%- else %}
-  <p class="absatz">Rückmeldungen gehen im Moment noch über Telegram: Antworte dort auf das Ergebnis.</p>
+  <div class="material-text">{{ inhalt(e) }}</div>
   {%- endif %}
 </div>
-{%- elif offen == "eigene" %}
-<div class="tafel" id="eigene">
-  {%- for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}
-  <form class="formular" method="post" action="{{ basis_url }}/eigene" enctype="multipart/form-data" data-einmal>
-    <input type="hidden" name="token" value="{{ token }}">
-    <label class="tafel-titel" for="eigene-datei">Deine Fassung (Word, PowerPoint, Excel oder PDF)</label>
-    <input id="eigene-datei" name="datei" type="file" accept="{{ eigene_endungen }}" required>
-    <button class="knopf knopf-voll" type="submit">Als neue Fassung hochladen</button>
-  </form>
-  <span class="unter">Deine Datei wird die nächste Fassung. Danach kannst du „Rückmeldung geben“ oder sie als final
-    markieren. Ich arbeite bei der nächsten Rückmeldung noch mit meiner letzten Fassung.</span>
-</div>
-{%- endif %}
+{%- if e.oben_hinweis %}<p class="hinweis">{{ e.oben_hinweis }}</p>{% endif %}
 
 {%- if (einzeln or e.dateien) and (e.kern or e.bloecke or e.pruefen) %}
 <section>
@@ -228,36 +247,48 @@
   {{ inhalt(e) }}
 </section>
 {%- endif %}
+
+{#- Rückmeldung wie im Gespräch: immer da, kein Knopf davor. Mit Ziel (Datei, Seite) aus dem Download-Symbol oder dem
+    Betrachter steht darüber, worauf sie sich bezieht. -#}
+<section class="rueckmeldung" id="rueckmeldung" aria-label="Rückmeldung">
+  {%- if aktionen %}
+  {%- if aktionen == "test" %}<p class="hinweis"><b>Testbetrieb:</b> Die Rückmeldung bleibt in der Testumgebung, es startet nichts.</p>{% endif %}
+  {%- if offen == "rueckmeldung" %}{% for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}{% endif %}
+  <form class="eingabe" method="post" action="{{ basis_url }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
+    <input type="hidden" name="token" value="{{ token }}">
+    {%- if ziel %}
+    <input type="hidden" name="fassung" value="{{ ziel.fassung }}">
+    <input type="hidden" name="dnr" value="{{ ziel.nr }}">
+    <input type="hidden" name="seite" value="{{ ziel.seite }}">
+    <p class="eingabe-ziel">Zu {{ ziel.text }}{% if ziel.fassung_name and e.verlauf | length > 1 %} ({{ ziel.fassung_name }}){% endif %}.
+      <a href="{{ basis_url }}#rueckmeldung">Stattdessen zum Ganzen</a></p>
+    {%- endif %}
+    <label class="unsichtbar" for="rueck-text">Was soll anders werden?</label>
+    <textarea id="rueck-text" name="text" rows="3" maxlength="{{ text_max }}" placeholder="Was soll anders werden? Ich ändere es für dich. Bitte keine Namen von Schüler*innen.">{{ text if offen == "rueckmeldung" else "" }}</textarea>
+    <p class="gewaehlt" id="gewaehlt" aria-live="polite"></p>
+    <div class="eingabe-leiste">
+      <div class="links">
+        <label class="knopf knopf-leise datei-knopf" title="Word, PDF oder Foto. Eine Datei allein reicht auch.">+ Datei anhängen
+          <input id="anhang" name="datei" type="file" accept="{{ rueck_endungen }},image/*"></label>
+      </div>
+      <button class="knopf{% if not e.aktuell_final %} knopf-voll{% endif %}" type="submit">Senden</button>
+    </div>
+  </form>
+  {%- else %}
+  <p class="absatz unter">Rückmeldungen gehen im Moment noch über Telegram: Antworte dort auf das Ergebnis.</p>
+  {%- endif %}
+</section>
 {%- endif %}
 
-{%- if reihe_wahl %}
-<form class="zeile-form" method="post" action="{{ basis_url }}/reihe">
-  <input type="hidden" name="token" value="{{ token }}">
-  <label for="reihe-wahl"><b>Gehört zu Reihe</b></label>
-  <select id="reihe-wahl" name="reihe">
-    {%- for r in reihe_wahl %}
-    <option value="{{ r.id }}"{% if r.gewaehlt %} selected{% endif %}>{{ r.text }}</option>
-    {%- endfor %}
-  </select>
-  <button class="knopf" type="submit">Zuordnen</button>
-</form>
-{%- endif %}
-{%- if stunden %}
-<form class="zeile-form" method="post" action="{{ basis_url }}/stunde">
-  <input type="hidden" name="token" value="{{ token }}">
-  <label for="stunde-wahl"><b>Gehört zu</b></label>
-  <select id="stunde-wahl" name="nr">
-    {%- for s in stunden %}
-    <option value="{{ s.nr }}"{% if s.nr == stunde_nr %} selected{% endif %}>{{ s.text }}</option>
-    {%- endfor %}
-  </select>
-  <button class="knopf" type="submit">Einordnen</button>
-</form>
-{%- endif %}
-
-{%- if e.verlauf %}
-<section class="fassungen">
-  <h2>Fassungen</h2>
+{#- Verlauf: eine geschlossene Klappe, erst ab der zweiten Station (eine Fassung allein steht schon oben) -#}
+{%- if e.verlauf | length > 1 %}
+{%- set zahl_f = e.verlauf | selectattr("finalbar") | list | length %}
+{%- set zahl_r = e.verlauf | selectattr("art", "equalto", "rueckmeldung") | list | length %}
+{%- set teile = ([zahl_f ~ (" Fassung" if zahl_f == 1 else " Fassungen")] if zahl_f else [])
+              + ([zahl_r ~ (" Rückmeldung" if zahl_r == 1 else " Rückmeldungen")] if zahl_r else []) %}
+<details class="mehr verlauf-klappe">
+  <summary>Verlauf{% if teile %}: {{ teile | join(", ") }}{% endif %}</summary>
+  <div class="fassungen">
   {%- for s in e.verlauf | reverse %}
   <div class="fassung-zeile fassung-{{ s.art }}">
     <span class="fassung-name">{{ s.name }}</span>
@@ -291,6 +322,7 @@
     </span>
   </div>
   {%- endfor %}
-</section>
+  </div>
+</details>
 {%- endif %}
 {% endblock %}

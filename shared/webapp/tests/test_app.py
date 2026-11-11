@@ -206,13 +206,14 @@ class TestApp(Aufbau):
     def test_ergebnis(self):
         r, html = self.hole("/ergebnis/20261030-140944-unterricht-93e29e")
         self.assertEqual(r.status, 200)
-        # Material-Ansicht wie Board "Desktop": Kopf, zwei Seiten, Knopf-Spalte, Das Wichtigste, Fassungen
+        # Material-Ansicht (umbauplan-ux.md Schritt 6): Kopf, zwei Seiten mit Download-Symbol, Das Wichtigste, Verlauf
         for text in ("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", "Material · Word", "Neu · wartet",
                      "Ein Arbeitsblatt zu Kant.", "Bitte prüfen:</b> Passt der Fall?", "Das Wichtigste",
                      '<a href="/">Heute</a>', "Etwa zwei Seiten, passt in eine Stunde.", "aus Fassung 1",
-                     "Fassungen", "Deine Rückmeldung", "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>",
-                     ">In Word öffnen<", ">PDF zum Drucken<", ">Als final markieren<", ">Rückmeldung geben<",
-                     ">Eigene Fassung hochladen<", "von mir, heute 14:16", "2 Seiten · ansehen"):
+                     "<summary>Verlauf: 1 Fassung, 1 Rückmeldung</summary>", "Deine Rückmeldung",
+                     "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>", ">In Word öffnen<", ">PDF zum Drucken<",
+                     ">Als final markieren<", "Rückmeldungen gehen im Moment noch über Telegram",
+                     "Eigene Fassung hochladen (", "von mir, heute 14:16", "2 Seiten · ansehen"):
             self.assertIn(text, html)
         basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
         self.assertIn(f'href="{basis}/pdf" download>PDF zum Drucken', html)
@@ -223,11 +224,12 @@ class TestApp(Aufbau):
             self.assertIn(f'src="{basis}/seite/{m}"', html)
         self.assertEqual(html.count(f'<a class="dateiname" href="{basis}/ansehen">Arbeitsblatt</a>'), 1)
         self.assertLess(html.index("von mir, heute 14:40"), html.index("von mir, heute 14:16"))
-        # „Als final markieren“ abgesetzt nach den anderen Knöpfen (Chrome-Test Nr. 11)
-        self.assertLess(html.index("Eigene Fassung hochladen<"), html.index('<div class="knopf-abgesetzt">'))
-        self.assertLess(html.index('<div class="knopf-abgesetzt">'), html.index("Als final markieren"))
-        self.assertNotIn("<script", html)
-        self.assertNotIn('id="rueck-text"', html)  # Rückmeldung erst nach Klick
+        # „Als final markieren“ und „Eigene Fassung“ stehen im „···“ (Schritt 6)
+        menue = html.split('<details class="menue-halter punkte">')[1].split("</details>")[0]
+        for text in ("Als final markieren", "Eigene Fassung hochladen"):
+            self.assertIn(text, menue)
+        self.assertEqual(re.findall(r'<script src="([^"]+)"', html), ["/statisch/einmal.js"])
+        self.assertNotIn('id="rueck-text"', html)  # Rückmeldung nur, wenn Neu eingeschaltet ist
         for verboten in ("93e29e", "unterricht", "data/arbeit", "Wie ist es", "Anmerk"):
             self.assertNotIn(verboten, self.sichtbar(html))
 
@@ -999,8 +1001,9 @@ class TestOrdnung(Aufbau):
         self.assertEqual((r.status, r.getheader("location")), (303, f"/ergebnis/{aid}?erledigt=zugeordnet"))
         _, html = self.hole(f"/ergebnis/{aid}")
         for text in ('<option value="strafe" selected>', '<a href="/reihe/strafe">Straftheorien</a>',
-                     'href="/neu?reihe=strafe">+ Neu hier'):
+                     '<a class="knopf knopf-leise" href="/neu?reihe=strafe">Material …</a>'):
             self.assertIn(text, html)
+        self.assertNotIn("+ Neu hier", html)
         self.assertIn("Arbeitsblatt &lt;Kant&gt; &amp; Strafe", self.hole("/reihe/strafe")[1])
         self.assertIn("Ethik › Klasse 8 › Straftheorien", self.hole("/")[1].split("Arbeitsblatt &lt;Kant&gt;")[1][:400])
         # zurücknehmen
@@ -1181,8 +1184,9 @@ class TestOrdnung(Aufbau):
     def test_varianten(self):
         original = "20261030-140944-unterricht-93e29e"
         _, html = self.hole(f"/ergebnis/{original}")
-        self.assertIn('<span class="variante variante-hier" aria-current="page">normal</span>', html)
-        self.assertIn(f'href="/ergebnis/{original}?offen=variante#variante">+ Variante</a>', html)
+        self.assertNotIn('class="varianten"', html)  # ohne Varianten keine Leiste, nur „Variante“ im „+“ (Schritt 6)
+        self.assertIn(f'<a class="knopf knopf-leise" href="/ergebnis/{original}?offen=variante#variante">Variante</a>',
+                      html.split('<details class="menue-halter plus">')[1].split("</details>")[0])  # im „+“
         _, html = self.hole(f"/ergebnis/{original}?offen=variante")
         self.assertIn('<input type="radio" name="art" value="hilfekarten">', html)
         self.assertEqual(self.post(f"/ergebnis/{original}/variante", {"art": "quatsch"})[0].status, 400)
@@ -1194,6 +1198,7 @@ class TestOrdnung(Aufbau):
         self.assertTrue((self.tmp / "unterricht" / "data" / "arbeit" / "x" / "Arbeitsblatt.docx").exists())  # Kopie
         _, html = self.hole(f"/ergebnis/{original}")
         self.assertIn('<span class="variante">mit Hilfekarten <span class="unter">Läuft</span></span>', html)
+        self.assertIn('<span class="variante variante-hier" aria-current="page">normal</span>', html)
         self.assertNotIn(v["id"], self.hole("/")[1].split("Läuft gerade")[0])  # läuft, steht unter Läuft gerade
         app.auftraege.abschliessen(v["id"], "Fertig.", basis=self.instanz / "auftraege")
         _, html = self.hole(f"/ergebnis/{original}")
@@ -1203,10 +1208,10 @@ class TestOrdnung(Aufbau):
                      '<span class="variante variante-hier" aria-current="page">mit Hilfekarten</span>',
                      f'<a href="/ergebnis/{original}">Original</a>'):
             self.assertIn(text, html)
-        self.assertNotIn("+ Variante", html)
+        self.assertNotIn("offen=variante", html)
         self.assertEqual(self.post(f"/ergebnis/{v['id']}/variante", {"art": "einfach"})[0].status, 404)
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
-            self.assertNotIn("+ Variante", self.hole(f"/ergebnis/{original}")[1])
+            self.assertNotIn("offen=variante", self.hole(f"/ergebnis/{original}")[1])
             self.assertEqual(self.post(f"/ergebnis/{original}/variante", {"art": "einfach"})[0].status, 404)
 
     def test_nochmal(self):
@@ -1382,8 +1387,9 @@ class TestMaterial(Aufbau):
         self.assertEqual(self.sende("/final", {"ref": self.F1, "an": "1"})[0].status, 404)
 
     def test_eigene_fassung(self):
-        _, html = self.hole(self.URL + "?offen=eigene")
-        self.assertIn("Als neue Fassung hochladen", html)
+        _, html = self.hole(self.URL + "?offen=eigene")  # öffnet das „···“ mit dem Formular
+        self.assertIn('<details class="menue-halter punkte" open>', html)
+        self.assertIn('<button class="knopf knopf-klein" type="submit">Hochladen</button>', html)
         r, _ = self.sende("/eigene", {}, [("../Mein Blatt.docx", b"MEINS")])
         self.assertEqual((r.status, r.getheader("Location")), (303, self.URL + "?erledigt=eigene"))
         _, html = self.hole(self.URL + "?erledigt=eigene")
@@ -1456,7 +1462,7 @@ class TestMaterial(Aufbau):
                 mock.patch.object(app, "schnell", lambda: None):
             _, html = self.hole(self.URL)
             link = f"{self.URL}?offen=rueckmeldung&amp;fassung={ursprung}&amp;datei=0#rueckmeldung"
-            self.assertIn(f'<a class="knopf" href="{link}">Rückmeldung</a>', html)
+            self.assertIn(f'<a class="knopf knopf-leise" href="{link}">Rückmeldung zu dieser Datei</a>', html)
             _, html = self.hole(f"/ergebnis/{ursprung}/datei/0/ansehen?seite=2")
             self.assertIn(f"{self.URL}?offen=rueckmeldung&amp;fassung={ursprung}&amp;datei=0&amp;seite=2#rueckmeldung", html)
             _, html = self.hole(f"{self.URL}?offen=rueckmeldung&fassung={ursprung}&datei=0&seite=2")
@@ -1471,7 +1477,7 @@ class TestMaterial(Aufbau):
         # gilt der Fassung, aus der die Datei stammt (nicht der neuesten Antwort)
         self.assertEqual((a["bezug"], a["text"]), (ursprung, "Zur Datei „Arbeitsblatt.docx“, Seite 2: Aufgabe 2 kürzer"))
         with mock.patch.object(app, "NEUER_AUFTRAG", ""):
-            self.assertNotIn(">Rückmeldung</a>", self.hole(self.URL)[1])
+            self.assertNotIn("Rückmeldung zu dieser Datei", self.hole(self.URL)[1])
             self.assertNotIn("Rückmeldung zu dieser Seite", self.hole(f"/ergebnis/{ursprung}/datei/0/ansehen")[1])
 
     def test_rueckmeldung_aus_ohne_einstellung(self):
@@ -1551,9 +1557,13 @@ class TestMaterial(Aufbau):
         self.assertIn('<span class="marke marke-rot">Neu</span>', html)
 
     def test_ein_hauptknopf(self):
-        """Befund 03.11., Teil D: Auf der Material-Ansicht ist „Rückmeldung geben“ der eine schwarze Knopf."""
-        _, html = self.hole(self.URL)
-        self.assertEqual(re.findall(r'<a class="[^"]*knopf-voll[^"]*"[^>]*>([^<]+)<', html), ["Rückmeldung geben"])
+        """Befund 03.11., Teil D: Auf der Material-Ansicht ist „Senden“ der Rückmeldung der eine blaue Knopf (Schritt 6:
+        auch das „+“ ist hier nicht blau). Ist die Fassung oben final, ist keiner blau."""
+        blau = r'<(?:a|button|summary) class="[^"]*knopf-voll[^"]*"[^>]*>([^<]+)<'
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"):
+            self.assertEqual(re.findall(blau, self.hole(self.URL)[1]), ["Senden"])
+            self.assertEqual(self.sende("/final", {"ref": self.F1, "an": "1"})[0].status, 303)
+            self.assertEqual(re.findall(blau, self.hole(self.URL)[1]), [])
 
     def test_rueckmeldung_nur_mit_datei(self):
         """Befund 03.11. Punkt 2: Eine Datei allein reicht, der Browser verlangt keinen Text mehr."""
@@ -1565,16 +1575,56 @@ class TestMaterial(Aufbau):
         (a,) = self.neue()
         self.assertEqual(a["text"], f"{app.logik.RUECK_NUR_DATEI}\n\nDazu eine Datei: Korrigiert.docx.")
 
-    def test_datei_wege_erklaert(self):
-        """Befund 03.11. Punkt 2: Unter den zwei Knöpfen steht je ein Satz, was danach passiert."""
+    def test_ergebnis_seite_ruhig(self):
+        """umbauplan-ux.md Schritt 6: Kopf, Dateien, Das Wichtigste, das Feld für die Rückmeldung (immer da, ohne Knopf
+        davor), eine Zeile Verlauf. Download-Symbol je Datei, Seltenes im „···“, „+“ statt „+ Neu hier“."""
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"):
+            _, html = self.hole(self.URL)
+        mitte = html.split("<main")[1].split("</main>")[0]
+        # Reihenfolge der Mitte; keine Tafel, kein Knopf „Rückmeldung geben“
+        stellen = [mitte.index(t) for t in ('class="material-kopf"', 'class="material"', "<h2>Das Wichtigste</h2>",
+                                             'id="rueck-text"', '<details class="mehr verlauf-klappe">')]
+        self.assertEqual(stellen, sorted(stellen))
+        for weg in ('class="tafel"', "Rückmeldung geben", "+ Neu hier", "knopf-spalte", 'class="zeile-form"'):
+            self.assertNotIn(weg, mitte)
+        self.assertNotIn('class="mehr verlauf-klappe" open', mitte)  # Verlauf zu
+        # Feld wie im Gespräch: Text, Datei anhängen (gespraech.js zeigt sie), Senden
+        for text in ('<form class="eingabe" method="post" action="' + self.URL + '/rueckmeldung"',
+                     'id="anhang" name="datei" type="file"', 'id="gewaehlt"', ">Senden</button>"):
+            self.assertIn(text, mitte)
+        self.assertIn('<script src="/statisch/gespraech.js" defer></script>', html)
+        # je Datei (oben und in der früheren Fassung) ein Download-Symbol mit PDF, Word und Rückmeldung zu dieser Datei
+        laden = mitte.split('<details class="menue-halter laden">')[1:]
+        self.assertEqual(len(laden), 2)
+        for teil in laden:
+            teil = teil.split("</details>")[0]
+            self.assertEqual(re.findall(r'<a class="knopf knopf-leise" [^>]*>([^<]+)</a>', teil),
+                             ["PDF zum Drucken", "In Word öffnen", "Rückmeldung zu dieser Datei"])
+        # Zuordnung zur Reihe im „···“
+        menue = mitte.split('<details class="menue-halter punkte">')[1].split("</details>")[0]
+        self.assertIn('<label class="unter" for="reihe-wahl">Gehört zu Reihe</label>', menue)
+
+    def test_verlauf_zeile(self):
+        """Die Klappe zählt Fassungen und Rückmeldungen; eine Fassung allein (steht oben) hat keinen Verlauf."""
         _, html = self.hole(self.URL)
+        self.assertIn("<summary>Verlauf: 1 Fassung, 1 Rückmeldung</summary>", html)
+        datei = self.tmp / "Mein Blatt.docx"
+        datei.write_bytes(b"MEINS")
+        app.fassungen.eigene_dazu(self.F1, datei, basis=self.instanz / "auftraege", agenten_dir=self.tmp)
+        self.assertIn("<summary>Verlauf: 2 Fassungen, 1 Rückmeldung</summary>", self.hole(self.URL)[1])
+        self.assertNotIn("verlauf-klappe", self.hole("/ergebnis/20261022-232618-unterricht-67ba47")[1])
+
+    def test_datei_wege_erklaert(self):
+        """Befund 03.11. Punkt 2: Am Feld und an „Eigene Fassung“ steht je ein Satz, was danach passiert."""
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"):
+            _, html = self.hole(self.URL)
         for satz in ("Ich ändere es für dich.", "Deine Datei gilt, ich ändere nichts."):
             self.assertIn(satz, html)
 
     def test_rueckmeldung_im_testbetrieb(self):
         with mock.patch.object(app, "NEUER_AUFTRAG", "test"), mock.patch.object(app, "agent_starten") as start:
             _, html = self.hole(self.URL + "?offen=rueckmeldung")
-            for text in ("Was soll anders werden?", "Datei anhängen", "Neue Fassung anfordern",
+            for text in ("Was soll anders werden?", "Datei anhängen", ">Senden</button>",
                          "Testbetrieb", "Bitte keine Namen"):
                 self.assertIn(text, html)
             r, html = self.sende("/rueckmeldung", {"text": " "})

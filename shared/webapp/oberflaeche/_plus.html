@@ -1,10 +1,11 @@
 {#- Das „+“ einer Seite (umbauplan-ux.md Schritt 1): ein Knopf oben rechts, darunter die Liste, was hier neu entstehen
     kann. Einträge: {"text", "link"} (Link) oder {"text", "aktion", "felder": [(name, wert)]} (Formular mit Token,
-    abgeschickt per POST). Ohne Einträge (Archiv, Neu und Chat aus) kein „+“. Geht ohne JavaScript (details). -#}
-{%- macro plus(eintraege) -%}
+    abgeschickt per POST). Ohne Einträge (Archiv, Neu und Chat aus) kein „+“. Geht ohne JavaScript (details).
+    voll=false: nicht blau, wo die Seite einen anderen Hauptknopf hat (Ergebnis: „Senden“ der Rückmeldung). -#}
+{%- macro plus(eintraege, voll=true) -%}
 {%- if eintraege %}
 <details class="menue-halter plus">
-  <summary class="knopf knopf-voll plus-knopf" aria-label="Neu hier" title="Neu hier"><span aria-hidden="true">+</span></summary>
+  <summary class="knopf{% if voll %} knopf-voll{% endif %} plus-knopf" aria-label="Neu hier" title="Neu hier"><span aria-hidden="true">+</span></summary>
   <div class="menue">
     {%- for e in eintraege %}
     {%- if e.aktion %}

@@ -159,9 +159,6 @@ a.zeile:hover, a.zeile:focus-visible { background: var(--hover); }
 .knopf-leise { border-color: transparent; background: none; color: var(--leise); padding: 0 8px; min-height: 28px; }
 .knopf-leise:hover { background: var(--hover); color: var(--fg); }
 .knopf-aus { color: var(--sehrleise); }
-.knopf-spalte { width: 100%; justify-content: flex-start; }
-.knopf-abgesetzt { margin-top: 12px; }
-.knopf-satz { margin: -2px 0 4px; font-size: 12px; color: var(--leise); }
 .knopf-link { font: inherit; font-weight: 500; padding: 0; border: 0; background: none; color: inherit; text-decoration: underline;
   text-underline-offset: 3px; cursor: pointer; }
 .knopf-gross { display: inline-flex; align-self: flex-start; gap: 8px; align-items: center; min-height: 32px; padding: 0 12px; border: 0;
@@ -233,13 +230,22 @@ a.zeile:hover, a.zeile:focus-visible { background: var(--hover); }
 .datei-text .dateiname:hover { text-decoration: underline; }
 .vorschau img, .blatt img { display: block; width: 56px; aspect-ratio: 210 / 297; object-fit: contain; background: #fff; border-radius: 3px;
   box-shadow: 0 0 0 1px var(--linie), 0 2px 10px rgba(15, 15, 15, .08); }
-.material { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
-.material-seiten { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+/* Ergebnis (umbauplan-ux.md Schritt 6): Seiten klein nebeneinander, darunter Name und Download-Symbol; die Rückmeldung
+   ist das Feld aus dem Gespräch, hier nicht klebend; der Verlauf eine Klappe wie „mehr“ */
+.material { display: flex; flex-direction: column; gap: 8px; }
+.material-seiten { display: grid; grid-template-columns: repeat(2, minmax(0, 260px)); gap: 16px; }
+.material-zeile { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.laden-knopf { width: 32px; min-height: 32px; padding: 0; justify-content: center; }
+.laden .menue { min-width: 220px; }
+.laden .menue .knopf-leise { color: var(--fg); min-height: 32px; }
+.rueckmeldung .eingabe { position: static; }
+.eingabe-ziel { margin: 0; padding: 10px 14px 0; font-size: 14px; color: var(--leise); }
+.verlauf-klappe > summary { margin: 0 -8px; }
+.verlauf-klappe .fassungen { padding-top: 4px; }
 .blatt { display: block; }
 .blatt img { width: 100%; height: auto; }
 .blatt:hover img { box-shadow: 0 0 0 1px var(--leise), 0 2px 10px rgba(15, 15, 15, .08); }
 .material-text { display: flex; flex-direction: column; gap: 10px; }
-.material-knoepfe { display: flex; flex-direction: column; gap: 6px; }
 .material-marke { font-size: 12px; color: var(--leise); }
 .marke-final { align-self: flex-start; padding: 0 8px; border-radius: 4px; background: var(--flaeche); color: var(--fg); font-size: 12px; }
 .entwurf { white-space: pre-wrap; overflow-wrap: anywhere; padding: 14px; border-radius: 8px; background: var(--flaeche); margin: 0; }
@@ -393,7 +399,6 @@ body.datei-ueber::after { content: "Loslassen: Datei hier ablegen"; position: fi
   .rechts { padding: 20px 16px; }
   .baum { position: static; min-height: 0; max-height: none; border-top: 1px solid var(--linie); }
   h1, .titel-gross { font-size: 26px; }
-  .material { grid-template-columns: minmax(0, 1fr); }
   .fassung-zeile { grid-template-columns: minmax(0, 1fr) auto; }
   .fassung-name { grid-column: 1 / -1; }
   .termine li.termin-zeile { grid-template-columns: minmax(0, 1fr) auto; }

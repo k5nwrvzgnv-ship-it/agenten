@@ -1,5 +1,6 @@
 // Gespräch (oberflaeche/gespraech.html): Bausteine kopieren, Eingabefeld wächst mit, gewählte Anhänge zeigen,
 // Strg/Cmd+Enter sendet, nach dem Laden ans Ende scrollen. Ohne dieses Skript geht alles außer Kopieren.
+// Die Ergebnis-Seite (oberflaeche/ergebnis.html, Rückmeldung) nutzt davon nur die angehängte Datei (#anhang, #gewaehlt).
 (function () {
   'use strict';
 

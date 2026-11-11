@@ -1,4 +1,4 @@
-# Umbauplan zum UX-Befund (zweite Fassung, wartet auf Jans Freigabe)
+# Umbauplan zum UX-Befund (zweite Fassung, schrittweise freigegeben)
 
 Stand 10.11.2026. Die erste Fassung hat die Knöpfe nur sortiert und ins ···-Menü geschoben. Jan: Das trifft es nicht.
 Diese Fassung geht von drei Grundsätzen aus (Jan 10.11., dazu Punkt 37 der Haupt-STATUS: „willst du 1000 Knöpfe
@@ -167,7 +167,25 @@ springt oder `direkt.js` `.ablage-offen` setzt. Ab 1101 px fällt dann auch ihre
 - Tests: `test_app.py` (Rahmen-Klassen), `test_pflege_app.py` (Termine auf Klasse und Reihe), `test_schnell.py`
   (TestSchnellNeu). Neu: Ebenen haben `aside.rechts`.
 
-## Schritt 6: Ergebnis-Seite
+## Schritt 6: Ergebnis-Seite (gebaut 11.11.2026, live; Browser-Probe offen)
+
+Gebaut, nur Vorlagen und CSS (kein Neustart): `ergebnis.html` neu geordnet. Rückmeldung als Feld wie im Gespräch
+(`form.eingabe`, Platzhalter „Was soll anders werden? Ich ändere es für dich. …“, „+ Datei anhängen“, „Senden“), immer
+unter „Das Wichtigste“; `?offen=rueckmeldung&fassung=…&datei=…` setzt weiter das Ziel (Zeile „Zu … Stattdessen zum
+Ganzen“), Route und schneller Weg unverändert. Je Datei ein Download-Symbol (`details.laden`, SVG-Pfeil) mit „PDF zum
+Drucken“, „In Word öffnen“ und „Rückmeldung zu dieser Datei“, auch an der schnellen Fassung oben (ohne
+Rückmeldungs-Eintrag) und an Dateien früherer Fassungen. Im „···“: Als final markieren (Fassung oben), Eigene Fassung
+hochladen (`?offen=eigene` öffnet es, Fehler stehen darin), Gehört zu Reihe, Gehört zu Stunde. Verlauf: geschlossene
+Klappe (`details.mehr`) „Verlauf: N Fassungen, M Rückmeldungen“ (Fassungen = die man final markieren kann), erst ab zwei
+Stationen. „+ Neu hier“ ist das „+“ (`_plus.html` `plus(…, voll=false)`: hier nicht blau, „Senden“ ist der eine blaue
+Knopf, bei finaler Fassung keiner) mit „Material …“ und „Variante“; der Block `plus` in `basis.html` ist jetzt leer.
+Abweichungen: Die Final-Knöpfe älterer Fassungen bleiben in der Verlauf-Klappe. Die Varianten-Leiste erscheint erst mit
+einer Variante (vorher auch nur „normal“ und „+ Variante“). Die Seite lädt `einmal.js` immer und `gespraech.js` für den
+Namen der angehängten Datei. Seiten oben 2 × 260 px statt 2/3 der Breite. Tests: neu `test_ergebnis_seite_ruhig`,
+`test_verlauf_zeile`; angepasst `test_ergebnis`, `test_varianten`, `test_reihe_zuordnen`, TestMaterial
+(`test_ein_hauptknopf`, `test_eigene_fassung`, `test_rueckmeldung_je_datei`, `test_datei_wege_erklaert`,
+`test_rueckmeldung_im_testbetrieb`). `test_schnell.py` lief unverändert grün. Rundgang 11.11. gegen 8791: 600 Seiten
+(15 weniger, die Links `?offen=rueckmeldung`/`?offen=eigene` ohne Ziel fehlen), alle 200, `lia/instanz` unverändert.
 
 - Dateien: `ergebnis.html`, `ruhig.css`.
   - Rückmeldung als immer sichtbares Eingabefeld unter „Das Wichtigste“ („Was soll anders werden?“, Datei anhängen,

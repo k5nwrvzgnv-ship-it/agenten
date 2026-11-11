@@ -47,7 +47,7 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 - Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
   schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
-## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 5 gebaut und live)
+## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 6 gebaut und live)
 `befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
 `umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
 ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Wird
@@ -56,7 +56,7 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
 - Schritt 1 gebaut (Jans Okay 10.11., live): Klasse, Reihe, Stunde und Heute haben oben rechts ein „+“
   (`oberflaeche/_plus.html`, Block `plus` in `basis.html`) mit Gespräch, Material …, Stunde bzw. Probe, Reihe, Datei,
   je nach Seite; „Datei“ springt vorerst zum Abschnitt „Deine Dateien“ (richtig in Schritt 4). Weg sind „+ Neu hier“
-  (außer Ergebnis), „+ Gespräch“ im Abschnitt, Formular „+ Stunde“, Knopf „+ Reihe“ und „Neuer Auftrag +“. Nur
+  (Ergebnis seit Schritt 6), „+ Gespräch“ im Abschnitt, Formular „+ Stunde“, Knopf „+ Reihe“ und „Neuer Auftrag +“. Nur
   Vorlagen und CSS, kein Neustart nötig. Rundgang 10.11. gegen 8791: 162 Seiten ohne Fehler. Nicht im Browser
   angesehen (Menü auf und zu, schmales Fenster).
 - Schritt 2 gebaut (Jans Okay 10.11., live, nur Vorlagen und CSS): Leere Abschnitte fallen weg (Gespräche, Zur ganzen
@@ -108,7 +108,17 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   Scrollen), 401 px. `:has` braucht Safari 15.4 bzw. Chrome 105; ältere Browser zeigen die stille Spalte als leeren Rand.
   Bei ≤ 760 px bleibt die Reihenfolge Inhalt, rechte Spalte, Seitenleiste (Befund der Probe 11.11.). Vorschlag an Jan,
   nicht gebaut: Seitenleiste schmal oben als Klappe („Fächer und Reihen“), damit sie auf dem Handy nicht ganz unten steht.
-  Nächster Schritt: 6 (Ergebnis-Seite).
+- Schritt 6 gebaut (Jans Okay 11.11., live, nur Vorlagen und CSS): Die Ergebnis-Seite ist Kopf, Dateien, Das
+  Wichtigste, das Feld für die Rückmeldung (wie im Gespräch, immer da, „Senden“ ist der eine blaue Knopf) und eine
+  geschlossene Klappe „Verlauf: N Fassungen, M Rückmeldungen“. Je Datei ein Download-Symbol mit PDF, Word und
+  „Rückmeldung zu dieser Datei“. Im „···“: Als final markieren, Eigene Fassung hochladen, Reihe und Stunde zuordnen. Im
+  „+“ (nicht blau): Material …, Variante. „+ Neu hier“ gibt es nirgends mehr. Routen und schneller Weg unverändert.
+  Einzelheiten und Abweichungen im Plan. Rundgang 11.11. gegen 8791: 600 Seiten, alle 200, alle 10 Ergebnisse von Heute
+  in neuer Form (Straftheorien-Reihenentwurf: „Verlauf: 10 Fassungen, 7 Rückmeldungen“), `lia/instanz` unverändert.
+  NICHT im Browser geprüft (Chrome bei Jan nicht verbunden): Höhe der Seite (Ziel etwa eine Bildschirmhöhe statt
+  4059 px), Download-Symbol und Menü am rechten Rand, „···“ mit Datei-Feld bei 401 px, Name der angehängten Datei unter
+  dem Feld, Sprung von „Rückmeldung zu dieser Datei“ auf `#rueckmeldung`, Klappe auf und zu.
+  Nächster Schritt: 7 (Gespräch-Seite und restliche Texte).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).

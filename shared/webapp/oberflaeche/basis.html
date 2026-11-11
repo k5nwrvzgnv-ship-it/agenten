@@ -23,10 +23,9 @@
     <li aria-current="page">{{ krumen.hier }}</li>
   </ol>
 </nav>
-{#- Klasse, Reihe, Stunde und Heute setzen hier ihr „+“ (_plus.html); die übrigen Seiten mit Ort (Material) behalten
-    vorerst „+ Neu hier“ (umbauplan-ux.md Schritt 6) -#}
-{%- block plus %}{% if neu_hier %}<a class="knopf{% block neu_klasse %} knopf-voll{% endblock %}" href="{{ neu_hier }}">+ Neu hier</a>{% endif %}{% endblock %}
-{#- Klasse, Reihe und Stunde setzen hier ihr „···“ (_plus.html punkte, umbauplan-ux.md Schritt 3) -#}
+{#- Klasse, Reihe, Stunde, Heute und Ergebnis setzen hier ihr „+“ (_plus.html, umbauplan-ux.md Schritte 1 und 6) -#}
+{%- block plus %}{% endblock %}
+{#- Klasse, Reihe, Stunde und Ergebnis setzen hier ihr „···“ (_plus.html punkte, umbauplan-ux.md Schritte 3 und 6) -#}
 {%- block punkte %}{% endblock %}
 </div>
 {% block seitenkopf %}
