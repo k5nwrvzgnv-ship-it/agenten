@@ -112,7 +112,7 @@ aus“ je Termin bleibt an der Terminzeile (direkt am Ding). Tests: neu `test_se
 - Tests: `test_pflege_app.py` (Verschieben, Bearbeiten, Ausblenden, Ausfall, „In eine andere Klasse“, „Die Reihe
   beginnt“: Routen bleiben, HTML anpassen). Neu: keine `zeile-form` mehr außerhalb von Menüs auf Klasse, Reihe, Stunde.
 
-## Schritt 4: Direkt am Ding (JavaScript, mit Weg ohne) (gebaut 10./11.11.2026, Neustart und Browser-Probe offen)
+## Schritt 4: Direkt am Ding (JavaScript, mit Weg ohne) (gebaut 10./11.11.2026, live; Browser-Probe offen)
 
 Gebaut: `oberflaeche/_direkt.html` (Makro `titel`: Überschrift plus verstecktes Formular mit den Feldern der
 bestehenden Route), `statisch/direkt.js` (Titel anklicken: Feld, Enter speichert per normalem POST, Esc oder
@@ -122,9 +122,9 @@ das eine Feld, Fehler als Meldung, Konflikt wie in den Masken), `ziehen.js` mit 
 Linie zeigt die Stelle). Abweichungen: Klasse benennt den Namen um („8“, angezeigt „Klasse 8“). Der Knopf heißt jetzt
 überall „Ablegen“ (vorher „Hochladen“). Die Vorlagen wirken vor dem Neustart: Reihe und Klasse zeigen das Umbenennen erst,
 wenn die App `titel_aktion` liefert (neues Python); Stunde und Gespräch nutzen alte Routen und gehen sofort. Tests:
-`test_titel_direkt`, `test_direkt_am_ding` (mit nachgestellter alter App), Schutzliste in `test_regel_25…`. Offen:
-Neustart von `webapp.service` (Jans Okay) und die Pflicht-Probe im Browser (Mac, iPad): Jans Chrome war am 11.11. nicht
-verbunden, auf dem Server fehlen dem headless Chromium Systembibliotheken.
+`test_titel_direkt`, `test_direkt_am_ding` (mit nachgestellter alter App), Schutzliste in `test_regel_25…`. Neustart
+11.11. mit Jans Okay. Offen: die Pflicht-Probe im Browser (Mac, iPad): Jans Chrome war am 11.11. nicht verbunden, auf
+dem Server fehlen dem headless Chromium Systembibliotheken.
 
 - Dateien: neu `statisch/direkt.js`, Anpassungen in `reihe.html`, `stunde.html`, `klasse.html`, `gespraech.html`,
   `_ort.html:25–31`, `ruhig.css`.

@@ -47,7 +47,7 @@ die neue soll später noch besser werden (Punkt 37 der Haupt-STATUS).
 - Nicht geprüft: im Browser (htmx-Abfrage, HX-Redirect, Aussehen der neuen Oberfläche mit „Wird geändert …“), und der
   schnelle Weg auf dem echten Dienst mit einer echten Antwort von lia/schnell. Bei der Probe mit Lia ansehen.
 
-## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 4 gebaut, 4 noch ohne Neustart)
+## UX-Befund und Umbauplan (Stand 11.11.2026, Schritte 1 bis 4 gebaut und live)
 `befund-ux.md` (fünf Ursachen, Fundstellen mit Datei:Zeile, Screenshots und Skizzen in `skizzen/befund/`) und
 `umbauplan-ux.md` (zweite Fassung nach Jans Rückmeldung 10.11.: ein „+“ pro Seite mit Auswahl, nur zeigen was da
 ist, Ändern direkt am Ding, Rest im „···“; Schritte 1–7, je Dateien, was Lia sieht, Tests). Wird
@@ -77,10 +77,10 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
 - Schritt 4 gebaut und committet (Jans Okay 10.11.): Titel anklicken und umbenennen (Reihe, Klasse, Stunde, Gespräch;
   `_direkt.html`, `statisch/direkt.js`), Datei auf die Seite ziehen oder „Datei“ im „+“ öffnet die Auswahl, Regeltext
   erst mit gewählter Datei, Stunden per Finger ziehen (`ziehen.js`). Neue Routen `/reihe/<id>/titel`,
-  `/klasse/<id>/titel`. Live sind Vorlagen und JS: Stunde und Gespräch lassen sich schon am Titel umbenennen, Reihe und
-  Klasse erst nach dem Neustart (die Vorlagen fragen `titel_aktion` ab, das nur das neue Python liefert). Rundgang
-  11.11. gegen 8791 (altes Python, neue Vorlagen): 615 Seiten, alle 200, `lia/instanz` unverändert.
-  OFFEN: Neustart `systemctl --user restart webapp.service` (wartet auf Jans Okay), danach Rundgang wiederholen.
+  `/klasse/<id>/titel`. Die Vorlagen fragen `titel_aktion` ab, das nur die App ab Schritt 4 liefert (so liefen sie
+  schon vor dem Neustart). `webapp.service` am 11.11. 07:43 mit Jans Okay neu gestartet; danach Rundgang 615 Seiten,
+  alle 200, Reihe und Klasse tragen das Umbenennen, neue Routen antworten (fremde Herkunft: 403), Log ohne Fehler,
+  `lia/instanz` unverändert.
   OFFEN: Pflicht-Probe im Browser (Plan Schritt 4): Titel klicken/Enter/Esc, „Datei“ im „+“, Datei ziehen, Stunde
   ziehen mit Maus und am iPad mit Finger. Nicht gemacht: Jans Chrome nicht verbunden, headless Chromium auf dem
   Server ohne Systembibliotheken. Nur Unittests (ohne JavaScript) und `node --check`.
