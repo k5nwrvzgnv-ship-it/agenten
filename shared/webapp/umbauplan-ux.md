@@ -230,9 +230,16 @@ alles ok in 1440/1100/407 px; daraus „z. B. 6“ als Platzhalter im Feld „St
 ## Später
 
 - Ändern im Gespräch statt im „···“ (Punkt 37, `docs/gespraech-flexibel-plan.md`, ruht gerade).
-- Stand der Reihe als Kennzeichen statt „(in Planung)“ im Namen (`logik.py:1036`, `:1340`; Python, 13 Prüfungen in
-  `test_logik.py`, 8 in `test_ordnung.py`), Stunde im Baum „1 · Thema offen“ (`logik.py:1344`), „Ich“ umbenennen.
-- „Fertig“ auf Heute je Reihe zusammenfassen (`logik.heute`).
+- Gebaut 11.11.2026 (Jans Wahl), Python, wirkt erst nach Neustart von `webapp.service`; die Vorlagen laufen mit der
+  alten App wie bisher:
+  - Stand der Reihe als Kennzeichen im Baum statt „(in Planung)“ im Namen: in Planung ein leiser hohler Punkt hinter
+    dem Namen, abgeschlossen graue Schrift, der Stand als `title` und für Vorleser (`logik.baum` „stand“,
+    „stand_text“; `basis.html`, `.baum-stand`, `.baum-fertig`). Stunde im Baum „1 · Thema“. „Ich“ heißt „Deine
+    Regeln“ (`logik.SEITE_REGELN`; Route `/ich` bleibt). Tests vergleichen weiter mit dem früheren Baum
+    (`test_ordnung.wie_frueher`).
+  - „Fertig“ auf Heute je Reihe als Klappe (`logik.fertig_je_reihe`, `heute` liefert `fertig_gruppen`): Zeile mit Name,
+    „5 Ergebnisse · zuletzt So 08.11.“ und Fach › Klasse, darin die Ergebnisse ohne Brotkrume; ohne Reihe einzeln;
+    auch eine Reihe mit einem Ergebnis ist eine Klappe (Jans Vorschau). Die Grenze 10 zählt Einträge.
 
 ## Reihenfolge
 

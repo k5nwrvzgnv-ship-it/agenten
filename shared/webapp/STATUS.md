@@ -161,10 +161,15 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   Nicht im Plan, darum nicht gekürzt (Vorschlag an Jan): `neu.html:64–65` „Gilt für die ganze Reihe …“ und `:76–77`
   „Ordnet den Auftrag in deiner Übersicht ein …“, `gespraeche.html:8` Untertitel, „+ Gespräch“ als blauer Knopf auf
   Gespräche ohne Ort, Leerzeile „Noch keine. Später: gelungene Blätter …“ unter Muster in Vorlagen.
-  Nächster Schritt: Jan entscheidet zwischen „Später“ im Plan (Ändern im Gespräch, Stand der Reihe als Kennzeichen,
-  „Fertig“ je Reihe; braucht Python und Neustart) und den offenen Befunden oben (4: „Stunde verschieben“ als
-  Menüpunkt; 5: Seitenleiste auf dem Handy; 6: (c) Brotkrumen bei 407 px; Schritt 7: die Texte darüber und die
-  Befunde (a) bis (f) der Probe).
+- „Später“ gebaut und committet (Jans Wahl 11.11.), Python: Stand der Reihe als Kennzeichen im Baum (in Planung
+  leiser hohler Punkt, abgeschlossen grau), Stunde im Baum „1 · Thema“, „Ich“ heißt „Deine Regeln“ (auch im Satz
+  „Du kannst es unter „Deine Regeln“ eintragen.“ zum Bundesland), „Fertig“ auf Heute als Klappe je Reihe. Einzelheiten
+  im Plan unter „Später“. WIRKT ERST NACH NEUSTART von `webapp.service` (läuft seit 11.11. 07:43); bis dahin zeigen die
+  Vorlagen alles wie vorher (live per Abruf geprüft). Nicht im Browser angesehen.
+  Offen aus „Später“: Ändern im Gespräch (Punkt 37, ruht, braucht lia/chat, anderer Chat).
+  Nächster Schritt: Neustart mit Jans Okay, Rundgang, Browser-Probe von Baum und Heute; danach die offenen Befunde
+  (4: „Stunde verschieben“ als Menüpunkt; 5: Seitenleiste auf dem Handy; 6: (c) Brotkrumen bei 407 px; Schritt 7: die
+  Texte darüber und die Befunde (a) bis (f) der Probe).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).
