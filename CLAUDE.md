@@ -68,7 +68,11 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   Tests ausgenommen). Läufe nur auf Auftrag, ohne Claude, mit fester Speichergrenze (systemd-run --scope).
 - `finance/`: Jans Agent, Recherche zur Wirtschaftlichkeit je Thema (Auftrag per /finance). Python holt Primärdaten
   mit Quellen-ID nach data/quellen/, Claude schreibt je Schritt JSON, Python prüft: keine Zahl ohne Quelle oder Annahme.
-- Reihenfolge der Umsetzung: uni, dokumente, posteingang, finance, einkauf.
+- `fehlstellenscan/` (Anzeige „Fehlstellen-Scan“): Jans Agent für das Forschungsprojekt Fehlstellen an Holz (YOLO).
+  Training von Hand auf Jans Mac (Rohbilder liegen dort), der Server baut und prüft Datensätze in kleinem Umfang
+  (datensatz.py), wertet Läufe aus (auswertung.py), später Vorhersagen. Läufe nur auf Auftrag, ohne Claude, mit
+  Speichergrenze wie holzbalkenscan. Tests importieren kein PyTorch; data/ nie ins Repo, nie alle Rohbilder auf den Server.
+- Reihenfolge der Umsetzung: uni, dokumente, posteingang, finance, fehlstellenscan, einkauf.
 - Ein Chat pro Ordner, gestartet in diesem Ordner: je Agent einer (auch lia/<agent>), einer für
   shared/renderer/, einer im Hauptordner für Struktur und das übrige shared/. Ein Chat ändert nur seinen
   Ordner, Bedarf anderswo schreibt er in die STATUS.md des Hauptordners. Gedächtnis ist die STATUS.md,
