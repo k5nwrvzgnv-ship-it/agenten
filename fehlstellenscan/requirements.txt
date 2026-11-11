@@ -1,2 +1,3 @@
-# Vorerst leer: das Gerüst braucht nur Python-Bordmittel und agentkit (per .pth).
-# Nächste Pakete nur nach Jans Okay (siehe STATUS.md, Offene Punkte).
+# Bilder und Boxen prüfen und umwandeln (Jan 11.11.2026). Weitere Pakete nur nach Jans Okay (STATUS.md).
+numpy==2.5.4
+pillow==13.0.0

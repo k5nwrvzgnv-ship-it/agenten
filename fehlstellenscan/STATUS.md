@@ -10,7 +10,8 @@ die können später als Dateien Eingabe werden).
 - Gerüst steht und ist committet: agent.py schließt jeden Auftrag mit dem Hinweis „noch nicht gebaut“ ab.
 - datensatz.py, auswertung.py und konfig/ sind leere Plätze mit Beschreibung, was dort hineinkommt.
 - Test tests/test_geruest.py: Name, Hinweis bei Aufträgen, kein Import von torch, torchvision oder ultralytics.
-- .venv ohne Pakete (nur Bordmittel und agentkit per .pth). Kein Dienst, kein Timer, keine Daten geladen.
+- .venv mit numpy 2.5.4 und Pillow 13.0.0 (Jan 11.11.2026) und agentkit per .pth; tests/test_umgebung.py
+  prüft sie (auch BMP). Kein Dienst, kein Timer, keine Daten geladen.
 
 ## Aufbau
 - Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, auswertung.py, konfig/ (Einstellungen im Repo)
@@ -48,11 +49,10 @@ die können später als Dateien Eingabe werden).
   nicht nutzen (ohne Login nicht lesbar, Lizenz und Inhalt unbekannt), Original von Zenodo nehmen.
 
 ## Offene Punkte
-1. Pakete, Entscheidung Jan:
-   a) Server: Pillow und numpy, um Bilder und Boxen zu prüfen und umzuwandeln (klein, wie holzbalkenscan).
-   b) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
+1. Pakete, Entscheidung Jan (Pillow und numpy auf dem Server sind installiert):
+   a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
-   c) Mac: torch und ultralytics für das Training, installiert Jan dort selbst (Anleitung folgt hier).
+   b) Mac: torch und ultralytics für das Training, installiert Jan dort selbst (Anleitung folgt hier).
 2. Kleine Probe des Datensatzes (ein ZIP auf dem Mac, wenige Bilder samt Annotationen auf den Server), damit
    datensatz.py das Box-Format an echten Dateien prüft. Download nur nach Jans Okay.
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).

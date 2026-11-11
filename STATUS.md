@@ -1157,7 +1157,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     agentkit, Eintrag in CLAUDE.md, Testordner in pruefen.sh). Entscheidungen, Datensatz Kodytek et al. und die
     nächsten Schritte stehen in `fehlstellenscan/STATUS.md`. Offen im Hauptordner: (a) "fehlstellenscan" in AGENTEN
     (shared/telegram/logik.py) eintragen, sobald der Agent etwas kann und ein Dienst mit Jans Okay installiert ist;
-    bis dahin Aufträge von Hand. (b) Pakete (Pillow/numpy, später ultralytics mit torch) erst nach Jans Okay.
+    bis dahin Aufträge von Hand. (b) numpy und Pillow sind installiert (11.11.); ultralytics mit torch erst nach Jans Okay.
 
 ## Gelernte Regeln
 - (noch keine)
