@@ -40,11 +40,11 @@
       fertig_gruppen (App vor dem Neustart) wie bisher -#}
   <ul>{% for g in h.fertig_gruppen %}
     {%- if g.art == "reihe" %}
+    {#- Klappzeichen vorn an der Stelle des Punkts, damit man sieht, dass die Zeile aufklappt (Browser-Probe 11.11.) -#}
     <li><details class="fertig-reihe"><summary><span class="zeile">
-      <span class="punkt" aria-hidden="true"></span>
+      <span class="klappe-zeichen" aria-hidden="true"></span>
       <span class="text"><span class="titel">{{ g.titel }}</span><span class="unter">{{ g.unter }}</span>
-        {%- if g.ort %}<span class="unter ort">{{ g.ort }}</span>{% endif %}</span>
-      <span class="klappe-zeichen" aria-hidden="true"></span></span></summary>
+        {%- if g.ort %}<span class="unter ort">{{ g.ort }}</span>{% endif %}</span></span></summary>
       <ul class="fertig-reihe-liste">{% for z in g.zeilen %}{{ zeile(z) }}{% endfor %}</ul>
     </details></li>
     {%- else %}{{ zeile(g.zeile) }}{% endif %}

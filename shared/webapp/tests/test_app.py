@@ -934,6 +934,9 @@ class TestOrdnung(Aufbau):
              "ort": "Darstellendes Spiel › Kurs 12", "zeilen": [zeile]},
             {"art": "einzeln", "zeile": {**zeile, "titel": "Notentabelle", "link": "/ergebnis/n"}}]}, weiter=None)
         klappe = gruppiert.split('<details class="fertig-reihe">')[1].split("</details>")[0]
+        summary = klappe.split("</summary>")[0]  # Klappzeichen vorn statt Punkt (Browser-Probe 11.11.)
+        self.assertLess(summary.index('class="klappe-zeichen"'), summary.index('class="titel"'))
+        self.assertNotIn('class="punkt"', summary)
         for text in ('<span class="titel">Der nackte Wahnsinn</span><span class="unter">1 Ergebnis · So 01.11.</span>',
                      '<span class="unter ort">Darstellendes Spiel › Kurs 12</span>', 'href="/ergebnis/r"'):
             self.assertIn(text, klappe)

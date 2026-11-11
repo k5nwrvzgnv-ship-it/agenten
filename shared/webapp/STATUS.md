@@ -168,10 +168,15 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   Rundgang danach: 600 Seiten, alle 200, `lia/instanz` unverändert. Bei Lia live: Straftheorien mit Punkt, Helfen grau,
   „1 · Thema offen“, „Deine Regeln“; unter Fertig eine Klappe „Der nackte Wahnsinn · 5 Ergebnisse · zuletzt So
   08.11.“, die übrigen vier Ergebnisse (zwei Spielfassung-Entwürfe, Notentabelle, Dossier) haben keine Reihe und
-  bleiben einzeln. NICHT im Browser angesehen (Chrome nicht verbunden): Punkt und Grau im Baum, Klappe auf und zu,
-  Zeichen ▸/▾, Hover, schmales Fenster.
+  bleiben einzeln. Browser-Probe 11.11. (Chrome-Seitenfenster bei Jan, nichts gesendet; 1440/1100/407 px): Punkt
+  7 px hinter „Straftheorien“ mittig, Name nirgends gekürzt, „Helfen“ grau, title gesetzt, „1 · Thema offen“ (nur auf
+  der Reihe, sonst ist der Zweig zu, wie bisher), „Deine Regeln“; Klappe ▸/▾, Ergebnisse 18 px eingerückt, Zeile
+  wie die übrigen, Hover; kein waagrechtes Scrollen, Konsole ohne Fehler. Daraus behoben: Das Klappzeichen stand
+  klein (12 px) ganz rechts, rund 700 px vom Namen; jetzt steht es mit 16 px vorn an der Stelle des Punkts (Behebung
+  per Abruf geprüft, nicht im Browser). Befunde, nicht gebaut: Bei 407 px steht „Offen“ unter „Wartet auf dich“ eng
+  neben einem zweizeiligen Titel; Vorleser hören „Straftheorien , In Planung“ (Leerzeichen vor dem Komma, harmlos).
   Offen aus „Später“: Ändern im Gespräch (Punkt 37, ruht, braucht lia/chat, anderer Chat).
-  Nächster Schritt: Browser-Probe von Baum und Heute; danach die offenen Befunde
+  Nächster Schritt: die offenen Befunde
   (4: „Stunde verschieben“ als Menüpunkt; 5: Seitenleiste auf dem Handy; 6: (c) Brotkrumen bei 407 px; Schritt 7: die
   Texte darüber und die Befunde (a) bis (f) der Probe).
 Behoben aus „Nebenbei gefunden“:
