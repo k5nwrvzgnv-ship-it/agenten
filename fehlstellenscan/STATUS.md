@@ -82,9 +82,12 @@ die können später als Dateien Eingabe werden).
   ausschließlich (Maske 100000000 deckt sich pixelgenau: Box 1231..1412 x 304..1024, Maske 1231–1411 x 304–1023).
 - 1.992 leere Dateien (Bilder ohne Fehler), 43.974 Boxen, keine Werte außerhalb 0..1, keine vertauschten Ecken.
 - 132 Dateien mit Dezimalkomma (0,902500) statt Punkt: beim Einlesen Komma durch Punkt ersetzen.
-- 155 Dateien: x-Werte passen nicht zu Breite 2800, sondern zu einer Breite zwischen 2709 und 2799 (je Datei
-  verschieden, y passt zu 1024), z. B. 100000061, 100000062, 100400005. Die Masken sind alle 2800 x 1024. Offen, ob
-  diese Boxen verschoben sind: an den Masken und Bildern dieser Nummern prüfen, sonst diese Bilder weglassen.
+- Nicht alle Bilder sind 2800 breit: 155 Dateien passen zu Breiten 2709–2799 (z. B. 100000061: 2799,
+  100000062: 2780). Die Masken haben genau diese Breite, und die Boxen sind auf die echte Breite bezogen (an beiden
+  Masken pixelgenau geprüft). Für YOLO also unkritisch, die Breite immer aus dem Bild lesen, nie 2800 annehmen.
+- 524 Boxen sind in einer Richtung unter 2 px (757 unter 5 px, 926 unter 10 px), z. B. 1 x 1 px; vermutlich
+  Klickfehler beim Annotieren. Darunter 6 der 10 overgrown-Boxen. In datensatz.py mit Mindestgröße aussortieren
+  (Grenze mit Jan festlegen) und melden.
 - Klassennamen in den Dateien (Boxen / Bilder): Live_Knot 21.224 / 11.912, Dead_Knot 11.985 / 8.350,
   resin 3.455 / 2.624, knot_with_crack 2.276 / 1.835, Crack 2.169 / 1.578, Marrow 1.181 / 1.061,
   Quartzity 1.075 / 847, Knot_missing 503 / 478, Blue_Stain 96 / 77, overgrown 10 / 6. Schreibweise weicht von der
@@ -93,13 +96,13 @@ die können später als Dateien Eingabe werden).
 
 ### Download-Stand (11.11.2026)
 - Mac: ~/fehlstellenscan/daten/kodytek/zip/ mit Bouding_Boxes.zip, Semantic Maps.zip, Specification (md5 stimmen),
-  Images1.zip lädt (Abbruch bei 1,6 GB, läuft mit Schleife weiter). Entpackt: boxen/ (alle), masken/100000000_segm.bmp.
+  Images1.zip lädt (Abbruch bei 1,6 GB, läuft mit Schleife weiter). Entpackt: boxen/ (alle), masken/ (100000000, 100000061, 100000062).
   Laden mit Wiederholung (im Ordner zip/):
 
       for i in {1..50}; do curl -L --fail -C - --speed-limit 1000 --speed-time 120 -o Images1.zip "https://zenodo.org/api/records/4694695/files/Images1.zip/content" && break; sleep 30; done
       md5 Images1.zip
 
-- Server: data/annotationen/ mit Bouding_Boxes.zip, Specification, 100000000_segm.bmp (per scp, Jans Okay
+- Server: data/annotationen/ mit Bouding_Boxes.zip, Specification, Masken 100000000, 100000061, 100000062 (per scp, Jans Okay
   11.11.2026), entpackt nach data/annotationen/boxen/. Noch keine Bilder in data/rohbilder/.
 
 ## Offene Punkte
@@ -108,7 +111,7 @@ die können später als Dateien Eingabe werden).
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
 2. Probe des Datensatzes: Images1.zip fertig laden, md5 prüfen, Inhalt ansehen (welche Nummern), wenige Bilder
-   samt Masken (auch von Nummern mit abweichender Breite) per scp nach data/rohbilder/ bzw. data/annotationen/.
+   samt Masken per scp nach data/rohbilder/ bzw. data/annotationen/.
    Danach mit Jan entscheiden, ob alle 157 GB geladen werden (rund 5 Tage, 330 GB auf dem Mac mit Entpacken).
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
