@@ -52,6 +52,7 @@ from agentkit import _ablage, arten, auftraege, config, fassungen, orte, verbrau
 import ansichten
 import dateien
 import logik
+import vorschau
 
 HIER = Path(__file__).resolve().parent
 SOCKET = Path(os.environ.get("ARBEITSPLATZ_SOCKET") or HIER / "data" / "arbeitsplatz.sock")
@@ -651,21 +652,48 @@ def _stand(ursprung: str) -> dict:
         return {"final": None, "eigene": []}
 
 
+_VORSCHAUEN: dict[Path, vorschau.Vorschauen] = {}
+
+
+def vorschauen() -> vorschau.Vorschauen:
+    """Eigene Vorschauen in data/vorschau/ (umbauplan-ux.md Schritt 6); je DATEN eine (Tests ändern DATEN)."""
+    return _VORSCHAUEN.setdefault(DATEN, vorschau.Vorschauen(DATEN / "vorschau"))
+
+
+def datei_info(a: dict) -> list[tuple]:
+    """Je Ergebnisdatei (darf ausgeliefert werden, PDF da, Seiten, Vorschau läuft). Ohne Renderer-Vorschau nimmt es
+    die eigene und stößt sie an, wenn sie fehlt (läuft im Hintergrund, die Seite zeigt solange einen Hinweis)."""
+    wurzel = dateien.agent_ordner(INSTANZ, a.get("agent"))
+    pfade = a.get("ergebnis_dateien") or []
+    info = []
+    for nr, (relativ, (original, pdf, seiten)) in enumerate(zip(pfade, dateien.vorschau_info(wurzel, pfade),
+                                                                  strict=False)):
+        laeuft = False
+        quelle = dateien.sicher(wurzel, relativ, vorschau.ENDUNGEN) if original and not seiten else None
+        if quelle is not None:
+            v = vorschauen()
+            if eigene := v.seiten(a["id"], nr, quelle):
+                seiten, pdf = len(eigene), pdf or v.pdf(a["id"], nr, quelle) is not None
+            else:
+                laeuft = v.anstossen(a["id"], nr, quelle)
+        info.append((original, pdf, seiten, laeuft))
+    return info
+
+
 def _ansicht(kette: list[dict], rueck: list[dict]) -> dict:
-    vorschauen = {a["id"]: dateien.vorschau_info(dateien.agent_ordner(INSTANZ, a.get("agent")),
-                                                 a.get("ergebnis_dateien") or [])
-                  for a in kette if a.get("status") == "erledigt"}
+    vorschauen_ = {a["id"]: datei_info(a) for a in kette if a.get("status") == "erledigt"}
     art = arten.finden(arten_laden(), kette[0].get("art") or "")
     try:
         kosten = verbrauch.kosten_je({a["id"] for a in kette} | {r["id"] for r in rueck})
     except OSError as f:
         logger.warning("Verbrauch nicht lesbar: %s", f)
         kosten = {}
-    return logik.dokument_ansicht(kette, rueck, _stand(kette[0]["id"]), vorschauen, kosten, art, heute_iso())
+    return logik.dokument_ansicht(kette, rueck, _stand(kette[0]["id"]), vorschauen_, kosten, art, heute_iso())
 
 
 def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: list[str] | None = None,
-                    text: str = "", status: int = 200):
+                    text: str = "", status: int = 200, ziel: dict | None = None):
+    """ziel: Rückmeldung an einer Datei/Seite (logik.rueckmeldung_ziel); ohne aus der URL (?offen=rueckmeldung&…)."""
     kette, rueck = _dokument(ursprung)
     baum = baum_laden()
     namen = arten_namen()
@@ -675,7 +703,10 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
     marke, rot = logik.marke_von(kette, _stand(ursprung).get("final"))
     d = _ansicht(kette, rueck)
     art = arten.finden(arten_laden(), kette[0].get("art") or "")
-    return seite(request, "dokument.html", {
+    q = request.query_params
+    if ziel is None and offen == "rueckmeldung":
+        ziel = logik.rueckmeldung_ziel(kette, d, q.get("fassung"), q.get("datei"), q.get("seite"))
+    return seite(request, "dokument.html", {"ziel": ziel if d["rueckmeldung_moeglich"] else None,
         "e": {"titel": titel}, "art": namen.get(kette[0].get("art") or "", ""), "marke": marke, "rot": rot,
         "d": d, "u": ursprung, "eigen": eigene_ansicht(request, kette, art, d["haupt"]),
         "md": markdown_von(kette, d["haupt"]), "offen": offen, "fehler": fehler or [], "text": text,
@@ -781,18 +812,55 @@ def datei_original(ursprung: str, auftrag_id: str, nr: int):
     return _ausliefern(dateien.sicher(wurzel, relativ, dateien.DOWNLOAD_ENDUNGEN))
 
 
+def _seiten(wurzel: Path, relativ: str, auftrag_id: str, nr: int) -> list[Path]:
+    """Seitenbilder: die des Renderers, sonst die eigenen (data/vorschau)."""
+    if seiten := dateien.vorschau_seiten(wurzel, relativ):
+        return seiten
+    quelle = dateien.sicher(wurzel, relativ, vorschau.ENDUNGEN)
+    return vorschauen().seiten(auftrag_id, nr, quelle) if quelle else []
+
+
 @app.get("/dokument/{ursprung}/datei/{auftrag_id}/{nr:int}/pdf")
 def datei_pdf(ursprung: str, auftrag_id: str, nr: int):
     wurzel, relativ = _ergebnisdatei(ursprung, auftrag_id, nr)
     pdf = dateien.sicher(wurzel, relativ, {".pdf"}) or dateien.vorschau_pdf(wurzel, relativ)
+    if pdf is None and (quelle := dateien.sicher(wurzel, relativ, vorschau.ENDUNGEN)):
+        pdf = vorschauen().pdf(auftrag_id, nr, quelle)
     return _ausliefern(pdf, herunterladen=False)
 
 
 @app.get("/dokument/{ursprung}/datei/{auftrag_id}/{nr:int}/seite/{seite_nr:int}")
 def datei_seite(ursprung: str, auftrag_id: str, nr: int, seite_nr: int):
     wurzel, relativ = _ergebnisdatei(ursprung, auftrag_id, nr)
-    seiten = dateien.vorschau_seiten(wurzel, relativ)
+    seiten = _seiten(wurzel, relativ, auftrag_id, nr)
     return _ausliefern(seiten[seite_nr - 1] if 1 <= seite_nr <= len(seiten) else None, herunterladen=False)
+
+
+@app.get("/dokument/{ursprung}/datei/{auftrag_id}/{nr:int}/ansehen", response_class=HTMLResponse)
+def datei_ansehen(request: Request, ursprung: str, auftrag_id: str, nr: int):
+    """Seiten-Betrachter (umbauplan-ux.md Schritt 6): eine Seite groß, Vor/Zurück, Seitenzahlen, ohne JavaScript."""
+    wurzel, relativ = _ergebnisdatei(ursprung, auftrag_id, nr)
+    basis_link = f"/dokument/{ursprung}/datei/{auftrag_id}/{nr}"
+    b = logik.betrachter(len(_seiten(wurzel, relativ, auftrag_id, nr)), request.query_params.get("seite"),
+                         f"{basis_link}/ansehen")
+    if b is None:
+        raise HTTPException(404)
+    kette, rueck = _dokument(ursprung)
+    d = _ansicht(kette, rueck)
+    x = next((x for f in d["fassungen"] if f["ref"] == auftrag_id for x in f["dateien"] if x["nr"] == nr), None)
+    if x is None:
+        raise HTTPException(404)
+    baum = baum_laden()
+    ort = logik.ort_von(kette[0], zuordnung())
+    ort = ort if any(k["id"] == ort for k in baum) else None
+    titel = logik.titel_von(kette, arten_namen())
+    krumen = logik.krumen(baum, ort, x["name"])
+    krumen["teile"].append({"text": titel, "link": f"/dokument/{ursprung}"})
+    return seite(request, "ansehen.html", {
+        "e": {"titel": x["name"]}, "b": b, "x": x, "u": ursprung, "ref": auftrag_id, "basis_link": basis_link,
+        "rueck_link": (f"/dokument/{ursprung}?offen=rueckmeldung&fassung={auftrag_id}&datei={nr}&seite={b['seite']}"
+                       "#rueckmeldung") if d["rueckmeldung_moeglich"] else "",
+        **rahmen(baum, ort, krumen, None)})
 
 
 @app.get("/dokument/{ursprung}/eigene/{n:int}")
@@ -881,9 +949,11 @@ async def dokument_rueckmeldung(request: Request, ursprung: str):
     datei = form.get("datei")
     datei = datei if isinstance(datei, UploadFile) and datei.filename else None
     text = str(form.get("text") or "")
-    if not token_ok:
-        return _dokument_seite(request, ursprung, "rueckmeldung", [VERALTET], text, 400)
     ansicht = _ansicht(kette, rueck)
+    ziel = logik.rueckmeldung_ziel(kette, ansicht, str(form.get("fassung") or ""), str(form.get("dnr") or ""),
+                                   str(form.get("seite") or ""))
+    if not token_ok:
+        return _dokument_seite(request, ursprung, "rueckmeldung", [VERALTET], text, 400, ziel)
     if not ansicht["rueckmeldung_moeglich"]:
         raise HTTPException(404)
     text, fehler = logik.rueckmeldung_pruefen(text, datei is not None)
@@ -892,24 +962,27 @@ async def dokument_rueckmeldung(request: Request, ursprung: str):
     if not auftraege_an():
         fehler.append("Aufträge sind gerade ausgeschaltet (ARBEITSPLATZ_AUFTRAEGE). Nichts angelegt.")
     if fehler:
-        return _dokument_seite(request, ursprung, "rueckmeldung", fehler, text, 400)
-    if ziel := einmal_ziel(request, form):
-        return RedirectResponse(ziel, status_code=303)
+        return _dokument_seite(request, ursprung, "rueckmeldung", fehler, text, 400, ziel)
+    if weiter := einmal_ziel(request, form):
+        return RedirectResponse(weiter, status_code=303)
+    # an einer Datei: die Fassung, aus der sie stammt (die Nachbesserung setzt dort auf); sonst die neueste fertige
+    bezug = ziel["fassung"] if ziel else ansicht["bezug"]
     try:
         pfad = await _upload_sichern(datei) if datei else None
         try:
             fid, _ = await run_in_threadpool(lambda: fassungen.rueckmeldung(
-                ansicht["bezug"], text or "Siehe angehängte Datei.", pfad, basis=basis(), agenten_dir=agenten_dir()))
+                bezug, logik.rueckmeldung_text(text, ziel), pfad, basis=basis(), agenten_dir=agenten_dir()))
         finally:
             if pfad:
                 shutil.rmtree(pfad.parent, ignore_errors=True)
     except ValueError as f:
-        return _dokument_seite(request, ursprung, "rueckmeldung", [str(f)], text, 400)
+        return _dokument_seite(request, ursprung, "rueckmeldung", [str(f)], text, 400, ziel)
     except (fassungen.FassungFehler, auftraege.AuftragFehler, OSError) as f:
         logger.error("Rückmeldung zu %s nicht angelegt: %s", ursprung, f)
-        return _dokument_seite(request, ursprung, "rueckmeldung", [FEHLGESCHLAGEN], text, 500)
+        return _dokument_seite(request, ursprung, "rueckmeldung", [FEHLGESCHLAGEN], text, 500, ziel)
     gestartet = await run_in_threadpool(dienst_starten, "feedback")
-    logger.info("Rückmeldung %s zu %s angelegt (Datei: %s)", fid, ansicht["bezug"], "ja" if datei else "nein")
+    logger.info("Rückmeldung %s zu %s angelegt (Datei: %s, Ziel: %s)", fid, bezug, "ja" if datei else "nein",
+                "ja" if ziel else "nein")
     antwort = _fertig(ursprung, "rueckmeldung" if gestartet else "rueckmeldung-wartet")
     einmal_merken(request, form, antwort.headers["location"])
     return antwort

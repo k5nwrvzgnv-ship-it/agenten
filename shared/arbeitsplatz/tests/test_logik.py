@@ -189,3 +189,37 @@ class TestZuordnung(unittest.TestCase):
         # Feld ort im Auftrag geht vor
         self.assertEqual(logik.ort_von({"id": U, "ort": "hier"}, {U: "expose"}), "hier")
         self.assertEqual(logik.zuordnung_pruefen([]), {})
+
+
+class TestBetrachterUndZiel(unittest.TestCase):
+    """umbauplan-ux.md Schritt 6: Seiten-Betrachter und Rückmeldung an einer Datei/Seite."""
+
+    def test_betrachter(self):
+        b = logik.betrachter(3, "2", "/x/ansehen")
+        self.assertEqual((b["seite"], b["anzahl"], b["vorher"], b["nachher"]),
+                         (2, 3, "/x/ansehen?seite=1", "/x/ansehen?seite=3"))
+        self.assertEqual([s["aktiv"] for s in b["seiten"]], [False, True, False])
+        self.assertEqual(logik.betrachter(3, None, "/x")["seite"], 1)
+        self.assertEqual(logik.betrachter(1, "1", "/x")["nachher"], "")
+        for falsch in ("0", "4", "x", "-1"):
+            self.assertIsNone(logik.betrachter(3, falsch, "/x"), falsch)
+        self.assertIsNone(logik.betrachter(0, "1", "/x"))
+
+    def test_rueckmeldung_ziel(self):
+        kette = [{"id": "a1", "status": "erledigt", "ergebnis_dateien": ["data/x/Expose.docx", "data/x/Expose.pdf"]},
+                 {"id": "a2", "status": "neu", "ergebnis_dateien": ["data/y.pdf"]}]
+        ansicht = {"fassungen": [{"ref": "a1", "name": "Fassung 1"}]}
+        z = logik.rueckmeldung_ziel(kette, ansicht, "a1", "1", "3")
+        self.assertEqual((z["fassung"], z["nr"], z["seite"], z["text"], z["fassung_name"]),
+                         ("a1", 1, 3, "„Expose.pdf“, Seite 3", "Fassung 1"))
+        self.assertEqual(logik.rueckmeldung_ziel(kette, ansicht, "a1", "0", "")["text"], "„Expose.docx“")
+        for fassung, nr in (("a2", "0"), ("a1", "2"), ("a1", "x"), ("zz", "0"), ("", "")):
+            self.assertIsNone(logik.rueckmeldung_ziel(kette, ansicht, fassung, nr, ""), (fassung, nr))
+        self.assertEqual(logik.rueckmeldung_ziel(kette, ansicht, "a1", "0", "1000")["seite"], "")
+        self.assertEqual(logik.rueckmeldung_text("kürzer", z), "Zur Datei „Expose.pdf“, Seite 3: kürzer")
+        self.assertEqual(logik.rueckmeldung_text("", None), "Siehe angehängte Datei.")
+        self.assertEqual(logik.rueckmeldung_text("kürzer", None), "kürzer")
+
+    def test_datei_zeilen_mit_vorschau_laeuft(self):
+        z = logik._datei_zeilen(["a.pdf", "b.docx"], [(True, False, 0, True), (True, True, 4)])
+        self.assertEqual([(x["vorschau_laeuft"], x["seiten"], x["pdf"]) for x in z], [(True, 0, True), (False, 4, True)])

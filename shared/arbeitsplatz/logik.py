@@ -266,13 +266,15 @@ def eigene_ref(n: int) -> str:
     return f"eigene-{n}"
 
 
-def _datei_zeilen(pfade: list[str], info: list[tuple[bool, bool, int]]) -> list[dict]:
+def _datei_zeilen(pfade: list[str], info: list[tuple]) -> list[dict]:
+    """info je Datei: (darf ausgeliefert werden, PDF da, Seiten[, Vorschau wird gerade erstellt])."""
     zeilen = []
     info = list(info) + [(False, False, 0)] * (len(pfade) - len(info))
-    for nr, (pfad, (original, pdf, seiten)) in enumerate(zip(pfade, info, strict=False)):
+    for nr, (pfad, (original, pdf, seiten, *rest)) in enumerate(zip(pfade, info, strict=False)):
         endung = pfad.rsplit(".", 1)[-1].lower() if "." in pfad else ""
         zeilen.append({"nr": nr, "name": dateiname(pfad), "endung": endung, "original": original,
-                       "pdf": pdf or (original and endung == "pdf"), "seiten": seiten})
+                       "pdf": pdf or (original and endung == "pdf"), "seiten": seiten,
+                       "vorschau_laeuft": bool(rest and rest[0])})
     return zeilen
 
 
@@ -386,3 +388,43 @@ def kosten_zeilen(laeufe: list[dict], ursprung_von: dict[str, str], titel_von_: 
                        "zeit": datetime.fromtimestamp(e["zeit"]).strftime("%d.%m. %H:%M") if e.get("zeit") else "",
                        "link": f"/dokument/{u}" if u else ""})
     return zeilen
+
+
+def betrachter(anzahl: int, seite_text: str | None, basis_link: str) -> dict | None:
+    """Seiten-Betrachter (umbauplan-ux.md Schritt 6, wie Lias logik.betrachter): eine Seite groß, Vor/Zurück und
+    Seitenzahlen als Links. basis_link: …/ansehen; Seite außerhalb oder keine Seiten: None (404)."""
+    if anzahl < 1:
+        return None
+    text = seite_text or "1"
+    if not text.isdigit() or not 1 <= int(text) <= anzahl:
+        return None
+    seite = int(text)
+
+    def link(n: int) -> str:
+        return f"{basis_link}?seite={n}"
+    return {"seite": seite, "anzahl": anzahl, "vorher": link(seite - 1) if seite > 1 else "",
+            "nachher": link(seite + 1) if seite < anzahl else "",
+            "seiten": [{"nr": n, "link": link(n), "aktiv": n == seite} for n in range(1, anzahl + 1)]}
+
+
+def rueckmeldung_ziel(kette: list[dict], ansicht: dict, fassung_id: str | None, nr_text: str | None,
+                      seite_text: str | None) -> dict | None:
+    """Worauf sich eine Rückmeldung bezieht, wenn Jan sie an einer Datei (und Seite) gibt (wie Lias
+    logik.rueckmeldung_ziel). fassung_id: fertiger Auftrag der Kette, aus dem die Datei stammt; nr_text: Index in
+    dessen ergebnis_dateien; seite_text: Seite im Betrachter (optional). Unbekanntes: None (dann gilt das Ganze)."""
+    fassung = next((a for a in kette if a["id"] == fassung_id and a.get("status") == "erledigt"), None)
+    pfade = (fassung or {}).get("ergebnis_dateien") or []
+    if not fassung or not (nr_text or "").isdigit() or not 0 <= int(nr_text) < len(pfade):
+        return None
+    nr = int(nr_text)
+    seite = int(seite_text) if (seite_text or "").isdigit() and 1 <= int(seite_text) <= 999 else None
+    name = dateiname(pfade[nr])  # mit Endung: der Agent findet die Datei daran
+    fassung_name = next((f["name"] for f in ansicht.get("fassungen") or [] if f["ref"] == fassung["id"]), "")
+    return {"fassung": fassung["id"], "nr": nr, "seite": seite or "", "name": name,
+            "text": f"„{name}“" + (f", Seite {seite}" if seite else ""), "fassung_name": fassung_name}
+
+
+def rueckmeldung_text(text: str, ziel: dict | None) -> str:
+    """Text des Auftrags an den Feedback-Dienst; mit Ziel beginnt er mit Datei und Seite."""
+    text = text or "Siehe angehängte Datei."
+    return f"Zur Datei {ziel['text']}: {text}" if ziel else text

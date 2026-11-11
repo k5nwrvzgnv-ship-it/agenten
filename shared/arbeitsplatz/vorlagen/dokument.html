@@ -23,7 +23,7 @@
   <summary class="knopf knopf-leise laden-knopf" aria-label="Herunterladen" title="Herunterladen"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
   <div class="menue">
     {%- for k in eintraege %}
-    <a class="knopf knopf-leise" href="{{ k.link }}"{% if k.laden %} download{% else %} target="_blank" rel="noopener"{% endif %}>{{ k.text }}</a>
+    <a class="knopf knopf-leise" href="{{ k.link }}"{% if k.laden %} download{% elif not k.hier %} target="_blank" rel="noopener"{% endif %}>{{ k.text }}</a>
     {%- endfor %}
   </div>
 </details>
@@ -35,9 +35,13 @@
 {%- set n = namespace(e=[]) %}
 {%- if x.pdf %}{% set n.e = n.e + [{"text": "PDF ansehen", "link": basis ~ "/pdf", "laden": false}] %}{% endif %}
 {%- if x.original %}{% set n.e = n.e + [{"text": ORIGINAL.get(x.endung, "Original (" ~ x.endung ~ ")"), "link": basis, "laden": true}] %}{% endif %}
+{#- Rückmeldung zu dieser Datei: das Feld unten bekommt das Ziel (Datei aus dieser Fassung) -#}
+{%- if n.e and d.rueckmeldung_moeglich %}{% set n.e = n.e + [{"text": "Rückmeldung zu dieser Datei", "hier": true,
+    "link": "/dokument/" ~ u ~ "?offen=rueckmeldung&fassung=" ~ f.ref ~ "&datei=" ~ x.nr ~ "#rueckmeldung"}] %}{% endif %}
 {%- if n.e %}{{ laden(n.e) }}{% else %}<span class="unter">nicht verfügbar</span>{% endif %}
 {%- endmacro %}
-{#- Dateien einer Fassung: je Datei eine Zeile mit Download-Symbol; mit Seitenbildern die erste Seite klein -#}
+{#- Dateien einer Fassung: je Datei eine Zeile mit Download-Symbol; mit Seitenbildern die erste Seite klein, ein
+    Klick öffnet den Betrachter. Wird die Vorschau gerade erstellt (vorschau.py), steht das da. -#}
 {%- macro dateiliste(f) %}
 <div class="dateien">
   {%- if f.art == "eigene" %}
@@ -45,11 +49,13 @@
     {{ laden([{"text": "Herunterladen", "link": "/dokument/" ~ u ~ "/eigene/" ~ f.eigene_n, "laden": true}]) }}</div>
   {%- else %}
   {%- for x in f.dateien %}
-  {%- set seite1 = "/dokument/" ~ u ~ "/datei/" ~ f.ref ~ "/" ~ x.nr ~ "/seite/1" %}
+  {%- set dbasis = "/dokument/" ~ u ~ "/datei/" ~ f.ref ~ "/" ~ x.nr %}
   <div class="datei{% if x.seiten %} datei-karte{% endif %}">
     {%- if x.seiten %}
-    <a class="vorschau" href="{{ seite1 }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true"><img src="{{ seite1 }}" alt="" loading="lazy"></a>
-    <span class="datei-text"><span class="dateiname">{{ x.name }}</span><span class="unter">{{ x.seiten }} {{ "Seite" if x.seiten == 1 else "Seiten" }}</span></span>
+    <a class="vorschau" href="{{ dbasis }}/ansehen" tabindex="-1" aria-hidden="true"><img src="{{ dbasis }}/seite/1" alt="" loading="lazy"></a>
+    <span class="datei-text"><a class="dateiname" href="{{ dbasis }}/ansehen">{{ x.name }}</a><span class="unter">{{ x.seiten }} {{ "Seite" if x.seiten == 1 else "Seiten" }} · ansehen</span></span>
+    {%- elif x.vorschau_laeuft %}
+    <span class="datei-text"><span class="dateiname">{{ x.name }}</span><span class="unter">Vorschau wird erstellt … Seite gleich neu laden.</span></span>
     {%- else %}
     <span class="dateiname">{{ x.name }}</span>
     {%- endif %}
@@ -115,30 +121,20 @@
 {%- set x1 = h.dateien[0] if h.dateien | length == 1 and h.dateien[0].seiten else none %}
 <div class="material">
   {%- if x1 %}
-  {#- Eine Datei mit Seitenbildern: die ersten zwei Seiten groß, alle Seiten in einer Klappe -#}
+  {#- Eine Datei mit Seitenbildern: die ersten zwei Seiten groß, ein Klick öffnet den Betrachter -#}
   <div class="material-seiten">
     {%- for s in range(1, [x1.seiten, 2] | min + 1) %}
-    <a class="blatt" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/seite/{{ s }}" target="_blank" rel="noopener" aria-label="{{ x1.name }}, Seite {{ s }} von {{ x1.seiten }} ansehen">
+    <a class="blatt" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/ansehen?seite={{ s }}" aria-label="{{ x1.name }}, Seite {{ s }} von {{ x1.seiten }} ansehen">
       <img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/seite/{{ s }}" alt="" loading="lazy"></a>
     {%- endfor %}
   </div>
   <div class="material-zeile">
-    <span class="unter">{{ x1.name }} · {{ x1.seiten }} {{ "Seite" if x1.seiten == 1 else "Seiten" }}</span>
+    <span class="unter">{{ x1.name }} · {{ x1.seiten }} {{ "Seite" if x1.seiten == 1 else "Seiten" }}. Klick auf eine Seite, um durchzublättern.</span>
     {{ datei_laden(h, x1) }}
   </div>
   {%- elif h.dateien or h.art == "eigene" %}
   {{ dateiliste(h) }}
   {%- endif %}
-  {%- for x in h.dateien if x.seiten > 2 or (x.seiten and not x1) %}
-  <details class="mehr">
-    <summary>{{ "Alle " ~ x.seiten ~ " Seiten" if x1 else x.name ~ ": alle Seiten" }}</summary>
-    <div class="seitenbilder" aria-label="Seiten von {{ x.name }}">
-      {%- for s in range(1, x.seiten + 1) %}
-      <a href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" target="_blank" rel="noopener"><img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x.nr }}/seite/{{ s }}" alt="Seite {{ s }} von {{ x.name }}" loading="lazy"></a>
-      {%- endfor %}
-    </div>
-  </details>
-  {%- endfor %}
 </div>
 {%- if h.kern or h.punkte or h.pruefen %}
 {%- if h.dateien or h.art == "eigene" %}
@@ -162,8 +158,14 @@
   {%- if offen == "rueckmeldung" %}{% for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}{% endif %}
   <form class="eingabe" method="post" action="/dokument/{{ u }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+    {%- if ziel %}
+    <input type="hidden" name="fassung" value="{{ ziel.fassung }}"><input type="hidden" name="dnr" value="{{ ziel.nr }}">
+    <input type="hidden" name="seite" value="{{ ziel.seite }}">
+    <p class="eingabe-ziel">Zu {{ ziel.text }}{% if ziel.fassung_name and d.fassungen | length > 1 %} ({{ ziel.fassung_name }}){% endif %}.
+      <a href="/dokument/{{ u }}#rueckmeldung">Stattdessen zum Ganzen</a></p>
+    {%- endif %}
     <label class="unsichtbar" for="rueck-text">Was soll anders werden?</label>
-    <textarea id="rueck-text" name="text" rows="3" maxlength="4000"{% if offen == "rueckmeldung" and fehler %} autofocus{% endif %} placeholder="Was soll anders werden?">{{ text if offen == "rueckmeldung" else "" }}</textarea>
+    <textarea id="rueck-text" name="text" rows="3" maxlength="4000"{% if ziel or (offen == "rueckmeldung" and fehler) %} autofocus{% endif %} placeholder="Was soll anders werden?">{{ text if offen == "rueckmeldung" else "" }}</textarea>
     <p class="gewaehlt" id="gewaehlt" aria-live="polite"></p>
     <div class="eingabe-leiste">
       <div class="links">

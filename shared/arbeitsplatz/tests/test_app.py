@@ -544,7 +544,8 @@ class TestDokument(Aufbau):
         self.assertEqual(status, 200)
         self.assertIn("Exposé Holzschutz", html)
         self.assertIn("Quellen ansehen", html)
-        self.assertIn(f"/dokument/{self.U}/datei/{self.U}/0/seite/2", html)
+        self.assertIn(f"/dokument/{self.U}/datei/{self.U}/0/ansehen", html)
+        self.assertIn(f"/dokument/{self.U}/datei/{self.U}/0/seite/1", html)
         self.assertIn('id="rueckmeldung"', html)
         self.assertIn("Kapitel 3", html)  # Brotkrume zum Ort
         self.assertEqual(self.get(f"/dokument/{self.U}/datei/{self.U}/0")[1], "DOCX")
@@ -592,6 +593,67 @@ class TestDokument(Aufbau):
         html = self.get(f"/dokument/{self.NB}")[1]
         self.assertNotIn("Was soll anders werden", html)
         self.assertNotIn("nimmt der Agent keine Rückmeldung", html)
+
+    def test_betrachter(self):
+        """umbauplan-ux.md Schritt 6: eine Seite groß, Vor/Zurück, Rückmeldung zu dieser Seite."""
+        basis = f"/dokument/{self.U}/datei/{self.U}/0"
+        status, html, _ = self.get(f"{basis}/ansehen?seite=2")
+        self.assertEqual(status, 200)
+        self.assertIn(f'<img src="{basis}/seite/2"', html)
+        self.assertIn(f'href="{basis}/ansehen?seite=1" rel="prev"', html)
+        self.assertIn("2 / 2", html)
+        self.assertIn(f"?offen=rueckmeldung&amp;fassung={self.U}&amp;datei=0&amp;seite=2#rueckmeldung", html)
+        self.assertIn(f'href="/dokument/{self.U}">Exposé Holzschutz</a>', html)  # Brotkrume zum Dokument
+        self.assertEqual(self.get(f"{basis}/ansehen")[0], 200)
+        for falsch in ("3", "0", "x"):
+            self.assertEqual(self.get(f"{basis}/ansehen?seite={falsch}")[0], 404)
+        self.assertEqual(self.get(f"/dokument/{self.U}/datei/{self.U}/1/ansehen")[0], 404)  # geheim.pdf
+
+    def test_rueckmeldung_zu_datei_und_seite(self):
+        html = self.get(f"/dokument/{self.U}?offen=rueckmeldung&fassung={self.U}&datei=0&seite=2")[1]
+        feld = html.split('id="rueckmeldung"')[1]
+        self.assertIn("Zu „Expose.docx“, Seite 2.", feld)
+        self.assertIn(f'name="fassung" value="{self.U}"', feld)
+        self.assertIn('name="dnr" value="0"', feld)
+        self.assertIn(" autofocus", feld)
+        self.assertNotIn("Zu „", self.get(f"/dokument/{self.U}?offen=rueckmeldung&fassung={self.U}&datei=9")[1])
+        kopf = self.post(f"/dokument/{self.U}/rueckmeldung", {"text": "Bitte kürzer", "fassung": self.U, "dnr": "0",
+                                                              "seite": "2", "einmal": "z1"})[2]
+        self.assertTrue(kopf["location"].endswith("erledigt=rueckmeldung"))
+        fb = auftraege.neue("feedback", basis=self.instanz / "auftraege")
+        self.assertEqual([(a["bezug"], a["text"]) for a in fb],
+                         [(self.U, "Zur Datei „Expose.docx“, Seite 2: Bitte kürzer")])
+
+    def test_eigene_vorschau_fuer_pdf_ohne_renderer(self):
+        """Ein PDF ohne Renderer-Vorschau: erst „Vorschau wird erstellt“, dann Seiten aus data/vorschau."""
+        blatt = "20261109-120000-uni-eeeeee"
+        (self.tmp / "uni" / "data" / "arbeit" / "Blatt.pdf").write_bytes(b"%PDF-1.7 Blatt")
+        a = {"id": blatt, "agent": "uni", "quelle": "arbeitsplatz", "ort": self.k, "art": "expose",
+             "text": "Blatt", "status": "erledigt", "erstellt": "2026-11-09T12:00:00+01:00",
+             "abgeschlossen": "2026-11-09T12:10:00+01:00", "ergebnis": "ok", "bezug": None,
+             "ergebnis_dateien": ["data/arbeit/Blatt.pdf"], "daten": {"titel": "Blatt"}}
+        (self.instanz / "auftraege" / "erledigt" / f"{blatt}.json").write_text(json.dumps(a), encoding="utf-8")
+        gemacht = []
+
+        def machen(quelle, ziel):
+            gemacht.append(quelle.name)
+            for n in (1, 2, 3):
+                (ziel / f"{quelle.stem}-seite-{n:02d}.png").write_bytes(b"PNG" + bytes([n]))
+        with mock.patch.object(app.vorschau, "_lauf", machen):
+            html = self.get(f"/dokument/{blatt}")[1]
+            self.assertIn("Vorschau wird erstellt", html)
+            app.vorschauen().warten()
+            html = self.get(f"/dokument/{blatt}")[1]
+        self.assertEqual(gemacht, ["Blatt.pdf"])
+        self.assertNotIn("Vorschau wird erstellt", html)
+        self.assertIn(f"/dokument/{blatt}/datei/{blatt}/0/ansehen?seite=2", html)
+        self.assertIn("3 Seiten", html)
+        status, inhalt, _ = self.get(f"/dokument/{blatt}/datei/{blatt}/0/seite/3")
+        self.assertEqual((status, inhalt), (200, "PNG\x03"))
+        self.assertEqual(self.get(f"/dokument/{blatt}/datei/{blatt}/0/ansehen?seite=3")[0], 200)
+        self.assertTrue((self.tmp / "webdaten" / "vorschau" / blatt / "0").is_dir())
+        self.assertEqual(sorted(p.name for p in (self.tmp / "uni" / "data" / "arbeit").iterdir()),
+                         ["Blatt.pdf", "Expose-vorschau", "Expose.docx"])  # Agent-Ordner unberührt
 
     def test_final_an_und_aus(self):
         status, _, kopf = self.post(f"/dokument/{self.U}/final", {"ref": self.U, "an": "1"})

@@ -1,0 +1,37 @@
+{#- Seiten-Betrachter einer Ergebnisdatei (umbauplan-ux.md Schritt 6, nach Lias ansehen.html): eine Seite groß,
+    Vor/Zurück und Seitenzahlen als Links, ohne JavaScript. Zurück zum Dokument über die Brotkrumen und unten. -#}
+{% extends "basis.html" %}
+{% block titel %}{{ e.titel }}, Seite {{ b.seite }}{% endblock %}
+{% block seitenkopf %}{% endblock %}
+{% block inhalt %}
+{%- macro blaettern() %}
+<nav class="blaettern" aria-label="Seiten">
+  {%- if b.vorher %}<a class="knopf" href="{{ b.vorher }}" rel="prev">‹ Vorige</a>
+  {%- else %}<span class="knopf knopf-aus" aria-hidden="true">‹ Vorige</span>{% endif %}
+  <span class="seitenzahl">{{ b.seite }} / {{ b.anzahl }}</span>
+  {%- if b.nachher %}<a class="knopf" href="{{ b.nachher }}" rel="next">Nächste ›</a>
+  {%- else %}<span class="knopf knopf-aus" aria-hidden="true">Nächste ›</span>{% endif %}
+</nav>
+{%- endmacro %}
+{{ blaettern() }}
+{%- set bild = basis_link ~ "/seite/" ~ b.seite %}
+<figure class="betrachter">
+  <a href="{{ b.nachher or bild }}"{% if not b.nachher %} target="_blank" rel="noopener"{% endif %}>
+    <img src="{{ bild }}" alt="{{ e.titel }}, Seite {{ b.seite }} von {{ b.anzahl }}">
+  </a>
+  <figcaption class="unter">{% if b.nachher %}Klick auf die Seite für die nächste.{% else %}Letzte Seite. Klick auf die Seite, um sie in voller Größe zu öffnen.{% endif %}</figcaption>
+</figure>
+{%- if b.anzahl > 2 %}
+<ol class="seitenwahl" aria-label="Zu Seite">
+  {%- for s in b.seiten %}
+  <li><a href="{{ s.link }}"{% if s.aktiv %} aria-current="page"{% endif %}>{{ s.nr }}</a></li>
+  {%- endfor %}
+</ol>
+{%- endif %}
+<div class="knoepfe knoepfe-unten">
+  {%- if x.pdf %}<a class="knopf" href="{{ basis_link }}/pdf" target="_blank" rel="noopener">PDF ansehen</a>{% endif %}
+  {%- if x.original %}<a class="knopf" href="{{ basis_link }}" download>Herunterladen</a>{% endif %}
+  {%- if rueck_link %}<a class="knopf" href="{{ rueck_link }}">Rückmeldung zu dieser Seite</a>{% endif %}
+  <a class="knopf" href="/dokument/{{ u }}">Zurück zum Dokument</a>
+</div>
+{% endblock %}
