@@ -173,6 +173,21 @@ class TestSeiten(Aufbau):
         self.assertEqual(hashlib.sha256(js).hexdigest(), summe)
         self.assertEqual(self.get("/statisch/arbeitsplatz.css")[0], 200)
 
+    def test_ruhiges_aussehen(self):
+        """umbauplan-ux.md Schritt 1: ruhig.css, rechte Spalte (Läuft gerade, Kosten) nur auf Heute."""
+        html = self.get("/")[1]
+        self.assertIn('href="/statisch/ruhig.css"', html)
+        self.assertNotIn("stil.css", html)
+        self.assertIn('<div class="rahmen">', html)
+        self.assertIn('<aside class="rechts" aria-label="Läuft gerade">', html)
+        self.assertEqual(self.get("/statisch/ruhig.css")[0], 200)
+        self.assertEqual(self.get("/statisch/stil.css")[0], 404)
+        p = self.ort("Projekt")
+        for pfad in (f"/ort/{p}", "/neu", f"/neu/expose?ort={p}", "/archiv", "/seite/neu"):
+            html = self.get(pfad)[1]
+            self.assertIn('<div class="rahmen ohne-rechts">', html, pfad)
+            self.assertNotIn('class="rechts"', html, pfad)
+
     def test_baum_und_ort_seite(self):
         p = self.ort("Projekt <Fehlstellen>")
         k = self.ort("Kapitel 3", p)

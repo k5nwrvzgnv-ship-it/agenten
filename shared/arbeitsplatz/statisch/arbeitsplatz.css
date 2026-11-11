@@ -1,37 +1,44 @@
-/* Ergänzungen für den Arbeitsplatz zu stil.css (Kopie aus shared/webapp, dort nicht verändern). */
-.baum-eintrag.tiefe-0 { font-weight: 600; }
-.baum-eintrag.tiefe-1 { padding-left: 26px; font-weight: 400; }
-.baum-eintrag.tiefe-2 { padding-left: 42px; font-weight: 400; font-size: 14px; }
-.baum-eintrag.tiefe-3 { padding-left: 58px; font-weight: 400; font-size: 14px; }
-.baum-eintrag.tiefe-4 { padding-left: 74px; font-weight: 400; font-size: 14px; }
-.baum-eintrag.tiefe-5 { padding-left: 90px; font-weight: 400; font-size: 14px; }
-.baum-eintrag.tiefe-6 { padding-left: 106px; font-weight: 400; font-size: 14px; }
-.baum-neu { color: var(--grau); }
-.baum-zu { color: var(--grau); font-weight: 400; }
-.baum-zahl-grau { color: var(--grau); font-weight: 400; }
-.baum-eintrag[aria-current] .baum-zu { color: var(--weiss); }
-.baum-mehr { padding: 12px 10px 0; font-size: 14px; color: var(--grau); }
+/* Ergänzungen für den Arbeitsplatz zu ruhig.css (Kopie aus shared/webapp, dort nicht verändern; hier nur, was der
+   Arbeitsplatz anders oder zusätzlich hat). Farben und Größen aus den Variablen von ruhig.css. */
+
+/* Baum: freie Tiefe bis 6, alle Ebenen gleich dunkel; „›“ heißt: hat zugeklappte Unterseiten */
+.baum-eintrag.tiefe-2 { color: var(--fg); }
+.baum-eintrag.tiefe-3 { padding-left: 52px; }
+.baum-eintrag.tiefe-4 { padding-left: 66px; }
+.baum-eintrag.tiefe-5 { padding-left: 80px; }
+.baum-eintrag.tiefe-6 { padding-left: 94px; }
+.baum-zu { color: var(--sehrleise); }
+.baum-zahl-grau { color: var(--leise); font-weight: 400; }
+.baum-zahl-grau::before { display: none; }
+.baum-fuss { margin-top: 12px; padding-top: 4px; }
+
+/* Rechte Spalte auf Heute: Zeilen mit zwei Textzeilen und Betrag */
+.rzeile-zwei { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 8px; align-items: center; color: inherit; }
+.rzeile-zwei .unter { font-size: 12px; }
+
+/* Unterseiten mit ↑/↓ */
 .zeile-mit-knoepfen { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
 .knoepfe-klein { display: flex; gap: 12px; }
-.zeile-klein .titel { font-size: 16px; }
-.fragen ul { border-bottom: 1px solid var(--schwarz); }
-.details summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
-.fassungen summary { display: flex; gap: 12px; align-items: baseline; padding: 12px 0; cursor: pointer; }
-.auftrag-text { white-space: pre-line; }
+.details > summary { cursor: pointer; font-weight: 500; padding: 8px 0; }
+
+/* Dokument */
+.datei-zeile { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0; }
 .seitenbilder { display: flex; flex-direction: column; gap: 16px; }
-.seitenbilder img { display: block; width: 100%; max-width: 760px; border: 1px solid var(--schwarz); background: var(--weiss); }
-.datei-zeile { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
-.knopf-klein { min-height: 36px; padding: 0 10px; font-size: 13px; }
-.aktionen details { border-top: 1px solid var(--schwarz); padding: 4px 0 12px; }
-.aktionen summary, .fassungen details summary { cursor: pointer; font-weight: 700; }
-.fassungen li { padding-bottom: 10px; }
-.auftrag summary { font-weight: 400; padding: 4px 0; }
-.punkte { border: 0; padding-left: 18px; list-style: disc; }
-.punkte li { border: 0; }
-.rueck { padding: 10px 0; }
-.zeile-kosten .marke { font-size: 13px; }
-.md-kopf { margin: 18px 0 6px; }
-.md .punkte { margin: 6px 0; }
-.eigen h3 { margin: 18px 0 6px; font-size: 16px; }
-.aussage { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; cursor: pointer; }
-.zitat-falsch { color: var(--grau); text-decoration: line-through; }
+.seitenbilder img { display: block; width: 100%; height: auto; background: #fff; border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--linie), 0 2px 10px rgba(15, 15, 15, .08); }
+.aktionen { gap: 8px; }
+.aktionen > details > summary, .fassungen details > summary { cursor: pointer; font-weight: 500; }
+.fassungen summary { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 0; }
+.fassungen li { padding-bottom: 8px; border-bottom: 1px solid var(--linie); }
+.auftrag > summary { font-weight: 400; padding: 4px 0; }
+.auftrag-text { white-space: pre-line; }
+.rueck { padding: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.rueck p { margin: 0; }
+
+/* Markdown und eigene Ansichten (Recherche, Prüfung) */
+.md { display: flex; flex-direction: column; gap: 10px; }
+.md-kopf { margin: 12px 0 0; font-size: 16px; font-weight: 600; }
+.eigen h3 { margin: 16px 0 4px; }
+.aussage { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; cursor: pointer; }
+.zitat-falsch { color: var(--leise); text-decoration: line-through; }
+code { font-size: 14px; background: var(--flaeche); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }

@@ -4,7 +4,7 @@
 <div class="md">
 {%- for b in md %}
 {%- if b.art == "kopf" %}<h{{ b.ebene }} class="md-kopf">{{ b.text }}</h{{ b.ebene }}>
-{%- elif b.art == "punkte" %}<ul class="punkte">{% for p in b.punkte %}<li>{{ inline(p) }}</li>{% endfor %}</ul>
+{%- elif b.art == "punkte" %}<ul class="punkte">{% for p in b.punkte %}<li><span class="nr" aria-hidden="true">–</span><span>{{ inline(p) }}</span></li>{% endfor %}</ul>
 {%- else %}<p class="absatz">{{ inline(b.teile) }}</p>{% endif %}
 {%- endfor %}
 </div>

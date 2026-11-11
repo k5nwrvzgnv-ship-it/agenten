@@ -1,6 +1,5 @@
 {% extends "basis.html" %}
 {% block inhalt %}
-<p class="absatz">{% if ort %}Neues Dokument in „{{ ort_text }}“.{% else %}Neues Dokument. Den Ort wählst du im Formular.{% endif %}</p>
 {%- if arten %}
 <div class="galerie">
   {%- for a in arten %}

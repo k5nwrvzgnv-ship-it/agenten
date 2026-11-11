@@ -36,7 +36,7 @@
 <section>
   <h2>{{ h.name }}{% if h.final %} · final{% endif %} <span class="unter">{{ h.zeit_text }}</span></h2>
   {%- if h.kern %}<p class="absatz">{{ h.kern }}</p>{% endif %}
-  {%- if h.punkte %}<ul class="punkte">{% for p in h.punkte %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+  {%- if h.punkte %}<ul class="punkte">{% for p in h.punkte %}<li><span class="nr" aria-hidden="true">–</span><span>{{ p }}</span></li>{% endfor %}</ul>{% endif %}
   {%- if h.pruefen %}<p class="hinweis"><strong>Bitte prüfen:</strong> {{ h.pruefen }}</p>{% endif %}
   {{ dateiliste(h) }}
   {%- for x in h.dateien if x.seiten %}
