@@ -66,17 +66,50 @@ die können später als Dateien Eingabe werden).
   1.992 ohne Fehler. 10 Klassen mit Box und Maske, stark ungleich (Live_knot rund 42.000 Objekte, overgrown 10,
   blue_stain 192).
 - Rund 155 GB in 10 ZIPs je etwa 15 GB: Download auf den Mac, nicht auf den Server.
-- Vorbehalte: Box-Format im Paper widersprüchlich (Reihenfolge der Ecken, „durch 100 geteilt“), vor dem Umwandeln
-  an Bildern prüfen. Ob alle sichtbaren Fehler markiert sind, sagt das Paper nicht. Kaggle-Spiegel (nomihsa965)
-  nicht nutzen (ohne Login nicht lesbar, Lizenz und Inhalt unbekannt), Original von Zenodo nehmen.
+- Ob alle sichtbaren Fehler markiert sind, sagt das Paper nicht. Kaggle-Spiegel (nomihsa965) nicht nutzen (ohne
+  Login nicht lesbar, Lizenz und Inhalt unbekannt), Original von Zenodo nehmen.
+- Zenodo (nur eine Version, 15.04.2021): 13 Dateien, 156,6 GB. Bouding_Boxes.zip (so geschrieben, 5,0 MB, md5
+  9b9e9745bc220188faeb4065e4bcd101), Semantic Maps.zip (207 MB, md5 b06ab6c11b82eb906f64e8bc032cbc66, entpackt
+  174 GB, nie ganz entpacken), Semantic Map Specification.txt (430 Byte, md5 045123a74ed25224737ec165328c5bb6),
+  Images1–10.zip je 15,3–17,6 GB (Images1 md5 cba808d221d78c46e79958efd4785bca; alle md5 in der Zenodo-API
+  https://zenodo.org/api/records/4694695). Bilder entpackt ebenfalls rund 174 GB (BMP 8,6 MB je Bild).
+- Zenodo liefert nur etwa 300–400 KB/s und bricht ab: ein Bild-ZIP rund 13 Stunden, alles rund 5 Tage. Download mit
+  Wiederholschleife (curl -C -, siehe Download-Stand).
+
+### Box-Format (geprüft 11.11.2026 an allen 20.276 Dateien und der Maske zu 100000000)
+- Je Bild <nummer>_anno.txt, je Fehlstelle eine Zeile: Klasse TAB x1 TAB y1 TAB x2 TAB y2, Windows-Zeilenende.
+  Werte 0..1 = Pixel geteilt durch Breite 2800 bzw. Höhe 1024; (x1, y1) links oben, (x2, y2) rechts unten
+  ausschließlich (Maske 100000000 deckt sich pixelgenau: Box 1231..1412 x 304..1024, Maske 1231–1411 x 304–1023).
+- 1.992 leere Dateien (Bilder ohne Fehler), 43.974 Boxen, keine Werte außerhalb 0..1, keine vertauschten Ecken.
+- 132 Dateien mit Dezimalkomma (0,902500) statt Punkt: beim Einlesen Komma durch Punkt ersetzen.
+- 155 Dateien: x-Werte passen nicht zu Breite 2800, sondern zu einer Breite zwischen 2709 und 2799 (je Datei
+  verschieden, y passt zu 1024), z. B. 100000061, 100000062, 100400005. Die Masken sind alle 2800 x 1024. Offen, ob
+  diese Boxen verschoben sind: an den Masken und Bildern dieser Nummern prüfen, sonst diese Bilder weglassen.
+- Klassennamen in den Dateien (Boxen / Bilder): Live_Knot 21.224 / 11.912, Dead_Knot 11.985 / 8.350,
+  resin 3.455 / 2.624, knot_with_crack 2.276 / 1.835, Crack 2.169 / 1.578, Marrow 1.181 / 1.061,
+  Quartzity 1.075 / 847, Knot_missing 503 / 478, Blue_Stain 96 / 77, overgrown 10 / 6. Schreibweise weicht von der
+  Specification ab (dort Live_knot, Death_know, Blue_stain, Nummern 1–8, 10, 11 mit Maskenfarben).
+- 20.276 Box-Dateien und 20.276 Masken, das Paper nennt 20.275 Bilder: eine Nummer zu viel, offen.
+
+### Download-Stand (11.11.2026)
+- Mac: ~/fehlstellenscan/daten/kodytek/zip/ mit Bouding_Boxes.zip, Semantic Maps.zip, Specification (md5 stimmen),
+  Images1.zip lädt (Abbruch bei 1,6 GB, läuft mit Schleife weiter). Entpackt: boxen/ (alle), masken/100000000_segm.bmp.
+  Laden mit Wiederholung (im Ordner zip/):
+
+      for i in {1..50}; do curl -L --fail -C - --speed-limit 1000 --speed-time 120 -o Images1.zip "https://zenodo.org/api/records/4694695/files/Images1.zip/content" && break; sleep 30; done
+      md5 Images1.zip
+
+- Server: data/annotationen/ mit Bouding_Boxes.zip, Specification, 100000000_segm.bmp (per scp, Jans Okay
+  11.11.2026), entpackt nach data/annotationen/boxen/. Noch keine Bilder in data/rohbilder/.
 
 ## Offene Punkte
 1. Pakete, Entscheidung Jan (Pillow und numpy auf dem Server sind installiert):
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
-2. Kleine Probe des Datensatzes (ein ZIP auf dem Mac, wenige Bilder samt Annotationen auf den Server), damit
-   datensatz.py das Box-Format an echten Dateien prüft. Download nur nach Jans Okay.
+2. Probe des Datensatzes: Images1.zip fertig laden, md5 prüfen, Inhalt ansehen (welche Nummern), wenige Bilder
+   samt Masken (auch von Nummern mit abweichender Breite) per scp nach data/rohbilder/ bzw. data/annotationen/.
+   Danach mit Jan entscheiden, ob alle 157 GB geladen werden (rund 5 Tage, 330 GB auf dem Mac mit Entpacken).
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
