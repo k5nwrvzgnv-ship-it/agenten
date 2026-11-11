@@ -1,0 +1,2 @@
+# Vorerst leer: das Gerüst braucht nur Python-Bordmittel und agentkit (per .pth).
+# Nächste Pakete nur nach Jans Okay (siehe STATUS.md, Offene Punkte).

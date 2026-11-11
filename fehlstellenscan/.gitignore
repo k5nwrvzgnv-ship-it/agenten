@@ -1,0 +1,8 @@
+# Modellgewichte und Exporte nie ins Repo (groß, liegen in data/modelle/ bzw. auf dem Mac)
+*.pt
+*.pth
+*.onnx
+*.mlpackage/
+*.engine
+# Läufe von ultralytics, falls versehentlich außerhalb von data/ gestartet
+runs/
