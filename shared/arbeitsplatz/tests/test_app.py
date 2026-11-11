@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import http.client
 import re
 import shutil
@@ -212,7 +213,7 @@ class TestSeiten(Aufbau):
         self.assertEqual(heute.count('class="menue-halter plus"'), 1)
         self.assertEqual(eintraege(heute), ["Seite", "Dokument …"])
         self.assertIn('class="knopf knopf-voll plus-knopf"', heute)
-        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Seite", "Dokument …"])
+        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Seite", "Dokument …", "Datei"])
         for pfad in ("/archiv", "/neu", "/neu/expose", "/seite/neu"):
             self.assertIsNone(eintraege(self.get(pfad)[1]), pfad)
         self.assertNotIn("+ Neu<", self.get(f"/ort/{p}")[1])
@@ -242,6 +243,7 @@ class TestSeiten(Aufbau):
         self.assertNotIn('aria-label="C nach unten"', punkte)
         # außerhalb des „···“ keine Formulare mehr (keine offenen Masken, keine ↑/↓)
         mitte = html.split("</header>")[1].split("</main>")[0]
+        mitte = re.sub(r'<section id="ablage" class="ablage-zu".*?</section>', "", mitte, flags=re.S)  # versteckt
         self.assertNotIn("<form", mitte)
         # ↓ an A schiebt A hinter B
         self.post(f"/ort/{a}/verschieben", {"eltern": p, "position": "1", "zurueck": f"/ort/{p}"})
@@ -394,6 +396,82 @@ class TestNeu(Aufbau):
         self.assertIn("ausgeschaltet", html)
         self.assertEqual(auftraege.neue(basis=self.instanz / "auftraege"), [])
         self.assertEqual(self.gestartet, [])
+
+    def test_datei_am_ort(self):
+        """umbauplan-ux.md Schritt 4: Datei am Ort ablegen, Galerie „Was soll daraus werden?“ (nur Arten mit
+        Material), Formular mit der Datei, Auftrag übernimmt sie, der abgelegte Ordner ist danach weg."""
+        html = self.get(f"/ort/{self.k}")[1]
+        self.assertIn('href="#ablage">Datei</a>', html)
+        self.assertIn('<form class="ablage-form" method="post" action="/neu/datei"', html)
+        self.assertIn("data-ablegen", html.split('id="ablage"')[1])
+        status, _, kopf = self.post("/neu/datei", {"ort": self.k, "einmal": "g1"},
+                                    dateien=[("Folien.pdf", b"%PDF"), ("Notizen.md", b"# N")])
+        self.assertEqual(status, 303)
+        ziel = kopf["location"]
+        m = re.fullmatch(rf"/neu\?ort={self.k}&datei=([a-z0-9_]+)", ziel)
+        self.assertTrue(m, ziel)
+        kennung = m.group(1)
+        gelegt = self.tmp / "webdaten" / "eingang" / f"gelegt-{kennung}"
+        self.assertEqual(sorted(p.name for p in gelegt.iterdir()), ["Folien.pdf", "Notizen.md"])
+        # Doppelklick legt nichts zweites ab
+        self.assertEqual(self.post("/neu/datei", {"ort": self.k, "einmal": "g1"},
+                                   dateien=[("Folien.pdf", b"%PDF")])[2]["location"], ziel)
+        self.assertEqual(len(list((self.tmp / "webdaten" / "eingang").iterdir())), 1)
+        html = self.get(ziel)[1]
+        self.assertIn("Was soll daraus werden?", html)
+        self.assertIn("Dabei: Folien.pdf, Notizen.md", html)
+        self.assertIn(f'href="/neu/zusammenfassung?ort={self.k}&amp;datei={kennung}"', html)
+        html = self.get(f"/neu/zusammenfassung?ort={self.k}&datei={kennung}")[1]
+        self.assertIn("Schon dabei: Folien.pdf, Notizen.md", html)
+        self.assertIn(f'name="datei" value="{kennung}"', html)
+        self.assertNotIn("data-ablegen required", html)  # Material ist schon da
+        # Auftrag: die abgelegten Dateien plus eine weitere aus dem Formular
+        status, _, _ = self.post("/neu/zusammenfassung", {"ort": self.k, "datei": kennung},
+                                 dateien=[("Folien.pdf", b"%PDF2")])
+        self.assertEqual(status, 303)
+        a = auftraege.neue(basis=self.instanz / "auftraege")[0]
+        self.assertEqual(sorted(Path(p).name for p in a["dateien"]), ["Folien-2.pdf", "Folien.pdf", "Notizen.md"])
+        self.assertFalse(gelegt.exists())
+        # danach ist die Kennung verbraucht: Galerie mit Hinweis, Formular mit Fehler
+        self.assertIn("nicht mehr da", self.get(f"/neu?ort={self.k}&datei={kennung}")[1])
+        status, html, _ = self.post("/neu/zusammenfassung", {"ort": self.k, "datei": kennung})
+        self.assertEqual(status, 400)
+        self.assertIn("nicht mehr da", html)
+
+    def test_datei_am_ort_grenzen(self):
+        self.assertEqual(self.post("/neu/datei", {"ort": self.k}, dateien=[("x.exe", b"MZ")])[0], 400)
+        self.assertEqual(self.post("/neu/datei", {"ort": self.k}, dateien=[])[0], 400)
+        self.assertEqual(self.post("/neu/datei", {"ort": "gibt-es-nicht"}, dateien=[("a.pdf", b"%PDF")])[0], 404)
+        self.assertEqual(self.post("/neu/datei", {"ort": self.k}, dateien=[("a.pdf", b"%PDF")], token=False)[0], 400)
+        self.assertEqual(self.post("/neu/datei", {"ort": self.k}, dateien=[("a.pdf", b"%PDF")],
+                                   origin="https://b.de")[0], 403)
+        zuviel = [(f"{i}.pdf", b"%PDF") for i in range(app.MAX_DATEIEN + 1)]
+        self.assertEqual(self.post("/neu/datei", {"ort": self.k}, dateien=zuviel)[0], 400)
+        eingang = self.tmp / "webdaten" / "eingang"
+        self.assertEqual(list(eingang.iterdir()) if eingang.exists() else [], [])
+        # fremde oder böse Kennung: nichts gelegt, Galerie normal
+        for k in ("../../etc", "GELEGT", "abc"):
+            html = self.get(f"/neu?ort={self.k}&datei={k}")[1]
+            self.assertNotIn("Was soll daraus werden?", html)
+        # finance-artige Arten ohne Material erscheinen nicht in der Galerie mit Datei
+        art = {"kennung": "nur_text", "material": "nein"}
+        with mock.patch.object(app.arten, "aktive", lambda _: [art | {"name": "Nur Text", "beschreibung": "",
+                                                                     "ausgabe": []}]):
+            kennung = re.search(r"datei=([a-z0-9_]+)", self.post("/neu/datei", {"ort": self.k},
+                                dateien=[("a.pdf", b"%PDF")])[2]["location"]).group(1)
+            self.assertNotIn("/neu/nur_text", self.get(f"/neu?ort={self.k}&datei={kennung}")[1])
+            self.assertIn("/neu/nur_text", self.get(f"/neu?ort={self.k}")[1])
+
+    def test_gelegt_aufraeumen(self):
+        eingang = self.tmp / "webdaten" / "eingang"
+        alt, neu, anders = eingang / "gelegt-alt12345", eingang / "gelegt-neu12345", eingang / "tmpabc"
+        for o in (alt, neu, anders):
+            o.mkdir(parents=True)
+        jetzt = time.time()
+        os.utime(alt, (jetzt - app.GELEGT_ALTER - 10,) * 2)
+        os.utime(anders, (jetzt - app.GELEGT_ALTER - 10,) * 2)
+        app.gelegt_aufraeumen(jetzt)
+        self.assertEqual(sorted(p.name for p in eingang.iterdir()), ["gelegt-neu12345", "tmpabc"])
 
     def test_material(self):
         status, html, _ = self.post("/neu/zusammenfassung", {"ort": self.k}, dateien=[])

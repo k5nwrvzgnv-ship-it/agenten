@@ -43,7 +43,11 @@
   <section>
     <label class="feld-titel" for="dateien">Material{% if art.material_oder %} <span class="grau">(statt {{ art.material_oder }})</span>{% elif art.material == "optional" %} <span class="grau">(optional)</span>{% endif %}</label>
     <p class="unter">PDF, Word, PowerPoint, Excel, Text oder Bilder, höchstens 10 Dateien. Auch auf die Seite ziehen.</p>
-    <input id="dateien" type="file" name="dateien" multiple data-ablegen{% if art.material == "pflicht" %} required{% endif %}>
+    {%- if gelegt %}
+    <input type="hidden" name="datei" value="{{ datei }}">
+    <p class="absatz">Schon dabei: {{ gelegt | join(", ") }}</p>
+    {%- endif %}
+    <input id="dateien" type="file" name="dateien" multiple data-ablegen{% if art.material == "pflicht" and not gelegt %} required{% endif %}>
   </section>
   {%- endif %}
   <button class="knopf knopf-voll" type="submit">Auftrag geben</button>

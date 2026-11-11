@@ -13,7 +13,7 @@
            offen=ort.titel == "Neue Seite" and request.query_params.get("aktion")) }}
 </header>
 {% endblock %}
-{#- Ort (umbauplan-ux.md Schritt 2): Kopf mit „+“ (Seite, Dokument …) und „···“ (Umbenennen, Verschieben, Unterseiten
+{#- Ort (umbauplan-ux.md Schritt 2): Kopf mit „+“ (Seite, Dokument …, Datei) und „···“ (Umbenennen, Verschieben, Unterseiten
     ordnen, Archivieren), darunter nur, was da ist. Im Archiv kein „+“; „Wiederherstellen“ steht am Hinweis. -#}
 {#- ↑ bzw. ↓ einer Unterseite im „···“; geht es nicht weiter, ein leerer Platz gleicher Breite -#}
 {%- macro ordnen_knopf(k, pos, zeichen, richtung, geht) -%}
@@ -27,7 +27,7 @@
 {%- block plus %}
 {%- if not archiviert %}
 {{ plus([{"text": "Seite", "aktion": "/seite/neu", "felder": [("eltern", ort.id), ("titel", "Neue Seite"), ("einmal", einmal_kennung())]},
-         {"text": "Dokument …", "link": neu_hier}]) }}
+         {"text": "Dokument …", "link": neu_hier}, {"text": "Datei", "link": "#ablage"}]) }}
 {%- endif %}
 {%- endblock %}
 {%- block punkte %}
@@ -70,6 +70,23 @@
 {%- endcall %}
 {%- endblock %}
 {% block inhalt %}
+{#- Datei am Ort (umbauplan-ux.md Schritt 4): „Datei“ im „+“ springt hierher (ohne JavaScript) bzw. öffnet gleich die
+    Auswahl (direkt.js); eine Datei auf die Seite gezogen landet im Feld (data-ablegen). „Weiter“ legt sie kurz ab
+    (/neu/datei), dann wählt Jan in der Galerie, was daraus werden soll. Ohne Wahl unsichtbar (ruhig.css .ablage-zu). -#}
+{%- if not archiviert %}
+<section id="ablage" class="ablage-zu" aria-label="Datei ablegen">
+  <form class="ablage-form" method="post" action="/neu/datei" enctype="multipart/form-data" data-einmal>
+    <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="ort" value="{{ ort.id }}">
+    <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+    <label class="knopf datei-knopf">+ Datei wählen
+      <input type="file" name="dateien" multiple accept="{{ endungen }}" data-ablegen></label>
+    <span class="ablage-gewaehlt" aria-live="polite"></span>
+    <button class="knopf knopf-voll" type="submit">Weiter</button>
+    <button class="knopf knopf-leise ablage-ab" type="button">Abbrechen</button>
+    <span class="unter ablage-regel">Danach wählst du, was daraus werden soll. Höchstens {{ max_dateien }} Dateien.</span>
+  </form>
+</section>
+{%- endif %}
 {%- if archiviert %}
 <div class="hinweis hinweis-fehler archiv-hinweis">Diese Seite liegt im Archiv.
   {%- if ort.archiviert %}

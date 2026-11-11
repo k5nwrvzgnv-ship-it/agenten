@@ -1,9 +1,12 @@
 {% extends "basis.html" %}
 {% block inhalt %}
+{#- Mit abgelegter Datei (umbauplan-ux.md Schritt 4): nur Arten, die Material annehmen; die Links tragen datei= -#}
+{%- if gelegt %}<p class="absatz unter">Dabei: {{ gelegt | join(", ") }}</p>{% endif %}
+{%- if gelegt_weg %}<p class="hinweis hinweis-fehler" role="status">Die abgelegte Datei ist nicht mehr da (nach einem Tag gelöscht). Bitte am Ort noch einmal ablegen.</p>{% endif %}
 {%- if arten %}
 <div class="galerie">
   {%- for a in arten %}
-  <a class="galerie-karte" href="/neu/{{ a.kennung }}{% if ort %}?ort={{ ort.id }}{% endif %}">
+  <a class="galerie-karte" href="/neu/{{ a.kennung }}{% if ort or datei %}?{% endif %}{% if ort %}ort={{ ort.id }}{% endif %}{% if ort and datei %}&amp;{% endif %}{% if datei %}datei={{ datei }}{% endif %}">
     <span class="galerie-bild bild-{{ 'folie' if 'pptx' in a.ausgabe else 'skript' }}" aria-hidden="true"></span>
     <span class="titel">{{ a.name }}</span>
     <span class="unter">{{ a.beschreibung }}</span>

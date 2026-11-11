@@ -30,6 +30,7 @@ import secrets
 import shutil
 import subprocess
 import tempfile
+import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -65,6 +66,9 @@ ZONE = ZoneInfo("Europe/Berlin")
 MAX_DATEIEN = 10
 ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".md", ".png", ".jpg", ".jpeg", ".vtt", ".srt", ".json")
 QUELLE = "arbeitsplatz"
+GELEGT = "gelegt-"  # Datei am Ort (umbauplan-ux.md Schritt 4): data/eingang/gelegt-<kennung>/ bis zum Auftrag
+GELEGT_MUSTER = re.compile(r"[a-z0-9_]{6,16}")
+GELEGT_ALTER = 24 * 3600  # Sekunden; Liegengebliebenes löscht das nächste Ablegen
 logger = logging.getLogger("arbeitsplatz")
 
 KOPFZEILEN = {
@@ -293,6 +297,7 @@ def seite_ort(request: Request, ort_id: str):
         "e": {"titel": k["titel"]}, "ort": k, "archiviert": not orte.sichtbar(baum, ort_id),
         "unterseiten": orte.kinder(baum, ort_id), "dokumente": docs,
         "ziele": logik.ziele_zum_verschieben(baum, ort_id),
+        "endungen": ",".join(ENDUNGEN), "max_dateien": MAX_DATEIEN,
         **rahmen(baum, ort_id, logik.krumen(baum, ort_id), f"/neu?ort={quote(ort_id)}")})
 
 
@@ -425,15 +430,73 @@ def _ort_param(baum: list[dict], ort_id: str) -> dict | None:
     return ort_oder_404(baum, ort_id)
 
 
+def gelegt_ordner(kennung: str) -> Path | None:
+    """Ordner der am Ort abgelegten Dateien (umbauplan-ux.md Schritt 4). Ungültig oder nicht (mehr) da: None."""
+    if not GELEGT_MUSTER.fullmatch(kennung or ""):
+        return None
+    ordner = DATEN / "eingang" / f"{GELEGT}{kennung}"
+    return ordner if ordner.is_dir() else None
+
+
+def gelegt_dateien(kennung: str) -> list[Path]:
+    ordner = gelegt_ordner(kennung)
+    return sorted((p for p in ordner.iterdir() if p.is_file()), key=lambda p: p.name.casefold()) if ordner else []
+
+
+def gelegt_aufraeumen(jetzt: float | None = None) -> None:
+    """Abgelegte Dateien, aus denen nach GELEGT_ALTER kein Auftrag wurde, löschen (Fehler nur ins Log)."""
+    jetzt = time.time() if jetzt is None else jetzt
+    eingang = DATEN / "eingang"
+    if not eingang.is_dir():
+        return
+    for ordner in eingang.glob(f"{GELEGT}*"):
+        try:
+            if ordner.is_dir() and jetzt - ordner.stat().st_mtime > GELEGT_ALTER:
+                shutil.rmtree(ordner)
+                logger.info("Abgelegte Dateien %s nach einem Tag gelöscht", ordner.name)
+        except OSError as f:
+            logger.warning("Abgelegte Dateien %s nicht gelöscht: %s", ordner.name, f)
+
+
 @app.get("/neu", response_class=HTMLResponse)
-def seite_galerie(request: Request, ort: str = ""):
+def seite_galerie(request: Request, ort: str = "", datei: str = ""):
     baum = baum_laden()
     k = _ort_param(baum, ort)
+    gelegt = gelegt_dateien(datei) if datei else []
+    aktive = arten.aktive(arten_laden())
     return seite(request, "galerie.html", {
-        "e": {"titel": "Neu"}, "ort": k, "ort_text": logik.ort_text(baum, ort),
-        "arten": arten.aktive(arten_laden()),
+        "e": {"titel": "Was soll daraus werden?" if gelegt else "Neu"}, "ort": k, "ort_text": logik.ort_text(baum, ort),
+        "arten": [a for a in aktive if a["material"] != "nein"] if gelegt else aktive,
+        "datei": datei if gelegt else "", "gelegt": [p.name for p in gelegt], "gelegt_weg": bool(datei and not gelegt),
         **rahmen(baum, ort or None, logik.krumen(baum, ort or None, "Neu") if ort else
                  {"teile": [{"text": "Heute", "link": "/"}], "hier": "Neu"}, None)})
+
+
+@app.post("/neu/datei", response_class=HTMLResponse)
+async def datei_ablegen(request: Request):
+    """Datei am Ort (umbauplan-ux.md Schritt 4): Dateien kurz ablegen, dann die Galerie „Was soll daraus werden?“.
+    Steht vor /neu/{kennung}, damit „datei“ keine Art ist."""
+    form, token_ok = await formular(request)
+    baum = baum_laden()
+    ort = str(form.get("ort") or "")
+    _ort_param(baum, ort)
+    zurueck = logik.ort_link(ort) if ort else "/"
+    if not token_ok:
+        return _meldung(request, baum, "Nicht abgelegt", VERALTET, zurueck, 400)
+    if ziel := einmal_ziel(request, form):
+        return RedirectResponse(ziel, status_code=303)
+    await run_in_threadpool(gelegt_aufraeumen)
+    hochgeladen = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
+    if not hochgeladen:
+        return _meldung(request, baum, "Nicht abgelegt", "Wähle eine Datei aus.", zurueck, 400)
+    ordner, _, fehler = await _dateien_sichern(hochgeladen, GELEGT)
+    if fehler:
+        return _meldung(request, baum, "Nicht abgelegt", fehler, zurueck, 400)
+    kennung = ordner.name.removeprefix(GELEGT)
+    logger.info("%d Datei(en) als %s abgelegt", len(hochgeladen), ordner.name)
+    ziel = f"/neu?{'ort=' + quote(ort) + '&' if ort else ''}datei={kennung}"
+    einmal_merken(request, form, ziel)
+    return RedirectResponse(ziel, status_code=303)
 
 
 def _art_oder_404(kennung: str) -> dict:
@@ -444,32 +507,36 @@ def _art_oder_404(kennung: str) -> dict:
 
 
 def _formular_seite(request: Request, baum: list[dict], art: dict, ort: str, werte: dict, fehler: list[str],
-                    status: int = 200):
+                    status: int = 200, datei: str = ""):
     krumen = logik.krumen(baum, ort or None, art["name"]) if ort else {
         "teile": [{"text": "Heute", "link": "/"}, {"text": "Neu", "link": "/neu"}], "hier": art["name"]}
+    gelegt = gelegt_dateien(datei) if datei and art["material"] != "nein" else []
     return seite(request, "formular.html", {
         "e": {"titel": art["name"]}, "art": art, "ort": ort, "ort_text": logik.ort_text(baum, ort),
         "werte": werte, "fehler": fehler, "orte_wahl": logik.ziele_zum_verschieben(baum, "")[1:],
+        "datei": datei if gelegt else "", "gelegt": [p.name for p in gelegt],
         **rahmen(baum, ort or None, krumen, None)}, status)
 
 
 @app.get("/neu/{kennung}", response_class=HTMLResponse)
-def seite_formular(request: Request, kennung: str, ort: str = ""):
+def seite_formular(request: Request, kennung: str, ort: str = "", datei: str = ""):
     baum = baum_laden()
     _ort_param(baum, ort)
-    return _formular_seite(request, baum, _art_oder_404(kennung), ort, {}, [])
+    return _formular_seite(request, baum, _art_oder_404(kennung), ort, {}, [], datei=datei)
 
 
-async def _dateien_sichern(dateien: list[UploadFile]) -> tuple[Path | None, list[Path], str]:
+async def _dateien_sichern(dateien: list[UploadFile], praefix: str = "",
+                          schon: int = 0) -> tuple[Path | None, list[Path], str]:
     """Hochgeladene Dateien in einen eigenen Ordner unter data/eingang/ (agentkit verschiebt sie zum Agenten).
+    praefix: Anfang des Ordnernamens (GELEGT für Datei am Ort); schon: Zahl schon gelegter Dateien, zählt zur Grenze.
     Gibt (Ordner, Pfade, Fehler) zurück."""
     dateien = [d for d in dateien if isinstance(d, UploadFile) and d.filename]
     if not dateien:
         return None, [], ""
-    if len(dateien) > MAX_DATEIEN:
+    if len(dateien) + schon > MAX_DATEIEN:
         return None, [], f"Höchstens {MAX_DATEIEN} Dateien"
     (DATEN / "eingang").mkdir(parents=True, exist_ok=True)
-    ordner = Path(tempfile.mkdtemp(dir=DATEN / "eingang"))
+    ordner = Path(tempfile.mkdtemp(dir=DATEN / "eingang", prefix=praefix or None))
     pfade = []
     for d in dateien:
         name = re.sub(r"[^\w.\- ]", "_", Path(d.filename).name).lstrip(".") or "datei"
@@ -513,8 +580,9 @@ async def neuer_auftrag(request: Request, kennung: str):
     ort = str(form.get("ort") or "")
     _ort_param(baum, ort)
     eingabe = {f["name"]: str(form.get(f"feld-{i}") or "") for i, f in enumerate(art["feld"])}
+    datei = str(form.get("datei") or "") if art["material"] != "nein" else ""
     if not token_ok:
-        return _formular_seite(request, baum, art, ort, eingabe, [VERALTET], 400)
+        return _formular_seite(request, baum, art, ort, eingabe, [VERALTET], 400, datei)
     if ziel := einmal_ziel(request, form):
         return RedirectResponse(ziel, status_code=303)
     fehler = []
@@ -523,26 +591,33 @@ async def neuer_auftrag(request: Request, kennung: str):
     except arten.ArtFehler as f:
         fehler, werte = str(f).split("; "), eingabe
     hochgeladen = [d for d in form.getlist("dateien") if isinstance(d, UploadFile) and d.filename]
-    fehler += arten.material_fehler(art, werte, len(hochgeladen))
+    gelegt = gelegt_dateien(datei) if datei else []
+    if datei and not gelegt:
+        fehler.append("Die abgelegte Datei ist nicht mehr da (nach einem Tag gelöscht). Bitte noch einmal wählen.")
+        datei = ""
+    fehler += arten.material_fehler(art, werte, len(hochgeladen) + len(gelegt))
     if not ort:
         fehler.append("Ort: bitte wählen, wo das Dokument liegen soll")
     if not auftraege_an():
         fehler.append("Aufträge sind gerade ausgeschaltet (ARBEITSPLATZ_AUFTRAEGE). Nichts angelegt.")
     if fehler:
-        return _formular_seite(request, baum, art, ort, werte, fehler, 400)
-    ordner, pfade, fehler_datei = await _dateien_sichern(hochgeladen)
+        return _formular_seite(request, baum, art, ort, werte, fehler, 400, datei)
+    ordner, pfade, fehler_datei = await _dateien_sichern(hochgeladen, schon=len(gelegt))
     if fehler_datei:
-        return _formular_seite(request, baum, art, ort, werte, [fehler_datei], 400)
+        return _formular_seite(request, baum, art, ort, werte, [fehler_datei], 400, datei)
     try:
         aid = await run_in_threadpool(lambda: auftraege.neuer_auftrag(
             art["agent"], arten.auftragstext(art, werte), quelle=QUELLE, ort=ort, art=art["kennung"], felder=werte,
-            dateien=pfade, basis=basis(), agenten_dir=agenten_dir()))
+            dateien=gelegt + pfade, basis=basis(), agenten_dir=agenten_dir()))
     except (auftraege.AuftragFehler, OSError) as f:
         logger.error("Auftrag %s nicht angelegt: %s", art["kennung"], f)
-        return _formular_seite(request, baum, art, ort, werte, ["Anlegen ging gerade nicht. Bitte noch einmal."], 500)
+        return _formular_seite(request, baum, art, ort, werte, ["Anlegen ging gerade nicht. Bitte noch einmal."], 500,
+                               datei)
     finally:
         if ordner is not None:
             shutil.rmtree(ordner, ignore_errors=True)
+    if gelegt:  # agentkit hat sie verschoben; der leere Ordner geht mit
+        shutil.rmtree(gelegt[0].parent, ignore_errors=True)
     gestartet = await run_in_threadpool(dienst_starten, art["agent"])
     logger.info("Auftrag %s (%s) an %s angelegt, Dienst %s", aid, art["kennung"], art["agent"],
                 "gestartet" if gestartet else "nicht gestartet")
