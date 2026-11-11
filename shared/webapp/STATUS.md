@@ -145,14 +145,26 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   Erklärsatz und „Stunden ohne Termin“. `app.py` reicht `beachte` noch an `neu.html`, ungenutzt (Python, beim
   nächsten Neustart aufräumen). Rundgang 11.11. gegen 8791: 600 Seiten, alle 200, `lia/instanz` unverändert; das
   einzige Gespräch (an einer Reihe) und alle fünf „Reihe anlegen“ live per Abruf geprüft.
-  NICHT im Browser angesehen (Chrome nicht verbunden): Kopf des Gesprächs mit „···“ allein, „···“ mit „Daraus Auftrag
-  machen“ auf und zu, Platzhalter im Feld (Länge, Umbruch bei 407 px), Neu-Formular und Reihe anlegen ohne die Texte.
+  Browser-Probe 11.11. (Chrome-Seitenfenster bei Jan, nichts gesendet, nichts geschrieben, Dateifenster abgefangen;
+  1440/1100/407 px): Kopf nur Name und „···“, „Daraus Auftrag machen“ zuerst, Menü ganz im Fenster; Platzhalter lesbar
+  (bei 407 px zwei Zeilen); genau eine Klappe „Kennt …“; Neu, Arbeitsblatt und Reihe anlegen ohne Lücken; kein
+  waagrechtes Scrollen, Konsole ohne Fehler. Daraus behoben: Das Feld „Stunden“ (ohne freie Termine) hat den
+  Platzhalter „z. B. 6“ (Behebung per Abruf geprüft, nicht im Browser).
+  Befunde der Probe, Vorschlag an Jan, nicht gebaut: (a) Im „···“ des Gesprächs sind „Umbenennen“ und „An andere
+  Ebene hängen“ offene Formulare mit hellem Feld bzw. heller Liste im Browser-Stil, Menü 290 px hoch; „Gespräch
+  löschen“ ohne Trennlinie direkt darunter (wie Befund „Stunde verschieben“ aus Schritt 4). (b) Bei 407 px steht
+  „Senden“ links unter den Optionen statt rechts. (c) Bei 1100 px rutscht die rechte Spalte unter das Gespräch, davor
+  etwa 120 px Leerraum. (d) Brotkrumen im Gespräch beginnen bei „Klasse 8“, sonst bei „Ethik“. (e) Arbeitsblatt:
+  Dateifeld ist das ungestaltete Browser-Element (einziges auf der Seite), „Andere Vorlage“ wirkt wie ein eigener
+  Abschnitt, Brotkrumen enden auf „Neu“ statt „Arbeitsblatt“, Ort doppelt (Brotkrumen und „für …“). (f) Formularseiten
+  820 px breit, Gespräch schmaler und weiter links: noch zwei Raster.
   Nicht im Plan, darum nicht gekürzt (Vorschlag an Jan): `neu.html:64–65` „Gilt für die ganze Reihe …“ und `:76–77`
   „Ordnet den Auftrag in deiner Übersicht ein …“, `gespraeche.html:8` Untertitel, „+ Gespräch“ als blauer Knopf auf
   Gespräche ohne Ort, Leerzeile „Noch keine. Später: gelungene Blätter …“ unter Muster in Vorlagen.
   Nächster Schritt: Jan entscheidet zwischen „Später“ im Plan (Ändern im Gespräch, Stand der Reihe als Kennzeichen,
   „Fertig“ je Reihe; braucht Python und Neustart) und den offenen Befunden oben (4: „Stunde verschieben“ als
-  Menüpunkt; 5: Seitenleiste auf dem Handy; 6: (c) Brotkrumen bei 407 px; Schritt 7: die Texte darüber).
+  Menüpunkt; 5: Seitenleiste auf dem Handy; 6: (c) Brotkrumen bei 407 px; Schritt 7: die Texte darüber und die
+  Befunde (a) bis (f) der Probe).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort
   (`test_gespraech_geloescht_meldung`).

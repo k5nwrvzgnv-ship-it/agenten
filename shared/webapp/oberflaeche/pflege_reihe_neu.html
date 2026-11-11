@@ -22,7 +22,8 @@
       <input class="feld feld-zahl" type="number" name="ohne" min="0" max="60" value="{{ werte.ohne }}"></label>
     {%- else %}
     <h2><span class="abschnitt-nr">02</span><label for="ohne">Stunden</label> <span class="unter">(freiwillig)</span></h2>
-    <input class="feld feld-zahl" id="ohne" type="number" name="ohne" min="0" max="60" value="{{ werte.ohne }}">
+    <input class="feld feld-zahl" id="ohne" type="number" name="ohne" min="0" max="60" value="{{ werte.ohne }}"
+           placeholder="z. B. 6">
     {%- endif %}
   </section>
   <button class="knopf knopf-voll" type="submit">Anlegen</button>

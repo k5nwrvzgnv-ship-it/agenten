@@ -484,6 +484,7 @@ class TestReihe(Pflege):
         _, html = self.hole("/klasse/darstellendes-spiel-kurs-11/reihe/neu")
         self.assertIn('<label for="ohne">Stunden</label>', html)
         self.assertIn('id="ohne" type="number" name="ohne"', html)
+        self.assertIn('placeholder="z. B. 6"', html)  # Browser-Probe 11.11.: sonst muss man raten, was hinein gehört
         for text in ("noch keine freien Termine", "Stunden ohne Termin", 'name="anzahl"'):
             self.assertNotIn(text, html)
         self.ok("/klasse/darstellendes-spiel-kurs-11/reihe/neu", {"titel": "Körper", "ohne": "3"})

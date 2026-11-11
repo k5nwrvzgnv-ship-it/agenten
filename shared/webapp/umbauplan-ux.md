@@ -204,7 +204,7 @@ Test `test_eigene_fassung_im_menue`). Befunde für später in STATUS.md.
   erwartet genau einen blauen Knopf), `test_schnell.py` (TestSchnellNeu: Rückmeldung ohne Datei an lia/schnell,
   schnelle Fassung oben).
 
-## Schritt 7: Gespräch-Seite und restliche Texte (gebaut 11.11.2026, live; nicht im Browser angesehen)
+## Schritt 7: Gespräch-Seite und restliche Texte (gebaut 11.11.2026, live; Browser-Probe 11.11.)
 
 Gebaut, nur Vorlagen (kein Neustart): Kopf des Gesprächs Name und „···“, darin zuerst „Daraus Auftrag machen“
 (gleiche Route `sonder`, art `auftrag`). „Frag einfach los, so lang du willst. Keine Namen von Schüler*innen.“ ist der
@@ -215,7 +215,9 @@ Ort steht oben), `vorlagen.html` (ein Satz), `ich.html` (Satz nur in der Leerzei
 „Je Termin entsteht …“; ohne freie Termine nur „Stunden“ mit Zahlenfeld). Abweichung: Die Zeilennummern galten
 weiter (neu.html `:95–99` war Datei-Text und „Beachtet“). Tests: `test_gespraech` (Kopf, Menü, Platzhalter, eine
 „Kennt“-Angabe, ohne Ort), `test_formular_und_einstieg_in_heute`, `test_neu_hier_mit_art_und_stunde`,
-`test_vorlagen_und_ich`, `test_anlegen_mit_terminen_regel_32`. Rundgang 600 Seiten, alle 200.
+`test_vorlagen_und_ich`, `test_anlegen_mit_terminen_regel_32`. Rundgang 600 Seiten, alle 200. Browser-Probe 11.11.:
+alles ok in 1440/1100/407 px; daraus „z. B. 6“ als Platzhalter im Feld „Stunden“. Befunde (Formulare im „···“,
+„Senden“ bei 407 px links, Dateifeld in Neu, Brotkrumen, zwei Raster) in STATUS.md.
 
 
 - Dateien: `gespraech.html:14–17` („Daraus Auftrag machen“ ins „···“), `_verlauf.html:27` („Frag einfach los …“ in den
