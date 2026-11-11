@@ -164,10 +164,14 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
 - „Später“ gebaut und committet (Jans Wahl 11.11.), Python: Stand der Reihe als Kennzeichen im Baum (in Planung
   leiser hohler Punkt, abgeschlossen grau), Stunde im Baum „1 · Thema“, „Ich“ heißt „Deine Regeln“ (auch im Satz
   „Du kannst es unter „Deine Regeln“ eintragen.“ zum Bundesland), „Fertig“ auf Heute als Klappe je Reihe. Einzelheiten
-  im Plan unter „Später“. WIRKT ERST NACH NEUSTART von `webapp.service` (läuft seit 11.11. 07:43); bis dahin zeigen die
-  Vorlagen alles wie vorher (live per Abruf geprüft). Nicht im Browser angesehen.
+  im Plan unter „Später“. `webapp.service` am 11.11. 14:01 mit Jans Okay neu gestartet (auf f101399), Log ohne Fehler.
+  Rundgang danach: 600 Seiten, alle 200, `lia/instanz` unverändert. Bei Lia live: Straftheorien mit Punkt, Helfen grau,
+  „1 · Thema offen“, „Deine Regeln“; unter Fertig eine Klappe „Der nackte Wahnsinn · 5 Ergebnisse · zuletzt So
+  08.11.“, die übrigen vier Ergebnisse (zwei Spielfassung-Entwürfe, Notentabelle, Dossier) haben keine Reihe und
+  bleiben einzeln. NICHT im Browser angesehen (Chrome nicht verbunden): Punkt und Grau im Baum, Klappe auf und zu,
+  Zeichen ▸/▾, Hover, schmales Fenster.
   Offen aus „Später“: Ändern im Gespräch (Punkt 37, ruht, braucht lia/chat, anderer Chat).
-  Nächster Schritt: Neustart mit Jans Okay, Rundgang, Browser-Probe von Baum und Heute; danach die offenen Befunde
+  Nächster Schritt: Browser-Probe von Baum und Heute; danach die offenen Befunde
   (4: „Stunde verschieben“ als Menüpunkt; 5: Seitenleiste auf dem Handy; 6: (c) Brotkrumen bei 407 px; Schritt 7: die
   Texte darüber und die Befunde (a) bis (f) der Probe).
 Behoben aus „Nebenbei gefunden“:
