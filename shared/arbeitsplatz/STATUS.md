@@ -38,6 +38,28 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 
 „Wartet auf dich“ kennt kein „gesehen“; ein Dokument steht dort, bis es final ist oder 14 Tage alt.
 
+## Ruhige Oberfläche (11.11.2026, `umbauplan-ux.md`, Jans Okay, Variante A)
+Übernommen aus Lias App (`shared/webapp/umbauplan-ux.md`, dort nichts geändert), alle fünf Schritte gebaut:
+- Aussehen: `ruhig.css` (Kopie) statt `stil.css`; rechte Spalte nur auf Heute (Läuft gerade, Kosten), alle anderen
+  Seiten einspaltig und mittig. Was läuft, steht überall im Baum neben „Heute“ und als Marke am Dokument.
+- „+“ oben rechts (`vorlagen/_plus.html`): Heute Seite, Dokument …; Ort Seite, Dokument …, Datei; Dokument „Dokument …“
+  (nicht blau). „Seite“ legt sofort „Neue Seite“ an, die gleich zum Umbenennen offen steht. Im „···“ des Orts:
+  Umbenennen, Verschieben, Unterseiten ordnen (ab zwei), Archivieren. Leere Abschnitte fallen weg, ganz leer steht
+  „Noch leer. Mit + fängst du an.“ Im Baum kein „+ Seite“ mehr unter dem aktiven Ort (unten bleibt es).
+- Direkt am Ding (`statisch/direkt.js`, `vorlagen/_direkt.html`): Titel eines Orts anklicken (Enter speichert, Esc
+  bricht ab, Route `/ort/<id>/umbenennen`); Datei auf die Seite ziehen landet im Feld mit `data-ablegen` (Formular:
+  Material, Ort: Datei am Ort, Dokument: Anhang der Rückmeldung).
+- Datei am Ort (Python): `POST /neu/datei` legt die Dateien nach `data/eingang/gelegt-<kennung>/` (Grenzen wie beim
+  Formular), dann Galerie „Was soll daraus werden?“ (nur Arten mit Material), Formular mit „Schon dabei“, der Auftrag
+  übernimmt sie, der Ordner geht danach weg. Liegengebliebenes löscht das nächste Ablegen nach einem Tag.
+- Dokument-Seite: Rückmeldung als immer sichtbares Feld (nur Arten mit `rueckmeldung`), „Senden“ der einzige blaue
+  Knopf (bei finaler Fassung keiner); je Datei ein Download-Symbol (PDF ansehen, Word-/PowerPoint-/…-Datei); die ersten
+  zwei Seiten groß, alle in einer Klappe; im „···“ final und „Eigene Fassung hochladen …“ (`?offen=eigene` öffnet es);
+  Verlauf als geschlossene Klappe ab zwei Stationen. `statisch/anhang.js` zeigt den Namen der angehängten Datei.
+- Ohne JavaScript geht alles über `<details>` und Formulare. Browser-Probe bei Jan steht aus (siehe Offene Punkte).
+- Neustart des Dienstes für die Datei am Ort steht aus (wartet auf Jans Okay). Bis dahin führt „Datei“ am Ort ins
+  Leere (404), alles andere wirkt schon.
+
 ## Technik
 - `logik.py`: reine Logik (Baum-Zeilen, Brotkrumen, Ziele zum Verschieben, Dokumente als Ketten über `bezug` mit
   Titel und Marke, Läuft gerade, Dokument-Ansicht, Wartet auf dich, Kosten-Zeilen, Schutz: Origin, Token, sichere
@@ -58,8 +80,9 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Uploads: höchstens 10 Dateien, je 50 MB, Endungen pdf, docx, pptx, xlsx, txt, md, png, jpg, vtt, srt, json; liegen kurz in
   `data/eingang/`, agentkit verschiebt sie nach `<agent>/data/eingang/<auftrag>/`.
 - Schutz: Origin muss zum Host passen, Formular-Token (geheim je Start), CSP ohne fremde Quellen, no-store.
-- `statisch/`: stil.css, Schrift, htmx, einmal.js aus shared/webapp kopiert (nicht dort ändern);
-  `arbeitsplatz.css` mit den Ergänzungen (tiefere Baum-Ebenen usw.).
+- `statisch/`: ruhig.css, Schrift, htmx, einmal.js aus shared/webapp kopiert (nicht dort ändern), direkt.js und
+  anhang.js nach Lias direkt.js und gespraech.js; `arbeitsplatz.css` mit den Ergänzungen (tiefere Baum-Ebenen,
+  Ordnen im „···“, Seitenbilder, Recherche).
 - `requirements.txt`: feste Versionen, dieselben Pakete wie shared/webapp ohne webauthn und dessen Abhängigkeiten.
   agentkit per `.venv/lib/python3.12/site-packages/agentkit.pth`.
 - Vorlagen wirken sofort auf den laufenden Dienst, Python erst nach Neustart.
@@ -74,6 +97,10 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Caddy (von außen mit Passwort) macht Jan als root nach der Abnahme.
 
 ## Offene Punkte
+0. Browser-Probe der ruhigen Oberfläche bei Jan (Tunnel, siehe oben): Titel anklicken (Enter, Esc), „Seite“ im „+“
+   (neue Seite gleich offen), „Datei“ im „+“ und Datei auf einen Ort ziehen, Datei aufs Formular und auf ein Dokument
+   ziehen, eigene Fassung im „···“, Menüs bei schmalem Fenster. Ein Bildschirmfoto vom Server geht nicht (dem
+   Headless-Chromium fehlen Systembibliotheken).
 1. Umzug (09.11. nachts): Orte auf Jans Instanz angelegt: „Forschungsprojekt Fehlstellen“ mit „Exposé“, „Recherche“,
    „Interviews“, „Schriftlicher Teil“; „Modul Holzschutz“; „Finanzen“. Alte Ergebnisse ohne Feld `ort` ordnet
    `shared/orte-zuordnung.json` zu (`{"zuordnung": {ursprung: ort}}`, nicht im Repo, Aufträge bleiben unverändert;

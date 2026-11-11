@@ -1,6 +1,6 @@
 # Umbauplan Arbeitsplatz: ruhige Oberfläche wie in Lias App
 
-Stand 11.11.2026, Entwurf zur Freigabe durch Jan. Auftrag: Die Verbesserungen aus `shared/webapp` (dort
+Stand 11.11.2026. Jans Okay 11.11. mit Variante A für Schritt 4; alle fünf Schritte gebaut. Auftrag: Die Verbesserungen aus `shared/webapp` (dort
 `umbauplan-ux.md`, Schritte 1–7, live seit 11.11.) kommen in den Arbeitsplatz. Jan hat vier Teile gewählt: ruhiges
 Aussehen, „+“ und „···“, direkt am Ding, Dokument-Seite. Lias Fachbegriffe (Klasse, Reihe, Stunde, Gespräch, schneller
 Weg) kommen nicht mit.
@@ -31,7 +31,12 @@ Unterseiten Gliederung
 - Was der Unittest nicht prüfen kann (JavaScript, Aussehen), probiert Jan im Browser:
   `ssh -N -L 8794:127.0.0.1:8794 agents-user` auf dem Mac, dann http://localhost:8794.
 
-## Schritt 1: Ruhiges Aussehen (nur Vorlagen und CSS, kein Neustart)
+## Schritt 1: Ruhiges Aussehen (nur Vorlagen und CSS, kein Neustart) (gebaut 11.11.2026, live)
+
+Gebaut wie unten. Abweichungen: Die Sätze „Noch keine Orte …“ und die Leertexte des Orts fielen erst mit Schritt 2 weg.
+Aufzählungen tragen wie bei Lia ein `span.nr`. Kosten auf Heute: Überschrift „Kosten · heute 0.38 USD“. Test
+`test_ruhiges_aussehen`.
+
 
 - Dateien: `statisch/ruhig.css` (Kopie), `statisch/arbeitsplatz.css` (Ergänzungen auf die Farben und Abstände von
   `ruhig.css` umgestellt: tiefere Baum-Ebenen, Seitenbilder, Recherche- und Prüfungsansicht), `vorlagen/basis.html`
@@ -47,7 +52,12 @@ Unterseiten Gliederung
   „Läuft gerade“ nur noch auf Heute.
 - Tests: `test_app.py` (Rahmen-Klassen, rechte Spalte nur auf Heute, `ruhig.css` statt `stil.css`).
 
-## Schritt 2: „+“ und „···“, nur zeigen, was da ist (nur Vorlagen und CSS)
+## Schritt 2: „+“ und „···“, nur zeigen, was da ist (nur Vorlagen und CSS) (gebaut 11.11.2026, live)
+
+Gebaut wie unten. „Unterseiten ordnen“ im „···“ erst ab zwei Unterseiten. Das „+“ der Dokument-Seite gehört zu
+Schritt 5, Neu, Formular, Archiv und Meldungen haben keins. Tests `test_plus_je_seite`, `test_punkte_am_ort`,
+`test_nur_zeigen_was_da_ist`.
+
 
 - Dateien: neu `vorlagen/_plus.html` (Makros `plus` und `punkte`, aus Lias `_plus.html` ohne deren Ebenen-Makro),
   `basis.html` (Knopf „+ Neu“ wird das „+“), `ort.html`, `heute.html`, `archiv.html`.
@@ -72,7 +82,13 @@ Unterseiten Gliederung
 - Tests: neu `test_plus_je_seite`, `test_punkte_am_ort`, `test_nur_zeigen_was_da_ist`; angepasst die Tests, die
   „+ Neu“, „Seite bearbeiten“ und die Leertexte prüfen.
 
-## Schritt 3: Direkt am Ding (Vorlagen und `direkt.js`, kein Neustart)
+## Schritt 3: Direkt am Ding (Vorlagen und `direkt.js`, kein Neustart) (gebaut 11.11.2026, live)
+
+Gebaut wie unten. Zusätzlich: Eine eben über „+“ angelegte „Neue Seite“ steht gleich zum Umbenennen offen
+(`data-direkt-offen`, nur mit `?aktion=` nach dem Anlegen). `direkt.js` zieht Dateien allgemein in das eine Dateifeld
+mit `data-ablegen` (Formular, Ort, Dokument) und behält schon gewählte. Test `test_direkt_am_ding`. Browser-Probe
+steht aus.
+
 
 - Dateien: neu `vorlagen/_direkt.html` (Makro `titel` aus Lias App), `statisch/direkt.js` (Kopie; der Teil
   „Ablage“ wird in Schritt 4 auf den Arbeitsplatz zugeschnitten), `ort.html`, `formular.html`.
@@ -86,7 +102,12 @@ Unterseiten Gliederung
 - Tests: Ort-HTML trägt `data-direkt-titel` und das Formular mit Token an `/ort/<id>/umbenennen`. Browser-Probe bei
   Jan: Anklicken, Enter, Esc, Datei ins Formular ziehen.
 
-## Schritt 4: Datei am Ort (Python, Neustart) – Jan entscheidet
+## Schritt 4: Datei am Ort (Python, Neustart) (Jan 11.11.: A; gebaut 11.11.2026, wirkt nach dem Neustart)
+
+Gebaut wie A. Der Ordner heißt `data/eingang/gelegt-<kennung>` (Kennung aus `mkdtemp`), die Galerie zeigt dann
+„Was soll daraus werden?“ und „Dabei: …“. Ist die Kennung verbraucht oder gelöscht: Hinweis in der Galerie, Fehler im
+Formular. Nur am Ort, nicht auf Heute. Tests `test_datei_am_ort`, `test_datei_am_ort_grenzen`, `test_gelegt_aufraeumen`.
+
 
 Lias App hat am Ort eine Ablage („Deine Dateien“, die Gespräche kennen). Der Arbeitsplatz hat keine: Jede Datei geht
 heute als Material in einen Auftrag. Zwei Wege:
@@ -102,7 +123,14 @@ heute als Material in einen Auftrag. Zwei Wege:
 - **B: Keine Datei am Ort.** Ziehen geht nur auf das Formular (Schritt 3) und die Dokument-Seite (Schritt 5). Kein
   neues Python, kein Neustart. Das „+“ am Ort hat dann nur Seite und Dokument …
 
-## Schritt 5: Dokument-Seite `/dokument/<ursprung>` (Vorlagen und CSS, kein Neustart)
+## Schritt 5: Dokument-Seite `/dokument/<ursprung>` (Vorlagen und CSS, kein Neustart) (gebaut 11.11.2026, live)
+
+Gebaut wie unten. Abweichungen: Hat ein Dokument eine Datei mit mehr als zwei Seiten (oder mehrere Dateien mit
+Seitenbildern), stehen alle Seiten in einer Klappe „Alle N Seiten“ darunter, damit nichts verloren geht. Die Knöpfe
+heißen weiter „Als final markieren“ und „Nicht mehr final“. Die eigene Fassung hat nach der Wahl noch das Feld
+„Notiz“. Der Hinweis „Zu dieser Art nimmt der Agent keine Rückmeldung an …“ ist weg. Der Verlauf zählt als Fassungen,
+was man final markieren kann, als Rückmeldungen auch die Dateien zur Rückmeldung. Test `test_dokument_ruhig`.
+
 
 - Dateien: `dokument.html`, `statisch/anhang.js` (das Stück aus Lias `gespraech.js`, das den Namen der angehängten
   Datei zeigt), `direkt.js` (Datei auf die Seite ziehen hängt sie an die Rückmeldung), `arbeitsplatz.css`.
