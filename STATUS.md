@@ -1152,26 +1152,12 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     anhängen (die Web-App macht das seit 10.11. in `logik._regel_zeilen`), (b) Datum/Name am Textanfang nicht
     doppeln, jeweils mit Test; dann die Theater-STATUS reparieren (Folgezeile zurück an die Regel vom 01.11.).
     Bis dahin zeigt die Web-App „Charaktereigenschaften.“ am Ende der Regel vom 08.11.
-40. Bedarf aus uni (11.11.2026, Jan, Bau wartet auf Jans Okay zum Plan): neuer Agent `fehlstellenscan/` (Anzeige
-    „Fehlstellen-Scan“) für das Forschungsprojekt, Arbeit mit YOLO. Bewusst nicht in uni/ (Moodle, Post) und nicht
-    in holzbalkenscan/ (Prüfstand für Felix' Streifenbilder; die können später als Dateien Eingabe werden).
-    Entscheidungen Jan: Training von Hand auf seinem Mac (M4 Pro, PyTorch mit `device="mps"`), Server nur für
-    Datensatz bauen und prüfen, Auswertung, später Vorhersagen. Lizenz: ultralytics (AGPL-3.0, kostenlos) vorerst
-    angenommen, nur Jan nutzt es. Bei Weitergabe oder Zugang anderer (z. B. Portal) neu prüfen; Alternative YOLOX
-    (Apache 2.0). Ordner nach Vorlage, vorgeschlagen: agent.py (Läufe nur auf Auftrag, ohne Claude, mit
-    Speichergrenze wie holzbalkenscan), datensatz.py, auswertung.py, konfig/ (im Repo), tests/ ohne PyTorch-Import;
-    data/ mit rohbilder/, annotationen/, datensaetze/<name>-<version>/, laeufe/<zeitstempel>/, modelle/.
-    Zu tun im Hauptordner: Ordner anlegen, Eintrag in CLAUDE.md (Architektur, Reihenfolge), Testordner in
-    pruefen.sh. Pakete (torch, ultralytics) erst nach Jans Okay.
-    Erster Datensatz (geprüft 11.11.): Kodytek, Bodzas, Bilik, „A large-scale image dataset of wood surface defects
-    for automated vision-based quality control processes“, F1000Research 10:581 (v2 2022), Daten Zenodo
-    10.5281/zenodo.4694695, CC BY 4.0 (Namensnennung nötig). 20.275 Farbbilder BMP 2800 x 1024 von Schnittholz aus
-    einer Sägewerkslinie (Zeilenkamera, Holzart nicht genannt), 1.992 ohne Fehler, 10 Klassen mit Box und Maske,
-    stark ungleich (Live_knot rund 42.000 Objekte, overgrown 10, blue_stain 192). Rund 155 GB in 10 ZIPs je
-    etwa 15 GB; der Server hat 70 GB frei, also nie alles auf den Server. Das Box-Format ist im Paper
-    widersprüchlich beschrieben (Reihenfolge der Ecken, „durch 100 geteilt“): vor dem Umwandeln an Bildern prüfen.
-    Ob alle sichtbaren Fehler markiert sind, sagt das Paper nicht. Der Kaggle-Spiegel (nomihsa965) ist ohne Login
-    nicht lesbar, Lizenz und Inhalt unbekannt: Original von Zenodo nehmen.
+40. Bedarf aus uni (11.11.2026, Jan): neuer Agent `fehlstellenscan/` (Anzeige „Fehlstellen-Scan“) für das
+    Forschungsprojekt, Arbeit mit YOLO. Gerüst steht seit 11.11.2026 (Ordner nach Vorlage, leere .venv mit
+    agentkit, Eintrag in CLAUDE.md, Testordner in pruefen.sh). Entscheidungen, Datensatz Kodytek et al. und die
+    nächsten Schritte stehen in `fehlstellenscan/STATUS.md`. Offen im Hauptordner: (a) "fehlstellenscan" in AGENTEN
+    (shared/telegram/logik.py) eintragen, sobald der Agent etwas kann und ein Dienst mit Jans Okay installiert ist;
+    bis dahin Aufträge von Hand. (b) Pakete (Pillow/numpy, später ultralytics mit torch) erst nach Jans Okay.
 
 ## Gelernte Regeln
 - (noch keine)
