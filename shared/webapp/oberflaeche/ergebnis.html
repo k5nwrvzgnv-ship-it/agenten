@@ -6,8 +6,9 @@
     ?offen=variante die Tafel „Variante“ (app.py). -#}
 {% extends "basis.html" %}
 {%- from "_plus.html" import plus, punkte -%}
-{#- einmal.js sperrt Knöpfe nach dem Absenden; gespraech.js zeigt die angehängte Datei (#anhang, #gewaehlt) -#}
-{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script>
+{#- einmal.js sperrt Knöpfe nach dem Absenden; gespraech.js zeigt die angehängte Datei (#anhang, #gewaehlt);
+    direkt.js die gewählte eigene Fassung im „···“ (form[data-datei-zeile]) -#}
+{%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>
 {%- if aktionen %}<script src="/statisch/gespraech.js" defer></script>{% endif %}
 {%- if schnell %}<script src="/statisch/htmx-2.0.4.min.js" defer></script>{% endif %}{% endblock %}
 {% block seitenkopf %}
@@ -39,13 +40,19 @@
 {%- call punkte(offen=offen == "eigene") %}
     {%- if e.aktuell_ref %}{{ final_knopf(e.aktuell_ref, e.aktuell_final, "knopf knopf-leise", e.aktuell_name) }}{% endif %}
     {%- if not e.fehlgeschlagen %}
-    <form method="post" action="{{ basis_url }}/eigene" enctype="multipart/form-data" id="eigene" data-einmal>
+    {#- Ein Eintrag wie „+ Datei anhängen“; mit JavaScript erst nach der Wahl Name, Regel, „Hochladen“, „Abbrechen“
+        (Browser-Probe 11.11.: vorher ein ungestaltetes Dateifeld im Menü). Ohne JavaScript steht alles da. -#}
+    <form class="datei-zeile" method="post" action="{{ basis_url }}/eigene" enctype="multipart/form-data" id="eigene" data-einmal data-datei-zeile>
       <input type="hidden" name="token" value="{{ token }}">
       {%- if offen == "eigene" %}{% for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}{% endif %}
-      <label class="unter" for="eigene-datei">Eigene Fassung hochladen (Word, PowerPoint, Excel oder PDF).
-        Deine Datei gilt, ich ändere nichts.</label>
-      <input id="eigene-datei" name="datei" type="file" accept="{{ eigene_endungen }}" required>
-      <button class="knopf knopf-klein" type="submit">Hochladen</button>
+      <label class="knopf knopf-leise datei-knopf">Eigene Fassung hochladen …
+        <input id="eigene-datei" name="datei" type="file" accept="{{ eigene_endungen }}"></label>
+      <span class="datei-zeile-name" aria-live="polite"></span>
+      <span class="unter datei-zeile-regel">Word, PowerPoint, Excel oder PDF. Deine Datei gilt, ich ändere nichts.</span>
+      <span class="datei-zeile-knoepfe">
+        <button class="knopf knopf-klein" type="submit">Hochladen</button>
+        <button class="knopf knopf-leise datei-zeile-ab" type="button">Abbrechen</button>
+      </span>
     </form>
     {%- endif %}
     {%- if reihe_wahl %}

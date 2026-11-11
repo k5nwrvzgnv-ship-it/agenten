@@ -213,7 +213,7 @@ class TestApp(Aufbau):
                      "<summary>Verlauf: 1 Fassung, 1 Rückmeldung</summary>", "Deine Rückmeldung",
                      "„Ist das &lt;zu&gt; lang?“", "steht oben", "<details>", ">In Word öffnen<", ">PDF zum Drucken<",
                      ">Als final markieren<", "Rückmeldungen gehen im Moment noch über Telegram",
-                     "Eigene Fassung hochladen (", "von mir, heute 14:16", "2 Seiten · ansehen"):
+                     "Eigene Fassung hochladen …", "von mir, heute 14:16", "2 Seiten · ansehen"):
             self.assertIn(text, html)
         basis = "/ergebnis/20261030-140944-unterricht-93e29e/datei/0"
         self.assertIn(f'href="{basis}/pdf" download>PDF zum Drucken', html)
@@ -228,7 +228,7 @@ class TestApp(Aufbau):
         menue = html.split('<details class="menue-halter punkte">')[1].split("</details>")[0]
         for text in ("Als final markieren", "Eigene Fassung hochladen"):
             self.assertIn(text, menue)
-        self.assertEqual(re.findall(r'<script src="([^"]+)"', html), ["/statisch/einmal.js"])
+        self.assertEqual(re.findall(r'<script src="([^"]+)"', html), ["/statisch/einmal.js", "/statisch/direkt.js"])
         self.assertNotIn('id="rueck-text"', html)  # Rückmeldung nur, wenn Neu eingeschaltet ist
         for verboten in ("93e29e", "unterricht", "data/arbeit", "Wie ist es", "Anmerk"):
             self.assertNotIn(verboten, self.sichtbar(html))
@@ -1619,6 +1619,24 @@ class TestMaterial(Aufbau):
             self.assertNotIn("Fassung 99", html)
             self.assertRegex(html, r'<textarea id="rueck-text"[^>]* autofocus')
             self.assertNotIn("autofocus", self.hole(self.URL)[1])  # ohne Ziel kein Sprung ins Feld
+
+    def test_eigene_fassung_im_menue(self):
+        """Browser-Probe 11.11.: Im „···“ ein Eintrag „Eigene Fassung hochladen …“ statt eines Dateifelds; Name, Regel,
+        „Hochladen“ und „Abbrechen“ zeigt direkt.js erst nach der Wahl (ohne JavaScript steht alles da)."""
+        _, html = self.hole(self.URL)
+        menue = html.split('<details class="menue-halter punkte">')[1].split("</details>")[0]
+        form = menue.split('id="eigene"')[1].split("</form>")[0]
+        self.assertIn("data-datei-zeile", menue.split('id="eigene"')[1].split(">")[0])
+        self.assertRegex(form, r'<label class="knopf knopf-leise datei-knopf">Eigene Fassung hochladen …\s*<input '
+                               r'id="eigene-datei" name="datei" type="file" accept="[^"]+"></label>')
+        for teil in ('class="datei-zeile-name"', "Deine Datei gilt, ich ändere nichts.", ">Hochladen</button>",
+                     '<button class="knopf knopf-leise datei-zeile-ab" type="button">Abbrechen</button>'):
+            self.assertIn(teil, form)
+        self.assertNotIn("required", form)  # unsichtbares Pflichtfeld: der Server sagt „Wähle eine Datei aus.“
+        _, js = self.hole("/statisch/direkt.js")
+        self.assertIn("form[data-datei-zeile]", js)
+        _, css = self.hole("/statisch/ruhig.css")
+        self.assertIn(".mit-js .datei-zeile:not(.datei-da) .datei-zeile-knoepfe", css)
 
     def test_verlauf_zeile(self):
         """Die Klappe zählt Fassungen und Rückmeldungen; eine Fassung allein (steht oben) hat keinen Verlauf."""

@@ -40,6 +40,24 @@
     });
   });
 
+  // --- Datei wählen, dann Name, Regel und Knopf (form[data-datei-zeile], Ergebnis: eigene Fassung im „···“) ------
+  document.querySelectorAll("form[data-datei-zeile]").forEach(function (form) {
+    var wahl = form.querySelector("input[type=file]");
+    var name = form.querySelector(".datei-zeile-name");
+    function gewaehlt() {
+      var namen = Array.prototype.map.call(wahl.files, function (d) { return d.name; });
+      name.textContent = namen.join(", ");
+      form.classList.toggle("datei-da", namen.length > 0);
+      if (namen.length) { form.querySelector("button[type=submit]").focus(); }
+    }
+    wahl.addEventListener("change", gewaehlt);
+    form.querySelector(".datei-zeile-ab").addEventListener("click", function () {
+      wahl.value = "";
+      gewaehlt();
+    });
+    gewaehlt();  // Zurück im Browser: eine gewählte Datei kann noch im Feld stehen
+  });
+
   // --- Datei ablegen: „Datei“ im „+“ oder Datei auf die Seite ziehen ---------------------------------------------
   var ablage = document.querySelector("form.ablage-form");
   if (!ablage) { return; }

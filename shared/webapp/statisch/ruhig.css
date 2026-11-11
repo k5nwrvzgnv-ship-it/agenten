@@ -383,6 +383,15 @@ section.ablage-zu.ablage-offen { display: flex; }
 .mit-js .ablage-form:not(.datei-da) .ablage-regel, .mit-js .ablage-form:not(.datei-da) button[type="submit"] { display: none; }
 .mit-js .ablage-form.datei-da .datei-knopf { display: none; }
 .mit-js .ablage-form.datei-da .ablage-ab { display: inline-flex; }
+/* Dasselbe für die eigene Fassung im „···“ der Ergebnis-Seite (Schritt 6, form[data-datei-zeile]) */
+.datei-zeile-ab { display: none; }
+.datei-zeile-name { font-weight: 500; overflow-wrap: anywhere; }
+.datei-zeile-name:empty { display: none; }
+.datei-zeile-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.datei-zeile-knoepfe .knopf-leise { width: auto; }
+.mit-js .datei-zeile:not(.datei-da) .datei-zeile-regel, .mit-js .datei-zeile:not(.datei-da) .datei-zeile-knoepfe { display: none; }
+.mit-js .datei-zeile.datei-da .datei-knopf { display: none; }
+.mit-js .datei-zeile.datei-da .datei-zeile-ab { display: inline-flex; }
 .mit-js .ablage-form.datei-da .ablage-regel { flex-basis: 100%; }
 body.datei-ueber .inhalt { outline: 2px dashed var(--blau); outline-offset: -8px; }
 body.datei-ueber::after { content: "Loslassen: Datei hier ablegen"; position: fixed; left: 50%; bottom: 24px;

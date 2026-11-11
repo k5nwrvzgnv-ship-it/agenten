@@ -187,7 +187,9 @@ Namen der angehängten Datei. Seiten oben 2 × 260 px statt 2/3 der Breite. Test
 `test_rueckmeldung_im_testbetrieb`). `test_schnell.py` lief unverändert grün. Rundgang 11.11. gegen 8791: 600 Seiten
 (15 weniger, die Links `?offen=rueckmeldung`/`?offen=eigene` ohne Ziel fehlen), alle 200, `lia/instanz` unverändert. Browser-Probe 11.11.: 940 px hoch bei 1440 px (vorher 4059), Menüs im Fenster, Sprung
 zum Feld ok. Daraus behoben: Name der Fassung über dem Feld aus dem Verlauf (vorher ohne Lias eigene gezählt, „Fassung 7“
-statt „10“), Fokus im Feld nach dem Sprung (Test `test_ziel_der_rueckmeldung`). Befunde für später in STATUS.md.
+statt „10“), Fokus im Feld nach dem Sprung (Test `test_ziel_der_rueckmeldung`), „Eigene Fassung hochladen …“ als
+Eintrag im „···“ statt eines Dateifelds, Name und „Hochladen“ erst nach der Wahl (`direkt.js`, `form[data-datei-zeile]`,
+Test `test_eigene_fassung_im_menue`). Befunde für später in STATUS.md.
 
 - Dateien: `ergebnis.html`, `ruhig.css`.
   - Rückmeldung als immer sichtbares Eingabefeld unter „Das Wichtigste“ („Was soll anders werden?“, Datei anhängen,

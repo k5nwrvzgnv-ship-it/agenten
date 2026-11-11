@@ -123,10 +123,14 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   (`logik.rueckmeldung_ziel` zählt Lias eigene Fassungen nicht mit; die Vorlage nimmt den Namen jetzt aus dem Verlauf;
   die alte Oberfläche `vorlagen/ergebnis.html` hat den Fehler noch), mit Ziel steht der Fokus im Feld (`autofocus`) und
   das Feld hat 24 px Abstand nach oben. Die Behebung ist auf dem Dienst per Abruf geprüft, nicht im Browser.
-  OFFEN, nur von Hand: Name der angehängten Datei unter dem Feld (Dateifenster war gesperrt).
-  Befunde, Vorschlag an Jan, nicht gebaut: (a) Im „···“ steht ein ungestaltetes Dateifeld mit Satz und „Hochladen“,
-  ein Fehlklick öffnet das Dateifenster; besser ein Eintrag „Eigene Fassung hochladen …“ wie „+ Datei anhängen“, danach
-  Name und „Hochladen“ (wie die Ablage in Schritt 4, mit Weg ohne JavaScript). (b) Das „+“ hat auf Material ohne
+  Ebenfalls aus der Probe (Jans Okay 11.11.): Im „···“ steht statt des ungestalteten Dateifelds ein Eintrag „Eigene
+  Fassung hochladen …“ (wie „+ Datei anhängen“); nach der Wahl zeigt `direkt.js` (`form[data-datei-zeile]`) Name, Regel,
+  „Hochladen“ und „Abbrechen“, ohne JavaScript steht alles da. Kein `required` mehr (unsichtbares Feld), der Server
+  meldet „Wähle eine Datei aus.“. Eigene Klassen, nicht `ablage-form`: sonst nähme `direkt.js` es als Ablage, und eine auf
+  die Seite gezogene Datei würde eigene Fassung.
+  OFFEN, nur von Hand: Name der angehängten Datei unter dem Feld und der gewählten eigenen Fassung im „···“
+  (Dateifenster war gesperrt), Aussehen des „···“ nach der Wahl.
+  Befunde, Vorschlag an Jan, nicht gebaut: (b) Das „+“ hat auf Material ohne
   Variante nur „Material …“; bleibt bewusst ein „+“ wie auf jeder Seite. (c) Bei 407 px bricht die Brotkrumen-Zeile
   um, „+“ und „···“ stehen in eigener Zeile (alle Seiten, nicht nur Ergebnis).
   Nächster Schritt: 7 (Gespräch-Seite und restliche Texte).
