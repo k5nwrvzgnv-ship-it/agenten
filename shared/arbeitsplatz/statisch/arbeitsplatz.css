@@ -16,10 +16,17 @@
 .rzeile-zwei { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 8px; align-items: center; color: inherit; }
 .rzeile-zwei .unter { font-size: 12px; }
 
-/* Unterseiten mit ↑/↓ */
+/* Archiv: Zeile mit „Wiederherstellen“ rechts */
 .zeile-mit-knoepfen { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
-.knoepfe-klein { display: flex; gap: 12px; }
-.details > summary { cursor: pointer; font-weight: 500; padding: 8px 0; }
+
+/* „···“ am Ort: Unterseiten ordnen, je Zeile Name, ↑, ↓ (umbauplan-ux.md Schritt 2) */
+.ordnen { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--linie); padding-top: 6px; }
+.punkte .menue .ordnen + form { border-top: 1px solid var(--linie); padding-top: 6px; }
+.ordnen ul { max-height: 50vh; overflow-y: auto; }
+.ordnen-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 28px 28px; align-items: center; gap: 2px; min-height: 30px; }
+.ordnen-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ordnen .inline-form { display: contents; }
+.punkte .menue .ordnen-knopf { width: 28px; padding: 0; justify-content: center; }
 
 /* Dokument */
 .datei-zeile { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0; }

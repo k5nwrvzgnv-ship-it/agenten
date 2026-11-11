@@ -1,5 +1,8 @@
 {% extends "basis.html" %}
 {% from "_markdown.html" import bloecke %}
+{%- from "_plus.html" import plus -%}
+{#- Das „+“: nicht blau, der Hauptknopf der Seite ist die Rückmeldung -#}
+{%- block plus %}{{ plus([{"text": "Dokument …", "link": neu_hier}], voll=false) }}{% endblock %}
 {#- Dokument-Ansicht: oben die finale (sonst neueste fertige) Fassung mit Seitenbildern, PDF und Original; darunter
     Rückmeldung, eigene Fassung, alle Fassungen aufklappbar mit „final“ und die Rückmeldungen. -#}
 {%- macro dateiliste(f) -%}

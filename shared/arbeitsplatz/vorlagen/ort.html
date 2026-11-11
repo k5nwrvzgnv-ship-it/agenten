@@ -1,72 +1,89 @@
 {% extends "basis.html" %}
 {% from "_dokumente.html" import liste %}
+{%- from "_plus.html" import plus, punkte -%}
+{#- Ort (umbauplan-ux.md Schritt 2): Kopf mit „+“ (Seite, Dokument …) und „···“ (Umbenennen, Verschieben, Unterseiten
+    ordnen, Archivieren), darunter nur, was da ist. Im Archiv kein „+“; „Wiederherstellen“ steht am Hinweis. -#}
+{#- ↑ bzw. ↓ einer Unterseite im „···“; geht es nicht weiter, ein leerer Platz gleicher Breite -#}
+{%- macro ordnen_knopf(k, pos, zeichen, richtung, geht) -%}
+{%- if geht %}
+          <form class="inline-form" method="post" action="/ort/{{ k.id }}/verschieben">
+            <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="eltern" value="{{ ort.id }}">
+            <input type="hidden" name="position" value="{{ pos }}"><input type="hidden" name="zurueck" value="/ort/{{ ort.id }}">
+            <button class="knopf knopf-leise ordnen-knopf" type="submit" aria-label="{{ k.titel }} {{ richtung }}">{{ zeichen }}</button></form>
+{%- else %}<span class="ordnen-knopf" aria-hidden="true"></span>{% endif %}
+{%- endmacro -%}
+{%- block plus %}
+{%- if not archiviert %}
+{{ plus([{"text": "Seite", "aktion": "/seite/neu", "felder": [("eltern", ort.id), ("titel", "Neue Seite"), ("einmal", einmal_kennung())]},
+         {"text": "Dokument …", "link": neu_hier}]) }}
+{%- endif %}
+{%- endblock %}
+{%- block punkte %}
+{%- call punkte() %}
+    <form method="post" action="/ort/{{ ort.id }}/umbenennen">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label class="unter" for="titel">Umbenennen</label>
+      <input id="titel" type="text" name="titel" value="{{ ort.titel }}" maxlength="200" required>
+      <button class="knopf knopf-klein" type="submit">Umbenennen</button>
+    </form>
+    <form method="post" action="/ort/{{ ort.id }}/verschieben">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label class="unter" for="eltern">Verschieben nach</label>
+      <select id="eltern" name="eltern">
+        {%- for z in ziele %}
+        <option value="{{ z.id }}"{% if z.jetzt %} selected{% endif %}>{{ "  " * z.tiefe }}{{ z.text }}</option>
+        {%- endfor %}
+      </select>
+      <button class="knopf knopf-klein" type="submit">Verschieben</button>
+    </form>
+    {%- if unterseiten | length > 1 %}
+    <div class="ordnen">
+      <span class="unter">Unterseiten ordnen</span>
+      <ul>
+        {%- for k in unterseiten %}
+        <li class="ordnen-zeile"><span class="ordnen-name">{{ k.titel }}</span>
+          {{- ordnen_knopf(k, loop.index0 - 1, "↑", "nach oben", not loop.first) }}
+          {{- ordnen_knopf(k, loop.index0 + 1, "↓", "nach unten", not loop.last) }}</li>
+        {%- endfor %}
+      </ul>
+    </div>
+    {%- endif %}
+    {%- if not ort.archiviert %}
+    <form method="post" action="/ort/{{ ort.id }}/archivieren">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button class="knopf knopf-leise" type="submit">Archivieren</button>
+      <span class="unter">mit allen Unterseiten; im Archiv wiederherstellbar</span>
+    </form>
+    {%- endif %}
+{%- endcall %}
+{%- endblock %}
 {% block inhalt %}
 {%- if archiviert %}
-<div class="hinweis hinweis-fehler">Diese Seite liegt im Archiv.
+<div class="hinweis hinweis-fehler archiv-hinweis">Diese Seite liegt im Archiv.
   {%- if ort.archiviert %}
   <form class="inline-form" method="post" action="/ort/{{ ort.id }}/wiederherstellen">
     <input type="hidden" name="token" value="{{ token }}">
     <button class="knopf-link" type="submit">Wiederherstellen</button>
   </form>{% endif %}</div>
 {%- endif %}
+{%- if dokumente %}
 <section>
   <h2>Dokumente</h2>
-  {%- if dokumente %}{{ liste(dokumente) }}{% else %}<p class="leer">Noch nichts hier. „+ Neu“ legt ein Dokument an diesem Ort an.</p>{% endif %}
+  {{ liste(dokumente) }}
 </section>
+{%- endif %}
+{%- if unterseiten %}
 <section>
   <h2>Unterseiten</h2>
-  {%- if unterseiten %}
   <ul>
     {%- for k in unterseiten %}
-    <li class="zeile-mit-knoepfen"><a class="zeile" href="/ort/{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
-      <span class="text"><span class="titel">{{ k.titel }}</span></span></a>
-      <span class="knoepfe-klein">
-      {%- if not loop.first %}
-        <form class="inline-form" method="post" action="/ort/{{ k.id }}/verschieben">
-          <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="eltern" value="{{ ort.id }}">
-          <input type="hidden" name="position" value="{{ loop.index0 - 1 }}"><input type="hidden" name="zurueck" value="/ort/{{ ort.id }}">
-          <button class="knopf-link" type="submit" aria-label="{{ k.titel }} nach oben">↑</button></form>{% endif %}
-      {%- if not loop.last %}
-        <form class="inline-form" method="post" action="/ort/{{ k.id }}/verschieben">
-          <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="eltern" value="{{ ort.id }}">
-          <input type="hidden" name="position" value="{{ loop.index0 + 1 }}"><input type="hidden" name="zurueck" value="/ort/{{ ort.id }}">
-          <button class="knopf-link" type="submit" aria-label="{{ k.titel }} nach unten">↓</button></form>{% endif %}
-      </span></li>
+    <li><a class="zeile" href="/ort/{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ k.titel }}</span></span></a></li>
     {%- endfor %}
   </ul>
-  {%- endif %}
-  <form class="zeile-form" method="post" action="/seite/neu" data-einmal>
-    <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="eltern" value="{{ ort.id }}">
-    <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
-    <label class="unsichtbar" for="neue-seite">Titel der neuen Unterseite</label>
-    <input id="neue-seite" type="text" name="titel" maxlength="200" placeholder="Neue Unterseite" required>
-    <button class="knopf" type="submit">+ Seite</button>
-  </form>
 </section>
-<details class="details">
-  <summary>Seite bearbeiten</summary>
-  <form class="zeile-form" method="post" action="/ort/{{ ort.id }}/umbenennen">
-    <input type="hidden" name="token" value="{{ token }}">
-    <label for="titel">Titel</label>
-    <input id="titel" type="text" name="titel" value="{{ ort.titel }}" maxlength="200" required>
-    <button class="knopf" type="submit">Umbenennen</button>
-  </form>
-  <form class="zeile-form" method="post" action="/ort/{{ ort.id }}/verschieben">
-    <input type="hidden" name="token" value="{{ token }}">
-    <label for="eltern">Verschieben nach</label>
-    <select id="eltern" name="eltern">
-      {%- for z in ziele %}
-      <option value="{{ z.id }}"{% if z.jetzt %} selected{% endif %}>{{ "  " * z.tiefe }}{{ z.text }}</option>
-      {%- endfor %}
-    </select>
-    <button class="knopf" type="submit">Verschieben</button>
-  </form>
-  {%- if not ort.archiviert %}
-  <form class="zeile-form" method="post" action="/ort/{{ ort.id }}/archivieren">
-    <input type="hidden" name="token" value="{{ token }}">
-    <button class="knopf" type="submit">Archivieren</button>
-    <span class="unter">mit allen Unterseiten; im Archiv wiederherstellbar</span>
-  </form>
-  {%- endif %}
-</details>
+{%- endif %}
+{%- if not dokumente and not unterseiten %}
+<p class="leer noch-leer">Noch leer.{% if not archiviert %} Mit + fängst du an.{% endif %}</p>
+{%- endif %}
 {% endblock %}

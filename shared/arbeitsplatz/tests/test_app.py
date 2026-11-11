@@ -161,7 +161,8 @@ class TestSeiten(Aufbau):
     def test_heute_leer_und_kopfzeilen(self):
         status, html, kopf = self.get("/")
         self.assertEqual(status, 200)
-        self.assertIn("Noch keine Orte", html)
+        self.assertIn("Noch leer. Mit + fängst du an.", html)
+        self.assertNotIn("Wartet auf dich", html)
         self.assertIn("default-src 'self'", kopf["content-security-policy"])
         self.assertEqual(kopf["cache-control"], "no-store")
         self.assertEqual(self.get("/ort/gibt-es-nicht")[0], 404)
@@ -195,9 +196,77 @@ class TestSeiten(Aufbau):
         self.assertEqual(status, 200)
         self.assertIn("Projekt &lt;Fehlstellen&gt;", html)  # escaped
         self.assertIn(f'href="/ort/{k}"', html)
-        self.assertIn(f'href="/seite/neu?eltern={p}"', html)
+        self.assertIn(f'<input type="hidden" name="eltern" value="{p}">', html.split('class="menue-halter plus"')[1])
         self.assertIn(f'href="/neu?ort={p}"', html)
         self.assertIn('aria-current="page"', html)
+
+    def test_plus_je_seite(self):
+        """umbauplan-ux.md Schritt 2: je Seite höchstens ein „+“ mit den Einträgen aus dem Plan; Archiv ohne."""
+        def eintraege(html):
+            if 'class="menue-halter plus"' not in html:
+                return None
+            menue = html.split('class="menue-halter plus"')[1].split("</details>")[0]
+            return re.findall(r'(?:type="submit">|<a class="knopf knopf-leise" href="[^"]*">)([^<]+)<', menue)
+        p = self.ort("Projekt")
+        heute = self.get("/")[1]
+        self.assertEqual(heute.count('class="menue-halter plus"'), 1)
+        self.assertEqual(eintraege(heute), ["Seite", "Dokument …"])
+        self.assertIn('class="knopf knopf-voll plus-knopf"', heute)
+        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Seite", "Dokument …"])
+        for pfad in ("/archiv", "/neu", "/neu/expose", "/seite/neu"):
+            self.assertIsNone(eintraege(self.get(pfad)[1]), pfad)
+        self.assertNotIn("+ Neu<", self.get(f"/ort/{p}")[1])
+        # „Seite“ im „+“ legt sofort „Neue Seite“ unter dem Ort an
+        kopf = self.post("/seite/neu", {"eltern": p, "titel": "Neue Seite", "einmal": "p1"})[2]
+        self.assertTrue(kopf["location"].startswith("/ort/neue-seite?aktion="))
+        self.assertEqual({k["id"]: k for k in orte.laden(self.instanz)}["neue-seite"]["eltern"], p)
+        # archivierter Ort: kein „+“, „Wiederherstellen“ am Hinweis, im „···“ kein Archivieren
+        self.post(f"/ort/{p}/archivieren", {})
+        html = self.get(f"/ort/{p}")[1]
+        self.assertIsNone(eintraege(html))
+        self.assertIn(f'action="/ort/{p}/wiederherstellen"', html)
+        self.assertNotIn(f'action="/ort/{p}/archivieren"', html)
+
+    def test_punkte_am_ort(self):
+        """Seltenes steht im „···“: Umbenennen, Verschieben, Unterseiten ordnen (ab zwei), Archivieren."""
+        p = self.ort("Projekt")
+        a, b, c = self.ort("A", p), self.ort("B", p), self.ort("C", p)
+        html = self.get(f"/ort/{p}")[1]
+        punkte = html.split('class="menue-halter punkte"')[1].split("</details>")[0]
+        for aktion in ("umbenennen", "verschieben", "archivieren"):
+            self.assertIn(f'action="/ort/{p}/{aktion}"', punkte)
+        self.assertIn("Unterseiten ordnen", punkte)
+        self.assertNotIn('aria-label="A nach oben"', punkte)
+        self.assertIn('aria-label="A nach unten"', punkte)
+        self.assertIn('aria-label="C nach oben"', punkte)
+        self.assertNotIn('aria-label="C nach unten"', punkte)
+        # außerhalb des „···“ keine Formulare mehr (keine offenen Masken, keine ↑/↓)
+        mitte = html.split("</details>\n</div>")[1].split("</main>")[0]
+        self.assertNotIn("<form", mitte)
+        # ↓ an A schiebt A hinter B
+        self.post(f"/ort/{a}/verschieben", {"eltern": p, "position": "1", "zurueck": f"/ort/{p}"})
+        self.assertEqual([k["id"] for k in orte.kinder(orte.laden(self.instanz), p)], [b, a, c])
+        # nur eine Unterseite: nichts zu ordnen
+        self.assertNotIn("Unterseiten ordnen", self.get(f"/ort/{a}")[1])
+
+    def test_nur_zeigen_was_da_ist(self):
+        """Leere Abschnitte fallen weg; ganz leer: eine leise Zeile."""
+        p = self.ort("Projekt")
+        html = self.get(f"/ort/{p}")[1]
+        self.assertNotIn("<h2>Dokumente</h2>", html)
+        self.assertNotIn("<h2>Unterseiten</h2>", html)
+        self.assertIn("Noch leer. Mit + fängst du an.", html)
+        self.ort("Kapitel", p)
+        html = self.get(f"/ort/{p}")[1]
+        self.assertIn("<h2>Unterseiten</h2>", html)
+        self.assertNotIn("Noch leer", html)
+        heute = self.get("/")[1]
+        self.assertIn("<h2>Orte</h2>", heute)
+        self.assertNotIn("<h2>Zuletzt</h2>", heute)
+        self.assertNotIn("Noch leer", heute)
+        # im Baum kein „+ Seite“ unter dem aktiven Ort mehr, unten bleibt es
+        self.assertNotIn(f'/seite/neu?eltern={p}', html)
+        self.assertIn('href="/seite/neu"', html)
 
 
 class TestPflege(Aufbau):

@@ -26,9 +26,8 @@
     <li aria-current="page">{{ krumen.hier }}</li>
   </ol>
 </nav>
-{%- block plus %}
-{%- if neu_hier %}<a class="knopf knopf-voll" href="{{ neu_hier }}">+ Neu</a>{% endif %}
-{%- endblock %}
+{#- Heute, Ort und Dokument setzen hier ihr „+“ und „···“ (_plus.html, umbauplan-ux.md Schritt 2) -#}
+{%- block plus %}{% endblock %}
 {%- block punkte %}{% endblock %}
 </div>
 {% block seitenkopf %}
@@ -63,8 +62,8 @@
     <li><a class="baum-eintrag" href="/"{% if krumen.hier == "Heute" and not krumen.teile %} aria-current="page"{% endif %}><span>Heute</span>
       {%- if laeuft %}<span class="baum-zahl baum-zahl-grau">{{ laeuft | length }} läuft</span>{% endif %}</a></li>
     {%- for b in baum %}
+    {#- „+ Seite“ unter dem aktiven Ort (logik.baum_zeilen, art "neu") steht jetzt im „+“ des Orts -#}
     {%- if b.art == "neu" %}
-    <li><a class="baum-eintrag baum-neu tiefe-{{ [b.tiefe, 6] | min }}" href="{{ b.link }}"><span>{{ b.text }}</span></a></li>
     {%- else %}
     <li><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
       {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterseiten">›</span>{% endif %}</a></li>

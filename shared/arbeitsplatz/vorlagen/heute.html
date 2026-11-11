@@ -1,30 +1,38 @@
 {% extends "basis.html" %}
 {% from "_dokumente.html" import liste %}
-{#- Heute: Mitte mit Wartet auf dich, Orte, Zuletzt; rechts Läuft gerade und Kosten (die einzige rechte Spalte) -#}
+{%- from "_plus.html" import plus -%}
+{#- Heute: Mitte mit Wartet auf dich, Orte, Zuletzt (nur, was da ist); rechts Läuft gerade und Kosten (die einzige rechte Spalte) -#}
 {% block rahmen_klasse %}{% endblock %}
+{%- block plus %}{{ plus([{"text": "Seite", "aktion": "/seite/neu", "felder": [("eltern", ""), ("titel", "Neue Seite"), ("einmal", einmal_kennung())]},
+                         {"text": "Dokument …", "link": "/neu"}]) }}{% endblock %}
 {% block inhalt %}
 <div class="heute">
+{%- if wartet %}
 <section>
   <h2>Wartet auf dich</h2>
-  {%- if wartet %}{{ liste(wartet, true) }}{% else %}<p class="leer">Nichts offen.</p>{% endif %}
+  {{ liste(wartet, true) }}
 </section>
+{%- endif %}
+{%- if oben %}
 <section>
   <h2>Orte</h2>
-  {%- if oben %}
   <ul>
     {%- for k in oben %}
     <li><a class="zeile" href="/ort/{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
       <span class="text"><span class="titel">{{ k.titel }}</span></span></a></li>
     {%- endfor %}
   </ul>
-  {%- else %}
-  <p class="leer">Noch keine Orte. Links mit „+ Seite“ anlegen, z. B. „Modul Holzschutz“ oder „Finanzen“.</p>
-  {%- endif %}
 </section>
+{%- endif %}
+{%- if zuletzt %}
 <section>
   <h2>Zuletzt</h2>
-  {%- if zuletzt %}{{ liste(zuletzt, true) }}{% else %}<p class="leer">Noch keine Dokumente aus dem Arbeitsplatz.</p>{% endif %}
+  {{ liste(zuletzt, true) }}
 </section>
+{%- endif %}
+{%- if not (wartet or oben or zuletzt) %}
+<p class="leer noch-leer">Noch leer. Mit + fängst du an.</p>
+{%- endif %}
 </div>
 {% endblock %}
 {% block rechts %}

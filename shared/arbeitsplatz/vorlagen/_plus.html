@@ -1,0 +1,33 @@
+{#- Das „+“ einer Seite (umbauplan-ux.md Schritt 2, aus Lias _plus.html): ein Knopf oben rechts, darunter die Liste, was
+    hier neu entstehen kann. Einträge: {"text", "link"} (Link) oder {"text", "aktion", "felder": [(name, wert)]}
+    (Formular mit Token, abgeschickt per POST). Ohne Einträge (Archiv) kein „+“. Geht ohne JavaScript (details).
+    voll=false: nicht blau, wo die Seite einen anderen Hauptknopf hat (Dokument: „Senden“ der Rückmeldung). -#}
+{%- macro plus(eintraege, voll=true) -%}
+{%- if eintraege %}
+<details class="menue-halter plus">
+  <summary class="knopf{% if voll %} knopf-voll{% endif %} plus-knopf" aria-label="Neu hier" title="Neu hier"><span aria-hidden="true">+</span></summary>
+  <div class="menue">
+    {%- for e in eintraege %}
+    {%- if e.aktion %}
+    <form method="post" action="{{ e.aktion }}" data-einmal>
+      <input type="hidden" name="token" value="{{ formular_token() }}">
+      {%- for name, wert in e.felder %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
+      <button class="knopf knopf-leise" type="submit">{{ e.text }}</button>
+    </form>
+    {%- else %}
+    <a class="knopf knopf-leise" href="{{ e.link }}">{{ e.text }}</a>
+    {%- endif %}
+    {%- endfor %}
+  </div>
+</details>
+{%- endif %}
+{%- endmacro -%}
+{#- Das „···“ einer Seite: Seltenes (Umbenennen, Verschieben, Ordnen, Archivieren) neben dem „+“, Inhalt per
+    {% call punkte() %} … {% endcall %}. offen: aufgeklappt. Geht ohne JavaScript (details). -#}
+{%- macro punkte(offen=false) -%}
+<details class="menue-halter punkte"{% if offen %} open{% endif %}>
+  <summary class="knopf knopf-leise punkte-knopf" aria-label="Weitere Aktionen" title="Weitere Aktionen">···</summary>
+  <div class="menue">{{ caller() }}
+  </div>
+</details>
+{%- endmacro -%}
