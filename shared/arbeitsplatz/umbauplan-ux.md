@@ -151,6 +151,37 @@ was man final markieren kann, als Rückmeldungen auch die Dateien zur Rückmeldu
   Fassung im „···“, Verlauf geschlossen mit Zahlen); angepasst die Dokument-Tests („Rückmeldung geben“,
   „Fassungen“). Browser-Probe bei Jan: Datei anhängen, Datei auf die Seite ziehen, eigene Fassung im „···“.
 
+## Schritt 6: Vorschau und Betrachter (Python, Neustart; Jans Okay 11.11.2026 nach der Abnahme, gebaut 11.11.)
+
+Befund Jan 11.11.: „keine Vorschau bei Dokumenten“. Seitenbilder kamen nur vom Renderer (`<stem>-vorschau/`);
+Ergebnisse von uni und finance sind meist PDFs oder Word-Dateien ohne diesen Ordner (auf Heute 1 von 11 mit Bildern).
+- `vorschau.py`: Fehlt die Renderer-Vorschau, macht der Arbeitsplatz eigene Seitenbilder (höchstens 30) mit
+  `renderer.vorschau` nach `data/vorschau/<auftrag>/<nr>/`, im Hintergrund, eine zur Zeit, in einem eigenen Prozess
+  (`vorschau_lauf.py` über `systemd-run --user --scope -p MemoryMax=1G`, weil die Unit nur 200 MB hat). Die Seite zeigt
+  so lange „Vorschau wird erstellt …“. Ändert sich die Datei, gilt die Vorschau als fehlend; ein Fehler steht in
+  `fehler.txt`, nach einem Tag gibt es einen neuen Versuch. Die Agent-Ordner bleiben unberührt. Probe: ein PDF mit
+  6 Seiten 1 s, ein Word-Exposé mit 5 Seiten gut 4 s (LibreOffice).
+- Neue Pakete (Jans Okay): `pypdfium2==5.14.0`; dazu `pillow==12.3.0`, das `renderer.vorschau` zum Speichern braucht
+  (beide in den Versionen von renderer, dokumente, finance).
+- Betrachter `/dokument/<u>/datei/<auftrag>/<nr>/ansehen?seite=m` (`vorlagen/ansehen.html`, `logik.betrachter`, wie
+  Lias ansehen.html): eine Seite groß, Vor/Zurück, Seitenzahlen, PDF, Herunterladen, Rückmeldung zu dieser Seite.
+  Die ersten zwei Seiten auf der Dokument-Seite und die kleinen Vorschaubilder führen dorthin; die Klappe
+  „Alle N Seiten“ aus Schritt 5 ist weg.
+- Tests: `tests/test_vorschau.py`, `test_betrachter`, `test_eigene_vorschau_fuer_pdf_ohne_renderer`,
+  `TestBetrachterUndZiel` (test_logik).
+
+## Schritt 7: Rückmeldung zu einer Datei oder Seite (Python, Neustart; gebaut 11.11.)
+
+Wie Lias `logik.rueckmeldung_ziel`: Im Download-Menü „Rückmeldung zu dieser Datei“, im Betrachter „… zu dieser
+Seite“. Das Feld zeigt dann „Zu „Expose.pdf“, Seite 3 (Fassung 2). Stattdessen zum Ganzen“; die Rückmeldung geht an
+die Fassung, aus der die Datei stammt, und ihr Text beginnt mit „Zur Datei „…“, Seite 3:“. Test
+`test_rueckmeldung_zu_datei_und_seite`.
+
+## Schritt 8: Heute lädt sich neu (nur Vorlage; gebaut 11.11.)
+
+Wie Lias Heute jede Minute, mit htmx ohne neue Route: `hx-get="/"`, `hx-select="#heute"`, die rechte Spalte per
+`hx-select-oob`. Das „+“ steht außerhalb und klappt dabei nicht zu.
+
 ## Abschluss
 
 - Rundgang über alle Seiten (alle 200), Jans Instanz bleibt unverändert (nur lesend).

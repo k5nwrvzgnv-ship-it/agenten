@@ -56,6 +56,11 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   Knopf (bei finaler Fassung keiner); je Datei ein Download-Symbol (PDF ansehen, Word-/PowerPoint-/…-Datei); die ersten
   zwei Seiten groß, alle in einer Klappe; im „···“ final und „Eigene Fassung hochladen …“ (`?offen=eigene` öffnet es);
   Verlauf als geschlossene Klappe ab zwei Stationen. `statisch/anhang.js` zeigt den Namen der angehängten Datei.
+- Vorschau (Schritt 6, `vorschau.py`): Dokumente ohne Renderer-Vorschau bekommen eigene Seitenbilder in
+  `data/vorschau/<auftrag>/<nr>/`, beim ersten Öffnen im Hintergrund, in einem eigenen Prozess mit 1 GB Grenze
+  (`vorschau_lauf.py`, `systemd-run --user --scope`). Betrachter `…/ansehen?seite=m` mit Blättern.
+- Rückmeldung zu einer Datei oder Seite (Schritt 7), Heute lädt sich jede Minute neu (Schritt 8).
+- Schritte 6 und 7 sind Python und wirken erst nach dem nächsten Neustart (wartet auf Jans Okay); Schritt 8 wirkt sofort.
 - Ohne JavaScript geht alles über `<details>` und Formulare. Browser-Probe bei Jan steht aus (siehe Offene Punkte).
 - Live seit dem Neustart 11.11. 15:42 mit Jans Okay (Rundgang 145 Abrufe, alle 200; `/neu/datei` antwortet).
 
@@ -82,7 +87,8 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - `statisch/`: ruhig.css, Schrift, htmx, einmal.js aus shared/webapp kopiert (nicht dort ändern), direkt.js und
   anhang.js nach Lias direkt.js und gespraech.js; `arbeitsplatz.css` mit den Ergänzungen (tiefere Baum-Ebenen,
   Ordnen im „···“, Seitenbilder, Recherche).
-- `requirements.txt`: feste Versionen, dieselben Pakete wie shared/webapp ohne webauthn und dessen Abhängigkeiten.
+- `requirements.txt`: feste Versionen, dieselben Pakete wie shared/webapp ohne webauthn und dessen Abhängigkeiten;
+  dazu pypdfium2 und pillow für die Vorschau (Jans Okay 11.11.).
   agentkit per `.venv/lib/python3.12/site-packages/agentkit.pth`.
 - Vorlagen wirken sofort auf den laufenden Dienst, Python erst nach Neustart.
 
@@ -98,7 +104,8 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 ## Offene Punkte
 0. Browser-Probe der ruhigen Oberfläche bei Jan (Tunnel, siehe oben): Titel anklicken (Enter, Esc), „Seite“ im „+“
    (neue Seite gleich offen), „Datei“ im „+“ und Datei auf einen Ort ziehen, Datei aufs Formular und auf ein Dokument
-   ziehen, eigene Fassung im „···“, Menüs bei schmalem Fenster. Ein Bildschirmfoto vom Server geht nicht (dem
+   ziehen, eigene Fassung im „···“, Menüs bei schmalem Fenster, Vorschau und Betrachter, Rückmeldung zu einer Seite,
+   Heute nach einer Minute. Ein Bildschirmfoto vom Server geht nicht (dem
    Headless-Chromium fehlen Systembibliotheken).
 1. Umzug (09.11. nachts): Orte auf Jans Instanz angelegt: „Forschungsprojekt Fehlstellen“ mit „Exposé“, „Recherche“,
    „Interviews“, „Schriftlicher Teil“; „Modul Holzschutz“; „Finanzen“. Alte Ergebnisse ohne Feld `ort` ordnet
