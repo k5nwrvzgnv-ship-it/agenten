@@ -96,12 +96,19 @@ die können später als Dateien Eingabe werden).
 
 ### Download-Stand (11.11.2026)
 - Mac: ~/fehlstellenscan/daten/kodytek/zip/ mit Bouding_Boxes.zip, Semantic Maps.zip, Specification (md5 stimmen),
-  Images1.zip lädt (Abbruch bei 1,6 GB, läuft mit Schleife weiter). Entpackt: boxen/ (alle), masken/ (100000000, 100000061, 100000062).
+  Images1.zip und (Test, Jan 11.11. abends) Images2.zip laden gleichzeitig, je in eigenem Terminal-Fenster mit
+  Schleife, caffeinate -i in einem dritten. Entpackt: boxen/ (alle), masken/ (100000000, 100000061, 100000062).
   Laden mit Wiederholung (im Ordner zip/):
 
       for i in {1..50}; do curl -L --fail -C - --speed-limit 1000 --speed-time 120 -o Images1.zip "https://zenodo.org/api/records/4694695/files/Images1.zip/content" && break; sleep 30; done
       md5 Images1.zip
 
+- Tempo: Zenodo begrenzt je Verbindung. Vom Server 2,1 MB/s je Verbindung, 4 gleichzeitig zusammen fast 10 MB/s.
+  Auf dem Mac je Verbindung nur 0,25–0,35 MB/s; zwei ZIPs gleichzeitig zusammen rund 0,5 MB/s (kurze Messung),
+  also nur teilweise mehr. Nicht über den Server umleiten (69 GB frei, Regel: nie den ganzen Datensatz dort).
+- Spiegel: Hugging Face iluvvatar/wood_surface_defects (2023, Privatperson, CC BY 4.0), 2,2 GB Parquet, aber Bilder
+  als JPEG Qualität 50 neu gespeichert und Boxen selbst ins YOLO-Format umgerechnet (README behauptet „alle
+  2800 x 1024“, stimmt nicht). Höchstens für schnelle Vorversuche, nicht als Grundlage.
 - Server: data/annotationen/ mit Bouding_Boxes.zip, Specification, Masken 100000000, 100000061, 100000062 (per scp, Jans Okay
   11.11.2026), entpackt nach data/annotationen/boxen/. Noch keine Bilder in data/rohbilder/.
 
