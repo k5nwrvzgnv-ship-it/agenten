@@ -238,6 +238,7 @@ a.zeile:hover, a.zeile:focus-visible { background: var(--hover); }
 .laden-knopf { width: 32px; min-height: 32px; padding: 0; justify-content: center; }
 .laden .menue { min-width: 220px; }
 .laden .menue .knopf-leise { color: var(--fg); min-height: 32px; }
+.rueckmeldung { scroll-margin-top: 24px; }
 .rueckmeldung .eingabe { position: static; }
 .eingabe-ziel { margin: 0; padding: 10px 14px 0; font-size: 14px; color: var(--leise); }
 .verlauf-klappe > summary { margin: 0 -8px; }

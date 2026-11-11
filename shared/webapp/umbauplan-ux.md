@@ -167,7 +167,7 @@ springt oder `direkt.js` `.ablage-offen` setzt. Ab 1101 px fällt dann auch ihre
 - Tests: `test_app.py` (Rahmen-Klassen), `test_pflege_app.py` (Termine auf Klasse und Reihe), `test_schnell.py`
   (TestSchnellNeu). Neu: Ebenen haben `aside.rechts`.
 
-## Schritt 6: Ergebnis-Seite (gebaut 11.11.2026, live; Browser-Probe offen)
+## Schritt 6: Ergebnis-Seite (gebaut 11.11.2026, live; Browser-Probe 11.11.)
 
 Gebaut, nur Vorlagen und CSS (kein Neustart): `ergebnis.html` neu geordnet. Rückmeldung als Feld wie im Gespräch
 (`form.eingabe`, Platzhalter „Was soll anders werden? Ich ändere es für dich. …“, „+ Datei anhängen“, „Senden“), immer
@@ -185,7 +185,9 @@ Namen der angehängten Datei. Seiten oben 2 × 260 px statt 2/3 der Breite. Test
 `test_verlauf_zeile`; angepasst `test_ergebnis`, `test_varianten`, `test_reihe_zuordnen`, TestMaterial
 (`test_ein_hauptknopf`, `test_eigene_fassung`, `test_rueckmeldung_je_datei`, `test_datei_wege_erklaert`,
 `test_rueckmeldung_im_testbetrieb`). `test_schnell.py` lief unverändert grün. Rundgang 11.11. gegen 8791: 600 Seiten
-(15 weniger, die Links `?offen=rueckmeldung`/`?offen=eigene` ohne Ziel fehlen), alle 200, `lia/instanz` unverändert.
+(15 weniger, die Links `?offen=rueckmeldung`/`?offen=eigene` ohne Ziel fehlen), alle 200, `lia/instanz` unverändert. Browser-Probe 11.11.: 940 px hoch bei 1440 px (vorher 4059), Menüs im Fenster, Sprung
+zum Feld ok. Daraus behoben: Name der Fassung über dem Feld aus dem Verlauf (vorher ohne Lias eigene gezählt, „Fassung 7“
+statt „10“), Fokus im Feld nach dem Sprung (Test `test_ziel_der_rueckmeldung`). Befunde für später in STATUS.md.
 
 - Dateien: `ergebnis.html`, `ruhig.css`.
   - Rückmeldung als immer sichtbares Eingabefeld unter „Das Wichtigste“ („Was soll anders werden?“, Datei anhängen,

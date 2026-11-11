@@ -260,11 +260,14 @@
     <input type="hidden" name="fassung" value="{{ ziel.fassung }}">
     <input type="hidden" name="dnr" value="{{ ziel.nr }}">
     <input type="hidden" name="seite" value="{{ ziel.seite }}">
-    <p class="eingabe-ziel">Zu {{ ziel.text }}{% if ziel.fassung_name and e.verlauf | length > 1 %} ({{ ziel.fassung_name }}){% endif %}.
+    {#- Name der Fassung wie in der Klappe „Verlauf“ (mit Lias eigenen Fassungen gezählt; ziel.fassung_name aus
+        logik.rueckmeldung_ziel zählt sie nicht mit, Browser-Probe 11.11.: „Fassung 7“ statt „Fassung 10“) -#}
+    {%- set zf = e.verlauf | selectattr("id", "equalto", ziel.fassung) | first %}
+    <p class="eingabe-ziel">Zu {{ ziel.text }}{% if zf and zf.name and e.verlauf | length > 1 %} ({{ zf.name }}){% endif %}.
       <a href="{{ basis_url }}#rueckmeldung">Stattdessen zum Ganzen</a></p>
     {%- endif %}
     <label class="unsichtbar" for="rueck-text">Was soll anders werden?</label>
-    <textarea id="rueck-text" name="text" rows="3" maxlength="{{ text_max }}" placeholder="Was soll anders werden? Ich ändere es für dich. Bitte keine Namen von Schüler*innen.">{{ text if offen == "rueckmeldung" else "" }}</textarea>
+    <textarea id="rueck-text" name="text" rows="3"{% if ziel or (offen == "rueckmeldung" and fehler) %} autofocus{% endif %} maxlength="{{ text_max }}" placeholder="Was soll anders werden? Ich ändere es für dich. Bitte keine Namen von Schüler*innen.">{{ text if offen == "rueckmeldung" else "" }}</textarea>
     <p class="gewaehlt" id="gewaehlt" aria-live="polite"></p>
     <div class="eingabe-leiste">
       <div class="links">

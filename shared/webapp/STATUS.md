@@ -115,9 +115,20 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   „+“ (nicht blau): Material …, Variante. „+ Neu hier“ gibt es nirgends mehr. Routen und schneller Weg unverändert.
   Einzelheiten und Abweichungen im Plan. Rundgang 11.11. gegen 8791: 600 Seiten, alle 200, alle 10 Ergebnisse von Heute
   in neuer Form (Straftheorien-Reihenentwurf: „Verlauf: 10 Fassungen, 7 Rückmeldungen“), `lia/instanz` unverändert.
-  NICHT im Browser geprüft (Chrome bei Jan nicht verbunden): Höhe der Seite (Ziel etwa eine Bildschirmhöhe statt
-  4059 px), Download-Symbol und Menü am rechten Rand, „···“ mit Datei-Feld bei 401 px, Name der angehängten Datei unter
-  dem Feld, Sprung von „Rückmeldung zu dieser Datei“ auf `#rueckmeldung`, Klappe auf und zu.
+  Browser-Probe 11.11. (Chrome-Seitenfenster bei Jan, „Fassung Der nackte Wahnsinn“, nichts gesendet, Dateifenster
+  abgefangen): Höhe 940 px bei 1440, 916 bei 1100, 1590 bei 760, 1866 bei 407 (Inhalt 1185, darunter die Seitenleiste);
+  vorher 4059 px. Kein waagrechtes Scrollen, Konsole ohne Fehler, Download-Menü, „+“, „···“ und Verlauf-Klappe ganz im
+  Fenster und sauber auf und zu, „Rückmeldung zu dieser Datei“ springt zum Feld. 401 px ging nicht (Chrome mit
+  Seitenleiste mindestens 407). Daraus behoben: Über dem Feld stand „(Fassung 7)“ statt „(Fassung 10)“
+  (`logik.rueckmeldung_ziel` zählt Lias eigene Fassungen nicht mit; die Vorlage nimmt den Namen jetzt aus dem Verlauf;
+  die alte Oberfläche `vorlagen/ergebnis.html` hat den Fehler noch), mit Ziel steht der Fokus im Feld (`autofocus`) und
+  das Feld hat 24 px Abstand nach oben. Die Behebung ist auf dem Dienst per Abruf geprüft, nicht im Browser.
+  OFFEN, nur von Hand: Name der angehängten Datei unter dem Feld (Dateifenster war gesperrt).
+  Befunde, Vorschlag an Jan, nicht gebaut: (a) Im „···“ steht ein ungestaltetes Dateifeld mit Satz und „Hochladen“,
+  ein Fehlklick öffnet das Dateifenster; besser ein Eintrag „Eigene Fassung hochladen …“ wie „+ Datei anhängen“, danach
+  Name und „Hochladen“ (wie die Ablage in Schritt 4, mit Weg ohne JavaScript). (b) Das „+“ hat auf Material ohne
+  Variante nur „Material …“; bleibt bewusst ein „+“ wie auf jeder Seite. (c) Bei 407 px bricht die Brotkrumen-Zeile
+  um, „+“ und „···“ stehen in eigener Zeile (alle Seiten, nicht nur Ergebnis).
   Nächster Schritt: 7 (Gespräch-Seite und restliche Texte).
 Behoben aus „Nebenbei gefunden“:
 - „Gespräch gelöscht.“ steht jetzt in `basis.html` und erscheint an Klasse, Reihe, Stunde und ohne Ort

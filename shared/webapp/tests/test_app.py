@@ -1604,6 +1604,22 @@ class TestMaterial(Aufbau):
         menue = mitte.split('<details class="menue-halter punkte">')[1].split("</details>")[0]
         self.assertIn('<label class="unter" for="reihe-wahl">Gehört zu Reihe</label>', menue)
 
+    def test_ziel_der_rueckmeldung(self):
+        """Browser-Probe 11.11.: Der Name der Fassung über dem Feld ist der aus dem Verlauf (mit Lias eigenen Fassungen
+        gezählt), nicht der aus logik.rueckmeldung_ziel; mit Ziel steht der Fokus im Feld."""
+        echt = app.logik.rueckmeldung_ziel
+
+        def falsch_gezaehlt(*args):
+            ziel = echt(*args)
+            return {**ziel, "fassung_name": "Fassung 99"} if ziel else ziel
+        with mock.patch.object(app, "NEUER_AUFTRAG", "test"), \
+                mock.patch.object(app.logik, "rueckmeldung_ziel", falsch_gezaehlt):
+            _, html = self.hole(f"{self.URL}?offen=rueckmeldung&fassung={self.F1}&datei=0")
+            self.assertIn("Zu „Arbeitsblatt.docx“ (Fassung 1).", html)
+            self.assertNotIn("Fassung 99", html)
+            self.assertRegex(html, r'<textarea id="rueck-text"[^>]* autofocus')
+            self.assertNotIn("autofocus", self.hole(self.URL)[1])  # ohne Ziel kein Sprung ins Feld
+
     def test_verlauf_zeile(self):
         """Die Klappe zählt Fassungen und Rückmeldungen; eine Fassung allein (steht oben) hat keinen Verlauf."""
         _, html = self.hole(self.URL)
