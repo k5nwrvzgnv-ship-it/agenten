@@ -13,6 +13,28 @@ die können später als Dateien Eingabe werden).
 - .venv mit numpy 2.5.4 und Pillow 13.0.0 (Jan 11.11.2026) und agentkit per .pth; tests/test_umgebung.py
   prüft sie (auch BMP). Kein Dienst, kein Timer, keine Daten geladen.
 
+## Mac (Training, von Hand)
+- Ordner ~/fehlstellenscan mit .venv aus Python 3.14.5 von python.org
+  (/Library/Frameworks/Python.framework/Versions/3.14/bin/python3), nicht aus Anaconda.
+- Versionen (11.11.2026): torch 2.15.0, torchvision 0.29.2, ultralytics 8.4.210, numpy 2.5.4, Pillow 13.0.0,
+  opencv-python 5.0.0.93, pip 26.3. macOS 26.6.2, M4 Pro, 14 Kerne, 24 GB RAM.
+- ultralytics-Einstellungen in ~/Library/Application Support/Ultralytics/settings.json: sync=False (keine
+  Statistik an ultralytics), datasets_dir ~/datasets (nur für Beispieldaten wie coco8), Läufe landen in
+  ~/fehlstellenscan/runs/detect/<name>/ (results.csv, args.yaml, weights/best.pt).
+- Probelauf 11.11.2026: coco8, yolo11n.pt, 1 Epoche, device=mps lief auf der GPU (GPU_mem 1,14 GB, mAP50 0,944).
+  `yolo checks` zeigt „CPU“ und „GPU None“, das betrifft nur CUDA; mps nutzt das Training mit device=mps.
+- Harmlose Meldungen: „fc-list: major issue … MiKTeX“ (Schriftsuche von MiKTeX), UserWarning „does not have a
+  deterministic implementation“ (mps), „Cache entry deserialization failed“ (pip).
+- Neues Terminal-Fenster, dann (Anaconda aus, Umgebung an):
+
+      conda deactivate
+      cd ~/fehlstellenscan && source .venv/bin/activate
+      yolo detect train data=<data.yaml> model=yolo11n.pt epochs=<n> imgsz=640 device=mps
+
+- Neu aufsetzen: .venv löschen, mit dem python.org-Python neu bauen, dann
+  `python -m pip install --upgrade pip`, `python -m pip install torch torchvision ultralytics`,
+  `yolo settings sync=False`.
+
 ## Aufbau
 - Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, auswertung.py, konfig/ (Einstellungen im Repo)
 - .venv: fehlstellenscan/.venv, agentkit per .pth eingebunden
@@ -52,7 +74,7 @@ die können später als Dateien Eingabe werden).
 1. Pakete, Entscheidung Jan (Pillow und numpy auf dem Server sind installiert):
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
-   b) Mac: torch und ultralytics für das Training, installiert Jan dort selbst (Anleitung folgt hier).
+   b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
 2. Kleine Probe des Datensatzes (ein ZIP auf dem Mac, wenige Bilder samt Annotationen auf den Server), damit
    datensatz.py das Box-Format an echten Dateien prüft. Download nur nach Jans Okay.
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
