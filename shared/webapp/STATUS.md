@@ -95,12 +95,17 @@ Zeilennummern im Befund und Plan gelten für Commit bf2e0d9.
   Termine (Klasse: ganzer Abschnitt mit „fällt aus“, `#termine`; Reihe: Daten der Stunden; Stunde: ihr Termin),
   Schon behandelt (Reihe), Reihenfrage aus der Reihe (Stunde). Raster in `ruhig.css`: Mitte bis 736 px (640 px Text)
   und rechts 280 px zusammen mittig neben der Seitenleiste, auch im Gespräch; Masken, Heute, Material einspaltig und
-  mittig. Ohne Kontext ist die Spalte `rechts-still` und per CSS `:has` unsichtbar, bis „Datei“ im „+“ sie öffnet.
-  Bei Lia heute: nur „Straftheorien“ zeigt rechts etwas (Schon behandelt), alle anderen Ebenen haben noch keine
-  Dateien und Termine. Rundgang 11.11. gegen 8791: 615 Seiten, alle 200, `lia/instanz` unverändert.
-  NICHT im Browser angesehen (Chrome nicht verbunden): Breite 1440/1280/1100/760/401 px, Klasse mit vielen Terminen
-  in der Spalte (eigenes Scrollen), „Datei“ im „+“ bei stiller Spalte (Spalte erscheint, Auswahl öffnet sich), Ziehen
-  einer Datei. `:has` braucht Safari 15.4 bzw. Chrome 105; ältere Browser zeigen die stille Spalte als leeren Rand.
+  mittig. Ohne Kontext ist die Spalte `rechts-still` und per CSS `:has` unsichtbar, bis „Datei“ im „+“ sie öffnet;
+  dann trägt der Rahmen `still-rechts` und hat keine leere Spur (Mitte 736 px mittig), die Spur kommt mit `#ablage`
+  oder `.ablage-offen` zurück. Bei Lia heute: nur „Straftheorien“ zeigt rechts etwas (Schon behandelt), alle anderen
+  Ebenen haben noch keine Dateien und Termine. Rundgang 11.11. gegen 8791: 615 Seiten, alle 200, `lia/instanz`
+  unverändert.
+  Browser-Probe 11.11. (Chrome-Seitenfenster bei Jan, nichts gespeichert, Dateifenster abgefangen): 1440/1100/760/407 px
+  ohne waagrechtes Scrollen, Konsole ohne Fehler, „Datei“ im „+“ an Reihe und Stunde zeigt die Spalte mit „Deine
+  Dateien“ und fordert die Auswahl an. Daraus behoben: leere Spur von 280 px bei stiller Spalte (linkslastig); die
+  Behebung selbst ist nicht im Browser angesehen. Bis 1100 px steht die Spalte unter dem Inhalt (Umbruch laut Plan).
+  OFFEN, nur von Hand: echtes Dateifenster, Ziehen einer Datei, Klasse mit vielen Terminen in der Spalte (eigenes
+  Scrollen), 401 px. `:has` braucht Safari 15.4 bzw. Chrome 105; ältere Browser zeigen die stille Spalte als leeren Rand.
   Bei ≤ 760 px bleibt die Reihenfolge Inhalt, rechte Spalte, Seitenleiste (Befund der Probe 11.11.). Vorschlag an Jan,
   nicht gebaut: Seitenleiste schmal oben als Klappe („Fächer und Reihen“), damit sie auf dem Handy nicht ganz unten steht.
   Nächster Schritt: 6 (Ergebnis-Seite).

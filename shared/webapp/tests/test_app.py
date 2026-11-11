@@ -752,7 +752,7 @@ class TestOrdnung(Aufbau):
         for pfad, name in (("/reihe/strafe", "Zur Reihe"), ("/reihe/strafe/stunde/1", "Zur Stunde"),
                            ("/klasse/ethik-8", "Zur Klasse")):
             _, html = self.hole(pfad)
-            self.assertIn('<div class="rahmen">', html, pfad)  # Raster mit rechter Spalte
+            self.assertRegex(html, r'<div class="rahmen( still-rechts)?">', pfad)  # Raster mit rechter Spalte
             klasse, label, rechts = self.rechts(html)
             self.assertEqual(label, name)
             self.assertEqual(html.count("<aside"), 1, pfad)
@@ -762,7 +762,9 @@ class TestOrdnung(Aufbau):
             self.assertNotIn('id="ablage"', mitte, pfad)
             self.assertNotIn("Schon behandelt", mitte, pfad)
         # Reihe: Schon behandelt rechts; die Reihenfrage bleibt im Kopf
-        klasse, _, rechts = self.rechts(self.hole("/reihe/strafe")[1])
+        html = self.hole("/reihe/strafe")[1]
+        self.assertIn('<div class="rahmen">', html)
+        klasse, _, rechts = self.rechts(html)
         self.assertEqual(klasse, "rechts")
         self.assertIn('<h2 id="ab-behandelt">Schon behandelt</h2>', rechts)
         self.assertIn("Kant; Bentham", rechts)
@@ -770,14 +772,19 @@ class TestOrdnung(Aufbau):
         # Stunde: Reihenfrage aus der Reihe, als Link zur Reihe
         _, _, rechts = self.rechts(self.hole("/reihe/strafe/stunde/1")[1])
         self.assertIn('<a href="/reihe/strafe">Wozu &lt;strafen&gt; wir?</a>', rechts)
-        # Klasse ohne Dateien und Termine: Spalte still (CSS zeigt sie erst, wenn „Datei“ dorthin springt)
-        klasse, _, rechts = self.rechts(self.hole("/klasse/ethik-8")[1])
+        # Klasse ohne Dateien und Termine: Spalte still, auch ohne Spur im Raster (CSS zeigt sie erst, wenn „Datei“
+        # dorthin springt; Browser-Probe 11.11.: sonst 280 px leer rechts)
+        html = self.hole("/klasse/ethik-8")[1]
+        self.assertIn('<div class="rahmen still-rechts">', html)
+        klasse, _, rechts = self.rechts(html)
         self.assertEqual(klasse, "rechts rechts-still")
         self.assertNotIn('id="termine"', rechts)
         # mit einer Datei ist sie nicht mehr still, die Datei steht rechts (Hochladen prüft test_ablage)
         (self.instanz / "ablage" / "ethik-8").mkdir(parents=True)
         (self.instanz / "ablage" / "ethik-8" / "Planung.pdf").write_bytes(b"%PDF-1.4 x")
-        klasse, _, rechts = self.rechts(self.hole("/klasse/ethik-8")[1])
+        html = self.hole("/klasse/ethik-8")[1]
+        self.assertIn('<div class="rahmen">', html)
+        klasse, _, rechts = self.rechts(html)
         self.assertEqual(klasse, "rechts")
         self.assertIn("Planung.pdf", rechts)
         # Masken, Heute und Material bleiben einspaltig

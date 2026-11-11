@@ -9,7 +9,7 @@
 {%- from "_direkt.html" import titel -%}
 {%- set mit_terminen = p and (p.stundenplan or p.termine_fehler or p.kommend or p.vergangen) %}
 {%- set rechts_still = not (ablage.dateien or ablage.fehler or ablage.erledigt or mit_terminen) %}
-{% block rahmen_klasse %}{% endblock %}
+{% block rahmen_klasse %}{% if rechts_still %} still-rechts{% endif %}{% endblock %}
 {%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">

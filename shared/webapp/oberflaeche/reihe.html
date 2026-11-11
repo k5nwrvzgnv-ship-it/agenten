@@ -52,7 +52,7 @@
 {#- Rechte Spalte (umbauplan-ux.md Schritt 5): Termine sind die Daten der Stunden, je ein Link auf die Stunde -#}
 {%- set mit_datum = e.stunden | selectattr("datum") | list %}
 {%- set rechts_still = not (ablage.dateien or ablage.fehler or ablage.erledigt or mit_datum or e.behandelt) %}
-{% block rahmen_klasse %}{% endblock %}
+{% block rahmen_klasse %}{% if rechts_still %} still-rechts{% endif %}{% endblock %}
 {%- block skripte %}{{ super() }}{% if p and not p.archiv %}<script src="/statisch/ziehen.js" defer></script>{% endif %}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">

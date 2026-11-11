@@ -141,7 +141,7 @@ Enter speichert. Einzelheiten in STATUS.md.
 - Tests: POST-Wege bleiben, neue Titel-Routen mit Tests; HTML: Titel tragen die nötigen Daten. Pflicht: Probe im
   Browser (Mac und iPad, falls Lia es nutzt), weil die Unittests kein JavaScript ausführen.
 
-## Schritt 5: Raster mit rechter Spalte (gebaut 11.11.2026, live; nicht im Browser angesehen)
+## Schritt 5: Raster mit rechter Spalte (gebaut 11.11.2026, live; Browser-Probe 11.11.)
 
 Gebaut, nur Vorlagen und CSS: Makro `rechts_spalte` in `_ort.html` (aside `rechts` mit „Deine Dateien“ oben, darunter
 der Kontext der Seite). Reihe: Termine (die Daten der Stunden, je ein Link auf die Stunde), Schon behandelt (aus der
@@ -152,7 +152,8 @@ in `ruhig.css`: Seitenleiste 240 px, dann Mitte (bis 736 px, also 640 px Text) u
 hat dasselbe Raster (vorher Mitte bis 820, rechts 300). Umbruch unter 1100 px und unter 760 px wie bisher. Abweichung:
 Die Spalte steht an Klasse, Reihe und Stunde immer im HTML, weil `#ablage` dort Sprungziel bleibt. Ist außer der
 zugeklappten Ablage nichts da, heißt sie `rechts-still` und ist per CSS (`:has`) unsichtbar, bis „Datei“ im „+“ dorthin
-springt oder `direkt.js` `.ablage-offen` setzt; die Mitte steht dann an derselben Stelle wie mit Spalte. „Leer“
+springt oder `direkt.js` `.ablage-offen` setzt. Ab 1101 px fällt dann auch ihre Spur weg (Rahmen `still-rechts`, Mitte
+736 px mittig; Befund der Browser-Probe 11.11.: sonst 280 px leer rechts, linkslastig). „Leer“
 (`noch_leer`) zählt weiter die ganze Seite (Termine und Dateien rechts eingeschlossen). Tests: neu
 `test_rechte_spalte` (`test_app.py`), `test_termine_in_der_rechten_spalte` (`test_pflege_app.py`); angepasst
 `test_nur_zeigen_was_da_ist`. `test_schnell.py` lief unverändert grün. Rundgang 11.11. gegen 8791: 615 Seiten, alle 200,

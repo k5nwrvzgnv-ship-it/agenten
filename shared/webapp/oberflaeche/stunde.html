@@ -8,7 +8,7 @@
 {%- from "_plus.html" import ebene, punkte -%}
 {%- from "_direkt.html" import titel -%}
 {%- set rechts_still = not (ablage.dateien or ablage.fehler or ablage.erledigt or (p and p.termin) or reihe.reihenfrage) %}
-{% block rahmen_klasse %}{% endblock %}
+{% block rahmen_klasse %}{% if rechts_still %} still-rechts{% endif %}{% endblock %}
 {%- block skripte %}{{ super() }}<script src="/statisch/einmal.js" defer></script><script src="/statisch/direkt.js" defer></script>{% endblock %}
 {% block seitenkopf %}
 <header class="kopf">
