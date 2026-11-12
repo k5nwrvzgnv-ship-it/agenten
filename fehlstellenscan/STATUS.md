@@ -6,6 +6,25 @@ Prof. Böhme): Datensätze bauen und prüfen, Trainingsläufe auswerten und verg
 neuen Bildern. Getrennt von uni/ (Moodle, Post) und holzbalkenscan/ (Prüfstand für Felix' Streifenbilder;
 die können später als Dateien Eingabe werden).
 
+## Ziele und Wettbewerb (Jan 12.11.2026)
+- Ziele: (1) Forschungsprojekt HNEE. (2) Mit Prototyp und Projekt auf die Ausschreibung der TU für einen
+  Altholz-Scanner bewerben. (3) BSH-Werken einen Scanner vor dem Kappen zur Endloslamelle vorschlagen.
+- Wettbewerb: Dataspree (Proof of Concept „Oberflächeninspektion“, gezeigt 12.11.2026). Stand laut ihren Folien:
+  eine Sichtseite, eine Kamera (5.472 px, 0,035 mm/px, also rund 19 cm je Bild), Balkenhöhe muss eingegeben
+  werden, Kalibrierung vor Ort nötig, Toleranz der Vermessung nicht genannt, erkannt vor allem Bohrlöcher und
+  Äste; Tracking über Bildgrenzen, weitere Defekttypen und Laborintegration erst im Ausblick. Ihr Berichtsentwurf
+  (Balkenkarte, Merkmalsliste, Grenzwerte, Balken-ID) ist ein Demo-Bild mit widersprüchlichen Maßen und bewertet
+  OK/nicht OK nach Fläche, nicht nach Sortierklasse. Für BSH-Kapplinien gibt es nach Claudes Wissen (ungeprüft)
+  eingeführte Anbieter (Microtec Goldeneye, WEINIG CombiScan); vor einem Vorschlag an Werke Markt recherchieren.
+- Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
+  Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
+  getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
+  Kennzahlen je Klasse und Messunsicherheit statt nur Konfidenz, Unsicheres an einen Menschen, Höhe messen statt
+  eingeben. Gemeinsamer Kern (Erkennen, Messen, Karte), Klassen und Regelwerk je Einsatz austauschbar.
+- Altholz: Kodytek deckt typische Merkmale nicht ab (Nägel, Schrauben, Farbe, Fäulnis, Insektenfraß, alte
+  Verbindungen), eigene Bilder nötig; verdecktes Metall braucht vermutlich einen Metalldetektor. BSH: übersehene
+  Fehler wiegen schwerer als Fehlalarme, Tempo und alle vier Seiten zählen.
+
 ## Stand (12.11.2026)
 - Gerüst steht und ist committet: agent.py schließt jeden Auftrag mit dem Hinweis „noch nicht gebaut“ ab.
 - datensatz.py gebaut und getestet (tests/test_datensatz.py), Aufteilung eingefroren in
@@ -231,6 +250,10 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
 6. Zentrale kennt den Agenten noch nicht (AGENTEN in shared/telegram/logik.py), Bedarf steht in der Haupt-STATUS.md
    Punkt 40. Dienst systemd/fehlstellenscan.service fehlt noch, braucht Jans Okay.
+7. Gewerbliche Nutzung (Ausschreibung, Werke): Lizenz ultralytics AGPL-3.0 neu prüfen, bevor ein Prototyp
+   weitergegeben wird (Enterprise-Lizenz oder z. B. YOLOX, Apache 2.0). Kodytek CC BY 4.0 gewerblich erlaubt
+   mit Namensnennung. Rechte an den Ergebnissen des HNEE-Projekts für eine Bewerbung mit Prof. Böhme bzw. der
+   Hochschule klären. Ausschreibungstext der TU fehlt noch (Durchsatz, Abmessungen, Merkmale, Genauigkeit).
 
 ## Gelernte Regeln
 - (noch keine)
