@@ -11,7 +11,7 @@ die können später als Dateien Eingabe werden).
 - datensatz.py gebaut und getestet (tests/test_datensatz.py), Aufteilung eingefroren in
   konfig/kodytek_aufteilung.json. Auf dem Server geprüft mit allen Box-Dateien und den 11 Probebildern
   (data/datensaetze/kodytek-probe/). Voller Lauf auf dem Mac 12.11.2026 fertig und geprüft (Befunde unten):
-  Mac ~/fehlstellenscan/datensaetze/kodytek-1/ ist bereit fürs erste Training. Ergebnisse in data/laeufe/
+  Mac ~/fehlstellenscan/datensaetze/kodytek-1/ ist bereit fürs erste Training (imgsz 1280, Jan 12.11.2026). Ergebnisse in data/laeufe/
   (bericht.json, ueberlappung.txt, pruefung_ultralytics.txt, results.csv und args.yaml des Tests probe20).
 - auswertung.py ist noch ein leerer Platz.
 - Test tests/test_geruest.py: Name, Hinweis bei Aufträgen, kein Import von torch, torchvision oder ultralytics.
@@ -81,7 +81,8 @@ die können später als Dateien Eingabe werden).
   - Überanpassungstest probe20 (20 Bilder aus Gruppe 1000, 54 Boxen, 5 Klassen, yolo11n, imgsz 1280, 150 Epochen,
     6,5 min, GPU 5,3 GB): mAP50 0,971 (bester 0,972), P 0,94, R 0,93, mAP50-95 0,68-0,71. Bestanden; der Rest bis 1
     kommt von Augmentierung und kleinem Modell, falsche Boxen ergäben Werte nahe 0. Sichtprüfung
-    train_batch0.jpg von Jan noch nicht bestätigt.
+    train_batch0.jpg 12.11.2026: Jan hat Ausschnitte gezeigt (100000000, 03, 12, 19), Boxen sitzen auf den
+    Fehlstellen (live_knot auf kleinen Ästen, dead_knot auf dunklem Ast, quartzity auf dunklen Streifen).
   - Literatur (Suche 12.11.2026): keine offizielle Aufteilung. CFIS-YOLO (arXiv 2504.11305) nutzt einen Teil
     (3.465 Bilder, 3 seltene Klassen weggelassen) mit eigener 8:1:1-Aufteilung, also nicht vergleichbar.
 
@@ -147,6 +148,8 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 - 12.11.2026 (Jan): datensatz.py im Mittelweg: 10 Klassen (overgrown bleibt, in der Auswertung weglassen),
   Mindestgröße 2 px, Gruppen-Aufteilung 80/10/10 eingefroren, Manifest, Prüfung mit ultralytics und
   Überanpassungstest auf dem Mac.
+- 12.11.2026 (Jan): Erstes Training auf kodytek-1 mit imgsz=1280 (nicht 640), Gründe siehe Befunde 12.11.2026.
+- 12.11.2026 (Jan): Bild-ZIPs (157 GB) auf dem Mac auch nach dem Bau von kodytek-1 vorerst behalten (238 GB frei).
 - 11.11.2026: Läufe nur auf Auftrag, ohne Claude, Rechenschritte später in systemd-run --scope mit MemoryMax wie
   holzbalkenscan. Tests importieren kein PyTorch (Test prüft das).
 
@@ -215,12 +218,13 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
-2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Jan 12.11.2026: ZIPs (157 GB) vorerst behalten, bis der
-   erste YOLO-Datensatz gebaut ist. Der ist jetzt gebaut: Jan erneut fragen, ob die ZIPs gelöscht werden
-   (neu laden dauert Stunden bis Tage; die entpackten Bilder in daten/kodytek/bilder/ bleiben die Quelle).
-3. Datensatz kodytek-1 auf dem Mac gebaut und geprüft (12.11.2026, Befunde oben). Offen: mit Jan imgsz für das
-   erste Training festlegen (Vorschlag 1280, Statistik und probe20 sprechen dafür; GPU-Speicher bei batch 4
-   nur 5,3 GB) und Sichtprüfung probe20/train_batch0.jpg bestätigen lassen. Zurückgestellt bis nach
+2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Bild-ZIPs (157 GB) bleiben auch nach dem Bau von
+   kodytek-1 vorerst (Jan 12.11.2026). Bei Platzmangel erneut fragen; Löschen macht Jan selbst auf dem Mac,
+   nur Images*.zip, die kleinen ZIPs (Boxen, Masken, Specification) bleiben.
+3. Datensatz kodytek-1 auf dem Mac gebaut und geprüft, Sichtprüfung bestanden, imgsz 1280 festgelegt
+   (12.11.2026). Nächster Schritt: erstes Training auf dem Mac, z. B.
+   `yolo detect train data=datensaetze/kodytek-1/data.yaml model=yolo11n.pt epochs=100 imgsz=1280 batch=8
+   device=mps name=kodytek1-n1280` (epochs und batch noch Vorschlag). Zurückgestellt bis nach
    dem ersten Modell (Jan 12.11.2026, Mittelweg): voller Abgleich Boxen gegen Masken, cleanlab/FiftyOne,
    Blindprüfung einer Stichprobe durch Prof. Böhme.
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
