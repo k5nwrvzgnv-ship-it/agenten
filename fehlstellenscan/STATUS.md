@@ -6,9 +6,12 @@ Prof. Böhme): Datensätze bauen und prüfen, Trainingsläufe auswerten und verg
 neuen Bildern. Getrennt von uni/ (Moodle, Post) und holzbalkenscan/ (Prüfstand für Felix' Streifenbilder;
 die können später als Dateien Eingabe werden).
 
-## Stand (11.11.2026)
+## Stand (12.11.2026)
 - Gerüst steht und ist committet: agent.py schließt jeden Auftrag mit dem Hinweis „noch nicht gebaut“ ab.
-- datensatz.py, auswertung.py und konfig/ sind leere Plätze mit Beschreibung, was dort hineinkommt.
+- datensatz.py gebaut und getestet (tests/test_datensatz.py), Aufteilung eingefroren in
+  konfig/kodytek_aufteilung.json. Auf dem Server geprüft mit allen Box-Dateien und den 11 Probebildern
+  (data/datensaetze/kodytek-probe/). Der volle Lauf auf dem Mac steht aus (Anleitung unten).
+- auswertung.py ist noch ein leerer Platz.
 - Test tests/test_geruest.py: Name, Hinweis bei Aufträgen, kein Import von torch, torchvision oder ultralytics.
 - .venv mit numpy 2.5.4 und Pillow 13.0.0 (Jan 11.11.2026) und agentkit per .pth; tests/test_umgebung.py
   prüft sie (auch BMP). Kein Dienst, kein Timer, keine Daten geladen.
@@ -35,6 +38,77 @@ die können später als Dateien Eingabe werden).
   `python -m pip install --upgrade pip`, `python -m pip install torch torchvision ultralytics`,
   `yolo settings sync=False`.
 
+## Datensatz bauen (datensatz.py)
+- Befehle: `statistik`, `aufteilung`, `bauen`, `ueberlappung` (je `--help`). Nur Bordmittel und Pillow,
+  numpy nur für `ueberlappung`, kein agentkit: läuft so auch in der Mac-.venv.
+- Klassen fest 0-9 in der Reihenfolge der Specification: live_knot, dead_knot, knot_missing, knot_with_crack,
+  crack, quartzity, resin, marrow, blue_stain, overgrown. Namen der Box-Dateien ohne Groß-/Kleinschreibung,
+  unbekannter Name bricht ab.
+- Boxen unter 2 px in einer Richtung (echte Bildbreite) werden aussortiert und in bericht.json einzeln gelistet.
+  Bilder, die dadurch alle Boxen verlieren, fallen ganz weg (nicht „ohne Fehler“). Dezimalkomma wird zu Punkt.
+  Bilder ohne Fehlstelle bleiben mit leerer .txt.
+- Aufteilung 80/10/10 nach Gruppen (Bildnummer ohne die letzten 5 Ziffern, 407 Gruppen mit 1-74 Bildern,
+  vermutlich je ein Brett), seltene Klassen zuerst verteilt, Seed 20261112. Eingefroren (Stand min_px 2):
+  train 16.074 / val 2.026 / test 2.176 Bilder; blue_stain 75/12/9; overgrown 5/0/0. Ein Test prüft, dass die
+  Datei zu den Box-Dateien passt. Test-Teil nicht mehr ändern, sonst sind Läufe nicht vergleichbar.
+- Ausgabe <ziel>/: images/{train,val,test}/ (Hardlinks auf die BMPs, `--kopieren` für Kopien),
+  labels/{train,val,test}/, data.yaml, bericht.json (Zählungen je Teil und Klasse, aussortierte Boxen),
+  manifest.json (md5 je Bild, Git-Stand, Aufteilung), DATENKARTE.md. Ein vorhandenes Ziel wird nie überschrieben.
+- `--probe N`: Überanpassungstest mit N Bildern mit Boxen, train = val.
+- Befunde 12.11.2026:
+  - Box-Größen (kürzere Seite, nach Aussortieren): Median live_knot 72 px, dead_knot 65, crack 66,
+    resin 72, marrow 122, quartzity 145, blue_stain 181. Bei imgsz 640 (Faktor 0,23) liegen rund die Hälfte der
+    Äste, Risse und Harzgallen unter 16 px, bei imgsz 1280 nur 2-6 %. Unter 8 px (kleinste YOLO-Stufe) bei 640:
+    2-7 %, bei 1280: unter 2 % (außer quartzity und knot_with_crack 4-7 %, auch bei voller Auflösung).
+    Vorschlag: imgsz=1280 statt 640; Kacheln bringen laut Statistik kaum mehr. Klären vor dem ersten Training.
+  - overgrown: nach Aussortieren 5 Boxen, Median 5 px, alle in train. Praktisch nicht lernbar, in der Auswertung
+    weglassen.
+  - Überlappung: Nachbarbilder 100000005/06, 00/02, 61/62 nach Herausrechnen der Maserung ohne gemeinsame Zeilen
+    (beste Korrelation 0,2-0,43, fremdes Paar 0,26-0,29, echte Überlappung wäre nahe 1). Das spricht gegen
+    überlappende Aufnahmen; die Gruppen-Aufteilung bleibt trotzdem (gleiches Brett, gleiche Äste über die Naht).
+    Stichprobe auf dem Mac steht aus.
+  - Literatur (Suche 12.11.2026): keine offizielle Aufteilung. CFIS-YOLO (arXiv 2504.11305) nutzt einen Teil
+    (3.465 Bilder, 3 seltene Klassen weggelassen) mit eigener 8:1:1-Aufteilung, also nicht vergleichbar.
+
+## Mac: Datensatz bauen und prüfen (von Hand)
+Alles im Mac-Terminal (Anaconda aus, Umgebung an wie im Abschnitt Mac). Hardlinks gehen nur auf demselben
+Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide im Benutzerordner.
+
+1. Skript und Aufteilung vom Server holen:
+
+       mkdir -p ~/fehlstellenscan/konfig
+       scp agents-user:agenten/fehlstellenscan/datensatz.py ~/fehlstellenscan/
+       scp agents-user:agenten/fehlstellenscan/konfig/kodytek_aufteilung.json ~/fehlstellenscan/konfig/
+
+2. Überlappungs-Stichprobe (30 Gruppen, je ein Nachbarpaar und ein fremdes Bild, einige Minuten):
+
+       python datensatz.py ueberlappung --bilder daten/kodytek/bilder --anzahl 30 | tee ueberlappung.txt
+
+   Werte „Nachbarn“ nahe 1 hießen echte Überlappung; erwartet sind ähnliche Werte wie beim fremden Bild.
+3. Überanpassungstest (20 Bilder, train = val; mAP50 muss gegen 1 gehen, sonst stimmt die Umwandlung nicht):
+
+       python datensatz.py bauen --boxen daten/kodytek/boxen --bilder daten/kodytek/bilder --ziel datensaetze/kodytek-probe20 --aufteilung konfig/kodytek_aufteilung.json --probe 20 --ohne-md5
+       yolo detect train data=datensaetze/kodytek-probe20/data.yaml model=yolo11n.pt epochs=150 imgsz=1280 batch=4 mosaic=0 device=mps name=probe20
+
+   Danach ansehen: runs/detect/probe20/labels.jpg (Boxen an plausibler Stelle und Größe) und train_batch0.jpg
+   (Boxen auf den Fehlstellen), mAP50 in der letzten Zeile von results.csv.
+4. Vollen Datensatz bauen (md5 über rund 174 GB dauert eine Weile, braucht keinen zusätzlichen Platz):
+
+       python datensatz.py bauen --boxen daten/kodytek/boxen --bilder daten/kodytek/bilder --ziel datensaetze/kodytek-1 --aufteilung konfig/kodytek_aufteilung.json
+
+   Erwartet: train 16.074 / val 2.026 / test 2.176 Bilder minus wenige weggelassene, rund 520 aussortierte
+   Boxen, Dezimalkomma 132 Dateien, fehlend 0.
+5. ultralytics liest den Datensatz (fremde Gegenprobe, Warnungen zu Labels notieren):
+
+       python -c "from ultralytics.data.utils import check_det_dataset; print(check_det_dataset('datensaetze/kodytek-1/data.yaml'))"
+
+6. Ergebnisse zum Server (Ordner data/laeufe/ gibt es dort):
+
+       scp ueberlappung.txt datensaetze/kodytek-1/bericht.json runs/detect/probe20/results.csv agents-user:agenten/fehlstellenscan/data/laeufe/
+
+- Hinweis Hardlinks: Die Bilder belegen den Platz nur einmal. Platz wird erst frei, wenn Original und
+  datensaetze/ gelöscht sind. Die ZIPs sind davon unabhängig.
+
 ## Aufbau
 - Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, auswertung.py, konfig/ (Einstellungen im Repo)
 - .venv: fehlstellenscan/.venv, agentkit per .pth eingebunden
@@ -55,6 +129,9 @@ die können später als Dateien Eingabe werden).
   kleinem Umfang, wertet Läufe aus und macht später Vorhersagen. Nie den ganzen Datensatz auf den Server.
 - 11.11.2026 (Jan): Lizenz ultralytics AGPL-3.0 vorerst angenommen, weil nur Jan es nutzt. Bei Weitergabe oder
   Zugang anderer (z. B. Portal) neu prüfen; Alternative YOLOX (Apache 2.0).
+- 12.11.2026 (Jan): datensatz.py im Mittelweg: 10 Klassen (overgrown bleibt, in der Auswertung weglassen),
+  Mindestgröße 2 px, Gruppen-Aufteilung 80/10/10 eingefroren, Manifest, Prüfung mit ultralytics und
+  Überanpassungstest auf dem Mac.
 - 11.11.2026: Läufe nur auf Auftrag, ohne Claude, Rechenschritte später in systemd-run --scope mit MemoryMax wie
   holzbalkenscan. Tests importieren kein PyTorch (Test prüft das).
 
@@ -86,8 +163,7 @@ die können später als Dateien Eingabe werden).
   100000062: 2780). Die Masken haben genau diese Breite, und die Boxen sind auf die echte Breite bezogen (an beiden
   Masken pixelgenau geprüft). Für YOLO also unkritisch, die Breite immer aus dem Bild lesen, nie 2800 annehmen.
 - 524 Boxen sind in einer Richtung unter 2 px (757 unter 5 px, 926 unter 10 px), z. B. 1 x 1 px; vermutlich
-  Klickfehler beim Annotieren. Darunter 6 der 10 overgrown-Boxen. In datensatz.py mit Mindestgröße aussortieren
-  (Grenze mit Jan festlegen) und melden.
+  Klickfehler beim Annotieren. Darunter 6 der 10 overgrown-Boxen. datensatz.py sortiert unter 2 px aus (Jan 12.11.).
 - Klassennamen in den Dateien (Boxen / Bilder): Live_Knot 21.224 / 11.912, Dead_Knot 11.985 / 8.350,
   resin 3.455 / 2.624, knot_with_crack 2.276 / 1.835, Crack 2.169 / 1.578, Marrow 1.181 / 1.061,
   Quartzity 1.075 / 847, Knot_missing 503 / 478, Blue_Stain 96 / 77, overgrown 10 / 6. Schreibweise weicht von der
@@ -126,7 +202,10 @@ die können später als Dateien Eingabe werden).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
 2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Jan 12.11.2026: ZIPs (157 GB) vorerst behalten, bis der
    erste YOLO-Datensatz gebaut ist; danach Löschen neu fragen (neu laden dauert Stunden bis Tage).
-3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
+3. Datensatz auf dem Mac bauen und prüfen (Abschnitt „Mac: Datensatz bauen und prüfen“), Ergebnisse zurück
+   an den Server; dann imgsz (1280 vorgeschlagen) für das erste Training festlegen. Zurückgestellt bis nach
+   dem ersten Modell (Jan 12.11.2026, Mittelweg): voller Abgleich Boxen gegen Masken, cleanlab/FiftyOne,
+   Blindprüfung einer Stichprobe durch Prof. Böhme.
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
 6. Zentrale kennt den Agenten noch nicht (AGENTEN in shared/telegram/logik.py), Bedarf steht in der Haupt-STATUS.md
