@@ -10,7 +10,9 @@ die können später als Dateien Eingabe werden).
 - Gerüst steht und ist committet: agent.py schließt jeden Auftrag mit dem Hinweis „noch nicht gebaut“ ab.
 - datensatz.py gebaut und getestet (tests/test_datensatz.py), Aufteilung eingefroren in
   konfig/kodytek_aufteilung.json. Auf dem Server geprüft mit allen Box-Dateien und den 11 Probebildern
-  (data/datensaetze/kodytek-probe/). Der volle Lauf auf dem Mac steht aus (Anleitung unten).
+  (data/datensaetze/kodytek-probe/). Voller Lauf auf dem Mac 12.11.2026 fertig und geprüft (Befunde unten):
+  Mac ~/fehlstellenscan/datensaetze/kodytek-1/ ist bereit fürs erste Training. Ergebnisse in data/laeufe/
+  (bericht.json, ueberlappung.txt, pruefung_ultralytics.txt, results.csv und args.yaml des Tests probe20).
 - auswertung.py ist noch ein leerer Platz.
 - Test tests/test_geruest.py: Name, Hinweis bei Aufträgen, kein Import von torch, torchvision oder ultralytics.
 - .venv mit numpy 2.5.4 und Pillow 13.0.0 (Jan 11.11.2026) und agentkit per .pth; tests/test_umgebung.py
@@ -66,7 +68,20 @@ die können später als Dateien Eingabe werden).
   - Überlappung: Nachbarbilder 100000005/06, 00/02, 61/62 nach Herausrechnen der Maserung ohne gemeinsame Zeilen
     (beste Korrelation 0,2-0,43, fremdes Paar 0,26-0,29, echte Überlappung wäre nahe 1). Das spricht gegen
     überlappende Aufnahmen; die Gruppen-Aufteilung bleibt trotzdem (gleiches Brett, gleiche Äste über die Naht).
-    Stichprobe auf dem Mac steht aus.
+- Befunde voller Lauf Mac 12.11.2026 (Dateien in data/laeufe/):
+  - kodytek-1: train 16.073 / val 2.026 / test 2.176 Bilder (davon ohne Fehler 1.578 / 175 / 239). Boxen je Teil
+    und Klasse stimmen genau mit konfig/kodytek_aufteilung.json überein. 434 Boxen aussortiert, 1 Bild weggelassen
+    (150400014, train), fehlend 0, Dezimalkomma 132. Die früher genannten 524 Boxen unter 2 px waren ohne die
+    Rundung in filtern() gezählt; 90 Boxen mit genau 2 px bleiben (gewollt). Kein Fehler in der Umwandlung.
+  - ultralytics 8.4.210 liest alle drei Teile (check_det_dataset und YOLODataset je Teil): gleiche Bildzahlen,
+    0 corrupt, keine Warnungen.
+  - Überlappung (30 Gruppen): beste Korrelation Nachbarn im Mittel 0,40 (0,23-0,77), fremdes Bild 0,29
+    (0,20-0,46), also deutlich unter 1: keine überlappenden Aufnahmen. In 6 Paaren passt das Bildende am besten
+    auf Zeile 0 des nächsten Bilds (höchster Wert 0,77): Bilder schließen vermutlich lückenlos an. Gruppen-Aufteilung bleibt richtig.
+  - Überanpassungstest probe20 (20 Bilder aus Gruppe 1000, 54 Boxen, 5 Klassen, yolo11n, imgsz 1280, 150 Epochen,
+    6,5 min, GPU 5,3 GB): mAP50 0,971 (bester 0,972), P 0,94, R 0,93, mAP50-95 0,68-0,71. Bestanden; der Rest bis 1
+    kommt von Augmentierung und kleinem Modell, falsche Boxen ergäben Werte nahe 0. Sichtprüfung
+    train_batch0.jpg von Jan noch nicht bestätigt.
   - Literatur (Suche 12.11.2026): keine offizielle Aufteilung. CFIS-YOLO (arXiv 2504.11305) nutzt einen Teil
     (3.465 Bilder, 3 seltene Klassen weggelassen) mit eigener 8:1:1-Aufteilung, also nicht vergleichbar.
 
@@ -96,8 +111,8 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 
        python datensatz.py bauen --boxen daten/kodytek/boxen --bilder daten/kodytek/bilder --ziel datensaetze/kodytek-1 --aufteilung konfig/kodytek_aufteilung.json
 
-   Erwartet: train 16.074 / val 2.026 / test 2.176 Bilder minus wenige weggelassene, rund 520 aussortierte
-   Boxen, Dezimalkomma 132 Dateien, fehlend 0.
+   Erwartet (Lauf 12.11.2026): train 16.073 / val 2.026 / test 2.176 Bilder, 434 aussortierte Boxen,
+   1 weggelassenes Bild, Dezimalkomma 132 Dateien, fehlend 0.
 5. ultralytics liest den Datensatz (fremde Gegenprobe, Warnungen zu Labels notieren):
 
        python -c "from ultralytics.data.utils import check_det_dataset; print(check_det_dataset('datensaetze/kodytek-1/data.yaml'))"
@@ -201,9 +216,11 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
 2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Jan 12.11.2026: ZIPs (157 GB) vorerst behalten, bis der
-   erste YOLO-Datensatz gebaut ist; danach Löschen neu fragen (neu laden dauert Stunden bis Tage).
-3. Datensatz auf dem Mac bauen und prüfen (Abschnitt „Mac: Datensatz bauen und prüfen“), Ergebnisse zurück
-   an den Server; dann imgsz (1280 vorgeschlagen) für das erste Training festlegen. Zurückgestellt bis nach
+   erste YOLO-Datensatz gebaut ist. Der ist jetzt gebaut: Jan erneut fragen, ob die ZIPs gelöscht werden
+   (neu laden dauert Stunden bis Tage; die entpackten Bilder in daten/kodytek/bilder/ bleiben die Quelle).
+3. Datensatz kodytek-1 auf dem Mac gebaut und geprüft (12.11.2026, Befunde oben). Offen: mit Jan imgsz für das
+   erste Training festlegen (Vorschlag 1280, Statistik und probe20 sprechen dafür; GPU-Speicher bei batch 4
+   nur 5,3 GB) und Sichtprüfung probe20/train_batch0.jpg bestätigen lassen. Zurückgestellt bis nach
    dem ersten Modell (Jan 12.11.2026, Mittelweg): voller Abgleich Boxen gegen Masken, cleanlab/FiftyOne,
    Blindprüfung einer Stichprobe durch Prof. Böhme.
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
