@@ -16,6 +16,12 @@ die können später als Dateien Eingabe werden).
   (Balkenkarte, Merkmalsliste, Grenzwerte, Balken-ID) ist ein Demo-Bild mit widersprüchlichen Maßen und bewertet
   OK/nicht OK nach Fläche, nicht nach Sortierklasse. Für BSH-Kapplinien gibt es nach Claudes Wissen (ungeprüft)
   eingeführte Anbieter (Microtec Goldeneye, WEINIG CombiScan); vor einem Vorschlag an Werke Markt recherchieren.
+- Marktrecherche Kappscanner (12.11.2026): docs/markt-kappscanner.md (Anbieter, Preise, Zielgruppe, Lücke, Fragen
+  an die zwei Werke). Befunde: (1) MiCROTEC und WEINIG decken den Markt ab, vier Seiten, Laser plus Farbe,
+  Röntgen optional, 2,5 bis 20 m/s; WEINIG hat eigene Einstiegsgeräte (SOLID SCAN 1000, EasyScan Smart C).
+  (2) Neupreise nirgends öffentlich; verbreitete Alternative ist Kreidemarkierung von Hand plus optimierende
+  Kappsäge. (3) Normweg für Kamera plus YOLO ist apparativ unterstützte visuelle Sortierung (DIN 4074-3:2025-06),
+  nicht maschinelle Festigkeitssortierung nach EN 14081. Kostenschwelle nur über die zwei Werke klärbar.
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
