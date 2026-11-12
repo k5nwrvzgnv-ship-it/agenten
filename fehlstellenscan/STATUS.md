@@ -93,33 +93,40 @@ die können später als Dateien Eingabe werden).
   Quartzity 1.075 / 847, Knot_missing 503 / 478, Blue_Stain 96 / 77, overgrown 10 / 6. Schreibweise weicht von der
   Specification ab (dort Live_knot, Death_know, Blue_stain, Nummern 1–8, 10, 11 mit Maskenfarben).
 - 20.276 Box-Dateien und 20.276 Masken, das Paper nennt 20.275 Bilder: eine Nummer zu viel, offen.
+- Sichtprüfung 12.11.2026 an 11 Bildern aus Images1 (data/rohbilder/, Boxen eingezeichnet in data/pruefung/,
+  Skript noch nicht im Repo): Alle Boxen sitzen auf den Fehlstellen, auch bei schmalen Bildern (2799, 2780) und
+  Dezimalkomma. Auffällig: schwarzer Hintergrund links und rechts neben dem Brett; senkrechte Nahtstellen mit
+  Helligkeitssprung in manchen Bildern (Zeilenkamera); 100000022 („ohne Fehler“) zeigt einen dunklen Streifen
+  ähnlich Quartzity ohne Box, also sind wohl nicht alle sichtbaren Merkmale markiert.
 
 ### Download-Stand (11.11.2026)
 - Mac: ~/fehlstellenscan/daten/kodytek/zip/ mit Bouding_Boxes.zip, Semantic Maps.zip, Specification (md5 stimmen),
-  Images1.zip und (Test, Jan 11.11. abends) Images2.zip laden gleichzeitig, je in eigenem Terminal-Fenster mit
-  Schleife, caffeinate -i in einem dritten. Entpackt: boxen/ (alle), masken/ (100000000, 100000061, 100000062).
+  Images1.zip und Images2.zip vollständig (12.11.2026, md5 stimmen). Images1 enthält 2.000 BMP im Unterordner
+  Images1/ (Nummern 100–105 ganz, 106 zum Teil, 991, 993, 999; Klassen ohne Blue_Stain und overgrown), entpackt
+  nach ~/fehlstellenscan/daten/kodytek/bilder/Images1/. Entpackt außerdem: boxen/ (alle), masken/ (100000000, 100000061, 100000062).
   Laden mit Wiederholung (im Ordner zip/):
 
       for i in {1..50}; do curl -L --fail -C - --speed-limit 1000 --speed-time 120 -o Images1.zip "https://zenodo.org/api/records/4694695/files/Images1.zip/content" && break; sleep 30; done
       md5 Images1.zip
 
 - Tempo: Zenodo begrenzt je Verbindung. Vom Server 2,1 MB/s je Verbindung, 4 gleichzeitig zusammen fast 10 MB/s.
-  Auf dem Mac je Verbindung nur 0,25–0,35 MB/s; zwei ZIPs gleichzeitig zusammen rund 0,5 MB/s (kurze Messung),
-  also nur teilweise mehr. Nicht über den Server umleiten (69 GB frei, Regel: nie den ganzen Datensatz dort).
+  Auf dem Mac je Verbindung oft nur 0,25–0,35 MB/s, nach einem Neustart der Verbindung (Nacht 12.11.) aber
+  3–7 MB/s: langsame Verbindungen früh abbrechen und neu ansetzen lohnt sich. Nicht über den Server umleiten (69 GB frei, Regel: nie den ganzen Datensatz dort).
 - Spiegel: Hugging Face iluvvatar/wood_surface_defects (2023, Privatperson, CC BY 4.0), 2,2 GB Parquet, aber Bilder
   als JPEG Qualität 50 neu gespeichert und Boxen selbst ins YOLO-Format umgerechnet (README behauptet „alle
   2800 x 1024“, stimmt nicht). Höchstens für schnelle Vorversuche, nicht als Grundlage.
 - Server: data/annotationen/ mit Bouding_Boxes.zip, Specification, Masken 100000000, 100000061, 100000062 (per scp, Jans Okay
-  11.11.2026), entpackt nach data/annotationen/boxen/. Noch keine Bilder in data/rohbilder/.
+  11.11.2026), entpackt nach data/annotationen/boxen/. data/rohbilder/: 11 Probebilder (Jans Okay 12.11.2026):
+  100000000, 100000002, 100000005, 100000006, 100000022, 100000033, 100000061, 100000062, 100000069, 100100027,
+  99100031 (je Klasse aus Images1 eins, ohne Fehler, schmal, Dezimalkomma).
 
 ## Offene Punkte
 1. Pakete, Entscheidung Jan (Pillow und numpy auf dem Server sind installiert):
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
-2. Probe des Datensatzes: Images1.zip fertig laden, md5 prüfen, Inhalt ansehen (welche Nummern), wenige Bilder
-   samt Masken per scp nach data/rohbilder/ bzw. data/annotationen/.
-   Danach mit Jan entscheiden, ob alle 157 GB geladen werden (rund 5 Tage, 330 GB auf dem Mac mit Entpacken).
+2. Probe erledigt (12.11.2026). Offen: Entscheidung Jan, ob Images3–10 (rund 125 GB) geladen werden; mit allem
+   entpackt rund 330 GB auf dem Mac. Blue_Stain und overgrown liegen nur in anderen ZIPs.
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
