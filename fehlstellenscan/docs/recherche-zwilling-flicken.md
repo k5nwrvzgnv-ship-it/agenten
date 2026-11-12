@@ -69,6 +69,29 @@ Regelwerk (Oberfläche):
   Widerspruch nicht aufgelöst; aktuelle Fassung des Merkblatts und EN 14080 selbst prüfen.
 - Ob EN 14080 Ausfräsen mit Einsatz in tragenden Lamellen regelt oder ausschließt: nicht gefunden.
 
+## 4. Tracheideneffekt (Faserwinkel per Laser)
+
+- Prinzip: runder Laserpunkt senkrecht aufs Holz wird zur Ellipse, weil das Licht entlang der Fasern
+  weiterstreut. Richtung der Ellipse = Faserwinkel in der Oberfläche, Länge hängt am Austrittswinkel der
+  Faser. Auf Ästen (Fasern fast senkrecht zur Oberfläche) bleibt der Punkt klein und rund. Gemessen wird nur
+  die Projektion in der Oberfläche; den 3D-Verlauf rechnet erst ein Modell (TU Wien, Abschnitt 1).
+- Laser: rot 630-680 nm üblich (eine Studie 660 nm, 100 mW), gut auf Nadelholz (Fichte), schlecht auf vielen
+  Laubhölzern (Eiche). Für Laubholz Nahinfrarot bis 1064 nm, bis 1 W, mit passender Kamera (LaBoMaP 2019).
+- Kamera: gewöhnliche CMOS-Industriekameras reichen, Rotkanal wertet am besten aus (Eur. J. Wood Prod. 2023,
+  doi 10.1007/s00107-023-01980-1, dort 650-nm-Laser).
+- Grenzen: saubere, möglichst gehobelte Oberfläche nötig; Altholz mit Farbe, Schmutz oder Verwitterung
+  vermutlich schwierig (Claudes Einschätzung). 100 mW ist Laserklasse 3B (augengefährlich), Schutz vorher
+  klären. Kodytek enthält keine Laserbilder, eigene Aufnahmen nötig.
+- Idee erster Versuch (Jan 12.11.2026, nicht entschieden): rotes Punktraster-Modul (Beugungsgitter),
+  Kamera, abgedunkelt, gehobeltes Fichtenbrett mit Ästen; Ellipsen mit numpy/OpenCV anpassen. Prüfen, ob
+  Ellipsen und runde Punkte auf Ästen deutlich genug sind. Kosten und nötige Leistung nicht geprüft.
+- Quellen: https://springerlink.bibliotecabuap.elogim.com/10.1007/s00107-023-01980-1,
+  https://sam.ensam.eu/bitstream/10985/17888/2/LaBoMaP_21INTEWS_2019_BESSEAU.pdf,
+  https://link.springer.com/article/10.1007/s00226-017-0952-3,
+  https://link.springer.com/10.1186/s10086-020-01922-y,
+  https://link.springer.com/10.1007/s00226-024-01586-7,
+  https://open.lnu.se/index.php/compwood/article/download/1794/1788/4681
+
 ## Folgerungen für die Projekte (Vorschlag)
 - Zwilling und Flicken sind Forschungsstand, nicht Marktstand: Lücke zwischen Studie (Poznań, TU Wien) und
   Industrie (Wintersteiger nur Decklagen). Das passt eher zu Ziel 1 (Forschung) als zu Ziel 3 (Werken verkaufen).

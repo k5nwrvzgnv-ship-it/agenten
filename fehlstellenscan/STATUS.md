@@ -39,6 +39,11 @@ die können später als Dateien Eingabe werden).
   Decklagen 10-20 mm. Studie Poznań 2022: ausgefräste Randäste in 40-mm-Kiefernlamellen, BSH-Träger über
   40 N/mm² im Mittel, nicht zugelassen. Schiffchen in Sichtqualität laut Verband zulässig, ein Hersteller
   widerspricht. EN 14080 selbst nicht eingesehen.
+- Tracheideneffekt (Jan 12.11.2026, Abschnitt 4 der Recherche): Laserpunkt wird auf Holz zur Ellipse in
+  Faserrichtung, auf Ästen rund. Liefert Faserwinkel, die Grundlage für 3D-Äste (TU Wien). Für Fichte reicht
+  roter Laser um 650 nm und CMOS-Kamera (Rotkanal); Laubholz braucht Nahinfrarot. Idee erster Versuch:
+  Punktraster-Modul, Kamera, gehobeltes Fichtenbrett, Ellipsen mit numpy/OpenCV. Laserschutz, Kosten und
+  Leistung vorher klären; Pakete (OpenCV) nur nach Jans Okay.
 - Inneres aus der Oberfläche: Modell, trainiert mit Paaren aus Oberflächenscan und CT, schätzt die 3D-Lage von
   Fehlstellen. Tragfähig nur für Merkmale mit Spur an der Oberfläche, vor allem Äste (Kegel vom Mark nach außen,
   auf mehreren Seiten sichtbar). Fäulnis, Hohlräume, innere Risse, Metall nicht ableitbar (Modell würde raten);
