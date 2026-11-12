@@ -92,22 +92,21 @@ die können später als Dateien Eingabe werden).
   resin 3.455 / 2.624, knot_with_crack 2.276 / 1.835, Crack 2.169 / 1.578, Marrow 1.181 / 1.061,
   Quartzity 1.075 / 847, Knot_missing 503 / 478, Blue_Stain 96 / 77, overgrown 10 / 6. Schreibweise weicht von der
   Specification ab (dort Live_knot, Death_know, Blue_stain, Nummern 1–8, 10, 11 mit Maskenfarben).
-- 20.276 Box-Dateien und 20.276 Masken, das Paper nennt 20.275 Bilder: eine Nummer zu viel, offen.
+- 20.276 Bilder, Box-Dateien und Masken, jede Nummer passt zu genau einem Bild (die 20.275 im Paper sind falsch gezählt).
 - Sichtprüfung 12.11.2026 an 11 Bildern aus Images1 (data/rohbilder/, Boxen eingezeichnet in data/pruefung/,
   Skript noch nicht im Repo): Alle Boxen sitzen auf den Fehlstellen, auch bei schmalen Bildern (2799, 2780) und
   Dezimalkomma. Auffällig: schwarzer Hintergrund links und rechts neben dem Brett; senkrechte Nahtstellen mit
   Helligkeitssprung in manchen Bildern (Zeilenkamera); 100000022 („ohne Fehler“) zeigt einen dunklen Streifen
   ähnlich Quartzity ohne Box, also sind wohl nicht alle sichtbaren Merkmale markiert.
 
-### Download-Stand (11.11.2026)
-- Mac: ~/fehlstellenscan/daten/kodytek/zip/ mit Bouding_Boxes.zip, Semantic Maps.zip, Specification (md5 stimmen),
-  Images1.zip und Images2.zip vollständig (12.11.2026, md5 stimmen). Images1 enthält 2.000 BMP im Unterordner
-  Images1/ (Nummern 100–105 ganz, 106 zum Teil, 991, 993, 999; Klassen ohne Blue_Stain und overgrown), entpackt
-  nach ~/fehlstellenscan/daten/kodytek/bilder/Images1/. Entpackt außerdem: boxen/ (alle), masken/ (100000000, 100000061, 100000062).
-  Laden mit Wiederholung (im Ordner zip/):
+### Download-Stand (12.11.2026): vollständig
+- Mac: ~/fehlstellenscan/daten/kodytek/ mit zip/ (alle 13 Dateien von Zenodo, 157 GB, alle md5 geprüft),
+  bilder/Images1/ bis bilder/Images10/ (20.276 BMP, jedes mit Box-Datei und umgekehrt, abgeglichen mit comm),
+  boxen/ (alle Box-Dateien), masken/ (nur 100000000, 100000061, 100000062). Danach 238 GB frei.
+  Images1 enthält die Nummern 100–105, 106 zum Teil, 991, 993, 999 (ohne Blue_Stain und overgrown).
+- Laden mit Neustart langsamer Verbindungen (im Ordner zip/, je Fenster eine Liste von ZIPs):
 
-      for i in {1..50}; do curl -L --fail -C - --speed-limit 1000 --speed-time 120 -o Images1.zip "https://zenodo.org/api/records/4694695/files/Images1.zip/content" && break; sleep 30; done
-      md5 Images1.zip
+      for z in 3 4 5 6; do for i in {1..1000}; do curl -L --fail -C - --speed-limit 1000000 --speed-time 60 -o Images$z.zip "https://zenodo.org/api/records/4694695/files/Images$z.zip/content" && break; sleep 20; done; done
 
 - Tempo: Zenodo begrenzt je Verbindung. Vom Server 2,1 MB/s je Verbindung, 4 gleichzeitig zusammen fast 10 MB/s.
   Auf dem Mac je Verbindung oft nur 0,25–0,35 MB/s, nach einem Neustart der Verbindung (Nacht 12.11.) aber
@@ -125,10 +124,8 @@ die können später als Dateien Eingabe werden).
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
-2. Probe erledigt (12.11.2026). Jan 12.11.2026: alles laden. Images3–10 (rund 125 GB) laden auf dem Mac in zwei
-   Fenstern (3–6 und 7–10), danach md5 aller ZIPs gegen Zenodo prüfen und entpacken (mit allem rund 330 GB):
-
-       for z in 3 4 5 6; do for i in {1..1000}; do curl -L --fail -C - --speed-limit 1000000 --speed-time 60 -o Images$z.zip "https://zenodo.org/api/records/4694695/files/Images$z.zip/content" && break; sleep 20; done; done
+2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Offen, Entscheidung Jan: ZIPs (157 GB) behalten oder
+   löschen; neu laden dauert Stunden bis Tage.
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
