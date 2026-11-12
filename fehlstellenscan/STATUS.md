@@ -124,8 +124,8 @@ die können später als Dateien Eingabe werden).
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
-2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Offen, Entscheidung Jan: ZIPs (157 GB) behalten oder
-   löschen; neu laden dauert Stunden bis Tage.
+2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Jan 12.11.2026: ZIPs (157 GB) vorerst behalten, bis der
+   erste YOLO-Datensatz gebaut ist; danach Löschen neu fragen (neu laden dauert Stunden bis Tage).
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
