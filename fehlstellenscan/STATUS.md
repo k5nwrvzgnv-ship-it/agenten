@@ -125,8 +125,10 @@ die können später als Dateien Eingabe werden).
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
-2. Probe erledigt (12.11.2026). Offen: Entscheidung Jan, ob Images3–10 (rund 125 GB) geladen werden; mit allem
-   entpackt rund 330 GB auf dem Mac. Blue_Stain und overgrown liegen nur in anderen ZIPs.
+2. Probe erledigt (12.11.2026). Jan 12.11.2026: alles laden. Images3–10 (rund 125 GB) laden auf dem Mac in zwei
+   Fenstern (3–6 und 7–10), danach md5 aller ZIPs gegen Zenodo prüfen und entpacken (mit allem rund 330 GB):
+
+       for z in 3 4 5 6; do for i in {1..1000}; do curl -L --fail -C - --speed-limit 1000000 --speed-time 60 -o Images$z.zip "https://zenodo.org/api/records/4694695/files/Images$z.zip/content" && break; sleep 20; done; done
 3. datensatz.py bauen: Umwandlung ins YOLO-Format, Prüfungen, Aufteilung, data.yaml (mit Tests).
 4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
