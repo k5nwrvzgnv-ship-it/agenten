@@ -31,6 +31,22 @@ die können später als Dateien Eingabe werden).
   Verbindungen), eigene Bilder nötig; verdecktes Metall braucht vermutlich einen Metalldetektor. BSH: übersehene
   Fehler wiegen schwerer als Fehlalarme, Tempo und alle vier Seiten zählen.
 
+## Ideen, Ausblick (Jan 12.11.2026, nicht entschieden, nicht recherchiert)
+- Inneres aus der Oberfläche: Modell, trainiert mit Paaren aus Oberflächenscan und CT, schätzt die 3D-Lage von
+  Fehlstellen. Tragfähig nur für Merkmale mit Spur an der Oberfläche, vor allem Äste (Kegel vom Mark nach außen,
+  auf mehreren Seiten sichtbar). Fäulnis, Hohlräume, innere Risse, Metall nicht ableitbar (Modell würde raten);
+  für Altholz daher kein Ersatz für CT, Ultraschall oder Metalldetektor. Ausgabe mit Unsicherheit. Einstieg ohne
+  CT: Äste auf allen vier Seiten erkennen, einander zuordnen, Kegel anpassen (Geometrie, testbar).
+- Digitaler Zwilling BSH: aus den Vierseiten-Scans jeder Lamelle vor dem Verkleben zusammensetzen. Lamellen sind
+  dünn (etwa 40 mm), Äste meist auf beiden Breitseiten sichtbar, Schätzung des Inneren daher leichter als beim
+  ganzen Träger. Nutzen: Lage jeder Fehlstelle im Träger bekannt, je Fehlstelle entscheiden (dulden, flicken,
+  kappen) nach Beanspruchung an der Stelle, Lamellen gezielt anordnen, Festigkeit rechnen.
+- Ausfräsen und Schiffchen statt Kappen: spart Länge und Keilzinkung. Grenze: die Faserabweichung um den Ast
+  bleibt nach dem Flicken, ein Schiffchen stellt die Festigkeit nicht her (Claudes Einschätzung, ungeprüft).
+  Tragend vermutlich nur mit Prüfungen und Zulassung; was EN 14080 zu Ausbesserungen erlaubt, vorher prüfen.
+  Optisch (Sichtqualität) eher realistisch; Flickautomaten gibt es nach Claudes Wissen für Furnier und Platten,
+  für BSH-Lamellen unbekannt. Vor weiterer Arbeit: Literatur, Normtext, Markt, Frage an die zwei Werke.
+
 ## Stand (12.11.2026)
 - Gerüst steht und ist committet: agent.py schließt jeden Auftrag mit dem Hinweis „noch nicht gebaut“ ab.
 - datensatz.py gebaut und getestet (tests/test_datensatz.py), Aufteilung eingefroren in
