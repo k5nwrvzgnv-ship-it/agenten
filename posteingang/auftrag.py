@@ -30,6 +30,10 @@ class AuftragFehler(Exception):
     """Claudes Antwort hat nicht die verlangte Form."""
 
 
+# Rückfrage, wenn der Auftrag weder Person noch Stichwort hergibt und Claude selbst keine Frage stellt.
+RUECKFRAGE_UNKLAR = "An wen soll die Mail gehen, und was soll drinstehen?"
+
+
 PROMPT_SUCHE = """Du bist der Posteingang-Agent von Jan (privates Postfach jan@kleinke.org). Jan gibt dir
 einen Auftrag für eine Mail. Bevor du sie schreibst, sucht Python in seinem Postfach und Kalender nach
 Kontext (bisherige Mails, Adresse, Anrede, Termin). Nenne dafür nur die Suchbegriffe.
@@ -46,7 +50,9 @@ Antworte nur mit einem JSON-Objekt, ohne weiteren Text:
   "kalender_tage": 14}}
 personen: höchstens {max_personen}, nur Nachnamen oder Adressen (ohne Frau/Herr). stichworte: höchstens
 {max_stichworte}, einzelne Wörter. tage_zurueck: wie weit im Postfach zurück (bis {max_tage}).
-kalender_tage: wie viele Tage ab heute im Kalender (bis {max_kalender}, 0 wenn kein Termin betroffen ist)."""
+kalender_tage: wie viele Tage ab heute im Kalender (bis {max_kalender}, 0 wenn kein Termin betroffen ist).
+Lässt der Auftrag nicht erkennen, an wen die Mail geht oder worum es geht (z. B. nur "emailantwort"), such
+nicht ins Blaue, sondern antworte nur mit {{"rueckfrage": "kurze Frage an Jan, was fehlt"}}."""
 
 
 PROMPT_ENTWURF = """Du bist der Posteingang-Agent von Jan (privates Postfach jan@kleinke.org). Schreib für
@@ -131,16 +137,22 @@ def prompt_suche(text: str, heute: date) -> str:
 
 
 def suche_lesen(text: str) -> dict:
-    """Suchbegriffe aus Claudes Antwort, begrenzt. Ohne Person und Stichwort gibt es nichts zu suchen."""
+    """Suchbegriffe aus Claudes Antwort, begrenzt.
+
+    Ist der Auftrag zu vage (Claudes Rückfrage, oder weder Person noch Stichwort), kommt {"rueckfrage": text}
+    zurück: Dann gibt es nichts zu suchen, und Jan wird gefragt.
+    """
     roh = _json_aus(text)
     if not isinstance(roh, dict):
         raise AuftragFehler("Suchbegriffe: JSON-Objekt erwartet")
+    if isinstance(roh.get("rueckfrage"), str) and roh["rueckfrage"].strip():
+        return {"rueckfrage": roh["rueckfrage"].strip()}
     suche = {"personen": _woerter(roh.get("personen"), MAX_PERSONEN),
              "stichworte": _woerter(roh.get("stichworte"), MAX_STICHWORTE),
              "tage_zurueck": _zahl(roh.get("tage_zurueck"), 365, MAX_TAGE_ZURUECK),
              "kalender_tage": _zahl(roh.get("kalender_tage"), 14, MAX_KALENDER_TAGE)}
     if not suche["personen"] and not suche["stichworte"]:
-        raise AuftragFehler("Suchbegriffe: weder Person noch Stichwort")
+        return {"rueckfrage": RUECKFRAGE_UNKLAR}
     return suche
 
 

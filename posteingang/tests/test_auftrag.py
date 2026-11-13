@@ -49,9 +49,15 @@ class TestSuche(unittest.TestCase):
         self.assertEqual(s["tage_zurueck"], auftrag.MAX_TAGE_ZURUECK)
         self.assertEqual(s["kalender_tage"], 14)
 
-    def test_ohne_begriffe_fehler(self):
-        with self.assertRaises(AuftragFehler):
-            auftrag.suche_lesen('{"personen": [], "stichworte": []}')
+    def test_ohne_begriffe_rueckfrage(self):
+        self.assertEqual(auftrag.suche_lesen('{"personen": [], "stichworte": []}'),
+                         {"rueckfrage": auftrag.RUECKFRAGE_UNKLAR})
+
+    def test_rueckfrage_von_claude(self):
+        self.assertEqual(auftrag.suche_lesen('{"rueckfrage": " An wen soll die Antwort gehen? "}'),
+                         {"rueckfrage": "An wen soll die Antwort gehen?"})
+
+    def test_ohne_json_fehler(self):
         with self.assertRaises(AuftragFehler):
             auftrag.suche_lesen("Ich brauche mehr Infos.")
 

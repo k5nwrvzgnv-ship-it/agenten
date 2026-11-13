@@ -172,6 +172,26 @@ class TestMailAuftrag(unittest.TestCase):
         self.assertIn("Termin absagen\n\nNachtrag von Jan: o@praxis.de", self.prompts[2][0])
         self.assertEqual(len(self.freigabe), 1)
 
+    def test_vager_auftrag_rueckfrage_und_nachtrag(self):
+        # Auftrag 20261113-125025: nur "emailantwort", Claude findet weder Person noch Stichwort.
+        nichts = '{"personen": [], "stichworte": [], "tage_zurueck": 365, "kalender_tage": 0}'
+        self.assertTrue(self.auftrag({"id": "A1", "text": "emailantwort"}, nichts))
+        self.assertEqual(len(self.fertig), 1)
+        text, ok = self.fertig[0]
+        self.assertTrue(ok)
+        self.assertTrue(text.startswith("An wen soll die Mail gehen, und was soll drinstehen?"))
+        self.assertIn("Antworte auf diese Nachricht", text)
+        self.assertEqual(len(self.prompts), 1)  # kein Entwurfsschritt
+        self.assertEqual(self.freigabe, [])
+        self.auftrag({"id": "A2", "text": "An Oppenheimer, Termin absagen", "bezug": "A1"}, SUCHE, ENTWURF)
+        self.assertIn("emailantwort\n\nNachtrag von Jan: An Oppenheimer, Termin absagen", self.prompts[1][0])
+        self.assertEqual(self.fertig[1], ("Entwurf an o@praxis.de liegt zur Freigabe.", True))
+
+    def test_rueckfrage_im_suchschritt(self):
+        self.auftrag({"id": "A1", "text": "emailantwort"}, '{"rueckfrage": "An wen, und worum geht es?"}')
+        self.assertTrue(self.fertig[0][0].startswith("An wen, und worum geht es?"))
+        self.assertTrue((self.ablage / "A1" / "kontext.json").exists())
+
     def test_ungueltiger_entwurf_wird_gemeldet(self):
         self.auftrag({"id": "A1", "text": "x"}, SUCHE, '{"entwurf": {"an": [], "betreff": "b", "text": "t"}}')
         self.assertEqual(self.fertig, [("Kein Entwurf möglich: an: mindestens ein Empfänger nötig", False)])

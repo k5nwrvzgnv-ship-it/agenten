@@ -131,6 +131,11 @@ def auftragstext(a: dict, ablage: Path) -> str:
     return a["text"]
 
 
+def rueckfrage_text(frage: str) -> str:
+    """Rückfrage an Jan. Seine Antwort kommt als Folgeauftrag mit bezug zurück (siehe auftragstext)."""
+    return f"{frage}\n\nAntworte auf diese Nachricht, dann mache ich weiter."
+
+
 def entwurf_einreichen(antwort: str, kontext: dict, auftrag_id: str, vorgaenger: dict | None = None,
                        neuer_entwurf=None, entwuerfe: Path | None = None) -> str:
     """Claudes Antwort prüfen und als Mail-Entwurf in die Freigabe legen. Gibt den Text für Jan zurück.
@@ -141,7 +146,7 @@ def entwurf_einreichen(antwort: str, kontext: dict, auftrag_id: str, vorgaenger:
     neuer_entwurf = neuer_entwurf or freigabe.neuer_entwurf
     art, roh, original = auftrag.antwort_lesen(antwort, kontext)
     if art == "rueckfrage":
-        return f"{roh}\n\nAntworte auf diese Nachricht, dann mache ich weiter."
+        return rueckfrage_text(roh)
     daten = mail.pruefen(roh, original)
     for feld in ("in_reply_to", "references", "antwort_auf"):
         if vorgaenger and vorgaenger["daten"].get(feld) and not daten.get(feld):
@@ -170,6 +175,12 @@ def mail_auftrag(a: dict, laufen=claude_lauf.laufen, suchen=postfach_suchen, ter
         if not e.ok:
             raise claude_lauf.LaufFehler(e.text[:300])
         suche = auftrag.suche_lesen(e.text)
+        if "rueckfrage" in suche:
+            # Ohne Suche kein Kontext, aber der Text muss für den Folgeauftrag (bezug) bleiben.
+            _schreibe_json(ablage / a["id"] / "kontext.json", {"text": text, "kontext": None})
+            logger.info("Auftrag %s zu vage, Rückfrage an Jan", a["id"])
+            fertig(a, rueckfrage_text(suche["rueckfrage"]), True, e.sitzung)
+            return True
         kontext = auftrag.kontext_sammeln(suche, suchen, termine, heute,
                                           gesendet=_cfg().get("GESENDET_ORDNER", auftrag.ORDNER_GESENDET))
         _schreibe_json(ablage / a["id"] / "kontext.json", {"text": text, "kontext": kontext})

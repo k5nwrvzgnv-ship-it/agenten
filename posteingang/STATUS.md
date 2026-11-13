@@ -27,6 +27,9 @@ Termine, Bestellungen) per Telegram melden, Werbung und Newsletter weglassen. St
   data/entwuerfe.json. Antwort auf das Ergebnis = Nachtrag (ganzer Ablauf neu), Ändern = neuer Entwurf mit
   demselben Kontext, Gesprächsbezug bleibt. Freigegeben -> mail.senden genau einmal (vor den Aufträgen im Lauf).
   Reihenfolge im Lauf: freigegebene_ausfuehren, auftraege_abarbeiten, post_pruefen.
+  Vager Auftrag (z. B. nur "emailantwort"): Schon der Suchschritt endet mit einer Rückfrage an Jan statt
+  "Kein Entwurf möglich" (Claudes {"rueckfrage"} oder, ohne Person und Stichwort, auftrag.RUECKFRAGE_UNKLAR).
+  kontext.json hält dann nur den Text (kontext null), damit Jans Antwort als Nachtrag mit bezug weiterläuft.
 - vorfilter.py (ohne Netz, tests/test_vorfilter.py): fällt weg bei X-Spam-Flag YES, gesperrtem Absender,
   List-Unsubscribe, Precedence bulk/list/junk. Auto-Submitted bleibt (Rechnungen, Versand).
   Gesperrte Absender aus Regelzeilen "Absender weglassen: a@b.de, @domain.de" (@domain mit Subdomains).
