@@ -65,6 +65,12 @@ recherche = [
   "de.wikisource.org", "zeno.org", "korpora.org", "archive.org",
   # Fallsuche (Jan 27.10.2026): Nachrichten, Jugend, Urteile, Orientierung
   "rbb24.de", "deutschlandfunk.de", "funk.net", "stern.de", "openjur.de", "de.wikipedia.org",
+  # Theater und Theaterpädagogik (Jan 13.11.2026, Lias Recherche Statuswechsel)
+  "improwiki.com", "en.wikipedia.org", "keithjohnstone.com", "learnimprov.com", "sessionlab.com",
+  "tutory.de", "lernnetz.de", "uni-oldenburg.de", "bildungsserver.berlin-brandenburg.de", "bildungsserver.de",
+  "lis.bremen.de", "li.hamburg.de", "bvts.de", "kubi-online.de", "zum.de", "lehrer-online.de",
+  "friedrich-verlag.de", "beltz.de", "theaterdo.de", "rpi-loccum.de", "schulstiftung-freiburg.de",
+  "edumaps.de", "db-thueringen.de", "nachtkritik.de", "theaterderzeit.de",
 ]
 # Exposé-Recherche von uni (Jan 02.11.2026, uni/recherche.py). Belege von anderen Domains zählen als ungeprüft.
 uni = [
