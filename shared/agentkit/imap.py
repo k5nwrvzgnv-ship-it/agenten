@@ -98,6 +98,16 @@ def _kopf_liste(n: email.message.Message, name: str) -> list[str]:
     return [email.utils.formataddr(p) for p in email.utils.getaddresses(werte) if p[1]]
 
 
+def _kopf(n: email.message.Message, name: str) -> str:
+    """Kopfzeile als Text. Ist sie so kaputt, dass Pythons Parser abstürzt (z. B. Message-ID von
+    Microsoft mit [..] im lokalen Teil), gilt der Rohwert, damit eine Mail nicht den ganzen Lauf stoppt."""
+    try:
+        return str(n[name] or "")
+    except Exception:  # noqa: BLE001 - Parserfehler der Standardbibliothek sind nicht vorhersehbar
+        logger.warning("Kopfzeile %s nicht lesbar, nehme Rohwert", name)
+        return next((str(w) for k, w in n.raw_items() if k.lower() == name.lower()), "")
+
+
 def zerlege(uid: int, roh: bytes) -> dict:
     n = email.message_from_bytes(roh, policy=email.policy.default)
     anhaenge = [_dekodiere(t.get_filename()) for t in n.iter_attachments() if t.get_filename()]
@@ -108,8 +118,8 @@ def zerlege(uid: int, roh: bytes) -> dict:
         "von": _dekodiere(n["From"]),
         "an": [_dekodiere(a) for a in (*_kopf_liste(n, "To"), *_kopf_liste(n, "Cc"))],
         "antwort_an": email.utils.parseaddr(_dekodiere(n["Reply-To"] or n["From"]))[1],
-        "message_id": (n["Message-ID"] or "").strip(),
-        "references": " ".join((n["References"] or "").split()),
+        "message_id": " ".join(_kopf(n, "Message-ID").split()),
+        "references": " ".join(_kopf(n, "References").split()),
         "betreff": _dekodiere(n["Subject"]),
         "datum": datum.isoformat() if datum else "",
         "text": _text(roh),

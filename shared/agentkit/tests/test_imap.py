@@ -30,6 +30,14 @@ class TestImap(unittest.TestCase):
         self.assertEqual(m["wortlaut"], "Anmeldung bis 30.10.")
         self.assertEqual(m["an"], [])
 
+    def test_kaputte_message_id_stoppt_nicht(self):
+        mid = "<[4f4c-JFZGS42DN5WW25LON======@microsoft.com]>"
+        mail = (f"From: a@b.de\r\nMessage-ID: {mid}\r\nReferences: {mid}\r\nSubject: x\r\n\r\nHallo").encode()
+        with self.assertLogs("agentkit.imap", "WARNING"):
+            m = imap.zerlege(1, mail)
+        self.assertEqual(m["message_id"], mid)
+        self.assertEqual(m["text"], "Hallo")
+
     def test_an_aus_to_und_cc(self):
         mail = (b"From: jan@kleinke.org\r\nTo: =?utf-8?q?Frau_M=C3=BCller?= <m@x.de>, b@y.de\r\n"
                 b"Cc: c@z.de\r\nSubject: x\r\n\r\nHallo")
