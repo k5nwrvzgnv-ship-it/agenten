@@ -235,6 +235,8 @@ Seite 1, geprüft mit agentkit.wortlaut.steht_in. Primärtexte: Stellen bleiben 
 solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und Jan erfährt es.
 
 ## Entscheidungen
+- Webauftrag AUFWAND: gross bleibt bei drei Vertiefungsrunden, obwohl die dritte beim ersten Lauf kaum etwas
+  brachte (Jan 14.11.2026). Nicht erneut vorschlagen, solange Jan es nicht selbst anspricht.
 - 03.11.2026 (Jan, Strukturplan): Reihen nur über ihre feste id, nie über den Titel; Examen ist eine Stunde mit
   Marke „Prüfung“ in einer normalen Reihe. recherche nimmt ohne Angabe im Auftrag die Prüfungsreihe.
 - 25.10.2026 (Jan): Teile A–D, Allowlist gesetze-im-internet.de, de.wikisource.org, zeno.org,
@@ -294,8 +296,7 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    1 USD liegen; sonst entscheidet Jan. Regeln aus Lias Feedback können mit „(Feedback <id>)“ unter „Gelernte
    Regeln“ hier landen (faelle.py liest als GR-Kennungen bisher nur lia/unterricht/STATUS.md).
 10. Webauftrag AUFWAND: gross (erster Lauf 14.11., siehe Stand): Vertiefung 1 und 2 brachten viel, Vertiefung 3
-   kaum etwas für 6,58 USD. Vorschlag an Jan: VERTIEFUNGEN = 2, oder dritte Runde nur, wenn Runde 2 noch deutlich
-   zugelegt hat. Claudes kern hält die Sprachregel für Lia nicht sicher ein; Idee: Python prüft kern schon im Lauf
+   kaum etwas für 6,58 USD. Jan 14.11.2026: bleibt bei VERTIEFUNGEN = 3 (siehe Entscheidungen). Claudes kern hält die Sprachregel für Lia nicht sicher ein; Idee: Python prüft kern schon im Lauf
    und gibt ihn mit der Nachbesserung zurück. Jede Runde bleibt auf 30 claude-Schritte begrenzt.
 
 ## Gelernte Regeln
