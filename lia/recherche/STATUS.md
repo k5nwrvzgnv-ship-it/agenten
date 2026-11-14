@@ -31,6 +31,16 @@ Stellen. lia/examen liest das Register für die Skizzen.
     kurzzeitige Freiheitsstrafen, S. 41/42 dritte Gruppe, S. 42 Denkzettel, S. 42 Kurzformel. Alle 2 von 2,
     OCR 0,805–0,927, Feld auswahl = "von Hand", 0,41 USD. Liszt jetzt 12 Stellen, Kosten Liszt gesamt 1,69 USD.
 - Meldungen mit diesen Ergebnissen sind an Jan gegangen.
+- Webauftrag Theater „Auslöser für Statuswechsel“ (Jan 13.11.2026, Lias Examensstunde DS): Auftrag
+  data/web/auftraege/lia-theater-statuswechsel.txt, Anhänge Lias drei Status-Arbeitsblätter (Kurs 11, Textfassungen
+  aus lia/theater/data/text). Ablage data/web/20261113-194004-lia-theater-statuswechsel/: 1,90 USD, 45 Aussagen,
+  33 belegt, Belege 57 bestanden; trägt 2 ja, 24 teilweise, 2 nein. Kern: fünf Auslöser-Kategorien (Wissen, Wort,
+  Ding/Raum, Person, Panne, als Einschätzung markiert) plus Achse „selbst herbeigeführt/erlitten“, Übungen,
+  Stückbeispiele, Glossar, 5 Rückfragen. Vor dem Lauf hat Jan Theater-Domains in [webfetch] recherche eintragen
+  lassen (erster Lauf ohne sie abgebrochen, Ordner 20261113-192903-… ist Rest davon). „Statuswechsel Auslöser.docx/
+  .pdf“ von Hand neu gebaut mit fach = „Darstellendes Spiel“ (der Agent nimmt fest das Ethik-Profil). Mit Jans Okay
+  nach Vorschau an Lia (Auftrag 20261114-025421-recherche-81eeac, ohne Feedback-Knöpfe, von Hand per
+  auftraege.neuer_auftrag/abschliessen, Zentrale 14.11. 02:54 zugestellt). Lias Antwort kommt als Feedback.
 - Webauftrag (Plan „Webrecherche“, Jan 25.10.2026) fertig und zweimal echt gelaufen, je mit Lias Auftrag:
   - V1 (data/web/20261025-211339-lia-reihe-strafe): 2,10 USD, 31 Aussagen, 21 belegt, 10 unbelegt; Belege
     34 bestanden, 0 durchgefallen, 0 ungeprüft (erste Prüfung 2 durchgefallen, nach Nachbesserung 0).
@@ -259,6 +269,10 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    automatisch, wenn recherche einen Dienst hat (lia-recherche) und die Kosten des Ergebnisses bekannt sind und unter
    1 USD liegen; sonst entscheidet Jan. Regeln aus Lias Feedback können mit „(Feedback <id>)“ unter „Gelernte
    Regeln“ hier landen (faelle.py liest als GR-Kennungen bisher nur lia/unterricht/STATUS.md).
+10. Webauftrag für andere Fächer (gesehen beim Theater-Lauf 13.11.): fest Ethik-Profil im Kopf (profil.toml),
+   Kant/Liszt-Register immer im Prompt, Prompt begrenzt auf etwa 20 Werkzeugaufrufe (zu knapp für „aufwendig“),
+   kein --an-lia wie bei der Fallsuche, Dateiname fest Recherche.docx. „Detail nicht belegt“-Vermerke machen das
+   PDF zäh. Ob die Belegprüfung PDF-Quellen lesen kann, ist ungeprüft. Änderungen nur nach Jans Okay.
 
 ## Gelernte Regeln
 - (noch keine)
