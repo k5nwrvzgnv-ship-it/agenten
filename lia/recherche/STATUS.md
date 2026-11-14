@@ -31,6 +31,13 @@ Stellen. lia/examen liest das Register für die Skizzen.
     kurzzeitige Freiheitsstrafen, S. 41/42 dritte Gruppe, S. 42 Denkzettel, S. 42 Kurzformel. Alle 2 von 2,
     OCR 0,805–0,927, Feld auswahl = "von Hand", 0,41 USD. Liszt jetzt 12 Stellen, Kosten Liszt gesamt 1,69 USD.
 - Meldungen mit diesen Ergebnissen sind an Jan gegangen.
+- Webauftrag „Milde Jugendtaten zum Einstieg ins Thema Strafe“ (Jan 14.11.2026, für Lia, normaler Aufwand):
+  Auftrag data/web/auftraege/lia-milde-jugendtaten.txt (Freibad-Einbruch, Randale, Diebstahl, ohne Gewalt nach G1),
+  Ablage data/web/20261114-130748-lia-milde-jugendtaten/. 2,63 USD, 38 Aussagen, 20 belegt, 28 Belege bestanden,
+  3 ungeprüft. Ergebnis dünn: 6 Fälle statt 8–12, davon drei mit 19- bis 20-Jährigen (AG München), zwei Berliner
+  Schulfälle (Lehrerfotos, nur Schulstrafen), Freibad Ladenburg nur über presseportal.de (nicht auf [webfetch],
+  ungeprüft). Ursache laut Lücken: Lokalmeldungen mit 14- bis 17-Jährigen liegen fast nur auf Seiten außerhalb der
+  Domainliste. Noch nicht an Lia; Jan entscheidet über Domains und zweiten Lauf.
 - Webauftrag Theater Fassung 2, erster echter Lauf mit AUFWAND: gross (Jan 14.11.2026): Auftrag
   data/web/auftraege/lia-theater-statuswechsel-v2.txt (wie Fassung 1, mit FACH, TITEL, AUFWAND), Ablage
   data/web/20261114-111445-lia-theater-statuswechsel-v2/. 21,53 USD: Recherche 3,67 (59 Schritte), Vertiefung 1
