@@ -57,12 +57,12 @@ die können später als Dateien Eingabe werden).
   erreicht (Kerbwirkung, Faserlage), BSH mit geflickten inneren Lamellen war in einer Studie aber tragfähig
   (siehe Recherche). Tragend nur mit Prüfungen und Zulassung. Offen: Normtext EN 14080, Frage an die zwei Werke.
 
-## Stand (13.11.2026)
+## Stand (14.11.2026)
 - Gerüst steht und ist committet: agent.py schließt jeden Auftrag mit dem Hinweis „noch nicht gebaut“ ab.
 - datensatz.py gebaut und getestet (tests/test_datensatz.py), Aufteilung eingefroren in
   konfig/kodytek_aufteilung.json. Auf dem Server geprüft mit allen Box-Dateien und den 11 Probebildern
   (data/datensaetze/kodytek-probe/). Voller Lauf auf dem Mac 12.11.2026 fertig und geprüft (Befunde unten):
-  Mac ~/fehlstellenscan/datensaetze/kodytek-1/ fertig; erstes Training pausiert nach Epoche 40/100 (offener Punkt 3). Ergebnisse in data/laeufe/
+  Mac ~/fehlstellenscan/datensaetze/kodytek-1/ fertig; erstes Training pausiert nach Epoche 90/100 (offener Punkt 3). Ergebnisse in data/laeufe/
   (bericht.json, ueberlappung.txt, pruefung_ultralytics.txt, results.csv und args.yaml des Tests probe20).
 - auswertung.py ist noch ein leerer Platz.
 - Test tests/test_geruest.py: Name, Hinweis bei Aufträgen, kein Import von torch, torchvision oder ultralytics.
@@ -272,11 +272,13 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Bild-ZIPs (157 GB) bleiben auch nach dem Bau von
    kodytek-1 vorerst (Jan 12.11.2026). Bei Platzmangel erneut fragen; Löschen macht Jan selbst auf dem Mac,
    nur Images*.zip, die kleinen ZIPs (Boxen, Masken, Specification) bleiben.
-3. Erstes Training läuft, pausiert (Jan 13.11.2026, Mac gebraucht): Mac ~/fehlstellenscan,
+3. Erstes Training pausiert (Jan 14.11.2026): Mac ~/fehlstellenscan,
    `yolo detect train data=datensaetze/kodytek-1/data.yaml model=yolo11n.pt epochs=100 imgsz=1280 batch=8
-   device=mps name=kodytek1-n1280`. Angehalten nach Epoche 40 von 100: mAP50 0,739, mAP50-95 0,454 (val),
-   steigt noch langsam (Epoche 12: 0,677 / 0,381); best.pt = last.pt vom 13.11. 12:41 in
-   runs/detect/kodytek1-n1280/weights/. Dauer rund 25-30 min je Epoche, Rest rund 30 Stunden.
+   device=mps name=kodytek1-n1280`. Angehalten nach Epoche 90 von 100: mAP50 0,749, mAP50-95 0,455,
+   Precision 0,696, Recall 0,713 (val). Seit Epoche 40 (0,739 / 0,454) kaum noch Zuwachs, das kleine Modell
+   ist wohl nahe an seiner Grenze. Die letzten 10 Epochen laufen ohne Mosaik (ultralytics close_mosaic=10),
+   das bringt oft noch einen kleinen Sprung. Gewichte in runs/detect/kodytek1-n1280/weights/ (last.pt nach
+   Epoche 90, best.pt = beste Epoche bisher). Dauer rund 25 min je Epoche, Rest rund 4-5 Stunden.
    Fortsetzen in ~/fehlstellenscan mit aktiver .venv:
    `yolo train resume model=runs/detect/kodytek1-n1280/weights/last.pt`, dazu im zweiten Fenster
    `caffeinate -is -w <PID>` (PID per `pgrep -ifl yolo`), Netzteil dran, Deckel offen.
