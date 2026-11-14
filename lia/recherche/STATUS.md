@@ -31,6 +31,17 @@ Stellen. lia/examen liest das Register für die Skizzen.
     kurzzeitige Freiheitsstrafen, S. 41/42 dritte Gruppe, S. 42 Denkzettel, S. 42 Kurzformel. Alle 2 von 2,
     OCR 0,805–0,927, Feld auswahl = "von Hand", 0,41 USD. Liszt jetzt 12 Stellen, Kosten Liszt gesamt 1,69 USD.
 - Meldungen mit diesen Ergebnissen sind an Jan gegangen.
+- Webauftrag Theater Fassung 2, erster echter Lauf mit AUFWAND: gross (Jan 14.11.2026): Auftrag
+  data/web/auftraege/lia-theater-statuswechsel-v2.txt (wie Fassung 1, mit FACH, TITEL, AUFWAND), Ablage
+  data/web/20261114-111445-lia-theater-statuswechsel-v2/. 21,53 USD: Recherche 3,67 (59 Schritte), Vertiefung 1
+  5,01 (auf 63 Aussagen, 57 belegt), Vertiefung 2 6,26 (69/64), Vertiefung 3 6,58 für nur 4 Schritte (kaum Neues;
+  Fortsetzungen schicken den ganzen Verlauf mit), Prüflauf 0,02. Ergebnis 13 Seiten, 69 Aussagen, 62 belegt,
+  128 Belege bestanden, trägt 5 ja / 43 teilweise / 2 nein. Neu gegenüber Fassung 1: Johnstone mit Seitenzahlen
+  (englischer Scan), Rahmenlehrplan DS (Brandenburger Fassung), Plath, Komplementarität, 11 Übungen, 8 Stücke und
+  ein Film, 6 Rückfragen. Claudes kern verletzte die Sprachregel (WSTF 7,2), von Hand vereinfacht (Original in
+  geprueft_vor_kern.json). Mit Jans Okay nach Vorschau per --an-lia an Lia (Auftrag 20261114-115559-recherche-049baa);
+  die PDF lief bei der Zentrale in einen Timeout, von Hand einmal nachgeschickt (Auftrag 20261114-115653-recherche-5bdc95,
+  11:57 ohne Fehler). Bedarf dazu in der Haupt-STATUS, Punkt 41.
 - Webauftrag Theater „Auslöser für Statuswechsel“ (Jan 13.11.2026, Lias Examensstunde DS): Auftrag
   data/web/auftraege/lia-theater-statuswechsel.txt, Anhänge Lias drei Status-Arbeitsblätter (Kurs 11, Textfassungen
   aus lia/theater/data/text). Ablage data/web/20261113-194004-lia-theater-statuswechsel/: 1,90 USD, 45 Aussagen,
@@ -282,10 +293,10 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    automatisch, wenn recherche einen Dienst hat (lia-recherche) und die Kosten des Ergebnisses bekannt sind und unter
    1 USD liegen; sonst entscheidet Jan. Regeln aus Lias Feedback können mit „(Feedback <id>)“ unter „Gelernte
    Regeln“ hier landen (faelle.py liest als GR-Kennungen bisher nur lia/unterricht/STATUS.md).
-10. Webauftrag für andere Fächer und große Aufträge: gebaut und getestet (14.11.), aber noch kein echter Lauf mit
-   AUFWAND: gross. Offen: wie viel die Vertiefungsrunden wirklich kosten (Fortsetzungen schicken den ganzen
-   Verlauf mit) und ob sie spürbar mehr Qualität bringen. Jede Runde ist weiter auf 30 claude-Schritte begrenzt
-   (max_schritte global in shared/einstellungen.toml).
+10. Webauftrag AUFWAND: gross (erster Lauf 14.11., siehe Stand): Vertiefung 1 und 2 brachten viel, Vertiefung 3
+   kaum etwas für 6,58 USD. Vorschlag an Jan: VERTIEFUNGEN = 2, oder dritte Runde nur, wenn Runde 2 noch deutlich
+   zugelegt hat. Claudes kern hält die Sprachregel für Lia nicht sicher ein; Idee: Python prüft kern schon im Lauf
+   und gibt ihn mit der Nachbesserung zurück. Jede Runde bleibt auf 30 claude-Schritte begrenzt.
 
 ## Gelernte Regeln
 - (noch keine)

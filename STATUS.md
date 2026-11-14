@@ -1158,6 +1158,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     nächsten Schritte stehen in `fehlstellenscan/STATUS.md`. Offen im Hauptordner: (a) "fehlstellenscan" in AGENTEN
     (shared/telegram/logik.py) eintragen, sobald der Agent etwas kann und ein Dienst mit Jans Okay installiert ist;
     bis dahin Aufträge von Hand. (b) numpy und Pillow sind installiert (11.11.); ultralytics mit torch erst nach Jans Okay.
+41. Bedarf aus lia/recherche an shared/telegram (14.11.2026, nichts eilt): Lias Zentrale meldete beim Senden einer
+    PDF (205 KB) nach etwa 14 s „Timed out“ (dateien_senden, send_document mit write_timeout=120, aber read- und
+    connect-Timeout auf Standard). Lia bekam Text und Hinweis „nicht gesendet“; ein zweiter Versuch eine Minute
+    später ging durch. Vorschlag: read_timeout auch setzen und bei Timeout einmal neu versuchen. Ein Timeout kann
+    trotzdem zugestellt haben, dann wäre die Datei doppelt.
 
 ## Gelernte Regeln
 - (noch keine)
