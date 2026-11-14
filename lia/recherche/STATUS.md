@@ -42,7 +42,10 @@ Stellen. lia/examen liest das Register für die Skizzen.
   data/web/20261114-133343-lia-milde-jugendtaten-v2/, 2,02 USD): 8 neue Fälle mit 12- bis 17-Jährigen, fast alle
   presseportal.de, alle „Ausgang nicht bekannt“ (Freibad Ladenburg, Freibad Perleberg verwüstet, Bushaltestelle
   Saalfeld nicht belegt, Ladendiebstahl Kaiserslautern und Hagen 14/12 J., Graffiti Hagen, Rostock, Wunstorf 2008).
-  Kein Berliner Fall. 39 Aussagen, 20 belegt, 27 Belege bestanden. Noch nicht an Lia (wartet auf Jans Durchsicht).
+  Kein Berliner Fall. 39 Aussagen, 20 belegt, 27 Belege bestanden. Beide Läufe auf Jans Wunsch ohne Vorschau per
+  --an-lia an Lia (Aufträge 20261114-134556-recherche-f0c349 = v2, 20261114-134600-recherche-6bc459 = v1, Zentrale
+  13:46 zugestellt). kern/punkte vorher von Hand vereinfacht (Sprachregel), Original je in kern_vor_kuerzung.json.
+  Lias Antwort kommt als Feedback.
 - Webauftrag Theater Fassung 2, erster echter Lauf mit AUFWAND: gross (Jan 14.11.2026): Auftrag
   data/web/auftraege/lia-theater-statuswechsel-v2.txt (wie Fassung 1, mit FACH, TITEL, AUFWAND), Ablage
   data/web/20261114-111445-lia-theater-statuswechsel-v2/. 21,53 USD: Recherche 3,67 (59 Schritte), Vertiefung 1
