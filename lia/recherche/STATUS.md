@@ -37,7 +37,12 @@ Stellen. lia/examen liest das Register für die Skizzen.
   3 ungeprüft. Ergebnis dünn: 6 Fälle statt 8–12, davon drei mit 19- bis 20-Jährigen (AG München), zwei Berliner
   Schulfälle (Lehrerfotos, nur Schulstrafen), Freibad Ladenburg nur über presseportal.de (nicht auf [webfetch],
   ungeprüft). Ursache laut Lücken: Lokalmeldungen mit 14- bis 17-Jährigen liegen fast nur auf Seiten außerhalb der
-  Domainliste. Noch nicht an Lia; Jan entscheidet über Domains und zweiten Lauf.
+  Domainliste. Jan hat daraufhin 37 Lokal- und Polizeiseiten in [webfetch] recherche eintragen lassen (u. a.
+  presseportal.de, berlin.de, tagesspiegel.de, ndr/wdr/mdr/swr). Zweiter Lauf (lia-milde-jugendtaten-v2.txt, Ablage
+  data/web/20261114-133343-lia-milde-jugendtaten-v2/, 2,02 USD): 8 neue Fälle mit 12- bis 17-Jährigen, fast alle
+  presseportal.de, alle „Ausgang nicht bekannt“ (Freibad Ladenburg, Freibad Perleberg verwüstet, Bushaltestelle
+  Saalfeld nicht belegt, Ladendiebstahl Kaiserslautern und Hagen 14/12 J., Graffiti Hagen, Rostock, Wunstorf 2008).
+  Kein Berliner Fall. 39 Aussagen, 20 belegt, 27 Belege bestanden. Noch nicht an Lia (wartet auf Jans Durchsicht).
 - Webauftrag Theater Fassung 2, erster echter Lauf mit AUFWAND: gross (Jan 14.11.2026): Auftrag
   data/web/auftraege/lia-theater-statuswechsel-v2.txt (wie Fassung 1, mit FACH, TITEL, AUFWAND), Ablage
   data/web/20261114-111445-lia-theater-statuswechsel-v2/. 21,53 USD: Recherche 3,67 (59 Schritte), Vertiefung 1
