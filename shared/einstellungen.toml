@@ -71,6 +71,13 @@ recherche = [
   "lis.bremen.de", "li.hamburg.de", "bvts.de", "kubi-online.de", "zum.de", "lehrer-online.de",
   "friedrich-verlag.de", "beltz.de", "theaterdo.de", "rpi-loccum.de", "schulstiftung-freiburg.de",
   "edumaps.de", "db-thueringen.de", "nachtkritik.de", "theaterderzeit.de",
+  # Lokalnachrichten und Polizeimeldungen (Jan 14.11.2026, Lias Recherche milde Jugendtaten)
+  "presseportal.de", "berlin.de", "tagesspiegel.de", "berliner-zeitung.de", "morgenpost.de", "bz-berlin.de",
+  "ndr.de", "wdr.de", "mdr.de", "swr.de", "hr.de", "hessenschau.de", "sr.de", "radiobremen.de",
+  "t-online.de", "merkur.de", "tz.de", "abendzeitung-muenchen.de", "stuttgarter-zeitung.de", "rnz.de",
+  "mannheimer-morgen.de", "ksta.de", "rp-online.de", "waz.de", "noz.de", "haz.de", "lvz.de", "mz.de",
+  "freiepresse.de", "nordkurier.de", "shz.de", "kn-online.de", "fr.de", "faz.net", "welt.de", "focus.de",
+  "n-tv.de",
 ]
 # Exposé-Recherche von uni (Jan 02.11.2026, uni/recherche.py). Belege von anderen Domains zählen als ungeprüft.
 uni = [
