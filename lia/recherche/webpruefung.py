@@ -4,7 +4,8 @@ Grundsatz (Plan „Webrecherche“, Jan 25.10.2026): Claude recherchiert, Python
 Format von Claudes Ergebnis (ergebnis.json):
   {"abschnitte": [{"titel": "...", "aussagen": [{"text": "...", "belege": [
       {"url": "https://...", "zitat": "wörtlich von der Seite"} | {"register": "<quelle>:<seite>"}]}]}],
-   "luecken": ["..."], "rueckfragen": ["..."]}
+   "luecken": ["..."], "rueckfragen": ["..."], "kern": "2-3 Sätze an die Lehrkraft", "punkte": ["höchstens 3"]}
+  kern und punkte sind freiwillig (ältere Ergebnisse haben sie nicht); mehr als MAX_PUNKTE Punkte werden gekürzt.
 
 Beleg prüfen (beleg_pruefen), Ergebnis "bestanden" | "durchgefallen" | "ungeprueft" mit Vermerk:
 - URL auf Jans Liste (einstellungen [webfetch] recherche): Seite laden (der Aufrufer gibt seitentext(url)
@@ -25,6 +26,7 @@ from agentkit import abruf, wortlaut
 MEDIEN = ("youtube.com", "youtu.be", "ardmediathek.de", "zdf.de", "arte.tv", "vimeo.com")
 NICHT_AUF_LISTE = "Quelle nicht auf der Liste, ungeprüft"
 MEDIEN_VERMERK = "Videoseite: nur Existenz und Titel geprüft; Länge und Untertitel nicht geprüft"
+MAX_PUNKTE = 3
 
 
 class WebFehler(Exception):
@@ -56,8 +58,14 @@ def lesen(pfad: Path) -> dict:
     for feld in ("luecken", "rueckfragen"):
         if not isinstance(daten.get(feld, []), list) or not all(_text(x) for x in daten.get(feld, [])):
             fehler.append(f"{feld}: Liste von Texten nötig")
+    if "kern" in daten and not isinstance(daten["kern"], str):
+        fehler.append("kern: Text nötig")
+    if not isinstance(daten.get("punkte", []), list) or not all(_text(x) for x in daten.get("punkte", [])):
+        fehler.append("punkte: Liste von Texten nötig")
     if fehler:
         raise WebFehler("; ".join(fehler))
+    daten["kern"] = daten.get("kern", "").strip()
+    daten["punkte"] = [x.strip() for x in daten.get("punkte", [])][:MAX_PUNKTE]
     daten.setdefault("luecken", [])
     daten.setdefault("rueckfragen", [])
     return daten
@@ -160,9 +168,16 @@ def _traegt_satz(daten: dict) -> str:
             f"{z['teilweise']} teilweise, {z['nein']} nein, {z['nicht_geprueft']} nicht geprüft.")
 
 
+def _anfang(text: str, n: int = 70) -> str:
+    """Anfang einer Aussage zum Wiederfinden im Dokument."""
+    return text if len(text) <= n else text[:n].rsplit(" ", 1)[0] + " …"
+
+
 def beschreibung(titel: str, daten: dict, register: dict[str, dict]) -> dict:
-    """Renderer-Beschreibung (Art arbeitsblatt): Abschnitte mit Quellennummern, Quellen, Nicht belegt,
-    Lücken, Rückfragen. Belegt sind nur Aussagen mit mindestens einem bestandenen Beleg."""
+    """Renderer-Beschreibung (Art arbeitsblatt): „Auf einen Blick“ (kern, punkte), Abschnitte mit Quellennummern,
+    Zu prüfen, Nicht belegt, Quellen, Lücken, Rückfragen. Belegt sind nur Aussagen mit mindestens einem bestandenen
+    Beleg. Trägt ein Zitat seine Aussage nur teilweise, steht hinter der Aussage ein Sternchen; was fehlt, steht
+    gesammelt unter „Zu prüfen“ (Jan 14.11.2026: der Vermerk hinter jeder Aussage las sich zäh)."""
     quellen, nummer = [], {}
 
     def nr(b: dict) -> int:
@@ -173,12 +188,20 @@ def beschreibung(titel: str, daten: dict, register: dict[str, dict]) -> dict:
         return nummer[schluessel]
 
     z = daten["zahlen"]
-    bloecke = [{"typ": "absatz", "text": (
+    bloecke = []
+    if daten.get("kern") or daten.get("punkte"):
+        bloecke.append({"typ": "merksatz", "titel": "Auf einen Blick",
+                        "text": daten.get("kern") or "Die wichtigsten Punkte:"})
+        if daten.get("punkte"):
+            bloecke += _bloecke_liste(daten["punkte"])
+    bloecke += [{"typ": "absatz", "text": (
         f"Automatisch recherchiert, von Python geprüft. {z['belegt']} von {z['aussagen']} Aussagen belegt. "
         f"Belege: {z['bestanden']} bestanden, {z['durchgefallen']} durchgefallen, {z['ungeprueft']} ungeprüft "
         "(Quelle nicht auf der Liste). In eckigen Klammern: Nummern der bestandenen Belege, siehe Quellen."
-        + _traegt_satz(daten))}]
-    nicht_belegt = []
+        + _traegt_satz(daten)
+        + (" Ein Sternchen (*) heißt: Das Zitat trägt die Aussage nur teilweise, siehe „Zu prüfen“."
+           if daten.get("traegt_zahlen", {}).get("teilweise") else ""))}]
+    nicht_belegt, zu_pruefen = [], []
     for a in daten["abschnitte"]:
         belegte = [s for s in a["aussagen"] if s["belegt"]]
         nicht_belegt += [(a["titel"], s) for s in a["aussagen"] if not s["belegt"]]
@@ -190,11 +213,18 @@ def beschreibung(titel: str, daten: dict, register: dict[str, dict]) -> dict:
             offen = sorted({nr(b) for b in s["belege"] if b["pruefung"]["status"] == "ungeprueft"})
             klammer = ", ".join(map(str, gut)) + (f"; ungeprüft: {', '.join(map(str, offen))}" if offen else "")
             urteil = s.get("traegt", {})
+            stern = ""
             if urteil.get("traegt") == "teilweise":
-                klammer += f"; Detail nicht belegt: {urteil.get('fehlt') or 'nicht genannt'}"
+                stern = " *"
+                zu_pruefen.append(f"„{_anfang(s['text'])}“: {urteil.get('fehlt') or 'nicht genannt'}")
             elif urteil.get("traegt") == "nicht geprüft":
                 klammer += "; ob das Zitat die Aussage trägt: nicht geprüft"
-            bloecke.append({"typ": "absatz", "text": f"{s['text']} [{klammer}]"[:5000]})
+            bloecke.append({"typ": "absatz", "text": f"{s['text']} [{klammer}]{stern}"[:5000]})
+    if zu_pruefen:
+        bloecke.append({"typ": "ueberschrift", "text": "Zu prüfen", "ebene": 1})
+        bloecke.append({"typ": "absatz", "text": "Bei diesen Aussagen (mit * markiert) trägt das Zitat nicht jedes "
+                                                  "Detail. Was das Zitat nicht hergibt:"})
+        bloecke += _bloecke_liste(zu_pruefen)
     if nicht_belegt:
         bloecke.append({"typ": "ueberschrift", "text": "Nicht belegt", "ebene": 1})
         bloecke.append({"typ": "absatz", "text": "Diese Aussagen hatten keinen bestandenen Beleg. Nicht verwenden, "

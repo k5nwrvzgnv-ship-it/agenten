@@ -86,7 +86,7 @@ Stellen. lia/examen liest das Register für die Skizzen.
   (reihenkontext.py), erkennt eine Reihe nur an ihrer id. Bis die Migration (Bauschritt 3) eine Stunde mit Marke
   „Prüfung“ einträgt, gibt es keine Prüfungsreihe: Ohne --reihe laufen Kernstellen und Fallsuche dann ohne
   Reihenkontext, Jan bekommt den Grund in der Meldung. Für einen Lauf mit Kontext: --reihe ethik-8-straftheorien.
-- 188 Tests (tests/), in pruefen.sh eingetragen.
+- 200 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py [--reihe ID]`
@@ -151,6 +151,19 @@ Stellen. lia/examen liest das Register für die Skizzen.
   Auftragsdateien von Hand in data/web/auftraege/. Ablage je Auftrag data/web/<id>/: auftrag.txt, ergebnis.json
   (Claude), ergebnis_1.json (vor der Nachbesserung), geprueft.json (mit Prüfung, Zahlen, Kosten), Recherche.docx,
   roh/ (Cache der geladenen Seiten).
+- Für andere Fächer und große Aufträge (Jan 14.11.2026): Kopfzeilen ganz oben im Auftrag, alle freiwillig:
+  `FACH: …` (Kopf des Dokuments, Standard Ethik; Kant/Liszt-Register nur bei Ethik), `TITEL: …` (Titel und
+  Dateiname, sonst „Recherche vom …“/Recherche.docx), `AUFWAND: gross` (großer, wichtiger Auftrag: Prompt ohne
+  Sparhinweis, danach VERTIEFUNGEN = 3 Runden in derselben Sitzung, je Runde neue claude-Schritte, mit Prüfstand,
+  durchgefallenen und unbelegten Aussagen; Sicherung ergebnis_runde<n>.json, kaputte Datei -> Stand davor;
+  Vertiefung nur bis RESERVE = 70 % der Grenze; Kostengrenze GRENZE_GROSS_USD = 25 statt 8 USD).
+  Claude schreibt zusätzlich kern (2-3 Sätze an Lia) und punkte (höchstens 3): Kasten „Auf einen Blick“ oben im
+  docx. „Teilweise“ getragene Aussagen bekommen ein Sternchen, die fehlenden Details stehen gesammelt unter
+  „Zu prüfen“. Python prüft Zitate auch in PDFs (agentkit.textfassung, Cache roh/pdf-*.pdf; am 14.11. mit einer
+  lernnetz-PDF von Hand geprüft).
+- An Lia (nach Jans Durchsicht): `webauftrag.py --an-lia data/web/<id>` (nur mit Lias AGENTKIT_INSTANZ) baut die
+  PDF, Text aus kern und punkte (Sprachregel für Lia, sonst Abbruch mit Hinweis: kern/punkte in geprueft.json
+  kürzen), ohne Feedback-Knöpfe, je Ordner einmal (geprueft.json "an_lia"). Kein Claude-Lauf.
 - webauftrag.py: Claude (anspruchsvoll, WebSearch/WebFetch, WebFetch nur auf [webfetch] recherche) bekommt den
   Auftrag und die geprüften Registerstellen, schreibt Aussagen mit Belegen ({url, zitat} oder {register}),
   luecken, rueckfragen. Durchgefallene Belege einmal zurück (dieselbe Sitzung). Kostengrenze 8 USD je Auftrag.
@@ -269,10 +282,10 @@ solange die sha256 der Textfassung gleich bleibt, sonst werden sie verworfen und
    automatisch, wenn recherche einen Dienst hat (lia-recherche) und die Kosten des Ergebnisses bekannt sind und unter
    1 USD liegen; sonst entscheidet Jan. Regeln aus Lias Feedback können mit „(Feedback <id>)“ unter „Gelernte
    Regeln“ hier landen (faelle.py liest als GR-Kennungen bisher nur lia/unterricht/STATUS.md).
-10. Webauftrag für andere Fächer (gesehen beim Theater-Lauf 13.11.): fest Ethik-Profil im Kopf (profil.toml),
-   Kant/Liszt-Register immer im Prompt, Prompt begrenzt auf etwa 20 Werkzeugaufrufe (zu knapp für „aufwendig“),
-   kein --an-lia wie bei der Fallsuche, Dateiname fest Recherche.docx. „Detail nicht belegt“-Vermerke machen das
-   PDF zäh. Ob die Belegprüfung PDF-Quellen lesen kann, ist ungeprüft. Änderungen nur nach Jans Okay.
+10. Webauftrag für andere Fächer und große Aufträge: gebaut und getestet (14.11.), aber noch kein echter Lauf mit
+   AUFWAND: gross. Offen: wie viel die Vertiefungsrunden wirklich kosten (Fortsetzungen schicken den ganzen
+   Verlauf mit) und ob sie spürbar mehr Qualität bringen. Jede Runde ist weiter auf 30 claude-Schritte begrenzt
+   (max_schritte global in shared/einstellungen.toml).
 
 ## Gelernte Regeln
 - (noch keine)
