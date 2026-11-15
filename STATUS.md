@@ -1163,6 +1163,10 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     connect-Timeout auf Standard). Lia bekam Text und Hinweis „nicht gesendet“; ein zweiter Versuch eine Minute
     später ging durch. Vorschlag: read_timeout auch setzen und bei Timeout einmal neu versuchen. Ein Timeout kann
     trotzdem zugestellt haben, dann wäre die Datei doppelt.
+42. Recherche-Maske für Jan (Arbeitsplatz) und Lia (Web-App) über beide Motoren (uni/recherche.py, lia/recherche),
+    Jan 15.11.2026: eine Maske, Motoren vorerst getrennt. Plan: docs/recherche-plan.md (Projekt aus Wissensbasis,
+    Läufen, Dokumenten; Plan vor dem Lauf; Fragen, Ausweiten in neuer Sitzung, Nachprüfen, Sichten;
+    Quellenbibliothek; 12 Bauschritte). Neun Entscheidungen bei Jan (Abschnitt 9), nichts gebaut.
 
 ## Gelernte Regeln
 - (noch keine)
