@@ -1,0 +1,73 @@
+{#- Projektseite einer Recherche (wissen.json, agentkit.recherche), nur lesend. p: ansichten.projekt(), pfad: Adresse
+    der Seite. Aufbau wie _ansicht_recherche.html (Dokument-Ansicht der alten Berichte). -#}
+{% extends "basis.html" %}
+{% block seitenkopf %}
+<header class="kopf">
+  {%- if p %}<span class="datum">Für {{ p.fuer }}{% if p.fach %} · {{ p.fach }}{% endif %} · {{ p.laeufe }} {{ "Lauf" if p.laeufe == 1 else "Läufe" }}{% if p.usd %} · {{ p.usd }}{% endif %}</span>{% endif %}
+  <h1 class="titel-gross">{{ e.titel }}</h1>
+</header>
+{% endblock %}
+{% block inhalt %}
+{%- if ungueltig %}
+<p class="hinweis hinweis-fehler" role="status">Diese Recherche lässt sich nicht anzeigen: {{ ungueltig | join("; ") }}</p>
+{%- else %}
+<section class="eigen">
+  <nav class="varianten" aria-label="Ansicht">
+    {%- for id, titel in p.ansichten.items() %}
+    <a class="variante{% if p.ansicht == id %} variante-hier{% endif %}" href="{{ pfad }}?ansicht={{ id }}">{{ titel }}</a>
+    {%- endfor %}
+  </nav>
+  {%- set inhalt = p.inhalt %}
+  {%- if p.ansicht == "aussagen" %}
+  <nav class="varianten" aria-label="Status">
+    <a class="variante{% if not inhalt.status %} variante-hier{% endif %}" href="{{ pfad }}?ansicht=aussagen{% if inhalt.frage %}&amp;frage={{ inhalt.frage }}{% endif %}">alle</a>
+    {%- for id, titel in p.status_namen.items() %}
+    <a class="variante{% if inhalt.status == id %} variante-hier{% endif %}" href="{{ pfad }}?ansicht=aussagen&amp;status={{ id }}{% if inhalt.frage %}&amp;frage={{ inhalt.frage }}{% endif %}">{{ titel }} ({{ p.zahlen[id] }})</a>
+    {%- endfor %}
+  </nav>
+  {%- if inhalt.frage %}<p class="absatz"><a href="{{ pfad }}?ansicht=aussagen{% if inhalt.status %}&amp;status={{ inhalt.status }}{% endif %}">Alle Fragen zeigen</a></p>{% endif %}
+  <p class="unter">{{ inhalt.anzahl }} Aussagen</p>
+  {%- for g in inhalt.gruppen %}
+  <h3>{% if g.id %}{{ g.id }}: {% endif %}{{ g.frage }}</h3>
+  {%- if g.id and not inhalt.frage %}<p class="unter"><a href="{{ pfad }}?ansicht=aussagen&amp;frage={{ g.id }}{% if inhalt.status %}&amp;status={{ inhalt.status }}{% endif %}">Nur diese Frage</a> · {{ g.gesamt }} Aussagen insgesamt</p>{% endif %}
+  <ul>
+    {%- for a in g.aussagen %}
+    <li><details><summary class="aussage"><span>{% if a.art %}{{ a.art }}: {% endif %}{{ a.text }}</span> <span class="marke status-{{ a.status }}">{{ a.status_text }}</span>{% if a.sichtung == "uebernommen" %} <span class="marke">übernommen</span>{% endif %}</summary>
+      <p class="unter">{{ a.id }} · aus Lauf {{ a.lauf }}{% if a.geaendert_in %}, ergänzt in Lauf {{ a.geaendert_in | join(", ") }}{% endif %}</p>
+      {%- if a.fehlt %}<p class="absatz"><strong>Fehlt:</strong> {{ a.fehlt }}</p>{% endif %}
+      {%- for b in a.belege %}
+      {%- if b.zitat %}<blockquote class="zitat{% if not b.bestanden %} zitat-falsch{% endif %}">{{ b.zitat }}</blockquote>{% endif %}
+      <p class="unter">{% if b.link %}<a href="{{ b.link }}" rel="noopener noreferrer">{{ b.name }}</a>{% else %}{{ b.name }}{% endif %}{% if b.seite %}, Seite {{ b.seite }}{% endif %}{% if not b.bestanden %} · nicht bestanden{% endif %}{% if b.vermerk %} · {{ b.vermerk }}{% endif %}{% if b.gesperrt %} · Quelle gesperrt{% endif %}</p>
+      {%- else %}<p class="unter">Ohne Beleg.</p>{% endfor %}
+    </details></li>
+    {%- else %}<li><span class="unter">Keine Aussage mit diesem Status.</span></li>{% endfor %}
+  </ul>
+  {%- endfor %}
+  {%- elif p.ansicht == "quellen" %}
+  <p class="unter">{{ inhalt | length }} Quellen</p>
+  <ul>
+    {%- for q in inhalt %}
+    <li class="rueck"><span class="titel">{% if q.link %}<a href="{{ q.link }}" rel="noopener noreferrer">{{ q.titel }}</a>{% else %}{{ q.titel }}{% endif %}</span><br>
+      <span class="unter">{{ q.id }}{% if q.register %} · Register{% endif %}{% if q.autoren %} · {{ q.autoren }}{% endif %}{% if q.jahr %} ({{ q.jahr }}){% endif %}{% if q.doi_link %} · DOI <a href="{{ q.doi_link }}" rel="noopener noreferrer">{{ q.doi }}</a>{% endif %} · stützt {{ q.stuetzt }} {{ "Aussage" if q.stuetzt == 1 else "Aussagen" }}{% if q.gesperrt %} · gesperrt{% endif %}</span></li>
+    {%- else %}<li><span class="unter">Keine Quellen.</span></li>
+    {%- endfor %}
+  </ul>
+  {%- elif p.ansicht == "offen" %}
+  {%- for titel, liste in (("Lücken", inhalt.luecken), ("Rückfragen", inhalt.rueckfragen), ("Widersprüche", inhalt.widersprueche)) %}
+  {%- if liste or titel != "Widersprüche" %}
+  <h3>{{ titel }} ({{ liste | length }})</h3>
+  <ul>{% for x in liste %}<li class="rueck">{{ x.text }} <span class="unter">Lauf {{ x.lauf }}</span></li>{% else %}<li><span class="unter">Keine.</span></li>{% endfor %}</ul>
+  {%- endif %}
+  {%- endfor %}
+  {%- else %}
+  <ul>
+    {%- for l in inhalt %}
+    <li class="rueck"><span class="titel">Lauf {{ l.nr }}: {{ l.art }}</span>{% if l.datum %} <span class="unter">{{ l.datum }}</span>{% endif %}<br>
+      <span class="unter">{% if l.usd %}{{ l.usd }}{% if l.modell %} · {% endif %}{% endif %}{{ l.modell }} · neu: {{ l.neu_aussagen }} Aussagen, {{ l.neu_quellen }} Quellen, {{ l.neu_fragen }} Fragen{% if l.geaendert %} · {{ l.geaendert }} ergänzt{% endif %}{% if l.doppelt %} · {{ l.doppelt }} doppelt{% endif %}</span>
+      {%- if l.zusammenfassung %}<br><span>{{ l.zusammenfassung }}</span>{% endif %}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+</section>
+{%- endif %}
+{% endblock %}

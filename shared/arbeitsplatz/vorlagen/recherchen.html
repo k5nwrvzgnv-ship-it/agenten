@@ -1,0 +1,17 @@
+{#- Alle Recherche-Projekte beider Motoren (uni, lia/recherche), nur lesend. projekte: app.projekte_finden() -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+{%- if projekte %}
+<ul>
+  {%- for x in projekte %}
+  <li><a class="zeile" href="/recherche/{{ x.motor }}/{{ x.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
+    <span class="text"><span class="titel">{{ x.titel }}</span>
+    {%- if x.ungueltig %}<span class="unter">Nicht lesbar, Einzelheiten im Log.</span>
+    {%- else %}<span class="unter">Für {{ x.fuer }} · {{ x.aussagen }} Aussagen, {{ x.gesichert }} gesichert · {{ x.laeufe }} {{ "Lauf" if x.laeufe == 1 else "Läufe" }}{% if x.usd %} · {{ x.usd }}{% endif %}</span>{% endif %}</span>
+    {%- if x.zuletzt %}<span class="marke">{{ x.zuletzt[:10] }}</span>{% endif %}</a></li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="leer">Noch keine Recherche als Projekt.</p>
+{%- endif %}
+{% endblock %}

@@ -76,5 +76,74 @@ class TestPruefung(unittest.TestCase):
         self.assertEqual(ansichten.pruefung({}, {}, {}, [])["punkte"], [])
 
 
+def projekt_basis():
+    """Kleine Wissensbasis wie aus lia/recherche: ein Fall mit Webbeleg, eine Stelle aus dem Register."""
+    from agentkit import recherche
+    ok = {"status": "bestanden", "grund": ""}
+    b = recherche.neu("milde-taten", "Milde <Taten>", "lia", "recherche", fach="Ethik")
+    recherche.einarbeiten(b, {"art": "suche", "datum": "2026-11-14T13:07:48", "usd": 2.6268, "modell": "opus",
+                              "zusammenfassung": "Sechs Fälle."}, {
+        "fragen": [{"id": "F1", "frage": "Welche Fälle?"}],
+        "quellen": [{"url": "https://www.presseportal.de/x", "titel": "Freibad"}],
+        "aussagen": [
+            {"frage": "F1", "art": "fall", "text": "Einbruch ins Freibad.",
+             "belege": [{"url": "https://www.presseportal.de/x", "zitat": "brachen ein", "pruefung": ok}],
+             "traegt": {"urteil": "teilweise", "fehlt": "Alter"}},
+            {"frage": None, "art": "tatsache", "text": "Kant: Mittel.",
+             "belege": [{"register": "kant", "zitat": "niemals", "seite": 331, "pruefung": ok}],
+             "traegt": {"urteil": "ja", "fehlt": ""}},
+            {"frage": "F1", "art": "fall", "text": "Graffiti.",
+             "belege": [{"url": "javascript:alert(1)", "zitat": "z", "pruefung": {"status": "durchgefallen",
+                                                                              "grund": "nicht auf der Seite"}}]}],
+        "luecken": ["Kein Fall aus Berlin."], "rueckfragen": ["Auch 18-Jährige?"]})
+    recherche.entscheiden(b, "jan", "sperren", "Q3")
+    return b, recherche.zahlen(b)
+
+
+class TestProjekt(unittest.TestCase):
+    def test_aussagen(self):
+        b, z = projekt_basis()
+        p = ansichten.projekt(b, z, None, None, None)
+        self.assertEqual((p["ansicht"], p["fuer"], p["fach"], p["usd"], p["laeufe"]),
+                         ("aussagen", "Lia", "Ethik", "2,63 USD", 1))
+        g = p["inhalt"]["gruppen"]
+        self.assertEqual([x["id"] for x in g], ["F1", ""])
+        fall = g[0]["aussagen"][0]
+        self.assertEqual((fall["art"], fall["status"], fall["fehlt"], fall["lauf"]), ("Fall", "teilweise", "Alter", 1))
+        self.assertEqual((fall["belege"][0]["name"], fall["belege"][0]["link"]), ("Freibad", "https://www.presseportal.de/x"))
+        graffiti = g[0]["aussagen"][1]["belege"][0]
+        self.assertEqual((graffiti["link"], graffiti["bestanden"], graffiti["gesperrt"], graffiti["vermerk"]),
+                         (None, False, True, "nicht auf der Seite"))
+        kant = g[1]["aussagen"][0]
+        self.assertEqual((kant["status"], kant["belege"][0]["name"], kant["belege"][0]["link"]),
+                         ("gesichert", "Register kant", None))
+        nur = ansichten.projekt(b, z, "aussagen", "gesichert", "F1")["inhalt"]
+        self.assertEqual((nur["frage"], nur["status"], nur["anzahl"]), ("F1", "gesichert", 0))
+
+    def test_quellen_offen_laeufe(self):
+        b, z = projekt_basis()
+        q = ansichten.projekt(b, z, "quellen", None, None)["inhalt"]
+        self.assertEqual([(x["id"], x["stuetzt"], x["gesperrt"]) for x in q],
+                         [("Q1", 1, False), ("Q2", 1, False), ("Q3", 0, True)])
+        self.assertTrue(q[1]["register"])
+        self.assertEqual(q[1]["url"], "")
+        o = ansichten.projekt(b, z, "offen", None, None)["inhalt"]
+        self.assertEqual((o["luecken"][0]["text"], o["rueckfragen"][0]["lauf"], o["widersprueche"]),
+                         ("Kein Fall aus Berlin.", 1, []))
+        lauf = ansichten.projekt(b, z, "laeufe", None, None)["inhalt"][0]
+        self.assertEqual((lauf["art"], lauf["datum"], lauf["usd"], lauf["neu_aussagen"], lauf["zusammenfassung"]),
+                         ("Suche", "14.11.2026 13:07", "2,63 USD", 3, "Sechs Fälle."))
+        self.assertEqual(ansichten.projekt(b, z, "unsinn", None, None)["ansicht"], "aussagen")
+
+    def test_zeile_und_formate(self):
+        b, z = projekt_basis()
+        zeile = ansichten.projekt_zeile(b, "lia", z)
+        self.assertEqual((zeile["titel"], zeile["fuer"], zeile["laeufe"], zeile["zuletzt"], zeile["aussagen"]),
+                         ("Milde <Taten>", "Lia", 1, "14.11.2026 13:07", 3))
+        self.assertEqual(ansichten.datum_text("2026-11-02"), "02.11.2026")
+        self.assertEqual(ansichten.datum_text(None), "")
+        self.assertEqual(ansichten.usd_text(None), "")
+
+
 if __name__ == "__main__":
     unittest.main()

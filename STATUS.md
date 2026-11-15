@@ -1174,10 +1174,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Quelle), status, entscheiden/zuruecknehmen (verwerfen, uebernehmen, sperren, anfechten), gilt_als_uebernommen,
     zahlen, bestand_text (für Ausweiten und Fragen, ohne Zitate), kosten_schaetzen (Tabelle KOSTEN, gemessene Werte).
     Eingangsformat für Adapter steht oben im Modul. Ablage `<agent>/data/projekte/<id>/wissen.json`.
-    Offen: Schritt 2 (lia/recherche-Chat: Adapter Webauftrag -> einarbeiten, sechs alte Läufe als drei Projekte mit je
-    zwei Läufen) und Schritt 3 (uni-Chat: Adapter geprueft.json, Exposé-Recherche als Projekt), beide ohne
-    Claude-Lauf; danach Schritt 4 hier (lesende Projektseite im Arbeitsplatz). Nach jedem echten Lauf KOSTEN
-    nachtragen.
+    Schritt 4 erledigt (15.11.2026): lesende Projektseite im Arbeitsplatz (`/recherchen`, `/recherche/<uni|lia>/<id>`,
+    Einzelheiten in shared/arbeitsplatz/STATUS.md). arbeitsplatz.service braucht noch einen Neustart (Jans Okay).
+    Nächster Schritt 5 (Fragen an den Bestand). Nach jedem echten Lauf KOSTEN nachtragen.
     Aus lia/recherche (15.11.2026, Schritt 2 fertig, Zahlen in lia/recherche/STATUS.md): Bedarf an agentkit.recherche:
     Zwei Aussagen mit gleichem Text und ohne Belege gelten als dieselbe, auch unter verschiedenen Fragen (milde-
     jugendtaten: zweimal „Straftatbestand: Sachbeschädigung.“ in zwei Fällen wurde eine Aussage). Vorschlag: ohne

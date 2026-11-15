@@ -47,7 +47,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from agentkit import _ablage, arten, auftraege, config, fassungen, orte, verbrauch
+from agentkit import _ablage, arten, auftraege, config, fassungen, orte, recherche, verbrauch
 
 import ansichten
 import dateien
@@ -308,6 +308,79 @@ def seite_archiv(request: Request):
     eintraege = [{"ort": k, "pfad": logik.ort_text(baum, k["id"])} for k in orte.archiv(baum)]
     return seite(request, "archiv.html", {"e": {"titel": "Archiv"}, "eintraege": eintraege, **rahmen(
         baum, None, {"teile": [{"text": "Heute", "link": "/"}], "hier": "Archiv"})})
+
+
+# --- Recherche-Projekte (docs/recherche-plan.md Schritt 4, nur lesend) --------------------------------------------
+
+# motor in der Adresse -> Agent-Ordner relativ zu INSTANZ.parent (feste Liste, nichts aus der Adresse im Pfad)
+RECHERCHE_MOTOREN = {"uni": "uni", "lia": "lia/recherche"}
+PROJEKTE = "data/projekte"
+
+
+def _wissen_lesen(motor: str, projekt_id: str) -> tuple[dict | None, list[str]]:
+    """(Basis, Fehler) eines Projekts. (None, []) heißt: gibt es nicht."""
+    if motor not in RECHERCHE_MOTOREN or not recherche.PROJEKT_ID.fullmatch(projekt_id):
+        return None, []
+    wurzel = INSTANZ.parent / RECHERCHE_MOTOREN[motor]
+    pfad = dateien.sicher(wurzel, f"{PROJEKTE}/{projekt_id}/{recherche.WISSEN}", {".json"})
+    if pfad is None:
+        return None, []
+    if pfad.stat().st_size > MAX_JSON:
+        return {}, ["Die Datei ist zu groß für die Ansicht."]
+    try:
+        basis = json.loads(pfad.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as f:
+        logger.warning("%s/%s nicht lesbar: %s", motor, projekt_id, f)
+        return {}, ["Die Datei ist nicht lesbar."]
+    fehler = recherche.pruefen(basis)
+    if fehler:
+        logger.warning("%s/%s ungültig: %s", motor, projekt_id, "; ".join(fehler[:5]))
+    return (basis if isinstance(basis, dict) else {}), fehler
+
+
+def projekte_finden() -> list[dict]:
+    """Alle Projekte beider Motoren mit wissen.json, zuletzt gelaufene zuerst. Ungültige mit Hinweis."""
+    zeilen = []
+    for motor, rel in RECHERCHE_MOTOREN.items():
+        ordner = INSTANZ.parent / rel / PROJEKTE
+        if not ordner.is_dir():
+            continue
+        for p in sorted(ordner.iterdir()):
+            if not recherche.PROJEKT_ID.fullmatch(p.name) or not (p / recherche.WISSEN).is_file():
+                continue
+            basis, fehler = _wissen_lesen(motor, p.name)
+            if basis is None:
+                continue
+            if fehler:
+                zeilen.append({"motor": motor, "id": p.name, "titel": str(basis.get("titel") or p.name),
+                               "ungueltig": True, "zuletzt_iso": ""})
+            else:
+                zeilen.append(ansichten.projekt_zeile(basis, motor, recherche.zahlen(basis)))
+    return sorted(zeilen, key=lambda z: z["zuletzt_iso"], reverse=True)
+
+
+@app.get("/recherchen", response_class=HTMLResponse)
+def seite_recherchen(request: Request):
+    baum = baum_laden()
+    return seite(request, "recherchen.html", {"e": {"titel": "Recherchen"}, "projekte": projekte_finden(), **rahmen(
+        baum, None, {"teile": [{"text": "Heute", "link": "/"}], "hier": "Recherchen"})})
+
+
+@app.get("/recherche/{motor}/{projekt_id}", response_class=HTMLResponse)
+def seite_recherche(request: Request, motor: str, projekt_id: str):
+    basis, fehler = _wissen_lesen(motor, projekt_id)
+    if basis is None:
+        raise HTTPException(404)
+    baum = baum_laden()
+    titel = str(basis.get("titel") or projekt_id)
+    q = request.query_params
+    werte = {"e": {"titel": titel}, "pfad": f"/recherche/{motor}/{projekt_id}", "ungueltig": fehler[:5]}
+    if not fehler:
+        werte["p"] = ansichten.projekt(basis, recherche.zahlen(basis), q.get("ansicht"), q.get("status"),
+                                       q.get("frage"))
+    return seite(request, "recherche.html", {**werte, **rahmen(baum, None, {
+        "teile": [{"text": "Heute", "link": "/"}, {"text": "Recherchen", "link": "/recherchen"}],
+        "hier": logik.kuerzen(titel, 60)})})
 
 
 @app.get("/seite/neu", response_class=HTMLResponse)

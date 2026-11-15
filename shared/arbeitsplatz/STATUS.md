@@ -33,6 +33,15 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   je Thema und vorgeschlagene Karten, „Übernehmen“ geht über den Link ins Portal; karten verlinkt aufs Portal
   (Üben braucht fsrs aus uni/.venv, nicht in dieser .venv ohne Jans Okay). Pfade kommen aus `daten.ansicht` des
   Ergebnisses (uni) und werden gegen den Agent-Ordner geprüft.
+- Recherche-Projekte (docs/recherche-plan.md Schritt 4, 15.11.2026, nur lesend, keine Knöpfe): Eintrag
+  „Recherchen“ im Baum unter Heute. `/recherchen` listet alle Projekte beider Motoren (Ordner mit wissen.json unter
+  `uni/data/projekte/` und `lia/recherche/data/projekte/`, feste Zuordnung `RECHERCHE_MOTOREN` in app.py, zuletzt
+  gelaufen zuerst, ungültige mit Hinweis). `/recherche/<uni|lia>/<projekt>` mit Reitern Aussagen (Status- und
+  Fragefilter, Belege mit aufgelöster Quelle, Register ohne Link, gesperrt und übernommen sichtbar), Quellen (stützt n
+  Aussagen, gesperrte zuletzt), Lücken und Rückfragen, Läufe (Kosten, Modell, neu/ergänzt/doppelt). Prüfung über
+  agentkit.recherche.pruefen, kaputte Datei: Hinweis statt Absturz. Logik in `ansichten.projekt*`. Am 15.11. mit
+  den vier echten Projekten über eine zweite Instanz auf eigenem Socket geprüft: alle 200, bis 0,13 s, größte Seite
+  211 KB (uni, 163 Aussagen). Die alte Dokument-Ansicht recherche bleibt, bis neue Läufe in Projekte schreiben.
 - finance: Aufträge nach `art` und Feld Thema, Ergebnis mit `daten.titel` (siehe finance/STATUS.md).
 - Tests: `tests/` (Logik, Ansichten, App über Unix-Socket mit http.client), in pruefen.sh eingetragen.
 
@@ -103,6 +112,8 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Caddy (von außen mit Passwort) macht Jan als root nach der Abnahme.
 
 ## Offene Punkte
+- Neustart nötig (Jans Okay): seit 15.11.2026 zeigt der laufende Dienst den Baum-Eintrag „Recherchen“ (Vorlage
+  wirkt sofort), die Seite gibt dort aber 404, bis `arbeitsplatz.service` mit dem neuen Code neu startet.
 0. Browser-Probe der ruhigen Oberfläche bei Jan (Tunnel, siehe oben): Titel anklicken (Enter, Esc), „Seite“ im „+“
    (neue Seite gleich offen), „Datei“ im „+“ und Datei auf einen Ort ziehen, Datei aufs Formular und auf ein Dokument
    ziehen, eigene Fassung im „···“, Menüs bei schmalem Fenster, Vorschau und Betrachter, Rückmeldung zu einer Seite,
