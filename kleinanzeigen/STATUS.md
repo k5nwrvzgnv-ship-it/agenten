@@ -22,6 +22,7 @@ meldet bewertete Treffer und schreibt Verkäufer nach Freigabe an.
 - 15.11.2026: Ordner unter ~/agenten (agentkit, Freigabe), nicht als eigenständiger Bot wie Vinted.
 - 15.11.2026 (Jan): Kein Kleinanzeigen-Konto, nur scannen. Der Bot schickt Treffer mit Link, Jan bzw. der
   Kumpel klickt und schreibt selbst. Damit handelt der Agent nicht nach außen, keine Freigabe nötig.
+- 15.11.2026 (Jan): Sonnet bewertet die Treffer (und erkennt Fotos). Erwartet ca. 75 USD/Monat API-Gegenwert.
 - 15.11.2026 (Jan): Teilagent des geplanten Agenten einkauf.
 - 15.11.2026 (Jan): Eigener Telegram-Bot (eigener Token), weil ein Kumpel von Jan ihn mitbenutzen soll.
 
@@ -43,8 +44,7 @@ meldet bewertete Treffer und schreibt Verkäufer nach Freigabe an.
   aller Agenten. Server, Telegram und Kleinanzeigen-Abrufe kosten nichts.
 
 ## Offene Punkte
-1. Modell und Takt festlegen (Vorschlag: Haiku für das Ranking, Sonnet nur zum Erkennen eines Fotos beim
-   Anlegen einer Suche, Prüfung alle 10-15 min, Tagesgrenze an Läufen). Welches Konto (Agenten-Konto)?
+1. Takt und Konto festlegen (Vorschlag: Prüfung alle 10-15 min, Tagesgrenze an Läufen, Agenten-Konto).
 2. Kumpel: zweiter Nutzer im eigenen Bot (Chat-ID in .env freischalten), seine Suchen getrennt von Jans.
 3. Ordner: als Teilagent von einkauf später ggf. nach einkauf/kleinanzeigen verschieben.
 4. Telegram-Token: Jan legt den Bot bei @BotFather an und trägt den Token selbst in kleinanzeigen/.env ein.
