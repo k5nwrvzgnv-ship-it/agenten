@@ -285,9 +285,26 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
      marrow 110/117 0,74 0,88 0,874 0,65; blue_stain 5/12 0,43 0,32 0,314 0,22 (nur 12 Boxen, Zufall groß).
      overgrown fehlt in val (gewollt). Inferenz 0,4 ms je Bild auf mps (ohne Nachbearbeitung 4,7 ms).
    - Test-Teil noch unberührt; erst am Ende für das gewählte Modell auswerten.
-   Nächstes: Dateien vom Mac zum Server holen (results.csv, args.yaml, confusion_matrix*.png, *curve*.png,
-   val_batch*_pred.jpg, best.pt nach data/laeufe/kodytek1-n1280/), Fehlerbilder ansehen, dann über
-   größere Modelle entscheiden (yolo11s etwa 3-fach, yolo11m etwa 10-fach Rechenaufwand; Mac oder gemietete
+   - Dateien auf dem Server: data/laeufe/kodytek1-n1280/ (results.csv, args.yaml, Kurven, Matrizen,
+     val_batch0-2 labels/pred, best.pt). Optimierer laut args.yaml MuSGD, lr0 0,01, Mosaik 1,0.
+   - Verlauf (results.csv): beste Epoche 74 (mAP50 0,752, mAP50-95 0,460). Ab etwa Epoche 40 sinken die
+     train-Verluste weiter, val box_loss und cls_loss steigen leicht (1,497 -> 1,537): leichte Überanpassung,
+     bei gleichbleibendem mAP. 50-60 Epochen hätten gereicht.
+   - Verwechslungsmatrix (Spalten = wahr, Anteil richtig): live_knot 0,91, dead_knot 0,80, knot_missing 0,75,
+     knot_with_crack 0,81, crack 0,95, quartzity 0,72, resin 0,87, marrow 0,93, blue_stain 0,92 (11 von 12).
+     Hauptverwechslungen: dead_knot als live_knot 16 % (188), live_knot als dead_knot 5 % (120),
+     knot_missing als dead_knot 21 % (10), knot_with_crack als live_knot 10 % (25), quartzity als marrow
+     20 % (26). Übersehen (Zeile background) nur 1-8 %. Die Hintergrundspalte (z. B. 10.726 live_knot ohne
+     Label) ist vermutlich mit sehr niedriger Konfidenzschwelle gezählt (conf in args.yaml leer), also keine
+     echte Fehlalarmrate. Das ist nicht geprüft. Der Recall in der Matrix liegt deshalb höher als R 0,69.
+   - Sichtprüfung val_batch0 und 1 (32 Bilder, Schwelle der Bilder 0,25): Boxen sitzen fast immer richtig.
+     Fehler sind meist live/dead an kleinen Ästen (wenige Pixel, auch am Label schwer zu entscheiden)
+     und knot_with_crack auf Ästen, die als live_knot markiert sind, aber einen Riss zeigen könnten. Echte
+     Aussetzer sind selten: ein winziger Ast (153200021) und Harz am rechten Brettrand (val_batch0, Zeile 3 rechts) fehlen.
+     Schluss: Ein großer Teil der Fehler liegt an der Grenze der Klassen und an Labels, nicht an
+     fehlender Erkennung. live/dead bleibt die wichtigste Schwäche (ob die
+     Sortierung das braucht, hängt vom Normtext ab, noch nicht geprüft). val_batch2 noch nicht angesehen.
+   Nächstes: über größere Modelle entscheiden (yolo11s etwa 3-fach, yolo11m etwa 10-fach Rechenaufwand; Mac oder gemietete
    GPU, Jans Entscheidung).
    Zurückgestellt bis nach
    dem ersten Modell (Jan 12.11.2026, Mittelweg): voller Abgleich Boxen gegen Masken, cleanlab/FiftyOne,
