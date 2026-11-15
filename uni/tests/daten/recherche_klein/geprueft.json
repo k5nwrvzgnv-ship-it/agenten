@@ -1,0 +1,409 @@
+{
+ "thema": "Entwicklung und Validierung eines kostengünstigen, rein optischen KI-Prototyps (stationäre Kamera, z. B. Smartphone), der Fehlstellen an Nadelholzlamellen vor der Keilzinkung in der BSH-Produktion erkennt und entlang der Lamellenlänge lokalisiert, als Ersatz für die manuelle visuelle Sortierung in kleinen und mittleren Betrieben.",
+ "fragen": [
+  {
+   "id": "F1",
+   "fenster": "regelwerk",
+   "frage": "Werden Lamellen für Brettschichtholz (EN 14080) üblicherweise bereits festigkeitssortiert (z. B. S10 nach DIN 4074-1 bzw. Festigkeitsklasse nach EN 14081) angeliefert oder im eigenen Aufschnitt sortiert, und dient die anschließende visuelle Kontrolle im BSH-Werk vor der Keilzinkung nur der Qualitäts- und Optiksortierung oder ist sie Teil der Festigkeitssortierung?",
+   "anlass": "Henri 11:58: \"Jetzt müssen wir noch mal validieren ... dass die nur noch mal ne Qualitätsverbesserung machen und keine Festigkeitssortierung\"; Jan 12:22/12:54: Anlieferung als S10 nur angenommen, Werke nutzen teils eigenen Aufschnitt."
+  },
+  {
+   "id": "F2",
+   "fenster": "regelwerk",
+   "frage": "Welche Sortiermerkmale und Grenzwerte legt DIN 4074-1 für Bretter und Bohlen bzw. Lamellen der Klasse S10 fest (Äste als Einzel- und Kantenast bzw. Astansammlung relativ zum Querschnitt, Faserneigung, Risse, Harzgallen, Baumkante, Markröhre, Verfärbungen, Insektenbefall usw.), wie werden sie gemessen, und welche davon sind grundsätzlich aus Oberflächenfotos aller vier Seiten bestimmbar?",
+   "anlass": "Henri 31:09/33:15: \"welche Sortiermerkmale müssen wir beachten und welche nicht? ... welche sind noch abbildbar\"; Henri 31:27: \"da würde ich mich einfach an die Norm halten\"; Henri 39:43: Äste nicht absolut, sondern abhängig von der Lamellengröße."
+  },
+  {
+   "id": "F3",
+   "fenster": "literatur",
+   "frage": "Was ist der aktuelle Stand der Forschung (etwa 2018 bis 2026) zur Erkennung und Lokalisierung von Oberflächenfehlern an Nadelschnittholz bzw. Lamellen mit Deep Learning: welche Fehlerklassen, Holzarten, Oberflächen (sägerau/gehobelt), Bildgebung und erreichte Kennzahlen (Precision, Recall, mAP), und welche Übersichtsarbeiten (Reviews) gibt es?",
+   "anlass": "Jan 25:00: Forschungsstand, Research-Agent soll \"die Paperlage sich da anguckt\"; Henri 25:23: \"Das wäre wichtig\"."
+  },
+  {
+   "id": "F4",
+   "fenster": "methoden",
+   "frage": "Ist YOLO (welche Version) der Goldstandard für die Erkennung von Holzfehlern, oder schneiden andere Verfahren (z. B. Faster R-CNN, RetinaNet, DETR-Varianten, Segmentierungsmodelle wie Mask R-CNN oder U-Net) in vergleichenden Studien besser ab? Welche Open-Source-Implementierungen gibt es, und welche Lizenzbedingungen gelten (z. B. für Ultralytics YOLO) bei späterer kommerzieller Nutzung?",
+   "anlass": "Henri 38:40: \"Es ist dieses YOLO. Wollen wir das nutzen?\"; Jan 39:11: \"als eine Form von Research Auftrag festhalten, das vielleicht noch mal zu validieren, ob es das quasi der Goldstandard ist oder ob es nicht vielleicht auch was anderes gibt\"."
+  },
+  {
+   "id": "F5",
+   "fenster": "daten",
+   "frage": "Welcher öffentliche Datensatz verbirgt sich hinter dem Titel \"supporting data for deep learning machine vision based approaches\" (laut Jan ca. 11.000 bzw. 43.000 Bilder, mit Bounding Boxes, \"collected directly from a wood production line during the manufacturing process\")? Herkunft, Autoren, Lizenz, Holzart, Oberfläche (sägerau/gehobelt), Sensor (Kamera, ggf. CT), Fehlerklassen und wie die Annotationen entstanden sind (manuell oder aus einer Software).",
+   "anlass": "Jan 43:54-45:01: Datensatz mit 11.000, \"sogar 43.000\" Bildern und Bounding Boxes gefunden; Henri 45:58/46:11: \"ist das jetzt validierte Data\"; Felix 46:34: wer hat das gemacht, was wurde aufgenommen; Henri 1:03:24: vielleicht aus CT-Scan oder visueller Sortierlinie."
+  }
+ ],
+ "aussagen": [
+  {
+   "id": "literatur-1",
+   "fenster": "literatur",
+   "frage": "F3",
+   "art": "tatsache",
+   "text": "Lin et al. (TU München u. a., arXiv 2025) haben einen Bilddatensatz von Fichtenbrettern aus der Industrie aufgebaut: 44.735 hochaufgelöste Bilder von 153 Fichtenbrettern (über 300 GB), aufgenommen mit Industriekameras, jedes Brett von allen vier Seiten.",
+   "status": "teilweise",
+   "fehlt": "Autoren (Lin et al.), Institution TU München und 'aus der Industrie' stehen nicht in den Zitaten.",
+   "belege": [
+    {
+     "url": "https://arxiv.org/html/2505.05845v1",
+     "zitat": "In total, we obtained 44,735 high-resolution images of 153 spruce boards, and the size is larger than 300GB.",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    },
+    {
+     "url": "https://arxiv.org/html/2505.05845v1",
+     "zitat": "Each board was documented across four surfaces (top, bottom, front, and back)",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    },
+    {
+     "url": "https://arxiv.org/html/2505.05845v1",
+     "zitat": "we utilized industrial-grade cameras to capture images of wooden boards.",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    }
+   ]
+  },
+  {
+   "id": "literatur-2",
+   "fenster": "literatur",
+   "frage": "F3",
+   "art": "tatsache",
+   "text": "Lin et al. (2025) unterscheiden fünf Astklassen (u. a. eingewachsener, loser und toter Ast) und erreichen mit YOLOv8l ein mAP@0.5 von 0,887. Das leichte YOLOv8n kommt auf 0,846. Der Datensatz ist nur auf Anfrage erhältlich.",
+   "status": "gesichert",
+   "fehlt": "",
+   "belege": [
+    {
+     "url": "https://arxiv.org/html/2505.05845v1",
+     "zitat": "Encased knot, Loose knot, Intergrown knot, Overgrown knot, and Dead knot.",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    },
+    {
+     "url": "https://arxiv.org/html/2505.05845v1",
+     "zitat": "YOLOv8l achieved an mAP@0.5 of 0.887,",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    },
+    {
+     "url": "https://arxiv.org/html/2505.05845v1",
+     "zitat": "the lightweight YOLOv8n achieved 0.846 mAP@0.5",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    },
+    {
+     "url": "https://arxiv.org/html/2505.05845v1",
+     "zitat": "Due to industry requirements, the dataset will be made available upon request after publication.",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    }
+   ]
+  },
+  {
+   "id": "methoden-5",
+   "fenster": "methoden",
+   "frage": "F4",
+   "art": "einschaetzung",
+   "text": "Einschätzung: In der Holzfehler-Literatur dominieren YOLO-Varianten, ein belegter „Goldstandard“ ist das aber nicht. Die gefundenen Vergleiche nutzen unterschiedliche Datensätze, die Zahlen sind daher nicht übertragbar. Sinnvoll wäre ein eigener Vergleich am eigenen Testsatz, etwa YOLO gegen RT-DETR und Faster R-CNN. Bei kommerzieller Nutzung sollte die Lizenz beachtet werden: Ultralytics steht unter AGPL-3.0, eine Enterprise-Lizenz kostet Geld.",
+   "status": "einschaetzung",
+   "fehlt": "",
+   "belege": []
+  },
+  {
+   "id": "daten-5",
+   "fenster": "daten",
+   "frage": "F5",
+   "art": "tatsache",
+   "text": "Eine Folgearbeit (CFIS-YOLO, 2025) beschreibt den Datensatz als 20.275 Bilder mit 2800 x 1024 Pixeln. Sie hat davon 3.465 Bilder genutzt und drei seltene Klassen (Quartzity, Blue stain, Overgrown) ausgeschlossen. Damit sind Bildzahl (rund 20.000) und Fehlstellenzahl (über 43.000) zu unterscheiden. Die von Jan genannte Zahl von rund 11.000 Bildern ist in keiner der geöffneten Quellen belegt.",
+   "status": "verworfen",
+   "fehlt": "Zitat handelt von begrenzter Vielfalt des Datensatzes; 20.275 Bilder, 2800 x 1024, 3.465 genutzte Bilder und ausgeschlossene Klassen stehen nicht darin.",
+   "belege": [
+    {
+     "url": "https://arxiv.org/html/2504.11305v1",
+     "zitat": "The current dataset’s limited diversity and scale may restrict the model’s generalization to broader scenarios.",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat auf der Seite gefunden"
+     }
+    }
+   ]
+  },
+  {
+   "id": "regelwerk-1",
+   "fenster": "regelwerk",
+   "frage": "F1",
+   "art": "tatsache",
+   "text": "DIN 4074-1:2026-05 legt Sortiermerkmale und -klassen fest, die Voraussetzung für die Rechenwerte der Bemessung sind; sortiert werden darf visuell (Abschnitt 6) oder visuell mit apparativer Unterstützung (Abschnitt 7).",
+   "status": "teilweise",
+   "fehlt": "Welche zwei Verfahren (visuell, apparativ unterstützt; Abschnitte 6 und 7) steht nicht in den Zitaten.",
+   "belege": [
+    {
+     "datei": "data/normen/material/DIN 4074-1_2026-05-00_DE_3681261.pdf.txt",
+     "seite": 5,
+     "zitat": "Dieses Dokument legt Sortiermerkmale und -klassen als Voraussetzung",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat in der lokalen Datei gefunden"
+     }
+    },
+    {
+     "datei": "data/normen/material/DIN 4074-1_2026-05-00_DE_3681261.pdf.txt",
+     "seite": 5,
+     "zitat": "Nach zwei Verfahren kann sortiert werden:",
+     "pruefung": {
+      "status": "bestanden",
+      "vermerk": "Zitat in der lokalen Datei gefunden"
+     }
+    }
+   ]
+  },
+  {
+   "id": "regelwerk-11",
+   "fenster": "regelwerk",
+   "frage": "F2",
+   "art": "tatsache",
+   "text": "Das Kriterium Schmalseitenast gilt nach Fußnote a zu Tabelle 3 nicht für Bretter für Brettschichtholz oder Brettsperrholz.",
+   "status": "unbelegt",
+   "fehlt": "",
+   "belege": [
+    {
+     "datei": "data/normen/material/DIN 4074-1_2026-05-00_DE_3681261.pdf.txt",
+     "seite": 22,
+     "zitat": "Dieses Sortiermerkmal gilt nicht für Bretter für Brettschichtholz oder Brettsperrholz.",
+     "pruefung": {
+      "status": "durchgefallen",
+      "vermerk": "Zitat steht nicht wörtlich auf dieser Seite der Datei"
+     }
+    }
+   ]
+  },
+  {
+   "id": "regelwerk-16",
+   "fenster": "regelwerk",
+   "frage": "F1",
+   "art": "tatsache",
+   "text": "Lehrbuch (Blaß/Sandhaas, KIT 2016) zur BSH-Herstellung: Nach der Trocknung werden die Bretter visuell oder maschinell sortiert, wobei die maschinelle Sortierung überwiegt. Vor der Sortierung wird das Holz vorgehobelt. Das ist ein Beleg dafür, dass die Festigkeitssortierung zumindest teils im BSH-Werk selbst stattfindet und nicht nur beim Lieferanten. Das Buch beschreibt die allgemeine Praxis, nicht einzelne KMU-Werke.",
+   "status": "unbelegt",
+   "fehlt": "",
+   "belege": [
+    {
+     "datei": "data/literatur/kit/Blass_Sandhaas_Ingenieurholzbau_2016.pdf.txt",
+     "seite": 120,
+     "zitat": "Bretter visuell oder maschinell sortiert, wobei die maschinelle Sortierung überwiegt.",
+     "pruefung": {
+      "status": "durchgefallen",
+      "vermerk": "Zitat steht nicht wörtlich auf dieser Seite der Datei"
+     }
+    },
+    {
+     "datei": "data/literatur/kit/Blass_Sandhaas_Ingenieurholzbau_2016.pdf.txt",
+     "seite": 120,
+     "zitat": "der Sortierung wird das Holz vorgehobelt.",
+     "pruefung": {
+      "status": "durchgefallen",
+      "vermerk": "Zitat steht nicht wörtlich auf dieser Seite der Datei"
+     }
+    }
+   ]
+  }
+ ],
+ "quellen": [
+  {
+   "url": "https://arxiv.org/html/2505.05845v1",
+   "titel": "Automated Knot Detection and Pairing for Wood Analysis in the Timber Industry",
+   "autoren": [
+    "Lin, G.",
+    "Pan, S.",
+    "Khanbayov, R.",
+    "Yang, C.",
+    "Khaloian-Sarnaghi, A.",
+    "Kovryga, A."
+   ],
+   "jahr": 2025,
+   "doi": null,
+   "art": "artikel",
+   "pruefung": {
+    "status": "ungeprueft",
+    "vermerk": "ohne DOI"
+   },
+   "fenster": "literatur",
+   "zitierfaehig": true
+  },
+  {
+   "url": "https://arxiv.org/html/2504.11305v1",
+   "titel": "CFIS-YOLO: A Lightweight Multi-Scale Fusion Network for Edge-Deployable Wood Defect Detection",
+   "autoren": [
+    "Kang, J.",
+    "Cen, Y.",
+    "Cen, Y.",
+    "Wang, K.",
+    "Liu, Y."
+   ],
+   "jahr": 2025,
+   "doi": null,
+   "art": "artikel",
+   "pruefung": {
+    "status": "ungeprueft",
+    "vermerk": "ohne DOI"
+   },
+   "fenster": "methoden",
+   "zitierfaehig": true
+  },
+  {
+   "url": "https://arxiv.org/html/2505.05845v1",
+   "titel": "Automated Knot Detection and Pairing for Wood Analysis in the Timber Industry",
+   "autoren": [
+    "Lin, G.",
+    "Pan, S.",
+    "Khanbayov, R.",
+    "Yang, C.",
+    "Khaloian-Sarnaghi, A.",
+    "Kovryga, A."
+   ],
+   "jahr": 2025,
+   "doi": null,
+   "art": "artikel",
+   "pruefung": {
+    "status": "ungeprueft",
+    "vermerk": "ohne DOI"
+   },
+   "fenster": "methoden",
+   "zitierfaehig": true
+  },
+  {
+   "url": "https://arxiv.org/html/2504.11305v1",
+   "titel": "CFIS-YOLO: A Lightweight Multi-Scale Fusion Network for Edge-Deployable Wood Defect Detection",
+   "autoren": [],
+   "jahr": 2025,
+   "doi": null,
+   "art": "artikel",
+   "pruefung": {
+    "status": "ungeprueft",
+    "vermerk": "ohne DOI"
+   },
+   "fenster": "daten",
+   "zitierfaehig": true
+  },
+  {
+   "url": "https://arxiv.org/html/2505.05845v1",
+   "titel": "Automated Knot Detection and Pairing for Wood Analysis in the Timber Industry",
+   "autoren": [
+    "Lin, G.",
+    "Pan, S.",
+    "Khanbayov, R.",
+    "Yang, C.",
+    "Khaloian-Sarnaghi, A.",
+    "Kovryga, A."
+   ],
+   "jahr": 2025,
+   "doi": null,
+   "art": "artikel",
+   "pruefung": {
+    "status": "ungeprueft",
+    "vermerk": "ohne DOI"
+   },
+   "fenster": "daten",
+   "zitierfaehig": true
+  },
+  {
+   "url": "https://arxiv.org/html/2505.05845v1",
+   "titel": "Automated Knot Detection and Pairing for Wood Analysis in the Timber Industry",
+   "autoren": [
+    "Lin, G.",
+    "Pan, S.",
+    "Khanbayov, R.",
+    "Yang, C.",
+    "Khaloian-Sarnaghi, A.",
+    "Kovryga, A."
+   ],
+   "jahr": 2025,
+   "doi": null,
+   "art": "artikel",
+   "pruefung": {
+    "status": "ungeprueft",
+    "vermerk": "ohne DOI"
+   },
+   "fenster": "projekte",
+   "zitierfaehig": true
+  }
+ ],
+ "luecken": [
+  {
+   "fenster": "literatur",
+   "text": "F3: Die Übersichtsarbeiten wurden über die Websuche gefunden, ließen sich aber nicht öffnen (WebFetch für die Domain gesperrt oder HTTP 403). Daher keine belegten Aussagen zu: Fang et al. 2026 'Recent advances in wood surface defect inspection using deep learning 2021-2025' (BioResources), Shah et al. 2026 (Applied Computing and Intelligence, doi 10.3934/aci.2026001, aimspress.com), Liew et al. 2024 (IEEE Access, über doaj.org), Chen et al. 2023 'Review of the current state of application of wood defect recognition technology' (BioResources), Ali et al. (IJAI, iaescore.com)."
+  },
+  {
+   "fenster": "literatur",
+   "text": "F3: Primärarbeiten nicht öffnbar (bioresources.cnr.ncsu.edu, mdpi.com mit 403, mdpi-res.com, pmc.ncbi.nlm.nih.gov, openaccess.thecvf.com, ceur-ws.org gesperrt): Fang et al. 2021 YOLOv5 an Schnittholz-Ästen mit Fichtendatensatz der Universität Oulu (doi 10.15376/biores.16.3.5390-5406), Forests 17(3):329 (2026), Forests 16:1757 (EFCW-YOLO, PlankDef-9K), Forests 15:1096 (BPN-YOLO), Forests 16:308 (FDD-YOLO), SSD/DenseNet an Massivholzplatten (PMC7570981). Das sollte eine Sitzung mit freigegebenen Domains nachholen."
+  }
+ ],
+ "widersprueche": [
+  {
+   "ids": [
+    "literatur-13",
+    "scopus-23",
+    "scopus-24",
+    "scopus-36"
+   ],
+   "worum": "literatur-13 sagt, es gebe keine geöffnete holzspezifische Studie zum Vergleich Mensch gegen Maschine; scopus-23 (Lycken 2006), scopus-24 (Pölzleitner 1992) und scopus-36 (Ji 2024) liefern genau solche Vergleiche an Schnittholz."
+  },
+  {
+   "ids": [
+    "daten-15",
+    "scopus-35"
+   ],
+   "worum": "Zahl der Lamellen: daten-15 nennt 2.525 Lamellen (x2 = 5.050 Bilder), scopus-35 nennt 5.050 Bilder von 2.025 Lamellen."
+  }
+ ],
+ "offen": [
+  {
+   "frage": "F1",
+   "warum": "Keine Aussage dazu, ob Lamellen festigkeitssortiert angeliefert oder im Werk sortiert werden und welche Rolle die Kontrolle vor der Keilzinkung hat; nur die Pflicht zur Neusortierung bei Querschnittsminderung (regelwerk-3)."
+  },
+  {
+   "frage": "F2",
+   "warum": "Grenzwerte teils belegt, aber keine systematische Zuordnung, welche Merkmale aus Fotos der vier Seiten bestimmbar sind; Insektenbefall, Harzgallen und Messregeln einzelner Merkmale sowie Lamellenregeln aus EN 14080 fehlen."
+  }
+ ],
+ "zahlen": {
+  "gesichert": 1,
+  "teilweise": 2,
+  "verworfen": 1,
+  "unbelegt": 2,
+  "einschaetzung": 1,
+  "quellen_zitierfaehig": 6
+ },
+ "literatursuche": {
+  "datenbank": "Scopus",
+  "datum": "02.11.2026",
+  "arbeiten_ohne_doppelte": 1441,
+  "suchen": [
+   {
+    "nr": "S1",
+    "titel": "Deep Learning für Holzfehler (ab 2018)",
+    "suchstring": "TITLE-ABS-KEY((wood OR timber OR lumber OR \"sawn wood\" OR softwood OR spruce OR \"scots pine\" OR glulam OR \"glued laminated\") AND (defect* OR knot*) AND (\"deep learning\" OR \"convolutional neural network*\" OR yolo OR \"object detection\" OR \"instance segmentation\" OR \"semantic segmentation\")) AND PUBYEAR > 2017",
+    "treffer": null,
+    "exportiert": 300
+   },
+   {
+    "nr": "S2",
+    "titel": "Übersichtsarbeiten zur Holzfehlererkennung (ab 2015)",
+    "suchstring": "TITLE-ABS-KEY((wood OR timber OR lumber OR \"sawn wood\") AND (defect* OR knot*) AND (detection OR inspection OR grading OR \"machine vision\" OR \"computer vision\")) AND DOCTYPE(re) AND PUBYEAR > 2014",
+    "treffer": null,
+    "exportiert": 33
+   }
+  ]
+ }
+}

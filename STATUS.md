@@ -1178,6 +1178,19 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     zwei Läufen) und Schritt 3 (uni-Chat: Adapter geprueft.json, Exposé-Recherche als Projekt), beide ohne
     Claude-Lauf; danach Schritt 4 hier (lesende Projektseite im Arbeitsplatz). Nach jedem echten Lauf KOSTEN
     nachtragen.
+    Aus lia/recherche (15.11.2026, Schritt 2 fertig, Zahlen in lia/recherche/STATUS.md): Bedarf an agentkit.recherche:
+    Zwei Aussagen mit gleichem Text und ohne Belege gelten als dieselbe, auch unter verschiedenen Fragen (milde-
+    jugendtaten: zweimal „Straftatbestand: Sachbeschädigung.“ in zwei Fällen wurde eine Aussage). Vorschlag: ohne
+    Belege nur gleich, wenn auch die Frage gleich ist. Kein Eilbedarf.
+    Schritt 3 erledigt (15.11.2026, uni-Chat, Einzelheiten in uni/STATUS.md): Adapter `uni/rechercheprojekt.py`,
+    Exposé-Recherche als `uni/data/projekte/20261102-uni-expose-fehlstellen/wissen.json`. Hinweise für Schritt 4:
+    In `uni/data/projekte/` liegen auch Jans Forschungsprojekte (`fehlstellen/` mit wissen.md, kontakte.json,
+    schriftverkehr.json, rueckmeldungen/; `warteschlange/`), Recherche-Projekte sind nur Ordner mit wissen.json.
+    Lokale Belege haben `register` "norm:<Kennung>:<Ausgabe>" (z. B. "norm:DIN 4074-1:2026-05") oder
+    "datei:<Pfad unter uni/ ohne .txt>", kein register.json. `lauf.ordner` ist relativ zum Projektordner
+    ("../../expose/<kette>/recherche"). Vorschlag (nichts eilt): Widersprüche nennen noch die Motor-Kennungen
+    (z. B. literatur-13), weil einarbeiten dort nur Text nimmt; zum Verlinken bräuchte das Eingangsformat einen
+    Bezug auf Aussagen des Laufs, den einarbeiten in A-Nummern übersetzt.
 
 ## Gelernte Regeln
 - (noch keine)

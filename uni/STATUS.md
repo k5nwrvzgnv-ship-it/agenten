@@ -196,6 +196,22 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   wirklich fürs Markieren eingesetzt sind (steht so im Text, von Jan nicht bestätigt).
   Schwäche: expose.bauen ruft die Literaturprüfung erst, wenn Format und Umfang stimmen. Die eine Nachbesserung
   ging deshalb nur an "13 statt 12 Angaben", der Literaturfehler kam erst danach. Vorschlag: beide auf einmal melden.
+- Recherche als Projekt (15.11., docs/recherche-plan.md Bauschritt 3): rechercheprojekt.py macht aus einem fertigen
+  Laufordner (geprueft.json, gegenpruefung.json, stand.json) den Eingang für agentkit.recherche.einarbeiten und legt
+  data/projekte/<id>/wissen.json an (nur neu, nie doppelt; der Laufordner bleibt unverändert). Abbildung im Modulkopf:
+  Fenster -> gruppe, Gegenprüfung -> traegt, offen -> rueckfragen, Kosten aus stand.json, modell opus. Lokale Belege
+  als Quelle mit register "norm:<Kennung>:<Ausgabe>" (Nautos-Dateiname) bzw. "datei:<Pfad ohne .txt>" (art werk),
+  Seite im Beleg. Frage-Kennungen in Lücken und Rückfragen sind die des Laufs; einlesen bricht ab, wenn die Basis
+  andere vergibt. Tests: tests/test_rechercheprojekt.py gegen tests/daten/recherche_klein/ (7 echte Aussagen der
+  Exposé-Recherche, Fragen auf F1..F5 umnummeriert). Aufruf: `.venv/bin/python rechercheprojekt.py <laufordner>
+  <auftrag> <projekt-id> "<titel>"`.
+  Eingelesen 15.11. (kein Claude-Lauf): Kette 20261102-165741-uni-ac9dcc als Projekt 20261102-uni-expose-fehlstellen,
+  1 Lauf (suche, 02.11. 19:19, 35,23 USD): 24 Fragen, 163 Aussagen (36 gesichert, 87 teilweise, 1 verworfen,
+  9 unbelegt, 30 Einschätzungen, Status je Aussage gleich wie in geprueft.json), 89 Quellen (84 Adressen aus
+  90 Einträgen, 4 Adressen standen in mehreren Fenstern; dazu 4 Normen und Blass/Sandhaas), 62 Lücken,
+  7 Widersprüche, 22 Rückfragen. Der Nachtrag vom 04.11. (MiCROTEC von Hand, art produkt) ist enthalten.
+  Offen: recherche.durchfuehren schreibt neue Läufe noch nicht ins Projekt; das kommt mit Bauschritt 7/8 (Plan,
+  Ausweiten), dann auch, welche Projekt-id ein neuer Lauf bekommt.
 - Mail mit Anhang (05.11., aus dem Hauptordner-Chat mit Jans Okay): Jan schickt die Datei in Telegram an uni, der
   Auftrag steht in der Bildunterschrift ("schick das Böhme"). mail_auftrag gibt a["dateien"] als anhaenge bis zu
   agentkit.mail.pruefen weiter, Claude bestimmt keine Anhänge und bekommt nur die Namen (mailablauf.anhang_hinweis).

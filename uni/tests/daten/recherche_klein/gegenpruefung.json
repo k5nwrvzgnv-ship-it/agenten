@@ -1,0 +1,52 @@
+{
+ "urteile": [
+  {
+   "id": "literatur-1",
+   "traegt": "teilweise",
+   "fehlt": "Autoren (Lin et al.), Institution TU München und 'aus der Industrie' stehen nicht in den Zitaten."
+  },
+  {
+   "id": "literatur-2",
+   "traegt": "ja",
+   "fehlt": ""
+  },
+  {
+   "id": "daten-5",
+   "traegt": "nein",
+   "fehlt": "Zitat handelt von begrenzter Vielfalt des Datensatzes; 20.275 Bilder, 2800 x 1024, 3.465 genutzte Bilder und ausgeschlossene Klassen stehen nicht darin."
+  },
+  {
+   "id": "regelwerk-1",
+   "traegt": "teilweise",
+   "fehlt": "Welche zwei Verfahren (visuell, apparativ unterstützt; Abschnitte 6 und 7) steht nicht in den Zitaten."
+  }
+ ],
+ "widersprueche": [
+  {
+   "ids": [
+    "literatur-13",
+    "scopus-23",
+    "scopus-24",
+    "scopus-36"
+   ],
+   "worum": "literatur-13 sagt, es gebe keine geöffnete holzspezifische Studie zum Vergleich Mensch gegen Maschine; scopus-23 (Lycken 2006), scopus-24 (Pölzleitner 1992) und scopus-36 (Ji 2024) liefern genau solche Vergleiche an Schnittholz."
+  },
+  {
+   "ids": [
+    "daten-15",
+    "scopus-35"
+   ],
+   "worum": "Zahl der Lamellen: daten-15 nennt 2.525 Lamellen (x2 = 5.050 Bilder), scopus-35 nennt 5.050 Bilder von 2.025 Lamellen."
+  }
+ ],
+ "offen": [
+  {
+   "frage": "F1",
+   "warum": "Keine Aussage dazu, ob Lamellen festigkeitssortiert angeliefert oder im Werk sortiert werden und welche Rolle die Kontrolle vor der Keilzinkung hat; nur die Pflicht zur Neusortierung bei Querschnittsminderung (regelwerk-3)."
+  },
+  {
+   "frage": "F2",
+   "warum": "Grenzwerte teils belegt, aber keine systematische Zuordnung, welche Merkmale aus Fotos der vier Seiten bestimmbar sind; Insektenbefall, Harzgallen und Messregeln einzelner Merkmale sowie Lamellenregeln aus EN 14080 fehlen."
+  }
+ ]
+}
