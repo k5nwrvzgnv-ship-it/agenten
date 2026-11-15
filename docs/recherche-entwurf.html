@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recherche Entwurf</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Skizze zu docs/recherche-plan.md Abschnitt 5 (Jan 15.11.2026): Farben und Schrift aus shared/arbeitsplatz/statisch/ruhig.css.
+   Inhalte aus den echten wissen.json (uni Exposé, lia/recherche), Sätze für die Skizze gekürzt. Kein Code, nur Ansicht. */
+:root {
+  --bg: #ffffff; --fg: #37352f; --leise: #787774; --sehrleise: #8c8b87; --linie: #e9e9e7; --flaeche: #f7f7f5;
+  --hover: rgba(55, 53, 47, .06); --wahl: rgba(55, 53, 47, .09); --akzent: #d44c47; --blau: #2f6fbf; --fokus: #2f6fbf;
+  --umkehr: #ffffff; --schatten: 0 8px 28px rgba(15, 15, 15, .14), 0 0 0 1px rgba(15, 15, 15, .05);
+  --schrift: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #7f7f7a; --linie: #2f2f2f; --flaeche: #202020;
+  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #3a74c4; --fokus: #7fb0f0;
+  --schatten: 0 8px 28px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #7f7f7a; --linie: #2f2f2f; --flaeche: #202020;
+  --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #3a74c4; --fokus: #7fb0f0;
+  --schatten: 0 8px 28px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08); color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--schrift); font-size: 16px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased; }
+button, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
+p { margin: 0; }
+ul { list-style: none; margin: 0; padding: 0; }
+
+/* Rahmen der Skizze */
+.skizze-kopf { max-width: 736px; margin: 0 auto; padding: 16px 16px 0; font-size: 12px; color: var(--sehrleise);
+  display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.skizze-kopf a { color: var(--leise); }
+.seite { max-width: 736px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 32px; }
+.seite + .seite { border-top: 1px dashed var(--linie); }
+.skizze-marke { font-size: 12px; color: var(--sehrleise); }
+
+/* Kopf */
+.kopf { display: flex; flex-direction: column; gap: 6px; }
+.kopf-zeile { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+h1 { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; }
+@media (max-width: 600px) { h1 { font-size: 26px; } }
+.leise { color: var(--leise); }
+.klein { font-size: 12px; }
+.krumen { font-size: 14px; color: var(--leise); }
+.krumen a { text-decoration: none; padding: 2px 6px; margin-left: -6px; border-radius: 4px; }
+.krumen a:hover { background: var(--hover); color: var(--fg); }
+h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+h3 { margin: 16px 0 2px; font-size: 12px; font-weight: 400; color: var(--leise); }
+
+/* Textfeld wie im Gespräch: grau, ein Knopf */
+.eingabe { background: var(--flaeche); border-radius: 10px; padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 8px; }
+.eingabe label { font-size: 14px; font-weight: 500; }
+.eingabe textarea { width: 100%; min-height: 64px; border: 0; background: transparent; resize: vertical; padding: 0; line-height: 1.5; }
+.eingabe textarea:focus { outline: none; }
+.eingabe:focus-within { box-shadow: 0 0 0 2px var(--fokus); }
+.eingabe-fuss { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.knopf { min-height: 32px; padding: 0 14px; border: 1px solid var(--linie); border-radius: 6px; background: var(--bg); color: var(--fg); font-weight: 500; }
+.knopf:hover { background: var(--hover); }
+.knopf-voll { background: var(--blau); border-color: var(--blau); color: var(--umkehr); }
+.knopf-voll:hover { background: var(--blau); filter: brightness(1.08); }
+
+/* Plan nach dem Senden */
+.plan { border: 1px solid var(--linie); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.plan-frage { font-size: 14px; color: var(--leise); }
+.plan-fuss { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Liste der Recherchen */
+.liste { margin: 0 -8px; display: flex; flex-direction: column; }
+.zeile { display: flex; flex-direction: column; padding: 8px; border-radius: 6px; text-decoration: none; }
+a.zeile:hover { background: var(--hover); }
+.zeile .unter { font-size: 14px; color: var(--leise); }
+.laeuft::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 8px;
+  box-shadow: inset 0 0 0 1px var(--leise); vertical-align: 1px; }
+
+/* Auf einen Blick */
+.blick { display: flex; flex-direction: column; gap: 8px; }
+.blick p { font-size: 18px; line-height: 1.55; }
+
+/* Ergebnisse: ein Satz, Quelle klein dahinter, „···“ erst beim Zeigen */
+.ergebnisse { display: flex; flex-direction: column; }
+.ergebnis { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; margin: 0 -8px; border-radius: 6px; }
+.ergebnis:hover { background: var(--hover); }
+.ergebnis .satz { flex: 1; }
+.quelle { font-size: 12px; color: var(--sehrleise); white-space: nowrap; }
+.ergebnis .punkte { visibility: hidden; }
+.ergebnis:hover .punkte, .ergebnis:focus-within .punkte { visibility: visible; }
+
+/* „···“-Menü */
+.punkte { position: relative; flex: none; }
+.punkte > summary { list-style: none; cursor: pointer; color: var(--leise); padding: 0 8px; border-radius: 6px; letter-spacing: 1px;
+  min-height: 28px; display: inline-flex; align-items: center; }
+.punkte > summary::-webkit-details-marker { display: none; }
+.punkte > summary:hover { background: var(--hover); color: var(--fg); }
+.menue { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 220px; background: var(--bg); border-radius: 8px;
+  box-shadow: var(--schatten); padding: 6px; display: flex; flex-direction: column; font-size: 14px; }
+.menue button { text-align: left; background: none; border: 0; padding: 6px 10px; border-radius: 6px; }
+.menue button:hover { background: var(--hover); }
+.menue hr { border: 0; border-top: 1px solid var(--linie); margin: 4px 0; }
+.menue .klein { padding: 2px 10px 6px; color: var(--sehrleise); }
+
+/* Klappen */
+details.klappe > summary { list-style: none; cursor: pointer; color: var(--leise); font-size: 14px; display: inline-flex;
+  padding: 4px 8px; margin: 0 -8px; border-radius: 6px; }
+details.klappe > summary::-webkit-details-marker { display: none; }
+details.klappe > summary::before { content: "▸"; font-size: 12px; margin-right: 6px; }
+details.klappe[open] > summary::before { content: "▾"; }
+details.klappe > summary:hover { background: var(--hover); color: var(--fg); }
+.klappe-inhalt { padding: 8px 0 4px 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.klappe-inhalt .unter { color: var(--leise); }
+.klappe-inhalt li { padding: 2px 0; }
+blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--linie); color: var(--leise); }
+</style>
+</head>
+<body>
+
+<div class="skizze-kopf">
+  <span>Skizze, 15.11.2026. Nichts davon ist gebaut.</span>
+  <a href="#recherchen">1 Recherchen</a>
+  <a href="#recherche">2 Eine Recherche</a>
+</div>
+
+<!-- ============================ Seite 1 ============================ -->
+<main class="seite" id="recherchen">
+  <header class="kopf">
+    <h1>Recherchen</h1>
+  </header>
+
+  <form class="eingabe" onsubmit="return false">
+    <label for="neu">Was willst du wissen?</label>
+    <textarea id="neu" rows="2">Welche Förderprogramme passen zu einem günstigen KI-Prototyp für Fehlstellen an Holzlamellen in einem kleinen Betrieb?</textarea>
+    <div class="eingabe-fuss">
+      <span class="klein leise">Für wen, wie gründlich, wo suchen: einfach mit hinschreiben.</span>
+      <button class="knopf knopf-voll" type="submit">Senden</button>
+    </div>
+  </form>
+
+  <section class="plan" aria-label="Plan">
+    <span class="skizze-marke">So sieht es nach „Senden“ aus (Beispiel, nach etwa einer halben Minute):</span>
+    <p>Ich suche Förderprogramme von Bund und Ländern für Forschung in kleinen Betrieben, vor allem FNR, ZIM und die Programme
+      der Länder, dazu laufende Projekte mit ähnlichem Ziel. Zuerst unter Förderung und Projekte, Hersteller lasse ich weg.</p>
+    <p class="leise">Gründlich, etwa 25 Minuten, geschätzt 6 bis 8 USD.</p>
+    <div class="plan-fuss">
+      <button class="knopf knopf-voll" type="button">Los</button>
+      <span class="klein leise">Anders gewünscht? Schreib es oben dazu, dann kommt ein neuer Plan.</span>
+    </div>
+  </section>
+
+  <section>
+    <ul class="liste">
+      <li><a class="zeile" href="#recherche">
+        <span class="laeuft">Förderprogramme für den KI-Prototyp</span>
+        <span class="unter">Läuft seit 14:20, fertig etwa 14:45</span></a></li>
+      <li><a class="zeile" href="#recherche">
+        <span>Milde Jugendtaten zum Einstieg ins Thema Strafe</span>
+        <span class="unter">Lia · Ethik · 14. November</span></a></li>
+      <li><a class="zeile" href="#recherche">
+        <span>Auslöser für Statuswechsel</span>
+        <span class="unter">Lia · Darstellendes Spiel · 14. November</span></a></li>
+      <li><a class="zeile" href="#recherche">
+        <span>Exposé-Recherche: KI-gestützte Fehlstellenerkennung an Holzlamellen vor der Keilzinkung</span>
+        <span class="unter">Exposé · 2. November</span></a></li>
+      <li><a class="zeile" href="#recherche">
+        <span>Unterrichtsreihe Strafe</span>
+        <span class="unter">Lia · Ethik · 25. Oktober</span></a></li>
+    </ul>
+  </section>
+</main>
+
+<!-- ============================ Seite 2 ============================ -->
+<main class="seite" id="recherche">
+  <header class="kopf">
+    <nav class="krumen"><a href="#recherchen">Recherchen</a></nav>
+    <div class="kopf-zeile">
+      <h1>Exposé-Recherche: KI-gestützte Fehlstellenerkennung an Holzlamellen vor der Keilzinkung</h1>
+      <details class="punkte">
+        <summary aria-label="Weitere Aktionen">···</summary>
+        <div class="menue">
+          <button type="button">Weitersuchen …</button>
+          <button type="button">Dokument bauen</button>
+          <hr>
+          <button type="button">Alles anzeigen (Belege, Unsicheres, Quellen)</button>
+          <button type="button">Läufe und Kosten</button>
+          <button type="button">Quellenbibliothek</button>
+        </div>
+      </details>
+    </div>
+    <span class="klein leise">Exposé · 2. November</span>
+  </header>
+
+  <section class="blick">
+    <h2>Auf einen Blick</h2>
+    <p>Zur Fehlstellenerkennung an Holz gibt es viel Forschung, zu Lamellen vor der Keilzinkung aber kaum etwas; am nächsten
+      liegt Achatz et al. 2025. Offen bleibt die Kernfrage, ob die Kontrolle im BSH-Werk noch Teil der Festigkeitssortierung ist.
+      Für den Prototyp wichtig: die Lizenz des Modells und eine strikte Trennung der Prüfdaten je Brett.</p>
+  </section>
+
+  <section>
+    <h2>Gesichert</h2>
+
+    <h3>Regelwerk</h3>
+    <ul class="ergebnisse">
+      <li class="ergebnis"><span class="satz">Visuell nach DIN 4074-1 sortieren darf nur eine geschulte Fachkraft. <span class="quelle">DIN 4074-1</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue">
+          <span class="klein">Beleg</span>
+          <blockquote>Visuelle Sortierung nach DIN 4074-1 darf nur eine geschulte Fachkraft vornehmen.</blockquote>
+          <hr>
+          <button type="button">Anfechten …</button>
+          <button type="button">Verwerfen</button>
+          <button type="button">Quelle sperren</button>
+        </div></details></li>
+      <li class="ergebnis"><span class="satz">Maschinelle Festigkeitssortierung ist international genormt, die visuelle weiter national. <span class="quelle">Stapel, van de Kuilen 2013</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Die Sortierkriterien gelten für 20 % Holzfeuchte; Drehwuchs ist im frischen Holz schwer zu erkennen. <span class="quelle">DIN 4074-1</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+    </ul>
+
+    <h3>Forschung</h3>
+    <ul class="ergebnisse">
+      <li class="ergebnis"><span class="satz">Am nächsten am Thema: Fichtenlamellen, 5050 Bilder aus einer Zeilenkamera, Fehler mit YOLOv8x segmentiert. <span class="quelle">Achatz et al. 2025</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Fünf Astklassen mit YOLOv8l bei mAP@0,5 von 0,887; Fehler vor allem bei kleinen, dunklen Ästen. <span class="quelle">Lin et al. 2025</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Als Ellipse statt als Rechteck lassen sich Äste besser lokalisieren (IoU 73 statt 64 %). <span class="quelle">Pan et al. 2021</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Teilt man nach Bildern statt nach Holzproben auf, gelten die Ergebnisse nur als explorativ. <span class="quelle">Shah et al. 2026</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Beim Wechsel der Holzart sinkt die Erkennungsleistung deutlich. <span class="quelle">Zhang et al. 2026</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+    </ul>
+
+    <h3>Daten und Lizenzen</h3>
+    <ul class="ergebnisse">
+      <li class="ergebnis"><span class="satz">Der Datensatz mit über 43 000 gelabelten Fehlern ist sehr wahrscheinlich der von Kodytek et al. <span class="quelle">Bodzas et al. 2022</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Mit Ultralytics YOLO trainierte Modelle fallen unter AGPL-3.0, sonst braucht es eine Enterprise-Lizenz. <span class="quelle">Ultralytics</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">RT-DETR steht unter Apache-2.0 und ist ohne Offenlegungspflicht kommerziell nutzbar. <span class="quelle">RT-DETR</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+    </ul>
+
+    <h3>Markt und Projekte</h3>
+    <ul class="ergebnisse">
+      <li class="ergebnis"><span class="satz">Weinig bietet den SOLID SCAN 1000 als KI-Einstieg an, auch für Kappsägen anderer Hersteller. <span class="quelle">Weinig</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Fraunhofer IDMT will ein günstiges, nachrüstbares Prüfsystem bauen, allerdings für Rundholz. <span class="quelle">Fraunhofer IDMT 2026</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+      <li class="ergebnis"><span class="satz">Die Universität Bamberg erkennt Astgrößen automatisiert, an verbautem historischem Holz. <span class="quelle">Uni Bamberg</span></span>
+        <details class="punkte"><summary aria-label="Aktionen">···</summary><div class="menue"><button type="button">Beleg zeigen</button><button type="button">Anfechten …</button><button type="button">Verwerfen</button></div></details></li>
+    </ul>
+
+    <details class="klappe" style="margin-top:8px">
+      <summary>21 weitere gesicherte Ergebnisse</summary>
+      <div class="klappe-inhalt"><p class="unter">Gleiche Liste, gleiche Form.</p></div>
+    </details>
+  </section>
+
+  <details class="klappe">
+    <summary>Was noch offen oder unsicher ist</summary>
+    <div class="klappe-inhalt">
+      <div>
+        <p>Offene Fragen</p>
+        <ul>
+          <li>Werden Lamellen festigkeitssortiert angeliefert, oder ist die Kontrolle vor der Keilzinkung Teil der Sortierung?</li>
+          <li>Welche Mindestlänge zwischen zwei Kappschnitten gilt für die Keilzinkung?</li>
+        </ul>
+        <p class="unter">und 20 weitere</p>
+      </div>
+      <div>
+        <p>Widerspruch</p>
+        <p class="unter">Ein Teil sagt, es gebe keine Studie „Mensch gegen Maschine“ an Holz; Lycken 2006, Pölzleitner 1992 und Ji 2024 liefern genau das. Und 6 weitere.</p>
+      </div>
+      <p>Teilweise belegt 87 · Einschätzungen 30 · ohne Beleg 9 · verworfen 1</p>
+      <p>89 Quellen · Läufe und Kosten: ein Lauf am 2. November, Opus, 35,23 USD</p>
+    </div>
+  </details>
+
+  <form class="eingabe" onsubmit="return false">
+    <label for="frage">Frag etwas oder sag, was sich ändern soll</label>
+    <textarea id="frage" rows="2" placeholder="Welche Kamera nutzt Achatz? · Die Weinig-Punkte sind Werbung, raus damit. · Such noch nach Förderprogrammen."></textarea>
+    <div class="eingabe-fuss">
+      <span class="klein leise">Fragen und Herausnehmen gehen sofort. Weitersuchen kommt erst als Plan mit „Los“.</span>
+      <button class="knopf knopf-voll" type="submit">Senden</button>
+    </div>
+  </form>
+</main>
+
+</body>
+</html>
