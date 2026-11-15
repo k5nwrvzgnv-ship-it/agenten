@@ -140,9 +140,8 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
    Sitzung Jan am 10.11. vor. Bis dahin kein eigener Sicherungsweg.
 5. Recherche am Ort, nächste Schritte (docs/recherche-plan.md 6a, 6b, 7): Textfeld „Was willst du hier wissen?“ an
    jeder Seite mit Plan und „Los“ (braucht Planlauf und Absichtserkennung); uni und lia/recherche setzen `ort` beim
-   Schreiben der Projekte (Bedarf in der Haupt-STATUS); Verschieben einer Recherche im „···“. Bis zum nächsten
-   Neustart des Dienstes liegt `vorlagen/recherchen.html` noch da (die laufende alte Fassung braucht sie), danach
-   löschen. Lias drei Projekte haben keinen Ort (Jans Instanz kennt ihre Reihen nicht), sie stehen auf Heute.
+   Schreiben der Projekte (Bedarf in der Haupt-STATUS); Verschieben einer Recherche im „···“. Live seit dem
+   Neustart 15.11. abends (Jans Okay), alle Seiten 200. Lias drei Projekte haben keinen Ort (Jans Instanz kennt ihre Reihen nicht), sie stehen auf Heute.
 4. Echte Läufe 10.11. ab 15 Uhr: alle Arten außer Exposé, Recherche nur „kurz“ (Jans Entscheidung, siehe Plan).
 
 ## Gelernte Regeln
