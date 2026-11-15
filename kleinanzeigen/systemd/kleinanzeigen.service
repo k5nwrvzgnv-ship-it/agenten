@@ -1,0 +1,14 @@
+# Vorlage: nach ~/.config/systemd/user/kleinanzeigen.service kopieren, kleinanzeigen ersetzen.
+# Startet einen Lauf: offene Aufträge abarbeiten, freigegebene Entwürfe ausführen,
+# zeitgesteuerte Aufgaben. Die Zentrale startet den Dienst nach jedem neuen Auftrag.
+[Unit]
+Description=Agent kleinanzeigen
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/agent/agenten/kleinanzeigen
+ExecStart=/home/agent/agenten/kleinanzeigen/.venv/bin/python agent.py
+TimeoutStartSec=45min
+MemoryMax=1G
