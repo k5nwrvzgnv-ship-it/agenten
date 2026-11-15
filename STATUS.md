@@ -1175,7 +1175,7 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     zahlen, bestand_text (für Ausweiten und Fragen, ohne Zitate), kosten_schaetzen (Tabelle KOSTEN, gemessene Werte).
     Eingangsformat für Adapter steht oben im Modul. Ablage `<agent>/data/projekte/<id>/wissen.json`.
     Schritt 4 erledigt (15.11.2026): lesende Projektseite im Arbeitsplatz (`/recherchen`, `/recherche/<uni|lia>/<id>`,
-    Einzelheiten in shared/arbeitsplatz/STATUS.md). arbeitsplatz.service braucht noch einen Neustart (Jans Okay).
+    Einzelheiten in shared/arbeitsplatz/STATUS.md). Live seit dem Neustart am 15.11.2026.
     Nächster Schritt 5 (Fragen an den Bestand). Nach jedem echten Lauf KOSTEN nachtragen.
     Aus lia/recherche (15.11.2026, Schritt 2 fertig, Zahlen in lia/recherche/STATUS.md): Bedarf an agentkit.recherche:
     Zwei Aussagen mit gleichem Text und ohne Belege gelten als dieselbe, auch unter verschiedenen Fragen (milde-

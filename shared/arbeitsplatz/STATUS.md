@@ -41,7 +41,7 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   Aussagen, gesperrte zuletzt), Lücken und Rückfragen, Läufe (Kosten, Modell, neu/ergänzt/doppelt). Prüfung über
   agentkit.recherche.pruefen, kaputte Datei: Hinweis statt Absturz. Logik in `ansichten.projekt*`. Am 15.11. mit
   den vier echten Projekten über eine zweite Instanz auf eigenem Socket geprüft: alle 200, bis 0,13 s, größte Seite
-  211 KB (uni, 163 Aussagen). Die alte Dokument-Ansicht recherche bleibt, bis neue Läufe in Projekte schreiben.
+  211 KB (uni, 163 Aussagen). Dienst mit Jans Okay am 15.11. neu gestartet, live alle 200. Die alte Dokument-Ansicht recherche bleibt, bis neue Läufe in Projekte schreiben.
 - finance: Aufträge nach `art` und Feld Thema, Ergebnis mit `daten.titel` (siehe finance/STATUS.md).
 - Tests: `tests/` (Logik, Ansichten, App über Unix-Socket mit http.client), in pruefen.sh eingetragen.
 
@@ -112,8 +112,6 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Caddy (von außen mit Passwort) macht Jan als root nach der Abnahme.
 
 ## Offene Punkte
-- Neustart nötig (Jans Okay): seit 15.11.2026 zeigt der laufende Dienst den Baum-Eintrag „Recherchen“ (Vorlage
-  wirkt sofort), die Seite gibt dort aber 404, bis `arbeitsplatz.service` mit dem neuen Code neu startet.
 0. Browser-Probe der ruhigen Oberfläche bei Jan (Tunnel, siehe oben): Titel anklicken (Enter, Esc), „Seite“ im „+“
    (neue Seite gleich offen), „Datei“ im „+“ und Datei auf einen Ort ziehen, Datei aufs Formular und auf ein Dokument
    ziehen, eigene Fassung im „···“, Menüs bei schmalem Fenster, Vorschau und Betrachter, Rückmeldung zu einer Seite,
