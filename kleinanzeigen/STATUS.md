@@ -1,56 +1,59 @@
 # Status: Agent kleinanzeigen
 
 ## Zweck
-Wie der alte Vinted-Bot (~/agents/vinted), nur für Kleinanzeigen (ehemals eBay Kleinanzeigen):
-Jan (und ein Kumpel) beschreibt oder fotografiert, was er sucht, der Agent sucht laufend passende Anzeigen,
-meldet bewertete Treffer und schreibt Verkäufer nach Freigabe an.
+Wie der alte Vinted-Bot (~/agents/vinted), nur für Kleinanzeigen und zum Schnappen guter Angebote:
+Jan (und ein Kumpel) beschreibt oder fotografiert im eigenen Telegram-Bot, was er sucht. Der Bot prüft
+laufend die neuesten Anzeigen und meldet gute Angebote sofort mit Link. Schreiben an Verkäufer macht der
+Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach außen.
 
 ## Stand (15.11.2026)
-- Ordnergerüst angelegt: STATUS.md, tests/, systemd/kleinanzeigen.service (Vorlage, nicht installiert;
-  für einen eigenen Telegram-Bot wird es ein Dauerdienst wie vinted-bot, Vorlage dann anpassen).
-- Zugriff vom Server getestet, Suche geht ohne Browser (siehe Zugriffstest).
-- Noch kein Code, keine .venv, keine .env, kein Dienst, nicht in pruefen.sh.
+- Code fertig und von Hand getestet (echter Abruf mit Ort/Umkreis/Preis, Suche anlegen und Bewertung mit Claude).
+- .venv mit httpx und python-telegram-bot[job-queue] (Versionen wie die Zentrale), agentkit per .pth.
+- .env angelegt (chmod 600), aber noch leer: TELEGRAM_BOT_TOKEN und ERLAUBTE_CHAT_IDS fehlen.
+- Dienst noch NICHT installiert. Testordner noch NICHT in pruefen.sh (Hauptordner, mit Jan klären).
 
-## Aufbau (geplant, nach Systemkonvention)
-- Code: kleinanzeigen/agent.py (Einstieg), Logik ohne Netz in eigenen, getesteten Modulen
-- .venv: kleinanzeigen/.venv, agentkit per .pth eingebunden
-- Dienst: kleinanzeigen.service (oneshot), ggf. Timer für laufende Suchen
-- Zugangsdaten: kleinanzeigen/.env (chmod 600), Vorlage .env.example
-- Laufzeitdaten: kleinanzeigen/data/, Logs: kleinanzeigen/logs/ (nicht im Repo)
+## Aufbau
+- bot.py: Telegram (Dauerdienst), Takt, Claude-Aufrufe über agentkit.claude_lauf (art routine = Sonnet,
+  in Stufe sparen Haiku). Dünn, ohne eigene Logik.
+- abruf.py: httpx, nur lesend, mind. 3-5 s Pause zwischen Abrufen.
+- seite.py: Suchseite lesen (Anzeigen stehen als Astro-JSON im props-Attribut des ImpressionTracker), URL bauen.
+- vorfilter.py: schon gesehen, Gesuche, alte Top-Anzeigen, Preis, Ausschlusswörter; Marktpreis (Median).
+- bewertung.py: Prompts (Suche anlegen, Anzeigen bewerten) und strenge Prüfung der JSON-Antwort.
+- pruefung.py: ein Durchgang je Suche (Anzeigen rein, Telegram-Texte raus), eingabe.py, texte.py, db.py (SQLite).
+- Tests: tests/test_logik.py mit tests/daten/suchseite.html (gekürzte echte Seite).
+- Laufzeit: data/kleinanzeigen.db, data/fotos/ (nach der Analyse gelöscht), logs/kleinanzeigen.log.
+
+## Ablauf
+1. Text oder Foto -> Claude macht Titel, 1-2 kurze Suchbegriffe, Ausschlusswörter, Marktwert (1 Lauf).
+2. Antwort mit Preisgrenze/Ort ("80 € 30 km 34128", "80 €", "egal") -> Suche aktiv, erster Durchgang sofort.
+3. Alle TAKT_MIN (5) min, außer Nachtruhe 1-6 Uhr: je Suchbegriff eine Seite, neueste zuerst, mit Preis und
+   Umkreis in der URL. Nur neue Kandidaten gehen gebündelt an Claude (max. 25 je Lauf), Meldung ab 70 Punkten.
+4. Tagesgrenze 100 Läufe (beide Nutzer): danach und wenn Claude pausiert ist (Stufe nur_auftraege, Limit) nur
+   Anzeigen <= 60 % des Marktwerts, ohne Bewertung. In Stufe sparen entfällt jeder zweite Lauf, die Kandidaten
+   bleiben offen und kommen im nächsten Takt dran.
+5. /suchen: je Suche Pausieren/Fortsetzen und Löschen. Fremde Chats bekommen auf /start nur ihre Chat-ID.
+
+## Wissen über Kleinanzeigen (15.11.2026)
+- URL: /s-<plz>/sortierung:neuste/preis::<max>/<begriff>/k0l<ort_id>r<km>. Reihenfolge ist fest, sonst kommt
+  eine Seite ohne Liste. "neuste" ohne e. Orts-ID: /s-ort-empfehlungen.json?query=<plz> -> {"_4927": "34128 Kassel"}.
+- Mit Datumssortierung zeigt die Seite bei zu engen Begriffen "Es wurden keine Ergebnisse ..." statt Ersatztreffern.
+  Darum soll Claude breite Begriffe wählen, die Feinheiten prüft die Bewertung.
+- Abrufe vom Server ohne Captcha; Drosselung bei Dauerbetrieb noch nicht beobachtet (Störung wird einmal gemeldet).
 
 ## Entscheidungen
-- 15.11.2026: Ordner unter ~/agenten (agentkit, Freigabe), nicht als eigenständiger Bot wie Vinted.
-- 15.11.2026 (Jan): Kein Kleinanzeigen-Konto, nur scannen. Der Bot schickt Treffer mit Link, Jan bzw. der
-  Kumpel klickt und schreibt selbst. Damit handelt der Agent nicht nach außen, keine Freigabe nötig.
-- 15.11.2026 (Jan): Sonnet bewertet die Treffer (und erkennt Fotos). Erwartet ca. 75 USD/Monat API-Gegenwert.
-- 15.11.2026 (Jan): Teilagent des geplanten Agenten einkauf.
-- 15.11.2026 (Jan): Eigener Telegram-Bot (eigener Token), weil ein Kumpel von Jan ihn mitbenutzen soll.
-
-## Zugriffstest (15.11.2026)
-- Zwei Abrufe vom Server mit normalem Browser-User-Agent (curl): Startseite und /s-fahrrad/k0 beide 200,
-  keine Captcha- oder Sperrseite. Suchseite enthält 27 Anzeigen (data-adid, data-href, Titel und Beschreibung
-  als JSON im HTML). Suchen geht also vermutlich ohne Browser direkt vom Server.
-- Nicht getestet: viele Abrufe hintereinander (Drosselung), Login und Nachrichten schreiben (braucht ein Konto,
-  dort ist eher mit Bot-Schutz zu rechnen).
-
-## Kostenschätzung (15.11.2026, aus shared/verbrauch/laeufe.jsonl)
-- Vinted-Bot real 27.10.-02.11.: 826 Ranking-Läufe mit Fotos auf Opus, 0,05 USD je Lauf, 44 USD in 6 Tagen
-  (Spitze 17 USD/Tag). Grund: Prüfung alle 10 min, jede Prüfung ein Claude-Lauf mit Bildern.
-- Echte Durchschnitte kurzer Läufe hier: Haiku 0,002 USD, Sonnet 0,025 USD, Opus (5.5) 0,03-0,05 USD.
-- Plan für Kleinanzeigen: Python filtert vor (schon gesehene Anzeigen, Preis, Suchbegriffe, Umkreis), Claude nur
-  für neue Kandidaten, gebündelt, nur Text. Annahme ca. 100 Läufe/Tag (3 Suchen, beide Nutzer):
-  Haiku ca. 0,20 USD/Tag (6 USD/Monat), Sonnet ca. 2,50 USD/Tag (75 USD/Monat), Opus wie Vinted 150+ USD/Monat.
-- USD sind API-Gegenwert. Über das Abo-Konto kostet es kein Geld extra, verbraucht aber das 5h-/7d-Kontingent
-  aller Agenten. Server, Telegram und Kleinanzeigen-Abrufe kosten nichts.
+- 15.11.2026 (Jan): Kein Kleinanzeigen-Konto, nur scannen und Link schicken.
+- 15.11.2026 (Jan): Sonnet bewertet (ca. 75 USD/Monat API-Gegenwert). Teilagent des geplanten Agenten einkauf.
+- 15.11.2026 (Jan): Eigener Telegram-Bot, weil ein Kumpel mitnutzt. Token nur aus kleinanzeigen/.env, nie aus
+  shared/.env (dort steht der Token der Zentrale unter demselben Namen).
+- 15.11.2026 (Jan): Zum Schnappen guter Angebote. Daher Takt 5 statt 15 min, neueste zuerst, Schwelle 70.
 
 ## Offene Punkte
-1. Takt und Konto festlegen (Vorschlag: Prüfung alle 10-15 min, Tagesgrenze an Läufen, Agenten-Konto).
-2. Kumpel: zweiter Nutzer im eigenen Bot (Chat-ID in .env freischalten), seine Suchen getrennt von Jans.
-3. Ordner: als Teilagent von einkauf später ggf. nach einkauf/kleinanzeigen verschieben.
-4. Telegram-Token: Jan legt den Bot bei @BotFather an und trägt den Token selbst in kleinanzeigen/.env ein.
-5. Pakete (z. B. httpx, python-telegram-bot, Pillow) nur nach Jans Okay, dann requirements.txt.
-6. Nach dem ersten Code: .venv anlegen, Testordner in pruefen.sh eintragen, Eintrag in README/CLAUDE.md
-   (Hauptordner-Chat).
+1. Jan: Bot bei @BotFather anlegen, TELEGRAM_BOT_TOKEN in kleinanzeigen/.env eintragen. Danach /start an den Bot,
+   er nennt die Chat-ID; Jans und die des Kumpels in ERLAUBTE_CHAT_IDS.
+2. Dienst einrichten (nach Jans Okay): systemd/kleinanzeigen.service nach ~/.config/systemd/user/, enable --now.
+3. pruefen.sh: Zeile "kleinanzeigen|.venv/bin/python|tests" (Hauptordner).
+4. Nach ein paar Tagen Betrieb: Kosten (shared/verbrauch) und Meldungsqualität prüfen, ggf. Schwelle/Takt anpassen.
+5. Ordner: als Teilagent von einkauf später ggf. nach einkauf/kleinanzeigen verschieben.
 
 ## Gelernte Regeln
 - (noch keine)
