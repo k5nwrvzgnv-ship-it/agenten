@@ -35,7 +35,20 @@
   {{ liste(zuletzt, true) }}
 </section>
 {%- endif %}
-{%- if not (wartet or oben or zuletzt) %}
+{#- Recherchen ohne Ort im Baum (z. B. Lias Projekte, solange sie keiner Seite zugeordnet sind) -#}
+{%- if ohne_ort %}
+<section>
+  <h2>Recherchen ohne Ort</h2>
+  <ul>
+    {%- for x in ohne_ort %}
+    <li><a class="zeile" href="{{ x.link }}"><span class="punkt" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ x.titel }}</span>
+      {%- if x.ungueltig %}<span class="unter">Nicht lesbar, Einzelheiten im Log.</span>{% else %}<span class="unter">{% if x.fuer == "Lia" %}Lia · {% endif %}{{ x.tag }}</span>{% endif %}</span></a></li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- endif %}
+{%- if not (wartet or oben or zuletzt or ohne_ort) %}
 <p class="leer noch-leer">Noch leer. Mit + fängst du an.</p>
 {%- endif %}
 </div>

@@ -63,10 +63,15 @@ def ort_link(ort_id: str) -> str:
     return f"/ort/{quote(ort_id)}"
 
 
-def baum_zeilen(baum: list[dict], aktiv: str | None) -> list[dict]:
+def baum_zeilen(baum: list[dict], aktiv: str | None, recherchen: dict[str, list[dict]] | None = None,
+                aktiv_link: str | None = None) -> list[dict]:
     """Zeilen für den Baum links: oberste Ebene immer, darunter aufgeklappt nur der Weg zum aktiven Ort und dessen
-    Unterseiten. Je Zeile {"art": "ort"|"neu", "text", "link", "tiefe", "aktiv", "ueber", "zu"} ("zu": hat
-    zugeklappte Unterseiten). Nach den Unterseiten des aktiven Orts steht „+ Seite“ für diese Ebene."""
+    Unterseiten. Je Zeile {"art": "ort"|"recherche"|"neu", "text", "link", "tiefe", "aktiv", "ueber", "zu"} ("zu":
+    hat zugeklappte Unterseiten oder Recherchen). recherchen: Ort -> [{"titel", "link"}]; sie stehen unter ihrem Ort
+    wie Unterseiten, nach diesen (docs/recherche-plan.md, Recherche am Ort). aktiv_link: eine Seite unterhalb des
+    aktiven Orts (eine Recherche) ist offen, der Ort ist dann nur „auf dem Weg“. Nach den Unterseiten des aktiven
+    Orts steht „+ Seite“ für diese Ebene."""
+    recherchen = recherchen or {}
     weg = []
     if aktiv and any(k["id"] == aktiv for k in baum):
         weg = [k["id"] for k in orte.pfad(baum, aktiv)]
@@ -76,11 +81,16 @@ def baum_zeilen(baum: list[dict], aktiv: str | None) -> list[dict]:
         for k in orte.kinder(baum, eltern):
             offen = k["id"] in weg
             unter = orte.kinder(baum, k["id"])
+            hier = recherchen.get(k["id"], [])
+            ist_aktiv = k["id"] == aktiv and not aktiv_link
             zeilen.append({"art": "ort", "text": k["titel"], "link": ort_link(k["id"]), "tiefe": tiefe,
-                           "aktiv": k["id"] == aktiv, "ueber": offen and k["id"] != aktiv,
-                           "zu": bool(unter) and not offen})
+                           "aktiv": ist_aktiv, "ueber": offen and not ist_aktiv,
+                           "zu": bool(unter or hier) and not offen})
             if offen:
                 ebene(k["id"], tiefe + 1)
+                for r in hier:
+                    zeilen.append({"art": "recherche", "text": r["titel"], "link": r["link"], "tiefe": tiefe + 1,
+                                   "aktiv": r["link"] == aktiv_link, "ueber": False, "zu": False})
                 if k["id"] == aktiv:
                     zeilen.append({"art": "neu", "text": "+ Seite", "link": f"/seite/neu?eltern={quote(k['id'])}",
                                    "tiefe": tiefe + 1})
@@ -204,6 +214,26 @@ def zuordnung_pruefen(daten) -> dict[str, str]:
         return {}
     return {u: o for u, o in roh.items() if isinstance(u, str) and isinstance(o, str)
             and ID_AUFTRAG.match(u) and ORT_ID.fullmatch(o)}
+
+
+RECHERCHE_SCHLUESSEL = re.compile(r"^(uni|lia)/[a-z0-9][a-z0-9-]{0,79}$")
+
+
+def recherche_zuordnung_pruefen(daten) -> dict[str, str]:
+    """Recherchen ohne Feld ort -> Ort, aus orte-zuordnung.json ({"recherchen": {"<motor>/<projekt>": ort}})."""
+    roh = daten.get("recherchen") if isinstance(daten, dict) else None
+    if not isinstance(roh, dict):
+        return {}
+    return {r: o for r, o in roh.items() if isinstance(r, str) and isinstance(o, str)
+            and RECHERCHE_SCHLUESSEL.match(r) and ORT_ID.fullmatch(o)}
+
+
+def recherche_ort(projekt: dict, zuordnung: dict[str, str], baum: list[dict]) -> str | None:
+    """Ort einer Recherche: Feld ort in wissen.json, sonst die Zuordnung; nur ein sichtbarer Ort zählt."""
+    ort = projekt.get("ort")
+    if not (isinstance(ort, str) and ORT_ID.fullmatch(ort)):
+        ort = zuordnung.get(f"{projekt.get('motor')}/{projekt.get('id')}")
+    return ort if ort and any(k["id"] == ort for k in baum) and orte.sichtbar(baum, ort) else None
 
 
 def dokumente(auftraege: list[dict], ort_id: str | None, arten_namen: dict[str, str],

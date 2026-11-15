@@ -1190,6 +1190,11 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     ("../../expose/<kette>/recherche"). Vorschlag (nichts eilt): Widersprüche nennen noch die Motor-Kennungen
     (z. B. literatur-13), weil einarbeiten dort nur Text nimmt; zum Verlinken bräuchte das Eingangsformat einen
     Bezug auf Aussagen des Laufs, den einarbeiten in A-Nummern übersetzt.
+    Recherche am Ort (Jan 15.11.2026, Skizze docs/recherche-entwurf.html, Plan Abschnitt 5 und Schritt 6b): Eine
+    Recherche steht im Baum an der Seite, an der sie entsteht, auf jeder Ebene; keine eigene Seite „Recherchen“.
+    Lesender Teil im Arbeitsplatz gebaut (15.11.). Bedarf an uni und lia/recherche: beim Schreiben eines Projekts
+    das Feld `ort` setzen (Ort aus dem Auftrag; bei Lia Reihe oder Stunde). Bis dahin ordnet
+    `shared/orte-zuordnung.json` Schlüssel `recherchen` zu.
 
 ## Gelernte Regeln
 - (noch keine)

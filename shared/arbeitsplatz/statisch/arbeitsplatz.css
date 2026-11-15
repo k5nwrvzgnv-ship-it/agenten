@@ -45,3 +45,18 @@
 .aussage { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; cursor: pointer; }
 .zitat-falsch { color: var(--leise); text-decoration: line-through; }
 code { font-size: 14px; background: var(--flaeche); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }
+
+/* Recherche (docs/recherche-entwurf.html): im Baum unter ihrem Ort, Übersicht ruhig, Belege erst beim Anklicken */
+.baum-recherche { color: var(--leise); }
+.baum-recherche span:first-child::before { content: "⌕ "; color: var(--sehrleise); }
+.blick .absatz { font-size: 18px; line-height: 1.55; }
+.ergebnisse ul { margin: 0 -8px; }
+.ergebnis-gruppe { margin: 16px 0 2px; font-size: 12px; font-weight: 400; color: var(--leise); }
+.ergebnis > summary { list-style: none; cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+.ergebnis > summary::-webkit-details-marker { display: none; }
+.ergebnis > summary:hover { background: var(--hover); }
+.ergebnis[open] { padding-bottom: 8px; }
+.ergebnis > .zitat, .ergebnis > .unter { margin-left: 8px; margin-right: 8px; }
+.ergebnis-quelle { font-size: 12px; color: var(--sehrleise); white-space: nowrap; }
+.mehr-inhalt { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 0 18px; font-size: 14px; }
+.punkte-liste { list-style: disc; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }

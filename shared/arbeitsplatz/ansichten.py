@@ -179,6 +179,17 @@ def datum_text(iso) -> str:
     return f"{tag} {iso[11:16]}" if re.match(r"^.{10}T\d{2}:\d{2}", iso) else tag
 
 
+MONATE = ("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober",
+          "November", "Dezember")
+
+
+def tag_text(iso) -> str:
+    """„2. November“ aus ISO-Zeit, sonst leer (ruhige Zeile unter einer Recherche)."""
+    if not isinstance(iso, str) or not re.match(r"^\d{4}-(0[1-9]|1[0-2])-\d{2}", iso):
+        return ""
+    return f"{int(iso[8:10])}. {MONATE[int(iso[5:7]) - 1]}"
+
+
 def usd_text(usd) -> str:
     return f"{usd:.2f} USD".replace(".", ",") if isinstance(usd, (int, float)) else ""
 
@@ -196,7 +207,9 @@ def projekt_zeile(basis: dict, motor: str, zahlen: dict) -> dict:
             "fuer": FUER_TEXT.get(basis.get("fuer"), ""), "laeufe": len(laeufe), "usd": usd_text(zahlen.get("usd")),
             "zuletzt": datum_text(laeufe[-1].get("datum")) if laeufe else "", "zuletzt_iso": laeufe[-1].get(
                 "datum") or "" if laeufe else "", "aussagen": zahlen.get("aussagen", 0),
-            "gesichert": zahlen.get("gesichert", 0)}
+            "gesichert": zahlen.get("gesichert", 0), "ort": basis.get("ort"),
+            "tag": tag_text(laeufe[-1].get("datum")) if laeufe else "",
+            "link": f"/recherche/{motor}/{basis.get('id')}"}
 
 
 def projekt_aussage(quellen: dict):
@@ -267,16 +280,83 @@ def projekt_laeufe(basis: dict) -> list[dict]:
     return list(reversed(zeilen))
 
 
-def projekt(basis: dict, zahlen: dict, ansicht: str | None, status: str | None, frage: str | None) -> dict:
-    """Alles für die Projektseite: Kopf, Reiter, Zahlen und der Inhalt des gewählten Reiters."""
-    ansicht = ansicht if ansicht in PROJEKT_ANSICHTEN else "aussagen"
+GRUPPEN_TEXT = {"regelwerk": "Regelwerk", "methoden": "Methoden", "literatur": "Forschung", "daten": "Daten",
+                "projekte": "Projekte", "markt": "Markt"}
+OFFEN_ZEIGEN = 3  # Rückfragen in der Klappe, der Rest als Zahl
+
+
+def quelle_kurz(q: dict) -> str:
+    """„Lin et al. 2025“, „Ultralytics“ oder der gekürzte Titel: klein hinter einem Ergebnis."""
+    autoren = [str(x) for x in q.get("autoren") or [] if str(x).strip()]
+    jahr = q.get("jahr") if isinstance(q.get("jahr"), int) else None
+    if autoren and not q.get("register"):
+        name = autoren[0].split(",")[0].split(" (")[0].strip()
+        name += " et al." if len(autoren) > 1 else ""
+        return f"{name} {jahr}" if jahr else name
+    if not q.get("titel") and not q.get("register") and link_oder_none(q.get("url")):
+        host = urlsplit(str(q["url"])).hostname or ""
+        return host.removeprefix("www.")
+    titel = _quelle_name(q)
+    titel = titel if len(titel) <= 40 else titel[:39].rstrip() + "…"
+    return f"{titel} {jahr}" if jahr else titel
+
+
+def projekt_uebersicht(basis: dict, zahlen: dict) -> dict:
+    """Ruhige Ansicht einer Recherche (docs/recherche-entwurf.html): Auf einen Blick (Zusammenfassung des letzten
+    Laufs), nur die gesicherten Ergebnisse, gruppiert nach Fragegruppe (gibt es nur eine, nach Frage), je mit der
+    ersten bestandenen Quelle und ihrem Zitat. Alles andere als Zahlen und wenige Sätze für die Klappe."""
     quellen = {q.get("id"): q for q in basis.get("quellen") or [] if isinstance(q, dict)}
-    inhalt = {"aussagen": lambda: aussagen_ansicht(basis, status, frage, projekt_aussage(quellen)),
+    fragen = [f for f in basis.get("fragen") or [] if isinstance(f, dict)]
+    gesichert = [a for a in basis.get("aussagen") or [] if isinstance(a, dict) and a.get("status") == "gesichert"
+                 and a.get("sichtung") != "verworfen"]
+    frage_von = {f.get("id"): f for f in fragen}
+    nach_gruppe = len({frage_von.get(a.get("frage"), {}).get("gruppe") for a in gesichert}) > 1
+
+    def gruppe(a: dict) -> str:
+        f = frage_von.get(a.get("frage"))
+        if f is None:
+            return "Weiteres"
+        if nach_gruppe:
+            g = str(f.get("gruppe") or "")
+            return GRUPPEN_TEXT.get(g, g.capitalize() or "Weiteres")
+        return str(f.get("frage") or "Weiteres")
+
+    reihenfolge = {f.get("id"): n for n, f in enumerate(fragen)}
+    gruppen: dict[str, list] = {}
+    for a in sorted(gesichert, key=lambda a: reihenfolge.get(a.get("frage"), len(fragen))):
+        beleg = next((b for b in a.get("belege") or [] if (b.get("pruefung") or {}).get("status") == "bestanden"),
+                     None) or {}
+        q = quellen.get(beleg.get("quelle"), {})
+        gruppen.setdefault(gruppe(a), []).append({
+            "text": str(a.get("text") or ""), "quelle": quelle_kurz(q) if q else "",
+            "link": None if q.get("register") else link_oder_none(q.get("url")), "zitat": str(beleg.get("zitat") or ""),
+            "seite": beleg.get("seite")})
+    laeufe = basis.get("laeufe") or []
+    offen = projekt_offen(basis)
+    return {"blick": str(laeufe[-1].get("zusammenfassung") or "") if laeufe else "",
+            "gruppen": [{"titel": t, "punkte": p} for t, p in gruppen.items()],
+            "rueckfragen": [x["text"] for x in offen["rueckfragen"][:OFFEN_ZEIGEN]],
+            "rueckfragen_mehr": max(0, len(offen["rueckfragen"]) - OFFEN_ZEIGEN),
+            "widersprueche": len(offen["widersprueche"]), "luecken": len(offen["luecken"]),
+            "unsicher": [(STATUS[s], zahlen.get(s, 0)) for s in ("teilweise", "einschaetzung", "unbelegt", "verworfen")
+                         if zahlen.get(s)],
+            "quellen": len(quellen), "laeufe": [{"tag": tag_text(lauf.get("datum")), "modell": str(lauf.get("modell") or ""),
+                                                 "usd": usd_text(lauf.get("usd"))} for lauf in laeufe]}
+
+
+def projekt(basis: dict, zahlen: dict, ansicht: str | None, status: str | None, frage: str | None) -> dict:
+    """Alles für die Projektseite: ohne Ansicht die ruhige Übersicht, sonst Reiter, Zahlen und der Inhalt des
+    gewählten Reiters (über das „···“ erreichbar)."""
+    ansicht = ansicht if ansicht in PROJEKT_ANSICHTEN else "uebersicht"
+    quellen = {q.get("id"): q for q in basis.get("quellen") or [] if isinstance(q, dict)}
+    inhalt = {"uebersicht": lambda: projekt_uebersicht(basis, zahlen),
+              "aussagen": lambda: aussagen_ansicht(basis, status, frage, projekt_aussage(quellen)),
               "quellen": lambda: projekt_quellen(basis), "offen": lambda: projekt_offen(basis),
               "laeufe": lambda: projekt_laeufe(basis)}[ansicht]()
     return {"ansicht": ansicht, "ansichten": PROJEKT_ANSICHTEN, "zahlen": zahlen, "status_namen": STATUS,
             "fuer": FUER_TEXT.get(basis.get("fuer"), ""), "fach": str(basis.get("fach") or ""),
-            "usd": usd_text(zahlen.get("usd")), "laeufe": len(basis.get("laeufe") or []), "inhalt": inhalt}
+            "usd": usd_text(zahlen.get("usd")), "laeufe": len(basis.get("laeufe") or []), "inhalt": inhalt,
+            "tag": tag_text((basis.get("laeufe") or [{}])[-1].get("datum")) if basis.get("laeufe") else ""}
 
 
 def _inline(zeile: str) -> list[dict]:

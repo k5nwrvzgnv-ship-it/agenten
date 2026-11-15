@@ -1,18 +1,72 @@
-{#- Projektseite einer Recherche (wissen.json, agentkit.recherche), nur lesend. p: ansichten.projekt(), pfad: Adresse
-    der Seite. Aufbau wie _ansicht_recherche.html (Dokument-Ansicht der alten Berichte). -#}
+{#- Eine Recherche (wissen.json, agentkit.recherche), nur lesend. p: ansichten.projekt(), pfad: Adresse der Seite.
+    Ohne ?ansicht die ruhige Übersicht (docs/recherche-entwurf.html, Jan 15.11.2026): Auf einen Blick, nur Gesichertes,
+    der Rest in einer geschlossenen Klappe. Die ausführlichen Reiter (Aussagen, Quellen, Offenes, Läufe) über „···“. -#}
 {% extends "basis.html" %}
+{%- from "_plus.html" import punkte -%}
 {% block seitenkopf %}
 <header class="kopf">
-  {%- if p %}<span class="datum">Für {{ p.fuer }}{% if p.fach %} · {{ p.fach }}{% endif %} · {{ p.laeufe }} {{ "Lauf" if p.laeufe == 1 else "Läufe" }}{% if p.usd %} · {{ p.usd }}{% endif %}</span>{% endif %}
   <h1 class="titel-gross">{{ e.titel }}</h1>
+  {%- if p %}<span class="datum">{% if p.fuer == "Lia" %}Für Lia{% if p.tag %} · {% endif %}{% endif %}{{ p.tag }}</span>{% endif %}
 </header>
 {% endblock %}
+{%- block punkte %}
+{%- if p %}
+{%- call punkte() %}
+    {%- if p.ansicht != "uebersicht" %}<a class="knopf knopf-leise" href="{{ pfad }}">Übersicht</a>{% endif %}
+    {%- for id, titel in p.ansichten.items() %}
+    <a class="knopf knopf-leise" href="{{ pfad }}?ansicht={{ id }}">{{ "Läufe und Kosten" if id == "laeufe" else ("Alle Aussagen mit Belegen" if id == "aussagen" else titel) }}</a>
+    {%- endfor %}
+{%- endcall %}
+{%- endif %}
+{%- endblock %}
 {% block inhalt %}
 {%- if ungueltig %}
 <p class="hinweis hinweis-fehler" role="status">Diese Recherche lässt sich nicht anzeigen: {{ ungueltig | join("; ") }}</p>
+{%- elif p.ansicht == "uebersicht" %}
+{%- set u = p.inhalt %}
+{%- if u.blick %}
+<section class="blick">
+  <h2>Auf einen Blick</h2>
+  <p class="absatz">{{ u.blick }}</p>
+</section>
+{%- endif %}
+<section class="ergebnisse">
+  <h2>Gesichert</h2>
+  {%- for g in u.gruppen %}
+  {%- if u.gruppen | length > 1 %}<h3 class="ergebnis-gruppe">{{ g.titel }}</h3>{% endif %}
+  <ul>
+    {%- for x in g.punkte %}
+    <li><details class="ergebnis"><summary><span>{{ x.text }}</span>{% if x.quelle %} <span class="ergebnis-quelle">{{ x.quelle }}</span>{% endif %}</summary>
+      {%- if x.zitat %}<blockquote class="zitat">{{ x.zitat }}</blockquote>{% endif %}
+      {%- if x.quelle %}<p class="unter">{% if x.link %}<a href="{{ x.link }}" rel="noopener noreferrer">{{ x.quelle }}</a>{% else %}{{ x.quelle }}{% endif %}{% if x.seite %}, Seite {{ x.seite }}{% endif %}</p>{% endif %}
+    </details></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="leer">Noch nichts gesichert.</p>
+  {%- endfor %}
+</section>
+<details class="mehr">
+  <summary>Was noch offen oder unsicher ist</summary>
+  <div class="mehr-inhalt">
+    {%- if u.rueckfragen %}
+    <p class="absatz">Offene Fragen</p>
+    <ul class="punkte-liste">{% for t in u.rueckfragen %}<li>{{ t }}</li>{% endfor %}</ul>
+    {%- if u.rueckfragen_mehr %}<p class="unter">und {{ u.rueckfragen_mehr }} weitere</p>{% endif %}
+    {%- endif %}
+    <p class="unter">
+      {%- for name, n in u.unsicher %}{{ name }} {{ n }}{% if not loop.last %} · {% endif %}{% endfor %}
+      {%- if u.widersprueche %}{% if u.unsicher %} · {% endif %}Widersprüche {{ u.widersprueche }}{% endif %}
+      {%- if u.luecken %}{% if u.unsicher or u.widersprueche %} · {% endif %}Lücken {{ u.luecken }}{% endif %}</p>
+    <p class="unter">{{ u.quellen }} {{ "Quelle" if u.quellen == 1 else "Quellen" }}
+      {%- for l in u.laeufe %} · {{ l.tag }}{% if l.modell %}, {{ l.modell }}{% endif %}{% if l.usd %}, {{ l.usd }}{% endif %}{% endfor %}</p>
+    <p class="unter"><a href="{{ pfad }}?ansicht=aussagen">Alle Aussagen mit Belegen</a> · <a href="{{ pfad }}?ansicht=offen">Lücken und Rückfragen</a> · <a href="{{ pfad }}?ansicht=quellen">Quellen</a></p>
+  </div>
+</details>
 {%- else %}
 <section class="eigen">
   <nav class="varianten" aria-label="Ansicht">
+    <a class="variante" href="{{ pfad }}">Übersicht</a>
     {%- for id, titel in p.ansichten.items() %}
     <a class="variante{% if p.ansicht == id %} variante-hier{% endif %}" href="{{ pfad }}?ansicht={{ id }}">{{ titel }}</a>
     {%- endfor %}

@@ -800,7 +800,7 @@ class TestRecherchen(Aufbau):
         (ordner / "wissen.json").write_text(inhalt if isinstance(inhalt, str) else json.dumps(inhalt),
                                             encoding="utf-8")
 
-    def test_liste_und_seite(self):
+    def anlegen(self):
         from tests.test_ansichten import projekt_basis
         b, _ = projekt_basis()
         self.projekt("lia/recherche", "milde-taten", b)
@@ -810,36 +810,76 @@ class TestRecherchen(Aufbau):
         self.projekt("uni", "expose", uni)
         self.projekt("uni", "kaputt", "kein json")
         (self.tmp / "uni" / "data" / "projekte" / "fehlstellen").mkdir()  # Portal-Ordner ohne wissen.json
+        self.oben = orte.anlegen("Forschungsprojekt", instanz=self.instanz).id
+        self.expo = orte.anlegen("Exposé", self.oben, instanz=self.instanz).id
+        self.kap = orte.anlegen("Kapitel 2", self.expo, instanz=self.instanz).id
+        (self.instanz / "orte-zuordnung.json").write_text(json.dumps(
+            {"zuordnung": {}, "recherchen": {"uni/expose": self.expo, "uni/../x": self.expo, "finance/y": self.expo}}))
 
-        status, html, _ = self.get("/recherchen")
+    def test_recherche_steht_am_ort(self):
+        self.anlegen()
+        status, html, _ = self.get(f"/ort/{self.expo}")
         self.assertEqual(status, 200)
-        self.assertIn('href="/recherchen" aria-current="page"', html)
-        self.assertLess(html.index("Milde &lt;Taten&gt;"), html.index("Exposé-Recherche"))  # neueste zuerst
-        self.assertIn("Für Lia · 3 Aussagen, 1 gesichert · 1 Lauf · 2,63 USD", html)
-        self.assertIn('href="/recherche/uni/kaputt"', html)
-        self.assertIn("Nicht lesbar", html)
+        baum = html.split('aria-label="Orte"')[1]
+        self.assertIn('baum-recherche" href="/recherche/uni/expose"', baum)  # im Baum unter Exposé
+        mitte = html.split("<main")[1].split("</main>")[0]
+        self.assertIn("Exposé-Recherche", mitte)
+        self.assertIn("2. November", mitte)
+        self.assertNotIn("Milde", mitte)
+        # eine Ebene tiefer gilt sie mit, im Baum bleibt sie an ihrem Ort
+        html = self.get(f"/ort/{self.kap}")[1]
+        self.assertIn("Gilt hier mit, von weiter oben", html)
+        self.assertIn("Forschungsprojekt" + app.logik.ORT_TRENNER + "Exposé", html)
+        # zugeklappt: Forschungsprojekt zeigt „hat Unterseiten“, die Recherche steht nicht im Baum
+        html = self.get("/")[1]
+        self.assertNotIn('href="/recherche/uni/expose"', html.split('aria-label="Orte"')[1])
+        # ohne Ort auf Heute: Lias Projekt und das kaputte
+        heute = html.split("Recherchen ohne Ort")[1]
+        self.assertIn("Milde &lt;Taten&gt;", heute)
+        self.assertIn("Lia · 14. November", heute)
+        self.assertIn("Nicht lesbar", heute)
+        self.assertNotIn("Exposé-Recherche", heute)
         self.assertNotIn("fehlstellen", html)
+        self.assertNotIn('href="/recherchen"', html)
+        # archivierter Ort: zurück auf Heute
+        orte.archivieren(self.expo, instanz=self.instanz)
+        self.assertIn("Exposé-Recherche", self.get("/")[1].split("Recherchen ohne Ort")[1])
 
-        status, html, _ = self.get("/recherche/lia/milde-taten")
+    def test_seite_ruhig(self):
+        self.anlegen()
+        status, html, _ = self.get("/recherche/uni/expose")
         self.assertEqual(status, 200)
-        self.assertIn("Für Lia · Ethik · 1 Lauf · 2,63 USD", html)
+        krumen = html.split('aria-label="Brotkrumen"')[1][:800]
+        self.assertIn(f'href="/ort/{self.expo}"', krumen)
+        self.assertIn('baum-recherche" href="/recherche/uni/expose" aria-current="page"', html)
+        mitte = html.split("<main")[1].split("</main>")[0]
+        self.assertIn("Auf einen Blick", mitte)
+        self.assertIn("Sechs Fälle.", mitte)
+        self.assertIn("Kant: Mittel.", mitte)  # gesichert
+        self.assertNotIn("Einbruch ins Freibad.", mitte)  # nur teilweise: nicht in der Übersicht
+        self.assertIn("Was noch offen oder unsicher ist", mitte)
+        self.assertIn("Auch 18-Jährige?", mitte)
+        self.assertNotIn("Lauf 1", mitte)  # keine Laufnummern, keine IDs
+        self.assertNotIn("A2", mitte)
+        self.assertNotIn("<form", mitte)  # nur lesend
+        self.assertIn("?ansicht=laeufe", html)  # im „···“
+
+        status, html, _ = self.get("/recherche/lia/milde-taten?ansicht=aussagen")
         self.assertIn("Fall: Einbruch ins Freibad.", html)
         self.assertIn("Register kant, Seite 331", html)
         self.assertIn("Quelle gesperrt", html)
         self.assertNotIn('href="javascript', html)  # nur als Text, nie als Link
-        self.assertNotIn("<form", html.split("<main")[1].split("</main>")[0])  # nur lesend
-        self.assertIn('href="/recherchen" aria-current="location"', html)
+        self.assertIn("Für Lia", html)
         for ansicht, text in (("quellen", "stützt 1 Aussage"), ("offen", "Kein Fall aus Berlin."),
                               ("laeufe", "Lauf 1: Suche")):
             self.assertIn(text, self.get(f"/recherche/lia/milde-taten?ansicht={ansicht}")[1])
-        self.assertIn("Exposé-Recherche", self.get("/recherche/uni/expose")[1])
         status, html, _ = self.get("/recherche/uni/kaputt")
         self.assertEqual(status, 200)
         self.assertIn("lässt sich nicht anzeigen", html)
 
     def test_unbekanntes_404(self):
-        self.assertEqual(self.get("/recherchen")[0], 200)
-        self.assertIn("Noch keine Recherche", self.get("/recherchen")[1])
+        status, _, kopf = self.get("/recherchen")  # alte Liste: weiter nach Heute
+        self.assertEqual((status, kopf.get("location")), (303, "/"))
         for pfad in ("/recherche/finance/x", "/recherche/uni/gibt-es-nicht", "/recherche/uni/..",
                      "/recherche/uni/Gross", "/recherche/lia/%2e%2e"):
             self.assertEqual(self.get(pfad)[0], 404, pfad)

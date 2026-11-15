@@ -61,12 +61,12 @@
   <ul>
     <li><a class="baum-eintrag" href="/"{% if krumen.hier == "Heute" and not krumen.teile %} aria-current="page"{% endif %}><span>Heute</span>
       {%- if laeuft %}<span class="baum-zahl baum-zahl-grau">{{ laeuft | length }} läuft</span>{% endif %}</a></li>
-    <li><a class="baum-eintrag" href="/recherchen"{% if krumen.hier == "Recherchen" and krumen.teile | length == 1 %} aria-current="page"{% elif krumen.teile | length > 1 and krumen.teile[1].link == "/recherchen" %} aria-current="location"{% endif %}><span>Recherchen</span></a></li>
     {%- for b in baum %}
     {#- „+ Seite“ unter dem aktiven Ort (logik.baum_zeilen, art "neu") steht jetzt im „+“ des Orts -#}
     {%- if b.art == "neu" %}
     {%- else %}
-    <li><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
+    {#- Recherchen stehen unter ihrem Ort wie Unterseiten (docs/recherche-plan.md, Recherche am Ort) -#}
+    <li><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}{% if b.art == "recherche" %} baum-recherche{% endif %}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
       {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterseiten">›</span>{% endif %}</a></li>
     {%- endif %}
     {%- endfor %}

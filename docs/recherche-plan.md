@@ -240,8 +240,9 @@ beim Schreiben der Arbeit kann sie im richtigen Kapitel stattfinden. Skizze: `do
   die Recherchen am Ort und darüber (`bestand_text`, wie beim Ausweiten: nicht noch einmal suchen, nur ergänzen).
 - Schreiben (später, uni): Ein Auftrag am Kapitel nimmt die Recherchen dieses Orts und darüber als Quellen.
 - Lia: `ort` ist dort Reihe oder Stunde; Verhalten gleich, ihre Seite folgt in Schritt 11.
-- Offen für die Umsetzung: Die Exposé-Recherche ist bisher keinem Ort zugeordnet; Vorschlag `expose`
-  (wie die Kette in `orte-zuordnung.json`). Lias drei Projekte bekommen ihre Reihe, sobald klar ist, welche.
+- Gebaut (15.11.2026, lesend): Recherchen im Baum an ihrem Ort, Übersicht nach Skizze, `/recherchen` weg (siehe
+  `shared/arbeitsplatz/STATUS.md`). Exposé-Recherche über `orte-zuordnung.json` unter „Exposé“. Lias drei Projekte
+  stehen ohne Ort auf Heute. Offen: Textfeld mit Plan (6a, 7), `ort` aus den Adaptern (6b).
 
 ## 6. Harte Regeln aus CLAUDE.md
 - **Nach außen**: Recherche liest nur (WebSearch, WebFetch auf der Allowlist). Ein Dokument an Lia ist Zustellung

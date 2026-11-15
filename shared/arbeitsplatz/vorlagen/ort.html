@@ -112,7 +112,32 @@
   </ul>
 </section>
 {%- endif %}
-{%- if not dokumente and not unterseiten %}
+{#- Recherchen an dieser Seite, darunter leise die von weiter oben, die hier mitgelten (docs/recherche-plan.md,
+    Recherche am Ort) -#}
+{%- if recherchen or recherchen_oben %}
+<section>
+  <h2>Recherchen</h2>
+  {%- if recherchen %}
+  <ul>
+    {%- for x in recherchen %}
+    <li><a class="zeile" href="{{ x.link }}"><span class="punkt" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ x.titel }}</span>
+      {%- if x.ungueltig %}<span class="unter">Nicht lesbar, Einzelheiten im Log.</span>{% elif x.tag %}<span class="unter">{{ x.tag }}</span>{% endif %}</span></a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if recherchen_oben %}
+  <h3 class="blocktitel">Gilt hier mit, von weiter oben</h3>
+  <ul>
+    {%- for x in recherchen_oben %}
+    <li><a class="zeile" href="{{ x.link }}"><span class="punkt" aria-hidden="true"></span>
+      <span class="text"><span class="titel">{{ x.titel }}</span><span class="unter">{{ x.ort_text }}</span></span></a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+</section>
+{%- endif %}
+{%- if not dokumente and not unterseiten and not recherchen %}
 <p class="leer noch-leer">Noch leer.{% if not archiviert %} Mit + fängst du an.{% endif %}</p>
 {%- endif %}
 {% endblock %}

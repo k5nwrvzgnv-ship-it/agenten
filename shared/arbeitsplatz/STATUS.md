@@ -33,15 +33,19 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   je Thema und vorgeschlagene Karten, „Übernehmen“ geht über den Link ins Portal; karten verlinkt aufs Portal
   (Üben braucht fsrs aus uni/.venv, nicht in dieser .venv ohne Jans Okay). Pfade kommen aus `daten.ansicht` des
   Ergebnisses (uni) und werden gegen den Agent-Ordner geprüft.
-- Recherche-Projekte (docs/recherche-plan.md Schritt 4, 15.11.2026, nur lesend, keine Knöpfe): Eintrag
-  „Recherchen“ im Baum unter Heute. `/recherchen` listet alle Projekte beider Motoren (Ordner mit wissen.json unter
-  `uni/data/projekte/` und `lia/recherche/data/projekte/`, feste Zuordnung `RECHERCHE_MOTOREN` in app.py, zuletzt
-  gelaufen zuerst, ungültige mit Hinweis). `/recherche/<uni|lia>/<projekt>` mit Reitern Aussagen (Status- und
-  Fragefilter, Belege mit aufgelöster Quelle, Register ohne Link, gesperrt und übernommen sichtbar), Quellen (stützt n
-  Aussagen, gesperrte zuletzt), Lücken und Rückfragen, Läufe (Kosten, Modell, neu/ergänzt/doppelt). Prüfung über
-  agentkit.recherche.pruefen, kaputte Datei: Hinweis statt Absturz. Logik in `ansichten.projekt*`. Am 15.11. mit
-  den vier echten Projekten über eine zweite Instanz auf eigenem Socket geprüft: alle 200, bis 0,13 s, größte Seite
-  211 KB (uni, 163 Aussagen). Dienst mit Jans Okay am 15.11. neu gestartet, live alle 200. Die alte Dokument-Ansicht recherche bleibt, bis neue Läufe in Projekte schreiben.
+- Recherchen (docs/recherche-plan.md Schritt 4 und „Recherche am Ort“, Skizze docs/recherche-entwurf.html, Jan
+  15.11.2026, nur lesend): Eine Recherche steht im Baum unter ihrem Ort wie eine Unterseite (`logik.baum_zeilen`,
+  art "recherche", Zeichen ⌕), die Ort-Seite zeigt „Recherchen“ und leise „Gilt hier mit, von weiter oben“.
+  Ort: Feld `ort` in wissen.json, sonst `orte-zuordnung.json` Schlüssel `"recherchen": {"<uni|lia>/<projekt>": ort}`
+  (`logik.recherche_ort`; Ort fehlt oder archiviert: ohne Ort). Ohne Ort (Lias Projekte): „Recherchen ohne Ort“ auf
+  Heute. `/recherchen` leitet nach Heute weiter. Projekte: Ordner mit wissen.json unter `uni/data/projekte/` und
+  `lia/recherche/data/projekte/` (`RECHERCHE_MOTOREN`), gelesen nur bei geänderter Datei (`_WISSEN_SPEICHER`).
+  `/recherche/<uni|lia>/<projekt>` ohne `?ansicht`: Übersicht (`ansichten.projekt_uebersicht`): Auf einen Blick
+  (Zusammenfassung des letzten Laufs), nur Gesichertes nach Fragegruppe (eine Gruppe: nach Frage), Quelle kurz
+  dahinter, Zitat beim Anklicken; Offenes, Unsicheres, Quellen, Kosten in der Klappe. Die ausführlichen Reiter
+  (Aussagen mit Filtern, Quellen, Lücken und Rückfragen, Läufe) über „···“ bzw. `?ansicht=`.
+  Zuordnung 15.11.: Exposé-Recherche -> `expose`. Die alte Dokument-Ansicht recherche bleibt, bis neue Läufe in
+  Projekte schreiben.
 - finance: Aufträge nach `art` und Feld Thema, Ergebnis mit `daten.titel` (siehe finance/STATUS.md).
 - Tests: `tests/` (Logik, Ansichten, App über Unix-Socket mit http.client), in pruefen.sh eingetragen.
 
@@ -134,6 +138,11 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 3. `shared/orte.json` und `orte-zuordnung.json` sind nicht im Repo und damit nicht in der nächtlichen Sicherung
    (nur git push). Ins Repo käme die Datei nur über einen Weg wie commit-daten.sh; die Frage legt die koordinierende
    Sitzung Jan am 10.11. vor. Bis dahin kein eigener Sicherungsweg.
+5. Recherche am Ort, nächste Schritte (docs/recherche-plan.md 6a, 6b, 7): Textfeld „Was willst du hier wissen?“ an
+   jeder Seite mit Plan und „Los“ (braucht Planlauf und Absichtserkennung); uni und lia/recherche setzen `ort` beim
+   Schreiben der Projekte (Bedarf in der Haupt-STATUS); Verschieben einer Recherche im „···“. Bis zum nächsten
+   Neustart des Dienstes liegt `vorlagen/recherchen.html` noch da (die laufende alte Fassung braucht sie), danach
+   löschen. Lias drei Projekte haben keinen Ort (Jans Instanz kennt ihre Reihen nicht), sie stehen auf Heute.
 4. Echte Läufe 10.11. ab 15 Uhr: alle Arten außer Exposé, Recherche nur „kurz“ (Jans Entscheidung, siehe Plan).
 
 ## Gelernte Regeln

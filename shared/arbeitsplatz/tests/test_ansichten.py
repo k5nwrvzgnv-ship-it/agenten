@@ -103,9 +103,9 @@ def projekt_basis():
 class TestProjekt(unittest.TestCase):
     def test_aussagen(self):
         b, z = projekt_basis()
-        p = ansichten.projekt(b, z, None, None, None)
-        self.assertEqual((p["ansicht"], p["fuer"], p["fach"], p["usd"], p["laeufe"]),
-                         ("aussagen", "Lia", "Ethik", "2,63 USD", 1))
+        p = ansichten.projekt(b, z, "aussagen", None, None)
+        self.assertEqual((p["ansicht"], p["fuer"], p["fach"], p["usd"], p["laeufe"], p["tag"]),
+                         ("aussagen", "Lia", "Ethik", "2,63 USD", 1, "14. November"))
         g = p["inhalt"]["gruppen"]
         self.assertEqual([x["id"] for x in g], ["F1", ""])
         fall = g[0]["aussagen"][0]
@@ -133,7 +133,43 @@ class TestProjekt(unittest.TestCase):
         lauf = ansichten.projekt(b, z, "laeufe", None, None)["inhalt"][0]
         self.assertEqual((lauf["art"], lauf["datum"], lauf["usd"], lauf["neu_aussagen"], lauf["zusammenfassung"]),
                          ("Suche", "14.11.2026 13:07", "2,63 USD", 3, "Sechs Fälle."))
-        self.assertEqual(ansichten.projekt(b, z, "unsinn", None, None)["ansicht"], "aussagen")
+        self.assertEqual(ansichten.projekt(b, z, "unsinn", None, None)["ansicht"], "uebersicht")
+
+    def test_uebersicht(self):
+        b, z = projekt_basis()
+        u = ansichten.projekt(b, z, None, None, None)
+        self.assertEqual(u["ansicht"], "uebersicht")
+        i = u["inhalt"]
+        self.assertEqual(i["blick"], "Sechs Fälle.")
+        # nur Gesichertes; eine Fragegruppe -> nach Frage, ohne Frage unter „Weiteres“
+        self.assertEqual([(g["titel"], [x["text"] for x in g["punkte"]]) for g in i["gruppen"]],
+                         [("Weiteres", ["Kant: Mittel."])])
+        kant = i["gruppen"][0]["punkte"][0]
+        self.assertEqual((kant["zitat"], kant["seite"], kant["link"]), ("niemals", 331, None))
+        self.assertEqual((i["rueckfragen"], i["rueckfragen_mehr"], i["luecken"]), (["Auch 18-Jährige?"], 0, 1))
+        self.assertEqual(i["unsicher"], [("teilweise belegt", 1), ("unbelegt", 1)])
+        self.assertEqual(i["laeufe"], [{"tag": "14. November", "modell": "opus", "usd": "2,63 USD"}])
+
+    def test_uebersicht_nach_gruppen(self):
+        b = {"fragen": [{"id": "F1", "frage": "Normen?", "gruppe": "regelwerk"},
+                        {"id": "F2", "frage": "Markt?", "gruppe": "markt"}],
+             "quellen": [{"id": "Q1", "url": "https://www.weinig.com/x", "titel": "", "autoren": []},
+                         {"id": "Q2", "url": None, "titel": "Studie", "autoren": ["Lin, G.", "Pan, S."], "jahr": 2025}],
+             "aussagen": [{"id": "A1", "frage": "F2", "status": "gesichert", "text": "Weinig.",
+                           "belege": [{"quelle": "Q1", "zitat": "z", "pruefung": {"status": "bestanden"}}]},
+                          {"id": "A2", "frage": "F1", "status": "gesichert", "text": "Norm.",
+                           "belege": [{"quelle": "Q2", "zitat": "y", "pruefung": {"status": "durchgefallen"}},
+                                      {"quelle": "Q2", "zitat": "x", "pruefung": {"status": "bestanden"}}]},
+                          {"id": "A3", "frage": "F1", "status": "gesichert", "sichtung": "verworfen", "text": "Weg."}],
+             "laeufe": []}
+        i = ansichten.projekt_uebersicht(b, {})
+        self.assertEqual([(g["titel"], [(x["text"], x["quelle"], x["zitat"]) for x in g["punkte"]]) for g in i["gruppen"]],
+                         [("Regelwerk", [("Norm.", "Lin et al. 2025", "x")]), ("Markt", [("Weinig.", "weinig.com", "z")])])
+        self.assertEqual(i["blick"], "")
+        self.assertEqual(ansichten.quelle_kurz({"autoren": ["Ultralytics"]}), "Ultralytics")
+        self.assertEqual(ansichten.quelle_kurz({"register": "jgg", "titel": "JGG § 2", "autoren": ["x"]}), "JGG § 2")
+        self.assertEqual(ansichten.tag_text("2026-11-02T19:19:51+01:00"), "2. November")
+        self.assertEqual(ansichten.tag_text("2026-13-02"), "")
 
     def test_zeile_und_formate(self):
         b, z = projekt_basis()

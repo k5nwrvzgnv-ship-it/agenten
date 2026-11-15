@@ -39,6 +39,29 @@ class TestBaum(unittest.TestCase):
         self.assertEqual(zeilen[3]["link"], f"/seite/neu?eltern={self.t}")
         self.assertEqual([z["text"] for z in logik.baum_zeilen(self.baum, None)], ["Projekt", "Modul"])
 
+    def test_recherchen_im_baum(self):
+        r = {self.t: [{"titel": "Suche", "link": "/recherche/uni/x"}]}
+        zeilen = logik.baum_zeilen(self.baum, self.t, r)
+        self.assertEqual([(z["text"], z["art"], z["tiefe"]) for z in zeilen if z["art"] != "neu"],
+                         [("Projekt", "ort", 0), ("Teil", "ort", 1), ("Kapitel", "ort", 2), ("Suche", "recherche", 2),
+                          ("Modul", "ort", 0)])
+        # Recherche offen: sie ist aktiv, ihr Ort nur auf dem Weg
+        zeilen = logik.baum_zeilen(self.baum, self.t, r, "/recherche/uni/x")
+        teil, suche = zeilen[1], zeilen[3]
+        self.assertEqual((teil["aktiv"], teil["ueber"], suche["aktiv"]), (False, True, True))
+        # zugeklappt zählt eine Recherche wie eine Unterseite
+        zeilen = logik.baum_zeilen(self.baum, None, {self.p: r[self.t]})
+        self.assertTrue(zeilen[0]["zu"])
+
+    def test_recherche_ort(self):
+        z = logik.recherche_zuordnung_pruefen({"recherchen": {"uni/expose": self.t, "uni/../x": self.t,
+                                                              "finance/y": self.t, "lia/z": "Böse Id"}})
+        self.assertEqual(z, {"uni/expose": self.t})
+        self.assertEqual(logik.recherche_zuordnung_pruefen({"zuordnung": {}}), {})
+        self.assertEqual(logik.recherche_ort({"motor": "uni", "id": "expose"}, z, self.baum), self.t)
+        self.assertEqual(logik.recherche_ort({"motor": "uni", "id": "expose", "ort": self.k}, z, self.baum), self.k)
+        self.assertIsNone(logik.recherche_ort({"motor": "uni", "id": "x", "ort": "gibt-es-nicht"}, z, self.baum))
+
     def test_krumen(self):
         self.assertEqual(logik.krumen(self.baum, None), {"teile": [], "hier": "Heute"})
         k = logik.krumen(self.baum, self.k)

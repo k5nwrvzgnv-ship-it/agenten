@@ -151,17 +151,36 @@ def zuordnung() -> dict[str, str]:
         return {}
 
 
+def recherche_zuordnung() -> dict[str, str]:
+    """Recherchen ohne Feld ort -> Ort (orte-zuordnung.json, Schlüssel "recherchen")."""
+    pfad = INSTANZ / ZUORDNUNG
+    if not pfad.exists():
+        return {}
+    try:
+        return logik.recherche_zuordnung_pruefen(json.loads(pfad.read_text(encoding="utf-8")))
+    except (OSError, ValueError) as f:
+        logger.error("%s nicht lesbar: %s", ZUORDNUNG, f)
+        return {}
+
+
 def heute_iso() -> str:
     return datetime.now(ZONE).date().isoformat()
 
 
-def rahmen(baum: list[dict], aktiv: str | None, krumen: dict, neu_hier: str | None = "/neu") -> dict:
-    """Baum, Brotkrumen, „+ Neu“ und „Läuft gerade“ für jede Seite."""
+def rahmen(baum: list[dict], aktiv: str | None, krumen: dict, neu_hier: str | None = "/neu",
+           aktiv_link: str | None = None, projekte: list[dict] | None = None) -> dict:
+    """Baum (mit den Recherchen an ihrem Ort), Brotkrumen, „+ Neu“ und „Läuft gerade“ für jede Seite."""
+    if projekte is None:
+        projekte = projekte_mit_ort(baum)
+    je_ort: dict[str, list[dict]] = {}
+    for x in projekte:
+        if x.get("ort_hier"):
+            je_ort.setdefault(x["ort_hier"], []).append(x)
     namen = arten_namen()
     laeuft = logik.laufend(auftraege.neue(basis=basis()), namen)
     for z in laeuft:
         z["seit_text"] = logik.zeit_kurz(z["seit"], heute_iso())
-    return {"baum": logik.baum_zeilen(baum, aktiv), "krumen": krumen, "neu_hier": neu_hier, "laeuft": laeuft,
+    return {"baum": logik.baum_zeilen(baum, aktiv, je_ort, aktiv_link), "krumen": krumen, "neu_hier": neu_hier, "laeuft": laeuft,
             "auftraege_an": auftraege_an(), **kosten_spalte(namen)}
 
 
@@ -281,10 +300,12 @@ def seite_heute(request: Request):
     for d in docs:
         d["ort_text"] = logik.ort_text(baum, d["ort"])
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
+    projekte = projekte_mit_ort(baum)
     return seite(request, "heute.html", {"e": {"titel": "Heute"}, "zuletzt": docs[:15],
                                          "wartet": logik.wartet_auf_mich(docs, heute_iso()),
                                          "oben": orte.kinder(baum, None),
-                                         **rahmen(baum, None, logik.krumen(baum, None))})
+                                         "ohne_ort": [x for x in projekte if not x.get("ort_hier")],
+                                         **rahmen(baum, None, logik.krumen(baum, None), projekte=projekte)})
 
 
 @app.get("/ort/{ort_id}", response_class=HTMLResponse)
@@ -294,12 +315,16 @@ def seite_ort(request: Request, ort_id: str):
     docs = logik.dokumente(alle_auftraege(), ort_id, arten_namen(), finals(), zuordnung())
     for d in docs:
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
+    projekte = projekte_mit_ort(baum)
+    oben = [o["id"] for o in orte.pfad(baum, ort_id)][:-1]
+    von_oben = [{**x, "ort_text": logik.ort_text(baum, x["ort_hier"])} for x in projekte if x.get("ort_hier") in oben]
     return seite(request, "ort.html", {
         "e": {"titel": k["titel"]}, "ort": k, "archiviert": not orte.sichtbar(baum, ort_id),
         "unterseiten": orte.kinder(baum, ort_id), "dokumente": docs,
+        "recherchen": [x for x in projekte if x.get("ort_hier") == ort_id], "recherchen_oben": von_oben,
         "ziele": logik.ziele_zum_verschieben(baum, ort_id),
         "endungen": ",".join(ENDUNGEN), "max_dateien": MAX_DATEIEN,
-        **rahmen(baum, ort_id, logik.krumen(baum, ort_id), f"/neu?ort={quote(ort_id)}")})
+        **rahmen(baum, ort_id, logik.krumen(baum, ort_id), f"/neu?ort={quote(ort_id)}", projekte=projekte)})
 
 
 @app.get("/archiv", response_class=HTMLResponse)
@@ -317,25 +342,36 @@ RECHERCHE_MOTOREN = {"uni": "uni", "lia": "lia/recherche"}
 PROJEKTE = "data/projekte"
 
 
+_WISSEN_SPEICHER: dict[Path, tuple[tuple[int, int], dict, list[str]]] = {}
+
+
 def _wissen_lesen(motor: str, projekt_id: str) -> tuple[dict | None, list[str]]:
-    """(Basis, Fehler) eines Projekts. (None, []) heißt: gibt es nicht."""
+    """(Basis, Fehler) eines Projekts. (None, []) heißt: gibt es nicht. Gelesen wird nur, wenn sich die Datei
+    geändert hat (Baum und Heute brauchen die Projekte bei jedem Aufruf)."""
     if motor not in RECHERCHE_MOTOREN or not recherche.PROJEKT_ID.fullmatch(projekt_id):
         return None, []
     wurzel = INSTANZ.parent / RECHERCHE_MOTOREN[motor]
     pfad = dateien.sicher(wurzel, f"{PROJEKTE}/{projekt_id}/{recherche.WISSEN}", {".json"})
     if pfad is None:
         return None, []
-    if pfad.stat().st_size > MAX_JSON:
+    stat = pfad.stat()
+    if stat.st_size > MAX_JSON:
         return {}, ["Die Datei ist zu groß für die Ansicht."]
+    stand = (stat.st_mtime_ns, stat.st_size)
+    if pfad in _WISSEN_SPEICHER and _WISSEN_SPEICHER[pfad][0] == stand:
+        return _WISSEN_SPEICHER[pfad][1], _WISSEN_SPEICHER[pfad][2]
     try:
         basis = json.loads(pfad.read_text(encoding="utf-8"))
     except (OSError, ValueError) as f:
         logger.warning("%s/%s nicht lesbar: %s", motor, projekt_id, f)
+        _WISSEN_SPEICHER[pfad] = (stand, {}, ["Die Datei ist nicht lesbar."])
         return {}, ["Die Datei ist nicht lesbar."]
     fehler = recherche.pruefen(basis)
     if fehler:
         logger.warning("%s/%s ungültig: %s", motor, projekt_id, "; ".join(fehler[:5]))
-    return (basis if isinstance(basis, dict) else {}), fehler
+    basis = basis if isinstance(basis, dict) else {}
+    _WISSEN_SPEICHER[pfad] = (stand, basis, fehler)
+    return basis, fehler
 
 
 def projekte_finden() -> list[dict]:
@@ -353,17 +389,26 @@ def projekte_finden() -> list[dict]:
                 continue
             if fehler:
                 zeilen.append({"motor": motor, "id": p.name, "titel": str(basis.get("titel") or p.name),
-                               "ungueltig": True, "zuletzt_iso": ""})
+                               "ungueltig": True, "zuletzt_iso": "", "ort": basis.get("ort"),
+                               "link": f"/recherche/{motor}/{p.name}"})
             else:
                 zeilen.append(ansichten.projekt_zeile(basis, motor, recherche.zahlen(basis)))
     return sorted(zeilen, key=lambda z: z["zuletzt_iso"], reverse=True)
 
 
-@app.get("/recherchen", response_class=HTMLResponse)
-def seite_recherchen(request: Request):
-    baum = baum_laden()
-    return seite(request, "recherchen.html", {"e": {"titel": "Recherchen"}, "projekte": projekte_finden(), **rahmen(
-        baum, None, {"teile": [{"text": "Heute", "link": "/"}], "hier": "Recherchen"})})
+def projekte_mit_ort(baum: list[dict]) -> list[dict]:
+    """Alle Projekte, je mit "ort_hier": ihr sichtbarer Ort im Baum oder None (dann stehen sie auf Heute)."""
+    zuordnung_ = recherche_zuordnung()
+    projekte = projekte_finden()
+    for x in projekte:
+        x["ort_hier"] = logik.recherche_ort(x, zuordnung_, baum)
+    return projekte
+
+
+@app.get("/recherchen")
+def seite_recherchen():
+    """Früher die Liste aller Recherchen; sie stehen jetzt im Baum an ihrem Ort (Jan 15.11.2026)."""
+    return RedirectResponse("/", status_code=303)
 
 
 @app.get("/recherche/{motor}/{projekt_id}", response_class=HTMLResponse)
@@ -374,13 +419,15 @@ def seite_recherche(request: Request, motor: str, projekt_id: str):
     baum = baum_laden()
     titel = str(basis.get("titel") or projekt_id)
     q = request.query_params
-    werte = {"e": {"titel": titel}, "pfad": f"/recherche/{motor}/{projekt_id}", "ungueltig": fehler[:5]}
+    pfad = f"/recherche/{motor}/{projekt_id}"
+    werte = {"e": {"titel": titel}, "pfad": pfad, "ungueltig": fehler[:5]}
     if not fehler:
         werte["p"] = ansichten.projekt(basis, recherche.zahlen(basis), q.get("ansicht"), q.get("status"),
                                        q.get("frage"))
-    return seite(request, "recherche.html", {**werte, **rahmen(baum, None, {
-        "teile": [{"text": "Heute", "link": "/"}, {"text": "Recherchen", "link": "/recherchen"}],
-        "hier": logik.kuerzen(titel, 60)})})
+    projekte = projekte_mit_ort(baum)
+    ort = next((x["ort_hier"] for x in projekte if x["link"] == pfad), None)
+    return seite(request, "recherche.html", {**werte, **rahmen(baum, ort, logik.krumen(baum, ort, titel), None,
+                                                               aktiv_link=pfad, projekte=projekte)})
 
 
 @app.get("/seite/neu", response_class=HTMLResponse)
