@@ -54,7 +54,7 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 - `shared/agentkit/`: config (.env laden), log, einstellungen (einstellungen.toml), auftraege, freigabe,
   meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf, textfassung (Text aus pdf/docx/pptx/xlsx), imap (Postfach nur lesend),
   mail (Entwurf prüfen und senden), mailauftrag (Mail-Aufträge), ereignis (Ereignisse für den Leitstand, ohne Inhalte),
-  fassungen (final und eigene Fassungen einer Auftragskette).
+  fassungen (final und eigene Fassungen einer Auftragskette), recherche (Wissensbasis einer Recherche, docs/recherche-plan.md).
 - `shared/leitstand/`: lesende Web-Ansicht (Netz, Läufe) über Unix-Socket, Zugriff per SSH-Tunnel. Plan: docs/leitstand-plan.md.
 - `shared/telegram/`: Zentrale (Dienst agentenzentrale), einziger Kontakt zu Jan. zentrale.py = Telegram,
   logik.py = reine, getestete Logik.

@@ -1167,8 +1167,17 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
     Jan 15.11.2026: eine Maske, Motoren vorerst getrennt. Plan: docs/recherche-plan.md (Projekt aus Wissensbasis,
     Läufen, Dokumenten; Plan vor dem Lauf; Fragen, Ausweiten in neuer Sitzung, Nachprüfen, Sichten;
     Quellenbibliothek; Bauschritte in Abschnitt 8). Jan 15.11.2026: auch seine Seite mit wenigen Knöpfen (Rest im
-    „···“), alle neun Entscheidungen aus Abschnitt 9 wie empfohlen. Nichts gebaut; nächster Schritt 1
-    (agentkit/recherche.py, Hauptordner-Chat).
+    „···“), alle neun Entscheidungen aus Abschnitt 9 wie empfohlen.
+    Schritt 1 erledigt (15.11.2026): `agentkit/recherche.py` (rein, ohne Netz und Claude, 20 Tests in
+    `agentkit/tests/test_recherche.py`): neu, laden, speichern, bearbeiten (mit Sperre), pruefen, einarbeiten (Lauf in
+    die Basis, stabile IDs F/Q/A, Doppelte nach Adresse bzw. Register-id, Fragetext, Aussagetext mit gemeinsamer
+    Quelle), status, entscheiden/zuruecknehmen (verwerfen, uebernehmen, sperren, anfechten), gilt_als_uebernommen,
+    zahlen, bestand_text (für Ausweiten und Fragen, ohne Zitate), kosten_schaetzen (Tabelle KOSTEN, gemessene Werte).
+    Eingangsformat für Adapter steht oben im Modul. Ablage `<agent>/data/projekte/<id>/wissen.json`.
+    Offen: Schritt 2 (lia/recherche-Chat: Adapter Webauftrag -> einarbeiten, sechs alte Läufe als drei Projekte mit je
+    zwei Läufen) und Schritt 3 (uni-Chat: Adapter geprueft.json, Exposé-Recherche als Projekt), beide ohne
+    Claude-Lauf; danach Schritt 4 hier (lesende Projektseite im Arbeitsplatz). Nach jedem echten Lauf KOSTEN
+    nachtragen.
 
 ## Gelernte Regeln
 - (noch keine)
