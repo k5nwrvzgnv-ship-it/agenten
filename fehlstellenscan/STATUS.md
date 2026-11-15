@@ -57,12 +57,12 @@ die können später als Dateien Eingabe werden).
   erreicht (Kerbwirkung, Faserlage), BSH mit geflickten inneren Lamellen war in einer Studie aber tragfähig
   (siehe Recherche). Tragend nur mit Prüfungen und Zulassung. Offen: Normtext EN 14080, Frage an die zwei Werke.
 
-## Stand (14.11.2026)
+## Stand (15.11.2026)
 - Gerüst steht und ist committet: agent.py schließt jeden Auftrag mit dem Hinweis „noch nicht gebaut“ ab.
 - datensatz.py gebaut und getestet (tests/test_datensatz.py), Aufteilung eingefroren in
   konfig/kodytek_aufteilung.json. Auf dem Server geprüft mit allen Box-Dateien und den 11 Probebildern
   (data/datensaetze/kodytek-probe/). Voller Lauf auf dem Mac 12.11.2026 fertig und geprüft (Befunde unten):
-  Mac ~/fehlstellenscan/datensaetze/kodytek-1/ fertig; erstes Training pausiert nach Epoche 90/100 (offener Punkt 3). Ergebnisse in data/laeufe/
+  Mac ~/fehlstellenscan/datensaetze/kodytek-1/ fertig; erstes Training kodytek1-n1280 fertig 15.11.2026 (offener Punkt 3). Ergebnisse in data/laeufe/
   (bericht.json, ueberlappung.txt, pruefung_ultralytics.txt, results.csv und args.yaml des Tests probe20).
 - auswertung.py ist noch ein leerer Platz.
 - Test tests/test_geruest.py: Name, Hinweis bei Aufträgen, kein Import von torch, torchvision oder ultralytics.
@@ -272,18 +272,23 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 2. Datensatz Kodytek vollständig auf dem Mac (12.11.2026). Bild-ZIPs (157 GB) bleiben auch nach dem Bau von
    kodytek-1 vorerst (Jan 12.11.2026). Bei Platzmangel erneut fragen; Löschen macht Jan selbst auf dem Mac,
    nur Images*.zip, die kleinen ZIPs (Boxen, Masken, Specification) bleiben.
-3. Erstes Training pausiert (Jan 14.11.2026): Mac ~/fehlstellenscan,
+3. Erstes Training fertig (15.11.2026): Mac ~/fehlstellenscan,
    `yolo detect train data=datensaetze/kodytek-1/data.yaml model=yolo11n.pt epochs=100 imgsz=1280 batch=8
-   device=mps name=kodytek1-n1280`. Angehalten nach Epoche 90 von 100: mAP50 0,749, mAP50-95 0,455,
-   Precision 0,696, Recall 0,713 (val). Seit Epoche 40 (0,739 / 0,454) kaum noch Zuwachs, das kleine Modell
-   ist wohl nahe an seiner Grenze. Die letzten 10 Epochen laufen ohne Mosaik (ultralytics close_mosaic=10),
-   das bringt oft noch einen kleinen Sprung. Gewichte in runs/detect/kodytek1-n1280/weights/ (last.pt nach
-   Epoche 90, best.pt = beste Epoche bisher). Dauer rund 25 min je Epoche, Rest rund 4-5 Stunden.
-   Fortsetzen in ~/fehlstellenscan mit aktiver .venv:
-   `yolo train resume model=runs/detect/kodytek1-n1280/weights/last.pt`, dazu im zweiten Fenster
-   `caffeinate -is -w <PID>` (PID per `pgrep -ifl yolo`), Netzteil dran, Deckel offen.
-   Danach: Werte je Klasse auf val und Fehlerbilder ansehen, erst dann über größere Modelle entscheiden
-   (yolo11s etwa 3-fach, yolo11m etwa 10-fach Rechenaufwand; Mac oder gemietete GPU, Jans Entscheidung).
+   device=mps name=kodytek1-n1280`, nach Pause bei Epoche 90 per resume fortgesetzt (letzte 10 Epochen
+   3,6 h, rund 21 min je Epoche, GPU 9,4 GB). Gewichte Mac runs/detect/kodytek1-n1280/weights/ (best.pt 5,5 MB).
+   - Epoche 100 (val): P 0,697, R 0,729, mAP50 0,749, mAP50-95 0,453. Ohne Mosaik kein Sprung mehr
+     (Epoche 90: 0,749 / 0,455). Seit Epoche 40 praktisch Plateau: yolo11n ist an seiner Grenze.
+   - best.pt auf val: P 0,726, R 0,690, mAP50 0,751, mAP50-95 0,460. Je Klasse (Bilder/Boxen, P, R, mAP50,
+     mAP50-95): live_knot 1277/2204 0,83 0,82 0,874 0,45; dead_knot 812/1147 0,84 0,76 0,864 0,49;
+     knot_missing 47/48 0,89 0,67 0,854 0,49; knot_with_crack 187/242 0,70 0,84 0,840 0,59; crack 162/215
+     0,66 0,71 0,730 0,44; quartzity 110/127 0,64 0,51 0,630 0,40; resin 283/352 0,80 0,71 0,782 0,41;
+     marrow 110/117 0,74 0,88 0,874 0,65; blue_stain 5/12 0,43 0,32 0,314 0,22 (nur 12 Boxen, Zufall groß).
+     overgrown fehlt in val (gewollt). Inferenz 0,4 ms je Bild auf mps (ohne Nachbearbeitung 4,7 ms).
+   - Test-Teil noch unberührt; erst am Ende für das gewählte Modell auswerten.
+   Nächstes: Dateien vom Mac zum Server holen (results.csv, args.yaml, confusion_matrix*.png, *curve*.png,
+   val_batch*_pred.jpg, best.pt nach data/laeufe/kodytek1-n1280/), Fehlerbilder ansehen, dann über
+   größere Modelle entscheiden (yolo11s etwa 3-fach, yolo11m etwa 10-fach Rechenaufwand; Mac oder gemietete
+   GPU, Jans Entscheidung).
    Zurückgestellt bis nach
    dem ersten Modell (Jan 12.11.2026, Mittelweg): voller Abgleich Boxen gegen Masken, cleanlab/FiftyOne,
    Blindprüfung einer Stichprobe durch Prof. Böhme.
