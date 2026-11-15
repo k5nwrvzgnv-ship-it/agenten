@@ -82,7 +82,7 @@ def anzeigen_lesen(seite: str) -> list[Anzeige]:
         except json.JSONDecodeError as f:
             raise SeitenFehler(f"Anzeigenliste ist kein JSON: {f}") from f
         return [a for a in (_anzeige(e) for e in daten.get("resultAds") or []) if a]
-    if "Keine Ergebnisse" in seite or "keine Anzeigen" in seite.lower():
+    if "Es wurden keine Ergebnisse" in seite:
         return []
     raise SeitenFehler("Keine Anzeigenliste auf der Seite (Format geändert oder gesperrt?)")
 
@@ -125,19 +125,22 @@ def _slug(text: str) -> str:
 
 def such_url(begriff: str, max_preis: float | None = None, ort_id: int | None = None,
              plz: str | None = None, umkreis_km: int | None = None) -> str:
-    """URL der Suchseite. Mit Ort: /s-<plz>/<begriff>/k0l<ort_id>r<km>; Preis: /s-preis::<max>/..."""
+    """URL der Suchseite, neueste Anzeigen zuerst. Die Reihenfolge der Teile ist fest (wie Kleinanzeigen sie
+    selbst baut): /s-<plz>/sortierung:neuste/preis::<max>/<begriff>/k0l<ort_id>r<km>"""
     teile = []
-    if ort_id and plz:
+    mit_ort = bool(ort_id and plz)
+    if mit_ort:
         teile.append(plz)
+    teile.append("sortierung:neuste")
     if max_preis is not None:
         teile.append(f"preis::{int(max_preis)}")
-    pfad = "/s-" + "/".join(teile + [_slug(begriff)]) if teile else f"/s-{_slug(begriff)}"
+    teile.append(_slug(begriff))
     code = "k0"
-    if ort_id and plz:
+    if mit_ort:
         code += f"l{ort_id}"
         if umkreis_km:
             code += f"r{int(umkreis_km)}"
-    return f"{BASIS}{pfad}/{code}"
+    return f"{BASIS}/s-" + "/".join(teile) + f"/{code}"
 
 
 def ort_id_lesen(antwort: dict, plz: str) -> int | None:

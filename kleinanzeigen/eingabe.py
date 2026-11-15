@@ -33,6 +33,18 @@ def details_lesen(text: str) -> Details:
     return d
 
 
+_DETAIL_WOERTER = {"max", "maximal", "bis", "um", "im", "umkreis", "in", "egal", "ganz", "deutschland", "ueberall",
+                   "überall", "km", "euro", "eur", "und", "plz", "preis", "kein", "keine", "grenze", "vb"}
+
+
+def ist_details(text: str) -> bool:
+    """True, wenn der Text nur Preis, Umkreis und PLZ enthält ('80 € 30 km 34128', 'egal').
+    'Rennrad 56' ist dagegen eine neue Suche."""
+    woerter = re.findall(r"[^\W\d_]+", text.lower())
+    rest = [w for w in woerter if w not in _DETAIL_WOERTER]
+    return not rest and (bool(re.search(r"\d", text)) or bool(woerter))
+
+
 def umkreis_runden(km: int) -> int:
     """Kleinanzeigen kennt nur feste Umkreise, auf den nächsthöheren runden (max 200)."""
     for stufe in (5, 10, 20, 30, 50, 100, 150, 200):

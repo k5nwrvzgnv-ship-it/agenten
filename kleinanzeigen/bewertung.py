@@ -9,7 +9,7 @@ import re
 
 from seite import Anzeige
 
-MELDE_SCHWELLE = 60
+MELDE_SCHWELLE = 70  # fürs Schnappen: passt und guter Preis
 MAX_BEGRIFFE = 2  # jeder Begriff ist ein Abruf je Takt
 MAX_TEXT = 400  # Zeichen Beschreibung je Anzeige im Prompt
 
@@ -46,9 +46,10 @@ def _zahl(w) -> float | None:
 
 # ---------- Suche anlegen ----------
 
-def such_prompt(text: str, mit_foto: bool) -> str:
-    quelle = ("Der Nutzer hat ein Foto geschickt (im erlaubten Ordner, mit dem Read-Werkzeug öffnen)"
-              + (f" und dazu geschrieben: {text!r}." if text else ".")) if mit_foto \
+def such_prompt(text: str, foto: str | None = None) -> str:
+    """foto: absoluter Pfad des Fotos (Claude öffnet es mit Read), sonst nur Text."""
+    quelle = (f"Der Nutzer hat ein Foto geschickt, öffne es mit dem Read-Werkzeug: {foto}"
+              + (f"\nDazu schreibt er: {text!r}." if text else "")) if foto \
         else f"Der Nutzer schreibt: {text!r}."
     return f"""Ein Nutzer will auf Kleinanzeigen.de (Gebrauchtmarkt) ein gutes Angebot schnappen.
 {quelle}
@@ -56,10 +57,14 @@ def such_prompt(text: str, mit_foto: bool) -> str:
 Mach daraus eine Suche. Antworte nur mit einem JSON-Objekt, ohne weiteren Text:
 {{"titel": "kurzer Name der Suche, 2-5 Wörter",
   "beschreibung": "1-2 Sätze: was genau gesucht ist und worauf es ankommt (Modell, Zustand, Merkmale)",
-  "begriffe": ["1 bis {MAX_BEGRIFFE} Suchbegriffe, wie man sie bei Kleinanzeigen eintippt, spezifisch zuerst"],
+  "begriffe": ["1 bis {MAX_BEGRIFFE} kurze Suchbegriffe (1-3 Wörter), wie man sie bei Kleinanzeigen eintippt"],
   "ausschluss": ["Wörter, die sicher ein falsches Angebot bedeuten, z. B. defekt, Ersatzteile; gern leer"],
   "max_preis": Zahl in Euro, falls der Nutzer eine Grenze nennt, sonst null,
   "marktwert": Zahl in Euro, üblicher Gebrauchtpreis in gutem Zustand, falls du ihn kennst, sonst null}}
+Kleinanzeigen findet nur Anzeigen, die alle Wörter eines Begriffs enthalten, und zeigt die neuesten zuerst.
+Darum lieber breit suchen (z. B. "rennrad 56" statt "rennrad 56 shimano 105"): Feinheiten wie Ausstattung,
+Zustand oder Größe prüft später die Bewertung jeder einzelnen Anzeige. Der zweite Begriff darf eine andere übliche
+Bezeichnung sein (z. B. "roadbike"), keine bloße Verkürzung des ersten.
 Kann man auf dem Foto nichts Kaufbares erkennen, gib "begriffe": [] und erkläre es in "beschreibung"."""
 
 

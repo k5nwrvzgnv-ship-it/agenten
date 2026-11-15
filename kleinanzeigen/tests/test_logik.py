@@ -44,6 +44,10 @@ class SeiteTest(unittest.TestCase):
         with self.assertRaises(seite.SeitenFehler):
             seite.anzeigen_lesen("<html>Bitte bestätigen Sie, dass Sie kein Roboter sind</html>")
 
+    def test_seite_ohne_treffer(self):
+        leer = "<html><p>Es wurden keine Ergebnisse für „xyz“ in Deutschland gefunden, </p></html>"
+        self.assertEqual(seite.anzeigen_lesen(leer), [])
+
     def test_preise(self):
         self.assertEqual(seite.preis_lesen("1.200 € VB"), (1200.0, True))
         self.assertEqual(seite.preis_lesen("49 €"), (49.0, False))
@@ -53,10 +57,10 @@ class SeiteTest(unittest.TestCase):
         self.assertEqual(seite.preis_lesen(""), (None, False))
 
     def test_such_url(self):
-        self.assertEqual(seite.such_url("Rennrad Größe 56"), "https://www.kleinanzeigen.de/s-rennrad-groesse-56/k0")
-        self.assertEqual(seite.such_url("rennrad", 300), "https://www.kleinanzeigen.de/s-preis::300/rennrad/k0")
+        self.assertEqual(seite.such_url("Rennrad Größe 56"), "https://www.kleinanzeigen.de/s-sortierung:neuste/rennrad-groesse-56/k0")
+        self.assertEqual(seite.such_url("rennrad", 300), "https://www.kleinanzeigen.de/s-sortierung:neuste/preis::300/rennrad/k0")
         self.assertEqual(seite.such_url("rennrad", 300, 4927, "34128", 30),
-                         "https://www.kleinanzeigen.de/s-34128/preis::300/rennrad/k0l4927r30")
+                         "https://www.kleinanzeigen.de/s-34128/sortierung:neuste/preis::300/rennrad/k0l4927r30")
 
     def test_ort_id(self):
         self.assertEqual(seite.ort_id_lesen({"_0": "Deutschland", "_4927": "34128 Kassel"}, "34128"), 4927)
@@ -93,6 +97,12 @@ class EingabeTest(unittest.TestCase):
         self.assertEqual((d.max_preis, d.umkreis_km, d.plz), (99.5, 50, "34128"))
         d = eingabe.details_lesen("egal")
         self.assertEqual((d.max_preis, d.umkreis_km, d.plz), (None, None, None))
+
+    def test_ist_details(self):
+        for t in ("80 € 30 km 34128", "egal", "max 120 Euro", "ganz Deutschland, bis 50€", "34128"):
+            self.assertTrue(eingabe.ist_details(t), t)
+        for t in ("Rennrad 56", "suche ein Sofa", "", "!!"):
+            self.assertFalse(eingabe.ist_details(t), t)
 
     def test_umkreis_und_ids(self):
         self.assertEqual(eingabe.umkreis_runden(25), 30)
@@ -135,6 +145,10 @@ class BewertungTest(unittest.TestCase):
         self.assertEqual(b[2]["punkte"], 100)
         paare = bewertung.treffer_auswaehlen([anzeige(1), anzeige(2), anzeige(3)], b)
         self.assertEqual([a.id for a, _ in paare], [2, 1])
+
+    def test_such_prompt_mit_foto(self):
+        self.assertIn("/x/foto.jpg", bewertung.such_prompt("blau", "/x/foto.jpg"))
+        self.assertNotIn("Read", bewertung.such_prompt("Sofa"))
 
     def test_prompt_enthaelt_anzeigen(self):
         p = bewertung.bewertungs_prompt({"titel": "Rennrad", "beschreibung": "RH 56", "marktwert": 400,

@@ -1,14 +1,22 @@
-# Vorlage: nach ~/.config/systemd/user/kleinanzeigen.service kopieren, kleinanzeigen ersetzen.
-# Startet einen Lauf: offene Aufträge abarbeiten, freigegebene Entwürfe ausführen,
-# zeitgesteuerte Aufgaben. Die Zentrale startet den Dienst nach jedem neuen Auftrag.
+# Nach ~/.config/systemd/user/kleinanzeigen.service kopieren, dann:
+#   systemctl --user daemon-reload && systemctl --user enable --now kleinanzeigen
+# Dauerdienst: eigener Telegram-Bot, prüft die Suchen im Takt (TAKT_MIN in .env).
 [Unit]
-Description=Agent kleinanzeigen
+Description=Agent kleinanzeigen (Telegram-Bot, Suche auf Kleinanzeigen)
+After=network-online.target
 # Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
 OnFailure=ausfall@%n.service
+# Höchstens 5 Starts in 10 Minuten, sonst bleibt er aus (und ausfall meldet sich)
+StartLimitIntervalSec=600
+StartLimitBurst=5
 
 [Service]
-Type=oneshot
+Type=simple
 WorkingDirectory=/home/agent/agenten/kleinanzeigen
-ExecStart=/home/agent/agenten/kleinanzeigen/.venv/bin/python agent.py
-TimeoutStartSec=45min
-MemoryMax=1G
+ExecStart=/home/agent/agenten/kleinanzeigen/.venv/bin/python bot.py
+Restart=on-failure
+RestartSec=30
+MemoryMax=400M
+
+[Install]
+WantedBy=default.target
