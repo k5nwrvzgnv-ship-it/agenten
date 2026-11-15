@@ -275,7 +275,8 @@ Schritte 1 bis 4 kosten nichts (kein Claude-Lauf) und machen schon sichtbar, ob 
 dritter Adapter erst nach Schritt 8, wenn das Format für Webaufträge steht.
 
 ## 9. Entscheidungen für Jan
-Entschieden (Jan 15.11.2026): Auch Jans Seite mit wenigen Knöpfen, der Rest im „···“ (Abschnitt 5).
+Entschieden (Jan 15.11.2026): Auch Jans Seite mit wenigen Knöpfen, der Rest im „···“ (Abschnitt 5). Alle neun
+Punkte unten wie empfohlen (Jan 15.11.2026: „Ja, alle so“). Bau beginnt mit Schritt 1 im Hauptordner-Chat.
 
 1. **Gemeinsames Format** in `agentkit.recherche`, Motoren bleiben und schreiben es über Adapter, Ablage
    `data/projekte/<id>/` je Agent. **Empfehlung: ja.**

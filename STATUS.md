@@ -1166,7 +1166,9 @@ Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konve
 42. Recherche-Maske für Jan (Arbeitsplatz) und Lia (Web-App) über beide Motoren (uni/recherche.py, lia/recherche),
     Jan 15.11.2026: eine Maske, Motoren vorerst getrennt. Plan: docs/recherche-plan.md (Projekt aus Wissensbasis,
     Läufen, Dokumenten; Plan vor dem Lauf; Fragen, Ausweiten in neuer Sitzung, Nachprüfen, Sichten;
-    Quellenbibliothek; 12 Bauschritte). Neun Entscheidungen bei Jan (Abschnitt 9), nichts gebaut.
+    Quellenbibliothek; Bauschritte in Abschnitt 8). Jan 15.11.2026: auch seine Seite mit wenigen Knöpfen (Rest im
+    „···“), alle neun Entscheidungen aus Abschnitt 9 wie empfohlen. Nichts gebaut; nächster Schritt 1
+    (agentkit/recherche.py, Hauptordner-Chat).
 
 ## Gelernte Regeln
 - (noch keine)
