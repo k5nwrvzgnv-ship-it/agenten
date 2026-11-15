@@ -5,7 +5,7 @@ Lia hat einen Gutschein für eine Massage im vabali spa Berlin (nach dem Examen)
 Termin frei wird, und schickt Lia dann eine Nachricht über ihre Zentrale (@zentraleliabot). Buchen tut Lia selbst.
 Auftrag Jan 09.11.2026: 80 Min. Einzelmassage, Beginn spätestens 14:00, am liebsten Di 01.12., sonst bis So 06.12.
 
-## Stand (09.11.2026)
+## Stand (15.11.2026)
 - Läuft: Timer lia-vabali.timer alle 15 Minuten von 7:00 bis 22:45, Dienst lia-vabali.service (oneshot, ohne
   Claude, MemoryMax 200M, OnFailure ausfall@). Vorlagen in systemd/. Ein Lauf dauert etwa eine Minute.
 - Suche in suche.toml (Tage, beginn_bis, dauer_minuten, partner, Link). Gemeldet werden alle buchbaren 80-Min.-
@@ -17,9 +17,10 @@ Auftrag Jan 09.11.2026: 80 Min. Einzelmassage, Beginn spätestens 14:00, am lieb
 - Meldungen: neu frei gewordene Termine an Lia (Lias Instanz), je Tag und Uhrzeit eine Zeile. Was beim letzten Lauf
   schon frei war, kommt nicht noch einmal; wird ein Termin frei, wieder belegt und wieder frei, kommt er erneut.
   Stand in data/stand.json. Scheitert die Abfrage, bekommt Jan einmal eine Meldung, und eine, wenn es wieder klappt.
-- Erster echter Lauf 09.11. 23:21: 0 passende Termine (01.12. und 03.12. nur abends frei, 02., 04.–06.12. ausgebucht),
-  keine Nachricht an Lia. Der Weg bis zu Lias Telegram ist der übliche von meldungen.melden (wie bei Lias anderen
-  Agenten), mit diesem Agenten aber noch nicht echt durchlaufen.
+- Weg bis zu Lias Telegram echt getestet: Testnachricht mit Jans Okay am 09.11., von Lias Zentrale um 23:29 gesendet.
+- Seit 10.11. bis 15.11. abends 376 Läufe ohne Fehler, nie ein passender Termin, Lia hat außer dem Test nichts
+  bekommen. Von Hand geprüft am 15.11.: 01., 02., 04.–06.12. ausgebucht, 03.12. nur 21:00 frei. Jan: Suche so lassen,
+  nicht ausweiten.
 
 ## Offen
 - Nach dem 06.12. (oder sobald Lia gebucht hat) Timer abschalten:
