@@ -112,7 +112,21 @@ Stellen. lia/examen liest das Register für die Skizzen.
   (reihenkontext.py), erkennt eine Reihe nur an ihrer id. Bis die Migration (Bauschritt 3) eine Stunde mit Marke
   „Prüfung“ einträgt, gibt es keine Prüfungsreihe: Ohne --reihe laufen Kernstellen und Fallsuche dann ohne
   Reihenkontext, Jan bekommt den Grund in der Meldung. Für einen Lauf mit Kontext: --reihe ethik-8-straftheorien.
-- 200 Tests (tests/), in pruefen.sh eingetragen.
+- Recherche als Projekt (docs/recherche-plan.md, Bauschritt 2, 15.11.2026): projekt.py liest die sechs alten
+  Webaufträge als drei Projekte nach data/projekte/<id>/wissen.json ein (agentkit.recherche), je zwei Läufe, ohne
+  Claude, ohne Kosten; die Ordner data/web/<id> bleiben unverändert. Ergebnis:
+  - reihe-strafe: 80 Aussagen (31 + 49), 7 gesichert, 45 teilweise, 1 verworfen, 10 unbelegt, 17 Einschätzung;
+    10 Quellen, 11 Fragen, 4,21 USD (2,10 + 2,11 mit nachträglichem Prüflauf). Doppelt im zweiten Lauf: 0.
+  - theater-statuswechsel: 114 Aussagen (45 + 69), 7 gesichert, 88 teilweise, 4 verworfen, 2 unbelegt,
+    13 Einschätzung; 32 Quellen, 9 Fragen, 23,42 USD. Doppelt im zweiten Lauf: 0.
+  - milde-jugendtaten: 76 Aussagen (38 + 38), 9 gesichert, 31 teilweise, 0 verworfen, 14 unbelegt,
+    22 Einschätzung; 18 Quellen, 17 Fragen, 4,65 USD. Doppelt im zweiten Lauf: 1, aber nicht aus Lauf 1: zweimal
+    „Straftatbestand: Sachbeschädigung.“ ohne Beleg in zwei verschiedenen Fällen, agentkit vereint sie (Bedarf
+    in der Haupt-STATUS, Punkt 42).
+  Gegenüber Lauf 1 wiederholt der zweite Lauf keine Aussage wörtlich: Claude formuliert neu, die Erkennung
+  Doppelter (gleicher Text) greift bei getrennten Läufen kaum. Erst Ausweiten mit bestand_text (Schritt 8) zeigt,
+  ob das so bleibt.
+- 216 Tests (tests/), in pruefen.sh eingetragen.
 
 ## Aufbau
 - Aufruf: `AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz .venv/bin/python agent.py [--reihe ID]`
@@ -203,6 +217,22 @@ Stellen. lia/examen liest das Register für die Skizzen.
 - webpruefung.py (rein, getestet): Zitat wörtlich auf der Seite (abruf.laden mit Jans Domains als Allowlist,
   html_zu_text, wortlaut.steht_in); Videoseiten nur Titel; fremde Domain: ungeprüft, nicht geladen; Register-
   Verweis muss als Stelle existieren. Belegt = mindestens ein bestandener Beleg, sonst „Nicht belegt“.
+
+## Projekte (Wissensbasis)
+- Aufruf: `.venv/bin/python projekt.py --einlesen` (die drei Projekte aus EINLESEN) oder
+  `.venv/bin/python projekt.py <projekt-id> data/web/<id> [...]` (weitere Läufe; neues Projekt bekommt Titel und
+  Fach aus dem Kopf des ersten Laufs). Ein Ordner, der schon als Lauf im Projekt steht, wird übersprungen.
+- projekt.py (Adapter, eingang/kosten/lauf rein und getestet): Abschnitt -> Frage (gruppe „abschnitt“), Aussage
+  „Einschätzung …“ -> einschaetzung, sonst tatsache; Beleg {url, zitat} bleibt, {register: "<id>:<seite>"} ->
+  Register-Quelle mit Titel aus register.json, Seite und Wortlaut der Stellen dieser Seite; vermerk -> grund;
+  traegt ja/teilweise/nein -> urteil, sonst offen; Lücken, Rückfragen; kern -> zusammenfassung; an_lia.auftrag ->
+  auftrag. Lauf: art suche, modell opus, Datum aus dem Ordnernamen, ordner = data/web/<id> (relativ zum
+  Agent-Ordner, nicht laeufe/<nr>-<art> aus dem Plan, weil die alten Ordner bleiben). Kosten: kosten_usd; liegt
+  geprueft_vor_traegt.json daneben (nachträglicher Prüflauf, --nur-traegt überschreibt kosten_usd), die Summe beider.
+- Neue Webaufträge werden noch nicht von selbst eingelesen (webauftrag.py unverändert); das kommt mit Ausweiten
+  (Schritt 8) bzw. Plan (Schritt 7). Bis dahin von Hand mit dem zweiten Aufruf.
+- Tests: tests/test_projekt.py gegen kleine Kopien echter geprueft.json in tests/daten/web/ (Auszüge aus
+  reihe-strafe-v2, milde-jugendtaten v1 und v2).
 
 ## Fallsuche
 - Zweck: offene, gründliche Suche nach starken realen Fällen (nicht nur Philosophen: Reportagen, Urteile, Social

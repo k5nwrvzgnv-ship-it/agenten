@@ -1,0 +1,97 @@
+{
+ "kern": "Hier sind sechs Fälle mit Strafe. Die Täter sind meist 18 bis 20 Jahre alt. Gut zum Vergleich mit euren eigenen Ideen.",
+ "zahlen": {
+  "aussagen": 38,
+  "belegt": 20,
+  "unbelegt": 18,
+  "bestanden": 28,
+  "durchgefallen": 0,
+  "ungeprueft": 3
+ },
+ "kopf": {
+  "fach": "Ethik",
+  "titel": "Milde Jugendtaten zum Einstieg ins Thema Strafe",
+  "aufwand": "normal"
+ },
+ "traegt_zahlen": {
+  "ja": 4,
+  "teilweise": 16,
+  "nein": 0,
+  "nicht_geprueft": 0
+ },
+ "kosten_usd": 2.6268,
+ "an_lia": {
+  "auftrag": "20261114-134600-recherche-6bc459",
+  "zeit": "2026-11-14T13:46:00",
+  "datei": "Milde Jugendtaten zum Einstieg ins Thema Strafe.pdf"
+ },
+ "abschnitte": [
+  {
+   "titel": "Fall 2: Heimliche Fotos vom Lehrer (Berlin, Urteil 2023)",
+   "aussagen": [
+    {
+     "text": "Alter: Ein Schüler der 8. Klasse in Berlin. Genaues Alter und Schule: Lücke.",
+     "belege": [
+      {
+       "url": "https://www.lto.de/recht/nachrichten/n/vg-berlin-3K21122-verweis-schueler-fotos-lehrer-paedagogischer-beurteilungsspielraum/print.html",
+       "zitat": "Aus Langeweile machte ein Achtklässler heimlich Fotos von seinem Lehrer im Unterricht",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Zitat auf der Seite gefunden"
+       }
+      }
+     ],
+     "belegt": true,
+     "traegt": {
+      "traegt": "ja",
+      "fehlt": ""
+     }
+    },
+    {
+     "text": "Was ist passiert (zum Vorlesen): Ein Schüler aus der 8. Klasse langweilte sich im Unterricht. Mit seinem Tablet machte er heimlich Fotos von seinem Lehrer. Die Fotos wurden unter den Schülern hin und her geschickt. Der Lehrer hatte nicht zugestimmt.",
+     "belege": [
+      {
+       "url": "https://www.lto.de/recht/nachrichten/n/vg-berlin-3K21122-verweis-schueler-fotos-lehrer-paedagogischer-beurteilungsspielraum/print.html",
+       "zitat": "Nachdem die Bilder in der Schülerschaft hin und her geschickt worden waren",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Zitat auf der Seite gefunden"
+       }
+      }
+     ],
+     "belegt": true,
+     "traegt": {
+      "traegt": "teilweise",
+      "fehlt": "Tablet und 'der Lehrer hatte nicht zugestimmt' stehen nicht in den Zitaten."
+     }
+    }
+   ]
+  },
+  {
+   "titel": "Fall 6: Nachts ins Freibad geklettert (Ladenburg, Baden-Württemberg, 2026) – Quelle ungeprüft",
+   "aussagen": [
+    {
+     "text": "Alter: Zwei 15-Jährige wurden festgenommen, insgesamt vier Verdächtige. Die Quelle (Polizeimeldung bei presseportal.de) liegt außerhalb der geprüften Seiten und gilt als ungeprüft.",
+     "belege": [
+      {
+       "url": "https://www.presseportal.de/blaulicht/pm/14915/6286181",
+       "zitat": "Die Beamten konnten jedoch zwei 15-Jährige vorläufig festnehmen.",
+       "pruefung": {
+        "status": "ungeprueft",
+        "vermerk": "Quelle nicht auf der Liste, ungeprüft"
+       }
+      }
+     ],
+     "belegt": false
+    }
+   ]
+  }
+ ],
+ "luecken": [
+  "Nur 6 Fälle statt 8 bis 12. Drei Fälle betreffen 19- bis 20-Jährige, nicht 12- bis 17-Jährige.",
+  "Fall 6 (Freibad Ladenburg) stammt aus einer Polizeimeldung außerhalb der geprüften Seiten; die Zitate stammen aus der Websuche und sind nicht selbst auf der Seite gelesen."
+ ],
+ "rueckfragen": [
+  "Reichen dir 6 Fälle, oder soll ich gezielt nach Fällen mit 14- bis 17-Jährigen weitersuchen, auch auf ungeprüften Lokalseiten?"
+ ]
+}

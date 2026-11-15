@@ -1,0 +1,92 @@
+{
+ "zahlen": {
+  "aussagen": 49,
+  "belegt": 31,
+  "unbelegt": 18,
+  "bestanden": 51,
+  "durchgefallen": 0,
+  "ungeprueft": 0
+ },
+ "traegt_zahlen": {
+  "ja": 7,
+  "teilweise": 15,
+  "nein": 1,
+  "nicht_geprueft": 0
+ },
+ "kosten_usd": 0.0122,
+ "abschnitte": [
+  {
+   "titel": "0) Positionslandkarte: Absolute Theorien",
+   "aussagen": [
+    {
+     "text": "Kant (Vergeltung): Strafe darf nie bloß Mittel für einen anderen Zweck sein (Besserung des Täters, Nutzen der Gesellschaft), sondern wird verhängt, weil jemand eine Tat begangen hat. Der Mensch darf nicht als bloßes Mittel behandelt werden. Stärkstes Argument: Menschenwürde und Schuldgrenze, niemand wird härter bestraft, nur weil es anderen nützt.",
+     "belege": [
+      {
+       "register": "kant-mds-strafrecht:331",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Quellenregister (geprüft)"
+       }
+      }
+     ],
+     "belegt": true,
+     "traegt": {
+      "traegt": "teilweise",
+      "fehlt": "Der Begriff Menschenwürde steht nicht im Zitat (dort: „angeborne Persönlichkeit“). Die Wertung „stärkstes Argument“ ist nicht belegt."
+     }
+    },
+    {
+     "text": "Kant: Erst muss feststehen, dass jemand strafbar ist, bevor über einen Nutzen der Strafe nachgedacht wird.",
+     "belege": [
+      {
+       "register": "kant-mds-strafrecht:331",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Quellenregister (geprüft)"
+       }
+      }
+     ],
+     "belegt": true,
+     "traegt": {
+      "traegt": "ja",
+      "fehlt": ""
+     }
+    }
+   ]
+  },
+  {
+   "titel": "0) Positionslandkarte: Relative Theorien",
+   "aussagen": [
+    {
+     "text": "Hegel wird in der bpb-Darstellung ebenfalls den absoluten Theorien zugeordnet, mit der Formel, Strafe sei Vergeltung von Übel mit Übel.",
+     "belege": [
+      {
+       "url": "https://www.bpb.de/shop/zeitschriften/izpb/268220/vom-sinn-und-zweck-des-strafens/",
+       "zitat": "Strafe ist Vergeltung von Übel mit Übel.",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Zitat auf der Seite gefunden"
+       }
+      }
+     ],
+     "belegt": false,
+     "traegt": {
+      "traegt": "nein",
+      "fehlt": "Hegel wird im Zitat nicht genannt. Die Zuordnung zu den absoluten Theorien steht nicht im Zitat. Belegt ist nur die Formel „Strafe ist Vergeltung von Übel mit Übel“."
+     }
+    },
+    {
+     "text": "Einschätzung: Kant ist für Klasse 8 vereinfachbar (Formel: Wer etwas Böses tut, muss dafür bezahlen – gleich viel, nicht mehr). Hegel nicht, weil seine Begründung (Strafe als Negation der Negation des Rechts) ohne Fachsprache kaum zu halten ist; Hegel deshalb höchstens als Name, nicht als eigene Position.",
+     "belegt": false
+    }
+   ]
+  }
+ ],
+ "luecken": [
+  "seminar_vorbild.md konnte nicht gelesen werden (Leserecht verweigert); Form der Problemfrage nur aus dem Auftragstext übernommen.",
+  "Welche Strafart Liszt konkret für Gelegenheitsverbrecher vorschlägt (Geldstrafe, Verweis, bedingte Strafe), ist in den geprüften Stellen nicht belegt; nur Denkzettel/Abschreckung."
+ ],
+ "rueckfragen": [
+  "Wie viele Stunden hat die Reihe, und an welcher Stelle liegt die Examensstunde?"
+ ]
+}

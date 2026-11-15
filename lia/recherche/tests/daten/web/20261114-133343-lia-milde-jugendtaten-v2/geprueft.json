@@ -1,0 +1,101 @@
+{
+ "kern": "Hier sind acht echte Fälle. Die Täter sind 12 bis 17 Jahre alt. Die Strafe ist meist nicht bekannt. So kann die Klasse selbst eine Strafe finden.",
+ "zahlen": {
+  "aussagen": 39,
+  "belegt": 20,
+  "unbelegt": 19,
+  "bestanden": 27,
+  "durchgefallen": 0,
+  "ungeprueft": 0
+ },
+ "kopf": {
+  "fach": "Ethik",
+  "titel": "Milde Jugendtaten zum Einstieg ins Thema Strafe 2",
+  "aufwand": "normal"
+ },
+ "traegt_zahlen": {
+  "ja": 5,
+  "teilweise": 15,
+  "nein": 0,
+  "nicht_geprueft": 0
+ },
+ "kosten_usd": 2.0193,
+ "an_lia": {
+  "auftrag": "20261114-134556-recherche-f0c349",
+  "zeit": "2026-11-14T13:45:56",
+  "datei": "Milde Jugendtaten zum Einstieg ins Thema Strafe 2.pdf"
+ },
+ "abschnitte": [
+  {
+   "titel": "Fall 7: Eingangstür besprüht, Rostock (Mecklenburg-Vorpommern), März 2026, 14, 15 und 17 Jahre",
+   "aussagen": [
+    {
+     "text": "Was ist passiert? Am Abend sah ein Zeuge, wie drei Jugendliche die Eingangstür eines Gebäudes mit Graffiti besprühten. Als die Polizei kam, rannten sie weg. Zwei wurden in der Nähe gefunden, die dritte später ermittelt. Die Polizei fand Spraydosen und Kleidung mit Farbe.",
+     "belege": [
+      {
+       "url": "https://www.presseportal.de/blaulicht/pm/108746/6233480",
+       "zitat": "die Eingangstür eines Gebäudes in der Gehlsheimer Straße mit Graffiti besprühen sollen",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Zitat auf der Seite gefunden"
+       }
+      }
+     ],
+     "belegt": true,
+     "traegt": {
+      "traegt": "teilweise",
+      "fehlt": "Abend; Zeuge; drei Jugendliche; Weglaufen; zwei in der Nähe gefunden, dritte später ermittelt; Spraydosen und farbige Kleidung. Das Zitat sagt sollen (Verdacht), die Aussage stellt es als Tatsache dar"
+     }
+    },
+    {
+     "text": "Straftatbestand: Sachbeschädigung.",
+     "belege": [],
+     "belegt": false
+    }
+   ]
+  },
+  {
+   "titel": "Fall 8: Spielgeräte besprüht, Wunstorf (Region Hannover), August 2008, 15 und 16 Jahre",
+   "aussagen": [
+    {
+     "text": "Was ist passiert? Abends gegen 22 Uhr wurden zwei Jugendliche, 15 und 16 Jahre alt, von der Polizei festgehalten. Ein Zeuge hatte sie beim Sprühen gesehen. Danach fand die Polizei Farbschmierereien an Spielgeräten auf einem Kinderspielplatz.",
+     "belege": [
+      {
+       "url": "https://www.presseportal.de/blaulicht/pm/66841/1247136",
+       "zitat": "Gestern sind gegen 22:10 Uhr zwei 15 und 16 Jahre alte Jugendliche vorläufig festgenommen worden",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Zitat auf der Seite gefunden"
+       }
+      },
+      {
+       "url": "https://www.presseportal.de/blaulicht/pm/66841/1247136",
+       "zitat": "Farbschmierereien an Spielgeräten auf einem Kinderspielplatz",
+       "pruefung": {
+        "status": "bestanden",
+        "vermerk": "Zitat auf der Seite gefunden"
+       }
+      }
+     ],
+     "belegt": true,
+     "traegt": {
+      "traegt": "teilweise",
+      "fehlt": "Zeuge und dass er die beiden beim Sprühen sah"
+     }
+    },
+    {
+     "text": "Straftatbestand: Sachbeschädigung.",
+     "belege": [],
+     "belegt": false
+    }
+   ]
+  }
+ ],
+ "luecken": [
+  "In keinem der acht Fälle ist eine Strafe oder ein Urteil belegt; alle gelten als „Ausgang nicht bekannt“.",
+  "Kein belegter Berliner Fall mit 14- bis 17-Jährigen gefunden."
+ ],
+ "rueckfragen": [
+  "Reichen dir Fälle aus ganz Deutschland, oder soll eine dritte Runde gezielt Berliner Polizeimeldungen durchsuchen?"
+ ]
+}
