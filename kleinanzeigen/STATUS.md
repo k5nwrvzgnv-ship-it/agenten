@@ -11,7 +11,7 @@ Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach au�
   Jan hat einen Treffer geliefert.
 - .venv mit httpx und python-telegram-bot[job-queue] (Versionen wie die Zentrale), agentkit per .pth.
 - .env (chmod 600): Token eingetragen, ERLAUBTE_CHAT_IDS = nur Jan. Der Kumpel fehlt noch.
-- Testordner noch NICHT in pruefen.sh (Hauptordner, mit Jan kl채ren).
+- Tests in pruefen.sh eingetragen (Jan 15.11.2026).
 
 ## Aufbau
 - bot.py: Telegram (Dauerdienst), Takt, Claude-Aufrufe 체ber agentkit.claude_lauf (art routine = Sonnet,
@@ -51,9 +51,8 @@ Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach au�
 ## Offene Punkte
 1. Kumpel: schickt @klnanzgnbot /start, seine ID steht dann im Log ("Unbekannter Chat ...") und in der DB
    (werte: fremd_<id>). Mit Komma an ERLAUBTE_CHAT_IDS anh채ngen, dann systemctl --user restart kleinanzeigen.
-2. pruefen.sh: Zeile "kleinanzeigen|.venv/bin/python|tests" (Hauptordner).
-3. Nach ein paar Tagen Betrieb: Kosten (shared/verbrauch) und Meldungsqualit채t pr체fen, ggf. Schwelle/Takt anpassen.
-4. Ordner: als Teilagent von einkauf sp채ter ggf. nach einkauf/kleinanzeigen verschieben.
+2. Nach ein paar Tagen Betrieb: Kosten (shared/verbrauch) und Meldungsqualit채t pr체fen, ggf. Schwelle/Takt anpassen.
+3. Ordner: als Teilagent von einkauf sp채ter ggf. nach einkauf/kleinanzeigen verschieben.
 
 ## Betrieb
 - systemctl --user status kleinanzeigen / journalctl --user -u kleinanzeigen -f / logs/kleinanzeigen.log
