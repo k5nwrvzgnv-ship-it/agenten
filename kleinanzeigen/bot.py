@@ -154,7 +154,7 @@ async def details_setzen(update: Update, ctx: ContextTypes.DEFAULT_TYPE, entwurf
     await update.message.reply_html(
         f"{suche_text(suche)}\n\nDie aktuellen Anzeigen schaue ich mir gleich an, danach prüfe ich alle "
         f"{E.takt_min} Minuten auf Neues und melde gute Angebote sofort.")
-    ctx.application.create_task(durchgang(ctx.application, suche))
+    ctx.application.create_task(durchgang(ctx.application, suche, zeitgesteuert=False))
 
 
 async def on_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -245,12 +245,13 @@ async def _stoerung(app: Application, art: str, text: str | None) -> None:
         await _allen_melden(app, "Die Störung ist vorbei, die Suchen laufen wieder.")
 
 
-def _pruefen_im_thread(suche: dict, anzeigen: list, frei: bool, heute: str) -> pruefung.Ergebnis:
+def _pruefen_im_thread(suche: dict, anzeigen: list, frei: bool, heute: str,
+                       zeitgesteuert: bool = True) -> pruefung.Ergebnis:
     """Eigene DB-Verbindung im Thread (sqlite-Verbindungen nicht über Threads teilen)."""
     eigener = Speicher(DB_PFAD)
 
     def claude(prompt: str) -> str:
-        text = claude_text(prompt, zeitgesteuert=True)
+        text = claude_text(prompt, zeitgesteuert=zeitgesteuert)
         eigener.lauf_zaehlen(heute)  # erst nach dem Lauf: ausgelassene Läufe (Stufe sparen) zählen nicht
         return text
     try:
@@ -270,8 +271,10 @@ async def _ohne_claude(app: Application, suche: dict, anzeigen: list, heute: str
     return await asyncio.to_thread(_pruefen_im_thread, suche, anzeigen, False, heute)
 
 
-async def durchgang(app: Application, suche: dict) -> None:
-    """Eine Suche einmal prüfen: abrufen, vorfiltern, bewerten, melden."""
+async def durchgang(app: Application, suche: dict, zeitgesteuert: bool = True) -> None:
+    """Eine Suche einmal prüfen: abrufen, vorfiltern, bewerten, melden.
+    zeitgesteuert=False: erster Durchgang direkt nach dem Anlegen (Auftrag des Nutzers, Stufe sparen lässt
+    ihn nicht aus)."""
     async with _durchgang:
         suche = sp.suche(suche["id"])
         if suche is None or suche["status"] != "aktiv":
@@ -293,7 +296,7 @@ async def durchgang(app: Application, suche: dict) -> None:
                                      "ich nur noch Anzeigen klar unter dem üblichen Preis, ohne Bewertung.")
         anzeigen = pruefung.zusammenfuehren(listen)
         try:
-            erg = await asyncio.to_thread(_pruefen_im_thread, suche, anzeigen, frei, heute)
+            erg = await asyncio.to_thread(_pruefen_im_thread, suche, anzeigen, frei, heute, zeitgesteuert)
         except claude_lauf.Pausiert as f:
             if "sparen" in str(f):
                 # Kontingent knapp: dieser Lauf entfällt, die Kandidaten bleiben offen für den nächsten Takt
