@@ -29,6 +29,7 @@ TESTS=(
   "holzbalkenscan|.venv/bin/python|tests"
   "finance|.venv/bin/python|tests"
   "fehlstellenscan|.venv/bin/python|tests"
+  "kleinanzeigen|.venv/bin/python|tests"
   "lia/unterricht|.venv/bin/python|tests"
   "lia/auswertung|.venv/bin/python|tests"
   "lia/examen|.venv/bin/python|tests"
