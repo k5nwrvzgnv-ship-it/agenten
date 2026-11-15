@@ -173,7 +173,8 @@ Suche selbst zunächst nichts.
   Feedback-Weg (Abschnitt 6). Aus der Allowlist entfernt sie nichts.
 
 ### 3.5 Sichten und Dokument
-- Neues aus einem Lauf hat `sichtung: offen`. Übernehmen oder verwerfen je Aussage, Fall oder Abschnitt.
+- Neues aus einem Lauf hat `sichtung: offen`. Gesichertes gilt als übernommen, sobald man nichts dagegen sagt;
+  verworfen wird per Text oder im „···“ (Abschnitt 5). Keine Häkchenliste.
 - Ein Dokument entsteht nur aus Übernommenem und hält den Stand fest (`stand_lauf`). Für Lia: siehe Abschnitt 5.
 - Dokumente baut Python wie heute (Renderer bzw. Recherchebericht), nicht Claude; nur kern/punkte für Lia kommen
   von Claude und werden gegen die Sprachregel geprüft (heute von Hand gekürzt, siehe Offener Punkt 10 in
@@ -210,12 +211,20 @@ Suche selbst zunächst nichts.
   Dauer.
 
 ### Jan (Arbeitsplatz)
-- Dieselbe Seite: Wissensbasis (Aussagen mit Status- und Fragefilter wie die heutige Ansicht), Läufe, Dokumente,
-  dasselbe Textfeld mit derselben Absichtserkennung.
-- Zusätzlich: Plan als bearbeitbare Liste (Teilfragen, Gruppen, Werke, Aufwand), Knöpfe für Ausweiten, Anfechten,
-  Verwerfen, Sperren, Übernehmen, Kosten je Lauf mit Modell und Schritten, Quellenbibliothek mit Vorschlagsliste
-  und Pflege der Gruppen.
-- Jan sieht auch Lias Projekte (lesend und mit denselben Aktionen), weil er heute ihre Läufe startet und prüft.
+Jan 15.11.2026: Auch Jans Seite kommt mit wenigen Knöpfen aus. Ein Knopf steht nur sichtbar da, wenn er wirklich
+sinnvoll ist, sonst liegt er versteckt im „···“-Menü.
+- Dieselbe Seite wie Lias: das Textfeld mit derselben Absichtserkennung ist der Hauptweg (fragen, ausweiten,
+  verwerfen, Plan ändern), dazu die Wissensbasis (Aussagen mit Status- und Fragefilter wie die heutige Ansicht),
+  Läufe, Dokumente.
+- Sichtbare Knöpfe nur zwei: „Los“ unter einem Plan (vor jedem bezahlten Lauf) und „Senden“ am Textfeld.
+- Plan: kommt als kurze Liste (Teilfragen, Gruppen, Werke, Aufwand, geschätzte Kosten). Ändern per Text oder direkt
+  am Eintrag (anklicken, wie Titel im Arbeitsplatz), keine Formularmaske.
+- Im „···“ einer Aussage, eines Falls oder einer Quelle: Anfechten, Verwerfen, Sperren, Rückgängig. Im „···“ des
+  Projekts: Ausweiten, Dokument bauen, Quellenbibliothek.
+- Sichten wie bei Lia: Gesichertes gilt als übernommen, Jan nimmt nur heraus, was nicht passt (Text oder „···“).
+- Kosten je Lauf mit Modell und Schritten in einer geschlossenen Klappe „Läufe“, nicht dauerhaft sichtbar.
+- Quellenbibliothek als eigene Seite (über „···“), mit Vorschlagsliste und Pflege der Gruppen.
+- Jan sieht auch Lias Projekte, mit denselben Wegen, weil er heute ihre Läufe startet und prüft.
 
 ## 6. Harte Regeln aus CLAUDE.md
 - **Nach außen**: Recherche liest nur (WebSearch, WebFetch auf der Allowlist). Ein Dokument an Lia ist Zustellung
@@ -253,11 +262,12 @@ Je Schritt der zuständige Chat (CLAUDE.md: ein Chat ändert nur seinen Ordner),
 | 3 | uni | Adapter `geprueft.json` -> `wissen.json`, Exposé-Recherche als Projekt einlesen. | wie 2 |
 | 4 | Hauptordner (Arbeitsplatz) | Lesende Projektseite: Wissensbasis, Läufe, Dokumente, für uni und Lias Projekte. Ersetzt die heutige Ansicht recherche. | App-Tests über Unix-Socket |
 | 5 | Hauptordner, dann uni und lia/recherche | Fragen an den Bestand: Prompt und Prüfung in agentkit, Aufruf je Motor, Feld auf der Seite. Erster echter Lauf misst die Kosten. | Prüfung der Antwort (unbekannte ID, erfundenes Zitat) |
-| 6 | Hauptordner | Nachprüfen und Sichten ohne Claude (verwerfen, sperren, übernehmen, rückgängig) auf der Seite; anfechten als Prüflauf je Motor. | Logik in agentkit, App |
+| 6 | Hauptordner | Nachprüfen und Sichten ohne Claude (verwerfen, sperren, rückgängig) im „···“ der Einträge; anfechten als Prüflauf je Motor. | Logik in agentkit, App |
+| 6a | Hauptordner | Absichtserkennung für Jans Textfeld (dieselbe wie Schritt 10, hier zuerst gebaut), damit Jans Seite ohne weitere Knöpfe auskommt. | Absicht prüfen (unbekannt, mehrdeutig) |
 | 7 | Hauptordner, uni, lia/recherche | Planlauf und Start aus dem Plan: Planformat in agentkit, uni nimmt Teilfragen statt Eckpunkten, lia/recherche baut die Auftragsdatei aus dem Plan. Arbeitsplatz-Art recherche auf Plan umstellen. | Planprüfung, Auftragsdatei aus Plan |
 | 8 | uni, lia/recherche | Ausweiten: neue Sitzung mit `bestand_text`, Einarbeiten, Zählung Doppelter. Erster echter Lauf auf „milde Jugendtaten“ (Ziel: Berliner Fälle). | Prompt enthält Sperren und Verworfenes; Einarbeiten |
 | 9 | Hauptordner | Quellenbibliothek: Gruppen in `einstellungen.toml` (Vereinigung bleibt gleich, Test vergleicht vorher/nachher), Seite im Arbeitsplatz lesend mit Vorschlagsliste. | `test_einstellungen`, Arbeitsplatz |
-| 10 | lia/recherche, Hauptordner | Eingang für Lia: Dienst `lia-recherche` (Installation nur mit Jans Okay), Aufträge aus Lias Instanz, Absichtserkennung in agentkit; lia/chat liest `wissen.json`. | Absicht prüfen (unbekannt, mehrdeutig, regel) |
+| 10 | lia/recherche, Hauptordner | Eingang für Lia: Dienst `lia-recherche` (Installation nur mit Jans Okay), Aufträge aus Lias Instanz, Absichtserkennung aus 6a auch für Lia; lia/chat liest `wissen.json`. | Absicht prüfen (unbekannt, mehrdeutig, regel) |
 | 11 | shared/webapp | Recherche-Seite für Lia: Plan in Sätzen mit „Los“, ein Textfeld, Dokument wie heute. | App-Tests, Rundgang gegen 127.0.0.1:8791 |
 | 12 | alle | Probe: je eine echte Recherche für Jan und Lia von Anfang bis Dokument, Abnahme nach Jans Eindruck. | |
 
@@ -265,6 +275,8 @@ Schritte 1 bis 4 kosten nichts (kein Claude-Lauf) und machen schon sichtbar, ob 
 dritter Adapter erst nach Schritt 8, wenn das Format für Webaufträge steht.
 
 ## 9. Entscheidungen für Jan
+Entschieden (Jan 15.11.2026): Auch Jans Seite mit wenigen Knöpfen, der Rest im „···“ (Abschnitt 5).
+
 1. **Gemeinsames Format** in `agentkit.recherche`, Motoren bleiben und schreiben es über Adapter, Ablage
    `data/projekte/<id>/` je Agent. **Empfehlung: ja.**
 2. **Alte Läufe** als Projekte einlesen (Lias v1 und v2 je als zwei Läufe eines Projekts). **Empfehlung: ja**,
