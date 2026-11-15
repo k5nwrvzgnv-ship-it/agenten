@@ -124,6 +124,7 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
   <span>Skizze, 15.11.2026. Nichts davon ist gebaut.</span>
   <a href="#recherchen">1 Recherchen</a>
   <a href="#recherche">2 Eine Recherche</a>
+  <a href="#ort">3 Recherche an einem Ort</a>
 </div>
 
 <!-- ============================ Seite 1 ============================ -->
@@ -136,7 +137,7 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
     <label for="neu">Was willst du wissen?</label>
     <textarea id="neu" rows="2">Welche Förderprogramme passen zu einem günstigen KI-Prototyp für Fehlstellen an Holzlamellen in einem kleinen Betrieb?</textarea>
     <div class="eingabe-fuss">
-      <span class="klein leise">Für wen, wie gründlich, wo suchen: einfach mit hinschreiben.</span>
+      <span class="klein leise">Am besten gleich an der passenden Seite im Baum fragen. Von hier aus schlägt der Plan den Ort vor.</span>
       <button class="knopf knopf-voll" type="submit">Senden</button>
     </div>
   </form>
@@ -145,6 +146,8 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
     <span class="skizze-marke">So sieht es nach „Senden“ aus (Beispiel, nach etwa einer halben Minute):</span>
     <p>Ich suche Förderprogramme von Bund und Ländern für Forschung in kleinen Betrieben, vor allem FNR, ZIM und die Programme
       der Länder, dazu laufende Projekte mit ähnlichem Ziel. Zuerst unter Förderung und Projekte, Hersteller lasse ich weg.</p>
+    <p>Ablegen unter <strong>Forschungsprojekt Fehlstellen › Recherche</strong>. Was die Exposé-Recherche schon gefunden hat,
+      suche ich nicht noch einmal.</p>
     <p class="leise">Gründlich, etwa 25 Minuten, geschätzt 6 bis 8 USD.</p>
     <div class="plan-fuss">
       <button class="knopf knopf-voll" type="button">Los</button>
@@ -156,19 +159,19 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
     <ul class="liste">
       <li><a class="zeile" href="#recherche">
         <span class="laeuft">Förderprogramme für den KI-Prototyp</span>
-        <span class="unter">Läuft seit 14:20, fertig etwa 14:45</span></a></li>
+        <span class="unter">Forschungsprojekt Fehlstellen › Recherche · läuft, fertig etwa 14:45</span></a></li>
       <li><a class="zeile" href="#recherche">
         <span>Milde Jugendtaten zum Einstieg ins Thema Strafe</span>
-        <span class="unter">Lia · Ethik · 14. November</span></a></li>
+        <span class="unter">Lia · Ethik › Reihe Strafe · 14. November</span></a></li>
       <li><a class="zeile" href="#recherche">
         <span>Auslöser für Statuswechsel</span>
         <span class="unter">Lia · Darstellendes Spiel · 14. November</span></a></li>
       <li><a class="zeile" href="#recherche">
         <span>Exposé-Recherche: KI-gestützte Fehlstellenerkennung an Holzlamellen vor der Keilzinkung</span>
-        <span class="unter">Exposé · 2. November</span></a></li>
+        <span class="unter">Forschungsprojekt Fehlstellen › Exposé · 2. November</span></a></li>
       <li><a class="zeile" href="#recherche">
         <span>Unterrichtsreihe Strafe</span>
-        <span class="unter">Lia · Ethik · 25. Oktober</span></a></li>
+        <span class="unter">Lia · Ethik › Reihe Strafe · 25. Oktober</span></a></li>
     </ul>
   </section>
 </main>
@@ -176,7 +179,7 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
 <!-- ============================ Seite 2 ============================ -->
 <main class="seite" id="recherche">
   <header class="kopf">
-    <nav class="krumen"><a href="#recherchen">Recherchen</a></nav>
+    <nav class="krumen"><a href="#ort">Forschungsprojekt Fehlstellen</a> › <a href="#ort">Exposé</a></nav>
     <div class="kopf-zeile">
       <h1>Exposé-Recherche: KI-gestützte Fehlstellenerkennung an Holzlamellen vor der Keilzinkung</h1>
       <details class="punkte">
@@ -184,6 +187,7 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
         <div class="menue">
           <button type="button">Weitersuchen …</button>
           <button type="button">Dokument bauen</button>
+          <button type="button">Verschieben …</button>
           <hr>
           <button type="button">Alles anzeigen (Belege, Unsicheres, Quellen)</button>
           <button type="button">Läufe und Kosten</button>
@@ -191,7 +195,7 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
         </div>
       </details>
     </div>
-    <span class="klein leise">Exposé · 2. November</span>
+    <span class="klein leise">2. November</span>
   </header>
 
   <section class="blick">
@@ -289,6 +293,69 @@ blockquote { margin: 4px 0; padding-left: 12px; border-left: 2px solid var(--lin
       <button class="knopf knopf-voll" type="submit">Senden</button>
     </div>
   </form>
+</main>
+
+<!-- ============================ Seite 3 ============================ -->
+<main class="seite" id="ort">
+  <span class="skizze-marke">Ausschnitt einer Seite im Baum. „Kapitel 2“ gibt es noch nicht, es steht hier als Beispiel für
+    ein Kapitel unter „Schriftlicher Teil“. Genauso ginge es an „Forschungsprojekt Fehlstellen“, an „Exposé“ oder an einer
+    neuen Seite „Holzbiologie“: an jeder Ebene.</span>
+  <header class="kopf">
+    <nav class="krumen"><a href="#ort">Forschungsprojekt Fehlstellen</a> › <a href="#ort">Schriftlicher Teil</a></nav>
+    <h1>Kapitel 2: Stand der Forschung</h1>
+  </header>
+
+  <p class="leise klein">… Dokumente und Dateien dieser Seite wie heute …</p>
+
+  <section>
+    <h2>Recherchen</h2>
+    <ul class="liste">
+      <li><a class="zeile" href="#recherche">
+        <span class="laeuft">Studien zum Vergleich Mensch und Maschine beim Sortieren</span>
+        <span class="unter">läuft, fertig etwa 15:10</span></a></li>
+    </ul>
+    <h3>Gilt hier mit, von weiter oben</h3>
+    <ul class="liste">
+      <li><a class="zeile" href="#recherche">
+        <span>Exposé-Recherche: KI-gestützte Fehlstellenerkennung an Holzlamellen vor der Keilzinkung</span>
+        <span class="unter">Forschungsprojekt Fehlstellen › Exposé · 36 gesichert</span></a></li>
+    </ul>
+  </section>
+
+  <form class="eingabe" onsubmit="return false">
+    <label for="ortfrage">Was willst du für dieses Kapitel wissen?</label>
+    <textarea id="ortfrage" rows="2">Welche Studien vergleichen menschliche und maschinelle Sortierung von Schnittholz direkt, mit Zahlen?</textarea>
+    <div class="eingabe-fuss">
+      <span class="klein leise">Die Recherche bleibt an dieser Seite und kennt ihren Zusammenhang.</span>
+      <button class="knopf knopf-voll" type="submit">Senden</button>
+    </div>
+  </form>
+
+  <section class="plan" aria-label="Plan">
+    <span class="skizze-marke">Plan nach „Senden“ (Beispiel):</span>
+    <p>Für Kapitel 2 suche ich Studien, die Sortierer und Scanner an denselben Brettern vergleichen, mit Trefferquoten.
+      Lycken 2006, Pölzleitner 1992 und Ji 2024 aus der Exposé-Recherche nehme ich als Ausgangspunkt und suche
+      nach weiteren; was dort schon gesichert ist, suche ich nicht noch einmal.</p>
+    <p>Ich lese dazu die Dateien an dieser Seite und an „Schriftlicher Teil“ (Gliederung, Notizen).</p>
+    <p class="leise">Gründlich, etwa 20 Minuten, geschätzt 5 bis 7 USD.</p>
+    <div class="plan-fuss">
+      <button class="knopf knopf-voll" type="button">Los</button>
+      <span class="klein leise">Anders gewünscht? Schreib es oben dazu.</span>
+    </div>
+  </section>
+
+  <details class="klappe">
+    <summary>Was der Ort mitbringt (Erklärung zur Skizze)</summary>
+    <div class="klappe-inhalt">
+      <ul>
+        <li>Ablage: Die Recherche gehört zu dieser Seite und ist dort zu finden; „Recherchen“ oben zeigt alle mit ihrem Ort.</li>
+        <li>Zusammenhang: die Titel der Ebenen darüber, Dateien und Dokumente dieser Seite und der Seiten darüber.</li>
+        <li>Bestand: Recherchen an dieser Seite und darüber gelten mit. Sie werden nicht noch einmal gesucht, nur ergänzt.</li>
+        <li>Darunter: Eine Seite zeigt auch die Recherchen ihrer Unterseiten, leise mit deren Namen.</li>
+        <li>Schreiben: Ein Auftrag „Kapitel schreiben“ an derselben Seite nimmt die Recherchen dieser Seite und darüber als Quellen.</li>
+      </ul>
+    </div>
+  </details>
 </main>
 
 </body>
