@@ -7,10 +7,11 @@ laufend die neuesten Anzeigen und meldet gute Angebote sofort mit Link. Schreibe
 Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach außen.
 
 ## Stand (15.11.2026)
-- Code fertig und von Hand getestet (echter Abruf mit Ort/Umkreis/Preis, Suche anlegen und Bewertung mit Claude).
+- Läuft als Dauerdienst kleinanzeigen.service (systemd-User, enabled), Bot @klnanzgnbot. Erste echte Suche von
+  Jan hat einen Treffer geliefert.
 - .venv mit httpx und python-telegram-bot[job-queue] (Versionen wie die Zentrale), agentkit per .pth.
-- .env angelegt (chmod 600), aber noch leer: TELEGRAM_BOT_TOKEN und ERLAUBTE_CHAT_IDS fehlen.
-- Dienst noch NICHT installiert. Testordner noch NICHT in pruefen.sh (Hauptordner, mit Jan klären).
+- .env (chmod 600): Token eingetragen, ERLAUBTE_CHAT_IDS = nur Jan. Der Kumpel fehlt noch.
+- Testordner noch NICHT in pruefen.sh (Hauptordner, mit Jan klären).
 
 ## Aufbau
 - bot.py: Telegram (Dauerdienst), Takt, Claude-Aufrufe über agentkit.claude_lauf (art routine = Sonnet,
@@ -48,12 +49,15 @@ Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach au�
 - 15.11.2026 (Jan): Zum Schnappen guter Angebote. Daher Takt 5 statt 15 min, neueste zuerst, Schwelle 70.
 
 ## Offene Punkte
-1. Jan: Bot bei @BotFather anlegen, TELEGRAM_BOT_TOKEN in kleinanzeigen/.env eintragen. Danach /start an den Bot,
-   er nennt die Chat-ID; Jans und die des Kumpels in ERLAUBTE_CHAT_IDS.
-2. Dienst einrichten (nach Jans Okay): systemd/kleinanzeigen.service nach ~/.config/systemd/user/, enable --now.
-3. pruefen.sh: Zeile "kleinanzeigen|.venv/bin/python|tests" (Hauptordner).
-4. Nach ein paar Tagen Betrieb: Kosten (shared/verbrauch) und Meldungsqualität prüfen, ggf. Schwelle/Takt anpassen.
-5. Ordner: als Teilagent von einkauf später ggf. nach einkauf/kleinanzeigen verschieben.
+1. Kumpel: schickt @klnanzgnbot /start, seine ID steht dann im Log ("Unbekannter Chat ...") und in der DB
+   (werte: fremd_<id>). Mit Komma an ERLAUBTE_CHAT_IDS anhängen, dann systemctl --user restart kleinanzeigen.
+2. pruefen.sh: Zeile "kleinanzeigen|.venv/bin/python|tests" (Hauptordner).
+3. Nach ein paar Tagen Betrieb: Kosten (shared/verbrauch) und Meldungsqualität prüfen, ggf. Schwelle/Takt anpassen.
+4. Ordner: als Teilagent von einkauf später ggf. nach einkauf/kleinanzeigen verschieben.
+
+## Betrieb
+- systemctl --user status kleinanzeigen / journalctl --user -u kleinanzeigen -f / logs/kleinanzeigen.log
+- Nach Änderungen an .env oder Python-Code: systemctl --user restart kleinanzeigen.
 
 ## Gelernte Regeln
 - (noch keine)
