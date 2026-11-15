@@ -229,15 +229,15 @@ sinnvoll ist, sonst liegt er versteckt im „···“-Menü.
 ### Recherche am Ort (Jan 15.11.2026)
 Jan: Eine Recherche findet an einem Ort im Baum statt, auf jeder Ebene (z. B. Forschungsprojekt Fehlstellen,
 Holzbiologie, ein Kapitel unter „Schriftlicher Teil“). So ist sie örtlich leicht zu finden, der Kontext stimmt, und
-beim Schreiben der Arbeit kann sie im richtigen Kapitel stattfinden. Skizze: `docs/recherche-entwurf.html`, Seite 3.
-- Jede Seite im Baum bekommt den Abschnitt „Recherchen“ und das Textfeld „Was willst du hier wissen?“. Die
-  Recherche trägt `ort` (Feld steht schon im Format, die Adapter setzen es noch nicht).
-- Startet Jan auf der Seite „Recherchen“, schlägt der Plan einen Ort vor („Ablegen unter …“); ändern per Text.
-  Verschieben geht später im „···“ der Recherche, wie bei Seiten.
+beim Schreiben der Arbeit kann sie im richtigen Kapitel stattfinden. Skizze: `docs/recherche-entwurf.html`.
+- Eine Recherche ist ein Eintrag im Baum, wie eine Unterseite: Sie steht unter der Seite, an der sie gestartet
+  wurde, auf jeder Ebene. Die Recherche trägt `ort` (Feld steht schon im Format, die Adapter setzen es noch nicht).
+- Eine eigene Seite „Recherchen“ als Ablage gibt es nicht; `/recherchen` und der Baum-Eintrag darauf entfallen.
+  Was läuft oder fertig ist, steht wie bei Dokumenten auf „Heute“.
+- Jede Seite hat das Textfeld „Was willst du hier wissen?“. Soll die Recherche tiefer hin, schreibt Jan es dazu
+  („für Kapitel 2“); Verschieben im „···“ der Recherche wie bei Seiten.
 - Kontext für Plan und Lauf: Titel der Ebenen darüber, Dateien und Dokumente am Ort und darüber, dazu als Bestand
   die Recherchen am Ort und darüber (`bestand_text`, wie beim Ausweiten: nicht noch einmal suchen, nur ergänzen).
-- Eine Seite zeigt ihre Recherchen, darunter leise die der Ebenen darüber („gilt hier mit“) und die der Unterseiten
-  mit deren Namen. „Recherchen“ zeigt alle mit Ortspfad.
 - Schreiben (später, uni): Ein Auftrag am Kapitel nimmt die Recherchen dieses Orts und darüber als Quellen.
 - Lia: `ort` ist dort Reihe oder Stunde; Verhalten gleich, ihre Seite folgt in Schritt 11.
 - Offen für die Umsetzung: Die Exposé-Recherche ist bisher keinem Ort zugeordnet; Vorschlag `expose`
@@ -281,7 +281,7 @@ Je Schritt der zuständige Chat (CLAUDE.md: ein Chat ändert nur seinen Ordner),
 | 5 | Hauptordner, dann uni und lia/recherche | Fragen an den Bestand: Prompt und Prüfung in agentkit, Aufruf je Motor, Feld auf der Seite. Erster echter Lauf misst die Kosten. | Prüfung der Antwort (unbekannte ID, erfundenes Zitat) |
 | 6 | Hauptordner | Nachprüfen und Sichten ohne Claude (verwerfen, sperren, rückgängig) im „···“ der Einträge; anfechten als Prüflauf je Motor. | Logik in agentkit, App |
 | 6a | Hauptordner | Absichtserkennung für Jans Textfeld (dieselbe wie Schritt 10, hier zuerst gebaut), damit Jans Seite ohne weitere Knöpfe auskommt. | Absicht prüfen (unbekannt, mehrdeutig) |
-| 6b | Hauptordner, uni, lia/recherche | Recherche am Ort (Abschnitt 5): Adapter setzen `ort`, `agentkit.recherche` sammelt Recherchen am Ort und darüber (Bestand) und den Ortskontext; Arbeitsplatz zeigt „Recherchen“ an jeder Seite. | Bestand über Ebenen, Ort fehlt oder archiviert |
+| 6b | Hauptordner, uni, lia/recherche | Recherche am Ort (Abschnitt 5): Adapter setzen `ort`, `agentkit.recherche` sammelt Recherchen am Ort und darüber (Bestand) und den Ortskontext; Arbeitsplatz zeigt Recherchen im Baum an ihrem Ort, Textfeld an jeder Seite, `/recherchen` entfällt. | Bestand über Ebenen, Ort fehlt oder archiviert |
 | 7 | Hauptordner, uni, lia/recherche | Planlauf und Start aus dem Plan: Planformat in agentkit, uni nimmt Teilfragen statt Eckpunkten, lia/recherche baut die Auftragsdatei aus dem Plan. Arbeitsplatz-Art recherche auf Plan umstellen. | Planprüfung, Auftragsdatei aus Plan |
 | 8 | uni, lia/recherche | Ausweiten: neue Sitzung mit `bestand_text`, Einarbeiten, Zählung Doppelter. Erster echter Lauf auf „milde Jugendtaten“ (Ziel: Berliner Fälle). | Prompt enthält Sperren und Verworfenes; Einarbeiten |
 | 9 | Hauptordner | Quellenbibliothek: Gruppen in `einstellungen.toml` (Vereinigung bleibt gleich, Test vergleicht vorher/nachher), Seite im Arbeitsplatz lesend mit Vorschlagsliste. | `test_einstellungen`, Arbeitsplatz |
