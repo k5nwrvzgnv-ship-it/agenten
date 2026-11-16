@@ -169,6 +169,27 @@ class TestSchrittFehler(unittest.TestCase):
             self.assertIn("post_pruefen fehlgeschlagen: OSError: IMAP weg", melden.call_args_list[0].args[0])
 
 
+class TestPostOhneNetz(unittest.TestCase):
+    """Untersuchung 11/2026, B13: Der Lauf, der neue Mails liest, hat weder WebSearch noch WebFetch."""
+
+    def test_mail_lauf_ohne_netzwerkzeuge(self):
+        tmp = Path(tempfile.mkdtemp())
+        mail_ = {"uid": 7, "von": "x@example.org", "datum": "heute", "betreff": "Hallo", "anhaenge": [], "text": "Text"}
+        laufen = mock.Mock(return_value=Ergebnis("kaputt", "s", False))
+        with mock.patch.object(agent.postfach, "neue_mails", return_value=[mail_]), \
+             mock.patch.object(agent, "MAILS_OFFEN", tmp / "offen.json"), \
+             mock.patch.object(agent.mail, "mail_merken"), \
+             mock.patch.object(agent.claude_lauf, "laufen", laufen):
+            agent.post_pruefen()
+        werkzeuge = laufen.call_args.kwargs["werkzeuge"]
+        self.assertTrue(werkzeuge)
+        self.assertNotIn("WebSearch", werkzeuge)
+        self.assertNotIn("WebFetch", werkzeuge)
+        self.assertIn("Write", werkzeuge)  # Entwürfe und Termine schreibt der Lauf weiter als Dateien
+        self.assertIn("Mail uid 7", laufen.call_args.args[2])
+        self.assertTrue((tmp / "offen.json").exists())  # Lauf fehlgeschlagen: Mails bleiben für den nächsten Versuch
+
+
 class TestAuftraegeNachholen(unittest.TestCase):
     def test_auftrag_waehrend_des_laufs(self):
         runden = [[{"id": "a1"}], [{"id": "a1"}, {"id": "a2"}], [{"id": "a1"}, {"id": "a2"}]]

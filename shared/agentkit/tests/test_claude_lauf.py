@@ -288,6 +288,35 @@ class TestClaudeLauf(unittest.TestCase):
         self.assertEqual(a[a.index("--permission-mode") + 1], "acceptEdits")
         self.assertIn("Write", a[a.index("--tools") + 1: a.index("--strict-mcp-config")])
 
+    def test_werkzeuge_je_aufruf(self):
+        """Untersuchung 11/2026, B13: Ein Aufruf kann weniger Werkzeuge bekommen als eingestellt, nie mehr."""
+        ohne_netz = claude_lauf.werkzeuge_ohne_netz("uni", CFG)
+        self.assertEqual(ohne_netz, ["Read", "Write", "Edit", "Glob", "Grep"])
+        self.assertTrue(self.lauf(werkzeuge=ohne_netz).ok)
+        a = self.args()
+        self.assertEqual(a[a.index("--tools") + 1: a.index("--strict-mcp-config")], ohne_netz)
+        rechte = json.loads(a[a.index("--settings") + 1])["permissions"]
+        self.assertEqual(rechte["allow"], [])  # weder WebSearch noch WebFetch erlaubt
+        self.assertIn("Edit(**/*.py)", rechte["deny"])  # der Schreibschutz bleibt
+        # keines: --tools ""
+        self.lauf(werkzeuge=[])
+        a = self.args()
+        self.assertEqual(a[a.index("--tools") + 1: a.index("--strict-mcp-config")], [""])
+        # ohne Angabe wie eingestellt
+        self.lauf()
+        a = self.args()
+        self.assertEqual(a[a.index("--tools") + 1: a.index("--strict-mcp-config")], einstellungen.werkzeuge(CFG, "uni"))
+
+    def test_werkzeuge_je_aufruf_nie_mehr_als_eingestellt(self):
+        cfg = copy.deepcopy(CFG)
+        cfg["werkzeuge"]["uni"] = ["Read"]
+        for mehr in (["Read", "Write"], ["WebFetch"], ["Bash"]):
+            with self.assertRaises(ValueError):
+                self.lauf(cfg=cfg, werkzeuge=mehr)
+        self.assertEqual(claude_lauf.werkzeuge_waehlen(["Read", "Write", "WebSearch"], ["WebSearch", "Read"]),
+                         ["Read", "WebSearch"])
+        self.assertEqual(claude_lauf.werkzeuge_waehlen(["Read"], None), ["Read"])
+
     def test_limit_erreicht(self):
         os.environ["FAKE_MODUS"] = "limit"
         with self.assertRaises(claude_lauf.LimitErreicht):

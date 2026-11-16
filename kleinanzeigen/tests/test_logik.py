@@ -256,3 +256,24 @@ class TexteTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OhneWerkzeugeTest(unittest.TestCase):
+    """Untersuchung 11/2026, B12: Claude bewertet fremde Anzeigentexte ohne jedes Werkzeug (mit Foto nur Read im
+    Fotoordner). bot.py lässt sich im Test nicht laden (öffnet Datenbank und .env), darum am Quelltext geprüft."""
+
+    def test_bewertung_laeuft_ohne_werkzeuge(self):
+        quelle = (Path(__file__).resolve().parents[1] / "bot.py").read_text(encoding="utf-8")
+        cfg = quelle[quelle.index("def _lauf_cfg("):quelle.index("def claude_text(")]
+        self.assertIn('cfg["werkzeuge"][AGENT] = [""]', cfg)
+        aufruf = quelle[quelle.index("def claude_text("):quelle.index("# ---------- Zugang")]
+        self.assertIn("cfg=_lauf_cfg(", aufruf)
+        self.assertEqual(quelle.count("claude_lauf.laufen("), 1)  # der einzige Aufruf geht über _lauf_cfg
+
+    def test_ohne_werkzeuge_heisst_keine_schreibwerkzeuge(self):
+        from agentkit import claude_lauf
+        cfg = {"werkzeuge": {"standard": ["Read", "Write", "Edit"], "kleinanzeigen": [""]},
+               "lauf": {"max_schritte": 3}, "webfetch": {}}
+        befehl = claude_lauf.befehl("kleinanzeigen", Path("."), "x", "sonnet", cfg)
+        werkzeuge = befehl[befehl.index("--tools") + 1: befehl.index("--strict-mcp-config")]
+        self.assertEqual(werkzeuge, [""])

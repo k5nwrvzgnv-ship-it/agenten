@@ -266,6 +266,24 @@ def _spar_auslassen(agent_dir: Path) -> bool:
     return n % 2 == 1
 
 
+def werkzeuge_waehlen(eingestellt: list[str], nur: list[str] | None) -> list[str]:
+    """Werkzeuge für einen einzelnen Aufruf (Untersuchung 11/2026, B13): nur ist eine Auswahl aus dem, was für den
+    Agenten eingestellt ist. Ein Aufruf kann so nur weniger bekommen, nie mehr (ValueError bei einem Werkzeug, das
+    nicht eingestellt ist). Leere Auswahl: gar kein Werkzeug (--tools "")."""
+    if nur is None:
+        return eingestellt
+    fremd = [w for w in nur if w not in eingestellt]
+    if fremd:
+        raise ValueError(f"Werkzeuge nicht für den Agenten eingestellt: {', '.join(fremd)}")
+    return [w for w in eingestellt if w in nur] or [""]
+
+
+def werkzeuge_ohne_netz(agent: str, cfg: dict | None = None) -> list[str]:
+    """Die eingestellten Werkzeuge des Agenten ohne WebSearch und WebFetch: für Läufe, die fremden Text lesen
+    (Mails), damit fremder Text und Netzwerkzeug nie zusammentreffen."""
+    return [w for w in einstellungen.werkzeuge(cfg or einstellungen.lade(), agent) if w not in OHNE_DATEIZUGRIFF]
+
+
 def befehl(
     agent: str,
     agent_dir: Path,
@@ -276,10 +294,12 @@ def befehl(
     sitzung_fortsetzen: str | None = None,
     lese_ordner: list[Path] | None = None,
     suchen: bool = False,
+    nur_werkzeuge: list[str] | None = None,
 ) -> list[str]:
     """Befehlszeile für claude -p. lese_ordner: schon geprüfte Ordner (lese_ordner_pruefen), dann nur Read dort
-    (mit suchen=True auch Glob und Grep) und die Werkzeuge ohne Dateizugriff aus einstellungen.toml."""
-    werkzeuge = einstellungen.werkzeuge(cfg, agent)
+    (mit suchen=True auch Glob und Grep) und die Werkzeuge ohne Dateizugriff aus einstellungen.toml.
+    nur_werkzeuge: Auswahl für diesen einen Aufruf, siehe werkzeuge_waehlen."""
+    werkzeuge = werkzeuge_waehlen(einstellungen.werkzeuge(cfg, agent), nur_werkzeuge)
     if lese_ordner is not None:
         werkzeuge = (["Read", "Glob", "Grep"] if suchen else ["Read"]) + [w for w in werkzeuge
                                                                           if w in OHNE_DATEIZUGRIFF]
@@ -438,8 +458,12 @@ def laufen(
     auftrag_basis: Path | None = None,
     lese_ordner: list[Path] | None = None,
     suchen: bool = False,
+    werkzeuge: list[str] | None = None,
 ) -> Ergebnis:
     """Führt einen claude-Lauf aus. art: "routine" oder "anspruchsvoll".
+
+    werkzeuge: Auswahl nur für diesen Aufruf aus den eingestellten Werkzeugen des Agenten (nie mehr als
+    eingestellt, [] = keines), z. B. werkzeuge_ohne_netz(agent) für einen Lauf, der Mails liest.
 
     lernsitzung=True legt eine neue Sitzung mit fester ID an (Ergebnis.sitzung),
     die später mit sitzung_fortsetzen weitergeführt werden kann (auch am PC).
@@ -458,14 +482,15 @@ def laufen(
 
     try:
         return _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis, lese_ordner, suchen)
+                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis, lese_ordner, suchen, werkzeuge)
     except Exception as f:
         ev("lauf.fehler", grund=FEHLERGRUND.get(type(f).__name__, "technik"))
         raise
 
 
 def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-            cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None, lese_ordner=None, suchen=False) -> Ergebnis:
+            cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None, lese_ordner=None, suchen=False,
+            werkzeuge=None) -> Ergebnis:
     cfg = cfg or einstellungen.lade()
     agent_dir = Path(agent_dir)
     if suchen and lese_ordner is None:
@@ -485,7 +510,8 @@ def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_f
     else:
         modell = cfg["modelle"]["anspruchsvoll"]
     sitzung_neu = str(uuid.uuid4()) if lernsitzung and not sitzung_fortsetzen else None
-    cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen, lese_ordner, suchen)
+    cmd = befehl(agent, agent_dir, prompt, modell, cfg, sitzung_neu, sitzung_fortsetzen, lese_ordner, suchen,
+                 werkzeuge)
     quelle = cfg.get("konto", {}).get("quelle", "token")
     env = umgebung(quelle)
 

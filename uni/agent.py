@@ -1442,8 +1442,9 @@ def post_pruefen() -> None:
         for m in offen)
     schluessel = f"post-{time.strftime('%Y%m%d-%H%M%S')}"
     try:
+        # Mails sind fremder Text: Dieser Lauf bekommt kein WebSearch und kein WebFetch (Untersuchung 11/2026, B13)
         e = claude_lauf.laufen(AGENT, HIER, PROMPT_POST.format(mails=mails) + entwurf_hinweis(schluessel),
-                               art="routine", zeitgesteuert=True)
+                               art="routine", zeitgesteuert=True, werkzeuge=claude_lauf.werkzeuge_ohne_netz(AGENT))
     except WARTEN as f:
         logger.info("Post wartet (%d Mails): %s", len(offen), f)
         return

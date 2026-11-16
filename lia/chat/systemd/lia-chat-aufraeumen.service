@@ -10,3 +10,5 @@ Environment=AGENTKIT_INSTANZ=/home/agent/agenten/lia/instanz
 WorkingDirectory=/home/agent/agenten/lia/chat
 ExecStart=/home/agent/agenten/lia/chat/.venv/bin/python agent.py --aufraeumen
 TimeoutStartSec=5min
+# Löscht nur Dateien, braucht wenig. Grenze wie bei allen anderen Diensten (Untersuchung 11/2026, B3)
+MemoryMax=300M
