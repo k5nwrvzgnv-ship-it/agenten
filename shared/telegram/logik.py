@@ -12,7 +12,10 @@ from pathlib import Path
 
 from agentkit.mail import anhang_zeile
 
-AGENTEN = ("uni", "dokumente", "posteingang", "einkauf", "finance")
+# Jans Agenten mit Befehl und Knopf. Die Zentrale ersetzt die Liste beim Start durch agenten_finden():
+# wer einen Ordner mit agent.py und einen Dienst hat. Diese Vorgabe gilt für Tests und als Rückhalt.
+AGENTEN = ("uni", "dokumente", "posteingang", "finance")
+REIHENFOLGE = ("uni", "dokumente", "posteingang", "finance")  # vorn im Menü, weitere folgen nach dem Alphabet
 MAX_LAENGE = 3800  # Telegram erlaubt 4096 Zeichen pro Nachricht, etwas Puffer
 MAX_DATEI_BYTES = 20 * 1024 * 1024  # mehr lädt die Bot-Schnittstelle von Telegram nicht herunter
 ZENTRALE = "zentrale"  # Absender für Systemnachrichten (Sprachregel, Jan 27.10.2026)
@@ -41,6 +44,30 @@ DATEI_ZU_GROSS = "Die Datei ist zu groß für Telegram. Leg sie am PC in den Ord
 DATEI_NICHT_GELADEN = "Die Datei konnte ich nicht laden. Schick sie bitte noch einmal."
 TEXT_WEG = "Der Text ist nicht mehr da. Schick ihn bitte noch einmal."
 AN_WEN = "An wen geht das?"
+
+
+def agenten_finden(wurzel: Path, unit_dir: Path) -> tuple[str, ...]:
+    """Jans Agenten aus dem, was da ist: Ordner im Hauptordner mit agent.py, zu dem <name>.service eingerichtet ist.
+    Ein neuer Agent bekommt so Befehl und Knopf, sobald sein Dienst steht; ein geplanter ohne Dienst taucht nicht auf."""
+    namen = [p.name for p in sorted(Path(wurzel).iterdir())
+             if re.fullmatch(r"[a-z]+", p.name) and (p / "agent.py").is_file()
+             and (Path(unit_dir) / f"{p.name}.service").exists()]
+    return tuple(sorted(namen, key=lambda n: (REIHENFOLGE.index(n) if n in REIHENFOLGE else len(REIHENFOLGE), n)))
+
+
+def agenten_setzen(agenten) -> tuple[str, ...]:
+    """Liste für befehl_auswerten und panel_auswerten setzen (leer: Vorgabe bleibt). Gibt die geltende Liste zurück."""
+    global AGENTEN
+    if agenten:
+        AGENTEN = tuple(agenten)
+    return AGENTEN
+
+
+def ist_netzfehler(fehler: BaseException | None) -> bool:
+    """Netzfehler von Telegram (NetworkError samt TimedOut, Bad Gateway) und httpx: Die Bibliothek wiederholt
+    selbst, im Log reicht eine Zeile. Am Klassennamen erkannt, damit die Logik ohne Telegram testbar bleibt."""
+    namen = {k.__name__ for k in type(fehler).__mro__}
+    return bool(namen & {"NetworkError", "TransportError"})
 
 
 def hilfe_text(agenten) -> str:
@@ -365,7 +392,23 @@ STUFEN_TEXT = {  # erster Satz steht auch im Menü
 }
 
 
-def verbrauch_text(stand: dict | None, stufe: str, heute: dict[str, dict], zeit_text) -> str:
+def usd_text(wert: float) -> str:
+    return f"{wert:.2f}".replace(".", ",") + " USD"
+
+
+def woche_zeilen(woche: dict[str, dict]) -> list[str]:
+    """Letzte 7 Tage je Agent, teuerster zuerst. USD ist ein Vergleichswert (das Kontingent ist pauschal bezahlt)."""
+    if not woche:
+        return []
+    zeilen = ["", "Letzte 7 Tage (Vergleichswert, bezahlt ist pauschal):"]
+    for agent, s in sorted(woche.items(), key=lambda x: (-x[1]["usd"], x[0])):
+        zeilen.append(f"• {anzeigename(agent)}: {s['laeufe']}-mal gearbeitet, {usd_text(s['usd'])}")
+    zeilen.append(f"Zusammen: {usd_text(sum(s['usd'] for s in woche.values()))}")
+    return zeilen
+
+
+def verbrauch_text(stand: dict | None, stufe: str, heute: dict[str, dict], zeit_text,
+                   woche: dict[str, dict] | None = None) -> str:
     zeilen = [STUFEN_TEXT[stufe]]
     if stand is None:
         zeilen.append("Wie viel verbraucht ist, weiß ich erst nach der ersten Aufgabe.")
@@ -384,7 +427,7 @@ def verbrauch_text(stand: dict | None, stufe: str, heute: dict[str, dict], zeit_
             fehler = f", {s['fehler']}-mal hat es nicht geklappt" if s["fehler"] else ""
             zeilen.append(f"• {anzeigename(agent)}: {s['laeufe']}-mal gearbeitet, "
                           f"{str(round(s['minuten'], 1)).replace('.', ',')} Minuten{fehler}")
-    return "\n".join(zeilen)
+    return "\n".join(zeilen + woche_zeilen(woche or {}))
 
 
 MELDUNG = "m:"  # Vorsatz für Meldungen in Gemeldet.nachrichten und in Knopf-Daten

@@ -1,3 +1,4 @@
+import json
 import tempfile
 import time
 import unittest
@@ -58,6 +59,19 @@ class TestVerbrauch(unittest.TestCase):
         h = verbrauch.heute(self.datei)["uni"]
         self.assertEqual((h["laeufe"], h["tokens"], h["fehler"]), (2, 150, 1))
         self.assertAlmostEqual(h["minuten"], 1.5)
+
+    def test_woche_je_agent(self):
+        jetzt = 1_800_000_000.0
+        self.datei.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.datei, "w") as f:
+            for zeit, agent, instanz, usd in ((jetzt - 8 * 86400, "uni", None, 5.0), (jetzt - 6 * 86400, "uni", None, 1.5),
+                                              (jetzt - 60, "uni", None, 0.25), (jetzt - 3600, "theater", "lia", 7.0),
+                                              (jetzt - 3600, "uni", None, None)):
+                f.write(json.dumps({"zeit": zeit, "agent": agent, "instanz": instanz, "usd": usd, "ok": True}) + "\n")
+        w = verbrauch.woche(self.datei, jetzt)
+        self.assertEqual(set(w), {"uni", "lia/theater"})
+        self.assertEqual((w["uni"]["laeufe"], w["uni"]["usd"]), (3, 1.75))  # der 8 Tage alte Lauf zählt nicht
+        self.assertEqual(w["lia/theater"]["usd"], 7.0)
 
     def test_kosten_je_auftrag(self):
         self.assertIsNone(verbrauch.kosten("a1", self.datei))

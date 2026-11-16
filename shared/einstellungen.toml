@@ -39,7 +39,6 @@ standard = ["Read", "Write", "Edit", "Glob", "Grep"]
 uni = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 dokumente = ["Read", "Write", "Edit", "Glob", "Grep"]
 posteingang = ["Read", "Write", "Edit", "Glob", "Grep"]
-einkauf = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 # finance: Recherche zur Wirtschaftlichkeit (Jan 07.11.2026). Ohne Eintrag unter [webfetch], weil Geschäftsberichte
 # auf beliebigen Firmenseiten liegen; ob eine Domainliste kommt, entscheidet Jan (finance/STATUS.md).
 finance = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
@@ -49,7 +48,7 @@ recherche = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]
 feedback = ["Read"]
 
 # WebFetch nur auf diese Domains (Subdomains eingeschlossen), Jan 25.10.2026. Agenten ohne Eintrag
-# (z. B. einkauf) dürfen WebFetch, wie unter [werkzeuge], ohne Einschränkung. Python liest dieselbe Liste
+# (z. B. finance) dürfen WebFetch, wie unter [werkzeuge], ohne Einschränkung. Python liest dieselbe Liste
 # (einstellungen.webfetch_domains) als Allowlist für agentkit.abruf. WebSearch bleibt frei.
 [webfetch]
 recherche = [

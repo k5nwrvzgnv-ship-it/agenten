@@ -55,8 +55,10 @@ from telegram.ext import (
 from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen, sprache, verbrauch
 from agentkit._ablage import AblageFehler, anhaenge_pruefen, pruefe_dienst
 from logik import (
-    AGENTEN,
     AN_WEN,
+    agenten_finden,
+    agenten_setzen,
+    ist_netzfehler,
     DATEI_NICHT_GELADEN,
     DATEI_ZU_GROSS,
     KNOPF_ALT,
@@ -120,6 +122,8 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 gemeldet = Gemeldet(HIER / "data" / "gemeldet.json")
 eingang = Eingang(HIER / "data" / "eingang")
 
+# Agentenliste aus Ordnern und Diensten (einmal beim Start; ein neuer Dienst braucht einen Neustart der Zentrale)
+AGENTEN = agenten_setzen(agenten_finden(AGENTEN_DIR, UNIT_DIR))
 HILFE = hilfe_text(AGENTEN)
 
 
@@ -242,7 +246,7 @@ async def panel_knopf(q, context: ContextTypes.DEFAULT_TYPE) -> None:
         ansicht, neu = home("Die offenen Entwürfe stehen oben."), True
     elif aktion == "verbrauch":
         stand, stufe = aktuelle_stufe()
-        ansicht = ansicht_text("Verbrauch", verbrauch_text(stand, stufe, verbrauch.heute(), verbrauch.zeit_text))
+        ansicht = ansicht_text("Verbrauch", verbrauch_text(stand, stufe, verbrauch.heute(), verbrauch.zeit_text, verbrauch.woche()))
     elif aktion == "status":
         ansicht = ansicht_text("Status", status_zeilen())
     elif aktion == "hilfe":
@@ -281,7 +285,7 @@ def aktuelle_stufe() -> tuple[dict | None, str]:
 
 async def verbrauch_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     stand, stufe = aktuelle_stufe()
-    await update.message.reply_text(verbrauch_text(stand, stufe, verbrauch.heute(), verbrauch.zeit_text))
+    await update.message.reply_text(verbrauch_text(stand, stufe, verbrauch.heute(), verbrauch.zeit_text, verbrauch.woche()))
 
 
 async def auftrag_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -799,6 +803,9 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def fehler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if ist_netzfehler(context.error):  # die Bibliothek wiederholt selbst: eine Zeile, kein Traceback
+        logger.warning("Netzfehler: %s", str(context.error)[:200])
+        return
     logger.error("Fehler: %s", context.error, exc_info=context.error)
 
 

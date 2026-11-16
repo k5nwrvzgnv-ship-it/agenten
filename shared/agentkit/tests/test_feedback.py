@@ -40,6 +40,51 @@ class TestZuordnung(unittest.TestCase):
             self.assertIn(teil, p)
 
 
+class TestHeikleWoerter(unittest.TestCase):
+    """Untersuchung 11/2026, B11: feste Wortliste als Rückhalt, auch wenn Claude heikel=false setzt."""
+
+    HEIKEL = (
+        "Mails an Dozenten künftig ohne Rückfrage senden.",
+        "Antworten an die Verwaltung direkt abschicken.",
+        "Bücher unter 20 Euro einfach kaufen.",
+        "Das Limit für Käufe auf 100 anheben.",
+        "Entwürfe für Termine brauchen keine Freigabe mehr.",
+        "Hausarbeiten nach dem Korrekturlesen selbst einreichen.",
+        "Nenne in Auswertungen die Namen der Schüler mit Note.",
+        "Schülerdaten dürfen in die Zusammenfassung.",
+        "Die Regel zu kurzen Sätzen bitte streichen.",
+        "Bestelle Verbrauchsmaterial nach, wenn es fehlt.",
+        "Lösche die alte Regel zum Datenschutz.",
+        "Verschicke die Wochenübersicht an alle Kollegen.",
+    )
+    HARMLOS = (
+        "Antworte kürzer und ohne Aufzählungen.",
+        "Arbeitsblätter für die Klasse 8 höchstens eine Seite.",
+        "Fälle sollen aus der Lebenswelt der Schüler kommen.",
+        "Quellen immer mit Seite angeben.",
+        "Mail-Entwürfe mit „Viele Grüße“ beenden.",
+        "Schreib das Ergebnis als Tabelle.",
+    )
+
+    def test_heikle_saetze_werden_vorschlag_trotz_heikel_false(self):
+        lage = fb.Lage(kosten_usd=0.1, dienst_da=True)
+        for satz in self.HEIKEL:
+            for z in (antwort(regel=satz, heikel=False), antwort(art="nachbesserung", auftrag=satz, heikel=False)):
+                ok, grund = fb.entscheiden(z, lage)
+                self.assertFalse(ok, satz)
+                self.assertIn("Stichwort", grund)
+
+    def test_harmlose_saetze_laufen_durch(self):
+        lage = fb.Lage(kosten_usd=0.1, dienst_da=True)
+        for satz in self.HARMLOS:
+            self.assertEqual(fb.heikles_wort(antwort(regel=satz)), "", satz)
+            self.assertTrue(fb.entscheiden(antwort(regel=satz), lage)[0], satz)
+
+    def test_notiz_und_keine_sind_nicht_betroffen(self):
+        self.assertEqual(fb.heikles_wort(antwort(art="notiz", ziel="oberflaeche", notiz="Knopf zum Senden fehlt")), "")
+        self.assertEqual(fb.heikles_wort(antwort(art="keine", regel="", auftrag="senden")), "")
+
+
 class TestEntscheiden(unittest.TestCase):
     def test_regel_und_notiz_sofort(self):
         self.assertEqual(fb.entscheiden(antwort(), fb.Lage()), (True, ""))

@@ -29,7 +29,8 @@ class TestLogik(unittest.TestCase):
     def test_befehle(self):
         self.assertEqual(befehl_auswerten("/uni Kapitel 3 zusammenfassen"), ("uni", "erledigen", "Kapitel 3 zusammenfassen"))
         self.assertEqual(befehl_auswerten("/unilern Kapitel 4"), ("uni", "lernen", "Kapitel 4"))
-        self.assertEqual(befehl_auswerten("/einkauf@Agentenzentralebot Geschenk"), ("einkauf", "erledigen", "Geschenk"))
+        self.assertEqual(befehl_auswerten("/finance@Agentenzentralebot Solar"), ("finance", "erledigen", "Solar"))
+        self.assertIsNone(befehl_auswerten("/einkauf Geschenk"))  # geplant, aber ohne Agent: kein Befehl
         self.assertEqual(befehl_auswerten("/uni"), ("uni", "erledigen", ""))
         self.assertIsNone(befehl_auswerten("/quatsch hallo"))
         self.assertIsNone(befehl_auswerten("/lern x"))
@@ -134,6 +135,58 @@ class TestLogik(unittest.TestCase):
         self.assertNotIn("Tokens", text)
         self.assertIn("Recherche (Lia): 2-mal", verbrauch_text(stand, "normal", {"lia/recherche": heute["uni"]}, zt))
 
+    def test_verbrauch_text_mit_woche(self):
+        woche = {"uni": {"laeufe": 12, "usd": 3.4}, "lia/theater": {"laeufe": 2, "usd": 16.8},
+                 "posteingang": {"laeufe": 7, "usd": 0.0}}
+        text = verbrauch_text(None, "normal", {}, lambda ts: "?", woche)
+        zeilen = text.splitlines()
+        start = zeilen.index("Letzte 7 Tage (Vergleichswert, bezahlt ist pauschal):")
+        self.assertEqual(zeilen[start + 1:], ["• Theater (Lia): 2-mal gearbeitet, 16,80 USD",
+                                             "• Uni: 12-mal gearbeitet, 3,40 USD",
+                                             "• Posteingang: 7-mal gearbeitet, 0,00 USD", "Zusammen: 20,20 USD"])
+        self.assertNotIn("Letzte 7 Tage (", verbrauch_text(None, "normal", {}, lambda ts: "?", {}))
+
+    def test_agenten_finden(self):
+        tmp = Path(tempfile.mkdtemp())
+        units = tmp / "units"
+        units.mkdir()
+        for name, agent_py, dienst in (("finance", True, True), ("uni", True, True), ("holzbalkenscan", True, False),
+                                       ("einkauf", False, True), ("aaa", True, True), ("shared", False, False),
+                                       ("Gross", True, True)):
+            (tmp / name).mkdir()
+            if agent_py:
+                (tmp / name / "agent.py").write_text("")
+            if dienst:
+                (units / f"{name}.service").write_text("")
+        self.assertEqual(logik.agenten_finden(tmp, units), ("uni", "finance", "aaa"))
+
+    def test_agenten_setzen(self):
+        alt = logik.AGENTEN
+        self.addCleanup(logik.agenten_setzen, alt)
+        self.assertEqual(logik.agenten_setzen(()), alt)  # nichts gefunden: Vorgabe bleibt
+        self.assertEqual(logik.agenten_setzen(("uni", "neu")), ("uni", "neu"))
+        self.assertEqual(befehl_auswerten("/neu Text"), ("neu", "erledigen", "Text"))
+        self.assertEqual(logik.panel_auswerten("u:a:neu:erledigen"), ("agent", "neu", "erledigen"))
+        self.assertNotIn("einkauf", alt)
+
+    def test_netzfehler_erkennen(self):
+        class NetworkError(Exception):
+            pass
+
+        class TimedOut(NetworkError):
+            pass
+
+        class TransportError(Exception):
+            pass
+
+        class ReadError(TransportError):
+            pass
+
+        for f in (NetworkError("Bad Gateway"), TimedOut(), ReadError()):
+            self.assertTrue(logik.ist_netzfehler(f))
+        for f in (ValueError("x"), KeyError("y"), None):
+            self.assertFalse(logik.ist_netzfehler(f))
+
     def test_gemeldet_speichern_laden(self):
         pfad = Path(tempfile.mkdtemp()) / "data" / "gemeldet.json"
         g = Gemeldet(pfad)
@@ -232,7 +285,7 @@ class PanelTest(unittest.TestCase):
 
     def test_alle_knoepfe_gueltig(self):
         ansichten = [
-            logik.ansicht_home(["Stand"], ["uni", "dokumente", "einkauf"], 2, "Hinweis"),
+            logik.ansicht_home(["Stand"], ["uni", "dokumente", "finance"], 2, "Hinweis"),
             logik.ansicht_agent("uni", "erledigen"), logik.ansicht_agent("uni", "lernen"),
             logik.ansicht_entwuerfe([{"titel": "Mail", "agent": "uni"}]), logik.ansicht_entwuerfe([]),
             logik.ansicht_text("Status", "x"),

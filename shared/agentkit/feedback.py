@@ -193,6 +193,33 @@ def zuordnung_lesen(antwort: str, agenten_liste: list[str]) -> dict:
     return z
 
 
+# Rückhalt für "nie automatisch" (CLAUDE.md), unabhängig von Claudes Feld "heikel" (Untersuchung 11/2026, B11):
+# Trifft eines dieser Muster den Text, der übernommen würde (Regel oder Auftrag der Nachbesserung), wird es ein
+# Vorschlag an Jan. Lieber einmal zu oft fragen; Notizen sind nicht betroffen (sie ändern kein Verhalten).
+HEIKLE_MUSTER = tuple(re.compile(m, re.IGNORECASE) for m in (
+    r"\b\w*(send|schick|sand)\w*",  # senden, absenden, verschicken, schick, versandt
+    r"\b(abgeben|einreichen|hochladen|posten|veröffentlich\w*|antworte\w* (an|dem|der)\b)",
+    r"\b(\w*kauf\w*|bestell\w*|bezahl\w*|buch(e|en|t|st)\b)",
+    r"\beuro\b|€|\blimit\w*|\bobergrenze\w*",
+    r"\bfreigabe\w*|\bfreigeb\w*|\bfreigegeben\w*|\bfreizugeben",
+    r"\bohne (\w+ )?(okay|ok|rückfrage|nachfrage|nachfragen|zustimmung|erlaubnis|bestätigung)\b",
+    r"schülerdaten|datenschutz|klarnam\w*|schülernam\w*|personenbezog\w*",
+    r"\bnamen? (der|von|einzelner|einer|eines) (schüler\w*|kind\w*)",
+    r"\b(noten|zensuren) (der|von|einzelner)\b",
+    r"\bregel\b.{0,60}\b(löschen|streichen|aufheben|ändern|ersetzen|entfernen|vergessen)\b",
+    r"\b(lösch|streich|entfern|vergiss|ignorier)\w* .{0,40}\bregel",
+))
+
+
+def heikles_wort(z: dict) -> str:
+    """Das erste Stichwort aus HEIKLE_MUSTER im Text, der übernommen würde, sonst ""."""
+    text = {"regel": z.get("regel", ""), "nachbesserung": z.get("auftrag", "")}.get(z.get("art"), "")
+    for muster in HEIKLE_MUSTER:
+        if treffer := muster.search(text):
+            return treffer.group(0).strip()
+    return ""
+
+
 @dataclass
 class Lage:
     """Was entscheiden() über die Umgebung wissen muss (der Dienst ermittelt es)."""
@@ -206,6 +233,8 @@ def entscheiden(z: dict, lage: Lage) -> tuple[bool, str]:
     """(übernehmen, Grund für einen Vorschlag an Jan). CLAUDE.md: was nie automatisch geht."""
     if z["heikel"]:
         return False, z["heikel_grund"] or "es berührt etwas, das ich nie von selbst übernehme"
+    if wort := heikles_wort(z):
+        return False, f"es berührt etwas, das ich nie von selbst übernehme (Stichwort „{kurz(wort, 40)}“)"
     if z["art"] == "regel" and z["widerspricht"]:
         return False, f"es widerspricht dem, was schon gilt: „{kurz(z['widerspricht'], 200)}“"
     if z["art"] == "nachbesserung":

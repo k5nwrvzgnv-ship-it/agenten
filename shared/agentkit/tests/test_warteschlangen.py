@@ -462,3 +462,63 @@ class TestWeitergabe(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestKaputteDatei(unittest.TestCase):
+    """Untersuchung 11/2026, B21: Eine unlesbare Datei hält die Warteschlange nicht an."""
+
+    def setUp(self):
+        self.instanz = Path(tempfile.mkdtemp())
+        self.basis = self.instanz / "freigabe"
+
+    def test_uebrige_kommen_an_und_es_wird_einmal_gemeldet(self):
+        e1 = freigabe.neuer_entwurf("uni", "Eins", "x", basis=self.basis)
+        kaputt = self.basis / "offen" / "20261116-120000-uni-abcdef.json"
+        kaputt.write_text("{halb geschrie", encoding="utf-8")
+        (self.basis / "offen" / "20261116-120001-uni-abcde0.json").write_text("[1, 2]", encoding="utf-8")
+        (self.basis / "offen" / "20261116-120002-uni-abcde1.json").write_bytes(b"\xff\xfe kein utf-8")
+        e2 = freigabe.neuer_entwurf("uni", "Zwei", "y", basis=self.basis)
+        with self.assertLogs("agentkit.ablage", level="ERROR"):
+            self.assertEqual({e["id"] for e in freigabe.offene(basis=self.basis)}, {e1, e2})
+        self.assertEqual({e["id"] for e in freigabe.offene(basis=self.basis)}, {e1, e2})  # zweites Mal: still
+        self.assertFalse(kaputt.exists())
+        self.assertEqual(len(list((self.basis / "offen" / "kaputt").iterdir())), 3)
+        self.assertEqual((self.basis / "offen" / "kaputt" / kaputt.name).read_text(), "{halb geschrie")
+        gemeldet = [json.loads(d.read_text()) for d in (self.instanz / "meldungen" / "neu").glob("*.json")]
+        self.assertEqual(len(gemeldet), 3)  # je Datei genau eine Meldung, auch nach dem zweiten Lesen
+        self.assertTrue(all(m["agent"] == "zentrale" and "freigabe/offen" in m["text"] for m in gemeldet))
+        self.assertIn(kaputt.name, " ".join(m["text"] for m in gemeldet))
+        self.assertNotIn("halb geschrie", " ".join(m["text"] for m in gemeldet))  # kein Inhalt in der Meldung
+
+    def test_meldung_ist_fuer_die_zentrale_lesbar(self):
+        from agentkit import meldungen
+        (self.basis / "offen").mkdir(parents=True)
+        (self.basis / "offen" / "20261116-120000-uni-abcdef.json").write_text("kaputt")
+        with self.assertLogs("agentkit.ablage", level="ERROR"):
+            freigabe.offene(basis=self.basis)
+        m = meldungen.neue(basis=self.instanz / "meldungen")
+        self.assertEqual(len(m), 1)
+        meldungen.als_gesendet(m[0]["id"], basis=self.instanz / "meldungen")
+
+    def test_auftraege_laufen_weiter(self):
+        basis = self.instanz / "auftraege"
+        a1 = auftraege.neuer_auftrag("uni", "x", basis=basis)
+        (basis / "neu" / "20261116-120000-uni-abcdef.json").write_text("")
+        with self.assertLogs("agentkit.ablage", level="ERROR"):
+            self.assertEqual([a["id"] for a in auftraege.neue("uni", basis=basis)], [a1])
+
+    def test_verschwundene_datei_wird_uebersprungen(self):
+        from unittest import mock
+        from agentkit import _ablage
+        e1 = freigabe.neuer_entwurf("uni", "Eins", "x", basis=self.basis)
+        echt = _ablage.lies
+
+        def lies(pfad):
+            if pfad.name.startswith("weg"):
+                raise FileNotFoundError(pfad)
+            return echt(pfad)
+        (self.basis / "offen" / "weg.json").write_text("{}")
+        with mock.patch.object(_ablage, "lies", lies):
+            self.assertEqual([e["id"] for e in freigabe.offene(basis=self.basis)], [e1])
+        self.assertFalse((self.basis / "offen" / "kaputt").exists())
+        self.assertFalse((self.instanz / "meldungen").exists())

@@ -98,7 +98,15 @@ def heute(datei: Path | None = None) -> dict[str, dict]:
 
     Läufe anderer Instanzen stehen als <instanz>/<agent> (z. B. lia/unterricht).
     """
-    beginn = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    return seit(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp(), datei)
+
+
+def woche(datei: Path | None = None, jetzt: float | None = None) -> dict[str, dict]:
+    """Wie heute(), für die letzten 7 Tage."""
+    return seit((jetzt or time.time()) - 7 * 86400, datei)
+
+
+def seit(beginn: float, datei: Path | None = None) -> dict[str, dict]:
     summe: dict[str, dict] = {}
     for e in _eintraege(datei):
         if e.get("zeit", 0) < beginn:
@@ -108,7 +116,7 @@ def heute(datei: Path | None = None) -> dict[str, dict]:
         s["laeufe"] += 1
         s["tokens"] += e.get("tokens", 0)
         s["minuten"] += e.get("dauer_s", 0) / 60
-        s["usd"] += e.get("usd", 0)
+        s["usd"] += e.get("usd") or 0
         s["fehler"] += 0 if e.get("ok") else 1
     return summe
 

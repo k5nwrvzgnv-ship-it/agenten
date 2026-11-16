@@ -46,7 +46,7 @@ from telegram.ext import (
 
 from agentkit import auftraege, config, log, meldungen, sprache
 from agentkit._ablage import AblageFehler, anhaenge_pruefen
-from logik import BESCHRIFTUNG_MAX, MAX_DATEI_BYTES, Eingang, Gemeldet
+from logik import BESCHRIFTUNG_MAX, MAX_DATEI_BYTES, Eingang, Gemeldet, ist_netzfehler
 import panel as panel_
 import portal_logik as p
 import sprachpruefung
@@ -390,6 +390,9 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def fehler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if ist_netzfehler(context.error):  # die Bibliothek wiederholt selbst: eine Zeile, kein Traceback
+        logger.warning("Netzfehler: %s", str(context.error)[:200])
+        return
     logger.error("Fehler: %s", context.error, exc_info=context.error)
 
 

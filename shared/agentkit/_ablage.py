@@ -7,6 +7,7 @@ abgeschlossen werden.
 """
 
 import json
+import logging
 import os
 import re
 import secrets
@@ -16,6 +17,8 @@ from pathlib import Path
 ID_MUSTER = re.compile(r"^\d{8}-\d{6}-[a-z]+-[0-9a-f]{6}$")
 AGENT_MUSTER = re.compile(r"^[a-z]+$")
 MAX_ANHANG_BYTES = 50 * 1024 * 1024  # mehr nimmt die Bot-Schnittstelle von Telegram nicht an
+MELDER = "zentrale"  # Absender der Meldung über einen unlesbaren Eintrag (Systemnachricht)
+logger = logging.getLogger("agentkit.ablage")
 
 
 class AblageFehler(Exception):
@@ -69,13 +72,54 @@ def lies(pfad: Path) -> dict:
 
 
 def liste(verzeichnis: Path, agent: str | None = None) -> list[dict]:
-    """Alle Einträge eines Ordners, älteste zuerst, optional nur für einen Agenten."""
+    """Alle Einträge eines Ordners, älteste zuerst, optional nur für einen Agenten.
+
+    Eine unlesbare Datei hält die Warteschlange nicht an: Sie wird nach kaputt/ gelegt und einmal gemeldet
+    (siehe beiseitelegen). Eine Datei, die zwischen Auflisten und Lesen verschoben wurde, zählt nicht mehr.
+    """
     eintraege = []
     for pfad in sorted(verzeichnis.glob("*.json")):
-        daten = lies(pfad)
+        try:
+            daten = lies(pfad)
+            if not isinstance(daten, dict):
+                raise ValueError("kein JSON-Objekt")
+        except FileNotFoundError:
+            continue  # gerade von einem anderen Prozess abgeschlossen
+        except (ValueError, OSError) as f:  # JSONDecodeError und UnicodeDecodeError sind ValueError
+            beiseitelegen(pfad, f)
+            continue
         if agent is None or daten.get("agent") == agent:
             eintraege.append(daten)
     return eintraege
+
+
+def beiseitelegen(pfad: Path, grund: Exception) -> None:
+    """Unlesbaren Eintrag nach <ordner>/kaputt/ verschieben und Jan einmal melden (nur Dateiname, kein Inhalt).
+
+    Das Verschieben klappt nur einmal, darum gibt es auch nur eine Meldung. Die Meldung geht in die Meldungen
+    derselben Instanz (<instanz>/meldungen neben <instanz>/<warteschlange>/<ordner>).
+    """
+    ziel = pfad.parent / "kaputt"
+    try:
+        ziel.mkdir(exist_ok=True)
+        os.rename(pfad, ziel / pfad.name)
+    except FileNotFoundError:
+        return  # ein anderer Prozess war schneller und meldet
+    except OSError as f:
+        logger.error("Unlesbarer Eintrag %s ließ sich nicht beiseitelegen: %s", pfad, f)
+        return
+    logger.error("Unlesbarer Eintrag %s nach kaputt/ gelegt: %s", pfad, grund)
+    schlange = f"{pfad.parent.parent.name}/{pfad.parent.name}"
+    try:
+        eintrag_id = neue_id(MELDER)
+        schreibe(ordner(pfad.parent.parent.parent / "meldungen", "neu") / f"{eintrag_id}.json", {
+            "id": eintrag_id, "agent": MELDER,
+            "text": f"In der Warteschlange {schlange} lag ein Eintrag, den ich nicht lesen konnte. Ich habe ihn "
+                    f"beiseitegelegt, alles andere läuft weiter. Die Datei {pfad.name} liegt am PC im Ordner kaputt.",
+            "dateien": [], "knoepfe": [], "dienst": None, "erstellt": jetzt(), "gesendet": None,
+        })
+    except OSError as f:
+        logger.error("Meldung zum unlesbaren Eintrag %s nicht angelegt: %s", pfad.name, f)
 
 
 def abschliessen(von: Path, nach: Path, eintrag_id: str, aenderungen: dict) -> dict:
