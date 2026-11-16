@@ -1,6 +1,8 @@
 Entwürfe
 
 • Mail: Test Uni-Agent: Mailversand nach Freigabe (Uni)
+
+Tipp einen Entwurf an, dann zeige ich ihn mit Knöpfen.
 --- Knöpfe ---
-[Alle mit Knöpfen anzeigen] u:zeigen
+[Mail: Test Uni-Agent: Mailversand nach…] u:e:20261024-003432-uni-e88e8a
 [« Zurück] u:home

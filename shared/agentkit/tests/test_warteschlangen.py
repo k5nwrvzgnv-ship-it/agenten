@@ -522,3 +522,82 @@ class TestKaputteDatei(unittest.TestCase):
             self.assertEqual([e["id"] for e in freigabe.offene(basis=self.basis)], [e1])
         self.assertFalse((self.basis / "offen" / "kaputt").exists())
         self.assertFalse((self.instanz / "meldungen").exists())
+
+
+class TestVerfall(unittest.TestCase):
+    """Untersuchung 11/2026, B5: Offene Entwürfe laufen nach 7 Tagen ab und werden dann nie mehr ausgeführt."""
+
+    def setUp(self):
+        self.basis = Path(tempfile.mkdtemp()) / "freigabe"
+
+    def entwurf(self, tage_alt: float, agent="uni") -> str:
+        from datetime import datetime, timedelta
+        eid = freigabe.neuer_entwurf(agent, "Mail an Prof", "Hallo", typ="mail", daten={"an": "p@example.org"},
+                                     basis=self.basis)
+        pfad = self.basis / "offen" / f"{eid}.json"
+        daten = json.loads(pfad.read_text())
+        daten["erstellt"] = (datetime.now().astimezone() - timedelta(days=tage_alt)).isoformat(timespec="seconds")
+        pfad.write_text(json.dumps(daten))  # erstellt gehört nicht zum Fingerabdruck
+        return eid
+
+    def test_nur_alte_laufen_ab(self):
+        alt, grenze, jung = self.entwurf(7.01), self.entwurf(6.99), self.entwurf(0)
+        abgelaufen = freigabe.verfallen_lassen(basis=self.basis)
+        self.assertEqual([e["id"] for e in abgelaufen], [alt])
+        self.assertEqual(abgelaufen[0]["status"], "abgelaufen")
+        self.assertIn("7 Tagen", abgelaufen[0]["kommentar"])
+        self.assertEqual({e["id"] for e in freigabe.offene(basis=self.basis)}, {grenze, jung})
+        self.assertEqual([e["id"] for e in freigabe.abgelaufene(basis=self.basis)], [alt])
+        self.assertEqual(freigabe.verfallen_lassen(basis=self.basis), [])  # zweiter Aufruf: nichts mehr
+
+    def test_abgelaufen_wird_nie_ausgefuehrt(self):
+        eid = self.entwurf(8)
+        gesehen = freigabe.offene(basis=self.basis)[0]["fingerabdruck"]  # Jan hat ihn gesehen, der Knopf ist noch da
+        freigabe.verfallen_lassen(basis=self.basis)
+        self.assertEqual(freigabe.zur_ausfuehrung(basis=self.basis), [])
+        with self.assertRaisesRegex(freigabe.FreigabeFehler, "nicht freigegeben"):
+            freigabe.ausfuehrung_beginnen(eid, basis=self.basis)
+        for status, kommentar in (("freigegeben", ""), ("abgelehnt", ""), ("aendern", "kürzer")):
+            with self.assertRaisesRegex(freigabe.FreigabeFehler, "nicht \\(mehr\\) offen"):
+                freigabe.entscheide(eid, status, kommentar, gesehen=gesehen, basis=self.basis)
+        self.assertEqual(freigabe.erledigte(basis=self.basis)[0]["status"], "abgelaufen")
+        self.assertFalse((self.basis / "erledigt" / f"{eid}.ausfuehrung").exists())
+
+    def test_abgelaufen_ist_keine_entscheidung(self):
+        eid = self.entwurf(0)
+        with self.assertRaisesRegex(freigabe.FreigabeFehler, "Unbekannte Entscheidung"):
+            freigabe.entscheide(eid, "abgelaufen", basis=self.basis)
+        self.assertNotIn(freigabe.ABGELAUFEN, freigabe.ENTSCHEIDUNGEN)
+
+    def test_freigegebene_und_entschiedene_bleiben(self):
+        eid = self.entwurf(3)
+        freigeben(eid, self.basis)
+        pfad = self.basis / "erledigt" / f"{eid}.json"
+        daten = json.loads(pfad.read_text())
+        daten["erstellt"] = "2026-01-01T00:00:00+01:00"  # uralt, aber schon freigegeben
+        pfad.write_text(json.dumps(daten))
+        self.assertEqual(freigabe.verfallen_lassen(basis=self.basis), [])
+        self.assertEqual([e["id"] for e in freigabe.zur_ausfuehrung(basis=self.basis)], [eid])
+
+    def test_alter_und_kaputtes_datum(self):
+        from datetime import datetime, timedelta
+        jetzt = datetime(2026, 11, 16, 12, 0).astimezone()
+        e = {"id": "x", "erstellt": (jetzt - timedelta(hours=30)).isoformat()}
+        self.assertAlmostEqual(freigabe.alter_stunden(e, jetzt), 30.0)
+        self.assertAlmostEqual(freigabe.alter_stunden({"id": "x", "erstellt": "2026-11-16T06:00:00"}, jetzt), 6.0)
+        for kaputt in ({"id": "x"}, {"id": "x", "erstellt": None}, {"id": "x", "erstellt": "gestern"}):
+            with self.assertLogs("agentkit.freigabe", level="WARNING"):
+                self.assertEqual(freigabe.alter_stunden(kaputt, jetzt), 0.0)
+
+    def test_ohne_datum_verfaellt_nichts(self):
+        eid = self.entwurf(0)
+        pfad = self.basis / "offen" / f"{eid}.json"
+        daten = json.loads(pfad.read_text())
+        del daten["erstellt"]
+        pfad.write_text(json.dumps(daten))
+        with self.assertLogs("agentkit.freigabe", level="WARNING"):
+            self.assertEqual(freigabe.verfallen_lassen(basis=self.basis), [])
+
+    def test_frist_einstellbar_und_ereignis(self):
+        eid = self.entwurf(2)
+        self.assertEqual([e["id"] for e in freigabe.verfallen_lassen(basis=self.basis, tage=1)], [eid])

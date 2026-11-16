@@ -110,14 +110,53 @@ def freigabe_antwort(entscheidung: str, agent: str) -> str:
     return "Was soll anders werden? Schreib es als nächste Nachricht."
 
 
-def freigabe_fehler(grund: str) -> str:
+def freigabe_fehler(grund: str, abgelaufen: bool = False) -> str:
     """Antwort auf einen Knopf, der nicht mehr geht (Grund aus agentkit.freigabe, steht nur im Log)."""
     if "weicht von der Anzeige ab" in grund:
         return ("Der Entwurf wurde nach der Anzeige geändert. Ich habe nichts freigegeben. "
                 "Im Menü unter Entwürfe kannst du ihn neu anzeigen lassen.")
     if "nicht (mehr) offen" in grund:
+        if abgelaufen:
+            return ("Dieser Entwurf ist abgelaufen, weil er zu lange offen war. Ich habe nichts ausgeführt. "
+                    "Brauchst du ihn noch, gib den Auftrag neu.")
         return "Über diesen Entwurf ist schon entschieden."
     return "Das ging nicht. Einzelheiten stehen am PC."
+
+
+def tage_text(stunden: float) -> str:
+    tage = int(stunden // 24)
+    return "seit heute" if tage < 1 else "seit gestern" if tage == 1 else f"seit {tage} Tagen"
+
+
+def verfall_text(abgelaufene: list[dict], tage: int) -> str:
+    """Kurze Meldung, wenn Entwürfe abgelaufen sind (ohne Inhalt, nur Titel)."""
+    if len(abgelaufene) == 1:
+        e = abgelaufene[0]
+        kopf = f"Ein Entwurf ist abgelaufen, weil er {tage} Tage offen war: {e['titel']} ({anzeigename(e['agent'])})."
+    else:
+        kopf = "\n".join([f"{len(abgelaufene)} Entwürfe sind abgelaufen, weil sie {tage} Tage offen waren:",
+                          *[f"• {e['titel']} ({anzeigename(e['agent'])})" for e in abgelaufene]])
+    return kopf + "\nIch habe nichts ausgeführt. Brauchst du etwas davon noch, gib den Auftrag neu."
+
+
+ERINNERUNG_AB_UHR = 9  # nicht nachts
+ERINNERUNG_AB_STUNDEN = 24
+
+
+def erinnerung_text(alter: list[float], jetzt: datetime, zuletzt: str, verfall_tage: int) -> str | None:
+    """Einmal am Tag eine Zeile, wenn Entwürfe länger als einen Tag offen sind. alter: Stunden je offenem Entwurf,
+    zuletzt: Tag der letzten Erinnerung (JJJJ-MM-TT oder ""). None: heute nichts (mehr) zu sagen."""
+    alt = [a for a in alter if a >= ERINNERUNG_AB_STUNDEN]
+    if not alt or jetzt.hour < ERINNERUNG_AB_UHR or zuletzt == jetzt.date().isoformat():
+        return None
+    rest = max(0, int((verfall_tage * 24 - max(alt)) // 24))
+    wann = "heute" if rest < 1 else "morgen" if rest == 1 else f"in {rest} Tagen"
+    if len(alt) == 1:
+        return f"Ein Entwurf wartet {tage_text(alt[0])} auf deine Entscheidung. Er läuft {wann} ab."
+    return f"{len(alt)} Entwürfe warten auf deine Entscheidung. Der älteste läuft {wann} ab."
+
+
+ERINNERUNG_KNOEPFE = [[("Entwürfe ansehen", "u:entwuerfe")]]
 
 
 def aenderung_weiter(agent: str, dateien: int) -> str:
@@ -544,7 +583,7 @@ class Gemeldet:
     listen["weitergaben"]: Aufträge von Agent an Agent, die Jan schon gemeldet wurden.
     """
 
-    LISTEN = ("ausgefuehrt", "unklar", "auftraege", "am_pc", "geklickt", "weitergaben")
+    LISTEN = ("ausgefuehrt", "unklar", "auftraege", "am_pc", "geklickt", "weitergaben", "abgelaufen")
     MAX_GEKLICKT = 500
     MAX_NACHRICHTEN = 500  # ältere Meldungen kann Jan nicht mehr per Antwort fortsetzen
 
@@ -555,6 +594,7 @@ class Gemeldet:
         self.nachrichten: dict[str, str] = daten.get("nachrichten", {})
         self.listen: dict[str, set[str]] = {n: set(daten.get(n, [])) for n in self.LISTEN}
         self.stufe: str = daten.get("stufe", "normal")
+        self.erinnert: str = daten.get("erinnert", "")  # Tag der letzten Erinnerung an offene Entwürfe
 
     def nachricht_merken(self, nachricht_id: int, auftrag_id: str) -> None:
         self.nachrichten[str(nachricht_id)] = auftrag_id
@@ -577,6 +617,7 @@ class Gemeldet:
     def speichern(self) -> None:
         self.pfad.parent.mkdir(parents=True, exist_ok=True)
         daten = {"angezeigt": self.angezeigt, "nachrichten": self.nachrichten, "stufe": self.stufe,
+                 "erinnert": self.erinnert,
                  **{n: sorted(v) for n, v in self.listen.items()}}
         tmp = self.pfad.with_suffix(".tmp")
         tmp.write_text(json.dumps(daten, indent=2), encoding="utf-8")
@@ -644,7 +685,8 @@ ZURUECK = [[("« Zurück", PANEL + "home")]]
 
 
 def panel_auswerten(daten: str) -> tuple[str, str | None, str | None] | None:
-    """'u:status' -> ('status', None, None), 'u:a:uni:lernen' -> ('agent', 'uni', 'lernen'), sonst None."""
+    """'u:status' -> ('status', None, None), 'u:a:uni:lernen' -> ('agent', 'uni', 'lernen'),
+    'u:e:<Entwurfs-ID>' -> ('entwurf', ID, None), sonst None."""
     if not daten.startswith(PANEL):
         return None
     wert = daten[len(PANEL):]
@@ -653,6 +695,9 @@ def panel_auswerten(daten: str) -> tuple[str, str | None, str | None] | None:
     m = re.fullmatch(r"a:([a-z]+):(erledigen|lernen)", wert)
     if m and m.group(1) in AGENTEN:
         return "agent", m.group(1), m.group(2)
+    m = re.fullmatch(r"e:(\d{8}-\d{6}-[a-z]+-[0-9a-f]{6})", wert)  # ein Entwurf aus der Liste (ID wie agentkit)
+    if m:
+        return "entwurf", m.group(1), None
     return None
 
 
@@ -676,11 +721,29 @@ def ansicht_agent(agent: str, modus: str) -> tuple[str, list]:
     return text, [[(f"Modus wechseln: {anders}", f"{PANEL}a:{agent}:{anders}")], *ZURUECK]
 
 
-def ansicht_entwuerfe(offene: list[dict]) -> tuple[str, list]:
+MAX_ENTWURF_KNOEPFE = 10
+
+
+def ansicht_entwuerfe(offene: list[dict], alter: dict[str, float] | None = None) -> tuple[str, list]:
+    """Liste der offenen Entwürfe, jeder einzeln antippbar (zeigt ihn mit Freigeben, Ändern, Ablehnen).
+    alter: Stunden je Entwurfs-ID, dann steht dabei, seit wann er wartet."""
     if not offene:
         return "Entwürfe\n\nKeine offenen Entwürfe.", ZURUECK
-    zeilen = ["Entwürfe", ""] + [f"• {e['titel']} ({anzeigename(e['agent'])})" for e in offene]
-    return "\n".join(zeilen), [[("Alle mit Knöpfen anzeigen", PANEL + "zeigen")], *ZURUECK]
+    alter = alter or {}
+    zeilen = ["Entwürfe", ""]
+    knoepfe = []
+    for e in offene:
+        seit = f", {tage_text(alter[e['id']])}" if e.get("id") in alter else ""
+        zeilen.append(f"• {e['titel']} ({anzeigename(e['agent'])}{seit})")
+        if e.get("id") and len(knoepfe) < MAX_ENTWURF_KNOEPFE:
+            knoepfe.append([(_knopf_kurz(e["titel"]), f"{PANEL}e:{e['id']}")])
+    zeilen += ["", "Tipp einen Entwurf an, dann zeige ich ihn mit Knöpfen."]
+    return "\n".join(zeilen), [*knoepfe, *ZURUECK]
+
+
+def _knopf_kurz(titel: str, laenge: int = 40) -> str:
+    titel = " ".join(titel.split())
+    return titel if len(titel) <= laenge else titel[: laenge - 1].rstrip() + "…"
 
 
 def ansicht_text(titel: str, text: str) -> tuple[str, list]:

@@ -1,6 +1,7 @@
 import re
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 import logik
@@ -186,6 +187,60 @@ class TestLogik(unittest.TestCase):
             self.assertTrue(logik.ist_netzfehler(f))
         for f in (ValueError("x"), KeyError("y"), None):
             self.assertFalse(logik.ist_netzfehler(f))
+
+    def test_verfall_text(self):
+        eins = [{"titel": "Mail: Rückfrage", "agent": "uni"}]
+        text = logik.verfall_text(eins, 7)
+        self.assertIn("Ein Entwurf ist abgelaufen, weil er 7 Tage offen war: Mail: Rückfrage (Uni).", text)
+        self.assertIn("Ich habe nichts ausgeführt.", text)
+        zwei = logik.verfall_text(eins + [{"titel": "Mail: Termin", "agent": "posteingang"}], 7)
+        self.assertIn("2 Entwürfe sind abgelaufen", zwei)
+        self.assertIn("• Mail: Termin (Posteingang)", zwei)
+
+    def test_erinnerung_einmal_am_tag_und_nicht_nachts(self):
+        tag = datetime(2026, 11, 16, 10, 0)
+        self.assertIsNone(logik.erinnerung_text([], tag, "", 7))
+        self.assertIsNone(logik.erinnerung_text([2.0, 23.9], tag, "", 7))  # nichts älter als ein Tag
+        self.assertEqual(logik.erinnerung_text([30.0, 1.0], tag, "", 7),
+                         "Ein Entwurf wartet seit gestern auf deine Entscheidung. Er läuft in 5 Tagen ab.")
+        self.assertEqual(logik.erinnerung_text([30.0, 150.0], tag, "2026-11-15", 7),
+                         "2 Entwürfe warten auf deine Entscheidung. Der älteste läuft heute ab.")
+        self.assertIn("morgen", logik.erinnerung_text([130.0], tag, "", 7))
+        self.assertIsNone(logik.erinnerung_text([30.0], tag, "2026-11-16", 7))  # heute schon erinnert
+        self.assertIsNone(logik.erinnerung_text([30.0], datetime(2026, 11, 16, 3, 0), "", 7))  # nachts nicht
+        self.assertIsNotNone(logik.panel_auswerten(logik.ERINNERUNG_KNOEPFE[0][0][1]))
+
+    def test_freigabe_fehler_abgelaufen(self):
+        self.assertIn("schon entschieden", logik.freigabe_fehler("x ist nicht (mehr) offen"))
+        text = logik.freigabe_fehler("x ist nicht (mehr) offen", abgelaufen=True)
+        self.assertIn("abgelaufen", text)
+        self.assertIn("nichts ausgeführt", text)
+
+    def test_entwuerfe_einzeln_antippbar(self):
+        eid1, eid2 = "20261027-101500-uni-abcdef", "20261113-090000-posteingang-012345"
+        offene = [{"id": eid1, "titel": "Mail: " + "sehr langer Titel " * 5, "agent": "uni"},
+                  {"id": eid2, "titel": "Mail: Termin", "agent": "posteingang"}]
+        text, knoepfe = logik.ansicht_entwuerfe(offene, {eid1: 20 * 24.0, eid2: 5.0})
+        self.assertIn("(Uni, seit 20 Tagen)", text)
+        self.assertIn("(Posteingang, seit heute)", text)
+        self.assertEqual([k[0][1] for k in knoepfe], [f"u:e:{eid1}", f"u:e:{eid2}", "u:home"])
+        self.assertLessEqual(len(knoepfe[0][0][0]), 40)
+        self.assertTrue(all(len(d.encode()) <= 64 for zeile in knoepfe for _, d in zeile))
+        self.assertEqual(logik.panel_auswerten(f"u:e:{eid1}"), ("entwurf", eid1, None))
+        self.assertIsNone(logik.panel_auswerten("u:e:../../etc"))
+        self.assertNotIn("Alle mit Knöpfen", str(knoepfe))
+        viele = [{"id": f"20261027-1015{i:02d}-uni-abcdef", "titel": f"T{i}", "agent": "uni"} for i in range(14)]
+        self.assertEqual(len(logik.ansicht_entwuerfe(viele)[1]), logik.MAX_ENTWURF_KNOEPFE + 1)
+
+    def test_gemeldet_merkt_erinnerung_und_abgelaufene(self):
+        pfad = Path(tempfile.mkdtemp()) / "data" / "gemeldet.json"
+        g = Gemeldet(pfad)
+        self.assertEqual((g.erinnert, g.listen["abgelaufen"]), ("", set()))
+        g.erinnert = "2026-11-16"
+        g.listen["abgelaufen"].add("e1")
+        g.speichern()
+        g2 = Gemeldet(pfad)
+        self.assertEqual((g2.erinnert, g2.listen["abgelaufen"]), ("2026-11-16", {"e1"}))
 
     def test_gemeldet_speichern_laden(self):
         pfad = Path(tempfile.mkdtemp()) / "data" / "gemeldet.json"

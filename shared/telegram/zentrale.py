@@ -56,6 +56,8 @@ from agentkit import auftraege, config, einstellungen, freigabe, log, meldungen,
 from agentkit._ablage import AblageFehler, anhaenge_pruefen, pruefe_dienst
 from logik import (
     AN_WEN,
+    ERINNERUNG_KNOEPFE,
+    ZENTRALE,
     agenten_finden,
     agenten_setzen,
     ist_netzfehler,
@@ -84,6 +86,7 @@ from logik import (
     dateien_warten,
     datei_nicht_gesendet,
     entwurf_als_text,
+    erinnerung_text,
     freigabe_antwort,
     freigabe_fehler,
     hilfe_text,
@@ -99,6 +102,7 @@ from logik import (
     stufe_text,
     unklar_text,
     verbrauch_text,
+    verfall_text,
     weitergabe_beachten,
     weitergabe_text,
 )
@@ -218,6 +222,10 @@ def home(hinweis: str = "") -> tuple[str, list]:
     return ansicht_home(zeilen, agenten_mit_dienst(), entwuerfe, hinweis)
 
 
+def ist_abgelaufen(eid: str) -> bool:
+    return any(e["id"] == eid for e in freigabe.abgelaufene())
+
+
 async def panel_zeigen(bot, chat_data: dict, ansicht: tuple[str, list], neu: bool = False) -> None:
     await panel.zeigen(bot, JAN, chat_data, *ansicht, neu=neu)
 
@@ -238,7 +246,16 @@ async def panel_knopf(q, context: ContextTypes.DEFAULT_TYPE) -> None:
         z["panel_agent"] = (agent, modus)  # die nächste Nachricht ist der Auftrag
         ansicht = ansicht_agent(agent, modus)
     elif aktion == "entwuerfe":
-        ansicht = ansicht_entwuerfe(freigabe.offene())
+        offene = freigabe.offene()
+        ansicht = ansicht_entwuerfe(offene, {e["id"]: freigabe.alter_stunden(e) for e in offene})
+    elif aktion == "entwurf":  # ein Entwurf aus der Liste: mit Knöpfen zeigen
+        e = next((e for e in freigabe.offene() if e["id"] == agent), None)
+        if e is None:
+            ansicht = home(freigabe_fehler("nicht (mehr) offen", abgelaufen=ist_abgelaufen(agent)))
+        else:
+            await entwurf_zeigen(context.bot, e)
+            gemeldet.speichern()
+            ansicht, neu = home("Der Entwurf steht oben."), True
     elif aktion == "zeigen":
         for e in freigabe.offene():
             await entwurf_zeigen(context.bot, e)
@@ -471,7 +488,7 @@ async def aenderung_eintragen(update: Update, eid: str, kommentar: str) -> None:
         entwurf = freigabe.entscheide(eid, "aendern", kommentar)
     except freigabe.FreigabeFehler as e:
         logger.warning("Änderung für %s: %s", eid, e)
-        await update.message.reply_text(freigabe_fehler(str(e)))
+        await update.message.reply_text(freigabe_fehler(str(e), abgelaufen=ist_abgelaufen(eid)))
         return
     dateien = eingang.wartende()
     auftraege.neuer_auftrag(entwurf["agent"], kommentar, quelle="telegram-aendern", bezug=eid, dateien=dateien)
@@ -665,7 +682,7 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.warning("Knopf %s für %s: %s", art, eid, e)
         await q.answer()
         await q.edit_message_reply_markup(None)
-        await q.message.reply_text(freigabe_fehler(str(e)))
+        await q.message.reply_text(freigabe_fehler(str(e), abgelaufen=ist_abgelaufen(eid)))
         return
     logger.info("Entwurf %s: %s", eid, antwort)
     await q.answer()
@@ -731,10 +748,30 @@ async def entwurf_zeigen(bot, e: dict) -> None:
 async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
     geaendert = False
 
-    for e in freigabe.offene():
+    # Verfall zuerst: Was abgelaufen ist, wird nicht mehr gezeigt und nie ausgeführt. Gemeldet wird aus erledigt/
+    # (nicht aus dem Rückgabewert), damit die Meldung nach einem Netzfehler in der nächsten Runde nachkommt.
+    freigabe.verfallen_lassen()
+    neu_abgelaufen = [e for e in freigabe.abgelaufene() if e["id"] not in gemeldet.listen["abgelaufen"]]
+    if neu_abgelaufen:
+        await senden(context, mit_absender(ZENTRALE, verfall_text(neu_abgelaufen, freigabe.VERFALL_TAGE)))
+        for e in neu_abgelaufen:
+            gemeldet.listen["abgelaufen"].add(e["id"])
+            gemeldet.angezeigt.pop(e["id"], None)
+        geaendert = True
+
+    offene = freigabe.offene()
+    for e in offene:
         if e["id"] in gemeldet.angezeigt:
             continue
         await entwurf_zeigen(context.bot, e)
+        geaendert = True
+
+    jetzt = datetime.now().astimezone()
+    if text := erinnerung_text([freigabe.alter_stunden(e, jetzt) for e in offene], jetzt, gemeldet.erinnert,
+                               freigabe.VERFALL_TAGE):
+        await senden(context, mit_absender(ZENTRALE, text), knoepfe=InlineKeyboardMarkup(
+            [[InlineKeyboardButton(b, callback_data=d) for b, d in zeile] for zeile in ERINNERUNG_KNOEPFE]))
+        gemeldet.erinnert = jetzt.date().isoformat()
         geaendert = True
 
     for e in freigabe.erledigte():

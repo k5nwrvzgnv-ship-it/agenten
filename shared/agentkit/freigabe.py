@@ -8,6 +8,10 @@ und trägt Jans Entscheidung ein:
 - aendern (mit Kommentar; der Agent erstellt daraus einen neuen Entwurf
   mit `vorgaenger` = alte ID)
 
+Verfall (Untersuchung 11/2026, B5): Ein Entwurf, über den VERFALL_TAGE lang nicht entschieden wurde, bekommt
+den Status "abgelaufen" (verfallen_lassen, die Zentrale ruft es in jeder Prüfrunde auf). Abgelaufen ist endgültig
+und wird nie ausgeführt: Ein später Klick auf einen alten Knopf sendet so keine wochenalte Mail mehr.
+
 Nach "freigegeben" führt der Agent den Entwurf selbst aus (CLAUDE.md):
 1. zur_ausfuehrung(agent) liefert freigegebene, noch nicht ausgeführte Entwürfe.
 2. ausfuehrung_beginnen(id) prüft den Fingerabdruck (ausgeführt wird genau
@@ -22,7 +26,9 @@ für Jan auf.
 
 import hashlib
 import json
+import logging
 import os
+from datetime import datetime
 from pathlib import Path
 
 from . import _ablage, ereignis
@@ -31,6 +37,9 @@ from .config import SHARED_DIR
 
 BASIS = SHARED_DIR / "freigabe"
 ENTSCHEIDUNGEN = ("freigegeben", "abgelehnt", "aendern")
+ABGELAUFEN = "abgelaufen"  # kein Wert für entscheide(): entsteht nur durch verfallen_lassen()
+VERFALL_TAGE = 7
+logger = logging.getLogger("agentkit.freigabe")
 
 
 def fingerabdruck(entwurf: dict) -> str:
@@ -127,6 +136,45 @@ def entscheide(
     )
     _ereignis("freigabe.entschieden", eintrag_id, eigene_basis, status=status)
     return eintrag
+
+
+def alter_stunden(entwurf: dict, jetzt: datetime | None = None) -> float:
+    """Stunden seit dem Anlegen. Ohne lesbares Datum 0 (dann verfällt nichts wegen eines kaputten Feldes)."""
+    try:
+        erstellt = datetime.fromisoformat(entwurf["erstellt"])
+        if erstellt.tzinfo is None:
+            erstellt = erstellt.astimezone()
+    except (KeyError, TypeError, ValueError):
+        logger.warning("Entwurf %s ohne lesbares Datum, Alter unbekannt", entwurf.get("id"))
+        return 0.0
+    return ((jetzt or datetime.now().astimezone()) - erstellt).total_seconds() / 3600
+
+
+def verfallen_lassen(basis: Path | None = None, jetzt: datetime | None = None, tage: int = VERFALL_TAGE) -> list[dict]:
+    """Schließt offene Entwürfe ab, die älter als `tage` sind: Status "abgelaufen". Gibt sie zurück.
+
+    Das Verschieben klappt nur einmal: Entscheidet Jan im selben Augenblick, gewinnt genau einer von beiden.
+    """
+    eigene_basis, basis = basis, basis or BASIS
+    abgelaufen = []
+    for e in offene(basis=basis):
+        if alter_stunden(e, jetzt) < tage * 24:
+            continue
+        try:
+            eintrag = _ablage.abschliessen(
+                _ablage.ordner(basis, "offen"), _ablage.ordner(basis, "erledigt"), e["id"],
+                {"status": ABGELAUFEN, "entschieden": _ablage.jetzt(),
+                 "kommentar": f"nach {tage} Tagen ohne Entscheidung abgelaufen"})
+        except FreigabeFehler:
+            continue  # gerade entschieden
+        logger.info("Entwurf %s (%s) abgelaufen", e["id"], e.get("agent"))
+        _ereignis("freigabe.entschieden", e["id"], eigene_basis, status=ABGELAUFEN)
+        abgelaufen.append(eintrag)
+    return abgelaufen
+
+
+def abgelaufene(agent: str | None = None, basis: Path | None = None) -> list[dict]:
+    return [e for e in erledigte(agent, basis) if e["status"] == ABGELAUFEN]
 
 
 def _erledigt_pfad(eintrag_id: str, basis: Path) -> Path:
