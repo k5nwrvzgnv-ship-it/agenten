@@ -92,6 +92,7 @@ class TestSpeicher(unittest.TestCase):
         self.assertEqual(b[:4], ["systemd-run", "--user", "--scope", "--quiet"])
         self.assertIn("--unit=holzbalkenscan-20261107-090503-iso-800-zusammenbau", b)
         self.assertIn("MemoryMax=3G", b)
+        self.assertIn("--collect", b[:b.index("/py")])  # kein Rest in systemd, wenn der Schritt scheitert
         self.assertEqual(b[-5:], ["/py", "/v/zusammensetzen2.py", "/r/ISO 800", "--ziel", "/z.jpg"])
 
 

@@ -276,3 +276,45 @@ class TestLauf(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCommit(unittest.TestCase):
+    """Der Dienst committet nur über commit.sh (Sperre für alle), nie mit git direkt (Untersuchung B14)."""
+
+    def setUp(self):
+        self.repo = Path(tempfile.mkdtemp())
+        p = mock.patch.object(lauf, "REPO", self.repo)
+        p.start()
+        self.addCleanup(p.stop)
+        self.aufrufe = []
+
+    def lauf(self, code=0, aus=""):
+        def ausfuehren(cmd, **kw):
+            self.aufrufe.append((cmd, kw))
+            return mock.Mock(returncode=code, stdout=aus, stderr="")
+        return ausfuehren
+
+    def test_ueber_commit_sh_mit_relativem_pfad(self):
+        with mock.patch.dict(os.environ, {"AGENTKIT_INSTANZ": "/irgendwo"}):
+            self.assertIsNone(lauf.commit(self.repo / "lia" / "instanz" / "regeln.md", "Regel", self.lauf()))
+        cmd, kw = self.aufrufe[0]
+        self.assertEqual(cmd[0], str(self.repo / "commit.sh"))
+        self.assertIn("Regel", cmd[1])
+        self.assertEqual(cmd[2:], ["lia/instanz/regeln.md"])
+        self.assertNotIn("AGENTKIT_INSTANZ", kw["env"])
+
+    def test_fehler_gibt_grund(self):
+        grund = lauf.commit(self.repo / "STATUS.md", "Regel", self.lauf(1, "NICHT GRÜN"))
+        self.assertIn("NICHT GRÜN", grund)
+
+    def test_ausserhalb_des_repos_kein_aufruf(self):
+        self.assertIsNone(lauf.commit(Path(tempfile.mkdtemp()) / "regeln.md", "Regel", self.lauf()))
+        self.assertEqual(self.aufrufe, [])
+
+    def test_zeitlimit_wird_grund(self):
+        def haengt(cmd, **kw):
+            raise lauf.subprocess.TimeoutExpired(cmd, 1)
+        self.assertIn("timed out", lauf.commit(self.repo / "STATUS.md", "Regel", haengt))
+
+    def test_kein_direktes_git_commit_im_dienst(self):
+        self.assertNotIn('"commit", "-', (Path(lauf.__file__)).read_text(encoding="utf-8"))

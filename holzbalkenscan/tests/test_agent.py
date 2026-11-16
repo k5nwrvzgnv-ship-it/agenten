@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -120,9 +121,13 @@ class TestSpeichergrenze(unittest.TestCase):
         tmp = Path(tempfile.mkdtemp())
         skript = tmp / "gross.py"
         skript.write_text("b = bytearray(300 * 1024 * 1024)\n")
-        cmd = pruefstand.befehl(sys.executable, skript, [], "60M", pruefstand.scope_name("test", tmp.name, "gross"))
+        name = pruefstand.scope_name("test", tmp.name, "gross")
+        cmd = pruefstand.befehl(sys.executable, skript, [], "60M", name)
         s = agent.schritt_ausfuehren(cmd, tmp, tmp / "aus.txt", 60)
         self.assertEqual(pruefstand.schritt_status("zusammenbau", s["exit"], s["zeit_um"], False), "speichergrenze")
+        rest = subprocess.run(["systemctl", "--user", "list-units", "--all", "--no-legend", f"{name}.scope"],
+                              capture_output=True, text=True)
+        self.assertEqual(rest.stdout.strip(), "", "gescheiterter Scope liegt noch in systemd")
 
 
 if __name__ == "__main__":

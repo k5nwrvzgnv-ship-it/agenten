@@ -66,15 +66,23 @@ HIERHER = Ort(config.SHARED_DIR)
 
 # ---------- Handeln (dünn) ----------
 
-def commit(pfad: Path, nachricht: str) -> str | None:
-    """Committet genau diese Datei (der Hook prüft das ganze Repo). Gibt bei Fehler den Grund zurück."""
+def commit(pfad: Path, nachricht: str, ausfuehren=subprocess.run) -> str | None:
+    """Committet genau diese Datei über commit.sh (der Hook prüft das ganze Repo). Gibt bei Fehler den Grund zurück.
+
+    commit.sh hält die Sperre, die alle Chats nutzen: Der Prüflauf des Hooks läuft so nie neben einem anderen
+    (zwei gleichzeitig füllen den Speicher, Ausfall 03.11.2026). Darum das lange Zeitlimit: Warten gehört dazu.
+    """
     pfad = Path(pfad)
     if not pfad.is_relative_to(REPO):
         return None  # außerhalb des Repos (z. B. Nachweis-Instanz): nichts zu committen
     # Der Hook prüft das Repo mit pruefen.sh: ohne AGENTKIT_INSTANZ, sonst liefen die Tests in Lias Instanz
     umgebung = {k: v for k, v in os.environ.items() if k != "AGENTKIT_INSTANZ"}
-    p = subprocess.run(["git", "-C", str(REPO), "commit", "-q", "-m", nachricht + "\n\n(Feedback-Dienst)", "--", str(pfad)],
-                       capture_output=True, text=True, timeout=600, env=umgebung)
+    try:
+        p = ausfuehren([str(REPO / "commit.sh"), nachricht + "\n\n(Feedback-Dienst)", str(pfad.relative_to(REPO))],
+                       capture_output=True, text=True, timeout=1800, env=umgebung)
+    except (OSError, subprocess.TimeoutExpired) as f:
+        logger.error("Commit von %s fehlgeschlagen: %s", pfad, f)
+        return str(f)[:300]
     if p.returncode == 0:
         logger.info("Commit %s: %s", pfad.relative_to(REPO), nachricht)
         return None

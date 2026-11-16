@@ -33,9 +33,13 @@ shared/freigabe/erledigt/
 .vscode/
 .DS_Store
 
+# Claude-Chats: Einstellungen und Worktrees (volle Kopien des Repos, können .env enthalten)
+.claude/
+
 # Auftrags-Warteschlange: Aufträge können persönliche Inhalte enthalten
 shared/auftraege/neu/
 shared/auftraege/erledigt/
+shared/auftraege/ereignisse/
 
 # Verbrauchsprotokoll der claude-Läufe
 shared/verbrauch/

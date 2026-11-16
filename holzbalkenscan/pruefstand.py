@@ -139,8 +139,9 @@ def genug_speicher(meminfo: str, grenze: str) -> tuple[bool, str]:
 
 
 def befehl(python: str, skript: Path, argumente: list[str], grenze: str, name: str) -> list[str]:
-    """Aufruf in einem eigenen systemd-Scope mit fester Speichergrenze: wird es zu groß, stirbt nur dieser."""
-    return ["systemd-run", "--user", "--scope", "--quiet", f"--unit={name}",
+    """Aufruf in einem eigenen systemd-Scope mit fester Speichergrenze: wird es zu groß, stirbt nur dieser.
+    --collect: Ein gescheiterter Scope bleibt nicht als "failed" in systemd liegen (16.11.2026: 264 Reste)."""
+    return ["systemd-run", "--user", "--scope", "--quiet", "--collect", f"--unit={name}",
             "-p", f"MemoryMax={grenze}", "-p", "MemorySwapMax=0",
             python, str(skript), *argumente]
 
