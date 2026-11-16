@@ -45,8 +45,16 @@ VERBOTEN = [f"{w}(**/{m})" for w in ("Read", "Grep", "Edit", "Write") for m in (
 # Claude darf im Agent-Ordner Protokolle und Notizen schreiben, aber nie Code, Regeln oder
 # Einrichtung ändern (16.10.: ein uni-Auftrag hatte sonst kurse.py und STATUS.md selbst umgebaut).
 # STATUS.md enthält die gelernten Regeln, die nur nach Jans Freigabe entstehen dürfen.
-GESCHUETZT = ("*.py", "*.pth", "*.sh", "*.toml", "*.service", "*.timer", "STATUS.md", "CLAUDE.md",
-              "regeln.md", ".gitignore", "requirements*.txt", ".claude/**", ".venv/**", ".git/**")
+# 16.11.2026 (Untersuchung B1): dazu Vorlagen, Skripte und statische Dateien von Oberflächen (Jinja-Vorlagen
+# sind Code im Portal-Prozess), Pfad-Units, Tests, und die Texte, die Python in Prompts lädt. Nicht *.json und
+# *.md allgemein: Ergebnisse schreibt Claude als JSON und Markdown nach data/ und in Ausgabeordner.
+# tests/test_schreibschutz.py prüft jede von Git verfolgte Datei der Agent-Ordner gegen diese Liste.
+GESCHUETZT = ("*.py", "*.pth", "*.sh", "*.toml", "*.service", "*.timer", "*.path", "STATUS.md", "CLAUDE.md",
+              "regeln.md", ".gitignore", "requirements*.txt", ".claude/**", ".venv/**", ".git/**",
+              "*.html", "*.js", "*.css", "*.sha256", "*.woff2",
+              "tests/**", "vorlagen/**", "statisch/**", "systemd/**", "skills/**", "konfig/**",
+              "verfahren/**", "verfahren_neu/**",
+              "leitfaden.md", "regelwerk_reihe.md", "seminar_vorbild.md", "schema.md")
 VERBOTEN += [f"{w}(**/{m})" for w in ("Edit", "Write") for m in GESCHUETZT]
 # Werkzeuge ohne Dateizugriff, die acceptEdits nicht von selbst erlaubt. Sie werden ausdrücklich
 # erlaubt, wenn sie in einstellungen.toml für den Agenten stehen (sonst lehnt claude -p sie ab).
