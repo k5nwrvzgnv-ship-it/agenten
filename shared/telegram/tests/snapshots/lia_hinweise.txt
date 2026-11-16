@@ -10,6 +10,8 @@ Sprachnachrichten verstehe ich noch nicht. Schreib mir bitte.
 --- nächste Nachricht ---
 Dieser Knopf ist veraltet. Hier ist das aktuelle Menü.
 --- nächste Nachricht ---
-Abgebrochen. Ich habe nichts abgeschickt.
+Zurückgezogen. Ich mache damit nichts.
+--- nächste Nachricht ---
+Das ließ sich nicht mehr zurückziehen. Es ist schon fertig.
 --- nächste Nachricht ---
 Das hat leider nicht geklappt. Sag Jan bitte Bescheid.

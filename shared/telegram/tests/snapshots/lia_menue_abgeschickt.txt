@@ -1,0 +1,10 @@
+Hallo Lia!
+In Arbeit: 2  |  Fertig: 3
+
+Ich mache mich an „Arbeitsblatt kategorischer Imperativ, K…“ (mit 1 Datei). Ich melde mich, sobald es fertig ist.
+
+Schreib mir einfach, was du brauchst.
+--- Knöpfe ---
+[↩ Zurückziehen] p:zurueck
+[Neues Material] p:material  [Meine Anfragen] p:anfragen
+[Hilfe] p:hilfe

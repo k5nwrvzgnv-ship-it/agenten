@@ -13,7 +13,8 @@ Tippen verändert (Ansichten). Schreibt Lia etwas, kommt das Panel neu unter ihr
   und "Feedback schreiben" warten auf Lias nächste Nachricht; eine Antwort auf das Ergebnis ist ebenfalls Feedback.
 
 Zustand je Chat (chat_data): "wartet_auf" = Art, deren Inhalt als nächste Nachricht kommt,
-"entwurf" = {"art", "text"}, der auf Bestätigung wartet, "feedback" = {"bezug", "k"}, das auf Lias Text wartet.
+"entwurf" = {"art", "text"}, der gleich abgeschickt wird, "feedback" = {"bezug", "k"}, das auf Lias Text wartet,
+"letzter" = ID des zuletzt abgeschickten Wunsches (für "Zurückziehen").
 Knopf-Daten: p:<aktion>, siehe AKTIONEN, und p:fb:... (vorlagen.feedback_auswerten).
 """
 
@@ -32,31 +33,26 @@ class Art:
     agent: str
     quelle: str  # Feld quelle im Auftrag, daran erkennt der Agent die Art
     anleitung: str = ""  # leer: kein Inhalt nötig, Auftrag geht sofort los
-    standardtext: str = ""  # Auftragstext, wenn es keine Anleitung gibt
 
 
 ARTEN = {
     "material": Art("Neues Material", "unterricht", "portal-material",
                     anleitung="Schreib mir, was du brauchst: Fach, Klasse, Thema und Dauer.\n\n"
                               "Zum Beispiel: „Arbeitsblatt zum kategorischen Imperativ, Klasse 10, 45 Minuten“"),
-    "woche": Art("Meine Woche", "unterricht", "portal-woche", standardtext="Überblick über meine Woche"),
-    "frage": Art("Frage stellen", "unterricht", "portal-frage",
-                 anleitung="Schreib mir deine Frage als nächste Nachricht."),
-    "text": Art("Nachricht", "unterricht", "portal-text"),
+    "text": Art("Nachricht", "unterricht", "portal-text"),  # nur noch Anzeige alter Anfragen
 }
 VORSATZ = "p:"
 # Aktionen, die ein Knopf auslösen kann (alles andere ist ein alter oder fremder Knopf)
-AKTIONEN = ("home", "neu", "material", "woche", "frage", "anfragen", "hilfe",
-            "ja", "nein", "alsmaterial", "alsfrage", "menue", "verwerfen")
+# 16.11.2026 (Untersuchung B10): Platzhalter "Meine Woche" und "Frage stellen", die Rückfragen "Als Materialwunsch /
+# Als Frage" und "Soll ich das so abschicken?" sowie "Aktualisieren" sind weg. Text geht sofort los, dafür gibt es
+# danach "Zurückziehen". Alte Knöpfe dieser Arten zählen als veraltet.
+AKTIONEN = ("home", "material", "anfragen", "hilfe", "menue", "verwerfen", "zurueck")
 
-IM_AUFBAU = "Material mache ich schon. Den Überblick über deine Woche und Antworten auf Fragen gibt es bald."
 HILFE = (
     "So geht's\n\n"
-    "Neues Material: Du schreibst, was du brauchst. Ich mache dir ein Arbeitsblatt oder Folien.\n"
-    "Meine Woche: Ein Überblick über deine Woche.\n"
-    "Frage stellen: Du schreibst eine Frage. Die Antwort kommt hierher.\n"
+    "Schreib mir einfach, was du brauchst. Ich mache dir ein Arbeitsblatt oder Folien und lege sofort los.\n"
+    "Hast du dich vertan, tippst du danach auf Zurückziehen.\n"
     "Meine Anfragen: Was ich gerade mache und was fertig ist.\n\n"
-    "Du kannst mir auch einfach schreiben. Dann frage ich, was ich damit machen soll.\n"
     "Dateien und Fotos schickst du einfach mit, zum Beispiel ein altes Arbeitsblatt als Vorlage. "
     "Schreib am besten dazu, was ich damit machen soll.\n"
     "Unter jeder Antwort bringt dich ein Knopf zurück ins Menü."
@@ -67,7 +63,8 @@ ZU_GROSS = "Die Datei ist zu groß für Telegram. Schick sie Jan bitte auf einem
 NICHT_GELADEN = "Die Datei konnte ich nicht laden. Schick sie bitte noch einmal."
 SPRACHNACHRICHT = "Sprachnachrichten verstehe ich noch nicht. Schreib mir bitte."
 KNOPF_ALT = "Dieser Knopf ist veraltet. Hier ist das aktuelle Menü."
-ABGEBROCHEN = "Abgebrochen. Ich habe nichts abgeschickt."
+ZURUECKGEZOGEN = "Zurückgezogen. Ich mache damit nichts."
+NICHT_MEHR_OFFEN = "Das ließ sich nicht mehr zurückziehen. Es ist schon fertig."
 GRUESSE = re.compile(r"(hallo|hi|hey|moin|servus|huhu|guten (morgen|tag|abend)|start)[\s!.?]*", re.IGNORECASE)
 
 ZURUECK = [[("« Zurück", VORSATZ + "home")]]
@@ -96,15 +93,16 @@ def ist_gruss(text: str) -> bool:
 
 # ---------- Ansichten: (Text, Knöpfe) ----------
 
-def ansicht_home(offen: int, fertig: int, hinweis: str = "") -> tuple[str, Knoepfe]:
+def ansicht_home(offen: int, fertig: int, hinweis: str = "", zurueckziehbar: bool = False) -> tuple[str, Knoepfe]:
+    """zurueckziehbar: Lia hat gerade etwas abgeschickt, darunter steht einmal "Zurückziehen"."""
     zeilen = ["Hallo Lia!", f"In Arbeit: {offen}  |  Fertig: {fertig}"]
     if hinweis:
         zeilen += ["", hinweis]
-    zeilen += ["", IM_AUFBAU]
-    knoepfe = [
-        [k("Neues Material", "material"), k("Meine Woche", "woche")],
-        [k("Frage stellen", "frage"), k("Meine Anfragen", "anfragen")],
-        [k("Hilfe", "hilfe"), k("↻ Aktualisieren", "neu")],
+    zeilen += ["", "Schreib mir einfach, was du brauchst."]
+    knoepfe = [[k("↩ Zurückziehen", "zurueck")]] if zurueckziehbar else []
+    knoepfe += [
+        [k("Neues Material", "material"), k("Meine Anfragen", "anfragen")],
+        [k("Hilfe", "hilfe")],
     ]
     return "\n".join(zeilen), knoepfe
 
@@ -116,21 +114,6 @@ def ansicht_anleitung(art: str) -> tuple[str, Knoepfe]:
 
 def dateien_anzahl(anzahl: int) -> str:
     return "1 Datei" if anzahl == 1 else f"{anzahl} Dateien"
-
-
-def ansicht_bestaetigen(entwurf: dict, dateien: int = 0) -> tuple[str, Knoepfe]:
-    a = ARTEN[entwurf["art"]]
-    mit = f"\n\nMit {dateien_anzahl(dateien)}." if dateien else ""
-    text = f"{a.knopf}\n\n„{kurz(entwurf['text'], 3500)}“{mit}\n\nSoll ich das so abschicken?"  # Telegram: max. 4096 Zeichen
-    return text, [[k("✓ Abschicken", "ja"), k("✕ Abbrechen", "nein")]]
-
-
-def ansicht_einordnen(text: str) -> tuple[str, Knoepfe]:
-    """Text ohne Menü: Lia wählt, was damit passieren soll."""
-    return f"Was soll ich damit machen?\n\n„{kurz(text, 200)}“", [
-        [k("Als Materialwunsch", "alsmaterial"), k("Als Frage", "alsfrage")],
-        [k("✕ Verwerfen", "nein")],
-    ]
 
 
 def ansicht_dateien(anzahl: int) -> tuple[str, Knoepfe]:
@@ -181,37 +164,22 @@ def anleitung_gewaehlt(zustand: dict, art: str) -> None:
     zustand["wartet_auf"] = art
 
 
-def sofort_entwurf(zustand: dict, art: str) -> dict:
-    """Art ohne Anleitung (Woche): Entwurf direkt, ohne Rückfrage."""
-    zustand.pop("wartet_auf", None)
-    zustand.pop("entwurf", None)
-    return {"art": art, "text": ARTEN[art].standardtext}
-
-
 def text_eingang(zustand: dict, text: str) -> str:
     """Lia hat Text geschickt. Gibt zurück, was zu tun ist: "feedback" (zustand["feedback"] bleibt für portal.py),
-    "home", "bestaetigen" oder "einordnen"."""
+    "home" (nur ein Gruß) oder "abschicken": Der Text ist ein Materialwunsch und geht ohne Rückfrage los,
+    egal ob Lia vorher "Neues Material" getippt hat (zustand["entwurf"] für entwurf_nehmen)."""
     if "feedback" in zustand:
         return "feedback"
     art = zustand.pop("wartet_auf", None)
+    zustand.pop("entwurf", None)
     if art is None and ist_gruss(text):
-        zustand.pop("entwurf", None)
         return "home"
-    zustand["entwurf"] = {"art": art or "text", "text": text.strip()}
-    return "bestaetigen" if art else "einordnen"
-
-
-def einordnen(zustand: dict, art: str) -> bool:
-    """Text ohne Menü einer Art zuordnen ("material" oder "frage"). False, wenn nichts mehr wartet."""
-    entwurf = zustand.get("entwurf")
-    if entwurf is None:
-        return False
-    entwurf["art"] = art
-    return True
+    zustand["entwurf"] = {"art": "material", "text": text.strip()}
+    return "abschicken"
 
 
 def entwurf_nehmen(zustand: dict) -> dict | None:
-    """Bestätigt: Entwurf aus dem Zustand holen (nur einmal, ein Doppelklick schickt nichts doppelt)."""
+    """Entwurf aus dem Zustand holen (nur einmal, nichts geht doppelt los)."""
     return zustand.pop("entwurf", None)
 
 
@@ -224,6 +192,7 @@ def abbrechen(zustand: dict) -> None:
     zustand.pop("entwurf", None)
     zustand.pop("wartet_auf", None)
     zustand.pop("feedback", None)
+    zustand.pop("letzter", None)
 
 
 def unterwegs(text: str, dateien: int) -> str:

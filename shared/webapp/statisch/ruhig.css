@@ -5,14 +5,16 @@
    Größen 12/14/16/20/32 (schmal 26), 1-px-Linien nur wo nötig, graue Flächen, ein gedecktes Blau für Hauptknopf und
    Fokus. Rot (--akzent) heißt nur: „wartet auf dich“ oder „hat nicht geklappt“. Ein Test prüft die Liste der Stellen.
    Aufbau: Seitenleiste | Mitte (Ebene, Gespräch, Material, Masken) | rechts (Gespräch, Klasse, Reihe, Stunde). */
+/* Graue Schrift (--leise, --sehrleise): Kontrast mindestens 4,5 auf --bg und --flaeche, hell und dunkel
+   (16.11.2026, vorher 3,4 und 4,5). Ein Test rechnet nach. */
 :root {
-  --bg: #ffffff; --fg: #37352f; --leise: #787774; --sehrleise: #8c8b87; --linie: #e9e9e7; --flaeche: #f7f7f5;
+  --bg: #ffffff; --fg: #37352f; --leise: #6b6a67; --sehrleise: #706f6c; --linie: #e9e9e7; --flaeche: #f7f7f5;
   --hover: rgba(55, 53, 47, .06); --wahl: rgba(55, 53, 47, .09); --akzent: #d44c47; --blau: #2f6fbf; --fokus: #2f6fbf;
   --umkehr: #ffffff; --schatten: 0 8px 28px rgba(15, 15, 15, .14), 0 0 0 1px rgba(15, 15, 15, .05);
   --schrift: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root {
-  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #7f7f7a; --linie: #2f2f2f; --flaeche: #202020;
+  --bg: #191919; --fg: #e6e6e3; --leise: #9b9b97; --sehrleise: #8f8f8a; --linie: #2f2f2f; --flaeche: #202020;
   --hover: rgba(255, 255, 255, .055); --wahl: rgba(255, 255, 255, .09); --akzent: #ff7369; --blau: #3a74c4; --fokus: #7fb0f0;
   --schatten: 0 8px 28px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .08); color-scheme: dark } }
 
@@ -422,5 +424,15 @@ body.datei-ueber::after { content: "Loslassen: Datei hier ablegen"; position: fi
   .fassung-name { grid-column: 1 / -1; }
   .termine li.termin-zeile { grid-template-columns: minmax(0, 1fr) auto; }
   .betrachter img { max-height: none; width: 100%; }
+}
+/* Finger statt Maus (16.11.2026): alles Antippbare mindestens 44 px hoch. Am Rechner bleibt es bei 28 bis 36 px. */
+@media (pointer: coarse) {
+  .knopf, .knopf-klein, .knopf-leise, .knopf-gross, .punkte-knopf, .plus-knopf, .laden-knopf, .baum-eintrag, .rzeile, .zeile,
+  .auswahl label, .mehr > summary, .plus .menue .knopf-leise, .laden .menue .knopf-leise,
+  .punkte .menue .feld, .punkte .menue select, .punkte .menue input[type="text"], .punkte .menue input[type="date"],
+  .formular .feld, .formular select, .zeile-form input[type="text"], .zeile-form select, .zeile-form input[type="date"],
+  .plan-zeile select, .plan-zeilen select { min-height: 44px; }
+  .plus-knopf, .laden-knopf { width: 44px; }
+  .mehr > summary { align-items: center; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

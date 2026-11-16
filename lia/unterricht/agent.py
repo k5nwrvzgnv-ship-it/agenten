@@ -1,6 +1,6 @@
 """Agent unterricht in Lias Instanz (AGENTKIT_INSTANZ=lia/instanz).
 
-Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal-frage, portal-text).
+Die Art des Auftrags steht im Feld quelle. Lias Menü legt nur portal-material an (seit 16.11.2026).
 - portal-material: Material auf Zuruf (material.py, Skill einzelmaterial). Lia bekommt die docx- oder
   pptx-Datei mit Begleittext. Scheitert es, erfährt Jan die Ursache als Meldung in seiner Zentrale.
   Lias Reihen (<instanz>/reihen.toml über agentkit.struktur, gemeinsam mit der Web-App) gehen mit, die Reihe aus
@@ -9,7 +9,7 @@ Die Art des Auftrags steht im Feld quelle (portal-material, portal-woche, portal
   Ebenso der Katalog von Lias früherem Material (data/wissen/katalog.md, wissen.py) und der Leitfaden
   (leitfaden.md), falls vorhanden. Nachbesserungen aus Lias Feedback (bezug, sitzung) überarbeiten das alte
   Material; ändert Claude nichts, bekommt Lia nur die Antwort.
-- alles andere: Platzhalter, bestätigt mit "kommt bald", ohne Claude.
+- alles andere (alte Aufträge): kurze, ehrliche Antwort ohne Claude.
 """
 
 import tomllib
@@ -29,17 +29,15 @@ PROFIL = HIER / "profil.toml"
 INSTANZ = config.SHARED_DIR  # lia/instanz mit reihen.toml, eine Datei für Web-App und Agenten
 logger = log.hole_logger(HIER, AGENT)
 
-ANTWORTEN = {
-    "portal-woche": "Der Wochenüberblick kommt bald. Dein Wunsch ist notiert.",
-    "portal-frage": "Deine Frage ist angekommen. Antworten kommen bald, bis dahin sammle ich sie.",
-}
-STANDARD = "Ist angekommen. Diese Funktion kommt bald."
+# Aufträge anderer Art als portal-material legt das Menü seit 16.11.2026 nicht mehr an (Platzhalter entfernt).
+# Kommt doch einer (z. B. ein alter), bekommt Lia eine ehrliche Antwort statt "kommt bald".
+STANDARD = "Das kann ich noch nicht. Schreib mir, welches Material du brauchst, dann lege ich los."
 NICHT_GEKLAPPT = "Das Material konnte ich leider nicht erstellen. Jan ist informiert."
 LIMIT = "Gerade ist das gemeinsame Kontingent aufgebraucht. Bitte schick den Wunsch ab {zeit} noch einmal."
 
 
 def antwort(auftrag: dict) -> str:
-    return ANTWORTEN.get(auftrag.get("quelle"), STANDARD)
+    return STANDARD
 
 
 def jan_melden(text: str, basis: Path | None = None) -> None:

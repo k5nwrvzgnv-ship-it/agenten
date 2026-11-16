@@ -3,8 +3,7 @@ In Arbeit: 1  |  Fertig: 3
 
 1 Datei liegt bereit und kommt mit deiner nächsten Nachricht mit.
 
-Material mache ich schon. Den Überblick über deine Woche und Antworten auf Fragen gibt es bald.
+Schreib mir einfach, was du brauchst.
 --- Knöpfe ---
-[Neues Material] p:material  [Meine Woche] p:woche
-[Frage stellen] p:frage  [Meine Anfragen] p:anfragen
-[Hilfe] p:hilfe  [↻ Aktualisieren] p:neu
+[Neues Material] p:material  [Meine Anfragen] p:anfragen
+[Hilfe] p:hilfe

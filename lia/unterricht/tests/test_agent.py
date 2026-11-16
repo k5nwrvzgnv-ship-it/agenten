@@ -27,9 +27,10 @@ class AgentTest(unittest.TestCase):
     def erledigt(self) -> dict:
         return {a["quelle"]: a for a in auftraege.erledigte("unterricht")}
 
-    def test_platzhalter_fuer_woche_und_frage(self):
-        self.assertIn("Frage", agent.antwort({"quelle": "portal-frage"}))
+    def test_alte_arten_bekommen_ehrliche_antwort(self):
+        self.assertEqual(agent.antwort({"quelle": "portal-frage"}), agent.STANDARD)
         self.assertEqual(agent.antwort({"quelle": "irgendwas"}), agent.STANDARD)
+        self.assertNotIn("kommt bald", agent.STANDARD)
         auftraege.neuer_auftrag("unterricht", "Was ist Ethik?", quelle="portal-frage")
         auftraege.neuer_auftrag("unterricht", "Woche", quelle="portal-woche")
         agent.auftraege_abarbeiten()

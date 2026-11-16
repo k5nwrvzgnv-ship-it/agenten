@@ -150,10 +150,8 @@ class NachrichtenTest(unittest.TestCase):
     def test_lia_menue(self):
         self.snapshot("lia_menue", *p.ansicht_home(1, 3, p.hinweis_dateien(1)))
         self.snapshot("lia_menue_material", *p.ansicht_anleitung("material"))
-        self.snapshot("lia_menue_frage", *p.ansicht_anleitung("frage"))
-        self.snapshot("lia_menue_bestaetigen", *p.ansicht_bestaetigen(
-            {"art": "material", "text": "Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min"}, 1))
-        self.snapshot("lia_menue_einordnen", *p.ansicht_einordnen("Kannst du mir einen Fall zu Strafe für Klasse 8 machen?"))
+        self.snapshot("lia_menue_abgeschickt", *p.ansicht_home(
+            2, 3, p.unterwegs("Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min", 1), zurueckziehbar=True))
         self.snapshot("lia_menue_dateien", *p.ansicht_dateien(2))
         auftraege = [{"id": "20261022-232618-unterricht-67ba47", "text": "meine formatvorlage darauf anwenden",
                       "status": "fehlgeschlagen", "quelle": "portal-material"},
@@ -166,7 +164,7 @@ class NachrichtenTest(unittest.TestCase):
     def test_lia_hinweise(self):
         self.snapshot("lia_hinweise", [p.unterwegs("Arbeitsblatt kategorischer Imperativ, Klasse 10, 45 min", 1),
                                        p.verworfen(2), p.ZU_GROSS, p.NICHT_GELADEN, p.SPRACHNACHRICHT, p.KNOPF_ALT,
-                                       p.ABGEBROCHEN, p.FEHLGESCHLAGEN])
+                                       p.ZURUECKGEZOGEN, p.NICHT_MEHR_OFFEN, p.FEHLGESCHLAGEN])
 
     def test_lia_ergebnis_und_dateien(self):
         a = {"id": AID, "agent": "unterricht", "status": "fehlgeschlagen", "text": "meine formatvorlage darauf anwenden"}

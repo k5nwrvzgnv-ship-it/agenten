@@ -69,18 +69,36 @@ gemeldet = Gemeldet(DATEN_DIR / "data" / "gemeldet.json")
 eingang = Eingang(DATEN_DIR / "data" / "eingang")
 
 
-def home(hinweis: str = "") -> tuple[str, p.Knoepfe]:
+def home(hinweis: str = "", zurueckziehbar: bool = False) -> tuple[str, p.Knoepfe]:
     hinweis = "\n".join(h for h in (hinweis, p.hinweis_dateien(len(eingang.wartende()))) if h)
-    return p.ansicht_home(len(p.fuer_lia(auftraege.neue())), len(p.fuer_lia(auftraege.erledigte())), hinweis)
+    return p.ansicht_home(len(p.fuer_lia(auftraege.neue())), len(p.fuer_lia(auftraege.erledigte())), hinweis,
+                          zurueckziehbar)
 
 
-def nach_text(chat_data: dict, folge: str, text: str) -> tuple[str, p.Knoepfe]:
-    """Ansicht nach Lias Text (Nachricht oder Bildunterschrift), siehe portal_logik.text_eingang."""
-    if folge == "home":
+async def nach_text(chat_data: dict, folge: str) -> tuple[str, p.Knoepfe]:
+    """Ansicht nach Lias Text (Nachricht oder Bildunterschrift), siehe portal_logik.text_eingang:
+    Der Wunsch geht ohne Rückfrage los, darunter steht einmal "Zurückziehen"."""
+    entwurf = p.entwurf_nehmen(chat_data) if folge == "abschicken" else None
+    if entwurf is None:
         return home()
-    if folge == "bestaetigen":
-        return p.ansicht_bestaetigen(chat_data["entwurf"], len(eingang.wartende()))
-    return p.ansicht_einordnen(text)
+    hinweis, aid = await abschicken(entwurf)
+    if aid:
+        chat_data["letzter"] = aid
+    return home(hinweis, zurueckziehbar=bool(aid))
+
+
+def zurueckziehen(chat_data: dict) -> str:
+    """Knopf "Zurückziehen" unter der Bestätigung: den zuletzt abgeschickten Wunsch stoppen."""
+    aid = chat_data.pop("letzter", None)
+    if not aid:
+        return p.KNOPF_ALT
+    try:
+        auftraege.zurueckziehen(aid, "von Lia zurückgezogen")
+    except auftraege.AuftragFehler as e:
+        logger.info("Zurückziehen von %s: %s", aid, e)
+        return p.NICHT_MEHR_OFFEN
+    logger.info("Auftrag %s von Lia zurückgezogen", aid)
+    return p.ZURUECKGEZOGEN
 
 
 async def panel(bot, chat_data: dict, ansicht: tuple[str, p.Knoepfe], neu: bool = False) -> None:
@@ -103,20 +121,21 @@ async def agent_starten(agent: str) -> None:
         logger.error("Start von %s.service fehlgeschlagen: %s", dienst, err.decode().strip())
 
 
-async def abschicken(entwurf: dict) -> str:
-    """Legt den Auftrag an und startet den Agenten. Gibt den Hinweis fürs Panel zurück."""
+async def abschicken(entwurf: dict) -> tuple[str, str | None]:
+    """Legt den Auftrag an und startet den Agenten. Gibt den Hinweis fürs Panel und die Auftrags-ID zurück
+    (None: nicht angelegt)."""
     art = p.ARTEN[entwurf["art"]]
-    dateien = eingang.wartende() if entwurf["art"] != "woche" else []  # Woche ist ein fester Knopf
+    dateien = eingang.wartende()
     try:
         aid = auftraege.neuer_auftrag(art.agent, entwurf["text"], quelle=art.quelle, dateien=dateien)
     except auftraege.AuftragFehler as e:
         logger.error("Auftrag an %s nicht angelegt: %s", art.agent, e)
-        return p.FEHLGESCHLAGEN
+        return p.FEHLGESCHLAGEN, None
     finally:
         eingang.aufraeumen()
     logger.info("Auftrag %s angelegt (%s, %d Dateien)", aid, entwurf["art"], len(dateien))
     await agent_starten(art.agent)
-    return p.unterwegs(entwurf["text"], len(dateien))
+    return p.unterwegs(entwurf["text"], len(dateien)), aid
 
 
 # ---------- Eingang: Nachrichten von Lia ----------
@@ -145,7 +164,7 @@ async def text_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await panel(context.bot, context.chat_data, home(await feedback_aus_zustand(context.bot, context.chat_data, text)),
                     neu=True)
         return
-    await panel(context.bot, context.chat_data, nach_text(context.chat_data, folge, text), neu=True)
+    await panel(context.bot, context.chat_data, await nach_text(context.chat_data, folge), neu=True)
 
 
 def beantwortetes_ergebnis(update: Update) -> str | None:
@@ -233,9 +252,7 @@ async def dateien_zuordnen(bot, chat_data: dict, caption: str | None) -> None:
         if folge == "feedback":  # die Datei wartet weiter, der Text ist das Feedback
             ansicht = home(await feedback_aus_zustand(bot, chat_data, text))
         else:
-            ansicht = nach_text(chat_data, folge, text)
-    elif chat_data.get("entwurf"):  # schon beim Bestätigen: Dateien kommen mit
-        ansicht = p.ansicht_bestaetigen(chat_data["entwurf"], len(eingang.wartende()))
+            ansicht = await nach_text(chat_data, folge)
     else:
         ansicht = p.ansicht_dateien(len(eingang.wartende()))
     await panel(bot, chat_data, ansicht, neu=True)
@@ -267,32 +284,20 @@ async def knopf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     z["panel"] = q.message.message_id  # die angetippte Nachricht ist das Panel
     if wert is None:
         ansicht = home(p.KNOPF_ALT)
-    elif wert in ("home", "neu"):
+    elif wert == "home":
         p.abbrechen(z)
         ansicht = home()
-    elif wert in ("material", "frage"):
+    elif wert == "material":
         p.anleitung_gewaehlt(z, wert)
         ansicht = p.ansicht_anleitung(wert)
-    elif wert == "woche":
-        ansicht = home(await abschicken(p.sofort_entwurf(z, "woche")))
+    elif wert == "zurueck":
+        ansicht = home(zurueckziehen(z))
     elif wert == "anfragen":
         ansicht = p.ansicht_anfragen(p.fuer_lia(auftraege.neue() + auftraege.erledigte()))
     elif wert == "hilfe":
         ansicht = p.ansicht_hilfe()
-    elif wert in ("alsmaterial", "alsfrage"):
-        if p.einordnen(z, wert[len("als"):]):
-            ansicht = p.ansicht_bestaetigen(z["entwurf"], len(eingang.wartende()))
-        else:
-            ansicht = home(p.KNOPF_ALT)
-    elif wert == "ja":
-        entwurf = p.entwurf_nehmen(z)
-        ansicht = home(await abschicken(entwurf) if entwurf else p.KNOPF_ALT)
-    elif wert == "verwerfen":
+    else:  # verwerfen: wartende Dateien löschen
         ansicht = home(p.verworfen(eingang.verwerfen()))
-    else:  # nein: Abbrechen bzw. Verwerfen, mitgeschickte Dateien auch
-        p.abbrechen(z)
-        eingang.verwerfen()
-        ansicht = home(p.ABGEBROCHEN)
     await panel(context.bot, z, ansicht)
 
 
@@ -386,7 +391,10 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
         gemeldet.speichern()
         chat_data = context.application.chat_data[LIA]
         if chat_data.get("panel") and not chat_data.get("entwurf") and not chat_data.get("wartet_auf"):
-            await panel(context.bot, chat_data, home())  # Zahlen im Panel auffrischen
+            if chat_data.get("letzter") not in {a["id"] for a in auftraege.neue()}:
+                chat_data.pop("letzter", None)  # schon fertig: nichts mehr zurückzuziehen
+            # Zahlen im Panel auffrischen
+            await panel(context.bot, chat_data, home(zurueckziehbar=bool(chat_data.get("letzter"))))
 
 
 async def fehler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
