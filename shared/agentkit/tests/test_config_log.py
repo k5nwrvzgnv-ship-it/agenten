@@ -50,7 +50,9 @@ class TestConfig(unittest.TestCase):
 class TestLog(unittest.TestCase):
     def test_schreibt_datei_und_keine_doppelten_handler(self):
         agent = Path(tempfile.mkdtemp())
-        logger = log.hole_logger(agent, "testagent")
+        with mock.patch.dict(os.environ):
+            os.environ.pop("AGENTKIT_LOG_DIR", None)
+            logger = log.hole_logger(agent, "testagent")
         self.assertIs(log.hole_logger(agent, "testagent"), logger)
         self.assertEqual(len(logger.handlers), 2)
         with mock.patch("sys.stderr"):
@@ -58,6 +60,18 @@ class TestLog(unittest.TestCase):
         for h in logger.handlers:
             h.flush()
         self.assertIn("hallo", (agent / "logs" / "testagent.log").read_text())
+
+    def test_umgebungsvariable_lenkt_um(self):
+        agent = Path(tempfile.mkdtemp()) / "meinagent"
+        ersatz = Path(tempfile.mkdtemp())
+        with mock.patch.dict(os.environ, {"AGENTKIT_LOG_DIR": str(ersatz)}):
+            logger = log.hole_logger(agent, "testagent-umgelenkt")
+        with mock.patch("sys.stderr"):
+            logger.info("hallo")
+        for h in logger.handlers:
+            h.flush()
+        self.assertIn("hallo", (ersatz / "meinagent" / "testagent-umgelenkt.log").read_text())
+        self.assertFalse((agent / "logs").exists())
 
 
 class InstanzTest(unittest.TestCase):

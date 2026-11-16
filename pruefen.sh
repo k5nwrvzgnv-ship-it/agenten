@@ -7,10 +7,18 @@
 cd "$(dirname "$0")" || exit 1
 WURZEL=$(pwd)
 FEHLER=0
-# Tests schreiben Ereignisse (agentkit.ereignis) nie in die echte Datei
-AGENTKIT_EREIGNIS_DIR=$(mktemp -d)
-export AGENTKIT_EREIGNIS_DIR
-trap 'rm -rf "$AGENTKIT_EREIGNIS_DIR"' EXIT
+# Tests schreiben Ereignisse (agentkit.ereignis) und Logs (agentkit.log) nie in die echten Dateien
+WEGWERF=$(mktemp -d)
+trap 'rm -rf "$WEGWERF"' EXIT
+mkdir "$WEGWERF/ereignisse" "$WEGWERF/logs"
+export AGENTKIT_EREIGNIS_DIR="$WEGWERF/ereignisse"
+export AGENTKIT_LOG_DIR="$WEGWERF/logs"
+# Tests starten nie das echte claude: Der Ersatz scheitert sofort und hinterlässt eine Spur,
+# die unten als Fehler zählt (bis 16.11.2026 startete ein uni-Test bei jeder Prüfung einen echten Lauf).
+export CLAUDE_SPUR="$WEGWERF/claude-gestartet"
+printf '#!/bin/sh\necho "$PWD: $*" | cut -c1-300 >> "$CLAUDE_SPUR"\nexit 1\n' > "$WEGWERF/kein-claude"
+chmod +x "$WEGWERF/kein-claude"
+export AGENTKIT_CLAUDE_BIN="$WEGWERF/kein-claude"
 
 # Ordner | Python | Testordner (relativ zum Ordner)
 TESTS=(
@@ -52,6 +60,14 @@ for eintrag in "${TESTS[@]}"; do
     FEHLER=1
   fi
 done
+
+if [ -s "$CLAUDE_SPUR" ]; then
+  echo "FEHLER  Ein Test hat claude gestartet (Ordner: Aufruf):"
+  head -5 "$CLAUDE_SPUR"
+  FEHLER=1
+else
+  echo "ok      kein Test hat claude gestartet"
+fi
 
 if [ -x "$WURZEL/.venv/bin/ruff" ]; then
   if ausgabe=$("$WURZEL/.venv/bin/ruff" check . 2>&1); then

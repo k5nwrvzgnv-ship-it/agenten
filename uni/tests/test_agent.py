@@ -126,9 +126,12 @@ class TestDokumentAuftrag(unittest.TestCase):
                            {**self.a, "id": "a3", "text": "Fass das Transkript zusammen"}]
         with mock.patch.object(agent.auftraege, "neue", return_value=auftraege_liste), \
              mock.patch.object(agent, "dokument_auftrag") as dok, \
+             mock.patch.object(agent, "mail_auftrag", return_value=False) as erkennung, \
              mock.patch.object(agent.claude_lauf, "laufen", return_value=Ergebnis("x", "s", True)):
             agent.auftraege_abarbeiten()
         self.assertEqual([c.args[0]["id"] for c in dok.call_args_list], ["a1"])
+        # mail_auftrag hat claude_lauf.laufen als Vorgabewert: ohne Ersatz startete a3 einen echten Lauf
+        self.assertEqual([c.args[0]["id"] for c in erkennung.call_args_list], ["a2", "a3"])
 
 
 class TestUrsprung(unittest.TestCase):
