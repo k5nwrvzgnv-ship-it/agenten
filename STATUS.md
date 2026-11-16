@@ -33,11 +33,12 @@ Bericht: docs/untersuchung-2026-11.md (B1 bis B23). Umgesetzt und committet, pru
 - B12 (Teil): kleinanzeigen bewertet schon immer ohne Werkzeuge (bot.py setzt --tools ""); der Bericht lag da
   falsch, ein Test sichert es jetzt ab.
 - B3 (Teil): Unit-Vorlage lia-chat-aufraeumen.service mit MemoryMax=300M.
+- agentenzentrale und lia-zentrale laufen seit 16.11. 14:35 mit diesem Stand (B5, B10, B18, B22 wirken). Beim
+  ersten Durchgang sind vier alte Entwürfe abgelaufen (27.10., 28.10., 28.10., 04.11.), keiner wurde ausgeführt.
+  webapp, arbeitsplatz, leitstand und kleinanzeigen wurden nicht neu gestartet (für sie hat sich nur B21 geändert).
 
 Offen, wartet auf Jan:
-- Neustart von agentenzentrale und lia-zentrale (erst danach wirken B5, B10, B18, B22) und Installieren der
-  Unit-Vorlage lia-chat-aufraeumen (kopieren, daemon-reload). Beim ersten Lauf der neuen Zentrale laufen vier alte
-  Entwürfe ab (27.10., 28.10., 28.10., 04.11.).
+- Installieren der Unit-Vorlage lia-chat-aufraeumen (kopieren, daemon-reload).
 - Ausnahme für kleinanzeigen in CLAUDE.md (eigener Bot, Treffer ohne Freigabe): Wortlaut liegt Jan vor.
 - Leere Datei commit.sperre im Hauptordner und zwei Worktrees unter lia/.claude/worktrees/ (einer mit Kopie von
   uni/.env): löschen oder behalten.
