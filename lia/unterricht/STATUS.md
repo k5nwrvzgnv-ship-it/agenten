@@ -7,6 +7,12 @@ Arbeitsmappe (xlsx, z. B. Notentabelle), einen Reihenentwurf oder eine Lernerfol
 Erwartungshorizont in ihrem Stil mit Begleittext, auf Wunsch mit Varianten in einem Lauf.
 Woche und Frage sind noch Platzhalter („kommt bald“, ohne Claude).
 
+## Aus der Untersuchung 11/2026 (16.11.2026, Hauptordner-Chat mit Jans Okay)
+- Lias Telegram-Menü legt nur noch portal-material an: "Meine Woche" und "Frage stellen" sind entfernt, jeder Text
+  ist ein Materialwunsch und geht ohne Rückfrage los. Der Agent antwortet auf alte Aufträge anderer Art mit einem
+  ehrlichen Satz statt "kommt bald". Wirkt in Telegram erst nach dem Neustart von lia-zentrale.
+- Schreibschutz für Claude gilt jetzt auch für skills/, leitfaden.md und data/vorlagen/.
+
 ## Stand (30.10.2026)
 - Board „Desktop“ (shared/webapp/board-plan.md 1 bis 7, 30.10.): gebaut, mit Tests und je einem echten Probelauf
   geprüft (Jans Okay 30.10., direkt mit material.bearbeiten, Lia bekam nichts; Skript im Chat-Scratchpad):

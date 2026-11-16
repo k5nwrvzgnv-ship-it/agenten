@@ -3,6 +3,15 @@
 ## Zweck
 Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 
+## Aus der Untersuchung 11/2026 (16.11.2026, Hauptordner-Chat mit Jans Okay)
+- Der Lauf, der neue Mails liest (post_pruefen), bekommt kein WebSearch und kein WebFetch mehr
+  (claude_lauf.werkzeuge_ohne_netz).
+- Schreibschutz für Claude gilt jetzt auch für portal/vorlagen, portal/statisch, portal/systemd, tests/ und
+  data/vorlagen/ (Vorlagen sind Eingaben, keine Ausgaben).
+- Der Test test_nur_erster_lauf_und_nur_mit_ausloeser startete bei jeder Prüfung einen echten Lauf (mail_auftrag hat
+  laufen= als Vorgabewert). Behoben; pruefen.sh macht so etwas künftig rot. Für neue Tests: Funktionen mit
+  laufen=claude_lauf.laufen am Namen ersetzen, nicht nur claude_lauf.laufen.
+
 ## Stand (27.10.2026)
 - Uni: HNE Eberswalde (HNEE). Studiengang laut Moodle: Holzingenieurwesen M.Sc.
 - Moodle: https://lms.hnee.de (Moodle 4.5). App-Login direkt mit HNEE-Nutzername/Kennwort (typeoflogin=1),

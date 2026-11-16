@@ -6,6 +6,12 @@ Ergebnisse mit Vorschau, Feedback und Entwürfe. Plan: `../../docs/webapp-plan.m
 Auftrag und Entscheidungen: Punkt 24 in `../../STATUS.md`. Gestaltung „Modernist“ (Board ModHeute im Canvas
 https://claude.ai/artifact/F8ysVSyr8TjGhFDcyNnejU).
 
+## Aus der Untersuchung 11/2026 (16.11.2026, Hauptordner-Chat mit Jans Okay)
+- statisch/ruhig.css: --leise und --sehrleise dunkler (hell #6b6a67 und #706f6c, dunkel --sehrleise #8f8f8a), Kontrast
+  ab 4,5 auf --bg und --flaeche. Bei pointer: coarse sind Knöpfe, Baumeinträge, Zeilen und Felder 44 px hoch.
+  shared/webapp/tests/test_kontrast.py rechnet nach und verlangt, dass beide ruhig.css gleich bleiben.
+  Wirkt sofort, am Gerät noch nicht angesehen.
+
 ## Oberfläche und schneller Weg (Stand 10.11.2026, Plan `../../docs/schnell-dokument-plan.md` Schritt 3)
 `webapp.service` läuft seit 10.11. 12:30 auf ad9539a mit `WEBAPP_OBERFLAECHE=neu` (Jans Okay 10.11.): Lia sieht
 `oberflaeche/` + `ruhig.css` mit Gesprächen und Ablage. Die Unit im Repo ist gleich der installierten. Nach dem Neustart

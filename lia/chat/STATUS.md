@@ -7,6 +7,10 @@ Jans Okay 10.11.2026): mehrere Gespräche, je an einer Klasse, Reihe oder Stunde
 läuft die alte Spalte „Fragen“ weiter, bis die Web-App umgeschaltet hat. Startet nie einen Auftrag und handelt nie
 nach außen; „Daraus Auftrag machen“ macht die Web-App. Plan der Fragen: plan.md (Jan 30.10.2026).
 
+## Aus der Untersuchung 11/2026 (16.11.2026, Hauptordner-Chat mit Jans Okay)
+- systemd/lia-chat-aufraeumen.service hat MemoryMax=300M. Die installierte Unit ist noch die alte, bis Jan das
+  Kopieren und daemon-reload freigibt.
+
 ## Stand (10.11.2026)
 - Lias Wissen im Gespräch (Jan 10.11.2026, „Lias Chat soll alles wissen“, Zugang „Lia + Auswertung“): Claude darf
   mit Read in allen Ordnern unter lia/ lesen außer lia/chat (davon nur data/gespraeche, Lias Gespräche) und Ordnern

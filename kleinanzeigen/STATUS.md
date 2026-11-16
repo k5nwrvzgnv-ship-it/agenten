@@ -6,6 +6,10 @@ Jan (und ein Kumpel) beschreibt oder fotografiert im eigenen Telegram-Bot, was e
 laufend die neuesten Anzeigen und meldet gute Angebote sofort mit Link. Schreiben an Verkäufer macht der
 Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach außen.
 
+## Aus der Untersuchung 11/2026 (16.11.2026, Hauptordner-Chat mit Jans Okay)
+- Die Bewertung läuft ohne Werkzeuge (bot.py, _lauf_cfg). Ein Test in tests/test_logik.py sichert das ab.
+- Offen bei Jan: Ausnahme in CLAUDE.md für den eigenen Bot und Treffer ohne Freigabe.
+
 ## Stand (15.11.2026)
 - Läuft als Dauerdienst kleinanzeigen.service (systemd-User, enabled), Bot @klnanzgnbot. Erste echte Suche von
   Jan hat einen Treffer geliefert.

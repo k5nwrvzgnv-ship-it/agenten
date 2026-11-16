@@ -2,6 +2,52 @@
 
 Aktueller Stand, kein Verlauf. Wie es dazu kam: `git log`. Architektur und Konventionen: CLAUDE.md.
 
+## Umsetzung der Untersuchung 11/2026 (Stand 16.11.2026)
+Bericht: docs/untersuchung-2026-11.md (B1 bis B23). Umgesetzt und committet, pruefen.sh grün:
+- B2, B4: pruefen.sh setzt AGENTKIT_CLAUDE_BIN auf einen Ersatz, der scheitert und eine Spur hinterlässt (ein Test,
+  der claude startet, macht die Prüfung rot), und AGENTKIT_LOG_DIR auf einen Wegwerf-Ordner (agentkit.log). Gemessen:
+  kein neuer Eintrag in laeufe.jsonl, keine geänderte Datei unter */logs/ durch die Prüfung.
+- B1: claude_lauf.GESCHUETZT umfasst jetzt auch html, js, css, path, sha256, woff2, die Ordner tests/, vorlagen/,
+  statisch/, systemd/, skills/, konfig/, verfahren/, verfahren_neu/ und die Texte, die in Prompts geladen werden.
+  JSON und Markdown in data/ und Ausgabeordnern bleiben schreibbar. agentkit/tests/test_schreibschutz.py prüft jede
+  verfolgte Datei der Agent-Ordner; Ausnahmen stehen dort mit Grund. Ob claude die Muster durchsetzt, ist weiter
+  nur von Hand getestet (16.10., 10.11.).
+- B14, B15: Feedback-Dienst committet über commit.sh. .claude/ und shared/auftraege/ereignisse/ in .gitignore,
+  .claude in ruff.toml ausgenommen.
+- B7 (Teil): holzbalkenscan startet Scopes mit --collect, die alten 264 fehlgeschlagenen Test-Scopes sind zurückgesetzt.
+- B21: unlesbare Datei in einer Warteschlange wird nach <ordner>/kaputt/ gelegt und einmal gemeldet (_ablage.liste).
+- B11: agentkit.feedback.HEIKLE_MUSTER, feste Wortliste. Trifft sie die Regel oder den Auftrag einer Nachbesserung,
+  wird es ein Vorschlag an Jan, egal was Claude in "heikel" schreibt. Bewusst lieber einmal zu oft.
+- B18: /verbrauch zeigt die letzten 7 Tage je Agent (Läufe, USD als Vergleichswert).
+- B22: Die Zentrale leitet ihre Agentenliste beim Start ab (Ordner mit agent.py und <name>.service). einkauf ist
+  aus Liste und einstellungen.toml entfernt. Netzfehler stehen als eine Zeile im Log.
+- B5: Offene Entwürfe laufen nach 7 Tagen ab (Status "abgelaufen", wird nie ausgeführt, freigabe.verfallen_lassen
+  in jeder Prüfrunde der Zentrale), Jan bekommt eine kurze Meldung. Einmal am Tag ab 9 Uhr eine Erinnerung, wenn
+  ein Entwurf länger als 24 Stunden offen ist. Im Menü ist jeder Entwurf einzeln antippbar.
+- B10: Lias Menü ohne "Meine Woche", "Frage stellen", Hinweis und "Aktualisieren". Text geht ohne Rückfrage als
+  Materialwunsch los, danach einmal "Zurückziehen".
+- B19: ruhig.css (Web-App und Arbeitsplatz, weiter zwei gleiche Dateien): graue Schrift mit Kontrast ab 4,5,
+  bei Fingerbedienung 44 px Höhe. webapp/tests/test_kontrast.py rechnet nach. Nicht am Gerät gesehen.
+- B13 (Teil): claude_lauf.laufen(..., werkzeuge=[...]) wählt je Aufruf aus den eingestellten Werkzeugen. Der
+  uni-Lauf, der neue Mails liest, hat kein WebSearch und kein WebFetch.
+- B12 (Teil): kleinanzeigen bewertet schon immer ohne Werkzeuge (bot.py setzt --tools ""); der Bericht lag da
+  falsch, ein Test sichert es jetzt ab.
+- B3 (Teil): Unit-Vorlage lia-chat-aufraeumen.service mit MemoryMax=300M.
+
+Offen, wartet auf Jan:
+- Neustart von agentenzentrale und lia-zentrale (erst danach wirken B5, B10, B18, B22) und Installieren der
+  Unit-Vorlage lia-chat-aufraeumen (kopieren, daemon-reload). Beim ersten Lauf der neuen Zentrale laufen vier alte
+  Entwürfe ab (27.10., 28.10., 28.10., 04.11.).
+- Ausnahme für kleinanzeigen in CLAUDE.md (eigener Bot, Treffer ohne Freigabe): Wortlaut liegt Jan vor.
+- Leere Datei commit.sperre im Hauptordner und zwei Worktrees unter lia/.claude/worktrees/ (einer mit Kopie von
+  uni/.env): löschen oder behalten.
+- Entscheidungen aus dem Bericht: offene Claude-Chats (B3), Ziel der Datensicherung (B8), Web-App, Uni-Portal und
+  alte Vorlagen behalten oder stilllegen (B9), wenig genutzte Agenten, STATUS-Dateien kürzen und Personenbezug
+  auslagern (B16), Lebenszeichen von außen (B17), Nachtruhe für Meldungen (B20), Hook nur für betroffene Ordner (B7),
+  Härtung der Units (B13).
+- Lias offener Entwurf von examen (seit 25.10.) bleibt liegen: Lias Zentrale zeigt keine Entwürfe und ruft den
+  Verfall nicht auf.
+
 ## Stand (27.10.2026)
 - Übersicht, wo was liegt, welche Dienste laufen und welcher Chat wohin gehört: README.md
   (aufgeräumt 21.10.: lia/instanz statt lia/shared, Dienst-Vorlagen je Ordner in systemd/).

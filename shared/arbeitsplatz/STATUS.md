@@ -7,6 +7,12 @@ Neutrale Web-Oberfläche über Jans Agenten (uni, dokumente, finance): freier Ba
 Lias App `shared/webapp` ist Muster und Quelle (CSS, Schrift, htmx kopiert), wird nicht verändert.
 `uni/portal` bleibt bis zur Abnahme unverändert.
 
+## Aus der Untersuchung 11/2026 (16.11.2026, Hauptordner-Chat mit Jans Okay)
+- statisch/ruhig.css: --leise und --sehrleise dunkler (hell #6b6a67 und #706f6c, dunkel --sehrleise #8f8f8a), Kontrast
+  ab 4,5 auf --bg und --flaeche. Bei pointer: coarse sind Knöpfe, Baumeinträge, Zeilen und Felder 44 px hoch.
+  shared/webapp/tests/test_kontrast.py rechnet nach und verlangt, dass beide ruhig.css gleich bleiben.
+  Wirkt sofort, am Gerät noch nicht angesehen.
+
 ## Stand (09.11.2026, nachts)
 Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A:
 - agentkit: `neuer_auftrag(..., art=, felder=)`; Nachbesserungen des Feedback-Dienstes erben `ort`, `art`, `felder`,

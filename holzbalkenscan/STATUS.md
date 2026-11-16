@@ -5,6 +5,12 @@ Prüfstand für ein fremdes Forschungsverfahren, das Handyfotos einer Holzbautei
 maßhaltigen Streifenbild zusammensetzt. Der Prüfstand rechnet die Fotoreihen nach, liest die
 Kennzahlen aus und vergleicht sie mit dem Vorlauf. Plan von Jan am 06.11.2026 freigegeben.
 
+## Aus der Untersuchung 11/2026 (16.11.2026, Hauptordner-Chat mit Jans Okay)
+- pruefstand.befehl startet Scopes mit --collect: Ein Schritt, der an der Speichergrenze stirbt, bleibt nicht mehr
+  als "failed" in systemd liegen. Die alten Reste der Tests sind zurückgesetzt.
+- Die Zentrale kennt den Agenten, sobald es holzbalkenscan.service gibt (Agentenliste aus Ordnern und Diensten).
+  Bis dahin weiter Auftrag von Hand.
+
 ## Stand (07.11.2026)
 - Prüfstand fertig und getestet (64 Tests, auch eine echte Speichergrenze per systemd-run), pruefen.sh grün.
 - Reihe ISO 800 echt gerechnet: Lauf 20261107-010055 (Grenze 2800M) gelungen, Meldung an Jan gesendet.
