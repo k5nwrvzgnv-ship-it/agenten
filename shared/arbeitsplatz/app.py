@@ -6,8 +6,10 @@ der Orte (agentkit.orte) mit „+ Seite“, Mitte die Seite des Orts mit Unterse
 legt einen Auftrag an (quelle="arbeitsplatz", ort, art, felder) und startet <agent>.service.
 
 Seiten (GET): /  /ort/<id>  /seite/neu?eltern=<id>  /archiv  /neu?ort=<id>  /neu/<art>?ort=<id>  /dokument/<id>
+  /recherche/neu?ort=<id>  /recherche/<motor>/<projekt>
   Dateien: /dokument/<id>/datei/<auftrag>/<nr>[/pdf|/seite/<n>]  /dokument/<id>/eigene/<n>
 Formulare (POST): /seite/neu  /ort/<id>/umbenennen|verschieben|archivieren|wiederherstellen  /rueckgaengig  /neu/<art>
+  /recherche/neu (Plan) und /recherche/los (Auftrag an uni)
   /dokument/<id>/final|eigene|rueckmeldung (Rückmeldung geht an feedback.service, nur bei Arten mit rueckmeldung)
 Ein Dokument ist eine Kette über bezug; Dateien kommen nur über Auftrag und Nummer in ergebnis_dateien, jeder Pfad
 wird gegen den Agent-Ordner geprüft (dateien.py, Kopie aus shared/webapp).
@@ -741,6 +743,100 @@ async def neuer_auftrag(request: Request, kennung: str):
         shutil.rmtree(gelegt[0].parent, ignore_errors=True)
     gestartet = await run_in_threadpool(dienst_starten, art["agent"])
     logger.info("Auftrag %s (%s) an %s angelegt, Dienst %s", aid, art["kennung"], art["agent"],
+                "gestartet" if gestartet else "nicht gestartet")
+    ziel = f"{logik.ort_link(ort)}?erledigt={'auftrag' if gestartet else 'auftrag-wartet'}"
+    einmal_merken(request, form, ziel)
+    return RedirectResponse(ziel, status_code=303)
+
+
+# --- Recherche am Ort („+ → Recherche …“, docs/recherche-plan.md Bauschritt 6b) ------------------------------------
+
+RECHERCHE_ART = "recherche"
+RECHERCHE_AUFWAND = {"kurz": "kurz", "gründlich": "gruendlich"}
+
+
+def recherche_plan(text: str) -> dict:
+    kosten = {u: recherche.kosten_schaetzen("uni", "suche", a) for u, a in RECHERCHE_AUFWAND.items()}
+    return logik.recherche_plan(text, kosten)
+
+
+def _recherche_seite(request: Request, baum: list[dict], ort: str, text: str = "", plan: dict | None = None,
+                     fehler: list[str] | None = None, status: int = 200):
+    krumen = logik.krumen(baum, ort, "Recherche") if ort else {"teile": [{"text": "Heute", "link": "/"}],
+                                                                "hier": "Recherche"}
+    return seite(request, "recherche_neu.html", {
+        "e": {"titel": "Recherche"}, "ort": ort, "ort_text": logik.ort_text(baum, ort), "text": text, "plan": plan,
+        "fehler": fehler or [], "orte_wahl": logik.ziele_zum_verschieben(baum, "")[1:],
+        **rahmen(baum, ort or None, krumen, None)}, status)
+
+
+@app.get("/recherche/neu", response_class=HTMLResponse)
+def seite_recherche_neu(request: Request, ort: str = ""):
+    baum = baum_laden()
+    _ort_param(baum, ort)
+    return _recherche_seite(request, baum, ort)
+
+
+@app.post("/recherche/neu", response_class=HTMLResponse)
+async def recherche_planen(request: Request):
+    """Text rein, Plan (Thema, Ablage, Umfang, Kosten) mit „Los“ raus; legt nichts an."""
+    form, token_ok = await formular(request)
+    baum = baum_laden()
+    ort = str(form.get("ort") or "")
+    _ort_param(baum, ort)
+    text = str(form.get("text") or "")
+    if not token_ok:
+        return _recherche_seite(request, baum, ort, text, fehler=[VERALTET], status=400)
+    try:
+        plan = recherche_plan(text)
+    except ValueError as f:
+        return _recherche_seite(request, baum, ort, text, fehler=[str(f)], status=400)
+    return _recherche_seite(request, baum, ort, text, plan)
+
+
+@app.post("/recherche/los", response_class=HTMLResponse)
+async def recherche_los(request: Request):
+    """„Los“: genau der gezeigte Plan wird ein Auftrag der Art recherche an uni, mit dem Ort."""
+    form, token_ok = await formular(request)
+    baum = baum_laden()
+    ort = str(form.get("ort") or "")
+    _ort_param(baum, ort)
+    text = str(form.get("text") or "")
+    if not token_ok:
+        return _recherche_seite(request, baum, ort, text, fehler=[VERALTET], status=400)
+    if ziel := einmal_ziel(request, form):
+        return RedirectResponse(ziel, status_code=303)
+    try:
+        plan = recherche_plan(text)
+    except ValueError as f:
+        return _recherche_seite(request, baum, ort, text, fehler=[str(f)], status=400)
+    fehler = []
+    art = arten.finden(arten_laden(), RECHERCHE_ART)
+    werte = {}
+    if art is None or not art["aktiv"]:
+        fehler.append("Die Art Recherche ist gerade nicht aktiv (arten.toml).")
+    else:
+        try:
+            werte = arten.formular_pruefen(art, {"Thema": plan["thema"], "Fragestellung": plan["fragestellung"],
+                                                 "Umfang": plan["umfang"]})
+        except arten.ArtFehler as f:
+            fehler += str(f).split("; ")
+    if not ort:
+        fehler.append("Ort: bitte wählen, wo die Recherche liegen soll")
+    if not auftraege_an():
+        fehler.append("Aufträge sind gerade ausgeschaltet (ARBEITSPLATZ_AUFTRAEGE). Nichts angelegt.")
+    if fehler:
+        return _recherche_seite(request, baum, ort, text, plan, fehler, 400)
+    try:
+        aid = await run_in_threadpool(lambda: auftraege.neuer_auftrag(
+            art["agent"], arten.auftragstext(art, werte), quelle=QUELLE, ort=ort, art=art["kennung"], felder=werte,
+            basis=basis(), agenten_dir=agenten_dir()))
+    except (auftraege.AuftragFehler, OSError) as f:
+        logger.error("Recherche-Auftrag nicht angelegt: %s", f)
+        return _recherche_seite(request, baum, ort, text, plan, ["Anlegen ging gerade nicht. Bitte noch einmal."],
+                                500)
+    gestartet = await run_in_threadpool(dienst_starten, art["agent"])
+    logger.info("Recherche %s (%s) an %s angelegt, Dienst %s", aid, plan["umfang"], art["agent"],
                 "gestartet" if gestartet else "nicht gestartet")
     ziel = f"{logik.ort_link(ort)}?erledigt={'auftrag' if gestartet else 'auftrag-wartet'}"
     einmal_merken(request, form, ziel)

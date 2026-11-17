@@ -246,3 +246,28 @@ class TestBetrachterUndZiel(unittest.TestCase):
     def test_datei_zeilen_mit_vorschau_laeuft(self):
         z = logik._datei_zeilen(["a.pdf", "b.docx"], [(True, False, 0, True), (True, True, 4)])
         self.assertEqual([(x["vorschau_laeuft"], x["seiten"], x["pdf"]) for x in z], [(True, 0, True), (False, 4, True)])
+
+
+class TestRechercheplan(unittest.TestCase):
+    KOSTEN = {"kurz": {"von": None, "bis": 15.0}, "gründlich": {"von": 35.23, "bis": 50.0}}
+
+    def test_kurz_und_gruendlich(self):
+        p = logik.recherche_plan("  Wie  erkennt man Harzgallen?  ", self.KOSTEN)
+        self.assertEqual(p, {"thema": "Wie erkennt man Harzgallen?", "fragestellung": "", "umfang": "kurz",
+                             "kosten_text": "noch nicht gemessen, höchstens 15 USD"})
+        p = logik.recherche_plan("Harzgallen\r\nBitte GRUENDLICH, mit Normen.", self.KOSTEN)
+        self.assertEqual((p["thema"], p["umfang"], p["kosten_text"]),
+                         ("Harzgallen", "gründlich", "zuletzt etwa 35 USD, höchstens 50 USD"))
+        self.assertEqual(p["fragestellung"], "Harzgallen\nBitte GRUENDLICH, mit Normen.")
+        self.assertEqual(logik.recherche_plan("x gründlich", {})["kosten_text"], "unbekannt")
+
+    def test_langes_thema_gekuerzt(self):
+        text = "Welche Fehlstellen " + "an Nadelholz und Laubholz " * 6
+        p = logik.recherche_plan(text, self.KOSTEN)
+        self.assertLessEqual(len(p["thema"]), logik.THEMA_MAX + 2)
+        self.assertTrue(p["thema"].endswith(" …"))
+        self.assertEqual(p["fragestellung"], text.strip())
+
+    def test_leer(self):
+        with self.assertRaises(ValueError):
+            logik.recherche_plan(" \n ", self.KOSTEN)

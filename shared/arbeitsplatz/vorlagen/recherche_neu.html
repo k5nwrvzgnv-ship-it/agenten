@@ -1,0 +1,44 @@
+{#- Neue Recherche am Ort („+ → Recherche …“, docs/recherche-plan.md Bauschritt 6b): ein Textfeld, „Senden“ zeigt
+    den Plan ohne Claude (Thema, Ablage, Umfang, Kosten), „Los“ gibt genau diesen Plan als Auftrag an uni.
+    Von Heute aus (ohne Ort) fragt die Seite, wo die Recherche liegen soll: sie soll an einem Ort wiederzufinden sein. -#}
+{% extends "basis.html" %}
+{% block inhalt %}
+{%- if fehler %}<div class="fehler" role="alert">{% for f in fehler %}<p>{{ f }}</p>{% endfor %}</div>{% endif %}
+{%- if not auftraege_an %}<p class="hinweis">Probebetrieb: „Los“ prüft nur, es entsteht kein Auftrag.</p>{% endif %}
+{%- if plan %}
+<section class="plan">
+  <h2>Plan</h2>
+  <dl class="plan-liste">
+    <dt>Thema</dt><dd>{{ plan.thema }}</dd>
+    <dt>Liegt bei</dt><dd>{{ ort_text if ort else "noch offen, bitte unten wählen" }}</dd>
+    <dt>Umfang</dt><dd>{{ plan.umfang }}{% if plan.umfang == "kurz" %} <span class="grau">(„gründlich“ in den Text schreiben für mehr)</span>{% endif %}</dd>
+    <dt>Kosten</dt><dd>{{ plan.kosten_text }}</dd>
+  </dl>
+  <form class="formular" method="post" action="/recherche/los" data-einmal>
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+    <input type="hidden" name="text" value="{{ text }}">
+    {%- if ort %}
+    <input type="hidden" name="ort" value="{{ ort }}">
+    {%- else %}
+    <label class="feld-titel" for="ort-los">Wo soll sie liegen?</label>
+    <select class="feld" id="ort-los" name="ort" required>
+      <option value="">Bitte wählen</option>
+      {%- for z in orte_wahl %}<option value="{{ z.id }}">{{ "  " * (z.tiefe - 1) }}{{ z.text }}</option>{% endfor %}
+    </select>
+    {%- endif %}
+    <button class="knopf knopf-voll" type="submit">Los</button>
+  </form>
+</section>
+{%- endif %}
+<form class="formular" method="post" action="/recherche/neu">
+  <input type="hidden" name="token" value="{{ token }}">
+  {%- if ort %}<input type="hidden" name="ort" value="{{ ort }}">{% endif %}
+  <section>
+    <label class="feld-titel" for="text">{% if plan %}Anders formulieren{% else %}Was willst du wissen?{% endif %}</label>
+    {%- if ort and not plan %}<p class="unter">Die Recherche liegt danach bei {{ ort_text }}.</p>{% endif %}
+    <textarea id="text" name="text" rows="5" required{% if not plan %} autofocus{% endif %}>{{ text }}</textarea>
+  </section>
+  <button class="knopf{% if not plan %} knopf-voll{% endif %}" type="submit">Senden</button>
+</form>
+{% endblock %}

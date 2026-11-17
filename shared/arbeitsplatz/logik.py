@@ -236,6 +236,34 @@ def recherche_ort(projekt: dict, zuordnung: dict[str, str], baum: list[dict]) ->
     return ort if ort and any(k["id"] == ort for k in baum) and orte.sichtbar(baum, ort) else None
 
 
+THEMA_MAX = 80
+GRUENDLICH = re.compile(r"gr(?:ü|ue)ndlich", re.I)
+
+
+def recherche_plan(text: str, kosten: dict[str, dict | None]) -> dict:
+    """Plan einer Recherche aus Jans Text, ohne Claude (Recherche am Ort, „+ → Recherche …“).
+    Thema: erste Zeile, gekürzt auf THEMA_MAX; Fragestellung: der ganze Text, wenn er mehr sagt als das Thema;
+    Umfang: gründlich, wenn das Wort im Text steht, sonst kurz. kosten: Umfang -> Eintrag aus recherche.KOSTEN.
+    Gibt {"thema", "fragestellung", "umfang", "kosten_text"} zurück; leerer Text: ValueError."""
+    text = text.replace("\r\n", "\n").strip()
+    if not text:
+        raise ValueError("Was willst du wissen? Bitte ausfüllen.")
+    erste = " ".join(text.split("\n", 1)[0].split())
+    thema = erste
+    if len(thema) > THEMA_MAX:
+        thema = thema[:THEMA_MAX].rsplit(" ", 1)[0].rstrip(" ,;:.") + " …"
+    fragestellung = "" if " ".join(text.split()) == thema else text
+    umfang = "gründlich" if GRUENDLICH.search(text) else "kurz"
+    k = kosten.get(umfang)
+    if not k:
+        kosten_text = "unbekannt"
+    elif k.get("von") is None:
+        kosten_text = f"noch nicht gemessen, höchstens {k['bis']:.0f} USD"
+    else:
+        kosten_text = f"zuletzt etwa {k['von']:.0f} USD, höchstens {k['bis']:.0f} USD"
+    return {"thema": thema, "fragestellung": fragestellung, "umfang": umfang, "kosten_text": kosten_text}
+
+
 def dokumente(auftraege: list[dict], ort_id: str | None, arten_namen: dict[str, str],
               finals: dict[str, dict | None], zuordnung: dict[str, str] | None = None) -> list[dict]:
     """Dokumente, deren Ursprung am Ort ort_id liegt (None: alle mit Ort), neueste Änderung zuerst.

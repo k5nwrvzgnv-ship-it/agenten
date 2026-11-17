@@ -27,7 +27,8 @@
 {%- block plus %}
 {%- if not archiviert %}
 {{ plus([{"text": "Seite", "aktion": "/seite/neu", "felder": [("eltern", ort.id), ("titel", "Neue Seite"), ("einmal", einmal_kennung())]},
-         {"text": "Dokument …", "link": neu_hier}, {"text": "Datei", "link": "#ablage"}]) }}
+         {"text": "Dokument …", "link": neu_hier}, {"text": "Recherche …", "link": "/recherche/neu?ort=" ~ ort.id},
+         {"text": "Datei", "link": "#ablage"}]) }}
 {%- endif %}
 {%- endblock %}
 {%- block punkte %}

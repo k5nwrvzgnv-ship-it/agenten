@@ -216,10 +216,10 @@ class TestSeiten(Aufbau):
         p = self.ort("Projekt")
         heute = self.get("/")[1]
         self.assertEqual(heute.count('class="menue-halter plus"'), 1)
-        self.assertEqual(eintraege(heute), ["Seite", "Dokument …"])
+        self.assertEqual(eintraege(heute), ["Seite", "Dokument …", "Recherche …"])
         self.assertIn('class="knopf knopf-voll plus-knopf"', heute)
-        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Seite", "Dokument …", "Datei"])
-        for pfad in ("/archiv", "/neu", "/neu/expose", "/seite/neu"):
+        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Seite", "Dokument …", "Recherche …", "Datei"])
+        for pfad in ("/archiv", "/neu", "/neu/expose", "/seite/neu", "/recherche/neu"):
             self.assertIsNone(eintraege(self.get(pfad)[1]), pfad)
         self.assertNotIn("+ Neu<", self.get(f"/ort/{p}")[1])
         # „Seite“ im „+“ legt sofort „Neue Seite“ unter dem Ort an
@@ -883,3 +883,91 @@ class TestRecherchen(Aufbau):
         for pfad in ("/recherche/finance/x", "/recherche/uni/gibt-es-nicht", "/recherche/uni/..",
                      "/recherche/uni/Gross", "/recherche/lia/%2e%2e"):
             self.assertEqual(self.get(pfad)[0], 404, pfad)
+
+
+RECHERCHE_ART = """
+[[art]]
+kennung = "recherche"
+name = "Research-Bericht"
+beschreibung = "Recherche"
+agent = "uni"
+aktiv = true
+material = "nein"
+rueckmeldung = false
+[[art.feld]]
+name = "Thema"
+art = "zeile"
+pflicht = true
+[[art.feld]]
+name = "Fragestellung"
+art = "text"
+[[art.feld]]
+name = "Umfang"
+art = "auswahl"
+werte = ["kurz", "gründlich"]
+"""
+
+
+class TestNeueRecherche(Aufbau):
+    """„+ → Recherche …“: Text, Plan ohne Claude, „Los“ legt genau einen Auftrag an uni mit dem Ort an."""
+
+    def setUp(self):
+        super().setUp()
+        with open(self.tmp / "arten.toml", "a", encoding="utf-8") as f:
+            f.write(RECHERCHE_ART)
+        (self.units / "uni.service").write_text("")
+        self.oben = self.ort("Forschungsprojekt")
+        self.kap = self.ort("Holzbiologie", self.oben)
+
+    def neue(self):
+        return auftraege.neue(basis=self.instanz / "auftraege")
+
+    def test_plan_und_los(self):
+        status, html, _ = self.get(f"/recherche/neu?ort={self.kap}")
+        self.assertEqual(status, 200)
+        self.assertIn("Was willst du wissen?", html)
+        self.assertIn("Forschungsprojekt" + app.logik.ORT_TRENNER + "Holzbiologie", html)
+        status, html, _ = self.post("/recherche/neu", {"ort": self.kap, "text": "Harzgallen <bei> Fichte\ngründlich"})
+        self.assertEqual(status, 200)
+        plan = html.split('class="plan"')[1].split("</section>")[0]
+        self.assertIn("Harzgallen &lt;bei&gt; Fichte", plan)
+        self.assertIn("gründlich", plan)
+        self.assertIn("höchstens 50 USD", plan)
+        self.assertIn('action="/recherche/los"', plan)
+        self.assertEqual(self.neue(), [])  # Plan legt nichts an
+        felder = {"ort": self.kap, "text": "Harzgallen <bei> Fichte\ngründlich", "einmal": "r1"}
+        status, _, kopf = self.post("/recherche/los", felder)
+        self.assertEqual((status, kopf["location"]), (303, f"/ort/{self.kap}?erledigt=auftrag"))
+        self.post("/recherche/los", felder)  # Doppelklick
+        neu = self.neue()
+        self.assertEqual(len(neu), 1)
+        a = neu[0]
+        self.assertEqual((a["agent"], a["ort"], a["art"], a["quelle"]), ("uni", self.kap, "recherche", "arbeitsplatz"))
+        self.assertEqual(a["felder"], {"Thema": "Harzgallen <bei> Fichte",
+                                       "Fragestellung": "Harzgallen <bei> Fichte\ngründlich", "Umfang": "gründlich"})
+        self.assertTrue(a["text"].startswith("Art: Research-Bericht\nThema: Harzgallen"))
+        self.assertEqual(self.gestartet, [["systemctl", "--user", "start", "--no-block", "uni.service"]])
+
+    def test_von_heute_ort_waehlen(self):
+        html = self.post("/recherche/neu", {"text": "Holzfeuchte"})[1]
+        self.assertIn("Wo soll sie liegen?", html)
+        self.assertIn(f'<option value="{self.kap}">', html)
+        status, html, _ = self.post("/recherche/los", {"text": "Holzfeuchte"})
+        self.assertEqual(status, 400)
+        self.assertIn("Ort: bitte wählen", html)
+        status, _, kopf = self.post("/recherche/los", {"text": "Holzfeuchte", "ort": self.oben})
+        self.assertEqual(kopf["location"], f"/ort/{self.oben}?erledigt=auftrag")
+        self.assertEqual(self.neue()[0]["felder"]["Umfang"], "kurz")
+
+    def test_fehler(self):
+        status, html, _ = self.post("/recherche/neu", {"ort": self.kap, "text": "  "})
+        self.assertEqual(status, 400)
+        self.assertIn("Bitte ausfüllen", html)
+        self.assertEqual(self.get("/recherche/neu?ort=gibt-es-nicht")[0], 404)
+        self.assertEqual(self.post("/recherche/los", {"ort": self.kap, "text": "x"}, origin="http://fremd")[0], 403)
+        self.assertEqual(self.post("/recherche/los", {"ort": self.kap, "text": "x", "token": "alt"})[0], 400)
+        with mock.patch.object(app, "AUFTRAEGE", "aus"):
+            status, html, _ = self.post("/recherche/los", {"ort": self.kap, "text": "x"})
+        self.assertEqual(status, 400)
+        self.assertIn("ausgeschaltet", html)
+        self.assertEqual((self.neue(), self.gestartet), ([], []))
