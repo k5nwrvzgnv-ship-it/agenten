@@ -50,6 +50,13 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   (Zusammenfassung des letzten Laufs), nur Gesichertes nach Fragegruppe (eine Gruppe: nach Frage), Quelle kurz
   dahinter, Zitat beim Anklicken; Offenes, Unsicheres, Quellen, Kosten in der Klappe. Die ausführlichen Reiter
   (Aussagen mit Filtern, Quellen, Lücken und Rückfragen, Läufe) über „···“ bzw. `?ansicht=`.
+  Neue Recherche (17.11.2026, Jan „Ja, alles“): „+ → Recherche …“ auf jeder Ort-Seite und auf Heute öffnet
+  `/recherche/neu?ort=<id>` (ein Textfeld „Was willst du wissen?“). „Senden“ zeigt einen Plan ohne Claude
+  (`logik.recherche_plan`: Thema = erste Zeile, gekürzt; Fragestellung = ganzer Text; Umfang gründlich, wenn das Wort
+  im Text steht, sonst kurz; Kosten aus `agentkit.recherche.kosten_schaetzen`). „Los“ (`/recherche/los`) legt einen
+  Auftrag der Art recherche an uni mit dem Ort an und startet uni.service. Von Heute aus muss beim Plan ein Ort
+  gewählt werden (Dokumente ohne Ort stünden nirgends). Das Ergebnis erscheint vorerst als Dokument am Ort; als
+  Recherche im Baum erst, wenn uni daraus ein Projekt mit `ort` macht (Bedarf in der Haupt-STATUS, Punkt 42).
   Zuordnung 15.11.: Exposé-Recherche -> `expose`. Die alte Dokument-Ansicht recherche bleibt, bis neue Läufe in
   Projekte schreiben.
 - finance: Aufträge nach `art` und Feld Thema, Ergebnis mit `daten.titel` (siehe finance/STATUS.md).
@@ -114,7 +121,7 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 
 ## Starten und ansehen
 - Dienst `arbeitsplatz.service` (Vorlage `systemd/arbeitsplatz.service`), nur `127.0.0.1:8794`,
-  `ARBEITSPLATZ_AUFTRAEGE=aus` (Formular prüft, legt nichts an). Echt mit `ARBEITSPLATZ_AUFTRAEGE=echt` in der Unit.
+  `ARBEITSPLATZ_AUFTRAEGE=echt` seit 17.11.2026 (Jans Okay; gilt für alle Arten). Mit `aus` prüfen Formulare nur.
 - Neustart nach Code-Änderung: `systemctl --user restart arbeitsplatz.service`;
   Log: `journalctl --user -u arbeitsplatz.service -n 50`.
 - Jan über den Tunnel (Mac): `ssh -N -L 8794:127.0.0.1:8794 agents-user`, dann http://localhost:8794.
@@ -140,14 +147,13 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
    im Holzbau), die Probeläufe von dokumente 20261109-211357-...-a51635 (Präsentation) und -211605-...-c7647f
    (Bericht) sowie alle übrigen Telegram-Aufträge (Mails, Termine, Fragen).
    Zuordnen geht bisher nur über die Datei, nicht in der Oberfläche.
-2. ARBEITSPLATZ_AUFTRAEGE bleibt bis zu den echten Läufen aus.
 3. `shared/orte.json` und `orte-zuordnung.json` sind nicht im Repo und damit nicht in der nächtlichen Sicherung
    (nur git push). Ins Repo käme die Datei nur über einen Weg wie commit-daten.sh; die Frage legt die koordinierende
    Sitzung Jan am 10.11. vor. Bis dahin kein eigener Sicherungsweg.
-5. Recherche am Ort, nächste Schritte (docs/recherche-plan.md 6a, 6b, 7): Textfeld „Was willst du hier wissen?“ an
-   jeder Seite mit Plan und „Los“ (braucht Planlauf und Absichtserkennung); uni und lia/recherche setzen `ort` beim
-   Schreiben der Projekte (Bedarf in der Haupt-STATUS); Verschieben einer Recherche im „···“. Live seit dem
-   Neustart 15.11. abends (Jans Okay), alle Seiten 200. Lias drei Projekte haben keinen Ort (Jans Instanz kennt ihre Reihen nicht), sie stehen auf Heute.
+5. Recherche am Ort, nächste Schritte (docs/recherche-plan.md 6a, 6b, 7): Plan mit Claude statt Python (Planlauf,
+   Absichtserkennung, Bestand am Ort); uni und lia/recherche setzen `ort` beim Schreiben der Projekte (Bedarf in der
+   Haupt-STATUS); Verschieben einer Recherche im „···“. „+ → Recherche …“ live seit dem Neustart 17.11. (alle
+   Seiten 200); ein echter Lauf darüber steht noch aus. Lias drei Projekte haben keinen Ort (Jans Instanz kennt ihre Reihen nicht), sie stehen auf Heute.
 4. Echte Läufe 10.11. ab 15 Uhr: alle Arten außer Exposé, Recherche nur „kurz“ (Jans Entscheidung, siehe Plan).
 
 ## Gelernte Regeln

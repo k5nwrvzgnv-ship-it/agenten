@@ -242,7 +242,9 @@ beim Schreiben der Arbeit kann sie im richtigen Kapitel stattfinden. Skizze: `do
 - Lia: `ort` ist dort Reihe oder Stunde; Verhalten gleich, ihre Seite folgt in Schritt 11.
 - Gebaut (15.11.2026, lesend): Recherchen im Baum an ihrem Ort, Übersicht nach Skizze, `/recherchen` weg (siehe
   `shared/arbeitsplatz/STATUS.md`). Exposé-Recherche über `orte-zuordnung.json` unter „Exposé“. Lias drei Projekte
-  stehen ohne Ort auf Heute. Offen: Textfeld mit Plan (6a, 7), `ort` aus den Adaptern (6b).
+  stehen ohne Ort auf Heute. Gebaut 17.11.2026: „+ → Recherche …“ an jeder Seite und auf Heute, Plan ohne Claude
+  (Thema, Ort, Umfang, Kosten) mit „Los“, Auftrag an uni mit `ort`. Offen: Plan mit Claude (6a, 7), `ort` aus den
+  Adaptern (6b, uni zuerst).
 
 ## 6. Harte Regeln aus CLAUDE.md
 - **Nach außen**: Recherche liest nur (WebSearch, WebFetch auf der Allowlist). Ein Dokument an Lia ist Zustellung
