@@ -219,8 +219,15 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   9 unbelegt, 30 Einschätzungen, Status je Aussage gleich wie in geprueft.json), 89 Quellen (84 Adressen aus
   90 Einträgen, 4 Adressen standen in mehreren Fenstern; dazu 4 Normen und Blass/Sandhaas), 62 Lücken,
   7 Widersprüche, 22 Rückfragen. Der Nachtrag vom 04.11. (MiCROTEC von Hand, art produkt) ist enthalten.
-  Offen: recherche.durchfuehren schreibt neue Läufe noch nicht ins Projekt; das kommt mit Bauschritt 7/8 (Plan,
-  Ausweiten), dann auch, welche Projekt-id ein neuer Lauf bekommt.
+- Recherche am Ort (17.11., Bauschritt 6b): Nach jedem fertigen Auftrag der Art recherche (Arbeitsplatz „+ →
+  Recherche …“) schreibt agent.projekt_schreiben das Projekt selbst (rechercheprojekt.aus_auftrag): Titel aus Thema
+  (sonst Fragestellung, sonst erste Textzeile), Feld `ort` aus dem Auftrag, Projekt-ID
+  `<JJJJMMTT>-uni-<Titel als Kennung, höchstens 40 Zeichen>-<Endung der Auftrags-ID>` (rechercheprojekt.projekt_id,
+  gleich für denselben Auftrag, gibt es das Projekt schon: nichts doppelt). Fehler beim Schreiben: Log und Meldung,
+  der Auftrag bleibt erledigt, das Ergebnis steht dann nur als Dokument am Ort. Tests in test_rechercheprojekt.py
+  (AusAuftrag) und test_arten.py (TestRecherche). Noch nicht mit einem echten Auftrag aus dem Arbeitsplatz geprüft.
+  Offen: Exposé-Recherchen (recherche.durchfuehren im Exposé-Ablauf) schreiben noch kein Projekt; weitere Läufe
+  in ein bestehendes Projekt (Ausweiten) kommen mit Bauschritt 7/8.
 - Mail mit Anhang (05.11., aus dem Hauptordner-Chat mit Jans Okay): Jan schickt die Datei in Telegram an uni, der
   Auftrag steht in der Bildunterschrift ("schick das Böhme"). mail_auftrag gibt a["dateien"] als anhaenge bis zu
   agentkit.mail.pruefen weiter, Claude bestimmt keine Anhänge und bekommt nur die Namen (mailablauf.anhang_hinweis).

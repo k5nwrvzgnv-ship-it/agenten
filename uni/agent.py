@@ -52,6 +52,7 @@ import literatur
 import normen
 import postfach
 import recherche
+import rechercheprojekt
 import rueckmeldungen
 import schriftverkehr
 import scopus
@@ -1174,6 +1175,24 @@ def recherche_auftrag(a: dict, laufen=claude_lauf.laufen, netz=None) -> None:
     daten = arten.daten_recherche(json.loads(r.geprueft.read_text()))
     daten["ansicht"] = {"recherche": str(r.geprueft.parent.relative_to(HIER))}
     auftraege.abschliessen(a["id"], "\n\n".join([_ergebnis_text(daten), *r.zeilen]), dateien=[r.bericht], daten=daten)
+    projekt_schreiben(a, r.geprueft.parent)
+
+
+def projekt_schreiben(a: dict, laufordner: Path) -> None:
+    """Fertige Recherche als Projekt (rechercheprojekt.aus_auftrag) mit ort aus dem Auftrag, damit sie im
+    Arbeitsplatz-Baum an der Seite steht, an der Jan sie gestartet hat. Fehler: loggen und melden, der Auftrag
+    bleibt erledigt (das Ergebnis steht dann nur als Dokument am Ort)."""
+    titel = arten.feld(a, "Thema") or arten.feld(a, "Fragestellung") or a["text"].strip().splitlines()[0][:80]
+    try:
+        ziel = rechercheprojekt.aus_auftrag(HIER, laufordner, a, titel)
+    except Exception as f:  # noqa: BLE001 - jeder Fehler hier darf den fertigen Lauf nicht kippen
+        logger.error("Recherche %s: Projekt nicht geschrieben: %s", a["id"], f)
+        melden(f"Recherche {a['id']}: Projekt nicht geschrieben ({f}). Das Ergebnis steht nur als Dokument am Ort.")
+        return
+    if ziel is None:
+        logger.info("Recherche %s: Projekt gibt es schon, nichts doppelt", a["id"])
+    else:
+        logger.info("Recherche %s: Projekt %s (ort %s)", a["id"], ziel.parent.name, a.get("ort"))
 
 
 def lernkarten_auftrag(a: dict, erzeugen=None) -> None:

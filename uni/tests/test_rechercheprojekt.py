@@ -114,5 +114,42 @@ class Einlesen(unittest.TestCase):
         self.assertFalse((self.hier / "data" / "projekte").exists())
 
 
+class AusAuftrag(unittest.TestCase):
+    """Bauschritt 6b: Projekt nach einem recherche-Auftrag aus dem Arbeitsplatz, mit ort."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.hier = Path(self.tmp.name)
+        self.lauf = self.hier / "data" / "recherchen" / "20261117-093000-uni-abc123" / "recherche"
+        shutil.copytree(KLEIN, self.lauf)
+        self.a = {"id": "20261117-093000-uni-abc123", "ort": "forschung/fehlstellen", "text": "Art: recherche"}
+
+    def test_projekt_id(self):
+        self.assertEqual(rp.projekt_id(self.a["id"], "Holzfeuchte messen (Darr-Methode)"),
+                         "20261117-uni-holzfeuchte-messen-darr-methode-abc123")
+        self.assertEqual(rp.projekt_id(self.a["id"], "Fäulnis über Größe"), "20261117-uni-faeulnis-ueber-groesse-abc123")
+        lang = rp.projekt_id(self.a["id"], "Optische Erkennung von Fehlstellen an Schnittholz mit neuronalen Netzen")
+        self.assertEqual(lang, "20261117-uni-optische-erkennung-von-fehlstellen-an-abc123")
+        self.assertEqual(rp.projekt_id(self.a["id"], "?!"), "20261117-uni-abc123")
+        self.assertEqual(rp.projekt_id("Fremd_ID", "x"), "uni-x-fremd-id")
+        for pid in (lang, rp.projekt_id("Fremd_ID", "x")):
+            self.assertTrue(wissen.PROJEKT_ID.fullmatch(pid))
+
+    def test_mit_ort_und_titel(self):
+        ziel = rp.aus_auftrag(self.hier, self.lauf, self.a, "Fehlstellen")
+        self.assertEqual(ziel.parent.name, "20261117-uni-fehlstellen-abc123")
+        basis = wissen.laden(ziel)
+        self.assertEqual((basis["titel"], basis["ort"]), ("Fehlstellen", "forschung/fehlstellen"))
+        self.assertEqual(basis["laeufe"][0]["auftrag"], self.a["id"])
+        self.assertEqual((ziel.parent / basis["laeufe"][0]["ordner"]).resolve(), self.lauf.resolve())
+
+    def test_ohne_ort_und_nicht_doppelt(self):
+        a = {k: v for k, v in self.a.items() if k != "ort"}
+        ziel = rp.aus_auftrag(self.hier, self.lauf, a, "Fehlstellen")
+        self.assertNotIn("ort", wissen.laden(ziel))
+        self.assertIsNone(rp.aus_auftrag(self.hier, self.lauf, a, "Fehlstellen"))
+
+
 if __name__ == "__main__":
     unittest.main()

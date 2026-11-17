@@ -1,6 +1,6 @@
 """Adapter: uni-Recherche (recherche/geprueft.json) -> gemeinsame Wissensbasis (agentkit.recherche).
 
-docs/recherche-plan.md, Bauschritt 3. Rein bis auf einlesen() (liest den Laufordner, schreibt wissen.json).
+docs/recherche-plan.md, Bauschritt 3 und 6b. Rein bis auf einlesen() und aus_auftrag() (lesen den Laufordner, schreibt wissen.json).
 Kein Netz, kein Claude. Der Laufordner (data/expose/<kette>/recherche/ bzw. data/recherchen/<auftrag>/recherche/)
 bleibt unverändert; der Lauf verweist mit "ordner" relativ zum Projektordner darauf.
 
@@ -20,6 +20,7 @@ Abbildung:
 """
 
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -136,6 +137,37 @@ def einlesen(hier: Path, laufordner: Path, auftrag: str, projekt_id: str, titel:
                                       "Lücken und Rückfragen würden falsch zeigen"])
     wissen.speichern(ziel, basis)
     return ziel, lauf
+
+
+def projekt_id(auftrag_id: str, titel: str) -> str:
+    """Projekt-ID eines Auftrags: <JJJJMMTT>-uni-<Titel als Kennung>-<Endung der Auftrags-ID>, z. B.
+    20261117-uni-holzfeuchte-messen-abc123. Gleich für denselben Auftrag, eindeutig über die Endung."""
+    teile = str(auftrag_id).lower().split("-")
+    datum = teile[0] if re.fullmatch(r"[0-9]{8}", teile[0]) else ""
+    endung = re.sub(r"[^a-z0-9]", "", teile[-1])[:12] if len(teile) > 1 else ""
+    if not datum or not endung:  # fremde Form: die ganze ID als Kennung
+        datum, endung = "", re.sub(r"[^a-z0-9]+", "-", str(auftrag_id).lower()).strip("-")[:40]
+    klein = str(titel).lower()
+    for alt, neu in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        klein = klein.replace(alt, neu)
+    kennung = re.sub(r"[^a-z0-9]+", "-", klein).strip("-")
+    if len(kennung) > 40:
+        kennung = kennung[:41].rsplit("-", 1)[0] if "-" in kennung[:41] else kennung[:40]
+    pid = "-".join(x for x in (datum, "uni", kennung.strip("-"), endung) if x)
+    if not wissen.PROJEKT_ID.fullmatch(pid):
+        raise wissen.RechercheFehler([f"keine gültige Projekt-ID aus {auftrag_id!r}"])
+    return pid
+
+
+def aus_auftrag(hier: Path, laufordner: Path, a: dict, titel: str) -> Path | None:
+    """Projekt zu einem fertigen recherche-Auftrag (agent.recherche_auftrag): Titel aus dem Thema, Feld ort aus dem
+    Auftrag (Ort im Arbeitsplatz-Baum, an dem die Recherche entstand). None, wenn es das Projekt schon gibt."""
+    pid = projekt_id(a["id"], titel)
+    if (Path(hier) / "data" / "projekte" / pid / wissen.WISSEN).exists():
+        return None
+    kopf = {"ort": a["ort"]} if isinstance(a.get("ort"), str) and a["ort"].strip() else {}
+    ziel, _ = einlesen(hier, laufordner, a["id"], pid, titel, **kopf)
+    return ziel
 
 
 if __name__ == "__main__":

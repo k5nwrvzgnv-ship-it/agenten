@@ -1243,9 +1243,8 @@ Offen, wartet auf Jan:
     das Feld `ort` setzen (Ort aus dem Auftrag; bei Lia Reihe oder Stunde). Bis dahin ordnet
     `shared/orte-zuordnung.json` Schlüssel `recherchen` zu.
     Seit 17.11.2026 startet „+ → Recherche …“ im Arbeitsplatz Aufträge der Art recherche an uni mit `ort` (Schalter
-    ARBEITSPLATZ_AUFTRAEGE=echt, Jans Okay). Bedarf an uni: nach einem fertigen recherche-Lauf automatisch das
-    Projekt schreiben (wie `rechercheprojekt.py <laufordner> <auftrag> <projekt-id> "<titel>"`), `ort` aus dem
-    Auftrag ins wissen.json. Bis dahin steht das Ergebnis nur als Dokument am Ort.
+    ARBEITSPLATZ_AUFTRAEGE=echt, Jans Okay). Erledigt (17.11.2026, uni-Chat): uni schreibt nach jedem fertigen
+    recherche-Auftrag das Projekt selbst, mit `ort` aus dem Auftrag (Einzelheiten in uni/STATUS.md).
 
 ## Gelernte Regeln
 - (noch keine)

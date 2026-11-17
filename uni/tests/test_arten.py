@@ -2,6 +2,7 @@
 
 import json
 import re
+import shutil
 import tempfile
 import unittest
 from datetime import datetime
@@ -12,6 +13,7 @@ import agent
 import arten
 import karten
 import recherche
+from agentkit import recherche as wissen
 from agentkit.claude_lauf import Ergebnis, KeinPlatz
 from tests.test_recherche import ECK, LIT, META, REG, seitentext
 
@@ -185,6 +187,34 @@ class TestRecherche(Ablauf):
         self.assertEqual(daten["ansicht"], {"recherche": f"data/recherchen/{ID}/recherche"})
         self.assertEqual(self.abschliessen.call_args.kwargs["dateien"], [r / "Recherchebericht.md"])
         self.assertIn("Recherche: 2 Fragen", self.abschliessen.call_args.args[1])
+
+    def _lauf(self, geprueft=None):
+        r = self.hier / "data" / "recherchen" / ID / "recherche"
+        if geprueft is None:
+            shutil.copytree(Path(__file__).parent / "daten" / "recherche_klein", r)
+        else:
+            r.mkdir(parents=True)
+            (r / "geprueft.json").write_text(json.dumps(geprueft))
+        (r / "Recherchebericht.md").write_text("# Recherchebericht")
+        return recherche.Ergebnis(geprueft=r / "geprueft.json", bericht=r / "Recherchebericht.md", usd=3.0, zeilen=[])
+
+    def test_projekt_am_ort(self):
+        """Bauschritt 6b: Projekt mit ort aus dem Auftrag und Titel aus dem Thema."""
+        with mock.patch.object(agent.recherche, "durchfuehren", return_value=self._lauf()):
+            agent.recherche_auftrag(self.auftrag("recherche", {"Thema": "Lamellen prüfen"}), netz=("s", "m"))
+        basis = wissen.laden(self.hier / "data" / "projekte" / "20261110-uni-lamellen-pruefen-abc123" / "wissen.json")
+        self.assertEqual((basis["titel"], basis["ort"], basis["agent"]), ("Lamellen prüfen", "holzschutz", "uni"))
+        self.assertEqual(basis["laeufe"][0]["auftrag"], ID)
+        self.assertNotIn("status", self.abschliessen.call_args.kwargs)
+
+    def test_projekt_fehler_gemeldet_auftrag_erledigt(self):
+        with mock.patch.object(agent.recherche, "durchfuehren", return_value=self._lauf(GEPRUEFT)), \
+                mock.patch.object(agent, "melden") as melden:
+            agent.recherche_auftrag(self.auftrag("recherche", {"Thema": "Lamellen"}), netz=("s", "m"))
+        self.assertIn("Projekt nicht geschrieben", melden.call_args.args[0])
+        self.abschliessen.assert_called_once()
+        self.assertNotIn("status", self.abschliessen.call_args.kwargs)
+        self.assertFalse((self.hier / "data" / "projekte").exists())
 
     def test_gescheitert(self):
         with mock.patch.object(agent.recherche, "durchfuehren", side_effect=recherche.RechercheFehler("nichts")):
