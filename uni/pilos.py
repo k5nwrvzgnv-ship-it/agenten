@@ -6,7 +6,7 @@ Der Agent hat einen festen Raum (RAUMNAME, Typ Meeting). Gibt es ihn nicht, legt
 Zugangscode stehen danach in data/sitzungsraum.json (600), weitere Mails brauchen keine Anmeldung.
 Wird der Raum in PILOS gelöscht, die Datei löschen; der nächste Bedarf legt ihn neu an.
 
-Rein und getestet: braucht_link, hinweis, links_pruefen, link_warnung, raum_waehlen, typ_id, raum_aus.
+Rein und getestet: braucht_link, hinweis, links_pruefen, link_warnung, raum_auffrischen, raum_waehlen, typ_id, raum_aus.
 """
 
 import http.cookiejar
@@ -74,7 +74,7 @@ def typ_id(typen: list[dict], name: str = RAUMTYP) -> int:
 def hinweis(raum: dict) -> str:
     """Satz für den Auftragstext: Claude nimmt genau diesen Link, Python hat ihn aus PILOS."""
     code = (f" Zugangscode: {raum['zugangscode']} (gehört mit in die Mail, sonst kommt niemand hinein)."
-            if raum.get("zugangscode") else "")
+            if raum.get("zugangscode") else " Ein Zugangscode ist nicht nötig, nenn keinen.")
     return (f"\n\nOnline-Raum für das Treffen (BigBlueButton über HNEE Meeting, von Python angelegt): {raum['url']}."
             f"{code} Nimm genau diesen Link in die Mail, erfinde keinen anderen und nenn keinen anderen Dienst.")
 
@@ -95,6 +95,15 @@ def link_warnung(daten: dict, raum: dict | None) -> dict:
     if not raum or raum["url"] in daten["text"]:
         return daten
     return {**daten, "pruefen": " ".join(filter(None, (LINK_FEHLT, daten.get("pruefen"))))}
+
+
+def raum_auffrischen(gespeichert: dict, aktuell: dict | None) -> dict:
+    """Kontext eines Mail-Auftrags (kontext.json) mit dem aktuellen Raum: Hat sich der Raum seitdem geändert
+    (z. B. Zugangscode abgeschaltet), ersetzt der neue Hinweis den alten, damit Ändern nichts Veraltetes nennt."""
+    alt = gespeichert.get("raum")
+    if not alt or not aktuell or aktuell == alt:
+        return gespeichert
+    return {**gespeichert, "raum": aktuell, "text": gespeichert["text"].replace(hinweis(alt), hinweis(aktuell))}
 
 
 class Pilos:

@@ -1145,6 +1145,7 @@ def regel_vorschlagen(r, a: dict) -> list[str]:
 def aenderung_mit_kontext(a: dict, alt: dict, schluessel: str, gespeichert: dict, laufen=claude_lauf.laufen,
                           heute: date | None = None) -> None:
     """Ändern eines Entwurfs aus mail_entwerfen: derselbe Kontext und Stil, Gesprächsbezug bleibt."""
+    gespeichert = pilos.raum_auffrischen(gespeichert, pilos.gespeicherter_raum())
     prompt = mailauftrag.prompt_aendern(a["text"], alt["daten"], gespeichert["text"], gespeichert["kontext"],
                                         heute or date.today(), mailablauf.UNI) + mailablauf.REGEL_HINWEIS
     e = laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"])

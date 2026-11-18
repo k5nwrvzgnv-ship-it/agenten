@@ -40,7 +40,24 @@ class TestPruefen(unittest.TestCase):
         h = pilos.hinweis(RAUM)
         self.assertIn(RAUM["url"], h)
         self.assertIn("Zugangscode: 151390675", h)
-        self.assertNotIn("Zugangscode", pilos.hinweis({**RAUM, "zugangscode": ""}))
+        self.assertIn("Zugangscode ist nicht nötig", pilos.hinweis({**RAUM, "zugangscode": ""}))
+
+
+class TestAuffrischen(unittest.TestCase):
+    def test_neuer_hinweis_ersetzt_alten(self):
+        ohne = {**RAUM, "zugangscode": ""}
+        g = {"text": "antworte Böhme" + pilos.hinweis(RAUM), "raum": RAUM, "kontext": {}}
+        neu = pilos.raum_auffrischen(g, ohne)
+        self.assertEqual(neu["text"], "antworte Böhme" + pilos.hinweis(ohne))
+        self.assertNotIn("151390675", neu["text"])
+        self.assertEqual(neu["raum"], ohne)
+
+    def test_ohne_raum_oder_gleich(self):
+        g = {"text": "x", "raum": None}
+        self.assertIs(pilos.raum_auffrischen(g, RAUM), g)
+        g2 = {"text": "x", "raum": RAUM}
+        self.assertIs(pilos.raum_auffrischen(g2, RAUM), g2)
+        self.assertIs(pilos.raum_auffrischen(g2, None), g2)
 
 
 class TestAuswahl(unittest.TestCase):
