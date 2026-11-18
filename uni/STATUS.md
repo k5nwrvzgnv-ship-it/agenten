@@ -243,16 +243,19 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - Link zum Online-Treffen (18.11., pilos.py): Die HNEE nimmt neue Webkonferenzen nur noch über HNEE Meeting
   (https://pilos.hnee.de, PILOS 4.20, BigBlueButton) an, bbb.hnee.de (Greenlight) sagt das nach der Anmeldung.
   Anmeldung per LDAP mit HNEE_NUTZER/HNEE_KENNWORT über die JSON-API wie im Browser. Fester Raum "Forschungsprojekt
-  Fehlstellen" (Typ Meeting, von Jan gewählt): https://pilos.hnee.de/rooms/4ws-fom-9z5, Zugangscode in
-  data/sitzungsraum.json (600). Raumeinstellungen wie vorgegeben (Gäste erlaubt, jeder darf starten, Zugangscode an).
+  Fehlstellen" (Typ Meeting, von Jan gewählt): https://pilos.hnee.de/rooms/4ws-fom-9z5, gemerkt in
+  data/sitzungsraum.json (600). Gäste erlaubt, jeder darf starten, ohne Zugangscode und ohne Warteraum (Jan 18.11.:
+  Code am 18.11. per API abgeschaltet, von außen ohne Anmeldung geprüft). Einen Code setzen nur in PILOS selbst, danach
+  data/sitzungsraum.json löschen; der Hinweis an Claude nennt ihn dann wieder.
   Ablauf: Nennt Jans Mail-Auftrag ein Online-Treffen (pilos.braucht_link: BBB, Online-Treffen, Einwahl, "Link" mit
   Sitzung/Treffen/Meeting ...), holt mail_entwerfen den Raum (aus der Datei, sonst Anmeldung, finden oder einmal
-  anlegen) und hängt Link und Zugangscode an den Auftrag (pilos.hinweis); der Raum steht auch in kontext.json und gilt
-  beim Ändern weiter. mail_einreichen lehnt Konferenzlinks (pilos, bbb, Zoom, Teams, Meet, Webex) ab, die weder der Raum
+  anlegen) und hängt Link und gegebenenfalls Zugangscode an den Auftrag (pilos.hinweis); der Raum steht auch in
+  kontext.json. Beim Ändern ersetzt der aktuelle Raum den alten Hinweis (pilos.raum_auffrischen). mail_einreichen lehnt Konferenzlinks (pilos, bbb, Zoom, Teams, Meet, Webex) ab, die weder der Raum
   noch in Auftrag oder Kontext stehen; fehlt der Link trotz Vorgabe, steht das unter "Bitte prüfen". PILOS nicht
   erreichbar: Mail-Auftrag fehlgeschlagen mit Grund, kein Entwurfslauf. Raum in PILOS gelöscht: data/sitzungsraum.json
   löschen, der nächste Bedarf legt ihn neu an. Echt geprüft 18.11.: Auftrag 20261118-162048-uni-718077 (Antwort an
-  Böhme, Mo 23.11. 9:00, 1 h), Entwurf 20261118-162515-uni-73a07f mit Link und Code liegt zur Freigabe.
+  Böhme). Nach Jans Ändern (9:30) und dem Ändern ohne Code liegt Entwurf 20261118-220845-uni-c2cd6c zur Freigabe
+  (Mo 23.11., 9:30, 1 h, nur Link).
   Nicht gebaut: Kalendereintrag/.ics für den Termin, eigener Raum je Projekt (heute ein Raum für alle Treffen).
 - Kommentare in Anhängen (03.11.): auftrag_bearbeiten hängt Kommentare aus angehängten PDF- und Word-Dateien
   (kurse.kommentare_block über agentkit.textfassung.kommentare) als Block "Kommentare in <datei> (Seite, markierte
