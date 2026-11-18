@@ -240,6 +240,20 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   Kommentar, Mail an Jan selbst, Anhang im Eingang und in "Gesendete Elemente" in voller Größe. Eine vergessene Datei
   im Eingang der Zentrale geht mit dem nächsten Auftrag mit, auch doppelt (Test 09:39); gleiche Dateien aussortieren
   wäre in agentkit.mail möglich, noch nicht entschieden.
+- Link zum Online-Treffen (18.11., pilos.py): Die HNEE nimmt neue Webkonferenzen nur noch über HNEE Meeting
+  (https://pilos.hnee.de, PILOS 4.20, BigBlueButton) an, bbb.hnee.de (Greenlight) sagt das nach der Anmeldung.
+  Anmeldung per LDAP mit HNEE_NUTZER/HNEE_KENNWORT über die JSON-API wie im Browser. Fester Raum "Forschungsprojekt
+  Fehlstellen" (Typ Meeting, von Jan gewählt): https://pilos.hnee.de/rooms/4ws-fom-9z5, Zugangscode in
+  data/sitzungsraum.json (600). Raumeinstellungen wie vorgegeben (Gäste erlaubt, jeder darf starten, Zugangscode an).
+  Ablauf: Nennt Jans Mail-Auftrag ein Online-Treffen (pilos.braucht_link: BBB, Online-Treffen, Einwahl, "Link" mit
+  Sitzung/Treffen/Meeting ...), holt mail_entwerfen den Raum (aus der Datei, sonst Anmeldung, finden oder einmal
+  anlegen) und hängt Link und Zugangscode an den Auftrag (pilos.hinweis); der Raum steht auch in kontext.json und gilt
+  beim Ändern weiter. mail_einreichen lehnt Konferenzlinks (pilos, bbb, Zoom, Teams, Meet, Webex) ab, die weder der Raum
+  noch in Auftrag oder Kontext stehen; fehlt der Link trotz Vorgabe, steht das unter "Bitte prüfen". PILOS nicht
+  erreichbar: Mail-Auftrag fehlgeschlagen mit Grund, kein Entwurfslauf. Raum in PILOS gelöscht: data/sitzungsraum.json
+  löschen, der nächste Bedarf legt ihn neu an. Echt geprüft 18.11.: Auftrag 20261118-162048-uni-718077 (Antwort an
+  Böhme, Mo 23.11. 9:00, 1 h), Entwurf 20261118-162515-uni-73a07f mit Link und Code liegt zur Freigabe.
+  Nicht gebaut: Kalendereintrag/.ics für den Termin, eigener Raum je Projekt (heute ein Raum für alle Treffen).
 - Kommentare in Anhängen (03.11.): auftrag_bearbeiten hängt Kommentare aus angehängten PDF- und Word-Dateien
   (kurse.kommentare_block über agentkit.textfassung.kommentare) als Block "Kommentare in <datei> (Seite, markierte
   Stelle: Kommentar)" an den Auftragstext, nur für die Prompts. Jan kann eine kommentierte PDF also einfach als
