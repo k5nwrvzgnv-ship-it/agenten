@@ -268,7 +268,8 @@ class OhneTelegram(unittest.TestCase):
         self.gemeldet, self.angelegt, self.reihenfolge = [], [], []
         for p in (mock.patch.object(agent, "HIER", self.hier),
                   mock.patch.object(agent.meldungen, "melden", self.melden),
-                  mock.patch.object(agent.meldungen, "neue", lambda *a, **kw: [])):
+                  mock.patch.object(agent.meldungen, "neue", lambda *a, **kw: []),
+                  mock.patch.object(agent.pilos, "RAUM_DATEI", self.hier / "sitzungsraum.json")):
             p.start()
             self.addCleanup(p.stop)
         self.addCleanup(self._tmp.cleanup)
@@ -483,6 +484,63 @@ class TestMailAblauf(OhneTelegram):
         # Antwort auf einen normalen Auftrag (kein gespeicherter Kontext): normaler Ablauf
         self.assertFalse(agent.mail_auftrag({"id": "a3", "text": "x", "bezug": "zz", "sitzung": "s"},
                                             laufen=self.claude, entwerfen=entwerfen))
+
+    RAUM = {"id": "4ws-fom-9z5", "name": "Forschungsprojekt Fehlstellen",
+            "url": "https://pilos.hnee.de/rooms/4ws-fom-9z5", "zugangscode": "123456789"}
+
+    def entwurf_mit(self, text):
+        roh = json.loads(self.ENTWURF)
+        roh["entwurf"]["text"] = text
+        return json.dumps(roh)
+
+    def test_link_zur_sitzung_kommt_von_python(self):
+        self.antworten = ['{"personen": ["Boehme"], "stichworte": [], "tage_zurueck": 1000, "kalender_tage": 0}',
+                          self.entwurf_mit(f"Hallo,\n\nLink: {self.RAUM['url']}\nZugangscode: 123456789")]
+        with mock.patch.object(agent, "sitzungsraum", return_value=self.RAUM) as raum:
+            agent.mail_entwerfen("antworte Böhme mit Termin 23.11. 9 Uhr und Link zur Sitzung", "a1",
+                                 laufen=self.claude, suchen=self.suchen, termine=None, neuer_entwurf=self.neuer_entwurf)
+        raum.assert_called_once()
+        self.assertIn(self.RAUM["url"], self.prompts[1][0])
+        self.assertIn("Zugangscode: 123456789", self.prompts[1][0])
+        self.assertNotIn("pruefen", self.angelegt[0]["daten"])
+        self.assertEqual(json.loads(agent.kontext_datei("a1").read_text())["raum"], self.RAUM)
+
+    def test_ohne_treffen_kein_raum(self):
+        self.antworten = ['{"personen": ["Boehme"], "stichworte": [], "tage_zurueck": 1000, "kalender_tage": 0}',
+                          self.ENTWURF]
+        with mock.patch.object(agent, "sitzungsraum") as raum:
+            agent.mail_entwerfen("antworte Böhme", "a1", laufen=self.claude, suchen=self.suchen, termine=None,
+                                 neuer_entwurf=self.neuer_entwurf)
+        raum.assert_not_called()
+
+    def test_fehlender_link_steht_unter_bitte_pruefen(self):
+        self.antworten = ['{"personen": ["Boehme"], "stichworte": [], "tage_zurueck": 1000, "kalender_tage": 0}',
+                          self.ENTWURF]
+        with mock.patch.object(agent, "sitzungsraum", return_value=self.RAUM):
+            agent.mail_entwerfen("lade Böhme zum Online-Treffen ein", "a1", laufen=self.claude, suchen=self.suchen,
+                                 termine=None, neuer_entwurf=self.neuer_entwurf)
+        self.assertIn("Link zum Online-Treffen", self.angelegt[0]["daten"]["pruefen"])
+
+    def test_erfundener_konferenzlink_wird_abgelehnt(self):
+        kontext = {"mails": [dict(self.BOEHME, schluessel="m1")]}
+        with self.assertRaises(agent.mailauftrag.AuftragFehler):
+            agent.mail_einreichen(self.entwurf_mit("Link: https://pilos.hnee.de/rooms/abc-def-ghi"), kontext, "a1",
+                                  neuer_entwurf=self.neuer_entwurf, raum=self.RAUM)
+        with self.assertRaises(agent.mailauftrag.AuftragFehler):
+            agent.mail_einreichen(self.entwurf_mit("https://zoom.us/j/123"), kontext, "a1",
+                                  neuer_entwurf=self.neuer_entwurf)
+        # steht der Link in Jans Auftrag, darf er in die Mail
+        agent.mail_einreichen(self.entwurf_mit("https://zoom.us/j/123"), kontext, "a1",
+                              neuer_entwurf=self.neuer_entwurf, auftrag_text="schick Henri https://zoom.us/j/123")
+        self.assertEqual(len(self.angelegt), 1)
+
+    def test_pilos_nicht_erreichbar(self):
+        self.antworten = ['{"personen": ["Boehme"], "stichworte": [], "tage_zurueck": 1000, "kalender_tage": 0}']
+        with mock.patch.object(agent, "sitzungsraum", side_effect=agent.pilos.PilosFehler("HTTP 500")):
+            with self.assertRaises(agent.mailauftrag.AuftragFehler):
+                agent.mail_entwerfen("schick Böhme den BBB-Link", "a1", laufen=self.claude, suchen=self.suchen,
+                                     termine=None, neuer_entwurf=self.neuer_entwurf)
+        self.assertEqual(len(self.prompts), 1)  # kein Entwurfslauf ohne Raum
 
     def uni_ordner_mit_datei(self):
         """Eigener uni-Ordner mit einer Datei aus Jans Auftrag. Gibt deren relativen Pfad zurück."""

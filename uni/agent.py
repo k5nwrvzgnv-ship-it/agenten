@@ -25,6 +25,8 @@ Mails (mailablauf.py, Ablauf wie posteingang): Ist ein Auftrag nur eine Mail, er
 Suchbegriffe; andere Läufe schreiben nur einen Mail-Wunsch. Python sucht Schriftwechsel und Stil im Postfach,
 Claude schreibt daraus den Entwurf (mail_entwerfen). Er kommt als eigene Nachrichten: erst der Wortlaut der
 Originalmail, dann der Entwurfstext, danach der Entwurf mit Knöpfen.
+Will Jan zu einem Online-Treffen einladen (Link zur Sitzung, BBB), gibt Python den festen Raum aus HNEE Meeting
+(pilos.py) samt Zugangscode in den Auftrag; Konferenzlinks, die Claude nicht bekommen hat, lehnt Python ab.
 
 Meldungen an Jan gehen über agentkit.meldungen, die Zentrale schickt sie per Telegram.
 """
@@ -48,6 +50,7 @@ import lernmodell
 import mail
 import mailablauf
 import moodle
+import pilos
 import literatur
 import normen
 import postfach
@@ -370,6 +373,11 @@ def hat_mail_entwurf(schluessel: str) -> bool:
 
 # Mails mit Kontext und Stil aus dem Postfach (mailablauf.py) ----------------------
 
+def sitzungsraum() -> dict:
+    """Fester Online-Raum des Agenten in HNEE Meeting (pilos.py), legt ihn beim ersten Mal an."""
+    return pilos.sitzungsraum(cfg)
+
+
 def postfach_suchen(ordner: str, **kriterien) -> list[dict]:
     return imap.suchen(cfg["IMAP_HOST"], int(cfg.get("IMAP_PORT") or 993), cfg["HNEE_NUTZER"], cfg["HNEE_KENNWORT"],
                        ordner, **kriterien)
@@ -384,10 +392,12 @@ def mailentwuerfe_datei() -> Path:
 
 
 def mail_einreichen(antwort: str, kontext: dict, schluessel: str, vorgaenger: dict | None = None,
-                    neuer_entwurf=None, anhaenge: list[str] | None = None) -> str:
+                    neuer_entwurf=None, anhaenge: list[str] | None = None, raum: dict | None = None,
+                    auftrag_text: str = "") -> str:
     """Claudes Entwurf prüfen und in die Freigabe legen, vorher Wortlaut des Originals und Entwurfstext als eigene
     Nachrichten. Gibt die Zeile für Jan zurück (bei einer Rückfrage deren Text). anhaenge: Dateien aus Jans
-    Auftrag; ohne neue Dateien bleiben beim Ändern die des Vorgängers.
+    Auftrag; ohne neue Dateien bleiben beim Ändern die des Vorgängers. raum: Online-Raum aus pilos, den die Mail
+    nennen soll; Konferenzlinks, die weder dieser Raum sind noch in Auftrag oder Kontext stehen, lehnt Python ab.
     Wirft mailauftrag.AuftragFehler oder mail.MailFehler."""
     neuer_entwurf = neuer_entwurf or freigabe.neuer_entwurf
     art, roh, original = mailauftrag.antwort_lesen(antwort, kontext)
@@ -398,6 +408,10 @@ def mail_einreichen(antwort: str, kontext: dict, schluessel: str, vorgaenger: di
         if vorgaenger and vorgaenger["daten"].get(feld) and not daten.get(feld):
             daten[feld] = vorgaenger["daten"][feld]
     daten = mail.anhang_warnung(daten)
+    quellen = auftrag_text + json.dumps(kontext, ensure_ascii=False)
+    if fehler := pilos.links_pruefen(daten["text"], raum or pilos.gespeicherter_raum(), quellen):
+        raise mailauftrag.AuftragFehler("; ".join(fehler))
+    daten = pilos.link_warnung(daten, raum)
     ids = [melden(mail.wortlaut(original))] if original and not vorgaenger else []
     ids.append(melden(daten["text"]))
     bis_gesendet(ids)
@@ -431,14 +445,24 @@ def mail_entwerfen(text: str, schluessel: str, suche: dict | None = None, origin
     kontext = mailauftrag.kontext_sammeln(suche, suchen or postfach_suchen, termine, heute, mailablauf.UNI)
     if original:
         text = mailablauf.wunsch_text(text, original, mailablauf.original_einfuegen(kontext, original))
-    _schreibe_json(kontext_datei(schluessel), {"text": text, "kontext": kontext, "anhaenge": anhaenge or []})
+    raum = None
+    if pilos.braucht_link(text):
+        try:
+            raum = sitzungsraum()
+        except pilos.PilosFehler as f:
+            raise mailauftrag.AuftragFehler(f"Kein Online-Raum aus HNEE Meeting: {f}") from None
+        text += pilos.hinweis(raum)
+        logger.info("Mail %s: Online-Raum %s im Auftrag", schluessel, raum["id"])
+    _schreibe_json(kontext_datei(schluessel), {"text": text, "kontext": kontext, "anhaenge": anhaenge or [],
+                                               "raum": raum})
     logger.info("Mail %s: %d Mails, %d Stilvorlagen, %d Termine gefunden", schluessel, len(kontext["mails"]),
                 len(kontext["stil"]), len(kontext["termine"]))
     e = laufen(AGENT, HIER, mailauftrag.prompt_entwurf(text, kontext, heute, mailablauf.UNI), art="anspruchsvoll",
                zeitgesteuert=zeitgesteuert, auftrag_id=schluessel)
     if not e.ok:
         raise claude_lauf.LaufFehler(e.text[:300])
-    return mail_einreichen(e.text, kontext, schluessel, neuer_entwurf=neuer_entwurf, anhaenge=anhaenge), e.sitzung
+    return mail_einreichen(e.text, kontext, schluessel, neuer_entwurf=neuer_entwurf, anhaenge=anhaenge, raum=raum,
+                           auftrag_text=text), e.sitzung
 
 
 def mail_wunsch(pfad: Path, roh: dict, schluessel: str, zeitgesteuert: bool, entwerfen=None) -> str | None:
@@ -1129,7 +1153,8 @@ def aenderung_mit_kontext(a: dict, alt: dict, schluessel: str, gespeichert: dict
         return
     try:
         zeilen = [mail_einreichen(e.text, gespeichert["kontext"], schluessel, vorgaenger=alt,
-                                  anhaenge=a.get("dateien"))]
+                                  anhaenge=a.get("dateien"), raum=gespeichert.get("raum"),
+                                  auftrag_text=f"{gespeichert['text']}\n{a['text']}")]
     except (mailauftrag.AuftragFehler, mail.MailFehler) as f:
         logger.warning("Änderung %s fehlgeschlagen: %s", a["id"], f)
         auftraege.abschliessen(a["id"], f"Kein neuer Entwurf möglich: {f}", status="fehlgeschlagen")
