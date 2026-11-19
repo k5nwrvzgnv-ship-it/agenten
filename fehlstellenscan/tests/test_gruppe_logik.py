@@ -105,6 +105,10 @@ class TestFreischalten(unittest.TestCase):
         self.assertTrue(gl.fremder_chat(nachricht(von=FREMD, chat=-100999), ZUGANG))
         self.assertFalse(gl.fremder_chat({"update_id": 3}, ZUGANG))
 
+    def test_rolle_sagt_was_ruediger_mitbekommt(self):
+        self.assertIn("nur\n  Nachrichten, in denen du erwähnt wirst", gl.ROLLE)
+        self.assertIn("keine anderen Gruppennachrichten", gl.ROLLE)
+
     def test_mit_nutzern(self):
         z = gl.mit_nutzern(ZUGANG, {"99": "Felix"})
         self.assertIn(FREMD, z.nutzer)
