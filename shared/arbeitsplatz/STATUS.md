@@ -129,7 +129,7 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Von außen: https://uni.meldro.de (Caddy, Passwort wie bisher, Benutzer jan), seit 19.11.2026 auf 8794 statt
   uni/portal (8793). Sicherung: /etc/caddy/Caddyfile.vor-arbeitsplatz. uni-portal läuft nur noch lokal.
 - Offen: ansichten.PORTAL zeigt noch auf https://uni.meldro.de, die Portal-Links (Lernkarten übernehmen,
-  Übung) landen damit im Arbeitsplatz (404). Jan entscheidet: eigene Adresse fürs Portal oder Umzug.
+  Übung) landen damit im Arbeitsplatz (404). Jan 19.11.2026: vorerst hinnehmen, bis der Umzug ins Arbeitsplatz kommt.
 
 ## Offene Punkte
 0. Browser-Probe der ruhigen Oberfläche bei Jan (Tunnel, siehe oben): Titel anklicken (Enter, Esc), „Seite“ im „+“
