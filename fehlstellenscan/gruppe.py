@@ -550,10 +550,8 @@ def main() -> int:
                     freischalten_anfragen(u, wer, aktuell)
                 except (TelegramFehler, meldungen.MeldungFehler) as f:
                     logger.warning("Freischalten anfragen: %s", f)
-            elif a is None:
-                if gl.herkunft(u) and (gl.herkunft(u)["chat_id"] != aktuell.chat_id
-                                       or gl.herkunft(u)["nutzer_id"] not in aktuell.nutzer):
-                    unbekannt_merken(u)
+            elif a is None and gl.fremder_chat(u, aktuell):
+                unbekannt_merken(u)
             else:
                 with _schloss:
                     s = stand_lesen()

@@ -95,8 +95,8 @@ die können später als Dateien Eingabe werden).
 - Geprüft 19.11.2026 (offline simuliert): Freischalt-Klick trägt die Person ein; Henris Klick auf Freigeben wird
   abgewiesen, seine Antwort auf den Entwurf ergibt einen neuen, Jans Klick gibt frei, Mail geht genau einmal raus,
   Ergebnis einmal in die Gruppe. Echt: Henri am 19.11. per Knopf freigeschaltet. Offen: Felix (ID 2036658844)
-  hat Rüdiger noch nicht angesprochen (Rüdiger ist Admin, sieht alle Nachrichten, fragt aber nur bei Erwähnung oder
-  Antwort). Echter Mail-Test mit dem neuen Ablauf steht aus; Jans Testmail an Henri (20261119-140812-...-d37e77)
+  hat Rüdiger noch nicht angesprochen (Rüdiger ist Admin und bekommt alle Nachrichten, liest und notiert aber nur
+  Erwähnungen und Antworten auf ihn; Jan 19.11.). Echter Mail-Test mit dem neuen Ablauf steht aus; Jans Testmail an Henri (20261119-140812-...-d37e77)
   entstand noch mit der alten Fassung und liegt nur in der Zentrale.
 - Mails: Claude antwortet {"mail_auftrag": ...}; dann agentkit.mailauftrag mit Jans HNEE-Postfach (Login aus
   uni/.env kopiert, Jan 19.11.2026), Läufe ohne Netz. Entwurf in die Freigabe (typ mail) und in die Gruppe,

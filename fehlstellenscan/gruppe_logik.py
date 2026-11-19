@@ -167,6 +167,13 @@ def unbekannt_in_gruppe(update: dict, zugang: Zugang) -> dict | None:
     return {"nutzer_id": von["id"], "name": _name(von)}
 
 
+def fremder_chat(update: dict, zugang: Zugang) -> bool:
+    """Nachricht aus einem anderen Chat als der Gruppe: nur dann Chat und Person merken.
+    Rüdiger ist Admin und bekommt alles aus der Gruppe; was ihn nicht anspricht, wird nicht gelesen und nicht notiert."""
+    h = herkunft(update)
+    return bool(h) and h["chat_id"] != zugang.chat_id
+
+
 def freischalt_meldung(name: str, nutzer_id: int, chat: str) -> str:
     return (f"{name} (Telegram-ID {nutzer_id}) möchte Rüdiger in der Gruppe „{chat}“ nutzen. Freigeschaltet darf "
             f"die Person fragen und Mails anstoßen (die kommen weiter erst zu dir).")

@@ -99,6 +99,12 @@ class TestFreischalten(unittest.TestCase):
         antwort = nachricht("und?", von=FREMD, reply_to_message={"message_id": 3, "from": {"id": BOT}, "text": "x"})
         self.assertEqual(gl.unbekannt_in_gruppe(antwort, ZUGANG)["nutzer_id"], FREMD)
 
+    def test_ungetaggt_in_der_gruppe_wird_nicht_notiert(self):
+        self.assertFalse(gl.fremder_chat(nachricht("ohne Erwähnung", von=FREMD), ZUGANG))
+        self.assertFalse(gl.fremder_chat(nachricht("ohne Erwähnung", von=HENRI), ZUGANG))
+        self.assertTrue(gl.fremder_chat(nachricht(von=FREMD, chat=-100999), ZUGANG))
+        self.assertFalse(gl.fremder_chat({"update_id": 3}, ZUGANG))
+
     def test_mit_nutzern(self):
         z = gl.mit_nutzern(ZUGANG, {"99": "Felix"})
         self.assertIn(FREMD, z.nutzer)
