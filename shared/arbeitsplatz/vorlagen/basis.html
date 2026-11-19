@@ -68,8 +68,17 @@
     {%- if b.art == "neu" %}
     {%- else %}
     {#- Recherchen stehen unter ihrem Ort wie Unterseiten (docs/recherche-plan.md, Recherche am Ort) -#}
-    <li><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}{% if b.art == "recherche" %} baum-recherche{% endif %}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
-      {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterordner">›</span>{% endif %}</a></li>
+    {#- Je Ordner ein leises „+“ (sichtbar beim Darüberfahren): legt darin gleich einen Unterordner an, der zum Benennen
+        offen steht. Der Baum ist nur für die Ordner da, Inhalte entstehen im „+“ des Ordners (Jan 19.11.2026). -#}
+    <li class="baum-zeile"><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}{% if b.art == "recherche" %} baum-recherche{% endif %}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
+      {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterordner">›</span>{% endif %}</a>
+      {%- if b.art == "ort" %}
+      <form class="baum-plus-form" method="post" action="/seite/neu" data-einmal>
+        <input type="hidden" name="token" value="{{ formular_token() }}"><input type="hidden" name="eltern" value="{{ b.id }}">
+        <input type="hidden" name="titel" value="Neuer Ordner"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
+        <button class="baum-plus" type="submit" aria-label="Unterordner in {{ b.text }} anlegen" title="Unterordner anlegen">+</button>
+      </form>
+      {%- endif %}</li>
     {%- endif %}
     {%- endfor %}
     <li><a class="baum-eintrag baum-neu" href="/seite/neu"><span>+ Ordner</span></a></li>

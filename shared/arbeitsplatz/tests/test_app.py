@@ -218,7 +218,15 @@ class TestSeiten(Aufbau):
         self.assertEqual(heute.count('class="menue-halter plus"'), 1)
         self.assertEqual(eintraege(heute), ["Ordner", "Dokument …", "Recherche …"])
         self.assertIn('class="knopf knopf-voll plus-knopf"', heute)
-        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Ordner", "Dokument …", "Recherche …", "Datei"])
+        ort_html = self.get(f"/ort/{p}")[1]
+        self.assertEqual(eintraege(ort_html), ["Dokument …", "Recherche …", "Datei", "Unterordner"])
+        # im Baum je Ordner ein leises „+“, das darin einen Unterordner anlegt (Jan 19.11.2026)
+        baum = ort_html.split('class="baum"')[1]
+        self.assertIn(f'<input type="hidden" name="eltern" value="{p}">', baum)
+        self.assertIn('aria-label="Unterordner in Projekt anlegen"', baum)
+        kopf = self.post("/seite/neu", {"eltern": p, "titel": "Neuer Ordner", "einmal": "b1"})[2]
+        self.assertTrue(kopf["location"].startswith("/ort/neuer-ordner?aktion="))
+        self.assertEqual({k["id"]: k for k in orte.laden(self.instanz)}["neuer-ordner"]["eltern"], p)
         for pfad in ("/archiv", "/neu", "/neu/expose", "/seite/neu", "/recherche/neu"):
             self.assertIsNone(eintraege(self.get(pfad)[1]), pfad)
         self.assertNotIn("+ Neu<", self.get(f"/ort/{p}")[1])
@@ -590,9 +598,8 @@ class TestDokument(Aufbau):
         self.assertIn('class="material karte"', html)
         # „+“ und „···“ stehen unter den Brotkrumen neben dem Kopf, nicht mehr in der Brotkrumenzeile
         self.assertNotIn("menue-halter", html.split('class="krumen-zeile"')[1].split('class="kopf-zeile"')[0])
-        self.assertIn('class="menue-halter plus"', html.split('class="seiten-aktionen"')[1])
-        self.assertIn('class="menue-halter plus"', html)
-        self.assertNotIn("knopf-voll plus-knopf", html)
+        self.assertIn('class="menue-halter punkte"', html.split('class="seiten-aktionen"')[1])
+        self.assertNotIn('class="menue-halter plus"', html)  # ein Dokument ist kein Ordner: kein „+“
         # ?offen=eigene öffnet das „···“
         self.assertIn('class="menue-halter punkte" open', self.get(f"/dokument/{self.U}?offen=eigene")[1])
         # zweite Station (Rückmeldung): Klappe „Verlauf“, geschlossen, mit Zahlen; final: kein blauer Knopf mehr

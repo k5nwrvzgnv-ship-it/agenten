@@ -1,6 +1,6 @@
 {% extends "basis.html" %}
 {% from "_markdown.html" import bloecke %}
-{%- from "_plus.html" import plus, punkte -%}
+{%- from "_plus.html" import punkte -%}
 {#- Dokument-Seite (umbauplan-ux.md Schritt 5, nach Lias ergebnis.html): Kopf, Dateien (je Datei ein Download-Symbol),
     das Wichtigste, darunter immer das Feld für die Rückmeldung (nur bei Arten mit rueckmeldung), die eigene Ansicht
     (Recherche, Prüfung, Karten), ganz unten eine geschlossene Klappe „Verlauf“. Im „···“: final markieren, eigene
@@ -81,8 +81,7 @@
   {%- if e.unter %}<p class="titel-unter">{{ e.unter }}</p>{% endif %}
 </header>
 {% endblock %}
-{#- Das „+“: nicht blau, der Hauptknopf der Seite ist „Senden“ der Rückmeldung -#}
-{%- block plus %}{{ plus([{"text": "Dokument …", "link": neu_hier}], voll=false) }}{% endblock %}
+{#- Kein „+“: ein Dokument ist kein Ordner, Neues entsteht im Ordner (Jan 19.11.2026). Nur das „···“. -#}
 {#- Im „···“: final für die Fassung oben, eigene Fassung hochladen. Mit Fehler beim Hochladen offen. -#}
 {%- block punkte %}
 {%- if d.bezug or (h and h.final_moeglich) %}

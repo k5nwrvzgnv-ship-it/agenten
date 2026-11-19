@@ -66,7 +66,7 @@ def ort_link(ort_id: str) -> str:
 def baum_zeilen(baum: list[dict], aktiv: str | None, recherchen: dict[str, list[dict]] | None = None,
                 aktiv_link: str | None = None) -> list[dict]:
     """Zeilen für den Baum links: oberste Ebene immer, darunter aufgeklappt nur der Weg zum aktiven Ort und dessen
-    Unterseiten. Je Zeile {"art": "ort"|"recherche"|"neu", "text", "link", "tiefe", "aktiv", "ueber", "zu"} ("zu":
+    Unterseiten. Je Zeile {"art": "ort"|"recherche"|"neu", "text", "link", "tiefe", "aktiv", "ueber", "zu"} (Orte auch "id"; "zu":
     hat zugeklappte Unterseiten oder Recherchen). recherchen: Ort -> [{"titel", "link"}]; sie stehen unter ihrem Ort
     wie Unterseiten, nach diesen (docs/recherche-plan.md, Recherche am Ort). aktiv_link: eine Seite unterhalb des
     aktiven Orts (eine Recherche) ist offen, der Ort ist dann nur „auf dem Weg“. Nach den Unterseiten des aktiven
@@ -83,7 +83,7 @@ def baum_zeilen(baum: list[dict], aktiv: str | None, recherchen: dict[str, list[
             unter = orte.kinder(baum, k["id"])
             hier = recherchen.get(k["id"], [])
             ist_aktiv = k["id"] == aktiv and not aktiv_link
-            zeilen.append({"art": "ort", "text": k["titel"], "link": ort_link(k["id"]), "tiefe": tiefe,
+            zeilen.append({"art": "ort", "id": k["id"], "text": k["titel"], "link": ort_link(k["id"]), "tiefe": tiefe,
                            "aktiv": ist_aktiv, "ueber": offen and not ist_aktiv,
                            "zu": bool(unter or hier) and not offen})
             if offen:

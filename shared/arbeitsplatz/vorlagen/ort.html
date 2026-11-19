@@ -26,9 +26,9 @@
 {%- endmacro -%}
 {%- block plus %}
 {%- if not archiviert %}
-{{ plus([{"text": "Ordner", "aktion": "/seite/neu", "felder": [("eltern", ort.id), ("titel", "Neuer Ordner"), ("einmal", einmal_kennung())]},
-         {"text": "Dokument …", "link": neu_hier}, {"text": "Recherche …", "link": "/recherche/neu?ort=" ~ ort.id},
-         {"text": "Datei", "link": "#ablage"}]) }}
+{{ plus([{"text": "Dokument …", "link": neu_hier}, {"text": "Recherche …", "link": "/recherche/neu?ort=" ~ ort.id},
+         {"text": "Datei", "link": "#ablage"},
+         {"text": "Unterordner", "aktion": "/seite/neu", "felder": [("eltern", ort.id), ("titel", "Neuer Ordner"), ("einmal", einmal_kennung())]}]) }}
 {%- endif %}
 {%- endblock %}
 {%- block punkte %}

@@ -11,6 +11,15 @@
 .baum-zahl-grau { color: var(--leise); font-weight: 400; }
 .baum-zahl-grau::before { display: none; }
 .baum-fuss { margin-top: 12px; padding-top: 4px; }
+/* „+“ je Ordner im Baum: leise rechts in der Zeile, sichtbar beim Darüberfahren (auf Touch immer, aber blass) */
+.baum-zeile { position: relative; }
+.baum-plus-form { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); margin: 0; }
+.baum-plus { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--leise);
+  font: inherit; font-size: 17px; line-height: 1; cursor: pointer; opacity: 0; }
+.baum-plus:hover { background: var(--hover); color: var(--fg); }
+.baum-zeile:hover .baum-plus, .baum-plus:focus-visible { opacity: 1; }
+.baum-zeile:hover .baum-zu { visibility: hidden; }
+@media (pointer: coarse) { .baum-plus { opacity: .6; width: 36px; height: 36px; } .baum-zeile .baum-zu { visibility: hidden; } }
 
 /* Rechte Spalte auf Heute: Zeilen mit zwei Textzeilen und Betrag */
 .rzeile-zwei { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 8px; align-items: center; color: inherit; }
