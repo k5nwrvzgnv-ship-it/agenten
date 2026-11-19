@@ -357,6 +357,114 @@ class TestPruefung(Ablauf):
         self.assertEqual(json.loads((self.uebung / "stand.json").read_text())["stand"], "fehlgeschlagen")
 
 
+class TestProtokoll(Ablauf):
+    """agent.protokoll_auftrag mit Claude-Attrappe, echtem protokoll.bauen, PDF als Attrappe."""
+
+    def setUp(self):
+        super().setUp()
+        from tests.test_protokoll import PROTOKOLL, TRANSKRIPT as BESPRECHUNG
+        self.gueltig, self.besprechung = PROTOKOLL, BESPRECHUNG
+        (self.hier / "data" / "eingang").mkdir(parents=True)
+        (self.hier / "data" / "eingang" / "teams.docx").write_bytes(b"")
+        (self.hier / "data" / "eingang" / "teams.docx.txt").write_text(BESPRECHUNG)
+        self.ordner = self.hier / "data" / "besprechungen" / ID
+        self.prompts = []
+        for p in (mock.patch.object(agent.claude_lauf, "werkzeuge_ohne_netz", lambda agent: ["Read", "Write"]),
+                  mock.patch.object(agent.kalender, "termine", lambda von, bis: [])):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def bauen(self, ordner, transkript):
+        def als_pdf(docx, ziel):
+            (ziel / (docx.stem + ".pdf")).write_bytes(b"%PDF")
+            return ziel / (docx.stem + ".pdf")
+        return agent.protokoll.bauen(ordner, transkript, {}, als_pdf=als_pdf)
+
+    def claude(self, *fassungen, termin=None):
+        """Jeder Aufruf schreibt die nächste Fassung (None: schreibt nichts)."""
+        fassungen = list(fassungen)
+
+        def laufen(agent_name, hier, prompt, **kw):
+            self.prompts.append((prompt, kw))
+            d = fassungen.pop(0)
+            if d is not None:
+                (self.ordner / "protokoll.json").write_text(json.dumps(d))
+            if termin:
+                t = hier / "data" / "entwuerfe" / kw["auftrag_id"] / "termin_1.json"
+                t.parent.mkdir(parents=True, exist_ok=True)
+                t.write_text(json.dumps(termin))
+            return Ergebnis(text="Kurzfassung", sitzung="s1", ok=True)
+        return laufen
+
+    def test_erster_lauf_baut_und_haengt_an(self):
+        termin = {"titel": "Besprechung Forschungsprojekt", "beginn": "2030-11-28T10:00", "ende": None, "ort": "",
+                  "notiz": "", "quelle": "Transkript", "begruendung": "genannt"}
+        a = self.auftrag("protokoll", {"Titel": "Kamera"}, dateien=["data/eingang/teams.docx"])
+        agent.protokoll_auftrag(a, a, laufen=self.claude(self.gueltig, termin=termin), bauen=self.bauen)
+        prompt, kw = self.prompts[0]
+        self.assertIn("data/eingang/teams.docx.txt", prompt)
+        self.assertIn('"naechste_besprechung"', prompt)
+        self.assertEqual((kw["art"], kw["werkzeuge"]), ("anspruchsvoll", ["Read", "Write"]))
+        namen = [p.name for p in self.abschliessen.call_args.kwargs["dateien"]]
+        self.assertEqual(namen[:2], ["2026-11-18 Protokoll Kamera und Werksbesuch.docx",
+                                     "2026-11-18 Protokoll Kamera und Werksbesuch.pdf"])
+        self.assertTrue(namen[2].endswith(".ics"))
+        self.assertIn("Termin zum Antippen", self.abschliessen.call_args.args[1])
+        self.assertEqual(daten_von(self.abschliessen)["titel"], "Protokoll 18.11.2026: Kamera und Werksbesuch")
+
+    def test_eine_nachbesserung_bei_falschem_beleg(self):
+        falsch = json.loads(json.dumps(self.gueltig))
+        falsch["beschluesse"][0]["beleg"] = "das hat so keiner gesagt"
+        a = self.auftrag("protokoll", dateien=["data/eingang/teams.docx"])
+        agent.protokoll_auftrag(a, a, laufen=self.claude(falsch, self.gueltig), bauen=self.bauen)
+        self.assertEqual(len(self.prompts), 2)
+        self.assertIn("beschluesse[0].beleg", self.prompts[1][0])
+        self.assertEqual(self.prompts[1][1]["sitzung_fortsetzen"], "s1")
+        self.assertEqual(len(self.abschliessen.call_args.kwargs["dateien"]), 2)
+
+    def test_bleibt_ungueltig(self):
+        falsch = json.loads(json.dumps(self.gueltig))
+        falsch["teilnehmende"].append("Maria")
+        a = self.auftrag("protokoll", dateien=["data/eingang/teams.docx"])
+        agent.protokoll_auftrag(a, a, laufen=self.claude(falsch, None), bauen=self.bauen)
+        self.assertIn("Protokoll nicht übernommen", self.abschliessen.call_args.args[1])
+        self.assertEqual(self.abschliessen.call_args.kwargs["dateien"], [])
+        self.assertIn("kein gültiges", daten_von(self.abschliessen)["kern"])
+
+    def test_ohne_transkript_kein_lauf(self):
+        with mock.patch.object(agent.claude_lauf, "laufen") as laufen:
+            agent.art_auftrag(self.auftrag("protokoll", {"Titel": "x"}))
+        laufen.assert_not_called()
+        self.assertEqual(self.abschliessen.call_args.kwargs["status"], "fehlgeschlagen")
+        self.assertIn("fehlt das Transkript", self.abschliessen.call_args.args[1])
+
+    def test_rueckmeldung_ueberarbeitet_in_der_kette(self):
+        start = self.auftrag("protokoll", dateien=["data/eingang/teams.docx"])
+        agent.protokoll_auftrag(start, start, laufen=self.claude(self.gueltig), bauen=self.bauen)
+        neu = json.loads(json.dumps(self.gueltig))
+        neu["titel"] = "Kamera"
+        r = self.auftrag("protokoll", id="20261110-160000-uni-def456", sitzung="s1", bezug=ID,
+                         text="Felix hat das gesagt, nicht Henri")
+        original = agent.protokoll_auftrag  # laufen= ist beim Definieren gebunden: Funktion am Namen ersetzen
+        mit_attrappe = lambda a, s: original(a, s, laufen=self.claude(neu), bauen=self.bauen)  # noqa: E731
+        with mock.patch.object(agent, "ursprung", return_value=start), \
+                mock.patch.object(agent, "protokoll_auftrag", mit_attrappe), \
+                mock.patch.object(agent.claude_lauf, "laufen", side_effect=AssertionError("echter Lauf")):
+            agent.art_auftrag(r)
+        prompt, kw = self.prompts[-1]
+        self.assertIn("Felix hat das gesagt", prompt)
+        self.assertEqual(kw["sitzung_fortsetzen"], "s1")
+        self.assertEqual(self.abschliessen.call_args.args[0], r["id"])
+        self.assertEqual([p.name for p in self.abschliessen.call_args.kwargs["dateien"]],
+                         ["2026-11-18 Protokoll Kamera.docx", "2026-11-18 Protokoll Kamera.pdf"])
+
+    def test_unveraendert_haengt_bisherige_fassung_an(self):
+        a = self.auftrag("protokoll", dateien=["data/eingang/teams.docx"])
+        agent.protokoll_auftrag(a, a, laufen=self.claude(self.gueltig), bauen=self.bauen)
+        agent.protokoll_auftrag(a, a, laufen=self.claude(None), bauen=self.bauen)
+        self.assertEqual(len(self.abschliessen.call_args.kwargs["dateien"]), 2)
+
+
 class TestExposeDaten(unittest.TestCase):
     """expose_auftrag gibt daten nur bei Aufträgen mit Art mit (Telegram bleibt unverändert)."""
 

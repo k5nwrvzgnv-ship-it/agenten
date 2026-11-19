@@ -16,6 +16,8 @@ Ein Lauf (gestartet vom Timer oder von der Zentrale nach einem Auftrag):
    (recherche.py, Recherchebericht hängt an), dann schreibt Claude data/expose/<kette>/expose.json und ein
    Protokoll, Python prüft, baut docx und PDF und hängt sie an (expose.py, expose_auftrag); Antworten
    überarbeiten es. Eine Rückmeldung aus dem Portal wird zu so einer Antwort (rueckmeldungen.py),
+   Aufträge mit Art "protokoll" (Arbeitsplatz) mit Transkript einer Besprechung: Claude schreibt
+   data/besprechungen/<kette>/protokoll.json, Python prüft die Belege und baut docx und PDF (protokoll.py),
 3. Fristen prüfen (ohne Claude): Erinnerung 7 Tage, 2 Tage und am Tag selbst,
 4. neue Mails holen und von Claude die wichtigen auswählen lassen.
 
@@ -54,6 +56,7 @@ import pilos
 import literatur
 import normen
 import postfach
+import protokoll
 import recherche
 import rechercheprojekt
 import rueckmeldungen
@@ -1017,6 +1020,132 @@ def expose_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, netz=None) -
     auftraege.abschliessen(a["id"], "\n\n".join(zeilen), sitzung=sitzung, dateien=b.dateien + dateien, daten=daten)
 
 
+PROMPT_PROTOKOLL = """Du schreibst für Jan (studiert Holzingenieurwesen an der HNEE) das Protokoll einer Besprechung.
+Antworte auf Deutsch, kurz und klar. Erfinde nichts.
+
+Auftrag aus dem Arbeitsplatz:
+{text}
+
+Transkript (einzige Quelle für den Inhalt; Hörfehler bei Namen und Fachwörtern sind möglich):
+{transkript}
+Lies es vollständig (bei langen Dateien abschnittsweise mit Read), bevor du schreibst. Andere Dateien brauchst du nicht.
+
+Schreib das Protokoll nach {ordner}/{datei}.
+{format}
+
+Inhalt:
+- Nur was im Transkript steht. Was unklar bleibt, gehört unter offen oder als [OFFEN: ...] in den Text, nicht
+  geraten. Namen schreibst du wie im Transkript (bei offensichtlichen Hörfehlern die richtige Schreibung, wenn
+  sie an anderer Stelle im Transkript steht).
+- Beschlüsse nur, wenn man sich wirklich geeinigt hat; ein Vorschlag ohne Zustimmung ist ein offener Punkt.
+- Aufgaben konkret (Verb am Anfang). wer nur, wenn jemand es übernommen hat; bis nur, wenn es gesagt wurde.
+- Die Tagesordnung für die nächste Besprechung soll Struktur geben: zuerst, was entschieden werden muss, Zeit je
+  Punkt realistisch, je Punkt wer etwas vorbereitet. Punkte, die diesmal zu kurz kamen oder fehlten, mit ["neu"].
+- Die Hinweise zum Ablauf sind für eine bessere nächste Besprechung, freundlich und konkret.{termine}
+
+Deine letzte Antwort ist die Kurzfassung für Jan: höchstens 8 Zeilen, ohne Markdown-Tabellen, ohne Pfad (das
+Protokoll hängt an deiner Antwort). Nenn, was du nicht sicher zuordnen konntest."""
+
+PROMPT_PROTOKOLL_ANTWORT = """Rückmeldung zum Protokoll:
+{text}
+
+Überarbeite {ordner}/{datei} so, wie gewünscht (gleiches Format, gleiche Regeln: nur was im Transkript steht,
+jeder Beleg wörtlich). Neue angehängte Dateien beziehst du ein: {neu}.{termine}
+Deine letzte Antwort ist wieder die Kurzfassung (höchstens 8 Zeilen), was sich geändert hat."""
+
+PROTOKOLL_TERMIN = """
+
+Wurde ein nächster Termin mit Datum und Uhrzeit genannt, schreib ihn zusätzlich nach {ordner}/termin_1.json:
+{{"titel": "kurz, z. B. Besprechung Forschungsprojekt", "beginn": "2026-11-26T10:00", "ende": null, "ort": "Raum oder
+Link, wie gesagt", "notiz": "", "quelle": "Transkript", "begruendung": "ein Satz"}}
+Zeiten in deutscher Ortszeit. Ein Wochentag ohne Datum ("nächsten Donnerstag") zählt ab dem Tag der Besprechung.
+Ohne Uhrzeit oder ohne bestimmbaren Tag keine Datei. Python prüft und schickt Jan eine Kalenderdatei zum Antippen."""
+
+PROMPT_PROTOKOLL_NACHBESSERN = """Python hat das Protokoll nicht übernommen:
+{fehler}
+
+Korrigiere alle genannten Stellen in {ordner}/{datei} (ein Beleg, der nicht wörtlich im Transkript steht: richtiges
+Zitat suchen oder den Eintrag streichen) und antworte mit einem Satz, was du korrigiert hast."""
+
+
+def protokoll_bauen(ordner: Path, transkript: str) -> protokoll.Bericht:
+    """Protokoll mit dem Profil der Lernblätter (HNEE-Farben) bauen. Profilfehler stehen im Bericht."""
+    try:
+        profil = tomllib.loads(PROFIL_LERNBLATT.read_text())
+    except (OSError, ValueError) as f:
+        return protokoll.Bericht(fehler=[f"Profil {PROFIL_LERNBLATT.name}: {f}"])
+    return protokoll.bauen(ordner, transkript, profil)
+
+
+def protokoll_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, bauen=protokoll_bauen) -> None:
+    """Besprechungsprotokoll schreiben (start = a) oder überarbeiten (Rückmeldung in der Kette), eine Nachbesserung.
+
+    Ablage data/besprechungen/<kette>/: protokoll.json (Claude), fassung/<Datum> Protokoll <Titel>.docx und .pdf.
+    Ein genannter nächster Termin kommt als .ics zum Antippen dazu. Wirft WARTEN und LaufFehler weiter, ArtFehler,
+    wenn kein lesbares Transkript dabei ist (dann ohne Claude-Lauf)."""
+    ordner = protokoll.ordner(HIER, start["id"])
+    pfad = ordner.relative_to(HIER)
+    neu = [HIER / p for p in a.get("dateien") or []] if a is not start else []
+    quellen = protokoll.transkript_dateien([HIER / p for p in start.get("dateien") or []] + neu)
+    transkript = protokoll.transkript_lesen(quellen)
+    if not transkript.strip():
+        raise arten.ArtFehler("Für das Protokoll fehlt das Transkript als Datei (.docx aus Teams, .vtt oder .txt), "
+                              "oder es ist leer.")
+    ordner.mkdir(parents=True, exist_ok=True)
+    termine_ordner = entwurf_ordner(a["id"])
+    termin = PROTOKOLL_TERMIN.format(ordner=termine_ordner.relative_to(HIER))
+    if a.get("sitzung"):
+        lesbar_neu = protokoll.transkript_dateien(neu)
+        prompt = PROMPT_PROTOKOLL_ANTWORT.format(
+            text=a["text"], ordner=pfad, datei=protokoll.DATEI, termine=termin,
+            neu=", ".join(str(p.relative_to(HIER)) for p in lesbar_neu) or "keine")
+    else:
+        prompt = PROMPT_PROTOKOLL.format(text=a["text"], ordner=pfad, datei=protokoll.DATEI, format=protokoll.FORMAT,
+                                         termine=termin,
+                                         transkript="\n".join(f"- {p.relative_to(HIER)}" for p in quellen))
+    datei = ordner / protokoll.DATEI
+    vorher = datei.stat().st_mtime_ns if datei.exists() else None
+    e = laufen(AGENT, HIER, prompt, art="anspruchsvoll", auftrag_id=a["id"], sitzung_fortsetzen=a.get("sitzung"),
+               werkzeuge=claude_lauf.werkzeuge_ohne_netz(AGENT))
+    geschrieben = datei.exists() and datei.stat().st_mtime_ns != vorher
+    if not e.ok and not (geschrieben and e.sitzung):
+        auftraege.abschliessen(a["id"], f"Fehler: {e.text}", status="fehlgeschlagen", sitzung=e.sitzung)
+        return
+    if not e.ok:  # z. B. Grenze der Arbeitsschritte nach dem Schreiben: Python prüft die geschriebene Fassung
+        logger.warning("Protokoll %s: Lauf endete vorzeitig (%s)", start["id"], e.text[:200] or "ohne Text")
+        e.text = "Der Lauf endete vor der Kurzfassung, das Protokoll ist trotzdem geprüft und gebaut."
+    sitzung, zeilen = e.sitzung, [e.text]
+    b = bauen(ordner, transkript)
+    if b.ungueltig and sitzung:
+        logger.warning("Protokoll %s ungültig, Nachbesserung:\n%s", start["id"], b.ungueltig)
+        try:
+            e2 = laufen(AGENT, HIER, PROMPT_PROTOKOLL_NACHBESSERN.format(fehler=b.ungueltig, ordner=pfad,
+                                                                         datei=protokoll.DATEI),
+                        art="anspruchsvoll", auftrag_id=a["id"], sitzung_fortsetzen=sitzung,
+                        werkzeuge=claude_lauf.werkzeuge_ohne_netz(AGENT))
+            sitzung = e2.sitzung or sitzung
+            b = bauen(ordner, transkript)
+        except (*WARTEN, claude_lauf.LaufFehler) as f:  # der erste Lauf ist bezahlt, Ergebnis trotzdem abgeben
+            logger.error("Nachbesserung Protokoll %s fehlgeschlagen: %s", start["id"], f)
+            zeilen.append(f"Nachbesserung des Protokolls nicht möglich: {f}")
+    if b.ungueltig:
+        logger.warning("Protokoll %s bleibt ungültig:\n%s", start["id"], b.ungueltig)
+        zeilen.append(f"Protokoll nicht übernommen, es ist ungültig:\n{b.ungueltig}")
+    elif not datei.exists():
+        zeilen.append("Es liegt kein Protokoll vor.")
+    for f in b.fehler:
+        logger.error("Protokoll %s: %s", start["id"], f)
+        zeilen.append(f"Protokoll: {f}")
+    dateien = list(b.dateien)
+    if not dateien and not b.ungueltig and (ordner / "fassung").is_dir():  # unverändert: bisherige Fassung anhängen
+        dateien = sorted(p for p in (ordner / "fassung").iterdir() if p.suffix in (".docx", ".pdf"))
+    termin_zeilen, ics = termine_einreichen(a["id"])
+    zeilen += termin_zeilen
+    gueltig = not b.ungueltig and datei.exists()
+    daten = protokoll.daten(json.loads(datei.read_text()) if gueltig else None)
+    auftraege.abschliessen(a["id"], "\n\n".join(zeilen), sitzung=sitzung, dateien=dateien + ics, daten=daten)
+
+
 def ursprung(a: dict, holen=auftraege.erledigter) -> dict:
     """Der erste Auftrag einer Antwortkette (bezug -> bezug -> ...). Fehlt ein Glied, der letzte gefundene."""
     gesehen = {a["id"]}
@@ -1328,6 +1457,8 @@ def art_auftrag(a: dict) -> bool:
             if not a.get("sitzung") and not a.get("dateien"):
                 raise arten.ArtFehler("Für das Exposé fehlt das Besprechungstranskript als Datei.")
             expose_auftrag(a, ursprung(a) if a.get("sitzung") else a)
+        elif art == "protokoll":
+            protokoll_auftrag(a, ursprung(a) if a.get("sitzung") else a)
         elif art == "recherche":
             recherche_auftrag(a)
         elif art == "lernkarten":

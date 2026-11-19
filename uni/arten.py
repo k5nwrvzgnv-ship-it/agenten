@@ -4,6 +4,7 @@ uni nimmt diese Arten gezielt an, ohne den Auftragstext zu deuten:
 - recherche: Research-Bericht, die geprüfte Recherche aus recherche.py ohne Exposé (zweck "bericht"),
 - expose: wie "Exposé: ..." aus Telegram (Recherche, Exposé, docx und PDF),
 - lernkarten: karten.py für ein Modul mit Prüfungsplan,
+- protokoll: Besprechungsprotokoll mit Vorschlag für die nächste Besprechung aus einem Transkript (protokoll.py),
 - pruefung: Auswertung eines Transkripts der mündlichen Übung über den vorhandenen Weg des Portals
   (portal/auswertung_agent.auswerten, Agent uniportal, ohne Werkzeuge).
 
@@ -13,9 +14,10 @@ Hier steht nur Logik ohne Netz und ohne Claude: Felder lesen, Werte prüfen, dat
 
 import re
 
-ARTEN = ("recherche", "expose", "lernkarten", "pruefung")
-# Nachbesserung (Rückmeldung in derselben Kette) gibt es bisher nur fürs Exposé, die anderen brauchen einen neuen Auftrag
-MIT_NACHBESSERUNG = frozenset({"expose"})
+ARTEN = ("recherche", "expose", "protokoll", "lernkarten", "pruefung")
+# Nachbesserung (Rückmeldung in derselben Kette) gibt es fürs Exposé und das Protokoll, die anderen brauchen einen
+# neuen Auftrag
+MIT_NACHBESSERUNG = frozenset({"expose", "protokoll"})
 
 # Research-Bericht: Umfang -> (Kostengrenze USD, höchstens Fragen, höchstens Suchfenster). Geschätzt nach dem ersten
 # Exposé (02.11.: 6 Fenster, 24 Fragen, 35 USD), nicht gemessen.
