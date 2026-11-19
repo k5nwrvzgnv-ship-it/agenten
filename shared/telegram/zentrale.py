@@ -207,17 +207,23 @@ def agenten_mit_dienst() -> list[str]:
     return [a for a in AGENTEN if (UNIT_DIR / f"{a}.service").exists()] or list(AGENTEN)
 
 
+def offene_fuer_jan() -> list[dict]:
+    """Offene Entwürfe, die die Zentrale zeigt. Entwürfe aus Rüdigers Projektgruppe (anzeige "gruppe") zeigt,
+    entscheidet und meldet die Gruppe selbst (Jan 19.11.2026)."""
+    return [e for e in freigabe.offene() if freigabe.in_der_zentrale(e)]
+
+
 # ---------- Menü-Nachricht (Panel) ----------
 
 def status_zeilen() -> str:
-    return status_text({"offen": len(freigabe.offene()), "ausfuehrung": len(freigabe.zur_ausfuehrung()),
+    return status_text({"offen": len(offene_fuer_jan()), "ausfuehrung": len(freigabe.zur_ausfuehrung()),
                         "unklar": len(freigabe.unklare()), "auftraege": len(auftraege.neue()),
                         "am_pc": len(gemeldet.listen["am_pc"]), "dateien": len(eingang.wartende())})
 
 
 def home(hinweis: str = "") -> tuple[str, list]:
     stand, stufe = aktuelle_stufe()
-    entwuerfe = len(freigabe.offene())
+    entwuerfe = len(offene_fuer_jan())
     zeilen = home_zeilen(stand, stufe, entwuerfe, len(auftraege.neue()), len(eingang.wartende()))
     return ansicht_home(zeilen, agenten_mit_dienst(), entwuerfe, hinweis)
 
@@ -246,10 +252,10 @@ async def panel_knopf(q, context: ContextTypes.DEFAULT_TYPE) -> None:
         z["panel_agent"] = (agent, modus)  # die nächste Nachricht ist der Auftrag
         ansicht = ansicht_agent(agent, modus)
     elif aktion == "entwuerfe":
-        offene = freigabe.offene()
+        offene = offene_fuer_jan()
         ansicht = ansicht_entwuerfe(offene, {e["id"]: freigabe.alter_stunden(e) for e in offene})
     elif aktion == "entwurf":  # ein Entwurf aus der Liste: mit Knöpfen zeigen
-        e = next((e for e in freigabe.offene() if e["id"] == agent), None)
+        e = next((e for e in offene_fuer_jan() if e["id"] == agent), None)
         if e is None:
             ansicht = home(freigabe_fehler("nicht (mehr) offen", abgelaufen=ist_abgelaufen(agent)))
         else:
@@ -257,7 +263,7 @@ async def panel_knopf(q, context: ContextTypes.DEFAULT_TYPE) -> None:
             gemeldet.speichern()
             ansicht, neu = home("Der Entwurf steht oben."), True
     elif aktion == "zeigen":
-        for e in freigabe.offene():
+        for e in offene_fuer_jan():
             await entwurf_zeigen(context.bot, e)
         gemeldet.speichern()
         ansicht, neu = home("Die offenen Entwürfe stehen oben."), True
@@ -759,7 +765,7 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
             gemeldet.angezeigt.pop(e["id"], None)
         geaendert = True
 
-    offene = freigabe.offene()
+    offene = offene_fuer_jan()
     for e in offene:
         if e["id"] in gemeldet.angezeigt:
             continue
@@ -775,7 +781,7 @@ async def pruefen(context: ContextTypes.DEFAULT_TYPE) -> None:
         geaendert = True
 
     for e in freigabe.erledigte():
-        if e.get("ausgefuehrt") and e["id"] not in gemeldet.listen["ausgefuehrt"]:
+        if e.get("ausgefuehrt") and e["id"] not in gemeldet.listen["ausgefuehrt"] and freigabe.in_der_zentrale(e):
             wort = "Ausgeführt" if e.get("erfolgreich") else "Hat nicht geklappt"
             await senden(context, mit_absender(e["agent"], f"{wort}: {e['titel']}\n{e.get('ausfuehrung', '')}"))
             gemeldet.listen["ausgefuehrt"].add(e["id"])

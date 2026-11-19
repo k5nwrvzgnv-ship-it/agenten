@@ -46,6 +46,16 @@ class TestFreigabe(unittest.TestCase):
         self.assertEqual(freigabe.offene(basis=self.basis)[0]["vorgaenger"], eid)
         self.assertNotEqual(neu, eid)
 
+    def test_anzeige_zentrale_oder_gruppe(self):
+        eid = freigabe.neuer_entwurf("uni", "t", "i", basis=self.basis)
+        gid = freigabe.neuer_entwurf("fehlstellenscan", "t", "i", typ="mail", anzeige="gruppe", basis=self.basis)
+        offen = {e["id"]: e for e in freigabe.offene(basis=self.basis)}
+        self.assertTrue(freigabe.in_der_zentrale(offen[eid]))
+        self.assertFalse(freigabe.in_der_zentrale(offen[gid]))
+        self.assertTrue(freigabe.in_der_zentrale({"id": "alt"}))  # ältere Einträge ohne Feld
+        with self.assertRaises(freigabe.FreigabeFehler):
+            freigabe.neuer_entwurf("uni", "t", "i", anzeige="irgendwo", basis=self.basis)
+
     def test_ungueltige_eingaben(self):
         with self.assertRaises(freigabe.FreigabeFehler):
             freigabe.entscheide("../../etc/passwd", "freigegeben", basis=self.basis)

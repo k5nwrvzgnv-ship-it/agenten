@@ -49,6 +49,15 @@ def fingerabdruck(entwurf: dict) -> str:
     return hashlib.sha256(roh).hexdigest()
 
 
+ZENTRALE, GRUPPE = "zentrale", "gruppe"
+ANZEIGEN = (ZENTRALE, GRUPPE)
+
+
+def in_der_zentrale(entwurf: dict) -> bool:
+    """Zeigt die Zentrale diesen Entwurf? Ältere Einträge ohne Feld anzeige: ja."""
+    return entwurf.get("anzeige", ZENTRALE) == ZENTRALE
+
+
 def neuer_entwurf(
     agent: str,
     titel: str,
@@ -57,12 +66,16 @@ def neuer_entwurf(
     daten: dict | None = None,
     vorgaenger: str | None = None,
     basis: Path | None = None,
+    anzeige: str = ZENTRALE,
 ) -> str:
     """Legt einen Entwurf an und gibt seine ID zurück.
 
     typ: z. B. "mail", "nachricht", "kauf". daten: alles, was der Agent nach
-    der Freigabe braucht (Empfänger, Betreff, Link ...).
+    der Freigabe braucht (Empfänger, Betreff, Link ...). anzeige: wo Jan den Entwurf sieht und entscheidet,
+    "zentrale" (Standard) oder "gruppe" (Rüdigers Projektgruppe, die Zentrale zeigt ihn dann nicht).
     """
+    if anzeige not in ANZEIGEN:
+        raise FreigabeFehler(f"unbekannte Anzeige: {anzeige}")
     eigene_basis, basis = basis, basis or BASIS
     if vorgaenger is not None:
         _ablage.pruefe_id(vorgaenger)
@@ -75,6 +88,7 @@ def neuer_entwurf(
         "inhalt": inhalt,
         "daten": daten or {},
         "vorgaenger": vorgaenger,
+        "anzeige": anzeige,
         "erstellt": _ablage.jetzt(),
         "status": "offen",
         "entschieden": None,

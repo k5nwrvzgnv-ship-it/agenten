@@ -135,5 +135,20 @@ class Verfall(unittest.TestCase):
         self.assertIn("Mail: eins", self.texte()[0])
 
 
+    def test_entwurf_der_gruppe_zeigt_die_zentrale_nicht(self):
+        gid = freigabe.neuer_entwurf("fehlstellenscan", "Mail aus der Gruppe", "Hallo", typ="mail",
+                                     daten={"an": ["p@example.org"], "betreff": "x", "text": "Hallo"}, anzeige="gruppe")
+        self.runde()
+        self.assertEqual(self.texte(), [])  # weder Entwurf noch Erinnerung
+        self.assertEqual(zentrale.offene_fuer_jan(), [])
+        self.assertNotIn(gid, self.gemeldet.angezeigt)
+        e = freigabe.offene()[0]
+        freigabe.entscheide(gid, "freigegeben", gesehen=e["fingerabdruck"])
+        freigabe.ausfuehrung_beginnen(gid)
+        freigabe.ausfuehrung_abschliessen(gid, "gesendet", True)
+        self.runde()
+        self.assertEqual(self.texte(), [])  # das Ergebnis meldet die Gruppe
+
+
 if __name__ == "__main__":
     unittest.main()
