@@ -1,3 +1,5 @@
 # Bilder und Boxen prüfen und umwandeln (Jan 11.11.2026). Weitere Pakete nur nach Jans Okay (STATUS.md).
 numpy==2.5.4
 pillow==13.0.0
+# Masken zu Polygonen (masken.py), Jan 19.11.2026; headless: ohne Fenster, gleiche Version wie auf dem Mac
+opencv-python-headless==5.0.0.93

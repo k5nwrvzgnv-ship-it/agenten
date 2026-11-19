@@ -217,8 +217,73 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 - Hinweis Hardlinks: Die Bilder belegen den Platz nur einmal. Platz wird erst frei, wenn Original und
   datensaetze/ gelöscht sind. Die ZIPs sind davon unabhängig.
 
+## Segmentierung: Masken zu Polygonen (masken.py)
+Ziel (Jan 19.11.2026): yolo11n-seg auf Kodytek, Fehlstellen als Umriss statt Box. Grund: Die Norm misst Äste
+am kleinsten Durchmesser (Henri), dafür braucht es den Umriss (daraus später gekippte Box, Ellipse, kleinster
+Durchmesser in Python).
+- Befehle `ansehen`, `bauen`, `gegenprobe`, `zeichnen` (je `--help`). numpy, Pillow, opencv, importiert
+  datensatz.py aus demselben Ordner. Masken aus `Semantic Maps.zip` (jede einzeln im Speicher) oder einem Ordner.
+- Umwandlung: je Klassenfarbe eine Binärmaske, `cv2.findContours`, jeder Fleck ein Objekt, Polygon durch die
+  Mitten der Randpixel, normiert auf die echte Bildgröße. Weggelassen und in bericht.json einzeln gelistet:
+  Flecken unter 2 px Breite oder Höhe (`klein`), Flecken ohne Fläche wie 1 px breite schräge Linien (`linie`).
+  Unbekannte Farben werden gezählt, nicht umgewandelt. Löcher werden ausgemalt und gezählt. Maske mit anderer
+  Größe als das Bild: Bild fällt weg, steht in `groesse_abweichend`.
+- `bauen` übernimmt Bilder (Hardlinks) und Aufteilung aus einem Box-Datensatz (kodytek-1), also genau die
+  eingefrorene Aufteilung. `--probe N`: die ersten N train-Bilder mit Objekten, train = val.
+- Befunde an den 3 Masken auf dem Server (19.11.2026): Hintergrund 000000, nur Farben der Spezifikation, keine
+  Mischfarben an den Rändern. Flecken gleich Boxen (8 von 8, dazu ein 1-px-Klickfehler aussortiert), jedes
+  Polygon füllt seine Box. Die Masken sind mit dem Pinsel gemalt: Umrisse großzügig, deutlich größer als der
+  dunkle Ast oder Streifen (quartzity mit Wellenrand). Für Maße wie den kleinsten Astdurchmesser heißt das:
+  Kodytek-Masken messen eher zu groß. Vor Aussagen in mm an eigenen, enger gezeichneten Masken prüfen.
+
+### Mac: Seg-Datensatz bauen und trainieren (von Hand)
+Mac-Terminal, Umgebung an wie im Abschnitt Mac. Erwartet wird kodytek-1 aus dem Abschnitt davor.
+
+1. Skripte holen (datensatz.py wird von masken.py gebraucht):
+
+       scp agents-user:agenten/fehlstellenscan/masken.py ~/fehlstellenscan/
+       scp agents-user:agenten/fehlstellenscan/datensatz.py ~/fehlstellenscan/
+
+2. Fünf Masken ansehen (Hintergrund, Farben, UNBEKANNT bei fremden Farben):
+
+       python masken.py ansehen --masken "daten/kodytek/zip/Semantic Maps.zip" --anzahl 5
+
+3. Vollen Seg-Datensatz bauen (liest alle 20.276 Masken einzeln, Dauer noch nicht gemessen):
+
+       python masken.py bauen --vorlage datensaetze/kodytek-1 --masken "daten/kodytek/zip/Semantic Maps.zip" --ziel datensaetze/kodytek-seg-1
+
+   Erwartet: dieselben Bildzahlen wie kodytek-1 (16.073 / 2.026 / 2.176), keine unbekannten Farben, Größe
+   abweichend 0, fehlende Masken 0.
+4. Gegenprobe, Bilder zum Draufschauen, ultralytics liest den Datensatz:
+
+       python masken.py gegenprobe --seg datensaetze/kodytek-seg-1 --boxen datensaetze/kodytek-1 --ausgabe gegenprobe-seg.json
+       python masken.py zeichnen --seg datensaetze/kodytek-seg-1 --boxen datensaetze/kodytek-1 --ausgabe seg-bilder 100000000 100000061 100000062
+       python -c "from ultralytics.data.utils import check_det_dataset; print(check_det_dataset('datensaetze/kodytek-seg-1/data.yaml'))"
+
+   Abweichungen Flecken gegen Boxen sind zu erwarten (ein Riss in mehreren Stücken, zwei berührende Äste
+   derselben Klasse als ein Fleck). Fehler wären große Abweichungen in einer ganzen Klasse.
+5. Überanpassungstest (Mask-mAP50 muss gegen 1 gehen, sonst stimmt die Umwandlung nicht):
+
+       python masken.py bauen --vorlage datensaetze/kodytek-1 --masken "daten/kodytek/zip/Semantic Maps.zip" --ziel datensaetze/kodytek-seg-probe20 --probe 20
+       yolo segment train data=datensaetze/kodytek-seg-probe20/data.yaml model=yolo11n-seg.pt epochs=150 imgsz=1280 batch=4 mosaic=0 device=mps name=seg-probe20
+
+6. Erst wenn 5 passt, volles Training (Speicher reicht nicht: batch=4). Nur val auswerten, test nicht anfassen:
+
+       yolo segment train data=datensaetze/kodytek-seg-1/data.yaml model=yolo11n-seg.pt epochs=60 imgsz=1280 batch=8 device=mps name=kodytek-seg1-n1280
+
+   Läufe landen in runs/segment/<name>/. Rechnung: Box-Modell 21 min je Epoche, Seg langsamer, also über 21 h.
+7. Ergebnisse zum Server (Ordner gibt es dort):
+
+       scp datensaetze/kodytek-seg-1/bericht.json gegenprobe-seg.json seg-bilder/*.png agents-user:agenten/fehlstellenscan/data/laeufe/kodytek-seg-1/
+       scp runs/segment/seg-probe20/results.csv agents-user:agenten/fehlstellenscan/data/laeufe/seg-probe20/
+       scp -r runs/segment/kodytek-seg1-n1280 agents-user:agenten/fehlstellenscan/data/laeufe/
+
+- Hinweis Maskenauflösung: YOLO-seg lernt Masken in einem Viertel der Eingabegröße. Bei imgsz 1280 ist ein
+  Maskenpunkt rund 9 Originalpixel; dünne Risse leiden zuerst (crack je Klasse ansehen). Abhilfe wäre
+  `mask_ratio=2` (mehr Speicher), erst nach dem ersten Lauf entscheiden.
+
 ## Aufbau
-- Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, auswertung.py, konfig/ (Einstellungen im Repo)
+- Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, masken.py, auswertung.py, konfig/ (Einstellungen im Repo)
 - .venv: fehlstellenscan/.venv, agentkit per .pth eingebunden
 - Dienst: fehlstellenscan-gruppe.service (Gruppen-Bot). Für agent.py noch keiner (später oneshot auf Auftrag).
 - Zugangsdaten: fehlstellenscan/.env (Bot-Token, Gruppe, HNEE-Login), Vorlage .env.example
@@ -306,7 +371,7 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
   99100031 (je Klasse aus Images1 eins, ohne Fehler, schmal, Dezimalkomma).
 
 ## Offene Punkte
-1. Pakete, Entscheidung Jan (Pillow und numpy auf dem Server sind installiert):
+1. Pakete, Entscheidung Jan (Pillow, numpy und opencv-python-headless auf dem Server sind installiert):
    a) Server, später für Vorhersagen: ultralytics. Zieht torch nach sich (CPU-Fassung rund 1 GB, braucht beim
       Rechnen spürbar RAM).
    b) Mac: erledigt 11.11.2026, siehe Abschnitt Mac.
@@ -358,6 +423,9 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
    weitergegeben wird (Enterprise-Lizenz oder z. B. YOLOX, Apache 2.0). Kodytek CC BY 4.0 gewerblich erlaubt
    mit Namensnennung. Rechte an den Ergebnissen des HNEE-Projekts für eine Bewerbung mit Prof. Böhme bzw. der
    Hochschule klären. Ausschreibungstext der TU fehlt noch (Durchsatz, Abmessungen, Merkmale, Genauigkeit).
+8. Segmentierung (Jan 19.11.2026): masken.py fertig und an 3 Masken geprüft. Offen auf dem Mac: Schritte 2-7 im
+   Abschnitt „Mac: Seg-Datensatz bauen und trainieren“. Danach Maße aus den Umrissen (gekippte Box, Ellipse,
+   kleinster Durchmesser) als getestete Funktion.
 
 ## Gelernte Regeln
 - 19.11.2026: Rüdiger schreibt in der Gruppe im Stil der Gruppe: Du, locker, kurz, ohne Floskeln, fachlich genau (Anlass: Jan „so wie wir im Stil“).
