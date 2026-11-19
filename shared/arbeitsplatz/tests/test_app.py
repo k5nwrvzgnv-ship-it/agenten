@@ -621,6 +621,32 @@ class TestDokument(Aufbau):
         self.assertNotIn("Was soll anders werden", html)
         self.assertNotIn("nimmt der Agent keine Rückmeldung", html)
 
+    def test_dokument_verschieben(self):
+        """Ziehen und Ablegen bzw. „Verschieben nach“: Dokument liegt danach im neuen Ordner, Hinweis mit Rückgängig."""
+        u17 = self.ort("17.11.26", self.k)
+        ort_html = self.get(f"/ort/{self.k}")[1]
+        self.assertIn(f'draggable="true" data-dokument="{self.U}"', ort_html)
+        self.assertIn(f'data-ordner="{u17}"', ort_html.split("<h2>Unterordner</h2>")[1])
+        self.assertIn(f'data-ordner="{self.k}"', ort_html.split('class="baum"')[1])
+        punkte = self.get(f"/dokument/{self.U}")[1].split('class="menue-halter punkte"')[1].split("</details>")[0]
+        self.assertIn(f'<option value="{self.k}" selected>', punkte)
+        status, _, kopf = self.post(f"/dokument/{self.U}/ort", {"ort": u17, "zurueck": f"/ort/{self.k}"})
+        self.assertEqual(status, 303)
+        self.assertTrue(kopf["location"].startswith(f"/ort/{self.k}?verschoben={self.U}&von={self.k}&nach={u17}"))
+        html = self.get(kopf["location"])[1]
+        self.assertIn("liegt jetzt in „17.11.26“", html)
+        self.assertIn(f'<input type="hidden" name="ort" value="{self.k}">', html)  # Rückgängig
+        self.assertNotIn(f'data-dokument="{self.U}"', html.split("</header>")[1].split('class="baum"')[0])
+        self.assertIn(f'data-dokument="{self.U}"', self.get(f"/ort/{u17}")[1])
+        # Rückgängig: wieder im alten Ordner
+        self.post(f"/dokument/{self.U}/ort", {"ort": self.k, "zurueck": f"/ort/{self.k}"})
+        self.assertIn(f'data-dokument="{self.U}"', self.get(f"/ort/{self.k}")[1])
+        # unbekannter Ordner, archivierter Ordner, fremde Herkunft
+        self.assertEqual(self.post(f"/dokument/{self.U}/ort", {"ort": "gibt-es-nicht"})[0], 404)
+        orte.archivieren(u17, instanz=self.instanz)
+        self.assertEqual(self.post(f"/dokument/{self.U}/ort", {"ort": u17})[0], 400)
+        self.assertEqual(self.post(f"/dokument/{self.U}/ort", {"ort": self.k}, origin="https://boese.de")[0], 403)
+
     def test_betrachter(self):
         """umbauplan-ux.md Schritt 6: eine Seite groß, Vor/Zurück, Rückmeldung zu dieser Seite."""
         basis = f"/dokument/{self.U}/datei/{self.U}/0"

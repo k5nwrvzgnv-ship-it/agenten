@@ -211,6 +211,7 @@ class TestZuordnung(unittest.TestCase):
         self.assertEqual(len(logik.dokumente(alle, None, {}, {}, z)), 2)
         # Feld ort im Auftrag geht vor
         self.assertEqual(logik.ort_von({"id": U, "ort": "hier"}, {U: "expose"}), "hier")
+        self.assertEqual(logik.ort_von({"id": U, "ort": "hier"}, {U: "expose"}, {U: "dort"}), "dort")  # verschoben
         self.assertEqual(logik.zuordnung_pruefen([]), {})
 
 

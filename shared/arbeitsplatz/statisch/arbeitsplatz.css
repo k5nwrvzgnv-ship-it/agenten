@@ -120,3 +120,9 @@ code { font-size: 14px; background: var(--flaeche); border-radius: 4px; padding:
 .plan-liste { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 8px 0 16px; }
 .plan-liste dt { color: var(--leise); font-size: 14px; }
 .plan-liste dd { margin: 0; }
+
+/* Dokument auf einen Ordner ziehen (statisch/ziehen.js): Ziele zeigen sich zart, das Ziel unter der Maus deutlich */
+[data-dokument] { cursor: grab; }
+.wird-gezogen { opacity: .5; }
+.dokument-zieht [data-ordner] { box-shadow: inset 0 0 0 1px var(--linie); }
+.dokument-zieht [data-ordner].ablage-ziel { background: var(--wahl); box-shadow: inset 0 0 0 1px var(--leise); }

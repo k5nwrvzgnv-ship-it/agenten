@@ -107,7 +107,7 @@
   <h2>Unterordner</h2>
   <ul>
     {%- for k in unterseiten %}
-    <li><a class="zeile" href="/ort/{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
+    <li><a class="zeile" href="/ort/{{ k.id }}" data-ordner="{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
       <span class="text"><span class="titel">{{ k.titel }}</span></span></a></li>
     {%- endfor %}
   </ul>

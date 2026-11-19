@@ -1,8 +1,9 @@
-{#- Liste von Dokumenten (Ort, Heute). d: logik.dokumente(); mit_ort zeigt den Ort darunter. -#}
+{#- Liste von Dokumenten (Ort, Heute). d: logik.dokumente(); mit_ort zeigt den Ort darunter. Jede Zeile lässt sich
+    auf einen Ordner ziehen (statisch/ziehen.js, data-dokument). -#}
 {%- macro liste(docs, mit_ort=false) -%}
 <ul>
   {%- for d in docs %}
-  <li><a class="zeile" href="{{ d.link }}">
+  <li><a class="zeile" href="{{ d.link }}" draggable="true" data-dokument="{{ d.id }}">
     <span class="punkt{% if d.rot %} punkt-rot{% elif d.marke == 'Läuft' %} punkt-offen{% endif %}" aria-hidden="true"></span>
     <span class="text">
       <span class="titel">{{ d.titel }}</span>

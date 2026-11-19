@@ -120,6 +120,19 @@ def ort_text(baum: list[dict], ort_id: str | None) -> str:
     return ORT_TRENNER.join(k["titel"] for k in orte.pfad(baum, ort_id))
 
 
+def ordner_ziele(baum: list[dict], jetzt: str | None) -> list[dict]:
+    """Ordner, in die ein Dokument kann: alle sichtbaren, in Baum-Reihenfolge mit Tiefe. {"id", "text", "tiefe",
+    "jetzt"}."""
+    ziele = []
+
+    def ebene(e: str | None, tiefe: int):
+        for k in orte.kinder(baum, e):
+            ziele.append({"id": k["id"], "text": k["titel"], "tiefe": tiefe, "jetzt": k["id"] == jetzt})
+            ebene(k["id"], tiefe + 1)
+    ebene(None, 0)
+    return ziele
+
+
 def ziele_zum_verschieben(baum: list[dict], ort_id: str) -> list[dict]:
     """Mögliche neue Eltern für ort_id: oberste Ebene und alle sichtbaren Orte außer ihm selbst und seinen
     Unterseiten, in Baum-Reihenfolge mit Tiefe. {"id" ("" = oberste Ebene), "text", "tiefe", "jetzt"}."""
@@ -225,9 +238,10 @@ def marke_von(kette: list[dict], final: dict | None) -> tuple[str, bool]:
     return f"Fassung {len(fertig)}", False
 
 
-def ort_von(ursprung: dict, zuordnung: dict[str, str]) -> str | None:
-    """Ort eines Dokuments: Feld ort des Ursprungs, sonst die Zuordnung alter Ergebnisse (orte-zuordnung.json)."""
-    return ursprung.get("ort") or zuordnung.get(ursprung["id"])
+def ort_von(ursprung: dict, zuordnung: dict[str, str], verschoben: dict[str, str] | None = None) -> str | None:
+    """Ort eines Dokuments: von Jan verschoben (data/verschoben.json, gewinnt), sonst Feld ort des Ursprungs, sonst
+    die Zuordnung alter Ergebnisse (orte-zuordnung.json). Die Aufträge selbst bleiben unverändert."""
+    return (verschoben or {}).get(ursprung["id"]) or ursprung.get("ort") or zuordnung.get(ursprung["id"])
 
 
 def zuordnung_pruefen(daten) -> dict[str, str]:
@@ -288,7 +302,8 @@ def recherche_plan(text: str, kosten: dict[str, dict | None]) -> dict:
 
 
 def dokumente(auftraege: list[dict], ort_id: str | None, arten_namen: dict[str, str],
-              finals: dict[str, dict | None], zuordnung: dict[str, str] | None = None) -> list[dict]:
+              finals: dict[str, dict | None], zuordnung: dict[str, str] | None = None,
+              verschoben: dict[str, str] | None = None) -> list[dict]:
     """Dokumente, deren Ursprung am Ort ort_id liegt (None: alle mit Ort), neueste Änderung zuerst.
     finals: Ursprung -> final-Eintrag aus agentkit.fassungen (oder None). zuordnung: siehe ort_von.
     Je Dokument {"id" (Ursprung), "titel", "art", "agent", "marke", "rot", "zeit", "link", "ort", "fassungen"}."""
@@ -297,7 +312,7 @@ def dokumente(auftraege: list[dict], ort_id: str | None, arten_namen: dict[str, 
         ursprung = kette[0]
         if ursprung["id"] != u:  # Ursprung nicht mehr da: Kette ohne Kopf, nicht zeigen
             continue
-        ort = ort_von(ursprung, zuordnung or {})
+        ort = ort_von(ursprung, zuordnung or {}, verschoben)
         if ort_id is None and not ort:
             continue
         if ort_id is not None and ort != ort_id:

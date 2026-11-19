@@ -84,9 +84,22 @@
 {#- Kein „+“: ein Dokument ist kein Ordner, Neues entsteht im Ordner (Jan 19.11.2026). Nur das „···“. -#}
 {#- Im „···“: final für die Fassung oben, eigene Fassung hochladen. Mit Fehler beim Hochladen offen. -#}
 {%- block punkte %}
-{%- if d.bezug or (h and h.final_moeglich) %}
+{%- if d.bezug or (h and h.final_moeglich) or ordner_ziele %}
 {%- call punkte(offen=offen == "eigene") %}
     {%- if h and h.final_moeglich %}{{ final_knopf(h, "knopf knopf-leise") }}{% endif %}
+    {#- Verschieben in einen anderen Ordner (wie Ziehen und Ablegen, geht auch auf dem Handy) -#}
+    {%- if ordner_ziele %}
+    <form method="post" action="/dokument/{{ u }}/ort">
+      <input type="hidden" name="token" value="{{ token }}">
+      <label class="unter" for="dokument-ort">Verschieben nach</label>
+      <select id="dokument-ort" name="ort">
+        {%- for z in ordner_ziele %}
+        <option value="{{ z.id }}"{% if z.jetzt %} selected{% endif %}>{{ "  " * z.tiefe }}{{ z.text }}</option>
+        {%- endfor %}
+      </select>
+      <button class="knopf knopf-klein" type="submit">Verschieben</button>
+    </form>
+    {%- endif %}
     {%- if d.bezug %}
     {#- Ein Eintrag wie „+ Datei anhängen“; mit JavaScript erst nach der Wahl Name, Notiz, „Hochladen“, „Abbrechen“.
         Ohne JavaScript steht alles da. -#}

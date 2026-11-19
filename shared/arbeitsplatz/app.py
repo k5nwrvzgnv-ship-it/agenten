@@ -32,6 +32,7 @@ import secrets
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -151,6 +152,33 @@ def zuordnung() -> dict[str, str]:
     except (OSError, ValueError) as f:
         logger.error("%s nicht lesbar: %s", ZUORDNUNG, f)
         return {}
+
+
+VERSCHOBEN = "verschoben.json"  # in DATEN: Dokument (Ursprung) -> Ordner, wenn Jan es verschoben hat
+_verschoben_sperre = threading.Lock()
+
+
+def verschoben() -> dict[str, str]:
+    pfad = DATEN / VERSCHOBEN
+    if not pfad.exists():
+        return {}
+    try:
+        return logik.zuordnung_pruefen(json.loads(pfad.read_text(encoding="utf-8")))
+    except (OSError, ValueError) as f:
+        logger.error("%s nicht lesbar: %s", VERSCHOBEN, f)
+        return {}
+
+
+def verschoben_setzen(ursprung: str, ort_id: str) -> None:
+    """Merkt sich den neuen Ordner (atomar: erst Hilfsdatei, dann umbenennen)."""
+    with _verschoben_sperre:
+        daten = verschoben()
+        daten[ursprung] = ort_id
+        pfad = DATEN / VERSCHOBEN
+        pfad.parent.mkdir(parents=True, exist_ok=True)
+        tmp = pfad.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"zuordnung": daten}, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.replace(tmp, pfad)
 
 
 def recherche_zuordnung() -> dict[str, str]:
@@ -298,7 +326,7 @@ def seite_heute(request: Request):
     baum = baum_laden()
     namen = arten_namen()
     alle = alle_auftraege()
-    docs = logik.dokumente(alle, None, namen, finals(), zuordnung())
+    docs = logik.dokumente(alle, None, namen, finals(), zuordnung(), verschoben())
     for d in docs:
         d["ort_text"] = logik.ort_text(baum, d["ort"])
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
@@ -314,7 +342,7 @@ def seite_heute(request: Request):
 def seite_ort(request: Request, ort_id: str):
     baum = baum_laden()
     k = ort_oder_404(baum, ort_id)
-    docs = logik.dokumente(alle_auftraege(), ort_id, arten_namen(), finals(), zuordnung())
+    docs = logik.dokumente(alle_auftraege(), ort_id, arten_namen(), finals(), zuordnung(), verschoben())
     for d in docs:
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
     projekte = projekte_mit_ort(baum)
@@ -918,7 +946,7 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
     kette, rueck = _dokument(ursprung)
     baum = baum_laden()
     namen = arten_namen()
-    ort = logik.ort_von(kette[0], zuordnung())
+    ort = logik.ort_von(kette[0], zuordnung(), verschoben())
     ort = ort if any(k["id"] == ort for k in baum) else None
     titel = logik.titel_von(kette, namen)
     haupt, unter = logik.titel_teilen(logik.titel_von(kette, namen, laenge=300))
@@ -931,10 +959,52 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
     return seite(request, "dokument.html", {"ziel": ziel if d["rueckmeldung_moeglich"] else None,
         "e": {"titel": titel, "haupt": haupt, "unter": unter}, "art": namen.get(kette[0].get("art") or "", ""), "marke": marke, "rot": rot,
         "d": d, "u": ursprung, "eigen": eigene_ansicht(request, kette, art, d["haupt"]),
+        "ordner_ziele": logik.ordner_ziele(baum, ort),
         "md": markdown_von(kette, d["haupt"]), "offen": offen, "fehler": fehler or [], "text": text,
         "eigene_endungen": ",".join(sorted(dateien.EIGENE_ENDUNGEN)),
         "rueck_endungen": ",".join(sorted(dateien.RUECK_ENDUNGEN)),
         **rahmen(baum, ort, logik.krumen(baum, ort, titel), f"/neu?ort={quote(ort)}" if ort else "/neu")}, status)
+
+
+@app.post("/dokument/{ursprung}/ort", response_class=HTMLResponse)
+async def dokument_verschieben(request: Request, ursprung: str):
+    """Dokument in einen anderen Ordner (Ziehen und Ablegen, „···“ des Dokuments). Danach zurück, mit Hinweis und
+    Rückgängig (verschiebt wieder in den alten Ordner)."""
+    form, token_ok = await formular(request)
+    kette, _ = _dokument(ursprung)
+    baum = baum_laden()
+    ziel_ort = str(form.get("ort") or "")
+    zurueck = logik.ziel_sicher(str(form.get("zurueck") or ""), f"/dokument/{ursprung}")
+    if not token_ok:
+        return _meldung(request, baum, "Nicht verschoben", VERALTET, zurueck, 400)
+    ort_oder_404(baum, ziel_ort)
+    if not orte.sichtbar(baum, ziel_ort):
+        return _meldung(request, baum, "Nicht verschoben", "Der Ordner liegt im Archiv.", zurueck, 400)
+    alt = logik.ort_von(kette[0], zuordnung(), verschoben()) or ""
+    if alt != ziel_ort:
+        verschoben_setzen(ursprung, ziel_ort)
+        logger.info("Dokument %s: von %s nach %s verschoben", ursprung, alt or "-", ziel_ort)
+    trenner = "&" if "?" in zurueck else "?"
+    return RedirectResponse(f"{zurueck}{trenner}verschoben={quote(ursprung)}&von={quote(alt)}&nach={quote(ziel_ort)}",
+                            status_code=303)
+
+
+def verschoben_hinweis(params) -> dict | None:
+    """Hinweis nach dem Verschieben: „„Titel“ liegt jetzt in „Ordner“.“ und Rückgängig (zurück nach von)."""
+    u, von, nach = params.get("verschoben") or "", params.get("von") or "", params.get("nach") or ""
+    baum = baum_laden()
+    namen = {k["id"]: k["titel"] for k in baum}
+    if nach not in namen:
+        return None
+    try:
+        kette, _ = _dokument(u)
+    except HTTPException:
+        return None
+    return {"text": f"„{logik.titel_von(kette, arten_namen(), 60)}“ liegt jetzt in „{namen[nach]}“.", "u": u,
+            "von": von if von in namen and von != nach else ""}
+
+
+vorlagen.env.globals["verschoben_hinweis"] = verschoben_hinweis
 
 
 @app.get("/dokument/{ursprung}", response_class=HTMLResponse)
@@ -1073,7 +1143,7 @@ def datei_ansehen(request: Request, ursprung: str, auftrag_id: str, nr: int):
     if x is None:
         raise HTTPException(404)
     baum = baum_laden()
-    ort = logik.ort_von(kette[0], zuordnung())
+    ort = logik.ort_von(kette[0], zuordnung(), verschoben())
     ort = ort if any(k["id"] == ort for k in baum) else None
     titel = logik.titel_von(kette, arten_namen())
     krumen = logik.krumen(baum, ort, x["name"])

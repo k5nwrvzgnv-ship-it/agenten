@@ -10,8 +10,10 @@
 <title>{% block titel %}{{ e.titel }}{% endblock %} · Arbeitsplatz</title>
 <link rel="stylesheet" href="/statisch/ruhig.css">
 <link rel="stylesheet" href="/statisch/arbeitsplatz.css">
+<meta name="formular-token" content="{{ formular_token() }}">
 {%- block skripte %}
 <script src="/statisch/einmal.js" defer></script>
+<script src="/statisch/ziehen.js" defer></script>
 {%- endblock %}
 </head>
 <body>
@@ -50,6 +52,19 @@
     </form></div>
 </div>
 {%- endif %}
+{#- Nach dem Verschieben eines Dokuments (Ziehen und Ablegen oder „···“): Hinweis mit Rückgängig -#}
+{%- set vh = verschoben_hinweis(request.query_params) if request.query_params.get("verschoben") else none %}
+{%- if vh %}
+<div class="hinweis hinweis-erledigt aktion-hinweis" role="status">
+  <div class="aktion-zeile"><span>{{ vh.text }}</span>
+    {%- if vh.von %}<span aria-hidden="true">·</span>
+    <form class="inline-form" method="post" action="/dokument/{{ vh.u }}/ort">
+      <input type="hidden" name="token" value="{{ formular_token() }}">
+      <input type="hidden" name="ort" value="{{ vh.von }}"><input type="hidden" name="zurueck" value="{{ request.url.path }}">
+      <button class="knopf-link" type="submit">Rückgängig</button>
+    </form>{% endif %}</div>
+</div>
+{%- endif %}
 {%- set erledigt = request.query_params.get("erledigt") %}
 {%- if erledigt == "auftrag" %}
 <p class="hinweis hinweis-erledigt" role="status">Auftrag angelegt, der Agent arbeitet daran.</p>
@@ -70,7 +85,7 @@
     {#- Recherchen stehen unter ihrem Ort wie Unterseiten (docs/recherche-plan.md, Recherche am Ort) -#}
     {#- Je Ordner ein leises „+“ (sichtbar beim Darüberfahren): legt darin gleich einen Unterordner an, der zum Benennen
         offen steht. Der Baum ist nur für die Ordner da, Inhalte entstehen im „+“ des Ordners (Jan 19.11.2026). -#}
-    <li class="baum-zeile"><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}{% if b.art == "recherche" %} baum-recherche{% endif %}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
+    <li class="baum-zeile"><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}{% if b.art == "recherche" %} baum-recherche{% endif %}" href="{{ b.link }}"{% if b.art == "ort" %} data-ordner="{{ b.id }}"{% endif %}{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
       {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterordner">›</span>{% endif %}</a>
       {%- if b.art == "ort" %}
       {#- Beim Darüberfahren: „+“ (Unterordner) und Löschen (ins Archiv, Rückgängig am Hinweis) -#}

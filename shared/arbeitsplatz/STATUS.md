@@ -84,6 +84,10 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Datei am Ort (Python): `POST /neu/datei` legt die Dateien nach `data/eingang/gelegt-<kennung>/` (Grenzen wie beim
   Formular), dann Galerie „Was soll daraus werden?“ (nur Arten mit Material), Formular mit „Schon dabei“, der Auftrag
   übernimmt sie, der Ordner geht danach weg. Liegengebliebenes löscht das nächste Ablegen nach einem Tag.
+- Dokument verschieben (Jan 19.11.2026): Dokumentzeilen auf einen Ordner ziehen (Baum oder Unterordner-Liste,
+  `statisch/ziehen.js`), ohne JavaScript und auf dem Handy über „Verschieben nach“ im „···“ des Dokuments. Route
+  `POST /dokument/<id>/ort`; gemerkt in `data/verschoben.json` (gewinnt in `logik.ort_von`, Aufträge bleiben
+  unverändert). Danach Hinweis „liegt jetzt in …“ mit Rückgängig.
 - Dokument-Kopf: Titel ungekürzt, am ersten Doppelpunkt geteilt (`logik.titel_teilen`), Rest als leiser Untertitel.
 - Dokument-Seite: Rückmeldung als immer sichtbares Feld (nur Arten mit `rueckmeldung`), „Senden“ der einzige blaue
   Knopf (bei finaler Fassung keiner). Ein Dokument, auch in mehreren Formaten gleichen Namens (docx und pdf,
