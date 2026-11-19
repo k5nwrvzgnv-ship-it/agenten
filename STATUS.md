@@ -1246,7 +1246,7 @@ Offen, wartet auf Jan:
     ARBEITSPLATZ_AUFTRAEGE=echt, Jans Okay). Erledigt (17.11.2026, uni-Chat): uni schreibt nach jedem fertigen
     recherche-Auftrag das Projekt selbst, mit `ort` aus dem Auftrag (Einzelheiten in uni/STATUS.md).
 
-43. Erledigt 19.11.2026 (Commit „Arbeitsplatz: Art Besprechungsprotokoll …“, Galerie und Formular geprüft, ohne Neustart).
+43. Erledigt 19.11.2026 (1efa703, Galerie und Formular geprüft, ohne Neustart).
     Bedarf aus uni an shared/arbeitsplatz/arten.toml (19.11.2026, Jan): neue Art „Besprechungsprotokoll“. uni kann
     sie seit c4e09bb (uni/protokoll.py, agent.protokoll_auftrag), ohne Eintrag erscheint sie aber nicht in der Galerie.
     Vorschlag: kennung = "protokoll", name = "Besprechungsprotokoll", beschreibung = "Protokoll aus dem Transkript
