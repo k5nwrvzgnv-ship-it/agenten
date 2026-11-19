@@ -240,7 +240,9 @@ Durchmesser in Python).
 Mac-Terminal, Umgebung an wie im Abschnitt Mac. Erwartet wird kodytek-1 aus dem Abschnitt davor.
 Alles am Stück: seg_nacht.sh (Schritte 2-6, volles Training nur bei Probe-Mask-mAP50 ab 0,9, sonst Abbruch;
 batch=4 als Ersatz, wenn batch=8 abbricht). Start: `caffeinate -i bash seg_nacht.sh 2>&1 | tee seg_nacht.log`.
-Gestartet von Jan am 19.11.2026 abends (Ergebnis offen).
+Gestartet von Jan am 19.11.2026 abends. Probe bestanden (20 Bilder, 54 Objekte wie die Box-Probe, 9 min,
+GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller Datensatz ab 20.11. 00:08 im Bau,
+danach volles Training (Ergebnis offen).
 
 1. Skripte holen (datensatz.py wird von masken.py gebraucht):
 
