@@ -45,6 +45,22 @@ name = "Hinweise"
 art = "text"
 
 [[art]]
+kennung = "protokoll"
+name = "Besprechungsprotokoll"
+beschreibung = "Protokoll aus dem Transkript einer Besprechung, mit Vorschlag für die nächste"
+agent = "uni"
+aktiv = true
+ausgabe = ["pdf", "docx"]
+material = "pflicht"
+[[art.feld]]
+name = "Titel"
+art = "zeile"
+[[art.feld]]
+name = "Hinweise"
+art = "text"
+hilfe = "z. B. Zweck der Runde, wer fehlte"
+
+[[art]]
 kennung = "zusammenfassung"
 name = "Vorlesungszusammenfassung"
 beschreibung = "Zusammenfassung einer Vorlesung aus Folien und Transkript"
