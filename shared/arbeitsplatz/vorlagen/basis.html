@@ -73,11 +73,18 @@
     <li class="baum-zeile"><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}{% if b.art == "recherche" %} baum-recherche{% endif %}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
       {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterordner">›</span>{% endif %}</a>
       {%- if b.art == "ort" %}
-      <form class="baum-plus-form" method="post" action="/seite/neu" data-einmal>
+      {#- Beim Darüberfahren: „+“ (Unterordner) und Löschen (ins Archiv, Rückgängig am Hinweis) -#}
+      <span class="baum-aktionen">
+      <form method="post" action="/seite/neu" data-einmal>
         <input type="hidden" name="token" value="{{ formular_token() }}"><input type="hidden" name="eltern" value="{{ b.id }}">
         <input type="hidden" name="titel" value="Neuer Ordner"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
         <button class="baum-plus" type="submit" aria-label="Unterordner in {{ b.text }} anlegen" title="Unterordner anlegen">+</button>
       </form>
+      <form method="post" action="/ort/{{ b.id }}/archivieren">
+        <input type="hidden" name="token" value="{{ formular_token() }}"><input type="hidden" name="zurueck" value="{{ request.url.path }}">
+        <button class="baum-plus baum-loeschen" type="submit" aria-label="{{ b.text }} löschen" title="Löschen (wiederherstellbar im Archiv)"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </form>
+      </span>
       {%- endif %}</li>
     {%- endif %}
     {%- endfor %}

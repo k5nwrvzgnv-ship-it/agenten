@@ -264,6 +264,16 @@ class TestBetrachterUndZiel(unittest.TestCase):
         self.assertEqual([(k["text"], k["vorschau"]) for k in e["knoepfe"]], [("Word", False), ("PDF", True)])
         self.assertEqual(e["galerie"]["nr"], 0)
 
+    def test_nach_loeschen(self):
+        baum = [{"id": "p", "titel": "P", "eltern": None}, {"id": "a", "titel": "A", "eltern": "p"},
+                {"id": "a1", "titel": "A1", "eltern": "a"}, {"id": "b", "titel": "B", "eltern": "p"}]
+        self.assertEqual(logik.nach_loeschen(baum, "a", "/ort/b"), "/ort/b")  # anderswo: bleiben
+        self.assertEqual(logik.nach_loeschen(baum, "a", "/ort/a"), "/ort/p")  # selbst offen: Eltern
+        self.assertEqual(logik.nach_loeschen(baum, "a", "/ort/a1?aktion=x"), "/ort/p")  # darunter offen: Eltern
+        self.assertEqual(logik.nach_loeschen(baum, "p", "/ort/a1"), "/")  # oberste Ebene: Heute
+        self.assertEqual(logik.nach_loeschen(baum, "a", ""), "/ort/p")  # aus dem „···“
+        self.assertEqual(logik.nach_loeschen(baum, "a", "/dokument/x"), "/dokument/x")
+
     def test_titel_teilen(self):
         self.assertEqual(logik.titel_teilen("Protokoll 17.11.2026: Projekt Holz-Scan: Stand"),
                          ("Protokoll 17.11.2026", "Projekt Holz-Scan: Stand"))

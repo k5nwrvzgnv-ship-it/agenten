@@ -71,8 +71,9 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Struktur (Jan 19.11.2026): Reiterzeile (Brotkrumen) als eigener leiser Streifen; darunter der Kopf der Kartei mit
   „+“ und „···“ rechts (`basis.html`, `.kopf-zeile`); Inhalt der Dokumentseite in zarten Karten (`.karte`).
   In der Oberfläche heißen Orte jetzt „Ordner“ („+ Ordner“, „Unterordner“, neue heißen „Neuer Ordner“); Routen und
-  Code bleiben bei ort/seite. „+“ (Jan 19.11.2026): jedes legt dort an, wo es steht. Im Baum je Ordner ein leises „+“
-  beim Darüberfahren (Unterordner, gleich zum Benennen offen), unten „+ Ordner“ für die oberste Ebene; im Kopf eines
+  Code bleiben bei ort/seite. „+“ (Jan 19.11.2026): jedes legt dort an, wo es steht. Im Baum je Ordner beim Darüberfahren
+  ein leises „+“ (Unterordner, gleich zum Benennen offen) und Löschen (= Archivieren, Rückgängig am Hinweis, danach
+  zurück zur Herkunft oder in den Elternordner, `logik.nach_loeschen`); im „···“ des Ordners heißt es auch „Löschen“; unten „+ Ordner“ für die oberste Ebene; im Kopf eines
   Ordners Dokument …, Recherche …, Datei, Unterordner; im Dokument kein „+“, nur „···“. Einträge (`vorlagen/_plus.html`): Heute Seite, Dokument …; Ort Seite, Dokument …, Datei; Dokument „Dokument …“
   (nicht blau). „Seite“ legt sofort „Neue Seite“ an, die gleich zum Umbenennen offen steht. Im „···“ des Orts:
   Umbenennen, Verschieben, Unterseiten ordnen (ab zwei), Archivieren. Leere Abschnitte fallen weg, ganz leer steht

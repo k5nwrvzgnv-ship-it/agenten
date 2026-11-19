@@ -64,8 +64,8 @@
     {%- if not ort.archiviert %}
     <form method="post" action="/ort/{{ ort.id }}/archivieren">
       <input type="hidden" name="token" value="{{ token }}">
-      <button class="knopf knopf-leise" type="submit">Archivieren</button>
-      <span class="unter">mit allen Unterordnern; im Archiv wiederherstellbar</span>
+      <button class="knopf knopf-leise" type="submit">Löschen</button>
+      <span class="unter">mit allen Unterordnern; wiederherstellbar im Archiv</span>
     </form>
     {%- endif %}
 {%- endcall %}

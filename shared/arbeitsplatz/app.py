@@ -478,11 +478,12 @@ async def seite_neu(request: Request):
 
 
 async def _ort_aendern(request: Request, ort_id: str, aendern: Callable[[object], orte.Ausgang],
-                       ziel: str | None = None):
+                       ziel: str | None = None, fest: str | None = None):
+    """fest: Ziel danach, egal was das Formular als zurueck mitgibt (Löschen rechnet es selbst aus)."""
     form, token_ok = await formular(request)
     baum = baum_laden()
     ort_oder_404(baum, ort_id)
-    zurueck = logik.ziel_sicher(str(form.get("zurueck") or ""), ziel or logik.ort_link(ort_id))
+    zurueck = fest or logik.ziel_sicher(str(form.get("zurueck") or ""), ziel or logik.ort_link(ort_id))
     if not token_ok:
         return _meldung(request, baum, "Nicht gespeichert", VERALTET, zurueck, 400)
     aus, fehler = await _pflegen(lambda: aendern(form))
@@ -520,7 +521,11 @@ async def ort_verschieben(request: Request, ort_id: str):
 
 @app.post("/ort/{ort_id}/archivieren", response_class=HTMLResponse)
 async def ort_archivieren(request: Request, ort_id: str):
-    return await _ort_aendern(request, ort_id, lambda f: orte.archivieren(ort_id, instanz=INSTANZ), "/archiv")
+    """„Löschen“ in der Oberfläche: der Ordner kommt ins Archiv (wiederherstellbar, Rückgängig am Hinweis). Danach
+    zurück zur Seite, von der es kam, außer sie war im gelöschten Zweig (logik.nach_loeschen)."""
+    form = await request.form()
+    ziel = logik.nach_loeschen(baum_laden(), ort_id, logik.ziel_sicher(str(form.get("zurueck") or ""), ""))
+    return await _ort_aendern(request, ort_id, lambda f: orte.archivieren(ort_id, instanz=INSTANZ), fest=ziel)
 
 
 @app.post("/ort/{ort_id}/wiederherstellen", response_class=HTMLResponse)

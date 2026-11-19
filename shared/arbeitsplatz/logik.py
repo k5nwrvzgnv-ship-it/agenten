@@ -6,7 +6,7 @@ Nachbesserungen erben ort (agentkit.auftraege.herkunft_erben), zählen aber zur 
 
 import hmac
 import re
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 from agentkit import orte
 from agentkit._ablage import ID_MUSTER as ID_AUFTRAG
@@ -185,6 +185,20 @@ def titel_von(kette: list[dict], arten_namen: dict[str, str], laenge: int = TITE
         return kuerzen(f"{art}: {erstes}", laenge)
     zeile = next((z for z in (u.get("text") or "").splitlines() if z.strip()), "")
     return kuerzen(zeile, laenge) or OHNE_TITEL
+
+
+def nach_loeschen(baum: list[dict], ort_id: str, zurueck: str) -> str:
+    """Wohin nach dem Löschen (Archivieren) eines Ordners: zurück zur Seite, von der es kam (Baum), außer sie liegt
+    selbst im gelöschten Zweig; dann und ohne Herkunft in den Elternordner, oben nach Heute."""
+    k = next((k for k in baum if k["id"] == ort_id), None)
+    eltern = ort_link(k["eltern"]) if k and k.get("eltern") else "/"
+    pfad = zurueck.split("?", 1)[0]
+    if not pfad.startswith("/ort/"):
+        return zurueck or eltern
+    ziel_id = unquote(pfad[len("/ort/"):])
+    if any(k["id"] == ziel_id for k in baum) and any(e["id"] == ort_id for e in orte.pfad(baum, ziel_id)):
+        return eltern
+    return zurueck
 
 
 def titel_teilen(titel: str, haupt_max: int = 60) -> tuple[str, str]:

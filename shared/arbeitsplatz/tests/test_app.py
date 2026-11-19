@@ -227,6 +227,12 @@ class TestSeiten(Aufbau):
         kopf = self.post("/seite/neu", {"eltern": p, "titel": "Neuer Ordner", "einmal": "b1"})[2]
         self.assertTrue(kopf["location"].startswith("/ort/neuer-ordner?aktion="))
         self.assertEqual({k["id"]: k for k in orte.laden(self.instanz)}["neuer-ordner"]["eltern"], p)
+        # Löschen im Baum: ins Archiv, zurück zum Elternordner (er war offen), Hinweis mit Rückgängig
+        self.assertIn('aria-label="Neuer Ordner löschen"', self.get(f"/ort/{p}")[1])
+        kopf = self.post("/ort/neuer-ordner/archivieren", {"zurueck": "/ort/neuer-ordner"})[2]
+        self.assertTrue(kopf["location"].startswith(f"/ort/{p}?aktion="))
+        self.assertIn("Rückgängig", self.get(kopf["location"])[1])
+        self.assertTrue({k["id"]: k for k in orte.laden(self.instanz)}["neuer-ordner"]["archiviert"])
         for pfad in ("/archiv", "/neu", "/neu/expose", "/seite/neu", "/recherche/neu"):
             self.assertIsNone(eintraege(self.get(pfad)[1]), pfad)
         self.assertNotIn("+ Neu<", self.get(f"/ort/{p}")[1])
