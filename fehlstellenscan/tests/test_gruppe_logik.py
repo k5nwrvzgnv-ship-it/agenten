@@ -123,6 +123,8 @@ class TestStil(unittest.TestCase):
         self.assertIn("Stilproben", p)
         self.assertIn("- safe ne zeilenkamera oder?", p)
         self.assertIn("per Du", gl.ROLLE)
+        self.assertIn("Keine ungefragten Abstecher", gl.ROLLE)
+        self.assertIn("keine internen Ordner", gl.ROLLE.replace("Nenn keine internen Ordner", "keine internen Ordner"))
 
 
 class TestGrenzen(unittest.TestCase):

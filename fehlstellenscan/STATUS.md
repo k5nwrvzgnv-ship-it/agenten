@@ -349,3 +349,4 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 
 ## Gelernte Regeln
 - 19.11.2026: Rüdiger schreibt in der Gruppe im Stil der Gruppe: Du, locker, kurz, ohne Floskeln, fachlich genau (Anlass: Jan „so wie wir im Stil“).
+- 19.11.2026: Rüdiger bleibt bei der Frage: keine ungefragten Verweise auf andere Verfahren, Teilprojekte oder Personen, keine internen Ordner- oder Dateinamen (Anlass: Jan „der Verweis zu Felix müsste nicht sein“).
