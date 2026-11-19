@@ -188,6 +188,17 @@ class TestText(unittest.TestCase):
         self.assertIn("Henri", t)
         self.assertEqual(gl.entwurf_titel({"betreff": "Termin"}, "Henri"), "Mail aus der Projektgruppe (Henri): Termin")
 
+    def test_entwurf_fuer_gruppe(self):
+        d = {"an": ["boehme@hnee.de"], "cc": ["henri@hnee.de"], "betreff": "Termin", "text": "Hallo, passt Dienstag?",
+             "begruendung": "aus Mail vom 3.11.", "pruefen": "Uhrzeit", "antwort_auf": "Böhme: Treffen"}
+        t = gl.entwurf_fuer_gruppe(d)
+        self.assertTrue(t.startswith("Entwurf, liegt bei Jan zur Freigabe:"))
+        for teil in ("An: boehme@hnee.de", "Cc: henri@hnee.de", "Betreff: Termin", "Hallo, passt Dienstag?"):
+            self.assertIn(teil, t)
+        for intern in ("aus Mail vom", "Uhrzeit", "Treffen"):  # stammt aus Jans Postfach, bleibt in der Freigabe
+            self.assertNotIn(intern, t)
+        self.assertTrue(gl.entwurf_fuer_gruppe(d, ueberarbeitet=True).startswith("Überarbeiteter Entwurf"))
+
     def test_ergebnis_text(self):
         d = {"an": ["boehme@hnee.de"], "betreff": "Termin"}
         self.assertIn("ist raus", gl.ergebnis_text({"daten": d, "ausgefuehrt": "x", "erfolgreich": True}))

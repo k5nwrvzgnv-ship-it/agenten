@@ -4,9 +4,9 @@ Dienst fehlstellenscan-gruppe.service, läuft dauerhaft (Long-Polling der Bot-AP
 - Fragen: Claude (agentkit.claude_lauf, Nur-Lesen-Lauf außerhalb des Repos) liest die Projektunterlagen
   (siehe LESE_ORDNER), sucht im Netz und antwortet als Text. Antwortet jemand auf Rüdiger, geht die Sitzung weiter.
 - Mails: Claude meldet {"mail_auftrag": ...}. Python sucht Kontext im HNEE-Postfach (agentkit.mailauftrag),
-  Claude schreibt den Entwurf, Python prüft ihn (agentkit.mail.pruefen) und legt ihn in Jans Freigabe. Nach der
-  Freigabe sendet Python genau diesen Entwurf einmal und sagt der Gruppe das Ergebnis. „Ändern“ in der Zentrale
-  kommt als Auftrag (quelle telegram-aendern) und wird hier überarbeitet.
+  Claude schreibt den Entwurf, Python prüft ihn (agentkit.mail.pruefen), legt ihn in Jans Freigabe und zeigt ihn
+  der Gruppe. Nach der Freigabe sendet Python genau diesen Entwurf einmal und sagt der Gruppe das Ergebnis.
+  „Ändern“ in der Zentrale kommt als Auftrag (quelle telegram-aendern) und wird hier überarbeitet.
 - Unbekannte Chats und Personen bekommen keine Antwort; ihre IDs stehen im Log und in data/gruppe/unbekannt.jsonl.
   Spricht jemand Rüdiger in der Projektgruppe an, der noch nicht eingetragen ist, bekommt Jan eine Meldung mit
   „Freischalten“ (einmal je Person). Sein Klick kommt als Auftrag zurück; freigeschaltet steht in
@@ -235,11 +235,12 @@ def mail_senden(daten: dict) -> str:
     return mail.senden({**vorgaben, **{k: v for k, v in cfg.items() if v}}, daten)
 
 
-def entwurf_einreichen(antwort: str, kontext: dict, herkunft: dict, vorgaenger: dict | None = None) -> str:
-    """Claudes Antwort lesen: Entwurf in die Freigabe (gibt MAIL_BEI_JAN zurück) oder Rückfrage (Text)."""
+def entwurf_einreichen(antwort: str, kontext: dict, herkunft: dict,
+                       vorgaenger: dict | None = None) -> tuple[bool, str]:
+    """Claudes Antwort lesen: Entwurf in die Freigabe (True, Entwurf für die Gruppe) oder Rückfrage (False, Text)."""
     art, roh, original = mailauftrag.antwort_lesen(antwort, kontext)
     if art == "rueckfrage":
-        return f"Für die Mail fehlt mir noch etwas: {roh}"
+        return False, f"Für die Mail fehlt mir noch etwas: {roh}"
     daten = mail.pruefen(roh, original)
     if vorgaenger and not original:
         for feld in ("in_reply_to", "references", "antwort_auf", "antwort_auf_von", "antwort_auf_datum"):
@@ -255,7 +256,7 @@ def entwurf_einreichen(antwort: str, kontext: dict, herkunft: dict, vorgaenger: 
         s["mails"][fid] = herkunft
         stand_schreiben(s)
     logger.info("Mail-Entwurf %s für %s in der Freigabe", fid, herkunft["name"])
-    return gl.MAIL_BEI_JAN
+    return True, gl.entwurf_fuer_gruppe(daten, ueberarbeitet=vorgaenger is not None)
 
 
 def mail_beginnen(a: gl.Anfrage, wunsch: str, verlauf: list[dict]) -> str:
@@ -266,7 +267,7 @@ def mail_beginnen(a: gl.Anfrage, wunsch: str, verlauf: list[dict]) -> str:
     kontext = mailauftrag.kontext_sammeln(suche, postfach_suchen, None, heute, POSTFACH)
     e = laufen(mailauftrag.prompt_entwurf(text, kontext, heute, POSTFACH), werkzeuge=[], suchen=False)
     herkunft = {"chat_id": a.chat_id, "nachricht_id": a.nachricht_id, "name": a.name, "text": text}
-    return entwurf_einreichen(e.text, kontext, herkunft)
+    return entwurf_einreichen(e.text, kontext, herkunft)[1]
 
 
 def aenderung_bearbeiten(auftrag: dict, alt: dict) -> None:
@@ -276,11 +277,12 @@ def aenderung_bearbeiten(auftrag: dict, alt: dict) -> None:
                                         date.today(), POSTFACH)
     try:
         e = laufen(prompt, werkzeuge=[], suchen=False)
-        ergebnis = entwurf_einreichen(e.text, gespeichert["kontext"], herkunft, vorgaenger=alt)
-        if ergebnis != gl.MAIL_BEI_JAN:
+        eingereicht, ergebnis = entwurf_einreichen(e.text, gespeichert["kontext"], herkunft, vorgaenger=alt)
+        try:
             senden(herkunft["chat_id"], ergebnis, herkunft["nachricht_id"])
-        auftraege.abschliessen(auftrag["id"], "Neuer Entwurf liegt in der Freigabe." if ergebnis == gl.MAIL_BEI_JAN
-                               else ergebnis)
+        except TelegramFehler as f:
+            logger.warning("Überarbeitung %s nicht in der Gruppe: %s", auftrag["id"], f)
+        auftraege.abschliessen(auftrag["id"], "Neuer Entwurf liegt in der Freigabe." if eingereicht else ergebnis)
     except (claude_lauf.LaufFehler, mailauftrag.AuftragFehler, mail.MailFehler) as f:
         logger.error("Änderung %s: %s", auftrag["id"], f)
         auftraege.abschliessen(auftrag["id"], f"Überarbeitung ging nicht: {f}", status="fehlgeschlagen")
