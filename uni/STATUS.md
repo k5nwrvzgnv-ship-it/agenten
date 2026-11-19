@@ -561,7 +561,27 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Auftrag bleibt in neu/, Übung "wartet". Schon fertig (z. B. per Knopf im Portal): kein zweiter Lauf. Transkript aus Feld
     Transkript (höchstens 20.000 Zeichen, Grenze agentkit) oder Datei .txt/.md/.json (bis 60.000 Zeichen). Schwäche: Pausiert in
     claude_lauf landet dort als "Technischer Fehler" (fehlgeschlagen), weil _ein_lauf alles Unbekannte so behandelt.
-  - Rückmeldung nur bei expose. Bei recherche, lernkarten, pruefung: fehlgeschlagen mit Hinweis "neuer Auftrag" (kein Lauf).
+  - Rückmeldung nur bei expose und protokoll. Bei recherche, lernkarten, pruefung: fehlgeschlagen mit Hinweis "neuer
+    Auftrag" (kein Lauf).
+  - protokoll (19.11., Plan von Jan freigegeben, nur Unit-Tests, kein echter Lauf): Besprechungsprotokoll aus einem
+    Transkript (Teams-.docx über die Textfassung, .vtt, .txt; ohne lesbares Transkript fehlgeschlagen ohne Lauf), für
+    jede Besprechung, ohne Bezug zum Exposé (Jan). agent.protokoll_auftrag: ein Opus-Lauf ohne Netzwerkzeuge schreibt
+    data/besprechungen/<kette>/protokoll.json (Format protokoll.FORMAT: Teilnehmende, Kurzfassung, Themen, Beschlüsse,
+    Aufgaben mit wer/bis, offene Punkte, nächster Termin, naechste_besprechung mit Ziel, Vorab-Fragen, Tagesordnung und
+    höchstens 3 Hinweisen zum Ablauf). protokoll.pruefen: jeder Beschluss, jede Aufgabe, jeder offene Punkt hat einen
+    Beleg (3 bis 40 Wörter wörtlich im Transkript, ohne Groß/klein und Satzzeichen), Namen nur aus teilnehmende (oder
+    alle, offen), Teilnehmende kommen im Transkript vor, jeder Punkt der Tagesordnung verweist auf O-/A-Nummern oder
+    ["neu"], Minuten 1 bis 120, zusammen höchstens 240. Eine Nachbesserung in derselben Sitzung. protokoll.als_bericht
+    baut daraus eine Renderer-Beschreibung "bericht" (Belege und Zeitmarken stehen nicht im Dokument, Jan: egal,
+    weitergebbar), Profil profil-lernblatt.toml, fassung/<JJJJ-MM-TT> Protokoll <Titel>.docx und .pdf. Der Vorschlag für
+    die nächste Besprechung ist der letzte Abschnitt, keine eigene Seite (Renderer-Art bericht kennt kein neue_seite).
+    Nächster Termin mit Datum und Uhrzeit: termin_1.json im Entwurfsordner des Auftrags, termine_einreichen hängt die
+    .ics an. Rückmeldung überarbeitet dieselbe Datei; unverändert hängt die bisherige Fassung an. Kosten geschätzt
+    0,50 bis 1,50 USD je Protokoll, nicht gemessen. Wartet auf den Eintrag in shared/arbeitsplatz/arten.toml
+    (../STATUS.md Punkt 43), vorher erscheint die Art nicht in der Galerie.
+    Beim Bau startete ein Test einmal versehentlich einen echten Lauf (19.11., Auftrag 20261110-160000-uni-def456,
+    0 Tokens, 0 USD, scheiterte an der unbekannten Sitzung s1, Einträge in shared/verbrauch und shared/ereignisse
+    stehen noch). Ursache wie oben: laufen= ist beim Definieren gebunden. Behoben im Test.
   - Vorschlag Felder für shared/arbeitsplatz/arten.toml (pflegt der Hauptordner): recherche: Thema (zeile, Pflicht),
     Fragestellung (text), Umfang (auswahl "kurz", "gründlich"). expose: Thema (zeile, Pflicht), Hinweise (text); Datei Pflicht.
     lernkarten: Modul (auswahl "Holzschutz"; Ordnername oder Name aus dem Plan gehen beide), Themen (text), Wichtigkeit ab (auswahl "5", "4", "3"), Hinweis (text).
