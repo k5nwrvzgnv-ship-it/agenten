@@ -38,6 +38,8 @@ def main() -> int:
             logger.info("Ein anderer Lauf ist aktiv, Aufträge warten")
             return 0
         for a in auftraege.neue(AGENT):
+            if a.get("quelle") == "telegram-aendern":
+                continue  # Änderung an einer Mail aus der Gruppe: bearbeitet gruppe.py
             status, ergebnis = bearbeiten(a["text"])
             logger.info("Auftrag %s: %s", a["id"], status)
             auftraege.abschliessen(a["id"], ergebnis, status=status)

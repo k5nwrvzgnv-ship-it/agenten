@@ -1,0 +1,22 @@
+# Vorlage: nach ~/.config/systemd/user/fehlstellenscan-gruppe.service kopieren.
+# Gruppen-Bot Rüdiger (Telegram-Gruppe des Forschungsprojekts, Jan 19.11.2026), läuft dauerhaft (Long-Polling).
+# claude -p läuft als Kindprozess in diesem Dienst, daher 1G wie die Agenten-Dienste.
+[Unit]
+Description=Fehlstellen-Scan: Gruppen-Bot Rüdiger
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/agent/agenten/fehlstellenscan
+ExecStart=/home/agent/agenten/fehlstellenscan/.venv/bin/python gruppe.py
+Restart=on-failure
+RestartSec=15
+MemoryMax=1G
+
+[Install]
+WantedBy=default.target

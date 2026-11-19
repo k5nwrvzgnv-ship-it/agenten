@@ -1,0 +1,674 @@
+--- Seite 1
+DATA NOTE
+   A large-scale image dataset of wood surface defects 
+for automated vision-based quality control processes
+[version 2; peer review: 2 approved]
+Pavel Kodytek, Alexandra Bodzas
+ , Petr Bilik
+Department of Cybernetics and Biomedical Engineering, VSB-Technical University of Ostrava, Ostrava, 70800, Czech Republic 
+First published: 16 Jul 2021, 10:581  
+https://doi.org/10.12688/f1000research.52903.1
+Latest published: 27 Jun 2022, 10:581  
+https://doi.org/10.12688/f1000research.52903.2
+v2
+ 
+Abstract 
+The wood industry is facing many challenges. The high variability of 
+raw material and the complexity of manufacturing processes results 
+in a wide range of visible structure defects, which have to be 
+controlled by trained specialists. These manual processes are not only 
+tedious and biased, but also less effective. To overcome the 
+drawbacks of the manual quality control processes, several 
+automated vision-based systems have been proposed. Even though 
+some conducted studies achieved a higher recognition rate than 
+trained experts, researchers have to deal with a lack of large-scale 
+databases and authentic data in this field. To address this issue, we 
+performed a data acquisition experiment set in the industrial 
+environment, where we were able to acquire an extensive set of 
+authentic data from a production line. For this purpose, we designed 
+and implemented a complex technical solution suitable for high-speed 
+acquisition during harsh manufacturing conditions. In this data note, 
+we present a large-scale dataset of high-resolution sawn timber 
+surface images containing more than 43 000 labelled surface 
+defects and covering 10 types of the most common wood defects. 
+Moreover, with each image record, we provide two types of labels 
+allowing researchers to perform semantic segmentation, as well as 
+defect classification, and localization.
+Keywords 
+wood surface defects, high resolution dataset, wood industry, wood 
+processing, wood quality control process, wood defects dataset
+Open Peer Review
+Approval Status  
+  
+1 2
+version 2
+(revision)
+27 Jun 2022
+view
+ view
+version 1
+16 Jul 2021
+ view
+ view
+Mariusz Pelc
+ , Opole University of 
+Technology, Opole, Poland 
+University of Greenwich, London, UK
+1. 
+Sri Rahayu
+ , Universitas Nusa Mandiri, 
+East Jakarta, Indonesia
+2. 
+Any reports and responses or comments on the 
+article can be found at the end of the article.
+ 
+ Page 1 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 2
+Corresponding author: Alexandra Bodzas (alexandra.bodzas@vsb.cz)
+Author roles: Kodytek P: Conceptualization, Investigation, Methodology, Software, Validation, Writing – Original Draft Preparation; 
+Bodzas A: Software, Writing – Original Draft Preparation, Writing – Review & Editing; Bilik P: Funding Acquisition, Project Administration, 
+Supervision
+Competing interests: No competing interests were disclosed.
+Grant information: This work was supported by the “Student Grant System” of VSB-TU Ostrava, project number SP2021/123. 
+Copyright: © 2022 Kodytek P et al. This is an open access article distributed under the terms of the Creative Commons Attribution 
+License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original work is properly cited.
+How to cite this article: Kodytek P, Bodzas A and Bilik P. A large-scale image dataset of wood surface defects for automated vision-
+based quality control processes [version 2; peer review: 2 approved] F1000Research 2022, 10:581 
+https://doi.org/10.12688/f1000research.52903.2
+First published: 16 Jul 2021, 10:581 https://doi.org/10.12688/f1000research.52903.1 
+  Page 2 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 3
+Introduction
+In the wood industry, each step of the manufacturing process affects material utilization and cost efficiency. 1 The
+heterogeneity of wood material with the complexity of these manufacturing processes may result in various defects,
+which not only degrade the mechanical properties of the wood, such as the strength and the stiffness but also reduce its
+aesthetic value.2 These mechanical and aesthetical defects have furthermore a large impact on the commercial value of the
+wood and can diminish the utilization of such materials for further processing. There are many various types of defects
+arising from many different causes. The major wood defects include knots, fungal damage, cracks, warping, slanting,
+wormholes, and pitch defects. The seriousness of a defect, and therefore the grade and the cost of the material, is primarily
+determined by four criteria, including the size, location, type of the defect, and the purpose for which the wooden product
+will be used. 3,4
+Even though the automation in this industrial sector is growing, many market leader companies still utilize trained domain
+experts to detect undesirable features and to perform quality grading. 5 Besides the fact that the manual examination is
+tedious and biased, it was found that domain experts are not able to check large production volumes. Moreover, the study
+conducted by Urbonaset al.6 stated that due to factors such as eye fatigue or distraction, manual inspection rarely achieves
+70% reliability. To overcome the drawbacks of the manual examination, researchers try to develop automated systems,
+which are accurate and won't slow down the manufacturing process. According to the repeatability and quality of the
+inspection, the study performed by Lycken 7 has already proven that automatic systems slightly outperform human
+graders. Most of these systems were based on conventional image processing techniques in combination with supervised
+learning algorithms, however, over the last decade, deep learning has achieved remarkable success in the forestry and
+wood products industry. 8
+Although researchers in this field were able to achieve satisfying results with an average recognition rate above 90%, 9
+most of the authors worked with small-scale image datasets obtained in laboratory conditions by using self-developed
+vision system setups. For instance, Shi et al.10 were able to collect 2 226 wood veneer images containing one or more
+defects by using data collection equipment developed in the laboratory. The acquisition equipment included two cameras
+recording images with 8-bit depth, a conveyor belt with a width of 0.6 m and a length of 4.5 m, a light source, and a
+photoelectric sensor, which was used as a camera trigger. To achieve the desired amount of data within this dataset,
+authors employed data augmentation and implemented rotation, magnification, and horizontal and vertical mirroring on
+all images. The information about the dataset size before the data augmentation is not provided. On the other hand, in a
+research performed by Fabija/C19nska et al.,11 authors present an acquisition technique for capturing wood core images. In the
+first phase of the acquisition process, the cores were collected from the trunks at a height of approximately 1.3 m.
+Afterward, the collected cores were dried and glued into wooden holders and cut with the preparation blades. Finally, the
+prepared cores were scanned with a resolution of 600 or 1 200 dpi, which resulted in a dataset containing overall 312
+different wood core piece images from 14 European tree species. Another study performing acquisition in laboratory
+conditions was conducted by Urbonas et al.6 Authors in this study utilized a laboratory setup constructed of a conveyor
+belt, a light source, and a line scan camera. The acquisition was synchronized with the moving conveyor belt, and the
+images were captured at a speed of 4 m/s. In this experiment, researchers used 250 wood veneers with a size of 1 525 /C2
+1 525 mm, where each veneer was scanned at a resolution of 4 000 /C2 3 000 pixels. During this experiment, overall 4 729
+usable images were captured, out of which only 353 veneer images had at least one wood defect. Several wood defects
+acquisition experiments have been conducted in the field of wood recognition and quality control, however, according to
+the research performed by Kryl et al.,9 most of the studies worked with a dataset with a size in a range from 250 to 5 200
+images.
+Performing experiments in such conditions usually entails the disadvantage of a limited number of available products. In
+most of the studies, 2,6,12,13 researchers compensate for the lack of real products by using data augmentation techniques,
+which can expand the dataset up to 10 times its original size. From one point of view, data augmentation is considered to
+be an excellent tool to generalize the classification model and therefore prevent overfitting. 14 Nonetheless, it cannot
+REVISED Amendments from Version 1
+The introduction section in a new version is complemented by a brief description of wood defects acquisition techniques
+employed in other studies (Introduction, Paragraph 3). The revised version contains a diagram presenting the particular
+stages of our dataset acquisition experiment (Figure 1) and a figure demonstrating examples of all defects available
+within the dataset (Figure 4). The Software availability section is complemented by some descriptions of the software
+tools and their key features. The references in a reference list are unified according to a Harvard referencing style, and
+the paper was proofread and edited.
+Any further responses from the reviewers can be found at the end of the article
+Page 3 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 4
+ensure that the variability of the observed phenomenon will be sufficiently captured, especially in cases where the
+variability might be limitless.
+In order to address the lack of extensive databases in this field, we performed an experiment with the goal to acquire a
+large-scale dataset of timber surface defects. Unlike other conducted studies, our experiment was placed in an industrial
+environment during real production, which allowed us to acquire a large amount of authentic data from the production
+line. To face the challenges arising from the manufacturing process, such as the high speed of the conveyor belt and heavy
+vibrations, we designed a hardware as well as a software solution, which enabled the acquisition of high-resolution
+images at the acquisition rate of 66 kHz. In this experiment, we acquired 20 276 original data samples of sawn timber
+surface, from which 1992 images were without any surface defects, and 18 284 images captured one or more defects
+covering overall 10 types of common wood surface defects. The most frequent defects include live knots and dead knots,
+with an overall occurrence in the dataset of 58.8% and 41.2%, respectively. Furthermore, to provide a more valuable
+information in this data descriptor, all dataset samples were complemented with two types of labels: a semantic label map
+for the semantic segmentation and a bounding box label.
+Methods
+Due to the industrial environment where the experiment was set, the most challenging part of this work was the dataset
+acquisition. Performing data acquisition in such an environment entailed several negative factors. One of those factors
+was that the sawmill production line utilized for this experiment is used for more than 300 days per year, with minimal
+pauses, which allows to maximize the manufacturer's profits. Another problem we had to deal with was the high speed of
+the sawmill conveyor belt, which reached a value of 9.6 m s /C01 at the place of the acquisition. This high speed of the
+conveyor causes constant heavy vibrations, which in some peaks may result in fluctuations that are even centimeters long.
+Therefore, the main goal was to create a robust and at the same time portable construction, which can be easily
+implemented in the sawmill environment. The entire process of acquisition, including the postprocessing steps, is
+depicted in Figure 1.
+Acquisition equipment
+To overcome the limitations of this environment, we developed a mechanical construction to carry the camera and
+the light source. The final construction assembled from ITEM aluminum profiles was at the place of the acquisition fixed
+to the construction of a production line and the floor that prevented images from being blurred. Although this solution
+didn’t deal directly with heavy vibrations, it ensured the harmonization of the conveyor vibrations with the mounted
+camera. The final mechanical solution implemented in the sawmill environment is demonstrated in Figure 2.
+In order to obtain high-quality images at a speed of 9.6 m s /C01, a trilinear line scan camera SW-4000TL-PMCL
+manufactured by JAI was chosen. This camera was able to acquire 3 /C2 4096 pixels per line at the speed of 66 kHz.
+The required speed of the acquisition was achieved by connecting the camera interface to a high-performance Camera
+Link frame grabber with the transfer speed parameter set to 10 tap mode. For this application, we selected the Silicon
+Software microEnable five marathon VCLx frame grabber with a PCIe interface that allows onboard high-speed data
+processing and high data throughput up to 1 800 MB s /C01. The required field of view, which obtains a part of the sawn
+timber piece, with a width of 15 cm and a full length of 500 cm was achieved by using the Kowa LM50LF line scan
+camera lens. The selected camera, together with a 50 mm focal length lens placed at a distance of 40 cm from the
+measured object, led to a horizontal resolution of 16.66 pixels per millimeter. The vertical resolution Rv of the image was
+computed before the experiment by the following formula.
+Rv ¼ 1vw
+60 ∗L
+vc
+(1)
+where vw is the velocity of the conveyor, L is the number of lines per image, and vc is the line rate of the camera. The
+resulting vertical resolution of 6.67 pixels per millimeter was afterward experimentally verified during the acquisition
+process.
+Figure 1. Research stages, including data acquisition and data processing steps.
+Page 4 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 5
+Since the shutter of the camera was set to 3 μs, which ensured the high-speed image acquisition, we had to use a powerful
+light source, which would sufficiently illuminate the desired field of view. For this purpose, we selected one of the
+most powerful light sources on the market, a linear LED light Corona II by Chromasens with the ability to provide a
+light intensity of 3.5 million lux. To achieve the best possible images, a white spectrum of the light was utilized.
+Data acquisition
+Instead of saving every single line during the acquisition process, we captured a block of 1 024 lines, which resulted
+in an image resolution of 1 024/C24 096. Such a high-resolution color image takes up approximately 12 MB of a disk space.
+The used sampling frequency of 66 kHz with the total number of captured pixels resulted in a data transfer speed of
+773 MBs/C01, which means that we were able to capture 66.4 images per second. Even though we used a very powerful
+computer, we found the process of saving this amount of data at such a high speed quite challenging. To overcome this
+challenging task, we had to separate image acquisition and image saving into two different processes. While the
+acquisition process consisted of capturing a set of 84 images with a subsequent saving into the PC's RAM, the only
+task the saving process had was the transfer of the images from the computer RAM to the local hard disk drive. For this
+experiment, we employed two external 1 TB hard drives. To save CPU time during the acquisition and saving process, no
+online processing was performed.
+Because transferring such a large amount of data between different software have a negative impact on CPU utilization
+and would decrease the frame rate, we used optimized frame grabber software, microDisplay X (runtime version 5.7)
+from Silicon Software.15 To use this software in an automated way, we developed an automatic clicker with a feedback
+loop based on the captured computer screen. In simple terms, the software reads the desired information from the screen
+and based on the information decides whether the acquisition or saving process is already completed. Additionally, it
+automatically assigns an incrementing filename to each captured image. This was mainly realized by using Windows
+library user32.dll, which allows to control various aspects of mouse motion and button pressing. Since the saving process
+Figure 2. The mechanical construction, including the mounted camera and light source. The distance between
+the line scan camera and the light source from the conveyor belt is 40 and 15 centimeters, respectively.
+Page 5 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 6
+(loop) was almost 10 times slower than the acquisition process, the acquisition loop had to be temporarily stopped in each
+cycle. Despite the fact that this caused a loss of data continuity, it does not affect the validity and the reliability of this
+study. We assumed that the acquisition process with the other support subroutines takes approximately 1.4 s while the
+saving process lasts 7.5 s. To maintain a predictable acquisition speed, including software delays, we introduced a
+synchronization, which started a new cycle every 9 s.
+Data processing
+During the four hours of acquisition, we acquired overall 60 480 images. Due to the limited third-party software
+functionality, the acquisition process had to be performed in a continuous mode, without any triggering option. This
+resulted in a large number of images of an empty conveyor or a partly captured wood surface. To filter these meaningless
+data from the dataset, an offline histogram-based algorithm was created. The basic idea behind this algorithm is the sum
+calculation of the image green color space histogram. The sum value of the histogram is in the next step divided by any
+number in the range from 5 to 10 (values in the range were deduced from the size of the images). The last step of the
+algorithm is based on a simple threshold, where all images with a resulting value of less than 10 were removed. Using this
+value of threshold ensured that only images that contained in the horizontal direction at least 40% of the wood surface
+were kept. Since this filtration approach proved 100% reliability in filtering images with no wooden surface on 1 500
+randomly selected and manually sorted samples, we applied this filtering algorithm on the whole dataset. The filtering
+process reduced the dataset to a final number of 20 275 images.
+Additionally, besides the filtration, we performed image cropping to remove the undesirable background from the
+images. This operation not only reduced the file size but also decreased the potential computation time for future use.
+To automatically crop each image in the dataset without any relevant data loss, we employed a simple straight-line
+edge detection technique in a vertical direction. Basically, the main principle of the algorithm is finding as many raising
+edge points in the desired direction as many points are needed to construct a line. The cropping operation was then
+performed on the image bounding box derived from the following formula.
+BB x 1,y1,x2, y2ðÞ ¼ Lx1 þLx2
+2 /C0 150, Ly1 ,Lx1 þLx22 þ 2650, Ly2
+/C18/C19
+(2)
+where BB x 1, y1,x2,y2ðÞ is the cropped bounding box, andLx1 y2 x1 y2 stands for the image coordinates of the detected straight
+edge. Cropping the image changed the image resolution to 2 800 /C2 1 024 and reduced the overall dataset size by almost
+80 GB. An example of an image after the image crop operation is demonstrated in Figure 3.
+Ground truth labeling
+The dataset annotation in this study was performed manually by a trained person. To accelerate this time-consuming
+process, we developed a customizable annotation tool. In comparison with other annotation tools available on the market,
+which didn’t fulfil our requirements, we created a universal application with the ability to manage bounding box labels, as
+well as labels for the semantic segmentation at the same time. 16
+For every single image, we created a BMP file representing a semantic map of the labeled defects. During the labeling
+process, the user manually painted zones in a displayed image, where each zone painted with a selected color represents a
+specific defect. Each drawn zone was then automatically bounded with a zone of the particular label and a bounding
+rectangle. From the created zones, the tool then automatically generated coordinates (left, top, right, bottom respectively)
+in the form of percent divided by 100, where a certain defect is located. For each processed image from the dataset, the
+annotation tool created a text file including labels and bounding box coordinates and a semantic segmentation map with
+the configured color labels.
+Figure 3. A dataset example of a sawn timber surface with dead knots.
+Page 6 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 7
+Data records
+The dataset containing the data acquired in this experiment is publicly available. 17 The dataset includes 1 992 images of
+sawn timbers without any defects and 18 283 timber images with one or more surface defects. On average, there are
+2.2 defects per image, while only 6.7% of images contain more than three defects. The highest occurrence of defects,
+which was captured during the experiment, was 16 defects per image. In this dataset, we present altogether 10 types of
+wood surface defects, including several types of knots, cracks, blue stains, resins, or marrows. All types of defects within
+the dataset are demonstrated in Figure 4.
+An overall overview of all available wood surface defects with a number of occurrences is summarized in Table 1.
+Each color image with a resolution of 2 800 /C21 024 is provided in a BMP format in 10 separated zip folders labeled as
+Images.17 Additionally, we provide two types of annotations, semantic label maps, and bounding box labels. Both labels
+are provided in separate zip folders. The bounding box labels are located in a folder Bounding_Boxes and named as
+imagenumber_anno.txt, where the image number corresponds to the name of the original image in the dataset. Each
+original image has therefore one assigned text file, which can have multiple label records for each defect in the image. All
+bounding box labels have the following structure, where the first record represents the object label, and the subsequent
+values correspond to the left, top, bottom, and right absolute positions of the defect in the image divided by 100.
+Knot_OK 0, 421786 0, 819336 0, 571429 1, 000000
+Semantic label maps, used for semantic segmentation, are located in a folder, Semantic Maps. For each image in the
+dataset exists just one semantic map in a BMP format with the label name in the form ofimagenumber_segm.bmp, where
+the image number represents the corresponding name of the original image. In comparison to bounding box labels, each
+pixel of the semantic map image has its label, which is determined by a specified color (see Figure 5).
+Figure 4. Typical samples of wood defects within the dataset: (A) Live Knot, (B) Dead Knot, (C) Quartzity,
+(D) Knot with crack, (E) Knot missing, (F) Crack, (G) Overgrown, (H) Resin, (I) Marrow (J) Blue stain.
+Page 7 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 8
+To see the exact label specification for the provided wood surface defect dataset, refer toSemantic Map Specification text
+file,17 or Table 2.
+Technical validation
+The technical validation of the dataset was conducted by assessing the quality of the assigned labels by employing
+deep learning-based classification. For this purpose, we utilized a standard state-of-the-art convolution neural network
+detector based on the ResNet-50 model. 18 The selected neural network architecture was modified by adding Batch
+Table 1. Wood surface defects included in the database with the number of particular occurrences and an
+overall occurrence within the dataset.
+Defect type Number of
+occurrences
+Number of images
+with the defect
+Overall occurrence in the
+dataset [%]
+Live knot 21 224 11 912 58.8
+Dead knot 11 985 8 350 41.2
+Knot with crack 2 276 1 835 9.1
+Crack 2 169 1 578 7.8
+Resin 3 455 2 624 12.9
+Marrow 1 181 1 060 5.2
+Quartzity 1 075 847 4,2
+Knot missing 503 478 2.4
+Blue stain 96 77 0.4
+Overgrown 10 6 0.03
+Figure 5. Example of a semantic segmentation label. The red label represents dead knots, the green label stands
+for live knots, and the dark yellow represents knots with cracks.
+Table 2. Annotation color specification for the provided dataset with hexadecimal color codes.
+Defect type Color HEX color code
+Live knot Green 00FF00
+Dead knot Red FF0000
+Knot with crack Dark Yellow FFAF00
+Crack Pink FF0064
+Resin Magenta FF00FF
+Marrow Blue 0000FF
+Quartzity Purple 640064
+Knot missing Orange FF6400
+Blue stain Cyan 10FFFF
+Overgrown Dark Green 004000
+Page 8 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 9
+normalization and ReLu layers after each convolution layer. The input layer of the network, and therefore all dataset
+images were downsampled to 1 024 /C2 357. To train the neural network, we employed a transfer learning paradigm using
+pre-trained weights from the COCO dataset.19 Moreover, we performed data augmentation, including horizontal, vertical
+flip, translation and scaling, and divided the dataset into a training and testing set in a conventional ratio of 40/60. To
+increase the detection of the labeled defects by the ResNet-50 model, several parameters were additionally modified on
+the basis of the trial-and-error process. These parameters included sizes, strides, ratios and scales (see Table 3).
+At the beginning of the training, the first four layers of the network were frozen. After freezing the layers, the neural
+network was tuned by unfreezing the layers in reverse order except for the Batch normalization layer. The whole neural
+network was then finally fine-tuned at a low training speed. The overall number of epochs during the training was
+30, while the training speed ranged between 10 -4 at the beginning and 10 -6 at the end of the training.
+The trained ResNet-50 model resulted in an accuracy of 81%. Since the neural network outputted a large number of false
+positives, the dataset was re-evaluated by a trained person who didn ’t participate in the primary dataset labeling process.
+Data availability
+Underlying data
+Zenodo: Underlying data for A large-scale image dataset of wood surface defects for automated vision-based quality
+control processes. ‘Deep Learning and Machine Vision based approaches for automated wood defect detection and
+quality control’. http://doi.org/10.5281/zenodo.4694695.17
+This project contains the following underlying data:
+ Bounding boxes
+ Images 1–10
+ Semantic map specification
+ Semantic maps
+Data are available under the terms of the Creative Commons Attribution 4.0 International Public License (CC-BY 4.0).
+Software availability
+Zenodo: Software for labeling wood surface defects and managing images. ‘Supporting tools for managing and labeling
+raw wood defect images ’. http://doi.org/10.5281/zenodo.4904736.16
+This project contains the following underlying data:
+Labeler tool:
+Custom-made labeling software that creates bounding boxes around the drawn area. After drawing the desired area, the
+software automatically creates a bounding box label, as well as a semantic label map. The software is fully customizable
+and allows full keyboard control together with a touch pen. A detailed description of the software can be found in the
+Ground truth labeling chapter.
+Table 3. A detailed specification of the modified neural network parameters.
+Parameter Values
+Sizes [32, 64, 128, 256, 512]
+Strides [8, 16, 32, 64, 12]
+Ratios [0.3, 0.55, 1, 2, 3.5]
+Scales [0.6, 0.8, 1]
+Page 9 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 10
+Files
+ Labeler_software.vi
+ Readme.txt
+ Labeler.ini
+Support Utils:
+Support tools that were used to crop and sort the images. The full description of the algorithm is mentioned in the Data
+processing chapter.
+Files
+ Cutter.vi
+ Sorter.vi
+Data are available under the terms of the Creative Commons Attribution 4.0 International Public License (CC-BY 4.0).
+References
+1. Broman O, Fredriksson M: Wood material features and technical
+defects that affect yield in a finger joint production process.
+Wood Material Science and Engineering. 2012; 7(4): 167–175.
+Publisher Full Text
+2. Ding F, Zhuang Z, Liu Y, et al.: Detecting Defects on Solid Wood
+Panels Based on an Improved SSD Algorithm. Sensors. 2020;
+20(18): 5315.
+PubMed Abstract |Publisher Full Text
+3. Projorov A: Great Soviet encyclopedia. 3rd ed. New York: Macmillan;
+1973.
+4. Cetiner I, Var A, Cetiner H 2014. Wood surface analysis with image
+processing techniques. 2014 22nd Signal Processing and
+Communications Applications Conference (SIU).
+5. Gu I, Andersson H, Vicen R: Automatic Classification of Wood
+Defects Using Support Vector Machines. Computer Vision and
+Graphics. 2009; 5337: 356–367.
+Publisher Full Text
+6. Urbonas A, Raudonis V, Maskeliu ˉnas R, et al.: Automated
+Identification of Wood Veneer Surface Defects Using Faster
+Region-Based Convolutional Neural Network with Data
+Augmentation and Transfer Learning. Applied Sciences. 2019;
+9(22): 4898.
+Publisher Full Text
+7. Lycken A: Comparison between automatic and manual quality
+grading of sawn softwood. Forest Products Journal. 2006; 56(4):
+13–18.
+8. Liu Z, Peng C, Work T, et al.: Application of machine-learning
+methods in forest ecology: recent progress and future
+challenges. Environmental Reviews. 2018; 26(4): 339–350.
+Publisher Full Text
+9. Kryl M, Danys L, Jaros R, et al.: Wood Recognition and Quality
+Imaging Inspection Systems. Journal of Sensors. 2020; 2020:1 –19.
+Publisher Full Text
+10. Shi J, Li Z, Zhu T, et al.: Defect Detection of Industry Wood Veneer
+Based on NAS and Multi-Channel Mask R-CNN. Sensors. 2020;
+20(16): 4398.
+PubMed Abstract |Publisher Full Text
+11. Fabija ńska A, Danek M, Barniak J: Wood species automatic
+identification from wood core images with a residual
+convolutional neural network. Computers and Electronics in
+Agriculture. 2021; 181:105941.
+Publisher Full Text
+12. He T, Liu Y, Xu C, et al.: A Fully Convolutional Neural Network for
+Wood Defect Location and Identification. IEEE Access. 2019; 7:
+123453–123462.
+Publisher Full Text
+13. Gao M, Qi D, Mu H, et al.: A Transfer Residual Neural Network
+Based on ResNet-34 for Detection of Wood Knot Defects. Forests.
+2021; 12(2): 212.
+Publisher Full Text
+14. Jackson PTG, Amir AA, Bonner S, et al.: Style augmentation: data
+augmentation via style randomization. Proceedings of the IEEE/
+CVF Conference on Computer Vision and Pattern Recognition. 2019; 6:
+10–11.
+15. Baslerweb.com: Basler AG – Industriekamera Hersteller. [online].
+2022. [Accessed 12 June 2022].
+Reference Source
+16. Kodytek P, Bodzas A: Supporting tools for managing and labeling
+raw wood defect images. Zenodo. 20 June 2022.
+Reference Source
+17. Kodytek P, Bodzas A, Bilik P: Supporting data for Deep Learning
+and Machine Vision based approaches for automated wood
+defect detection and quality control. Zenodo. 20 June 2022.
+Reference Source
+18. He K, Zhang X, Ren S, et al.: Deep Residual Learning for Image
+Recognition. 2016 IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR). 2016.
+19. Lin T, Maire M, Belongie S, et al.: Computer Vision – ECCV 2014.
+Common Objects in Context: Microsoft COCO. 2014.
+Publisher Full Text
+Page 10 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 11
+Open Peer Review
+Current Peer Review Status:  
+  
+Version 2
+Reviewer Report 12 July 2022
+https://doi.org/10.5256/f1000research.135431.r142447
+© 2022 Rahayu S. This is an open access peer review report distributed under the terms of the Creative Commons 
+Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the 
+original work is properly cited.
+Sri Rahayu 
+   
+Universitas Nusa Mandiri, East Jakarta, Indonesia 
+The author has fulfilled the suggestions given. 
+ 
+A minor suggestion: provide some examples of currently available wood defect image datasets 
+from previous researchers, as well as to make more references. Since the paper also produces a 
+wood defect image dataset as well, I think it is better for the author to acknowledge other work to 
+broaden the audience's view that other similar datasets are also available. If I had to mention 
+examples of currently available wood defect image datasets from previous researchers, it is Riana 
+et al., 20211. 
+ 
+References 
+1. Riana D, Rahayu S, Hasan M, Anton: Comparison of segmentation and identification of swietenia 
+mahagoni wood defects with augmentation images.Heliyon. 2021; 7 (6): e07417 PubMed Abstract | 
+Publisher Full Text  
+ 
+Competing Interests: No competing interests were disclosed.
+Reviewer Expertise: Single-cell technologies
+I confirm that I have read this submission and believe that I have an appropriate level of 
+expertise to confirm that it is of an acceptable scientific standard.
+Reviewer Report 08 July 2022
+https://doi.org/10.5256/f1000research.135431.r142448
+© 2022 Pelc M. This is an open access peer review report distributed under the terms of the Creative Commons 
+Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the 
+original work is properly cited.
+  Page 11 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 12
+Mariusz Pelc 
+   
+1 Faculty of Electrical Engineering, Automatic Control and Informatics, Opole University of 
+Technology, Opole, Poland 
+2 School of Mathematical and Computing Sciences, University of Greenwich, London, UK 
+I have read the revised version of the paper and I am happy to say that the paper has now 
+reached the appropriate standard for indexing. Authors have made changes to the key elements 
+(including use of English).
+ 
+Competing Interests: No competing interests were disclosed.
+Reviewer Expertise: Computer science, data / signal processing, automation and robotics, bio-
+medical engineering, expert sytsems.
+I confirm that I have read this submission and believe that I have an appropriate level of 
+expertise to confirm that it is of an acceptable scientific standard.
+Version 1
+Reviewer Report 26 May 2022
+https://doi.org/10.5256/f1000research.56234.r136809
+© 2022 Rahayu S. This is an open access peer review report distributed under the terms of the Creative Commons 
+Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the 
+original work is properly cited.
+Sri Rahayu 
+   
+Universitas Nusa Mandiri, East Jakarta, Indonesia 
+Wood defect datasets are still rare, so this research is very helpful for the wood industry and 
+researchers interested in this field. The authors explain in detail the reasons for building this 
+database with clear data acquisition and collection techniques. 
+ 
+Some of the methods used to construct semantic images and image testing may be replicated in 
+others. The image acquisition technique used will be of great value if you mention the acquisition 
+technique in other similar studies. 
+ 
+It would be even better if the authors provide examples of images for each image class and also 
+presents the stages of the research in the form of a chart
+ 
+Is the rationale for creating the dataset(s) clearly described?
+Yes
+Are the protocols appropriate and is the work technically sound?
+  Page 12 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 13
+Yes
+Are sufficient details of methods and materials provided to allow replication by others?
+Partly
+Are the datasets clearly presented in a useable and accessible format?
+Partly
+Competing Interests: No competing interests were disclosed.
+Reviewer Expertise: Single-cell technologies
+I confirm that I have read this submission and believe that I have an appropriate level of 
+expertise to confirm that it is of an acceptable scientific standard, however I have 
+significant reservations, as outlined above.
+Author Response 22 Jun 2022
+Alexandra Bodzas 
+The point-by-point responses to comments: 
+ 
+1. We complemented the Introduction section with a paragraph describing wood defects 
+acquisition techniques used in other studies (Paragraph 3). 
+ 
+2. We complemented the paper with a diagram presenting the particular stages of the 
+dataset acquisition (Figure 1) and a figure containing image examples for each class (Figure 
+4).  
+Competing Interests: No competing interests were disclosed.
+Reviewer Report 25 November 2021
+https://doi.org/10.5256/f1000research.56234.r100946
+© 2021 Pelc M. This is an open access peer review report distributed under the terms of the Creative Commons 
+Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the 
+original work is properly cited.
+Mariusz Pelc 
+   
+1 Faculty of Electrical Engineering, Automatic Control and Informatics, Opole University of 
+Technology, Opole, Poland 
+2 School of Mathematical and Computing Sciences, University of Greenwich, London, UK 
+This paper deals with a relevant problem which is detection of wood surface defects. 
+ 
+  Page 13 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 14
+For the purpose of the research, the authors have come up with a coherent methodology allowing 
+them to acquire all required data, then mapping and detecting defects. From an algorithmic 
+viewpoint it all makes sense, besides, the whole methodology/algorithm validation has also been 
+performed. 
+ 
+So, the paper ticks pretty much all the boxes (relevance, novelty, etc.) and as such it qualifies for 
+publication. 
+ 
+However, the paper requires some substantial changes in the following areas:
+There is no related work section which makes it really difficult to understand the authors' 
+contribution to the field. I would recommend adding such a section (even if it is brief) where 
+similar solutions would be discussed and confronted with what the authors are proposing in 
+this paper. 
+ 
+1. 
+Every single paper should include a conclusion section allowing all readers to understand 
+key findings of the research. This paper is lacking a conclusion section which is quite an 
+omission. 
+ 
+2. 
+Some tables (e.g. Table 1) should be re-done as their versions included in the paper are 
+hardly readable. Usually one look at a table provides a lot of information about the results 
+whilst in this paper this is not the case. I would suggest the authors re-format all tables to 
+make all the dates gathered in the table easy to see and understand. 
+ 
+3. 
+The "Software availability" section should be rewritten. I would suggest the authors make 
+this section easily comprehensible via adding some more description of the software tools 
+used and maybe outline some key feature(s) of the software. Also, based on the section 
+contents, the section title better reflecting this would be e.g. "Supporting software tools" 
+where first paragraph should say that in this research the following software was used 
+(then outline the software and how it was used). 
+ 
+4. 
+Referencing - I only want to make sure that the authors have used the proper referencing 
+style since the most frequently used are either Harvard or IEEE, whilst the authors have 
+used a foot-note like referencing style. 
+ 
+5. 
+The whole paper is written in maybe not error-free but still quite coherent and 
+comprehensible English. But I would still recommend at least one more proof reading to 
+make sure that there are no obvious mistakes left in the text.
+6. 
+ 
+Based on the above consideration I would recommend accepting the paper for indexing after 
+revision.
+ 
+Is the rationale for creating the dataset(s) clearly described?
+Yes
+Are the protocols appropriate and is the work technically sound?
+Yes
+Are sufficient details of methods and materials provided to allow replication by others?
+  Page 14 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 15
+Yes
+Are the datasets clearly presented in a useable and accessible format?
+Yes
+Competing Interests: No competing interests were disclosed.
+Reviewer Expertise: Computer science, data / signal processing, automation and robotics, bio-
+medical engineering, expert sytsems.
+I confirm that I have read this submission and believe that I have an appropriate level of 
+expertise to confirm that it is of an acceptable scientific standard, however I have 
+significant reservations, as outlined above.
+Author Response 22 Jun 2022
+Alexandra Bodzas 
+The point-by-point responses to comments: 
+ 
+1. Our paper was written in accordance with the journal guidelines for a Data Note article, 
+which slightly differs from an original research article. Concerning the Data Note article, 
+there is no related work section included in the article structure. However, to fulfill your 
+requirements, we complemented the introduction section with a paragraph where we 
+discussed similar solutions. The importance of this research is then explained in subsequent 
+paragraphs. 
+ 
+2. The conclusion section is omitted intentionally again since we followed the data note 
+article guidelines. 
+ 
+3. The tables in the article cannot be re-formatted since the article had been formatted by 
+the editorial team before the publication. Table formatting is within the scope of an editorial 
+team that formats the table according to the journal standards. Since the article is an online 
+article, the tables are accessible and visible in full size after clicking on them. 
+ 
+4. The original Software availability section was rewritten before the publication to fulfill the 
+editorial team's requirements. However, we complemented this section by adding some 
+descriptions of the software. The title of this section cannot be changed since it follows the 
+guidelines for a data note article and journal standards. 
+ 
+5. We unified the reference styles within the references. All references in a reference list are 
+according to the Harvard referencing style. The in-text citation on the other hand are 
+according to the journal standards, and the footnotes were added by the editorial team 
+during the typesetting process 
+ 
+6. The paper was proofread and edited. The obvious mistakes were corrected.  
+  Page 15 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025
+--- Seite 16
+Competing Interests: No competing interests were disclosed.
+The benefits of publishing with F1000Research:
+Your article is published within days, with no editorial bias•
+You can publish traditional articles, null/negative results, case reports, data notes and more•
+The peer review process is transparent and collaborative•
+Your article is indexed in PubMed after passing peer review•
+Dedicated customer support at every stage•
+For pre-submission enquiries, contact research@f1000.com
+  Page 16 of 16
+F1000Research 2022, 10:581 Last updated: 30 MAY 2025

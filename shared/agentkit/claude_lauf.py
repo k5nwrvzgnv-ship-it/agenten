@@ -53,7 +53,7 @@ GESCHUETZT = ("*.py", "*.pth", "*.sh", "*.toml", "*.service", "*.timer", "*.path
               "regeln.md", ".gitignore", "requirements*.txt", ".claude/**", ".venv/**", ".git/**",
               "*.html", "*.js", "*.css", "*.sha256", "*.woff2",
               "tests/**", "vorlagen/**", "statisch/**", "systemd/**", "skills/**", "konfig/**",
-              "verfahren/**", "verfahren_neu/**",
+              "verfahren/**", "verfahren_neu/**", "unterlagen/**",
               "leitfaden.md", "regelwerk_reihe.md", "seminar_vorbild.md", "schema.md")
 VERBOTEN += [f"{w}(**/{m})" for w in ("Edit", "Write") for m in GESCHUETZT]
 # Werkzeuge ohne Dateizugriff, die acceptEdits nicht von selbst erlaubt. Sie werden ausdrücklich

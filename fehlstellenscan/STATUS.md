@@ -69,6 +69,30 @@ die können später als Dateien Eingabe werden).
 - .venv mit numpy 2.5.4 und Pillow 13.0.0 (Jan 11.11.2026) und agentkit per .pth; tests/test_umgebung.py
   prüft sie (auch BMP). Kein Dienst, kein Timer, keine Daten geladen.
 
+## Gruppen-Bot Rüdiger (Jan 19.11.2026)
+- Telegram-Bot @nichtsotiefruedigerbot („Rüdiger“, eigener Token, Privacy mode an) für die Gruppe des
+  Forschungsprojekts. Jan, Henri und Felix fragen per @-Erwähnung oder Antwort auf Rüdiger. Code: gruppe.py
+  (Telegram per urllib, Long-Polling, kein neues Paket), gruppe_logik.py (rein, tests/test_gruppe_logik.py).
+- Dienst fehlstellenscan-gruppe.service (Vorlage systemd/, dauerhaft, MemoryMax 1G, OnFailure=ausfall@).
+- Zugang (.env): GRUPPE_BOT_TOKEN, GRUPPE_CHAT_ID, GRUPPE_NUTZER_IDS (Komma-Liste). Leer: keine Antworten,
+  aber Chat- und Personen-IDs jeder Erwähnung stehen in logs/gruppe.log und data/gruppe/unbekannt.jsonl.
+- Fragen: claude_lauf mit lese_ordner, suchen=True, ohne_projekt=True (läuft in ~/.cache/agentkit/nur_lesen/,
+  keine CLAUDE.md), Modell anspruchsvoll, Werkzeuge Read/Glob/Grep/WebSearch/WebFetch ([werkzeuge] fehlstellenscan,
+  WebFetch ohne Domainliste, Jan „full power“). Lesen darf Rüdiger (gruppe_logik.lese_ordner_karte): Spiegel
+  data/gruppe/spiegel/ (STATUS.md und Code, vor jedem Lauf frisch kopiert), unterlagen/ (Kodytek-Paper PDF und
+  Text), docs/, konfig/, data/{laeufe,annotationen,rohbilder,pruefung,datensaetze,modelle,gruppe/dateien},
+  holzbalkenscan/. Nie: andere Agenten, .env, data/gruppe/mails/ (Postfach-Kontext). Henri und Felix dürfen alles
+  zum Projekt sehen, auch Wettbewerb und Markt (Jan 19.11.2026). Echter Lauf 19.11.: keine CLAUDE.md im Kontext,
+  uni/STATUS.md abgelehnt, Paper richtig gelesen.
+- Gespräch: Antwort auf eine Rüdiger-Nachricht setzt dessen Sitzung fort; sonst stehen die letzten 12 Wechsel
+  (data/gruppe/verlauf.jsonl) im Prompt. Fotos und Dateien (auch zitierte) landen in data/gruppe/dateien/<id>/.
+  Höchstens 40 Anfragen je Person und Tag. Antworten als Klartext, geteilt ab 4000 Zeichen.
+- Mails: Claude antwortet {"mail_auftrag": ...}; dann agentkit.mailauftrag mit Jans HNEE-Postfach (Login aus
+  uni/.env kopiert, Jan 19.11.2026), Läufe ohne Netz. Entwurf in die Freigabe (typ mail), Gruppe sieht nur
+  „Entwurf liegt bei Jan zur Freigabe“. Nach Freigabe sendet gruppe.py genau einmal (SMTP HNEE, Kopie in
+  „Gesendete Elemente“) und meldet der Gruppe das Ergebnis, ebenso Ablehnen, Ablauf, Ändern. „Ändern“ kommt als
+  Auftrag quelle telegram-aendern; agent.py lässt diese liegen, gruppe.py überarbeitet sie.
+
 ## Mac (Training, von Hand)
 - Ordner ~/fehlstellenscan mit .venv aus Python 3.14.5 von python.org
   (/Library/Frameworks/Python.framework/Versions/3.14/bin/python3), nicht aus Anaconda.
@@ -179,8 +203,8 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 ## Aufbau
 - Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, auswertung.py, konfig/ (Einstellungen im Repo)
 - .venv: fehlstellenscan/.venv, agentkit per .pth eingebunden
-- Dienst: noch keiner (später oneshot auf Auftrag wie holzbalkenscan, braucht Jans Okay)
-- Zugangsdaten: vorerst keine, Vorlage fehlstellenscan/.env.example
+- Dienst: fehlstellenscan-gruppe.service (Gruppen-Bot). Für agent.py noch keiner (später oneshot auf Auftrag).
+- Zugangsdaten: fehlstellenscan/.env (Bot-Token, Gruppe, HNEE-Login), Vorlage .env.example
 - Laufzeitdaten: fehlstellenscan/data/ (nicht im Repo) mit rohbilder/, annotationen/,
   datensaetze/<name>-<version>/, laeufe/<zeitstempel>/, modelle/. Logs: fehlstellenscan/logs/
 - Auftrag von Hand anlegen, solange die Zentrale den Agenten nicht kennt:

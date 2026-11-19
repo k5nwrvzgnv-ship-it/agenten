@@ -1255,5 +1255,15 @@ Offen, wartet auf Jan:
     (zeile), Hinweise (text, hilfe "z. B. Zweck der Runde, wer fehlte"). uni liest keinen Feldnamen, alle Felder
     gehen als Text an Claude.
 
+44. Gruppen-Bot Rüdiger in fehlstellenscan/ (19.11.2026, Jan): Telegram-Gruppe des Forschungsprojekts (Jan, Henri,
+    Felix), Einzelheiten in fehlstellenscan/STATUS.md. Im Hauptordner geändert: agentkit.claude_lauf `ohne_projekt`
+    (Nur-Lesen-Lauf in ~/.cache/agentkit/nur_lesen/<agent>, keine CLAUDE.md im Kontext, echter Lauf geprüft),
+    [werkzeuge] fehlstellenscan in einstellungen.toml (WebFetch ohne Domainliste, Jan „full power“), Arbeitsplatz-Test
+    test_recherche_steht_am_ort prüfte die echte Kostenliste mit (Agent fehlstellenscan). Offen, Vorschlag an Jan:
+    (a) CLAUDE.md, Abschnitt Architektur: fehlstellenscan „Läufe nur auf Auftrag, ohne Claude“ gilt für Datensatz
+    und Training; der Gruppen-Bot nutzt Claude (Nur-Lesen) und läuft dauerhaft. Satz ergänzen. (b) Der Bot nutzt Jans
+    HNEE-Login aus uni/.env (Jan 19.11.2026), keine eigenen Mail-Zugangsdaten. (c) Abo-Hinweis: Henri und Felix
+    rechnen über das Agenten-Konto ([konto] quelle = "token") ab, nicht über Jans Abo.
+
 ## Gelernte Regeln
 - (noch keine)
