@@ -247,6 +247,28 @@ class TestBetrachterUndZiel(unittest.TestCase):
         z = logik._datei_zeilen(["a.pdf", "b.docx"], [(True, False, 0, True), (True, True, 4)])
         self.assertEqual([(x["vorschau_laeuft"], x["seiten"], x["pdf"]) for x in z], [(True, 0, True), (False, 4, True)])
 
+    def test_ein_dokument_word_und_pdf(self):
+        """Gleicher Name, docx und pdf: einmal die Galerie (aus dem PDF), Knöpfe Word, dann PDF."""
+        z = logik._datei_zeilen(["a/Protokoll.pdf", "a/Protokoll.docx"], [(True, False, 3), (True, True, 3)])
+        e = logik.ein_dokument(z)
+        self.assertEqual((e["name"], e["galerie"]["nr"], e["vorschau_laeuft"]), ("Protokoll", 0, False))
+        self.assertEqual([(k["text"], k["nr"], k["vorschau"]) for k in e["knoepfe"]],
+                         [("Word", 1, False), ("PDF", 0, False)])
+        # Vorschau läuft noch: keine Galerie, Knöpfe trotzdem
+        z = logik._datei_zeilen(["P.docx", "P.pdf"], [(True, False, 0, True), (True, False, 0, True)])
+        e = logik.ein_dokument(z)
+        self.assertEqual((e["galerie"], e["vorschau_laeuft"], len(e["knoepfe"])), (None, True, 2))
+
+    def test_ein_dokument_nur_word_mit_renderer_pdf(self):
+        e = logik.ein_dokument(logik._datei_zeilen(["E.docx", "geheim.pdf"], [(True, True, 2), (False, False, 0)]))
+        self.assertEqual([(k["text"], k["vorschau"]) for k in e["knoepfe"]], [("Word", False), ("PDF", True)])
+        self.assertEqual(e["galerie"]["nr"], 0)
+
+    def test_ein_dokument_verschiedene_namen(self):
+        z = logik._datei_zeilen(["a.pdf", "b.docx"], [(True, False, 1), (True, True, 4)])
+        self.assertIsNone(logik.ein_dokument(z))
+        self.assertIsNone(logik.ein_dokument([]))
+
 
 class TestRechercheplan(unittest.TestCase):
     KOSTEN = {"kurz": {"von": None, "bis": 15.0}, "gründlich": {"von": 35.23, "bis": 50.0}}

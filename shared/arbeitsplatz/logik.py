@@ -336,6 +336,28 @@ def _datei_zeilen(pfade: list[str], info: list[tuple]) -> list[dict]:
     return zeilen
 
 
+FORMAT_NAME = {"docx": "Word", "pdf": "PDF", "pptx": "PowerPoint", "xlsx": "Excel", "md": "Markdown", "txt": "Text"}
+
+
+def ein_dokument(dateien: list[dict]) -> dict | None:
+    """Gehören alle verfügbaren Dateien einer Fassung zu einem Dokument (gleicher Name, andere Endung, etwa docx und
+    pdf), steht es einmal da: Galerie aus der Datei mit Seitenbildern (PDF zuerst), darunter je Format ein Knopf (PDF
+    zuletzt, notfalls die PDF-Vorschau des Renderers). Sonst None, dann bleibt die Liste je Datei."""
+    da = [x for x in dateien if x["original"] or x["pdf"] or x["seiten"] or x["vorschau_laeuft"]]
+    staemme = {x["name"].rsplit(".", 1)[0] if "." in x["name"] else x["name"] for x in da}
+    if len(staemme) != 1:
+        return None
+    mit_seiten = [x for x in da if x["seiten"]]
+    galerie = next((x for x in mit_seiten if x["endung"] == "pdf"), mit_seiten[0] if mit_seiten else None)
+    knoepfe = [{"text": FORMAT_NAME.get(x["endung"], x["endung"].upper() or "Datei"), "nr": x["nr"], "vorschau": False}
+               for x in da if x["original"]]
+    knoepfe.sort(key=lambda k: k["text"] == "PDF")
+    if not any(k["text"] == "PDF" for k in knoepfe) and (x := next((x for x in da if x["pdf"]), None)):
+        knoepfe.append({"text": "PDF", "nr": x["nr"], "vorschau": True})
+    return {"name": staemme.pop(), "galerie": galerie, "knoepfe": knoepfe,
+            "vorschau_laeuft": galerie is None and any(x["vorschau_laeuft"] for x in da)}
+
+
 def dokument_ansicht(kette: list[dict], rueckmeldungen: list[dict], stand: dict, vorschauen: dict[str, list],
                      kosten: dict[str, float], art: dict | None, heute: str) -> dict:
     """Alles für /dokument/<ursprung>.
@@ -380,6 +402,7 @@ def dokument_ansicht(kette: list[dict], rueckmeldungen: list[dict], stand: dict,
     eintraege.sort(key=lambda e: e["zeit"], reverse=True)
     for e in eintraege:
         e["zeit_text"] = zeit_kurz(e["zeit"], heute)
+        e["eins"] = ein_dokument(e["dateien"])
     fertig = [e for e in eintraege if e["status"] == "erledigt"]
     haupt = next((e for e in eintraege if e["final"]), None) or (fertig[0] if fertig else None)
     bezug = next((e["ref"] for e in eintraege if e["art"] == "agent" and e["status"] == "erledigt"), "")

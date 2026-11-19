@@ -38,6 +38,16 @@
 .rueck { padding: 8px 0; display: flex; flex-direction: column; gap: 4px; }
 .rueck p { margin: 0; }
 
+/* „+“ und „···“ unten rechts neben dem Kopf, auf Höhe des Inhalts darunter (Jan 19.11.2026) */
+.kopf-zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px 16px; }
+.seiten-aktionen { display: flex; align-items: center; gap: 4px; }
+.seiten-aktionen:empty { display: none; }
+
+/* Ein Dokument in mehreren Formaten (logik.ein_dokument): Galerie, darunter schlicht je Format ein Knopf */
+.formate { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+.formate .knopf-leise { gap: 6px; color: var(--fg); }
+.formate svg { color: var(--leise); }
+
 /* Markdown und eigene Ansichten (Recherche, Prüfung) */
 .md { display: flex; flex-direction: column; gap: 10px; }
 .md-kopf { margin: 12px 0 0; font-size: 16px; font-weight: 600; }

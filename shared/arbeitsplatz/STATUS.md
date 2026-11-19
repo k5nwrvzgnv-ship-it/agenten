@@ -68,7 +68,8 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 Übernommen aus Lias App (`shared/webapp/umbauplan-ux.md`, dort nichts geändert), alle fünf Schritte gebaut:
 - Aussehen: `ruhig.css` (Kopie) statt `stil.css`; rechte Spalte nur auf Heute (Läuft gerade, Kosten), alle anderen
   Seiten einspaltig und mittig. Was läuft, steht überall im Baum neben „Heute“ und als Marke am Dokument.
-- „+“ oben rechts (`vorlagen/_plus.html`): Heute Seite, Dokument …; Ort Seite, Dokument …, Datei; Dokument „Dokument …“
+- „+“ und „···“ stehen unten rechts neben dem Seitenkopf (`basis.html`, `.kopf-zeile`), auf Höhe der Galerie bzw.
+  Liste darunter, nicht mehr in der Brotkrumenzeile (Jan 19.11.2026). Einträge (`vorlagen/_plus.html`): Heute Seite, Dokument …; Ort Seite, Dokument …, Datei; Dokument „Dokument …“
   (nicht blau). „Seite“ legt sofort „Neue Seite“ an, die gleich zum Umbenennen offen steht. Im „···“ des Orts:
   Umbenennen, Verschieben, Unterseiten ordnen (ab zwei), Archivieren. Leere Abschnitte fallen weg, ganz leer steht
   „Noch leer. Mit + fängst du an.“ Im Baum kein „+ Seite“ mehr unter dem aktiven Ort (unten bleibt es).
@@ -79,8 +80,10 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   Formular), dann Galerie „Was soll daraus werden?“ (nur Arten mit Material), Formular mit „Schon dabei“, der Auftrag
   übernimmt sie, der Ordner geht danach weg. Liegengebliebenes löscht das nächste Ablegen nach einem Tag.
 - Dokument-Seite: Rückmeldung als immer sichtbares Feld (nur Arten mit `rueckmeldung`), „Senden“ der einzige blaue
-  Knopf (bei finaler Fassung keiner); je Datei ein Download-Symbol (PDF ansehen, Word-/PowerPoint-/…-Datei); die ersten
-  zwei Seiten groß, alle in einer Klappe; im „···“ final und „Eigene Fassung hochladen …“ (`?offen=eigene` öffnet es);
+  Knopf (bei finaler Fassung keiner). Ein Dokument, auch in mehreren Formaten gleichen Namens (docx und pdf,
+  `logik.ein_dokument`), steht einmal als Galerie (erste zwei Seiten groß, aus dem PDF), darunter schlicht je Format
+  ein Knopf „Word“, „PDF“ (ohne eigenes PDF die Renderer-Vorschau) (Jan 19.11.2026). Verschiedene Dateien: je Datei
+  eine Zeile mit Download-Symbol; im „···“ final und „Eigene Fassung hochladen …“ (`?offen=eigene` öffnet es);
   Verlauf als geschlossene Klappe ab zwei Stationen. `statisch/anhang.js` zeigt den Namen der angehängten Datei.
 - Vorschau (Schritt 6, `vorschau.py`): Dokumente ohne Renderer-Vorschau bekommen eigene Seitenbilder in
   `data/vorschau/<auftrag>/<nr>/`, beim ersten Öffnen im Hintergrund, in einem eigenen Prozess mit 1 GB Grenze

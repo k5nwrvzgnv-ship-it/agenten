@@ -26,16 +26,18 @@
     <li aria-current="page">{{ krumen.hier }}</li>
   </ol>
 </nav>
-{#- Heute, Ort und Dokument setzen hier ihr „+“ und „···“ (_plus.html, umbauplan-ux.md Schritt 2) -#}
-{%- block plus %}{% endblock %}
-{%- block punkte %}{% endblock %}
 </div>
+{#- Heute, Ort und Dokument setzen ihr „+“ und „···“ (_plus.html) unten rechts neben den Kopf, also auf Höhe des
+    Inhalts darunter (Galerie, Liste), nicht mehr oben in die Brotkrumen (Jan 19.11.2026) -#}
+<div class="kopf-zeile">
 {% block seitenkopf %}
 <header class="kopf">
   {%- if e.unter %}<span class="datum">{{ e.unter }}</span>{% endif %}
   <h1 class="titel-gross">{{ e.titel }}</h1>
 </header>
 {% endblock %}
+<div class="seiten-aktionen">{% block plus %}{% endblock %}{% block punkte %}{% endblock %}</div>
+</div>
 {%- set ah = aktion_hinweis(request.query_params.get("aktion")) %}
 {%- if ah %}
 <div class="hinweis hinweis-erledigt aktion-hinweis" role="status">

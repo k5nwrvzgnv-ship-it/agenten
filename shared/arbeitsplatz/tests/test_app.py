@@ -247,7 +247,7 @@ class TestSeiten(Aufbau):
         self.assertIn('aria-label="C nach oben"', punkte)
         self.assertNotIn('aria-label="C nach unten"', punkte)
         # außerhalb des „···“ keine Formulare mehr (keine offenen Masken, keine ↑/↓)
-        mitte = html.split("</header>")[1].split("</main>")[0]
+        mitte = html.split('class="kopf-zeile"')[1].split("</details></div>\n</div>", 1)[1].split("</main>")[0]
         mitte = re.sub(r'<section id="ablage" class="ablage-zu".*?</section>', "", mitte, flags=re.S)  # versteckt
         self.assertNotIn("<form", mitte)
         # ↓ an A schiebt A hinter B
@@ -579,9 +579,16 @@ class TestDokument(Aufbau):
         self.assertIn(f'action="/dokument/{self.U}/eigene"', punkte)
         self.assertIn("Eigene Fassung hochladen …", punkte)
         self.assertNotIn("Verlauf", html)  # eine Fassung allein steht oben
-        self.assertIn('class="menue-halter laden"', html)
-        self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0" download>Word-Datei</a>', html)
-        self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0/pdf" target="_blank"', html)
+        # ein Dokument: einmal die Galerie, darunter schlicht Word und PDF (Jan 19.11.2026)
+        self.assertNotIn('class="menue-halter laden"', html)
+        formate = html.split('class="formate"')[1].split("</span>")[0]
+        self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0" download>', formate)
+        self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0/pdf" download="Expose.pdf">', formate)
+        self.assertLess(formate.index("Word</a>"), formate.index("PDF</a>"))
+        self.assertEqual(html.count('class="material-seiten"'), 1)
+        # „+“ und „···“ stehen unter den Brotkrumen neben dem Kopf, nicht mehr in der Brotkrumenzeile
+        self.assertNotIn("menue-halter", html.split('class="krumen-zeile"')[1].split('class="kopf-zeile"')[0])
+        self.assertIn('class="menue-halter plus"', html.split('class="seiten-aktionen"')[1])
         self.assertIn('class="menue-halter plus"', html)
         self.assertNotIn("knopf-voll plus-knopf", html)
         # ?offen=eigene öffnet das „···“

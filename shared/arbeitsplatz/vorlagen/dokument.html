@@ -118,19 +118,28 @@
 {%- if d.laeuft %}<p class="hinweis">Läuft gerade. Die Seite zeigt das Ergebnis, sobald es fertig ist (neu laden).</p>{% endif %}
 
 {%- if h %}
-{%- set x1 = h.dateien[0] if h.dateien | length == 1 and h.dateien[0].seiten else none %}
+{%- set eins = h.eins %}
+{%- set x1 = eins.galerie if eins else none %}
 <div class="material">
+  {%- if eins %}
+  {#- Ein Dokument (auch in mehreren Formaten, logik.ein_dokument): einmal die Galerie, die ersten zwei Seiten groß,
+      ein Klick öffnet den Betrachter; darunter schlicht je Format ein Knopf zum Herunterladen -#}
   {%- if x1 %}
-  {#- Eine Datei mit Seitenbildern: die ersten zwei Seiten groß, ein Klick öffnet den Betrachter -#}
   <div class="material-seiten">
     {%- for s in range(1, [x1.seiten, 2] | min + 1) %}
-    <a class="blatt" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/ansehen?seite={{ s }}" aria-label="{{ x1.name }}, Seite {{ s }} von {{ x1.seiten }} ansehen">
+    <a class="blatt" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/ansehen?seite={{ s }}" aria-label="{{ eins.name }}, Seite {{ s }} von {{ x1.seiten }} ansehen">
       <img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/seite/{{ s }}" alt="" loading="lazy"></a>
     {%- endfor %}
   </div>
+  {%- endif %}
   <div class="material-zeile">
-    <span class="unter">{{ x1.name }} · {{ x1.seiten }} {{ "Seite" if x1.seiten == 1 else "Seiten" }}. Klick auf eine Seite, um durchzublättern.</span>
-    {{ datei_laden(h, x1) }}
+    <span class="unter">{% if x1 %}{{ x1.seiten }} {{ "Seite" if x1.seiten == 1 else "Seiten" }}{% if x1.seiten > 2 %}, zum Durchblättern auf eine Seite klicken{% endif %}{% elif eins.vorschau_laeuft %}Vorschau wird erstellt … Seite gleich neu laden.{% else %}{{ eins.name }}{% endif %}</span>
+    <span class="formate">
+      {%- for k in eins.knoepfe %}
+      {%- set link = "/dokument/" ~ u ~ "/datei/" ~ h.ref ~ "/" ~ k.nr ~ ("/pdf" if k.vorschau else "") %}
+      <a class="knopf knopf-leise" href="{{ link }}" download{% if k.vorschau %}="{{ eins.name }}.pdf"{% endif %}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ k.text }}</a>
+      {%- endfor %}
+    </span>
   </div>
   {%- elif h.dateien or h.art == "eigene" %}
   {{ dateiliste(h) }}
