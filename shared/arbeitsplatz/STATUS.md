@@ -126,7 +126,10 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   Log: `journalctl --user -u arbeitsplatz.service -n 50`.
 - Jan über den Tunnel (Mac): `ssh -N -L 8794:127.0.0.1:8794 agents-user`, dann http://localhost:8794.
 - Von Hand ohne Dienst: `.venv/bin/python app.py` (Unix-Socket `data/arbeitsplatz.sock`).
-- Caddy (von außen mit Passwort) macht Jan als root nach der Abnahme.
+- Von außen: https://uni.meldro.de (Caddy, Passwort wie bisher, Benutzer jan), seit 19.11.2026 auf 8794 statt
+  uni/portal (8793). Sicherung: /etc/caddy/Caddyfile.vor-arbeitsplatz. uni-portal läuft nur noch lokal.
+- Offen: ansichten.PORTAL zeigt noch auf https://uni.meldro.de, die Portal-Links (Lernkarten übernehmen,
+  Übung) landen damit im Arbeitsplatz (404). Jan entscheidet: eigene Adresse fürs Portal oder Umzug.
 
 ## Offene Punkte
 0. Browser-Probe der ruhigen Oberfläche bei Jan (Tunnel, siehe oben): Titel anklicken (Enter, Esc), „Seite“ im „+“

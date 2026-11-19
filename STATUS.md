@@ -1264,6 +1264,9 @@ Offen, wartet auf Jan:
     und Training; der Gruppen-Bot nutzt Claude (Nur-Lesen) und läuft dauerhaft. Satz ergänzen. (b) Der Bot nutzt Jans
     HNEE-Login aus uni/.env (Jan 19.11.2026), keine eigenen Mail-Zugangsdaten. (c) Abo-Hinweis: Henri und Felix
     rechnen über das Agenten-Konto ([konto] quelle = "token") ab, nicht über Jans Abo.
+44. Hinweis an uni (19.11.2026, Jan): uni.meldro.de zeigt jetzt auf den Arbeitsplatz (8794), uni/portal (8793)
+    ist von außen nicht mehr erreichbar, läuft aber lokal weiter. uni/STATUS.md (Portal) entsprechend anpassen;
+    ob uni-portal abgeschaltet wird, entscheidet Jan. Offen in shared/arbeitsplatz: Portal-Links (ansichten.PORTAL).
 
 ## Gelernte Regeln
 - (noch keine)
