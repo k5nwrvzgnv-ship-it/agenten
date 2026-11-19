@@ -12,6 +12,10 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
 
 ## Harte Regeln
 - Agenten handeln nach außen (Mails, Nachrichten, Abgaben, Käufe usw.) nur nach Jans Freigabe des konkreten Entwurfs über die Freigabe-Warteschlange (shared/freigabe/). Nach der Freigabe führt der Agent genau diesen Entwurf einmal aus und meldet das Ergebnis.
+- Einzige Freigabe außerhalb der Zentrale (Jan 19.11.2026): Der Gruppen-Bot Rüdiger (`fehlstellenscan/gruppe.py`)
+  zeigt Mail-Entwürfe in der Projektgruppe. Freigeben oder Ablehnen per Knopf wirkt nur für Jans Telegram-ID
+  (`GRUPPE_JAN_ID`) und läuft über `agentkit.freigabe.entscheide` mit dem Fingerabdruck des gezeigten Entwurfs.
+  Änderungen per Antwort darf jede Person in der Gruppe anstoßen.
 - Käufe zusätzlich nur bis zur Obergrenze KAUF_LIMIT_EURO aus shared/.env. Ist kein Wert eingetragen, wird nicht gekauft.
 - Zugangsdaten nur in .env-Dateien mit chmod 600, nie im Repo. Neue Geheimnisse vorher gegen .gitignore prüfen.
 - Jeder Agent läuft isoliert: eigener Ordner, eigene virtuelle Umgebung (.venv im Agent-Ordner), eigener systemd-User-Dienst oder -Timer.
@@ -53,11 +57,11 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   `shared/freigabe/` (Entwurf -> Jan), `shared/meldungen/` (Agent -> Jan).
 - `shared/agentkit/`: config (.env laden), log, einstellungen (einstellungen.toml), auftraege, freigabe,
   meldungen, _ablage (gemeinsame Ablage der Warteschlangen), regeln, verbrauch, claude_lauf, textfassung (Text aus pdf/docx/pptx/xlsx), imap (Postfach nur lesend),
-  mail (Entwurf prüfen und senden), mailauftrag (Mail-Aufträge), ereignis (Ereignisse für den Leitstand, ohne Inhalte),
+  mail (Entwurf prüfen und senden), mailauftrag (Mail-Aufträge), entwurfsanzeige (Entwurf als Telegram-HTML, für Zentrale und Rüdiger), ereignis (Ereignisse für den Leitstand, ohne Inhalte),
   fassungen (final und eigene Fassungen einer Auftragskette), recherche (Wissensbasis einer Recherche, docs/recherche-plan.md).
 - `shared/leitstand/`: lesende Web-Ansicht (Netz, Läufe) über Unix-Socket, Zugriff per SSH-Tunnel. Plan: docs/leitstand-plan.md.
-- `shared/telegram/`: Zentrale (Dienst agentenzentrale), einziger Kontakt zu Jan. zentrale.py = Telegram,
-  logik.py = reine, getestete Logik.
+- `shared/telegram/`: Zentrale (Dienst agentenzentrale), einziger Kontakt zu Jan (Ausnahme: Freigaben über Rüdiger,
+  siehe Harte Regeln). zentrale.py = Telegram, logik.py = reine, getestete Logik.
 - `shared/renderer/`: gemeinsamer Renderer für Jan und Lia (JSON-Beschreibung rein, docx/pptx/PDF raus),
   reine Bibliothek ohne Inhalte, import per agentkit.pth. Eigene STATUS.md, eigener Chat (siehe unten).
 - `shared/vorlagen/`: Gerüst für neue Agenten (agent_beispiel.py, Service, Timer, STATUS.md).
@@ -70,8 +74,14 @@ Jan baut hier ein System aus Agenten, die seinen Alltag vereinfachen. Diese Rege
   mit Quellen-ID nach data/quellen/, Claude schreibt je Schritt JSON, Python prüft: keine Zahl ohne Quelle oder Annahme.
 - `fehlstellenscan/` (Anzeige „Fehlstellen-Scan“): Jans Agent für das Forschungsprojekt Fehlstellen an Holz (YOLO).
   Training von Hand auf Jans Mac (Rohbilder liegen dort), der Server baut und prüft Datensätze in kleinem Umfang
-  (datensatz.py), wertet Läufe aus (auswertung.py), später Vorhersagen. Läufe nur auf Auftrag, ohne Claude, mit
-  Speichergrenze wie holzbalkenscan. Tests importieren kein PyTorch; data/ nie ins Repo, nie alle Rohbilder auf den Server.
+  (datensatz.py), wertet Läufe aus (auswertung.py), später Vorhersagen. Datensatz- und Auswertungsläufe nur auf
+  Auftrag, ohne Claude, mit Speichergrenze wie holzbalkenscan. Tests importieren kein PyTorch; data/ nie ins Repo,
+  nie alle Rohbilder auf den Server. Dazu der Gruppen-Bot Rüdiger (gruppe.py, Dienst fehlstellenscan-gruppe, läuft
+  dauerhaft): beantwortet Fragen von Jan, Henri und Felix in der Projektgruppe mit Claude, auch mit Suche im Netz
+  (WebSearch, WebFetch). Er liest die Projektunterlagen, schreibt keine Dateien (claude_lauf `ohne_projekt`). Für
+  Mails nutzt er Jans HNEE-Login (aus uni/.env kopiert, Jan 19.11.2026), eine Ausnahme von „eigene Zugangsdaten“.
+  Henris und Felix' Fragen laufen wie alle Läufe über das Agenten-Konto (`[konto] quelle = "token"`), nicht über
+  Jans Abo.
 - Reihenfolge der Umsetzung: uni, dokumente, posteingang, finance, fehlstellenscan, einkauf.
 - Ein Chat pro Ordner, gestartet in diesem Ordner: je Agent einer (auch lia/<agent>), einer für
   shared/renderer/, einer im Hauptordner für Struktur und das übrige shared/. Ein Chat ändert nur seinen
