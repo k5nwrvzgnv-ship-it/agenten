@@ -1263,7 +1263,11 @@ Offen, wartet auf Jan:
     (a) CLAUDE.md, Abschnitt Architektur: fehlstellenscan „Läufe nur auf Auftrag, ohne Claude“ gilt für Datensatz
     und Training; der Gruppen-Bot nutzt Claude (Nur-Lesen) und läuft dauerhaft. Satz ergänzen. (b) Der Bot nutzt Jans
     HNEE-Login aus uni/.env (Jan 19.11.2026), keine eigenen Mail-Zugangsdaten. (c) Abo-Hinweis: Henri und Felix
-    rechnen über das Agenten-Konto ([konto] quelle = "token") ab, nicht über Jans Abo.
+    rechnen über das Agenten-Konto ([konto] quelle = "token") ab, nicht über Jans Abo. (d) Freigabe außerhalb der
+    Zentrale (Jan 19.11.2026): Rüdiger zeigt Mail-Entwürfe in der Gruppe mit Freigeben/Ablehnen, wirksam nur für
+    Jans Telegram-ID, über agentkit.freigabe.entscheide mit Fingerabdruck. CLAUDE.md nennt die Zentrale „einziger
+    Kontakt zu Jan“; Satz ergänzen. Außerdem importiert gruppe_logik telegram.logik.entwurf_als_text (nur lesen);
+    besser wäre die Funktion in agentkit.
 44. Hinweis an uni (19.11.2026, Jan): uni.meldro.de zeigt jetzt auf den Arbeitsplatz (8794), uni/portal (8793)
     ist von außen nicht mehr erreichbar, läuft aber lokal weiter. uni/STATUS.md (Portal) entsprechend anpassen;
     ob uni-portal abgeschaltet wird, entscheidet Jan. Offen in shared/arbeitsplatz: Portal-Links (ansichten.PORTAL).

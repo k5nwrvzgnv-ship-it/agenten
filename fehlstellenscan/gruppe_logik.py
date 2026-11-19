@@ -17,6 +17,8 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
+from telegram import logik as telegram_logik  # shared/telegram: Entwurfsanzeige wie in der Zentrale (nur lesen)
+
 MAX_FRAGE = 4000          # Zeichen je Gruppennachricht, die an Claude gehen
 MAX_TELEGRAM = 4000       # Telegram erlaubt 4096 Zeichen je Nachricht
 MAX_JE_TAG = 40           # Anfragen je Person und Tag (Schutz des Kontingents)
@@ -30,6 +32,10 @@ LIMIT = "Mein Rechenkontingent ist gerade erschöpft. Frag bitte später noch ei
 WARTET_AUF_JAN = "Dich kenne ich noch nicht. Jan schaltet dich frei, dann geht's los."
 FREIGESCHALTET = "Du bist freigeschaltet, frag los."
 FREISCHALTEN, NICHT_FREISCHALTEN = "Freischalten", "Nicht freischalten"
+FREIGEBEN, ABLEHNEN = "Freigeben", "Ablehnen"
+ENTWURF_HINWEIS = "Liegt bei Jan zur Freigabe. Ändern: einfach auf den Entwurf antworten."
+NUR_JAN = "Freigeben und Ablehnen kann nur Jan."
+SCHON_ENTSCHIEDEN = "Über den Entwurf ist schon entschieden."
 MAX_STILPROBEN = 10
 
 
@@ -330,17 +336,42 @@ def entwurf_titel(daten: dict, name: str) -> str:
     return f"Mail aus der Projektgruppe ({name}): {daten['betreff']}"[:200]
 
 
-def entwurf_fuer_gruppe(daten: dict, ueberarbeitet: bool = False) -> str:
-    """Der Entwurf, wie die Gruppe ihn sieht (Jan 19.11.2026: „Mail-Entwurf soll in der Gruppe sein“).
-    Nur Empfänger, Betreff und Text: Begründung, Prüfhinweis und Bezug auf eine Originalmail stammen aus Jans
-    Postfach und bleiben in der Freigabe."""
-    zeilen = [f"{'Überarbeiteter Entwurf' if ueberarbeitet else 'Entwurf'}, liegt bei Jan zur Freigabe:", "",
-              f"An: {', '.join(daten['an'])}"]
-    if daten.get("cc"):
-        zeilen.append(f"Cc: {', '.join(daten['cc'])}")
-    zeilen += [f"Betreff: {daten['betreff']}"]
-    zeilen += [f"Anhang: {a.get('name', '')}" for a in daten.get("anhaenge") or []]
-    return "\n".join(zeilen + ["", daten["text"]])
+def entwurf_fuer_gruppe(entwurf: dict) -> list[str]:
+    """Der Entwurf als HTML wie in Jans Zentrale (dieselbe Funktion, Jan 19.11.2026: „sieht das gleich aus? bitte
+    so“), mit Hinweis für die Gruppe am Ende. Mehrere Teile, wenn er lang ist."""
+    teile = telegram_logik.entwurf_als_text(entwurf)
+    teile[-1] += "\n\n<i>" + ENTWURF_HINWEIS + "</i>"
+    return teile
+
+
+def entwurf_knoepfe(eintrag_id: str) -> dict:
+    """Knöpfe unter dem Entwurf in der Gruppe. Wirksam nur für Jan (freigabe_erlaubt)."""
+    return {"inline_keyboard": [[{"text": FREIGEBEN, "callback_data": f"f:{eintrag_id}"},
+                                 {"text": ABLEHNEN, "callback_data": f"a:{eintrag_id}"}]]}
+
+
+def knopf_lesen(daten: str) -> tuple[str, str] | None:
+    """callback_data eines Entwurfsknopfs: ("freigegeben" | "abgelehnt", Entwurfs-ID), sonst None."""
+    art, _, eid = (daten or "").partition(":")
+    status = {"f": "freigegeben", "a": "abgelehnt"}.get(art)
+    return (status, eid) if status and re.fullmatch(r"[0-9]{8}-[0-9]{6}-[a-z_]+-[0-9a-f]{6}", eid) else None
+
+
+def freigabe_erlaubt(klick: dict, zugang: Zugang, jan_id: int | None) -> bool:
+    """Nur Jan entscheidet, und nur in der Projektgruppe (Telegram setzt from.id, nicht fälschbar)."""
+    chat = ((klick.get("message") or {}).get("chat") or {}).get("id")
+    return jan_id is not None and (klick.get("from") or {}).get("id") == jan_id and chat == zugang.chat_id
+
+
+def entwurf_zu(entwuerfe: dict, nachricht_id: int | None) -> str | None:
+    """Zu welchem Entwurf gehört die Bot-Nachricht, auf die jemand antwortet? (stand.json, entwuerfe)"""
+    if nachricht_id is None:
+        return None
+    return next((fid for fid, info in entwuerfe.items() if nachricht_id in info.get("nachrichten", [])), None)
+
+
+def aenderung_kommentar(name: str, text: str) -> str:
+    return f"Änderungswunsch von {name} in der Projektgruppe: {text}"
 
 
 def ergebnis_text(e: dict) -> str | None:

@@ -92,11 +92,16 @@ die können später als Dateien Eingabe werden).
 - Gespräch: Antwort auf eine Rüdiger-Nachricht setzt dessen Sitzung fort; sonst stehen die letzten 12 Wechsel
   (data/gruppe/verlauf.jsonl) im Prompt. Fotos und Dateien (auch zitierte) landen in data/gruppe/dateien/<id>/.
   Höchstens 40 Anfragen je Person und Tag. Antworten als Klartext, geteilt ab 4000 Zeichen.
-- Geprüft 19.11.2026 (offline simuliert): Freischalt-Klick trägt die Person ein; freigegebene Mail geht genau
-  einmal raus, Ergebnis einmal in die Gruppe. Echter Test von Freischalten und Mail steht aus.
+- Geprüft 19.11.2026 (offline simuliert): Freischalt-Klick trägt die Person ein; Henris Klick auf Freigeben wird
+  abgewiesen, seine Antwort auf den Entwurf ergibt einen neuen, Jans Klick gibt frei, Mail geht genau einmal raus,
+  Ergebnis einmal in die Gruppe. Echter Test von Freischalten und Mail steht aus.
 - Mails: Claude antwortet {"mail_auftrag": ...}; dann agentkit.mailauftrag mit Jans HNEE-Postfach (Login aus
-  uni/.env kopiert, Jan 19.11.2026), Läufe ohne Netz. Entwurf in die Freigabe (typ mail), die Gruppe sieht
-  ihn auch (An, Cc, Betreff, Text; Begründung und Bezug auf Mails aus Jans Postfach nur in der Freigabe, Jan 19.11.).
+  uni/.env kopiert, Jan 19.11.2026), Läufe ohne Netz. Entwurf in die Freigabe (typ mail) und in die Gruppe,
+  genau wie in der Zentrale (telegram.logik.entwurf_als_text, Jan 19.11.2026), mit Knöpfen Freigeben/Ablehnen.
+  Die Knöpfe wirken nur für Jan (GRUPPE_JAN_ID in .env, Telegram-ID im Klick), Freigabe mit dem Fingerabdruck des
+  in der Gruppe gezeigten Entwurfs; die Zentrale geht weiter. Antwortet jemand aus der Gruppe auf den Entwurf, ist
+  das ein Änderungswunsch: alter Entwurf wird „aendern“, neuer Entwurf (überarbeitet) kommt in Gruppe und Freigabe.
+  Zuordnung Nachricht -> Entwurf in stand.json (entwuerfe).
   Nach Freigabe sendet gruppe.py genau einmal (SMTP HNEE, Kopie in
   „Gesendete Elemente“) und meldet der Gruppe das Ergebnis, ebenso Ablehnen, Ablauf, Ändern. „Ändern“ kommt als
   Auftrag quelle telegram-aendern; agent.py lässt diese liegen, gruppe.py überarbeitet sie.
@@ -352,5 +357,5 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 
 ## Gelernte Regeln
 - 19.11.2026: Rüdiger schreibt in der Gruppe im Stil der Gruppe: Du, locker, kurz, ohne Floskeln, fachlich genau (Anlass: Jan „so wie wir im Stil“).
-- 19.11.2026: Mail-Entwürfe aus der Gruppe zeigt Rüdiger dort im Wortlaut, bevor Jan freigibt (Anlass: Jan „mail entwurf soll aber in der gruppe sein“).
+- 19.11.2026: Mail-Entwürfe aus der Gruppe zeigt Rüdiger dort genau wie in der Zentrale; alle in der Gruppe können per Antwort ändern, freigeben nur Jan, auch per Knopf in der Gruppe (Anlass: Jan „mail entwurf soll aber in der gruppe sein“, „so dass andere änderungen machen können. freigeben nur ich“).
 - 19.11.2026: Rüdiger bleibt bei der Frage: keine ungefragten Verweise auf andere Verfahren, Teilprojekte oder Personen, keine internen Ordner- oder Dateinamen (Anlass: Jan „der Verweis zu Felix müsste nicht sein“).

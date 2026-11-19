@@ -188,16 +188,40 @@ class TestText(unittest.TestCase):
         self.assertIn("Henri", t)
         self.assertEqual(gl.entwurf_titel({"betreff": "Termin"}, "Henri"), "Mail aus der Projektgruppe (Henri): Termin")
 
-    def test_entwurf_fuer_gruppe(self):
-        d = {"an": ["boehme@hnee.de"], "cc": ["henri@hnee.de"], "betreff": "Termin", "text": "Hallo, passt Dienstag?",
-             "begruendung": "aus Mail vom 3.11.", "pruefen": "Uhrzeit", "antwort_auf": "Böhme: Treffen"}
-        t = gl.entwurf_fuer_gruppe(d)
-        self.assertTrue(t.startswith("Entwurf, liegt bei Jan zur Freigabe:"))
-        for teil in ("An: boehme@hnee.de", "Cc: henri@hnee.de", "Betreff: Termin", "Hallo, passt Dienstag?"):
-            self.assertIn(teil, t)
-        for intern in ("aus Mail vom", "Uhrzeit", "Treffen"):  # stammt aus Jans Postfach, bleibt in der Freigabe
-            self.assertNotIn(intern, t)
-        self.assertTrue(gl.entwurf_fuer_gruppe(d, ueberarbeitet=True).startswith("Überarbeiteter Entwurf"))
+    def test_entwurf_wie_in_der_zentrale(self):
+        from telegram import logik as tl
+        e = {"id": "20261119-140000-fehlstellenscan-abc123", "agent": "fehlstellenscan", "typ": "mail", "titel": "x",
+             "inhalt": "x", "daten": {"an": ["boehme@hnee.de"], "cc": [], "betreff": "Termin",
+                                      "text": "Hallo, passt Dienstag?", "begruendung": "b", "pruefen": "Uhrzeit"}}
+        teile = gl.entwurf_fuer_gruppe(e)
+        self.assertEqual(teile[0], tl.entwurf_als_text(e)[0] + "\n\n<i>" + gl.ENTWURF_HINWEIS + "</i>")
+        self.assertIn("Hallo, passt Dienstag?", teile[0])
+
+    def test_knoepfe_und_knopf_lesen(self):
+        fid = "20261119-140000-fehlstellenscan-abc123"
+        k = gl.entwurf_knoepfe(fid)["inline_keyboard"][0]
+        self.assertEqual([b["text"] for b in k], [gl.FREIGEBEN, gl.ABLEHNEN])
+        self.assertEqual(gl.knopf_lesen(k[0]["callback_data"]), ("freigegeben", fid))
+        self.assertEqual(gl.knopf_lesen(k[1]["callback_data"]), ("abgelehnt", fid))
+        self.assertTrue(all(len(b["callback_data"].encode()) <= 64 for b in k))  # Telegram-Grenze
+        for falsch in ("", "f:", "x:" + fid, "f:../etwas", "c:" + fid):
+            self.assertIsNone(gl.knopf_lesen(falsch))
+
+    def test_freigeben_nur_jan_in_der_gruppe(self):
+        z = gl.Zugang(-100, frozenset({1, 2}), 99, "rbot")
+        klick = lambda von, chat=-100: {"from": {"id": von}, "message": {"chat": {"id": chat}}}  # noqa: E731
+        self.assertTrue(gl.freigabe_erlaubt(klick(1), z, 1))
+        self.assertFalse(gl.freigabe_erlaubt(klick(2), z, 1))          # freigeschaltet, aber nicht Jan
+        self.assertFalse(gl.freigabe_erlaubt(klick(1, chat=555), z, 1))  # anderer Chat
+        self.assertFalse(gl.freigabe_erlaubt(klick(1), z, None))         # ohne GRUPPE_JAN_ID niemand
+
+    def test_entwurf_zu_antwort(self):
+        entwuerfe = {"A": {"nachrichten": [10, 11]}, "B": {"nachrichten": [20]}}
+        self.assertEqual(gl.entwurf_zu(entwuerfe, 11), "A")
+        self.assertEqual(gl.entwurf_zu(entwuerfe, 20), "B")
+        self.assertIsNone(gl.entwurf_zu(entwuerfe, 30))
+        self.assertIsNone(gl.entwurf_zu(entwuerfe, None))
+        self.assertIn("Henri", gl.aenderung_kommentar("Henri", "lieber Mittwoch"))
 
     def test_ergebnis_text(self):
         d = {"an": ["boehme@hnee.de"], "betreff": "Termin"}

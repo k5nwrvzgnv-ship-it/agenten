@@ -5,14 +5,16 @@ Dienst fehlstellenscan-gruppe.service, läuft dauerhaft (Long-Polling der Bot-AP
   (siehe LESE_ORDNER), sucht im Netz und antwortet als Text. Antwortet jemand auf Rüdiger, geht die Sitzung weiter.
 - Mails: Claude meldet {"mail_auftrag": ...}. Python sucht Kontext im HNEE-Postfach (agentkit.mailauftrag),
   Claude schreibt den Entwurf, Python prüft ihn (agentkit.mail.pruefen), legt ihn in Jans Freigabe und zeigt ihn
-  der Gruppe. Nach der Freigabe sendet Python genau diesen Entwurf einmal und sagt der Gruppe das Ergebnis.
+  der Gruppe wie in der Zentrale. Antworten darauf sind Änderungswünsche (alle), Freigeben/Ablehnen per Knopf
+  nur Jan (GRUPPE_JAN_ID), alternativ in der Zentrale. Nach der Freigabe sendet Python genau diesen Entwurf
+  einmal und sagt der Gruppe das Ergebnis.
   „Ändern“ in der Zentrale kommt als Auftrag (quelle telegram-aendern) und wird hier überarbeitet.
 - Unbekannte Chats und Personen bekommen keine Antwort; ihre IDs stehen im Log und in data/gruppe/unbekannt.jsonl.
   Spricht jemand Rüdiger in der Projektgruppe an, der noch nicht eingetragen ist, bekommt Jan eine Meldung mit
   „Freischalten“ (einmal je Person). Sein Klick kommt als Auftrag zurück; freigeschaltet steht in
   data/gruppe/stand.json (freigeschaltet), zusätzlich zu GRUPPE_NUTZER_IDS.
 
-Zugangsdaten in fehlstellenscan/.env: GRUPPE_BOT_TOKEN, GRUPPE_CHAT_ID, GRUPPE_NUTZER_IDS, HNEE_NUTZER,
+Zugangsdaten in fehlstellenscan/.env: GRUPPE_BOT_TOKEN, GRUPPE_CHAT_ID, GRUPPE_NUTZER_IDS, GRUPPE_JAN_ID, HNEE_NUTZER,
 HNEE_KENNWORT, IMAP_HOST, IMAP_PORT, MAIL_ABSENDER, MAIL_NAME.
 """
 
@@ -54,6 +56,7 @@ cfg = config.lade_config(HIER, pflicht=("GRUPPE_BOT_TOKEN",))
 logger = log.hole_logger(HIER, "gruppe")
 API = f"https://api.telegram.org/bot{cfg['GRUPPE_BOT_TOKEN']}/"
 DATEI_API = f"https://api.telegram.org/file/bot{cfg['GRUPPE_BOT_TOKEN']}/"
+JAN_ID = int(cfg["GRUPPE_JAN_ID"]) if (cfg.get("GRUPPE_JAN_ID") or "").strip() else None  # nur er gibt frei
 _schloss = threading.Lock()  # Stand und Verlauf: Poll-Schleife und Arbeiter schreiben beide
 
 
@@ -89,6 +92,20 @@ def senden(chat_id: int, text: str, antwort_auf: int | None = None) -> list[int]
         m = api("sendMessage", chat_id=chat_id, text=stueck, link_preview_options={"is_disabled": True},
                 reply_parameters={"message_id": antwort_auf, "allow_sending_without_reply": True}
                 if antwort_auf and i == 0 else None)
+        ids.append(m["message_id"])
+    return ids
+
+
+def senden_html(chat_id: int, teile: list[str], antwort_auf: int | None = None,
+                knoepfe: dict | None = None) -> list[int]:
+    """HTML-Teile senden (wie die Zentrale), Knöpfe unter dem letzten Teil. Gibt die message_ids zurück."""
+    ids = []
+    for i, stueck in enumerate(teile):
+        m = api("sendMessage", chat_id=chat_id, text=stueck, parse_mode="HTML",
+                link_preview_options={"is_disabled": True},
+                reply_parameters={"message_id": antwort_auf, "allow_sending_without_reply": True}
+                if antwort_auf and i == 0 else None,
+                reply_markup=knoepfe if i == len(teile) - 1 else None)
         ids.append(m["message_id"])
     return ids
 
@@ -135,7 +152,7 @@ def stand_lesen() -> dict:
     except (OSError, ValueError):
         s = {}
     for k, v in (("offset", 0), ("sitzungen", {}), ("mails", {}), ("gemeldet", []), ("zeiten", {}),
-                 ("angefragt", {}), ("freigeschaltet", {})):
+                 ("angefragt", {}), ("freigeschaltet", {}), ("entwuerfe", {})):
         s.setdefault(k, v)
     return s
 
@@ -208,10 +225,13 @@ def frage_bearbeiten(a: gl.Anfrage) -> None:
         if not e.ok:
             raise claude_lauf.LaufFehler(f"Lauf nicht ok: {e.text[:300]}")
         if wunsch := gl.mailauftrag_aus(e.text):
-            antwort = mail_beginnen(a, wunsch, verlauf)
+            eingereicht, ergebnis = mail_beginnen(a, wunsch, verlauf)
         else:
-            antwort = gl.ohne_markdown(e.text)
-    ids = senden(a.chat_id, antwort, a.nachricht_id)
+            eingereicht, ergebnis = False, gl.ohne_markdown(e.text)
+    if eingereicht:  # Antworten auf den Entwurf sind Änderungswünsche, keine Fortsetzung der Sitzung
+        antwort, ids = entwurf_zeigen(ergebnis, a.chat_id, a.nachricht_id), []
+    else:
+        antwort, ids = ergebnis, senden(a.chat_id, ergebnis, a.nachricht_id)
     with _schloss:
         s = stand_lesen()
         for i in ids:
@@ -236,8 +256,8 @@ def mail_senden(daten: dict) -> str:
 
 
 def entwurf_einreichen(antwort: str, kontext: dict, herkunft: dict,
-                       vorgaenger: dict | None = None) -> tuple[bool, str]:
-    """Claudes Antwort lesen: Entwurf in die Freigabe (True, Entwurf für die Gruppe) oder Rückfrage (False, Text)."""
+                       vorgaenger: dict | None = None) -> tuple[bool, dict | str]:
+    """Claudes Antwort lesen: Entwurf in die Freigabe (True, Entwurf) oder Rückfrage (False, Text)."""
     art, roh, original = mailauftrag.antwort_lesen(antwort, kontext)
     if art == "rueckfrage":
         return False, f"Für die Mail fehlt mir noch etwas: {roh}"
@@ -256,10 +276,34 @@ def entwurf_einreichen(antwort: str, kontext: dict, herkunft: dict,
         s["mails"][fid] = herkunft
         stand_schreiben(s)
     logger.info("Mail-Entwurf %s für %s in der Freigabe", fid, herkunft["name"])
-    return True, gl.entwurf_fuer_gruppe(daten, ueberarbeitet=vorgaenger is not None)
+    return True, next(e for e in freigabe.offene(AGENT) if e["id"] == fid)
 
 
-def mail_beginnen(a: gl.Anfrage, wunsch: str, verlauf: list[dict]) -> str:
+def entwurf_zeigen(entwurf: dict, chat_id: int, antwort_auf: int | None) -> str:
+    """Entwurf wie in der Zentrale in die Gruppe, mit Freigeben/Ablehnen (wirkt nur für Jan). Merkt sich die
+    Nachrichten (Antworten darauf sind Änderungswünsche) und den Fingerabdruck dessen, was die Gruppe sieht."""
+    ids = senden_html(chat_id, gl.entwurf_fuer_gruppe(entwurf), antwort_auf, gl.entwurf_knoepfe(entwurf["id"]))
+    with _schloss:
+        s = stand_lesen()
+        s["entwuerfe"][entwurf["id"]] = {"chat_id": chat_id, "nachrichten": ids, "fp": entwurf["fingerabdruck"]}
+        s["entwuerfe"] = dict(list(s["entwuerfe"].items())[-200:])
+        stand_schreiben(s)
+    return mail.anzeige(entwurf["daten"])
+
+
+def knoepfe_weg(fid: str) -> None:
+    with _schloss:
+        info = stand_lesen()["entwuerfe"].get(fid)
+    if not info:
+        return
+    try:
+        api("editMessageReplyMarkup", chat_id=info["chat_id"], message_id=info["nachrichten"][-1],
+            reply_markup={"inline_keyboard": []})
+    except TelegramFehler as f:
+        logger.info("Knöpfe von %s nicht entfernt: %s", fid, f)
+
+
+def mail_beginnen(a: gl.Anfrage, wunsch: str, verlauf: list[dict]) -> tuple[bool, dict | str]:
     text = gl.mail_text(wunsch, a.name, verlauf + [{"name": a.name, "frage": a.text}])
     heute = date.today()
     e = laufen(mailauftrag.prompt_suche(text, heute, POSTFACH), art="routine", werkzeuge=[], suchen=False)
@@ -267,25 +311,86 @@ def mail_beginnen(a: gl.Anfrage, wunsch: str, verlauf: list[dict]) -> str:
     kontext = mailauftrag.kontext_sammeln(suche, postfach_suchen, None, heute, POSTFACH)
     e = laufen(mailauftrag.prompt_entwurf(text, kontext, heute, POSTFACH), werkzeuge=[], suchen=False)
     herkunft = {"chat_id": a.chat_id, "nachricht_id": a.nachricht_id, "name": a.name, "text": text}
-    return entwurf_einreichen(e.text, kontext, herkunft)[1]
+    return entwurf_einreichen(e.text, kontext, herkunft)
+
+
+def ueberarbeiten(kommentar: str, alt: dict) -> tuple[bool, dict | str, dict]:
+    """Neuer Entwurf aus dem alten und dem Änderungswunsch: (eingereicht, Entwurf oder Rückfrage, herkunft)."""
+    gespeichert = json.loads((DATEN / "mails" / f"{alt['id']}.json").read_text())
+    herkunft = {k: gespeichert[k] for k in ("chat_id", "nachricht_id", "name", "text")}
+    prompt = mailauftrag.prompt_aendern(kommentar, alt["daten"], herkunft["text"], gespeichert["kontext"],
+                                        date.today(), POSTFACH)
+    e = laufen(prompt, werkzeuge=[], suchen=False)
+    return *entwurf_einreichen(e.text, gespeichert["kontext"], herkunft, vorgaenger=alt), herkunft
 
 
 def aenderung_bearbeiten(auftrag: dict, alt: dict) -> None:
-    gespeichert = json.loads((DATEN / "mails" / f"{alt['id']}.json").read_text())
-    herkunft = {k: gespeichert[k] for k in ("chat_id", "nachricht_id", "name", "text")}
-    prompt = mailauftrag.prompt_aendern(auftrag["text"], alt["daten"], herkunft["text"], gespeichert["kontext"],
-                                        date.today(), POSTFACH)
+    """„Ändern“ aus Jans Zentrale (Auftrag quelle telegram-aendern)."""
     try:
-        e = laufen(prompt, werkzeuge=[], suchen=False)
-        eingereicht, ergebnis = entwurf_einreichen(e.text, gespeichert["kontext"], herkunft, vorgaenger=alt)
+        eingereicht, ergebnis, herkunft = ueberarbeiten(auftrag["text"], alt)
         try:
-            senden(herkunft["chat_id"], ergebnis, herkunft["nachricht_id"])
+            if eingereicht:
+                entwurf_zeigen(ergebnis, herkunft["chat_id"], herkunft["nachricht_id"])
+            else:
+                senden(herkunft["chat_id"], ergebnis, herkunft["nachricht_id"])
         except TelegramFehler as f:
             logger.warning("Überarbeitung %s nicht in der Gruppe: %s", auftrag["id"], f)
         auftraege.abschliessen(auftrag["id"], "Neuer Entwurf liegt in der Freigabe." if eingereicht else ergebnis)
     except (claude_lauf.LaufFehler, mailauftrag.AuftragFehler, mail.MailFehler) as f:
         logger.error("Änderung %s: %s", auftrag["id"], f)
         auftraege.abschliessen(auftrag["id"], f"Überarbeitung ging nicht: {f}", status="fehlgeschlagen")
+
+
+def gruppe_aendern(a: gl.Anfrage, fid: str) -> None:
+    """Jemand aus der Gruppe antwortet auf einen Entwurf: der alte ist erledigt (aendern), ein neuer kommt."""
+    kommentar = gl.aenderung_kommentar(a.name, a.text)
+    try:
+        alt = freigabe.entscheide(fid, "aendern", kommentar)
+    except freigabe.FreigabeFehler as f:
+        logger.info("Änderung an %s von %s: %s", fid, a.name, f)
+        senden(a.chat_id, gl.SCHON_ENTSCHIEDEN, a.nachricht_id)
+        return
+    with _schloss:
+        s = stand_lesen()
+        s["gemeldet"].append(fid)  # die Gruppe weiß es schon, kein „Jan lässt überarbeiten“
+        stand_schreiben(s)
+    knoepfe_weg(fid)
+    logger.info("Änderung an %s von %s", fid, a.name)
+    with Tippen(a.chat_id):
+        eingereicht, ergebnis, _ = ueberarbeiten(kommentar, alt)
+    if eingereicht:
+        antwort = entwurf_zeigen(ergebnis, a.chat_id, a.nachricht_id)
+    else:
+        antwort = ergebnis
+        senden(a.chat_id, ergebnis, a.nachricht_id)
+    verlauf_merken(a.name, a.text, antwort)
+
+
+def knopf_bearbeiten(klick: dict, zugang: gl.Zugang) -> bool:
+    """Freigeben/Ablehnen unter einem Entwurf in der Gruppe. Nur Jans Klick zählt; freigegeben wird genau das, was
+    die Gruppe gesehen hat (Fingerabdruck). True: freigegeben, gleich ausführen."""
+    gelesen = gl.knopf_lesen(klick.get("data") or "")
+    if not gelesen or not gl.freigabe_erlaubt(klick, zugang, JAN_ID):
+        api("answerCallbackQuery", callback_query_id=klick["id"], text=gl.NUR_JAN)
+        logger.info("Knopf von %s abgewiesen", (klick.get("from") or {}).get("id"))
+        return False
+    status, fid = gelesen
+    with _schloss:
+        info = stand_lesen()["entwuerfe"].get(fid)
+    try:
+        if not info:
+            raise freigabe.FreigabeFehler(f"{fid} kenne ich nicht")
+        freigabe.entscheide(fid, status, gesehen=info["fp"] if status == "freigegeben" else None)
+    except freigabe.FreigabeFehler as f:
+        logger.warning("Knopf %s für %s: %s", status, fid, f)
+        api("answerCallbackQuery", callback_query_id=klick["id"], text=gl.SCHON_ENTSCHIEDEN)
+        knoepfe_weg(fid)
+        return False
+    logger.info("Entwurf %s in der Gruppe: %s (Jan)", fid, status)
+    api("answerCallbackQuery", callback_query_id=klick["id"],
+        text="Freigegeben, geht gleich raus." if status == "freigegeben" else "Abgelehnt.")
+    knoepfe_weg(fid)
+    return status == "freigegeben"
 
 
 def freigaben_pruefen(q: "queue.Queue", eingereiht: set) -> None:
@@ -316,6 +421,7 @@ def freigaben_pruefen(q: "queue.Queue", eingereiht: set) -> None:
         except TelegramFehler as f:
             logger.warning("Ergebnis %s nicht gemeldet: %s", e["id"], f)
             continue
+        knoepfe_weg(e["id"])
         with _schloss:
             s2 = stand_lesen()
             s2["gemeldet"].append(e["id"])
@@ -373,16 +479,20 @@ def freischalten_bearbeiten(a: dict, uid: str) -> None:
 # ---------- Schleife ----------
 
 def arbeiter(q: "queue.Queue") -> None:
-    """Nacheinander: ("frage", Anfrage) oder ("aendern", Auftrag, alter Entwurf)."""
+    """Nacheinander: ("frage", Anfrage), ("gruppe_aendern", Anfrage, Entwurfs-ID) oder ("aendern", Auftrag,
+    alter Entwurf)."""
     while True:
         art, a, *rest = q.get()
         try:
             if art == "aendern":
                 aenderung_bearbeiten(a, *rest)
                 continue
-            frage_bearbeiten(a)
+            if art == "gruppe_aendern":
+                gruppe_aendern(a, *rest)
+            else:
+                frage_bearbeiten(a)
         except claude_lauf.LimitErreicht:
-            if art == "frage":
+            if art != "aendern":
                 senden(a.chat_id, gl.LIMIT, a.nachricht_id)
         except Exception as f:  # noqa: BLE001 – eine Frage darf den Bot nicht beenden; Jan sieht es im Log
             if art == "aendern":
@@ -419,7 +529,7 @@ def main() -> int:
             offset = stand_lesen()["offset"]
         try:
             updates = api("getUpdates", zeit_s=40, offset=offset, timeout=25,
-                          allowed_updates=["message", "my_chat_member"])
+                          allowed_updates=["message", "my_chat_member", "callback_query"])
         except TelegramFehler as f:
             logger.warning("getUpdates: %s", f)
             time.sleep(10)
@@ -428,7 +538,13 @@ def main() -> int:
             aktuell = gl.mit_nutzern(zugang, stand_lesen()["freigeschaltet"])
         for u in updates:
             a = gl.anfrage_aus(u, aktuell)
-            if a is None and (wer := gl.unbekannt_in_gruppe(u, aktuell)):
+            if klick := u.get("callback_query"):
+                try:
+                    if knopf_bearbeiten(klick, aktuell):
+                        naechste_pruefung = 0.0
+                except (TelegramFehler, OSError) as f:
+                    logger.warning("Knopf: %s", f)
+            elif a is None and (wer := gl.unbekannt_in_gruppe(u, aktuell)):
                 unbekannt_merken(u)
                 try:
                     freischalten_anfragen(u, wer, aktuell)
@@ -453,7 +569,9 @@ def main() -> int:
                     else:
                         if q.unfinished_tasks:
                             senden(a.chat_id, gl.BESCHAEFTIGT, a.nachricht_id)
-                        q.put(("frage", a))
+                        with _schloss:
+                            fid = gl.entwurf_zu(stand_lesen()["entwuerfe"], a.antwort_auf)
+                        q.put(("gruppe_aendern", a, fid) if fid else ("frage", a))
                 except TelegramFehler as f:
                     logger.warning("Senden: %s", f)
             with _schloss:
