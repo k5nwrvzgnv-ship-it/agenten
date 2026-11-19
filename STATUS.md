@@ -1265,6 +1265,28 @@ Offen, wartet auf Jan:
 44. Hinweis an uni (19.11.2026, Jan): uni.meldro.de zeigt jetzt auf den Arbeitsplatz (8794), uni/portal (8793)
     ist von außen nicht mehr erreichbar, läuft aber lokal weiter. uni/STATUS.md (Portal) entsprechend anpassen;
     ob uni-portal abgeschaltet wird, entscheidet Jan. Offen in shared/arbeitsplatz: Portal-Links (ansichten.PORTAL).
+45. Bedarf aus uni an shared/arbeitsplatz (19.11.2026, Jan „Ja, eintragen“; Durchsicht im uni-Chat, nichts geändert):
+    Im Ordner „Forschungsprojekt Fehlstellen“ fehlen Inhalte. Aufträge ohne `ort` stehen im Arbeitsplatz nirgends
+    (auch nicht auf Heute), Jan kann sie deshalb nicht selbst in einen Ordner ziehen.
+    a) In bestehende Ordner zuordnen (`shared/orte-zuordnung.json`): 20261111-225743-uni-e86e20 (Datensätze
+       Oberfläche + CT) und 20261021-120104-uni-003f12 (Prof für Messtechnik) -> `recherche`.
+    b) Neue Unterordner (Vorschlag, Namen entscheidet Jan; anlegen kann er sie selbst mit „+“):
+       - „Betreuung (Prof. Böhme)“: Mail-Aufträge 20261021-115611-uni-dc25b1, 20261028-225558-uni-08bc9e,
+         20261105-101510-uni-cbb39c, 20261106-144942-uni-9022e8, 20261118-162048-uni-718077 (samt Ketten über bezug);
+         Termin Mo 23.11.2026 9:30 (BBB).
+       - „Förderung und Gründung“: 20261111-174157-uni-64b26b (Gründerzuschüsse); TU-Ausschreibung Altholz-Scanner
+         (Ziel 2 in fehlstellenscan/STATUS.md).
+       - „Markt und Wettbewerb“: Dataspree, fehlstellenscan/docs/markt-kappscanner.md, BSH-Werke (Ziel 3).
+       - „Datensatz und Training“: Kodytek, Läufe in fehlstellenscan/data/laeufe/, Aufgaben aus dem Protokoll 17.11.
+       - „Aufnahme und Prototyp“: Kamera, Abstand, Industriekamera (Protokoll 17.11.), holzbalkenscan (Felix).
+       - optional „Literatur“ unter Recherche: Kodytek-Paper (fehlstellenscan/unterlagen/),
+         fehlstellenscan/docs/recherche-zwilling-flicken.md.
+    c) Nicht darstellbar, weil kein Auftrag von uni, dokumente oder finance: fehlstellenscan ist nicht angebunden
+       (docs/, unterlagen/, Läufe); Wissen aus Gesprächen (uni/data/projekte/fehlstellen/wissen.md, Microtec 04.11.,
+       gehört nach „Interviews“); Mailverlauf als Ganzes (uni/data/projekte/fehlstellen/schriftverkehr.json); in der
+       Rüdiger-Gruppe geteilte Dateien. Braucht einen Weg, Inhalte ohne Auftrag am Ordner zu zeigen oder abzulegen.
+    d) Nebenbei: Ordner `neuer-ordner` („Neuer Ordner“, 19.11. 22:14) unter dem Forschungsprojekt ist leer,
+       vermutlich versehentlich. Löschen nur nach Jans Okay.
 
 ## Gelernte Regeln
 - (noch keine)
