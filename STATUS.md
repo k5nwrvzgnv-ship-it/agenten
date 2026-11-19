@@ -1259,6 +1259,9 @@ Offen, wartet auf Jan:
     (Freigabe außerhalb der Zentrale, Läufe, HNEE-Login, Agenten-Konto). Die Entwurfsanzeige liegt in
     agentkit.entwurfsanzeige, Zentrale und Rüdiger nutzen sie (83f3a02). Im Hauptordner sonst: agentkit.claude_lauf
     `ohne_projekt`, [werkzeuge] fehlstellenscan in einstellungen.toml.
+    Seit d5b78f6 (Jan 19.11.2026: „der entwurf soll in der gruppe landen“): neuer_entwurf(..., anzeige="gruppe"),
+    die Zentrale zeigt, zählt, erinnert und meldet solche Entwürfe nicht (Verfall und unklare Ausführung weiter).
+    Setzen muss es fehlstellenscan/gruppe.py (entwurf_einreichen, auch für Nachfolger), Name dem Chat mitgeteilt.
 44. Hinweis an uni (19.11.2026, Jan): uni.meldro.de zeigt jetzt auf den Arbeitsplatz (8794), uni/portal (8793)
     ist von außen nicht mehr erreichbar, läuft aber lokal weiter. uni/STATUS.md (Portal) entsprechend anpassen;
     ob uni-portal abgeschaltet wird, entscheidet Jan. Offen in shared/arbeitsplatz: Portal-Links (ansichten.PORTAL).
