@@ -68,8 +68,10 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 Übernommen aus Lias App (`shared/webapp/umbauplan-ux.md`, dort nichts geändert), alle fünf Schritte gebaut:
 - Aussehen: `ruhig.css` (Kopie) statt `stil.css`; rechte Spalte nur auf Heute (Läuft gerade, Kosten), alle anderen
   Seiten einspaltig und mittig. Was läuft, steht überall im Baum neben „Heute“ und als Marke am Dokument.
-- „+“ und „···“ stehen unten rechts neben dem Seitenkopf (`basis.html`, `.kopf-zeile`), auf Höhe der Galerie bzw.
-  Liste darunter, nicht mehr in der Brotkrumenzeile (Jan 19.11.2026). Einträge (`vorlagen/_plus.html`): Heute Seite, Dokument …; Ort Seite, Dokument …, Datei; Dokument „Dokument …“
+- Struktur (Jan 19.11.2026): Reiterzeile (Brotkrumen) als eigener leiser Streifen; darunter der Kopf der Kartei mit
+  „+“ und „···“ rechts (`basis.html`, `.kopf-zeile`); Inhalt der Dokumentseite in zarten Karten (`.karte`).
+  In der Oberfläche heißen Orte jetzt „Ordner“ („+ Ordner“, „Unterordner“, neue heißen „Neuer Ordner“); Routen und
+  Code bleiben bei ort/seite. Wie „+“ künftig verteilt wird (Baum, Ordner, Dokument), ist mit Jan noch offen. Einträge (`vorlagen/_plus.html`): Heute Seite, Dokument …; Ort Seite, Dokument …, Datei; Dokument „Dokument …“
   (nicht blau). „Seite“ legt sofort „Neue Seite“ an, die gleich zum Umbenennen offen steht. Im „···“ des Orts:
   Umbenennen, Verschieben, Unterseiten ordnen (ab zwei), Archivieren. Leere Abschnitte fallen weg, ganz leer steht
   „Noch leer. Mit + fängst du an.“ Im Baum kein „+ Seite“ mehr unter dem aktiven Ort (unten bleibt es).
@@ -79,10 +81,11 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Datei am Ort (Python): `POST /neu/datei` legt die Dateien nach `data/eingang/gelegt-<kennung>/` (Grenzen wie beim
   Formular), dann Galerie „Was soll daraus werden?“ (nur Arten mit Material), Formular mit „Schon dabei“, der Auftrag
   übernimmt sie, der Ordner geht danach weg. Liegengebliebenes löscht das nächste Ablegen nach einem Tag.
+- Dokument-Kopf: Titel ungekürzt, am ersten Doppelpunkt geteilt (`logik.titel_teilen`), Rest als leiser Untertitel.
 - Dokument-Seite: Rückmeldung als immer sichtbares Feld (nur Arten mit `rueckmeldung`), „Senden“ der einzige blaue
   Knopf (bei finaler Fassung keiner). Ein Dokument, auch in mehreren Formaten gleichen Namens (docx und pdf,
-  `logik.ein_dokument`), steht einmal als Galerie (erste zwei Seiten groß, aus dem PDF), darunter schlicht je Format
-  ein Knopf „Word“, „PDF“ (ohne eigenes PDF die Renderer-Vorschau) (Jan 19.11.2026). Verschiedene Dateien: je Datei
+  `logik.ein_dokument`), steht einmal da: nur Seite 1 (aus dem PDF), weitere Seiten als angedeuteter Stapel, Klick
+  öffnet den Betrachter; daneben „Seite 1 von n“ und schlicht je Format ein Knopf „Word“, „PDF“ (ohne eigenes PDF die Renderer-Vorschau) (Jan 19.11.2026). Verschiedene Dateien: je Datei
   eine Zeile mit Download-Symbol; im „···“ final und „Eigene Fassung hochladen …“ (`?offen=eigene` öffnet es);
   Verlauf als geschlossene Klappe ab zwei Stationen. `statisch/anhang.js` zeigt den Namen der angehängten Datei.
 - Vorschau (Schritt 6, `vorschau.py`): Dokumente ohne Renderer-Vorschau bekommen eigene Seitenbilder in

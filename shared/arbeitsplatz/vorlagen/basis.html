@@ -69,10 +69,10 @@
     {%- else %}
     {#- Recherchen stehen unter ihrem Ort wie Unterseiten (docs/recherche-plan.md, Recherche am Ort) -#}
     <li><a class="baum-eintrag tiefe-{{ [b.tiefe, 6] | min }}{% if b.art == "recherche" %} baum-recherche{% endif %}" href="{{ b.link }}"{% if b.aktiv %} aria-current="page"{% elif b.ueber %} aria-current="location"{% endif %}><span>{{ b.text }}</span>
-      {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterseiten">›</span>{% endif %}</a></li>
+      {%- if b.zu %}<span class="baum-zu" aria-label="hat Unterordner">›</span>{% endif %}</a></li>
     {%- endif %}
     {%- endfor %}
-    <li><a class="baum-eintrag baum-neu" href="/seite/neu"><span>+ Seite</span></a></li>
+    <li><a class="baum-eintrag baum-neu" href="/seite/neu"><span>+ Ordner</span></a></li>
   </ul>
   <a class="baum-eintrag baum-neu baum-fuss" href="/archiv"><span>Archiv</span></a>
 </nav>

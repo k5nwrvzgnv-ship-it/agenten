@@ -72,10 +72,13 @@
 {%- endmacro %}
 
 {% block seitenkopf %}
-<header class="material-kopf">
-  <span class="material-art">{{ art }}{% if h %}{% if art %} · {% endif %}{{ h.zeit_text }}{% endif %}{% if d.kosten %} · Kosten bisher {{ "%.2f" | format(d.kosten) }} USD{% endif %}</span>
-  <h1 class="titel-gross">{{ e.titel }}</h1>
-  <span class="material-marke{% if rot %} marke-rot{% elif marke == 'Final' %} marke-final{% endif %}">{{ marke }}</span>
+{#- Kopf der Kartei: oben klein Art, Zeit, Kosten und Marke; der Titel geteilt am ersten Doppelpunkt
+    (logik.titel_teilen), der Rest leise darunter, damit nichts unruhig umbricht -#}
+<header class="material-kopf dokument-kopf">
+  <span class="material-art">{{ art }}{% if h %}{% if art %} · {% endif %}{{ h.zeit_text }}{% endif %}{% if d.kosten %} · Kosten bisher {{ "%.2f" | format(d.kosten) }} USD{% endif %}
+    · <span class="material-marke{% if rot %} marke-rot{% elif marke == 'Final' %} marke-final{% endif %}">{{ marke }}</span></span>
+  <h1 class="titel-dokument">{{ e.haupt or e.titel }}</h1>
+  {%- if e.unter %}<p class="titel-unter">{{ e.unter }}</p>{% endif %}
 </header>
 {% endblock %}
 {#- Das „+“: nicht blau, der Hauptknopf der Seite ist „Senden“ der Rückmeldung -#}
@@ -120,26 +123,28 @@
 {%- if h %}
 {%- set eins = h.eins %}
 {%- set x1 = eins.galerie if eins else none %}
-<div class="material">
+<div class="material{% if eins or h.dateien or h.art == 'eigene' %} karte{% endif %}">
   {%- if eins %}
-  {#- Ein Dokument (auch in mehreren Formaten, logik.ein_dokument): einmal die Galerie, die ersten zwei Seiten groß,
-      ein Klick öffnet den Betrachter; darunter schlicht je Format ein Knopf zum Herunterladen -#}
-  {%- if x1 %}
-  <div class="material-seiten">
-    {%- for s in range(1, [x1.seiten, 2] | min + 1) %}
-    <a class="blatt" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/ansehen?seite={{ s }}" aria-label="{{ eins.name }}, Seite {{ s }} von {{ x1.seiten }} ansehen">
-      <img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/seite/{{ s }}" alt="" loading="lazy"></a>
-    {%- endfor %}
-  </div>
-  {%- endif %}
-  <div class="material-zeile">
-    <span class="unter">{% if x1 %}{{ x1.seiten }} {{ "Seite" if x1.seiten == 1 else "Seiten" }}{% if x1.seiten > 2 %}, zum Durchblättern auf eine Seite klicken{% endif %}{% elif eins.vorschau_laeuft %}Vorschau wird erstellt … Seite gleich neu laden.{% else %}{{ eins.name }}{% endif %}</span>
-    <span class="formate">
-      {%- for k in eins.knoepfe %}
-      {%- set link = "/dokument/" ~ u ~ "/datei/" ~ h.ref ~ "/" ~ k.nr ~ ("/pdf" if k.vorschau else "") %}
-      <a class="knopf knopf-leise" href="{{ link }}" download{% if k.vorschau %}="{{ eins.name }}.pdf"{% endif %}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ k.text }}</a>
-      {%- endfor %}
-    </span>
+  {#- Ein Dokument (auch in mehreren Formaten, logik.ein_dokument): nur Seite 1, weitere Seiten als angedeuteter Stapel
+      dahinter, ein Klick öffnet den Betrachter mit allen; daneben schlicht je Format ein Knopf (Jan 19.11.2026) -#}
+  <div class="dokument-karte">
+    {%- if x1 %}
+    <a class="stapel{% if x1.seiten > 1 %} stapel-mehr{% endif %}" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/ansehen?seite=1" aria-label="{{ eins.name }} ansehen, {{ x1.seiten }} {{ "Seite" if x1.seiten == 1 else "Seiten" }}">
+      <img src="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/seite/1" alt="" loading="lazy"></a>
+    {%- endif %}
+    <div class="dokument-info">
+      {%- if x1 %}
+      <a class="dokument-seiten" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/ansehen?seite=1">{% if x1.seiten > 1 %}Seite 1 von {{ x1.seiten }}{% else %}1 Seite{% endif %}</a>
+      {%- if x1.seiten > 1 %}<span class="unter">Klick auf die Seite zeigt alle zum Durchblättern.</span>{% endif %}
+      {%- elif eins.vorschau_laeuft %}<span class="unter">Vorschau wird erstellt … Seite gleich neu laden.</span>
+      {%- else %}<span>{{ eins.name }}</span>{% endif %}
+      <span class="formate">
+        {%- for k in eins.knoepfe %}
+        {%- set link = "/dokument/" ~ u ~ "/datei/" ~ h.ref ~ "/" ~ k.nr ~ ("/pdf" if k.vorschau else "") %}
+        <a class="knopf knopf-leise" href="{{ link }}" download{% if k.vorschau %}="{{ eins.name }}.pdf"{% endif %}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ k.text }}</a>
+        {%- endfor %}
+      </span>
+    </div>
   </div>
   {%- elif h.dateien or h.art == "eigene" %}
   {{ dateiliste(h) }}
@@ -147,12 +152,12 @@
 </div>
 {%- if h.kern or h.punkte or h.pruefen %}
 {%- if h.dateien or h.art == "eigene" %}
-<section>
+<section class="karte">
   <h2>Das Wichtigste</h2>
   {{ wichtigstes(h) }}
 </section>
 {%- else %}
-<div class="material-text">{{ wichtigstes(h) }}</div>
+<div class="material-text karte">{{ wichtigstes(h) }}</div>
 {%- endif %}
 {%- endif %}
 {%- if md %}{{ bloecke(md) }}{% endif %}

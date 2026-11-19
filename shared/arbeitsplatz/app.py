@@ -441,9 +441,9 @@ def seite_seite_neu(request: Request, eltern: str = ""):
 
 
 def _seite_neu(request: Request, baum: list[dict], eltern: str, titel: str, fehler: list[str], status: int = 200):
-    krumen = logik.krumen(baum, eltern or None, "Neue Seite") if eltern else {
-        "teile": [{"text": "Heute", "link": "/"}], "hier": "Neue Seite"}
-    return seite(request, "seite_neu.html", {"e": {"titel": "Neue Seite"}, "eltern": eltern, "titel": titel,
+    krumen = logik.krumen(baum, eltern or None, "Neuer Ordner") if eltern else {
+        "teile": [{"text": "Heute", "link": "/"}], "hier": "Neuer Ordner"}
+    return seite(request, "seite_neu.html", {"e": {"titel": "Neuer Ordner"}, "eltern": eltern, "titel": titel,
                                              "fehler": fehler, **rahmen(baum, eltern or None, krumen)}, status)
 
 
@@ -916,6 +916,7 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
     ort = logik.ort_von(kette[0], zuordnung())
     ort = ort if any(k["id"] == ort for k in baum) else None
     titel = logik.titel_von(kette, namen)
+    haupt, unter = logik.titel_teilen(logik.titel_von(kette, namen, laenge=300))
     marke, rot = logik.marke_von(kette, _stand(ursprung).get("final"))
     d = _ansicht(kette, rueck)
     art = arten.finden(arten_laden(), kette[0].get("art") or "")
@@ -923,7 +924,7 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
     if ziel is None and offen == "rueckmeldung":
         ziel = logik.rueckmeldung_ziel(kette, d, q.get("fassung"), q.get("datei"), q.get("seite"))
     return seite(request, "dokument.html", {"ziel": ziel if d["rueckmeldung_moeglich"] else None,
-        "e": {"titel": titel}, "art": namen.get(kette[0].get("art") or "", ""), "marke": marke, "rot": rot,
+        "e": {"titel": titel, "haupt": haupt, "unter": unter}, "art": namen.get(kette[0].get("art") or "", ""), "marke": marke, "rot": rot,
         "d": d, "u": ursprung, "eigen": eigene_ansicht(request, kette, art, d["haupt"]),
         "md": markdown_von(kette, d["haupt"]), "offen": offen, "fehler": fehler or [], "text": text,
         "eigene_endungen": ",".join(sorted(dateien.EIGENE_ENDUNGEN)),

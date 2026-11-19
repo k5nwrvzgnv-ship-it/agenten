@@ -32,7 +32,7 @@ class TestBaum(unittest.TestCase):
     def test_baum_klappt_nur_den_weg_auf(self):
         zeilen = logik.baum_zeilen(self.baum, self.t)
         self.assertEqual([(z["text"], z["tiefe"]) for z in zeilen],
-                         [("Projekt", 0), ("Teil", 1), ("Kapitel", 2), ("+ Seite", 2), ("Modul", 0)])
+                         [("Projekt", 0), ("Teil", 1), ("Kapitel", 2), ("+ Ordner", 2), ("Modul", 0)])
         self.assertTrue(zeilen[1]["aktiv"])
         self.assertTrue(zeilen[0]["ueber"])
         self.assertTrue(zeilen[4]["zu"])  # Modul hat zugeklappte Unterseiten
@@ -263,6 +263,14 @@ class TestBetrachterUndZiel(unittest.TestCase):
         e = logik.ein_dokument(logik._datei_zeilen(["E.docx", "geheim.pdf"], [(True, True, 2), (False, False, 0)]))
         self.assertEqual([(k["text"], k["vorschau"]) for k in e["knoepfe"]], [("Word", False), ("PDF", True)])
         self.assertEqual(e["galerie"]["nr"], 0)
+
+    def test_titel_teilen(self):
+        self.assertEqual(logik.titel_teilen("Protokoll 17.11.2026: Projekt Holz-Scan: Stand"),
+                         ("Protokoll 17.11.2026", "Projekt Holz-Scan: Stand"))
+        self.assertEqual(logik.titel_teilen("Exposé Holzschutz"), ("Exposé Holzschutz", ""))
+        self.assertEqual(logik.titel_teilen("Frage: "), ("Frage: ", ""))
+        lang = "x" * 70 + ": Rest"
+        self.assertEqual(logik.titel_teilen(lang), (lang, ""))
 
     def test_ein_dokument_verschiedene_namen(self):
         z = logik._datei_zeilen(["a.pdf", "b.docx"], [(True, False, 1), (True, True, 4)])

@@ -10,7 +10,7 @@
 {% block seitenkopf %}
 <header class="kopf">
   {{ titel(ort.titel, "/ort/" ~ ort.id ~ "/umbenennen", "titel", ort.titel,
-           offen=ort.titel == "Neue Seite" and request.query_params.get("aktion")) }}
+           offen=ort.titel in ("Neuer Ordner", "Neue Seite") and request.query_params.get("aktion")) }}
 </header>
 {% endblock %}
 {#- Ort (umbauplan-ux.md Schritt 2): Kopf mit „+“ (Seite, Dokument …, Datei) und „···“ (Umbenennen, Verschieben, Unterseiten
@@ -26,7 +26,7 @@
 {%- endmacro -%}
 {%- block plus %}
 {%- if not archiviert %}
-{{ plus([{"text": "Seite", "aktion": "/seite/neu", "felder": [("eltern", ort.id), ("titel", "Neue Seite"), ("einmal", einmal_kennung())]},
+{{ plus([{"text": "Ordner", "aktion": "/seite/neu", "felder": [("eltern", ort.id), ("titel", "Neuer Ordner"), ("einmal", einmal_kennung())]},
          {"text": "Dokument …", "link": neu_hier}, {"text": "Recherche …", "link": "/recherche/neu?ort=" ~ ort.id},
          {"text": "Datei", "link": "#ablage"}]) }}
 {%- endif %}
@@ -51,7 +51,7 @@
     </form>
     {%- if unterseiten | length > 1 %}
     <div class="ordnen">
-      <span class="unter">Unterseiten ordnen</span>
+      <span class="unter">Unterordner ordnen</span>
       <ul>
         {%- for k in unterseiten %}
         <li class="ordnen-zeile"><span class="ordnen-name">{{ k.titel }}</span>
@@ -65,7 +65,7 @@
     <form method="post" action="/ort/{{ ort.id }}/archivieren">
       <input type="hidden" name="token" value="{{ token }}">
       <button class="knopf knopf-leise" type="submit">Archivieren</button>
-      <span class="unter">mit allen Unterseiten; im Archiv wiederherstellbar</span>
+      <span class="unter">mit allen Unterordnern; im Archiv wiederherstellbar</span>
     </form>
     {%- endif %}
 {%- endcall %}
@@ -89,7 +89,7 @@
 </section>
 {%- endif %}
 {%- if archiviert %}
-<div class="hinweis hinweis-fehler archiv-hinweis">Diese Seite liegt im Archiv.
+<div class="hinweis hinweis-fehler archiv-hinweis">Dieser Ordner liegt im Archiv.
   {%- if ort.archiviert %}
   <form class="inline-form" method="post" action="/ort/{{ ort.id }}/wiederherstellen">
     <input type="hidden" name="token" value="{{ token }}">
@@ -104,7 +104,7 @@
 {%- endif %}
 {%- if unterseiten %}
 <section>
-  <h2>Unterseiten</h2>
+  <h2>Unterordner</h2>
   <ul>
     {%- for k in unterseiten %}
     <li><a class="zeile" href="/ort/{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>

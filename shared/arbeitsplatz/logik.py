@@ -92,7 +92,7 @@ def baum_zeilen(baum: list[dict], aktiv: str | None, recherchen: dict[str, list[
                     zeilen.append({"art": "recherche", "text": r["titel"], "link": r["link"], "tiefe": tiefe + 1,
                                    "aktiv": r["link"] == aktiv_link, "ueber": False, "zu": False})
                 if k["id"] == aktiv:
-                    zeilen.append({"art": "neu", "text": "+ Seite", "link": f"/seite/neu?eltern={quote(k['id'])}",
+                    zeilen.append({"art": "neu", "text": "+ Ordner", "link": f"/seite/neu?eltern={quote(k['id'])}",
                                    "tiefe": tiefe + 1})
     ebene(None, 0)
     return zeilen
@@ -167,24 +167,33 @@ def dateiname(pfad: str) -> str:
     return pfad.rsplit("/", 1)[-1]
 
 
-def titel_von(kette: list[dict], arten_namen: dict[str, str]) -> str:
+def titel_von(kette: list[dict], arten_namen: dict[str, str], laenge: int = TITEL_LANG) -> str:
     """Name des Dokuments: daten.titel der neuesten fertigen Fassung, sonst der Name ihrer ersten Datei (ohne Endung),
-    sonst Art und erstes gefülltes Feld des Ursprungs, sonst die erste Zeile des Auftrags."""
+    sonst Art und erstes gefülltes Feld des Ursprungs, sonst die erste Zeile des Auftrags. Gekürzt auf laenge."""
     for a in reversed(kette):
         if a.get("status") == "erledigt":
             titel = (a.get("daten") or {}).get("titel")
             if isinstance(titel, str) and titel.strip():
-                return kuerzen(titel)
+                return kuerzen(titel, laenge)
             if a.get("ergebnis_dateien"):
-                return kuerzen(dateiname(a["ergebnis_dateien"][0]).rsplit(".", 1)[0])
+                return kuerzen(dateiname(a["ergebnis_dateien"][0]).rsplit(".", 1)[0], laenge)
     u = kette[0]
     felder = u.get("felder") or {}
     erstes = next((w for w in felder.values() if isinstance(w, str) and w.strip()), "")
     art = arten_namen.get(u.get("art") or "", "")
     if art and erstes:
-        return kuerzen(f"{art}: {erstes}")
+        return kuerzen(f"{art}: {erstes}", laenge)
     zeile = next((z for z in (u.get("text") or "").splitlines() if z.strip()), "")
-    return kuerzen(zeile) or OHNE_TITEL
+    return kuerzen(zeile, laenge) or OHNE_TITEL
+
+
+def titel_teilen(titel: str, haupt_max: int = 60) -> tuple[str, str]:
+    """Langer Titel in Haupt- und Untertitel am ersten Doppelpunkt („Protokoll 17.11.2026: Projekt …“), damit der
+    Kopf ruhig umbricht. Ohne Doppelpunkt, mit leerem Rest oder zu langem Anfang bleibt er ganz."""
+    vorn, _, rest = titel.partition(": ")
+    if rest.strip() and vorn.strip() and len(vorn) <= haupt_max:
+        return vorn.strip(), rest.strip()
+    return titel, ""
 
 
 def marke_von(kette: list[dict], final: dict | None) -> tuple[str, bool]:

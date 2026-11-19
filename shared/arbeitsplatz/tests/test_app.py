@@ -216,9 +216,9 @@ class TestSeiten(Aufbau):
         p = self.ort("Projekt")
         heute = self.get("/")[1]
         self.assertEqual(heute.count('class="menue-halter plus"'), 1)
-        self.assertEqual(eintraege(heute), ["Seite", "Dokument …", "Recherche …"])
+        self.assertEqual(eintraege(heute), ["Ordner", "Dokument …", "Recherche …"])
         self.assertIn('class="knopf knopf-voll plus-knopf"', heute)
-        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Seite", "Dokument …", "Recherche …", "Datei"])
+        self.assertEqual(eintraege(self.get(f"/ort/{p}")[1]), ["Ordner", "Dokument …", "Recherche …", "Datei"])
         for pfad in ("/archiv", "/neu", "/neu/expose", "/seite/neu", "/recherche/neu"):
             self.assertIsNone(eintraege(self.get(pfad)[1]), pfad)
         self.assertNotIn("+ Neu<", self.get(f"/ort/{p}")[1])
@@ -241,7 +241,7 @@ class TestSeiten(Aufbau):
         punkte = html.split('class="menue-halter punkte"')[1].split("</details>")[0]
         for aktion in ("umbenennen", "verschieben", "archivieren"):
             self.assertIn(f'action="/ort/{p}/{aktion}"', punkte)
-        self.assertIn("Unterseiten ordnen", punkte)
+        self.assertIn("Unterordner ordnen", punkte)
         self.assertNotIn('aria-label="A nach oben"', punkte)
         self.assertIn('aria-label="A nach unten"', punkte)
         self.assertIn('aria-label="C nach oben"', punkte)
@@ -254,7 +254,7 @@ class TestSeiten(Aufbau):
         self.post(f"/ort/{a}/verschieben", {"eltern": p, "position": "1", "zurueck": f"/ort/{p}"})
         self.assertEqual([k["id"] for k in orte.kinder(orte.laden(self.instanz), p)], [b, a, c])
         # nur eine Unterseite: nichts zu ordnen
-        self.assertNotIn("Unterseiten ordnen", self.get(f"/ort/{a}")[1])
+        self.assertNotIn("Unterordner ordnen", self.get(f"/ort/{a}")[1])
 
     def test_direkt_am_ding(self):
         """umbauplan-ux.md Schritt 3: Titel des Orts anklicken (Formular an die bestehende Route), Datei ins Formular
@@ -269,7 +269,7 @@ class TestSeiten(Aufbau):
         self.assertIn('name="token"', kopf)
         self.assertEqual(self.get("/statisch/direkt.js")[0], 200)
         # eine eben über „+“ angelegte „Neue Seite“ steht gleich zum Umbenennen offen, später nicht mehr
-        ort_url = self.post("/seite/neu", {"eltern": p, "titel": "Neue Seite", "einmal": "d1"})[2]["location"]
+        ort_url = self.post("/seite/neu", {"eltern": p, "titel": "Neuer Ordner", "einmal": "d1"})[2]["location"]
         self.assertIn("data-direkt-offen", self.get(ort_url)[1])
         self.assertNotIn("data-direkt-offen", self.get(ort_url.split("?")[0])[1])
         self.assertNotIn("data-direkt-offen", html)
@@ -287,11 +287,11 @@ class TestSeiten(Aufbau):
         p = self.ort("Projekt")
         html = self.get(f"/ort/{p}")[1]
         self.assertNotIn("<h2>Dokumente</h2>", html)
-        self.assertNotIn("<h2>Unterseiten</h2>", html)
+        self.assertNotIn("<h2>Unterordner</h2>", html)
         self.assertIn("Noch leer. Mit + fängst du an.", html)
         self.ort("Kapitel", p)
         html = self.get(f"/ort/{p}")[1]
-        self.assertIn("<h2>Unterseiten</h2>", html)
+        self.assertIn("<h2>Unterordner</h2>", html)
         self.assertNotIn("Noch leer", html)
         heute = self.get("/")[1]
         self.assertIn("<h2>Orte</h2>", heute)
@@ -585,7 +585,9 @@ class TestDokument(Aufbau):
         self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0" download>', formate)
         self.assertIn(f'href="/dokument/{self.U}/datei/{self.U}/0/pdf" download="Expose.pdf">', formate)
         self.assertLess(formate.index("Word</a>"), formate.index("PDF</a>"))
-        self.assertEqual(html.count('class="material-seiten"'), 1)
+        self.assertEqual(html.count('class="stapel stapel-mehr"'), 1)  # nur Seite 1, weitere als Stapel
+        self.assertNotIn("/seite/2", html)
+        self.assertIn('class="material karte"', html)
         # „+“ und „···“ stehen unter den Brotkrumen neben dem Kopf, nicht mehr in der Brotkrumenzeile
         self.assertNotIn("menue-halter", html.split('class="krumen-zeile"')[1].split('class="kopf-zeile"')[0])
         self.assertIn('class="menue-halter plus"', html.split('class="seiten-aktionen"')[1])
@@ -658,8 +660,8 @@ class TestDokument(Aufbau):
             html = self.get(f"/dokument/{blatt}")[1]
         self.assertEqual(gemacht, ["Blatt.pdf"])
         self.assertNotIn("Vorschau wird erstellt", html)
-        self.assertIn(f"/dokument/{blatt}/datei/{blatt}/0/ansehen?seite=2", html)
-        self.assertIn("3 Seiten", html)
+        self.assertIn(f"/dokument/{blatt}/datei/{blatt}/0/ansehen?seite=1", html)
+        self.assertIn("Seite 1 von 3", html)
         status, inhalt, _ = self.get(f"/dokument/{blatt}/datei/{blatt}/0/seite/3")
         self.assertEqual((status, inhalt), (200, "PNG\x03"))
         self.assertEqual(self.get(f"/dokument/{blatt}/datei/{blatt}/0/ansehen?seite=3")[0], 200)
