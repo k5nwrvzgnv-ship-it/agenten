@@ -30,6 +30,7 @@ BESCHAEFTIGT = "Ich bin gerade noch mit einer anderen Frage beschäftigt. Deine 
 ZU_VIEL = "Für heute habe ich dir genug beantwortet. Morgen gern weiter."
 FEHLER = "Das hat gerade nicht geklappt. Frag bitte gleich noch einmal; Jan sieht den Fehler im Log."
 LIMIT = "Mein Rechenkontingent ist gerade erschöpft. Frag bitte später noch einmal."
+WAS_WILLST_DU = "Was willst du wissen? Antworte einfach auf diese Nachricht."
 WARTET_AUF_JAN = "Dich kenne ich noch nicht. Jan schaltet dich frei, dann geht's los."
 FREIGESCHALTET = "Du bist freigeschaltet, frag los."
 FREISCHALTEN, NICHT_FREISCHALTEN = "Freischalten", "Nicht freischalten"
@@ -212,6 +213,17 @@ def anfrage_aus(update: dict, zugang: Zugang) -> Anfrage | None:
     return Anfrage(chat_id=chat["id"], nachricht_id=m["message_id"], nutzer_id=von["id"], name=_name(von),
                    text=text[:MAX_FRAGE], antwort_auf=bezug.get("message_id") if an_bot else None,
                    zitat=zitat, dateien=dateien)
+
+
+def nur_befehl(update: dict, zugang: Zugang) -> bool:
+    """/frage ohne Text (z. B. aus dem Befehlsmenü, das sofort sendet) von jemandem, der fragen darf."""
+    m = update.get("message")
+    if not isinstance(m, dict) or (m.get("chat") or {}).get("id") != zugang.chat_id or zugang.chat_id is None:
+        return False
+    if (m.get("from") or {}).get("id") not in zugang.nutzer or m.get("photo") or m.get("document"):
+        return False
+    erwaehnt, rest = _erwaehnt(m, zugang)
+    return erwaehnt and not rest.strip() and bool(re.match(rf"\s*/{BEFEHL}", m.get("text") or "", re.IGNORECASE))
 
 
 def noch_erlaubt(zeitpunkte: list[str], jetzt: datetime, max_je_tag: int = MAX_JE_TAG) -> bool:

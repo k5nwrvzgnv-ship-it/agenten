@@ -117,6 +117,14 @@ class TestFreischalten(unittest.TestCase):
         self.assertEqual(gl.anfrage_aus(foto, ZUGANG).text, "was ist das?")
         self.assertEqual(gl.unbekannt_in_gruppe(nachricht("/frage hallo", von=FREMD), ZUGANG)["nutzer_id"], FREMD)
 
+    def test_befehl_ohne_text_fragt_nach(self):
+        self.assertTrue(gl.nur_befehl(nachricht("/frage@nichtsotiefruedigerbot"), ZUGANG))
+        self.assertTrue(gl.nur_befehl(nachricht("/frage"), ZUGANG))
+        self.assertFalse(gl.nur_befehl(nachricht("/frage wie hoch?"), ZUGANG))
+        self.assertFalse(gl.nur_befehl(nachricht("/frage", von=FREMD), ZUGANG))
+        self.assertFalse(gl.nur_befehl(nachricht("/frage@anderer_bot"), ZUGANG))
+        self.assertFalse(gl.nur_befehl(nachricht("hallo"), ZUGANG))
+
     def test_rolle_sagt_was_ruediger_mitbekommt(self):
         self.assertIn("nur\n  Nachrichten, die mit /frage anfangen", gl.ROLLE)
         self.assertIn("keine anderen Gruppennachrichten", gl.ROLLE)

@@ -555,6 +555,11 @@ def main() -> int:
                     freischalten_anfragen(u, wer, aktuell)
                 except (TelegramFehler, meldungen.MeldungFehler) as f:
                     logger.warning("Freischalten anfragen: %s", f)
+            elif a is None and gl.nur_befehl(u, aktuell):
+                try:
+                    senden(u["message"]["chat"]["id"], gl.WAS_WILLST_DU, u["message"]["message_id"])
+                except TelegramFehler as f:
+                    logger.warning("Nachfrage: %s", f)
             elif a is None:
                 if gl.fremder_chat(u, aktuell):
                     unbekannt_merken(u)
