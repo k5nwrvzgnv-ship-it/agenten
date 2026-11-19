@@ -189,12 +189,12 @@ class TestText(unittest.TestCase):
         self.assertEqual(gl.entwurf_titel({"betreff": "Termin"}, "Henri"), "Mail aus der Projektgruppe (Henri): Termin")
 
     def test_entwurf_wie_in_der_zentrale(self):
-        from telegram import logik as tl
+        from agentkit.entwurfsanzeige import entwurf_als_text
         e = {"id": "20261119-140000-fehlstellenscan-abc123", "agent": "fehlstellenscan", "typ": "mail", "titel": "x",
              "inhalt": "x", "daten": {"an": ["boehme@hnee.de"], "cc": [], "betreff": "Termin",
                                       "text": "Hallo, passt Dienstag?", "begruendung": "b", "pruefen": "Uhrzeit"}}
         teile = gl.entwurf_fuer_gruppe(e)
-        self.assertEqual(teile[0], tl.entwurf_als_text(e)[0] + "\n\n<i>" + gl.ENTWURF_HINWEIS + "</i>")
+        self.assertEqual(teile[0], entwurf_als_text(e)[0] + "\n\n<i>" + gl.ENTWURF_HINWEIS + "</i>")
         self.assertIn("Hallo, passt Dienstag?", teile[0])
 
     def test_knoepfe_und_knopf_lesen(self):

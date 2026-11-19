@@ -148,7 +148,7 @@ def pruefen(entwurf: dict, original: dict | None = None, anhaenge=None, ordner=N
 
 def anzeige(daten: dict) -> str:
     """Kopf, Text und Begründung als Klartext (inhalt des Entwurfs). Telegram zeigt Mails aus den daten
-    (shared/telegram/logik.py, entwurf_als_text)."""
+    (agentkit.entwurfsanzeige, entwurf_als_text)."""
     zeilen = [f"An: {', '.join(daten['an'])}"]
     if daten.get("cc"):
         zeilen.append(f"Cc: {', '.join(daten['cc'])}")

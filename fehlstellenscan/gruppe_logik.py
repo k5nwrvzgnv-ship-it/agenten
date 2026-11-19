@@ -17,7 +17,7 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from telegram import logik as telegram_logik  # shared/telegram: Entwurfsanzeige wie in der Zentrale (nur lesen)
+from agentkit.entwurfsanzeige import entwurf_als_text  # Entwurfsanzeige wie in der Zentrale
 
 MAX_FRAGE = 4000          # Zeichen je Gruppennachricht, die an Claude gehen
 MAX_TELEGRAM = 4000       # Telegram erlaubt 4096 Zeichen je Nachricht
@@ -339,7 +339,7 @@ def entwurf_titel(daten: dict, name: str) -> str:
 def entwurf_fuer_gruppe(entwurf: dict) -> list[str]:
     """Der Entwurf als HTML wie in Jans Zentrale (dieselbe Funktion, Jan 19.11.2026: „sieht das gleich aus? bitte
     so“), mit Hinweis für die Gruppe am Ende. Mehrere Teile, wenn er lang ist."""
-    teile = telegram_logik.entwurf_als_text(entwurf)
+    teile = entwurf_als_text(entwurf)
     teile[-1] += "\n\n<i>" + ENTWURF_HINWEIS + "</i>"
     return teile
 
