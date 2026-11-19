@@ -101,6 +101,10 @@ def rechte(werkzeuge: list[str], domains: list[str] | None = None,
 # Fortsetzen (sitzung_fortsetzen) geht nur zwischen Läufen derselben Art, weil claude Sitzungen je Arbeitsordner führt.
 NUR_LESEN_VERBOTEN = ("Bash", "Edit", "Write", "Grep", "Glob", "NotebookEdit", "WebFetch", "WebSearch")
 NUR_LESEN_CWD = Path("data") / "nur_lesen"
+# Mit ohne_projekt=True (Gruppen-Bot fehlstellenscan, 19.11.2026) läuft claude in einem leeren Ordner außerhalb des
+# Repos: Im Agent-Ordner lädt claude von selbst die CLAUDE.md des Hauptordners (Jans Regeln, Dienste, Lia), die
+# fremde Leser nicht sehen sollen. --bare schaltet das ab, geht aber nur mit API-Key.
+NUR_LESEN_AUSSEN = Path.home() / ".cache" / "agentkit" / "nur_lesen"
 # In Rechte-Regeln haben diese Zeichen eine Bedeutung (Muster, Klammern): solche Ordner werden abgelehnt.
 _REGEL_ZEICHEN = set("*?[]{}()\\\n\r\"'")
 
@@ -128,9 +132,12 @@ def lese_ordner_pruefen(ordner: list, agent_dir: Path) -> list[Path]:
     return geprueft
 
 
-def nur_lesen_cwd(agent_dir: Path) -> Path:
-    """Leerer Arbeitsordner für Nur-Lesen-Läufe (wird angelegt). LaufFehler, wenn etwas darin liegt."""
-    cwd = Path(agent_dir) / NUR_LESEN_CWD
+def nur_lesen_cwd(agent_dir: Path, ohne_projekt: bool = False, agent: str = "") -> Path:
+    """Leerer Arbeitsordner für Nur-Lesen-Läufe (wird angelegt). LaufFehler, wenn etwas darin liegt.
+    ohne_projekt: Ordner NUR_LESEN_AUSSEN/<agent> außerhalb des Repos (keine CLAUDE.md darüber)."""
+    if ohne_projekt and not agent.isidentifier():
+        raise ValueError(f"ohne_projekt: ungeeigneter Agentenname {agent!r}")
+    cwd = NUR_LESEN_AUSSEN / agent if ohne_projekt else Path(agent_dir) / NUR_LESEN_CWD
     cwd.mkdir(parents=True, exist_ok=True)
     if any(cwd.iterdir()):
         raise LaufFehler(f"{cwd} muss leer sein (Claude dürfte dort alles lesen)")
@@ -459,6 +466,7 @@ def laufen(
     lese_ordner: list[Path] | None = None,
     suchen: bool = False,
     werkzeuge: list[str] | None = None,
+    ohne_projekt: bool = False,
 ) -> Ergebnis:
     """Führt einen claude-Lauf aus. art: "routine" oder "anspruchsvoll".
 
@@ -473,7 +481,8 @@ def laufen(
     lese_ordner: Liste absoluter Ordner. Dann darf Claude nur Read in diesen Ordnern (z. B. Fotos eines Gesprächs)
     und WebSearch/WebFetch wie eingestellt, sonst kein Werkzeug und keinen Pfad; Antwort nur als Text
     (Ergebnis.text). ValueError bei ungeeignetem Ordner. suchen=True erlaubt dazu Glob und Grep in diesen Ordnern
-    (Dateien finden und durchsuchen), ohne lese_ordner ValueError.
+    (Dateien finden und durchsuchen), ohne lese_ordner ValueError. ohne_projekt=True (nur mit lese_ordner): claude
+    läuft außerhalb des Repos und sieht keine CLAUDE.md (für Fragen von anderen als Jan, z. B. eine Gruppe).
     """
     lauf_id = uuid.uuid4().hex[:12]
 
@@ -482,7 +491,8 @@ def laufen(
 
     try:
         return _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
-                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis, lese_ordner, suchen, werkzeuge)
+                       cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis, lese_ordner, suchen, werkzeuge,
+                       ohne_projekt)
     except Exception as f:
         ev("lauf.fehler", grund=FEHLERGRUND.get(type(f).__name__, "technik"))
         raise
@@ -490,11 +500,13 @@ def laufen(
 
 def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_fortsetzen, auftrag_id,
             cfg, slot_dir, protokoll, lauf_id, ev, auftrag_basis=None, lese_ordner=None, suchen=False,
-            werkzeuge=None) -> Ergebnis:
+            werkzeuge=None, ohne_projekt=False) -> Ergebnis:
     cfg = cfg or einstellungen.lade()
     agent_dir = Path(agent_dir)
     if suchen and lese_ordner is None:
         raise ValueError("suchen geht nur mit lese_ordner")
+    if ohne_projekt and lese_ordner is None:
+        raise ValueError("ohne_projekt geht nur mit lese_ordner")
     if lese_ordner is not None:
         lese_ordner = lese_ordner_pruefen(lese_ordner, agent_dir)
     stufe = verbrauch.stufe(verbrauch.letzter_stand(protokoll), cfg)
@@ -528,7 +540,7 @@ def _laufen(agent, agent_dir, prompt, art, zeitgesteuert, lernsitzung, sitzung_f
             if auftrag_id and _ablage_id(auftrag_id):
                 def abbrechen():
                     return auftraege.zurueckgezogen(auftrag_id, auftrag_basis)
-            cwd = agent_dir if lese_ordner is None else nur_lesen_cwd(agent_dir)
+            cwd = agent_dir if lese_ordner is None else nur_lesen_cwd(agent_dir, ohne_projekt, agent)
             ausgabe, abbruch = ausfuehren(cmd, cwd, env, cfg["lauf"]["max_minuten"] * 60, bei_zeile, abbrechen)
             if abbruch == "abbruch":
                 ergebnis = Ergebnis(text="Zurückgezogen", sitzung=sitzung_neu or sitzung_fortsetzen, ok=False)

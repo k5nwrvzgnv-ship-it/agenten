@@ -839,7 +839,8 @@ class TestRecherchen(Aufbau):
         self.assertIn("Lia · 14. November", heute)
         self.assertIn("Nicht lesbar", heute)
         self.assertNotIn("Exposé-Recherche", heute)
-        self.assertNotIn("fehlstellen", html)
+        # nur der Inhalt: die Kostenliste rechts zeigt echte Läufe (z. B. Agent fehlstellenscan, 19.11.2026)
+        self.assertNotIn("fehlstellen", html.split("<main")[1].split("</main>")[0])
         self.assertNotIn('href="/recherchen"', html)
         # archivierter Ort: zurück auf Heute
         orte.archivieren(self.expo, instanz=self.instanz)

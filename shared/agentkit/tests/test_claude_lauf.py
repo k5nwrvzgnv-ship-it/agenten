@@ -231,6 +231,23 @@ class TestClaudeLauf(unittest.TestCase):
             self.lauf(cfg=cfg, suchen=True)
         self.assertFalse((self.agent_dir / "args.json").exists())
 
+    def test_nur_lesen_ohne_projekt(self):
+        # Gruppen-Bot (19.11.2026): claude läuft außerhalb des Repos, damit es keine CLAUDE.md lädt
+        ort = self.agent_dir / "data" / "ort"
+        ort.mkdir(parents=True)
+        aussen = self.tmp / "cache" / "nur_lesen"
+        with mock.patch.object(claude_lauf, "NUR_LESEN_AUSSEN", aussen):
+            self.assertTrue(self.lauf(lese_ordner=[ort], suchen=True, ohne_projekt=True).ok)
+            self.assertTrue((aussen / "uni" / "args.json").exists())
+            self.assertFalse((self.agent_dir / "data" / "nur_lesen").exists())
+            with self.assertRaises(claude_lauf.LaufFehler):  # Arbeitsordner muss leer sein
+                self.lauf(lese_ordner=[ort], ohne_projekt=True)
+            with self.assertRaises(ValueError):  # nur mit lese_ordner
+                self.lauf(ohne_projekt=True)
+            with self.assertRaises(ValueError):
+                claude_lauf.nur_lesen_cwd(self.agent_dir, True, "../x")
+        self.assertFalse((self.agent_dir / "args.json").exists())
+
     def test_nur_lesen_ordner_pruefen(self):
         fotos = self.agent_dir / "data" / "gespraeche" / "g1"
         fotos.mkdir(parents=True)
