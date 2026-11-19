@@ -8,6 +8,9 @@ Dienst fehlstellenscan-gruppe.service, läuft dauerhaft (Long-Polling der Bot-AP
   Freigabe sendet Python genau diesen Entwurf einmal und sagt der Gruppe das Ergebnis. „Ändern“ in der Zentrale
   kommt als Auftrag (quelle telegram-aendern) und wird hier überarbeitet.
 - Unbekannte Chats und Personen bekommen keine Antwort; ihre IDs stehen im Log und in data/gruppe/unbekannt.jsonl.
+  Spricht jemand Rüdiger in der Projektgruppe an, der noch nicht eingetragen ist, bekommt Jan eine Meldung mit
+  „Freischalten“ (einmal je Person). Sein Klick kommt als Auftrag zurück; freigeschaltet steht in
+  data/gruppe/stand.json (freigeschaltet), zusätzlich zu GRUPPE_NUTZER_IDS.
 
 Zugangsdaten in fehlstellenscan/.env: GRUPPE_BOT_TOKEN, GRUPPE_CHAT_ID, GRUPPE_NUTZER_IDS, HNEE_NUTZER,
 HNEE_KENNWORT, IMAP_HOST, IMAP_PORT, MAIL_ABSENDER, MAIL_NAME.
@@ -25,7 +28,7 @@ import urllib.request
 from datetime import date, datetime
 from pathlib import Path
 
-from agentkit import auftraege, claude_lauf, config, freigabe, imap, log, mail, mailauftrag
+from agentkit import auftraege, claude_lauf, config, freigabe, imap, log, mail, mailauftrag, meldungen
 
 import gruppe_logik as gl
 
@@ -131,7 +134,8 @@ def stand_lesen() -> dict:
         s = json.loads(STAND.read_text())
     except (OSError, ValueError):
         s = {}
-    for k, v in (("offset", 0), ("sitzungen", {}), ("mails", {}), ("gemeldet", []), ("zeiten", {})):
+    for k, v in (("offset", 0), ("sitzungen", {}), ("mails", {}), ("gemeldet", []), ("zeiten", {}),
+                 ("angefragt", {}), ("freigeschaltet", {})):
         s.setdefault(k, v)
     return s
 
@@ -314,12 +318,54 @@ def freigaben_pruefen(q: "queue.Queue", eingereiht: set) -> None:
             s2 = stand_lesen()
             s2["gemeldet"].append(e["id"])
             stand_schreiben(s2)
+    meldung_zu = {v["meldung"]: uid for uid, v in s["angefragt"].items()}
     for a in auftraege.neue(AGENT):
+        if a.get("meldung") in meldung_zu:
+            freischalten_bearbeiten(a, meldung_zu[a["meldung"]])
+            continue
         if a.get("quelle") == "telegram-aendern" and a.get("bezug") in s["mails"] and a["id"] not in eingereiht:
             alt = next((e for e in freigabe.erledigte(AGENT) if e["id"] == a["bezug"]), None)
             if alt:
                 eingereiht.add(a["id"])
                 q.put(("aendern", a, alt))
+
+
+# ---------- Freischalten ----------
+
+def freischalten_anfragen(u: dict, wer: dict, zugang: gl.Zugang) -> None:
+    """Einmal je Person: Meldung an Jan mit Knopf, kurze Antwort in der Gruppe."""
+    m = u["message"]
+    with _schloss:
+        s = stand_lesen()
+        if str(wer["nutzer_id"]) in s["angefragt"]:
+            return
+        mid = meldungen.melden(AGENT, gl.freischalt_meldung(wer["name"], wer["nutzer_id"],
+                                                             m["chat"].get("title") or "Gruppe"),
+                               knoepfe=[[gl.FREISCHALTEN, gl.NICHT_FREISCHALTEN]])
+        s["angefragt"][str(wer["nutzer_id"])] = {"meldung": mid, "name": wer["name"], "chat_id": m["chat"]["id"],
+                                                 "nachricht_id": m["message_id"]}
+        stand_schreiben(s)
+    logger.info("Freischalten angefragt: %s (%s), Meldung %s", wer["name"], wer["nutzer_id"], mid)
+    senden(m["chat"]["id"], gl.WARTET_AUF_JAN, m["message_id"])
+
+
+def freischalten_bearbeiten(a: dict, uid: str) -> None:
+    """Jans Klick (oder Antwort) auf die Meldung. Nur der Knopf „Freischalten“ schaltet frei."""
+    with _schloss:
+        s = stand_lesen()
+        wer = s["angefragt"][uid]
+        ja = a.get("quelle") == "knopf" and a.get("text") == gl.FREISCHALTEN
+        if ja:
+            s["freigeschaltet"][uid] = wer["name"]
+        stand_schreiben(s)
+    if ja:
+        try:
+            senden(wer["chat_id"], gl.FREIGESCHALTET, wer["nachricht_id"])
+        except TelegramFehler as f:
+            logger.warning("Freischalten melden: %s", f)
+    auftraege.abschliessen(a["id"], f"{wer['name']} ist freigeschaltet." if ja else
+                           f"{wer['name']} bleibt ohne Zugang.")
+    logger.info("Freischalten %s (%s): %s", wer["name"], uid, ja)
 
 
 # ---------- Schleife ----------
@@ -376,11 +422,19 @@ def main() -> int:
             logger.warning("getUpdates: %s", f)
             time.sleep(10)
             updates = []
+        with _schloss:
+            aktuell = gl.mit_nutzern(zugang, stand_lesen()["freigeschaltet"])
         for u in updates:
-            a = gl.anfrage_aus(u, zugang)
-            if a is None:
-                if gl.herkunft(u) and (gl.herkunft(u)["chat_id"] != zugang.chat_id
-                                       or gl.herkunft(u)["nutzer_id"] not in zugang.nutzer):
+            a = gl.anfrage_aus(u, aktuell)
+            if a is None and (wer := gl.unbekannt_in_gruppe(u, aktuell)):
+                unbekannt_merken(u)
+                try:
+                    freischalten_anfragen(u, wer, aktuell)
+                except (TelegramFehler, meldungen.MeldungFehler) as f:
+                    logger.warning("Freischalten anfragen: %s", f)
+            elif a is None:
+                if gl.herkunft(u) and (gl.herkunft(u)["chat_id"] != aktuell.chat_id
+                                       or gl.herkunft(u)["nutzer_id"] not in aktuell.nutzer):
                     unbekannt_merken(u)
             else:
                 with _schloss:

@@ -89,6 +89,42 @@ class TestZugang(unittest.TestCase):
         self.assertIsNone(gl.herkunft({"update_id": 3}))
 
 
+class TestFreischalten(unittest.TestCase):
+    def test_unbekannt_in_der_gruppe(self):
+        wer = gl.unbekannt_in_gruppe(nachricht(von=FREMD), ZUGANG)
+        self.assertEqual(wer, {"nutzer_id": FREMD, "name": "Henri"})
+        self.assertIsNone(gl.unbekannt_in_gruppe(nachricht(von=HENRI), ZUGANG))  # schon frei
+        self.assertIsNone(gl.unbekannt_in_gruppe(nachricht(von=FREMD, chat=-100999), ZUGANG))  # andere Gruppe
+        self.assertIsNone(gl.unbekannt_in_gruppe(nachricht("ohne Erwähnung", von=FREMD), ZUGANG))
+        antwort = nachricht("und?", von=FREMD, reply_to_message={"message_id": 3, "from": {"id": BOT}, "text": "x"})
+        self.assertEqual(gl.unbekannt_in_gruppe(antwort, ZUGANG)["nutzer_id"], FREMD)
+
+    def test_mit_nutzern(self):
+        z = gl.mit_nutzern(ZUGANG, {"99": "Felix"})
+        self.assertIn(FREMD, z.nutzer)
+        self.assertIsNotNone(gl.anfrage_aus(nachricht(von=FREMD), z))
+        self.assertNotIn(FREMD, ZUGANG.nutzer)  # Zugang selbst bleibt unverändert
+        self.assertIn("ID 99", gl.freischalt_meldung("Felix", 99, "Lamellen-Scan"))
+
+
+class TestStil(unittest.TestCase):
+    def test_stilproben_aus_der_gruppe(self):
+        verlauf = [{"name": "Henri", "frage": "nimmt die kamera immer ein paar cm auf?", "antwort": "Zeilenkamera"},
+                   {"name": "Felix", "frage": "ok", "antwort": "x"},
+                   {"name": "Felix", "frage": "nimmt die kamera immer ein paar cm auf?", "antwort": "y"}]
+        proben = gl.stilproben(verlauf, "zitat hier", "und wie schnell?")
+        self.assertEqual(proben, ["nimmt die kamera immer ein paar cm auf?", "zitat hier", "und wie schnell?"])
+        self.assertNotIn("Zeilenkamera", proben)  # Rüdigers eigene Antworten sind kein Vorbild
+        self.assertEqual(len(gl.stilproben([{"frage": f"frage {i}"} for i in range(30)])), gl.MAX_STILPROBEN)
+
+    def test_prompt_hat_stil(self):
+        a = gl.Anfrage(GRUPPE, 5, HENRI, "Henri", "safe ne zeilenkamera oder?")
+        p = gl.prompt_frage(a, [], [], datetime(2026, 11, 19, 12, 0))
+        self.assertIn("Stilproben", p)
+        self.assertIn("- safe ne zeilenkamera oder?", p)
+        self.assertIn("per Du", gl.ROLLE)
+
+
 class TestGrenzen(unittest.TestCase):
     def test_tageslimit(self):
         jetzt = datetime(2026, 11, 19, 12, 0)

@@ -28,6 +28,10 @@ ZU_VIEL = "Für heute habe ich dir genug beantwortet. Morgen gern weiter."
 FEHLER = "Das hat gerade nicht geklappt. Frag bitte gleich noch einmal; Jan sieht den Fehler im Log."
 LIMIT = "Mein Rechenkontingent ist gerade erschöpft. Frag bitte später noch einmal."
 MAIL_BEI_JAN = "Entwurf liegt bei Jan zur Freigabe."
+WARTET_AUF_JAN = "Dich kenne ich noch nicht. Jan schaltet dich frei, dann geht's los."
+FREIGESCHALTET = "Du bist freigeschaltet, frag los."
+FREISCHALTEN, NICHT_FREISCHALTEN = "Freischalten", "Nicht freischalten"
+MAX_STILPROBEN = 10
 
 
 # Ordner anderer Agenten und Personen, die Rüdiger nie lesen darf (Test prüft lese_ordner_karte dagegen).
@@ -139,6 +143,30 @@ def _dateien(m: dict) -> list[dict]:
     return ergebnis
 
 
+def mit_nutzern(zugang: Zugang, weitere) -> Zugang:
+    """Zugang plus Personen, die Jan per Knopf freigeschaltet hat."""
+    return Zugang(zugang.chat_id, zugang.nutzer | frozenset(int(x) for x in weitere), zugang.bot_id, zugang.bot_name)
+
+
+def unbekannt_in_gruppe(update: dict, zugang: Zugang) -> dict | None:
+    """Jemand in der richtigen Gruppe, der noch nicht freigeschaltet ist, spricht Rüdiger an: {"nutzer_id", "name"}."""
+    m = update.get("message")
+    if not isinstance(m, dict) or zugang.chat_id is None or (m.get("chat") or {}).get("id") != zugang.chat_id:
+        return None
+    von = m.get("from") or {}
+    if not von.get("id") or von.get("is_bot") or von["id"] in zugang.nutzer:
+        return None
+    an_bot = ((m.get("reply_to_message") or {}).get("from") or {}).get("id") == zugang.bot_id
+    if not (_erwaehnt(m, zugang)[0] or an_bot):
+        return None
+    return {"nutzer_id": von["id"], "name": _name(von)}
+
+
+def freischalt_meldung(name: str, nutzer_id: int, chat: str) -> str:
+    return (f"{name} (Telegram-ID {nutzer_id}) möchte Rüdiger in der Gruppe „{chat}“ nutzen. Freigeschaltet darf "
+            f"die Person fragen und Mails anstoßen (die kommen weiter erst zu dir).")
+
+
 def anfrage_aus(update: dict, zugang: Zugang) -> Anfrage | None:
     """Die Anfrage an den Bot, oder None, wenn die Nachricht ihn nichts angeht oder nicht erlaubt ist."""
     m = update.get("message")
@@ -212,9 +240,16 @@ Was du lesen kannst (nur lesen, mit Read, Glob und Grep):
 {ordner}
 Dazu WebSearch und WebFetch für Literatur, Datenblätter, Normen und Hersteller.
 
+So schreibst du (Jan 19.11.2026: „so wie wir im Stil“):
+- Wie die Gruppe selbst: im Chat-Ton, per Du, locker, direkt, kurze Sätze, keine Förmlichkeit, keine Floskeln
+  („Gute Frage!“, „Ich hoffe, das hilft“). Übernimm Ton, Länge, Wortwahl und Groß- und Kleinschreibung aus den
+  Stilproben unten. Emojis nur, wenn die Gruppe selbst welche benutzt. Klartext ohne Markdown (keine Sternchen,
+  keine Rauten), Aufzählungen höchstens mit „-“.
+- So kurz wie möglich: erst die Antwort in ein, zwei Sätzen, dann nur die Einzelheiten, die wirklich helfen.
+  Lange Erklärungen nur, wenn jemand ausdrücklich danach fragt.
+- Locker im Ton, genau in der Sache: Zahlen, Einheiten und Fachbegriffe stimmen trotzdem.
+
 So arbeitest du:
-- Antworte fachlich genau, auf Deutsch, so lang wie nötig und so kurz wie möglich. Klartext ohne Markdown
-  (keine Sternchen, keine Rauten), Aufzählungen mit „-“.
 - Schau nach, bevor du antwortest: erst in den Projektunterlagen (STATUS.md im Spiegel ist der aktuelle Stand des
   Projekts, unterlagen/ hat das Kodytek-Paper als Text), dann im Netz. Nenne kurz die Quelle (Datei und Abschnitt,
   Paper mit Seite oder Abschnitt, Webseite).
@@ -240,8 +275,21 @@ def verlauf_text(verlauf: list[dict]) -> str:
     return "\n".join(zeilen) or "(noch kein Verlauf)"
 
 
+def stilproben(verlauf: list[dict], zitat: str = "", neu: str = "") -> list[str]:
+    """Eigene Nachrichten der Gruppe (nicht Rüdigers), neueste zuletzt, als Vorbild für den Ton."""
+    proben = [v.get("frage", "") for v in verlauf] + [zitat, neu]
+    ergebnis = []
+    for t in proben:
+        t = " ".join((t or "").split())[:300]
+        if len(t) >= 3 and t not in ergebnis:
+            ergebnis.append(t)
+    return ergebnis[-MAX_STILPROBEN:]
+
+
 def prompt_frage(a: Anfrage, verlauf: list[dict], dateien: list[str], heute: datetime) -> str:
+    proben = stilproben(verlauf, a.zitat, a.text)
     teile = [f"Heute ist {heute.strftime('%d.%m.%Y %H:%M')}.",
+             "Stilproben, so schreibt die Gruppe:\n" + "\n".join(f"- {t}" for t in proben),
              "Bisheriger Gesprächsverlauf in der Gruppe (nur zum Verständnis):\n" + verlauf_text(verlauf)]
     if a.zitat:
         teile.append(f"Die neue Nachricht antwortet auf:\n«{a.zitat}»")

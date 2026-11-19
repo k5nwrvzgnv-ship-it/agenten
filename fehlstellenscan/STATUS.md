@@ -74,8 +74,13 @@ die können später als Dateien Eingabe werden).
   Forschungsprojekts. Jan, Henri und Felix fragen per @-Erwähnung oder Antwort auf Rüdiger. Code: gruppe.py
   (Telegram per urllib, Long-Polling, kein neues Paket), gruppe_logik.py (rein, tests/test_gruppe_logik.py).
 - Dienst fehlstellenscan-gruppe.service (Vorlage systemd/, dauerhaft, MemoryMax 1G, OnFailure=ausfall@).
-- Zugang (.env): GRUPPE_BOT_TOKEN, GRUPPE_CHAT_ID, GRUPPE_NUTZER_IDS (Komma-Liste). Leer: keine Antworten,
-  aber Chat- und Personen-IDs jeder Erwähnung stehen in logs/gruppe.log und data/gruppe/unbekannt.jsonl.
+- Zugang (.env): GRUPPE_BOT_TOKEN, GRUPPE_CHAT_ID (-1004382420400, „Forschungsprojekt: Lamellen-Scan“),
+  GRUPPE_NUTZER_IDS (Jan 486792619). Henri und Felix: Spricht jemand Rüdiger in dieser Gruppe an, der nicht
+  eingetragen ist, bekommt Jan eine Meldung mit „Freischalten“ / „Nicht freischalten“ (einmal je Person), die Gruppe
+  „Jan schaltet dich frei“. Der Klick kommt als Auftrag (Feld meldung) zurück, gruppe.py trägt die Person in
+  data/gruppe/stand.json (freigeschaltet) ein. Andere Chats: nur Log und data/gruppe/unbekannt.jsonl.
+- Stil (Jan 19.11.2026): wie die Gruppe, Du, locker, kurz, ohne Floskeln, fachlich genau. Stilproben sind die
+  letzten eigenen Nachrichten der Gruppe aus dem Verlauf (nicht Rüdigers Antworten).
 - Fragen: claude_lauf mit lese_ordner, suchen=True, ohne_projekt=True (läuft in ~/.cache/agentkit/nur_lesen/,
   keine CLAUDE.md), Modell anspruchsvoll, Werkzeuge Read/Glob/Grep/WebSearch/WebFetch ([werkzeuge] fehlstellenscan,
   WebFetch ohne Domainliste, Jan „full power“). Lesen darf Rüdiger (gruppe_logik.lese_ordner_karte): Spiegel
@@ -343,4 +348,4 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
    Hochschule klären. Ausschreibungstext der TU fehlt noch (Durchsatz, Abmessungen, Merkmale, Genauigkeit).
 
 ## Gelernte Regeln
-- (noch keine)
+- 19.11.2026: Rüdiger schreibt in der Gruppe im Stil der Gruppe: Du, locker, kurz, ohne Floskeln, fachlich genau (Anlass: Jan „so wie wir im Stil“).
