@@ -268,7 +268,8 @@ def entwurf_einreichen(antwort: str, kontext: dict, herkunft: dict,
                 daten[feld] = vorgaenger["daten"][feld]
     inhalt = mail.anzeige(daten) + f"\n\n(Gewünscht von {herkunft['name']} in der Projektgruppe)"
     fid = freigabe.neuer_entwurf(AGENT, gl.entwurf_titel(daten, herkunft["name"]), inhalt, typ="mail", daten=daten,
-                                 vorgaenger=vorgaenger and vorgaenger["id"])
+                                 vorgaenger=vorgaenger and vorgaenger["id"],
+                                 anzeige=freigabe.GRUPPE)  # nur in der Gruppe, nicht in der Zentrale (Jan 19.11.)
     (DATEN / "mails").mkdir(parents=True, exist_ok=True)
     (DATEN / "mails" / f"{fid}.json").write_text(json.dumps({**herkunft, "kontext": kontext}, ensure_ascii=False))
     with _schloss:

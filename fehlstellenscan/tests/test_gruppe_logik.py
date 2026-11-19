@@ -269,6 +269,7 @@ class TestGeruestGruppe(unittest.TestCase):
         quelle = (HIER / "gruppe.py").read_text()
         for verboten in ("import torch", "import ultralytics", "subprocess", '"Bash"'):
             self.assertNotIn(verboten, quelle)
+        self.assertIn("anzeige=freigabe.GRUPPE", quelle)  # Entwürfe nur in der Gruppe, nicht in der Zentrale
         self.assertIn("ohne_projekt=True", quelle)  # nie im Repo, also ohne CLAUDE.md
         self.assertIn("werkzeuge=[]", quelle)  # Mail-Läufe ohne Netz
 

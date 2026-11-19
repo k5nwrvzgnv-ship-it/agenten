@@ -102,7 +102,8 @@ die können später als Dateien Eingabe werden).
   uni/.env kopiert, Jan 19.11.2026), Läufe ohne Netz. Entwurf in die Freigabe (typ mail) und in die Gruppe,
   genau wie in der Zentrale (telegram.logik.entwurf_als_text, Jan 19.11.2026), mit Knöpfen Freigeben/Ablehnen.
   Die Knöpfe wirken nur für Jan (GRUPPE_JAN_ID in .env, Telegram-ID im Klick), Freigabe mit dem Fingerabdruck des
-  in der Gruppe gezeigten Entwurfs; die Zentrale geht weiter. Antwortet jemand aus der Gruppe auf den Entwurf, ist
+  in der Gruppe gezeigten Entwurfs. Entwürfe tragen anzeige=gruppe und erscheinen nicht in der Zentrale (Jan
+  19.11.: „der entwurf soll in der gruppe landen“). Antwortet jemand aus der Gruppe auf den Entwurf, ist
   das ein Änderungswunsch: alter Entwurf wird „aendern“, neuer Entwurf (überarbeitet) kommt in Gruppe und Freigabe.
   Zuordnung Nachricht -> Entwurf in stand.json (entwuerfe).
   Nach Freigabe sendet gruppe.py genau einmal (SMTP HNEE, Kopie in
