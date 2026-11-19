@@ -238,6 +238,9 @@ Durchmesser in Python).
 
 ### Mac: Seg-Datensatz bauen und trainieren (von Hand)
 Mac-Terminal, Umgebung an wie im Abschnitt Mac. Erwartet wird kodytek-1 aus dem Abschnitt davor.
+Alles am Stück: seg_nacht.sh (Schritte 2-6, volles Training nur bei Probe-Mask-mAP50 ab 0,9, sonst Abbruch;
+batch=4 als Ersatz, wenn batch=8 abbricht). Start: `caffeinate -i bash seg_nacht.sh 2>&1 | tee seg_nacht.log`.
+Gestartet von Jan am 19.11.2026 abends (Ergebnis offen).
 
 1. Skripte holen (datensatz.py wird von masken.py gebraucht):
 
