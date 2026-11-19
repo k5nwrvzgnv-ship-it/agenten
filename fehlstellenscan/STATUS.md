@@ -94,7 +94,10 @@ die können später als Dateien Eingabe werden).
   Höchstens 40 Anfragen je Person und Tag. Antworten als Klartext, geteilt ab 4000 Zeichen.
 - Geprüft 19.11.2026 (offline simuliert): Freischalt-Klick trägt die Person ein; Henris Klick auf Freigeben wird
   abgewiesen, seine Antwort auf den Entwurf ergibt einen neuen, Jans Klick gibt frei, Mail geht genau einmal raus,
-  Ergebnis einmal in die Gruppe. Echter Test von Freischalten und Mail steht aus.
+  Ergebnis einmal in die Gruppe. Echt: Henri am 19.11. per Knopf freigeschaltet. Offen: Felix (ID 2036658844)
+  hat Rüdiger noch nicht angesprochen (Rüdiger ist Admin, sieht alle Nachrichten, fragt aber nur bei Erwähnung oder
+  Antwort). Echter Mail-Test mit dem neuen Ablauf steht aus; Jans Testmail an Henri (20261119-140812-...-d37e77)
+  entstand noch mit der alten Fassung und liegt nur in der Zentrale.
 - Mails: Claude antwortet {"mail_auftrag": ...}; dann agentkit.mailauftrag mit Jans HNEE-Postfach (Login aus
   uni/.env kopiert, Jan 19.11.2026), Läufe ohne Netz. Entwurf in die Freigabe (typ mail) und in die Gruppe,
   genau wie in der Zentrale (telegram.logik.entwurf_als_text, Jan 19.11.2026), mit Knöpfen Freigeben/Ablehnen.
