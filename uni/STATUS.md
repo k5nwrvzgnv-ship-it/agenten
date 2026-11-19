@@ -564,7 +564,8 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Rückmeldung nur bei expose und protokoll. Bei recherche, lernkarten, pruefung: fehlgeschlagen mit Hinweis "neuer
     Auftrag" (kein Lauf).
   - protokoll (19.11., Plan von Jan freigegeben, nur Unit-Tests, kein echter Lauf): Besprechungsprotokoll aus einem
-    Transkript (Teams-.docx über die Textfassung, .vtt, .txt; ohne lesbares Transkript fehlgeschlagen ohne Lauf), für
+    Transkript (Teams-.docx oder .pdf über die Textfassung, .vtt, .txt; ohne lesbares Transkript, auch Scan-PDF ohne
+    Text, fehlgeschlagen ohne Lauf; bei PDF zählen Silbentrennung am Zeilenende und "--- Seite N" nicht), für
     jede Besprechung, ohne Bezug zum Exposé (Jan). agent.protokoll_auftrag: ein Opus-Lauf ohne Netzwerkzeuge schreibt
     data/besprechungen/<kette>/protokoll.json (Format protokoll.FORMAT: Teilnehmende, Kurzfassung, Themen, Beschlüsse,
     Aufgaben mit wer/bis, offene Punkte, nächster Termin, naechste_besprechung mit Ziel, Vorab-Fragen, Tagesordnung und

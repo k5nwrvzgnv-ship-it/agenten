@@ -1250,7 +1250,7 @@ Offen, wartet auf Jan:
     sie seit c4e09bb (uni/protokoll.py, agent.protokoll_auftrag), ohne Eintrag erscheint sie aber nicht in der Galerie.
     Vorschlag: kennung = "protokoll", name = "Besprechungsprotokoll", beschreibung = "Protokoll aus dem Transkript
     einer Besprechung, mit Vorschlag für die nächste", agent = "uni", aktiv = true, ausgabe = ["pdf", "docx"],
-    material = "pflicht" (Transkript: Teams-.docx, .vtt oder .txt), rueckmeldung = true (Standard). Felder: Titel
+    material = "pflicht" (Transkript: Teams-.docx, .pdf, .vtt oder .txt), rueckmeldung = true (Standard). Felder: Titel
     (zeile), Hinweise (text, hilfe "z. B. Zweck der Runde, wer fehlte"). uni liest keinen Feldnamen, alle Felder
     gehen als Text an Claude.
 

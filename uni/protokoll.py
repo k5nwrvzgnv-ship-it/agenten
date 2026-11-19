@@ -1,7 +1,7 @@
 """Besprechungsprotokolle aus einem Transkript (Art "protokoll" im Arbeitsplatz).
 
-Claude liest das Transkript (Teams-.docx mit Textfassung, .vtt, .txt) und schreibt data/besprechungen/<kette>/
-protokoll.json im Format FORMAT unten: Inhalt, keine Gestaltung. Jeder Beschluss, jede Aufgabe und jeder offene Punkt
+Claude liest das Transkript (Teams-.docx oder .pdf über die Textfassung, .vtt, .txt) und schreibt
+data/besprechungen/<kette>/protokoll.json im Format FORMAT unten: Inhalt, keine Gestaltung. Jeder Beschluss, jede Aufgabe und jeder offene Punkt
 trägt einen Beleg, ein kurzes wörtliches Zitat aus dem Transkript. Python prüft (pruefen): Format, Belege wörtlich im
 Transkript, Namen aus den Teilnehmenden, Tagesordnung für die nächste Besprechung nur aus offenen Punkten, Aufgaben
 oder als "neu" gekennzeichnet. Dann baut es daraus eine Renderer-Beschreibung der Art "bericht" (als_bericht) und mit
@@ -122,8 +122,17 @@ def zitat_im_text(zitat: str, transkript_woerter: str) -> bool:
     return bool(w) and f" {' '.join(w)} " in transkript_woerter
 
 
+SEITENMARKE = re.compile(r"^-{3}\s*Seite\s+\d+[^\n]*\n?", re.MULTILINE)  # Textfassung einer PDF (kurse.als_text)
+TRENNUNG = re.compile(r"(\w)-[ \t]*\n[ \t]*(\w)")  # Silbentrennung am Zeilenende in PDF-Text
+
+
 def _vorbereitet(transkript: str) -> str:
-    return f" {' '.join(_woerter(transkript))} "
+    """Transkript für den Vergleich: ohne Seitenmarken der PDF-Textfassung, getrennte Wörter wieder zusammen. Die
+    getrennte Schreibung bleibt zusätzlich erhalten, damit echte Bindestrich-Wörter ("Zeilen-\\nkamera" aus
+    "Zeilen-Kamera") weiter passen."""
+    ohne_marken = SEITENMARKE.sub("", transkript)
+    zusammen = TRENNUNG.sub(r"\1\2", ohne_marken)
+    return f" {' '.join(_woerter(zusammen))} | {' '.join(_woerter(ohne_marken))} "
 
 
 def _text(wert, stelle: str, fehler: list[str], pflicht: bool = True, laenge: int = 2000) -> None:

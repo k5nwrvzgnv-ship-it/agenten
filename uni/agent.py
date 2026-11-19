@@ -1089,8 +1089,8 @@ def protokoll_auftrag(a: dict, start: dict, laufen=claude_lauf.laufen, bauen=pro
     quellen = protokoll.transkript_dateien([HIER / p for p in start.get("dateien") or []] + neu)
     transkript = protokoll.transkript_lesen(quellen)
     if not transkript.strip():
-        raise arten.ArtFehler("Für das Protokoll fehlt das Transkript als Datei (.docx aus Teams, .vtt oder .txt), "
-                              "oder es ist leer.")
+        raise arten.ArtFehler("Für das Protokoll fehlt das Transkript als Datei (.docx aus Teams, .pdf, .vtt oder "
+                              ".txt), oder es ist leer (eine eingescannte PDF ohne Text geht nicht).")
     ordner.mkdir(parents=True, exist_ok=True)
     termine_ordner = entwurf_ordner(a["id"])
     termin = PROTOKOLL_TERMIN.format(ordner=termine_ordner.relative_to(HIER))

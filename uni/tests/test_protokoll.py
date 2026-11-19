@@ -65,6 +65,18 @@ class Pruefen(unittest.TestCase):
         d["beschluesse"][0]["beleg"] = "Zeilenkamera"
         self.assertTrue(any("3 bis 40 Wörter" in f for f in fehler(d)))
 
+    def test_pdf_textfassung_mit_trennung_und_seitenmarken(self):
+        pdf_text = ("--- Seite 1\nFelix Neumann 0:01\nAlso, ich würde sagen, wir nehmen die Zeilen-\nkamera und nicht "
+                    "die Flächen-\n--- Seite 2\nkamera.\nHenri Bauer 0:45\nJa, einverstanden. Ich frage bei Schneider "
+                    "nach, ob wir im Dezember ins Werk dürfen.\nJan Kleinke 1:30\nOb wir die Lamellen sortiert oder "
+                    "unsortiert bekommen, wissen wir noch nicht.")
+        self.assertEqual(fehler(PROTOKOLL, pdf_text), [])
+        d = copy.deepcopy(PROTOKOLL)
+        d["beschluesse"][0]["beleg"] = "wir nehmen die Zeilen-Kamera"  # echter Bindestrich passt weiter
+        self.assertEqual(fehler(d, pdf_text), [])
+        d["beschluesse"][0]["beleg"] = "Seite 2 kamera"
+        self.assertTrue(any("steht so nicht im Transkript" in f for f in fehler(d, pdf_text)))
+
     def test_namen_aus_teilnehmenden(self):
         d = copy.deepcopy(PROTOKOLL)
         d["aufgaben"][0]["wer"] = "offen"
@@ -183,9 +195,13 @@ class Bauen(unittest.TestCase):
         docx = self.ordner / "b.docx"
         docx.write_bytes(b"")
         (self.ordner / "b.docx.txt").write_text("Text")
+        pdf = self.ordner / "d.pdf"
+        pdf.write_bytes(b"")
+        (self.ordner / "d.pdf.txt").write_text("--- Seite 1\nText")
         ohne = self.ordner / "c.pdf"
         ohne.write_bytes(b"")
-        self.assertEqual(protokoll.transkript_dateien([vtt, docx, ohne]), [vtt, self.ordner / "b.docx.txt"])
+        self.assertEqual(protokoll.transkript_dateien([vtt, docx, pdf, ohne]),
+                         [vtt, self.ordner / "b.docx.txt", self.ordner / "d.pdf.txt"])
         self.assertEqual(protokoll.transkript_lesen([vtt, docx]), "WEBVTT\n\nText")
 
 
