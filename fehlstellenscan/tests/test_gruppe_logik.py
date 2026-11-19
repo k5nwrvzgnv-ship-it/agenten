@@ -105,8 +105,20 @@ class TestFreischalten(unittest.TestCase):
         self.assertTrue(gl.fremder_chat(nachricht(von=FREMD, chat=-100999), ZUGANG))
         self.assertFalse(gl.fremder_chat({"update_id": 3}, ZUGANG))
 
+    def test_befehl_frage(self):
+        for text in ("/frage Wie hoch hängt die Kamera?", "/frage@nichtsotiefruedigerbot Wie hoch hängt die Kamera?",
+                     "/FRAGE@NichtSoTiefRuedigerBot  Wie hoch hängt die Kamera?"):
+            a = gl.anfrage_aus(nachricht(text), ZUGANG)
+            self.assertEqual(a.text, "Wie hoch hängt die Kamera?", text)
+        self.assertIsNone(gl.anfrage_aus(nachricht("/frage@anderer_bot Wie hoch?"), ZUGANG))
+        self.assertIsNone(gl.anfrage_aus(nachricht("/fragen sind gut"), ZUGANG))
+        self.assertIsNone(gl.anfrage_aus(nachricht("/frage"), ZUGANG))  # ohne Text keine Anfrage
+        foto = nachricht(None, photo=[{"file_id": "f", "file_size": 10}], caption="/frage was ist das?")
+        self.assertEqual(gl.anfrage_aus(foto, ZUGANG).text, "was ist das?")
+        self.assertEqual(gl.unbekannt_in_gruppe(nachricht("/frage hallo", von=FREMD), ZUGANG)["nutzer_id"], FREMD)
+
     def test_rolle_sagt_was_ruediger_mitbekommt(self):
-        self.assertIn("nur\n  Nachrichten, in denen du erwähnt wirst", gl.ROLLE)
+        self.assertIn("nur\n  Nachrichten, die mit /frage anfangen", gl.ROLLE)
         self.assertIn("keine anderen Gruppennachrichten", gl.ROLLE)
 
     def test_mit_nutzern(self):

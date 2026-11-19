@@ -521,6 +521,11 @@ def main() -> int:
     zugang = gl.zugang_aus_env(cfg, ich["id"], ich["username"])
     logger.info("Rüdiger gestartet als @%s, Gruppe %s, %d Personen", zugang.bot_name, zugang.chat_id,
                 len(zugang.nutzer))
+    try:  # /frage im Befehlsmenü der Gruppe, damit man ihn beim Tippen von / findet
+        api("setMyCommands", commands=[{"command": gl.BEFEHL, "description": "Frage an Rüdiger"}],
+            scope={"type": "all_group_chats"})
+    except TelegramFehler as f:
+        logger.warning("Befehlsmenü: %s", f)
     q: queue.Queue = queue.Queue()
     threading.Thread(target=arbeiter, args=(q,), daemon=True).start()
     naechste_pruefung, eingereiht = 0.0, set()

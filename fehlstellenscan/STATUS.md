@@ -71,7 +71,7 @@ die können später als Dateien Eingabe werden).
 
 ## Gruppen-Bot Rüdiger (Jan 19.11.2026)
 - Telegram-Bot @nichtsotiefruedigerbot („Rüdiger“, eigener Token, Privacy mode an) für die Gruppe des
-  Forschungsprojekts. Jan, Henri und Felix fragen per @-Erwähnung oder Antwort auf Rüdiger. Code: gruppe.py
+  Forschungsprojekts. Jan, Henri und Felix fragen mit /frage <Text> oder per Antwort auf Rüdiger. Code: gruppe.py
   (Telegram per urllib, Long-Polling, kein neues Paket), gruppe_logik.py (rein, tests/test_gruppe_logik.py).
 - Dienst fehlstellenscan-gruppe.service (Vorlage systemd/, dauerhaft, MemoryMax 1G, OnFailure=ausfall@).
 - Zugang (.env): GRUPPE_BOT_TOKEN, GRUPPE_CHAT_ID (-1004382420400, „Forschungsprojekt: Lamellen-Scan“),
@@ -95,8 +95,8 @@ die können später als Dateien Eingabe werden).
 - Geprüft 19.11.2026 (offline simuliert): Freischalt-Klick trägt die Person ein; Henris Klick auf Freigeben wird
   abgewiesen, seine Antwort auf den Entwurf ergibt einen neuen, Jans Klick gibt frei, Mail geht genau einmal raus,
   Ergebnis einmal in die Gruppe. Echt: Henri am 19.11. per Knopf freigeschaltet. Offen: Felix (ID 2036658844)
-  hat Rüdiger noch nicht angesprochen (Rüdiger ist Admin und bekommt alle Nachrichten, liest und notiert aber nur
-  Erwähnungen und Antworten auf ihn; Jan 19.11.). Echter Mail-Test mit dem neuen Ablauf steht aus; Jans Testmail an Henri (20261119-140812-...-d37e77)
+  hat Rüdiger noch nicht angesprochen (Rüdiger ist kein Admin, Datenschutzmodus an: Telegram
+  stellt nur /frage und Antworten auf ihn zu, @-Erwähnungen nicht; Jan 19.11.). Echter Mail-Test mit dem neuen Ablauf steht aus; Jans Testmail an Henri (20261119-140812-...-d37e77)
   entstand noch mit der alten Fassung und liegt nur in der Zentrale.
 - Mails: Claude antwortet {"mail_auftrag": ...}; dann agentkit.mailauftrag mit Jans HNEE-Postfach (Login aus
   uni/.env kopiert, Jan 19.11.2026), Läufe ohne Netz. Entwurf in die Freigabe (typ mail) und in die Gruppe,
