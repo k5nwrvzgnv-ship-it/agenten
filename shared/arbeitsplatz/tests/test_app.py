@@ -1049,3 +1049,81 @@ class TestNeueRecherche(Aufbau):
         self.assertEqual(status, 400)
         self.assertIn("ausgeschaltet", html)
         self.assertEqual((self.neue(), self.gestartet), ([], []))
+
+
+class TestUnterlagen(Aufbau):
+    """Haupt-STATUS 45c b: Verweise am Ordner (orte-verweise.json), nur lesend, nichts außerhalb der Wurzeln."""
+
+    def setUp(self):
+        super().setUp()
+        self.k = self.ort("Forschung")
+        docs = self.tmp / "fehlstellenscan" / "docs"
+        docs.mkdir(parents=True)
+        (docs / "markt.md").write_text("# Markt der Kappscanner\n\nDataspree und **BSH**.", encoding="utf-8")
+        (docs / "paper.pdf").write_bytes(b"%PDF-1.7")
+        (self.tmp / "fehlstellenscan" / ".env").write_text("TOKEN=geheim")
+        gruppe = self.tmp / "fehlstellenscan" / "data" / "gruppe" / "dateien" / "206"
+        gruppe.mkdir(parents=True)
+        (gruppe / "foto_206.jpg").write_bytes(b"JPG")
+        projekt = self.tmp / "uni" / "data" / "projekte" / "fehlstellen"
+        projekt.mkdir(parents=True)
+        (projekt / "schriftverkehr.json").write_text(json.dumps({"stand": "2026-11-20T13:00", "seit": "2026-10-01",
+            "gekappt": False, "mails": [{"betreff": "Betreuung", "datum": "2026-11-16T13:05", "richtung": "von",
+                                         "von": "Böhme", "an": ["Jan"], "text": "Gern <b>dabei</b>"}]}))
+        (self.instanz / "orte-verweise.json").write_text(json.dumps({"verweise": {self.k: [
+            "fehlstellenscan/docs/markt.md", "fehlstellenscan/docs/paper.pdf",
+            {"pfad": "fehlstellenscan/data/gruppe/dateien", "titel": "Aus der Gruppe"},
+            "uni/data/projekte/fehlstellen/schriftverkehr.json", "fehlstellenscan/docs/weg.md", "fehlstellenscan/.env"]}}))
+        self.gemacht = []
+
+        def machen(quelle, ziel):
+            self.gemacht.append(quelle.name)
+            (ziel / f"{quelle.stem}-seite-01.png").write_bytes(b"PNG1")
+        app._VORSCHAUEN[app.DATEN] = app.vorschau.Vorschauen(app.DATEN / "vorschau", machen)
+        self.addCleanup(app._VORSCHAUEN.pop, app.DATEN, None)
+
+    def test_ordner_zeigt_unterlagen(self):
+        html = self.get(f"/ort/{self.k}")[1]
+        teil = html.split("<h2>Unterlagen</h2>")[1].split("</section>")[0]
+        self.assertIn(f'href="/unterlage/{self.k}/0"', teil)
+        self.assertIn("Markt der Kappscanner", teil)
+        self.assertIn(f'href="/unterlage/{self.k}/2-0"', teil)
+        self.assertIn("Aus der Gruppe", teil)
+        self.assertIn("Schriftverkehr", teil)
+        self.assertIn("Nicht gefunden: fehlstellenscan/docs/weg.md", teil)
+        self.assertNotIn(".env", teil)  # nicht erlaubt: gar nicht da
+        self.assertNotIn("Noch leer", html)
+
+    def test_lesen(self):
+        status, html, _ = self.get(f"/unterlage/{self.k}/0")
+        self.assertEqual(status, 200)
+        self.assertIn('<h1 class="titel-gross">Markt der Kappscanner</h1>', html)
+        self.assertIn("<strong>BSH</strong>", html)
+        self.assertIn(f'href="/ort/{self.k}"', html.split('aria-label="Brotkrumen"')[1][:600])
+        status, inhalt, kopf = self.get(f"/unterlage/{self.k}/0/datei")
+        self.assertEqual((status, inhalt[:7]), (200, "# Markt"))
+        self.assertIn("attachment", kopf["content-disposition"])
+        html = self.get(f"/unterlage/{self.k}/3")[1]
+        self.assertIn("Gern &lt;b&gt;dabei&lt;/b&gt;", html)
+        self.assertIn("an dich", html)
+        self.assertEqual(self.get(f"/unterlage/{self.k}/2-0/bild")[0], 200)
+        self.assertEqual(self.get(f"/unterlage/{self.k}/0/bild")[0], 404)  # kein Bild
+
+    def test_seitenbilder(self):
+        html = self.get(f"/unterlage/{self.k}/1")[1]
+        self.assertTrue("wird gerade erstellt" in html or "/seite/1" in html)
+        app.vorschauen().warten()
+        self.assertEqual(self.gemacht, ["paper.pdf"])
+        html = self.get(f"/unterlage/{self.k}/1")[1]
+        self.assertIn(f'<img src="/unterlage/{self.k}/1/seite/1"', html)
+        self.assertEqual(self.get(f"/unterlage/{self.k}/1/seite/1")[1], "PNG1")
+        self.assertEqual(self.get(f"/unterlage/{self.k}/1/seite/2")[0], 404)
+
+    def test_nicht_erlaubt(self):
+        for pfad in ("4", "5", "6", "2", "0-0", "x", "..%2F0", "0/../../x"):
+            with self.subTest(pfad=pfad):
+                self.assertEqual(self.get(f"/unterlage/{self.k}/{pfad}")[0], 404)
+        self.assertEqual(self.get("/unterlage/gibt-es-nicht/0")[0], 404)
+        (self.instanz / "orte-verweise.json").write_text("kaputt")
+        self.assertEqual(self.get(f"/ort/{self.k}")[0], 200)
+        self.assertEqual(self.get(f"/unterlage/{self.k}/0")[0], 404)

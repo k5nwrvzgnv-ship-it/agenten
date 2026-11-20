@@ -126,3 +126,8 @@ code { font-size: 14px; background: var(--flaeche); border-radius: 4px; padding:
 .wird-gezogen { opacity: .5; }
 .dokument-zieht [data-ordner] { box-shadow: inset 0 0 0 1px var(--linie); }
 .dokument-zieht [data-ordner].ablage-ziel { background: var(--wahl); box-shadow: inset 0 0 0 1px var(--leise); }
+
+/* Unterlagen am Ordner (unterlage.html): Mailliste mit Abstand, Knopf „Herunterladen“ über dem Inhalt */
+.mailliste { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.mailliste .entwurf { font-size: 14px; }
+.unterlagen + .noch-leer, .knoepfe + .karte, .knoepfe + .seitenbilder, .knoepfe + .betrachter { margin-top: 12px; }

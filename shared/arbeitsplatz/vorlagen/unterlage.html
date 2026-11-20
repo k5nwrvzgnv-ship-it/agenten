@@ -1,0 +1,54 @@
+{#- Eine Unterlage am Ordner (Verweis ohne Auftrag, unterlagen.py): nur lesend, immer der aktuelle Stand der Datei.
+    Text als Absätze, Schriftverkehr als Mailliste (neueste zuerst, aufklappbar), pdf und Office als Seitenbilder
+    (eigene Vorschau, beim ersten Öffnen im Hintergrund), Bilder direkt. „Herunterladen“ geht immer. -#}
+{% extends "basis.html" %}
+{%- from "_markdown.html" import bloecke as md_bloecke -%}
+{% block seitenkopf %}
+<header class="kopf">
+  <span class="datum">Unterlage · {{ name }}{% if zeit_text %} · geändert {{ zeit_text }}{% endif %}</span>
+  <h1 class="titel-gross">{{ e.titel }}</h1>
+</header>
+{% endblock %}
+{% block inhalt %}
+<div class="knoepfe">
+  <a class="knopf" href="/unterlage/{{ ort_id }}/{{ nr }}/datei" download>Herunterladen</a>
+</div>
+{%- if fehler_text %}
+<p class="hinweis hinweis-fehler">{{ fehler_text }}</p>
+{%- elif art == "text" %}
+<div class="karte">{{ md_bloecke(bloecke) }}</div>
+{%- elif art == "mails" %}
+<p class="unter">Auszug von uni{% if post.stand %}, Stand {{ post.stand | replace("T", " ") }}{% endif %}{% if post.seit %} · Mails ab {{ post.seit }}{% endif %} · nur lesend</p>
+{%- if post.gekappt %}<p class="hinweis">Mindestens eine Suche hat die Grenze erreicht, ältere Mails fehlen.</p>{% endif %}
+<ul class="mailliste">
+  {%- for m in post.mails %}
+  <li>
+    <details class="mehr"{% if loop.first %} open{% endif %}>
+      <summary><span class="titel">{{ m.betreff or "Ohne Betreff" }}</span>
+        <span class="unter">&nbsp;· {{ m.datum | replace("T", " ") }} · {{ "von dir" if m.von_mir else "an dich" }}</span></summary>
+      <div class="mehr-inhalt">
+        <p class="unter">Von: {{ m.von }}</p>
+        {%- if m.an %}<p class="unter">An: {{ m.an | join(", ") }}</p>{% endif %}
+        {%- if m.anhaenge %}<p class="unter">Anhänge: {{ m.anhaenge | join(", ") }}</p>{% endif %}
+        <div class="entwurf">{{ m.text }}</div>
+      </div>
+    </details>
+  </li>
+  {%- else %}
+  <li class="leer">Keine Mails.</li>
+  {%- endfor %}
+</ul>
+{%- elif art == "bild" %}
+<figure class="betrachter"><img src="/unterlage/{{ ort_id }}/{{ nr }}/bild" alt="{{ e.titel }}"></figure>
+{%- elif seiten %}
+<div class="seitenbilder">
+  {%- for s in range(1, seiten + 1) %}
+  <img src="/unterlage/{{ ort_id }}/{{ nr }}/seite/{{ s }}" alt="{{ e.titel }}, Seite {{ s }} von {{ seiten }}" loading="lazy">
+  {%- endfor %}
+</div>
+{%- elif vorschau_laeuft %}
+<p class="hinweis">Die Seitenansicht wird gerade erstellt. Lade die Seite gleich neu.</p>
+{%- else %}
+<p class="leer">Keine Seitenansicht möglich. Herunterladen geht.</p>
+{%- endif %}
+{% endblock %}

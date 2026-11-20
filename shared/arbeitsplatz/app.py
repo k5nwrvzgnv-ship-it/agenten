@@ -6,7 +6,7 @@ der Orte (agentkit.orte) mit „+ Seite“, Mitte die Seite des Orts mit Unterse
 legt einen Auftrag an (quelle="arbeitsplatz", ort, art, felder) und startet <agent>.service.
 
 Seiten (GET): /  /ort/<id>  /seite/neu?eltern=<id>  /archiv  /neu?ort=<id>  /neu/<art>?ort=<id>  /dokument/<id>
-  /recherche/neu?ort=<id>  /recherche/<motor>/<projekt>
+  /recherche/neu?ort=<id>  /recherche/<motor>/<projekt>  /unterlage/<ort>/<nr> (Verweise, unterlagen.py)
   Dateien: /dokument/<id>/datei/<auftrag>/<nr>[/pdf|/seite/<n>]  /dokument/<id>/eigene/<n>
 Formulare (POST): /seite/neu  /ort/<id>/umbenennen|verschieben|archivieren|wiederherstellen  /rueckgaengig  /neu/<art>
   /recherche/neu (Plan) und /recherche/los (Auftrag an uni)
@@ -24,6 +24,7 @@ Start: .venv/bin/python app.py   (Unix-Socket data/arbeitsplatz.sock, änderbar 
 Instanz: ARBEITSPLATZ_INSTANZ (Standard: Jans shared-Ordner); orte.json, auftraege/, fassungen/ liegen dort.
 """
 
+import hashlib
 import json
 import logging
 import os
@@ -55,6 +56,7 @@ from agentkit import _ablage, arten, auftraege, config, fassungen, orte, recherc
 import ansichten
 import dateien
 import logik
+import unterlagen
 import vorschau
 
 HIER = Path(__file__).resolve().parent
@@ -192,6 +194,32 @@ def verschoben_vergessen(ursprung: str) -> bool:
         tmp.write_text(json.dumps({"zuordnung": daten}, ensure_ascii=False, indent=1), encoding="utf-8")
         os.replace(tmp, pfad)
         return True
+
+
+VERWEISE = "orte-verweise.json"  # Unterlagen am Ordner ohne Auftrag (unterlagen.py)
+
+
+def verweise() -> dict[str, list[dict]]:
+    pfad = INSTANZ / VERWEISE
+    if not pfad.exists():
+        return {}
+    try:
+        return unterlagen.pruefen(json.loads(pfad.read_text(encoding="utf-8")))
+    except (OSError, ValueError) as f:
+        logger.error("%s nicht lesbar: %s", VERWEISE, f)
+        return {}
+
+
+def unterlagen_zeilen(ort_id: str) -> list[dict]:
+    """Unterlagen des Ordners für die Ordner-Seite, mit Link und Zeit."""
+    zeilen = unterlagen.eintraege(agenten_dir(), verweise().get(ort_id, []))
+    for z in zeilen:
+        z["link"] = "" if z["fehlt"] else f"/unterlage/{ort_id}/{z['nr']}"
+        z["zeit_text"] = logik.zeit_kurz(datetime.fromtimestamp(z["zeit"], ZONE).isoformat(), heute_iso()) \
+            if z["zeit"] else ""
+        if z["fehlt"]:
+            logger.warning("Unterlage %s am Ordner %s nicht gefunden oder nicht erlaubt", z["unter"], ort_id)
+    return zeilen
 
 
 def recherche_zuordnung() -> dict[str, str]:
@@ -366,7 +394,7 @@ def seite_ort(request: Request, ort_id: str):
     von_oben = [{**x, "ort_text": logik.ort_text(baum, x["ort_hier"])} for x in projekte if x.get("ort_hier") in oben]
     return seite(request, "ort.html", {
         "e": {"titel": k["titel"]}, "ort": k, "archiviert": not orte.sichtbar(baum, ort_id),
-        "unterseiten": orte.kinder(baum, ort_id), "dokumente": docs,
+        "unterseiten": orte.kinder(baum, ort_id), "dokumente": docs, "unterlagen": unterlagen_zeilen(ort_id),
         "recherchen": [x for x in projekte if x.get("ort_hier") == ort_id], "recherchen_oben": von_oben,
         "ziele": logik.ziele_zum_verschieben(baum, ort_id),
         "endungen": ",".join(ENDUNGEN), "max_dateien": MAX_DATEIEN,
@@ -1119,6 +1147,68 @@ def _ausliefern(pfad: Path | None, herunterladen: bool = True) -> FileResponse:
     if pfad is None:
         raise HTTPException(404)
     return FileResponse(pfad, filename=pfad.name if herunterladen else None)
+
+
+# --- Unterlagen am Ordner (Verweise ohne Auftrag, unterlagen.py) -------------------------------------------------
+
+def _unterlage(ort_id: str, nr: str) -> tuple[Path, dict]:
+    """Datei der Unterlage nr am Ordner ort_id; sonst 404."""
+    treffer = unterlagen.finden(agenten_dir(), verweise().get(ort_id, []), nr)
+    if treffer is None:
+        raise HTTPException(404)
+    return treffer
+
+
+def _unterlage_vorschau(pfad: Path) -> tuple[str, int]:
+    """Schlüssel der eigenen Vorschau (data/vorschau/unterlage-<hash>/0/), aus dem Pfad relativ zum Hauptordner."""
+    rel = str(pfad.relative_to(agenten_dir().resolve()))
+    return "unterlage-" + hashlib.sha256(rel.encode()).hexdigest()[:16], 0
+
+
+@app.get("/unterlage/{ort_id}/{nr}", response_class=HTMLResponse)
+def seite_unterlage(request: Request, ort_id: str, nr: str):
+    """Eine Unterlage lesen: Text (.md, .txt), Schriftverkehr als Mailliste, Seitenbilder (pdf und Office, eigene
+    Vorschau im Hintergrund) oder Bild. Herunterladen geht immer."""
+    baum = baum_laden()
+    ort_oder_404(baum, ort_id)
+    pfad, v = _unterlage(ort_id, nr)
+    art = unterlagen.art(pfad)
+    titel = (v["titel"] if "-" not in nr else "") or unterlagen.titel_aus(pfad)
+    werte = {"e": {"titel": titel}, "art": art, "ort_id": ort_id, "nr": nr, "name": pfad.name,
+             "zeit_text": logik.zeit_kurz(datetime.fromtimestamp(pfad.stat().st_mtime, ZONE).isoformat(), heute_iso()),
+             "bloecke": [], "post": None, "seiten": 0, "vorschau_laeuft": False, "fehler_text": ""}
+    try:
+        if art == "text":
+            werte["bloecke"] = ansichten.markdown_bloecke(pfad.read_text(encoding="utf-8", errors="replace"))
+        elif art == "mails":
+            werte["post"] = unterlagen.mails(pfad)
+        elif art == "seiten":
+            v_ = vorschauen()
+            schluessel, n = _unterlage_vorschau(pfad)
+            werte["seiten"] = len(v_.seiten(schluessel, n, pfad))
+            werte["vorschau_laeuft"] = not werte["seiten"] and v_.anstossen(schluessel, n, pfad)
+    except (OSError, ValueError) as f:
+        logger.warning("Unterlage %s nicht lesbar: %s", pfad, f)
+        werte["fehler_text"] = "Die Datei ist gerade nicht lesbar. Einzelheiten stehen im Log."
+    return seite(request, "unterlage.html", {**werte, **rahmen(baum, ort_id, logik.krumen(baum, ort_id, titel), None)})
+
+
+@app.get("/unterlage/{ort_id}/{nr}/datei")
+def unterlage_datei(ort_id: str, nr: str):
+    return _ausliefern(_unterlage(ort_id, nr)[0])
+
+
+@app.get("/unterlage/{ort_id}/{nr}/bild")
+def unterlage_bild(ort_id: str, nr: str):
+    pfad, _ = _unterlage(ort_id, nr)
+    return _ausliefern(pfad if unterlagen.art(pfad) == "bild" else None, herunterladen=False)
+
+
+@app.get("/unterlage/{ort_id}/{nr}/seite/{seite_nr:int}")
+def unterlage_seite(ort_id: str, nr: str, seite_nr: int):
+    pfad, _ = _unterlage(ort_id, nr)
+    seiten = vorschauen().seiten(*_unterlage_vorschau(pfad), pfad) if unterlagen.art(pfad) == "seiten" else []
+    return _ausliefern(seiten[seite_nr - 1] if 1 <= seite_nr <= len(seiten) else None, herunterladen=False)
 
 
 @app.get("/dokument/{ursprung}/datei/{auftrag_id}/{nr:int}")
