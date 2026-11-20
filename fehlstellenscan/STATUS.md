@@ -22,6 +22,12 @@ die können später als Dateien Eingabe werden).
   (2) Neupreise nirgends öffentlich; verbreitete Alternative ist Kreidemarkierung von Hand plus optimierende
   Kappsäge. (3) Normweg für Kamera plus YOLO ist apparativ unterstützte visuelle Sortierung (DIN 4074-3:2025-06),
   nicht maschinelle Festigkeitssortierung nach EN 14081. Kostenschwelle nur über die zwei Werke klärbar.
+- Recherche Hardware und Training (20.11.2026): docs/recherche-hardware-training.md (Notizen daneben). Befunde:
+  (1) 5-10k reicht für einen Demonstrator (zwei Farbzeilen- oder Flächenkameras oben/unten, Hand-Durchschub mit
+  Messrad-Encoder, Lichttunnel, Laserlinie Eigenbau Klasse 2, Jetson), nicht für Industrie (45-140k geschätzt).
+  (2) Engpass ist die Annotation, nicht Rechenzeit; eigener Kodytek-Lauf liegt auf dem Niveau publizierter
+  Arbeiten mit 3.500 Bildern. (3) Verdeckte Nägel, innere Fäule, A-Kategorien sieht keine Kamera. (4) WIn-Altholz
+  (FNR, HNEE-koordiniert, NIR-Handscanner) ist Anknüpfungspunkt für die Bewerbung.
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
