@@ -1271,8 +1271,9 @@ Offen, wartet auf Jan:
     Gründerzuschüsse 64b26b); „Neuer Ordner“ archiviert. Alle acht Dokumente stehen an ihren Ordnern (geprüft).
     Jan 20.11.: „Markt und Wettbewerb“, „Datensatz und Training“, „Aufnahme und Prototyp“ und „Literatur“ erst, wenn
     sie Inhalt haben (also mit c).
-    c) Offen, Vorschlag bei Jan (shared/arbeitsplatz/STATUS.md, Offene Punkte 6): „Ohne Ordner“ auf Heute und
-       Verweise auf Dateien ohne Auftrag am Ordner. Gebaut wird erst nach Jans Okay.
+    c) Gebaut 20.11. (Jan „a und b zusammen“): „Ohne Ordner“ auf Heute und „Unterlagen“ am Ordner
+       (orte-verweise.json), dazu Ordner „Markt und Wettbewerb“ und „Literatur“ (unter Recherche) mit Unterlagen.
+       Einzelheiten und was offen bleibt: shared/arbeitsplatz/STATUS.md (Stand; Offene Punkte 6 und 7).
 
 ## Gelernte Regeln
 - (noch keine)

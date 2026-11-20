@@ -371,7 +371,10 @@ def seite_heute(request: Request):
     for d in docs:
         d["ort_text"] = logik.ort_text(baum, d["ort"])
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
-    ohne = logik.dokumente(alle, None, namen, finals(), zuordnung(), verschoben(), ohne=True)
+    # Ohne Ordner nur von den Agenten des Arbeitsplatzes (arten.toml), nicht posteingang, Lia oder Prüfstände
+    agenten = {a["agent"] for a in arten_laden()}
+    ohne = [d for d in logik.dokumente(alle, None, namen, finals(), zuordnung(), verschoben(), ohne=True)
+            if d["agent"] in agenten]
     for d in ohne:
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
     projekte = projekte_mit_ort(baum)

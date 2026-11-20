@@ -87,7 +87,23 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Dokument verschieben (Jan 19.11.2026): Dokumentzeilen auf einen Ordner ziehen (Baum oder Unterordner-Liste,
   `statisch/ziehen.js`), ohne JavaScript und auf dem Handy über „Verschieben nach“ im „···“ des Dokuments. Route
   `POST /dokument/<id>/ort`; gemerkt in `data/verschoben.json` (gewinnt in `logik.ort_von`, Aufträge bleiben
-  unverändert). Danach Hinweis „liegt jetzt in …“ mit Rückgängig.
+  unverändert). Danach Hinweis „liegt jetzt in …“ mit Rückgängig. Leeres `ort` vergisst die Verschiebung
+  (Rückgängig nach „Ohne Ordner“; dann gilt wieder Feld ort bzw. orte-zuordnung.json).
+- Ohne Ordner (Jan 20.11.2026, Haupt-STATUS 45c a): Heute zeigt unten die zugeklappte Klappe „Ohne Ordner (n)“ mit
+  Dokumenten ohne Ort (`logik.dokumente(..., ohne=True)`), nur von den Agenten aus arten.toml (uni, dokumente,
+  finance; nicht posteingang, Lia, Prüfstände). Außerhalb von `#heute`, damit das Neuladen jede Minute sie nicht
+  schließt. Einordnen per Ziehen oder „Verschieben nach“ (dort steht bei ihnen „Ohne Ordner“ vorgewählt).
+- Unterlagen am Ordner (Jan 20.11.2026, Haupt-STATUS 45c b, `unterlagen.py`): Dateien ohne Auftrag, nur lesend und
+  immer aktuell. `shared/orte-verweise.json` (nicht im Repo) `{"verweise": {ort: ["<pfad>" | {"pfad", "titel"}]}}`,
+  Pfade relativ zum Hauptordner, nur unter `fehlstellenscan/docs`, `fehlstellenscan/unterlagen`,
+  `fehlstellenscan/data/gruppe/dateien` (Rüdiger), `uni/data/projekte`; nichts Verstecktes, Symlinks nur innerhalb;
+  Endungen md, txt, pdf, docx, pptx, xlsx, png, jpg, von json nur schriftverkehr.json. Ordner-Verweis: alle Dateien
+  bis zwei Ebenen tief, neueste zuerst. Ordner-Seite: Abschnitt „Unterlagen“ (fehlende rot, „Nicht gefunden“).
+  `/unterlage/<ort>/<n>[-<m>]`: Text als Absätze, Schriftverkehr als Mailliste, pdf/Office als Seitenbilder (eigene
+  Vorschau `data/vorschau/unterlage-<hash>/0/`), Bilder; `/datei` lädt herunter. Eintragen nur über die Datei.
+  Eingetragen 20.11.: Forschungsprojekt <- Gruppendateien (Rüdiger); Betreuung <- schriftverkehr.json; Interviews
+  <- wissen.md; „Markt und Wettbewerb“ (neu) <- docs/markt-kappscanner.md; „Literatur“ (neu, unter Recherche) <-
+  Kodytek-Paper (pdf) und docs/recherche-zwilling-flicken.md.
 - Dokument-Kopf: Titel ungekürzt, am ersten Doppelpunkt geteilt (`logik.titel_teilen`), Rest als leiser Untertitel.
 - Dokument-Seite: Rückmeldung als immer sichtbares Feld (nur Arten mit `rueckmeldung`), „Senden“ der einzige blaue
   Knopf (bei finaler Fassung keiner). Ein Dokument, auch in mehreren Formaten gleichen Namens (docx und pdf,
@@ -165,7 +181,7 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
    Zuordnen geht über die Datei oder (seit 19.11.) per Ziehen in der Oberfläche (verschoben.json).
    Nachgetragen 20.11. (Haupt-STATUS 45): e86e20, 003f12 -> Recherche; fünf Böhme-Mails -> „Betreuung (Prof.
    Böhme)“; 64b26b -> „Förderung und Gründung“ (beide Ordner neu, „Neuer Ordner“ archiviert).
-3. `shared/orte.json` und `orte-zuordnung.json` sind nicht im Repo und damit nicht in der nächtlichen Sicherung
+3. `shared/orte.json`, `orte-zuordnung.json` und `orte-verweise.json` sind nicht im Repo und damit nicht in der nächtlichen Sicherung
    (nur git push). Ins Repo käme die Datei nur über einen Weg wie commit-daten.sh; die Frage legt die koordinierende
    Sitzung Jan am 10.11. vor. Bis dahin kein eigener Sicherungsweg.
 5. Recherche am Ort, nächste Schritte (docs/recherche-plan.md 6a, 6b, 7): Plan mit Claude statt Python (Planlauf,
@@ -173,24 +189,13 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
    Haupt-STATUS); Verschieben einer Recherche im „···“. „+ → Recherche …“ live seit dem Neustart 17.11. (alle
    Seiten 200); ein echter Lauf darüber steht noch aus. Lias drei Projekte haben keinen Ort (Jans Instanz kennt ihre Reihen nicht), sie stehen auf Heute.
 4. Echte Läufe 10.11. ab 15 Uhr: alle Arten außer Exposé, Recherche nur „kurz“ (Jans Entscheidung, siehe Plan).
-6. Inhalte ohne Auftrag und Dokumente ohne Ordner (Haupt-STATUS 45c, Vorschlag 20.11.2026, nicht gebaut, wartet
-   auf Jans Okay):
-   a) „Ohne Ordner“ auf Heute: Dokumente, deren Ursprung weder `ort` noch Zuordnung noch Verschiebung hat (am
-      20.11.: 16 von uni, 3 von dokumente, meist Mails und Fragen per Telegram), als zugeklappte Klappe unten auf
-      Heute. Jede Zeile lässt sich wie bisher auf einen Ordner ziehen oder über „Verschieben nach“ einordnen
-      (verschoben.json); danach verschwindet sie dort. Klein: `logik.dokumente_ohne_ort`, heute.html, Tests.
-   b) Verweise am Ordner: Datei `shared/orte-verweise.json` (wie orte-zuordnung.json, nicht im Repo),
-      `{"verweise": {ort: [{"pfad": "<relativ zum Hauptordner>", "titel": optional}]}}`. Ein Verweis auf eine Datei
-      zeigt sie, auf einen Ordner alle Dateien darin, neueste zuerst. Nur lesend und immer aktuell (keine Kopie).
-      Erlaubt sind nur feste Wurzeln, geprüft wie in dateien.py: `fehlstellenscan/docs/`, `fehlstellenscan/unterlagen/`,
-      `fehlstellenscan/data/gruppe/dateien/` (Rüdiger), `uni/data/projekte/`. Ordner-Seite: Abschnitt „Unterlagen“;
-      .md als Text, PDF und Bilder über die vorhandene Vorschau, schriftverkehr.json als Mailliste (Datum, von, Betreff,
-      Text aufklappbar). Erste Verweise: Interviews <- uni/.../fehlstellen/wissen.md; Betreuung <- schriftverkehr.json;
-      neu „Markt und Wettbewerb“ <- fehlstellenscan/docs/markt-kappscanner.md; neu „Literatur“ unter Recherche <-
-      Kodytek-Paper und docs/recherche-zwilling-flicken.md; „Datensatz und Training“ <- Läufe, sobald auswertung.py
-      eine lesbare Zusammenfassung je Lauf schreibt; Rüdiger-Dateien als Ordner-Verweis am Forschungsprojekt.
-      Eintragen zunächst über die Datei, „Verweis hinzufügen“ im „···“ später.
-   Offene Frage an Jan: a und b zusammen bauen, oder erst a?
+6. Unterlagen und Ohne Ordner (gebaut 20.11.2026, siehe Stand). Offen: „Verweis hinzufügen“ und Verschieben einer
+   Unterlage in der Oberfläche; Läufe von fehlstellenscan (data/laeufe/) erst, wenn auswertung.py je Lauf eine lesbare
+   Zusammenfassung schreibt, dann Ordner „Datensatz und Training“; „Aufnahme und Prototyp“ hat noch keinen Inhalt.
+7. Änderungen an Mail-Entwürfen per Telegram („Ändern“, quelle telegram-aendern) tragen als `bezug` die id des
+   Freigabe-Entwurfs, nicht die des Auftrags. `logik.ketten` findet den Ursprung deshalb nicht, jede Änderung steht
+   als eigenes Dokument unter „Ohne Ordner“ (z. B. 3ac659 „Ändere auf 9:30“ zu den Böhme-Mails). Der Freigabe-Eintrag
+   führt die Auftrags-id nicht; Lösung braucht sie dort oder in der Zentrale (shared/telegram). Noch nicht angegangen.
 
 ## Gelernte Regeln
 (noch keine)

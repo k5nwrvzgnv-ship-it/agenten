@@ -847,8 +847,11 @@ class TestZuordnungApp(TestDokument):
         a = json.loads(pfad.read_text())
         del a["ort"]
         pfad.write_text(json.dumps(a))
+        fremd = "20261109-120000-posteingang-cccccc"  # nicht aus arten.toml: nicht auf Heute
+        (pfad.parent / f"{fremd}.json").write_text(json.dumps({**a, "id": fremd, "agent": "posteingang"}))
         html = self.get("/")[1]
         self.assertIn("<summary>Ohne Ordner (1)</summary>", html)
+        self.assertNotIn(fremd, html)
         ohne = html.split('class="ohne-ordner"')[1]
         self.assertIn(f'draggable="true" data-dokument="{self.U}"', ohne)
         self.assertNotIn('class="ohne-ordner"', html.split('id="heute"')[1].split("</div>\n")[0])
