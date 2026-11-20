@@ -165,6 +165,30 @@ def _ursprung(a: dict, nach_id: dict[str, dict]) -> str:
     return weg[-1]
 
 
+def bezuege_pruefen(daten) -> dict[str, str]:
+    """Freigabe-ID -> Auftrag (z. B. uni/data/mailentwuerfe.json), nur Paare aus zwei gültigen ids."""
+    if not isinstance(daten, dict):
+        return {}
+    return {f: a for f, a in daten.items() if isinstance(f, str) and isinstance(a, str)
+            and ID_AUFTRAG.fullmatch(f) and ID_AUFTRAG.fullmatch(a)}
+
+
+def bezug_umlenken(auftraege: list[dict], bezuege: dict[str, str]) -> list[dict]:
+    """Änderungen per Telegram (quelle telegram-aendern) tragen als bezug die id des Freigabe-Entwurfs, nicht die
+    des Auftrags. Zeigt bezug auf keinen Auftrag, aber laut bezuege auf einen Entwurf eines Auftrags desselben
+    Agenten, gilt dieser Auftrag als bezug (Kopie, die Aufträge selbst bleiben unverändert)."""
+    nach_id = {a["id"]: a for a in auftraege}
+    ergebnis = []
+    for a in auftraege:
+        b = a.get("bezug")
+        ziel = nach_id.get(bezuege.get(b or "", ""))
+        if b and b not in nach_id and ziel is not None and ziel["id"] != a["id"] \
+                and ziel.get("agent") == a.get("agent"):
+            a = {**a, "bezug": ziel["id"]}
+        ergebnis.append(a)
+    return ergebnis
+
+
 def ketten(auftraege: list[dict]) -> dict[str, list[dict]]:
     """Ursprung -> Aufträge der Kette (nach erstellt), nur Agenten, deren Aufträge Dokumente sind."""
     nach_id = {a["id"]: a for a in auftraege}

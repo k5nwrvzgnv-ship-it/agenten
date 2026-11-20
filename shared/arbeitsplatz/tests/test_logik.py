@@ -200,6 +200,26 @@ class TestDokumentAnsicht(unittest.TestCase):
                          [("Exposé", "0.12", f"/dokument/{U}", True), ("", "0.00", "", False)])
 
 
+class TestBezugUmlenken(unittest.TestCase):
+    def test_aenderung_per_telegram_haengt_am_auftrag(self):
+        entwurf, entwurf2 = "20261109-103000-uni-eeeeee", "20261109-113000-uni-ffffff"
+        N2 = "20261109-115000-uni-cccccc"
+        alle = [auftrag(U), auftrag(NB, bezug=entwurf), auftrag(N2, bezug=entwurf2),
+                auftrag("20261109-120000-uni-dddddd", bezug="20261109-120500-uni-999999")]
+        b = logik.bezuege_pruefen({entwurf: U, entwurf2: U, "x": U, "20261109-120500-uni-999999": "../x", 3: U})
+        self.assertEqual(b, {entwurf: U, entwurf2: U})
+        neu = logik.bezug_umlenken(alle, b)
+        self.assertEqual([a.get("bezug") for a in neu], [None, U, U, "20261109-120500-uni-999999"])
+        self.assertEqual(alle[1]["bezug"], entwurf)  # Original bleibt
+        self.assertEqual([a["id"] for a in logik.ketten(neu)[U]], [U, NB, N2])
+        # bezug auf einen echten Auftrag bleibt, fremder Agent wird nicht umgelenkt
+        self.assertEqual(logik.bezug_umlenken([auftrag(U), auftrag(NB, bezug=U)], {U: NB})[1]["bezug"], U)
+        fremd = [auftrag("20261109-100000-dokumente-aaaaaa"), auftrag(NB, bezug=entwurf)]
+        self.assertEqual(logik.bezug_umlenken(fremd, {entwurf: "20261109-100000-dokumente-aaaaaa"})[1]["bezug"],
+                         entwurf)
+        self.assertEqual(logik.bezuege_pruefen([]), {})
+
+
 class TestZuordnung(unittest.TestCase):
     def test_alte_ergebnisse_ueber_zuordnung(self):
         alle = [auftrag(U, ergebnis_dateien=["a/E.pdf"]), auftrag(NB, bezug=U),

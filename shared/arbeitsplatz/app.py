@@ -127,8 +127,25 @@ def arten_namen() -> dict[str, str]:
     return {a["kennung"]: a["name"] for a in arten_laden()}
 
 
+# Freigabe-ID -> Auftrag, von den Agenten selbst gepflegt; nur gelesen (Änderungen per Telegram, logik.bezug_umlenken)
+ENTWURF_ZUORDNUNG = {"uni": "data/mailentwuerfe.json"}
+
+
+def freigabe_bezuege() -> dict[str, str]:
+    ergebnis = {}
+    for agent, relativ in ENTWURF_ZUORDNUNG.items():
+        pfad = agenten_dir() / agent / relativ
+        if not pfad.exists():
+            continue
+        try:
+            ergebnis |= logik.bezuege_pruefen(json.loads(pfad.read_text(encoding="utf-8")))
+        except (OSError, ValueError) as f:
+            logger.warning("%s nicht lesbar: %s", pfad, f)
+    return ergebnis
+
+
 def alle_auftraege() -> list[dict]:
-    return auftraege.erledigte(basis=basis()) + auftraege.neue(basis=basis())
+    return logik.bezug_umlenken(auftraege.erledigte(basis=basis()) + auftraege.neue(basis=basis()), freigabe_bezuege())
 
 
 def finals() -> dict[str, dict | None]:

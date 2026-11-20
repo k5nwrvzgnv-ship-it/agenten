@@ -192,10 +192,12 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 6. Unterlagen und Ohne Ordner (gebaut 20.11.2026, siehe Stand). Offen: „Verweis hinzufügen“ und Verschieben einer
    Unterlage in der Oberfläche; Läufe von fehlstellenscan (data/laeufe/) erst, wenn auswertung.py je Lauf eine lesbare
    Zusammenfassung schreibt, dann Ordner „Datensatz und Training“; „Aufnahme und Prototyp“ hat noch keinen Inhalt.
-7. Änderungen an Mail-Entwürfen per Telegram („Ändern“, quelle telegram-aendern) tragen als `bezug` die id des
-   Freigabe-Entwurfs, nicht die des Auftrags. `logik.ketten` findet den Ursprung deshalb nicht, jede Änderung steht
-   als eigenes Dokument unter „Ohne Ordner“ (z. B. 3ac659 „Ändere auf 9:30“ zu den Böhme-Mails). Der Freigabe-Eintrag
-   führt die Auftrags-id nicht; Lösung braucht sie dort oder in der Zentrale (shared/telegram). Noch nicht angegangen.
+7. Änderungen an Mail-Entwürfen per Telegram (quelle telegram-aendern) tragen als `bezug` die id des Freigabe-Entwurfs.
+   Gelöst 20.11.2026 im Arbeitsplatz (Jan „Ja, hier angehen“): `alle_auftraege` lenkt solche Bezüge über
+   `uni/data/mailentwuerfe.json` (Freigabe-ID -> Auftrag, pflegt uni, nur gelesen; `ENTWURF_ZUORDNUNG`) auf den
+   Auftrag um (`logik.bezug_umlenken`, Kopie, Aufträge unverändert). Die Änderungen stehen damit als Fassungen am
+   Dokument. Andere Agenten mit Mail-Entwürfen (posteingang) zeigt der Arbeitsplatz nicht; bräuchte er sie, wäre
+   ein Feld `auftrag` im Freigabe-Eintrag (agentkit.freigabe) der allgemeine Weg.
 
 ## Gelernte Regeln
 (noch keine)
