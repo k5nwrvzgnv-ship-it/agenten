@@ -181,6 +181,19 @@ def verschoben_setzen(ursprung: str, ort_id: str) -> None:
         os.replace(tmp, pfad)
 
 
+def verschoben_vergessen(ursprung: str) -> bool:
+    """Nimmt die Verschiebung zurück (True, wenn es eine gab)."""
+    with _verschoben_sperre:
+        daten = verschoben()
+        if daten.pop(ursprung, None) is None:
+            return False
+        pfad = DATEN / VERSCHOBEN
+        tmp = pfad.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"zuordnung": daten}, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.replace(tmp, pfad)
+        return True
+
+
 def recherche_zuordnung() -> dict[str, str]:
     """Recherchen ohne Feld ort -> Ort (orte-zuordnung.json, Schlüssel "recherchen")."""
     pfad = INSTANZ / ZUORDNUNG
@@ -330,8 +343,11 @@ def seite_heute(request: Request):
     for d in docs:
         d["ort_text"] = logik.ort_text(baum, d["ort"])
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
+    ohne = logik.dokumente(alle, None, namen, finals(), zuordnung(), verschoben(), ohne=True)
+    for d in ohne:
+        d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
     projekte = projekte_mit_ort(baum)
-    return seite(request, "heute.html", {"e": {"titel": "Heute"}, "zuletzt": docs[:15],
+    return seite(request, "heute.html", {"e": {"titel": "Heute"}, "zuletzt": docs[:15], "ohne_ordner": ohne,
                                          "wartet": logik.wartet_auf_mich(docs, heute_iso()),
                                          "oben": orte.kinder(baum, None),
                                          "ohne_ort": [x for x in projekte if not x.get("ort_hier")],
@@ -969,7 +985,8 @@ def _dokument_seite(request: Request, ursprung: str, offen: str = "", fehler: li
 @app.post("/dokument/{ursprung}/ort", response_class=HTMLResponse)
 async def dokument_verschieben(request: Request, ursprung: str):
     """Dokument in einen anderen Ordner (Ziehen und Ablegen, „···“ des Dokuments). Danach zurück, mit Hinweis und
-    Rückgängig (verschiebt wieder in den alten Ordner)."""
+    Rückgängig (verschiebt wieder in den alten Ordner). Ohne Ordner (ort leer, Rückgängig nach „Ohne Ordner“): die
+    Verschiebung wird vergessen, es gilt wieder Feld ort bzw. orte-zuordnung.json."""
     form, token_ok = await formular(request)
     kette, _ = _dokument(ursprung)
     baum = baum_laden()
@@ -977,6 +994,10 @@ async def dokument_verschieben(request: Request, ursprung: str):
     zurueck = logik.ziel_sicher(str(form.get("zurueck") or ""), f"/dokument/{ursprung}")
     if not token_ok:
         return _meldung(request, baum, "Nicht verschoben", VERALTET, zurueck, 400)
+    if not ziel_ort:
+        if verschoben_vergessen(ursprung):
+            logger.info("Dokument %s: Verschiebung zurückgenommen", ursprung)
+        return RedirectResponse(zurueck, status_code=303)
     ort_oder_404(baum, ziel_ort)
     if not orte.sichtbar(baum, ziel_ort):
         return _meldung(request, baum, "Nicht verschoben", "Der Ordner liegt im Archiv.", zurueck, 400)
@@ -1000,8 +1021,10 @@ def verschoben_hinweis(params) -> dict | None:
         kette, _ = _dokument(u)
     except HTTPException:
         return None
+    # Rückgängig: zurück in den alten Ordner, oder nach „Ohne Ordner“, wenn es vorher keinen gab
+    rueck = (von in namen and von != nach) or (not von and not logik.ort_von(kette[0], zuordnung()))
     return {"text": f"„{logik.titel_von(kette, arten_namen(), 60)}“ liegt jetzt in „{namen[nach]}“.", "u": u,
-            "von": von if von in namen and von != nach else ""}
+            "von": von if von in namen else "", "rueck": rueck}
 
 
 vorlagen.env.globals["verschoben_hinweis"] = verschoben_hinweis

@@ -57,7 +57,7 @@
 {%- if vh %}
 <div class="hinweis hinweis-erledigt aktion-hinweis" role="status">
   <div class="aktion-zeile"><span>{{ vh.text }}</span>
-    {%- if vh.von %}<span aria-hidden="true">·</span>
+    {%- if vh.rueck or (vh.rueck is not defined and vh.von) %}<span aria-hidden="true">·</span>
     <form class="inline-form" method="post" action="/dokument/{{ vh.u }}/ort">
       <input type="hidden" name="token" value="{{ formular_token() }}">
       <input type="hidden" name="ort" value="{{ vh.von }}"><input type="hidden" name="zurueck" value="{{ request.url.path }}">

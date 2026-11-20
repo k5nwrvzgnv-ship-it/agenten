@@ -49,10 +49,22 @@
   </ul>
 </section>
 {%- endif %}
-{%- if not (wartet or oben or zuletzt or ohne_ort) %}
+{%- if not (wartet or oben or zuletzt or ohne_ort or ohne_ordner) %}
 <p class="leer noch-leer">Noch leer. Mit + fängst du an.</p>
 {%- endif %}
 </div>
+{#- Dokumente ohne Ordner (meist Mails und Fragen per Telegram): zugeklappt, außerhalb von #heute, damit das
+    Neuladen jede Minute die offene Klappe nicht schließt. Einordnen per Ziehen auf einen Ordner im Baum oder über
+    „Verschieben nach“ im „···“ des Dokuments. -#}
+{%- if ohne_ordner %}
+<section class="ohne-ordner">
+  <details class="mehr">
+    <summary>Ohne Ordner ({{ ohne_ordner | length }})</summary>
+    <p class="unter">Zieh ein Dokument auf einen Ordner links, oder nimm „Verschieben nach“ im „···“ des Dokuments.</p>
+    {{ liste(ohne_ordner) }}
+  </details>
+</section>
+{%- endif %}
 {% endblock %}
 {% block rechts %}
 <aside id="rechts-heute" class="rechts" aria-label="Läuft gerade">

@@ -209,6 +209,10 @@ class TestZuordnung(unittest.TestCase):
         self.assertEqual([d["id"] for d in logik.dokumente(alle, "expose", {}, {}, z)], [U])
         self.assertEqual(logik.dokumente(alle, "expose", {}, {}), [])
         self.assertEqual(len(logik.dokumente(alle, None, {}, {}, z)), 2)
+        # ohne=True: nur die ohne Ort (für „Ohne Ordner“ auf Heute)
+        self.assertEqual([d["id"] for d in logik.dokumente(alle, None, {}, {}, ohne=True)], [U])
+        self.assertEqual(logik.dokumente(alle, None, {}, {}, z, ohne=True), [])
+        self.assertEqual(logik.dokumente(alle, None, {}, {}, {}, {U: "dort"}, ohne=True), [])
         # Feld ort im Auftrag geht vor
         self.assertEqual(logik.ort_von({"id": U, "ort": "hier"}, {U: "expose"}), "hier")
         self.assertEqual(logik.ort_von({"id": U, "ort": "hier"}, {U: "expose"}, {U: "dort"}), "dort")  # verschoben

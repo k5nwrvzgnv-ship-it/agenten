@@ -303,8 +303,9 @@ def recherche_plan(text: str, kosten: dict[str, dict | None]) -> dict:
 
 def dokumente(auftraege: list[dict], ort_id: str | None, arten_namen: dict[str, str],
               finals: dict[str, dict | None], zuordnung: dict[str, str] | None = None,
-              verschoben: dict[str, str] | None = None) -> list[dict]:
-    """Dokumente, deren Ursprung am Ort ort_id liegt (None: alle mit Ort), neueste Änderung zuerst.
+              verschoben: dict[str, str] | None = None, ohne: bool = False) -> list[dict]:
+    """Dokumente, deren Ursprung am Ort ort_id liegt (None: alle mit Ort), neueste Änderung zuerst. ohne=True (mit
+    ort_id None): nur die ohne Ort, für „Ohne Ordner“ auf Heute.
     finals: Ursprung -> final-Eintrag aus agentkit.fassungen (oder None). zuordnung: siehe ort_von.
     Je Dokument {"id" (Ursprung), "titel", "art", "agent", "marke", "rot", "zeit", "link", "ort", "fassungen"}."""
     ergebnis = []
@@ -313,7 +314,9 @@ def dokumente(auftraege: list[dict], ort_id: str | None, arten_namen: dict[str, 
         if ursprung["id"] != u:  # Ursprung nicht mehr da: Kette ohne Kopf, nicht zeigen
             continue
         ort = ort_von(ursprung, zuordnung or {}, verschoben)
-        if ort_id is None and not ort:
+        if ohne and ort:
+            continue
+        if ort_id is None and not ort and not ohne:
             continue
         if ort_id is not None and ort != ort_id:
             continue

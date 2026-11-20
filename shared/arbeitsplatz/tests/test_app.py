@@ -840,6 +840,35 @@ class TestZuordnungApp(TestDokument):
         (self.instanz / "orte-zuordnung.json").write_text("kaputt")
         self.assertEqual(self.get(f"/ort/{self.k}")[0], 200)
 
+    def test_ohne_ordner_auf_heute(self):
+        """Dokumente ohne Ort stehen zugeklappt unter „Ohne Ordner“ auf Heute, ziehbar; nach dem Verschieben nicht
+        mehr; Rückgängig führt zurück nach „Ohne Ordner“."""
+        pfad = self.instanz / "auftraege" / "erledigt" / f"{self.U}.json"
+        a = json.loads(pfad.read_text())
+        del a["ort"]
+        pfad.write_text(json.dumps(a))
+        html = self.get("/")[1]
+        self.assertIn("<summary>Ohne Ordner (1)</summary>", html)
+        ohne = html.split('class="ohne-ordner"')[1]
+        self.assertIn(f'draggable="true" data-dokument="{self.U}"', ohne)
+        self.assertNotIn('class="ohne-ordner"', html.split('id="heute"')[1].split("</div>\n")[0])
+        punkte = self.get(f"/dokument/{self.U}")[1].split('class="menue-halter punkte"')[1].split("</details>")[0]
+        self.assertIn('<option value="" selected>Ohne Ordner</option>', punkte)
+        status, _, kopf = self.post(f"/dokument/{self.U}/ort", {"ort": self.k, "zurueck": "/"})
+        self.assertEqual(status, 303)
+        html = self.get(kopf["location"])[1]
+        self.assertNotIn("Ohne Ordner (", html)
+        self.assertIn('<input type="hidden" name="ort" value="">', html)  # Rückgängig nach „Ohne Ordner“
+        self.assertIn("Exposé Holzschutz", self.get(f"/ort/{self.k}")[1])
+        status, _, kopf = self.post(f"/dokument/{self.U}/ort", {"ort": "", "zurueck": "/"})
+        self.assertEqual((status, kopf["location"]), (303, "/"))
+        self.assertIn("<summary>Ohne Ordner (1)</summary>", self.get("/")[1])
+        # mit Zuordnung: kein „Ohne Ordner“, und ein leeres ort ändert nichts
+        (self.instanz / "orte-zuordnung.json").write_text(json.dumps({"zuordnung": {self.U: self.k}}))
+        self.assertNotIn("Ohne Ordner (", self.get("/")[1])
+        self.post(f"/dokument/{self.U}/ort", {"ort": ""})
+        self.assertIn("Exposé Holzschutz", self.get(f"/ort/{self.k}")[1])
+
 
 class TestRecherchen(Aufbau):
     def projekt(self, motor_ordner, pid, inhalt):

@@ -93,6 +93,8 @@
       <input type="hidden" name="token" value="{{ token }}">
       <label class="unter" for="dokument-ort">Verschieben nach</label>
       <select id="dokument-ort" name="ort">
+        {%- if not ordner_ziele | selectattr("jetzt") | list %}
+        <option value="" selected>Ohne Ordner</option>{% endif %}
         {%- for z in ordner_ziele %}
         <option value="{{ z.id }}"{% if z.jetzt %} selected{% endif %}>{{ "  " * z.tiefe }}{{ z.text }}</option>
         {%- endfor %}
