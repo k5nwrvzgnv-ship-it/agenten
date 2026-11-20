@@ -28,6 +28,8 @@ die können später als Dateien Eingabe werden).
   (2) Engpass ist die Annotation, nicht Rechenzeit; eigener Kodytek-Lauf liegt auf dem Niveau publizierter
   Arbeiten mit 3.500 Bildern. (3) Verdeckte Nägel, innere Fäule, A-Kategorien sieht keine Kamera. (4) WIn-Altholz
   (FNR, HNEE-koordiniert, NIR-Handscanner) ist Anknüpfungspunkt für die Bewerbung.
+- Vorschlag erster Altholz-Test (20.11.2026, nicht entschieden): docs/plan-erster-test-altholz.md (iPhone-Fotos bei
+  Felix, selbst labeln, Training auf dem Mac). Für die Gruppe gedacht, Rüdiger liest ihn über docs/.
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
