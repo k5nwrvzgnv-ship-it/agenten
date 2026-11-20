@@ -162,7 +162,9 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
    20261022-082205-uni-f0e6f1 (Transkript Holzschutz aufbereitet), 20261030-150241-uni-a54f6f (Vorlesung Sanierung
    im Holzbau), die Probeläufe von dokumente 20261109-211357-...-a51635 (Präsentation) und -211605-...-c7647f
    (Bericht) sowie alle übrigen Telegram-Aufträge (Mails, Termine, Fragen).
-   Zuordnen geht bisher nur über die Datei, nicht in der Oberfläche.
+   Zuordnen geht über die Datei oder (seit 19.11.) per Ziehen in der Oberfläche (verschoben.json).
+   Nachgetragen 20.11. (Haupt-STATUS 45): e86e20, 003f12 -> Recherche; fünf Böhme-Mails -> „Betreuung (Prof.
+   Böhme)“; 64b26b -> „Förderung und Gründung“ (beide Ordner neu, „Neuer Ordner“ archiviert).
 3. `shared/orte.json` und `orte-zuordnung.json` sind nicht im Repo und damit nicht in der nächtlichen Sicherung
    (nur git push). Ins Repo käme die Datei nur über einen Weg wie commit-daten.sh; die Frage legt die koordinierende
    Sitzung Jan am 10.11. vor. Bis dahin kein eigener Sicherungsweg.
@@ -171,6 +173,24 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
    Haupt-STATUS); Verschieben einer Recherche im „···“. „+ → Recherche …“ live seit dem Neustart 17.11. (alle
    Seiten 200); ein echter Lauf darüber steht noch aus. Lias drei Projekte haben keinen Ort (Jans Instanz kennt ihre Reihen nicht), sie stehen auf Heute.
 4. Echte Läufe 10.11. ab 15 Uhr: alle Arten außer Exposé, Recherche nur „kurz“ (Jans Entscheidung, siehe Plan).
+6. Inhalte ohne Auftrag und Dokumente ohne Ordner (Haupt-STATUS 45c, Vorschlag 20.11.2026, nicht gebaut, wartet
+   auf Jans Okay):
+   a) „Ohne Ordner“ auf Heute: Dokumente, deren Ursprung weder `ort` noch Zuordnung noch Verschiebung hat (am
+      20.11.: 16 von uni, 3 von dokumente, meist Mails und Fragen per Telegram), als zugeklappte Klappe unten auf
+      Heute. Jede Zeile lässt sich wie bisher auf einen Ordner ziehen oder über „Verschieben nach“ einordnen
+      (verschoben.json); danach verschwindet sie dort. Klein: `logik.dokumente_ohne_ort`, heute.html, Tests.
+   b) Verweise am Ordner: Datei `shared/orte-verweise.json` (wie orte-zuordnung.json, nicht im Repo),
+      `{"verweise": {ort: [{"pfad": "<relativ zum Hauptordner>", "titel": optional}]}}`. Ein Verweis auf eine Datei
+      zeigt sie, auf einen Ordner alle Dateien darin, neueste zuerst. Nur lesend und immer aktuell (keine Kopie).
+      Erlaubt sind nur feste Wurzeln, geprüft wie in dateien.py: `fehlstellenscan/docs/`, `fehlstellenscan/unterlagen/`,
+      `fehlstellenscan/data/gruppe/dateien/` (Rüdiger), `uni/data/projekte/`. Ordner-Seite: Abschnitt „Unterlagen“;
+      .md als Text, PDF und Bilder über die vorhandene Vorschau, schriftverkehr.json als Mailliste (Datum, von, Betreff,
+      Text aufklappbar). Erste Verweise: Interviews <- uni/.../fehlstellen/wissen.md; Betreuung <- schriftverkehr.json;
+      neu „Markt und Wettbewerb“ <- fehlstellenscan/docs/markt-kappscanner.md; neu „Literatur“ unter Recherche <-
+      Kodytek-Paper und docs/recherche-zwilling-flicken.md; „Datensatz und Training“ <- Läufe, sobald auswertung.py
+      eine lesbare Zusammenfassung je Lauf schreibt; Rüdiger-Dateien als Ordner-Verweis am Forschungsprojekt.
+      Eintragen zunächst über die Datei, „Verweis hinzufügen“ im „···“ später.
+   Offene Frage an Jan: a und b zusammen bauen, oder erst a?
 
 ## Gelernte Regeln
 (noch keine)
