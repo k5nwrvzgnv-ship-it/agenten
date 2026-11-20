@@ -14,7 +14,8 @@ Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach au�
 - Läuft als Dauerdienst kleinanzeigen.service (systemd-User, enabled), Bot @klnanzgnbot. Erste echte Suche von
   Jan hat einen Treffer geliefert.
 - .venv mit httpx und python-telegram-bot[job-queue] (Versionen wie die Zentrale), agentkit per .pth.
-- .env (chmod 600): Token eingetragen, ERLAUBTE_CHAT_IDS = nur Jan. Der Kumpel fehlt noch.
+- .env (chmod 600): Token eingetragen, ERLAUBTE_CHAT_IDS = Jan (486792619) und sein Kumpel Malte (972919283,
+  freigeschaltet 20.11.2026).
 - Tests in pruefen.sh eingetragen (Jan 15.11.2026).
 
 ## Aufbau
@@ -53,12 +54,12 @@ Nutzer selbst, der Agent hat kein Kleinanzeigen-Konto und handelt nicht nach au�
 - 15.11.2026 (Jan): Zum Schnappen guter Angebote. Daher Takt 5 statt 15 min, neueste zuerst, Schwelle 70.
 
 ## Offene Punkte
-1. Kumpel: schickt @klnanzgnbot /start, seine ID steht dann im Log ("Unbekannter Chat ...") und in der DB
-   (werte: fremd_<id>). Mit Komma an ERLAUBTE_CHAT_IDS anhängen, dann systemctl --user restart kleinanzeigen.
-2. Nach ein paar Tagen Betrieb: Kosten (shared/verbrauch) und Meldungsqualität prüfen, ggf. Schwelle/Takt anpassen.
-3. Ordner: als Teilagent von einkauf später ggf. nach einkauf/kleinanzeigen verschieben.
+1. Nach ein paar Tagen Betrieb: Kosten (shared/verbrauch) und Meldungsqualität prüfen, ggf. Schwelle/Takt anpassen.
+2. Ordner: als Teilagent von einkauf später ggf. nach einkauf/kleinanzeigen verschieben.
 
 ## Betrieb
+- Neuen Nutzer freischalten: er schickt @klnanzgnbot /start, die ID steht im Log ("Unbekannter Chat ...").
+  Mit Komma an ERLAUBTE_CHAT_IDS anhängen, dann systemctl --user restart kleinanzeigen.
 - systemctl --user status kleinanzeigen / journalctl --user -u kleinanzeigen -f / logs/kleinanzeigen.log
 - Nach Änderungen an .env oder Python-Code: systemctl --user restart kleinanzeigen.
 
