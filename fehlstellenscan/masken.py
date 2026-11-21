@@ -1,13 +1,15 @@
 """Masken von Kodytek et al. (Semantic Maps) in YOLO-seg-Polygone umwandeln und prüfen.
 
 Läuft auf dem Server (3 Probemasken) und von Hand auf Jans Mac (alle Masken). Braucht numpy, Pillow,
-opencv und datensatz.py im selben Ordner; kein agentkit, kein PyTorch.
+opencv und datensatz.py im selben Ordner; kein agentkit, kein ultralytics (Vorhersagen kommen
+als Textdateien von `yolo segment predict` auf dem Mac).
 
 Befehle (Einzelheiten mit --help, Anleitung in STATUS.md):
   ansehen     Farben einiger Masken zählen: Hintergrund, bekannte und unbekannte Farben
   bauen       Seg-Datensatz aus einem Box-Datensatz (gleiche Bilder und Aufteilung, Hardlinks) und den Masken
   gegenprobe  Objekte je Teil und Klasse gegen den Box-Datensatz zählen, Abweichungen je Bild
-  zeichnen    Polygone (farbig) und Boxen (weiß) ins Bild zeichnen, als PNG
+  zeichnen    Masken der Markierung ins Bild zeichnen (ohne Boxen), als JPG
+  gruppenbilder  Bilder für Menschen aus Markierung und Vorhersage des Modells: Vergleich, Umriss, Maße in mm
 
 Masken: <nummer>_segm.bmp, RGB, Hintergrund schwarz, je Klasse eine feste Farbe (Semantic Map Specification).
 Quelle der Masken ist das ZIP (jede Maske einzeln im Speicher gelesen, nie ganz entpacken, 174 GB) oder ein
@@ -275,36 +277,185 @@ def gegenprobe(seg: Path, boxen: Path) -> dict:
     return {"tabelle": tabelle, "bilder_mit_abweichung": je_bild}
 
 
-def zeichnen(seg: Path, boxen: Path | None, nummer: str, ausgabe: Path) -> Path:
-    """Polygone in der Maskenfarbe (2 px), Boxen der Vorlage weiß (1 px), Klassennummer am Polygon."""
+# Namen für Bilder, die Menschen ansehen (Gruppe, Vorträge); Reihenfolge wie datensatz.KLASSEN.
+NAMEN_DE = ["Ast lebend", "Ast tot", "Astloch", "Ast mit Riss", "Riss", "Quartzity", "Harz", "Mark", "Bläue",
+            "Überwallung"]
+BREITE_BILD = 1600      # Breite der fertigen Bilder (Original 2800), reicht für Telegram und Folien
+
+
+# Kodytek-Paper (Abschnitt Hardware): quer zum Brett (x, Kamerazeile) 16,66 px/mm, längs (y, Zeilen) 6,67 px/mm.
+# Die Pixel sind also nicht quadratisch; Maße immer erst in mm umrechnen, dann messen.
+PX_JE_MM = (16.66, 6.67)
+ELLIPSE = (180, 255, 50)        # Farbe für Ellipse und Achsen im Maßbild (gut sichtbar auf Holz)
+AESTE = {0, 1, 2, 3}            # live_knot, dead_knot, knot_missing, knot_with_crack: nur hier Maße (Ellipse)
+# Schriften mit ß und ×: DejaVu auf dem Server, Arial auf dem Mac; sonst Pillows eingebaute (ohne diese Zeichen)
+SCHRIFTEN = ("DejaVuSans.ttf", "Arial.ttf")
+
+
+def objekte_aus_label(text: str, breite: int, hoehe: int) -> list[tuple[int, np.ndarray, float | None]]:
+    """Label-Datei (YOLO-seg) als [(klasse, Punkte in Pixeln, None)], None = keine Konfidenz (Markierung)."""
+    return [(*von_yolo_seg(z, breite, hoehe), None) for z in text.splitlines() if z.strip()]
+
+
+def objekte_aus_vorhersage(text: str, breite: int, hoehe: int) -> list[tuple[int, np.ndarray, float | None]]:
+    """Ausgabe von `yolo segment predict save_txt=True save_conf=True`: wie ein Label, die Konfidenz steht als
+    letzte Zahl (dann ist die Anzahl der Werte gerade). Ohne save_conf ist die Konfidenz None."""
+    objekte = []
+    for zeile in text.splitlines():
+        teile = zeile.split()
+        if not teile:
+            continue
+        konfidenz = None
+        if len(teile) % 2 == 0:
+            konfidenz = float(teile[-1])
+            teile = teile[:-1]
+        objekte.append((*von_yolo_seg(" ".join(teile), breite, hoehe), konfidenz))
+    return objekte
+
+
+def masse_mm(punkte: np.ndarray, px_je_mm: tuple[float, float] = PX_JE_MM) -> dict | None:
+    """Ellipse an den Umriss (Pixel) in mm angepasst: mitte, achsen (volle Durchmesser wie cv2), winkel (Grad),
+    lang, kurz. None bei weniger als 5 Punkten (cv2.fitEllipse braucht 5)."""
     import cv2
-    funde = list(seg.glob(f"images/*/{nummer}.bmp"))
+    if len(punkte) < 5:
+        return None
+    mm = (np.asarray(punkte, dtype=np.float64) / px_je_mm).astype(np.float32)
+    (cx, cy), (a, b), winkel = cv2.fitEllipse(mm)
+    return {"mitte": (cx, cy), "achsen": (a, b), "winkel": winkel, "lang": max(a, b), "kurz": min(a, b)}
+
+
+def ellipse_px(masse: dict, px_je_mm: tuple[float, float] = PX_JE_MM, schritte: int = 120) -> np.ndarray:
+    """Umfang der Ellipse aus masse_mm zurück in Bildpixel (schritte x 2)."""
+    (cx, cy), (a, b), w = masse["mitte"], masse["achsen"], np.radians(masse["winkel"])
+    t = np.linspace(0, 2 * np.pi, schritte, endpoint=False)
+    x = cx + a / 2 * np.cos(t) * np.cos(w) - b / 2 * np.sin(t) * np.sin(w)
+    y = cy + a / 2 * np.cos(t) * np.sin(w) + b / 2 * np.sin(t) * np.cos(w)
+    return np.stack([x, y], axis=1) * px_je_mm
+
+
+def achsen_px(masse: dict, px_je_mm: tuple[float, float] = PX_JE_MM) -> list[np.ndarray]:
+    """Die beiden Achsen der Ellipse als Strecken (2 x 2) in Bildpixeln."""
+    (cx, cy), (a, b), w = masse["mitte"], masse["achsen"], np.radians(masse["winkel"])
+    richtungen = [(a / 2 * np.cos(w), a / 2 * np.sin(w)), (-b / 2 * np.sin(w), b / 2 * np.cos(w))]
+    return [np.array([[cx - dx, cy - dy], [cx + dx, cy + dy]]) * px_je_mm for dx, dy in richtungen]
+
+
+def schrift(groesse: int):
+    from PIL import ImageFont
+    for name in SCHRIFTEN:
+        try:
+            return ImageFont.truetype(name, groesse)
+        except OSError:
+            continue
+    return ImageFont.load_default(size=groesse)
+
+
+def zahl(wert: float, stellen: int = 1) -> str:
+    return f"{wert:.{stellen}f}".replace(".", ",")
+
+
+def masken_bild(bild, objekte: list, titel: str, art: str = "flaeche"):
+    """Masken ins Bild, ohne Boxen; oben ein Balken mit dem Titel. Ergebnis ist BREITE_BILD breit.
+    art "flaeche": halbdurchsichtig mit Umriss, Name und ggf. Konfidenz. "umriss": nur dünner Umriss mit Name.
+    "masse": dünner Umriss; bei Ästen dazu Ellipse mit Achsen und Länge × Breite der Ellipse in mm (bei langen
+    Formen wie Rissen oder quartzity sagt eine Ellipse nichts, dort nur der Name).
+    bild: PIL-Bild (RGB) in Originalgröße, objekte: [(klasse, Punkte in Pixeln, konfidenz oder None)]."""
+    from PIL import Image, ImageDraw
+    if art not in ("flaeche", "umriss", "masse"):
+        raise ValueError(f"unbekannte Art {art!r}")
+    massstab = BREITE_BILD / bild.width
+    grund = bild.convert("RGBA").resize((BREITE_BILD, round(bild.height * massstab)), Image.LANCZOS)
+    schicht = Image.new("RGBA", grund.size, (0, 0, 0, 0))
+    zeichner = ImageDraw.Draw(schicht)
+    font = schrift(28)
+    texte = []
+    for klasse, punkte, konfidenz in objekte:
+        farbe = tuple(bytes.fromhex(FARBEN[klasse]))
+        ecken = [tuple(p) for p in (punkte * massstab).tolist()]
+        text = NAMEN_DE[klasse]
+        if art == "flaeche":
+            zeichner.polygon(ecken, fill=(*farbe, 90), outline=(*farbe, 255), width=3)
+        else:
+            zeichner.polygon(ecken, outline=(*farbe, 255), width=2 if art == "masse" else 3)
+        if art == "masse" and klasse in AESTE:
+            m = masse_mm(punkte)
+            if m is not None:
+                zeichner.polygon([tuple(p) for p in (ellipse_px(m) * massstab).tolist()],
+                                 outline=(*ELLIPSE, 255), width=3)
+                for strecke in achsen_px(m):
+                    zeichner.line([tuple(p) for p in (strecke * massstab).tolist()], fill=(*ELLIPSE, 255), width=2)
+                text += f": {zahl(m['lang'])} × {zahl(m['kurz'])} mm"
+        elif konfidenz is not None:
+            text += " " + zahl(konfidenz, 2)
+        texte.append((text, farbe, punkte * massstab))
+    for text, farbe, punkte in texte:           # Schrift zuletzt, damit keine Maske sie verdeckt
+        links, oben, rechts, unten = zeichner.textbbox((0, 0), text, font=font)
+        x, y = punkte.min(axis=0)
+        x = min(max(x, 0), grund.width - rechts - 8)
+        y = y - unten - 10 if y - unten - 10 >= 0 else punkte[:, 1].max() + 6
+        # Feld in der Klassenfarbe, Schrift schwarz oder weiß: auch dunkle Farben (quartzity, overgrown) lesbar
+        hell = 0.299 * farbe[0] + 0.587 * farbe[1] + 0.114 * farbe[2] > 140
+        zeichner.rectangle((x, y, x + rechts + 8, y + unten + 6), fill=(*farbe, 230))
+        zeichner.text((x + 4, y + 2), text, fill=(0, 0, 0, 255) if hell else (255, 255, 255, 255), font=font)
+    fertig = Image.alpha_composite(grund, schicht).convert("RGB")
+    kopf = Image.new("RGB", (fertig.width, 50), (30, 30, 30))
+    ImageDraw.Draw(kopf).text((14, 8), titel, fill=(255, 255, 255), font=schrift(28))
+    gesamt = Image.new("RGB", (fertig.width, kopf.height + fertig.height))
+    gesamt.paste(kopf, (0, 0))
+    gesamt.paste(fertig, (0, kopf.height))
+    return gesamt
+
+
+def uebereinander(bilder: list):
+    """Bilder gleicher Breite untereinander, mit 6 px dunklem Abstand."""
+    from PIL import Image
+    gesamt = Image.new("RGB", (bilder[0].width, sum(b.height for b in bilder) + 6 * (len(bilder) - 1)), (30, 30, 30))
+    y = 0
+    for b in bilder:
+        gesamt.paste(b, (0, y))
+        y += b.height + 6
+    return gesamt
+
+
+def bild_laden(pfad: Path):
+    from PIL import Image
+    with Image.open(pfad) as b:
+        return b.convert("RGB")
+
+
+def zeichnen(seg: Path, nummer: str, ausgabe: Path) -> Path:
+    """Markierung (Masken aus den Labels eines Seg-Datensatzes) als JPG, zum Prüfen der Umwandlung."""
+    funde = sorted(seg.glob(f"images/*/{nummer}.bmp"))
     if not funde:
         raise FileNotFoundError(f"Bild {nummer} nicht in {seg}/images/")
-    bild_pfad = funde[0]
-    teil = bild_pfad.parent.name
-    bild = cv2.imread(str(bild_pfad), cv2.IMREAD_COLOR)
-    hoehe, breite = bild.shape[:2]
-    if boxen is not None:
-        box_datei = boxen / "labels" / teil / f"{nummer}.txt"
-        for zeile in box_datei.read_text(encoding="utf-8").splitlines() if box_datei.exists() else []:
-            b = d.von_yolo(zeile)
-            cv2.rectangle(bild, (round(b.x1 * breite), round(b.y1 * hoehe)),
-                          (round(b.x2 * breite) - 1, round(b.y2 * hoehe) - 1), (255, 255, 255), 1)
-    for zeile in (seg / "labels" / teil / f"{nummer}.txt").read_text(encoding="utf-8").splitlines():
-        if not zeile.strip():
-            continue
-        klasse, punkte = von_yolo_seg(zeile, breite, hoehe)
-        r, g, b = bytes.fromhex(FARBEN[klasse])
-        ecken = np.round(punkte - 0.5).astype(np.int32)
-        cv2.polylines(bild, [ecken], True, (b, g, r), 2)
-        x, y = ecken.min(axis=0)
-        cv2.putText(bild, str(klasse), (int(x), max(int(y) - 4, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (b, g, r), 2)
+    bild = bild_laden(funde[0])
+    label = seg / "labels" / funde[0].parent.name / f"{nummer}.txt"
     ausgabe.mkdir(parents=True, exist_ok=True)
-    ziel = ausgabe / f"{nummer}_seg.png"
-    if not cv2.imwrite(str(ziel), bild):
-        raise OSError(f"{ziel} nicht geschrieben")
+    ziel = ausgabe / f"{nummer}_masken.jpg"
+    masken_bild(bild, objekte_aus_label(label.read_text(encoding="utf-8"), *bild.size), "Markierung").save(
+        ziel, quality=90)
     return ziel
+
+
+def gruppenbilder(bilder: Path, markierung: Path, vorhersage: Path, nummer: str, ausgabe: Path) -> list[Path]:
+    """Drei Bilder je Nummer (nur Masken, keine Boxen): <nummer>_vergleich.jpg (Markierung über Modell),
+    <nummer>_umriss.jpg (Modell als Umriss), <nummer>_masse.jpg (Modell mit Ellipse und mm). Fehlt die Datei der
+    Vorhersage, hat das Modell nichts gefunden (ultralytics schreibt dann keine)."""
+    bild = bild_laden(bilder / f"{nummer}.bmp")
+    markiert = objekte_aus_label((markierung / f"{nummer}.txt").read_text(encoding="utf-8"), *bild.size)
+    datei = vorhersage / f"{nummer}.txt"
+    modell = objekte_aus_vorhersage(datei.read_text(encoding="utf-8"), *bild.size) if datei.exists() else []
+    ausgabe.mkdir(parents=True, exist_ok=True)
+    teile = {
+        "vergleich": uebereinander([masken_bild(bild, markiert, "Markierung"), masken_bild(bild, modell, "Modell")]),
+        "umriss": masken_bild(bild, modell, "Modell: Umriss", art="umriss"),
+        "masse": masken_bild(bild, modell, "Modell: Maße aus dem Umriss (Ellipse)", art="masse"),
+    }
+    ziele = []
+    for name, fertig in teile.items():
+        ziele.append(ausgabe / f"{nummer}_{name}.jpg")
+        fertig.save(ziele[-1], quality=90)
+    return ziele
 
 
 # ---------------------------------------------------------------- Befehle
@@ -350,7 +501,13 @@ def _gegenprobe(args) -> None:
 
 def _zeichnen(args) -> None:
     for nummer in args.nummern:
-        print(zeichnen(args.seg, args.boxen, nummer, args.ausgabe))
+        print(zeichnen(args.seg, nummer, args.ausgabe))
+
+
+def _gruppenbilder(args) -> None:
+    for nummer in args.nummern:
+        for ziel in gruppenbilder(args.bilder, args.markierung, args.vorhersage, nummer, args.ausgabe):
+            print(ziel)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -377,10 +534,17 @@ def main(argv: list[str] | None = None) -> int:
     s.set_defaults(los=_gegenprobe)
     s = sub.add_parser("zeichnen")
     s.add_argument("--seg", type=Path, required=True)
-    s.add_argument("--boxen", type=Path, help="Box-Datensatz: Boxen weiß dazuzeichnen")
-    s.add_argument("--ausgabe", type=Path, required=True, help="Ordner für die PNGs")
+    s.add_argument("--ausgabe", type=Path, required=True, help="Ordner für die JPGs")
     s.add_argument("nummern", nargs="+")
     s.set_defaults(los=_zeichnen)
+    s = sub.add_parser("gruppenbilder")
+    s.add_argument("--bilder", type=Path, required=True, help="Ordner mit <nummer>.bmp")
+    s.add_argument("--markierung", type=Path, required=True, help="Ordner mit den Labels <nummer>.txt")
+    s.add_argument("--vorhersage", type=Path, required=True,
+                   help="Ordner labels/ aus `yolo segment predict save_txt=True save_conf=True`")
+    s.add_argument("--ausgabe", type=Path, required=True, help="Ordner für die JPGs")
+    s.add_argument("nummern", nargs="+")
+    s.set_defaults(los=_gruppenbilder)
     args = p.parse_args(argv)
     try:
         args.los(args)

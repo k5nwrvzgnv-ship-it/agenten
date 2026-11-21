@@ -39,7 +39,7 @@ schritt "Voller Seg-Datensatz"
 schritt "Gegenprobe, Bilder, ultralytics liest den Datensatz"
 python masken.py gegenprobe --seg datensaetze/kodytek-seg-1 --boxen datensaetze/kodytek-1 \
     --ausgabe gegenprobe-seg.json
-python masken.py zeichnen --seg datensaetze/kodytek-seg-1 --boxen datensaetze/kodytek-1 --ausgabe seg-bilder \
+python masken.py zeichnen --seg datensaetze/kodytek-seg-1 --ausgabe seg-bilder \
     100000000 100000061 100000062
 python -c "from ultralytics.data.utils import check_det_dataset; print(check_det_dataset('datensaetze/kodytek-seg-1/data.yaml'))"
 

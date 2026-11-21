@@ -229,8 +229,23 @@ Laufwerk, ~/fehlstellenscan/daten und ~/fehlstellenscan/datensaetze liegen beide
 Ziel (Jan 19.11.2026): yolo11n-seg auf Kodytek, Fehlstellen als Umriss statt Box. Grund: Die Norm misst Äste
 am kleinsten Durchmesser (Henri), dafür braucht es den Umriss (daraus später gekippte Box, Ellipse, kleinster
 Durchmesser in Python).
-- Befehle `ansehen`, `bauen`, `gegenprobe`, `zeichnen` (je `--help`). numpy, Pillow, opencv, importiert
+- Befehle `ansehen`, `bauen`, `gegenprobe`, `zeichnen`, `gruppenbilder` (je `--help`). numpy, Pillow, opencv, importiert
   datensatz.py aus demselben Ordner. Masken aus `Semantic Maps.zip` (jede einzeln im Speicher) oder einem Ordner.
+- Bilder für Menschen (Gruppe, Folien): `gruppenbilder` macht je Bild drei JPGs, nur Masken, keine Boxen (Jan
+  21.11.2026), deutsche Klassennamen, 1600 px breit: `_vergleich` (Markierung über Modell, Flächen), `_umriss`
+  (Modell, nur Umriss), `_masse` (Modell, bei Ästen angepasste Ellipse mit Achsen und Länge × Breite in mm).
+  mm aus dem Kodytek-Paper: quer 16,66 px/mm, längs 6,67 px/mm (Pixel nicht quadratisch, erst in mm umrechnen).
+  Maße beruhen auf den großzügigen Pinsel-Masken, also eher zu groß. Kein ultralytics im Code: das Modell läuft
+  auf dem Mac per `yolo segment predict`, gezeichnet wird auf dem Server. Mac (Umgebung an, ~/fehlstellenscan):
+
+      mkdir -p gruppe/bilder gruppe/markierung
+      for n in 153200022 153200004 153200015; do cp datensaetze/kodytek-seg-1/images/val/$n.bmp gruppe/bilder/; cp datensaetze/kodytek-seg-1/labels/val/$n.txt gruppe/markierung/; done
+      yolo segment predict model=runs/segment/kodytek-seg1-n1280/weights/best.pt source=gruppe/bilder imgsz=1280 retina_masks=True save_txt=True save_conf=True save=False project=gruppe name=vorhersage exist_ok=True
+      scp -r gruppe agents-user:agenten/fehlstellenscan/data/laeufe/kodytek-seg-1/
+
+  Server: `.venv/bin/python masken.py gruppenbilder --bilder data/laeufe/kodytek-seg-1/gruppe/bilder
+  --markierung data/laeufe/kodytek-seg-1/gruppe/markierung --vorhersage data/laeufe/kodytek-seg-1/gruppe/vorhersage/labels
+  --ausgabe data/laeufe/kodytek-seg-1/gruppe/fertig 153200022 153200004 153200015`.
 - Umwandlung: je Klassenfarbe eine Binärmaske, `cv2.findContours`, jeder Fleck ein Objekt, Polygon durch die
   Mitten der Randpixel, normiert auf die echte Bildgröße. Weggelassen und in bericht.json einzeln gelistet:
   Flecken unter 2 px Breite oder Höhe (`klein`), Flecken ohne Fläche wie 1 px breite schräge Linien (`linie`).
@@ -269,7 +284,7 @@ GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller L
 4. Gegenprobe, Bilder zum Draufschauen, ultralytics liest den Datensatz:
 
        python masken.py gegenprobe --seg datensaetze/kodytek-seg-1 --boxen datensaetze/kodytek-1 --ausgabe gegenprobe-seg.json
-       python masken.py zeichnen --seg datensaetze/kodytek-seg-1 --boxen datensaetze/kodytek-1 --ausgabe seg-bilder 100000000 100000061 100000062
+       python masken.py zeichnen --seg datensaetze/kodytek-seg-1 --ausgabe seg-bilder 100000000 100000061 100000062
        python -c "from ultralytics.data.utils import check_det_dataset; print(check_det_dataset('datensaetze/kodytek-seg-1/data.yaml'))"
 
    Abweichungen Flecken gegen Boxen sind zu erwarten (ein Riss in mehreren Stücken, zwei berührende Äste
@@ -472,4 +487,6 @@ seg_nacht.log), data/laeufe/seg-probe20/results.csv.
 ## Gelernte Regeln
 - 19.11.2026: Rüdiger schreibt in der Gruppe im Stil der Gruppe: Du, locker, kurz, ohne Floskeln, fachlich genau (Anlass: Jan „so wie wir im Stil“).
 - 19.11.2026: Mail-Entwürfe aus der Gruppe zeigt Rüdiger dort genau wie in der Zentrale; alle in der Gruppe können per Antwort ändern, freigeben nur Jan, auch per Knopf in der Gruppe (Anlass: Jan „mail entwurf soll aber in der gruppe sein“, „so dass andere änderungen machen können. freigeben nur ich“).
+- 21.11.2026: Rüdiger hält Gruppen-Texte wirklich kurz, lieber Bilder als lange Erklärung (Anlass: Jan „der letzte text war aber zu lang von ihm“).
+- 21.11.2026: Beispielbilder des Modells für die Gruppe nur mit Masken, keine Bounding Boxen (Anlass: Jan „die bounding boxes wollen wir nicht mehr sehen. nur die masken“).
 - 19.11.2026: Rüdiger bleibt bei der Frage: keine ungefragten Verweise auf andere Verfahren, Teilprojekte oder Personen, keine internen Ordner- oder Dateinamen (Anlass: Jan „der Verweis zu Felix müsste nicht sein“).

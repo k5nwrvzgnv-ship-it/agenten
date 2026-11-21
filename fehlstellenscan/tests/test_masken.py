@@ -229,15 +229,82 @@ class TestBauen(unittest.TestCase):
         self.assertEqual(ergebnis["bilder_mit_abweichung"],
                          [{"teil": "train", "nummer": "100000000", "abweichung": {"live_knot": [1, 2]}}])
 
-    def test_zeichnen(self):
+    def test_zeichnen_nur_masken(self):
         m.bauen(self.vorlage, self.zip, self.ziel, 2)
-        png = m.zeichnen(self.ziel, self.vorlage, "100000000", self.tmp / "png")
-        with Image.open(png) as bild:
-            self.assertEqual(bild.size, (60, 40))
-            pixel = np.asarray(bild.convert("RGB"))
-        self.assertTrue(np.all(pixel[5, 5:20] == GRUEN))        # Oberkante des Polygons in Maskenfarbe
+        jpg = m.zeichnen(self.ziel, "100000000", self.tmp / "bilder")
+        self.assertEqual(jpg.name, "100000000_masken.jpg")
+        with Image.open(jpg) as bild:
+            hoehe = round(40 * m.BREITE_BILD / 60)
+            self.assertEqual(bild.size, (m.BREITE_BILD, 50 + hoehe))
+            pixel = np.asarray(bild.convert("RGB")).astype(int)
+        mitte = pixel[50 + round(10 * m.BREITE_BILD / 60), round(12.5 * m.BREITE_BILD / 60)]  # im grünen Fleck
+        self.assertGreater(mitte[1] - mitte[0], 50)                  # grün eingefärbt
+        rand = pixel[-5, -5]                                         # Holz ohne Fehlstelle bleibt grau
+        self.assertLess(abs(rand[1] - rand[0]), 15)
         with self.assertRaises(FileNotFoundError):
-            m.zeichnen(self.ziel, None, "999999999", self.tmp / "png")
+            m.zeichnen(self.ziel, "999999999", self.tmp / "bilder")
+
+    def test_gruppenbilder_vergleich_umriss_masse(self):
+        bilder, markierung, vorhersage = (self.tmp / n for n in ("bilder", "markierung", "vorhersage"))
+        for ordner in (bilder, markierung, vorhersage):
+            ordner.mkdir()
+        (bilder / "100000000.bmp").write_bytes((self.vorlage / "images/train/100000000.bmp").read_bytes())
+        (bilder / "100000001.bmp").write_bytes((self.vorlage / "images/train/100000001.bmp").read_bytes())
+        punkte = np.array([[5.5, 5.5], [19.5, 5.5], [19.5, 14.5], [12, 15], [5.5, 14.5]])
+        label = m.zu_yolo_seg(0, punkte, 60, 40) + "\n"
+        (markierung / "100000000.txt").write_text(label)
+        (markierung / "100000001.txt").write_text("")
+        (vorhersage / "100000000.txt").write_text(label.strip() + " 0.83\n")      # save_conf: Konfidenz am Ende
+        ziele = m.gruppenbilder(bilder, markierung, vorhersage, "100000000", self.tmp / "fertig")
+        self.assertEqual([z.name for z in ziele],
+                         ["100000000_vergleich.jpg", "100000000_umriss.jpg", "100000000_masse.jpg"])
+        hoehe = 50 + round(40 * m.BREITE_BILD / 60)
+        with Image.open(ziele[0]) as vergleich, Image.open(ziele[1]) as umriss:
+            self.assertEqual(vergleich.size, (m.BREITE_BILD, 2 * hoehe + 6))
+            self.assertEqual(umriss.size, (m.BREITE_BILD, hoehe))
+            pixel = np.asarray(umriss.convert("RGB")).astype(int)
+        mitte = pixel[50 + round(10 * m.BREITE_BILD / 60), round(12.5 * m.BREITE_BILD / 60)]
+        self.assertLess(abs(mitte[1] - mitte[0]), 15)                 # Umriss: innen nicht eingefärbt
+        # ohne Datei der Vorhersage (Modell fand nichts) entstehen die Bilder trotzdem, nur ohne Masken
+        self.assertEqual(len(m.gruppenbilder(bilder, markierung, vorhersage, "100000001", self.tmp / "fertig")), 3)
+
+    def test_unbekannte_art(self):
+        with self.assertRaises(ValueError):
+            m.masken_bild(Image.new("RGB", (10, 10)), [], "x", art="boxen")
+
+
+class TestVorhersageUndMasse(unittest.TestCase):
+    def test_vorhersage_mit_und_ohne_konfidenz(self):
+        zeile = m.zu_yolo_seg(1, np.array([[10.0, 10], [20, 10], [20, 20]]), 100, 50)
+        mit, ohne = m.objekte_aus_vorhersage(f"{zeile} 0.61\n\n{zeile}\n", 100, 50)
+        self.assertEqual((mit[0], mit[2]), (1, 0.61))
+        self.assertIsNone(ohne[2])
+        np.testing.assert_allclose(mit[1], ohne[1])
+
+    def test_masse_kreis_in_mm_trotz_ungleicher_pixel(self):
+        t = np.linspace(0, 2 * np.pi, 60, endpoint=False)
+        kreis_mm = np.stack([50 + 5 * np.cos(t), 40 + 5 * np.sin(t)], axis=1)       # Durchmesser 10 mm
+        masse = m.masse_mm(kreis_mm * m.PX_JE_MM)
+        self.assertAlmostEqual(masse["lang"], 10, delta=0.1)
+        self.assertAlmostEqual(masse["kurz"], 10, delta=0.1)
+
+    def test_masse_gedrehte_ellipse_und_rueckweg(self):
+        t, w = np.linspace(0, 2 * np.pi, 80, endpoint=False), np.radians(30)
+        x, y = 12 * np.cos(t), 4 * np.sin(t)                                         # 24 x 8 mm, 30 Grad gedreht
+        mm = np.stack([30 + x * np.cos(w) - y * np.sin(w), 20 + x * np.sin(w) + y * np.cos(w)], axis=1)
+        masse = m.masse_mm(mm * m.PX_JE_MM)
+        self.assertAlmostEqual(masse["lang"], 24, delta=0.1)
+        self.assertAlmostEqual(masse["kurz"], 8, delta=0.1)
+        umfang = m.ellipse_px(masse) / m.PX_JE_MM - (30, 20)
+        np.testing.assert_allclose(np.linalg.norm(umfang, axis=1).max(), 12, atol=0.1)
+        laengen = sorted(np.linalg.norm(np.diff(a / m.PX_JE_MM, axis=0)) for a in m.achsen_px(masse))
+        np.testing.assert_allclose(laengen, [8, 24], atol=0.1)
+
+    def test_masse_braucht_fuenf_punkte(self):
+        self.assertIsNone(m.masse_mm(np.array([[0.0, 0], [10, 0], [10, 10], [0, 10]])))
+
+    def test_namen_je_klasse(self):
+        self.assertEqual(len(m.NAMEN_DE), len(d.KLASSEN))
 
 
 @unittest.skipUnless((PROBE_MASKEN / "100000062_segm.bmp").exists() and PROBE_BILDER.is_dir(),
