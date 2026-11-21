@@ -251,23 +251,6 @@ batch=4 als Ersatz, wenn batch=8 abbricht). Start: `caffeinate -i bash seg_nacht
 Gestartet von Jan am 19.11.2026 abends. Probe bestanden (20 Bilder, 54 Objekte wie die Box-Probe, 9 min,
 GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller Lauf fertig 21.11.2026 09:42.
 
-### Erstes Seg-Modell kodytek-seg1-n1280 (fertig 21.11.2026)
-- yolo11n-seg, imgsz 1280, batch 8 (Speicher reichte), 60 Epochen in 33,5 h (rund 28 min Training plus Prüfung
-  je Epoche; eine Pause per Ctrl+Z wäre mitgezählt). Gewichte Mac runs/segment/kodytek-seg1-n1280/
-  weights/ (best.pt 6,1 MB). GPU-Speicher und Verlauf stehen in results.csv, noch nicht auf dem Server.
-- best.pt auf val (2.026 Bilder, 4.465 Objekte; Box-Datensatz 4.464 Boxen, also Flecken praktisch 1:1 wie Boxen):
-  Box P 0,753, R 0,672, mAP50 0,748, mAP50-95 0,457; Mask P 0,753, R 0,669, mAP50 0,746, mAP50-95 0,413.
-  Box-Modell kodytek1-n1280 zum Vergleich: mAP50 0,751, mAP50-95 0,460.
-- Je Klasse Mask mAP50 / mAP50-95 (Box in Klammern): live_knot 0,868 / 0,420 (0,867 / 0,442); dead_knot
-  0,851 / 0,449 (0,860 / 0,487); knot_missing 0,829 / 0,420 (0,829 / 0,470); knot_with_crack 0,845 / 0,580
-  (0,845 / 0,591); crack 0,739 / 0,377 (0,749 / 0,462); quartzity 0,643 / 0,363 (0,634 / 0,421); resin
-  0,768 / 0,348 (0,783 / 0,402); marrow 0,880 / 0,605 (0,869 / 0,637); blue_stain 0,293 / 0,151 (12 Objekte).
-- Schluss: Erkennen gleich gut wie das Box-Modell, Masken kosten nichts. Die genaue Form (Mask-mAP50-95) liegt
-  unter der Box, am deutlichsten bei crack, resin, quartzity: dünne oder unscharf gemalte Formen, passt zur
-  Maskenauflösung (1/4) und zu den Pinsel-Masken. Inferenz 0,5 ms, Nachbearbeitung der Masken 6,5 ms je Bild.
-- Noch nicht auf dem Server: bericht.json (unbekannte Farben, Linien, Löcher), gegenprobe-seg.json, seg-bilder,
-  results.csv und Bilder des Laufs. Befehle in Schritt 7 oben.
-
 1. Skripte holen (datensatz.py wird von masken.py gebraucht):
 
        scp agents-user:agenten/fehlstellenscan/masken.py ~/fehlstellenscan/
@@ -310,6 +293,36 @@ GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller L
 - Hinweis Maskenauflösung: YOLO-seg lernt Masken in einem Viertel der Eingabegröße. Bei imgsz 1280 ist ein
   Maskenpunkt rund 9 Originalpixel; dünne Risse leiden zuerst (crack je Klasse ansehen). Abhilfe wäre
   `mask_ratio=2` (mehr Speicher), erst nach dem ersten Lauf entscheiden.
+
+### Erstes Seg-Modell kodytek-seg1-n1280 (fertig 21.11.2026)
+Dateien auf dem Server: data/laeufe/kodytek-seg1-n1280/ (results.csv, args.yaml, Kurven, Matrizen, val_batch0-2,
+best.pt, last.pt), data/laeufe/kodytek-seg-1/ (bericht.json, gegenprobe-seg.json, 3 Kontrollbilder,
+seg_nacht.log), data/laeufe/seg-probe20/results.csv.
+- Datensatz kodytek-seg-1: train 16.068 / val 2.026 / test 2.176 Bilder. Keine unbekannten Farben, keine fehlende
+  Maske. 5 Masken breiter als ihr Bild (z. B. 100000023: Bild 2777, Maske 2800; dazu 100000024, 104700046,
+  104700048, 115100056, alle train): Bilder weggelassen, daher train 5 weniger als kodytek-1. Weggelassen 372
+  kleine Flecken (Boxen: 434) und 58 Linien ohne Fläche. 1.307 Löcher ausgemalt (live_knot 459, knot_with_crack
+  307, dead_knot 263), Art der Löcher nicht angesehen (Masken liegen nur auf dem Mac).
+- Gegenprobe: Flecken je Teil und Klasse weichen höchstens um 4 von den Boxen ab, nur 67 von 20.270 Bildern
+  haben eine Abweichung (meist ein Fleck mehr oder weniger). Masken und Boxen beschreiben dieselben Objekte.
+  Kontrollbilder vom Mac 100000000/61/62 gleich wie die Server-Probe.
+- Lauf: yolo11n-seg, imgsz 1280, batch 8, MuSGD (optimizer auto), mask_ratio 4, 60 Epochen. Rund 28 min je
+  Epoche mit Prüfung (Epoche 1: 1.721 s); die 33,5 h enthalten eine Pause von rund 5,7 h zwischen Epoche 20 und
+  25. GPU-Speicher laut Log bis 16,4 GB (meist 13-15 GB) von 24 GB.
+- Verlauf: bester Stand Epoche 37 (best.pt). Danach sinkt der train-seg-Verlust weiter, val-seg-Verlust steigt
+  (1,733 bei Epoche 35 auf 1,769 bei 60), Mask-mAP50-95 fällt von 0,413 auf 0,396. Leichte Überanpassung wie
+  beim Box-Modell; 35-40 Epochen reichen.
+- best.pt auf val (2.026 Bilder, 4.465 Objekte): Box P 0,753, R 0,672, mAP50 0,748, mAP50-95 0,457; Mask P
+  0,753, R 0,669, mAP50 0,746, mAP50-95 0,413. Box-Modell kodytek1-n1280 zum Vergleich: mAP50 0,751, mAP50-95 0,460.
+- Je Klasse Mask mAP50 / mAP50-95 (Box in Klammern): live_knot 0,868 / 0,420 (0,867 / 0,442); dead_knot
+  0,851 / 0,449 (0,860 / 0,487); knot_missing 0,829 / 0,420 (0,829 / 0,470); knot_with_crack 0,845 / 0,580
+  (0,845 / 0,591); crack 0,739 / 0,377 (0,749 / 0,462); quartzity 0,643 / 0,363 (0,634 / 0,421); resin
+  0,768 / 0,348 (0,783 / 0,402); marrow 0,880 / 0,605 (0,869 / 0,637); blue_stain 0,293 / 0,151 (12 Objekte).
+- Sichtprüfung val_batch0: Masken sitzen auf den Fehlstellen wie die Labels. Fehler wie beim Box-Modell: kleine
+  Äste live/dead vertauscht (4 von 16 Bildern), Harz am rechten Brettrand (153200015) fehlt.
+- Schluss: Erkennen gleich gut wie das Box-Modell, Masken kosten nichts. Die genaue Form (Mask-mAP50-95) liegt
+  unter der Box, am deutlichsten bei crack, resin, quartzity: dünne oder unscharf gemalte Formen, passt zur
+  Maskenauflösung (1/4) und zu den Pinsel-Masken. Inferenz 0,5 ms, Nachbearbeitung der Masken 6,5 ms je Bild.
 
 ## Aufbau
 - Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, masken.py, auswertung.py, konfig/ (Einstellungen im Repo)
@@ -452,9 +465,9 @@ GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller L
    weitergegeben wird (Enterprise-Lizenz oder z. B. YOLOX, Apache 2.0). Kodytek CC BY 4.0 gewerblich erlaubt
    mit Namensnennung. Rechte an den Ergebnissen des HNEE-Projekts für eine Bewerbung mit Prof. Böhme bzw. der
    Hochschule klären. Ausschreibungstext der TU fehlt noch (Durchsatz, Abmessungen, Merkmale, Genauigkeit).
-8. Segmentierung (Jan 19.11.2026): erstes Seg-Modell fertig (21.11.2026, Abschnitt „Erstes Seg-Modell“). Offen:
-   Ergebnisdateien vom Mac holen (Schritt 7) und auswerten (Verlauf, Gegenprobe, Sichtprüfung). Danach Maße aus
-   den Umrissen (gekippte Box, Ellipse, kleinster Durchmesser) als getestete Funktion.
+8. Segmentierung (Jan 19.11.2026): erstes Seg-Modell fertig und ausgewertet (21.11.2026, Abschnitt „Erstes
+   Seg-Modell“). Nächstes: Maße aus den Umrissen (gekippte Box, Ellipse, kleinster Durchmesser) als getestete
+   Funktion. Test-Teil weiter unberührt.
 
 ## Gelernte Regeln
 - 19.11.2026: Rüdiger schreibt in der Gruppe im Stil der Gruppe: Du, locker, kurz, ohne Floskeln, fachlich genau (Anlass: Jan „so wie wir im Stil“).
