@@ -343,8 +343,36 @@ seg_nacht.log), data/laeufe/seg-probe20/results.csv.
   unter der Box, am deutlichsten bei crack, resin, quartzity: dünne oder unscharf gemalte Formen, passt zur
   Maskenauflösung (1/4) und zu den Pinsel-Masken. Inferenz 0,5 ms, Nachbearbeitung der Masken 6,5 ms je Bild.
 
+## Seg-Modell auf Felix' Balken (balken.py, ab 21.11.2026)
+Ziel (Jan 21.11.2026): kodytek-seg1-n1280 auf einem ganzen Balken ausprobieren. Quelle: Streifenbild aus
+holzbalkenscan, Reihe ISO 800 (Testbalken 261019 Seite A, BSH mit 7 Lamellen, 6485 x 230 mm, 6 Px/mm), Lauf
+20261107-010055 (Felix' Code unverändert). Balkenfeld im Streifen ab Pixel (204, 205), am Bild nachgemessen.
+- `balken.py kacheln` schneidet den Streifen in Kacheln wie Kodytek-Bilder: 2800 x 1024, transponiert (Faser
+  senkrecht wie bei Kodytek), je Richtung auf 16,66 Px/mm quer und 6,67 Px/mm längs gestreckt, also 168 mm quer x
+  153,5 mm längs je Kachel. Ergebnis: 114 Kacheln (57 längs x 2 quer, Überlappung mind. 40 mm), 65 MB, in
+  data/laeufe/balken-felix-iso800/kacheln/ mit kacheln.json (Lage jeder Kachel in mm). Sichtprüfung l010: sieht
+  aus wie ein Kodytek-Bild, Ast quer gestreckt wie im Training.
+- `balken.py karte` legt die Vorhersagen zurück auf den Balken (l längs ab Balkenanfang, q quer ab Oberkante, mm),
+  verwirft Doppelte aus Überlappungen (Fund zählt nur in der Kachel, in deren Kern sein Schwerpunkt liegt) und
+  schreibt funde.json, funde.csv (Semikolon) und je Meter ein Kartenbild (3 Px/mm) mit Umriss, Name, Konfidenz
+  und bei Ästen Ellipse lang x kurz in mm.
+- Grenzen: Das Streifenbild ist ein Handy-Mosaik (JPG, 6 Px/mm), für Kodytek-Maßstab quer 2,8-fach hochgerechnet;
+  feiner als 6 Px/mm wird nichts. Holz gealtert, verschmutzt, BSH-Fugen: alles anders als Kodytek-Schnittholz.
+  Ergebnis ist ein Eindruck, kein Messwert. Eine Markierung zum Vergleich gibt es nicht.
+- Mac (Umgebung an, ~/fehlstellenscan):
+
+      mkdir -p balken-felix && scp -r agents-user:agenten/fehlstellenscan/data/laeufe/balken-felix-iso800/kacheln balken-felix/
+      yolo segment predict model=runs/segment/kodytek-seg1-n1280/weights/best.pt source=balken-felix/kacheln imgsz=1280 retina_masks=True save_txt=True save_conf=True save=False project=balken-felix name=vorhersage exist_ok=True
+      scp -r runs/segment/balken-felix/vorhersage/labels agents-user:agenten/fehlstellenscan/data/laeufe/balken-felix-iso800/
+
+  (Pfad der Labels steht in der Ausgabe „Results saved to“; Kacheln ohne Fund haben keine .txt.)
+- Server: `systemd-run --user --scope -q -p MemoryMax=1500M .venv/bin/python balken.py karte --kacheln
+  data/laeufe/balken-felix-iso800/kacheln --vorhersage data/laeufe/balken-felix-iso800/labels --ausgabe
+  data/laeufe/balken-felix-iso800/karte`. Kacheln schneiden brauchte 17 s und 630 MB.
+- Offen: Vorhersage auf dem Mac (Jan), dann Karte und Sichtprüfung.
+
 ## Aufbau
-- Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, masken.py, auswertung.py, konfig/ (Einstellungen im Repo)
+- Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, masken.py, balken.py, auswertung.py, konfig/ (Einstellungen im Repo)
 - .venv: fehlstellenscan/.venv, agentkit per .pth eingebunden
 - Dienst: fehlstellenscan-gruppe.service (Gruppen-Bot). Für agent.py noch keiner (später oneshot auf Auftrag).
 - Zugangsdaten: fehlstellenscan/.env (Bot-Token, Gruppe, HNEE-Login), Vorlage .env.example
