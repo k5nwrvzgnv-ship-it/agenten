@@ -249,8 +249,24 @@ Mac-Terminal, Umgebung an wie im Abschnitt Mac. Erwartet wird kodytek-1 aus dem 
 Alles am Stück: seg_nacht.sh (Schritte 2-6, volles Training nur bei Probe-Mask-mAP50 ab 0,9, sonst Abbruch;
 batch=4 als Ersatz, wenn batch=8 abbricht). Start: `caffeinate -i bash seg_nacht.sh 2>&1 | tee seg_nacht.log`.
 Gestartet von Jan am 19.11.2026 abends. Probe bestanden (20 Bilder, 54 Objekte wie die Box-Probe, 9 min,
-GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller Datensatz ab 20.11. 00:08 im Bau,
-danach volles Training (Ergebnis offen).
+GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller Lauf fertig 21.11.2026 09:42.
+
+### Erstes Seg-Modell kodytek-seg1-n1280 (fertig 21.11.2026)
+- yolo11n-seg, imgsz 1280, batch 8 (Speicher reichte), 60 Epochen in 33,5 h (rund 28 min Training plus Prüfung
+  je Epoche, eine kurze Pause von Jan per Ctrl+Z eingerechnet). Gewichte Mac runs/segment/kodytek-seg1-n1280/
+  weights/ (best.pt 6,1 MB). GPU-Speicher und Verlauf stehen in results.csv, noch nicht auf dem Server.
+- best.pt auf val (2.026 Bilder, 4.465 Objekte; Box-Datensatz 4.464 Boxen, also Flecken praktisch 1:1 wie Boxen):
+  Box P 0,753, R 0,672, mAP50 0,748, mAP50-95 0,457; Mask P 0,753, R 0,669, mAP50 0,746, mAP50-95 0,413.
+  Box-Modell kodytek1-n1280 zum Vergleich: mAP50 0,751, mAP50-95 0,460.
+- Je Klasse Mask mAP50 / mAP50-95 (Box in Klammern): live_knot 0,868 / 0,420 (0,867 / 0,442); dead_knot
+  0,851 / 0,449 (0,860 / 0,487); knot_missing 0,829 / 0,420 (0,829 / 0,470); knot_with_crack 0,845 / 0,580
+  (0,845 / 0,591); crack 0,739 / 0,377 (0,749 / 0,462); quartzity 0,643 / 0,363 (0,634 / 0,421); resin
+  0,768 / 0,348 (0,783 / 0,402); marrow 0,880 / 0,605 (0,869 / 0,637); blue_stain 0,293 / 0,151 (12 Objekte).
+- Schluss: Erkennen gleich gut wie das Box-Modell, Masken kosten nichts. Die genaue Form (Mask-mAP50-95) liegt
+  unter der Box, am deutlichsten bei crack, resin, quartzity: dünne oder unscharf gemalte Formen, passt zur
+  Maskenauflösung (1/4) und zu den Pinsel-Masken. Inferenz 0,5 ms, Nachbearbeitung der Masken 6,5 ms je Bild.
+- Noch nicht auf dem Server: bericht.json (unbekannte Farben, Linien, Löcher), gegenprobe-seg.json, seg-bilder,
+  results.csv und Bilder des Laufs. Befehle in Schritt 7 oben.
 
 1. Skripte holen (datensatz.py wird von masken.py gebraucht):
 
@@ -436,9 +452,9 @@ danach volles Training (Ergebnis offen).
    weitergegeben wird (Enterprise-Lizenz oder z. B. YOLOX, Apache 2.0). Kodytek CC BY 4.0 gewerblich erlaubt
    mit Namensnennung. Rechte an den Ergebnissen des HNEE-Projekts für eine Bewerbung mit Prof. Böhme bzw. der
    Hochschule klären. Ausschreibungstext der TU fehlt noch (Durchsatz, Abmessungen, Merkmale, Genauigkeit).
-8. Segmentierung (Jan 19.11.2026): masken.py fertig und an 3 Masken geprüft. Offen auf dem Mac: Schritte 2-7 im
-   Abschnitt „Mac: Seg-Datensatz bauen und trainieren“. Danach Maße aus den Umrissen (gekippte Box, Ellipse,
-   kleinster Durchmesser) als getestete Funktion.
+8. Segmentierung (Jan 19.11.2026): erstes Seg-Modell fertig (21.11.2026, Abschnitt „Erstes Seg-Modell“). Offen:
+   Ergebnisdateien vom Mac holen (Schritt 7) und auswerten (Verlauf, Gegenprobe, Sichtprüfung). Danach Maße aus
+   den Umrissen (gekippte Box, Ellipse, kleinster Durchmesser) als getestete Funktion.
 
 ## Gelernte Regeln
 - 19.11.2026: Rüdiger schreibt in der Gruppe im Stil der Gruppe: Du, locker, kurz, ohne Floskeln, fachlich genau (Anlass: Jan „so wie wir im Stil“).
