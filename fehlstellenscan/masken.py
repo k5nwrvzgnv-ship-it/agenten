@@ -286,6 +286,9 @@ BREITE_BILD = 1600      # Breite der fertigen Bilder (Original 2800), reicht fü
 # Kodytek-Paper (Abschnitt Hardware): quer zum Brett (x, Kamerazeile) 16,66 px/mm, längs (y, Zeilen) 6,67 px/mm.
 # Die Pixel sind also nicht quadratisch; Maße immer erst in mm umrechnen, dann messen.
 PX_JE_MM = (16.66, 6.67)
+# Neonfarben für Bilder, die Menschen ansehen (Jan 21.11.2026: „so neon farben“, Äste türkis wie im Vorbild);
+# Reihenfolge wie datensatz.KLASSEN. FARBEN bleibt die Farbe der Kodytek-Masken für die Umwandlung.
+ANZEIGE = ["00F0FF", "FF2BD6", "FFFFFF", "FF8A00", "FF3131", "B026FF", "FFF01F", "2D7BFF", "00FFA3", "FF9EF5"]
 ELLIPSE = (180, 255, 50)        # Farbe für Ellipse und Achsen im Maßbild (gut sichtbar auf Holz)
 AESTE = {0, 1, 2, 3}            # live_knot, dead_knot, knot_missing, knot_with_crack: nur hier Maße (Ellipse)
 # Schriften mit ß und ×: DejaVu auf dem Server, Arial auf dem Mac; sonst Pillows eingebaute (ohne diese Zeichen)
@@ -370,7 +373,7 @@ def masken_bild(bild, objekte: list, titel: str, art: str = "flaeche"):
     font = schrift(28)
     texte = []
     for klasse, punkte, konfidenz in objekte:
-        farbe = tuple(bytes.fromhex(FARBEN[klasse]))
+        farbe = tuple(bytes.fromhex(ANZEIGE[klasse]))
         ecken = [tuple(p) for p in (punkte * massstab).tolist()]
         text = NAMEN_DE[klasse]
         if art == "flaeche":

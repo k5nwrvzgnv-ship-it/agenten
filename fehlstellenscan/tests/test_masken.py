@@ -305,6 +305,7 @@ class TestVorhersageUndMasse(unittest.TestCase):
 
     def test_namen_je_klasse(self):
         self.assertEqual(len(m.NAMEN_DE), len(d.KLASSEN))
+        self.assertEqual(len(m.ANZEIGE), len(d.KLASSEN))
 
 
 @unittest.skipUnless((PROBE_MASKEN / "100000062_segm.bmp").exists() and PROBE_BILDER.is_dir(),
