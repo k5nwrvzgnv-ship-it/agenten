@@ -253,7 +253,7 @@ GPU 6,3 GB): Mask-mAP50 0,970, Mask-mAP50-95 0,675 (Box 0,970 / 0,718). Voller L
 
 ### Erstes Seg-Modell kodytek-seg1-n1280 (fertig 21.11.2026)
 - yolo11n-seg, imgsz 1280, batch 8 (Speicher reichte), 60 Epochen in 33,5 h (rund 28 min Training plus Prüfung
-  je Epoche, eine kurze Pause von Jan per Ctrl+Z eingerechnet). Gewichte Mac runs/segment/kodytek-seg1-n1280/
+  je Epoche; eine Pause per Ctrl+Z wäre mitgezählt). Gewichte Mac runs/segment/kodytek-seg1-n1280/
   weights/ (best.pt 6,1 MB). GPU-Speicher und Verlauf stehen in results.csv, noch nicht auf dem Server.
 - best.pt auf val (2.026 Bilder, 4.465 Objekte; Box-Datensatz 4.464 Boxen, also Flecken praktisch 1:1 wie Boxen):
   Box P 0,753, R 0,672, mAP50 0,748, mAP50-95 0,457; Mask P 0,753, R 0,669, mAP50 0,746, mAP50-95 0,413.
