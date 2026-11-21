@@ -357,6 +357,22 @@ def zahl(wert: float, stellen: int = 1) -> str:
     return f"{wert:.{stellen}f}".replace(".", ",")
 
 
+def textplatz(punkte: np.ndarray, breite: float, hoehe: float, bildgroesse: tuple[int, int],
+              belegt: list[tuple[float, float, float, float]]) -> tuple[float, float, float, float]:
+    """Feld (x1, y1, x2, y2) für den Namen eines Flecks: über dem Fleck, sonst darunter; überdeckt es ein schon
+    belegtes Feld (zwei Masken auf einem Ast), rutscht es unter das belegte. Bleibt im Bild."""
+    def frei(y: float) -> bool:
+        return not any(x < b[2] and x + breite > b[0] and y < b[3] and y + hoehe > b[1] for b in belegt)
+
+    x = min(max(float(punkte[:, 0].min()), 0), bildgroesse[0] - breite)
+    ueber, unter = float(punkte[:, 1].min()) - hoehe - 4, float(punkte[:, 1].max()) + 4
+    kandidaten = [y for y in (ueber, unter) if 0 <= y <= bildgroesse[1] - hoehe] or [max(ueber, 0)]
+    y = next((y for y in kandidaten if frei(y)), kandidaten[0])
+    while not frei(y) and y + hoehe < bildgroesse[1]:
+        y = max(b[3] for b in belegt if x < b[2] and x + breite > b[0] and y < b[3] and y + hoehe > b[1]) + 2
+    return x, y, x + breite, y + hoehe
+
+
 def masken_bild(bild, objekte: list, titel: str, art: str = "flaeche"):
     """Masken ins Bild, ohne Boxen; oben ein Balken mit dem Titel. Ergebnis ist BREITE_BILD breit.
     art "flaeche": halbdurchsichtig mit Umriss, Name und ggf. Konfidenz. "umriss": nur dünner Umriss mit Name.
@@ -391,14 +407,14 @@ def masken_bild(bild, objekte: list, titel: str, art: str = "flaeche"):
         elif konfidenz is not None:
             text += " " + zahl(konfidenz, 2)
         texte.append((text, farbe, punkte * massstab))
+    belegt: list[tuple[float, float, float, float]] = []
     for text, farbe, punkte in texte:           # Schrift zuletzt, damit keine Maske sie verdeckt
         links, oben, rechts, unten = zeichner.textbbox((0, 0), text, font=font)
-        x, y = punkte.min(axis=0)
-        x = min(max(x, 0), grund.width - rechts - 8)
-        y = y - unten - 10 if y - unten - 10 >= 0 else punkte[:, 1].max() + 6
+        x, y, x2, y2 = textplatz(punkte, rechts + 8, unten + 6, grund.size, belegt)
+        belegt.append((x, y, x2, y2))
         # Feld in der Klassenfarbe, Schrift schwarz oder weiß: auch dunkle Farben (quartzity, overgrown) lesbar
         hell = 0.299 * farbe[0] + 0.587 * farbe[1] + 0.114 * farbe[2] > 140
-        zeichner.rectangle((x, y, x + rechts + 8, y + unten + 6), fill=(*farbe, 230))
+        zeichner.rectangle((x, y, x2, y2), fill=(*farbe, 230))
         zeichner.text((x + 4, y + 2), text, fill=(0, 0, 0, 255) if hell else (255, 255, 255, 255), font=font)
     fertig = Image.alpha_composite(grund, schicht).convert("RGB")
     kopf = Image.new("RGB", (fertig.width, 50), (30, 30, 30))

@@ -235,13 +235,17 @@ Durchmesser in Python).
   21.11.2026), deutsche Klassennamen, 1600 px breit: `_vergleich` (Markierung über Modell, Flächen), `_umriss`
   (Modell, nur Umriss), `_masse` (Modell, bei Ästen angepasste Ellipse mit Achsen und Länge × Breite in mm).
   mm aus dem Kodytek-Paper: quer 16,66 px/mm, längs 6,67 px/mm (Pixel nicht quadratisch, erst in mm umrechnen).
-  Maße beruhen auf den großzügigen Pinsel-Masken, also eher zu groß. Kein ultralytics im Code: das Modell läuft
+  Neonfarben je Klasse (Äste türkis/pink), Namensfelder weichen einander aus. Maße beruhen auf den großzügigen
+  Pinsel-Masken, also eher zu groß. Kein ultralytics im Code: das Modell läuft
   auf dem Mac per `yolo segment predict`, gezeichnet wird auf dem Server. Mac (Umgebung an, ~/fehlstellenscan):
 
       mkdir -p gruppe/bilder gruppe/markierung
       for n in 153200022 153200004 153200015; do cp datensaetze/kodytek-seg-1/images/val/$n.bmp gruppe/bilder/; cp datensaetze/kodytek-seg-1/labels/val/$n.txt gruppe/markierung/; done
       yolo segment predict model=runs/segment/kodytek-seg1-n1280/weights/best.pt source=gruppe/bilder imgsz=1280 retina_masks=True save_txt=True save_conf=True save=False project=gruppe name=vorhersage exist_ok=True
       scp -r gruppe agents-user:agenten/fehlstellenscan/data/laeufe/kodytek-seg-1/
+      scp -r runs/segment/gruppe/vorhersage agents-user:agenten/fehlstellenscan/data/laeufe/kodytek-seg-1/gruppe/
+
+  (ultralytics legt `project=gruppe` unter runs/segment/ ab, Ausgabe „Results saved to“ zeigt den Pfad.)
 
   Server: `.venv/bin/python masken.py gruppenbilder --bilder data/laeufe/kodytek-seg-1/gruppe/bilder
   --markierung data/laeufe/kodytek-seg-1/gruppe/markierung --vorhersage data/laeufe/kodytek-seg-1/gruppe/vorhersage/labels

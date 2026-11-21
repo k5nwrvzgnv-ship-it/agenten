@@ -300,6 +300,20 @@ class TestVorhersageUndMasse(unittest.TestCase):
         laengen = sorted(np.linalg.norm(np.diff(a / m.PX_JE_MM, axis=0)) for a in m.achsen_px(masse))
         np.testing.assert_allclose(laengen, [8, 24], atol=0.1)
 
+    def test_textplatz_weicht_aus(self):
+        punkte = np.array([[100.0, 100], [200, 100], [200, 150], [100, 150]])
+        belegt = []
+        for _ in range(3):                           # drei Masken auf demselben Ast
+            belegt.append(m.textplatz(punkte, 120, 30, (800, 600), belegt))
+        self.assertEqual(belegt[0], (100.0, 66.0, 220.0, 96.0))          # über dem Fleck
+        self.assertEqual(belegt[1][1], 154.0)                              # darunter
+        for i, a in enumerate(belegt):
+            for b in belegt[i + 1:]:
+                self.assertFalse(a[1] < b[3] and b[1] < a[3], (a, b))      # keine Überdeckung
+        # am oberen Rand: gleich darunter, am rechten Rand: nach links ins Bild geschoben
+        rand = m.textplatz(np.array([[790.0, 5], [799, 5], [799, 20]]), 120, 30, (800, 600), [])
+        self.assertEqual(rand, (680.0, 24.0, 800.0, 54.0))
+
     def test_masse_braucht_fuenf_punkte(self):
         self.assertIsNone(m.masse_mm(np.array([[0.0, 0], [10, 0], [10, 10], [0, 10]])))
 
