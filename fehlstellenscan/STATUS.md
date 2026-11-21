@@ -369,7 +369,19 @@ holzbalkenscan, Reihe ISO 800 (Testbalken 261019 Seite A, BSH mit 7 Lamellen, 64
 - Server: `systemd-run --user --scope -q -p MemoryMax=1500M .venv/bin/python balken.py karte --kacheln
   data/laeufe/balken-felix-iso800/kacheln --vorhersage data/laeufe/balken-felix-iso800/labels --ausgabe
   data/laeufe/balken-felix-iso800/karte`. Kacheln schneiden brauchte 17 s und 630 MB.
-- Offen: Vorhersage auf dem Mac (Jan), dann Karte und Sichtprüfung.
+- Ergebnis 21.11.2026 (Vorhersage auf dem Mac, conf 0,25 Vorgabe; 113 von 114 Kacheln mit Fund): 267 Funde
+  nach 271 verworfenen Doppelten. Riss 196 (61 ab 0,5), Ast tot 33 (15), Ast mit Riss 13 (11), Harz 14 (1),
+  Ast lebend 10 (4), Mark 1. Karte: data/laeufe/balken-felix-iso800/karte/ (karte_00m..06m.jpg, funde.csv).
+- Sichtprüfung Meter 1 bis 2 und Auszählung: 137 der 196 Risse sind flache Linien genau auf den Klebefugen der
+  Lamellen (quer bei 35, 70, 105, 140, 175, 210 mm), zusammen 16,8 m. Das Modell hält BSH-Fugen für Risse; Kodytek
+  kennt keine Fugen. Einzelne Risse innerhalb einer Lamelle sehen echt aus (Schwindrisse), nicht gezählt.
+- Äste: Die gefundenen sitzen auf echten Ästen, Maße plausibel (7 bis 21 mm). Es fehlen aber deutlich sichtbare
+  Äste (Meter 1 bis 2 etwa 4 übersehen bei 6 gefunden, grob geschätzt) und ein dunkles Ausbruchloch bei
+  l 1710 mm. Konfidenzen niedrig (Median 0,44 bei Ast tot). Gealtertes, dunkles Holz und Handy-Mosaik sind fürs
+  Modell fremd.
+- Schluss: Fürs Erkennen von Ästen auf Altholz taugt das Kodytek-Modell als Startpunkt, nicht als Ergebnis.
+  Fugen als eigene Klasse oder Maske (Lage aus der Lamellenteilung) und eigene Altholz-Labels sind nötig (passt
+  zu docs/plan-erster-test-altholz.md). Ohne Markierung gibt es keine Zahl für Trefferquote.
 
 ## Aufbau
 - Code: fehlstellenscan/agent.py (Einstieg), datensatz.py, masken.py, balken.py, auswertung.py, konfig/ (Einstellungen im Repo)
