@@ -350,7 +350,19 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     (fällig 16.10., nicht abgegeben) eine Teilleistung ist.
   - Research project 2, Practical module: Prüfungsform laut emma, Zuordnung der Kurse noch nicht geklärt.
   - Bio-based materials (mündlich 12.11.2026): Jan lässt es wegen Workload aus (24.10.).
-  - Für keine Prüfung außer Research project 1 ist Jan in emma angemeldet, Termine meist offen.
+  - Prüfungsanmeldungen laut emma (22.11.2026, lesend abgerufen): Fachplanung im Hochbau 2 mündlich Do 28.01.2027
+    11-16 Uhr; Computerbasierte Planung "geänderte Prüfungsform" Mi 03.02.2027 08:30-10:00; Nachhaltigkeit im
+    Holzingenieurwesen mündlich Di 09.02.2027 11-14 Uhr; Praxis-Modul Klausur Do 18.02.2027 12:30-14:00;
+    Forschungsprojekt 2 mündlich Fr 26.02.2027 8-18 Uhr und Hausarbeit bis So 28.02.2027; Forschungsprojekt 1
+    Hausarbeit und mündlich ohne Termin. Module dazu (M.03.R.2504.P, .2505.P, .2506.P, .2513.W, .2515.W) und
+    Veranstaltungen: CAM, Computerbasierte Planung, Exkursion, Forschungsprojekt 2 (+ Wiss. Arbeiten), Integrale
+    Planung am Projekt, Integrierter Holzschutz, LCA, Nachhaltigkeitsaspekte, Sanierung von Holzbauwerken.
+    Welche Veranstaltung zum Praxis-Modul gehört, zeigt emma nicht (vermutlich Integrale Planung, Exkursion).
+  - Arbeitsplatz-Ordner dazu (22.11., Jans Wahl): "Modul Fachplanung im Hochbau 2" mit Holzschutz und Sanierung
+    darunter, "Modul Computerbasierte Planung", "Modul Nachhaltigkeit im Holzingenieurwesen", "Praxis-Modul";
+    Forschungsprojekt 2 = Ordner "Forschungsprojekt Fehlstellen".
+  - emma-Login per Skript geht: SSO-Formular braucht zusätzlich button=login; CampusNet-Seiten teils UTF-16.
+    Noch nicht im Agenten (kein Code, kein Timer).
   - Mails an Dozenten zu den offenen Punkten: Jan will vorerst keine (24.10.).
 - Lernsystem (Umbau ab 20.10., Pilot Modul Holzschutz und Sanierung = IHS Lautner + SHB Jahreis):
   Ziel: Prüfung mit wenig Aufwand bestehen; Maßstab Prüfungssimulation, nicht Informiertheit.
