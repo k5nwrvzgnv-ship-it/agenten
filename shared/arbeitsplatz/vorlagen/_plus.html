@@ -1,11 +1,12 @@
 {#- Das „+“ einer Seite (umbauplan-ux.md Schritt 2, aus Lias _plus.html): ein Knopf oben rechts, darunter die Liste, was
     hier neu entstehen kann. Einträge: {"text", "link"} (Link) oder {"text", "aktion", "felder": [(name, wert)]}
     (Formular mit Token, abgeschickt per POST). Ohne Einträge (Archiv) kein „+“. Geht ohne JavaScript (details).
-    voll=false: nicht blau, wo die Seite einen anderen Hauptknopf hat (Dokument: „Senden“ der Rückmeldung). -#}
-{%- macro plus(eintraege, voll=true) -%}
+    voll=true: blau. Seit 22.11.2026 überall leise: Blau bleibt der einen Haupthandlung einer Seite (Senden, Weiter),
+    docs/befund-ux.md Abschnitt 5, H4. -#}
+{%- macro plus(eintraege, voll=false) -%}
 {%- if eintraege %}
 <details class="menue-halter plus">
-  <summary class="knopf{% if voll %} knopf-voll{% endif %} plus-knopf" aria-label="Neu hier" title="Neu hier"><span aria-hidden="true">+</span></summary>
+  <summary class="knopf{% if voll %} knopf-voll{% else %} knopf-leise{% endif %} plus-knopf" aria-label="Neu hier" title="Neu hier"><span aria-hidden="true">+</span></summary>
   <div class="menue">
     {%- for e in eintraege %}
     {%- if e.aktion %}

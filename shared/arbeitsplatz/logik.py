@@ -522,6 +522,26 @@ def wartet_auf_mich(docs: list[dict], heute: str) -> list[dict]:
     return [d for d in docs if d["rot"] or (d["marke"].startswith("Fassung") and d["zeit"][:10] >= grenze)]
 
 
+ZULETZT_ZAHL = 8
+
+
+def zuletzt(docs: list[dict], wartet: list[dict], zahl: int = ZULETZT_ZAHL) -> list[dict]:
+    """„Zuletzt“ auf Heute ohne das, was schon unter „Wartet auf dich“ steht (docs/befund-ux.md Abschnitt 5, H8)."""
+    schon = {d["id"] for d in wartet}
+    return [d for d in docs if d["id"] not in schon][:zahl]
+
+
+def zeile_unter(d: dict, mit_ort: bool = False) -> str:
+    """Eine leise Zeile unter dem Titel einer Dokumentzeile: Art · Ordner · Zeit. Kein Agent (Technik, S1), außer es
+    gibt sonst gar nichts."""
+    teile = [d.get("art") or ""]
+    if mit_ort:
+        teile.append(d.get("ort_text") or "")
+    teile.append(d.get("zeit_text") or "")
+    teile = [t for t in teile if t]
+    return " · ".join(teile) if teile else (d.get("agent") or "")
+
+
 def kosten_zeilen(laeufe: list[dict], ursprung_von: dict[str, str], titel_von_: dict[str, str]) -> list[dict]:
     """Letzte Läufe für die rechte Spalte: {"text", "unter", "usd", "link", "ok"}. ursprung_von: Auftrag ->
     Ursprung des Dokuments, titel_von_: Ursprung -> Titel."""

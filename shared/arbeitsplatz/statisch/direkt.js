@@ -12,9 +12,11 @@
     if (!form || !form.classList.contains("direkt-form")) { return; }
     var feld = form.querySelector(".direkt-feld");
     var anfang = feld.value;
-    titel.tabIndex = 0;
-    titel.setAttribute("role", "button");
-    titel.title = "Zum Umbenennen anklicken";
+    // Die Überschrift bleibt eine Überschrift (h1); Knopf ist nur der Text darin (axe: aria-allowed-role)
+    var ziel = titel.querySelector("[data-direkt-ziel]") || titel;
+    ziel.tabIndex = 0;
+    ziel.setAttribute("role", "button");
+    ziel.title = "Zum Umbenennen anklicken";
     function oeffnen() {
       titel.hidden = true;
       form.hidden = false;
@@ -25,10 +27,10 @@
       feld.value = anfang;
       form.hidden = true;
       titel.hidden = false;
-      titel.focus();
+      ziel.focus();
     }
     titel.addEventListener("click", oeffnen);
-    titel.addEventListener("keydown", function (e) {
+    ziel.addEventListener("keydown", function (e) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); oeffnen(); }
     });
     feld.addEventListener("keydown", function (e) {

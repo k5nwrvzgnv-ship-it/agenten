@@ -1,6 +1,5 @@
-{#- Rahmen für alle Seiten (umbauplan-ux.md Schritt 1, Raster wie Lias App): Seitenleiste | Mitte | rechts. Die rechte
-    Spalte (Block „rechts“, Rahmen ohne „ohne-rechts“) hat nur Heute: Läuft gerade und Kosten. Die übrigen Seiten sind
-    einspaltig und mittig. Im HTML steht die Mitte vorn, damit sie bei schmalem Fenster oben steht; die Spalten ordnet
+{#- Rahmen für alle Seiten (umbauplan-ux.md Schritt 1, Raster wie Lias App): Seitenleiste | Mitte. Alle Seiten sind
+    einspaltig und mittig (seit 22.11.2026 auch Heute; Kosten zugeklappt unten auf Heute). Im HTML steht die Mitte vorn, damit sie bei schmalem Fenster oben steht; die Spalten ordnet
     ruhig.css (Kopie aus shared/webapp), Ergänzungen in arbeitsplatz.css. -#}
 <!doctype html>
 <html lang="de">
@@ -19,16 +18,20 @@
 <body>
 <div class="rahmen{% block rahmen_klasse %} ohne-rechts{% endblock %}">
 <main class="inhalt">
+{#- Brotkrumen: nur der Weg hierher, leise über dem Titel; die Seite selbst steht als Titel darunter (für Vorleser
+    unsichtbar mit aria-current). Auf Heute kein Streifen (docs/befund-ux.md Abschnitt 5, H8). -#}
+{%- if krumen.teile %}
 <div class="krumen-zeile">
 <nav class="krumen" aria-label="Brotkrumen">
   <ol>
     {%- for k in krumen.teile %}
-    <li>{% if k.link %}<a href="{{ k.link }}">{{ k.text }}</a>{% else %}<span>{{ k.text }}</span>{% endif %}<span class="trenner" aria-hidden="true">›</span></li>
+    <li>{% if k.link %}<a href="{{ k.link }}">{{ k.text }}</a>{% else %}<span>{{ k.text }}</span>{% endif %}{% if not loop.last %}<span class="trenner" aria-hidden="true">›</span>{% endif %}</li>
     {%- endfor %}
-    <li aria-current="page">{{ krumen.hier }}</li>
+    <li class="unsichtbar" aria-current="page">{{ krumen.hier }}</li>
   </ol>
 </nav>
 </div>
+{%- endif %}
 {#- Heute, Ort und Dokument setzen ihr „+“ und „···“ (_plus.html) unten rechts neben den Kopf, also auf Höhe des
     Inhalts darunter (Galerie, Liste), nicht mehr oben in die Brotkrumen (Jan 19.11.2026) -#}
 <div class="kopf-zeile">

@@ -4,7 +4,8 @@
     „···“. text: angezeigter Titel; aktion: POST-Ziel; feld/wert: das eine Eingabefeld; felder: weitere (name, wert);
     max: Länge; leer: Platzhalter; klasse: Klasse des Titels (h1); offen: gleich zum Umbenennen offen (neue Seite). -#}
 {%- macro titel(text, aktion="", feld="", wert="", felder=[], max=200, leer="", klasse="titel-gross", offen=false) -%}
-<h1 class="{{ klasse }}"{% if aktion %} data-direkt-titel{% if offen %} data-direkt-offen{% endif %}{% endif %}>{{ text }}</h1>
+{#- Die Überschrift bleibt h1; anklickbar (role=button, direkt.js) ist nur der Text darin -#}
+<h1 class="{{ klasse }}"{% if aktion %} data-direkt-titel{% if offen %} data-direkt-offen{% endif %}{% endif %}>{% if aktion %}<span data-direkt-ziel>{{ text }}</span>{% else %}{{ text }}{% endif %}</h1>
 {%- if aktion %}
 <form class="direkt-form" method="post" action="{{ aktion }}" hidden data-einmal>
   <input type="hidden" name="token" value="{{ formular_token() }}">

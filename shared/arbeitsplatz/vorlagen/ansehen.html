@@ -2,7 +2,7 @@
     Vor/Zurück und Seitenzahlen als Links, ohne JavaScript. Zurück zum Dokument über die Brotkrumen und unten. -#}
 {% extends "basis.html" %}
 {% block titel %}{{ e.titel }}, Seite {{ b.seite }}{% endblock %}
-{% block seitenkopf %}{% endblock %}
+{% block seitenkopf %}<h1 class="unsichtbar">{{ e.titel }}, Seite {{ b.seite }} von {{ b.anzahl }}</h1>{% endblock %}
 {% block inhalt %}
 {%- macro blaettern() %}
 <nav class="blaettern" aria-label="Seiten">
@@ -19,7 +19,6 @@
   <a href="{{ b.nachher or bild }}"{% if not b.nachher %} target="_blank" rel="noopener"{% endif %}>
     <img src="{{ bild }}" alt="{{ e.titel }}, Seite {{ b.seite }} von {{ b.anzahl }}">
   </a>
-  <figcaption class="unter">{% if b.nachher %}Klick auf die Seite für die nächste.{% else %}Letzte Seite. Klick auf die Seite, um sie in voller Größe zu öffnen.{% endif %}</figcaption>
 </figure>
 {%- if b.anzahl > 2 %}
 <ol class="seitenwahl" aria-label="Zu Seite">
@@ -28,10 +27,11 @@
   {%- endfor %}
 </ol>
 {%- endif %}
+{#- Unten leise: Zurück zum Dokument, Herunterladen, PDF; „Zu dieser Seite etwas ändern“ füllt das Feld am Dokument -#}
 <div class="knoepfe knoepfe-unten">
-  {%- if x.pdf %}<a class="knopf" href="{{ basis_link }}/pdf" target="_blank" rel="noopener">PDF ansehen</a>{% endif %}
-  {%- if x.original %}<a class="knopf" href="{{ basis_link }}" download>Herunterladen</a>{% endif %}
-  {%- if rueck_link %}<a class="knopf" href="{{ rueck_link }}">Rückmeldung zu dieser Seite</a>{% endif %}
-  <a class="knopf" href="/dokument/{{ u }}">Zurück zum Dokument</a>
+  <a class="knopf knopf-leise" href="/dokument/{{ u }}">Zurück zum Dokument</a>
+  {%- if rueck_link %}<a class="knopf knopf-leise" href="{{ rueck_link }}">Zu dieser Seite etwas ändern</a>{% endif %}
+  {%- if x.pdf %}<a class="knopf knopf-leise" href="{{ basis_link }}/pdf" target="_blank" rel="noopener">PDF ansehen</a>{% endif %}
+  {%- if x.original %}<a class="knopf knopf-leise" href="{{ basis_link }}" download>Herunterladen</a>{% endif %}
 </div>
 {% endblock %}

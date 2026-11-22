@@ -1,5 +1,7 @@
-{#- Liste von Dokumenten (Ort, Heute). d: logik.dokumente(); mit_ort zeigt den Ort darunter. Jede Zeile lässt sich
-    auf einen Ordner ziehen (statisch/ziehen.js, data-dokument). -#}
+{#- Liste von Dokumenten (Ort, Heute). d: logik.dokumente(); mit_ort zeigt den Ordner in der leisen Zeile. Jede Zeile
+    lässt sich auf einen Ordner ziehen (statisch/ziehen.js, data-dokument). Unter dem Titel eine leise Zeile (Art ·
+    Ordner · Zeit, logik.zeile_unter), rechts nur, was zu tun ist: Läuft, Final, Hat nicht geklappt. „Fassung n“ steht
+    im Verlauf am Dokument (docs/befund-ux.md Abschnitt 5, H7). -#}
 {%- macro liste(docs, mit_ort=false) -%}
 <ul>
   {%- for d in docs %}
@@ -7,10 +9,11 @@
     <span class="punkt{% if d.rot %} punkt-rot{% elif d.marke == 'Läuft' %} punkt-offen{% endif %}" aria-hidden="true"></span>
     <span class="text">
       <span class="titel">{{ d.titel }}</span>
-      <span class="unter">{{ d.art or d.agent }}{% if d.zeit_text %} · {{ d.zeit_text }}{% endif %}</span>
-      {%- if mit_ort and d.ort_text %}<span class="unter ort">{{ d.ort_text }}</span>{% endif %}
+      <span class="unter">{{ zeile_unter(d, mit_ort) }}</span>
     </span>
+    {%- if d.rot or d.marke in ("Läuft", "Final") %}
     <span class="marke{% if d.rot %} marke-rot{% endif %}">{{ d.marke }}</span>
+    {%- else %}<span></span>{% endif %}
   </a></li>
   {%- endfor %}
 </ul>

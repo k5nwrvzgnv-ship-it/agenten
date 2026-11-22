@@ -336,3 +336,21 @@ class TestRechercheplan(unittest.TestCase):
     def test_leer(self):
         with self.assertRaises(ValueError):
             logik.recherche_plan(" \n ", self.KOSTEN)
+
+
+class TestHeuteRuhig(unittest.TestCase):
+    """docs/befund-ux.md Abschnitt 5 (H7, H8): Zuletzt ohne Doppeltes, eine leise Zeile je Dokument."""
+
+    def test_zuletzt_ohne_wartet(self):
+        docs = [{"id": str(n)} for n in range(12)]
+        wartet = [docs[0], docs[2]]
+        z = logik.zuletzt(docs, wartet)
+        self.assertEqual([d["id"] for d in z], ["1", "3", "4", "5", "6", "7", "8", "9"])
+        self.assertEqual(len(logik.zuletzt(docs, [], 3)), 3)
+
+    def test_zeile_unter(self):
+        d = {"art": "Exposé", "agent": "uni", "ort_text": "Projekt › Exposé", "zeit_text": "18.11. 22:08"}
+        self.assertEqual(logik.zeile_unter(d), "Exposé · 18.11. 22:08")
+        self.assertEqual(logik.zeile_unter(d, True), "Exposé · Projekt › Exposé · 18.11. 22:08")
+        self.assertEqual(logik.zeile_unter({**d, "art": ""}), "18.11. 22:08")  # kein Agent
+        self.assertEqual(logik.zeile_unter({"agent": "uni"}), "uni")  # nur, wenn sonst nichts da ist

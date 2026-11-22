@@ -52,7 +52,7 @@ class TestRecherche(unittest.TestCase):
         for falsch in [{"modul": "../x"}, {"modul": "holzschutz", "uebung": "../../x"}, {}, None]:
             self.assertIsNone(ansichten.modul_und_uebung(falsch))
         self.assertEqual(ansichten.portal_link("holzschutz", "20261109-120000-abcdef"),
-                         "https://uni.meldro.de/modul/holzschutz/uebung/20261109-120000-abcdef")
+                         "/modul/holzschutz/uebung/20261109-120000-abcdef")
 
     def test_markdown(self):
         b = ansichten.markdown_bloecke("# Titel\n\nText **fett**\nweiter\n\n- a\n- b\n")

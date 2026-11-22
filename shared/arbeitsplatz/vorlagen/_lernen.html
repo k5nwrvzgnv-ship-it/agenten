@@ -1,0 +1,11 @@
+{#- Lernen (S12): je Prüfungsmodul eine Zeile, rechts „Karten üben“ und „Mündlich“. Die Seiten kommen aus dem
+    Uni-Portal, durchgereicht unter /modul/… (lernen.py). m: lernen.module(). -#}
+{%- macro lernzeilen(mods) -%}
+<ul>
+  {%- for m in mods %}
+  <li class="lern-zeile"><a class="zeile" href="{{ m.link }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
+    <span class="text"><span class="titel">{{ m.name }}</span><span class="unter">{{ m.karten }} {{ "Karte" if m.karten == 1 else "Karten" }}</span></span><span></span></a>
+    <span class="lern-wege"><a class="knopf knopf-leise" href="{{ m.ueben }}">Karten üben</a><a class="knopf knopf-leise" href="{{ m.link }}#muendlich">Mündlich</a></span></li>
+  {%- endfor %}
+</ul>
+{%- endmacro -%}

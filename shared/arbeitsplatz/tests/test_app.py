@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import http.client
+import http.server
 import re
 import shutil
 import socket
@@ -180,12 +181,12 @@ class TestSeiten(Aufbau):
         html = self.get("/")[1]
         self.assertIn('href="/statisch/ruhig.css"', html)
         self.assertNotIn("stil.css", html)
-        self.assertIn('<div class="rahmen">', html)
-        self.assertIn('<aside id="rechts-heute" class="rechts" aria-label="Läuft gerade">', html)
-        # Heute lädt sich jede Minute neu (Schritt 8): Mitte und rechte Spalte aus derselben Seite
+        # seit 22.11.2026 auch Heute einspaltig (docs/befund-ux.md Abschnitt 5): keine rechte Spalte mehr
+        self.assertIn('<div class="rahmen ohne-rechts">', html)
+        self.assertNotIn('class="rechts"', html)
+        # Heute lädt sich jede Minute neu (Schritt 8): die Mitte aus derselben Seite
         self.assertIn('<script src="/statisch/htmx-2.0.4.min.js" defer></script>', html)
-        self.assertIn('hx-get="/" hx-trigger="every 60s" hx-select="#heute" hx-swap="outerHTML" '
-                      'hx-select-oob="#rechts-heute"', html)
+        self.assertIn('hx-get="/" hx-trigger="every 60s" hx-select="#heute" hx-swap="outerHTML">', html)
         self.assertEqual(html.count('id="heute"'), 1)
         self.assertEqual(self.get("/statisch/ruhig.css")[0], 200)
         self.assertEqual(self.get("/statisch/stil.css")[0], 404)
@@ -217,7 +218,7 @@ class TestSeiten(Aufbau):
         heute = self.get("/")[1]
         self.assertEqual(heute.count('class="menue-halter plus"'), 1)
         self.assertEqual(eintraege(heute), ["Ordner", "Dokument …", "Recherche …"])
-        self.assertIn('class="knopf knopf-voll plus-knopf"', heute)
+        self.assertIn('class="knopf knopf-leise plus-knopf"', heute)  # leise; blau nur die Haupthandlung
         ort_html = self.get(f"/ort/{p}")[1]
         self.assertEqual(eintraege(ort_html), ["Dokument …", "Recherche …", "Datei", "Unterordner"])
         # im Baum je Ordner ein leises „+“, das darin einen Unterordner anlegt (Jan 19.11.2026)
@@ -277,7 +278,7 @@ class TestSeiten(Aufbau):
         html = self.get(f"/ort/{p}")[1]
         self.assertIn('<script src="/statisch/direkt.js" defer></script>', html)
         kopf = html.split('<header class="kopf">')[1].split("</header>")[0]
-        self.assertIn('<h1 class="titel-gross" data-direkt-titel>Projekt</h1>', kopf)
+        self.assertIn('<h1 class="titel-gross" data-direkt-titel><span data-direkt-ziel>Projekt</span></h1>', kopf)
         self.assertIn(f'action="/ort/{p}/umbenennen" hidden', kopf)
         self.assertIn('name="titel" type="text" value="Projekt"', kopf)
         self.assertIn('name="token"', kopf)
@@ -308,7 +309,7 @@ class TestSeiten(Aufbau):
         self.assertIn("<h2>Unterordner</h2>", html)
         self.assertNotIn("Noch leer", html)
         heute = self.get("/")[1]
-        self.assertIn("<h2>Orte</h2>", heute)
+        self.assertIn("<h2>Ordner</h2>", heute)
         self.assertNotIn("<h2>Zuletzt</h2>", heute)
         self.assertNotIn("Noch leer", heute)
         # im Baum kein „+ Seite“ unter dem aktiven Ort mehr, unten bleibt es
@@ -518,11 +519,14 @@ class TestNeu(Aufbau):
         self.assertTrue(kopf["location"].endswith("erledigt=auftrag-wartet"))
         self.assertEqual(self.gestartet, [])
 
-    def test_laeuft_gerade_rechts(self):
+    def test_laeuft_gerade_oben(self):
+        """Läuft gerade steht auf Heute oben in der Mitte, nur wenn etwas läuft; ohne Agentnamen."""
+        self.assertNotIn("<h2>Läuft gerade</h2>", self.get("/")[1])
         self.post("/neu/expose", {"ort": self.k, "feld-0": "Holz"})
-        rechts = self.get("/")[1].split('aria-label="Läuft gerade"')[1]
-        self.assertIn("Exposé: Holz", rechts)
-        self.assertTrue(re.search(r"uni · seit heute \d\d:\d\d|uni · seit \d\d\.\d\d\.", rechts))
+        oben = self.get("/")[1].split("<h2>Läuft gerade</h2>")[1].split("</section>")[0]
+        self.assertIn("Exposé: Holz", oben)
+        self.assertTrue(re.search(r"seit heute \d\d:\d\d|seit \d\d\.\d\d\.", oben))
+        self.assertNotIn("uni ·", oben)
 
 
 if __name__ == "__main__":
@@ -814,7 +818,7 @@ rueckmeldung = false
         html = self.get(f"/dokument/{self.P}")[1]
         self.assertIn("Solide", html)
         self.assertIn("Was ist Borsalz?", html)
-        self.assertIn(f"https://uni.meldro.de/modul/holzschutz/uebung/{self.UE}", html)
+        self.assertIn(f"/modul/holzschutz/uebung/{self.UE}", html)
         self.assertIn("1 Karten im Portal übernehmen", html)
 
     def test_boese_ansicht_zeigt_nichts(self):
@@ -914,7 +918,7 @@ class TestRecherchen(Aufbau):
         html = self.get("/")[1]
         self.assertNotIn('href="/recherche/uni/expose"', html.split('aria-label="Orte"')[1])
         # ohne Ort auf Heute: Lias Projekt und das kaputte
-        heute = html.split("Recherchen ohne Ort")[1]
+        heute = html.split("Recherchen ohne Ordner")[1]
         self.assertIn("Milde &lt;Taten&gt;", heute)
         self.assertIn("Lia · 14. November", heute)
         self.assertIn("Nicht lesbar", heute)
@@ -924,7 +928,7 @@ class TestRecherchen(Aufbau):
         self.assertNotIn('href="/recherchen"', html)
         # archivierter Ort: zurück auf Heute
         orte.archivieren(self.expo, instanz=self.instanz)
-        self.assertIn("Exposé-Recherche", self.get("/")[1].split("Recherchen ohne Ort")[1])
+        self.assertIn("Exposé-Recherche", self.get("/")[1].split("Recherchen ohne Ordner")[1])
 
     def test_seite_ruhig(self):
         self.anlegen()
@@ -1052,6 +1056,107 @@ class TestNeueRecherche(Aufbau):
         self.assertEqual(status, 400)
         self.assertIn("ausgeschaltet", html)
         self.assertEqual((self.neue(), self.gestartet), ([], []))
+
+
+class FalschesPortal(http.server.BaseHTTPRequestHandler):
+    """Steht für uni/portal: eine Seite mit stil.css, ein Bild, Bewerten (POST, prüft Origin wie das Portal)."""
+    anfragen = []
+
+    def log_message(self, *a):
+        pass
+
+    def antworten(self, status, typ, inhalt, **kopf):
+        self.send_response(status)
+        self.send_header("Content-Type", typ)
+        self.send_header("Content-Length", str(len(inhalt)))
+        self.send_header("Set-Cookie", "geheim=1")
+        for k, v in kopf.items():
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(inhalt)
+
+    def do_GET(self):
+        FalschesPortal.anfragen.append(("GET", self.path, self.headers.get("Host")))
+        if self.path.startswith("/modul/holzschutz/bild/"):
+            return self.antworten(200, "image/png", b"PNG-Bild")
+        if self.path.startswith("/modul/holzschutz"):
+            html = ('<!doctype html><title>Karten üben · Uni</title><link rel="stylesheet" href="/statisch/stil.css">'
+                    '<div class="rahmen"><main class="inhalt einzeln"><article class="lernkarte">Was ist Borsalz?'
+                    '</article></main><nav class="baum"><a class="baum-name" href="/">Uni</a></nav></div>')
+            return self.antworten(200, "text/html; charset=utf-8", html.encode())
+        self.antworten(404, "text/plain", b"nicht da")
+
+    def do_POST(self):
+        laenge = int(self.headers.get("Content-Length") or 0)
+        FalschesPortal.anfragen.append(("POST", self.path, self.headers.get("Origin"), self.rfile.read(laenge)))
+        if self.headers.get("Origin") != "http://localhost":
+            return self.antworten(403, "text/plain", b"fremd")
+        self.antworten(303, "text/plain", b"", Location="/modul/holzschutz/ueben")
+
+
+class TestLernen(Aufbau):
+    """Lernen im Arbeitsplatz (S12, docs/befund-ux.md Abschnitt 5): Module auf Heute und am Ordner, Portal durchgereicht."""
+
+    def setUp(self):
+        super().setUp()
+        uni = self.tmp / "uni"
+        (uni / "portal").mkdir()
+        (uni / "portal" / "ablage.py").write_text('MODULE = {"holzschutz": "Holzschutz"}\n', encoding="utf-8")
+        (uni / "data" / "lernen" / "holzschutz").mkdir(parents=True)
+        (uni / "data" / "lernen" / "holzschutz" / "karten.json").write_text(json.dumps([{"id": "a"}] * 3))
+        FalschesPortal.anfragen = []
+        self.portal = http.server.HTTPServer(("127.0.0.1", 0), FalschesPortal)
+        threading.Thread(target=self.portal.serve_forever, daemon=True).start()
+        self.addCleanup(self.portal.server_close)
+        self.addCleanup(self.portal.shutdown)
+        p = mock.patch.object(app, "PORTAL", f"127.0.0.1:{self.portal.server_address[1]}")
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_heute_und_ordner_zeigen_lernen(self):
+        heute = self.get("/")[1]
+        lernen = heute.split("<h2>Lernen</h2>")[1].split("</section>")[0]
+        self.assertIn("Holzschutz", lernen)
+        self.assertIn("3 Karten", lernen)
+        self.assertIn('href="/modul/holzschutz/ueben">Karten üben</a>', lernen)
+        self.assertIn('href="/modul/holzschutz#muendlich">Mündlich</a>', lernen)
+        fach = self.ort("Fachplanung")
+        self.ort("Modul Holzschutz", fach)
+        self.assertIn("<h2>Lernen</h2>", self.get("/ort/modul-holzschutz")[1])
+        self.assertIn("<h2>Lernen</h2>", self.get(f"/ort/{fach}")[1])  # auch am Elternordner
+        self.assertNotIn("<h2>Lernen</h2>", self.get(f"/ort/{self.ort('Finanzen')}")[1])
+
+    def test_seite_durchgereicht_im_eigenen_aussehen(self):
+        status, html, kopf = self.get("/modul/holzschutz/ueben")
+        self.assertEqual(status, 200)
+        self.assertIn("Was ist Borsalz?", html)
+        self.assertIn('href="/statisch/ruhig.css"', html)
+        self.assertNotIn("stil.css", html)
+        self.assertIn("Arbeitsplatz", html)
+        self.assertNotIn("set-cookie", {k.lower() for k in kopf})
+        self.assertIn("default-src 'self'", kopf["content-security-policy"])
+        self.assertEqual(FalschesPortal.anfragen[-1][:2], ("GET", "/modul/holzschutz/ueben"))
+        status, bild, kopf = self.get("/modul/holzschutz/bild/a/frage")
+        self.assertEqual((status, bild, kopf["content-type"]), (200, "PNG-Bild", "image/png"))
+        self.assertEqual(self.get("/statisch/lernen.css")[0], 200)
+
+    def test_bewerten_geht_ans_portal(self):
+        status, _, kopf = self.post("/modul/holzschutz/bewerten", {"karte": "a", "bewertung": "3"})
+        self.assertEqual((status, kopf["location"]), (303, "/modul/holzschutz/ueben"))
+        methode, pfad, origin, koerper = FalschesPortal.anfragen[-1]
+        self.assertEqual((methode, pfad, origin), ("POST", "/modul/holzschutz/bewerten", "http://localhost"))
+        self.assertIn(b"karte=a", koerper)
+        # fremde Herkunft: das Portal lehnt ab, der Arbeitsplatz reicht das durch
+        self.assertEqual(self.post("/modul/holzschutz/bewerten", {"karte": "a"}, origin="https://boese.example")[0], 403)
+
+    def test_nur_modul_pfade_und_portal_weg(self):
+        self.assertEqual(self.get("/modul/../app.py")[0], 404)
+        self.assertEqual(self.get("/modul/unbekannt")[0], 404)
+        self.portal.shutdown()
+        self.portal.server_close()
+        status, html, _ = self.get("/modul/holzschutz")
+        self.assertEqual(status, 502)
+        self.assertIn("gerade nicht erreichbar", html)
 
 
 class TestUnterlagen(Aufbau):

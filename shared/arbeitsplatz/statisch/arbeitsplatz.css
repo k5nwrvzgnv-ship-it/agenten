@@ -72,9 +72,9 @@ section.karte > h2 { font-size: 16px; margin-bottom: 8px; }
 /* Dokument-Kopf: Titel kleiner, Rest am ersten Doppelpunkt als leiser Untertitel (logik.titel_teilen) */
 .dokument-kopf { gap: 4px; }
 .titel-dokument { margin: 0; font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -.01em;
-  overflow-wrap: break-word; hyphens: auto; }
+  overflow-wrap: break-word; hyphens: manual; text-wrap: balance; }
 .titel-unter { margin: 0; font-size: 17px; line-height: 1.45; color: var(--leise); max-width: 46em;
-  overflow-wrap: break-word; hyphens: auto; }
+  overflow-wrap: break-word; hyphens: manual; text-wrap: pretty; }
 
 /* Ein Dokument (logik.ein_dokument): Seite 1 mit angedeutetem Stapel, daneben Seitenzahl und je Format ein Knopf */
 .dokument-karte { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
@@ -131,3 +131,71 @@ code { font-size: 14px; background: var(--flaeche); border-radius: 4px; padding:
 .mailliste { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
 .mailliste .entwurf { font-size: 14px; }
 .unterlagen + .noch-leer, .knoepfe + .karte, .knoepfe + .seitenbilder, .knoepfe + .betrachter { margin-top: 12px; }
+
+/* Ruhige Hierarchie (Nachtauftrag 22./23.11.2026, docs/befund-ux.md Abschnitt 5; Vorbild Apple HIG: Klarheit,
+   Zurückhaltung, Hierarchie). Drei Ebenen, deutlich verschieden: Seitentitel groß, Abschnittstitel klein und leise,
+   Zeilen ruhig, Metadaten eine leise Zeile. Mehr Luft zwischen Abschnitten. Ein Akzent: Blau nur für die eine
+   Haupthandlung einer Seite, Rot nur für „hat nicht geklappt“. */
+:root { --rot-text: #b4322d; }  /* Rot als Schrift: 5,9:1 auf Weiß (--akzent erreicht nur 4,0:1) */
+@media (prefers-color-scheme: dark) { :root { --rot-text: var(--akzent); } }
+.marke-rot, .material-marke.marke-rot { color: var(--rot-text); }
+.inhalt { gap: 28px; padding-top: 20px; }
+.heute { gap: 40px; }
+h1, .titel-gross { font-size: 30px; font-weight: 650; letter-spacing: -.015em; overflow-wrap: break-word; }
+section.abschnitt { gap: 2px; }
+section.abschnitt > h2, .klappen-unten h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--leise);
+  letter-spacing: .01em; }
+.zeile { min-height: 40px; padding: 7px 8px; }
+.zeile .titel { font-size: 15px; line-height: 1.4; }
+.zeile .unter { font-size: 12px; line-height: 1.45; color: var(--leise); }
+/* Ordner als Zeile mit „›“, ohne Kreis: Ordner und Inhalt unterscheiden sich */
+.zeile-ordner { grid-template-columns: minmax(0, 1fr) auto; }
+.weiter { color: var(--sehrleise); font-size: 18px; line-height: 1; }
+/* Ordnerliste auf Heute nur, wenn der Baum nicht daneben steht */
+.nur-schmal { display: none; }
+@media (max-width: 760px) { section.nur-schmal { display: flex; } }
+
+/* Brotkrumen: leiser Streifen nur mit dem Weg hierher (die Seite selbst steht als Titel darunter) */
+.krumen-zeile { padding: 2px 4px; border-radius: 8px; }
+.krumen ol { font-size: 13px; }
+.krumen a { padding: 3px 6px; }
+
+/* „+“ und „···“: beide leise, gleich groß */
+.plus-knopf { min-width: 32px; justify-content: center; font-size: 20px; font-weight: 400; line-height: 1; color: var(--leise); }
+.plus-knopf span { position: relative; top: -1px; }
+.seiten-aktionen { gap: 0; }
+
+/* Dokument: Titel zuerst, Art und Zeit leise darunter */
+.dokument-kopf { gap: 6px; }
+.dokument-kopf .material-art { margin-top: 2px; }
+
+/* Rückmeldung: ein schlichtes Feld, keine eigene Karte */
+.rueckmeldung .eingabe { box-shadow: none; background: var(--flaeche); border-color: transparent; border-radius: 10px; }
+.rueckmeldung .eingabe:focus-within { background: var(--bg); border-color: var(--linie); }
+.rueckmeldung .eingabe textarea { min-height: 52px; }
+
+/* Lernen (S12): Modul, rechts Karten üben und Mündlich */
+.lern-zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px; }
+.lern-wege { display: flex; gap: 0; }
+.lern-wege .knopf-leise { color: var(--fg); }
+@media (max-width: 520px) {
+  .lern-zeile { grid-template-columns: minmax(0, 1fr); }
+  .lern-wege { padding: 0 0 6px 18px; margin-left: -8px; }
+}
+
+/* Unten auf Heute: Ohne Ordner und Verbrauch, beide zugeklappt */
+.klappen-unten { display: flex; flex-direction: column; gap: 0; }
+.verbrauch ul { margin: 4px -8px 0; display: flex; flex-direction: column; }
+
+/* Betrachter: Knöpfe unten leise in einer Reihe */
+.knoepfe-unten { display: flex; flex-wrap: wrap; gap: 2px; margin-left: -8px; }
+
+/* Baum auf Touch: „+“ und Löschen nur am offenen Ordner, nicht neben jedem (leicht danebengetippt) */
+@media (pointer: coarse) {
+  .baum-aktionen { visibility: hidden; }
+  .baum-zeile .baum-eintrag { padding-right: 10px; }
+  .baum-zeile:has(> [aria-current="page"]) .baum-aktionen { visibility: visible; }
+  .baum-zeile:has(> [aria-current="page"]) .baum-eintrag { padding-right: 84px; }
+  .baum-zeile .baum-zu { display: inline; }
+  .baum-zeile:has(> [aria-current="page"]) .baum-zu { display: none; }
+}

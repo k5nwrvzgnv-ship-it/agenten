@@ -1,0 +1,58 @@
+/* Seiten des Uni-Portals im Arbeitsplatz (lernen.py): Karten üben, Prüfungsseite, mündliche Übung, Rubrik. Das Portal
+   bringt eigene Klassen mit (uni/portal/vorlagen); hier stehen sie im Aussehen von ruhig.css. Nachtauftrag 22./23.11.2026. */
+.lernen-seite .inhalt.einzeln { gap: 32px; }
+.lernen-seite .einzeln section { display: flex; flex-direction: column; gap: 8px; }
+.lernen-seite .einzeln section > h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--leise); letter-spacing: .01em;
+  text-transform: none; }
+.titel-modul { margin: 0; font-size: 30px; font-weight: 650; letter-spacing: -.015em; line-height: 1.2; }
+.kopf .unter { font-size: 14px; }
+.knopf-abstand { margin-top: 10px; align-self: flex-start; }
+.krumen { font-size: 13px; }
+
+/* Karte üben: die Frage groß, Antwort dahinter, vier Bewertungen gleich breit */
+.lernkarte { display: flex; flex-direction: column; gap: 20px; padding: 24px; border: 1px solid var(--linie);
+  border-radius: 14px; box-shadow: 0 1px 4px rgba(15, 15, 15, .06); }
+.lernkarte > .unter { margin: 0; font-size: 13px; }
+.karte-frage { margin: 0; font-size: 22px; font-weight: 600; line-height: 1.35; overflow-wrap: break-word; text-wrap: pretty; }
+.karte-bild { display: block; width: 100%; height: auto; border-radius: 8px; }
+.aufdecken > summary { list-style: none; cursor: pointer; width: fit-content; }
+.aufdecken > summary::-webkit-details-marker { display: none; }
+.aufdecken[open] > summary { display: none; }
+.karte-antwort { display: flex; flex-direction: column; gap: 16px; }
+.karte-antwort p { margin: 0; }
+.antwort-text { font-size: 17px; line-height: 1.55; white-space: pre-line; overflow-wrap: break-word; }
+.bewerten { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.bewerten .knopf { justify-content: center; min-height: 48px; font-size: 15px; }
+@media (max-width: 480px) { .bewerten { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lernkarte { padding: 18px; } }
+
+/* Prüfungsseite: Themen mit Score und Stand, „Fehlt“ */
+.thema summary { list-style: none; cursor: pointer; }
+.thema summary::-webkit-details-marker { display: none; }
+.thema-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 70px 100px; gap: 12px; padding: 10px 8px; margin: 0 -8px;
+  border-radius: 6px; align-items: start; }
+.thema-zeile:hover { background: var(--hover); }
+.thema-zeile .titel { font-size: 15px; }
+.thema-zahl, .thema-stand { font-size: 12px; color: var(--leise); }
+.thema-mehr { padding: 0 0 12px; font-size: 14px; }
+@media (max-width: 760px) {
+  .thema-zeile { grid-template-columns: minmax(0, 1fr) auto; }
+  .thema-zeile .text { grid-column: 1 / -1; }
+}
+.liste { margin: 0; padding-left: 18px; list-style: disc; display: flex; flex-direction: column; gap: 2px; }
+.fehlt { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; border-top: 1px solid var(--linie); }
+.fehlt .titel { font-size: 15px; }
+.fehlt .unter, .thema-mehr .unter, .beleg .unter { font-size: 13px; overflow-wrap: break-word; }
+
+/* Mündlich üben: Transkript hochladen, Rubrik */
+.hochladen { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.feld { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 500; }
+.feld input[type="text"], .feld textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--linie);
+  border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; font-weight: 400; }
+.hochladen .knopf { align-self: flex-start; }
+.rubrik-punkt { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-top: 1px solid var(--linie); }
+.rubrik-kopf { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.rubrik-kopf .titel { font-size: 15px; font-weight: 600; }
+.stufe { font-size: 12px; color: var(--leise); white-space: nowrap; }
+.stufe-unbelegt, .stufe-nicht_erfuellt { color: var(--rot-text); }
+.zitat { margin: 0; padding-left: 12px; border-left: 2px solid var(--linie); color: var(--leise); overflow-wrap: break-word; }
+.transkript { white-space: pre-wrap; overflow-wrap: break-word; font-size: 14px; }

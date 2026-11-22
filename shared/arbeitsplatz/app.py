@@ -25,6 +25,7 @@ Instanz: ARBEITSPLATZ_INSTANZ (Standard: Jans shared-Ordner); orte.json, auftrae
 """
 
 import hashlib
+import http.client
 import json
 import logging
 import os
@@ -44,7 +45,7 @@ from zoneinfo import ZoneInfo
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
@@ -55,6 +56,7 @@ from agentkit import _ablage, arten, auftraege, config, fassungen, orte, recherc
 
 import ansichten
 import dateien
+import lernen
 import logik
 import unterlagen
 import vorschau
@@ -72,6 +74,7 @@ ZONE = ZoneInfo("Europe/Berlin")
 MAX_DATEIEN = 10
 ENDUNGEN = (".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".md", ".png", ".jpg", ".jpeg", ".vtt", ".srt", ".json")
 QUELLE = "arbeitsplatz"
+PORTAL = os.environ.get("ARBEITSPLATZ_PORTAL", "127.0.0.1:8793")  # uni/portal: Karten üben, mündlich (lernen.py)
 GELEGT = "gelegt-"  # Datei am Ort (umbauplan-ux.md Schritt 4): data/eingang/gelegt-<kennung>/ bis zum Auftrag
 GELEGT_MUSTER = re.compile(r"[a-z0-9_]{6,16}")
 GELEGT_ALTER = 24 * 3600  # Sekunden; Liegengebliebenes löscht das nächste Ablegen
@@ -91,6 +94,7 @@ app.mount("/statisch", StaticFiles(directory=HIER / "statisch"), name="statisch"
 vorlagen = Jinja2Templates(directory=HIER / "vorlagen")
 vorlagen.env.globals["formular_token"] = lambda: logik.formular_token(GEHEIM)
 vorlagen.env.globals["einmal_kennung"] = lambda: secrets.token_hex(8)
+vorlagen.env.globals["zeile_unter"] = logik.zeile_unter
 
 
 def auftraege_an() -> bool:
@@ -105,6 +109,11 @@ def basis() -> Path:
 
 def agenten_dir() -> Path:
     return INSTANZ.parent
+
+
+def lernmodule() -> list[dict]:
+    """Prüfungsmodule mit Karten aus uni/ (nur gelesen, lernen.py)."""
+    return lernen.module(agenten_dir() / "uni")
 
 
 def baum_laden() -> list[dict]:
@@ -395,8 +404,9 @@ def seite_heute(request: Request):
     for d in ohne:
         d["zeit_text"] = logik.zeit_kurz(d["zeit"], heute_iso())
     projekte = projekte_mit_ort(baum)
-    return seite(request, "heute.html", {"e": {"titel": "Heute"}, "zuletzt": docs[:15], "ohne_ordner": ohne,
-                                         "wartet": logik.wartet_auf_mich(docs, heute_iso()),
+    wartet = logik.wartet_auf_mich(docs, heute_iso())
+    return seite(request, "heute.html", {"e": {"titel": "Heute"}, "zuletzt": logik.zuletzt(docs, wartet),
+                                         "ohne_ordner": ohne, "wartet": wartet, "lernen": lernmodule(),
                                          "oben": orte.kinder(baum, None),
                                          "ohne_ort": [x for x in projekte if not x.get("ort_hier")],
                                          **rahmen(baum, None, logik.krumen(baum, None), projekte=projekte)})
@@ -416,6 +426,8 @@ def seite_ort(request: Request, ort_id: str):
         "e": {"titel": k["titel"]}, "ort": k, "archiviert": not orte.sichtbar(baum, ort_id),
         "unterseiten": orte.kinder(baum, ort_id), "dokumente": docs, "unterlagen": unterlagen_zeilen(ort_id),
         "recherchen": [x for x in projekte if x.get("ort_hier") == ort_id], "recherchen_oben": von_oben,
+        "lernen": lernen.fuer_ort(lernmodule(), {o["id"] for o in baum if orte.sichtbar(baum, o["id"])},
+                                  {ort_id} | orte.nachkommen(baum, ort_id)),
         "ziele": logik.ziele_zum_verschieben(baum, ort_id),
         "endungen": ",".join(ENDUNGEN), "max_dateien": MAX_DATEIEN,
         **rahmen(baum, ort_id, logik.krumen(baum, ort_id), f"/neu?ort={quote(ort_id)}", projekte=projekte)})
@@ -497,6 +509,51 @@ def projekte_mit_ort(baum: list[dict]) -> list[dict]:
     for x in projekte:
         x["ort_hier"] = logik.recherche_ort(x, zuordnung_, baum)
     return projekte
+
+
+# --- Lernen: Seiten des Uni-Portals durchreichen (lernen.py) -----------------------------------------------------
+
+def portal_abruf(methode: str, pfad: str, kopf: dict[str, str], koerper: bytes) -> tuple[int, list, bytes]:
+    verbindung = http.client.HTTPConnection(PORTAL, timeout=20)
+    try:
+        verbindung.request(methode, pfad, body=koerper or None, headers=kopf)
+        r = verbindung.getresponse()
+        return r.status, r.getheaders(), r.read()
+    finally:
+        verbindung.close()
+
+
+@app.api_route("/modul/{rest:path}", methods=["GET", "POST"])
+async def portal_durchreichen(request: Request, rest: str):
+    """Karten üben und mündliche Übungen (uni/portal) unter derselben Adresse; das Portal prüft Herkunft und Token
+    selbst, der Arbeitsplatz setzt nur sein Aussehen ein."""
+    pfad = request.url.path
+    if not lernen.pfad_erlaubt(pfad):
+        raise HTTPException(404)
+    koerper = b""
+    if request.method == "POST":
+        if int(request.headers.get("content-length") or 0) > lernen.MAX_KOERPER:
+            raise HTTPException(413)
+        koerper = await request.body()
+        if len(koerper) > lernen.MAX_KOERPER:
+            raise HTTPException(413)
+    ziel = pfad + (f"?{request.url.query}" if request.url.query else "")
+    kopf = lernen.anfrage_kopf(dict(request.headers))
+    try:
+        status, antwortkopf, inhalt = await run_in_threadpool(portal_abruf, request.method, ziel, kopf, koerper)
+    except OSError as f:
+        logger.error("Uni-Portal nicht erreichbar (%s): %s", PORTAL, f)
+        baum = baum_laden()
+        return seite(request, "meldung.html", {"e": {"titel": "Lernen"},
+                                               "text": "Das Lernen ist gerade nicht erreichbar. Gleich noch einmal versuchen.",
+                                               **rahmen(baum, None, {"teile": [{"text": "Heute", "link": "/"}],
+                                                                     "hier": "Lernen"})}, 502)
+    if status == 404:
+        raise HTTPException(404)
+    kopfzeilen_ = lernen.antwort_kopf(antwortkopf)
+    if kopfzeilen_.get("content-type", "").startswith("text/html"):
+        inhalt = lernen.html_umschreiben(inhalt.decode("utf-8", "replace")).encode("utf-8")
+    return Response(inhalt, status_code=status, headers=kopfzeilen_)
 
 
 @app.get("/recherchen")

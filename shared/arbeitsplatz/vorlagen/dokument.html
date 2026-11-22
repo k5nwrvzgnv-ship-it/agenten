@@ -36,7 +36,7 @@
 {%- if x.pdf %}{% set n.e = n.e + [{"text": "PDF ansehen", "link": basis ~ "/pdf", "laden": false}] %}{% endif %}
 {%- if x.original %}{% set n.e = n.e + [{"text": ORIGINAL.get(x.endung, "Original (" ~ x.endung ~ ")"), "link": basis, "laden": true}] %}{% endif %}
 {#- Rückmeldung zu dieser Datei: das Feld unten bekommt das Ziel (Datei aus dieser Fassung) -#}
-{%- if n.e and d.rueckmeldung_moeglich %}{% set n.e = n.e + [{"text": "Rückmeldung zu dieser Datei", "hier": true,
+{%- if n.e and d.rueckmeldung_moeglich %}{% set n.e = n.e + [{"text": "Zu dieser Datei etwas ändern", "hier": true,
     "link": "/dokument/" ~ u ~ "?offen=rueckmeldung&fassung=" ~ f.ref ~ "&datei=" ~ x.nr ~ "#rueckmeldung"}] %}{% endif %}
 {%- if n.e %}{{ laden(n.e) }}{% else %}<span class="unter">nicht verfügbar</span>{% endif %}
 {%- endmacro %}
@@ -72,13 +72,14 @@
 {%- endmacro %}
 
 {% block seitenkopf %}
-{#- Kopf der Kartei: oben klein Art, Zeit, Kosten und Marke; der Titel geteilt am ersten Doppelpunkt
-    (logik.titel_teilen), der Rest leise darunter, damit nichts unruhig umbricht -#}
+{#- Kopf der Kartei: der Titel geteilt am ersten Doppelpunkt (logik.titel_teilen), der Rest leise darunter, damit nichts
+    unruhig umbricht; darunter klein Art und Zeit, eine Marke nur, wenn sie etwas sagt (Final, Läuft, Hat nicht
+    geklappt). Kosten und Fassungsnummer stehen im Verlauf (docs/befund-ux.md Abschnitt 5, H2). -#}
 <header class="material-kopf dokument-kopf">
-  <span class="material-art">{{ art }}{% if h %}{% if art %} · {% endif %}{{ h.zeit_text }}{% endif %}{% if d.kosten %} · Kosten bisher {{ "%.2f" | format(d.kosten) }} USD{% endif %}
-    · <span class="material-marke{% if rot %} marke-rot{% elif marke == 'Final' %} marke-final{% endif %}">{{ marke }}</span></span>
   <h1 class="titel-dokument">{{ e.haupt or e.titel }}</h1>
   {%- if e.unter %}<p class="titel-unter">{{ e.unter }}</p>{% endif %}
+  <span class="material-art">{{ art }}{% if h %}{% if art %} · {% endif %}{{ h.zeit_text }}{% endif %}
+    {%- if rot or marke in ("Final", "Läuft") %} · <span class="material-marke{% if rot %} marke-rot{% elif marke == 'Final' %} marke-final{% endif %}">{{ marke }}</span>{% endif %}</span>
 </header>
 {% endblock %}
 {#- Kein „+“: ein Dokument ist kein Ordner, Neues entsteht im Ordner (Jan 19.11.2026). Nur das „···“. -#}
@@ -149,7 +150,6 @@
     <div class="dokument-info">
       {%- if x1 %}
       <a class="dokument-seiten" href="/dokument/{{ u }}/datei/{{ h.ref }}/{{ x1.nr }}/ansehen?seite=1">{% if x1.seiten > 1 %}Seite 1 von {{ x1.seiten }}{% else %}1 Seite{% endif %}</a>
-      {%- if x1.seiten > 1 %}<span class="unter">Klick auf die Seite zeigt alle zum Durchblättern.</span>{% endif %}
       {%- elif eins.vorschau_laeuft %}<span class="unter">Vorschau wird erstellt … Seite gleich neu laden.</span>
       {%- else %}<span>{{ eins.name }}</span>{% endif %}
       <span class="formate">
@@ -179,10 +179,11 @@
 <p class="leer">Noch keine fertige Fassung.</p>
 {%- endif %}
 
-{#- Rückmeldung wie im Gespräch: immer da, kein Knopf davor; nur bei Arten, deren Agent Rückmeldungen annimmt. Eine
+{#- Ein schlichtes Feld „Was soll anders werden?“, ohne Überschrift und ohne eigene Karte (Jan 22.11.2026: „Rückmeldung
+    geben passt nicht mehr“); Route und Funktion wie bisher. Nur bei Arten, deren Agent Rückmeldungen annimmt. Eine
     Datei auf die Seite gezogen hängt sich hier an (direkt.js, data-ablegen; anhang.js zeigt den Namen). -#}
 {%- if d.rueckmeldung_moeglich %}
-<section class="rueckmeldung" id="rueckmeldung" aria-label="Rückmeldung">
+<section class="rueckmeldung" id="rueckmeldung" aria-label="Was soll anders werden?">
   {%- if offen == "rueckmeldung" %}{% for f in fehler %}<p class="fehler" role="alert">{{ f }}</p>{% endfor %}{% endif %}
   <form class="eingabe" method="post" action="/dokument/{{ u }}/rueckmeldung" enctype="multipart/form-data" data-einmal>
     <input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="einmal" value="{{ einmal_kennung() }}">
@@ -211,8 +212,8 @@
 {%- elif eigen and eigen.name == "pruefung" %}{% include "_ansicht_pruefung.html" %}
 {%- elif eigen and eigen.name == "karten" %}
 <section class="eigen"><h2>Karten</h2>
-  <p class="absatz">Die Karten liegen im Modul. Üben geht vorerst im Portal.</p>
-  <p><a class="knopf" href="{{ eigen.link }}" rel="noopener">Karten üben</a></p></section>
+  <p class="absatz">Die Karten liegen im Modul.</p>
+  <p><a class="knopf" href="{{ eigen.link }}/ueben">Karten üben</a></p></section>
 {%- endif %}
 
 {#- Verlauf: eine geschlossene Klappe, erst ab der zweiten Station (eine Fassung allein steht schon oben) -#}

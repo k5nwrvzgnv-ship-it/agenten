@@ -9,7 +9,7 @@ Lesend: Karten übernehmen und üben bleiben im Portal (braucht fsrs aus uni/.ve
 import re
 from urllib.parse import quote, urlsplit
 
-PORTAL = "https://uni.meldro.de"  # uni/portal hinter Caddy (uni/STATUS.md)
+PORTAL = ""  # gleiche Adresse: der Arbeitsplatz reicht /modul/… ans Uni-Portal durch (lernen.py, seit 22.11.2026)
 DOI = re.compile(r"^10\.\d+/\S+$")
 FRAGE_ID = re.compile(r"^F\d+$")
 MODUL = re.compile(r"^[a-z]+$")

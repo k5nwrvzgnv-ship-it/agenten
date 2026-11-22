@@ -2,6 +2,7 @@
 {% from "_dokumente.html" import liste %}
 {%- from "_plus.html" import plus, punkte -%}
 {%- from "_direkt.html" import titel -%}
+{%- from "_lernen.html" import lernzeilen -%}
 {%- block skripte %}{{ super() }}
 <script src="/statisch/direkt.js" defer></script>
 {%- endblock %}
@@ -96,19 +97,26 @@
     <button class="knopf-link" type="submit">Wiederherstellen</button>
   </form>{% endif %}</div>
 {%- endif %}
+{#- Lernen (S12): Prüfungsmodule dieses Ordners und der Ordner darunter, Karten üben und mündlich (lernen.py) -#}
+{%- if lernen %}
+<section class="abschnitt lernen">
+  <h2>Lernen</h2>
+  {{ lernzeilen(lernen) }}
+</section>
+{%- endif %}
 {%- if dokumente %}
-<section>
+<section class="abschnitt">
   <h2>Dokumente</h2>
   {{ liste(dokumente) }}
 </section>
 {%- endif %}
 {%- if unterseiten %}
-<section>
+<section class="abschnitt">
   <h2>Unterordner</h2>
   <ul>
     {%- for k in unterseiten %}
-    <li><a class="zeile" href="/ort/{{ k.id }}" data-ordner="{{ k.id }}"><span class="punkt punkt-offen" aria-hidden="true"></span>
-      <span class="text"><span class="titel">{{ k.titel }}</span></span></a></li>
+    <li><a class="zeile zeile-ordner" href="/ort/{{ k.id }}" data-ordner="{{ k.id }}"><span class="text"><span class="titel">{{ k.titel }}</span></span>
+      <span class="weiter" aria-hidden="true">›</span></a></li>
     {%- endfor %}
   </ul>
 </section>
@@ -116,7 +124,7 @@
 {#- Recherchen an dieser Seite, darunter leise die von weiter oben, die hier mitgelten (docs/recherche-plan.md,
     Recherche am Ort) -#}
 {%- if recherchen or recherchen_oben %}
-<section>
+<section class="abschnitt">
   <h2>Recherchen</h2>
   {%- if recherchen %}
   <ul>
@@ -140,7 +148,7 @@
 {%- endif %}
 {#- Unterlagen: Dateien ohne Auftrag, auf die der Ordner verweist (orte-verweise.json, unterlagen.py), nur lesend -#}
 {%- if unterlagen %}
-<section class="unterlagen">
+<section class="abschnitt unterlagen">
   <h2>Unterlagen</h2>
   <ul>
     {%- for z in unterlagen %}
@@ -153,7 +161,7 @@
   </ul>
 </section>
 {%- endif %}
-{%- if not dokumente and not unterseiten and not recherchen and not unterlagen %}
+{%- if not dokumente and not unterseiten and not recherchen and not unterlagen and not lernen %}
 <p class="leer noch-leer">Noch leer.{% if not archiviert %} Mit + fängst du an.{% endif %}</p>
 {%- endif %}
 {% endblock %}
