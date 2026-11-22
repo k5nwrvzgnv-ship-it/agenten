@@ -1,10 +1,5 @@
 Zentrale
-
-Verbraucht: 6 % (5 Stunden), 1 % (7 Tage)
-Entwürfe: 1  |  Aufträge in Arbeit: 0
-Wartende Dateien: 2
+2 Dateien warten auf einen Auftrag.
 --- Knöpfe ---
 [Uni] u:a:uni:erledigen  [Dokumente] u:a:dokumente:erledigen
-[Entwürfe (1)] u:entwuerfe  [Verbrauch] u:verbrauch
-[Status] u:status  [Hilfe] u:hilfe
-[↻ Aktualisieren] u:neu
+[Entwürfe (1)] u:entwuerfe

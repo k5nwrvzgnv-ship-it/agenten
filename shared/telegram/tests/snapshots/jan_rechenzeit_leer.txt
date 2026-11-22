@@ -1,2 +1,2 @@
 <b>Zentrale</b>
-Die Rechenzeit ist aufgebraucht. Deine Aufträge warten bis Di 19:00 und laufen dann von selbst.
+Rechenzeit aufgebraucht. Aufträge warten bis Di 19:00.

@@ -1,6 +1,1 @@
-Entwürfe offen: 1
-Freigegeben, nicht ausgeführt: 0
-Unklar, ob ausgeführt: 0
-Aufträge in Arbeit: 2
-Gespräche am PC: 0
-Wartende Dateien: 1
+Offen: 1 Entwurf, 2 Aufträge in Arbeit, 1 Datei wartet.

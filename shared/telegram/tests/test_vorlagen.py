@@ -92,7 +92,8 @@ class SnapshotTest(unittest.TestCase):
 
     def test_jan_ergebnis_mit_kern(self):
         a = {**RECHERCHE, "agent": "uni"}
-        self.pruefen("jan_ergebnis_kern", logik.auftrag_nachricht(a), v.feedback_knoepfe("", AID))
+        self.assertIsNone(logik.ergebnis_knoepfe(a))  # Schalter FEEDBACK_KNOEPFE ist aus
+        self.pruefen("jan_ergebnis_kern", logik.auftrag_nachricht(a), logik.ergebnis_knoepfe(a))
 
     def test_jan_feedback_zusammenfassung(self):
         z = {"art": "regel", "ziel": "alle", "regel": "Ergebnisse beginnen mit einer Empfehlung in einem Satz.",

@@ -7,6 +7,7 @@ prüft alle Snapshots gegen die Sprachregel. Neu schreiben wie in test_vorlagen.
 import os
 import re
 import unittest
+from datetime import datetime
 
 from agentkit import ausfall
 from agentkit import feedback as fb
@@ -59,6 +60,27 @@ ENTWURF_LANG = {**ENTWURF_VERLAUF, "vorgaenger": "20261027-000000-posteingang-aa
     **ENTWURF_VERLAUF["daten"], "text": "Liebe Frau Berger,\n\n" + "\n\n".join(
         f"Punkt {i}: Wir haben die Unterlagen für Ihre Beratung durchgesehen und melden uns dazu bald." * 3
         for i in range(1, 31)) + "\n\nLiebe Grüße\nLia und Jan"}}
+MELDUNGEN = [  # aus shared/meldungen/gesendet (Inhalte gekürzt, Namen und Pfade verfremdet)
+    ("jan_meldung_post", "posteingang", "[post] Wichtige Mails (3 geprüft, 1 vorgefiltert):\nBestellung/Versand | "
+     "PayPal: Du hast am 22.11. eine Zahlung gesendet. Nur prüfen, ob die Zahlung von Jan "
+     "stammt. Handlungsbedarf besteht sonst nicht."),
+    ("jan_meldung_uni_mails", "uni", "Wichtige Uni-Mails (8 neue geprüft):\n- noreply@hnee.de: Anmeldung zu 2 Prüfungen "
+     "bestätigt (22.11.). Es ist nichts zu tun, die Termine stehen im Plan.\n"
+     "  - Fachplanung im Hochbau 2, mündliche Prüfung: 28.01.2027, 11:00–16:00\n"
+     "  - Praxis-Modul, Klausur: 18.02.2027, 12:30–14:00\n\n"
+     "Zu den Prüfungen habe ich je einen Kalendervorschlag geschrieben. Spotify ist unwichtig.\n\n"
+     "Termin zum Antippen: Praxis-Modul: Klausur: Do 18.02.2027 12:30-14:00 Uhr, siehe Stundenplan. "
+     "Erinnerung 7 Tage, 1 Tag und 2 Std. vorher."),
+    ("jan_meldung_material", "uni", "Neues Material in CAM:\nEinstufung: HANDELN – Übungsfolien mit Hausaufgabe "
+     "(Fusion-CAM, Stiftehalter).\n\n- **Was es ist:** Material zur Vorlesung „CAM Übung“ am 19.11.2026, "
+     "14:15–15:45. " + "Die Folien führen in fünf Schritten durch die Übung. " * 6 + "\n- **Zu tun:** Hausaufgabe "
+     "laut Folie 18: die übrigen Bearbeitungen anlegen.\n- **Benötigt:** Fusion mit CAM und die drei Dateien."),
+    ("jan_meldung_recherche", "lia/recherche", "Lia, Agent recherche: Webauftrag fertig: 20 von 39 Aussagen belegt, "
+     "19 unbelegt. Zitate geprüft: 5 tragen, 15 teilweise. Lücken: 10, "
+     "Rückfragen: 2. Datei: /home/agent/agenten/lia/recherche/data/web/x/Milde Jugendtaten.docx"),
+    ("jan_meldung_normen", "uni", "Normen aufbereitet (5 neu):\n" + "\n".join(
+        f"- DIN 4074-{i} (2026-05), {i * 7} Seiten" for i in range(1, 6))),
+]
 FREIGABE_KNOEPFE = [[("Freigeben", "f:x"), ("Ändern", "c:x"), ("Ablehnen", "a:x")]]
 FEEDBACK_REGEL = {"art": "regel", "ziel": "recherche", "heikel": False,
                   "regel": "Jede Recherche beginnt oben mit einer klaren Empfehlung (z. B. welche Reihenfrage), bevor "
@@ -106,8 +128,10 @@ class NachrichtenTest(unittest.TestCase):
 
     def test_jan_menue(self):
         stand = {"5h": 0.06, "7d": 0.01, **ZEIT}
-        self.snapshot("jan_menue", *logik.ansicht_home(logik.home_zeilen(stand, "normal", 1, 0, 2), ["uni", "dokumente"], 1))
-        self.snapshot("jan_menue_sparen", *logik.ansicht_home(logik.home_zeilen(stand, "sparen", 0, 1, 0), ["uni"], 0))
+        self.snapshot("jan_menue", *logik.ansicht_home(logik.home_zeilen("normal", 2), ["uni", "dokumente"], 1))
+        self.snapshot("jan_menue_sparen", *logik.ansicht_home(logik.home_zeilen("sparen", 0), ["uni"], 0))
+        self.snapshot("jan_menue_limit", *logik.ansicht_home(logik.home_zeilen("limit", 0), ["uni"], 0,
+                                                              logik.bestaetigung("uni", "erledigen", [])))
         self.snapshot("jan_menue_agent", *logik.ansicht_agent("uni", "erledigen"))
         self.snapshot("jan_menue_entwuerfe", *logik.ansicht_entwuerfe([ENTWURF]))
         heute = {"uni": {"laeufe": 3, "tokens": 120_000, "minuten": 4.2, "fehler": 0},
@@ -117,6 +141,8 @@ class NachrichtenTest(unittest.TestCase):
 
     def test_jan_hilfe_und_status(self):
         self.snapshot("jan_hilfe", logik.hilfe_text(logik.AGENTEN))
+        self.snapshot("jan_status_leer", logik.status_text({k: 0 for k in ("offen", "ausfuehrung", "unklar",
+                                                                          "auftraege", "am_pc", "dateien")}))
         self.snapshot("jan_status", logik.status_text({"offen": 1, "ausfuehrung": 0, "unklar": 0, "auftraege": 2,
                                                        "am_pc": 0, "dateien": 1}))
 
@@ -128,7 +154,9 @@ class NachrichtenTest(unittest.TestCase):
             logik.freigabe_fehler("20261027-112951-uni-e7a60a ist nicht (mehr) offen"), logik.freigabe_fehler("?"),
             logik.aenderung_weiter("uni", 1), logik.dateien_warten(2, "/uni Fasse das zusammen", True),
             logik.dateien_verworfen(2), logik.dateien_verworfen(0), logik.NICHT_ANGELEGT, logik.DATEI_ZU_GROSS,
-            logik.DATEI_NICHT_GELADEN, logik.TEXT_WEG, logik.KNOPF_ALT, logik.AN_WEN])
+            logik.DATEI_NICHT_GELADEN, logik.TEXT_WEG, logik.KNOPF_ALT, logik.AN_WEN, logik.UNBEKANNT,
+            logik.verfall_text([{"titel": "Mail: Rückfrage", "agent": "uni"}], 7),
+            logik.erinnerung_text([30.0, 1.0], datetime(2026, 11, 16, 10, 0), "", 7)])
         self.snapshot("jan_unklar", logik.mit_absender("uni", logik.unklar_text(
             "Mail: AW: Anfrage Betreuung Forschungsprojekt")))
         self.snapshot("jan_datei_fehlt", logik.mit_absender("dokumente", logik.datei_nicht_gesendet(
@@ -144,6 +172,11 @@ class NachrichtenTest(unittest.TestCase):
                                            fb.entscheiden(nb, fb.Lage(dienst_da=True))[1])
         self.snapshot("jan_feedback_vorschlag", logik.mit_absender("feedback", text),
                       logik.meldung_knoepfe({"id": AID, "knoepfe": knoepfe}))
+
+    def test_jan_meldungen_signal(self):
+        """Echte Meldungen (gekürzt) durch den Signal-Filter: Kopf und höchstens drei Punkte, Rest zugeklappt."""
+        for name, agent, text in MELDUNGEN:
+            self.snapshot(name, logik.mit_absender(agent, text))
 
     # ---------- Lia ----------
 

@@ -20,29 +20,30 @@ MAX_DATEI_BYTES = 20 * 1024 * 1024  # mehr lädt die Bot-Schnittstelle von Teleg
 ZENTRALE = "zentrale"  # Absender für Systemnachrichten (Sprachregel, Jan 27.10.2026)
 SYSTEM = ("feedback",)  # Dienste ohne eigenen Namen bei Jan: sie schreiben als Zentrale
 
+# Schalter (Nachtauftrag 22.11.2026, docs/befund-ux.md Abschnitt 3): Jan korrigiert per Antwort auf das Ergebnis.
+# Die Feedback-Knöpfe (Passt, Zu lang, Falscher Fokus, Feedback schreiben) bleiben im Code, sichtbar sind sie nur mit
+# True. Alte Knöpfe in früheren Nachrichten funktionieren weiter. Lias Zentrale (portal.py) hat eigene Knöpfe.
+FEEDBACK_KNOEPFE = False
+
 # ---------- Texte für Jan (docs/sprache/sprachregel.md) ----------
-OHNE_GRUND = "Einen Grund kann ich dir leider nicht nennen. Schick den Auftrag noch einmal, oder sieh am PC nach."
+# Jede Nachricht: eine Zeile Kern, höchstens drei Punkte, höchstens eine Handlung, keine Höflichkeitsformeln, keine
+# Statusprosa. Geprüft über alle Snapshots (regelverstoesse, tests/test_regeln.py).
+# Lernmodus (/unilern), /pc, /weiter und /verwerfen nimmt die Zentrale still weiter an, Hilfe und Menü nennen sie nicht.
+OHNE_GRUND = "Den Grund kenne ich nicht. Schick den Auftrag noch einmal."
 HILFE = (
-    "Hilfe\n\n"
-    "Das Menü holst du mit /start.\n\n"
-    "Aufträge:\n"
-    "/uni Text: Uni erledigt das allein.\n"
-    "/unilern Text: Du lernst es zusammen mit Uni.\n"
-    "Genauso für {weitere}.\n"
-    "Text ohne Befehl: Ich frage, an wen er geht.\n"
-    "Antwort auf ein Ergebnis: Es geht im selben Gespräch weiter.\n"
-    "Antwort auf eine Meldung mit Knöpfen: zählt wie ein Knopf.\n\n"
-    "Dateien und Fotos: Mit /uni und Text als Bildunterschrift gehen sie gleich mit. "
-    "Ohne Befehl warten sie auf den nächsten Auftrag. /verwerfen löscht sie.\n\n"
-    "Am PC weitermachen: /pc als Antwort auf ein Ergebnis. Zurück nach Telegram mit /weiter.\n\n"
-    "Überblick: /status zeigt, was offen ist. /verbrauch zeigt die Rechenzeit."
+    "Aufträge: /uni und Text, genauso {weitere}.\n"
+    "• Text ohne Befehl: Ich frage, an wen er geht.\n"
+    "• Antwort auf ein Ergebnis: Es geht im selben Gespräch weiter.\n"
+    "• Dateien: mit /uni und Text als Bildunterschrift."
 )
-KNOPF_ALT = "Dieser Knopf ist veraltet. Hier ist das aktuelle Menü."
-NICHT_ANGELEGT = "Den Auftrag konnte ich nicht anlegen. Schick ihn bitte noch einmal. Einzelheiten stehen am PC."
-DATEI_ZU_GROSS = "Die Datei ist zu groß für Telegram. Leg sie am PC in den Ordner des passenden Agenten."
-DATEI_NICHT_GELADEN = "Die Datei konnte ich nicht laden. Schick sie bitte noch einmal."
-TEXT_WEG = "Der Text ist nicht mehr da. Schick ihn bitte noch einmal."
+KNOPF_ALT = "Der Knopf ist veraltet."
+NICHT_ANGELEGT = "Auftrag nicht angelegt. Schick ihn noch einmal."
+DATEI_ZU_GROSS = "Die Datei ist zu groß für Telegram. Leg sie am PC ab."
+DATEI_NICHT_GELADEN = "Die Datei kam nicht an. Schick sie noch einmal."
+TEXT_WEG = "Der Text ist weg. Schick ihn noch einmal."
 AN_WEN = "An wen geht das?"
+UNBEKANNT = "Diesen Befehl kenne ich nicht. /hilfe zeigt alle."
+NOTIERT = "Notiert."  # nach Feedback über alte Knöpfe (statt „Danke“)
 
 
 def agenten_finden(wurzel: Path, unit_dir: Path) -> tuple[str, ...]:
@@ -74,52 +75,50 @@ def hilfe_text(agenten) -> str:
     return HILFE.format(weitere=", ".join(weitere) or "die anderen Agenten")
 
 
+def mehrzahl(n: int, eins: str, viele: str) -> str:
+    return f"{n} {eins if n == 1 else viele}"
+
+
 def status_text(zahlen: dict[str, int]) -> str:
-    """Überblick für /status und das Menü. zahlen: offen, ausfuehrung, unklar, auftraege, am_pc, dateien."""
-    return "\n".join([
-        f"Entwürfe offen: {zahlen['offen']}",
-        f"Freigegeben, nicht ausgeführt: {zahlen['ausfuehrung']}",
-        f"Unklar, ob ausgeführt: {zahlen['unklar']}",
-        f"Aufträge in Arbeit: {zahlen['auftraege']}",
-        f"Gespräche am PC: {zahlen['am_pc']}",
-        f"Wartende Dateien: {zahlen['dateien']}",
-    ])
+    """Überblick für /status in einer Zeile, nur was nicht null ist.
+    zahlen: offen, ausfuehrung, unklar, auftraege, am_pc, dateien."""
+    teile = [mehrzahl(zahlen["offen"], "Entwurf", "Entwürfe"),
+             f"{zahlen['ausfuehrung']} freigegeben, noch nicht ausgeführt" if zahlen["ausfuehrung"] else "",
+             f"{zahlen['unklar']} unklar, ob ausgeführt" if zahlen["unklar"] else "",
+             mehrzahl(zahlen["auftraege"], "Auftrag", "Aufträge") + " in Arbeit",
+             mehrzahl(zahlen["am_pc"], "Gespräch", "Gespräche") + " am PC",
+             mehrzahl(zahlen["dateien"], "Datei wartet", "Dateien warten")]
+    teile = [t for t in teile if t and not t.startswith("0 ")]
+    return "Offen: " + ", ".join(teile) + "." if teile else "Nichts offen."
 
 
-def home_zeilen(stand: dict | None, stufe: str, entwuerfe: int, offen: int, wartend: int) -> list[str]:
-    """Kurzstand oben im Menü."""
+def home_zeilen(stufe: str, wartend: int) -> list[str]:
+    """Kurzstand oben im Menü, nur wenn etwas zu tun ist (Entwürfe zeigt der Knopf)."""
     zeilen = []
-    if stufe != "normal":
-        zeilen.append(STUFEN_TEXT[stufe].split(". ")[0].rstrip(".") + ".")
-    if stand:
-        zeilen.append(f"Verbraucht: {stand.get('5h', 0) * 100:.0f} % (5 Stunden), "
-                      f"{stand.get('7d', 0) * 100:.0f} % (7 Tage)")
-    zeilen.append(f"Entwürfe: {entwuerfe}  |  Aufträge in Arbeit: {offen}")
+    if stufe == "limit":
+        zeilen.append(STUFEN_TEXT[stufe])
     if wartend:
-        zeilen.append(f"Wartende Dateien: {wartend}")
+        zeilen.append(f"{mehrzahl(wartend, 'Datei wartet', 'Dateien warten')} auf einen Auftrag.")
     return zeilen
 
 
 def freigabe_antwort(entscheidung: str, agent: str) -> str:
-    name = anzeigename(agent)
     if entscheidung == "freigegeben":
-        return f"Freigegeben. {name} führt es jetzt aus und meldet sich."
+        return "Freigegeben."
     if entscheidung == "abgelehnt":
-        return f"Abgelehnt. {name} führt nichts aus."
-    return "Was soll anders werden? Schreib es als nächste Nachricht."
+        return "Abgelehnt."
+    return "Was soll anders werden?"
 
 
 def freigabe_fehler(grund: str, abgelaufen: bool = False) -> str:
     """Antwort auf einen Knopf, der nicht mehr geht (Grund aus agentkit.freigabe, steht nur im Log)."""
     if "weicht von der Anzeige ab" in grund:
-        return ("Der Entwurf wurde nach der Anzeige geändert. Ich habe nichts freigegeben. "
-                "Im Menü unter Entwürfe kannst du ihn neu anzeigen lassen.")
+        return "Der Entwurf hat sich nach der Anzeige geändert, nichts freigegeben. Die neue Fassung steht im Menü."
     if "nicht (mehr) offen" in grund:
         if abgelaufen:
-            return ("Dieser Entwurf ist abgelaufen, weil er zu lange offen war. Ich habe nichts ausgeführt. "
-                    "Brauchst du ihn noch, gib den Auftrag neu.")
+            return "Der Entwurf ist abgelaufen, nichts ausgeführt."
         return "Über diesen Entwurf ist schon entschieden."
-    return "Das ging nicht. Einzelheiten stehen am PC."
+    return "Das ging nicht. Einzelheiten am PC."
 
 
 def tage_text(stunden: float) -> str:
@@ -131,11 +130,9 @@ def verfall_text(abgelaufene: list[dict], tage: int) -> str:
     """Kurze Meldung, wenn Entwürfe abgelaufen sind (ohne Inhalt, nur Titel)."""
     if len(abgelaufene) == 1:
         e = abgelaufene[0]
-        kopf = f"Ein Entwurf ist abgelaufen, weil er {tage} Tage offen war: {e['titel']} ({anzeigename(e['agent'])})."
-    else:
-        kopf = "\n".join([f"{len(abgelaufene)} Entwürfe sind abgelaufen, weil sie {tage} Tage offen waren:",
-                          *[f"• {e['titel']} ({anzeigename(e['agent'])})" for e in abgelaufene]])
-    return kopf + "\nIch habe nichts ausgeführt. Brauchst du etwas davon noch, gib den Auftrag neu."
+        return f"Entwurf nach {tage} Tagen abgelaufen, nichts ausgeführt: {e['titel']} ({anzeigename(e['agent'])})."
+    return "\n".join([f"{len(abgelaufene)} Entwürfe nach {tage} Tagen abgelaufen, nichts ausgeführt:",
+                      *[f"• {e['titel']} ({anzeigename(e['agent'])})" for e in abgelaufene]])
 
 
 ERINNERUNG_AB_UHR = 9  # nicht nachts
@@ -151,8 +148,8 @@ def erinnerung_text(alter: list[float], jetzt: datetime, zuletzt: str, verfall_t
     rest = max(0, int((verfall_tage * 24 - max(alt)) // 24))
     wann = "heute" if rest < 1 else "morgen" if rest == 1 else f"in {rest} Tagen"
     if len(alt) == 1:
-        return f"Ein Entwurf wartet {tage_text(alt[0])} auf deine Entscheidung. Er läuft {wann} ab."
-    return f"{len(alt)} Entwürfe warten auf deine Entscheidung. Der älteste läuft {wann} ab."
+        return f"1 Entwurf wartet {tage_text(alt[0])}, er läuft {wann} ab."
+    return f"{len(alt)} Entwürfe warten, der älteste läuft {wann} ab."
 
 
 ERINNERUNG_KNOEPFE = [[("Entwürfe ansehen", "u:entwuerfe")]]
@@ -160,25 +157,23 @@ ERINNERUNG_KNOEPFE = [[("Entwürfe ansehen", "u:entwuerfe")]]
 
 def aenderung_weiter(agent: str, dateien: int) -> str:
     mit = f" (mit {anzahl_dateien(dateien)})" if dateien else ""
-    return f"{anzeigename(agent)} überarbeitet den Entwurf{mit}. Die neue Fassung kommt hierher."
+    return f"{anzeigename(agent)} überarbeitet den Entwurf{mit}."
 
 
 def unklar_text(titel: str) -> str:
-    return (f"Ich weiß nicht, ob das geklappt hat: {titel}\n"
-            "Ich habe damit angefangen, aber kein Ende gemeldet. Bitte prüf selbst, ob es angekommen ist. "
-            "Ich wiederhole es nicht von allein.")
+    return (f"Unklar, ob das geklappt hat: {titel}\n"
+            "Angefangen, aber kein Ende gemeldet. Ich wiederhole es nicht. Prüf, ob es angekommen ist.")
 
 
 def datei_nicht_gesendet(datei: str) -> str:
     name = Path(datei).stem.replace("_", " ")
-    return f"Die Datei „{name}“ kam nicht an. Sie liegt am PC in meinem Ordner."
+    return f"„{name}“ kam nicht an. Die Datei liegt am PC."
 
 
 def dateien_warten(anzahl: int, beispiel: str, befehl_unbekannt: bool) -> str:
-    vorweg = "Den Befehl in der Bildunterschrift kenne ich nicht. " if befehl_unbekannt else ""
+    vorweg = "Den Befehl kenne ich nicht. " if befehl_unbekannt else ""
     liegt = "liegt" if anzahl == 1 else "liegen"
-    return (f"{vorweg}{anzahl_dateien(anzahl)} {liegt} bereit. Schick jetzt den Auftrag, zum Beispiel {beispiel}. "
-            "Die Dateien kommen mit. /verwerfen löscht sie.")
+    return f"{vorweg}{anzahl_dateien(anzahl)} {liegt} bereit. Schick den Auftrag dazu, zum Beispiel {beispiel}."
 
 
 def dateien_verworfen(anzahl: int) -> str:
@@ -226,11 +221,10 @@ def nur_freigabe_verweis(auftrag: dict) -> bool:
                                 for z in zeilen)
 
 
-STUFEN_TEXT = {  # erster Satz steht auch im Menü
-    "normal": "Die Rechenzeit reicht. Alles läuft wie geplant.",
-    "sparen": "Die Rechenzeit wird knapp, darum spare ich. Ich mache nur eine Sache auf einmal. Jeder zweite feste "
-              "Durchgang fällt aus. Leichte Sachen mache ich mit weniger Aufwand.",
-    "nur_auftraege": "Die Rechenzeit ist fast aufgebraucht. Nur deine Aufträge laufen, feste Durchgänge machen Pause.",
+STUFEN_TEXT = {  # „limit“ steht auch im Menü
+    "normal": "Die Rechenzeit reicht.",
+    "sparen": "Die Rechenzeit wird knapp, darum spare ich.",
+    "nur_auftraege": "Die Rechenzeit ist fast aufgebraucht. Nur deine Aufträge laufen.",
     "limit": "Die Rechenzeit ist aufgebraucht. Alles wartet.",
 }
 
@@ -240,36 +234,27 @@ def usd_text(wert: float) -> str:
 
 
 def woche_zeilen(woche: dict[str, dict]) -> list[str]:
-    """Letzte 7 Tage je Agent, teuerster zuerst. USD ist ein Vergleichswert (das Kontingent ist pauschal bezahlt)."""
+    """Letzte 7 Tage in einer Zeile, teuerster zuerst. USD ist ein Vergleichswert (bezahlt ist pauschal)."""
     if not woche:
         return []
-    zeilen = ["", "Letzte 7 Tage (Vergleichswert, bezahlt ist pauschal):"]
-    for agent, s in sorted(woche.items(), key=lambda x: (-x[1]["usd"], x[0])):
-        zeilen.append(f"• {anzeigename(agent)}: {s['laeufe']}-mal gearbeitet, {usd_text(s['usd'])}")
-    zeilen.append(f"Zusammen: {usd_text(sum(s['usd'] for s in woche.values()))}")
-    return zeilen
+    je = [f"{anzeigename(a)} {usd_text(s['usd'])}"
+          for a, s in sorted(woche.items(), key=lambda x: (-x[1]["usd"], x[0]))]
+    return [f"7 Tage: {usd_text(sum(s['usd'] for s in woche.values()))} Vergleichswert ({', '.join(je)})"]
 
 
 def verbrauch_text(stand: dict | None, stufe: str, heute: dict[str, dict], zeit_text,
                    woche: dict[str, dict] | None = None) -> str:
+    """Verbrauch in wenigen Zeilen: Stufe, Anteil mit Freigabezeit, heute je Agent, Woche."""
     zeilen = [STUFEN_TEXT[stufe]]
-    if stand is None:
-        zeilen.append("Wie viel verbraucht ist, weiß ich erst nach der ersten Aufgabe.")
-    else:
-        zeilen += [
-            f"Letzte 5 Stunden: {stand.get('5h', 0) * 100:.0f} % verbraucht, wieder frei {zeit_text(stand.get('reset_5h'))}",
-            f"Letzte 7 Tage: {stand.get('7d', 0) * 100:.0f} % verbraucht, wieder frei {zeit_text(stand.get('reset_7d'))}",
-            f"Stand: {zeit_text(stand.get('zeit'))}",
-        ]
-    zeilen.append("")
-    if not heute:
-        zeilen.append("Heute hat noch niemand gearbeitet.")
-    else:
-        zeilen.append("Heute:")
+    if stand is not None:
+        zeilen.append(f"Verbraucht: {stand.get('5h', 0) * 100:.0f} % in 5 Stunden (frei {zeit_text(stand.get('reset_5h'))}), "
+                      f"{stand.get('7d', 0) * 100:.0f} % in 7 Tagen (frei {zeit_text(stand.get('reset_7d'))})")
+    if heute:
+        je = []
         for agent, s in sorted(heute.items(), key=lambda x: anzeigename(x[0])):
-            fehler = f", {s['fehler']}-mal hat es nicht geklappt" if s["fehler"] else ""
-            zeilen.append(f"• {anzeigename(agent)}: {s['laeufe']}-mal gearbeitet, "
-                          f"{str(round(s['minuten'], 1)).replace('.', ',')} Minuten{fehler}")
+            fehler = f", {s['fehler']}-mal nicht geklappt" if s["fehler"] else ""
+            je.append(f"{anzeigename(agent)} {s['laeufe']}-mal{fehler}")
+        zeilen.append("Heute: " + "; ".join(je))
     return "\n".join(zeilen + woche_zeilen(woche or {}))
 
 
@@ -298,15 +283,131 @@ def knopf_beschriftung(meldung: dict, zeile: int, spalte: int) -> str | None:
 
 
 
+# ---------- Signal-Filter (docs/befund-ux.md, Entscheidung 5) ----------
+# Für Meldungen der Agenten und Ergebnisse ohne Vorlage: Rauschen raus, sichtbar Kopfzeile und höchstens PUNKTE_MAX
+# Punkte, der Rest zugeklappt als <blockquote expandable> darunter (nichts geht verloren). Entwürfe zur Freigabe
+# laufen nie hier durch (entwurf_als_text, freigegeben wird genau der gezeigte Text).
+
+PUNKTE_MAX = 3
+SICHTBAR_MAX = 600  # Zeichen für Kopfzeile und Punkte (Sprachregel Jan: höchstens 800 ohne aufklappbaren Teil)
+KOPF_MAX = 100  # eine Zeile Kern; ist sie länger, bleibt nur ihr erster Satz sichtbar
+PUNKT_MAX = 300
+NACHRICHT_MAX = 3800  # Telegram erlaubt 4096, Rest Luft für Formatierung
+_ZUGEKLAPPT = ("<blockquote expandable>", "</blockquote>")
+_STATUSWORT = r"(?:neue? )?(?:geprüft|vorgefiltert|neu|neue|gelesen|übersprungen|gefunden)"
+ZAEHLER = re.compile(rf"\s*\(\d+ {_STATUSWORT}(?:, \d+ {_STATUSWORT})*\)")
+PRAEFIX = re.compile(r"^(?:\[[a-z_]+\]\s*|Lia, Agent [a-z]+:\s*|Agent [a-z]+:\s*|Fehler im Agenten \(\w+\):\s*)+")
+_PFAD = r"(?:~|/home|/opt|/tmp|/var|/srv|/etc|/usr|/root)/\S*"
+PFAD_ZEILE = re.compile(rf"\s*\b(?:Datei|Pfad|Details|Log|Ordner|Text):\s*(?:{_PFAD}.*|\S+\.log)$")
+PFAD = re.compile(rf"(?<![\w:/]){_PFAD}")
+STERNE = re.compile(r"\*\*(.+?)\*\*|__(.+?)__")
+AUFZAEHLUNG = re.compile(r"^[-*]\s+")
+UEBERSCHRIFT = re.compile(r"^#{1,6}\s+")
+
+
+def signal_zeile(zeile: str, erste: bool = False) -> str:
+    """Eine Zeile entrauschen: Technikpräfix (nur erste Zeile), Zählerklammern, Markdown, absolute Pfade."""
+    if erste:
+        zeile = PRAEFIX.sub("", zeile)
+    einzug = zeile[: len(zeile) - len(zeile.lstrip())]
+    zeile = zeile.strip()
+    zeile = UEBERSCHRIFT.sub("", zeile)
+    zeile = AUFZAEHLUNG.sub("• ", zeile)
+    zeile = STERNE.sub(lambda m: m.group(1) or m.group(2), zeile)
+    zeile = ZAEHLER.sub("", zeile)
+    ohne_pfad = PFAD.sub("", PFAD_ZEILE.sub("", zeile))
+    if ohne_pfad != zeile and re.fullmatch(r"[•\s]*[\w ]{1,20}:?\s*", ohne_pfad):  # nur noch ein Etikett („Datei:“)
+        return ""
+    zeile = re.sub(r"\s+([:.,])", r"\1", re.sub(r"[ \t]{2,}", " ", ohne_pfad)).strip()
+    return einzug + zeile if zeile else ""
+
+
+def _kopf_teilen(kopf: str) -> tuple[str, str]:
+    """Zu lange Kopfzeile am Satzende teilen: (sichtbar, Rest für den zugeklappten Teil)."""
+    if len(kopf) <= KOPF_MAX:
+        return kopf, ""
+    sichtbar = re.split(r"(?<=[.!?])\s+", kopf)[0]  # zu lang: nur der erste Satz bleibt sichtbar
+    if len(sichtbar) > PUNKT_MAX:  # ein einziger langer Satz: am Wortende kürzen
+        sichtbar = kopf[: PUNKT_MAX - 1].rsplit(" ", 1)[0] + " …"
+        return sichtbar, "… " + kopf[len(sichtbar) - 2:].lstrip()
+    return sichtbar, kopf[len(sichtbar):].strip()
+
+
+def signal_teile(text: str) -> tuple[str, list[str], str]:
+    """Text eines Agenten -> (Kopfzeile, sichtbare Punkte, zugeklappter Rest), alles Klartext."""
+    roh = [z.rstrip() for z in (text or "").strip().splitlines()]
+    zeilen, erste = [], True
+    for z in roh:
+        if not z.strip():
+            zeilen.append("")
+            continue
+        sauber = signal_zeile(z, erste)
+        erste = False
+        if sauber:
+            zeilen.append(sauber)
+    while zeilen and not zeilen[0]:
+        zeilen.pop(0)
+    if not zeilen:
+        return "", [], ""
+    kopf, kopf_rest = _kopf_teilen(zeilen[0].strip())
+    # Rest einer langen Kopfzeile ist Einzelheit (oft Zählerprosa): zugeklappt, danach keine sichtbaren Punkte
+    rest = ([kopf_rest] if kopf_rest else []) + zeilen[1:]
+    punkte, laenge, i = [], len(kopf), 0
+    while not kopf_rest and i < len(rest) and len(punkte) < PUNKTE_MAX:
+        z = rest[i]
+        if not z:
+            i += 1
+            continue
+        if z[0].isspace() or len(z) > PUNKT_MAX or laenge + len(z) > SICHTBAR_MAX:
+            break
+        punkte.append(z)
+        laenge += len(z)
+        i += 1
+    return kopf, punkte, re.sub(r"\n{3,}", "\n\n", "\n".join(rest[i:])).strip("\n")
+
+
+def _zugeklappt_stuecke(rest: str, erster_platz: int) -> list[str]:
+    """Zugeklappten Teil in Blöcke teilen: der erste passt in erster_platz, weitere je in eine eigene Nachricht.
+    Gezählt wird wie bei Telegram ohne Formatierung (&amp; zählt als ein Zeichen)."""
+    stuecke, platz = [], erster_platz
+    while rest:
+        luft = platz - 20
+        if luft < 200:  # kein Platz mehr in dieser Nachricht
+            stuecke.append("")
+            platz = NACHRICHT_MAX
+            continue
+        teil = aufteilen(rest, luft)[0] if len(rest) > luft else rest
+        stuecke.append(_ZUGEKLAPPT[0] + escape(teil, False) + _ZUGEKLAPPT[1])
+        rest = rest[len(teil):].lstrip("\n")
+        platz = NACHRICHT_MAX
+    return stuecke
+
+
+def signal_html(kopfzeile: str, text: str) -> list[str]:
+    """Signal-Filter: kopfzeile (fertiges HTML, z. B. <b>Uni</b>) plus Kern, Punkte und zugeklappter Rest.
+    Mehr als eine Nachricht nur, wenn der zugeklappte Teil nicht in eine passt; dann folgen weitere Blöcke."""
+    kopf, punkte, rest = signal_teile(text)
+    sichtbar = "\n".join(escape(z, False) for z in [kopf, *punkte] if z)
+    erste = f"{kopfzeile}\n{sichtbar}".rstrip()
+    if not rest:
+        return [erste]
+    bloecke = _zugeklappt_stuecke(rest, NACHRICHT_MAX - len(sichtbarer_teil(erste)) - 1)
+    if bloecke and bloecke[0]:
+        return [f"{erste}\n{bloecke[0]}", *bloecke[1:]]
+    return [erste, *[b for b in bloecke if b]]
+
+
 def mit_absender(agent: str, text: str, zusatz: str = "") -> list[str]:
-    """Nachricht(en) im HTML-Format: Agent fett in der ersten Zeile, darunter der Text (escaped).
+    """Nachricht(en) im HTML-Format: Agent fett in der ersten Zeile, darunter der Text durch den Signal-Filter.
 
     Technisches (IDs, Pfade, Auftragstext) gehört nicht hierher, sondern ins Log.
     """
     agent = ZENTRALE if agent in SYSTEM else agent
     kopf = f"<b>{escape(anzeigename(agent), False)}</b>" + (f" · {escape(zusatz, False)}" if zusatz else "")
-    stuecke = aufteilen(text.strip(), MAX_LAENGE - 100)
-    return [f"{kopf}\n{escape(stuecke[0], False)}".rstrip(), *(escape(s, False) for s in stuecke[1:])]
+    return signal_html(kopf, text)
+
+
+PRUEFEN_JAN = "Prüfen: "  # Lia: „Bitte prüfen: “ (vorlagen.ergebnis_html)
 
 
 def auftrag_nachricht(auftrag: dict) -> list[str]:
@@ -314,9 +415,20 @@ def auftrag_nachricht(auftrag: dict) -> list[str]:
     if auftrag["status"] == "erledigt":
         if (auftrag.get("daten") or {}).get("kern"):  # strukturiertes Ergebnis: Vorlage, Kern zuerst
             import vorlagen
-            return vorlagen.ergebnis_html(mit_absender(auftrag["agent"], "")[0], auftrag, aufteilen)
+            return vorlagen.ergebnis_html(mit_absender(auftrag["agent"], "")[0], auftrag, aufteilen,
+                                          pruefen_vorsatz=PRUEFEN_JAN)
         return mit_absender(auftrag["agent"], auftrag.get("ergebnis") or "Erledigt.")
     return mit_absender(auftrag["agent"], auftrag.get("ergebnis") or OHNE_GRUND, "hat nicht geklappt")
+
+
+def ergebnis_knoepfe(auftrag: dict, feedback: str = "feedback") -> list | None:
+    """Feedback-Knöpfe unter einem Ergebnis (nur mit Schalter FEEDBACK_KNOEPFE; nicht unter Fehlern, nicht beim
+    Feedback-Dienst, nicht wenn der Agent sie abgewählt hat). None: keine Knöpfe, Antwort genügt."""
+    import vorlagen
+    if not FEEDBACK_KNOEPFE or auftrag["status"] != "erledigt" or auftrag["agent"] == feedback \
+            or vorlagen.ohne_feedback_knoepfe(auftrag):
+        return None
+    return vorlagen.feedback_knoepfe("", auftrag["id"])
 
 
 def weitergabe_beachten(auftrag: dict) -> bool:
@@ -330,19 +442,18 @@ def weitergabe_text(auftrag: dict, dienst_da: bool) -> list[str] | None:
     if dienst_da:
         return None
     an = anzeigename(auftrag["agent"])
-    return mit_absender(ZENTRALE, f"{anzeigename(auftrag['von'])} hat {an} etwas aufgetragen. {an} ist aber noch "
-                                  "nicht eingerichtet. So lange wartet der Auftrag.")
+    return mit_absender(ZENTRALE, f"{anzeigename(auftrag['von'])} hat für {an} einen Auftrag.\n{an} ist noch "
+                                  "nicht eingerichtet, der Auftrag wartet so lange.")
 
 
 def stufe_text(alt: str, neu: str, stand: dict | None, zeit_text) -> list[str] | None:
     """Stufenwechsel nur melden, wenn Jan es merkt: Rechenzeit aufgebraucht und wieder frei."""
     if neu == "limit" and alt != "limit":
         bis = (stand or {}).get("reset_status")
-        return mit_absender(ZENTRALE, "Die Rechenzeit ist aufgebraucht. Deine Aufträge warten"
-                            + (f" bis {zeit_text(bis)} und laufen dann von selbst." if bis
-                               else " und laufen von selbst weiter, sobald wieder Rechenzeit frei ist."))
+        return mit_absender(ZENTRALE, "Rechenzeit aufgebraucht. Aufträge warten"
+                            + (f" bis {zeit_text(bis)}." if bis else ", bis wieder Rechenzeit frei ist."))
     if alt == "limit" and neu != "limit":
-        return mit_absender(ZENTRALE, "Es ist wieder Rechenzeit frei. Die Agenten arbeiten weiter.")
+        return mit_absender(ZENTRALE, "Rechenzeit wieder frei.")
     return None
 
 
@@ -351,11 +462,11 @@ def anzahl_dateien(n: int) -> str:
 
 
 def bestaetigung(agent: str, modus: str, dateinamen: list[str]) -> str:
-    """Kurze Rückmeldung nach einem Auftrag: 'Uni ist dran. Das Ergebnis kommt hierher.'"""
+    """Kurze Rückmeldung nach einem Auftrag: 'Uni ist dran.'"""
     text = f"{anzeigename(agent)} ist dran" + (" (lernen)" if modus == "lernen" else "")
     if dateinamen:
         text += f", mit {anzahl_dateien(len(dateinamen))}"
-    return text + ". Das Ergebnis kommt hierher."
+    return text + "."
 
 
 BESCHRIFTUNG_MAX = 1024  # Telegram: Text unter einer Datei, gezählt ohne Formatierung
@@ -501,23 +612,20 @@ def panel_auswerten(daten: str) -> tuple[str, str | None, str | None] | None:
 
 
 def ansicht_home(zeilen: list[str], agenten: list[str], entwuerfe: int, hinweis: str = "") -> tuple[str, list]:
-    """Startansicht: Kurzstand (zeilen), je Agent mit Dienst ein Knopf, darunter Werkzeuge."""
-    text = "\n".join(["Zentrale", "", *zeilen] + (["", hinweis] if hinweis else []))
+    """Startansicht: Kurzstand nur, wenn etwas zu tun ist (zeilen), je Agent mit Dienst ein Knopf, darunter
+    „Entwürfe (n)“, wenn welche offen sind. Status, Verbrauch und Hilfe gibt es als Befehl."""
+    text = "\n".join(["Zentrale", *zeilen, *([hinweis] if hinweis else [])])
     knoepfe = [[(anzeigename(a), f"{PANEL}a:{a}:erledigen") for a in agenten[i:i + 2]]
                for i in range(0, len(agenten), 2)]
-    knoepfe += [
-        [(f"Entwürfe ({entwuerfe})", PANEL + "entwuerfe"), ("Verbrauch", PANEL + "verbrauch")],
-        [("Status", PANEL + "status"), ("Hilfe", PANEL + "hilfe")],
-        [("↻ Aktualisieren", PANEL + "neu")],
-    ]
+    if entwuerfe:
+        knoepfe.append([(f"Entwürfe ({entwuerfe})", PANEL + "entwuerfe")])
     return text, knoepfe
 
 
 def ansicht_agent(agent: str, modus: str) -> tuple[str, list]:
-    anders = "lernen" if modus == "erledigen" else "erledigen"
-    text = (f"Auftrag an {anzeigename(agent)} ({modus})\n\n"
-            f"Schreib mir jetzt, was {anzeigename(agent)} tun soll. Dateien, die schon warten, kommen mit.")
-    return text, [[(f"Modus wechseln: {anders}", f"{PANEL}a:{agent}:{anders}")], *ZURUECK]
+    """Agent gewählt: die nächste Nachricht ist der Auftrag (Modus „lernen“ nur noch über alte Knöpfe)."""
+    zusatz = " (lernen)" if modus == "lernen" else ""
+    return f"Was soll {anzeigename(agent)}{zusatz} tun?", ZURUECK
 
 
 MAX_ENTWURF_KNOEPFE = 10
@@ -527,17 +635,13 @@ def ansicht_entwuerfe(offene: list[dict], alter: dict[str, float] | None = None)
     """Liste der offenen Entwürfe, jeder einzeln antippbar (zeigt ihn mit Freigeben, Ändern, Ablehnen).
     alter: Stunden je Entwurfs-ID, dann steht dabei, seit wann er wartet."""
     if not offene:
-        return "Entwürfe\n\nKeine offenen Entwürfe.", ZURUECK
+        return "Keine offenen Entwürfe.", ZURUECK
     alter = alter or {}
-    zeilen = ["Entwürfe", ""]
-    knoepfe = []
-    for e in offene:
-        seit = f", {tage_text(alter[e['id']])}" if e.get("id") in alter else ""
-        zeilen.append(f"• {e['titel']} ({anzeigename(e['agent'])}{seit})")
-        if e.get("id") and len(knoepfe) < MAX_ENTWURF_KNOEPFE:
-            knoepfe.append([(_knopf_kurz(e["titel"]), f"{PANEL}e:{e['id']}")])
-    zeilen += ["", "Tipp einen Entwurf an, dann zeige ich ihn mit Knöpfen."]
-    return "\n".join(zeilen), [*knoepfe, *ZURUECK]
+    kopf = mehrzahl(len(offene), "Entwurf offen", "Entwürfe offen")
+    if alter:
+        kopf += f", der älteste {tage_text(max(alter.values()))}" if len(offene) > 1 else f", {tage_text(max(alter.values()))}"
+    knoepfe = [[(_knopf_kurz(e["titel"]), f"{PANEL}e:{e['id']}")] for e in offene if e.get("id")]
+    return kopf + ".", [*knoepfe[:MAX_ENTWURF_KNOEPFE], *ZURUECK]
 
 
 def _knopf_kurz(titel: str, laenge: int = 40) -> str:
@@ -547,3 +651,36 @@ def _knopf_kurz(titel: str, laenge: int = 40) -> str:
 
 def ansicht_text(titel: str, text: str) -> tuple[str, list]:
     return aufteilen(f"{titel}\n\n{text}")[0], ZURUECK
+
+
+# ---------- Regeln für Jans Nachrichten (prüfbar, tests/test_regeln.py) ----------
+FUELLWORT = re.compile(r"\b(bitte|danke|dankesch[öo]n|leider|gerne?)\b|kommt hierher|meldet sich|meldet er sich",
+                       re.IGNORECASE)
+IMPERATIV = re.compile(r"(?:^|(?<=[.!?:]\s)|(?<=\n))(?:Bitte\s+)?(?:Schick|Schreib|Tipp|Leg|Prüf|Sieh|Gib|Antworte|"
+                       r"Warte|Beende|Lies|Öffne|Wähl|Ruf|Hol)e?\b|\bPrüfen:", re.MULTILINE)
+NAVIGATION = ("« Zurück",)
+
+
+def sichtbarer_teil(html: str) -> str:
+    """Was Jan ohne Aufklappen sieht: ohne <blockquote expandable>, ohne Formatierung."""
+    ohne = re.sub(r"<blockquote expandable>.*?</blockquote>", "", html or "", flags=re.DOTALL)
+    return unescape(re.sub(r"<[^>]+>", "", ohne)).strip()
+
+
+def regelverstoesse(html: str, knoepfe: list[str] | None = None) -> list[str]:
+    """Verstöße einer Nachricht an Jan gegen die Kürze-Regeln (docs/befund-ux.md, Entscheidung 4):
+    sichtbar höchstens SICHTBAR_MAX + Kopf, höchstens PUNKTE_MAX Punkte, höchstens eine Handlung (Aufforderung im
+    Text oder Auswahl per Knopf, „« Zurück“ zählt nicht), keine Füllwörter. Entwürfe zur Freigabe sind ausgenommen."""
+    sichtbar = sichtbarer_teil(html)
+    befunde = []
+    if len(sichtbar) > SICHTBAR_MAX + 100:  # 100 Zeichen für Absender und Zusatz
+        befunde.append(f"laenge: {len(sichtbar)} sichtbare Zeichen")
+    punkte = [z for z in sichtbar.splitlines() if z.lstrip().startswith(("•", "- "))]
+    if len(punkte) > PUNKTE_MAX:
+        befunde.append(f"punkte: {len(punkte)}")
+    handlungen = len(IMPERATIV.findall(sichtbar)) + (1 if [k for k in knoepfe or [] if k not in NAVIGATION] else 0)
+    if handlungen > 1:
+        befunde.append(f"handlungen: {handlungen}")
+    for m in FUELLWORT.finditer(sichtbar):
+        befunde.append(f"fuellwort: {m.group(0)}")
+    return befunde

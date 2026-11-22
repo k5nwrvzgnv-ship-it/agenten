@@ -1,6 +1,3 @@
-Auftrag an Uni (erledigen)
-
-Schreib mir jetzt, was Uni tun soll. Dateien, die schon warten, kommen mit.
+Was soll Uni tun?
 --- Knöpfe ---
-[Modus wechseln: lernen] u:a:uni:lernen
 [« Zurück] u:home

@@ -24,7 +24,7 @@ class TestAusfall(unittest.TestCase):
     def test_text_in_worten(self):
         self.assertEqual(ausfall.text("uni-transkript.service", "oom-kill"),
                          "Uni (transkript) ist ausgefallen: zu wenig Arbeitsspeicher.\n"
-                         "Bitte sieh am PC nach. Zu diesem Teil melde ich mich frühestens in 6 Stunden wieder.")
+                         "Mehr steht am PC. Ich melde mich dazu erst in 6 Stunden wieder.")
         self.assertIn("ausgefallen: aus unbekanntem Grund.", ausfall.text("uni.service", "komisch"))
         self.assertIn("ausgefallen: aus unbekanntem Grund.", ausfall.text("uni.service", ""))
 

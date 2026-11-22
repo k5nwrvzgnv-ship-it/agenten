@@ -1,31 +1,37 @@
-Freigegeben. Uni führt es jetzt aus und meldet sich.
+Freigegeben.
 --- nächste Nachricht ---
-Abgelehnt. Uni führt nichts aus.
+Abgelehnt.
 --- nächste Nachricht ---
-Was soll anders werden? Schreib es als nächste Nachricht.
+Was soll anders werden?
 --- nächste Nachricht ---
-Der Entwurf wurde nach der Anzeige geändert. Ich habe nichts freigegeben. Im Menü unter Entwürfe kannst du ihn neu anzeigen lassen.
+Der Entwurf hat sich nach der Anzeige geändert, nichts freigegeben. Die neue Fassung steht im Menü.
 --- nächste Nachricht ---
 Über diesen Entwurf ist schon entschieden.
 --- nächste Nachricht ---
-Das ging nicht. Einzelheiten stehen am PC.
+Das ging nicht. Einzelheiten am PC.
 --- nächste Nachricht ---
-Uni überarbeitet den Entwurf (mit 1 Datei). Die neue Fassung kommt hierher.
+Uni überarbeitet den Entwurf (mit 1 Datei).
 --- nächste Nachricht ---
-Den Befehl in der Bildunterschrift kenne ich nicht. 2 Dateien liegen bereit. Schick jetzt den Auftrag, zum Beispiel /uni Fasse das zusammen. Die Dateien kommen mit. /verwerfen löscht sie.
+Den Befehl kenne ich nicht. 2 Dateien liegen bereit. Schick den Auftrag dazu, zum Beispiel /uni Fasse das zusammen.
 --- nächste Nachricht ---
 2 Dateien gelöscht.
 --- nächste Nachricht ---
 Es warten keine Dateien.
 --- nächste Nachricht ---
-Den Auftrag konnte ich nicht anlegen. Schick ihn bitte noch einmal. Einzelheiten stehen am PC.
+Auftrag nicht angelegt. Schick ihn noch einmal.
 --- nächste Nachricht ---
-Die Datei ist zu groß für Telegram. Leg sie am PC in den Ordner des passenden Agenten.
+Die Datei ist zu groß für Telegram. Leg sie am PC ab.
 --- nächste Nachricht ---
-Die Datei konnte ich nicht laden. Schick sie bitte noch einmal.
+Die Datei kam nicht an. Schick sie noch einmal.
 --- nächste Nachricht ---
-Der Text ist nicht mehr da. Schick ihn bitte noch einmal.
+Der Text ist weg. Schick ihn noch einmal.
 --- nächste Nachricht ---
-Dieser Knopf ist veraltet. Hier ist das aktuelle Menü.
+Der Knopf ist veraltet.
 --- nächste Nachricht ---
 An wen geht das?
+--- nächste Nachricht ---
+Diesen Befehl kenne ich nicht. /hilfe zeigt alle.
+--- nächste Nachricht ---
+Entwurf nach 7 Tagen abgelaufen, nichts ausgeführt: Mail: Rückfrage (Uni).
+--- nächste Nachricht ---
+1 Entwurf wartet seit gestern, er läuft in 5 Tagen ab.

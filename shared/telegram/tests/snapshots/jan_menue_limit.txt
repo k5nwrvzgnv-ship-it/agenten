@@ -1,0 +1,5 @@
+Zentrale
+Die Rechenzeit ist aufgebraucht. Alles wartet.
+Uni ist dran.
+--- Knöpfe ---
+[Uni] u:a:uni:erledigen

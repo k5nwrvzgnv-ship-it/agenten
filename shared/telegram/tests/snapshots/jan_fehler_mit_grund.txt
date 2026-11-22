@@ -1,3 +1,2 @@
 <b>Dokumente</b> · hat nicht geklappt
-Fehler im Agenten (RenderFehler): Vorlage fehlt
-Details: dokumente/logs/dokumente.log
+Vorlage fehlt

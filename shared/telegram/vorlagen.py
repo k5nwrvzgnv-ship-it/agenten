@@ -8,6 +8,7 @@ Belegen gekürzt ("… und N weitere im Dokument"), höchstens BELEGE_MAX Belege
 Text in eine Beschriftung (1024 Zeichen ohne Formatierung), steht er unter der Datei, sonst davor.
 
 Feedback-Knöpfe unter jedem Ergebnis: <vorsatz>fb:<auftrag-id>:<k> (höchstens 64 Bytes), k siehe FB_KNOEPFE.
+Lias Zentrale zeigt sie immer; Jans Zentrale nur mit Schalter logik.FEEDBACK_KNOEPFE (Standard aus, 22.11.2026).
 "Zu lang" fragt nach: nur dieses Ergebnis (lh) oder ab jetzt immer (li). "Falscher Fokus" und "Feedback
 schreiben" warten auf die nächste Nachricht. Dazu feedback_text() für den Auftragstext.
 Ein Agent kann die Knöpfe je Ergebnis abwählen: daten.knoepfe = "nur_antwort" (z. B. ein Dossier zur Auswahl,
@@ -71,8 +72,9 @@ def _belege(belege: list[str], platz: int) -> str:
     return "<blockquote expandable>Belege\n" + "\n".join(zeilen) + "</blockquote>"
 
 
-def ergebnis_html(kopf: str, auftrag: dict, aufteilen) -> list[str]:
-    """Ergebnis als HTML-Nachricht(en). kopf: fertige erste Zeile (HTML). aufteilen: logik.aufteilen."""
+def ergebnis_html(kopf: str, auftrag: dict, aufteilen, pruefen_vorsatz: str = "Bitte prüfen: ") -> list[str]:
+    """Ergebnis als HTML-Nachricht(en). kopf: fertige erste Zeile (HTML). aufteilen: logik.aufteilen.
+    pruefen_vorsatz: Lia „Bitte prüfen: “, Jan „Prüfen: “ (ohne Höflichkeitsformel)."""
     daten = auftrag.get("daten") or {}
     if auftrag.get("status") != "erledigt" or not daten.get("kern"):
         text = (auftrag.get("ergebnis") or "Erledigt.").strip()
@@ -83,7 +85,7 @@ def ergebnis_html(kopf: str, auftrag: dict, aufteilen) -> list[str]:
     if punkte:
         teile.append("\n".join("• " + esc(kurz(p, 300)) for p in punkte))
     if daten.get("pruefen"):
-        teile.append("<i>Bitte prüfen: " + esc(kurz(daten["pruefen"], 300)) + "</i>")
+        teile.append("<i>" + esc(pruefen_vorsatz) + esc(kurz(daten["pruefen"], 300)) + "</i>")
     text = "\n\n".join(teile)
     belege = _belege(daten.get("belege") or [], MAX_TEXT - len(text) - 2)
     return [text + ("\n\n" + belege if belege else "")]

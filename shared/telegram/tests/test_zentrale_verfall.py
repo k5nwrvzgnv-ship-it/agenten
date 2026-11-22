@@ -118,7 +118,7 @@ class Verfall(unittest.TestCase):
         self.runde(uhr=10)
         texte = self.texte()
         self.assertEqual(len(texte), 2)
-        self.assertRegex(texte[1], "wartet seit [23] Tagen auf deine Entscheidung")
+        self.assertRegex(texte[1], "wartet seit [23] Tagen, er läuft")
         knopf = self.bot.send_message.call_args.kwargs["reply_markup"].inline_keyboard[0][0]
         self.assertEqual(knopf.callback_data, "u:entwuerfe")
         self.runde(uhr=15)

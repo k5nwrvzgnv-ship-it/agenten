@@ -1,10 +1,4 @@
 {
- "jan_fehler_mit_grund": [
-  "datei: Dateiname",
-  "fehlertext: Fehlertext",
-  "glossar: Agentenname klein",
-  "pfad: Pfad"
- ],
  "lia_fehler": [
   "glossar: Kontingent",
   "lesbarkeit"

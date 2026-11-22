@@ -1,14 +1,15 @@
 """Telegram-Zentrale: einziger Kontakt zwischen Jan und den Agenten.
 
-- /start oder /menue: Menü-Nachricht mit Knöpfen (Agenten, Entwürfe, Verbrauch, Status, Hilfe),
+- /start oder /menue: Menü-Nachricht mit Knöpfen (Agenten, „Entwürfe (n)“ nur wenn welche offen sind),
   die sich beim Tippen ändert (panel.py, Ansichten in logik.py). Agent antippen, dann ist die
-  nächste Nachricht der Auftrag. Alle Befehle bleiben nutzbar.
+  nächste Nachricht der Auftrag. /status, /verbrauch, /hilfe gibt es als Befehl.
 - Reagiert nur auf Jans Chat-ID (TELEGRAM_CHAT_ID).
 - Zeigt neue Entwürfe aus shared/freigabe/offen/ mit Knöpfen an.
 - /uni ..., /unilern ... usw. werden zu Aufträgen in shared/auftraege/neu/.
 - Meldet ausgeführte Entwürfe, unklare Fälle und erledigte Aufträge.
 - Antwortet Jan auf die Meldung eines Auftrags, wird daraus ein neuer Auftrag in
-  derselben Claude-Sitzung. /pc (als Antwort) gibt die Sitzung an den PC, /weiter holt sie zurück.
+  derselben Claude-Sitzung. Still weiter angenommen, aber in Hilfe und Menü nicht genannt: /pc, /weiter,
+  /verwerfen und der Lernmodus /<agent>lern.
 - Verschickt Meldungen der Agenten aus shared/meldungen/neu/ (Fristen, wichtige Mails ...).
   Hat eine Meldung Knöpfe, wird ein Klick (einmal je Meldung) oder Jans Antwort darauf ein
   Auftrag an den Agenten, danach startet <dienst>.service der Meldung (siehe agentkit.meldungen).
@@ -16,11 +17,13 @@
   möglichst als Beschriftung darunter (eine Nachricht statt zwei). Gibt es eine gleichnamige PDF,
   kommt nur sie (docx bleibt auf dem Server).
 - Nachrichten an Jan bleiben kurz: Absender fett, Ergebnis, nichts Technisches (IDs, Pfade,
-  Stufen). Stufenwechsel nur bei Limit und danach, Weitergaben nur, wenn der Auftrag liegen bleibt.
+  Stufen). Meldungen und Ergebnisse ohne Vorlage laufen durch den Signal-Filter (logik.signal_html): Kopfzeile und
+  höchstens drei Punkte sichtbar, der Rest zugeklappt. Entwürfe zur Freigabe bleiben ungekürzt. Stufenwechsel nur bei Limit und danach, Weitergaben nur, wenn der Auftrag liegen bleibt.
   Sprachregel docs/sprache/sprachregel.md: jede ausgehende Nachricht wird geprüft (sprachpruefung.py), Befunde
   ohne Inhalt als Warnung ins Log.
-- Feedback (CLAUDE.md, "Lernen aus Feedback"): Unter jedem Ergebnis eines Agenten Knöpfe (vorlagen.py: Passt, Zu
-  lang, Falscher Fokus, Feedback schreiben). Feedback wird ein Auftrag an "feedback" (bezug = Ergebnis), danach
+- Feedback (CLAUDE.md, "Lernen aus Feedback"): Jan korrigiert per Antwort auf das Ergebnis. Die Knöpfe unter
+  Ergebnissen (vorlagen.py: Passt, Zu lang, Falscher Fokus, Feedback schreiben) nur mit logik.FEEDBACK_KNOEPFE,
+  alte Knöpfe wirken weiter. Feedback wird ein Auftrag an "feedback" (bezug = Ergebnis), danach
   startet feedback.service (shared/feedback). Dessen Zusammenfassung kommt als Meldung mit Stopp-Knopf (auch für
   Lias Feedback); der Klick geht wie jeder Meldungsknopf an feedback.service. Eine Antwort auf das Ergebnis setzt
   weiter die Sitzung fort.
@@ -66,6 +69,8 @@ from logik import (
     KNOPF_ALT,
     MAX_DATEI_BYTES,
     NICHT_ANGELEGT,
+    NOTIERT,
+    UNBEKANNT,
     TEXT_WEG,
     ZURUECK,
     Eingang,
@@ -86,6 +91,7 @@ from logik import (
     dateien_warten,
     datei_nicht_gesendet,
     entwurf_als_text,
+    ergebnis_knoepfe as ergebnis_knoepfe_daten,
     erinnerung_text,
     freigabe_antwort,
     freigabe_fehler,
@@ -222,9 +228,9 @@ def status_zeilen() -> str:
 
 
 def home(hinweis: str = "") -> tuple[str, list]:
-    stand, stufe = aktuelle_stufe()
+    _, stufe = aktuelle_stufe()
     entwuerfe = len(offene_fuer_jan())
-    zeilen = home_zeilen(stand, stufe, entwuerfe, len(auftraege.neue()), len(eingang.wartende()))
+    zeilen = home_zeilen(stufe, len(eingang.wartende()))
     return ansicht_home(zeilen, agenten_mit_dienst(), entwuerfe, hinweis)
 
 
@@ -314,11 +320,11 @@ async def verbrauch_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 async def auftrag_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ergebnis = befehl_auswerten(update.message.text)
     if ergebnis is None:
-        await update.message.reply_text("Diesen Befehl kenne ich nicht.\n\n" + HILFE)
+        await update.message.reply_text(UNBEKANNT)
         return
     agent, modus, text = ergebnis
     if not text:
-        await update.message.reply_text(f"Schreib den Auftrag bitte dazu, zum Beispiel /{agent} Fristen prüfen")
+        await update.message.reply_text(f"Schreib den Auftrag dazu, zum Beispiel /{agent} Fristen prüfen.")
         return
     await auftrag_zurueckhalten(context, agent, modus, text)
 
@@ -411,11 +417,10 @@ async def meldung_beantworten(bot, m: dict, text: str, quelle: str, bestaetigen:
 
 async def antwort_weitergeben(bot, alt: dict, text: str) -> None:
     if not alt.get("sitzung"):
-        await bot.send_message(JAN, "Hier kann ich nicht im selben Gespräch weitermachen. "
-                                    "Schick es bitte als neuen Auftrag.")
+        await bot.send_message(JAN, "Hier geht es nicht im selben Gespräch weiter. Schick es als neuen Auftrag.")
         return
     if alt["sitzung"] in gemeldet.listen["am_pc"]:
-        await bot.send_message(JAN, "Dieses Gespräch liegt gerade am PC. Beende es dort und schick hier /weiter.")
+        await bot.send_message(JAN, "Das Gespräch liegt am PC. Schick nach dem Beenden /weiter.")
         return
     await auftrag_anlegen(bot, alt["agent"], alt["modus"], text, bezug=alt["id"], sitzung=alt["sitzung"])
 
@@ -423,12 +428,12 @@ async def antwort_weitergeben(bot, alt: dict, text: str) -> None:
 async def pc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     alt = beantworteter_auftrag(update)
     if alt is None or not alt.get("sitzung"):
-        await update.message.reply_text("Schick /pc bitte als Antwort auf ein Ergebnis.")
+        await update.message.reply_text("Schick /pc als Antwort auf ein Ergebnis.")
         return
     sitzung = alt["sitzung"]
     if any(a.get("sitzung") == sitzung for a in auftraege.neue()):
         await update.message.reply_text(f"{anzeigename(alt['agent'])} arbeitet gerade in diesem Gespräch. "
-                                        "Warte bitte erst die Antwort ab.")
+                                        "Warte die Antwort ab.")
         return
     gemeldet.listen["am_pc"].add(sitzung)
     gemeldet.speichern()
@@ -446,8 +451,7 @@ async def weiter(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Sitzungen zurück vom PC: %s", sorted(gemeldet.listen["am_pc"]))
     gemeldet.listen["am_pc"].clear()
     gemeldet.speichern()
-    await update.message.reply_text("Zurück in Telegram. Antworte auf das letzte Ergebnis, "
-                                    "dann geht es im selben Gespräch weiter.")
+    await update.message.reply_text("Zurück in Telegram. Antworte auf das letzte Ergebnis.")
 
 
 async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -512,10 +516,10 @@ async def feedback_anlegen(bezug: str, k: str, eingabe: str = "") -> str:
         fid = auftraege.neuer_auftrag(FEEDBACK, v.feedback_text(k, eingabe), quelle="feedback", bezug=bezug)
     except auftraege.AuftragFehler as e:
         logger.error("Feedback zu %s nicht angelegt: %s", bezug, e)
-        return "Das Feedback konnte ich nicht anlegen. Schick es bitte noch einmal."
+        return "Feedback nicht angelegt. Schick es noch einmal."
     logger.info("Feedback %s zu %s angelegt (%s)", fid, bezug, k)
     await agent_starten(FEEDBACK)
-    return v.DANKE
+    return NOTIERT
 
 
 async def knoepfe_weg(bot, nachricht_id: int | None) -> None:
@@ -527,11 +531,9 @@ async def knoepfe_weg(bot, nachricht_id: int | None) -> None:
 
 
 def ergebnis_knoepfe(a: dict) -> InlineKeyboardMarkup | None:
-    """Feedback-Knöpfe unter erledigten Aufträgen der Agenten (nicht unter Fehlern, nicht beim Feedback-Dienst,
-    nicht wenn der Agent sie abgewählt hat)."""
-    if a["status"] != "erledigt" or a["agent"] == FEEDBACK or v.ohne_feedback_knoepfe(a):
-        return None
-    return panel.markup(v.feedback_knoepfe("", a["id"]))
+    """Feedback-Knöpfe unter erledigten Aufträgen (nur mit Schalter logik.FEEDBACK_KNOEPFE, siehe dort)."""
+    knoepfe = ergebnis_knoepfe_daten(a, FEEDBACK)
+    return panel.markup(knoepfe) if knoepfe else None
 
 
 async def feedback_knopf(q, context: ContextTypes.DEFAULT_TYPE, aid: str, k: str) -> None:
@@ -544,8 +546,8 @@ async def feedback_knopf(q, context: ContextTypes.DEFAULT_TYPE, aid: str, k: str
     logger.info("Feedback-Knopf %s zu %s", k, aid)
     if k == "lang":
         await q.edit_message_reply_markup(panel.markup(v.laenge_knoepfe("", aid)))
-    elif k == "zu":
-        await q.edit_message_reply_markup(ergebnis_knoepfe(a))
+    elif k == "zu":  # alter Knopf: zurück zu den Feedback-Knöpfen, auch wenn der Schalter aus ist
+        await q.edit_message_reply_markup(panel.markup(v.feedback_knoepfe("", a["id"])))
     elif k in ("fokus", "frei"):
         context.chat_data["feedback"] = {"bezug": aid, "k": k, "nachricht": q.message.message_id}
         await q.message.reply_text(v.FB_FRAGE[k])
@@ -555,7 +557,7 @@ async def feedback_knopf(q, context: ContextTypes.DEFAULT_TYPE, aid: str, k: str
         gemeldet.geklickt(aid)
         gemeldet.speichern()
         await q.edit_message_reply_markup(None)
-        await q.message.reply_text(v.vermerk(k) if k == "ok" else await feedback_anlegen(aid, k))
+        await q.message.reply_text(NOTIERT if k == "ok" else await feedback_anlegen(aid, k))
 
 
 # ---------- Dateien ----------

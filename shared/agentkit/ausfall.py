@@ -60,7 +60,7 @@ def text(unit: str, ergebnis: str) -> str:
     name = teile[0][:1].upper() + teile[0][1:] + (f" ({' '.join(teile[1:])})" if teile[1:] else "")
     grund = GRUENDE.get(ergebnis, "aus unbekanntem Grund")
     return (f"{name} ist ausgefallen: {grund}.\n"
-            f"Bitte sieh am PC nach. Zu diesem Teil melde ich mich frühestens in {SPERRE_S // 3600} Stunden wieder.")
+            f"Mehr steht am PC. Ich melde mich dazu erst in {SPERRE_S // 3600} Stunden wieder.")
 
 
 def _befehl(*args: str) -> str:
