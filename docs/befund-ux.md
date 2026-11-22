@@ -113,8 +113,75 @@ Abgeleitet aus S1 bis S6 und dem Inventar. Code darf hinter einem Schalter bleib
 
 ## 4. Vorher/nachher echter Nachrichten (Teil A)
 
-(wird von der Sitzung für Teil A ergänzt)
+Umgesetzt am 22./23.11.2026 in `shared/telegram` (Signal-Filter `logik.signal_html`, Regeln `logik.regelverstoesse`,
+Tests `tests/test_regeln.py`). „Nachher“ ist das, was Jan ohne Aufklappen sieht; der Rest steht zugeklappt darunter
+(`<blockquote expandable>`), nichts fällt weg. Die Nachher-Fassungen sind mit dem neuen Code aus den echten Dateien
+erzeugt, nicht von Hand geschrieben. Zeichen: Länge des Agententexts vorher, sichtbarer Teil nachher.
+
+| # | Quelle | Vorher | Nachher (sichtbar) |
+|---|---|---|---|
+| 1 | Meldung uni, 22.11. 13:01 (`meldungen/gesendet/20261122-130128-uni-3bcb7b`) | „Wichtige Uni-Mails (8 neue geprüft):“, dann 6 Unterpunkte, ein Absatz und viermal „Termin zum Antippen: … Erinnerung 7 Tage, 1 Tag und 2 Std. vorher.“ (1824 Zeichen, Log-Warnung „laenge“) | **Uni** / Wichtige Uni-Mails: / • noreply@hnee.de: Prüfungsanmeldungen bestätigt (22.11.). Es ist nichts zu tun, die Termine stehen im Stundenplan. (139 Zeichen) |
+| 2 | Meldung recherche (Lia), 14.11. (`…20261114-133829-recherche-75af63`) | „Lia, Agent recherche: Webauftrag fertig: 20 von 39 Aussagen belegt, 19 unbelegt. Belege: 27 bestanden, 0 durchgefallen, 0 ungeprüft (erste Prüfung: 27/2/0). … Kosten 2.02 USD in 3 Läufen. Datei: /home/agent/agenten/lia/recherche/data/web/…docx“ (432) | **Recherche (Lia)** / Webauftrag fertig: 20 von 39 Aussagen belegt, 19 unbelegt. (68; Prüfzahlen und Kosten zugeklappt, Pfad weg) |
+| 3 | Meldung posteingang, 22.11. 19:00 (`…20261122-190022-posteingang-1ab6ce`) | „[post] Wichtige Mails (3 geprüft, 1 vorgefiltert):“ + Mail-Zeile (274) | **Posteingang** / Wichtige Mails: / Bestellung/Versand \| PayPal: … Nur prüfen, ob die Zahlung von Jan stammt. (251; Präfix und Zähler weg) |
+| 4 | Meldung holzbalkenscan, 07.11. (`…20261107-121623-holzbalkenscan-de22af`) | Kopfzeile, dann 40 Zeilen Messwerte und Vergleich mit der alten Fassung (3259) | **Holzbalkenscan** / Prüfstand holzbalkenscan, Lauf …, Fassung achse, … / pf-flau: ok (129; Messwerte zugeklappt) |
+| 5 | Meldung uni, 03.11. (`…20261103-120341-uni-8af728`) | „Normen aufbereitet (9 neu):“ + 9 Zeilen mit Dateipfaden (928) | **Uni** / Normen aufbereitet: / 3 Normen als Punkte (314; die übrigen 6 zugeklappt) |
+| 6 | Ergebnis uni, 11.11. (`auftraege/erledigt/20261111-225743-uni-e86e20`) | 1456 Zeichen Fließtext mit Liste, darunter 4 Knöpfe „Passt / Zu lang / Falscher Fokus / Feedback schreiben“ | **Uni** / Ich habe keinen frei herunterladbaren Datensatz gefunden, der Oberflächenbilder und CT-Scans derselben Stämme oder Bretter enthält … (190; Liste zugeklappt, keine Knöpfe; Antwort auf das Ergebnis setzt das Gespräch fort) |
+| 7 | Texte der Zentrale (`logik.py`) | „Uni ist dran. Das Ergebnis kommt hierher.“ · „Freigegeben. Uni führt es jetzt aus und meldet sich.“ · „Einen Grund kann ich dir leider nicht nennen. Schick den Auftrag noch einmal, oder sieh am PC nach.“ · „Ich weiß nicht, ob das geklappt hat … Bitte prüf selbst, ob es angekommen ist. Ich wiederhole es nicht von allein.“ | „Uni ist dran.“ · „Freigegeben.“ · „Den Grund kenne ich nicht. Schick den Auftrag noch einmal.“ · „Unklar, ob das geklappt hat: … Angefangen, aber kein Ende gemeldet. Ich wiederhole es nicht. Prüf, ob es angekommen ist.“ |
+| 8 | Menü `/start` und `/hilfe` | Menü: „Verbraucht: 6 % (5 Stunden), 1 % (7 Tage) / Entwürfe: 1 \| Aufträge in Arbeit: 0“ + Knöpfe Agenten, Entwürfe (0), Verbrauch, Status, Hilfe, ↻ Aktualisieren; nach Agent-Wahl „Modus wechseln: lernen“. Hilfe 13 Zeilen mit /unilern, /verwerfen, /pc, /weiter | Menü: „Zentrale“ + nur Agent-Knöpfe, „Entwürfe (n)“ nur wenn welche offen sind; Kurzstand nur bei aufgebrauchter Rechenzeit oder wartenden Dateien; nach Agent-Wahl „Was soll Uni tun?“. Hilfe 4 Zeilen (Aufträge, Text ohne Befehl, Antwort auf Ergebnis, Dateien) |
+
+Unverändert und bewusst ungekürzt: Entwürfe zur Freigabe mit Freigeben/Ändern/Ablehnen (Fingerabdruck), Rüdiger, Lias
+Zentrale. Still weiter angenommen, aber nirgends mehr genannt: `/unilern`, `/pc`, `/weiter`, `/verwerfen`, alte
+Feedback-Knöpfe in früheren Nachrichten. Feedback-Knöpfe wieder einschalten: `logik.FEEDBACK_KNOEPFE = True`.
 
 ## 5. Heuristik-Prüfung Arbeitsplatz nach Nielsen (Teil B)
 
-(wird von der Sitzung für Teil B ergänzt)
+Geprüft am 22.11.2026 abends gegen den laufenden Dienst (127.0.0.1:8794, nur lesend), Desktop 1440 px und Handy
+390 px, Bilder in `docs/arbeitsplatz-vorher-nachher/vorher-*.png`, axe-core 4.10.2 je Seite. Schwere nach Nielsen:
+0 kein Problem, 1 kosmetisch, 2 klein, 3 groß, 4 Katastrophe. Maßstab zusätzlich Apples Human Interface Guidelines
+(Klarheit, Zurückhaltung, Hierarchie).
+
+| # | Heuristik | Seite | Befund | Schwere | Beleg |
+|---|---|---|---|---|---|
+| H1 | Sichtbarkeit des Systemstatus | Lernansichten | „Karten üben“ und „Übung ansehen“ zeigen auf `https://uni.meldro.de/modul/…`, seit 19.11. landet das im Arbeitsplatz: 404. Der Lernstand (64 Karten, 8 dran) ist vom Arbeitsplatz aus gar nicht sichtbar. | 4 | S12 |
+| H1 | Sichtbarkeit des Systemstatus | Heute | „Läuft gerade“ steht dauernd in einer eigenen Spalte, auch als „Gerade läuft nichts.“; der Baum zeigt dasselbe schon („2 läuft“). | 2 | S5 |
+| H2 | Übereinstimmung mit der echten Welt | alle | Oberfläche sagt „Ordner“, Heute aber „Orte“ und „Recherchen ohne Ort“. Zeilen nennen den Agenten („uni“, „dokumente“, „finance“) statt der Sache. | 2 | S1 („backend bleibt backend“), S3 |
+| H2 | Übereinstimmung mit der echten Welt | Dokument | Kopf zeigt „Kosten bisher 81.79 USD“ und „Fassung 5“ vor dem Titel; das ist Technik, nicht Inhalt. | 2 | S1, S3 |
+| H3 | Nutzerkontrolle und Freiheit | Handy, Baum | Auf Touch steht neben jedem Ordner dauerhaft ein Papierkorb (Löschen ohne Nachfrage, Rückgängig nur am Hinweis). Leicht danebengetippt. | 3 | S6 |
+| H4 | Konsistenz und Standards | Ordner, Heute | Das „+“ ist blau gefüllt, auf dem Dokument ist „Senden“ blau: zwei Hauptfarben für zwei verschiedene Arten von Knopf. Apple: ein Akzent für die eine Haupthandlung. | 2 | S6, S11 |
+| H4 | Konsistenz und Standards | Lernansichten | Das Portal sieht völlig anders aus (Schwarz, Großbuchstaben, harte Linien, eigener Baum „Uni“). | 3 | S7, S11 |
+| H5 | Fehler vermeiden | Dokument | Titel trennt mitten im Wort („Fehls-tellenerkennung“, `hyphens: auto` bei Komposita). | 1 | S9 |
+| H6 | Erkennen statt Erinnern | Heute | Prüfungsmodule, Karten und mündliche Übung sind nirgends verlinkt; man muss die Portal-Adresse kennen. | 3 | S12 |
+| H7 | Flexibilität und Effizienz | Heute | Jede Zeile hat drei Zeilen Text (Titel, Agent · Zeit, Ordnerpfad) und rechts „Fassung n“: viel Lesestoff für eine Liste. | 2 | S5, S7 |
+| H8 | Ästhetik und Minimalismus | Heute | „Zuletzt“ wiederholt die acht Einträge aus „Wartet auf dich“ eins zu eins; Heute ist 2770 px hoch, davon ein Drittel doppelt. | 3 | S5 („ichwill kein noise“), S7 („viel zu viele informationen“) |
+| H8 | Ästhetik und Minimalismus | Heute | Kosten heute und die letzten sechs Läufe mit Dollarbeträgen stehen dauerhaft rechts. | 2 | S1, S5 |
+| H8 | Ästhetik und Minimalismus | alle | Abschnittstitel (20 px fett) sind kaum kleiner als der Seitentitel (32 px) und so laut wie die Zeilen: Ebenen kaum unterscheidbar. | 3 | S9 („Ebenen kaum zu unterscheiden“), S7 („logische Hierarchie“) |
+| H8 | Ästhetik und Minimalismus | Ordner, Dokument | Brotkrumen wiederholen den Seitentitel; auf dem Dokument bricht der lange Titel im Streifen zweizeilig um und steht direkt darunter noch einmal groß. | 2 | S9 („Titel unruhig“) |
+| H8 | Ästhetik und Minimalismus | Heute | Der Brotkrumen-Streifen zeigt auf Heute nur „Heute“, darunter steht „Heute“ groß. | 1 | S5 |
+| H8 | Ästhetik und Minimalismus | Dokument | „Klick auf die Seite zeigt alle zum Durchblättern.“ erklärt, was das Bild schon zeigt. | 1 | S1 („die erklärung … ist ewig lang“) |
+| H8 | Ästhetik und Minimalismus | Dokument | Das Rückmeldungsfeld steht als eigene Karte mit Rahmen und Schatten gleichrangig neben dem Dokument; „Rückmeldung zu dieser Datei“ im Menü klingt nach dem alten Feedback-Knopf. | 2 | S4 („Rückmeldung geben“ veraltet), S6 |
+| H8 | Ästhetik und Minimalismus | Ordner | Unterordner als Aufzählung mit hohlen Kreisen, gleich groß wie Dokumente: keine Unterscheidung zwischen Ordner und Inhalt. | 2 | S9, S7 |
+| H9 | Fehler erkennen und beheben | Heute | „Hat nicht geklappt“ in Rot auf Weiß erreicht nur 4,0:1 (axe: color-contrast, serious). | 2 | S13 |
+| H9 | Fehler erkennen und beheben | Lernansichten | Portal zeigt Technik als Hinweis („ELEVENLABS_AGENT_URL in uni/portal/.env“). Liegt in `uni/`, hier nicht geändert. | 2 | S3, S13 |
+| H10 | Hilfe und Dokumentation | Heute | Klappe „Ohne Ordner“ erklärt Ziehen und Menü in einem Satz; passt, bleibt. | 0 | – |
+| – | Zugänglichkeit (axe) | Ordner, Betrachter, Karten | Seitentitel bekommt per `direkt.js` `role="button"`, damit hat die Seite keine Überschrift erster Ebene (axe: aria-allowed-role, page-has-heading-one); Betrachter und Karten üben ohne h1. | 2 | – |
+
+Umgesetzt (Teil B, 22./23.11.2026), je Befund:
+- H1, H6, H4 Lernen: Der Arbeitsplatz reicht `/modul/…` an das Uni-Portal (127.0.0.1:8793) durch und zeigt es in
+  seinem eigenen ruhigen Aussehen (Lernkarten, Bewerten, mündliche Übung gehen weiter über das Portal, fsrs bleibt in
+  `uni/.venv`). Heute hat oben den Abschnitt „Lernen“ mit jedem Prüfungsmodul („Karten üben“, „Mündlich“), der
+  Modul-Ordner und seine Elternordner zeigen dasselbe. `ansichten.PORTAL` zeigt auf den Arbeitsplatz selbst.
+- H8 Heute: „Zuletzt“ ohne die Einträge aus „Wartet auf dich“, höchstens acht; „Läuft gerade“ nur, wenn etwas läuft;
+  Kosten in einer zugeklappten Klappe „Verbrauch“ ganz unten; Heute ist einspaltig; „Orte“ heißt „Ordner“ und steht
+  nur auf schmalen Bildschirmen (breit steht der Baum daneben).
+- H7, H2 Zeilen: eine leise Zeile unter dem Titel (Art · Ordner · Zeit), kein Agent, „Fassung n“ nur noch im Verlauf;
+  rechts nur, was zu tun ist (Läuft, Final, Hat nicht geklappt).
+- H8 Hierarchie: Seitentitel 30 px, Abschnittstitel klein und leise (13 px), Zeilen 15 px, Metadaten 12 px; mehr
+  Abstand zwischen Abschnitten; Brotkrumen ohne die aktuelle Seite (steht als Titel darunter), auf Heute kein Streifen.
+- H4, H3: „+“ nicht mehr blau, blau bleibt allein die Haupthandlung einer Seite (Senden, Weiter); auf Touch stehen
+  „+“ und Löschen im Baum nur am offenen Ordner.
+- H2, H8, H5 Dokument: Kosten aus dem Kopf (stehen im Verlauf je Fassung), keine Erklärsätze, Titel ohne
+  automatische Silbentrennung. Das Rückmeldungsfeld ist ein schlichtes Eingabefeld ohne Karte und ohne Überschrift
+  („Was soll anders werden?“), Route und Funktion gleich; im Menü heißt es „Zu dieser Datei etwas ändern“.
+- H8 Ordner: Unterordner als Zeilen mit „›“, ohne Kreise.
+- H9, axe: Rot für Text dunkler (Kontrast ab 4,5:1), Titel bleibt `h1` (das Umbenennen sitzt auf einem Knopf im Titel),
+  Betrachter mit Überschrift.

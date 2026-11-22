@@ -63,10 +63,17 @@ Offen, wartet auf Jan:
   (Sperrdatei), Kauflimit KAUF_LIMIT_EURO=1000 in shared/.env. Unklare Ausführungen werden nie
   automatisch wiederholt, Jan prüft.
 - Telegram-Zentrale (Bot @Agentenzentralebot, eigener Token in shared/.env, reagiert nur auf Jans
-  Chat-ID) läuft als Dienst agentenzentrale. Kann: Aufträge (/<agent>, /<agent>lern, Text mit
-  Agent-Auswahl), Entwürfe mit Freigeben/Ablehnen/Ändern, Meldungen, /status, /verbrauch,
-  Antwort auf eine Auftragsmeldung = neuer Auftrag in derselben Claude-Sitzung, /pc und /weiter.
-  Dateien und Fotos (bis 20 MB), wartende Dateien hängen am nächsten Auftrag, /verwerfen.
+  Chat-ID) läuft als Dienst agentenzentrale. Kann: Aufträge (/<agent>, Text mit
+  Agent-Auswahl), Entwürfe mit Freigeben/Ablehnen/Ändern, Meldungen, /status, /verbrauch, /hilfe,
+  Antwort auf eine Auftragsmeldung = neuer Auftrag in derselben Claude-Sitzung.
+  Dateien und Fotos (bis 20 MB), wartende Dateien hängen am nächsten Auftrag.
+  Seit 23.11.2026 (Nachtauftrag Teil A, docs/befund-ux.md Abschnitt 3 und 4) auf Signal gekürzt: keine
+  Feedback-Knöpfe unter Ergebnissen (Schalter logik.FEEDBACK_KNOEPFE, aus; Korrektur per Antwort), /<agent>lern,
+  /pc, /weiter, /verwerfen nimmt sie still weiter an, nennt sie aber nirgends. Meldungen und Ergebnisse ohne Vorlage
+  laufen durch den Signal-Filter (logik.signal_html: Technikpräfixe, Zählerklammern, Markdown-Sterne, absolute
+  Pfade raus; sichtbar Kopfzeile und höchstens 3 Punkte, Rest als <blockquote expandable>). Texte der Zentrale:
+  eine Zeile Kern, höchstens eine Handlung, keine Höflichkeitsformeln, geprüft über alle jan_*-Snapshots
+  (logik.regelverstoesse, tests/test_regeln.py). Entwürfe zur Freigabe bleiben ungekürzt, Lias Zentrale unverändert.
   Auftragstexte (/<agent> und Text nach der Menüwahl) warten 3 Sekunden auf nachkommende Dateien, weil Telegram
   eine Weiterleitung mit Kommentar als zwei Nachrichten schickt, erst den Text (05.11., aus dem uni-Chat mit Jans
   Okay). Text mit Agent-Auswahl braucht das nicht, die Datei ist vor dem Klick da; dort kommt aber noch der
@@ -114,8 +121,8 @@ Offen, wartet auf Jan:
   Ergebnisse mit Bezug zur Anfrage und Knopf "Menü". Keine Befehle, keine Dateien, Linkvorschau aus,
   Log ohne Inhalte. Daten und Log in lia/instanz/zentrale/.
 - Menü-Nachricht auch in Jans Zentrale (21.10.): /start oder /menue zeigt das Panel (shared/telegram/
-  panel.py, Ansichten in logik.py): Agent antippen (Modus umschaltbar), nächste Nachricht = Auftrag;
-  Entwürfe (erneut anzeigen), Verbrauch, Status, Hilfe. /hilfe zeigt die Befehle, alle Befehle wie bisher.
+  panel.py, Ansichten in logik.py): nur Agent-Knöpfe (nächste Nachricht = Auftrag) und „Entwürfe (n)“, wenn
+  welche offen sind; Kurzstand nur bei aufgebrauchter Rechenzeit oder wartenden Dateien (seit 23.11.2026).
   Agent-Auswahl (Panel und Text ohne Befehl) nur für Agenten mit <agent>.service, heute nur uni.
   Panel-ID liegt nur im Speicher: nach Neustart erst wieder nach /start.
   Platzhalter lia/unterricht (Dienst lia-unterricht) antwortet "kommt bald", ohne Claude.
@@ -136,9 +143,9 @@ Offen, wartet auf Jan:
   Test-Unit geprüft: kam an. Eingerichtet für uni, uni-transkript, agentenzentrale; uni-lernen und
   dokumente haben es in der Vorlage. Grenze: agentenzentrale hat Restart=on-failure und gilt nie als
   fehlgeschlagen, solange der Neustart klappt. Nicht erkannt: Timer, die gar nicht mehr starten.
-- Feedbackschleife (Jan 27.10., CLAUDE.md „Lernen aus Feedback“): Unter jedem Ergebnis in beiden Zentralen
+- Feedbackschleife (Jan 27.10., CLAUDE.md „Lernen aus Feedback“): Unter jedem Ergebnis in Lias Zentrale
   Knöpfe Passt / Zu lang (nur hier oder ab jetzt immer) / Falscher Fokus / Feedback schreiben (shared/telegram/
-  vorlagen.py). Bei Lia ist auch eine Antwort auf ein Ergebnis Feedback, bei Jan setzt eine Antwort weiter die Sitzung
+  vorlagen.py); in Jans Zentrale seit 23.11.2026 aus (Schalter logik.FEEDBACK_KNOEPFE). Bei Lia ist auch eine Antwort auf ein Ergebnis Feedback, bei Jan setzt eine Antwort weiter die Sitzung
   fort. Feedback = Auftrag an „feedback“ (quelle feedback, bezug = Ergebnis); Dienste feedback und lia-feedback
   (shared/feedback/lauf.py, eingerichtet 27.10.), die Zentralen starten sie. Claude (routine, nur Read) ordnet zu:
   nachbesserung, regel, notiz oder keine; agentkit.feedback.entscheiden prüft die Nie-automatisch-Liste (heikel,
