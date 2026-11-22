@@ -30,8 +30,8 @@ die können später als Dateien Eingabe werden).
   (FNR, HNEE-koordiniert, NIR-Handscanner) ist Anknüpfungspunkt für die Bewerbung.
 - Entwurf Aufnahme-Apparatur für den Termin bei Felix am 27.11.2026 (22.11.2026, nicht entschieden):
   docs/entwurf-aufnahme-apparatur.md und unterlagen/apparatur-skizze.svg. Jans Vorgaben: Licht und Abstand fest,
-  wenig Aufwand, smart mit Metadaten. Vorschlag: fertige LED-Fotobox 60 cm mit Schlitzen als Reiter auf dem Balken
-  (h 350 mm, rund 16 Px/mm), Kamera-App mit festen Werten, Balkendaten per iPhone-Kurzbefehl, Zuordnung der Fotos
+  wenig Aufwand, smart mit Metadaten. Vorschlag: fertige LED-Fotobox mit Schlitzen als Reiter auf dem Balken,
+  Jans Fund Somikon 40 cm (h 250 mm, rund 22 Px/mm, Flächen bis 23 cm), Kamera-App mit festen Werten, Balkendaten per iPhone-Kurzbefehl, Zuordnung der Fotos
   per EXIF-Zeit mit Skript `aufnahme.py ordnen` (noch nicht gebaut, wartet auf Jans Okay).
 - Vorschlag erster Altholz-Test (20.11.2026, nicht entschieden): docs/plan-erster-test-altholz.md (iPhone-Fotos bei
   Felix, selbst labeln, Training auf dem Mac). Für die Gruppe gedacht, Rüdiger liest ihn über docs/.
