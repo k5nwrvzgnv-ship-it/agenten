@@ -1,0 +1,167 @@
+{
+ "heute-desktop": {
+  "status": 200,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "n": 2,
+    "ziel": [
+     "section:nth-child(1) > ul > li:nth-child(8) > .zeile[data-dokument=\"20261109-133235-finance-4fdc5f\"][draggable=\"true\"] > .marke-rot.marke",
+     "section:nth-child(3) > ul > li:nth-child(8) > .zeile[data-dokument=\"20261109-133235-finance-4fdc5f\"][draggable=\"true\"] > .marke-rot.marke"
+    ]
+   }
+  ]
+ },
+ "ordner-desktop": {
+  "status": 200,
+  "axe": [
+   {
+    "id": "aria-allowed-role",
+    "impact": "minor",
+    "n": 1,
+    "ziel": [
+     "h1"
+    ]
+   },
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "n": 1,
+    "ziel": [
+     "html"
+    ]
+   }
+  ]
+ },
+ "ordner-modul-desktop": {
+  "status": 200,
+  "axe": [
+   {
+    "id": "aria-allowed-role",
+    "impact": "minor",
+    "n": 1,
+    "ziel": [
+     "h1"
+    ]
+   },
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "n": 1,
+    "ziel": [
+     "html"
+    ]
+   }
+  ]
+ },
+ "dokument-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "dokument-zusammenfassung-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "betrachter-desktop": {
+  "status": 200,
+  "axe": [
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "n": 1,
+    "ziel": [
+     "html"
+    ]
+   }
+  ]
+ },
+ "galerie-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "formular-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "archiv-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "recherche-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "unterlage-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "lernen-modul-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "lernen-karten-desktop": {
+  "status": 200,
+  "axe": [
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "n": 1,
+    "ziel": [
+     "html"
+    ]
+   }
+  ]
+ },
+ "heute-handy": {
+  "status": 200,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "n": 2,
+    "ziel": [
+     "section:nth-child(1) > ul > li:nth-child(8) > .zeile[data-dokument=\"20261109-133235-finance-4fdc5f\"][draggable=\"true\"] > .marke-rot.marke",
+     "section:nth-child(3) > ul > li:nth-child(8) > .zeile[data-dokument=\"20261109-133235-finance-4fdc5f\"][draggable=\"true\"] > .marke-rot.marke"
+    ]
+   }
+  ]
+ },
+ "ordner-handy": {
+  "status": 200
+ },
+ "ordner-modul-handy": {
+  "status": 200
+ },
+ "dokument-handy": {
+  "status": 200,
+  "axe": []
+ },
+ "dokument-zusammenfassung-handy": {
+  "status": 200
+ },
+ "betrachter-handy": {
+  "status": 200
+ },
+ "galerie-handy": {
+  "status": 200
+ },
+ "formular-handy": {
+  "status": 200
+ },
+ "archiv-handy": {
+  "status": 200
+ },
+ "recherche-handy": {
+  "status": 200
+ },
+ "unterlage-handy": {
+  "status": 200
+ },
+ "lernen-modul-handy": {
+  "status": 200
+ },
+ "lernen-karten-handy": {
+  "status": 200
+ }
+}

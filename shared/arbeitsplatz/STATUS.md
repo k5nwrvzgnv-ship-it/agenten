@@ -31,8 +31,8 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
   hochladen“ (geht immer), alle Fassungen aufklappbar (auch eigene) mit „Als final markieren“, Kosten je Fassung,
   Rückmeldungen mit Antwort des Feedback-Dienstes.
 - Heute: „Wartet auf dich“ (fertig, nicht final, letzte 14 Tage; und was nicht geklappt hat), Orte, Zuletzt.
-  Rechte Spalte: Läuft gerade, Kosten heute (Jans Instanz) und die letzten 6 Läufe mit Link zum Dokument
-  (agentkit.verbrauch.letzte, kosten_je).
+  Läuft gerade und Kosten (heute, letzte 6 Läufe, agentkit.verbrauch) stehen seit 22.11. in der Mitte bzw.
+  zugeklappt unten (siehe Ruhiges Upgrade).
 - Eigene Ansichten (Schritt 5, lesend, `ansichten.py`, übernommen aus uni/portal/projekt.py und uebungen.py):
   recherche zeigt Recherchebericht.md und die geprüfte Recherche (Reiter Aussagen mit Status- und Fragefilter,
   Quellen, Lücken und Widersprüche, Literatursuche); pruefung zeigt Einschätzung, Bewertung je Rubrikpunkt, Lücken
@@ -64,10 +64,38 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 
 „Wartet auf dich“ kennt kein „gesehen“; ein Dokument steht dort, bis es final ist oder 14 Tage alt.
 
+## Ruhiges Upgrade und Lernen (Nachtauftrag 22./23.11.2026, Befund `docs/befund-ux.md` Abschnitt 5)
+Maßstab Apple HIG (Klarheit, Zurückhaltung, Hierarchie). Bilder vorher/nachher: `docs/arbeitsplatz-vorher-nachher/`.
+- Heute einspaltig (keine rechte Spalte mehr): Läuft gerade (nur wenn etwas läuft), Wartet auf dich, Lernen, Ordner
+  (nur bei schmalem Fenster, breit steht der Baum daneben), Zuletzt (`logik.zuletzt`: ohne Einträge aus Wartet auf
+  dich, höchstens 8), Recherchen ohne Ordner; ganz unten zugeklappt „Ohne Ordner“ und „Verbrauch heute“ (Kosten).
+- Zeilen: Titel und eine leise Zeile (`logik.zeile_unter`: Art · Ordner · Zeit, kein Agent); rechts nur Läuft, Final,
+  Hat nicht geklappt. Fassungsnummer und Kosten stehen im Verlauf am Dokument.
+- Hierarchie in `arbeitsplatz.css` (Block „Ruhige Hierarchie“): Seitentitel 30 px, Abschnittstitel 13 px leise
+  (`section.abschnitt`), Zeilen 15 px, Metadaten 12 px; Unterordner als Zeilen mit „›“. Brotkrumen nur mit dem Weg
+  hierher (die Seite selbst unsichtbar mit aria-current), auf Heute kein Streifen.
+- Ein Akzent: „+“ leise (`_plus.html` voll=false), Blau nur für Senden, Weiter, Speichern. Rot als Schrift
+  `--rot-text` (5,9:1). Touch: „+“ und Löschen im Baum nur am offenen Ordner.
+- Dokument: Titel, darunter leise Art und Zeit (Marke nur Final, Läuft, Hat nicht geklappt), keine Kosten, keine
+  Erklärsätze; Rückmeldung ist ein schlichtes Feld „Was soll anders werden?“ ohne Karte (Route unverändert); im
+  Download-Menü „Zu dieser Datei etwas ändern“, im Betrachter „Zu dieser Seite etwas ändern“.
+- Lernen (S12, `lernen.py`): Prüfungsmodule = `MODULE` aus `uni/portal/ablage.py` (per ast gelesen) mit
+  `uni/data/lernen/<modul>/karten.json`. Heute zeigt je Modul Karten üben und Mündlich (`#muendlich`), ein Ordner
+  zeigt die Module seines Teilbaums (Ordner „modul-<id>“, „<id>“ oder „modul-<id>-…“, `lernen.ort_des_moduls`).
+  `/modul/…` (GET, POST bis 2 MB) reicht der Arbeitsplatz an das Uni-Portal (`ARBEITSPLATZ_PORTAL`, Standard
+  127.0.0.1:8793) durch: Host, Origin, Sec-Fetch-Site gehen mit (das Portal prüft Herkunft und Token selbst), zurück
+  nur Content-Type, Location (nur /modul/…), Content-Disposition; HTML bekommt ruhig.css, arbeitsplatz.css und
+  `statisch/lernen.css` statt stil.css, oben „Arbeitsplatz“ und „Heute“, ohne die alten Projektseiten des Portals.
+  Portal aus: Seite „gerade nicht erreichbar“ (502). `ansichten.PORTAL` ist leer, Links bleiben auf derselben Adresse.
+- Zugänglichkeit: Ordnertitel bleibt h1 (`_direkt.html`: Knopf ist ein span darin, `direkt.js` setzt role dort),
+  Betrachter und Karten üben mit unsichtbarer h1. axe-core 4.10.2 auf allen Seiten ohne Verstoß (22.11.2026).
+- Bildschirmfotos und axe vom Server: `bildschirmfotos.py` (Aufruf im Kopf der Datei). Playwright nur in .venv (nicht in
+  requirements.txt, nur Werkzeug), Systembibliotheken ohne sudo in `.venv/syslibs` (libatk, libatk-bridge, libatspi,
+  libXdamage, libasound per `apt-get download`, dann `LD_LIBRARY_PATH`), axe-core in `.venv/axe`.
+
 ## Ruhige Oberfläche (11.11.2026, `umbauplan-ux.md`, Jans Okay, Variante A)
 Übernommen aus Lias App (`shared/webapp/umbauplan-ux.md`, dort nichts geändert), alle fünf Schritte gebaut:
-- Aussehen: `ruhig.css` (Kopie) statt `stil.css`; rechte Spalte nur auf Heute (Läuft gerade, Kosten), alle anderen
-  Seiten einspaltig und mittig. Was läuft, steht überall im Baum neben „Heute“ und als Marke am Dokument.
+- Aussehen: `ruhig.css` (Kopie) statt `stil.css`; alle Seiten einspaltig und mittig (Heute seit 22.11.2026 auch). Was läuft, steht überall im Baum neben „Heute“ und als Marke am Dokument.
 - Struktur (Jan 19.11.2026): Reiterzeile (Brotkrumen) als eigener leiser Streifen; darunter der Kopf der Kartei mit
   „+“ und „···“ rechts (`basis.html`, `.kopf-zeile`); Inhalt der Dokumentseite in zarten Karten (`.karte`).
   In der Oberfläche heißen Orte jetzt „Ordner“ („+ Ordner“, „Unterordner“, neue heißen „Neuer Ordner“); Routen und
@@ -157,15 +185,13 @@ Schritte 1 bis 4 und der lesende Teil von Schritt 5 aus dem Auftrag an Sitzung A
 - Von Hand ohne Dienst: `.venv/bin/python app.py` (Unix-Socket `data/arbeitsplatz.sock`).
 - Von außen: https://uni.meldro.de (Caddy, Passwort wie bisher, Benutzer jan), seit 19.11.2026 auf 8794 statt
   uni/portal (8793). Sicherung: /etc/caddy/Caddyfile.vor-arbeitsplatz. uni-portal läuft nur noch lokal.
-- Offen: ansichten.PORTAL zeigt noch auf https://uni.meldro.de, die Portal-Links (Lernkarten übernehmen,
-  Übung) landen damit im Arbeitsplatz (404). Jan 19.11.2026: vorerst hinnehmen, bis der Umzug ins Arbeitsplatz kommt.
+- Portal-Links (Karten üben, Übung, Lernkarten übernehmen) gehen seit 22.11.2026 über `/modul/…` im Arbeitsplatz ans
+  uni-portal (lokal 8793), siehe „Ruhiges Upgrade und Lernen“. Dienst uni-portal muss dafür laufen.
 
 ## Offene Punkte
-0. Browser-Probe der ruhigen Oberfläche bei Jan (Tunnel, siehe oben): Titel anklicken (Enter, Esc), „Seite“ im „+“
-   (neue Seite gleich offen), „Datei“ im „+“ und Datei auf einen Ort ziehen, Datei aufs Formular und auf ein Dokument
-   ziehen, eigene Fassung im „···“, Menüs bei schmalem Fenster, Vorschau und Betrachter, Rückmeldung zu einer Seite,
-   Heute nach einer Minute. Ein Bildschirmfoto vom Server geht nicht (dem
-   Headless-Chromium fehlen Systembibliotheken).
+0. Browser-Probe bei Jan (Tunnel, siehe oben), was Bildschirmfotos nicht zeigen: Titel anklicken (Enter, Esc), „Datei“
+   im „+“ und Ziehen auf Ordner, Formular und Dokument, eigene Fassung im „···“, Karte bewerten über den Arbeitsplatz
+   (POST ans Portal), Heute nach einer Minute. Bildschirmfotos und axe vom Server gehen jetzt (`bildschirmfotos.py`).
 1. Umzug (09.11. nachts): Orte auf Jans Instanz angelegt: „Forschungsprojekt Fehlstellen“ mit „Exposé“, „Recherche“,
    „Interviews“, „Schriftlicher Teil“; „Modul Holzschutz“; „Finanzen“. Alte Ergebnisse ohne Feld `ort` ordnet
    `shared/orte-zuordnung.json` zu (`{"zuordnung": {ursprung: ort}}`, nicht im Repo, Aufträge bleiben unverändert;

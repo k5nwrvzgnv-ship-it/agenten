@@ -1,0 +1,95 @@
+{
+ "heute-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "ordner-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "ordner-modul-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "dokument-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "dokument-zusammenfassung-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "betrachter-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "galerie-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "formular-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "archiv-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "recherche-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "unterlage-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "lernen-modul-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "lernen-karten-desktop": {
+  "status": 200,
+  "axe": []
+ },
+ "heute-handy": {
+  "status": 200,
+  "axe": []
+ },
+ "ordner-handy": {
+  "status": 200
+ },
+ "ordner-modul-handy": {
+  "status": 200
+ },
+ "dokument-handy": {
+  "status": 200,
+  "axe": []
+ },
+ "dokument-zusammenfassung-handy": {
+  "status": 200
+ },
+ "betrachter-handy": {
+  "status": 200
+ },
+ "galerie-handy": {
+  "status": 200
+ },
+ "formular-handy": {
+  "status": 200
+ },
+ "archiv-handy": {
+  "status": 200
+ },
+ "recherche-handy": {
+  "status": 200
+ },
+ "unterlage-handy": {
+  "status": 200
+ },
+ "lernen-modul-handy": {
+  "status": 200
+ },
+ "lernen-karten-handy": {
+  "status": 200
+ }
+}
