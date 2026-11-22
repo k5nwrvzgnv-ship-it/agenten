@@ -601,6 +601,46 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     pruefung: Modul (auswahl "Holzschutz"), Titel (zeile), Transkript (text); oder Datei. Das Formular braucht Dateien.
   - Echter Lauf je Art steht aus (geplant 10.11. 15 Uhr).
 
+## Holzschutz-Lernmaterial (Nachtauftrag 22./23.11.2026)
+- Transkript IHS 17.11. (data/kurse/Integrierter Holzschutz/transkripte/): .pdf.txt mit "--- Seite N" neu erzeugt (vorher ohne
+  Seiten); S. 34-66 ist ein zweiter Erkennungslauf derselben Aufnahme. Dazu _bereinigt.md (alle Stellen, Fachbegriffe
+  korrigiert, [?] unsicher, Normabgleich) und _Zusammenfassung.md (Format wie 20.10./27.10.).
+- Prüfungsplan: Feld dozent_signale je Thema (36 wörtliche Zitate mit Fundstelle, von belege.py gegen das Transkript geprüft),
+  pruefung.ablauf_laut_dozentin, Termin 28.01.2027 (emma). Scores aus dem Transkript angehoben: Insekten 4->5, baulicher
+  Holzschutz 4->5, Reparaturanschlüsse 4->5, Holzarten 3->4, Kontamination 3->4, Verfärbungen 2->3 (score_vorher steht dabei).
+  pruefungsplan.md aus dem JSON neu erzeugt.
+- Lernblätter (Renderer-Format, docx+pdf gebaut, je blatt_<n>.belege.json für transkript/folie):
+  data/lernblaetter/20261122-nacht-themen/ blatt_1-14 (alle Themen Score 5, 4, 3, je 5 mündliche Fragen im Selbsttest),
+  20261122-nacht-transkripte/ blatt_1 IHS 17.11., blatt_2 IHS 20.10., blatt_3-6 BFH (DL 260914, Lehrvideo Grasshopper,
+  DL 260921, DL 260928; Transkript-Seite = 5-Minuten-Abschnitt, Dateien *.mp4.seiten.txt), 20261122-nacht-vortrag/ blatt_1.
+- data/lernen/holzschutz/muendlich.json: 70 Fragen (5 je Thema) mit Musterantwort, Fundstellen, Bewertung nach rubrik.json.
+  karten.json: +138 Karten (herkunft "nacht-20261122", davon 70 "Mündlich: ...", 9 neue Bildfragen), jetzt 202.
+  ElevenLabs-Paket IHS neu gebaut; SHB geht nicht (sprachpruefung braucht Transkripte, SHB hat keine).
+- Vortrag: Thema "Echter Hausschwamm im Altbau - vom Befund bis zum Reparaturanschluss" (Begründung und zwei Alternativen im
+  Vortragsblatt); Folien data/lernen/holzschutz/vortrag/ (vortrag_folien.json, pptx, pdf, vortrag.belege.json).
+- belege.py (Tests tests/test_belege.py): lehnt Aussagen ohne gültige Fundstelle ab ("<Kürzel> S./Folie <n>", Kürzel aus
+  data/lernen/holzschutz/quellen_register.json, Seite muss existieren, Zitate wörtlich). Aufruf:
+  .venv/bin/python belege.py data/lernen/holzschutz/quellen_register.json [--transkript <Kürzel>] <dateien>
+- Literatur: 9 freie Quellen neu in data/literatur/ (hersteller, merkblaetter, behoerden, open_access, informationsdienst_holz),
+  Herkunft in data/literatur/quellen.json, literatur.py schreibt sie als "Quelle:" in uebersicht.md. Die PCP-Richtlinie aus
+  Moodle ist ein Scan ohne Text; ersetzt durch den amtlichen Auszug (behoerden/). WTA-Merkblätter sind kostenpflichtig, MDPI und
+  Springer blocken Skriptabrufe: weggelassen, durch UBA, FLUGS, holzfragen, LAGA ersetzt.
+- Abweichungen Vorlesung/Norm (in Blättern markiert): Heißluft Hausschwamm 50 °C 16 h (nicht 60 h); Douglasie/Lärche dürfen nach
+  DIN 68800-1 Tab. 4 in GK 2 und 3.1; für Nassfäulepilze nennt DIN 68800-4 keinen Schüttungsabstand.
+- Termine ohne Aufnahme (Kalender gegen Transkripte, Stand 22.11.):
+  - IHS Do 24.09.2026 (12:30-17:30): keine Aufnahme
+  - IHS Di 29.09.2026 (12:30-17:30): keine Aufnahme
+  - IHS Di 13.10.2026 (14:15-17:30): keine Aufnahme
+  - SHB Fr 25.09.2026: keine Aufnahme
+  - SHB Fr 02.10.2026: keine Aufnahme
+  - SHB Fr 16.10.2026: keine Aufnahme
+  - SHB Fr 23.10.2026: keine Aufnahme
+  - SHB Fr 30.10.2026: keine Aufnahme
+  - SHB Fr 06.11.2026: keine Aufnahme
+  - SHB Fr 13.11.2026: keine Aufnahme
+  - SHB Fr 20.11.2026: keine Aufnahme
+  Mit Aufnahme: IHS 20.10. (Nr. 1), 27.10. Exkursion, 17.11. (Nr. 3). Moodle IHS: Ordner "Vorlesung 3" leer.
+
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
   Zone Europe/Berlin, nach Beginn sortiert. Fehler beim Abruf: KalenderFehler (nennt nur "Kalender N").

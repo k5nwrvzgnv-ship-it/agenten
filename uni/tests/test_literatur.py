@@ -30,6 +30,13 @@ class TestVerzeichnis(unittest.TestCase):
                                   "- idh: scan: KEIN TEXT (Scan oder geschützt), PDF mit Read ansehen: idh/scan.pdf",
                                   "- kit: b, 1 Seiten: kit/b.pdf (Textfassung kit/b.pdf.txt)"])
 
+    def test_quelle_unter_dem_eintrag(self):
+        q = {"kit/b.pdf": {"quelle": "https://example.org/b.pdf", "abgerufen": "22.11.2026", "hinweis": "frei"}}
+        text = literatur.verzeichnis([literatur.eintrag("kit/b.pdf", "--- Seite 1\nx")], q)
+        self.assertIn("- kit: b, 1 Seiten: kit/b.pdf (Textfassung kit/b.pdf.txt)\n"
+                      "  Quelle: https://example.org/b.pdf (abgerufen 22.11.2026; frei)", text)
+        self.assertEqual(literatur.quellenzeile({"abgerufen": "x"}), "")
+
     def test_leer(self):
         self.assertIn("noch keine Literatur", literatur.verzeichnis([]))
 
@@ -50,6 +57,15 @@ class TestAufbereiten(unittest.TestCase):
             self.assertIn("kit: buch, 1 Seiten", (ordner / "uebersicht.md").read_text())
             self.assertEqual(literatur.aufbereiten(ordner, textfassung=textfassung), [])
             self.assertEqual(literatur.aufbereiten(ordner / "fehlt"), [])
+
+    def test_quellen_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ordner = Path(tmp)
+            self.assertEqual(literatur.quellen_lesen(ordner), {})
+            (ordner / "quellen.json").write_text("{kaputt")
+            self.assertEqual(literatur.quellen_lesen(ordner), {})
+            (ordner / "quellen.json").write_text('{"a.pdf": {"quelle": "https://x"}, "b.pdf": 3}')
+            self.assertEqual(literatur.quellen_lesen(ordner), {"a.pdf": {"quelle": "https://x"}})
 
 
 if __name__ == "__main__":
