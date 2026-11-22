@@ -348,7 +348,7 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - Nachhaltigkeit im Holzingenieurwesen (emma: Sustainability in wood engineering, M.03.R.2505.P): LCA +
     Eilbacher, Vortrag mit mündlicher Prüfung, beide Teilleistungen nötig. Offen: ob die LCA-Teamabgabe GEG
     (fällig 16.10., nicht abgegeben) eine Teilleistung ist.
-  - Research project 2, Practical module: Prüfungsform laut emma, Zuordnung der Kurse noch nicht geklärt.
+  - Research project 2 = Forschungsprojekt Fehlstellen; Practical module = Integrale Planung am Projekt + Exkursion (Jan 22.11.).
   - Bio-based materials (mündlich 12.11.2026): Jan lässt es wegen Workload aus (24.10.).
   - Prüfungsanmeldungen laut emma (22.11.2026, lesend abgerufen): Fachplanung im Hochbau 2 mündlich Do 28.01.2027
     11-16 Uhr; Computerbasierte Planung "geänderte Prüfungsform" Mi 03.02.2027 08:30-10:00; Nachhaltigkeit im
@@ -357,7 +357,7 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
     Hausarbeit und mündlich ohne Termin. Module dazu (M.03.R.2504.P, .2505.P, .2506.P, .2513.W, .2515.W) und
     Veranstaltungen: CAM, Computerbasierte Planung, Exkursion, Forschungsprojekt 2 (+ Wiss. Arbeiten), Integrale
     Planung am Projekt, Integrierter Holzschutz, LCA, Nachhaltigkeitsaspekte, Sanierung von Holzbauwerken.
-    Welche Veranstaltung zum Praxis-Modul gehört, zeigt emma nicht (vermutlich Integrale Planung, Exkursion).
+    Praxis-Modul = Integrale Planung am Projekt + Exkursion (Jan 22.11.2026; emma zeigt die Zuordnung nicht).
   - Arbeitsplatz-Ordner dazu (22.11., Jans Wahl): "Modul Fachplanung im Hochbau 2" mit Holzschutz und Sanierung
     darunter, "Modul Computerbasierte Planung", "Modul Nachhaltigkeit im Holzingenieurwesen", "Praxis-Modul";
     Forschungsprojekt 2 = Ordner "Forschungsprojekt Fehlstellen".
