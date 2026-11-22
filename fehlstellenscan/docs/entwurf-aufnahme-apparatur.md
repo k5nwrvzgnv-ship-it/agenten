@@ -1,7 +1,7 @@
 # Entwurf: Aufnahme-Apparatur für Altholzbalken (Termin bei Felix, Fr 27.11.2026)
 
 Stand 22.11.2026, Entwurf von Claude für Jan, Henri und Felix. Noch nichts gebaut oder gekauft, alle Maße und
-Preise geschätzt. Skizze: unterlagen/apparatur-skizze.svg. Gehört zu docs/plan-erster-test-altholz.md.
+Preise geschätzt. Für Freitag gilt die Sparvariante, der Rahmen ist nur Ausbaustufe. Skizze: unterlagen/apparatur-skizze.svg. Gehört zu docs/plan-erster-test-altholz.md.
 
 ## Ziel
 Ein Satz Fotos, der zwei Dinge zugleich kann:
@@ -15,7 +15,34 @@ Was wir aus Felix' Reihen schon wissen (holzbalkenscan/verfahren/PROBLEMSTELLUNG
 - Aus Handfotos folgt der Längsmaßstab nicht sicher (Verkippung und Abstand tauschbar).
 - Das bisherige Streifenbild hat rund 6-9 Px/mm, für Kodytek-Maßstab mussten wir 2,8-fach hochrechnen.
 
-## Vorschlag: Aufsetzrahmen mit Lichthaube
+## Vorschlag für Freitag: Sparvariante, nichts bauen, nichts kaufen (Jan 22.11.2026)
+Jan: der Rahmen ist zu aufwendig und zu teuer. Daher für den ersten Test nur Handy aus der Hand, plus was bei Felix
+ohnehin herumliegt. Für YOLO ist gleicher Maßstab nicht nötig (das Training verändert die Größe ohnehin), wichtig
+sind scharfe, feine Bilder ohne harte Schatten. Felix' Verfahren rechnet den Abstand selbst zurück.
+
+Mitnehmen bzw. bei Felix finden:
+- Handy (48 MP, Hauptkamera 1x)
+- Ein dunkles Tuch, alte Decke oder schwarze Müllsäcke als Hintergrund unter und neben dem Balken
+- Zwei Böcke oder Kanthölzer, Zollstock, Kreide oder Zettel für Balkennummern
+- Wenn vorhanden: eine Arbeitsleuchte für Streiflicht bei einigen Balken
+
+Fotografieren:
+- Ort: im Schatten oder bei bedecktem Himmel draußen, oder in der Halle ohne Sonnenflecken. Keine direkte Sonne,
+  kein Blitz. Selbst seitlich stehen, damit der eigene Schatten nicht auf die Fläche fällt.
+- Abstand etwa 40 cm, Querformat, lange Bildachse längs des Balkens. Faustregel statt Messen: die Balkenfläche
+  füllt etwa zwei Drittel der Bildhöhe, beide Kanten mit etwas Tuch daneben sichtbar. Das gibt grob 12-15 Px/mm.
+- Möglichst senkrecht von oben, ruhig halten, nach jedem Bild etwa 25-30 cm weitergehen (etwa ein Drittel
+  Überlappung). Ein 5-m-Balken braucht etwa 15-20 Bilder je Seite.
+- Handy-Einstellungen: 48 MP, HDR und Nachtmodus aus, kein Zoom. Belichtung und Fokus festhalten (lange auf die
+  Fläche tippen, AE/AF-Sperre). Wer will, nimmt eine Kamera-App mit festem Weißabgleich, nötig ist sie nicht.
+- Kein Zollstock auf der Kante (falsche Kante). Stattdessen je Balken ein Extrabild mit Zollstock auf der Fläche.
+- Zuerst ein Bild vom Zettel mit Balkennummer und Seite, dann die Reihe. Vielfalt vor Menge: viele verschiedene
+  Balken, notfalls nur zwei Seiten je Balken.
+
+Kosten 0 €, Bau 0 h. Nachteil: Licht und Abstand schwanken etwas zwischen den Bildern und Balken. Ob das stört,
+zeigt der Test selbst. Erst wenn ja, lohnt sich der Rahmen unten.
+
+## Ausbaustufe, nur falls nötig: Aufsetzrahmen mit Lichthaube
 Ein leichter Holzrahmen wird auf die obere Balkenfläche gesetzt, fotografiert, um 30 cm weitergesetzt. Handy und
 zwei Leuchten sitzen fest am Rahmen, ein schwarzes Tuch darüber schließt das Hallenlicht aus.
 
@@ -56,7 +83,7 @@ Bei 30 cm Schritt überlappen die Bilder bei h = 300 um etwa 30 %. Ein 5-m-Balke
 Achtung: Die 48-MP-Pixel sind kein echtes 48-MP-Detail (zusammengefasste Sensorpixel). Auch so liegen wir über dem
 Kodytek-Maßstab quer und weit darüber längs (Kodytek längs nur 6,7 Px/mm).
 
-## Einkauf (Preise grob geschätzt, nicht recherchiert)
+## Einkauf für den Rahmen (Preise grob geschätzt, nicht recherchiert)
 | Teil | geschätzt |
 |---|---|
 | Dachlatten 24 x 48, etwa 6 m (oder Reststücke bei Felix) | 0-10 € |
@@ -71,7 +98,7 @@ Kodytek-Maßstab quer und weit darüber längs (Kodytek längs nur 6,7 Px/mm).
 Summe etwa 100-200 €. Leuchten heute oder morgen bestellen, damit sie Mittwoch da sind. Baustrahler aus dem
 Baumarkt gehen zur Not, flimmern aber oft und geben schlechtere Farben.
 
-## Ablauf am Freitag
+## Ablauf mit Rahmen (nur Ausbaustufe)
 Vorher (Mittwoch oder Donnerstag), Probelauf an einem Brett:
 - Bildfeld und Schärfe bei h = 300 prüfen. Kamera-App mit fester Linse (z. B. Halide), sonst schaltet das iPhone
   nah am Objekt gern auf die Weitwinkel-Makrokamera. 48 MP, kein HDR, kein Nachtmodus, Belichtung, Weißabgleich
@@ -107,11 +134,6 @@ vor Menge: lieber viele verschiedene Balken, ruhig nur zwei Seiten je Balken, we
   oder blaues Tuch unterklemmen).
 - Flächen breiter als etwa 38 cm passen nicht in ein Bild.
 - Seitenflächen sehen wir nur nach dem Drehen; das Drehen kostet mehr Zeit als das Fotografieren.
-
-## Plan B, wenn bis Freitag nichts gebaut ist
-Aus der Hand nach Felix' Verfahren, aber näher (etwa 35 cm, Querformat), dazu: schwarzes Tuch unter und neben dem
-Balken als Hintergrund, die zwei Leuchten auf Stativen fest stehen lassen, Hallenlicht so weit wie möglich aus,
-Kamera-Einstellungen wie oben. Gibt brauchbare Trainingsbilder, aber Licht und Maßstab schwanken.
 
 ## Offen (bitte klären)
 - Welche Querschnitte und Längen haben die Balken bei Felix? (bestimmt die Kamerahöhe)

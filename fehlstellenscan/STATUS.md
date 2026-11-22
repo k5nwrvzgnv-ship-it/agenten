@@ -29,8 +29,9 @@ die können später als Dateien Eingabe werden).
   Arbeiten mit 3.500 Bildern. (3) Verdeckte Nägel, innere Fäule, A-Kategorien sieht keine Kamera. (4) WIn-Altholz
   (FNR, HNEE-koordiniert, NIR-Handscanner) ist Anknüpfungspunkt für die Bewerbung.
 - Entwurf Aufnahme-Apparatur für den Termin bei Felix am 27.11.2026 (22.11.2026, nicht entschieden):
-  docs/entwurf-aufnahme-apparatur.md und unterlagen/apparatur-skizze.svg. Aufsetzrahmen aus Dachlatten mit Handy
-  (h 300 mm, rund 19 Px/mm), zwei LED-Leuchten unter 45 Grad und schwarzer Haube, Schritt 30 cm, Plan B aus der Hand.
+  docs/entwurf-aufnahme-apparatur.md und unterlagen/apparatur-skizze.svg. Für Freitag Sparvariante (Jan: Rahmen zu
+  aufwendig und teuer): Handy aus der Hand, etwa 40 cm, dunkles Tuch als Hintergrund, Schatten statt Sonne, 0 €.
+  Aufsetzrahmen mit Leuchten und Haube nur als Ausbaustufe, falls schwankendes Licht stört.
 - Vorschlag erster Altholz-Test (20.11.2026, nicht entschieden): docs/plan-erster-test-altholz.md (iPhone-Fotos bei
   Felix, selbst labeln, Training auf dem Mac). Für die Gruppe gedacht, Rüdiger liest ihn über docs/.
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
