@@ -9,5 +9,7 @@ Description=Ausfall melden: %i
 Type=oneshot
 WorkingDirectory=/home/agent/agenten/shared
 ExecStart=/usr/bin/python3 -m agentkit.ausfall %i
-TimeoutStartSec=2min
+# 6 min statt 2: Am 19.11.2026 lief der Server nach einem OOM-Vorfall so zäh, dass die Meldung zwar
+# rausging, der Prozess aber nach 2 min abgebrochen wurde und die Unit als fehlgeschlagen stehen blieb.
+TimeoutStartSec=6min
 MemoryMax=200M
