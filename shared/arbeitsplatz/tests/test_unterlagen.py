@@ -14,11 +14,13 @@ import unterlagen
 class TestPruefen(unittest.TestCase):
     def test_erlaubt(self):
         for gut in ("fehlstellenscan/docs/markt.md", "fehlstellenscan/docs", "uni/data/projekte/x/wissen.md",
-                    "fehlstellenscan/data/gruppe/dateien"):
+                    "fehlstellenscan/data/gruppe/dateien", "uni/data/kurse/CAM/uebersicht.md",
+                    "uni/data/lernen/holzschutz/pruefungsplan.md", "uni/data/lernblaetter/x/blatt_1/a.pdf"):
             with self.subTest(gut=gut):
                 self.assertTrue(unterlagen.erlaubt(gut))
         for schlecht in ("fehlstellenscan/.env", "uni/.env", "fehlstellenscan/docs/../.env", "/etc/passwd",
                          "fehlstellenscan/data/laeufe", "fehlstellenscan", "uni/data/projekte/.x/a.md", "",
+                         "uni/data/eingang/a.pdf", "uni/data", "uni/data/kurse/../.env",
                          "fehlstellenscan\\docs\\a.md", "./fehlstellenscan/docs/a.md", 3, None):
             with self.subTest(schlecht=schlecht):
                 self.assertFalse(unterlagen.erlaubt(schlecht))

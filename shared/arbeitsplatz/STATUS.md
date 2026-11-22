@@ -124,7 +124,8 @@ Maßstab Apple HIG (Klarheit, Zurückhaltung, Hierarchie). Bilder vorher/nachher
 - Unterlagen am Ordner (Jan 20.11.2026, Haupt-STATUS 45c b, `unterlagen.py`): Dateien ohne Auftrag, nur lesend und
   immer aktuell. `shared/orte-verweise.json` (nicht im Repo) `{"verweise": {ort: ["<pfad>" | {"pfad", "titel"}]}}`,
   Pfade relativ zum Hauptordner, nur unter `fehlstellenscan/docs`, `fehlstellenscan/unterlagen`,
-  `fehlstellenscan/data/gruppe/dateien` (Rüdiger), `uni/data/projekte`; nichts Verstecktes, Symlinks nur innerhalb;
+  `fehlstellenscan/data/gruppe/dateien` (Rüdiger), `uni/data/projekte`, `uni/data/kurse`, `uni/data/lernen`,
+  `uni/data/lernblaetter` (Kursmaterial und Lernblätter an den Modul-Ordnern, Jan 22.11.2026); nichts Verstecktes, Symlinks nur innerhalb;
   Endungen md, txt, pdf, docx, pptx, xlsx, png, jpg, von json nur schriftverkehr.json. Ordner-Verweis: alle Dateien
   bis zwei Ebenen tief, neueste zuerst. Ordner-Seite: Abschnitt „Unterlagen“ (fehlende rot, „Nicht gefunden“).
   `/unterlage/<ort>/<n>[-<m>]`: Text als Absätze, Schriftverkehr als Mailliste, pdf/Office als Seitenbilder (eigene

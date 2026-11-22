@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 WURZELN = ("fehlstellenscan/docs", "fehlstellenscan/unterlagen", "fehlstellenscan/data/gruppe/dateien",
-           "uni/data/projekte")
+           "uni/data/projekte", "uni/data/kurse", "uni/data/lernen", "uni/data/lernblaetter")
 TEXT = {".md", ".txt"}
 SEITEN = {".pdf", ".docx", ".pptx", ".xlsx"}
 BILD = {".png", ".jpg", ".jpeg"}
