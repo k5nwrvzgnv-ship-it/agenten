@@ -127,7 +127,8 @@ Seiten je Balken.
   mehr: Die Box liefert dasselbe fertig.
 
 ## Offen (bitte klären)
-- Querschnitte und Längen der Balken bei Felix (wie viele Flächen sind breiter als 23 cm?).
+- Längen der Balken bei Felix. Breite geklärt (Jan 22.11.2026): die meisten Flächen unter 23 cm, die 40-cm-Box
+  passt; breitere Flächen in zwei Bahnen.
 - Welches Handy? 48 MP braucht ein iPhone 14 Pro, 15 oder neuer.
 - Strom bei Felix, Böcke, Erlaubnis des Arbeitgebers, wer dreht mit.
 - Soll ich den Kurzbefehl beschreiben und `aufnahme.py ordnen` bis Donnerstag bauen?
