@@ -108,6 +108,8 @@ def main() -> int:
     b.add_argument("--vorhersage", type=Path, required=True)
     b.add_argument("--name", required=True)
     b.add_argument("--ersetzen", action="store_true")
+    for p in (k, b):
+        p.add_argument("--nur-laden", action="store_true", help="Oberfläche danach nicht öffnen")
     z = befehle.add_parser("zeigen", help="Oberfläche für einen geladenen Datensatz öffnen")
     z.add_argument("--name", required=True)
     args = parser.parse_args()
@@ -127,7 +129,8 @@ def main() -> int:
     datensatz.add_samples(proben(bilder, markierung, args.vorhersage))
     if markierung is not None:
         auswerten(datensatz)
-    zeigen(args.name)
+    if not args.nur_laden:
+        zeigen(args.name)
     return 0
 
 
