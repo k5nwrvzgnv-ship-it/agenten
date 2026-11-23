@@ -41,7 +41,7 @@ p.write_text(json.dumps(d, indent=4) + "\n")
 ENDE
 WERT=$(.venv-werkbank/bin/fiftyone config do_not_track)
 echo "do_not_track: $WERT"
-if [ "$WERT" != "True" ]; then
+if [ "$(echo "$WERT" | tr "[:upper:]" "[:lower:]")" != "true" ]; then
     echo "FEHLER: Statistik ist nicht abgeschaltet. Bitte Claude melden."
     exit 1
 fi
