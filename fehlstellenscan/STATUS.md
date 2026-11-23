@@ -410,6 +410,14 @@ Trainings-.venv. Nicht auf dem Server (eigene MongoDB, zu wenig Speicher).
   werkbank-val.txt, Vergleich mit auswertung.py im Abschnitt Auswertung. Die Vorhersage lief auf der CPU.
 - Ähnlichkeitskarte und Einzigartigkeit (compute_visualization, compute_uniqueness) brauchen ein Bildmodell,
   vermutlich torch in .venv-werkbank: erst nach Jans Okay.
+- Plan Werkbank für Henri und Felix (Jan 23.11.2026 „merken, erstmal lassen“, nichts eingerichtet): Subdomain
+  werkbank.meldro.de (Name noch offen). Jan bei INWX: A 84.247.188.205, AAAA 2a02:c207:3020:9076::1. Jan als root:
+  Caddy-Block wie lia.meldro.de (basicauth je ein Benutzer für Henri und Felix, Hash per `caddy hash-password`,
+  HSTS) mit reverse_proxy 127.0.0.1:5151. Claude: mac/werkbank_teilen.sh startet Oberfläche plus `ssh -N -R
+  127.0.0.1:5151:127.0.0.1:5151 agents-user` und `caffeinate`, ctrl-c beendet beides. Erreichbar nur, solange das
+  Skript läuft (FiftyOne und Bilder bleiben auf dem Mac). Henri und Felix können Tags und Ansichten ändern (nur
+  Datenbank, werkbank_val.sh baut neu). Port 5151 auf dem Server frei; ob sshd Weiterleitung erlaubt, ungeprüft
+  (50-cloud-init.conf nur für root lesbar).
 - Datenschutz: FiftyOne sendet laut eigener Angabe Nutzungsstatistik, abschalten wie unten (wie sync=False bei
   ultralytics). Mit `fiftyone config do_not_track` prüfen.
 
