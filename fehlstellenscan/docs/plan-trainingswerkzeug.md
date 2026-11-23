@@ -1,7 +1,7 @@
 # Plan: Werkbank für Daten, Fehler, Labeln und Training
 
-Stand 23.11.2026. Reihenfolge von Jan bestätigt (23.11.2026), Phase 0 läuft. Pakete für Phase 1 und 2 noch nicht
-freigegeben, nichts installiert. Auftrag von Jan (23.11.2026): ein Programm mit Oberfläche statt Terminal, das
+Stand 23.11.2026. Reihenfolge von Jan bestätigt (23.11.2026). Phase 0 gebaut. Phase 1: Python 3.13 und fiftyone
+auf dem Mac freigegeben (Jan 23.11.2026), Ladeskript fertig, Installation steht aus. Phase 2 noch nicht freigegeben. Auftrag von Jan (23.11.2026): ein Programm mit Oberfläche statt Terminal, das
 Training und Fine-Tuning bedienbar und die Materie verständlicher macht, und in dem man den Stil der Masken
 einstellen kann.
 
@@ -113,7 +113,7 @@ Fertig: Henri oder Felix starten ein Fine-Tuning ohne Hilfe und finden danach, w
   YOLO-Export nicht kann. Wieder ansehen, wenn mehr Leute gleichzeitig an einem gemeinsamen Datensatz labeln.
 
 ## Offen
-- Freigabe der Pakete für Phase 1 (Python 3.13 und fiftyone auf dem Mac) und Phase 2 (X-AnyLabeling).
+- Freigabe X-AnyLabeling (Phase 2). Für Ähnlichkeitskarte in Phase 1 vermutlich torch in .venv-werkbank.
 - Normfrage für den Maskenstil: Was zählt nach DIN 4074 zum Ast (dunkler Rand, Rindenring)? Henri fragen.
 
 ## Quellen
