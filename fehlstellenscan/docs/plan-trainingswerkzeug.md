@@ -1,7 +1,13 @@
 # Plan: Werkbank für Daten, Fehler, Labeln und Training
 
-Stand 23.11.2026, Vorschlag, nicht entschieden. Nichts installiert. Auftrag von Jan (23.11.2026): ein Programm mit
-Oberfläche statt Terminal, das Training und Fine-Tuning bedienbar und die Materie verständlicher macht.
+Stand 23.11.2026. Reihenfolge von Jan bestätigt (23.11.2026), Phase 0 läuft. Pakete für Phase 1 und 2 noch nicht
+freigegeben, nichts installiert. Auftrag von Jan (23.11.2026): ein Programm mit Oberfläche statt Terminal, das
+Training und Fine-Tuning bedienbar und die Materie verständlicher macht, und in dem man den Stil der Masken
+einstellen kann.
+
+Antworten von Jan (23.11.2026): Henri und Felix haben Windows und Mac (X-AnyLabeling passt). Felix misst am 27.11.
+mit Messschieber, Äste dürfen dafür markiert werden. „Masken-Design“ heißt der Stil der Masken selbst (wie eng,
+welche Form), nicht die Darstellung für Folien.
 
 ## Kern der Sache
 Das Training selbst ist bei uns gelöst (ein Befehl, wenige Einstellungen zählen: imgsz, Epochen, Modellgröße,
@@ -24,16 +30,17 @@ Trefferquote nach Astgröße, Fehlalarme je Meter Balken, später Sortierklasse.
 
 ## Phase 0: vor dem 27.11. (ohne Installation)
 Eilig, weil der Termin bei Felix die einzige Gelegenheit für Messwerte am echten Holz ist.
-1. Messprotokoll für Felix' Balken (eine Seite A4): je Balken ID, Holzart, Maße; je markiertem Ast Lage in mm
-   (längs ab Stirnseite, quer ab Kante), kleinster und größter Durchmesser mit Messschieber, Seite, Foto-Nummer.
-   Ziel: 10 bis 20 Äste auf 2 bis 3 Balken, mehr nicht. Ohne diese Werte gibt es später keinen mm-Vergleich.
-2. auswertung.py (Server, nur numpy, mit Tests): aus Markierung und Vorhersage (YOLO-seg-Textdateien) je Bild
+1. Messprotokoll für Felix' Balken (docs/messprotokoll-27-11.md): je Ast Lage in mm, kleinster und größter
+   Durchmesser mit Messschieber, einige Äste von einer zweiten Person verdeckt nachgemessen (wie genau messen
+   Menschen?). Ziel: 10 bis 20 Äste auf 2 bis 3 Balken. Diese Balken werden Test, nie Training.
+2. auswertung.py (Server, numpy/Pillow/opencv wie masken.py, mit Tests): aus Markierung und Vorhersage
+   (YOLO-seg-Textdateien) je Bild
    die Zuordnung Objekt zu Objekt (IoU der Masken), daraus übersehen / Fehlalarm / Klasse vertauscht, Trefferquote
    nach Größenklassen in mm, und der mm-Vergleich gegen eine Messtabelle (mittlere Abweichung, Streuung,
    Bland-Altman-Grenzen), Bootstrap-Intervalle. Läuft auch ohne FiftyOne und bleibt die Referenz.
-3. Entwurf Labelrichtlinie (docs/labelrichtlinie.md): Klassen für Altholz (Kodytek-Klassen plus Nagel/Schraube,
-   Bohrloch, Fäulnis, Insektenfraß, Farbe, Fuge), wie eng ein Umriss gezogen wird (eng am sichtbaren Rand, nicht
-   wie die Kodytek-Pinselmasken), was bei Unsicherheit passiert. Henri und Felix lesen gegen.
+3. Entwurf Labelrichtlinie (docs/labelrichtlinie.md): Klassen für Altholz (Kodytek-Nummern 0-9 bleiben, neue
+   ab 10, damit das Kodytek-Modell weiter lernen kann) und vor allem der Stil der Masken: wie eng, welche Form je
+   Klasse, berührende Objekte, Bildrand, Unsicherheit. Henri und Felix lesen gegen.
 
 Fertig: Messprotokoll gedruckt am 27.11. dabei; auswertung.py grün in pruefen.sh und an kodytek-seg1-n1280 (val)
 gegen die ultralytics-Zahlen geprüft (Trefferquote je Klasse muss in der Nähe liegen); Richtlinie gelesen.
@@ -52,6 +59,11 @@ markiert (compute_visualization).
    ein Ast bei imgsz 640 / 1280 / voll; was die Augmentierung (Mosaik, Farbe, Spiegeln) aus einem Brettbild
    macht; Riss mit Maske in 1/4-Auflösung gegen Original. Erst prüfen, was FiftyOne mitbringt, eigene Ansichten
    nur für den Rest.
+4. Maskenstil einstellen und seine Folgen sehen: Kodytek-Masken schrittweise enger und weiter machen (Erosion
+   und Dilatation in mm), daneben, wie sich der gemessene Astdurchmesser und die Übereinstimmung mit dem Modell
+   ändern. Später dasselbe mit unseren eng gezeichneten Masken. So wird der Stil eine begründete Entscheidung.
+- Code, der fiftyone oder ultralytics importiert, liegt in einem Unterordner mac/ (der Gerüst-Test verbietet
+  diese Pakete in den Modulen des Agenten, Tests auf dem Server laden sie nie).
 
 Fertig: Jan findet in der Oberfläche ohne Terminal die zehn schlimmsten Fehler auf val und die Fugen-Fehlalarme;
 Zahlen stimmen mit auswertung.py überein (zweite, unabhängige Rechnung).
@@ -100,12 +112,9 @@ Fertig: Henri oder Felix starten ein Fine-Tuning ohne Hilfe und finden danach, w
 - Label Studio mit SAM 2: das SAM-2-Backend braucht laut Doku eine GPU und liefert Pinselmasken, die der
   YOLO-Export nicht kann. Wieder ansehen, wenn mehr Leute gleichzeitig an einem gemeinsamen Datensatz labeln.
 
-## Offene Fragen an Jan
-1. Welche Rechner haben Henri und Felix (Windows, Mac, Linux)? Entscheidet, ob X-AnyLabeling passt.
-2. Kann Felix am 27.11. mit Messschieber messen, und dürfen wir dafür Äste markieren (Kreide)?
-3. Mit „Masken-Design einstellen“ war die Labelrichtlinie gemeint (wie eng, welche Klassen) oder die Darstellung
-   der Bilder für Folien (masken.py gruppenbilder)?
-4. Reihenfolge so? Phase 0 sofort, Phase 1 parallel, sobald Python 3.13 und fiftyone freigegeben sind.
+## Offen
+- Freigabe der Pakete für Phase 1 (Python 3.13 und fiftyone auf dem Mac) und Phase 2 (X-AnyLabeling).
+- Normfrage für den Maskenstil: Was zählt nach DIN 4074 zum Ast (dunkler Rand, Rindenring)? Henri fragen.
 
 ## Quellen
 - FiftyOne Installation (Python 3.10-3.13): https://docs.voxel51.com/installation/ und https://pypi.org/project/fiftyone/
