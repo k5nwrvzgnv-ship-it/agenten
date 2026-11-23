@@ -343,6 +343,7 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
 - Prüfungen WS 26/27 (emma + Modulhandbuch-Msc_aktualisiert.pdf, 24.10.), Lernstrategie für alle geplant:
   - Fachplanung im Hochbau 2 / HSS (M.03.R.2515.W, IHS + SHB): Vortrag mit mündlicher Prüfung. Pilot Lernsystem.
   - Computerbasierte Planung (M.03.R.2513.W): Teile BFH "Fertigung im Holzbau 1" und CAM (keine eigene Prüfung).
+    Lernmaterial seit 23.11.2026: data/lernen/computerbasierte-planung/ (siehe Abschnitt unten).
     Widerspruch offen: HNEE-Modulhandbuch/emma Vortrag mit mündlicher Prüfung 100 %, BFH-Intro Folie 15
     Modulprüfung 75 min 80 % + Vortrag Eberswalde 20 %.
   - Nachhaltigkeit im Holzingenieurwesen (emma: Sustainability in wood engineering, M.03.R.2505.P): LCA +
@@ -640,6 +641,67 @@ Moodle und Unipostfach überwachen, Fristen, Zusammenfassungen, Lernsessions.
   - SHB Fr 13.11.2026: keine Aufnahme
   - SHB Fr 20.11.2026: keine Aufnahme
   Mit Aufnahme: IHS 20.10. (Nr. 1), 27.10. Exkursion, 17.11. (Nr. 3). Moodle IHS: Ordner "Vorlesung 3" leer.
+
+## Lernmaterial Computerbasierte Planung und Nachhaltigkeit (Nachtauftrag 22./23.11.2026)
+- Ablage (im Arbeitsplatz an die Modulseiten gehängt, Namen fest): data/lernen/computerbasierte-planung/ und
+  data/lernen/nachhaltigkeit/, je pruefungsplan.json/.md, karten.json, rubrik.json, muendlich.json, quellen_register.json,
+  vortrag.belege.json, blaetter/ (alle PDF/DOCX/PPTX flach), transkripte/ (bereinigt, CP). Quellen der Blätter (JSON):
+  data/lernblaetter/20261123-cp (Themen), 20261123-cp-transkripte (Aufnahmen), 20261123-cp-pruefung (Klausur, Vortrag),
+  20261123-nachhaltigkeit. Bauen: lernblatt.bauen_neue je Ordner, danach Kopie nach blaetter/ (Skript war im Scratchpad,
+  Ablauf: bauen_neue + shutil.copy2 mit Präfix "CP Thema/Vorlesung/Prüfung - " bzw. "Nachhaltigkeit - ").
+- Die alten CP-Blätter data/lernblaetter/20261122-nacht-transkripte/blatt_3-6 sind ersetzt (übernommen und erweitert in
+  20261123-cp-transkripte/blatt_1-4).
+- Portal: portal/ablage.py MODULE um computerbasierte-planung und nachhaltigkeit ergänzt (der Arbeitsplatz liest die Liste
+  per ast); Modul ohne Ordner gibt 404 statt 500 (vorher Absturz im Template). Tests in portal/tests/test_app.py (WeitereModule).
+  Telegram-Abfrage (lernen.py) fragt weiter nur Holzschutz ab (MODULE[0]); Karten der neuen Module laufen über das Portal.
+- CP Prüfungsform ungeklärt, beide vorbereitet: 75-min-Probeklausur mit Lösungen (Aufgaben 1-8, 75 Punkte) und Vortrag
+  "Vom 3D-Modell zum Wandelement - Material- und Datenpfad" (Thema 7) mit Folien. Jack: Lernzieltabelle "Product Backlog"
+  (04 Betriebsprozesse/bf01 Product Backlog V2) ist prüfungsrelevant und reicht (DL 260928 S. 5, 9); Scrum wird nicht
+  geprüft; Folien mit Stempel "Vertiefung" nicht prüfungsrelevant (DL 260914 S. 4).
+- Transkripte: *.mp4.seiten.txt der CP-Aufnahmen neu erzeugt (die Fassung vom 22.11. legte alles ab Minute 60 auf Seite 12,
+  [h:mm:ss] nicht erkannt); Seiten unter Minute 60 unverändert.
+- kurse.py MEDIEN_MAX_MB 300 -> 600: Die BFH-Aufnahme DL 16.11. (343 MB) war nie geladen worden. Am 22.11. von Hand aus dem
+  BFH-Moodle geladen (Token des Agenten, lesend), mit transkription.transkribieren umgewandelt (72 min Aufnahme, 69 min
+  Rechenzeit), Stand-Eintrag in data/kurse/.stand.json gesetzt, damit sie nicht erneut als neu gemeldet wird.
+- Schwere Läufe (Transkription) nur mit systemd-run --user --scope -p MemoryMax=2G -p MemorySwapMax=0, immer nur einer
+  (Hinweis der Hauptsitzung 23.11.2026, Speichermangel am 19.11.).
+- Stand CP: 16 Themen im Prüfungsplan (Score 5: Stückliste, Arbeitsplan/Terminierung, Vorfabrikation, DfMA; Scrum 1),
+  dozent_signale wörtlich aus den Aufnahmen; 15 Themenblätter, 5 Aufnahmeblätter, Probeklausur, Vortragsblatt und Folien
+  (46 Dateien in blaetter/), 249 Karten, 80 mündliche Fragen, belege.py 0 Ablehnungen. Widersprüche im Material als offene
+  Fragen in den Blättern (z. B. BP2 S. 37 Zuwachs je Stelle vertauscht, Innovation 8 % gegen 10-12 %, ERP-Grenze 10 bzw. 10-15).
+- Stand Nachhaltigkeit: 13 Themen (Score 5: LCA-Grundlagen, Module A1-D/GWP, QNG-Bilanzregeln, Holz in der Ökobilanz),
+  11 Themenblätter, Vortrag "Holzbau im QNG-Nachweis: Was zählt der biogene Kohlenstoff?" (Blatt und 13 Folien),
+  158 Karten, 65 mündliche Fragen, belege.py 0 Ablehnungen. 15 freie Quellen neu in data/literatur/ (EU-Recht CSRD,
+  ESRS, Stop-the-clock, Omnibus I, VSME; QNG-Anlagen; DNK; GHG Protocol; IBU-EPD BSH Rubner), Herkunft in quellen.json.
+  Eilbacher-Teil (NHI) nur aus Modulhandbuch und Primärquellen. Das Modulhandbuch passt nicht zum gelehrten LCB-Stoff
+  (nennt OpenLCA/Dreiner, gelehrt hat Prof. Wünschmann QNG, eLCA, Schadstoffe, Feuchteschutz). Blätter ohne
+  blatt_<n>.belege.json, alle Quellen als art "norm" mit Kürzel.
+- belege.py-Aufruf mit Glob blatt_*.json erfasst auch die .belege.json und meldet sie als "unbekannte Dateiart": blatt_?.json
+  und blatt_??.json übergeben.
+- Termine ohne Aufnahme (Kalender und BFH-Terminplan gegen Transkripte, Stand 23.11.):
+  - CP/BFH Mo 05.10.2026 DL 4 CAD Einführung (Berthoud): keine Aufnahme
+  - CP/BFH Mo 12.10.2026 DL 5 CAM-Systeme (Maillard): keine Aufnahme (Lehrvideo Grasshopper-Cadwork-Lignocam als Ersatz)
+  - CP/BFH Mo 19.10.2026 Kompensation Hausamann (BBHbp03): keine Aufnahme
+  - CP/BFH Mo 26.10.2026 DL 7/8 praktische CAD- und CAM-Übung: keine Aufnahme
+  - CP/BFH Mo 02.11.2026 DL 9 PPS/ERP, visuelle Planung: keine Aufnahme
+  - CAM (HNEE) Do 15.10.2026 Einführung CAx: keine Aufnahme
+  - CAM (HNEE) Do 22.10.2026: keine Aufnahme
+  - CAM (HNEE) Do 29.10.2026 CAD-Methodik, Fusion-Praxis 1: keine Aufnahme
+  - CAM (HNEE) Do 05.11.2026 Exkursion HOMAG/QEU Berlin: keine Aufnahme
+  - CAM (HNEE) Do 12.11.2026 CAM-Grundlagen: keine Aufnahme
+  - CAM (HNEE) Do 19.11.2026 CAM-Übung Fusion: keine Aufnahme
+  - LCA Mo 21.09.2026: keine Aufnahme
+  - LCA Mo 28.09.2026: keine Aufnahme
+  - LCA Mo 12.10.2026: keine Aufnahme
+  - LCA Mo 19.10.2026: keine Aufnahme
+  - LCA Mo 26.10.2026: ausgefallen (Moodle-Mail 25.10.)
+  - LCA Mo 16.11.2026 (Ersatztermin laut Mail 02.11., 12:30-14:00, 12.202): keine Aufnahme
+  - LCA Mo 02.11.2026: keine Aufnahme
+  - LCA Mo 09.11.2026 (zwei Blöcke): keine Aufnahme
+  - Nachhaltigkeitsaspekte (Eilbacher, ab 10.11.2026): keine Termine im Kalender, kein Moodle-Material, keine Aufnahme
+  Mit Aufnahme: CP/BFH 14.09., 21.09., 28.09., 16.11. (alle transkribiert und eingearbeitet), Lehrvideo Grasshopper.
+  Noch nicht gehalten: BFH 23.11., 07.12., 14.12.2026, 11.01., 18.01.2027 (im BFH-Moodle unter Video-Aufzeichnungen
+  nachsehen; kurse.py lädt sie jetzt bis 600 MB, Transkript nachts).
 
 ## Übergabe aus dem Hauptordner (20.10.2026): Kalender und Knöpfe fertig
 - agentkit.kalender.termine(von, bis) -> Liste Termin(beginn, ende, titel, ort, ganztags, uid), Zeiten mit
