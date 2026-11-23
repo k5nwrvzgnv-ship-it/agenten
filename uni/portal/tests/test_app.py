@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 import unittest
 from datetime import datetime, timedelta
@@ -8,7 +9,7 @@ from zoneinfo import ZoneInfo
 import app
 import lernmodell
 
-from tests.hilfe import Aufbau
+from tests.hilfe import RUBRIK, Aufbau
 
 STATISCH = Path(app.__file__).parent / "statisch"
 
@@ -179,3 +180,36 @@ class Dienstvorlage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WeitereModule(Aufbau):
+    """Computerbasierte Planung und Nachhaltigkeit (Nachtauftrag 22./23.11.2026): gleiche Seiten wie Holzschutz."""
+
+    def _modul_anlegen(self, mid: str) -> None:
+        ordner = self.uni / "data" / "lernen" / mid
+        ordner.mkdir(parents=True)
+        (ordner / "karten.json").write_text(json.dumps([
+            {"id": "stueckliste-1", "thema": "stueckliste", "typ": "text", "frage": "Was ist eine Baukastenstückliste?",
+             "antwort": "Nur eine Ebene", "quelle": "BP3a Stücklisten S. 30", "bild": None}]), encoding="utf-8")
+        (ordner / "pruefungsplan.json").write_text(json.dumps({
+            "modul": "Computerbasierte Planung", "pruefung": {"form": "Modulprüfung 75 min"},
+            "themen": [{"id": "stueckliste", "titel": "Erzeugnisstruktur und Stücklisten", "teil": "BP", "score": 5,
+                        "begruendung": "b", "lernziele": [], "quellen": []}], "fehlt": []}), encoding="utf-8")
+        (ordner / "rubrik.json").write_text(json.dumps(RUBRIK), encoding="utf-8")
+
+    def test_neue_module_haben_seiten(self):
+        for mid in ("computerbasierte-planung", "nachhaltigkeit"):
+            self._modul_anlegen(mid)
+            html = self.text(f"/modul/{mid}")
+            self.assertIn("Erzeugnisstruktur und Stücklisten", html)
+            self.assertIn("Baukastenstückliste", self.text(f"/modul/{mid}/ueben"))
+            self.assertEqual(self.holen(f"/modul/{mid}/rubrik")[0].status, 200)
+
+    def test_navigation_nennt_alle_module(self):
+        html = self.text("/modul/holzschutz")
+        for name in ("Computerbasierte Planung", "Nachhaltigkeit"):
+            self.assertIn(name, html)
+
+    def test_modul_ohne_ordner_ist_404(self):
+        for pfad in ("/modul/nachhaltigkeit", "/modul/nachhaltigkeit/ueben", "/modul/nachhaltigkeit/rubrik"):
+            self.assertEqual(self.holen(pfad)[0].status, 404, pfad)

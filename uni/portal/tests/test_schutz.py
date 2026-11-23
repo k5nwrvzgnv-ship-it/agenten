@@ -110,7 +110,7 @@ class Positivliste(Aufbau):
         self.assertIsNone(ablage.bild_pfad(self.uni, "holzschutz", "data/lernen/holzschutz/bilder/link.jpg"))
 
     def test_module_sind_fest(self):
-        self.assertEqual(list(ablage.MODULE), ["holzschutz"])
+        self.assertEqual(list(ablage.MODULE), ["holzschutz", "computerbasierte-planung", "nachhaltigkeit"])
         self.assertNotIn("mails", ablage.MODUL_DATEIEN)
         self.assertIsNone(ablage.modul_ordner(self.uni, "../mails"))
         self.assertIsNone(ablage.modul_laden(self.uni, "mails"))

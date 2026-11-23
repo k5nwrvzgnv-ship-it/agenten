@@ -334,19 +334,19 @@ class TestPruefung(Ablauf):
         (self.hier / "data" / "eingang").mkdir(parents=True)
         (self.hier / "data" / "eingang" / "t.txt").write_text(TRANSKRIPT)
         auswerten = mock.MagicMock(return_value=(AUSWERTUNG, {}))
-        agent.pruefung_auftrag(self.auftrag("pruefung", dateien=["data/eingang/t.txt"]), auswerten=auswerten)
+        agent.pruefung_auftrag(self.auftrag("pruefung", {"Modul": "Holzschutz"}, dateien=["data/eingang/t.txt"]), auswerten=auswerten)
         self.assertIn("Cellulose", (self.uebung / "transkript.txt").read_text())
 
     def test_transkript_fehlt_oder_zu_kurz(self):
-        agent.art_auftrag(self.auftrag("pruefung"))
+        agent.art_auftrag(self.auftrag("pruefung", {"Modul": "Holzschutz"}))
         self.assertIn("Transkript fehlt", self.abschliessen.call_args.args[1])
-        agent.art_auftrag(self.auftrag("pruefung", {"Transkript": "zu kurz"}))
+        agent.art_auftrag(self.auftrag("pruefung", {"Modul": "Holzschutz", "Transkript": "zu kurz"}))
         self.assertIn("zu kurz", self.abschliessen.call_args.args[1])
         self.assertFalse(self.uebung.exists())
 
     def test_geparkt_wartet_gescheitert_schliesst_ab(self):
         _, aw, _, _ = agent._portal()
-        a = self.auftrag("pruefung", {"Transkript": TRANSKRIPT})
+        a = self.auftrag("pruefung", {"Modul": "Holzschutz", "Transkript": TRANSKRIPT})
         with mock.patch.object(aw, "auswerten", side_effect=aw.Geparkt("Plätze belegt")):
             self.assertFalse(agent.art_auftrag(dict(a)))
         self.abschliessen.assert_not_called()
@@ -484,3 +484,18 @@ class TestExposeDaten(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestModulWaehlen(unittest.TestCase):
+    """Seit 23.11.2026 drei Lernmodule: ohne Angabe kein stilles Holzschutz, sondern eine Rückfrage mit den Möglichkeiten."""
+
+    MODULE = {"holzschutz": "Holzschutz", "computerbasierte-planung": "Computerbasierte Planung", "nachhaltigkeit": "Nachhaltigkeit"}
+
+    def test_name_und_ordner(self):
+        self.assertEqual(arten.modul_waehlen("Computerbasierte Planung", self.MODULE), "computerbasierte-planung")
+        self.assertEqual(arten.modul_waehlen("nachhaltigkeit", self.MODULE), "nachhaltigkeit")
+
+    def test_leer_bei_mehreren_ist_fehler(self):
+        with self.assertRaises(arten.ArtFehler) as f:
+            arten.modul_waehlen("", self.MODULE)
+        self.assertIn("Computerbasierte Planung", str(f.exception))

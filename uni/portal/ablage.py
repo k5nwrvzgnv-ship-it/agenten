@@ -23,7 +23,9 @@ import lernmodell
 import rueckmeldungen
 
 LERNEN_RELATIV = PurePosixPath("data/lernen")
-MODULE = {"holzschutz": "Holzschutz"}  # Ordner unter data/lernen -> Anzeigename; weitere Module kommen hier dazu
+# Ordner unter data/lernen -> Anzeigename; der Arbeitsplatz liest diese Liste (shared/arbeitsplatz/lernen.py)
+MODULE = {"holzschutz": "Holzschutz", "computerbasierte-planung": "Computerbasierte Planung",
+          "nachhaltigkeit": "Nachhaltigkeit"}
 RUBRIK = "rubrik.json"
 VORGEMERKT = "vorgemerkt.json"
 MODUL_DATEIEN = frozenset({"pruefungsplan.json", "karten.json", "zustand.json", "verlauf.jsonl", RUBRIK, VORGEMERKT})
@@ -62,8 +64,9 @@ def sicher(wurzel: Path, relativ: str | Path, endungen: set[str]) -> Path | None
 
 
 def modul_ordner(uni: Path, modul: str) -> Path | None:
-    """data/lernen/<modul>/ nur für Module aus der Liste."""
-    return uni / LERNEN_RELATIV / modul if modul in MODULE else None
+    """data/lernen/<modul>/ nur für Module aus der Liste, deren Ordner es gibt (sonst 404 statt leerer Seite)."""
+    ordner = uni / LERNEN_RELATIV / modul
+    return ordner if modul in MODULE and ordner.is_dir() else None
 
 
 def modul_laden(uni: Path, modul: str) -> lernmodell.Modul | None:

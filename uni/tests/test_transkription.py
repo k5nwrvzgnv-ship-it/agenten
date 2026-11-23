@@ -40,6 +40,7 @@ class TestTranskription(unittest.TestCase):
         self.assertEqual(kurse.grenze_mb("Vorlesung.MP4"), kurse.MEDIEN_MAX_MB)
         self.assertEqual(kurse.grenze_mb("a.zip"), kurse.ZIP_MAX_MB)
         self.assertEqual(kurse.grenze_mb("a.pdf"), kurse.MAX_MB)
+        self.assertGreaterEqual(kurse.MEDIEN_MAX_MB, 400)  # BFH-Aufnahme DL 16.11.2026 hatte 343 MB
 
 
 class TestStuecke(unittest.TestCase):
