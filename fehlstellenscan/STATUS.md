@@ -35,6 +35,17 @@ die können später als Dateien Eingabe werden).
   per EXIF-Zeit mit Skript `aufnahme.py ordnen` (noch nicht gebaut, wartet auf Jans Okay).
 - Vorschlag erster Altholz-Test (20.11.2026, nicht entschieden): docs/plan-erster-test-altholz.md (iPhone-Fotos bei
   Felix, selbst labeln, Training auf dem Mac). Für die Gruppe gedacht, Rüdiger liest ihn über docs/.
+- Mögliche Umstrukturierung (Jan 22.11.2026, nicht entschieden): Die TU bietet an, wir machen die Software, sie
+  stellt Ausrüstung und Material; Fokus wäre der Altholz-Scanner mit Ausblick BSH/KVH. Erst Machbarkeitstest
+  (Fotos bei Felix 27.11., labeln, trainieren), dann Zusage an die TU oder weiter wie im Exposé. Vorbereitung für
+  Henri und Prof. Böhme (23.11., erstes Gespräch) mit Pitch und Grundlagen: docs/vorbereitung-boehme-23-11.md.
+- Plan Werkbank (Jan 23.11.2026): docs/plan-trainingswerkzeug.md. Oberfläche für die Schleife Daten ansehen,
+  Fehler finden, labeln, nachtrainieren, gegen Messlatte prüfen; Maskenstil einstellbar und in seinen Folgen
+  sichtbar. Reihenfolge von Jan bestätigt. Phase 0 gebaut (23.11.): docs/messprotokoll-27-11.md (Messschieber bei
+  Felix, Äste nummerieren, 5 Äste doppelt messen; diese Balken nur Test), docs/labelrichtlinie.md (Entwurf,
+  Henri und Felix lesen gegen), auswertung.py. Henri und Felix haben Windows und Mac (X-AnyLabeling passt).
+  Phase 1: läuft seit 23.11.2026 auf Jans Mac (Abschnitt Werkbank). Offen: Freigabe X-AnyLabeling (Phase 2);
+  Normfrage, was zum Ast zählt.
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
@@ -77,7 +88,7 @@ die können später als Dateien Eingabe werden).
   (data/datensaetze/kodytek-probe/). Voller Lauf auf dem Mac 12.11.2026 fertig und geprüft (Befunde unten):
   Mac ~/fehlstellenscan/datensaetze/kodytek-1/ fertig; erstes Training kodytek1-n1280 fertig 15.11.2026 (offener Punkt 3). Ergebnisse in data/laeufe/
   (bericht.json, ueberlappung.txt, pruefung_ultralytics.txt, results.csv und args.yaml des Tests probe20).
-- auswertung.py ist noch ein leerer Platz.
+- auswertung.py gebaut (23.11.2026, tests/test_auswertung.py), siehe Abschnitt Auswertung.
 - Test tests/test_geruest.py: Name, Hinweis bei Aufträgen, kein Import von torch, torchvision oder ultralytics.
 - .venv mit numpy 2.5.4 und Pillow 13.0.0 (Jan 11.11.2026) und agentkit per .pth; tests/test_umgebung.py
   prüft sie (auch BMP). Kein Dienst, kein Timer, keine Daten geladen.
@@ -348,6 +359,77 @@ seg_nacht.log), data/laeufe/seg-probe20/results.csv.
   unter der Box, am deutlichsten bei crack, resin, quartzity: dünne oder unscharf gemalte Formen, passt zur
   Maskenauflösung (1/4) und zu den Pinsel-Masken. Inferenz 0,5 ms, Nachbearbeitung der Masken 6,5 ms je Bild.
 
+## Auswertung (auswertung.py, ab 23.11.2026)
+Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, und wie genau es in mm misst.
+- `fehler`: Markierung (YOLO-seg) gegen Vorhersage (`yolo segment predict save_txt save_conf`) je Bild. Zuordnung
+  nach Konfidenz absteigend, IoU der Masken ab 0,5, erst gleiche Klasse (Treffer), dann über Klassen (vertauscht),
+  Rest übersehen bzw. Fehlalarm. Konfidenzschwelle `--konf` (Vorgabe 0,25). Ausgabe bericht.json (je Klasse R, P,
+  95-%-Intervall per Bootstrap über Bilder, R je Größenklasse <5/5-10/10-20/20-40/>=40 mm kurze Achse,
+  Verwechslungen, bei Ast-Treffern Vorhersage minus Markierung in mm) und fehler.csv (eine Zeile je Objekt).
+  Auch Person gegen Person (zweite Markierung als --vorhersage). Ohne `--bilder` gilt 2800 x 1024; schmalere
+  Kodytek-Bilder (z. B. 2777) verschieben die mm dann um rund 1 %, die IoU kaum.
+- `messung`: messung.csv aus dem Messprotokoll gegen funde.json von `balken.py karte`. Zuordnung nach Lage
+  (Mitte, höchstens 20 mm), nur Ast-Klassen; `--laenge-spiegeln` / `--hoehe-spiegeln`, wenn Ende A oder Kante K
+  im Streifenbild auf der anderen Seite liegt. Ergebnis: Modell minus Messschieber (Ellipse kurz gegen d_min, lang
+  gegen d_max, Bland-Altman), Äste ohne Fund, Abweichung zwischen zwei Messenden.
+- Geprüft 23.11.2026 an den 3 Gruppenbildern (data/laeufe/kodytek-seg-1/auswertung-gruppe/): 8 markiert, 7
+  Treffer, Harz in 153200015 übersehen (wie in der Sichtprüfung), in 153200004 ein Ast doppelt vorhergesagt (tot
+  0,56 Treffer, lebend 0,66 Fehlalarm, im Vergleichsbild nachgesehen). Äste: Vorhersage im Mittel 0,8 mm breiter
+  als die Markierung (n=6).
+- val komplett (23.11.2026, Vorhersage conf 0.05 auf dem Mac, Auswertung ab 0,25): data/laeufe/kodytek-seg1-n1280/
+  val-auswertung/ (markierung, vorhersage, ergebnis/bericht.json, fehler.csv). 4.465 markiert: 3.628 Treffer,
+  316 Klasse vertauscht, 521 übersehen, 693 Fehlalarme. R / P je Klasse: live_knot 0,846 / 0,812, dead_knot
+  0,799 / 0,814, knot_missing 0,812 / 0,812, knot_with_crack 0,851 / 0,708, crack 0,753 / 0,658, quartzity
+  0,591 / 0,573, resin 0,730 / 0,756, marrow 0,889 / 0,712, blue_stain 0,250 / 0,231 (12 Objekte).
+- Kleine Äste fallen ab: R unter 5 mm kurze Achse live 0,72, dead 0,65, knot_missing 0,68, knot_with_crack 0/20;
+  ab 5 mm 0,85-0,91. Verwechslungen vor allem dead -> live (136) und live -> dead (89), quartzity -> marrow (22).
+  Äste: Vorhersage im Mittel 0,87 mm breiter als die Markierung (sd 2,2 mm, n=3.027).
+- Gegenprobe mit der Werkbank (FiftyOne evaluate_detections, Masken-IoU 0,5, gleiche Vorhersagen, ab 0,25): R und
+  P je Klasse auf zwei Stellen gleich wie auswertung.py. Die Zuordnung in auswertung.py ist damit bestätigt.
+- Mit ultralytics (Mask P 0,753 R 0,669, mAP50-95 0,413) nicht direkt vergleichbar: ultralytics wählt die Schwelle
+  nach bestem F1 und mittelt je Klasse (Mittel der Klassen hier: P 0,68 R 0,72). FiftyOne-mAP (COCO, Masken)
+  0,374, niedriger, weil nur Vorhersagen ab 0,25 eingehen. Für Vergleiche zwischen Modellen: auswertung.py oder
+  ultralytics, aber immer dasselbe.
+- Neu rechnen (Server): `systemd-run --user --scope -q -p MemoryMax=1500M .venv/bin/python auswertung.py fehler
+  --markierung data/laeufe/kodytek-seg1-n1280/val-auswertung/markierung --vorhersage
+  data/laeufe/kodytek-seg1-n1280/val-auswertung/vorhersage --ausgabe data/laeufe/kodytek-seg1-n1280/val-auswertung/ergebnis`
+  (16 s). Markierung und Vorhersage lädt mac/werkbank_val.sh hoch.
+
+## Werkbank (Mac, FiftyOne, ab 23.11.2026)
+FiftyOne zeigt Bilder mit Markierung und Vorhersage im Browser, wertet je Objekt aus und speichert Ansichten.
+Freigabe Jan 23.11.2026: Python 3.13 von python.org und fiftyone (mac/requirements-werkbank.txt) in eigener
+~/fehlstellenscan/.venv-werkbank. FiftyOne kann laut Doku und PyPI (1.22.1) kein Python 3.14, darum nicht in der
+Trainings-.venv. Nicht auf dem Server (eigene MongoDB, zu wenig Speicher).
+- Code: werkbank.py (reine Umwandlung YOLO-seg -> Rechteck plus Maske, mm wie auswertung.py, getestet) und
+  mac/werkbank_laden.py (importiert fiftyone, nur Mac, vom Gerüst-Test ausgenommen, weil im Unterordner).
+- Beim Laden: Auswertung je Objekt (Masken-IoU 0,5, Konfidenz ab 0,25; Felder eval und eval_frei ohne
+  Klassenzwang), Bericht je Klasse, mAP, verdächtige Labels (compute_mistakenness). Gespeicherte Ansichten:
+  übersehen, Fehlalarme, kleine Äste übersehen (unter 10 mm), Klasse vertauscht, verdächtige Labels zuerst.
+- Läuft seit 23.11.2026 (fiftyone 1.22.1, Python 3.13.17, M4 Pro). save_view mit overwrite und Auswertung auf der
+  gefilterten Ansicht funktionieren; Laden und Auswerten von val rund 1-2 min. Bericht: data/laeufe/kodytek-seg1-n1280/
+  werkbank-val.txt, Vergleich mit auswertung.py im Abschnitt Auswertung. Die Vorhersage lief auf der CPU.
+- Ähnlichkeitskarte und Einzigartigkeit (compute_visualization, compute_uniqueness) brauchen ein Bildmodell,
+  vermutlich torch in .venv-werkbank: erst nach Jans Okay.
+- Datenschutz: FiftyOne sendet laut eigener Angabe Nutzungsstatistik, abschalten wie unten (wie sync=False bei
+  ultralytics). Mit `fiftyone config do_not_track` prüfen.
+
+Einrichten (einmal, Mac-Terminal; erneut starten schadet nicht, holt auch neue Skripte):
+
+    mkdir -p ~/fehlstellenscan/mac && scp agents-user:agenten/fehlstellenscan/mac/werkbank_einrichten.sh ~/fehlstellenscan/mac/
+    bash ~/fehlstellenscan/mac/werkbank_einrichten.sh
+
+Das Skript prüft Python 3.13 (sonst öffnet es python.org: neueste 3.13 mit Mac-Installer, am 23.11. 3.13.17), holt
+die Skripte, baut .venv-werkbank, installiert fiftyone und schaltet die Statistik ab (`do_not_track: true`).
+
+Benutzen (Mac-Terminal):
+- val komplett: `bash ~/fehlstellenscan/mac/werkbank_val.sh`. Vorhersage mit der Trainings-.venv (conf 0.05,
+  löscht vorher alte Vorhersagen, weil yolo anhängt; Ausgabe landet in runs/segment/val-vorhersage/seg1),
+  Markierung und Vorhersage zum Server, Laden mit Auswertung (--ersetzen --nur-laden), Bericht werkbank-val.txt
+  zum Server, dann Oberfläche http://localhost:5151 (Beenden mit ctrl-c).
+- Nur ansehen: `.venv-werkbank/bin/python mac/werkbank_laden.py zeigen --name kodytek-seg1-val`.
+- Felix' Balken: `.venv-werkbank/bin/python mac/werkbank_laden.py kacheln --kacheln balken-felix/kacheln
+  --vorhersage runs/segment/balken-felix/vorhersage/labels --name balken-felix-iso800`.
+
 ## Seg-Modell auf Felix' Balken (balken.py, ab 21.11.2026)
 Ziel (Jan 21.11.2026): kodytek-seg1-n1280 auf einem ganzen Balken ausprobieren. Quelle: Streifenbild aus
 holzbalkenscan, Reihe ISO 800 (Testbalken 261019 Seite A, BSH mit 7 Lamellen, 6485 x 230 mm, 6 Px/mm), Lauf
@@ -521,7 +603,8 @@ holzbalkenscan, Reihe ISO 800 (Testbalken 261019 Seite A, BSH mit 7 Lamellen, 64
    Zurückgestellt bis nach
    dem ersten Modell (Jan 12.11.2026, Mittelweg): voller Abgleich Boxen gegen Masken, cleanlab/FiftyOne,
    Blindprüfung einer Stichprobe durch Prof. Böhme.
-4. auswertung.py bauen: results.csv und args.yaml eines Laufs lesen, Läufe vergleichen, Meldung an Jan.
+4. Läufe vergleichen (results.csv und args.yaml lesen) fehlt in auswertung.py noch; gehört zu Phase 3 der Werkbank
+   (docs/plan-trainingswerkzeug.md). Fehler je Objekt und Messung am Holz sind gebaut (Abschnitt Auswertung).
 5. Austausch Mac und Server festlegen (z. B. rsync oder scp nur für Annotationen, Läufe und Gewichte).
 6. Zentrale kennt den Agenten noch nicht (AGENTEN in shared/telegram/logik.py), Bedarf steht in der Haupt-STATUS.md
    Punkt 40. Dienst systemd/fehlstellenscan.service fehlt noch, braucht Jans Okay.
