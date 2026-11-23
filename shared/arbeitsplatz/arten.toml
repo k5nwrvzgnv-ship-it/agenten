@@ -112,7 +112,7 @@ rueckmeldung = false
 [[art.feld]]
 name = "Modul"
 art = "auswahl"
-werte = ["Holzschutz"]
+werte = ["Holzschutz", "Computerbasierte Planung", "Nachhaltigkeit"]
 pflicht = true
 [[art.feld]]
 name = "Themen"
@@ -137,7 +137,7 @@ rueckmeldung = false
 [[art.feld]]
 name = "Modul"
 art = "auswahl"
-werte = ["Holzschutz"]
+werte = ["Holzschutz", "Computerbasierte Planung", "Nachhaltigkeit"]
 pflicht = true
 [[art.feld]]
 name = "Titel"
