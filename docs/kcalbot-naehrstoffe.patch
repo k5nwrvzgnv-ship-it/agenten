@@ -1,5 +1,5 @@
 --- alt/bot.py	2026-11-24 10:52:56.658091717 +0100
-+++ neu/bot.py	2026-11-24 10:52:56.704093057 +0100
++++ neu2/bot.py	2026-11-24 11:03:56.080289579 +0100
 @@ -50,6 +50,12 @@
  FAT_MAX_SHARE = 0.30  # darueber verdraengt Fett spuerbar Kohlenhydrate
  BASE_ACTIVITY = 1.2  # Grundumsatz x 1.2 = Alltag ohne Schritte/Training
@@ -13,14 +13,16 @@
  WORKOUT_CREDIT = 0.75  # Trainings-kcal werden meist ueberschaetzt, nur 75 % aufs Budget
  
  logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-@@ -59,13 +65,19 @@
+@@ -59,13 +65,23 @@
  SYSTEM_PROMPT = """Du ordnest Eintraege eines Ernaehrungs- und Trainingstagebuchs ein und schaetzt Kalorien.
  Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne weiteren Text, mit diesen Schluesseln:
  {"type": "food"|"workout"|"steps"|"none", "description": str, "kcal": int, "protein_g": int, "fat_g": int,
 - "carbs_g": int, "minutes": int, "kind": "kraft"|"cardio"|"sonstiges"|"", "steps": int, "note": str}
 -Nicht zutreffende Felder: 0 bzw. leerer String.
 + "carbs_g": int, "minutes": int, "kind": "kraft"|"cardio"|"sonstiges"|"", "steps": int, "note": str,
-+ "fiber_g": int, "sugar_g": int, "satfat_g": int, "salt_g": float, "veg_g": int, "micros": [str]}
++ "fiber_g": int, "sugar_g": int, "satfat_g": int, "salt_g": float, "veg_g": int, "micros": [str],
++ "amounts": {"vitc": num, "vitd": num, "b6": num, "b12": num, "folat": num, "magnesium": num, "eisen": num, "zink": num,
++ "selen": num, "jod": num, "calcium": num, "kalium": num, "omega3": num}}
 +Nicht zutreffende Felder: 0, leerer String bzw. leere Liste.
  
  type "food" (Essen/Trinken): kcal = aufgenommene kcal, dazu Makros.
@@ -32,10 +34,12 @@
 +  veg_g = Gramm Obst und Gemuese (auch Huelsenfruechte, keine Kartoffeln, kein Saft).
 +- micros: hoechstens 3 Vitamine, Mineralstoffe oder gesunde Fette, von denen die Portion wirklich viel liefert
 +  (mind. etwa 20 % des Tagesbedarfs), auf Deutsch, z. B. ["Magnesium", "Vitamin C", "Omega-3"]. Sonst leere Liste.
++- amounts bei Essen immer vollstaendig schaetzen, typischer Gehalt der ganzen Portion, auch Nahrungsergaenzung.
++  mg: vitc, b6, magnesium, eisen, zink, calcium, kalium, omega3 (nur EPA+DHA). Mikrogramm: vitd, b12, folat, selen, jod.
  
  type "workout" (Sport/Training): kcal = verbrannte kcal ZUSAETZLICH zum Ruheumsatz, konservativ geschaetzt
  (MET-Werte, Koerpergewicht steht in der Anfrage). minutes = Dauer (sonst typische Dauer annehmen), kind = Art.
-@@ -87,6 +99,10 @@
+@@ -87,6 +103,31 @@
      return con
  
  
@@ -43,10 +47,41 @@
 +NUTRIENT_KEYS = ("fiber_g", "sugar_g", "satfat_g", "salt_g", "veg_g")  # gleiche Reihenfolge, Schluessel von Claude
 +
 +
++# Auswaehlbare Naehrstoffe: Name, Einheit, Tageswert Mann, Tageswert Frau (Richtwerte fuer Erwachsene, gerundet)
++CATALOG = {
++    "fiber": ("Ballaststoffe", "g", FIBER_GOAL, FIBER_GOAL),
++    "veg": ("Obst/Gemuese", "g", VEG_GOAL, VEG_GOAL),
++    "vitc": ("Vitamin C", "mg", 110, 95),
++    "vitd": ("Vitamin D", "µg", 20, 20),
++    "b6": ("Vitamin B6", "mg", 1.6, 1.4),
++    "b12": ("Vitamin B12", "µg", 4, 4),
++    "folat": ("Folat", "µg", 300, 300),
++    "magnesium": ("Magnesium", "mg", 350, 300),
++    "eisen": ("Eisen", "mg", 11, 16),
++    "zink": ("Zink", "mg", 14, 8),
++    "selen": ("Selen", "µg", 70, 60),
++    "jod": ("Jod", "µg", 150, 150),
++    "calcium": ("Calcium", "mg", 1000, 1000),
++    "kalium": ("Kalium", "mg", 4000, 4000),
++    "omega3": ("Omega-3 (EPA/DHA)", "mg", 250, 250),
++}
++DEFAULT_SELECTION = {"fiber": None, "veg": None}  # Schluessel -> eigenes Tagesziel, None = Richtwert
++
++
  def init_db():
      with db() as con:
          con.executescript(
-@@ -147,6 +163,11 @@
+@@ -141,12 +182,23 @@
+                 sex TEXT NOT NULL,
+                 trainings INTEGER NOT NULL
+             );
++            CREATE TABLE IF NOT EXISTS nutrient_prefs(
++                user_id INTEGER PRIMARY KEY,
++                selection TEXT NOT NULL
++            );
+             CREATE TABLE IF NOT EXISTS steps_keys(
+                 user_id INTEGER PRIMARY KEY,
+                 key TEXT NOT NULL UNIQUE
              );
              """
          )
@@ -55,10 +90,20 @@
 +        for col in NUTRIENT_COLS:
 +            if col not in cols:
 +                con.execute(f"ALTER TABLE meals ADD COLUMN {col} REAL")
++        if "amounts" not in cols:
++            con.execute("ALTER TABLE meals ADD COLUMN amounts TEXT")  # JSON, Schluessel wie CATALOG
          # Uebernahme aus der alten Ein-Nutzer-Konfiguration (.env) fuer den Admin
          if ADMIN_USER_ID and os.environ.get("PROFILE_AGE"):
              con.execute(
-@@ -248,7 +269,9 @@
+@@ -219,6 +271,7 @@
+     # Kohlenhydrate = alles, was nach Protein und Mindest-Fett uebrig bleibt
+     carbs = max(0, round((kcal - protein * 4 - fat_min * 9) / 4))
+     return {
++        "user_id": user_id, "day": day,
+         "kcal": kcal, "protein": protein, "fat_min": fat_min, "fat_max": fat_max, "carbs": carbs,
+         "training_day": act["workouts"] > 0, "profile": p,
+         "kg": kg, "bmr": round(bmr), "tdee": round(tdee), "manual": manual, "bonus": bonus,
+@@ -248,7 +301,9 @@
      with db() as con:
          row = con.execute(
              "SELECT COALESCE(SUM(kcal),0) k, COALESCE(SUM(protein),0) p, COALESCE(SUM(fat),0) f, "
@@ -69,7 +114,7 @@
              (user_id, day),
          ).fetchone()
      return dict(row)
-@@ -274,8 +297,66 @@
+@@ -274,8 +329,170 @@
      return text + (f" – {', '.join(notes)}" if notes else "")
  
  
@@ -79,6 +124,110 @@
 +        return {k: max(0.0, float(data[k])) for k in NUTRIENT_KEYS}
 +    except (KeyError, TypeError, ValueError):
 +        return None
++
++
++def fmt(x: float) -> str:
++    return f"{x:.0f}" if x >= 10 or x == int(x) else f"{x:.1f}".replace(".", ",")
++
++
++def amounts(data: dict) -> dict:
++    """Schaetzwerte je Katalogeintrag aus Claudes Antwort, Unlesbares bleibt weg."""
++    raw = data.get("amounts")
++    raw = dict(raw) if isinstance(raw, dict) else {}
++    raw.update(fiber=data.get("fiber_g"), veg=data.get("veg_g"))
++    out = {}
++    for key in CATALOG:
++        try:
++            out[key] = max(0.0, float(raw[key]))
++        except (KeyError, TypeError, ValueError):
++            pass
++    return out
++
++
++def get_selection(user_id) -> dict:
++    with db() as con:
++        row = con.execute("SELECT selection FROM nutrient_prefs WHERE user_id=?", (user_id,)).fetchone()
++    if not row:
++        return dict(DEFAULT_SELECTION)
++    sel = json.loads(row["selection"])
++    return {k: sel[k] for k in CATALOG if k in sel}
++
++
++def set_selection(user_id, sel: dict):
++    with db() as con:
++        con.execute(
++            "INSERT INTO nutrient_prefs(user_id,selection) VALUES(?,?) "
++            "ON CONFLICT(user_id) DO UPDATE SET selection=excluded.selection",
++            (user_id, json.dumps(sel)),
++        )
++
++
++def selected_goals(user_id) -> dict:
++    """Ausgewaehlte Naehrstoffe mit Tagesziel: eigenes Ziel, sonst Richtwert nach Geschlecht im Profil."""
++    col = 2 if get_profile(user_id)["sex"].startswith("m") else 3
++    return {k: goal or CATALOG[k][col] for k, goal in get_selection(user_id).items()}
++
++
++def day_amounts(user_id, day) -> dict:
++    """Tagessumme je Naehrstoff, nur aus Eintraegen mit Angaben dazu."""
++    with db() as con:
++        rows = con.execute(
++            "SELECT amounts FROM meals WHERE user_id=? AND day=? AND amounts IS NOT NULL", (user_id, day)
++        ).fetchall()
++    total = {}
++    for row in rows:
++        for k, v in json.loads(row["amounts"]).items():
++            total[k] = total.get(k, 0) + v
++    return total
++
++
++def complete_amounts(user_id, day) -> dict:
++    """Wie day_amounts, aber nur Naehrstoffe, die jeder Eintrag des Tages angibt. Fehlendes zaehlt nicht als 0."""
++    with db() as con:
++        rows = con.execute("SELECT amounts FROM meals WHERE user_id=? AND day=?", (user_id, day)).fetchall()
++    meals = [json.loads(r["amounts"] or "{}") for r in rows]
++    return {k: sum(m[k] for m in meals) for k in CATALOG if meals and all(k in m for m in meals)}
++
++
++def meal_amounts_line(user_id, data: dict) -> str:
++    """Feste Angabe je Mahlzeit. Ballaststoffe und Obst/Gemuese stehen schon in der Sternzeile."""
++    a = amounts(data)
++    parts = []
++    for k, goal in selected_goals(user_id).items():
++        if k in ("fiber", "veg"):
++            continue
++        name, unit = CATALOG[k][:2]
++        parts.append(f"{name} {fmt(a[k])} {unit} ({a[k] / goal:.0%})" if k in a else f"{name} ?")
++    return "~ " + ", ".join(parts) if parts else ""
++
++
++def amount_lines(user_id, day) -> list[str]:
++    a = day_amounts(user_id, day)
++    if not a:
++        return []
++    return [f"{CATALOG[k][0]}: {bar(a.get(k, 0), goal)} {fmt(a.get(k, 0))} / {fmt(goal)} {CATALOG[k][1]}"
++            for k, goal in selected_goals(user_id).items()]
++
++
++def amount_summary(user_id, days: list[str]) -> list[str]:
++    """Schnitt der ausgewaehlten Naehrstoffe, nur Tage mit vollstaendigen Angaben. Zaehlt nicht in die Punkte."""
++    per_day = [complete_amounts(user_id, d) for d in days]
++    lines, low = [], []
++    for k, goal in selected_goals(user_id).items():
++        values = [x[k] for x in per_day if k in x]
++        if not values:
++            continue
++        avg = sum(values) / len(values)
++        n = f"{len(values)} {'Tag' if len(values) == 1 else 'Tage'}"
++        lines.append(f"- {CATALOG[k][0]}: {fmt(avg)} / {fmt(goal)} {CATALOG[k][1]} ({n})")
++        if avg < 0.6 * goal:
++            low.append(CATALOG[k][0])
++    if not lines:
++        return []
++    lines.insert(0, "Naehrstoffe im Schnitt (grobe Schaetzung):")
++    if low:
++        lines.append(f"Eher wenig: {', '.join(low)}. (Schaetzung, kein Befund)")
++    return lines
 +
 +
 +def rate_nutrients(m: dict) -> str:
@@ -137,7 +286,7 @@
      tips = []
      d = (t["k"] - g["kcal"]) / g["kcal"]
      if d > 0.05:
-@@ -304,7 +385,12 @@
+@@ -304,7 +521,12 @@
              tips.append(f"Trainingstag mit nur {t['c']} g Kohlenhydraten (Ziel ~{g['carbs']} g)")
      else:
          carb_pts = 15
@@ -151,19 +300,18 @@
  
  
  def grade(score: int) -> str:
-@@ -341,6 +427,11 @@
+@@ -341,6 +563,10 @@
          f"KH       {bar(t['c'], g['carbs'])} {t['c']} / {g['carbs']} g" + (" (Trainingstag)" if g["training_day"] else ""),
          f"Fett     {t['f']} g (mind. {g['fat_min']} g, moeglichst unter {g['fat_max']} g)",
      ]
 +    if t["nk"]:
-+        lines.append(f"Ballast. {bar(t['fiber'], FIBER_GOAL)} {t['fiber']:.0f} / {FIBER_GOAL} g")
-+        lines.append(f"Obst/Gem {bar(t['veg'], VEG_GOAL)} {t['veg']:.0f} / {VEG_GOAL} g")
++        lines += amount_lines(g["user_id"], g["day"])
 +        if t["nk"] < t["n"]:
 +            lines.append(f"(Naehrstoffe nur fuer {t['nk']} von {t['n']} Eintraegen bekannt)")
      kcal_left, prot_left = g["kcal"] - t["k"], g["protein"] - t["p"]
      if t["f"] > g["fat_max"]:
          lines.append("Fett schon ueber dem Rahmen – Rest des Tages eher mager, damit Platz fuer Kohlenhydrate bleibt.")
-@@ -580,9 +671,11 @@
+@@ -580,9 +806,11 @@
  async def save_meal(update: Update, data: dict):
      uid = update.effective_user.id
      now = datetime.now(TZ)
@@ -171,54 +319,135 @@
      with db() as con:
          cur = con.execute(
 -            "INSERT INTO meals(user_id,day,ts,description,kcal,protein,fat,carbs) VALUES(?,?,?,?,?,?,?,?)",
-+            "INSERT INTO meals(user_id,day,ts,description,kcal,protein,fat,carbs,fiber,sugar,satfat,salt,veg) "
-+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
++            "INSERT INTO meals(user_id,day,ts,description,kcal,protein,fat,carbs,fiber,sugar,satfat,salt,veg,amounts) "
++            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
              (
                  uid,
                  now.date().isoformat(),
-@@ -592,6 +685,7 @@
+@@ -592,6 +820,8 @@
                  int(data["protein_g"]),
                  int(data["fat_g"]),
                  int(data["carbs_g"]),
 +                *([n[k] for k in NUTRIENT_KEYS] if n else [None] * len(NUTRIENT_KEYS)),
++                json.dumps(amounts(data)) if n else None,
              ),
          )
          entry_id = cur.lastrowid
-@@ -602,6 +696,8 @@
+@@ -602,6 +832,10 @@
          f"{data['kcal']} kcal | P {data['protein_g']} g | F {data['fat_g']} g | KH {data['carbs_g']} g",
          rate_meal(data, g["kcal"]),
      ]
 +    if healthy := rate_nutrients(data):
 +        lines.append(healthy)
++    if n and (fixed := meal_amounts_line(uid, data)):
++        lines.append(fixed)
      if data.get("note"):
          lines.append(f"Hinweis: {data['note']}")
      lines.append("")
-@@ -890,11 +986,14 @@
-         await update.effective_message.reply_text("Noch kein abgeschlossener Tag mit Eintraegen. Morgen gibt's die erste Bewertung.")
-         return
-     lines, scores, prot_days, over_days, train_days, step_vals = [], [], 0, 0, 0, []
-+    healthy_days = []  # (Ballaststoffe, Obst/Gemuese), nur Tage mit vollstaendigen Angaben
-     for d in logged:
-         t = day_totals(uid, d)
-         g = targets(uid, d)  # Ziel haengt von Schritten/Training des Tages ab
-         score, tips = score_day(t, g)
-         scores.append(score)
-+        if score_nutrients(t):
-+            healthy_days.append((t["fiber"], t["veg"]))
-         prot_days += t["p"] < 0.9 * g["protein"]
-         over_days += t["k"] > 1.05 * g["kcal"]
-         train_days += g["workouts"] > 0
-@@ -910,6 +1009,13 @@
+@@ -640,11 +874,52 @@
+     f"{BTN_GEWICHT} / {BTN_SCHRITTE} – Wert fuer heute eintragen\n"
+     f"{BTN_VERLAUF} – Diagramm fuer Kalorien und Gewicht\n"
+     f"{BTN_PROFIL} – deine Ziele und dein Profil\n"
++    "/naehrstoffe – waehlen, welche Naehrstoffe immer angegeben werden\n"
+     f"{BTN_UNDO} – letzten Eintrag entfernen\n\n"
+     "Tipp: Gramm-Angaben machen die Schaetzung deutlich genauer."
+ )
+ 
+ 
++def nutrient_menu(user_id) -> InlineKeyboardMarkup:
++    sel = get_selection(user_id)
++    buttons = [((("✓ " if k in sel else "") + CATALOG[k][0]), f"naehr:{k}") for k in CATALOG]
++    return inline(*[buttons[i:i + 2] for i in range(0, len(buttons), 2)])
++
++
++def nutrient_text(user_id) -> str:
++    goals, sel = selected_goals(user_id), get_selection(user_id)
++    lines = ["Welche Naehrstoffe soll ich immer angeben? Antippen schaltet um.", ""]
++    lines += [f"- {CATALOG[k][0]}: Ziel {fmt(v)} {CATALOG[k][1]}" + (" (eigenes Ziel)" if sel[k] else "")
++              for k, v in goals.items()] or ["Nichts ausgewaehlt."]
++    lines += ["", "Eigenes Tagesziel: /naehrstoffe selen 100", "Zurueck zum Richtwert: /naehrstoffe selen auto"]
++    return "\n".join(lines)
++
++
++def find_nutrient(name: str) -> str | None:
++    norm = re.sub(r"[^a-z0-9]", "", name.lower().replace("ü", "ue"))
++    for k, entry in CATALOG.items():
++        if norm in (k, re.sub(r"[^a-z0-9]", "", entry[0].lower())):
++            return k
++    return None
++
++
++async def cmd_naehrstoffe(update: Update, context: ContextTypes.DEFAULT_TYPE):
++    uid = update.effective_user.id
++    if context.args:
++        key, raw = find_nutrient(" ".join(context.args[:-1])), context.args[-1].replace(",", ".").lower()
++        try:
++            goal = None if raw == "auto" else float(raw)
++        except ValueError:
++            key = None
++        if key is None or (goal is not None and not 0 < goal < 100000):
++            await update.effective_message.reply_text(
++                "So geht's: /naehrstoffe selen 100 oder /naehrstoffe vitamin c auto\n"
++                "Moeglich: " + ", ".join(e[0] for e in CATALOG.values()))
++            return
++        set_selection(uid, {**get_selection(uid), key: goal})
++    await update.effective_message.reply_text(nutrient_text(uid), reply_markup=nutrient_menu(uid))
++
++
+ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+     uid = update.effective_user.id
+     if get_profile(uid)["is_default"]:
+@@ -824,6 +1099,19 @@
+             await q.message.reply_text("Keine Daten im Zeitraum.")
+         else:
+             await q.message.reply_photo(buf)
++    elif action == "naehrmenu":
++        await cmd_naehrstoffe(update, context)
++    elif action == "naehr" and rest and rest[0] in CATALOG:
++        uid, sel = q.from_user.id, get_selection(q.from_user.id)
++        if rest[0] in sel:
++            del sel[rest[0]]
++        else:
++            sel[rest[0]] = None
++        set_selection(uid, sel)
++        try:
++            await q.edit_message_text(nutrient_text(uid), reply_markup=nutrient_menu(uid))
++        except TelegramError:
++            log.warning("Naehrstoffmenue nicht aktualisiert", exc_info=True)
+     elif action == "steplink":
+         await cmd_schritte_link(update, context)
+     elif action == "undo":
+@@ -910,6 +1198,7 @@
      tail = [f"Trainingstage: {train_days} (Ziel {g['profile']['trainings']}/Woche)"]
      if step_vals:
          tail.append(f"Schritte im Schnitt: {round(sum(step_vals) / len(step_vals)):,}".replace(",", "."))
-+    if healthy_days:
-+        fiber = sum(h[0] for h in healthy_days) / len(healthy_days)
-+        veg = sum(h[1] for h in healthy_days) / len(healthy_days)
-+        tail.append(f"Naehrstoffe im Schnitt ({len(healthy_days)} Tage): Ballaststoffe {fiber:.0f}/{FIBER_GOAL} g, "
-+                    f"Obst/Gemuese {veg:.0f}/{VEG_GOAL} g")
-+        if fiber < 0.7 * FIBER_GOAL:
-+            tail.append("Mehr Ballaststoffe: Haferflocken, Vollkorn, Huelsenfruechte, Beeren, Gemuese.")
++    tail += amount_summary(uid, logged)
      if prot_days > len(logged) / 2:
          tail.append(f"Hauptbaustelle: Protein ({prot_days} von {len(logged)} Tagen zu wenig). Pro Mahlzeit 30-40 g anpeilen.")
      if over_days > len(logged) / 3:
+@@ -973,7 +1262,8 @@
+         "und tragen das Training. An Trainingstagen gibt's mehr kcal, und die gehen in Kohlenhydrate.\n"
+         + f"Ohne Schrittangabe werden {STEPS_DEFAULT:,} Schritte angenommen. ".replace(",", ".")
+         + f"Dein Gewicht ({BTN_GEWICHT}) fliesst automatisch ein.",
+-        reply_markup=inline([("Profil aendern", "profil_edit"), ("Schritte vom iPhone", "steplink")]),
++        reply_markup=inline([("Profil aendern", "profil_edit"), ("Schritte vom iPhone", "steplink")],
++                            [("Naehrstoffe waehlen", "naehrmenu")]),
+     )
+ 
+ 
+@@ -1288,6 +1578,7 @@
+             BotCommand("gewicht", "Gewicht eintragen, z. B. /gewicht 82.4"),
+             BotCommand("schritte", "Schritte eintragen, z. B. /schritte 8500"),
+             BotCommand("plot", "Verlauf als Diagramm"),
++            BotCommand("naehrstoffe", "Naehrstoffe und Tagesziele waehlen"),
+             BotCommand("profil", "Profil und Ziele"),
+             BotCommand("schritte_link", "Schritte automatisch vom iPhone"),
+             BotCommand("undo", "Letzten Eintrag loeschen"),
+@@ -1320,6 +1611,7 @@
+         ("heute", cmd_heute),
+         ("bewertung", cmd_bewertung),
+         ("profil", cmd_profil),
++        ("naehrstoffe", cmd_naehrstoffe),
+         ("schritte", cmd_schritte),
+         ("undo", cmd_undo),
+         ("ziel", cmd_ziel),
