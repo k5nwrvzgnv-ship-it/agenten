@@ -16,7 +16,7 @@ def daten_uri(name, art):
 
 
 schriften = re.sub(r"url\((.*?)\)", lambda m: f"url({daten_uri(m[1], 'font/woff2')})", lies("schriften.css"))
-bilder = {i: daten_uri(f"{i}.jpg", "image/jpeg") for i in ("153200004", "153200015", "153200022")}
+bilder = {i: daten_uri(f"klein/{i}.jpg", "image/jpeg") for i in ("153200004", "153200015", "153200022")}
 eintraege = ",".join(f"'{i}':'{u}'" for i, u in bilder.items())
 bedienung = lies("bedienung.js")
 alt = "B[i].src=i+'.jpg'"
