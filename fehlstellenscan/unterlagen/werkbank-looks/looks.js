@@ -4,9 +4,9 @@ neurolign:{n:'Neurolign',schrift:'Outfit',fs:15,modus:'dunkel',dichte:1,ecken:28
  dunkel:{flaeche:'#0e0d0c',akzent:'#d19a3f',buehne:'#000000'},hell:{flaeche:'#f4f2ee',akzent:'#8a5a10',buehne:'#dcd8d0'}},
 ruhig:{n:'Neurolign ruhig',schrift:'Outfit',fs:15,modus:'dunkel',dichte:1,ecken:22,strich:1,regler:'schieber',zahl:'aus',vorschau:'rund',
  dunkel:{flaeche:'#12110f',akzent:'#e0a94b',buehne:'#000000'},hell:{flaeche:'#f1efeb',akzent:'#7d5312',buehne:'#d8d4cc'}},
-/* Jans Wahl vom 24.11.2026; nur die Schrift ist ein Vorschlag */
-nacht:{n:'Nachtschicht',schrift:'Red Hat Text',fs:13.5,modus:'dunkel',dichte:1.15,ecken:9,strich:.4,kraft:.5,fuell:.6,regler:'dreh',zahl:'aus',vorschau:'eckig',getrennt:1,
- dunkel:{flaeche:'#000000',akzent:'#000000',buehne:'#05080b'},hell:{flaeche:'#e9eef2',akzent:'#00616b',buehne:'#b4bec6'}},
+/* Jans Wahl vom 24.11.2026, zweite Runde */
+nacht:{n:'Nachtschicht',schrift:'Figtree',fs:12,gewicht:300,lauf:.01,modus:'dunkel',dichte:1.15,ecken:6,strich:.5,kraft:.45,fuell:1.2,regler:'dreh',zahl:'aus',vorschau:'eckig',getrennt:1,
+ dunkel:{flaeche:'#000000',akzent:'#000000',buehne:'#000000'},hell:{flaeche:'#e9eef2',akzent:'#00616b',buehne:'#b4bec6'}},
 mess:{n:'Messblatt',schrift:'Source Serif 4',fs:16,modus:'hell',dichte:1,ecken:2,strich:.9,regler:'schieber',zahl:'aus',vorschau:'eckig',
  hell:{flaeche:'#ffffff',akzent:'#b3261e',buehne:'#e6e6e6'},dunkel:{flaeche:'#161616',akzent:'#ff8a7a',buehne:'#000000'}},
 farbe:{n:'Farbfeld',schrift:'Bricolage Grotesque',fs:16,modus:'hell',dichte:1,ecken:20,strich:1.7,regler:'schieber',zahl:'an',vorschau:'eckig',getrennt:1,

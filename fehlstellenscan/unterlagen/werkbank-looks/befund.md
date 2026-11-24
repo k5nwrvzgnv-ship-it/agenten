@@ -4,7 +4,7 @@ Jan: „optisch find ich das alte besser. von den funktionen das neue besser.“
 Was die alte Optik trägt (`git show edfff76`, werkbank-entwurf): fast schwarze Fläche, auf der das Holz leuchtet; Logo mit Outfit; Gold sparsam; ein weißer Pillenknopf; große dünne Maßzahl; Drehregler; runde Vorschauen; runde Bildbühne.
 Was die neue Bedienung trägt: Bilder hinzufügen, Objektliste mit unsicherstem zuerst, Stimmt/Enter, Löschen mit Rückgängig, Speicherstand, gleiche Buchstaben in Liste und Bild, Warnung bei doppelten Vorlabeln, Werkzeuge neben dem Bild, Mobilansicht. In allen Looks vollständig.
 
-Jans Wahl (24.11.2026): Nachtschicht, 13,5 px, schwarz/schwarz, luftig, Ecken 9, Umrisse 0,4, Drehregler, keine Schrift dabei gut. Werte sind jetzt Startwerte, Schrift offen (Vorschlag Red Hat Text).
+Jans Wahl (24.11.2026, „das passt erstmal“): Nachtschicht, Figtree 12 px leicht, Laufweite 0,01, alles schwarz, luftig, Ecken 6, Umrisse 0,5, Farbkraft 0,45, Füllung 1,2, Drehregler, keine große Zahl, eckige Vorschau. Knöpfe ohne Rand, als weiche Schattierung. Werte sind Startwerte.
 
 | Look | Aufbau | Form und Schrift |
 |---|---|---|
@@ -20,6 +20,6 @@ Bedienfeld („Anpassen“): Schrift (19 neue, 4 bisherige und Systemschrift, be
 Geändert gegenüber werkbank-startansicht: Hinzugefügte Bilder bleiben nach dem Neuladen (Ablage im Browser). Hinweise fangen keine Klicks auf dem Bild mehr ab. Dateinamen werden nicht als HTML gelesen.
 Grenzen: alles nur im Browser; kein echtes Vorlabeln neuer Bilder, dort Maße in px. Am Handy ist der Aufbau in allen Looks gleich, nur Schrift, Form und Farbe wechseln.
 
-24.11.2026, Jan: Datei war zu groß (2,6 MB), jetzt 1,2 MB (Bilder in klein/, Schriften nur mit deutschen Zeichen). Farben sollen dezenter gehen: Farbkraft und Füllung, Nachtschicht startet mit 0,5 und 0,6.
+24.11.2026, Jan: Datei war zu groß (2,6 MB), jetzt 1,2 MB (Bilder in klein/, Schriften nur mit deutschen Zeichen). Farben sollen dezenter gehen: Farbkraft und Füllung, Startwerte siehe Jans Wahl.
 
 Einzeldatei bauen: `python3 bauen.py`. Schriften: Google Fonts, SIL Open Font License.

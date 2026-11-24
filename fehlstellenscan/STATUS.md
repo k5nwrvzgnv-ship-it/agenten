@@ -48,7 +48,8 @@ die können später als Dateien Eingabe werden).
   Normfrage, was zum Ast zählt.
 - Werkbank als Web-App (Jan 24.11.2026, Entwurf, nicht entschieden): docs/bauplan-werkbank-web.md, klickbarer Entwurf
   unterlagen/werkbank-entwurf/. Jan hat ein KI-Rechenzentrum zugesagt bekommen (GPU und Datenregeln offen).
-  Sechs Looks auf der neuen Bedienung mit Bedienfeld: unterlagen/werkbank-looks/ (befund.md). Jan wählt.
+  Sechs Looks auf der neuen Bedienung mit Bedienfeld: unterlagen/werkbank-looks/ (befund.md).
+  Jan hat Nachtschicht mit Figtree gewählt (24.11.2026, „passt erstmal“), weiter am 25.11.
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
