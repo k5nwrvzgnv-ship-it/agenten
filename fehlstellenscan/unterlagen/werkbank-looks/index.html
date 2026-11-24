@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neurolign Looks</title>
+<link rel="stylesheet" href="schriften.css"><link rel="stylesheet" href="stil.css">
+</head><body>
+<div id="leiste" role="region" aria-label="Look wählen"><div id="looks"></div><button id="anp" aria-expanded="false" aria-controls="feld">Anpassen</button></div>
+<div id="app">
+<header class="kopf"><h1 class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><rect class="lg" width="100" height="100" rx="24"/><path class="ls" d="M30 71V29L70 71V29"/><g class="lk"><circle cx="30" cy="29" r="7.6"/><circle cx="70" cy="29" r="7.6"/><circle cx="30" cy="71" r="7.6"/><circle cx="70" cy="71" r="7.6"/></g></svg><span>Neuro<em>lign</em></span></h1>
+<button class="k" id="vor" aria-label="Voriges Bild"><svg class="i" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg></button><div class="pos" id="pos" aria-live="polite"></div><button class="k" id="nach" aria-label="Nächstes Bild"><svg class="i" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg></button>
+<span class="frei"></span><button class="k nurbreit" popovertarget="tasten">Tasten</button>
+<button class="k rand" id="rein" aria-label="Bilder hinzufügen"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="nurbreit">Bilder hinzufügen</span><span class="nurschmal">Bild</span></button><input type="file" id="datei" accept="image/*" multiple hidden><div popover id="tasten"><h2>Tasten und Maus</h2><dl><dt>Enter</dt><dd>Objekt stimmt, nächstes</dd><dt>S</dt><dd>Speichern und weiter</dd><dt>1 bis 6</dt><dd>Klasse</dd><dt>+ und −</dt><dd>Umriss größer, kleiner</dd><dt>N</dt><dd>Zeichnen</dd><dt>Entf</dt><dd>Objekt löschen</dd><dt>Strg Z</dt><dd>Zurück</dd><dt>Mausrad</dt><dd>Näher, weiter</dd><dt>Umschalt und Mausrad</dt><dd>Umriss größer, kleiner</dd><dt>Ziehen im Leeren</dt><dd>Bild verschieben</dd></dl></div></header>
+<section class="werk" aria-label="Werkzeuge">
+<button id="waehl" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="m6 4 12 8-5.500 1.200L10 19z"/></svg>Wählen</button>
+<button id="neu" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M6 18 8 7l10 3-2 8z"/></svg>Zeichnen</button><hr>
+<button id="rueck"><svg class="i" viewBox="0 0 24 24"><path d="M9 6 4 11l5 5M4 11h10a5 5 0 0 1 0 10h-3"/></svg>Zurück</button><hr>
+<button id="plus"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.500-4.500M11 8.500v5M8.500 11h5"/></svg>Näher</button>
+<button id="fit"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>Ganzes Bild</button>
+<button id="aus" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"/><path d="m4 4 16 16"/></svg>Umrisse aus</button></section>
+<main class="buehne"><svg id="bild" role="img" aria-label="Bild mit Umrissen"></svg><div class="hinweis" id="hin" role="status" hidden></div></main>
+<nav class="film" id="film" aria-label="Bilder"></nav>
+<aside class="seite" aria-label="Objekte"><div class="ob"><h2>Objekte <span id="stand"></span></h2><ul id="liste"></ul></div><section id="detail" aria-label="Gewähltes Objekt"></section><div class="fuss"><button class="k gutm" id="gutm" hidden>Stimmt</button><button class="sp" id="sp">Speichern und weiter</button><p id="spt"></p></div></aside>
+</div>
+<aside id="feld" aria-label="Look anpassen" hidden></aside>
+<script src="daten.js"></script><script src="looks.js"></script><script src="bedienung.js"></script>
+</body></html>
