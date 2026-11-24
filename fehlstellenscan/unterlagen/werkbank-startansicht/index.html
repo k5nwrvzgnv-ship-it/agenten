@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Werkbank: Labeln</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Bildarbeitsplatz: neutrales Grau um das Holz, damit Farbe beurteilbar bleibt. Farbe nur für Klassen, Auswahl, Speichern. */
+:root{--grund:#c3c7c8;--flaeche:#f6f7f7;--linie:#d3d7d8;--stark:#8a9294;--text:#1b2224;--leise:#566064;--akzent:#00666e;--wahl:#dceff0;--warn:#8a4b00;
+--f:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{font:400 14px/1.4 var(--f);color:var(--text);background:var(--flaeche);font-variant-numeric:tabular-nums;display:grid;grid-template:48px minmax(0,1fr) 92px/72px minmax(0,1fr) 320px;grid-template-areas:"kopf kopf kopf" "werk bild seite" "werk film seite"}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;border-radius:4px}
+button:disabled{color:var(--stark);cursor:default}
+:focus-visible{outline:2px solid var(--akzent);outline-offset:1px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+header{grid-area:kopf;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--linie)}
+h1{font-size:15px;font-weight:600;margin:0 20px 0 0}
+.k{height:36px;min-width:36px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.k:hover:not(:disabled),.werk button:hover:not(:disabled){background:#e6e9ea}
+.pos{min-width:200px;text-align:center}.pos b{font-weight:500}
+.frei{flex:1}.nurschmal{display:none}
+.rand{border:1px solid var(--stark)}
+.werk{grid-area:werk;border-right:1px solid var(--linie);display:flex;flex-direction:column;align-items:stretch;padding:8px 6px;gap:2px}
+.werk button{min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px}
+.werk button[aria-pressed=true]{background:var(--wahl);color:var(--akzent);font-weight:500}
+.werk hr{width:100%;border:0;border-top:1px solid var(--linie);margin:6px 0}
+.buehne{grid-area:bild;position:relative;background:var(--grund);overflow:hidden;min-height:0}
+#bild{position:absolute;inset:0;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none}
+#bild.zeichnen{cursor:crosshair}
+#bild .o{cursor:pointer}#bild .pk{cursor:grab}
+.hinweis{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:var(--text);color:#fff;padding:8px 14px;border-radius:4px;display:flex;gap:14px;align-items:center;max-width:calc(100% - 24px)}
+.hinweis button{color:#9fe6ea;font-weight:500;min-height:24px}
+.film{grid-area:film;display:flex;gap:10px;align-items:center;padding:0 12px;border-top:1px solid var(--linie);overflow-x:auto}
+.film button{display:flex;gap:8px;align-items:center;text-align:left;padding:6px 12px 6px 6px;min-width:176px;border:1px solid transparent;font-size:13px}
+.film button:hover{background:#e6e9ea}.film button[aria-current]{background:var(--wahl);border-color:var(--akzent)}
+.film img{width:66px;height:60px;object-fit:cover;display:block;border-radius:2px}
+.film span{display:block}.film small{font-size:12px;color:var(--leise)}
+.film .ok,.ok{color:#17603a}
+.seite{grid-area:seite;border-left:1px solid var(--linie);display:flex;flex-direction:column;min-height:0}
+.seite h2{font-size:14px;font-weight:600;margin:0;padding:12px 16px 8px;display:flex;justify-content:space-between}.seite h2 span{font-weight:400;color:var(--leise)}
+#liste{flex:1;overflow:auto;list-style:none;margin:0;padding:0;border-top:1px solid var(--linie)}
+#liste li{border-bottom:1px solid var(--linie)}
+.zl{width:100%;display:grid;grid-template-columns:16px 12px minmax(0,1fr) auto 64px;gap:8px;align-items:center;text-align:left;padding:0 16px;min-height:44px;border-radius:0}
+.zl:hover{background:#ebeeee}li.an{background:var(--wahl)}li.an .zl{font-weight:500}
+.fb{width:12px;height:12px;border-radius:2px;box-shadow:0 0 0 1px #0005}
+.zl .st{font-size:12px;color:var(--leise);font-weight:400;text-align:right}.zl .st.ok{color:#17603a}.zl .st.un{color:var(--warn)}
+.dp{margin:0;padding:0 16px 6px;color:var(--warn)}.zl b{font-weight:500}.ed{padding:4px 16px 14px}
+.kl{display:grid;grid-template-columns:1fr 1fr;gap:4px;border:0;padding:0;margin:0 0 12px}
+.kl label{display:flex;align-items:center;gap:7px;min-height:32px;padding:0 8px;background:var(--flaeche);border:1px solid var(--linie);border-radius:4px;cursor:pointer;position:relative}
+.kl input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.kl label:hover{border-color:var(--stark)}.kl label:has(:checked){border-color:var(--akzent);box-shadow:inset 0 0 0 1px var(--akzent);font-weight:500}.kl label:has(:focus-visible){outline:2px solid var(--akzent);outline-offset:1px}
+.kl kbd{margin-left:auto}kbd{font:inherit;font-size:12px;color:var(--leise)}
+.rg{display:grid;grid-template-columns:68px minmax(0,1fr) 64px;gap:8px;align-items:center;min-height:36px}.rg input{width:100%;accent-color:var(--akzent);height:24px;margin:0}.rg output{text-align:right}
+.ed details summary{min-height:32px;display:flex;align-items:center;cursor:pointer;color:var(--leise)}.ed details summary::before{content:"";width:7px;height:7px;border:solid var(--leise);border-width:0 1.5px 1.5px 0;transform:rotate(-45deg);margin-right:8px}.ed details[open] summary::before{transform:rotate(45deg)}
+.ed dl{display:grid;grid-template-columns:1fr auto;margin:4px 0 8px;gap:4px}.ed dd{margin:0}
+.akt{display:flex;gap:8px;margin-top:8px}.akt .gut{flex:1;height:44px;background:var(--akzent);color:#fff;font-weight:600}.akt .gut:hover{background:#00545b!important}.gut kbd{color:#d5f1f2;font-weight:400}
+.akt .lo{width:44px;height:44px;border:1px solid var(--stark);display:grid;place-items:center;background:#fff}.akt .lo:hover{border-color:#a3221d;color:#a3221d}
+.leer{padding:16px;color:var(--leise)}
+.fuss{padding:12px 16px;border-top:1px solid var(--linie)}
+.sp{width:100%;height:44px;background:#fff;border:1px solid var(--akzent);color:var(--akzent);font-weight:600}.sp:hover{background:#eef8f8}.sp.voll{background:var(--akzent);color:#fff}.sp.voll:hover{background:#00545b}
+.gutm{display:none}.fuss p{margin:8px 0 0;font-size:12px;color:var(--leise)}
+#tasten{border:1px solid var(--stark);border-radius:4px;padding:16px 20px;background:#fff;color:var(--text)}#tasten h2{font-size:14px;margin:0 0 8px}#tasten dl{display:grid;grid-template-columns:auto auto;gap:4px 24px;margin:0}#tasten dd{margin:0;color:var(--leise)}
+.ziel{outline:3px solid var(--akzent);outline-offset:-3px}
+@media(max-width:860px){
+html,body{height:auto}body{grid-template:48px 92vw 56px auto/minmax(0,1fr);grid-template-areas:"kopf" "bild" "werk" "seite";padding-bottom:110px}
+h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.film,.nurbreit{display:none!important}.nurschmal{display:inline}header{padding:0 6px;gap:0;position:sticky;top:0;background:var(--flaeche);z-index:2}.k{height:44px;min-width:44px}.pos{min-width:0;flex:1}.frei{display:none}
+.werk{flex-direction:row;border:0;border-bottom:1px solid var(--linie);padding:2px 4px;gap:0}.werk button{flex:1;min-height:50px;font-size:11.5px}.werk hr{display:none}
+.seite{border:0}#liste{overflow:visible}.zl{min-height:48px}.kl label{min-height:44px}.kl kbd{display:none}.rg{min-height:44px}.rg input{height:32px}.akt .gut,.akt .lo{height:44px}.akt .lo{width:48px}
+.fuss{position:fixed;left:0;right:0;bottom:0;background:var(--flaeche);z-index:3;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}.fuss{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fuss p{grid-column:1/-1;grid-row:1;margin:0}.gutm:not([hidden]){display:flex;background:var(--akzent);color:#fff;font-weight:600}.gutm[hidden]+.sp{grid-column:1/-1}.akt .gut{display:none}.akt .lo{width:auto!important;flex:1;display:flex!important;align-items:center;justify-content:center;gap:8px}.akt .lo::after{content:"Löschen"}.kl{grid-template-columns:1fr 1fr 1fr}.kl label{padding:0 6px;font-size:13px;gap:5px}}
+</style></head><body>
+<header><h1>Werkbank</h1>
+<button class="k" id="vor" aria-label="Voriges Bild"><svg class="i" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg></button><div class="pos" id="pos" aria-live="polite"></div><button class="k" id="nach" aria-label="Nächstes Bild"><svg class="i" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg></button>
+<span class="frei"></span><button class="k nurbreit" popovertarget="tasten">Tasten</button>
+<button class="k rand" id="rein" aria-label="Bilder hinzufügen"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="nurbreit">Bilder hinzufügen</span><span class="nurschmal">Bild</span></button><input type="file" id="datei" accept="image/*" multiple hidden><div popover id="tasten"><h2>Tasten und Maus</h2><dl><dt>Enter</dt><dd>Objekt stimmt, nächstes</dd><dt>S</dt><dd>Speichern und weiter</dd><dt>1 bis 6</dt><dd>Klasse</dd><dt>+ und −</dt><dd>Umriss größer, kleiner</dd><dt>N</dt><dd>Zeichnen</dd><dt>Entf</dt><dd>Objekt löschen</dd><dt>Strg Z</dt><dd>Zurück</dd><dt>Mausrad</dt><dd>Näher, weiter</dd><dt>Umschalt und Mausrad</dt><dd>Umriss größer, kleiner</dd><dt>Ziehen im Leeren</dt><dd>Bild verschieben</dd></dl></div></header>
+<section class="werk" aria-label="Werkzeuge">
+<button id="waehl" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="m6 4 12 8-5.500 1.200L10 19z"/></svg>Wählen</button>
+<button id="neu" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M6 18 8 7l10 3-2 8z"/></svg>Zeichnen</button><hr>
+<button id="rueck"><svg class="i" viewBox="0 0 24 24"><path d="M9 6 4 11l5 5M4 11h10a5 5 0 0 1 0 10h-3"/></svg>Zurück</button><hr>
+<button id="plus"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.500-4.500M11 8.500v5M8.500 11h5"/></svg>Näher</button>
+<button id="fit"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>Ganzes Bild</button>
+<button id="aus" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"/><path d="m4 4 16 16"/></svg>Umrisse aus</button></section>
+<main class="buehne"><svg id="bild" role="img" aria-label="Bild mit Umrissen"></svg><div class="hinweis" id="hin" role="status" hidden></div></main>
+<nav class="film" id="film" aria-label="Bilder"></nav>
+<aside class="seite" aria-label="Objekte"><h2>Objekte <span id="stand"></span></h2><ul id="liste"></ul><div class="fuss"><button class="k gutm" id="gutm" hidden>Stimmt</button><button class="sp" id="sp">Speichern und weiter</button><p id="spt"></p></div></aside>
+<script src="daten.js"></script>
+<script>
+const $=i=>document.getElementById(i),B=DATEN.bilder,IDS=['153200004','153200015','153200022'];
+const K={0:['Ast lebend','#00e0ea'],1:['Ast tot','#ff3fa4'],2:['Astloch','#a48dff'],3:['Ast mit Riss','#ff9a3d'],4:['Riss','#5c9dff'],6:['Harz','#6bea7f']},KL=Object.keys(K);
+for(const i of IDS)B[i].src=i+'.jpg';
+const fix=x=>x.toFixed(1).replace('.',',').replace('-','−'),kl=(x,a,b)=>Math.max(a,Math.min(b,x));
+const flae=p=>p.reduce((s,a,i)=>{const b=p[(i+1)%p.length];return s+a[0]*b[1]-b[0]*a[1]},0);
+function ber(p,n){const L=[0];p.forEach((a,i)=>{const b=p[(i+1)%p.length];L.push(L[i]+Math.hypot(b[0]-a[0],b[1]-a[1]))});const o=[];let j=0;for(let k=0;k<n;k++){const t=L[p.length]*k/n;while(L[j+1]<t)j++;const a=p[j],b=p[(j+1)%p.length],f=(t-L[j])/((L[j+1]-L[j])||1);o.push([a[0]+f*(b[0]-a[0]),a[1]+f*(b[1]-a[1])])}return o}
+const obj=(k,c,p)=>({k,c,b:ber(flae(p)<0?[...p].reverse():p,28),r:0,g:0,ok:false});
+const st={};let halt={};try{halt=JSON.parse(localStorage.getItem('werkbank-start')||'{}')}catch(e){}
+function lade(i){const h=halt[i];st[i]=h?{o:h.o,zeit:h.zeit,dreck:false,h:[]}:{o:B[i].modell.map(o=>obj(o.k,o.c,o.p)),zeit:null,dreck:false,h:[]}}
+IDS.forEach(lade);
+let id=IDS[0],sel=-1,zeich=null,maus=null,zieh=null,pan=null,nur=false,V=null,uhr;
+const name=i=>B[i].name||i;const S=()=>st[id],akt=()=>S().o[sel],ein=()=>B[id].px?'px':'mm',fak=()=>B[id].px||1;
+function form(o){let p=o.b;for(let t=0;t<o.g;t++)p=p.map((a,j)=>{const n=p.length,v=p[(j+n-1)%n],w=p[(j+1)%n];return[a[0]*.5+(v[0]+w[0])*.25,a[1]*.5+(v[1]+w[1])*.25]});
+ return p.map((a,j)=>{const n=p.length,v=p[(j+n-1)%n],w=p[(j+1)%n],x=w[0]-v[0],y=w[1]-v[1],l=Math.hypot(x,y)||1;return[kl(a[0]+o.r*y/l,0,B[id].lmm),kl(a[1]-o.r*x/l,0,B[id].qmm)]})}
+const pfad=p=>{const n=p.length;return p.reduce((d,a,i)=>{const z=p[(i+n-1)%n],b=p[(i+1)%n],c=p[(i+2)%n];return d+`C${a[0]+(b[0]-z[0])/6} ${a[1]+(b[1]-z[1])/6} ${b[0]-(c[0]-a[0])/6} ${b[1]-(c[1]-a[1])/6} ${b[0]} ${b[1]}`},`M${p[0]}`)+'Z'};
+function mass(p){let m={w:1e9},x=0;for(let g=0;g<180;g+=2){const u=[Math.cos(g*Math.PI/180),Math.sin(g*Math.PI/180)],q=p.map(a=>a[0]*u[0]+a[1]*u[1]),lo=Math.min(...q),hi=Math.max(...q);if(hi-lo<m.w)m={w:hi-lo,u,lo,hi};x=Math.max(x,hi-lo)}m.x=x;m.v=[-m.u[1],m.u[0]];const q=p.map(a=>a[0]*m.v[0]+a[1]*m.v[1]);m.m=(Math.min(...q)+Math.max(...q))/2;return m}
+const angs=p=>p.some(a=>a[0]<.8||a[1]<.8||a[0]>B[id].lmm-.8||a[1]>B[id].qmm-.8);
+const gr=p=>angs(p)?'am Rand':(mass(p).w*fak()).toFixed(ein()=='px'?0:1).replace('.',',')+' '+ein();
+const folge=()=>S().o.map((o,i)=>i).sort((a,b)=>(S().o[a].c??2)-(S().o[b].c??2));
+const bu_=i=>String.fromCharCode(65+folge().indexOf(i)),mitte=p=>[p.reduce((s,a)=>s+a[0],0)/p.length,p.reduce((s,a)=>s+a[1],0)/p.length];
+const doppelt=i=>{const p=form(S().o[i]),m=mitte(p),w=mass(p).w;return S().o.findIndex((o,j)=>{if(j==i)return false;const q=form(o),n=mitte(q);return Math.hypot(m[0]-n[0],m[1]-n[1])<Math.min(w,mass(q).w)*.4})};
+function merk(){const s=S();s.h.push(JSON.stringify([s.o,sel]));if(s.h.length>80)s.h.shift();s.dreck=true}
+function sag(t,k,f){const h=$('hin');h.hidden=false;h.textContent=t;if(k){const b=document.createElement('button');b.textContent=k;b.onclick=()=>{h.hidden=true;f()};h.append(b)}clearTimeout(uhr);uhr=setTimeout(()=>h.hidden=true,5000)}
+/* Bild */
+function ganz(){V=[0,0,B[id].lmm,B[id].qmm]}
+function zoom(f,x,y){x??=V[0]+V[2]/2;y??=V[1]+V[3]/2;const w=kl(V[2]*f,12,B[id].lmm),q=w/V[2];V=[kl(x-(x-V[0])*q,0,B[id].lmm-w),kl(y-(y-V[1])*q,0,B[id].qmm-V[3]*q),w,V[3]*q];bildZ()}
+function bildZ(){const sv=$('bild');sv.setAttribute('viewBox',V.join(' '));const r=sv.getBoundingClientRect(),z=Math.max(V[2]/r.width,V[3]/r.height)||.1;let s=`<image href="${B[id].src}" width="${B[id].lmm}" height="${B[id].qmm}" preserveAspectRatio="none"/>`;
+ if(!nur){S().o.forEach((o,i)=>{const a=i==sel,p=form(o),f=K[o.k][1];s+=`<path class="o" data-o="${i}" d="${pfad(p)}" fill="${f}" fill-opacity="${a?.06:.16}" stroke="#000a" stroke-width="${(a?4.500:3.500)*z}"/><path d="${pfad(p)}" fill="none" stroke="${f}" stroke-width="${(a?2.500:1.800)*z}" pointer-events="none"/>`;
+ if(a&&!zeich){if(!angs(p)){const m=mass(p),P=x=>[m.u[0]*x+m.v[0]*m.m,m.u[1]*x+m.v[1]*m.m],A=P(m.lo),E=P(m.hi);s+=`<path d="M${A}L${E}" stroke="#000a" stroke-width="${3.500*z}" pointer-events="none"/><path d="M${A}L${E}" stroke="#fff" stroke-width="${1.500*z}" pointer-events="none"/>`}
+ p.forEach((q,j)=>{if(j%2==0)s+=`<rect x="${q[0]-3.500*z}" y="${q[1]-3.500*z}" width="${7*z}" height="${7*z}" fill="#fff" stroke="#000" stroke-width="${z}" pointer-events="none"/><circle class="pk" data-p="${j}" cx="${q[0]}" cy="${q[1]}" r="${10*z}" fill="transparent"/>`});
+ const ob=Math.min(...p.map(q=>q[1])),re=Math.max(...p.map(q=>q[0])),li=Math.min(...p.map(q=>q[0])),t=`${bu_(i)} ${K[o.k][0]}, ${gr(p)}`,rx=re+12*z+t.length*8.500*z<V[0]+V[2]?re+12*z:li-12*z,anc=rx>li?'start':'end';s+=`<text x="${rx}" y="${ob+14*z}" text-anchor="${anc}" font-size="${15*z}" font-weight="600" font-family="IBM Plex Sans,sans-serif" fill="#fff" stroke="#000c" stroke-width="${4*z}" paint-order="stroke" stroke-linejoin="round" pointer-events="none">${t}</text>`}});
+ if(!zeich){S().o.forEach((o,i)=>{if(i==sel)return;const p=form(o),l=Math.min(...p.map(q=>q[0])),re=Math.max(...p.map(q=>q[0])),u=Math.max(...p.map(q=>q[1])),d=doppelt(i);const x=(l+re)/2,y=d>=0?(u+20*z):(Math.min(...p.map(q=>q[1]))+u)/2+5*z;s+=`<text x="${x}" y="${y}" text-anchor="middle" font-size="${15*z}" font-weight="600" font-family="IBM Plex Sans,sans-serif" fill="#fff" stroke="#000c" stroke-width="${4*z}" paint-order="stroke" pointer-events="none">${bu_(i)}</text>`})}
+ if(zeich&&zeich.length){s+=`<polyline points="${[...zeich,maus||zeich.at(-1)].join(' ')}" fill="none" stroke="#000" stroke-width="${4*z}"/><polyline points="${[...zeich,maus||zeich.at(-1)].join(' ')}" fill="none" stroke="#fff" stroke-width="${2*z}"/>`;zeich.forEach((q,i)=>s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${(i?4:7)*z}" fill="#fff" stroke="#000" stroke-width="${z}"/>`)}}
+ sv.innerHTML=s;sv.classList.toggle('zeichnen',!!zeich);$('fit').disabled=V[2]>=B[id].lmm-.01}
+/* Liste */
+function zeile(i){const o=S().o[i],p=form(o),a=i==sel,dp=doppelt(i),s=o.ok?['geprüft','ok']:o.c===null?['neu','']:[`KI ${Math.round(o.c*100)} %`,o.c<.7?'un':''];
+ return`<li class="${a?'an':''}"><button class="zl" data-i="${i}" aria-expanded="${a}"><b>${bu_(i)}</b><span class="fb" style="background:${K[o.k][1]}"></span><span>${K[o.k][0]}</span><span class="gr">${gr(p)}</span><span class="st ${s[1]}">${s[0]}</span></button>${a?(dp>=0?`<p class="dp">Liegt auf ${bu_(dp)}. Eins von beiden löschen.</p>`:'')+ed(o,p):''}</li>`}
+function ed(o,p){const m=mass(p),e=ein()=='px'?x=>Math.round(x*fak())+' px':x=>fix(x)+' mm';return`<div class="ed"><fieldset class="kl" aria-label="Klasse">${KL.map((k,n)=>`<label><input type="radio" name="kl" value="${k}" ${k==o.k?'checked':''}><span class="fb" style="background:${K[k][1]}"></span>${K[k][0]}<kbd>${n+1}</kbd></label>`).join('')}</fieldset>
+<div class="rg"><label for="r">Größe</label><input id="r" type="range" min="-4" max="4" step="0.1" value="${o.r}"><output id="rv">${wr(o)}</output></div>
+<details ${window.mehr?'open':''}><summary>Glätten und Maße</summary><div class="rg"><label for="g">Glätten</label><input id="g" type="range" min="0" max="8" step="1" value="${o.g}"><output id="gv">${o.g}</output></div><dl><dt>Kleinster Durchmesser</dt><dd>${angs(p)?'angeschnitten':e(m.w)}</dd><dt>Größter Durchmesser</dt><dd>${angs(p)?'angeschnitten':e(m.x)}</dd></dl></details>
+<div class="akt"><button class="k gut" id="gut">${o.ok?'Nächstes Objekt':'Stimmt'}<kbd class="nurbreit">Enter</kbd></button><button class="lo" id="lo" aria-label="Objekt löschen"><svg class="i" viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg></button></div></div>`}
+const wr=o=>(o.r>0?'+':'')+(B[id].px?Math.round(o.r*fak())+' px':fix(o.r)+' mm');
+function liste(){const s=S(),n=s.o.length,g=s.o.filter(o=>o.ok).length,li=$('liste'),y=li.scrollTop;li.innerHTML=n?folge().map(zeile).join(''):`<li class="leer">${B[id].px?'Kein Vorlabel: Das Modell läuft in diesem Entwurf nicht. Umriss mit Zeichnen anlegen.':'Keine Objekte. Mit Zeichnen anlegen oder leer speichern.'}</li>`;li.scrollTop=y;$('stand').textContent=n?`${g} von ${n} geprüft`:'';fuss()}
+function fuss(){const s=S(),n=IDS.indexOf(id);const of=s.o.filter(o=>!o.ok).length;$('sp').classList.toggle('voll',!of);$('gutm').hidden=!akt()||akt().ok;$('spt').textContent=(of?`${of} offen. `:'')+(s.dreck?'Nicht gespeicherte Änderungen':s.zeit?`Gespeichert um ${s.zeit}, nur in diesem Browser`:'Noch nicht gespeichert');$('rueck').disabled=!s.h.length;$('pos').innerHTML=`<b>${name(id)}</b>, ${n+1} von ${IDS.length}`;$('vor').disabled=!n;$('nach').disabled=n==IDS.length-1;
+ $('film').innerHTML=IDS.map((i,j)=>{const t=st[i],w=t.dreck?'geändert':t.zeit?'gespeichert':t.o.length?`${t.o.filter(o=>!o.ok).length} offen`:'leer';return`<button data-i="${i}" ${i==id?'aria-current="true"':''}><img src="${B[i].src}" alt=""><span>${name(i)}<small style="display:block" class="${w=='gespeichert'?'ok':''}">${w}</small></span></button>`}).join('')}
+const mal=()=>{bildZ();liste()};
+function waehle(i,hin){sel=i;mal();const z=document.querySelector('li.an');if(z&&innerWidth>860)z.scrollIntoView({block:'nearest'});if(hin){const b=document.querySelector('li.an .zl');b&&b.focus({preventScroll:true})}}
+function oeffne(i){id=i;zeich=null;werk();ganz();const f=folge().find(j=>!S().o[j].ok);sel=f??-1;mal()}
+/* Aktionen */
+function werk(){$('neu').setAttribute('aria-pressed',!!zeich);$('waehl').setAttribute('aria-pressed',!zeich)}
+function zeichnen(an){zeich=an?[]:null;maus=null;if(an){sel=-1;nur=false;$('aus').setAttribute('aria-pressed',false);sag('Punkte um die Stelle setzen. Zum Schließen den ersten Punkt anklicken.')}else $('hin').hidden=true;werk();mal()}
+function schliess(){if(zeich.length<3)return zeichnen(false);merk();const s=S();s.o.push(obj(1,null,zeich));zeichnen(false);waehle(s.o.length-1)}
+function gut(){const o=akt();if(!o)return;if(!o.ok){merk();o.ok=true}const f=folge().find(j=>!S().o[j].ok);if(f===undefined){waehle(-1);sag('Alle Objekte geprüft.','Speichern und weiter',speich)}else waehle(f,true)}
+function loesch(){if(!akt())return;merk();const n=K[akt().k][0];S().o.splice(sel,1);waehle(-1);sag(n+' gelöscht.','Rückgängig',rueck)}
+function rueck(){const h=S().h.pop();if(h){[S().o,sel]=JSON.parse(h);if(sel>=S().o.length)sel=-1;mal()}}
+function setK(k){if(akt()){merk();akt().k=+k;mal()}}
+function setR(d){const o=akt();if(!o)return;merk();o.r=Math.round(kl(o.r+d,-4,4)*10)/10;mal()}
+function speich(){const s=S();s.zeit=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});s.dreck=false;s.h=[];if(!B[id].px){halt[id]={o:s.o,zeit:s.zeit};try{localStorage.setItem('werkbank-start',JSON.stringify(halt))}catch(e){}}
+ const n=name(id),off=IDS.find(i=>!st[i].zeit);const t=`${n} gespeichert.`;if(off&&off!=id)oeffne(off);else mal();sag(off?t:t+' Alle Bilder fertig.')}
+$('liste').addEventListener('click',e=>{if(e.target.closest('#gut'))return gut();if(e.target.closest('#lo'))return loesch();const b=e.target.closest('.zl');if(b)waehle(+b.dataset.i==sel?-1:+b.dataset.i,true)});
+$('liste').addEventListener('change',e=>{if(e.target.name=='kl'){const v=e.target.value;setK(v);document.querySelector(`.kl input[value="${v}"]`).focus()}});
+let gem=null;$('liste').addEventListener('input',e=>{const t=e.target;if(t.id!='r'&&t.id!='g')return;if(gem!==t){merk();gem=t}const o=akt();o[t.id]=+t.value;$('rv').textContent=wr(o);if($('gv'))$('gv').textContent=o.g;bildZ();fuss();document.querySelector('li.an .zl .gr').textContent=gr(form(o))});
+$('liste').addEventListener('change',e=>{if(e.target.type=='range')gem=null});
+$('liste').addEventListener('toggle',e=>{if(e.target.tagName=='DETAILS')window.mehr=e.target.open},true);
+$('neu').onclick=()=>zeichnen(!zeich);$('waehl').onclick=()=>zeichnen(false);$('rueck').onclick=rueck;$('plus').onclick=()=>{const o=akt(),p=o&&form(o);o?zoom(.6,p.reduce((s,a)=>s+a[0],0)/p.length,p.reduce((s,a)=>s+a[1],0)/p.length):zoom(.6)};$('fit').onclick=()=>{ganz();bildZ()};$('aus').onclick=()=>{nur=!nur;$('aus').setAttribute('aria-pressed',nur);bildZ()};
+$('vor').onclick=()=>oeffne(IDS[IDS.indexOf(id)-1]);$('nach').onclick=()=>oeffne(IDS[IDS.indexOf(id)+1]);$('film').onclick=e=>{const b=e.target.closest('button');if(b)oeffne(b.dataset.i)};$('sp').onclick=speich;$('gutm').onclick=gut;
+/* Zeiger */
+const sv=$('bild'),ort=e=>{const q=new DOMPoint(e.clientX,e.clientY).matrixTransform(sv.getScreenCTM().inverse());return[q.x,q.y]};
+sv.onpointerdown=e=>{const a=ort(e),d=e.target.dataset;if(zeich){const z=sv.getScreenCTM().a;if(zeich.length>2&&Math.hypot(a[0]-zeich[0][0],a[1]-zeich[0][1])*z<14)return schliess();zeich.push(a);return bildZ()}
+ if(d.p!==undefined){merk();const o=akt();o.b=form(o);o.r=0;o.g=0;zieh={j:+d.p,a,s:o.b.map(q=>[...q])};sv.setPointerCapture(e.pointerId);return}
+ if(d.o!==undefined&&+d.o!=sel)return waehle(+d.o);pan={x:e.clientX,y:e.clientY,v:[...V],w:false,leer:d.o===undefined};sv.setPointerCapture(e.pointerId)};
+sv.onpointermove=e=>{if(zeich){maus=ort(e);if(zeich.length)bildZ();return}if(zieh){const a=ort(e),o=akt(),n=o.b.length;o.b=zieh.s.map((q,i)=>{let t=Math.abs(i-zieh.j);t=Math.min(t,n-t);const f=Math.exp(-t*t/3);return[kl(q[0]+f*(a[0]-zieh.a[0]),0,B[id].lmm),kl(q[1]+f*(a[1]-zieh.a[1]),0,B[id].qmm)]});return bildZ()}
+ if(pan){const z=sv.getScreenCTM().a,dx=(e.clientX-pan.x)/z,dy=(e.clientY-pan.y)/z;if(Math.hypot(dx,dy)*z>4)pan.w=true;if(pan.w){V=[kl(pan.v[0]-dx,0,Math.max(0,B[id].lmm-V[2])),kl(pan.v[1]-dy,0,Math.max(0,B[id].qmm-V[3])),V[2],V[3]];bildZ()}}};
+sv.onpointerup=sv.onpointercancel=()=>{if(zieh){zieh=null;liste()}else if(pan){const p=pan;pan=null;if(!p.w&&p.leer&&sel>=0)waehle(-1)}};
+sv.addEventListener('wheel',e=>{e.preventDefault();const u=(e.deltaY||e.deltaX)<0;if(e.shiftKey)return setR(u?.1:-.1);const a=ort(e);zoom(u?.85:1/.85,a[0],a[1])},{passive:false});
+addEventListener('keydown',e=>{const t=e.target,fe=t.matches&&t.matches('input[type=range]');if(document.querySelector(':popover-open'))return;if((e.ctrlKey||e.metaKey)&&e.key=='z'){e.preventDefault();return rueck()}if(e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key=='Escape'&&zeich)return zeichnen(false);if(e.key=='Enter'){if(zeich){e.preventDefault();return schliess()}if(t==document.body||t.closest&&t.closest('li.an')&&!t.closest('#lo')&&!t.closest('summary')){e.preventDefault();return gut()}return}
+ const k=KL[+e.key-1];if(k&&akt())return setK(k);if(fe)return;if(e.key=='Delete'||e.key=='Backspace')loesch();if(e.key=='+')setR(.1);if(e.key=='-')setR(-.1);if(e.key=='n')zeichnen(!zeich);if(e.key=='s')speich()});
+/* Bilder hinein */
+$('rein').onclick=()=>$('datei').click();$('datei').onchange=e=>rein(e.target.files);
+function rein(fs){let erst;[...fs].filter(f=>f.type.startsWith('image/')).forEach(f=>{const i='n'+Date.now()+Math.random(),u=URL.createObjectURL(f),im=new Image;im.onload=()=>{B[i]={src:u,name:f.name.length>22?f.name.slice(0,19)+'…':f.name,lmm:168,qmm:168*im.naturalHeight/im.naturalWidth,px:im.naturalWidth/168,modell:[]};IDS.push(i);lade(i);if(!erst){erst=i;oeffne(i)}else fuss()};im.src=u})}
+const bu=document.querySelector('.buehne');bu.ondragover=e=>{e.preventDefault();bu.classList.add('ziel')};bu.ondragleave=()=>bu.classList.remove('ziel');bu.ondrop=e=>{e.preventDefault();bu.classList.remove('ziel');rein(e.dataTransfer.files)};
+new ResizeObserver(()=>V&&bildZ()).observe(sv);oeffne(IDS.find(i=>!st[i].zeit)||IDS[0]);
+</script></body></html>
