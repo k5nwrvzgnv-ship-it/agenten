@@ -1,0 +1,224 @@
+--- alt/bot.py	2026-11-24 10:52:56.658091717 +0100
++++ neu/bot.py	2026-11-24 10:52:56.704093057 +0100
+@@ -50,6 +50,12 @@
+ FAT_MAX_SHARE = 0.30  # darueber verdraengt Fett spuerbar Kohlenhydrate
+ BASE_ACTIVITY = 1.2  # Grundumsatz x 1.2 = Alltag ohne Schritte/Training
+ KCAL_PER_STEP_KG = 0.0005  # ~0.04 kcal pro Schritt bei 80 kg
++# Naehrstoffe: Tageswerte fuer Erwachsene (Richtwerte DGE/WHO)
++FIBER_GOAL = 30  # g Ballaststoffe
++VEG_GOAL = 400  # g Obst und Gemuese
++SALT_MAX = 6  # g
++SUGAR_MAX_SHARE = 0.10  # zugesetzter Zucker, Anteil an den kcal
++SATFAT_MAX_SHARE = 0.10  # gesaettigtes Fett, Anteil an den kcal
+ WORKOUT_CREDIT = 0.75  # Trainings-kcal werden meist ueberschaetzt, nur 75 % aufs Budget
+ 
+ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+@@ -59,13 +65,19 @@
+ SYSTEM_PROMPT = """Du ordnest Eintraege eines Ernaehrungs- und Trainingstagebuchs ein und schaetzt Kalorien.
+ Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne weiteren Text, mit diesen Schluesseln:
+ {"type": "food"|"workout"|"steps"|"none", "description": str, "kcal": int, "protein_g": int, "fat_g": int,
+- "carbs_g": int, "minutes": int, "kind": "kraft"|"cardio"|"sonstiges"|"", "steps": int, "note": str}
+-Nicht zutreffende Felder: 0 bzw. leerer String.
++ "carbs_g": int, "minutes": int, "kind": "kraft"|"cardio"|"sonstiges"|"", "steps": int, "note": str,
++ "fiber_g": int, "sugar_g": int, "satfat_g": int, "salt_g": float, "veg_g": int, "micros": [str]}
++Nicht zutreffende Felder: 0, leerer String bzw. leere Liste.
+ 
+ type "food" (Essen/Trinken): kcal = aufgenommene kcal, dazu Makros.
+ - Mengenangaben des Nutzers (Gramm, Stueck, Liter) haben Vorrang. Sonst typische Portionsgroessen annehmen.
+ - Mehrere Bestandteile: zu einer Gesamtsumme addieren, description listet sie knapp auf.
+ - Versteckte Kalorien (Oel, Butter, Sossen, Getraenke) einrechnen, wenn plausibel.
++- Naehrstoffe immer mitschaetzen: fiber_g = Ballaststoffe, sugar_g = nur zugesetzter/freier Zucker (auch Honig, Saft,
++  nicht der aus ganzem Obst, Gemuese und Milch), satfat_g = gesaettigte Fettsaeuren, salt_g = Salz gesamt,
++  veg_g = Gramm Obst und Gemuese (auch Huelsenfruechte, keine Kartoffeln, kein Saft).
++- micros: hoechstens 3 Vitamine, Mineralstoffe oder gesunde Fette, von denen die Portion wirklich viel liefert
++  (mind. etwa 20 % des Tagesbedarfs), auf Deutsch, z. B. ["Magnesium", "Vitamin C", "Omega-3"]. Sonst leere Liste.
+ 
+ type "workout" (Sport/Training): kcal = verbrannte kcal ZUSAETZLICH zum Ruheumsatz, konservativ geschaetzt
+ (MET-Werte, Koerpergewicht steht in der Anfrage). minutes = Dauer (sonst typische Dauer annehmen), kind = Art.
+@@ -87,6 +99,10 @@
+     return con
+ 
+ 
++NUTRIENT_COLS = ("fiber", "sugar", "satfat", "salt", "veg")
++NUTRIENT_KEYS = ("fiber_g", "sugar_g", "satfat_g", "salt_g", "veg_g")  # gleiche Reihenfolge, Schluessel von Claude
++
++
+ def init_db():
+     with db() as con:
+         con.executescript(
+@@ -147,6 +163,11 @@
+             );
+             """
+         )
++        # Naehrstoffspalten nachruesten. NULL = Eintrag aus der Zeit davor, nicht bewertbar
++        cols = {row["name"] for row in con.execute("PRAGMA table_info(meals)")}
++        for col in NUTRIENT_COLS:
++            if col not in cols:
++                con.execute(f"ALTER TABLE meals ADD COLUMN {col} REAL")
+         # Uebernahme aus der alten Ein-Nutzer-Konfiguration (.env) fuer den Admin
+         if ADMIN_USER_ID and os.environ.get("PROFILE_AGE"):
+             con.execute(
+@@ -248,7 +269,9 @@
+     with db() as con:
+         row = con.execute(
+             "SELECT COALESCE(SUM(kcal),0) k, COALESCE(SUM(protein),0) p, COALESCE(SUM(fat),0) f, "
+-            "COALESCE(SUM(carbs),0) c FROM meals WHERE user_id=? AND day=?",
++            "COALESCE(SUM(carbs),0) c, COUNT(*) n, COUNT(fiber) nk, COALESCE(SUM(fiber),0) fiber, "
++            "COALESCE(SUM(sugar),0) sugar, COALESCE(SUM(satfat),0) satfat, COALESCE(SUM(salt),0) salt, "
++            "COALESCE(SUM(veg),0) veg FROM meals WHERE user_id=? AND day=?",
+             (user_id, day),
+         ).fetchone()
+     return dict(row)
+@@ -274,8 +297,66 @@
+     return text + (f" – {', '.join(notes)}" if notes else "")
+ 
+ 
++def nutrients(data: dict) -> dict | None:
++    """Naehrstoffe aus Claudes Antwort. None, wenn etwas fehlt oder unlesbar ist: dann wird nicht bewertet."""
++    try:
++        return {k: max(0.0, float(data[k])) for k in NUTRIENT_KEYS}
++    except (KeyError, TypeError, ValueError):
++        return None
++
++
++def rate_nutrients(m: dict) -> str:
++    """Zweite Sternzeile: Ballaststoffe, Obst/Gemuese und Mikronaehrstoffe, Abzug fuer Zucker, gesaettigtes Fett, Salz."""
++    n = nutrients(m)
++    kcal = max(int(m["kcal"]), 1)
++    if n is None or (kcal < 50 and n["veg_g"] < 50):
++        return ""  # Kaffee, Wasser usw. nicht bewerten
++    micros = m.get("micros")
++    micros = [str(x) for x in micros if x][:3] if isinstance(micros, list) else []
++    density = n["fiber_g"] / kcal * 1000
++    pts = 2 + (2 if density >= 14 else 1 if density >= 8 else 0)
++    pts += (2 if n["veg_g"] >= 150 else 1 if n["veg_g"] >= 75 else 0) + (1 if len(micros) >= 2 else 0)
++    notes = []
++    if n["sugar_g"] >= 5 and n["sugar_g"] * 4 / kcal > SUGAR_MAX_SHARE:
++        notes.append("viel zugesetzter Zucker")
++    if n["satfat_g"] >= 5 and n["satfat_g"] * 9 / kcal > 1.5 * SATFAT_MAX_SHARE:
++        notes.append("viel gesaettigtes Fett")
++    if n["salt_g"] > SALT_MAX * 0.45:
++        notes.append("sehr salzig")
++    stars = max(1, min(5, pts - len(notes)))
++    text = (f"Naehrstoffe: {'★' * stars}{'☆' * (5 - stars)} Ballaststoffe {n['fiber_g']:.0f} g, "
++            f"Obst/Gemuese {n['veg_g']:.0f} g")
++    if micros:
++        text += f", reich an {', '.join(micros)}"
++    return text + (f" – {', '.join(notes)}" if notes else "")
++
++
++def score_nutrients(t: dict) -> tuple[float, list[str]] | None:
++    """0-20 Punkte: Ballaststoffe 8, Obst/Gemuese 6, Zucker, gesaettigtes Fett und Salz je 2.
++    None, wenn der Tag Eintraege ohne Naehrstoffangaben enthaelt."""
++    if not t["n"] or t["nk"] < t["n"]:
++        return None
++    kcal = max(t["k"], 1)
++    pts = 8 * min(1, t["fiber"] / FIBER_GOAL) + 6 * min(1, t["veg"] / VEG_GOAL)
++    tips = []
++    if t["fiber"] < 0.7 * FIBER_GOAL:
++        tips.append(f"nur {t['fiber']:.0f} g Ballaststoffe (Ziel {FIBER_GOAL} g)")
++    if t["veg"] < 0.6 * VEG_GOAL:
++        tips.append(f"wenig Obst/Gemuese ({t['veg']:.0f} g, Ziel {VEG_GOAL} g)")
++    for value, limit, tip in (
++        (t["sugar"] * 4 / kcal, SUGAR_MAX_SHARE, "viel zugesetzter Zucker"),
++        (t["satfat"] * 9 / kcal, SATFAT_MAX_SHARE, "viel gesaettigtes Fett"),
++        (t["salt"], SALT_MAX, "viel Salz"),
++    ):
++        pts += 2 * max(0, 1 - max(0, value - limit) / limit)
++        if value > 1.3 * limit:
++            tips.append(tip)
++    return pts, tips
++
++
+ def score_day(t: dict, g: dict) -> tuple[int, list[str]]:
+-    """0-100 Punkte fuer einen abgeschlossenen Tag: kcal 35, Protein 35, Fett 15, Kohlenhydrate 15."""
++    """0-100 Punkte fuer einen abgeschlossenen Tag: 80 % Makros (kcal 35, Protein 35, Fett 15, Kohlenhydrate 15)
++    und 20 Punkte Naehrstoffe. Tage ohne vollstaendige Naehrstoffangaben zaehlen wie frueher nur nach Makros."""
+     tips = []
+     d = (t["k"] - g["kcal"]) / g["kcal"]
+     if d > 0.05:
+@@ -304,7 +385,12 @@
+             tips.append(f"Trainingstag mit nur {t['c']} g Kohlenhydraten (Ziel ~{g['carbs']} g)")
+     else:
+         carb_pts = 15
+-    return round(kcal_pts + prot_pts + fat_pts + carb_pts), tips
++    score = kcal_pts + prot_pts + fat_pts + carb_pts
++    healthy = score_nutrients(t)
++    if healthy:
++        score = 0.8 * score + healthy[0]
++        tips += healthy[1]
++    return round(score), tips
+ 
+ 
+ def grade(score: int) -> str:
+@@ -341,6 +427,11 @@
+         f"KH       {bar(t['c'], g['carbs'])} {t['c']} / {g['carbs']} g" + (" (Trainingstag)" if g["training_day"] else ""),
+         f"Fett     {t['f']} g (mind. {g['fat_min']} g, moeglichst unter {g['fat_max']} g)",
+     ]
++    if t["nk"]:
++        lines.append(f"Ballast. {bar(t['fiber'], FIBER_GOAL)} {t['fiber']:.0f} / {FIBER_GOAL} g")
++        lines.append(f"Obst/Gem {bar(t['veg'], VEG_GOAL)} {t['veg']:.0f} / {VEG_GOAL} g")
++        if t["nk"] < t["n"]:
++            lines.append(f"(Naehrstoffe nur fuer {t['nk']} von {t['n']} Eintraegen bekannt)")
+     kcal_left, prot_left = g["kcal"] - t["k"], g["protein"] - t["p"]
+     if t["f"] > g["fat_max"]:
+         lines.append("Fett schon ueber dem Rahmen – Rest des Tages eher mager, damit Platz fuer Kohlenhydrate bleibt.")
+@@ -580,9 +671,11 @@
+ async def save_meal(update: Update, data: dict):
+     uid = update.effective_user.id
+     now = datetime.now(TZ)
++    n = nutrients(data)
+     with db() as con:
+         cur = con.execute(
+-            "INSERT INTO meals(user_id,day,ts,description,kcal,protein,fat,carbs) VALUES(?,?,?,?,?,?,?,?)",
++            "INSERT INTO meals(user_id,day,ts,description,kcal,protein,fat,carbs,fiber,sugar,satfat,salt,veg) "
++            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             (
+                 uid,
+                 now.date().isoformat(),
+@@ -592,6 +685,7 @@
+                 int(data["protein_g"]),
+                 int(data["fat_g"]),
+                 int(data["carbs_g"]),
++                *([n[k] for k in NUTRIENT_KEYS] if n else [None] * len(NUTRIENT_KEYS)),
+             ),
+         )
+         entry_id = cur.lastrowid
+@@ -602,6 +696,8 @@
+         f"{data['kcal']} kcal | P {data['protein_g']} g | F {data['fat_g']} g | KH {data['carbs_g']} g",
+         rate_meal(data, g["kcal"]),
+     ]
++    if healthy := rate_nutrients(data):
++        lines.append(healthy)
+     if data.get("note"):
+         lines.append(f"Hinweis: {data['note']}")
+     lines.append("")
+@@ -890,11 +986,14 @@
+         await update.effective_message.reply_text("Noch kein abgeschlossener Tag mit Eintraegen. Morgen gibt's die erste Bewertung.")
+         return
+     lines, scores, prot_days, over_days, train_days, step_vals = [], [], 0, 0, 0, []
++    healthy_days = []  # (Ballaststoffe, Obst/Gemuese), nur Tage mit vollstaendigen Angaben
+     for d in logged:
+         t = day_totals(uid, d)
+         g = targets(uid, d)  # Ziel haengt von Schritten/Training des Tages ab
+         score, tips = score_day(t, g)
+         scores.append(score)
++        if score_nutrients(t):
++            healthy_days.append((t["fiber"], t["veg"]))
+         prot_days += t["p"] < 0.9 * g["protein"]
+         over_days += t["k"] > 1.05 * g["kcal"]
+         train_days += g["workouts"] > 0
+@@ -910,6 +1009,13 @@
+     tail = [f"Trainingstage: {train_days} (Ziel {g['profile']['trainings']}/Woche)"]
+     if step_vals:
+         tail.append(f"Schritte im Schnitt: {round(sum(step_vals) / len(step_vals)):,}".replace(",", "."))
++    if healthy_days:
++        fiber = sum(h[0] for h in healthy_days) / len(healthy_days)
++        veg = sum(h[1] for h in healthy_days) / len(healthy_days)
++        tail.append(f"Naehrstoffe im Schnitt ({len(healthy_days)} Tage): Ballaststoffe {fiber:.0f}/{FIBER_GOAL} g, "
++                    f"Obst/Gemuese {veg:.0f}/{VEG_GOAL} g")
++        if fiber < 0.7 * FIBER_GOAL:
++            tail.append("Mehr Ballaststoffe: Haferflocken, Vollkorn, Huelsenfruechte, Beeren, Gemuese.")
+     if prot_days > len(logged) / 2:
+         tail.append(f"Hauptbaustelle: Protein ({prot_days} von {len(logged)} Tagen zu wenig). Pro Mahlzeit 30-40 g anpeilen.")
+     if over_days > len(logged) / 3:
