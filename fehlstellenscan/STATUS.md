@@ -46,6 +46,8 @@ die können später als Dateien Eingabe werden).
   Henri und Felix lesen gegen), auswertung.py. Henri und Felix haben Windows und Mac (X-AnyLabeling passt).
   Phase 1: läuft seit 23.11.2026 auf Jans Mac (Abschnitt Werkbank). Offen: Freigabe X-AnyLabeling (Phase 2);
   Normfrage, was zum Ast zählt.
+- Werkbank als Web-App (Jan 24.11.2026, Entwurf, nicht entschieden): docs/bauplan-werkbank-web.md, klickbarer Entwurf
+  unterlagen/werkbank-entwurf/. Jan hat ein KI-Rechenzentrum zugesagt bekommen (GPU und Datenregeln offen).
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
