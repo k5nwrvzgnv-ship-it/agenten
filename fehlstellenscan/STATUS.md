@@ -630,3 +630,4 @@ holzbalkenscan, Reihe ISO 800 (Testbalken 261019 Seite A, BSH mit 7 Lamellen, 64
 - 21.11.2026: Rüdiger hält Gruppen-Texte wirklich kurz, lieber Bilder als lange Erklärung (Anlass: Jan „der letzte text war aber zu lang von ihm“).
 - 21.11.2026: Beispielbilder des Modells für die Gruppe nur mit Masken, keine Bounding Boxen (Anlass: Jan „die bounding boxes wollen wir nicht mehr sehen. nur die masken“).
 - 19.11.2026: Rüdiger bleibt bei der Frage: keine ungefragten Verweise auf andere Verfahren, Teilprojekte oder Personen, keine internen Ordner- oder Dateinamen (Anlass: Jan „der Verweis zu Felix müsste nicht sein“).
+- 24.11.2026: Jan will die Materie beim Arbeiten verstehen (5-6 h je Woche, kaum Python): Bei jedem Schritt an Daten und Training kurz erklären, was er da tut und warum (Anlass: Jan „bei jedem schritt auch nochmal besser zu verstehen was ich da überhaupt mache“).
