@@ -36,6 +36,6 @@ Rechenzentrum: GPU, Datenregeln. Erreichbarkeit (werkbank.meldro.de, Schritte al
 erst nach Jans Okay. Lizenz ultralytics AGPL vor Weitergabe prüfen.
 
 ## Gestaltung (Jan 24.11.2026)
-Schwarz, modern, Stil des Neurolign-Logos (runde Knoten, Verbindungen, Nussbraun). Keine Erklärsätze in der
+Reines Schwarz, weiße Schrift, eine Neonfarbe (Pink nur bei Streit), feine Linien, Lichtsaum um Knöpfe, modern, Stil des Neurolign-Logos (runde Knoten, Verbindungen, Nussbraun nur im Schriftzug). Keine Erklärsätze in der
 Oberfläche, nur kurze Beschriftungen. Den von Jan genannten Medium-Artikel konnte Claude nicht lesen (403).
 Bilder: Kodytek u. a. 2022, CC BY 4.0, verkleinert; Nennung in der App noch unterbringen.
