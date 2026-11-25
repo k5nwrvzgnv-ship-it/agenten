@@ -63,6 +63,17 @@ def plan(balken: dict, seite: str, kamera_rolle: float, faktor: float, schritt: 
             "zu_breit": info["flaeche_mm"] >= quer, "mitten_mm": mitten(balken["laenge_mm"], laengs, schritt)}
 
 
+def neu_skalieren(p: dict, faktor: float) -> dict:
+    """Plan einer Seite mit Fotos auf einen neu gemessenen Bildwinkel umrechnen. Die Lage der Abschnitte bleibt, so
+    sind die Fotos gemacht; nur die Maße im Bild ändern sich (Bildfeld proportional zu 1 / Faktor)."""
+    k = p["faktor"] / faktor
+    neu = {**p, "faktor": faktor, "laengs_mm": p["laengs_mm"] * k, "quer_mm": p["quer_mm"] * k}
+    if p.get("voll_mm"):
+        neu["voll_mm"] = p["voll_mm"] * k
+    neu["luecke"], neu["zu_breit"] = p["schritt_mm"] >= neu["laengs_mm"], p["flaeche_mm"] >= neu["quer_mm"]
+    return neu
+
+
 def zuschnitt_pruefen(werte) -> list[float] | None:
     """Rechteck in Anteilen, None oder das ganze Bild = kein Zuschnitt."""
     if werte is None:
@@ -88,6 +99,24 @@ def faktor_aus_messung(anteil: float, strecke_mm: float, abstand: float) -> floa
     if not 0.2 <= faktor <= 4:
         raise ValueError("Das Maß passt nicht zum Bild. Punkte und Länge prüfen.")
     return faktor
+
+
+def kontrolle(anteil: float, voll_mm: float, zollstock_mm: float) -> dict:
+    """Prüfmessung: Strecke im Foto nach dem Plan der Seite gegen das Maß vom Zollstock. anteil = Strecke im Bild /
+    lange Bildseite, voll_mm = lange Bildseite auf der Fläche. Abweichung in Prozent, plus heißt im Foto zu groß."""
+    if isinstance(anteil, bool) or not isinstance(anteil, (int, float)) or not 0.002 <= anteil <= 1.3:
+        raise ValueError("Zwei Punkte im Foto anklicken.")
+    foto = anteil * voll_mm
+    return {"foto_mm": round(foto, 1), "zollstock_mm": round(zollstock_mm, 1),
+            "abweichung": round((foto / zollstock_mm - 1) * 100, 2)}
+
+
+def kontrollen_mittel(liste: list[dict]) -> dict | None:
+    """Mittlere Abweichung aller Prüfmessungen eines Balkens, None ohne Messung."""
+    if not liste:
+        return None
+    werte = [k["abweichung"] for k in liste]
+    return {"anzahl": len(werte), "mittel": round(sum(werte) / len(werte), 2), "min": min(werte), "max": max(werte)}
 
 
 def zahl(daten: dict, feld: str, von: float, bis: float, name: str) -> float:

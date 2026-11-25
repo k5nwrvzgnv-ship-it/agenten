@@ -43,6 +43,24 @@ class TestLogik(unittest.TestCase):
         with self.assertRaises(ValueError):
             l.faktor_aus_messung(0.001, 200, 400)
 
+    def test_kontrolle(self):
+        k = l.kontrolle(163 / 600, 600, 160)
+        self.assertEqual(k["foto_mm"], 163.0)
+        self.assertAlmostEqual(k["abweichung"], 1.88)
+        with self.assertRaises(ValueError):
+            l.kontrolle(0.0001, 600, 160)
+        self.assertIsNone(l.kontrollen_mittel([]))
+        m = l.kontrollen_mittel([{"abweichung": 1.0}, {"abweichung": -3.0}])
+        self.assertEqual((m["anzahl"], m["mittel"], m["min"], m["max"]), (2, -1.0, -3.0, 1.0))
+
+    def test_neu_skalieren(self):
+        p = l.plan(BALKEN, "1", 600, 0.7)
+        neu = l.neu_skalieren(p, 0.75)
+        frisch = l.plan(BALKEN, "1", 600, 0.75, p["schritt_mm"])
+        for feld in ("laengs_mm", "quer_mm", "voll_mm"):
+            self.assertAlmostEqual(neu[feld], frisch[feld])
+        self.assertEqual((neu["mitten_mm"], neu["faktor"]), (p["mitten_mm"], 0.75))
+
     def test_zuschnitt(self):
         voll = l.plan(BALKEN, "1", 600, 0.7)
         eng = l.plan(BALKEN, "1", 600, 0.7, None, [0.1, 0.0, 0.8, 0.9])
@@ -147,6 +165,34 @@ class TestServer(unittest.TestCase):
         self.assertEqual(stand["seiten"]["2"]["plan"]["abstand_mm"], 500)
         self.assertEqual(self.ruf("/api/balken", {**BALKEN, "id": b})[0], 400)
         self.assertEqual(self.ruf("/api/vorschub", {"balken": b, "seite": "1", "mm": 300})[0], 400)
+
+    def test_kontrolle_speichern_und_zuruecknehmen(self):
+        b = self.balken()
+        weg = {"balken": b, "seite": "1", "nr": 0, "anteil": 0.1, "zollstock_mm": 50}
+        self.assertEqual(self.ruf("/api/kontrolle", weg)[0], 400)
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        faktor = self.server.werk.einst["faktor"]
+        status, antwort = self.ruf("/api/kontrolle", weg)
+        self.assertEqual(status, 200, antwort)
+        voll = antwort["seiten"]["1"]["plan"]["voll_mm"]
+        k = antwort["kontrollen"][0]
+        self.assertEqual((k["seite"], k["foto_mm"]), ("1", round(0.1 * voll, 1)))
+        self.assertEqual(antwort["pruefung"]["anzahl"], 1)
+        self.assertEqual(self.server.werk.einst["faktor"], faktor)
+        antwort = self.ruf("/api/kontrolle", {"balken": b, "weg": True})[1]
+        self.assertEqual((antwort["kontrollen"], antwort["pruefung"]), ([], None))
+        self.assertEqual(self.ruf("/api/kontrolle", {"balken": b, "weg": True})[0], 400)
+
+    def test_massstab_gilt_fuer_gemachte_fotos(self):
+        b = self.balken()
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        vorher = self.ruf("/api/stand")[1]["balken"][0]["seiten"]["1"]["plan"]
+        status, antwort = self.ruf("/api/massstab", {"balken": b, "seite": "1", "anteil": 0.5, "strecke_mm": 300})
+        self.assertEqual(status, 200, antwort)
+        nachher = antwort["balken"][0]["seiten"]["1"]["plan"]
+        self.assertAlmostEqual(nachher["faktor"], antwort["einstellungen"]["faktor"])
+        self.assertAlmostEqual(nachher["voll_mm"] * 0.5, 300)
+        self.assertEqual(nachher["mitten_mm"], vorher["mitten_mm"])
 
     def test_loeschen_und_zurueck(self):
         b = self.balken()

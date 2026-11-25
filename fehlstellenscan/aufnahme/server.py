@@ -129,6 +129,7 @@ class Werk:
                 s["plan"], s["fehler"] = self.plan(b, seite), ""
             except ValueError as e:
                 s["plan"], s["fehler"] = None, str(e)
+        b["pruefung"] = l.kontrollen_mittel(b.get("kontrollen", []))
         return b
 
     def stand(self) -> dict:
@@ -190,10 +191,43 @@ class Werk:
             if isinstance(anteil, bool) or not isinstance(anteil, (int, float)):
                 raise ValueError("Zwei Punkte im Foto anklicken.")
             strecke = l.zahl(daten, "strecke_mm", 10, 2000, "Strecke")
-            self.einst["faktor"] = l.faktor_aus_messung(anteil, strecke, s["plan"]["abstand_mm"])
-            self.einst["faktor_gemessen"] = True
+            faktor = l.faktor_aus_messung(anteil, strecke, s["plan"]["abstand_mm"])
+            self.einst["faktor"], self.einst["faktor_gemessen"] = faktor, True
             self.sichern()
+            # Fotos dieses Balkens gelten ab jetzt mit dem gemessenen Maßstab (Labeln rechnet mit dem Plan der Seite)
+            for andere in b["seiten"].values():
+                if andere["fotos"] and andere["plan"] and andere["plan"]["faktor"] != faktor:
+                    andere["plan"] = l.neu_skalieren(andere["plan"], faktor)
+                    for f in andere["fotos"].values():
+                        if f.get("breite_px"):
+                            f["px_je_mm"] = round(l.px_je_mm(max(f["breite_px"], f["hoehe_px"]),
+                                                             andere["plan"].get("voll_mm") or andere["plan"]["laengs_mm"]), 2)
+            self.ablegen(b)
         return self.stand()
+
+    def kontrolle(self, daten: dict) -> dict:
+        """Prüfmessung an einem Foto speichern (Strecke im Foto gegen Zollstock), mit weg=True die letzte zurücknehmen.
+        Der Maßstab bleibt dabei, wie er ist."""
+        with self.schloss:
+            b = self.lesen(daten.get("balken"))
+            liste = b.setdefault("kontrollen", [])
+            if daten.get("weg"):
+                if not liste:
+                    raise ValueError("Es gibt keine Prüfmessung zum Zurücknehmen.")
+                liste.pop()
+            else:
+                seite = daten.get("seite")
+                s = self.seite(b, seite)
+                nr = str(daten.get("nr"))
+                if nr not in s["fotos"]:
+                    raise ValueError("Zu diesem Abschnitt gibt es kein Foto.")
+                p = s["plan"]
+                k = l.kontrolle(daten.get("anteil"), p.get("voll_mm") or p["laengs_mm"],
+                                l.zahl(daten, "zollstock_mm", 1, 2000, "Zollstock"))
+                liste.append({"seite": seite, "foto": s["fotos"][nr]["datei"], **k,
+                              "zeit": datetime.now().isoformat(timespec="seconds")})
+            self.ablegen(b)
+            return self.mit_plan(b)
 
     def abschnitt(self, kennung, seite, nr) -> tuple[dict, dict, dict]:
         b = self.lesen(kennung)
@@ -514,7 +548,7 @@ class Anfrage(BaseHTTPRequestHandler):
                 q = {k: v[0] for k, v in parse_qs(teile.query).items()}
                 return self.antwort(200, {"balken": werk.foto_ablegen(q.get("balken"), q.get("seite"), int(q.get("nr", "-1")), roh)})
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
-                    "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
+                    "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
                     "/api/zurueck": werk.zurueckholen, "/api/label": werk.kette.speichern, "/api/teil": werk.kette.teil_setzen,
                     "/api/training": werk.kette.starten, "/api/abbrechen": werk.kette.abbrechen}
             if weg not in wege:

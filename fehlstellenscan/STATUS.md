@@ -413,7 +413,8 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Kurzbefehl: Wiederholen { GET warten; Foto aufnehmen; POST foto }, Schritte und Adressen unter ···. „warten“ endet
   erst beim Auslösen.
 - Abstand = Linse bis Rolle (Start 60 cm, ungemessen) minus Balkenhöhe in dieser Lage. Seiten 1/3 breit, 2/4 schmal.
-  Bildwinkel Start 24 mm, „Maßstab messen“ setzt ihn neu. Vorschub automatisch (25 % Überlappung, höchstens 50 cm).
+  Bildwinkel Start 24 mm, „Messen“ (Als Maßstab) setzt ihn neu und rechnet die schon gemachten Fotos dieses
+  Balkens mit um (Lage der Abschnitte bleibt, nur mm ändern sich; andere Balken nicht). Vorschub automatisch (25 % Überlappung, höchstens 50 cm).
   Mit dem ersten Foto einer Seite ist deren Plan eingefroren, neue Messwerte gelten nur für Seiten ohne Fotos.
 - Annahme: lange Bildseite längs zum Balken. px/mm stehen je Foto nur auf dem Mac (sips).
 - Geprüft auf dem Server mit simuliertem iPhone im Browser. Offen, nur am Gerät klärbar: Kurzbefehl, Auflösung und
@@ -485,7 +486,22 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   an den Seiten 30-50 % heller als in der Mitte (Folienwand). Lampenstufe nebensächlich, wichtiger: feste markierte
   Stufe, matte Wände. Leisten (je 15 cm von der Außenwand): grob gerechnet wären 10 cm gleichmäßiger (87 -> 95 %).
   Auflösung (Jan 25.11.2026 „das passt so“): ab jetzt 48 MP aufnehmen; 12 MP bei Bedarf beim Bau durch 2x2-Mitteln
-  rechnen (noch nicht gebaut). Neuer Chat zur Maßhaltigkeit (Raster feiner, Abstand besser rechnen).
+  rechnen (noch nicht gebaut).
+- Maßhaltigkeit (26.11.2026): Rechnung ist das Lochkameramodell, richtig. Ein falscher Abstand Linse-Rolle erklärt
+  die 4 % an B002 nicht (1 cm Fehler = 0,36 % zwischen Seite 2 und 3, für 4 % wären 14 cm nötig); Seite 1 und 3
+  haben denselben Abstand und weichen trotzdem 2 % voneinander ab. Vermutlich Kästchen (Rand, Deckel, Lage) und
+  Messpunkte. Beim echten Balken wiegt die eingetragene Höhe je Lage am meisten (5 mm = 1,2 %). Feineres Raster
+  bringt nichts (nur Anzeige). Gegenprobe B002 Seite 4 (an Seite 2 geeicht): Ast B 16,3 x 16,8 mm im Foto, Jan
+  „scheint genau genug“. Zollstock-Test am ersten echten Balken Fr 27.11. mit „Messen“.
+- Messen (26.11.2026, Jan „elegant, nicht sloppy“): zwei Punkte, Länge steht sofort an der Linie (unter 10 cm in
+  mm). Zollstockmaß eingeben, Abweichung live; „Prüfung speichern“ legt sie in balken.json (kontrollen) ab,
+  Maßstab bleibt, Rückgängig direkt danach. Mittel steht rechts als „Maßprüfung“. Solange der Bildwinkel nur
+  angenommen ist, ist „Als Maßstab übernehmen“ der Hauptknopf. Labeln zeigt weiter den Kreisdurchmesser (gleiche
+  Fläche), nicht längs x quer.
+- Ablauf (26.11.2026, Jan fand die Querschnitt-Symbole verwirrend): Seiten als „Seite 1 breit / 2 schmal ...“
+  mit Fortschritt, Anweisungen in Worten („Breitseite nach oben“, „18 cm vorschieben“, „Balken eine
+  Vierteldrehung weiterrollen, dann liegt Seite 2 oben“), Seitenbild mit Kamera weg, dafür „Abstand zur Kamera“.
+  Knöpfe unter dem Bild mit Wort. Geprüft auf dem Server mit Playwright und künstlichem Foto, nicht auf dem Mac.
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
   Enter speichert es leer als fehlerfrei. Vorschaubild von B001 Seite 3 fehlt im Labeln.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
