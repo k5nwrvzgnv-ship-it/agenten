@@ -50,6 +50,7 @@ die können später als Dateien Eingabe werden).
   unterlagen/werkbank-entwurf/. Jan hat ein KI-Rechenzentrum zugesagt bekommen (GPU und Datenregeln offen).
   Sechs Looks auf der neuen Bedienung mit Bedienfeld: unterlagen/werkbank-looks/ (befund.md). Seit 25.11.2026 gegen UI/UX-Regeln überarbeitet.
   Jan hat Nachtschicht mit Figtree gewählt (24.11.2026, „passt erstmal“), weiter am 25.11.
+  Test 25.11.2026: unterlagen/werkbank-skill-pur/ zeigt, was UI/UX Pro Max ohne Jans Einstellungen baut (befund.md, vergleich.jpg).
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
