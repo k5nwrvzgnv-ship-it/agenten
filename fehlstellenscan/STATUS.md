@@ -459,13 +459,27 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Fuge, Metall, Weitere eingeklappt), innerhalb der Gruppe Strichmuster. Nur Anzeige, Zifferntasten 1-9 folgen der
   neuen Reihenfolge. Klassennummern und Training unverändert 18 Klassen; ob fürs Training zusammengelegt wird, ist offen.
 - Durchlauf (Jan 25.11.2026): Handy nicht drehen, den Balken im Kasten drehen (Länge an der langen Bildseite).
-- Raster (Jan 25.11.2026 „dezenter und mehr neopunk“, Kreuzpunkte cyan, Ziel und Ecken magenta; Optik von Jan noch nicht bestätigt): am Mac im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte, Weite aus dem Plan (cm
+- Raster (Jan 25.11.2026 „dezenter und mehr neopunk“, Kreuzpunkte cyan, Ziel und Ecken magenta; von Jan 25.11. „passt erstmal“): am Mac im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte, Weite aus dem Plan (cm
   steht unter dem Bild); auf fertigen Fotos keins. Messlinie rastet bis 6 Grad waagerecht/senkrecht ein, Fadenkreuz am
   Zeiger. iPhone-App: gleiches Muster, 8 x 6 Felder (AufnahmeApp.swift, auf dem Server nicht übersetzt, noch nicht in Xcode gebaut).
-- Testdurchlauf B002 (Kästchen 29,5 x 13,5 x 20 cm, Jan 25.11.2026), erster Anlauf zu verwerfen: Länge lag quer zur langen
-  Bildseite (steht am Mac senkrecht), 48 MP statt 12 (7,6 MB, 1/73 s ISO 50 statt 1/46 s ISO 33), Zuschnitt 22 x 38 cm
-  schneidet die lange Seite ab, darum zwei Abschnitte. Maßstab per Kästchenmaß gesetzt (13,54 px/mm bei 48 MP).
-  Gelabelt und trainiert ist noch nichts.
+- Testdurchlauf B002 (Kästchen 29,5 x 13,5 x 20 cm, Jan 25.11.2026, von Claude per Chrome bedient): Aufnahme, Labeln,
+  Training laufen auf dem Mac durch. Vier Seiten je ein Foto, 12 MP: 4032 x 3024 px, 2,2-2,8 MB, 1/46 s ISO 32
+  (eingestellt 1/46 s ISO 33), Auslösen bis Bild 1,2-1,4 s, HEIC-Zuschnitt per sips klappt. Linse bis Rolle 59 cm
+  (eingetragen, nicht nachgeprüft), Zuschnitt [0,098 0,031 0,722 0,937] ohne die Folienwand. Bildwinkel an Seite 2 mit
+  29,5 cm gemessen: Faktor 0,749 (etwa 26 mm KB, passt zur Hauptkamera iPhone 16), 7,74 px/mm bei 39 cm.
+  Maßhaltigkeit offen: Seite 3 im Bild etwa 4 % zu groß, Seite 1 etwa 2 % (Höhe der Fläche über der Rolle ungemessen).
+  Der erste Maßstab war falsch (an der breiten Fläche gemessen, mit dem Abstand der schmalen gerechnet).
+  Labels: Seite 2 und 4 als Entwurf von Claude, von Jan bestätigt (8 Objekte); Seite 1 und 3 ungelabelt (Öffnung,
+  Etikett). B001 Seite 2 ist leer gespeichert (ein Enter zu viel, siehe Fehler unten), B001 steht auf „Nur Test“.
+  Ablaufprobe altholz-1 (nur Altholz, B002 allein, train = val, nichts festgelegt): fehlerfrei, 60 Epochen in knapp
+  7 min, 4-7 s je Epoche. Für Freitag reicht so ein Kurzlauf als Kettenprobe.
+  Belichtung (Helligkeit 0-255, gedimmte Lampe): Holz Median 175-204, oberstes 1 % 216-227, nichts ausgebrannt. Grund
+  an den Seiten 30-50 % heller als in der Mitte (Folienwand). Lampenstufe nebensächlich, wichtiger: feste markierte
+  Stufe, matte Wände. Leisten (je 15 cm von der Außenwand): grob gerechnet wären 10 cm gleichmäßiger (87 -> 95 %).
+  Auflösung (Jan 25.11.2026 „das passt so“): ab jetzt 48 MP aufnehmen; 12 MP bei Bedarf beim Bau durch 2x2-Mitteln
+  rechnen (noch nicht gebaut). Neuer Chat zur Maßhaltigkeit (Raster feiner, Abstand besser rechnen).
+- Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
+  Enter speichert es leer als fehlerfrei. Vorschaubild von B001 Seite 3 fehlt im Labeln.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)
