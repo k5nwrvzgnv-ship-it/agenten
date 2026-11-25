@@ -52,6 +52,7 @@ die können später als Dateien Eingabe werden).
   Jan hat Nachtschicht mit Figtree gewählt (24.11.2026, „passt erstmal“), weiter am 25.11.
   Test 25.11.2026: unterlagen/werkbank-skill-pur/ zeigt, was UI/UX Pro Max ohne Jans Einstellungen baut (befund.md, vergleich.jpg).
   Jan 25.11.: in vielem besser. Weiter in unterlagen/werkbank-regler/ (Bedienfeld, weniger Knöpfe), Jans Werte sind Startfassung, Umrisse dünner.
+- Fotobox-Aufnahme (Jan 25.11.2026, gebaut, am iPhone noch nicht erprobt): aufnahme/ (Abschnitt Fotobox-Aufnahme).
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),
@@ -400,6 +401,24 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   --markierung data/laeufe/kodytek-seg1-n1280/val-auswertung/markierung --vorhersage
   data/laeufe/kodytek-seg1-n1280/val-auswertung/vorhersage --ausgabe data/laeufe/kodytek-seg1-n1280/val-auswertung/ergebnis`
   (16 s). Markierung und Vorhersage lädt mac/werkbank_val.sh hoch.
+
+## Fotobox-Aufnahme (Mac, ab 25.11.2026)
+- Box 60 x 60 x 60 cm, Handy mittig an der Klappe oben, schwarz, zwei Wände offen, vier Rollenböcke (Jan). Ersetzt den
+  Reiter-Entwurf der 40er Box.
+- aufnahme/logik.py (Rechnung), server.py (nur Bordmittel), seite/ (Oberfläche, Optik „Jans Wahl 25.11.“),
+  tests/test_aufnahme.py. Läuft von Hand auf dem Mac, Fotos in ~/fehlstellenscan/aufnahmen/<Balken-ID>/ (balken.json).
+- Start (Mac-Terminal): `scp -r agents-user:agenten/fehlstellenscan/aufnahme ~/fehlstellenscan/`, dann
+  `python3 ~/fehlstellenscan/aufnahme/server.py`, Seite http://localhost:8765. Die Oberfläche antwortet nur dem Mac
+  selbst, das iPhone nur unter /h/<code>/ (Code in einstellungen.json). Port 8765 ist im WLAN unverschlüsselt offen.
+- Kurzbefehl: Wiederholen { GET warten; Foto aufnehmen; POST foto }, Schritte und Adressen unter ···. „warten“ endet
+  erst beim Auslösen.
+- Abstand = Linse bis Rolle (Start 60 cm, ungemessen) minus Balkenhöhe in dieser Lage. Seiten 1/3 breit, 2/4 schmal.
+  Bildwinkel Start 24 mm, „Maßstab messen“ setzt ihn neu. Vorschub automatisch (25 % Überlappung, höchstens 50 cm).
+  Mit dem ersten Foto einer Seite ist deren Plan eingefroren, neue Messwerte gelten nur für Seiten ohne Fotos.
+- Annahme: lange Bildseite längs zum Balken. px/mm stehen je Foto nur auf dem Mac (sips).
+- Geprüft auf dem Server mit simuliertem iPhone im Browser. Offen, nur am Gerät klärbar: Kurzbefehl, Auflösung und
+  Linse von „Foto aufnehmen“ (Makro?), Schärfe, sips mit HEIC, Dauer bis zum Bild. Keine feste Belichtung, kein
+  Live-Bild. Rückfall: Foto per AirDrop, dann ··· „Foto vom Mac“.
 
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)
 FiftyOne zeigt Bilder mit Markierung und Vorhersage im Browser, wertet je Objekt aus und speichert Ansichten.
