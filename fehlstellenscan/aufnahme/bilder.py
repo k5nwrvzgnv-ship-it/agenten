@@ -3,6 +3,8 @@
   python bilder.py bauen <Auftrag.json>       Auftrag schreibt kette.py"""
 
 import json
+import os
+import shutil
 import sys
 from collections import Counter
 from pathlib import Path
@@ -62,7 +64,8 @@ def bauen(auftrag: dict) -> dict:
     ziel = Path(auftrag["ziel"])
     if ziel.exists():
         raise FileExistsError(f"{ziel} gibt es schon, nichts überschrieben")
-    zahl: dict = {"probe": auftrag["probe"], "kacheln": Counter(), "objekte": Counter(), "balken": {}}
+    zahl: dict = {"probe": auftrag["probe"], "kacheln": Counter(), "objekte": Counter(), "balken": {},
+                  "saetze": auftrag.get("saetze", ["altholz"])}
     for t in ("train", "val"):
         (ziel / "images" / t).mkdir(parents=True)
         (ziel / "labels" / t).mkdir(parents=True)
@@ -79,8 +82,26 @@ def bauen(auftrag: dict) -> dict:
                 (ziel / "labels" / e["teil"] / f"{name}.txt").write_text("".join(s + "\n" for s in z))
                 zahl["kacheln"][e["teil"]] += 1
                 zahl["objekte"].update(auftrag["klassen"][int(s.split()[0])] for s in z)
-    val = "images/train" if auftrag["probe"] else "images/val"
-    (ziel / "data.yaml").write_text(f"path: {json.dumps(str(ziel))}\ntrain: images/train\nval: {val}\nnames:\n" + "".join(
+    for e in auftrag.get("ganze", []):      # ganze Bilder mit fertigem Label (Kodytek), nicht gekachelt
+        quelle = Path(e["bild"])
+        bild = ziel / "images" / e["teil"] / f"{e['name']}{quelle.suffix}"
+        try:
+            os.link(quelle, bild)           # kein zusätzlicher Platz
+        except OSError:
+            shutil.copyfile(quelle, bild)
+        (ziel / "labels" / e["teil"] / f"{e['name']}.txt").write_text(e["label"])
+        zahl["kacheln"][e["teil"]] += 1
+        zahl["objekte"].update(auftrag["klassen"][int(z.split()[0])] for z in e["label"].splitlines() if z.strip())
+    wege = {t: f"images/{t}" for t in ("train", "val")}
+    for t, dazu in auftrag.get("dazu", {}).items():
+        if dazu:                            # eigene Bilder zuerst: ultralytics legt seinen Labelspeicher daneben ab
+            eigen = sorted(str(p) for p in (ziel / "images" / t).iterdir())
+            (ziel / f"{t}.txt").write_text("".join(x + "\n" for x in eigen + dazu))
+            wege[t] = f"{t}.txt"
+            zahl["kacheln"][t] += len(dazu)
+            zahl["dazu_" + t] = len(dazu)
+    val = wege["train"] if auftrag["probe"] else wege["val"]
+    (ziel / "data.yaml").write_text(f"path: {json.dumps(str(ziel))}\ntrain: {wege['train']}\nval: {val}\nnames:\n" + "".join(
         f"  {i}: {n}\n" for i, n in enumerate(auftrag["klassen"])))
     (ziel / "bericht.json").write_text(json.dumps(zahl, ensure_ascii=False, indent=1))
     return zahl

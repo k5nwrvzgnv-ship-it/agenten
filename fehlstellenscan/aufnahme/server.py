@@ -438,7 +438,10 @@ class Anfrage(BaseHTTPRequestHandler):
         if weg == "/api/stand":
             return self.antwort(200, werk.stand())
         if weg == "/api/bilder":
-            return self.antwort(200, werk.kette.bilder())
+            kodytek = parse_qs(urlsplit(self.path).query).get("satz") == ["kodytek"]
+            return self.antwort(200, werk.kette.kodytek_bilder() if kodytek else werk.kette.bilder())
+        if weg == "/api/saetze":
+            return self.antwort(200, {"kodytek": len(werk.kette.kodytek())})
         if weg == "/api/training":
             return self.antwort(200, werk.kette.stand())
         if z := re.fullmatch(r"/zuschnitt/([A-Za-z0-9_-]+?)(_k)?\.jpg", weg):

@@ -15,6 +15,7 @@ from PIL import Image
 
 from aufnahme import bilder as bi
 from aufnahme import kette as k
+from aufnahme import saetze as sa
 from aufnahme import server as s
 
 DREIECK = [[0.1, 0.1], [0.3, 0.1], [0.2, 0.4]]
@@ -193,6 +194,83 @@ class TestWeg(unittest.TestCase):
         self.assertEqual(self.ruf("/api/training", {})[0], 400)
         self.assertEqual(self.ruf("/api/abbrechen", {})[1]["lauf"]["status"], "abgebrochen")
         self.werk.kette.prozess.wait(5)
+
+    def kodytek(self, name="kodytek-seg-1", zahl=(6, 3)):
+        d = self.wurzel / "datensaetze" / name
+        for teil, n in zip(("train", "val", "test"), (*zahl, 2), strict=True):
+            (d / "images" / teil).mkdir(parents=True)
+            (d / "labels" / teil).mkdir(parents=True)
+            for i in range(n):
+                stamm = f"{teil}{i}"
+                Image.new("RGB", (280, 102), (150, 120, 80)).save(d / "images" / teil / f"{stamm}.bmp")
+                (d / "labels" / teil / f"{stamm}.txt").write_text("" if i == 1 else "1 0.1 0.1 0.3 0.1 0.2 0.4\n")
+        (d / "data.yaml").write_text("path: x\ntrain: images/train\nval: images/val\ntest: images/test\nnames:\n" + "".join(
+            f"  {i}: {n}\n" for i, n in enumerate(k.KLASSEN[:10])))
+        return d
+
+    def test_kodytek_ansehen_korrigieren_trainieren(self):
+        d = self.kodytek()
+        bilder = self.ruf("/api/bilder?satz=kodytek")[1]
+        self.assertEqual(len(bilder), 9)
+        self.assertFalse([b for b in bilder if "test" in b["name"]])
+        eins = next(b for b in bilder if b["name"] == "kodytek_train0")
+        self.assertEqual((eins["objekte"][0]["k"], eins["objekte"][0]["ok"]), (1, False))
+        self.assertEqual(self.ruf("/zuschnitt/kodytek_train0.jpg")[1][:3], b"\xff\xd8\xff")
+        self.assertEqual(self.ruf("/api/label", {"name": "kodytek_train0", "objekte": [{"k": 4, "ok": True, "p": DREIECK}]})[0], 200)
+        st = self.ruf("/api/training")[1]["saetze"]
+        self.assertEqual([(x["id"], x["train"], x["val"], x["fertig"]) for x in st],
+                         [("kodytek", 6, 3, 1), ("kodytek-seg-1", 6, 3, None)])
+        self.assertEqual(self.ruf("/api/training", {"saetze": ["kodytek"]})[0], 200)
+        self.assertEqual(self.warte()["status"], "fertig")
+        z = self.wurzel / "datensaetze" / "altholz-1"
+        self.assertEqual((z / "labels/train/kodytek_train0.txt").read_text().split()[0], "4")
+        self.assertEqual((z / "labels/train/kodytek_train2.txt").read_text(), (d / "labels/train/train2.txt").read_text())
+        self.assertEqual((d / "labels/train/train0.txt").read_text().split()[0], "1")     # Original bleibt
+        self.assertEqual(len(list((z / "images/val").iterdir())), 3)
+
+    def test_datensaetze_verbinden(self):
+        self.kodytek()
+        zweiter = self.kodytek("extra", (2, 1))
+        kaputt = self.kodytek("boxen", (1, 1))
+        for p in (kaputt / "labels/train").iterdir():
+            p.write_text("1 0.5 0.5 0.1 0.1\n")
+        for p in (zweiter / "images").rglob("*.bmp"):
+            p.rename(p.with_name("e_" + p.name))
+        a, na = self.balken()
+        self.ruf("/api/label", {"name": na[0], "objekte": [{"k": 10, "ok": True, "p": DREIECK}]})
+        self.assertEqual([x["id"] for x in self.ruf("/api/training")[1]["saetze"]], ["kodytek", "extra", "kodytek-seg-1"])
+        self.assertEqual(self.ruf("/api/training", {"saetze": ["boxen"]})[0], 400)
+        self.assertEqual(self.ruf("/api/training", {"saetze": []})[0], 400)
+        self.assertFalse(self.ruf("/api/training", {"saetze": ["altholz", "kodytek", "extra", "kodytek-seg-1"]})[1]["lauf"]["probe"])
+        self.assertEqual(self.warte()["status"], "fertig")
+        z = self.wurzel / "datensaetze" / "altholz-1"
+        self.assertIn("train: train.txt\nval: val.txt", (z / "data.yaml").read_text())
+        train = [Path(x) for x in (z / "train.txt").read_text().splitlines()]
+        # Kodytek-Auswahl 6 + Altholz 2 Kacheln + extra 2, kodytek-seg-1 steckt schon ganz in der Auswahl
+        self.assertEqual(len(train), 6 + 2 + 2)
+        self.assertTrue(all(p.exists() for p in train))
+        self.assertFalse([p for p in train if "/test/" in str(p) or "/val/" in str(p)])
+
+    def test_fehlerfreies_altholz_mit_kodytek(self):
+        self.kodytek()
+        _, na = self.balken()
+        self.assertEqual(self.ruf("/api/training", {"saetze": ["altholz", "kodytek"]})[0], 400)
+        self.ruf("/api/label", {"name": na[0], "objekte": []})
+        self.assertEqual(self.ruf("/api/training", {"saetze": ["altholz", "kodytek"]})[0], 200)
+        self.assertEqual(self.warte()["status"], "fertig")
+
+
+class TestAuswahl(unittest.TestCase):
+    def test_seltene_zuerst_und_wiederholbar(self):
+        je = {f"b{i}": {0} for i in range(100)} | {"s1": {7}, "s2": {7, 0}}
+        w = sa.ziehen(je, 10, 5)
+        self.assertTrue({"s1", "s2"} <= set(w))
+        self.assertEqual((len(w), len(set(w))), (10, 10))
+        self.assertEqual(w, sa.ziehen(je, 10, 5))
+
+    def test_umriss_hin_und_zurueck(self):
+        o = sa.objekte_aus("3 0.1 0.2 0.3 0.4 0.5 0.6\n")
+        self.assertEqual(sa.objekte_aus(sa.zeilen_aus(o)), o)
 
 
 if __name__ == "__main__":

@@ -109,3 +109,5 @@ h1{display:flex;align-items:center;gap:8px;color:var(--color-logo)}.logo{width:2
 .weg-nav{display:flex;gap:4px;margin-left:var(--space-xl)}.weg-nav a{color:var(--color-muted-foreground);text-decoration:none;padding:6px 10px;border-radius:var(--radius)}.weg-nav a[aria-current]{background:var(--color-muted);color:var(--color-foreground)}
 #leerseite{position:absolute;inset:0;display:grid;place-content:center;gap:16px;text-align:center;background:var(--color-buehne);z-index:30}#leerseite a{color:inherit}
 .kl{max-height:none}.kl label{min-height:34px}
+
+#satz{font:inherit;color:inherit;background:var(--color-muted);border:1px solid var(--color-border);border-radius:var(--radius);min-height:var(--knopf);padding:0 8px;max-width:180px}

@@ -446,6 +446,15 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Geprüft auf dem Server im Browser mit yolo-Attrappe. Nicht geprüft: echtes yolo auf dem Mac, HEIC, Durchlauf eines
   ganzen Balkens, Prüfer in frischem Kontext. Vorlabeln per Modell fehlt. Nach Neustart des Programms ist die Anzeige
   des Laufs weg, der Lauf selbst geht weiter.
+- Datensätze im Training (Jan 25.11.2026): Häkchen Altholz, Kodytek-Auswahl und jeder Satz in datensaetze/, der Umrisse und
+  dieselbe Klassenzählung hat (Box-Sätze wie kodytek-1 und altholz-N fehlen absichtlich). aufnahme/saetze.py (Bordmittel).
+  Kodytek-Auswahl: 400 Trainings- und 100 Prüfbilder aus kodytek-seg-1, seltene Klassen zuerst, einmal gezogen und fest
+  (aufnahmen/kodytek/auswahl.json), Test nie. Im Labeln über die Auswahl im Kopf („Kodytek-Auswahl“) mit Originalumrissen
+  als Vorlage; erst wenn alle Objekte geprüft und gespeichert sind, gilt die Korrektur, sonst das Original. Originale
+  bleiben unverändert (Hardlinks, Korrekturen in aufnahmen/kodytek/labels/). Maße dort in Pixeln, weil längs und quer
+  verschieden aufgelöst. Ganze Sätze gehen per train.txt ein, Auswahlbilder nicht doppelt. Ganzer Kodytek-Satz: um
+  21 min je Epoche auf dem Mac (gemessen am Box-Modell). Prüfung ohne Altholz-Prüfbalken sagt nichts über Altholz (Hinweis auf der Seite).
+  Geprüft auf dem Server mit drei echten Kodytek-Bildern und yolo-Attrappe, nicht auf dem Mac.
 - Durchlauf (Jan 25.11.2026): Handy nicht drehen, den Balken im Kasten drehen (Länge an der langen Bildseite).
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 

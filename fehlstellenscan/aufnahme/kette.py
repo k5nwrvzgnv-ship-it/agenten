@@ -16,6 +16,11 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
+if __package__:
+    from . import saetze as sa
+else:
+    import saetze as sa
+
 KLASSEN = ["live_knot", "dead_knot", "knot_missing", "knot_with_crack", "crack", "quartzity", "resin", "marrow",
            "blue_stain", "overgrown", "bohrloch", "metall", "nagelloch", "farbe", "faeule", "insektenfrass",
            "verbindung", "fuge"]            # docs/labelrichtlinie.md, 0-9 wie Kodytek
@@ -91,6 +96,10 @@ class Kette:
         self.python = self.wurzel / ".venv" / "bin" / "python"
         self.yolo = self.wurzel / ".venv" / "bin" / "yolo"
         self.schneiden_schloss = threading.Lock()
+        self.saetze_schloss = threading.Lock()
+        self._fremde: list[Path] | None = None
+        self._zahlen: dict = {}
+        self._auswahl: list[dict] | None = None
         self.lauf: dict | None = None
         self.prozess: subprocess.Popen | None = None
 
@@ -99,7 +108,8 @@ class Kette:
         return [f for i in self.ids() for f in fotos(self.lesen(i))]
 
     def foto(self, name) -> dict:
-        treffer = [f for f in self.alle() if f["name"] == name]
+        liste = self.kodytek() if str(name).startswith("kodytek_") else self.alle()
+        treffer = [f for f in liste if f["name"] == name]
         if not treffer:
             raise ValueError("Dieses Foto gibt es nicht mehr.")
         return treffer[0]
@@ -111,6 +121,60 @@ class Kette:
         p = self.label_pfad(f)
         return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
+    # ------------------------------------------------------ Kodytek-Auswahl und fertige Datensätze
+    def kodytek(self) -> list[dict]:
+        """Auswahl aus Kodytek zum Korrigieren, einmal gezogen und dann fest (aufnahmen/kodytek/auswahl.json)."""
+        with self.saetze_schloss:
+            if self._auswahl is None:
+                p, quelle = self.ordner / "kodytek" / "auswahl.json", self.wurzel / "datensaetze" / sa.QUELLE
+                if p.exists():
+                    roh = json.loads(p.read_text(encoding="utf-8"))
+                elif (quelle / "data.yaml").exists():
+                    roh = sa.auswahl_ziehen(quelle)
+                    if roh:
+                        schreiben(p, roh)
+                else:
+                    return []
+                self._auswahl = [{"balken": "kodytek", "name": e["name"], "datei": e["bild"], "teil": e["teil"],
+                                  "plan": {"zuschnitt": None}} for e in roh]
+            return self._auswahl
+
+    def original(self, f: dict) -> str:
+        return sa.label_zu(Path(f["datei"])).read_text(encoding="utf-8")
+
+    def fremde(self) -> list[Path]:
+        if self._fremde is None:
+            self._fremde = sa.gefunden(self.wurzel, KLASSEN)
+        return self._fremde
+
+    def zahl(self, ordner: Path, teil: str) -> int:
+        """Bilder eines Teils, neu gezählt nur, wenn sich der Ordner ändert."""
+        weg = ordner / "images" / teil
+        stempel = weg.stat().st_mtime_ns if weg.is_dir() else 0
+        if self._zahlen.get(weg, (None, 0))[0] != stempel:
+            self._zahlen[weg] = (stempel, len(sa.bilder_in(ordner, teil)))
+        return self._zahlen[weg][1]
+
+    def saetze(self) -> list[dict]:
+        ergebnis = []
+        if kod := self.kodytek():
+            ergebnis.append({"id": "kodytek", "name": "Kodytek-Auswahl",
+                             "train": sum(f["teil"] == "train" for f in kod),
+                             "val": sum(f["teil"] == "val" for f in kod),
+                             "fertig": sum(self.fertig(f) for f in kod)})
+        ergebnis += [{"id": o.name, "name": f"{o.name} (ganz)", "train": self.zahl(o, "train"),
+                      "val": self.zahl(o, "val"), "fertig": None} for o in self.fremde()]
+        return ergebnis
+
+    def kodytek_bilder(self) -> list[dict]:
+        gesamt = []
+        for f in self.kodytek():
+            x = self.label(f)
+            gesamt.append({"name": f["name"], "balken": "kodytek", "titel": f["name"][8:], "laengs_mm": None,
+                           "objekte": x["objekte"] if x else sa.objekte_aus(self.original(f)),
+                           "zeit": x["zeit"] if x else None})
+        return gesamt
+
     def bilder(self) -> list[dict]:
         gesamt = []
         for f in self.alle():
@@ -119,7 +183,7 @@ class Kette:
             p = f["plan"]
             gemessen = abs(p["faktor"] - 24 / 34.6) > 1e-9
             gesamt.append({"name": f["name"], "balken": f["balken"], "seite": f["seite"], "nr": f["nr"],
-                           "laengs_mm": p["laengs_mm"] if gemessen else None,
+                           "titel": f"{f['balken']} Seite {f['seite']}, {f['nr'] + 1}", "laengs_mm": p["laengs_mm"] if gemessen else None,
                            "objekte": x["objekte"] if x else None, "zeit": x["zeit"] if x else None})
         return gesamt
 
@@ -206,21 +270,35 @@ class Kette:
                 lauf = {**self.lauf, "epoche": len(z), "werte": [
                     {k: float(x[s]) for k, s in (("map", "metrics/mAP50(M)"), ("verlust", "train/seg_loss")) if s in x}
                     for x in z]}
-            return {"balken": balken, "probe": probe, "lauf": lauf, "epochen": EPOCHEN,
+            return {"balken": balken, "saetze": self.saetze(), "probe": probe, "lauf": lauf, "epochen": EPOCHEN,
                     "modell": "Kodytek" if "kodytek" in self.startmodell() else "yolo11n-seg"}
 
     def starten(self, daten: dict) -> dict:
         with self.schloss:
             if self.lauf and self.lauf["status"] in ("bauen", "training"):
                 raise ValueError("Es läuft schon ein Training.")
+            wahl = daten.get("saetze", ["altholz"])
+            bekannt = {"altholz", *(x["id"] for x in self.saetze())}
+            if not isinstance(wahl, list) or not wahl or not all(isinstance(x, str) and x in bekannt for x in wahl):
+                raise ValueError("Keinen oder einen unbekannten Datensatz gewählt.")
             teile = self.teile()
-            fertige = [f for f in self.alle() if self.fertig(f)]
-            benutzt, probe = zuordnung(teile, sorted({f["balken"] for f in fertige}))
+            fertige = [f for f in self.alle() if self.fertig(f)] if "altholz" in wahl else []
+            benutzt, _ = zuordnung(teile, sorted({f["balken"] for f in fertige}))
             fertige = [f for f in fertige if f["balken"] in benutzt]
-            if not fertige:
-                raise ValueError("Noch kein Foto fertig gelabelt.")
-            if not any(self.label(f)["objekte"] for f in fertige):
+            if "altholz" in wahl and not fertige:
+                raise ValueError("Noch kein Foto fertig gelabelt." if len(wahl) == 1 else
+                                 "Altholz hat noch kein fertig gelabeltes Foto für Training oder Prüfung.")
+            if wahl == ["altholz"] and not any(self.label(f)["objekte"] for f in fertige):
                 raise ValueError("Auf den fertigen Fotos ist kein Objekt gezeichnet.")
+            kod = self.kodytek() if "kodytek" in wahl else []
+            fremd = [o for o in self.fremde() if o.name in wahl]
+            vorhanden = ({benutzt[f["balken"]] for f in fertige} | {f["teil"] for f in kod}
+                         | {t for o in fremd for t in ("train", "val") if self.zahl(o, t)})
+            probe = not {"train", "val"} <= vorhanden
+            if probe and (kod or fremd):
+                raise ValueError("Die gewählten Datensätze haben keine Bilder für Training und Prüfung.")
+            if any(not Path(f["datei"]).exists() for f in kod):
+                raise ValueError("Bilder der Kodytek-Auswahl fehlen.")
             self.umgebung()
             if not self.yolo.exists():
                 raise ValueError(f"yolo fehlt: {self.yolo}")
@@ -231,6 +309,14 @@ class Kette:
                 {"name": f["name"], "balken": f["balken"], "teil": "train" if probe else benutzt[f["balken"]],
                  "bild": str(self.ordner / f["balken"] / "zuschnitt" / f"{f['name']}.jpg"),
                  "objekte": self.label(f)["objekte"]} for f in fertige]}
+            auftrag["ganze"] = [
+                {"name": f["name"], "teil": f["teil"], "bild": f["datei"], "label": sa.zeilen_aus(self.label(f)["objekte"])
+                 if self.fertig(f) else self.original(f)} for f in kod]
+            # Bilder der Auswahl stehen schon mit (korrigiertem) Label im Lauf, also nicht doppelt aus dem Gesamtsatz
+            doppelt = {f["name"][8:] for f in kod}
+            auftrag["dazu"] = {t: [str(b) for o in fremd for b in sa.bilder_in(o, t) if b.stem not in doppelt]
+                               for t in ("train", "val")}
+            auftrag["saetze"] = wahl
             self.lauf = {"name": name, "status": "bauen", "probe": probe, "fehler": "", "epochen": EPOCHEN,
                          "ordner": str(self.wurzel / "runs" / "segment" / name)}
             if not probe:

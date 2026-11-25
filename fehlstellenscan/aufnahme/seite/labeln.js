@@ -64,7 +64,7 @@ function dopp(){const d=streit(sel);$('dopp').hidden=d<0;if(d<0){$('dopp').inner
 function fuss(){const s=S(),n=IDS.indexOf(id),o=akt(),g=$('gut'),fertig=!offen(id);$('lo').hidden=!o;g.hidden=!!zeich||fertig&&!s.dreck&&!!s.zeit&&!IDS.some(i=>i!=id&&(!st[i].zeit||st[i].dreck||offen(i)));const t=o?(o.ok?(fertig?'Speichern, nächstes Bild':'Nächstes Objekt'):streit(sel)>=0?'Beide lassen':'Stimmt'):fertig?'Speichern, nächstes Bild':'Erstes offenes Objekt';g.querySelector('span').textContent=t;g.title=t+' (Enter)';{const d=streit(sel);g.querySelector('.bs').textContent=o&&!o.ok&&d>=0?[bu(sel),bu(d)].sort().join(' + '):''}g.querySelector('use').setAttribute('href',fertig?'#i-floppy-disk':o&&!o.ok?'#i-check':'#i-arrow-right');
  $('spstand').textContent=s.dreck?'Nicht gespeicherte Änderungen':s.zeit?`Gespeichert ${s.zeit}`:'Noch nicht gespeichert';
  $('pos').innerHTML=`<b>${esc(name(id))}</b> <span>${n+1} von ${IDS.length}</span>`;$('vor').disabled=!n;$('nach').disabled=n==IDS.length-1;
- $('p-film').innerHTML=IDS.map(i=>{const t=st[i],of=offen(i),w=t.dreck?'geändert, nicht gespeichert':t.zeit?(of?`gespeichert, ${of} offen`:'gespeichert'):t.o.length?`${of} offen`:'leer';return`<button data-b="${i}" data-f="b${i}" ${i==id?'aria-current="true"':''}><img src="${B[i].klein}" loading="lazy" alt="" width="56" height="48"><span><b>${esc(name(i))}</b><small>${w}</small></span></button>`}).join('');knoepfe()}
+ $('p-film').innerHTML=(IDS.length>60?IDS.slice(Math.max(0,n-20),n+21):IDS).map(i=>{const t=st[i],of=offen(i),w=t.dreck?'geändert, nicht gespeichert':t.zeit?(of?`gespeichert, ${of} offen`:'gespeichert'):t.o.length?`${of} offen`:'leer';return`<button data-b="${i}" data-f="b${i}" ${i==id?'aria-current="true"':''}><img src="${B[i].klein}" loading="lazy" alt="" width="56" height="48"><span><b>${esc(name(i))}</b><small>${w}</small></span></button>`}).join('');knoepfe()}
 function mal(){const f=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.f:null,y=$('p-insp').scrollTop;bildZ();liste();fuss();insp();dopp();$('p-insp').scrollTop=y;if(f&&!(document.activeElement&&document.activeElement.dataset.f==f)){const e=document.querySelector(`[data-f="${f}"]`);e&&e.focus({preventScroll:true})}}
 function fokus(){const b=document.querySelector('.zl[aria-pressed=true]');if(b&&b.offsetParent){b.focus({preventScroll:true});b.scrollIntoView({block:'nearest'})}else $('gut').focus({preventScroll:true})}
 function zeig(i){const p=form(S().o[i]),m=mitte(p);if(!voll()&&(m[0]<V[0]||m[1]<V[1]||m[0]>V[0]+V[2]||m[1]>V[1]+V[3])){V[0]=m[0]-V[2]/2;V[1]=m[1]-V[3]/2;rand()}}
@@ -133,12 +133,16 @@ addEventListener('keydown',e=>{if(!id)return;const t=e.target;const tk=e.key.toL
  if(e.key=='Delete'||e.key=='Backspace')loesch();else if(e.key=='+')zoom(.6);else if(e.key=='-')zoom(1/.6);else if(e.key=='0'){ganz();bildZ()}else if(tk=='n')zeichnen(true);else if(tk=='u')umrisse(!nur);else if(tk=='s')speich()});
 /* Fotos vom Server */
 let lfd=0;const uhrzeit=t=>t.slice(11,16);
-const messen=i=>new Promise((ja,nein)=>{const b=B[i];if(b.qmm)return ja();const im=new Image;im.onerror=async()=>{let t='Bild nicht ladbar.';try{const a=await fetch(b.src);if(!a.ok)t=(await a.json()).fehler}catch(e){t='Das Programm auf dem Mac antwortet nicht.'}nein(Error(t))};
+const dicht=p=>{const q=flae(p)<0?[...p].reverse():p;return q.length>120?ber(q,120):q},messen=i=>new Promise((ja,nein)=>{const b=B[i];if(b.qmm)return ja();const im=new Image;im.onerror=async()=>{let t='Bild nicht ladbar.';try{const a=await fetch(b.src);if(!a.ok)t=(await a.json()).fehler}catch(e){t='Das Programm auf dem Mac antwortet nicht.'}nein(Error(t))};
  im.onload=()=>{const l=b.laengs||168;b.lmm=l;b.qmm=l*im.naturalHeight/im.naturalWidth;if(!b.laengs)b.px=im.naturalWidth/l;
-  st[i]={o:(b.roh||[]).map(o=>({k:o.k,c:null,ok:o.ok,r:0,g:0,b:o.p.map(q=>[q[0]*b.lmm,q[1]*b.qmm])})),zeit:st[i].zeit,dreck:false,h:[],v:[]};ja()};im.src=b.src});
+  st[i]={o:(b.roh||[]).map(o=>({k:o.k,c:null,ok:o.ok,r:0,g:0,b:dicht(o.p.map(q=>[q[0]*b.lmm,q[1]*b.qmm]))})),zeit:st[i].zeit,dreck:false,h:[],v:[]};ja()};im.src=b.src});
+const SATZ_L=new URLSearchParams(location.search).get('satz')=='kodytek';
+(async()=>{try{const n=(await(await fetch('/api/saetze')).json()).kodytek;$('satz').hidden=!n;$('satz').value=SATZ_L?'kodytek':''}catch(e){}})();
+$('satz').onchange=()=>{const w=$('satz').value;$('satz').value=SATZ_L?'kodytek':'';location.href='/labeln'+(w?'?satz='+w:'')};
+addEventListener('pageshow',()=>$('satz').value=SATZ_L?'kodytek':'');
 gestalte();reiter('liste');
-(async()=>{let a;try{a=await(await fetch('/api/bilder')).json()}catch(e){return fehler('Das Programm auf dem Mac antwortet nicht.')}
- for(const x of a){IDS.push(x.name);B[x.name]={src:`/zuschnitt/${x.name}.jpg`,klein:`/zuschnitt/${x.name}_k.jpg`,name:`${x.balken} Seite ${x.seite}, ${x.nr+1}`,laengs:x.laengs_mm,roh:x.objekte};st[x.name]={o:(x.objekte||[]),zeit:x.zeit&&uhrzeit(x.zeit),dreck:false,h:[],v:[]}}
+(async()=>{let a;try{a=await(await fetch('/api/bilder'+(SATZ_L?'?satz=kodytek':''))).json()}catch(e){return fehler('Das Programm auf dem Mac antwortet nicht.')}
+ for(const x of a){IDS.push(x.name);B[x.name]={src:`/zuschnitt/${x.name}.jpg`,klein:`/zuschnitt/${x.name}_k.jpg`,name:x.titel,laengs:x.laengs_mm,roh:x.objekte};st[x.name]={o:(x.objekte||[]),zeit:x.zeit&&uhrzeit(x.zeit),dreck:false,h:[],v:[]}}
  if(!IDS.length){$('leerseite').hidden=false;$('leerseite').innerHTML='<p>Noch keine Fotos.</p><a href="/">Zur Aufnahme</a>';$('aktion').hidden=$('sp').hidden=true;return}
  const w=new URLSearchParams(location.search).get('balken'),l=w?a.filter(x=>x.balken===w).map(x=>x.name):IDS;
  await oeffne((l.length?l:IDS).find(i=>!st[i].zeit||offen(i))||(l[0]||IDS[0]));if(id)new ResizeObserver(()=>bildZ()).observe(sv)})();

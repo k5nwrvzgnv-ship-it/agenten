@@ -37,3 +37,5 @@ dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:88vh;overflow:
 
 .weg-nav{display:flex;gap:4px;margin-left:16px}.weg-nav a{color:var(--l);text-decoration:none;padding:6px 10px;border-radius:3px}.weg-nav a[aria-current]{background:var(--m);color:var(--w)}
 #training{overflow:auto;padding:24px 16px}#training>div{max-width:720px;margin:0 auto;display:grid;gap:20px}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--m);font-weight:400}th{color:var(--l)}progress{width:100%;height:6px;accent-color:var(--w)}#tlauf{display:grid;gap:8px}
+
+#tsatz{border:0;padding:0;margin:0}#tsatz legend{padding:0 0 4px;color:var(--l)}#tsatz label{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:44px;border-bottom:1px solid var(--m);color:var(--t);cursor:pointer}#tsatz input{width:18px;min-height:18px;height:18px;accent-color:var(--w)}#tsatz small{font-size:inherit;color:var(--l);font-variant-numeric:tabular-nums;text-align:right}#training h3{margin:0}
