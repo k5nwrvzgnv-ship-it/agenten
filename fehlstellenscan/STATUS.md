@@ -473,8 +473,9 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Zeiger. iPhone-App (Jan 26.11.2026 „raster wie in webapp“): gleiches Muster und gleiche Weite wie am Mac, Text „Raster 10 cm“
   unter dem Bild. Der Browser hängt die Weite an /live.jpg (r = Anteil der langen Bildseite am ganzen Bild, w mm, g),
   server.py gibt sie per logik.raster_fuers_handy mit jeder Live-Antwort an die App. Ohne Plan oder mit altem
-  Mac-Programm: 1/12 der langen Seite ohne Maß. Die App zeigt das ganze Bild, nicht den Zuschnitt. Swift-Teil auf dem
-  Server nicht übersetzt, in Xcode noch nicht gebaut.
+  Mac-Programm: 1/12 der langen Seite ohne Maß. Die App zeigt das ganze Bild, nicht den Zuschnitt. Am 26.11.2026 in
+  Xcode gebaut und auf Jans iPhone gespielt, läuft laut Jan. Team-Kennung (DEVELOPMENT_TEAM, Jans Personal Team) steht
+  im Projekt, damit scp sie nicht mehr überschreibt; kostenlose Signierung, App läuft 7 Tage, dann in Xcode neu Run.
 - App-Icon und Name (Jan 26.11.2026 „app logo neuro lign“): Logo der Web-App (N mit vier Punkten, weiß auf schwarz) als
   Assets.xcassets/AppIcon (1024 px, mit Pillow aus den SVG-Maßen gezeichnet), Name auf dem Home-Bildschirm „Neurolign“.
 - Testdurchlauf B002 (Kästchen 29,5 x 13,5 x 20 cm, Jan 25.11.2026, von Claude per Chrome bedient): Aufnahme, Labeln,
