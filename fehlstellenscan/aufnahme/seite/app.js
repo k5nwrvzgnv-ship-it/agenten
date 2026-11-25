@@ -68,9 +68,10 @@ function rahmen(){const c=$('#bild canvas'),el=$('#bild'),a=c.width/c.height,w=e
 /* Raster zum Ausrichten: im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte verankert. Weite in cm, wenn der Plan sie hergibt */
 const liveZeigt=()=>!!S.app&&!(zeigt!==null&&SE().fotos[zeigt]);
 function rasterWeite(){const p=SE().plan;if(!p)return null;const mm=schneide?p.voll_mm:p.laengs_mm;return{mm,w:[10,20,50,100].find(w=>mm/w<=16)||200}}
-function raster(r){const R=rasterWeite(),s=R?R.w/R.mm*r.b:r.b/12,mx=r.x+r.b/2,my=r.y+r.h/2;let d='';
- for(let i=1;i*s<r.b/2;i++)d+=`M${mx+i*s} ${r.y}v${r.h}M${mx-i*s} ${r.y}v${r.h}`;for(let i=1;i*s<r.h/2;i++)d+=`M${r.x} ${my+i*s}h${r.b}M${r.x} ${my-i*s}h${r.b}`;
- const m=`M${mx} ${r.y}v${r.h}M${r.x} ${my}h${r.b}`;return `<path d="${d}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/><path d="${d}" fill="none" stroke="#fff" stroke-opacity=".45"/><path d="${m}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="3"/><path d="${m}" fill="none" stroke="#fff" stroke-opacity=".9"/>`}
+function raster(r){const R=rasterWeite(),s=R?R.w/R.mm*r.b:r.b/12,mx=r.x+r.b/2,my=r.y+r.h/2,e=16,x2=r.x+r.b,y2=r.y+r.h;let d='';
+ for(let i=-Math.floor(r.b/2/s);i*s<r.b/2;i++)for(let j=-Math.floor(r.h/2/s);j*s<r.h/2;j++)if(i||j)d+=`M${mx+i*s-3} ${my+j*s}h6M${mx+i*s} ${my+j*s-3}v6`;
+ const achse=`M${mx} ${r.y}v${r.h}M${r.x} ${my}h${r.b}`,ecken=`M${r.x+6} ${r.y+6+e}v${-e}h${e}M${x2-6-e} ${r.y+6}h${e}v${e}M${x2-6} ${y2-6-e}v${e}h${-e}M${r.x+6+e} ${y2-6}h${-e}v${-e}`,ziel=`M${mx-14} ${my}h9M${mx+5} ${my}h9M${mx} ${my-14}v9M${mx} ${my+5}v9`;
+ return `<g fill="none"><path d="${d}" stroke="#000" stroke-opacity=".35" stroke-width="3"/><path d="${d}" stroke="#00e0ea" stroke-opacity=".6"/><path d="${achse}" stroke="#00e0ea" stroke-opacity=".55" stroke-dasharray="2 6"/><g style="filter:drop-shadow(0 0 3px #ff2bd6)"><path d="${ecken}" stroke="#ff2bd6" stroke-opacity=".8" stroke-width="1.5"/><path d="${ziel}" stroke="#ff2bd6" stroke-width="1.5"/></g></g>`}
 /* Die Messlinie rastet bis 6 Grad an der Waagerechten oder Senkrechten ein, schräg messen bleibt möglich */
 const einrasten=(a,q)=>{const x=Math.abs(q[0]-a[0]),y=Math.abs(q[1]-a[1]),t=Math.tan(6*Math.PI/180);return y<=x*t?[q[0],a[1]]:x<=y*t?[a[0],q[1]]:q};
 const messPunkt=e=>{const k=$('#bild').getBoundingClientRect(),r=rahmen(),q=[Math.min(1,Math.max(0,(e.clientX-k.left-r.x)/r.b)),Math.min(r.h/r.b,Math.max(0,(e.clientY-k.top-r.y)/r.b))];return mess.p.length?einrasten(mess.p[0],q):q};
