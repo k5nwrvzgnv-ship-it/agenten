@@ -35,6 +35,7 @@ function mal(){
  else if(nr>=0){const vor=zeigt!==null&&nr>0?m-p.mitten_mm[nr-1]:0;
   st=s.fotos[nr]?`${ic('kamera')}<b>${cm(m)} cm</b>`:nr===0||!s.fotos[nr-1]||zeigt!==nr-1?`${ic('kopf')}<b>${cm(m)} cm</b><small>Bildmitte ab Anfang</small>`:`${ic('schieben')}<b>${cm(vor)} cm</b><small>Bildmitte ${cm(m)} cm ab Anfang</small>`;
   kn=ic('kamera')+(laeuft?' …':` ${nr+1}/${p.mitten_mm.length}`);kl=s.fotos[nr]?'Foto wiederholen':`Foto ${nr+1} von ${p.mitten_mm.length} auslösen`}
+ else if(!naechste()&&Object.values(B().seiten).every(fertig)){st=`${ic('ja')}<b>${b.id}</b>`;kn='Labeln';kl='Fotos dieses Balkens labeln'}
  else{const n=naechste();const g=n?(+n-+seite+4)%4:0;st=n?`${quer(b,seite)}${ic('rollen')}<b>${g*90}°</b>${quer(b,n)}`:`${ic('ja')}<b>${b.id}</b>`;kn=ic(n?'schieben':'plus')+(n?quer(b,n):'');kl=n?`Balken um ${g*90} Grad gerollt, weiter mit ${sname(b,n)}`:'Neuer Balken'}
  $('#schritt').innerHTML=st;$('#los span').innerHTML=kn;$('#los').title=kl;$('#los').setAttribute('aria-label',kl);$('#los').hidden=!kn;$('#los').disabled=laeuft;
  $('#abschnitte').innerHTML=p?p.mitten_mm.map((x,i)=>{const f=s.fotos[i];return `<button data-i="${i}" aria-pressed="${i===zeigt}" class="${i===nr?'jetzt':''}" aria-label="Abschnitt ${i+1}${f?'':', noch kein Foto'}">${f?`<canvas data-src="${bildHtml(f)}"></canvas>`:S.app&&i===nr?'<canvas class="lk"></canvas>':''}<span>${cm(x,0)}</span></button>`}).join(''):'';
@@ -89,7 +90,7 @@ function appMalen(){const a=S.app;$('#kam').hidden=!a;if(!a)return;$('#kam outpu
 $('#kam').onclick=async e=>{const b=e.target.closest('button');if(!b)return;b.blur();try{await ruf('/api/kamera',b.dataset.m?{art:'modus',wert:b.dataset.m}:b.dataset.ev?{art:'ev',wert:+b.dataset.ev}:{art:'einmessen'});$('#afehler').textContent=''}catch(x){$('#afehler').textContent=x.message}};
 const fotos0=()=>!Object.values(B().seiten).some(x=>fotos(x));
 async function los(){if(laeuft||formular||mess||schneide)return;const s=SE();if(!s.plan)return;
- if(jetzt<0){const n=naechste();if(n){seite=n;seiteAuf()}else maleForm();return}
+ if(jetzt<0){const n=naechste();if(!n&&Object.values(B().seiten).every(fertig)){location.href='/labeln?balken='+bid;return}if(n){seite=n;seiteAuf()}else maleForm();return}
  await nimm(()=>ruf('/api/ausloesen',{balken:bid,seite,nr:jetzt}))}
 async function loesche(){if(laeuft||formular||mess||schneide||zeigt===null||!SE().fotos[zeigt])return;const z={balken:bid,seite,nr:zeigt};document.activeElement.blur();await nimm(()=>ruf('/api/loeschen',z),true);if(!SE().fotos[z.nr]){geloescht=z;jetzt=z.nr;zeigt=z.nr;mal()}}
 async function zurueck(){if(laeuft||!geloescht)return;const z=geloescht;document.activeElement.blur();laeuft=true;try{const r=await ruf('/api/zurueck',z);ersetze(r.balken);geloescht=null;jetzt=offen();zeigt=z.nr;$('#afehler').textContent=''}catch(x){$('#afehler').textContent=x.message}laeuft=false;mal()}

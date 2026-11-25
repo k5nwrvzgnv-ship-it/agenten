@@ -24,8 +24,10 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 if __package__:
+    from . import kette as k
     from . import logik as l
 else:
+    import kette as k
     import logik as l
 
 SEITE = Path(__file__).resolve().parent / "seite"
@@ -69,6 +71,7 @@ class Werk:
         ordner.mkdir(parents=True, exist_ok=True)
         self.port = 8765
         self.schloss = threading.Condition(threading.RLock())
+        self.kette = k.Kette(ordner, self.lesen, self.ids)
         self.warter: object | None = None         # der eine wartende Kurzbefehl
         self.auftrag: dict | None = None
         self.hinweis = ""
@@ -434,11 +437,22 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(403, {"fehler": "Nur auf diesem Rechner."})
         if weg == "/api/stand":
             return self.antwort(200, werk.stand())
+        if weg == "/api/bilder":
+            return self.antwort(200, werk.kette.bilder())
+        if weg == "/api/training":
+            return self.antwort(200, werk.kette.stand())
+        if z := re.fullmatch(r"/zuschnitt/([A-Za-z0-9_-]+?)(_k)?\.jpg", weg):
+            try:
+                return self.antwort(200, werk.kette.zuschnitt(z[1], bool(z[2])).read_bytes(), "image/jpeg")
+            except ValueError as e:
+                return self.antwort(404, {"fehler": str(e)})
         if weg == "/live.jpg" and werk.app_da():
             return self.antwort(200, werk.live, "image/jpeg")
         datei = None
         if weg == "/":
             datei = SEITE / "index.html"
+        elif weg in ("/labeln", "/training"):
+            datei = SEITE / f"{weg[1:]}.html"
         elif re.fullmatch(r"/[a-z-]+\.(css|js|woff2)", weg):
             datei = SEITE / weg[1:]
         elif re.fullmatch(r"/foto/B\d{3,6}/[A-Za-z0-9_-]+\.(jpg|png|heic)", weg):
@@ -498,7 +512,8 @@ class Anfrage(BaseHTTPRequestHandler):
                 return self.antwort(200, {"balken": werk.foto_ablegen(q.get("balken"), q.get("seite"), int(q.get("nr", "-1")), roh)})
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
                     "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
-                    "/api/zurueck": werk.zurueckholen}
+                    "/api/zurueck": werk.zurueckholen, "/api/label": werk.kette.speichern, "/api/teil": werk.kette.teil_setzen,
+                    "/api/training": werk.kette.starten, "/api/abbrechen": werk.kette.abbrechen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})
             daten = json.loads(roh)

@@ -34,3 +34,6 @@ dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:88vh;overflow:
 #seiten button{justify-items:center}#seiten .qs{width:50px;height:50px}#seiten [aria-pressed=true]{background:#3a3a3e;color:#fff;box-shadow:inset 0 0 0 2px #fff}#seiten [aria-pressed=true] small{color:#fff}
 .haupt span{display:flex;align-items:center;gap:8px}.haupt .ic{width:26px;height:26px}.haupt .kante{stroke:#000}
 #kam{display:grid;gap:4px;align-items:center}#kam output{font-variant-numeric:tabular-nums;white-space:nowrap;grid-column:1/-1}#kam{grid-template-columns:repeat(5,1fr)}#kam button{width:auto;padding:0}#kam [aria-pressed=true]{background:#3a3a3e;box-shadow:inset 0 0 0 2px #fff}#appadr code{display:block;overflow-wrap:anywhere;user-select:all;margin:4px 0}
+
+.weg-nav{display:flex;gap:4px;margin-left:16px}.weg-nav a{color:var(--l);text-decoration:none;padding:6px 10px;border-radius:3px}.weg-nav a[aria-current]{background:var(--m);color:var(--w)}
+#training{overflow:auto;padding:24px 16px}#training>div{max-width:720px;margin:0 auto;display:grid;gap:20px}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--m);font-weight:400}th{color:var(--l)}progress{width:100%;height:6px;accent-color:var(--w)}#tlauf{display:grid;gap:8px}
