@@ -3,7 +3,7 @@
 <title>Neurolign Aufnahme</title><meta name="color-scheme" content="dark"><link rel="icon" href="data:,"><link rel="stylesheet" href="stil.css"></head><body>
 <header><h1><svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><path d="M30 71V29L70 71V29"/><g><circle cx="30" cy="29" r="7.6"/><circle cx="70" cy="29" r="7.6"/><circle cx="30" cy="71" r="7.6"/><circle cx="70" cy="71" r="7.6"/></g></svg>Neurolign</h1>
 <nav aria-label="Balken"><label class="nurvor" for="wahl">Balken</label><select id="wahl"></select><button id="neu" title="Neuer Balken" aria-label="Neuer Balken"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></nav>
-<button id="handy" aria-live="polite"><i></i><span></span></button>
+<button id="handy"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2.5h10v19H7zM10.5 18.5h3"/></svg><i></i></button>
 <button id="einst" title="Einrichtung" aria-label="Einrichtung">···</button></header>
 
 <main id="form" hidden><form novalidate><h2 id="ftitel">Neuer Balken</h2>
@@ -17,13 +17,13 @@
 <section class="buehne" aria-label="Foto"><div id="bild"></div><div id="bildinfo"></div></section>
 <aside><div id="seiten" role="group" aria-label="Seite"></div>
 <div id="lage"></div><dl id="werte"></dl>
-<label id="vorschub">Vorschub<span><input inputmode="decimal" autocomplete="off">cm</span></label>
+<label id="vorschub" title="Vorschub"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h17M14 6l6 6-6 6"/></svg><span><input aria-label="Vorschub" inputmode="decimal" autocomplete="off">cm</span></label>
 <p id="warnung" class="warn" role="status"></p>
 <div class="tun"><p id="schritt" aria-live="polite"></p><p class="fehler" id="afehler" role="alert"></p><button class="haupt" id="los"><span></span><kbd>Leertaste</kbd></button></div></aside>
 <section class="band" aria-label="Abschnitte"><div id="abschnitte"></div></section></main>
 
-<dialog id="dlg" aria-labelledby="dtitel"><button class="zu" aria-label="Schließen" title="Schließen">✕</button><h2 id="dtitel">Einrichtung</h2>
-<form id="abstand" novalidate><h3>Kamera</h3><label>Linse bis Rolle, ohne Balken<span><input name="kr" inputmode="decimal" autocomplete="off">cm</span></label><button>Speichern</button><p class="fehler" role="alert"></p></form>
+<dialog id="dlg" aria-labelledby="dtitel"><button class="zu" aria-label="Schließen" title="Schließen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><h2 id="dtitel">Einrichtung</h2>
+<form id="abstand" novalidate><h3>Kamera</h3><label>Linse bis Rolle, ohne Balken<span><input name="kr" inputmode="decimal" autocomplete="off">cm</span></label><button class="sy" title="Speichern" aria-label="Speichern"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l5 5L20 6"/></svg></button><p class="fehler" role="alert"></p></form>
 <h3>Bildwinkel</h3><p id="winkel"></p>
 <h3>iPhone-Kurzbefehl</h3><ol id="kurz"></ol><p class="leise">iPhone und Mac im selben WLAN oder der Mac im Hotspot des iPhones. Automatische Sperre auf „Nie“.</p>
 <h3>Foto vom Mac</h3><label class="datei">Für den aktuellen Abschnitt<input type="file" id="datei" accept="image/*,.heic"></label></dialog>

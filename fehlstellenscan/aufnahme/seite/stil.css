@@ -22,10 +22,14 @@ aside{border-left:1px solid var(--m);padding:16px;display:flex;flex-direction:co
 #lage svg{width:100%;height:170px;display:block}#lage text{fill:var(--t);font-size:13px}
 dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px}dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
 #vorschub{display:flex;justify-content:space-between;align-items:center}#vorschub span{width:110px}
-.tun{margin-top:auto;display:grid;gap:12px}#schritt{font-size:20px;line-height:1.3;color:var(--w);text-wrap:balance}#schritt small{display:block;font-size:15px;color:var(--l)}
+.tun{margin-top:auto;display:grid;gap:12px}#schritt{font-size:24px;line-height:1.3;color:var(--w);display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}#schritt b{font-weight:500}#schritt .ic{width:26px;height:26px}#schritt small{flex-basis:100%;font-size:15px;color:var(--l)}
 .band{grid-column:1/-1;border-top:1px solid var(--m);padding:8px 16px}#abschnitte{display:flex;gap:4px;overflow-x:auto;padding:3px}
 #abschnitte button{flex:0 0 104px;height:78px;padding:0;position:relative;overflow:hidden;background:var(--f);border:1px solid var(--r)}#abschnitte img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}#abschnitte span{position:absolute;left:0;bottom:0;padding:1px 6px;background:#000c;font-size:13px}
 #abschnitte .jetzt{border:2px dashed var(--w)}#abschnitte [aria-pressed=true]{border:2px solid var(--w)}
 dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:88vh;overflow:auto;background:var(--f);color:var(--t);border:1px solid var(--r);border-radius:3px;padding:24px}dialog::backdrop{background:#000a}.zu{float:right}
 #abstand{display:grid;grid-template-columns:1fr auto;gap:0 8px;align-items:end}#abstand h3,#abstand p{grid-column:1/-1}#kurz{margin-bottom:12px;padding-left:20px;display:grid;gap:10px}#kurz code{display:block;overflow-wrap:anywhere;color:var(--w);margin:4px 0;user-select:all}.datei input{display:block;margin-top:4px;padding:6px}
 @media(max-width:800px){html,body{height:auto}header{flex-wrap:wrap}nav{margin-left:0}#aufnahme{grid-template:auto auto auto/minmax(0,1fr)}.buehne{height:60vh}aside{border:0}.band{grid-row:2}.felder{grid-template-columns:1fr}}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}.sy{width:40px;padding:0;display:grid;place-items:center;color:var(--t)}.zu{padding:0;width:40px;display:grid;place-items:center}
+.qs{width:46px;height:46px;display:block;flex:none;overflow:visible}.holz{fill:#8a6543}.kante{stroke:#fff;stroke-width:4;stroke-linecap:square;fill:none}
+#seiten button{justify-items:center}#seiten .qs{width:50px;height:50px}#seiten [aria-pressed=true]{background:#3a3a3e;color:#fff;box-shadow:inset 0 0 0 2px #fff}#seiten [aria-pressed=true] small{color:#fff}
+.haupt span{display:flex;align-items:center;gap:8px}.haupt .ic{width:26px;height:26px}.haupt .kante{stroke:#000}
