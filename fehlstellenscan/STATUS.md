@@ -419,6 +419,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Geprüft auf dem Server mit simuliertem iPhone im Browser. Offen, nur am Gerät klärbar: Kurzbefehl, Auflösung und
   Linse von „Foto aufnehmen“ (Makro?), Schärfe, sips mit HEIC, Dauer bis zum Bild. Keine feste Belichtung, kein
   Live-Bild. Rückfall: Foto per AirDrop, dann ··· „Foto vom Mac“.
+- Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)
 FiftyOne zeigt Bilder mit Markierung und Vorhersage im Browser, wertet je Objekt aus und speichert Ansichten.

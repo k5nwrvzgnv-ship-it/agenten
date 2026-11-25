@@ -138,6 +138,20 @@ class TestServer(unittest.TestCase):
         self.assertEqual(self.ruf("/api/balken", {**BALKEN, "id": b})[0], 400)
         self.assertEqual(self.ruf("/api/vorschub", {"balken": b, "seite": "1", "mm": 300})[0], 400)
 
+    def test_loeschen_und_zurueck(self):
+        b = self.balken()
+        ziel = {"balken": b, "seite": "1", "nr": 0}
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        ordner = Path(self.ordner.name) / b
+        self.assertEqual(self.ruf("/api/loeschen", ziel)[1]["balken"]["seiten"]["1"]["fotos"], {})
+        self.assertEqual(len(list(ordner.glob("*.jpg"))), 0)
+        self.assertEqual(self.ruf("/api/loeschen", ziel)[0], 400)
+        self.assertEqual(self.ruf("/api/zurueck", ziel)[0], 200)
+        self.assertEqual(len(list(ordner.glob("*.jpg"))), 1)
+        self.ruf("/api/loeschen", ziel)
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        self.assertEqual(self.ruf("/api/zurueck", ziel)[0], 400)
+
     def test_zugang(self):
         self.assertEqual(self.ruf("/h/falsch/warten")[0], 403)
         self.assertEqual(self.ruf("/api/balken", BALKEN, kopf=False)[0], 403)

@@ -1,13 +1,13 @@
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cm=(mm,n=1)=>(mm/10).toLocaleString('de-DE',{maximumFractionDigits:n,useGrouping:false}),lies=t=>/^\s*\d+([.,]\d+)?\s*$/.test(t)?Math.round(parseFloat(t.replace(',','.'))*100)/10:null;
-const PF={kamera:'M4 8h3l2-3h6l2 3h3v11H4zM12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7z',drehen:'M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5',mass:'M3 9h18v7H3zM7 9v3M11 9v4M15 9v3',stift:'M4 20l1-5L16 4l4 4L9 19zM13.5 6.5l4 4',ja:'M4 13l5 5L20 6',nein:'M6 6l12 12M18 6L6 18',schieben:'M3 12h17M14 6l6 6-6 6',rollen:'M5 13a7 7 0 1 0 3-6L5 9M5 4v5h5',plus:'M12 5v14M5 12h14',kopf:'M5 4v16M9 12h11M15 7l5 5-5 5'};
+const PF={kamera:'M4 8h3l2-3h6l2 3h3v11H4zM12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7z',drehen:'M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5',mass:'M3 9h18v7H3zM7 9v3M11 9v4M15 9v3',stift:'M4 20l1-5L16 4l4 4L9 19zM13.5 6.5l4 4',weg:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5',zurueck:'M9 5L4 10l5 5M4 10h10a5 5 0 0 1 0 10h-3',ja:'M4 13l5 5L20 6',nein:'M6 6l12 12M18 6L6 18',schieben:'M3 12h17M14 6l6 6-6 6',rollen:'M5 13a7 7 0 1 0 3-6L5 9M5 4v5h5',plus:'M12 5v14M5 12h14',kopf:'M5 4v16M9 12h11M15 7l5 5-5 5'};
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${PF[n]}"/></svg>`,ik=(id,n,name)=>`<button id="${id}" class="sy" title="${name}" aria-label="${name}">${ic(n)}</button>`;
 /* Querschnitt liegend gezeichnet; die Kante der Seite ist hell: 1 oben, 2 rechts, 3 unten, 4 links */
 function quer(b,k){const l=Math.max(b.breite_mm,b.hoehe_mm),s=Math.min(b.breite_mm,b.hoehe_mm),w=38,h=Math.max(13,38*s/l),x=(50-w)/2,y=(50-h)/2,e={1:`M${x} ${y}h${w}`,2:`M${x+w} ${y}v${h}`,3:`M${x} ${y+h}h${w}`,4:`M${x} ${y}v${h}`}[k];
  return `<svg class="qs" viewBox="0 0 50 50" aria-hidden="true"><rect x="${x}" y="${y}" width="${w}" height="${h}" class="holz"/><path d="${e}" class="kante"/></svg>`}
 const sname=(b,k)=>{const p=b.seiten[k].plan;return `Seite ${k}${p?', '+p.art:''}`};
-let S={balken:[],einstellungen:{},adressen:[]},bid=null,seite='1',jetzt=0,zeigt=null,laeuft=false,mess=null,formular=false,aendern=null;
+let S={balken:[],einstellungen:{},adressen:[]},bid=null,seite='1',jetzt=0,zeigt=null,laeuft=false,geloescht=null,mess=null,formular=false,aendern=null;
 let dreh={};try{dreh=JSON.parse(localStorage.getItem('aufnahme-dreh'))||{}}catch(e){}
 async function ruf(weg,daten){let a;try{a=await fetch(weg,daten===undefined?{}:{method:'POST',headers:{'X-Aufnahme':'1'},body:daten instanceof Blob?daten:JSON.stringify(daten)})}catch(e){throw Error('Das Programm auf dem Mac antwortet nicht. Im Terminal neu starten.')}
  const j=await a.json();if(!a.ok)throw Error(j.fehler);return j}
@@ -33,7 +33,7 @@ function mal(){
  const nr=jetzt,m=p&&nr>=0?p.mitten_mm[nr]:0;let st='',kn='',kl='';
  if(!p){st='Diese Seite geht so nicht.'}
  else if(nr>=0){const vor=zeigt!==null&&nr>0?m-p.mitten_mm[nr-1]:0;
-  st=s.fotos[nr]?`${ic('kamera')}<b>${cm(m)} cm</b>`:nr===0?`${ic('kopf')}<b>${cm(m)} cm</b><small>Kameramitte ab Anfang</small>`:`${ic('schieben')}<b>${cm(vor)} cm</b><small>Kameramitte ${cm(m)} cm ab Anfang</small>`;
+  st=s.fotos[nr]?`${ic('kamera')}<b>${cm(m)} cm</b>`:nr===0||!s.fotos[nr-1]||zeigt!==nr-1?`${ic('kopf')}<b>${cm(m)} cm</b><small>Kameramitte ab Anfang</small>`:`${ic('schieben')}<b>${cm(vor)} cm</b><small>Kameramitte ${cm(m)} cm ab Anfang</small>`;
   kn=ic('kamera')+(laeuft?' …':` ${nr+1}/${p.mitten_mm.length}`);kl=s.fotos[nr]?'Foto wiederholen':`Foto ${nr+1} von ${p.mitten_mm.length} auslösen`}
  else{const n=naechste();const g=n?(+n-+seite+4)%4:0;st=n?`${quer(b,seite)}${ic('rollen')}<b>${g*90}°</b>${quer(b,n)}`:`${ic('ja')}<b>${b.id}</b>`;kn=ic(n?'schieben':'plus')+(n?quer(b,n):'');kl=n?`Balken um ${g*90} Grad gerollt, weiter mit ${sname(b,n)}`:'Neuer Balken'}
  $('#schritt').innerHTML=st;$('#los span').innerHTML=kn;$('#los').title=kl;$('#los').setAttribute('aria-label',kl);$('#los').hidden=!kn;$('#los').disabled=laeuft;
@@ -46,12 +46,12 @@ function lageMalen(b,p){if(!p){$('#lage').innerHTML='';return}
  $('#lage').innerHTML=`<svg viewBox="0 0 288 170" role="img" aria-label="Seite ${seite} oben, Abstand zur Kamera ${cm(p.abstand_mm)} cm"><path d="M144 25L${144-q} ${y0-h}H${144+q}Z" fill="#fff" opacity=".09"/><rect x="132" y="13" width="24" height="10" rx="2" fill="#a3a3a9"/><circle cx="144" cy="24" r="3" fill="#fff"/><rect x="${144-w/2}" y="${y0-h}" width="${w}" height="${h}" fill="#8a6543"/><path d="M${144-w/2} ${y0-h}h${w}" stroke="#fff" stroke-width="3"/><path d="M40 ${y0+4}H248" stroke="#77777d" stroke-width="3"/><path d="M262 25V${y0-h}M257 25h10M257 ${y0-h}h10" stroke="#a3a3a9"/><text x="256" y="${(25+y0-h)/2+4}" text-anchor="end">${cm(p.abstand_mm)} cm</text></svg>`}
 let winkel=0;
 function bildMalen(s){const f=zeigt!==null&&s.fotos[zeigt],el=$('#bild'),inf=$('#bildinfo');el.classList.toggle('mess',!!mess);
- if(!f){el.innerHTML='<span>Noch kein Foto</span>';inf.innerHTML=fotos0()?'<span class="re">'+ik('massaend','stift','Maße ändern')+'</span>':'';return}
+ if(!f){const u=geloescht&&geloescht.balken===bid&&geloescht.seite===seite&&geloescht.nr===zeigt?ik('zurueck','zurueck','Löschen rückgängig'):'';el.innerHTML='<span>Noch kein Foto</span>';inf.innerHTML=u?`<span class="re">${u}</span>`:fotos0()?'<span class="re">'+ik('massaend','stift','Maße ändern')+'</span>':'';return}
  winkel=dreh.w||0;const src=bildHtml(f);
  if(el.dataset.src!==src||!el.querySelector('img')){el.innerHTML=`<img alt="${bid}, Seite ${seite}, Abschnitt ${zeigt+1}" src="${src}">`;el.dataset.src=src;el.querySelector('img').onload=stelle;el.querySelector('img').onerror=()=>{el.innerHTML='<span>Foto gespeichert, Vorschau nicht möglich</span>'}}
  stelle();
  inf.innerHTML=mess?`<span>${mess.p.length<2?'Zwei Punkte mit bekanntem Abstand anklicken':'Abstand eingeben'}</span><span class="re">${mess.p.length<2?'':`<label>Abstand<span><input id="strecke" inputmode="decimal" autocomplete="off">cm</span></label>${ik('messok','ja','Übernehmen')}`}${ik('messab','nein','Abbrechen')}</span>`
- :`<b>Abschnitt ${zeigt+1}</b><span>${f.breite_px?`${f.breite_px} × ${f.hoehe_px} px · `:''}${f.px_je_mm?f.px_je_mm.toLocaleString('de-DE')+' px/mm · ':''}${f.mb.toLocaleString('de-DE')} MB</span><span class="re">${ik('drehen','drehen','Bild drehen')}${ik('messen','mass','Maßstab messen')}${ik('nochmal','kamera','Foto wiederholen')}</span>`;
+ :`<b>Abschnitt ${zeigt+1}</b><span>${f.breite_px?`${f.breite_px} × ${f.hoehe_px} px · `:''}${f.px_je_mm?f.px_je_mm.toLocaleString('de-DE')+' px/mm · ':''}${f.mb.toLocaleString('de-DE')} MB</span><span class="re">${ik('drehen','drehen','Bild drehen')}${ik('messen','mass','Maßstab messen')}${ik('nochmal','kamera','Foto wiederholen')}${ik('weg','weg','Foto löschen')}</span>`;
  const st=$('#strecke');if(st)st.focus()}
 const fotos0=()=>!Object.values(B().seiten).some(x=>fotos(x));
 /* Lage des Bildes: lange Seite waagerecht, dazu die gemerkte Drehung um 0 oder 180 Grad */
@@ -66,16 +66,19 @@ $('#bild').onclick=e=>{if(!mess||mess.p.length>1||!$('#bild img'))return;const k
 async function messOk(){const[a,b]=mess.p;try{S=await ruf('/api/massstab',{balken:bid,seite,anteil:Math.hypot(a[0]-b[0],a[1]-b[1]),strecke_mm:lies($('#strecke').value)});mess=null;$('#bild svg')?.remove();$('#afehler').textContent='';mal()}catch(x){$('#afehler').textContent=x.message}}
 $('#bildinfo').onclick=e=>{const id=e.target.closest('button')?.id;if(id==='drehen'){dreh.w=(winkel+180)%360;try{localStorage.setItem('aufnahme-dreh',JSON.stringify(dreh))}catch(x){}mal()}
  if(id==='messen'){mess={p:[]};mal()}if(id==='messab'){mess=null;$('#bild svg')?.remove();$('#afehler').textContent='';mal()}if(id==='messok')messOk();
- if(id==='nochmal'){jetzt=zeigt;document.activeElement.blur();mal()}if(id==='massaend')maleForm(B())};
+ if(id==='nochmal'){jetzt=zeigt;document.activeElement.blur();mal()}if(id==='weg')loesche();if(id==='zurueck')zurueck();if(id==='massaend')maleForm(B())};
 $('#bildinfo').onkeydown=e=>{if(e.key==='Enter'&&e.target.id==='strecke')messOk()};
 async function los(){if(laeuft||formular||mess)return;const s=SE();if(!s.plan)return;
  if(jetzt<0){const n=naechste();if(n){seite=n;seiteAuf()}else maleForm();return}
  await nimm(()=>ruf('/api/ausloesen',{balken:bid,seite,nr:jetzt}))}
-async function nimm(tu){const ziel=[bid,seite,jetzt];laeuft=true;$('#afehler').textContent='';mal();
+async function loesche(){if(laeuft||formular||mess||zeigt===null||!SE().fotos[zeigt])return;const z={balken:bid,seite,nr:zeigt};document.activeElement.blur();await nimm(()=>ruf('/api/loeschen',z),true);if(!SE().fotos[z.nr]){geloescht=z;jetzt=z.nr;zeigt=z.nr;mal()}}
+async function zurueck(){if(laeuft||!geloescht)return;const z=geloescht;document.activeElement.blur();laeuft=true;try{const r=await ruf('/api/zurueck',z);ersetze(r.balken);geloescht=null;jetzt=offen();zeigt=z.nr;$('#afehler').textContent=''}catch(x){$('#afehler').textContent=x.message}laeuft=false;mal()}
+async function nimm(tu,loescht){const ziel=[bid,seite,jetzt];laeuft=true;$('#afehler').textContent='';if(!loescht){geloescht=null;mal()}
  try{const r=await tu();ersetze(r.balken);if(bid===ziel[0]&&seite===ziel[1]){zeigt=ziel[2];jetzt=offen()}}catch(x){$('#afehler').textContent=x.message}
  laeuft=false;mal()}
 $('#los').onclick=()=>{$('#los').blur();los()};
 addEventListener('keydown',e=>{if(e.code!=='Space'||e.repeat||$('#dlg').open||formular||/^(INPUT|SELECT|BUTTON)$/.test(e.target.tagName))return;e.preventDefault();los()});
+addEventListener('keydown',e=>{if($('#dlg').open||/^(INPUT|SELECT)$/.test(e.target.tagName)||formular)return;if((e.key==='Delete'||e.key==='Backspace')&&!e.repeat){e.preventDefault();loesche()}if(e.key==='z'&&(e.metaKey||e.ctrlKey)&&geloescht&&geloescht.balken===bid&&geloescht.seite===seite){e.preventDefault();zurueck()}});
 $('#seiten').onclick=e=>{const k=e.target.closest('button');if(!k||laeuft)return;seite=k.dataset.s;seiteAuf()};
 $('#abschnitte').onclick=e=>{const k=e.target.closest('button');if(!k||laeuft)return;const i=+k.dataset.i;if(SE().fotos[i]){zeigt=i;jetzt=offen()}else jetzt=i;mess=null;mal()};
 $('#vorschub input').onchange=async e=>{const i=e.target;try{ersetze(await ruf('/api/vorschub',{balken:bid,seite,mm:i.value.trim()?lies(i.value):0}));i.blur();$('#afehler').textContent='';seiteAuf()}catch(x){$('#afehler').textContent=x.message}};

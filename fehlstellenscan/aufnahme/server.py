@@ -205,12 +205,50 @@ class Werk:
             s["fotos"][str(nr)] = foto
             self.ablegen(b)
             if alt:
-                weg = ordner / "verworfen"
-                weg.mkdir(exist_ok=True)
-                for n in {alt["datei"], alt["vorschau"]}:
-                    if (ordner / n).exists():
-                        shutil.move(ordner / n, weg / n)
+                self.verschieben(alt, ordner, ordner / "verworfen")
             return self.mit_plan(b)
+
+    def verschieben(self, foto: dict, von: Path, nach: Path) -> None:
+        nach.mkdir(exist_ok=True)
+        for n in {foto["datei"], foto["vorschau"]}:
+            if (von / n).exists():
+                shutil.move(von / n, nach / n)
+
+    def loeschen(self, daten: dict) -> dict:
+        """Foto nach verworfen/ legen. Der Eintrag bleibt für Rückgängig in geloescht."""
+        with self.schloss:
+            if self.auftrag:
+                raise Konflikt("Es wird gerade ausgelöst.")
+            b, s, p = self.abschnitt(daten.get("balken"), daten.get("seite"), daten.get("nr"))
+            foto = s["fotos"].pop(str(daten["nr"]), None)
+            if foto is None:
+                raise ValueError("Hier gibt es kein Foto.")
+            s.setdefault("geloescht", {})[str(daten["nr"])] = {"foto": foto, "plan": p}
+            ordner = self.ordner / b["id"]
+            self.verschieben(foto, ordner, ordner / "verworfen")
+            self.ablegen(b)
+            return {"balken": self.mit_plan(b)}
+
+    def zurueckholen(self, daten: dict) -> dict:
+        with self.schloss:
+            if self.auftrag:
+                raise Konflikt("Es wird gerade ausgelöst.")
+            b = self.lesen(daten.get("balken"))
+            s = self.seite(b, daten.get("seite"))
+            nr = str(daten.get("nr"))
+            alt = s.get("geloescht", {}).get(nr)
+            if alt is None:
+                raise ValueError("Nichts zum Zurückholen.")
+            if nr in s["fotos"]:
+                raise ValueError("Hier gibt es schon ein neues Foto.")
+            if s["fotos"] and s["plan"] != alt["plan"]:
+                raise ValueError("Die Seite wurde inzwischen mit anderen Werten fotografiert.")
+            del s["geloescht"][nr]
+            s["plan"], s["fotos"][nr] = alt["plan"], alt["foto"]
+            ordner = self.ordner / b["id"]
+            self.verschieben(alt["foto"], ordner / "verworfen", ordner)
+            self.ablegen(b)
+            return {"balken": self.mit_plan(b)}
 
     def vermessen(self, ziel: Path, foto: dict, p: dict) -> None:
         """Größe und JPEG-Vorschau per sips (macOS). HEIC zeigen nicht alle Browser."""
@@ -388,7 +426,8 @@ class Anfrage(BaseHTTPRequestHandler):
                 q = {k: v[0] for k, v in parse_qs(teile.query).items()}
                 return self.antwort(200, {"balken": werk.foto_ablegen(q.get("balken"), q.get("seite"), int(q.get("nr", "-1")), roh)})
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
-                    "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab}
+                    "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/loeschen": werk.loeschen,
+                    "/api/zurueck": werk.zurueckholen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})
             daten = json.loads(roh)
