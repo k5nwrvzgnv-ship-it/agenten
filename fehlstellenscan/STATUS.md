@@ -446,6 +446,14 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Geprüft auf dem Server im Browser mit yolo-Attrappe. Nicht geprüft: echtes yolo auf dem Mac, HEIC, Durchlauf eines
   ganzen Balkens, Prüfer in frischem Kontext. Vorlabeln per Modell fehlt. Nach Neustart des Programms ist die Anzeige
   des Laufs weg, der Lauf selbst geht weiter.
+- Ergebnis nach dem Training (Jan 25.11.2026): Seite Training zeigt unter dem Start „Ergebnis altholz-N“, auch nach
+  Neustart (letzter altholz-Lauf mit Abschlusstabelle). Quelle nur, was ultralytics und bilder.py schreiben
+  (kette.ergebnis_gelesen): Abschlusstabelle im Log (best.pt, je Klasse Box und Maske P, R, mAP50, mAP50-95),
+  results.csv (beste Epoche nach Fitness 0,1 mAP50 + 0,9 mAP50-95 für Box und Maske, an kodytek-seg1-n1280 geprüft;
+  Dauer = Spalte time), args.yaml (Startmodell, imgsz, batch, Epochen), datensaetze/altholz-N/bericht.json (Kacheln
+  train/val; bei Ablaufprobe val = train, dazu der Hinweis), aufnahmen/altholz-N.json (Datensätze). Groß die
+  Masken-Werte, Boxen in einer Zeile, Klassen mit deutschen Namen. Geprüft mit yolo-Attrappe und gerendert mit den
+  echten Dateien von kodytek-seg1-n1280; nicht geprüft mit einem echten altholz-Lauf auf dem Mac.
 - Datensätze im Training (Jan 25.11.2026): Häkchen Altholz, Kodytek-Auswahl und jeder Satz in datensaetze/, der Umrisse und
   dieselbe Klassenzählung hat (Box-Sätze wie kodytek-1 und altholz-N fehlen absichtlich). aufnahme/saetze.py (Bordmittel).
   Kodytek-Auswahl: 400 Trainings- und 100 Prüfbilder aus kodytek-seg-1, seltene Klassen zuerst, einmal gezogen und fest

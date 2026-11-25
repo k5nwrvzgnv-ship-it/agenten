@@ -1,6 +1,22 @@
 'use strict';
 const $=i=>document.getElementById(i),esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const TEIL={train:'Training',val:'Prüfung',test:'Nur Test'};let S=null;const WAHL=new Set(['altholz']),zahl=n=>n.toLocaleString('de-DE');
+const KL=['Ast lebend','Ast tot','Astloch','Ast mit Riss','Riss','Quartzity','Harz','Mark','Bläue','Überwallung','Bohrloch','Metall','Nagelloch','Farbe','Fäule','Insektenfraß','Verbindung','Fuge'];
+const dez=w=>w==null?'–':w.toLocaleString('de-DE',{minimumFractionDigits:3,maximumFractionDigits:3});
+function dauer(s){if(s==null)return'–';const m=Math.round(s/60),h=Math.floor(m/60);return h?`${h} h ${m%60} min`:`${m} min`}
+function ergebnis(e){if(!e)return'';const g=e.gesamt,m=g.maske,b=g.box,satz={altholz:'Altholz',kodytek:'Kodytek-Auswahl'};
+ const zahlen=[['mAP50',m.map50],['mAP50-95',m.map],['Precision',m.p],['Recall',m.r]];
+ const neben=[['Beste Epoche',e.beste==null?'–':`${e.beste} von ${e.gelaufen}${e.epochen&&e.gelaufen<e.epochen?` (geplant ${e.epochen})`:''}`],['Dauer',dauer(e.sekunden)],
+  ['Bilder',e.train==null?'–':`${zahl(e.train)} Training, ${zahl(e.val)} Prüfung`],['Datensätze',e.saetze.length?e.saetze.map(x=>satz[x]||x).join(', '):'–'],
+  ['Startmodell',e.modell||'–'],['Bildgröße, Batch',`${e.imgsz||'–'} px, ${e.batch||'–'}`]];
+ return `<h3 id="tergk">Ergebnis ${esc(e.name)}</h3>${e.probe?'<p class="warn">Ablaufprobe: geprüft auf denselben Fotos wie trainiert. Die Zahlen sagen nichts über die Erkennung.</p>':''}
+ <p class="leise">Masken, geprüft mit dem besten Stand auf ${zahl(g.bilder)} Bildern mit ${zahl(g.objekte)} Objekten</p>
+ <dl class="kenn">${zahlen.map(([n,w])=>`<div><dt>${n}</dt><dd>${dez(w)}</dd></div>`).join('')}</dl>
+ <p class="leise boxen">Boxen: mAP50 ${dez(b.map50)}, mAP50-95 ${dez(b.map)}, Precision ${dez(b.p)}, Recall ${dez(b.r)}</p>
+ <div class="breit" tabindex="0" role="region" aria-label="Masken je Klasse"><table class="zahlen"><caption class="nurvor">Masken je Klasse</caption><thead><tr><th>Klasse</th><th>Objekte</th><th>mAP50</th><th>mAP50-95</th><th>Precision</th><th>Recall</th></tr></thead>
+ <tbody>${e.klassen.map(k=>`<tr><td>${esc(k.k==null?k.klasse:KL[k.k])}</td><td>${zahl(k.objekte)}</td><td>${dez(k.maske.map50)}</td><td>${dez(k.maske.map)}</td><td>${dez(k.maske.p)}</td><td>${dez(k.maske.r)}</td></tr>`).join('')}</tbody></table></div>
+ <dl class="lauf">${neben.map(([n,w])=>`<div><dt>${n}</dt><dd>${esc(w)}</dd></div>`).join('')}</dl>
+ <p class="leise pfad">${esc(e.gewichte)}</p>`}
+const TEIL={train:'Training',val:'Prüfung',test:'Nur Test'};let S=null,ERG='';const WAHL=new Set(['altholz']),zahl=n=>n.toLocaleString('de-DE');
 async function ruf(weg,daten){let a;try{a=await fetch(weg,daten===undefined?{}:{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify(daten)})}catch(e){throw Error('Das Programm auf dem Mac antwortet nicht. Im Terminal neu starten.')}
  const j=await a.json();if(!a.ok)throw Error(j.fehler);return j}
 const aktiv=()=>S.lauf&&['bauen','training'].includes(S.lauf.status);
@@ -17,9 +33,10 @@ function mal(){const d=document.activeElement&&document.activeElement.dataset.b;
  $('tsumme').textContent=!W.length?'Mindestens einen Datensatz wählen.':WAHL.has('altholz')&&!(A.train+A.val)?'Altholz hat noch kein fertig gelabeltes Foto.':`Training ${zahl(sum('train'))}, Prüfung ${zahl(sum('val'))} Bilder${W.some(x=>x.id==='kodytek')&&ganz?' (doppelte zählen einmal)':''}. Start vom Modell ${S.modell}.`;
  $('tprobe').textContent=!g?'':nurAlt&&S.probe?'Ablaufprobe: Prüfung auf denselben Fotos wie das Training. Die Zahlen sagen nichts über die Erkennung.':WAHL.has('altholz')&&!A.val?'Geprüft wird nur auf Kodytek. Die Zahlen sagen nichts über Altholz.':ganz?'Der ganze Satz rechnet auf dem Mac viele Stunden.':'';
  $('tlos').disabled=!aktiv()&&!g;$('tlos').textContent=aktiv()?'Training abbrechen':'Training starten';
+ const eh=ergebnis(S.ergebnis);if(eh!==ERG){$('terg').innerHTML=ERG=eh}$('terg').hidden=!eh;
  const l=S.lauf;if(!l){$('tlauf').innerHTML='';return}
  const w=l.werte.at(-1),t={bauen:'Datensatz wird gebaut',training:`Epoche ${l.epoche} von ${l.epochen}`,fertig:'Fertig',fehler:'Fehlgeschlagen',abgebrochen:'Abgebrochen'}[l.status];
- $('tlauf').innerHTML=`<p role="status"><b>${esc(l.name)}</b> ${t}${l.probe?' (Ablaufprobe)':''}</p><progress max="${l.epochen}" value="${l.epoche}" aria-label="Epochen"></progress>${w&&w.map!==undefined?`<p class="leise">Masken-mAP50 ${w.map.toLocaleString('de-DE',{maximumFractionDigits:3})}</p>`:''}${l.fehler?`<p class="fehler">${esc(l.fehler)}</p>`:''}${l.status==='fertig'?`<p class="leise">${esc(l.ordner)}/weights/best.pt</p>`:''}`}
+ $('tlauf').innerHTML=`<p role="status"><b>${esc(l.name)}</b> ${t}${l.probe?' (Ablaufprobe)':''}</p><progress max="${l.epochen}" value="${l.epoche}" aria-label="Epochen"></progress>${w&&w.map!==undefined?`<p class="leise">Masken-mAP50 ${w.map.toLocaleString('de-DE',{maximumFractionDigits:3})}</p>`:''}${l.fehler?`<p class="fehler">${esc(l.fehler)}</p>`:''}`}
 async function tu(weg,daten){try{S=await ruf(weg,daten);$('tfehler').textContent='';mal()}catch(e){$('tfehler').textContent=e.message}}
 $('tlos').onclick=()=>aktiv()?tu('/api/abbrechen',{}):tu('/api/training',{saetze:[...WAHL]});
 $('tsatz').onchange=e=>{const s=e.target.dataset.s;e.target.checked?WAHL.add(s):WAHL.delete(s);mal()};

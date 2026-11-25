@@ -3,6 +3,7 @@
 import http.client
 import json
 import os
+import shutil
 import sys
 import tempfile
 import threading
@@ -22,9 +23,21 @@ DREIECK = [[0.1, 0.1], [0.3, 0.1], [0.2, 0.4]]
 YOLO = """#!/bin/sh
 for a in "$@"; do case $a in project=*) p=${a#project=};; name=*) n=${a#name=};; esac; done
 mkdir -p "$p/$n"
-printf 'epoch, train/seg_loss, metrics/mAP50(M)\\n1, 1.5, 0.1\\n2, 1.0, 0.4\\n' > "$p/$n/results.csv"
-%s
+printf 'epoch, time, train/seg_loss, metrics/mAP50(B), metrics/mAP50-95(B), metrics/mAP50(M), metrics/mAP50-95(M)\\n\
+1, 60.5, 1.5, 0.2, 0.1, 0.1, 0.05\\n2, 121, 1.0, 0.5, 0.3, 0.4, 0.2\\n' > "$p/$n/results.csv"
+printf 'task: segment\\nmodel: yolo11n-seg.pt\\nepochs: 60\\nbatch: 2\\nimgsz: 1280\\n' > "$p/$n/args.yaml"
+cat "TABELLE"
+ENDE
 """
+TABELLE = """\
+\x1b[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95)     Mask(P          R      \
+mAP50  mAP50-95): 50% ━━━━━━── 1/2 4.3it/s 0.2s<0.2s\r\x1b[K                 Class     Images  Instances      Box(P          \
+R      mAP50  mAP50-95)     Mask(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 2/2 4.3it/s 0.5s
+                   all       2026       4465      0.753      0.672      0.748      0.457      0.753      0.669      0.746      0.413
+             live_knot       1277       2205       0.85      0.786      0.867      0.442      0.851      0.783      0.868       0.42
+            blue_stain          5         12      0.359      0.333      0.293      0.195       0.36      0.333      0.293      0.151
+Speed: 0.2ms preprocess, 0.5ms inference, 0.0ms loss, 6.5ms postprocess per image
+Results saved to /x/runs/segment/altholz-1"""
 
 
 class TestLogik(unittest.TestCase):
@@ -37,6 +50,26 @@ class TestLogik(unittest.TestCase):
         t["B002"]["teil"] = "test"
         benutzt, probe = k.zuordnung(t, ["B001", "B002"])
         self.assertEqual((benutzt, probe), ({"B001": "train"}, True))
+
+    def test_ergebnis_aus_log_csv_und_args(self):
+        tabelle = k.tabelle_gelesen("Epoche 1\n" + TABELLE)
+        self.assertEqual([t["klasse"] for t in tabelle], ["all", "live_knot", "blue_stain"])
+        self.assertEqual((tabelle[0]["bilder"], tabelle[0]["box"]["map"], tabelle[2]["maske"]["p"]), (2026, 0.457, 0.36))
+        self.assertEqual(k.tabelle_gelesen("kein Abschluss"), [])
+        with tempfile.TemporaryDirectory() as t:
+            lauf, log = Path(t), Path(t) / "lauf.log"
+            log.write_text("        all  3  4  0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1\n")
+            self.assertIsNone(k.ergebnis_gelesen(lauf, log, lauf / "bericht.json"))
+            log.write_text(TABELLE)
+            (lauf / "results.csv").write_text(
+                "epoch,time,metrics/mAP50(B),metrics/mAP50-95(B),metrics/mAP50(M),metrics/mAP50-95(M)\n"
+                "1,10,0.9,0.1,0.9,0.1\n2,20,0.5,0.3,0.4,0.2\n3,30,0.5,0.25,0.4,0.2\n")
+            (lauf / "args.yaml").write_text("model: /m/runs/segment/kodytek-seg1-n1280/weights/best.pt\nepochs: 60\n"
+                                             "imgsz: 1280\nbatch: 2\nname: null\n")
+            (lauf / "bericht.json").write_text('{"probe": false, "kacheln": {"train": 30, "val": 8}}')
+            e = k.ergebnis_gelesen(lauf, log, lauf / "bericht.json")
+        self.assertEqual((e["beste"], e["gelaufen"], e["sekunden"], e["modell"], e["train"], e["val"]),
+                         (2, 3, 30.0, "kodytek-seg1-n1280", 30, 8))
 
     def test_objekte_pruefen(self):
         gut = [{"k": 1, "ok": True, "p": DREIECK}]
@@ -97,7 +130,8 @@ class TestWeg(unittest.TestCase):
 
     def yolo(self, ende):
         y = self.wurzel / ".venv" / "bin" / "yolo"
-        y.write_text(YOLO % ende)
+        (self.wurzel / "tabelle.txt").write_text(TABELLE + "\n")
+        y.write_text(YOLO.replace("TABELLE", str(self.wurzel / "tabelle.txt")).replace("ENDE", ende))
         os.chmod(y, 0o755)
 
     def ruf(self, weg, daten=None, kopf=True):
@@ -155,8 +189,25 @@ class TestWeg(unittest.TestCase):
         labels = [z for p in (d / "labels" / "train").glob("*.txt") for z in p.read_text().splitlines()]
         self.assertEqual([z.split()[0] for z in labels], ["10"] * 4)
         self.assertFalse(self.werk.kette.teile()[kennung]["fest"])
+        e = self.ruf("/api/training")[1]["ergebnis"]
+        bericht = json.loads((d / "bericht.json").read_text())
+        self.assertEqual((e["name"], e["probe"], e["beste"], e["gelaufen"], e["epochen"], e["sekunden"]),
+                         ("altholz-1", True, 2, 2, 60, 121.0))
+        self.assertEqual((e["train"], e["val"]), (bericht["kacheln"]["train"],) * 2)    # Probe: Prüfung = Training
+        self.assertEqual((e["modell"], e["imgsz"], e["batch"], e["saetze"]), ("yolo11n-seg", "1280", "2", ["altholz"]))
+        self.assertEqual((e["gesamt"]["maske"]["map50"], [x["k"] for x in e["klassen"]]), (0.746, [0, 8]))
         self.ruf("/api/training", {})
         self.assertEqual(self.warte()["name"], "altholz-2")
+        self.yolo("exit 1")
+        self.ruf("/api/training", {})
+        self.assertEqual(self.warte()["status"], "fehler")
+        self.assertIsNone(self.ruf("/api/training")[1]["ergebnis"])
+        self.werk.kette.lauf = None             # wie nach einem Neustart: letzter Lauf auf der Platte
+        (self.ordner / "altholz-3.log").write_text("Epoche 1\nkaputt\n")
+        self.assertIsNone(self.ruf("/api/training")[1]["ergebnis"])    # altholz-3 ohne Abschluss im Log
+        (self.ordner / "altholz-3.log").unlink()
+        shutil.rmtree(self.wurzel / "runs" / "segment" / "altholz-3")
+        self.assertEqual(self.ruf("/api/training")[1]["ergebnis"]["name"], "altholz-2")
 
     def test_trennung_nach_balken_und_sperre(self):
         a, na = self.balken(("1", "2"))

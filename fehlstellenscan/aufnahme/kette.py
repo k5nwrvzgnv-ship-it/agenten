@@ -89,6 +89,74 @@ def epochen_gelesen(pfad: Path) -> list[dict]:
         return [{k.strip(): v.strip() for k, v in z.items() if k and v} for z in csv.DictReader(f)]
 
 
+KENNZAHLEN = ("p", "r", "map50", "map")                  # Reihenfolge in der Tabelle von ultralytics
+
+
+def args_gelesen(pfad: Path) -> dict:
+    """Einfache Schlüssel aus args.yaml (ultralytics schreibt eine flache Liste `name: wert`)."""
+    if not pfad.exists():
+        return {}
+    werte = {}
+    for z in pfad.read_text(encoding="utf-8").splitlines():
+        if (t := re.fullmatch(r"(\w+): (.*)", z)) and t[2] not in ("null", ""):
+            werte[t[1]] = t[2].strip("'\"")
+    return werte
+
+
+def tabelle_gelesen(text: str) -> list[dict]:
+    """Abschlusstabelle aus dem Trainingslog: ultralytics prüft am Ende best.pt und schreibt je Klasse eine Zeile
+    `Klasse Bilder Objekte Box(P R mAP50 mAP50-95) Mask(P R mAP50 mAP50-95)`, die erste heißt `all`. Während der
+    Epochen steht dort nur `all`, ohne Abschluss also höchstens eine Zeile."""
+    zeilen = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text).replace("\r", "\n").splitlines()
+    kopf = max((i for i, z in enumerate(zeilen) if "Class" in z and "Mask(P" in z), default=None)
+    if kopf is None:
+        return []
+    tabelle = []
+    for z in zeilen[kopf + 1:]:
+        t = re.fullmatch(r"\s*(\S+)\s+(\d+)\s+(\d+)((?:\s+[\d.]+){8})\s*", z)
+        if not t:
+            if tabelle:
+                break
+            continue
+        w = [float(x) for x in t[4].split()]
+        tabelle.append({"klasse": t[1], "bilder": int(t[2]), "objekte": int(t[3]),
+                        "box": dict(zip(KENNZAHLEN, w[:4], strict=True)),
+                        "maske": dict(zip(KENNZAHLEN, w[4:], strict=True))})
+    return tabelle
+
+
+def spalten(z: dict, art: str) -> dict:
+    s = {"p": "precision", "r": "recall", "map50": "mAP50", "map": "mAP50-95"}
+    return {k: float(z[f"metrics/{n}({art})"]) for k, n in s.items() if f"metrics/{n}({art})" in z}
+
+
+def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path) -> dict | None:
+    """Ergebnis eines fertigen Laufs aus dem, was ultralytics und bilder.py schreiben. None ohne Abschlusstabelle."""
+    tabelle = tabelle_gelesen(log.read_text(encoding="utf-8", errors="replace")) if log.exists() else []
+    if not tabelle or tabelle[0]["klasse"] != "all" or len(tabelle) < 2:
+        return None
+    z = epochen_gelesen(lauf / "results.csv")
+    # best.pt ist die Epoche mit der höchsten Fitness von ultralytics: je 0,1 mAP50 + 0,9 mAP50-95 für Box und
+    # Maske (geprüft an kodytek-seg1-n1280: Epoche 37 trifft die Abschlusstabelle)
+    fit = [sum(0.1 * w.get("map50", 0) + 0.9 * w.get("map", 0) for w in (spalten(x, "B"), spalten(x, "M")))
+           for x in z]
+    beste = z[fit.index(max(fit))] if z else None
+    args = args_gelesen(lauf / "args.yaml")
+    modell = args.get("model", "")
+    if "/weights/" in modell:                  # eigenes Modell: Name des Laufs statt Pfad
+        modell = Path(modell).parents[1].name
+    zahl = json.loads(bericht.read_text(encoding="utf-8")) if bericht.exists() else {}
+    kacheln = zahl.get("kacheln", {})
+    probe = zahl.get("probe")
+    klassen = [{**t, "k": KLASSEN.index(t["klasse"]) if t["klasse"] in KLASSEN else None} for t in tabelle[1:]]
+    return {"gesamt": tabelle[0], "klassen": klassen, "probe": probe,
+            "beste": int(float(beste["epoch"])) if beste else None, "gelaufen": len(z),
+            "epochen": int(args["epochs"]) if args.get("epochs", "").isdigit() else None,
+            "sekunden": float(z[-1]["time"]) if z and "time" in z[-1] else None,
+            "modell": Path(modell).stem if modell else None, "imgsz": args.get("imgsz"), "batch": args.get("batch"),
+            "train": kacheln.get("train"), "val": kacheln.get("train") if probe else kacheln.get("val")}
+
+
 class Kette:
     def __init__(self, ordner: Path, lesen, ids):
         self.ordner, self.wurzel, self.lesen, self.ids = ordner, ordner.parent, lesen, ids
@@ -102,6 +170,7 @@ class Kette:
         self._auswahl: list[dict] | None = None
         self.lauf: dict | None = None
         self.prozess: subprocess.Popen | None = None
+        self._ergebnis: tuple = (None, None)
 
     # ------------------------------------------------------ Bilder und Labels
     def alle(self) -> list[dict]:
@@ -271,7 +340,30 @@ class Kette:
                     {k: float(x[s]) for k, s in (("map", "metrics/mAP50(M)"), ("verlust", "train/seg_loss")) if s in x}
                     for x in z]}
             return {"balken": balken, "saetze": self.saetze(), "probe": probe, "lauf": lauf, "epochen": EPOCHEN,
+                    "ergebnis": self.ergebnis(),
                     "modell": "Kodytek" if "kodytek" in self.startmodell() else "yolo11n-seg"}
+
+    def ergebnis(self) -> dict | None:
+        """Ergebnis des fertigen Laufs, nach einem Neustart des Programms das des letzten Laufs auf der Platte."""
+        if self.lauf:
+            name = self.lauf["name"] if self.lauf["status"] == "fertig" else None
+        else:
+            nummern = [int(p.name[8:]) for p in (self.wurzel / "runs" / "segment").glob("altholz-*")
+                       if re.fullmatch(r"altholz-\d+", p.name)]
+            name = f"altholz-{max(nummern)}" if nummern else None
+        if not name:
+            return None
+        log, lauf = self.ordner / f"{name}.log", self.wurzel / "runs" / "segment" / name
+        stempel = (name, log.stat().st_mtime_ns if log.exists() else 0)
+        if self._ergebnis[0] != stempel:
+            e = ergebnis_gelesen(lauf, log, self.wurzel / "datensaetze" / name / "bericht.json")
+            plan = self.ordner / f"{name}.json"
+            if e:
+                e["name"] = name
+                e["saetze"] = json.loads(plan.read_text(encoding="utf-8")).get("saetze", []) if plan.exists() else []
+                e["gewichte"] = str(lauf / "weights" / "best.pt")
+            self._ergebnis = (stempel, e)
+        return self._ergebnis[1]
 
     def starten(self, daten: dict) -> dict:
         with self.schloss:
