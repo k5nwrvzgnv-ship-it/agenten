@@ -430,8 +430,23 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   gut. Die Fassung mit selbst nachregelndem Einmessen ist noch nicht auf dem iPhone. px_je_mm noch falsch: Bildwinkel
   ungemessen, Balkenlage im Test vermutlich nicht die gewählte Seite, Balken lag quer zur langen Bildseite.
 - Zuschnitt: Rahmen am Bild, Anteile in den Einstellungen, eingefroren im Plan der Seite (zuschnitt). Originale
-  bleiben ganz: Wer Fotos weiterverarbeitet, muss plan.zuschnitt anwenden (Skript dafür fehlt noch). mitte_mm ist
+  bleiben ganz, bilder.py wendet plan.zuschnitt an. mitte_mm ist
   die Mitte des Zuschnitts, px_je_mm gilt fürs ganze Bild.
+- Kette Aufnahme > Labeln > Training in einer Anwendung (Jan 25.11.2026 „alles nur in eine anwdnung“), Navigation oben:
+  aufnahme/kette.py (Ablage, Aufteilung, Lauf; Bordmittel), bilder.py (Zuschnitt, Kacheln 1280 px; läuft in der
+  Trainings-.venv), seite/labeln.* (Werkbank nach unterlagen/werkbank-regler, Jans Wahl, 18 Klassen der
+  Labelrichtlinie), seite/training.*, tests/test_kette.py. Keine neuen Pakete.
+  Zuschnitt: aufnahmen/<ID>/zuschnitt/, Original bleibt ganz. Labels: aufnahmen/<ID>/labels/<Foto>.json in Anteilen des
+  Zuschnitts; ein gespeichertes Foto ohne Objekte zählt als fehlerfrei. Gekachelt wird erst beim Bau nach
+  datensaetze/altholz-N; Lauf in runs/segment/altholz-N, Log aufnahmen/altholz-N.log, 60 Epochen, imgsz 1280, batch 2,
+  Start vom Kodytek-Modell, wenn vorhanden. mm im Labeln nur bei gemessenem Bildwinkel, sonst Pixel.
+  Aufteilung nach Balken (aufnahmen/teile.json), Vorschlag jeder fünfte Prüfung, änderbar bis zum ersten echten Training;
+  Messbalken vom 27.11. vorher auf „Nur Test“ stellen. Ohne Trainings- und Prüfbalken ist es eine Ablaufprobe
+  (train = val), keine Aussage zur Güte.
+  Geprüft auf dem Server im Browser mit yolo-Attrappe. Nicht geprüft: echtes yolo auf dem Mac, HEIC, Durchlauf eines
+  ganzen Balkens, Prüfer in frischem Kontext. Vorlabeln per Modell fehlt. Nach Neustart des Programms ist die Anzeige
+  des Laufs weg, der Lauf selbst geht weiter.
+- Durchlauf (Jan 25.11.2026): Handy nicht drehen, den Balken im Kasten drehen (Länge an der langen Bildseite).
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)
