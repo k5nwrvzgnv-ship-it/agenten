@@ -459,6 +459,13 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Fuge, Metall, Weitere eingeklappt), innerhalb der Gruppe Strichmuster. Nur Anzeige, Zifferntasten 1-9 folgen der
   neuen Reihenfolge. Klassennummern und Training unverändert 18 Klassen; ob fürs Training zusammengelegt wird, ist offen.
 - Durchlauf (Jan 25.11.2026): Handy nicht drehen, den Balken im Kasten drehen (Länge an der langen Bildseite).
+- Raster (Jan 25.11.2026): am Mac im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte, Weite aus dem Plan (cm
+  steht unter dem Bild); auf fertigen Fotos keins. Messlinie rastet bis 6 Grad waagerecht/senkrecht ein, Fadenkreuz am
+  Zeiger. iPhone-App: Raster 8 x 6 (AufnahmeApp.swift, auf dem Server nicht übersetzt, noch nicht in Xcode gebaut).
+- Testdurchlauf B002 (Kästchen 29,5 x 13,5 x 20 cm, Jan 25.11.2026), erster Anlauf zu verwerfen: Länge lag quer zur langen
+  Bildseite (steht am Mac senkrecht), 48 MP statt 12 (7,6 MB, 1/73 s ISO 50 statt 1/46 s ISO 33), Zuschnitt 22 x 38 cm
+  schneidet die lange Seite ab, darum zwei Abschnitte. Maßstab per Kästchenmaß gesetzt (13,54 px/mm bei 48 MP).
+  Gelabelt und trainiert ist noch nichts.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)

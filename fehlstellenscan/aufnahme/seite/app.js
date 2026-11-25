@@ -61,17 +61,28 @@ function bildMalen(s){const f=zeigt!==null&&s.fotos[zeigt],el=$('#bild'),inf=$('
  if(!schneide)inf.innerHTML=mess?`<span>${mess.p.length<2?'Zwei Punkte mit bekanntem Abstand anklicken':'Abstand eingeben'}</span><span class="re">${mess.p.length<2?'':`<label>Abstand<span><input id="strecke" inputmode="decimal" autocomplete="off">cm</span></label>${ik('messok','ja','Übernehmen')}`}${ik('messab','nein','Abbrechen')}</span>`
  :`<b>Abschnitt ${zeigt+1}</b><span>${f.breite_px?`${f.breite_px} × ${f.hoehe_px} px · `:''}${f.px_je_mm?f.px_je_mm.toLocaleString('de-DE')+' px/mm · ':''}${f.mb.toLocaleString('de-DE')} MB${f.kamera&&f.kamera.dauer?' · '+belicht(f.kamera):''}</span><span class="re">${ik('drehen','drehen','Bild drehen')}${sch}${ik('messen','mass','Maßstab messen')}${ik('nochmal','kamera','Foto wiederholen')}${ik('weg','weg','Foto löschen')}</span>`;
  ueber();const st=$('#strecke');if(st)st.focus()}
-function ueber(){messMalen();pruefe()}
+function ueber(){messMalen();pruefe();rasterText()}
+function rasterText(){$('#rw')?.remove();const R=$('#bild canvas')&&(mess||schneide||liveZeigt())?rasterWeite():null;if(R)$('#bildinfo').insertAdjacentHTML('afterbegin',`<span id="rw">Raster ${S.einstellungen.faktor_gemessen?"":"etwa "}${cm(R.w)} cm</span>`)}
 addEventListener('resize',()=>{if(bid&&!formular)ueber()});
 function rahmen(){const c=$('#bild canvas'),el=$('#bild'),a=c.width/c.height,w=el.clientWidth,h=el.clientHeight,b=Math.min(w,h*a);return{b,h:b/a,x:(w-b)/2,y:(h-b/a)/2}}
-function messMalen(){$('#bild svg')?.remove();const c=$('#bild canvas');if(!c||!(mess||schneide))return;const r=rahmen();let in_='';
- if(mess){const p=mess.p.map(q=>[r.x+q[0]*r.b,r.y+q[1]*r.b]);in_=(p.length>1?`<path d="M${p[0]}L${p[1]}" stroke="#000" stroke-width="4"/><path d="M${p[0]}L${p[1]}" stroke="#00e0ea" stroke-width="2"/>`:'')+p.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="6" fill="none" stroke="#00e0ea" stroke-width="2"/>`).join('')}
- else if(schneide.r){const[x,y,b,h]=schneide.r;in_=`<path fill="#000b" fill-rule="evenodd" d="M0 0h9999v9999H0zM${r.x+x*r.b} ${r.y+y*r.h}h${b*r.b}v${h*r.h}h${-b*r.b}z"/><rect x="${r.x+x*r.b}" y="${r.y+y*r.h}" width="${b*r.b}" height="${h*r.h}" fill="none" stroke="#00e0ea" stroke-width="2"/>`}
- $('#bild').insertAdjacentHTML('beforeend',`<svg>${in_}</svg>`)}
+/* Raster zum Ausrichten: im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte verankert. Weite in cm, wenn der Plan sie hergibt */
+const liveZeigt=()=>!!S.app&&!(zeigt!==null&&SE().fotos[zeigt]);
+function rasterWeite(){const p=SE().plan;if(!p)return null;const mm=schneide?p.voll_mm:p.laengs_mm;return{mm,w:[10,20,50,100].find(w=>mm/w<=16)||200}}
+function raster(r){const R=rasterWeite(),s=R?R.w/R.mm*r.b:r.b/12,mx=r.x+r.b/2,my=r.y+r.h/2;let d='';
+ for(let i=1;i*s<r.b/2;i++)d+=`M${mx+i*s} ${r.y}v${r.h}M${mx-i*s} ${r.y}v${r.h}`;for(let i=1;i*s<r.h/2;i++)d+=`M${r.x} ${my+i*s}h${r.b}M${r.x} ${my-i*s}h${r.b}`;
+ const m=`M${mx} ${r.y}v${r.h}M${r.x} ${my}h${r.b}`;return `<path d="${d}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/><path d="${d}" fill="none" stroke="#fff" stroke-opacity=".45"/><path d="${m}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="3"/><path d="${m}" fill="none" stroke="#fff" stroke-opacity=".9"/>`}
+/* Die Messlinie rastet bis 6 Grad an der Waagerechten oder Senkrechten ein, schräg messen bleibt möglich */
+const einrasten=(a,q)=>{const x=Math.abs(q[0]-a[0]),y=Math.abs(q[1]-a[1]),t=Math.tan(6*Math.PI/180);return y<=x*t?[q[0],a[1]]:x<=y*t?[a[0],q[1]]:q};
+const messPunkt=e=>{const k=$('#bild').getBoundingClientRect(),r=rahmen(),q=[Math.min(1,Math.max(0,(e.clientX-k.left-r.x)/r.b)),Math.min(r.h/r.b,Math.max(0,(e.clientY-k.top-r.y)/r.b))];return mess.p.length?einrasten(mess.p[0],q):q};
+function messMalen(){$('#bild svg')?.remove();const c=$('#bild canvas');if(!c||!(mess||schneide||liveZeigt()))return;const r=rahmen();let in_='';
+ if(mess){const alle=mess.p.length===1&&mess.m?[mess.p[0],mess.m]:mess.p,p=alle.map(q=>[r.x+q[0]*r.b,r.y+q[1]*r.b]);in_=(p.length>1?`<path d="M${p[0]}L${p[1]}" stroke="#000" stroke-width="4"/><path d="M${p[0]}L${p[1]}" stroke="#00e0ea" stroke-width="2"/>`:'')+p.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="6" fill="none" stroke="#00e0ea" stroke-width="2"/>`).join('');
+  if(mess.m&&mess.p.length<2){const x=r.x+mess.m[0]*r.b,y=r.y+mess.m[1]*r.b;in_+=`<path d="M${x} ${r.y}v${r.h}M${r.x} ${y}h${r.b}" stroke="#00e0ea" stroke-opacity=".7" stroke-dasharray="4 4"/>`}}
+ else if(schneide&&schneide.r){const[x,y,b,h]=schneide.r;in_=`<path fill="#000b" fill-rule="evenodd" d="M0 0h9999v9999H0zM${r.x+x*r.b} ${r.y+y*r.h}h${b*r.b}v${h*r.h}h${-b*r.b}z"/><rect x="${r.x+x*r.b}" y="${r.y+y*r.h}" width="${b*r.b}" height="${h*r.h}" fill="none" stroke="#00e0ea" stroke-width="2"/>`}
+ $('#bild').insertAdjacentHTML('beforeend',`<svg>${raster(r)}${in_}</svg>`)}
 const punkt=e=>{const k=$('#bild').getBoundingClientRect(),r=rahmen();return[Math.min(1,Math.max(0,(e.clientX-k.left-r.x)/r.b)),Math.min(1,Math.max(0,(e.clientY-k.top-r.y)/r.h))]};
-$('#bild').onclick=e=>{if(!mess||mess.p.length>1||!$('#bild canvas'))return;const k=$('#bild').getBoundingClientRect(),r=rahmen();mess.p.push([(e.clientX-k.left-r.x)/r.b,(e.clientY-k.top-r.y)/r.b]);mal()};
+$('#bild').onclick=e=>{if(!mess||mess.p.length>1||!$('#bild canvas'))return;mess.p.push(messPunkt(e));mess.m=null;mal()};
 $('#bild').onpointerdown=e=>{if(!schneide||!$('#bild canvas'))return;e.preventDefault();$('#bild').setPointerCapture(e.pointerId);schneide.a=punkt(e)};
-$('#bild').onpointermove=e=>{if(!schneide||!schneide.a)return;const p=punkt(e),a=schneide.a;schneide.r=[Math.min(a[0],p[0]),Math.min(a[1],p[1]),Math.abs(a[0]-p[0]),Math.abs(a[1]-p[1])];messMalen()};
+$('#bild').onpointermove=e=>{if(mess){if(mess.p.length<2&&$('#bild canvas')){mess.m=messPunkt(e);messMalen()}return}if(!schneide||!schneide.a)return;const p=punkt(e),a=schneide.a;schneide.r=[Math.min(a[0],p[0]),Math.min(a[1],p[1]),Math.abs(a[0]-p[0]),Math.abs(a[1]-p[1])];messMalen()};
 $('#bild').onpointerup=$('#bild').onpointercancel=()=>{if(schneide&&schneide.a){schneide.a=null;mal()}};
 async function schnitt(r){if(r&&winkel)r=[1-r[0]-r[2],1-r[1]-r[3],r[2],r[3]].map(v=>Math.max(0,v));try{S=await ruf('/api/zuschnitt',{zuschnitt:r});schneide=null;$('#afehler').textContent=fotos(SE())?'Gilt für Seiten ohne Fotos. Diese Seite hat schon welche.':'';jetzt=offen();mal()}catch(x){$('#afehler').textContent=x.message}}
 async function messOk(){const[a,b]=mess.p,z=ausschnitt();try{S=await ruf('/api/massstab',{balken:bid,seite,anteil:Math.hypot(a[0]-b[0],a[1]-b[1])*(z?z[2]:1),strecke_mm:lies($('#strecke').value)});mess=null;$('#afehler').textContent='';mal()}catch(x){$('#afehler').textContent=x.message}}
