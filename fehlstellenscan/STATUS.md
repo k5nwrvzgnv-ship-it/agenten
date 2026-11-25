@@ -507,7 +507,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Fläche), nicht längs x quer.
 - Ablauf (26.11.2026, Jan: nur Symbole, keine Wörter an Knöpfen, auch nicht am Hauptknopf): Seiten als Balken im
   Schrägbild, gemeinte Seite schraffiert, verdeckte Kanten gestrichelt (balken3d in app.js), darunter Fotos/Plan.
-  Schritt als Symbol plus Zahl, Rollen als Balken > 90° > Balken, Hauptknopf nur Kamera, Balken oder Etikett.
+  Schritt als Symbol plus Zahl, Rollen als Balken > 90° > Balken, Hauptknopf Kamera (auch beim Weiterrollen), am Ende Etikett zum Labeln.
   Seitenbild mit Kamera bleibt. Einrichtung ohne Kurzbefehl. Geprüft auf dem Server mit Playwright und
   künstlichem Foto, nicht auf dem Mac.
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres

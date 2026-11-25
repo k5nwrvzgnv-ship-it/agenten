@@ -41,7 +41,7 @@ function mal(){
   st=s.fotos[nr]?`${ic('kamera')}<b>${cm(m)} cm</b>`:nr===0&&!fotos(s)?`${balken3d(b,seite)}${ic('kopf')}<b>${cm(m)} cm</b>`:nr===0||!s.fotos[nr-1]||zeigt!==nr-1?`${ic('kopf')}<b>${cm(m)} cm</b>`:`${ic('schieben')}<b>${cm(vor)} cm</b><small>${ic('kopf')}${cm(m)} cm</small>`;
   kn=ic('kamera');kl=s.fotos[nr]?'Foto wiederholen':`Foto ${nr+1} von ${p.mitten_mm.length} auslösen`}
  else if(!naechste()&&Object.values(B().seiten).every(fertig)){st=`${ic('ja')}<b>${b.id}</b>`;kn=ic('etikett');kl='Fotos dieses Balkens labeln'}
- else{const n=naechste();const g=n?(+n-+seite+4)%4:0;st=n?`${balken3d(b,seite)}${ic('rollen')}<b>${g*90}°</b>${balken3d(b,n)}`:`${ic('ja')}<b>${b.id}</b>`;kn=n?balken3d(b,n):ic('plus');kl=n?`Weiter mit ${sname(b,n)}`:'Neuer Balken'}
+ else{const n=naechste();const g=n?(+n-+seite+4)%4:0;st=n?`${balken3d(b,seite)}${ic('rollen')}<b>${g*90}°</b>${balken3d(b,n)}`:`${ic('ja')}<b>${b.id}</b>`;kn=n?ic('kamera'):ic('plus');kl=n?`Weiter mit ${sname(b,n)}`:'Neuer Balken'}
  $('#schritt').innerHTML=st;$('#los span').innerHTML=kn;$('#los').title=kl;$('#los').setAttribute('aria-label',kl);$('#los').hidden=!kn;$('#los').disabled=laeuft;
  $('#abschnitte').innerHTML=p?p.mitten_mm.map((x,i)=>{const f=s.fotos[i];return `<button data-i="${i}" aria-pressed="${i===zeigt}" class="${i===nr?'jetzt':''}" aria-label="Abschnitt ${i+1}${f?'':', noch kein Foto'}">${f?`<canvas data-src="${bildHtml(f)}"></canvas>`:S.app&&i===nr?'<canvas class="lk"></canvas>':''}<span>${cm(x,0)} cm</span></button>`}).join(''):'';
  const z=$('#abschnitte [aria-pressed=true]')||$('#abschnitte .jetzt');if(z)z.scrollIntoView({block:'nearest',inline:'nearest'});
