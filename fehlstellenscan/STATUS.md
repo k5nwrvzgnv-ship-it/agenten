@@ -51,7 +51,7 @@ die können später als Dateien Eingabe werden).
   Sechs Looks auf der neuen Bedienung mit Bedienfeld: unterlagen/werkbank-looks/ (befund.md). Seit 25.11.2026 gegen UI/UX-Regeln überarbeitet.
   Jan hat Nachtschicht mit Figtree gewählt (24.11.2026, „passt erstmal“), weiter am 25.11.
   Test 25.11.2026: unterlagen/werkbank-skill-pur/ zeigt, was UI/UX Pro Max ohne Jans Einstellungen baut (befund.md, vergleich.jpg).
-  Jan 25.11.: in vielem besser. Weiter in unterlagen/werkbank-regler/ (Bedienfeld, weniger Knöpfe), Jan spielt mit den Werten.
+  Jan 25.11.: in vielem besser. Weiter in unterlagen/werkbank-regler/ (Bedienfeld, weniger Knöpfe), Jans Werte sind Startfassung, Umrisse dünner.
 - Ansatz „besser als Dataspree“ (Vorschlag, nicht entschieden): Masken statt Boxen fürs Messen (Kodytek hat
   Masken), Gesamtkarte über die ganze Länge (Kodytek-Gruppen schließen vermutlich lückenlos an), DIN 4074 als
   getestete Python-Regeln getrennt vom Modell (Sortierklasse, alle vier Seiten, Normtext vorher prüfen),

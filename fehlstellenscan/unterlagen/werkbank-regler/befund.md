@@ -8,3 +8,4 @@ Nur wenn nutzbar: Rückgängig, Wiederholen, Ganzes Bild, Speichern. „Bild hin
 Geprüft: jeder Wert an 1440 und 390 (je Bereich beide Enden), Überlauf, axe je Vorlage und bei Extremfarben, Hauptweg. Kombinationen nicht alle.
 Einzeldatei: `python3 bauen.py <ziel>`, nicht ins Repo.
 Regel Jan 25.11.2026: Was sich als Symbol zeigen lässt, ist auf Knöpfen Symbol statt Text (z. B. Löschen = Mülleimer). Name bleibt als Hinweis und für Vorleseprogramme. Gegen die Regel nav-label-icon des Skills, Jan geht vor. Schalter „Knöpfe“ zeigt Text wieder.
+Jans Werte vom 25.11. sind die Vorlage „Jans Wahl 25.11.“ und Startfassung, Umrisse dort dünner (1 statt 2,5 px, Saum 0,5, Rahmen 0,5), Auswahlrahmen 2 statt 4. Familjen Grotesk hat kein Gewicht unter 400.
