@@ -455,6 +455,9 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   verschieden aufgelöst. Ganze Sätze gehen per train.txt ein, Auswahlbilder nicht doppelt. Ganzer Kodytek-Satz: um
   21 min je Epoche auf dem Mac (gemessen am Box-Modell). Prüfung ohne Altholz-Prüfbalken sagt nichts über Altholz (Hinweis auf der Seite).
   Geprüft auf dem Server mit drei echten Kodytek-Bildern und yolo-Attrappe, nicht auf dem Mac.
+- Klassen im Labeln (Jan 25.11.2026 „vereinfachen, für die Übersichtlichkeit der Farben“): sechs Farbgruppen (Ast, Riss, Loch,
+  Fuge, Metall, Weitere eingeklappt), innerhalb der Gruppe Strichmuster. Nur Anzeige, Zifferntasten 1-9 folgen der
+  neuen Reihenfolge. Klassennummern und Training unverändert 18 Klassen; ob fürs Training zusammengelegt wird, ist offen.
 - Durchlauf (Jan 25.11.2026): Handy nicht drehen, den Balken im Kasten drehen (Länge an der langen Bildseite).
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 

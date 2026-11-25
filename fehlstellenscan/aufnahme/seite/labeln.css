@@ -85,7 +85,7 @@ kbd.nurbreit,#gut kbd,.kl kbd{display:none}.kl span{font-size:16px}.kl label{pad
 #app[data-kopf=schlank] h1{position:absolute;clip-path:inset(50%)}#app[data-kopf=schlank] .pos{margin-left:0}
 #app[data-ki=aus] .sk span:last-child,#app[data-ki=aus] .kz,#app[data-ki=aus] .kpi div:last-child{display:none}.bk{display:none;width:28px;height:5px;background:linear-gradient(var(--color-primary-rand) 0 0) 0/calc(var(--p)*100%) 100% no-repeat var(--color-border)}#app[data-ki=balken] .bk{display:block}#app[data-ki=balken] .zl,#app[data-ki=balken] .sk{grid-template-columns:minmax(0,1fr) 60px 88px}#app[data-ki=balken] .ki{gap:3px}
 #app[data-kopfz=aus] .sk{display:none}#app[data-kachel=aus] .kpi{display:none}#app[data-kachel=zeile] .kpi{display:flex;flex-wrap:wrap;gap:0 var(--space-xl)}#app[data-kachel=zeile] .kpi div{background:none;padding:0}
-#app[data-tasthin=aus] kbd{display:none}#app[data-masst=aus] .mst{display:none}#app[data-zoomk=aus] :is(#minus,#plus),#app[data-punktk=aus] #p-insp details,#app[data-pfeilk=aus] .pos .ib{display:none}#app[data-stufenk=aus] .rg .ib{display:none}#app[data-stufenk=aus] .rg>div:last-child{grid-template-columns:1fr}
+#app[data-tasthin=aus] kbd{display:none}#app[data-masst=aus] .mst{display:none}#app[data-zoomk=aus] :is(#minus,#plus),#app[data-punktk=aus] #p-insp details:not(.mehr),#app[data-pfeilk=aus] .pos .ib{display:none}#app[data-stufenk=aus] .rg .ib{display:none}#app[data-stufenk=aus] .rg>div:last-child{grid-template-columns:1fr}
 #app[data-vorsch=aus] .film img{display:none}
 .links,.rechts,.film,.kopf,.leiste{box-shadow:var(--sch);z-index:1}
 @media(min-width:1024px){
