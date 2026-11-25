@@ -422,7 +422,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Live-Bild. Rückfall: Foto per AirDrop, dann ··· „Foto vom Mac“.
 - Erster Test am iPhone (Jan 25.11.2026): Auslösen und Übertragen per Kurzbefehl klappt, Foto stark überbelichtet
   (Automatik, schwarzer Grund). Darum iPhone-App (Jan 25.11. „Ja, App bauen“): aufnahme/app/ (Swift, Xcode-Projekt,
-  iOS 17+), auf dem Server nicht übersetzbar, 25.11. auf Jans Mac in Xcode fehlerfrei gebaut (Simulator), am iPhone noch nie, noch nicht im Repo (Muster für *.swift, *.plist, *.pbxproj fehlt in claude_lauf.GESCHUETZT,
+  iOS 17+), auf dem Server nicht übersetzbar, 25.11. auf Jans Mac in Xcode fehlerfrei gebaut (Simulator), am iPhone noch nie, noch nicht im Repo (Muster für *.swift, *.plist, *.pbxproj, Assets.xcassets fehlt in claude_lauf.GESCHUETZT,
   Bedarf steht in der STATUS.md des Hauptordners). Belichtung und Weißabgleich gesperrt, Fokus je Seite,
   Live-Bild, Bedienung am Mac (dunkler, heller, einmessen, 12/48). Laut Apple-Forum hält iOS feste Werte nur bei
   12 MP ein, bei 48 MP weichen sie ab: je Foto stehen ISO und Zeit in balken.json (kamera), Wahl nach Jans Test.
@@ -470,7 +470,13 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Durchlauf (Jan 25.11.2026): Handy nicht drehen, den Balken im Kasten drehen (Länge an der langen Bildseite).
 - Raster (Jan 25.11.2026 „dezenter und mehr neopunk“, Kreuzpunkte cyan, Ziel und Ecken magenta; von Jan 25.11. „passt erstmal“): am Mac im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte, Weite aus dem Plan (cm
   steht unter dem Bild); auf fertigen Fotos keins. Messlinie rastet bis 6 Grad waagerecht/senkrecht ein, Fadenkreuz am
-  Zeiger. iPhone-App: gleiches Muster, 8 x 6 Felder (AufnahmeApp.swift, auf dem Server nicht übersetzt, noch nicht in Xcode gebaut).
+  Zeiger. iPhone-App (Jan 26.11.2026 „raster wie in webapp“): gleiches Muster und gleiche Weite wie am Mac, Text „Raster 10 cm“
+  unter dem Bild. Der Browser hängt die Weite an /live.jpg (r = Anteil der langen Bildseite am ganzen Bild, w mm, g),
+  server.py gibt sie per logik.raster_fuers_handy mit jeder Live-Antwort an die App. Ohne Plan oder mit altem
+  Mac-Programm: 1/12 der langen Seite ohne Maß. Die App zeigt das ganze Bild, nicht den Zuschnitt. Swift-Teil auf dem
+  Server nicht übersetzt, in Xcode noch nicht gebaut.
+- App-Icon und Name (Jan 26.11.2026 „app logo neuro lign“): Logo der Web-App (N mit vier Punkten, weiß auf schwarz) als
+  Assets.xcassets/AppIcon (1024 px, mit Pillow aus den SVG-Maßen gezeichnet), Name auf dem Home-Bildschirm „Neurolign“.
 - Testdurchlauf B002 (Kästchen 29,5 x 13,5 x 20 cm, Jan 25.11.2026, von Claude per Chrome bedient): Aufnahme, Labeln,
   Training laufen auf dem Mac durch. Vier Seiten je ein Foto, 12 MP: 4032 x 3024 px, 2,2-2,8 MB, 1/46 s ISO 32
   (eingestellt 1/46 s ISO 33), Auslösen bis Bild 1,2-1,4 s, HEIC-Zuschnitt per sips klappt. Linse bis Rolle 59 cm

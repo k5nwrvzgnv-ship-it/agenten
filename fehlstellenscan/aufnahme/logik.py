@@ -153,3 +153,17 @@ def endung_von(daten: bytes) -> str:
     if daten[:8] == b"\x89PNG\r\n\x1a\n":
         return ".png"
     raise ValueError("Vom iPhone kam kein Foto. Im Kurzbefehl unter „Datei“ das Foto auswählen.")
+
+
+def raster_fuers_handy(q: dict) -> dict | None:
+    """Raster der Mac-Seite für die iPhone-App. q aus der Abfrage von /live.jpg: r = Rasterweite als Anteil der
+    langen Bildseite (ganzes Bild), w = Rasterweite in mm, g = 1 bei gemessenem Bildwinkel. Ungültig oder ohne
+    Plan: None, die App zeigt dann ein Raster ohne Maß."""
+    try:
+        anteil, mm = float(q["r"]), float(q["w"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not (0.005 <= anteil <= 1 and 1 <= mm <= 10000):
+        return None
+    cm = f"{mm / 10:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+    return {"anteil": round(anteil, 5), "text": f"Raster {'' if q.get('g') == '1' else 'etwa '}{cm} cm"}

@@ -78,6 +78,7 @@ class Werk:
         self.befehle: list[dict] = []             # an die App: einmessen, ev, modus
         self.live = b""
         self.live_zeit = -1e9
+        self.raster: dict | None = None           # Raster der Mac-Seite, geht mit jeder Live-Antwort an die App
         self.zustand: dict = {}                   # was die App zuletzt über die Kamera gemeldet hat
         self.name = befehl("scutil", "--get", "LocalHostName").strip() if sys.platform == "darwin" else ""
         datei = ordner / "einstellungen.json"
@@ -483,6 +484,8 @@ class Anfrage(BaseHTTPRequestHandler):
                 return self.antwort(200, werk.kette.zuschnitt(z[1], bool(z[2])).read_bytes(), "image/jpeg")
             except ValueError as e:
                 return self.antwort(404, {"fehler": str(e)})
+        if weg == "/live.jpg":
+            werk.raster = l.raster_fuers_handy({k: v[0] for k, v in parse_qs(urlsplit(self.path).query).items()})
         if weg == "/live.jpg" and werk.app_da():
             return self.antwort(200, werk.live, "image/jpeg")
         datei = None
@@ -536,6 +539,7 @@ class Anfrage(BaseHTTPRequestHandler):
                     werk.foto_vom_handy(self.koerper(), kennung, self.headers.get("X-Foto", ""))
                 elif was == "live":
                     werk.live_vom_handy(self.koerper(), self.headers.get("X-Zustand", ""))
+                    return self.antwort(200, {"ok": True, "raster": werk.raster})
                 elif was == "fehler":
                     werk.fehler_vom_handy(self.koerper().decode("utf-8", "replace"), kennung)
                 else:

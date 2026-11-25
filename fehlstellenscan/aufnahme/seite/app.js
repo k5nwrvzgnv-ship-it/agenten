@@ -106,7 +106,9 @@ $('#bildinfo').onclick=e=>{const id=e.target.closest('button')?.id;if(!id||laeuf
 $('#bildinfo').onkeydown=e=>{if(e.key==='Enter'&&e.target.id==='strecke')S.einstellungen.faktor_gemessen?pruefOk():messOk();if(e.key==='Escape'&&mess){mess=null;mal()}};
 $('#bildinfo').oninput=e=>{if(e.target.id==='strecke')abweichung()};
 const belicht=k=>`${k.dauer<.5?'1/'+Math.round(1/k.dauer):k.dauer.toFixed(1)} s · ISO ${Math.round(k.iso)}`;
-let lz=0;function live(){const n=++lz,i=new Image();i.onload=()=>{if(n!==lz||formular||!S.app)return;const k=$('#abschnitte .jetzt .lk');if(k)zeichne(k,i,SE().plan&&SE().plan.zuschnitt,300);const c=$('#bild canvas');if(c&&!(zeigt!==null&&SE().fotos[zeigt])){zeichne(c,i,ausschnitt(),2400);ueber()}};i.src='/live.jpg?'+Date.now()}
+let lz=0;function live(){const n=++lz,i=new Image();i.onload=()=>{if(n!==lz||formular||!S.app)return;const k=$('#abschnitte .jetzt .lk');if(k)zeichne(k,i,SE().plan&&SE().plan.zuschnitt,300);const c=$('#bild canvas');if(c&&!(zeigt!==null&&SE().fotos[zeigt])){zeichne(c,i,ausschnitt(),2400);ueber()}};i.src='/live.jpg?'+Date.now()+rasterFuersHandy()}
+/* Das Raster der iPhone-App folgt dem am Mac: gleiche Weite, bezogen aufs ganze Bild (die App zeigt keinen Zuschnitt) */
+function rasterFuersHandy(){const R=bid&&B()&&SE()&&rasterWeite(),p=R&&SE().plan;return R?`&r=${(R.w/(p.voll_mm||p.laengs_mm)).toFixed(5)}&w=${R.w}&g=${S.einstellungen.faktor_gemessen?1:0}`:''}
 setInterval(()=>{if(S.app&&!formular&&!document.hidden)live()},500);
 /* Anteil ausgebrannter Pixel unter den nicht dunklen (das Holz) */
 function ausgebrannt(q){const c=document.createElement('canvas');c.width=300;c.height=225;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(q,0,0,300,225);const d=x.getImageData(0,0,300,225).data;let n=0,w=0;for(let i=0;i<d.length;i+=4){const m=Math.max(d[i],d[i+1],d[i+2]);if(m<110)continue;n++;if(m>=253)w++}return n?w/n:0}

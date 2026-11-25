@@ -87,6 +87,15 @@ class TestLogik(unittest.TestCase):
             l.endung_von(b"<html>")
 
 
+class TestRasterFuersHandy(unittest.TestCase):
+    def test_raster(self):
+        self.assertEqual(l.raster_fuers_handy({"r": "0.12500", "w": "50", "g": "1"}),
+                         {"anteil": 0.125, "text": "Raster 5 cm"})
+        self.assertEqual(l.raster_fuers_handy({"r": "0.25", "w": "15", "g": "0"})["text"], "Raster etwa 1,5 cm")
+        for q in ({}, {"r": "x", "w": "50"}, {"r": "0", "w": "50"}, {"r": "0.1", "w": "-5"}, {"r": "nan", "w": "50"}):
+            self.assertIsNone(l.raster_fuers_handy(q))
+
+
 class TestServer(unittest.TestCase):
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory()
@@ -218,7 +227,12 @@ class TestServer(unittest.TestCase):
     def test_app_befehle_und_foto(self):
         self.assertEqual(self.ruf("/api/kamera", {"art": "einmessen"})[0], 409)
         self.handyruf("live", JPG, X_Zustand='{"iso": 50}')
-        self.assertEqual(self.ruf("/live.jpg")[1], JPG)
+        self.assertEqual(self.ruf("/live.jpg?1&r=0.1&w=100&g=1")[1], JPG)
+        def app():
+            return json.loads(self.handyruf("live", JPG, X_Zustand='{"iso": 50}')[1])["raster"]
+        self.assertEqual(app(), {"anteil": 0.1, "text": "Raster 10 cm"})
+        self.ruf("/live.jpg?2")
+        self.assertIsNone(app())
         self.assertEqual(self.ruf("/api/stand")[1]["app"], {"iso": 50})
         self.assertEqual(self.ruf("/api/kamera", {"art": "ev", "wert": 9})[0], 400)
         self.assertEqual(self.ruf("/api/kamera", {"art": "ev", "wert": -0.5})[0], 200)
