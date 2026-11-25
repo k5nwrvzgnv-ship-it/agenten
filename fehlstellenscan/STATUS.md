@@ -425,6 +425,10 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Bedarf steht in der STATUS.md des Hauptordners). Belichtung und Weißabgleich gesperrt, Fokus je Seite,
   Live-Bild, Bedienung am Mac (dunkler, heller, einmessen, 12/48). Laut Apple-Forum hält iOS feste Werte nur bei
   12 MP ein, bei 48 MP weichen sie ab: je Foto stehen ISO und Zeit in balken.json (kamera), Wahl nach Jans Test.
+- Test am iPhone 16 (25.11.2026, je zwei Fotos, gleiche Stelle, eingestellt 1/41 s ISO 33): 12 MP zweimal 1/41 s ISO 32;
+  48 MP (8064 x 6048, um 8,5 MB) 1/73 und 1/65 s bei ISO 50, schwankt also um etwa 12 %. Belichtung nach dem Einmessen
+  gut. Die Fassung mit selbst nachregelndem Einmessen ist noch nicht auf dem iPhone. px_je_mm noch falsch: Bildwinkel
+  ungemessen, Balkenlage im Test vermutlich nicht die gewählte Seite, Balken lag quer zur langen Bildseite.
 - Zuschnitt: Rahmen am Bild, Anteile in den Einstellungen, eingefroren im Plan der Seite (zuschnitt). Originale
   bleiben ganz: Wer Fotos weiterverarbeitet, muss plan.zuschnitt anwenden (Skript dafür fehlt noch). mitte_mm ist
   die Mitte des Zuschnitts, px_je_mm gilt fürs ganze Bild.
