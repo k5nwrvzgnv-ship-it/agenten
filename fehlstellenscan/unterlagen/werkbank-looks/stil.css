@@ -1,18 +1,16 @@
 /* Eine Bedienung, sechs Looks. Farben kommen als Variablen aus looks.js, Aufbau und Form je Look aus diesem Blatt. */
 *{box-sizing:border-box}[hidden]{display:none!important}
 html,body{height:100%;margin:0}html{font-size:var(--fs,15px)}
-body{background:#1d1f22;display:grid;grid-template:44px minmax(0,1fr)/minmax(0,1fr) auto;overflow:hidden}
+body{background:#1d1f22;display:grid;grid-template:minmax(0,1fr)/minmax(0,1fr) auto;overflow:hidden}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
 ::selection{background:var(--akz);color:var(--aufakz)}
 /* Umschalter und Bedienfeld: bewusst neutral, gehören nicht zum Look */
-#leiste,#feld{font:400 14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;background:#1d1f22;color:#f2f2f2;color-scheme:dark}
-#leiste{grid-column:1/-1;display:flex;align-items:center;gap:4px;padding:0 10px;border-bottom:1px solid #44484d;min-width:0}
-#looks{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;border:0;margin:0;padding:3px}
-#leiste button{height:32px;padding:0 12px;border-radius:6px;white-space:nowrap;flex:none}
-#leiste button:hover{background:#34383d}#leiste [aria-pressed=true]{background:#f2f2f2!important;color:#111}
-#anp{border:1px solid #777d84}
-#leiste :focus-visible,#feld :focus-visible{outline:2px solid #fff;outline-offset:1px}
+#feld{font:400 14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;background:#1d1f22;color:#f2f2f2;color-scheme:dark}
+#looks{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:10px 0 16px}
+#looks button,#fzu{min-height:34px;padding:0 10px;border-radius:6px;text-align:left}#fzu{border:1px solid #777d84;width:100%;text-align:center}#looks button:hover,#fzu:hover{background:#34383d}#looks [aria-pressed=true]{background:#f2f2f2!important;color:#111}
+#looks button,#fzu{min-height:34px;padding:0 10px;border-radius:6px;text-align:left}#fzu{border:1px solid #777d84;width:100%;text-align:center}#looks button:hover,#fzu:hover{background:#34383d}#looks [aria-pressed=true]{background:#f2f2f2!important;color:#111}
+#feld :focus-visible{outline:2px solid #fff;outline-offset:1px}
 #feld{width:290px;overflow:auto;padding:14px 16px 24px;border-left:1px solid #44484d}
 #feld h2{font-size:15px;margin:0 0 10px;font-weight:600}
 #feld .z{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:8px;min-height:40px}
@@ -76,7 +74,7 @@ svg.i{width:1.4rem;height:1.4rem;fill:none;stroke:currentColor;stroke-width:1.7;
 .neben{display:flex;gap:1.4rem;color:var(--leise);margin:.3rem 0 calc(.8rem*var(--d))}.neben b{color:var(--text);font-weight:500}
 .raeder{display:flex;justify-content:space-around;margin-bottom:calc(.6rem*var(--d))}.rad{position:relative;width:6.6rem;text-align:center;color:var(--leise)}.rad svg{width:6.6rem;height:6.2rem;display:block;cursor:grab;touch-action:none;overflow:visible}.rad svg:active{cursor:grabbing}.rad input{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;margin:0}.rad:has(:focus-visible){outline:2px solid var(--fok);outline-offset:2px;border-radius:var(--rk)}.rad text{fill:var(--text);font-family:var(--f)}
 .akt{display:flex;gap:8px;margin-top:8px}.akt .gut{flex:1;min-height:max(44px,var(--h));background:var(--akz);color:var(--aufakz);font-weight:600}#app .akt .gut:hover,#app .gutm:hover,#app .sp.voll:hover{background:var(--akzh)}.akt .gut,.gutm,.sp.voll{border:1px solid var(--akzr)!important}.gut kbd{color:inherit;font-weight:400}
-.akt .lo{width:max(44px,var(--h));min-height:44px;border:1px solid var(--stark);display:grid;place-items:center}.akt .lo:hover{border-color:var(--rot);color:var(--rot)}
+.akt .lo{padding:0 .8rem;gap:.4rem;min-height:44px;border:1px solid var(--stark);display:flex;align-items:center;justify-content:center}.akt .lo:hover{border-color:var(--rot);color:var(--rot)}
 .fuss{padding:calc(.75rem*var(--d)) var(--p);border-top:1px solid var(--linie)}
 .sp{width:100%;min-height:max(44px,var(--h));border:1px solid var(--akzt);color:var(--akzt);font-weight:600}.sp:hover{background:var(--schw)}.sp.voll{background:var(--akz);border-color:var(--akz);color:var(--aufakz)}
 .gutm{display:none}.fuss p{margin:.5rem 0 0;font-size:.86rem;color:var(--leise)}
@@ -142,17 +140,17 @@ svg.i{width:1.4rem;height:1.4rem;fill:none;stroke:currentColor;stroke-width:1.7;
 [data-eng][data-look=nacht]{grid-template-columns:250px minmax(0,1fr) 260px}[data-eng][data-look=nacht] .zl{grid-template:auto auto/1rem .8rem minmax(0,1fr) auto!important;gap:0 .4rem!important;padding-block:.4rem!important}[data-eng][data-look=nacht] .zl .nm{grid-column:3/5}[data-eng][data-look=nacht] .zl .gr{grid-area:2/3}[data-eng][data-look=nacht] .zl .st{grid-area:2/4}[data-eng][data-look=nacht] .werk button{font-size:.85rem;padding:0 .4rem}[data-eng][data-look=ruhig] .werk button{padding:0 .7rem;font-size:.85rem;white-space:nowrap}
 }
 @media(max-width:860px){
-html,body{height:auto}body{display:block;overflow-x:hidden}#leiste{height:48px;position:relative}#leiste button{height:40px}
+html,body{height:auto}body{display:block;overflow-x:hidden}html{font-size:max(var(--fs,15px),14px);scroll-padding:64px 0 140px}
 #feld{position:fixed;left:0;right:0;bottom:0;width:auto;height:56dvh;z-index:9;border:0;border-top:1px solid #777d84}
 #app{grid-template:56px 92vw auto auto/minmax(0,1fr);grid-template-areas:"kopf" "bild" "werk" "seite";padding-bottom:124px}
 .logo{margin:0}.logo span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.film,.nurbreit{display:none!important}.nurschmal{display:inline}.kopf{padding:0 8px;gap:0;position:sticky;top:0;background:var(--flaeche);z-index:2}.k{height:44px;min-width:44px}.pos{min-width:0;flex:1;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.frei{display:none}
 .buehne{margin:0}[data-look=neurolign] .buehne,[data-look=ruhig] .buehne,[data-look=farbe] .buehne{border-radius:var(--r);margin:0 8px}
-.werk{flex-direction:row;padding:4px;gap:0}.werk button{flex:1;min-height:52px;font-size:11.5px;padding:0}.werk hr{display:none}
+.werk{flex-direction:row;padding:4px;gap:0}.werk button{flex:1;min-height:52px;font-size:12px;padding:0}.werk hr{display:none}
 [data-look=neurolign] .werk svg{padding:.5rem;width:2.3rem;height:2.3rem;border-radius:50%;background:var(--schw)}[data-look=neurolign] .werk button{background:none!important}[data-look=neurolign] .werk [aria-pressed=true]{color:var(--text)}[data-look=neurolign] .werk [aria-pressed=true] svg{background:var(--text);color:var(--flaeche)}
 [data-look=neurolign] .fb,[data-look=ruhig] .fb{border-radius:50%}[data-look=mess] .werk svg{display:none}[data-look=mess] .kopf{border-bottom:2px solid var(--text)}
 [data-look=farbe] li.an{background:var(--kf);--text:#111;--leise:#111;--warn:#111;--ok:#111;--flaeche:#ffffffb8;--linie:#0003;--stark:#111;--akzt:#111;--fok:#111;--rot:#7a0f0b;color:#111}
 [data-look=wald] .kopf{background:var(--schiene);color:var(--schienet)}[data-look=wald] .kopf .lg{fill:var(--schienet)}[data-look=wald] .kopf .ls{stroke:var(--schiene)}[data-look=wald] .kopf .lk{fill:var(--schiene)}[data-look=wald] .kopf button:disabled{color:#ffffff80}[data-look=wald] .kopf .rand{border-color:var(--schienet)}#app[data-look=wald] .kopf .k:hover:not(:disabled){background:#ffffff1c}
-#liste{overflow:visible}#app .zl{min-height:48px}.kl label{min-height:44px;padding:0 6px;font-size:.92rem;gap:5px}.kl kbd{display:none}.kl{grid-template-columns:1fr 1fr 1fr}.rg{min-height:44px}.rg input{height:32px}#app .akt .lo{width:auto;flex:1;display:flex;align-items:center;justify-content:center;gap:8px}.akt .lo::after{content:"Löschen"}.akt .gut{display:none}
+#liste{overflow:visible}#app .zl{min-height:48px}.kl label{min-height:44px;padding:0 6px;font-size:.92rem;gap:5px}.kl kbd{display:none}.kl{grid-template-columns:1fr 1fr 1fr}.rg{min-height:44px}.rg input{height:32px}#app .akt .lo{width:auto;flex:1;display:flex;align-items:center;justify-content:center;gap:8px}.akt .gut{display:none}
 #detail{display:none}.fuss{position:fixed;left:0;right:0;bottom:0;background:var(--flaeche);z-index:3;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:8px}.fuss p{grid-column:1/-1;grid-row:1;margin:0}.gutm:not([hidden]){display:flex;min-height:44px;background:var(--akz);color:var(--aufakz);font-weight:600}#app[data-look=neurolign] .gutm{background:var(--text);color:var(--flaeche)}.gutm[hidden]+.sp{grid-column:1/-1}
 }
 @media(prefers-reduced-motion:no-preference){.fb{transition:transform .15s}}
@@ -168,3 +166,19 @@ html,body{height:auto}body{display:block;overflow-x:hidden}#leiste{height:48px;p
 #app[data-look=nacht] .kl label:hover{background:linear-gradient(var(--s2),transparent)}
 #app[data-look=nacht] .kl label:has(:checked),#app[data-look=nacht] .film [aria-current],#app[data-look=nacht] .werk [aria-pressed=true]{background:linear-gradient(var(--s1),var(--s2))!important;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 8%,transparent)}
 #app[data-look=nacht] li.an{background:linear-gradient(90deg,var(--s1),var(--s2))}
+
+/* Prüfung gegen UI/UX-Regeln, 25.11.2026: Regler ohne Ziehen, Doppelte mit einem Klick lösen, nichts unter 12 px */
+.dp p{margin:0 0 6px}#app .dp .k{min-height:32px;height:auto;border:1px solid var(--stark);color:var(--text);margin:0 6px 8px 0}
+.stuf{display:flex;align-items:center;justify-content:space-between;gap:2px}#app .stuf button{min-width:28px;min-height:28px;color:var(--text);font-size:1.15rem;line-height:1}#app .stuf button:hover{background:var(--schw)}
+.rad svg{touch-action:none}
+#anp2{margin:16px var(--p);color:var(--leise)}
+#app :is(small,kbd,.st,.fuss p,.werk button,.film button,.hinweis){font-size:max(12px,.88rem)}
+#app[data-look=nacht] :is(small,.st,kbd,.fuss p,.stuf span,.dp p){font-weight:400}
+#app[data-look=nacht] .dp .k{border-color:transparent;background:linear-gradient(var(--s2),color-mix(in srgb,var(--text) 3%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 7%,transparent),0 2px 6px #0006}#app[data-look=nacht] .dp .k:hover{background:linear-gradient(var(--s1),var(--s2))}
+@media(min-width:861px){[data-look=nacht] .zl{grid-template-columns:1rem .8rem minmax(0,1fr) auto 5.4rem!important}[data-look=wald] #anp{order:4}}
+@media(max-width:860px){#app .stuf button,#app .dp .k{min-width:44px;min-height:44px}.rad{width:9rem}.rad svg{margin:auto}}
+@media(max-width:1000px){.film small{white-space:nowrap}}
+@media(max-width:860px){.ed{display:flex;flex-direction:column}.ed .raeder{order:1}.ed .akt{order:2}}
+#app[data-look=nacht] .stuf button{background:linear-gradient(var(--s2),color-mix(in srgb,var(--text) 3%,transparent))}#app[data-look=nacht] .stuf button:hover{background:linear-gradient(var(--s1),var(--s2))}
+@media(min-width:861px){[data-look=wald] .kopf .k{padding:0 .4rem}[data-look=wald] .kopf :is(#vor,#nach){min-width:1.8rem;padding:0}[data-look=wald] .kopf{gap:4px}[data-look=wald] .kopf .pos{font-size:.84rem;white-space:nowrap}}
+@media(max-width:860px){.werk button{justify-content:flex-start;padding-top:8px}}

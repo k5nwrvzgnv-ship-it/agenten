@@ -23,3 +23,12 @@ Grenzen: alles nur im Browser; kein echtes Vorlabeln neuer Bilder, dort Maße in
 24.11.2026, Jan: Datei war zu groß (2,6 MB), jetzt 1,2 MB (Bilder in klein/, Schriften nur mit deutschen Zeichen). Farben sollen dezenter gehen: Farbkraft und Füllung, Startwerte siehe Jans Wahl.
 
 Einzeldatei bauen: `python3 bauen.py`. Schriften: Google Fonts, SIL Open Font License.
+
+## Prüfung gegen die UI/UX-Regeln, 25.11.2026
+Quelle: Skill ui-arbeit mit UI/UX Pro Max. Optik der Nachtschicht nach Jans Werten unverändert.
+- Fehler behoben: Enter halten hakte alles ab; nach Speichern blieb der Fokus auf Speichern; Mausrad über dem Drehregler verstellte Maße; „gespeichert“ verschwieg offene Objekte; Großbuchstaben (Feststelltaste) lösten keine Taste aus.
+- Neu: doppelte Vorlabel mit einem Klick lösen (A behalten, B behalten, Beide lassen); Löschen mit Wort, danach nächstes offenes Objekt; Wiederholen; Weiter weg; − und + an den Drehreglern; zwei Finger zoomen; Pfeile, Bild auf/ab; Punkt zurücknehmen und Abbrechen beim Zeichnen; Warnung beim Schließen mit ungespeicherten Änderungen; Haken im Bild an geprüften Objekten.
+- Look-Leiste oben entfernt, Looks stehen jetzt in „Anpassen“.
+- Schrift nie unter 12 px, am Handy ab 14 px Grundgröße.
+- Blindprüfer (vor der Korrekturrunde): neue Fassung klar leichter bedienbar; am Desktop die alte knapp ruhiger, am Handy die neue klar.
+Offen: deckungsgleiche Umrisse A und B sind im Bild kaum zu unterscheiden; einzelne Umrisspunkte gehen nur mit Zeiger; am Handy fehlen Wiederholen und Weiter weg.
