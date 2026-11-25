@@ -42,6 +42,6 @@ dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:88vh;overflow:
 .lauf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}.lauf dd{margin:0;text-align:left}.pfad{font-size:13px;overflow-wrap:anywhere}
 @media(max-width:560px){.kenn{grid-template-columns:repeat(2,minmax(0,1fr))}.lauf{grid-template-columns:minmax(0,1fr)}}
 
-.mit{display:flex;align-items:center;gap:6px;padding:0 10px;white-space:nowrap}.mit .ic{width:18px;height:18px}.prim{background:var(--w);color:#000;font-weight:600}.prim:hover{background:#d5d5d8}
+.prim{background:var(--w);color:#000;font-weight:600}.prim:hover{background:#d5d5d8}
 .mlang{fill:#fff;font-size:15px;font-weight:500;paint-order:stroke;stroke:#000;stroke-width:4px;stroke-linejoin:round;font-variant-numeric:tabular-nums}
-#bildinfo .zoll{display:flex;align-items:center;gap:8px}#abw{font-variant-numeric:tabular-nums;color:var(--w);min-width:56px}.gepr{color:var(--t)}
+#bildinfo .zoll{display:flex;align-items:center;gap:8px}#abw{font-variant-numeric:tabular-nums;color:var(--w);min-width:56px}.gepr{color:var(--t);display:flex;align-items:center;gap:6px}

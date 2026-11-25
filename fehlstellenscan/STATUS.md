@@ -507,7 +507,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Ablauf (26.11.2026, Jan fand die Querschnitt-Symbole verwirrend): Seiten als „Seite 1 breit / 2 schmal ...“
   mit Fortschritt, Anweisungen in Worten („Breitseite nach oben“, „18 cm vorschieben“, „Balken eine
   Vierteldrehung weiterrollen, dann liegt Seite 2 oben“), Seitenbild mit Kamera weg, dafür „Abstand zur Kamera“.
-  Knöpfe unter dem Bild mit Wort. Geprüft auf dem Server mit Playwright und künstlichem Foto, nicht auf dem Mac.
+  Knöpfe unter dem Bild nur als Symbol mit Tooltip (Jan 26.11. „deskriptive kacke“ = KI-Slop). Geprüft auf dem Server mit Playwright und künstlichem Foto, nicht auf dem Mac.
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
   Enter speichert es leer als fehlerfrei. Vorschaubild von B001 Seite 3 fehlt im Labeln.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
