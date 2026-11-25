@@ -419,6 +419,15 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Geprüft auf dem Server mit simuliertem iPhone im Browser. Offen, nur am Gerät klärbar: Kurzbefehl, Auflösung und
   Linse von „Foto aufnehmen“ (Makro?), Schärfe, sips mit HEIC, Dauer bis zum Bild. Keine feste Belichtung, kein
   Live-Bild. Rückfall: Foto per AirDrop, dann ··· „Foto vom Mac“.
+- Erster Test am iPhone (Jan 25.11.2026): Auslösen und Übertragen per Kurzbefehl klappt, Foto stark überbelichtet
+  (Automatik, schwarzer Grund). Darum iPhone-App (Jan 25.11. „Ja, App bauen“): aufnahme/app/ (Swift, Xcode-Projekt,
+  iOS 17+), auf dem Server nicht übersetzbar, noch nie gebaut, noch nicht im Repo (Muster für *.swift, *.plist, *.pbxproj fehlt in claude_lauf.GESCHUETZT,
+  Bedarf steht in der STATUS.md des Hauptordners). Belichtung und Weißabgleich gesperrt, Fokus je Seite,
+  Live-Bild, Bedienung am Mac (dunkler, heller, einmessen, 12/48). Laut Apple-Forum hält iOS feste Werte nur bei
+  12 MP ein, bei 48 MP weichen sie ab: je Foto stehen ISO und Zeit in balken.json (kamera), Wahl nach Jans Test.
+- Zuschnitt: Rahmen am Bild, Anteile in den Einstellungen, eingefroren im Plan der Seite (zuschnitt). Originale
+  bleiben ganz: Wer Fotos weiterverarbeitet, muss plan.zuschnitt anwenden (Skript dafür fehlt noch). mitte_mm ist
+  die Mitte des Zuschnitts, px_je_mm gilt fürs ganze Bild.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)

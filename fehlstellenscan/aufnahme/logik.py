@@ -11,6 +11,7 @@ FAKTOR_START = 24 / 34.6
 RAND = 30.0                 # so viel soll vor und hinter dem Balken mindestens noch im Bild sein
 UEBERLAPPUNG = 0.25         # Felix' Verfahren braucht 25-30 %
 SCHRITT_MAX = 500.0
+GANZ = (0.0, 0.0, 1.0, 1.0)  # Zuschnitt [x, y, Breite, Höhe] als Anteile des quer liegenden Bildes
 SEITEN = ("1", "2", "3", "4")
 
 
@@ -46,17 +47,33 @@ def mitten(laenge: float, laengs: float, schritt: float) -> list[float]:
     return ergebnis
 
 
-def plan(balken: dict, seite: str, kamera_rolle: float, faktor: float, schritt: float | None = None) -> dict:
+def plan(balken: dict, seite: str, kamera_rolle: float, faktor: float, schritt: float | None = None,
+         zuschnitt: list[float] | None = None) -> dict:
     """Alles, was für eine Seite vor dem ersten Foto feststeht. Wirft ValueError, wenn es nicht geht."""
     info = seite_info(balken["breite_mm"], balken["hoehe_mm"], seite)
     abstand = kamera_rolle - info["hoch_mm"]
     if abstand < 50:
         raise ValueError(f"{info['art']}: nur {abstand / 10:.1f} cm bis zur Kamera, das passt nicht in die Box.")
-    laengs, quer = bildfeld(abstand, faktor)
+    voll, hoch = bildfeld(abstand, faktor)
+    _, _, anteil_b, anteil_h = zuschnitt or GANZ
+    laengs, quer = voll * anteil_b, hoch * anteil_h
     schritt = schritt or schritt_vorschlag(laengs)
-    return {**info, "abstand_mm": abstand, "laengs_mm": laengs, "quer_mm": quer, "schritt_mm": schritt,
+    return {**info, "abstand_mm": abstand, "laengs_mm": laengs, "quer_mm": quer, "voll_mm": voll, "zuschnitt": zuschnitt, "schritt_mm": schritt,
             "kamera_rolle_mm": kamera_rolle, "faktor": faktor, "luecke": schritt >= laengs,
             "zu_breit": info["flaeche_mm"] >= quer, "mitten_mm": mitten(balken["laenge_mm"], laengs, schritt)}
+
+
+def zuschnitt_pruefen(werte) -> list[float] | None:
+    """Rechteck in Anteilen, None oder das ganze Bild = kein Zuschnitt."""
+    if werte is None:
+        return None
+    if not isinstance(werte, list) or len(werte) != 4 or any(
+            isinstance(w, bool) or not isinstance(w, (int, float)) or not 0 <= w <= 1 for w in werte):
+        raise ValueError("Zuschnitt nicht lesbar.")
+    x, y, b, h = (float(w) for w in werte)
+    if b < 0.1 or h < 0.1 or x + b > 1.0001 or y + h > 1.0001:
+        raise ValueError("Der Ausschnitt ist zu klein.")
+    return [round(w, 4) for w in (x, y, b, h)]
 
 
 def px_je_mm(lange_seite_px: int, laengs_mm: float) -> float:

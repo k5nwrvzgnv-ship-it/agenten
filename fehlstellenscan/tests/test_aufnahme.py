@@ -43,6 +43,16 @@ class TestLogik(unittest.TestCase):
         with self.assertRaises(ValueError):
             l.faktor_aus_messung(0.001, 200, 400)
 
+    def test_zuschnitt(self):
+        voll = l.plan(BALKEN, "1", 600, 0.7)
+        eng = l.plan(BALKEN, "1", 600, 0.7, None, [0.1, 0.0, 0.8, 0.9])
+        self.assertAlmostEqual(eng["laengs_mm"], voll["laengs_mm"] * 0.8)
+        self.assertAlmostEqual(eng["voll_mm"], voll["laengs_mm"])
+        self.assertGreater(len(eng["mitten_mm"]), len(voll["mitten_mm"]) - 1)
+        for schlecht in ([0, 0, 0.05, 1], [0.5, 0, 0.6, 1], [0, 0, 1], "x", [0, 0, float("nan"), 1]):
+            with self.assertRaises(ValueError):
+                l.zuschnitt_pruefen(schlecht)
+
     def test_id_kommt_nie_wieder(self):
         self.assertEqual(l.neue_id(7, ["B002"]), ("B008", 8))
         self.assertEqual(l.neue_id(0, ["B011"]), ("B012", 12))
@@ -151,6 +161,44 @@ class TestServer(unittest.TestCase):
         self.ruf("/api/loeschen", ziel)
         self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
         self.assertEqual(self.ruf("/api/zurueck", ziel)[0], 400)
+
+    def handyruf(self, was, daten=None, **koepfe):
+        v = http.client.HTTPConnection("127.0.0.1", self.port, timeout=15)
+        v.request("GET" if daten is None else "POST", f"/h/{self.code}/{was}", body=daten,
+                  headers={k.replace("_", "-"): w for k, w in koepfe.items()})
+        a = v.getresponse()
+        return a.status, a.read()
+
+    def test_app_befehle_und_foto(self):
+        self.assertEqual(self.ruf("/api/kamera", {"art": "einmessen"})[0], 409)
+        self.handyruf("live", JPG, X_Zustand='{"iso": 50}')
+        self.assertEqual(self.ruf("/live.jpg")[1], JPG)
+        self.assertEqual(self.ruf("/api/stand")[1]["app"], {"iso": 50})
+        self.assertEqual(self.ruf("/api/kamera", {"art": "ev", "wert": 9})[0], 400)
+        self.assertEqual(self.ruf("/api/kamera", {"art": "ev", "wert": -0.5})[0], 200)
+        self.assertEqual(json.loads(self.handyruf("warten", X_App="1")[1]), {"art": "ev", "wert": -0.5})
+        b, antwort = self.balken(), []
+        f = threading.Thread(target=lambda: antwort.append(
+            self.ruf("/api/ausloesen", {"balken": b, "seite": "1", "nr": 0})))
+        f.start()
+        befehl = json.loads(self.handyruf("warten", X_App="1")[1])
+        self.assertEqual((befehl["art"], befehl["fokus"]), ("foto", f"{b}-1"))
+        self.handyruf("foto", JPG, X_Auftrag="alt")            # verspätet: darf nicht zugeordnet werden
+        self.handyruf("foto", JPG, X_Auftrag=befehl["id"], X_Foto='{"iso": 55}')
+        f.join(5)
+        self.assertEqual(antwort[0][1]["balken"]["seiten"]["1"]["fotos"]["0"]["kamera"], {"iso": 55})
+        self.assertEqual(len(list((Path(self.ordner.name) / "unzugeordnet").iterdir())), 1)
+
+    def test_app_fehler_bricht_ab(self):
+        self.handyruf("live", JPG)
+        b, antwort = self.balken(), []
+        f = threading.Thread(target=lambda: antwort.append(
+            self.ruf("/api/ausloesen", {"balken": b, "seite": "1", "nr": 0})))
+        f.start()
+        befehl = json.loads(self.handyruf("warten", X_App="1")[1])
+        self.handyruf("fehler", b"Kamera belegt", X_Auftrag=befehl["id"])
+        f.join(5)
+        self.assertEqual(antwort[0][0], 400)
 
     def test_zugang(self):
         self.assertEqual(self.ruf("/h/falsch/warten")[0], 403)

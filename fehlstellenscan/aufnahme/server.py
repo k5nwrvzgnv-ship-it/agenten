@@ -3,7 +3,10 @@ sich den Auslöser per Kurzbefehl über das Netz und schickt das Foto zurück. N
 
 Kurzbefehl: Wiederholen { GET /h/<code>/warten ; Foto aufnehmen ; POST /h/<code>/foto }. „warten“ hält die
 Verbindung mit Leerzeichen offen (gegen die Zeitgrenze von iOS) und endet erst beim Auslösen sauber. Bricht sie ab,
-endet die Antwort unvollständig, der Kurzbefehl bricht ab und macht kein Foto."""
+endet die Antwort unvollständig, der Kurzbefehl bricht ab und macht kein Foto.
+
+iPhone-App (aufnahme/app): gleiche Wege mit Kopfzeile X-App. „warten“ antwortet dann mit einem Befehl als JSON
+(foto, einmessen, ev, modus), dazu schickt die App laufend POST live (kleines JPEG, X-Zustand) und POST fehler."""
 
 import hmac
 import json
@@ -69,10 +72,14 @@ class Werk:
         self.warter: object | None = None         # der eine wartende Kurzbefehl
         self.auftrag: dict | None = None
         self.hinweis = ""
+        self.befehle: list[dict] = []             # an die App: einmessen, ev, modus
+        self.live = b""
+        self.live_zeit = -1e9
+        self.zustand: dict = {}                   # was die App zuletzt über die Kamera gemeldet hat
         self.name = befehl("scutil", "--get", "LocalHostName").strip() if sys.platform == "darwin" else ""
         datei = ordner / "einstellungen.json"
         self.einst = {"kamera_rolle_mm": 600.0, "abstand_gemessen": False, "faktor": l.FAKTOR_START,
-                      "faktor_gemessen": False, "letzte_nr": 0, "code": secrets.token_hex(4)}
+                      "faktor_gemessen": False, "zuschnitt": None, "letzte_nr": 0, "code": secrets.token_hex(4)}
         if datei.exists():
             self.einst |= json.loads(datei.read_text(encoding="utf-8"))
         schreiben(datei, self.einst)
@@ -109,7 +116,8 @@ class Werk:
         s = self.seite(b, seite)
         if s["fotos"]:
             return s["plan"]
-        return l.plan(b, seite, self.einst["kamera_rolle_mm"], self.einst["faktor"], s["schritt_mm"])
+        return l.plan(b, seite, self.einst["kamera_rolle_mm"], self.einst["faktor"], s["schritt_mm"],
+                      self.einst["zuschnitt"])
 
     def mit_plan(self, b: dict) -> dict:
         for seite in l.SEITEN:
@@ -124,7 +132,7 @@ class Werk:
         with self.schloss:
             namen = ([f"http://{self.name}.local:{self.port}"] if self.name else []) + [
                 f"http://{netzadresse()}:{self.port}"]
-            return {"einstellungen": {k: v for k, v in self.einst.items() if k != "code"}, "handy": self.handy_da(),
+            return {"einstellungen": {k: v for k, v in self.einst.items() if k != "code"}, "handy": self.handy_da(), "app": self.zustand if self.app_da() else None,
                     "hinweis": self.hinweis, "ordner": str(self.ordner),
                     "adressen": [f"{n}/h/{self.einst['code']}" for n in namen],
                     "balken": [self.mit_plan(self.lesen(i)) for i in self.ids()]}
@@ -162,6 +170,13 @@ class Werk:
             self.sichern()
         return self.stand()
 
+    def zuschneiden(self, daten: dict) -> dict:
+        """Gilt für alle Seiten ohne Fotos. Die Originale bleiben ganz, der Ausschnitt steht im Plan der Seite."""
+        with self.schloss:
+            self.einst["zuschnitt"] = l.zuschnitt_pruefen(daten.get("zuschnitt"))
+            self.sichern()
+        return self.stand()
+
     def massstab(self, daten: dict) -> dict:
         with self.schloss:
             b = self.lesen(daten.get("balken"))
@@ -186,7 +201,7 @@ class Werk:
         return b, s, p
 
     # ---------------------------------------------------------- Fotos
-    def foto_ablegen(self, kennung, seite, nr, daten: bytes) -> dict:
+    def foto_ablegen(self, kennung, seite, nr, daten: bytes, kamera: dict | None = None) -> dict:
         with self.schloss:
             b, s, p = self.abschnitt(kennung, seite, nr)
             endung = l.endung_von(daten)
@@ -198,7 +213,7 @@ class Werk:
             ziel = ordner / name
             ziel.write_bytes(daten)
             foto = {"datei": name, "vorschau": name, "zeit": jetzt.isoformat(timespec="seconds"), "mitte_mm": mitte,
-                    "mb": round(len(daten) / 1e6, 1), "breite_px": None, "hoehe_px": None, "px_je_mm": None}
+                    "mb": round(len(daten) / 1e6, 1), "breite_px": None, "hoehe_px": None, "px_je_mm": None, "kamera": kamera or {}}
             self.vermessen(ziel, foto, p)
             alt = s["fotos"].get(str(nr))
             s["plan"] = p
@@ -257,14 +272,56 @@ class Werk:
         g = re.findall(r"pixel(?:Width|Height): (\d+)", befehl("sips", "-g", "pixelWidth", "-g", "pixelHeight", str(ziel)))
         if len(g) == 2:
             foto["breite_px"], foto["hoehe_px"] = int(g[0]), int(g[1])
-            foto["px_je_mm"] = round(l.px_je_mm(max(int(g[0]), int(g[1])), p["laengs_mm"]), 2)
+            foto["px_je_mm"] = round(l.px_je_mm(max(int(g[0]), int(g[1])), p.get("voll_mm", p["laengs_mm"])), 2)
         vorschau = ziel.with_name(ziel.stem + "_vorschau.jpg")
         befehl("sips", "-s", "format", "jpeg", "-s", "formatOptions", "85", "-Z", "2400", str(ziel), "--out", str(vorschau))
         if vorschau.exists():
             foto["vorschau"] = vorschau.name
 
     def handy_da(self) -> bool:
-        return self.warter is not None
+        return self.warter is not None or self.app_da()
+
+    def app_da(self) -> bool:
+        return time.monotonic() - self.live_zeit < 3
+
+    def kamera(self, daten: dict) -> dict:
+        art, wert = daten.get("art"), daten.get("wert")
+        if art not in ("einmessen", "ev", "modus") or (art == "modus" and wert not in ("fest", "fein")) or (
+                art == "ev" and (isinstance(wert, bool) or not isinstance(wert, (int, float)) or not -2 <= wert <= 2)):
+            raise ValueError("Unbekannter Befehl.")
+        with self.schloss:
+            if not self.app_da():
+                raise Konflikt("iPhone-App nicht verbunden.")
+            self.befehle.append({"art": art, "wert": wert})
+            self.schloss.notify_all()
+        return {"ok": True}
+
+    def live_vom_handy(self, daten: bytes, zustand: str) -> None:
+        if l.endung_von(daten) != ".jpg":
+            raise ValueError("Live-Bild ist kein JPEG.")
+        neu = json.loads(zustand or "{}")
+        with self.schloss:
+            self.live, self.live_zeit = daten, time.monotonic()
+            self.zustand = neu if isinstance(neu, dict) else {}
+
+    def fehler_vom_handy(self, text: str, kennung: str | None) -> None:
+        with self.schloss:
+            self.hinweis = f"iPhone: {text[:200]}"
+            auftrag = self.auftrag
+            if auftrag and kennung == auftrag["id"]:
+                self.auftrag = None
+                auftrag["fehler"], auftrag["fertig"] = self.hinweis, True
+                self.schloss.notify_all()
+
+    def naechster_befehl(self, app: bool) -> bytes | None:
+        """Was der wartende Kurzbefehl oder die App jetzt tun soll."""
+        if app and self.befehle:
+            return json.dumps(self.befehle.pop(0)).encode()
+        a = self.auftrag
+        if a and not a["abgeholt"]:
+            a["abgeholt"] = True
+            return json.dumps({"art": "foto", "id": a["id"], "fokus": f"{a['balken']}-{a['seite']}"}).encode() if app else b"foto"
+        return None
 
     def ausloesen(self, daten: dict) -> dict:
         with self.schloss:
@@ -274,7 +331,8 @@ class Werk:
             if not self.handy_da():
                 raise Konflikt("iPhone nicht verbunden. Kurzbefehl auf dem iPhone starten.")
             auftrag = {"balken": daten["balken"], "seite": daten["seite"], "nr": daten["nr"], "balken_neu": None,
-                       "fehler": None, "fertig": False}
+                       "fehler": None, "fertig": False,
+                       "abgeholt": False, "id": secrets.token_hex(4)}
             self.auftrag, self.hinweis = auftrag, ""
             self.schloss.notify_all()
             ende = time.monotonic() + FOTO_WARTEN_S
@@ -288,9 +346,14 @@ class Werk:
             raise Konflikt("Kein Foto angekommen. Auf dem iPhone nachsehen und den Kurzbefehl neu starten.")
         return {"balken": auftrag["balken_neu"]}
 
-    def foto_vom_handy(self, daten: bytes) -> None:
+    def foto_vom_handy(self, daten: bytes, kennung: str | None = None, kamera: str = "") -> None:
+        werte = json.loads(kamera or "{}")
         with self.schloss:
-            auftrag, self.auftrag = self.auftrag, None
+            auftrag = self.auftrag
+            if auftrag and kennung and kennung != auftrag["id"]:
+                auftrag = None                   # verspätetes Foto eines früheren Auslösens
+            if auftrag:
+                self.auftrag = None
             if auftrag is None:
                 endung = l.endung_von(daten)
                 weg = self.ordner / "unzugeordnet"
@@ -300,7 +363,7 @@ class Werk:
                 self.hinweis = f"Ein Foto kam ohne Auslöser an: unzugeordnet/{name}"
                 return
             try:
-                auftrag["balken_neu"] = self.foto_ablegen(auftrag["balken"], auftrag["seite"], auftrag["nr"], daten)
+                auftrag["balken_neu"] = self.foto_ablegen(auftrag["balken"], auftrag["seite"], auftrag["nr"], daten, werte)
             except (ValueError, OSError) as e:
                 auftrag["fehler"] = str(e)
             finally:
@@ -371,6 +434,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(403, {"fehler": "Nur auf diesem Rechner."})
         if weg == "/api/stand":
             return self.antwort(200, werk.stand())
+        if weg == "/live.jpg" and werk.app_da():
+            return self.antwort(200, werk.live, "image/jpeg")
         datei = None
         if weg == "/":
             datei = SEITE / "index.html"
@@ -383,7 +448,7 @@ class Anfrage(BaseHTTPRequestHandler):
         return self.antwort(200, datei.read_bytes(), TYPEN[datei.suffix])
 
     def warten(self, werk: Werk) -> None:
-        ich = object()
+        ich, app = object(), self.headers.get("X-App") == "1"
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.send_header("Transfer-Encoding", "chunked")
@@ -397,9 +462,9 @@ class Anfrage(BaseHTTPRequestHandler):
                 with werk.schloss:
                     if werk.warter is not ich:
                         return                   # neuer Kurzbefehl hat übernommen: unvollständig enden
-                    if werk.auftrag and not werk.auftrag.get("abgeholt"):
-                        self.wfile.write(b"4\r\nfoto\r\n0\r\n\r\n")
-                        werk.auftrag["abgeholt"] = True
+                    befehl = werk.naechster_befehl(app)
+                    if befehl is not None:
+                        self.wfile.write(b"%x\r\n%s\r\n0\r\n\r\n" % (len(befehl), befehl))
                         return
                     self.wfile.write(b"1\r\n \r\n")
                     werk.schloss.wait(2)
@@ -415,9 +480,15 @@ class Anfrage(BaseHTTPRequestHandler):
         weg, werk = teile.path, self.server.werk
         try:
             if weg.startswith("/h/"):
-                if self.handy_weg(weg) != "foto":
+                was, kennung = self.handy_weg(weg), self.headers.get("X-Auftrag")
+                if was == "foto":
+                    werk.foto_vom_handy(self.koerper(), kennung, self.headers.get("X-Foto", ""))
+                elif was == "live":
+                    werk.live_vom_handy(self.koerper(), self.headers.get("X-Zustand", ""))
+                elif was == "fehler":
+                    werk.fehler_vom_handy(self.koerper().decode("utf-8", "replace"), kennung)
+                else:
                     return self.antwort(403, {"fehler": "Adresse im Kurzbefehl prüfen."})
-                werk.foto_vom_handy(self.koerper())
                 return self.antwort(200, {"ok": True})
             if not self.vom_mac() or self.headers.get("X-Aufnahme") != "1":
                 return self.antwort(403, {"fehler": "Nur auf diesem Rechner."})
@@ -426,7 +497,7 @@ class Anfrage(BaseHTTPRequestHandler):
                 q = {k: v[0] for k, v in parse_qs(teile.query).items()}
                 return self.antwort(200, {"balken": werk.foto_ablegen(q.get("balken"), q.get("seite"), int(q.get("nr", "-1")), roh)})
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
-                    "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/loeschen": werk.loeschen,
+                    "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
                     "/api/zurueck": werk.zurueckholen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})
