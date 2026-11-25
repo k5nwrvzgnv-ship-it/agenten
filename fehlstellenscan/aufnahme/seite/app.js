@@ -106,7 +106,7 @@ $('#wahl').onchange=e=>{if(laeuft||!e.target.value)return mal();oeffne(e.target.
 function handyMalen(){const h=$('#handy');h.className=S.handy?'da':'';const n=S.handy?'iPhone verbunden':'iPhone nicht verbunden';h.title=n;h.setAttribute('aria-label',n)}
 function dlg(){const a=S.adressen,m=S.einstellungen;$('#abstand').kr.value=cm(m.kamera_rolle_mm);$('#abstand .fehler').textContent='';
  $('#winkel').textContent=m.faktor_gemessen?'Gemessen.':'Angenommen (24 mm). Nach dem ersten Foto mit dem Lineal unter dem Bild messen.';
- $('#appadr').innerHTML=a.map(esc).join('<br>');const u=t=>a.map(x=>`<code>${esc(x+t)}</code>`).join(a.length>1?'<span class="leise">geht die erste nicht:</span>':'');
+ $('#appadr').innerHTML=a.map(x=>`<code>${esc(x)}</code>`).join(a.length>1?'<span class="leise">geht die erste nicht:</span>':'');const u=t=>a.map(x=>`<code>${esc(x+t)}</code>`).join(a.length>1?'<span class="leise">geht die erste nicht:</span>':'');
  $('#kurz').innerHTML=`<li>Wiederholen: 500 Mal</li><li>Inhalte von URL abrufen (GET)${u('/warten')}</li><li>Foto aufnehmen: 1 Foto, Rückkamera, Kameravorschau aus</li><li>Inhalte von URL abrufen: Methode POST, Anfragetext „Datei“, Datei = Foto${u('/foto')}</li><li>Aktionen 2 bis 4 liegen im „Wiederholen“. Starten, Zugriffe erlauben.</li>`;
  if(!$('#dlg').open)$('#dlg').showModal()}
 $('#einst').onclick=$('#handy').onclick=dlg;$('.zu').onclick=()=>$('#dlg').close();$('#dlg').onclose=()=>document.activeElement.blur();
