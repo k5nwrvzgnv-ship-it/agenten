@@ -505,10 +505,11 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Maßstab bleibt, Rückgängig direkt danach. Mittel steht rechts als „Maßprüfung“. Solange der Bildwinkel nur
   angenommen ist, ist „Als Maßstab übernehmen“ der Hauptknopf. Labeln zeigt weiter den Kreisdurchmesser (gleiche
   Fläche), nicht längs x quer.
-- Ablauf (26.11.2026, Jan fand die Querschnitt-Symbole verwirrend): Seiten als „Seite 1 breit / 2 schmal ...“
-  mit Fortschritt, Anweisungen in Worten („Breitseite nach oben“, „18 cm vorschieben“, „Balken eine
-  Vierteldrehung weiterrollen, dann liegt Seite 2 oben“), Seitenbild mit Kamera weg, dafür „Abstand zur Kamera“.
-  Knöpfe unter dem Bild nur als Symbol mit Tooltip (Jan 26.11. „deskriptive kacke“ = KI-Slop). Geprüft auf dem Server mit Playwright und künstlichem Foto, nicht auf dem Mac.
+- Ablauf (26.11.2026, Jan: nur Symbole, keine Wörter an Knöpfen, auch nicht am Hauptknopf): Seiten als Balken im
+  Schrägbild, gemeinte Seite schraffiert, verdeckte Kanten gestrichelt (balken3d in app.js), darunter Fotos/Plan.
+  Schritt als Symbol plus Zahl, Rollen als Balken > 90° > Balken, Hauptknopf nur Kamera, Balken oder Etikett.
+  Seitenbild mit Kamera bleibt. Einrichtung ohne Kurzbefehl. Geprüft auf dem Server mit Playwright und
+  künstlichem Foto, nicht auf dem Mac.
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
   Enter speichert es leer als fehlerfrei. Vorschaubild von B001 Seite 3 fehlt im Labeln.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
