@@ -421,7 +421,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Live-Bild. Rückfall: Foto per AirDrop, dann ··· „Foto vom Mac“.
 - Erster Test am iPhone (Jan 25.11.2026): Auslösen und Übertragen per Kurzbefehl klappt, Foto stark überbelichtet
   (Automatik, schwarzer Grund). Darum iPhone-App (Jan 25.11. „Ja, App bauen“): aufnahme/app/ (Swift, Xcode-Projekt,
-  iOS 17+), auf dem Server nicht übersetzbar, noch nie gebaut, noch nicht im Repo (Muster für *.swift, *.plist, *.pbxproj fehlt in claude_lauf.GESCHUETZT,
+  iOS 17+), auf dem Server nicht übersetzbar, 25.11. auf Jans Mac in Xcode fehlerfrei gebaut (Simulator), am iPhone noch nie, noch nicht im Repo (Muster für *.swift, *.plist, *.pbxproj fehlt in claude_lauf.GESCHUETZT,
   Bedarf steht in der STATUS.md des Hauptordners). Belichtung und Weißabgleich gesperrt, Fokus je Seite,
   Live-Bild, Bedienung am Mac (dunkler, heller, einmessen, 12/48). Laut Apple-Forum hält iOS feste Werte nur bei
   12 MP ein, bei 48 MP weichen sie ab: je Foto stehen ISO und Zeit in balken.json (kamera), Wahl nach Jans Test.
