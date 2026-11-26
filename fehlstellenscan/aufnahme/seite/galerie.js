@@ -14,13 +14,14 @@ async function ruf(weg,daten){let a;try{a=await fetch(weg,daten===undefined?{}:{
 
 function karte(b){
  // Seitenstriche nur, wenn etwas fehlt: ein vollständiger Balken bleibt ruhig
- const voll=['1','2','3','4'].every(n=>b.seiten[n]);
- const seiten=voll?'':`<span class="vier">${['1','2','3','4'].map(n=>`<i class="${b.seiten[n]?'ja':''}"></i>`).join('')}</span>`;
+ const gut=n=>b.seiten[n]&&!b.weg?.includes(n),voll=['1','2','3','4'].every(gut);
+ const seiten=voll?'':`<span class="vier">${['1','2','3','4'].map(n=>`<i class="${gut(n)?'ja':b.weg?.includes(n)?'weg':''}"></i>`).join('')}</span>`;
  // Vorschau: abgewickelter Mantel (unten Seite 1, darüber die nächste, wie beim Rollen), sonst ein Zuschnitt
- const bild=b.koerper?`<div class="mantel">${['4','3','2','1'].map(n=>`<i${b.seiten[n]?` style="background-image:url('/koerper/${encodeURIComponent(b.id)}/S${n}_k.jpg?v=${b.koerper}')"`:' class="fehlt"'}></i>`).join('')}</div>`
+ const bild=b.koerper?`<div class="mantel">${['4','3','2','1'].map(n=>`<i${b.seiten[n]&&!b.weg?.includes(n)?` style="background-image:url('/koerper/${encodeURIComponent(b.id)}/S${n}_k.jpg?v=${b.koerper}')"`:` class="fehlt${b.weg?.includes(n)?' weg':''}"`}></i>`).join('')}</div>`
   :b.bild?`<img src="/zuschnitt/${encodeURIComponent(b.bild)}_k.jpg" alt="" loading="lazy" draggable="false">`:`<div class="ohne">${BALKEN}</div>`;
  const titel=[`${b.id}: ${cm(b.laenge_mm)} × ${cm(b.breite_mm)} × ${cm(b.hoehe_mm)} cm`,b.holzart,
   `${Object.values(b.seiten).filter(Boolean).length} von 4 Seiten, ${b.fertig} von ${b.fotos} Fotos gelabelt`,
+  ...(b.weg||[]).map(n=>`Seite ${n}: ${b.gruende?.[n]||'unbrauchbar'}`),
   b.abweichung>2?`Maß weicht bis ${b.abweichung.toLocaleString('de-DE')} % ab`:'',b.fest?'Schon trainiert, Teil bleibt':''].filter(Boolean).join('\n');
  return `<a class="karte${b.fest?' fest':''}${b.id===rechnet?' rechnet':''}" href="/koerper?id=${encodeURIComponent(b.id)}" data-b="${esc(b.id)}" draggable="${!b.fest}" title="${esc(titel)}"
   aria-label="${esc(b.id)}, ${esc(NAME[b.teil])}${b.fest?', gesperrt':''}" aria-keyshortcuts="ArrowLeft ArrowRight">${bild}
@@ -48,7 +49,7 @@ async function nachrechnen(){if(rechnet)return;
  for(;;){const b=G.find(x=>x.fotos&&(!x.koerper||x.koerper_alt)&&!versucht.has(x.id));if(!b)break;
   versucht.add(b.id);rechnet=b.id;mal(document.activeElement?.dataset?.b);
   try{const k=await ruf('/api/koerper?id='+encodeURIComponent(b.id));const x=G.find(y=>y.id===b.id);
-   if(x){x.koerper=k.stand;x.koerper_alt=false;const w=Object.values(k.seiten).flatMap(s=>Object.values(s.abweichung_prozent)).filter(v=>v!=null).map(Math.abs);x.abweichung=w.length?Math.max(...w):null}}
+   if(x){x.koerper=k.stand;x.koerper_alt=false;x.weg=Object.keys(k.seiten).filter(n=>k.seiten[n].grund);x.gruende=Object.fromEntries(x.weg.map(n=>[n,k.seiten[n].grund]));const w=Object.values(k.seiten).filter(s=>!s.grund).flatMap(s=>Object.values(s.abweichung_prozent)).filter(v=>v!=null).map(Math.abs);x.abweichung=w.length?Math.max(...w):null}}
   catch(e){console.warn(b.id,e.message)}}
  rechnet=null;mal(document.activeElement?.dataset?.b)}
 

@@ -93,6 +93,31 @@ class TestSeite(unittest.TestCase):
             ko.seite_bauen([f], 600, 100)
 
 
+class TestPlausibel(unittest.TestCase):
+    def bericht(self, winkel=0.0, laenge=0.0, flaeche=0.0, luecke=0.0):
+        return {"winkel_grad": [winkel], "abweichung_prozent": {"laenge": laenge, "flaeche": flaeche},
+                "luecke_anteil": luecke}
+
+    def test_gruende(self):
+        self.assertIsNone(ko.unplausibel(self.bericht(winkel=-0.3, laenge=3.3, flaeche=3.7)))    # B002 S3
+        self.assertIn("schief", ko.unplausibel(self.bericht(winkel=-76.4)))                    # B001 S3
+        self.assertIn("139 %", ko.unplausibel(self.bericht(laenge=-49.9, flaeche=138.8)))      # B001 S2
+        self.assertIn("fehlen", ko.unplausibel(self.bericht(luecke=0.5)))
+        self.assertIsNone(ko.unplausibel({"winkel_grad": [0], "abweichung_prozent": {"laenge": None, "flaeche": 1},
+                                          "luecke_anteil": 0}))
+
+    def test_quer_liegender_balken_wird_verworfen(self):
+        """Wie B001 Seite 2: Fläche liegt quer im Bild, gemessen 100 x 300 statt 300 x 100 mm."""
+        with tempfile.TemporaryDirectory() as t:
+            ordner = Path(t) / "B009"
+            (ordner / "zuschnitt").mkdir(parents=True)
+            foto(maserung(500, 1500).resize((500, 900)), 750, hoehe_px=1000).save(ordner / "zuschnitt" / "q.jpg")
+            (ordner / "balken.json").write_text(json.dumps({"id": "B009", "laenge_mm": 300, "breite_mm": 100,
+                "hoehe_mm": 100, "seiten": {"1": {"plan": {"flaeche_mm": 100}, "fotos": {"0": {
+                    "datei": "q.heic", "mitte_mm": 150, "px_je_mm": PX}}}}}))
+            self.assertIsNotNone(ko.koerper_bauen(ordner)["seiten"]["1"]["grund"])
+
+
 class TestOrdner(unittest.TestCase):
     def test_px_aus_plan_wie_b002(self):
         zuschnitt = Image.new("RGB", (2910, 2834))

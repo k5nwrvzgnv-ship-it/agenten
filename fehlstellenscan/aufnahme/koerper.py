@@ -24,6 +24,8 @@ SUCHE_PX = 1200          # lange Bildseite für die Kantensuche
 ZIEL_PX_JE_MM = 4.0      # Auflösung der fertigen Seitenbilder
 MAX_BREITE_PX = 8000     # längs höchstens so viele Pixel (lange Balken bekommen weniger px/mm)
 KLEIN_PX = 480           # Breite der kleinen Seitenbilder für die Galerie
+MAX_WINKEL = 5.0         # schiefer liegt der Balken nicht längs im Bild: Seite unbrauchbar
+MAX_ABWEICHUNG = 15.0    # Prozent gegen die eingetragenen Maße, darüber stimmt Lage oder Maßstab nicht
 RAND = 0.01              # Fläche gilt als am Bildrand abgeschnitten, wenn sie näher als 1 % am Rand liegt
 
 
@@ -182,6 +184,19 @@ def abweichung(gemessen: float | None, soll: float) -> float | None:
     return None if gemessen is None else round(100 * (gemessen - soll) / soll, 1)
 
 
+def unplausibel(bericht: dict) -> str | None:
+    """Grund, warum eine Seite nicht auf den Körper gehört (schief, falsch gelegt, Maßstab falsch), sonst None."""
+    winkel = max((abs(w) for w in bericht["winkel_grad"]), default=0.0)
+    if winkel > MAX_WINKEL:
+        return f"liegt {winkel:.0f}° schief"
+    abw = [abs(a) for a in bericht["abweichung_prozent"].values() if a is not None]
+    if abw and max(abw) > MAX_ABWEICHUNG:
+        return f"Maß weicht {max(abw):.0f} % ab"
+    if bericht["luecke_anteil"] > 0.02:
+        return f"{100 * bericht['luecke_anteil']:.0f} % der Länge fehlen"
+    return None
+
+
 def koerper_bauen(ordner: Path) -> dict:
     """Liest <ordner>/balken.json und die Zuschnitte, schreibt <ordner>/koerper/. Seiten ohne Fotos fehlen."""
     balken = json.loads((ordner / "balken.json").read_text(encoding="utf-8"))
@@ -212,6 +227,7 @@ def koerper_bauen(ordner: Path) -> dict:
         bericht["soll_mm"] = {"laenge": balken["laenge_mm"], "flaeche": flaeche}
         bericht["abweichung_prozent"] = {"laenge": abweichung(bericht["laenge_mm"], balken["laenge_mm"]),
                                          "flaeche": abweichung(bericht["flaeche_mm"], flaeche)}
+        bericht["grund"] = unplausibel(bericht)
         ergebnis["seiten"][nr] = bericht
     (ziel / "koerper.json").write_text(json.dumps(ergebnis, ensure_ascii=False, indent=1), encoding="utf-8")
     return ergebnis

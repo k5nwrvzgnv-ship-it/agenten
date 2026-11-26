@@ -1,7 +1,7 @@
 // Körper eines Balkens: vier Seitenbilder als Mantel um die Längsachse, Stirnseiten grau. Lage der Seiten wie in
 // koerper.py: Seite i liegt nach rotateX(90°·i), die nächste Seite stößt an die obere Bildkante.
 const $=s=>document.querySelector(s),buehne=$('#kbuehne'),kk=$('#kk');
-const START={rx:-22,ry:-32,zoom:1};let A={...START},M=null,id=null,bilder={};
+const START={rx:-22,ry:-32,zoom:1};let A={...START},M=null,id=null,bilder={},weg={};
 const zahl=x=>(x>0?'+':x<0?'−':'±')+Math.abs(x).toFixed(1).replace('.',',')+' %';
 
 async function json(weg){let a;try{a=await fetch(weg)}catch(e){throw Error('Das Programm auf dem Mac antwortet nicht. Im Terminal neu starten.')}
@@ -15,7 +15,7 @@ function bauen(){
  const k=Math.min(.68*r.width/L,.62*r.height/Math.hypot(W1,W2));
  const fl=[];
  for(let i=1;i<=4;i++){const w=L*k,h=(i%2?W1:W2)*k,d=(i%2?W2:W1)/2*k;
-  fl.push(`<div class="kf" data-s="${i}" style="width:${w}px;height:${h}px;left:${-w/2}px;top:${-h/2}px;transform:rotateX(${90*i}deg) translateZ(${d}px);${bilder[i]?`background-image:url('${bilder[i]}')`:''}"></div>`)}
+  fl.push(`<div class="kf${bilder[i]?' bild':''}${weg[i]?' weg':''}" data-s="${i}" style="width:${w}px;height:${h}px;left:${-w/2}px;top:${-h/2}px;transform:rotateX(${90*i}deg) translateZ(${d}px);${bilder[i]?`background-image:url('${bilder[i]}')`:''}"></div>`)}
  for(const s of[1,-1]){const w=W1*k,h=W2*k;
   fl.push(`<div class="kf ende" style="width:${w}px;height:${h}px;left:${-w/2}px;top:${-h/2}px;transform:rotateY(${90*s}deg) translateZ(${L*k/2}px)"></div>`)}
  kk.innerHTML=fl.join('');zeigen()}
@@ -32,7 +32,8 @@ function seiteNachVorn(i){const ziel=-90*i;A.rx=ziel+360*Math.round((A.rx-ziel)/
 
 function knoepfe(K){const box=$('#kseiten');box.innerHTML='';
  for(let i=1;i<=4;i++){const s=K?.seiten?.[i],b=document.createElement('button');b.dataset.s=i;
-  if(s){const a=s.abweichung_prozent,werte=[a.laenge,a.flaeche].filter(x=>x!=null),gross=werte.reduce((m,x)=>Math.abs(x)>Math.abs(m)?x:m,0);
+  if(s?.grund){b.innerHTML=`<b>${i}</b><span class="ab weg">!</span>`;b.title=`Seite ${i}: ${s.grund}, nicht aufgeklebt`}
+  else if(s){const a=s.abweichung_prozent,werte=[a.laenge,a.flaeche].filter(x=>x!=null),gross=werte.reduce((m,x)=>Math.abs(x)>Math.abs(m)?x:m,0);
    b.innerHTML=`<b>${i}</b><span class="ab${Math.abs(gross)>2?' warn':''}">${zahl(gross)}</span>`;
    b.title=`Seite ${i}: längs ${a.laenge==null?'nicht ganz im Bild':zahl(a.laenge)}, quer ${zahl(a.flaeche)} gegen die eingetragenen Maße`}
   else{b.innerHTML=`<b>${i}</b><span class="ab">–</span>`;b.title=`Seite ${i}: keine Fotos`}
@@ -48,7 +49,8 @@ async function laden(){
   M=masse(b);$('#kid').textContent=id;$('#kmass').textContent=`${M.L} × ${b.breite_mm} × ${b.hoehe_mm} mm`;document.title=`Neurolign ${id}`;
   knoepfe(null);bauen();
   const K=await json('/api/koerper?id='+encodeURIComponent(id));
-  for(const n of Object.keys(K.seiten))bilder[n]=`/koerper/${id}/S${n}.jpg?v=${K.stand}`;
+  // unplausible Seiten (schief, falsches Maß) nicht aufkleben, sondern rot markiert schraffieren
+  for(const [n,s] of Object.entries(K.seiten)){if(s.grund)weg[n]=s.grund;else bilder[n]=`/koerper/${id}/S${n}.jpg?v=${K.stand}`}
   await Promise.all(Object.values(bilder).map(u=>new Promise(f=>{const i=new Image();i.onload=i.onerror=f;i.src=u})));
   knoepfe(K);bauen()}
  catch(e){$('#kfehler').textContent=e.message}

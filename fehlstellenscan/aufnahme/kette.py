@@ -67,11 +67,14 @@ def fotos(balken: dict) -> list[dict]:
 
 
 def koerper_veraltet(ordner: Path, namen: list[str]) -> bool:
-    """Körper fehlt, ist älter als Maße oder ein Zuschnitt (auch ein noch fehlender) oder hat keine kleinen Bilder."""
+    """Körper fehlt, ist älter als Maße oder ein Zuschnitt (auch ein noch fehlender), hat keine kleinen Bilder oder
+    stammt von vor der Plausibilitätsprüfung."""
     ziel = ordner / "koerper" / "koerper.json"
     if not ziel.exists() or not any(ziel.parent.glob("S?_k.jpg")):
         return True
     stand = ziel.stat().st_mtime_ns
+    if any("grund" not in s for s in json.loads(ziel.read_text(encoding="utf-8")).get("seiten", {}).values()):
+        return True                                     # Körper von vor der Plausibilitätsprüfung
     for q in [ordner / "balken.json"] + [ordner / "zuschnitt" / f"{n}.jpg" for n in namen]:
         if not q.exists() or q.stat().st_mtime_ns > stand:
             return True
@@ -414,18 +417,21 @@ class Kette:
                 b = self.lesen(i)
                 fs = fotos(b)
                 je_seite = {n: sum(f["seite"] == n for f in fs) for n in ("1", "2", "3", "4")}
-                abw, stand, alt = None, None, False
+                abw, stand, alt, gruende = None, None, False, {}
                 k = self.ordner / i / "koerper" / "koerper.json"
                 if k.exists():
                     stand = k.stat().st_mtime_ns
                     alt = koerper_veraltet(self.ordner / i, [f["name"] for f in fs])
-                    werte = [abs(x) for s in json.loads(k.read_text(encoding="utf-8"))["seiten"].values()
+                    seiten = json.loads(k.read_text(encoding="utf-8"))["seiten"]
+                    gruende = {n: s["grund"] for n, s in seiten.items() if s.get("grund")}
+                    werte = [abs(x) for n, s in seiten.items() if n not in gruende
                              for x in s["abweichung_prozent"].values() if x is not None]
                     abw = max(werte, default=None)
                 ergebnis.append({"id": i, "laenge_mm": b["laenge_mm"], "breite_mm": b["breite_mm"],
-                                 "hoehe_mm": b["hoehe_mm"], "holzart": b.get("holzart", ""), **teile[i],
+                                 "hoehe_mm": b["hoehe_mm"], "holzart": b.get("holzart", ""), "name": b.get("name", ""), **teile[i],
                                  "seiten": je_seite, "bild": fs[0]["name"] if fs else None, "fotos": len(fs),
                                  "fertig": sum(self.fertig(f) for f in fs), "abweichung": abw, "koerper": stand,
+                                 "weg": sorted(gruende), "gruende": gruende,
                                  "koerper_alt": alt})
             return ergebnis
 
