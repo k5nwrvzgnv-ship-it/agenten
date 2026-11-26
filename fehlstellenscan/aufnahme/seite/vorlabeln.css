@@ -1,0 +1,17 @@
+/* Vorlabeln (vorlabeln.js), Labeln und Galerie. Farben aus der jeweiligen Seite, sonst aus stil.css. */
+.vli{width:20px;height:20px;flex:none;display:block}
+.vlk{position:relative;display:inline-grid;place-items:center;width:var(--knopf,40px);height:var(--knopf,40px);color:var(--color-muted-foreground,var(--l));background:none;border:var(--lin,1px) solid transparent;border-radius:var(--radius,6px);cursor:pointer}
+.vlk:hover{color:var(--color-foreground,var(--t));border-color:var(--color-border,var(--r))}
+.vlk[aria-disabled=true]{cursor:default}.vlk[aria-disabled=true]:hover{border-color:transparent;color:var(--color-muted-foreground,var(--l))}
+.vlk.arbeit,.vlk.arbeit:hover{color:var(--color-accent,var(--gelb))}
+.vli.ring{transform:rotate(0)}.vli.warte{animation:vldreh 2.4s linear infinite}@keyframes vldreh{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.vli.warte{animation:none}}
+.vli .zg{stroke:var(--color-primary,#7dd3a0);stroke-width:2.2}.vli .zw{stroke:var(--color-destructive,var(--rot));stroke-width:2.6}.vli.gut{color:var(--color-primary,#7dd3a0)}.vli.warn{color:var(--color-destructive,var(--rot))}.vli.aus{opacity:.8}
+.vle{display:inline-flex;align-items:center;gap:2px;min-width:0;color:var(--color-muted-foreground,var(--l))}
+.vlm{font-family:var(--font-heading,inherit);font-size:11px;letter-spacing:.02em;padding:2px 6px;border:var(--lin,1px) solid var(--color-border,var(--r));border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22ch}
+.vlmehr{display:inline-grid;place-items:center;width:32px;height:32px;background:none;border:0;color:inherit;border-radius:var(--radius,6px);cursor:pointer}.vlmehr:hover{color:var(--color-foreground,var(--t));background:var(--color-muted,var(--m))}
+.vlmenue{position:fixed;z-index:50;min-width:220px;padding:4px;background:var(--color-card,var(--f));color:var(--color-foreground,var(--t));border:1px solid var(--color-border,var(--r));border-radius:var(--radius,6px);box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.vlmenue button{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;min-height:36px;padding:0 10px;background:none;border:0;color:inherit;font:inherit;text-align:left;border-radius:4px;cursor:pointer}
+.vlmenue button:hover,.vlmenue button:focus-visible{background:var(--color-muted,var(--m))}.vlmenue i{width:20px}.vlmenue small{color:var(--color-muted-foreground,var(--l))}
+.vlmenue hr{border:0;border-top:1px solid var(--color-border,var(--r));margin:4px 0}
+@media (max-width:1023px){.vlmenue button{min-height:44px}.vlmehr{width:44px;height:44px}}

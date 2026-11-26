@@ -19,9 +19,11 @@ from pathlib import Path
 if __package__:
     from . import klassen as kl
     from . import saetze as sa
+    from . import vorlabeln as vl
 else:
     import klassen as kl
     import saetze as sa
+    import vorlabeln as vl
 
 KLASSEN = ["live_knot", "dead_knot", "knot_missing", "knot_with_crack", "crack", "quartzity", "resin", "marrow",
            "blue_stain", "overgrown", "bohrloch", "metall", "nagelloch", "farbe", "faeule", "insektenfrass",
@@ -29,6 +31,7 @@ KLASSEN = ["live_knot", "dead_knot", "knot_missing", "knot_with_crack", "crack",
 TEILE = ("train", "val", "test")
 EPOCHEN = 60
 LAUFEND = ("bauen", "training", "pruefen")
+VLAUFEND = ("holen", "rechnen")
 HIER = Path(__file__).resolve().parent
 
 
@@ -274,6 +277,9 @@ class Kette:
         self.lauf: dict | None = None
         self.prozess: subprocess.Popen | None = None
         self._ergebnis: tuple = (None, None)
+        self.vlauf: dict | None = None          # Vorlabeln: ein Lauf auf einmal (Mac)
+        self.vprozess: subprocess.Popen | None = None
+        self._modelle: dict = {}
 
     # ------------------------------------------------------ Klassen (klassen.json)
     def klassen(self) -> dict:
@@ -610,6 +616,8 @@ class Kette:
         with self.schloss:
             if self.lauf and self.lauf["status"] in LAUFEND:
                 raise ValueError("Es läuft schon ein Training.")
+            if self.vlauf and self.vlauf["status"] in VLAUFEND:
+                raise ValueError("Es läuft gerade ein Vorlabeln.")
             wahl = daten.get("saetze", ["altholz"])
             bekannt = {"altholz", *(x["id"] for x in self.saetze())}
             if not isinstance(wahl, list) or not wahl or not all(isinstance(x, str) and x in bekannt for x in wahl):
@@ -725,3 +733,218 @@ class Kette:
             if self.prozess and self.prozess.poll() is None:
                 os.killpg(self.prozess.pid, 15)
             return self.stand()
+
+    # ------------------------------------------------------ Vorlabeln (docs/plan-vorlabeln.md)
+    def modelle(self) -> list[dict]:
+        """Läufe in runs/segment mit weights/best.pt: Name, Zeit, Altholz-Prüfzahl (Masken-mAP50-95 auf Altholz) oder
+        None. Gelesen nur, wenn sich best.pt oder das Log ändert."""
+        ergebnis = []
+        for pt in sorted((self.wurzel / "runs" / "segment").glob("*/weights/best.pt")):
+            name, lauf = pt.parents[1].name, pt.parents[1]
+            if not vl.NAME.fullmatch(name):
+                continue
+            log = self.ordner / f"{name}.log"
+            stempel = (pt.stat().st_mtime_ns, log.stat().st_mtime_ns if log.exists() else 0)
+            if self._modelle.get(name, (None,))[0] != stempel:
+                zahl = None
+                if re.fullmatch(r"altholz-\d+", name):
+                    e = ergebnis_gelesen(lauf, log, self.wurzel / "datensaetze" / name / "bericht.json",
+                                         self.ordner / f"{name}-altholz.log", self.namen())
+                    plan = self.ordner / f"{name}.json"
+                    saetze = json.loads(plan.read_text(encoding="utf-8")).get("saetze", []) if plan.exists() else []
+                    if e and not e["probe"]:
+                        if e["altholz"]:
+                            zahl = e["altholz"]["gesamt"]["maske"]["map"]
+                        elif saetze == ["altholz"]:
+                            zahl = e["gesamt"]["maske"]["map"]
+                self._modelle[name] = (stempel, {"name": name, "zahl": zahl, "zeit": stempel[0]})
+            ergebnis.append(self._modelle[name][1])
+        return ergebnis
+
+    def modell_namen(self, name: str) -> dict[int, str]:
+        """Klassennamen eines Modells: bei altholz-N aus dem Lauf (aufnahmen/altholz-N.json), sonst aus der data.yaml,
+        die in args.yaml steht."""
+        plan = self.ordner / f"{name}.json"
+        if re.fullmatch(r"altholz-\d+", name) and plan.exists():
+            return dict(enumerate(json.loads(plan.read_text(encoding="utf-8"))["klassen"]))
+        daten = args_gelesen(self.wurzel / "runs" / "segment" / name / "args.yaml").get("data")
+        if daten:
+            pfad = Path(daten) if Path(daten).is_absolute() else self.wurzel / daten
+            if pfad.exists():
+                return vl.namen_aus_yaml(pfad.read_text(encoding="utf-8"))
+        raise ValueError(f"Klassen des Modells {name} nicht gefunden (data.yaml).")
+
+    def vorlabeln_stand(self, fern: bool = False) -> dict:
+        """Für die Seite: Modelle, gewähltes Modell, Teile, laufender oder letzter Lauf. fern (Server fragt): mit den
+        Ergebnissen fertiger Balken, bis der Server sie abholt."""
+        with self.schloss:
+            modelle = self.modelle()
+            lauf = None
+            if self.vlauf:
+                lauf = {k: v for k, v in self.vlauf.items() if k != "balken"}
+                lauf["balken"] = {}
+                for b, e in self.vlauf["balken"].items():
+                    x = {k: v for k, v in e.items() if k not in ("ergebnis", "log", "fotos") or (k == "ergebnis" and fern)}
+                    if e["status"] == "rechnen" and e.get("log"):
+                        log = Path(e["log"])
+                        if (f := vl.fortschritt(log.read_text(encoding="utf-8", errors="replace") if log.exists() else "")):
+                            x["n"], x["m"] = f
+                    lauf["balken"][b] = x
+            return {"mac": True, "modell": vl.modell_wahl(modelle), "modelle": [m["name"] for m in modelle],
+                    "teile": {i: t["teil"] for i, t in self.teile().items()}, "lauf": lauf,
+                    "training": bool(self.lauf and self.lauf["status"] in LAUFEND)}
+
+    def vorlabeln_starten(self, daten: dict, fern: bool = False, abgleich=None) -> dict:
+        """Lauf anlegen und im Hintergrund rechnen. daten: balken (Liste IDs), fotos (Namen, leer = alle), modell
+        (leer = Wahl), pruefung (auch Prüf- und Testbalken, nur bewusst über ···)."""
+        balken, namen = daten.get("balken"), daten.get("fotos") or []
+        if not isinstance(balken, list) or not 1 <= len(balken) <= 200 or not all(
+                isinstance(b, str) and re.fullmatch(r"B\d{3,6}", b) for b in balken):
+            raise ValueError("Welche Balken?")
+        if not isinstance(namen, list) or len(namen) > 2000 or not all(isinstance(n, str) for n in namen):
+            raise ValueError("Welche Fotos?")
+        with self.schloss:
+            if self.lauf and self.lauf["status"] in LAUFEND:
+                raise ValueError("Es läuft gerade ein Training.")
+            if self.vlauf and (self.vlauf["status"] in VLAUFEND or any(
+                    "ergebnis" in e for e in self.vlauf["balken"].values())):
+                raise ValueError("Es läuft schon ein Vorlabeln.")
+            modelle = [m["name"] for m in self.modelle()]
+            modell = daten.get("modell") or vl.modell_wahl(self.modelle())
+            if not modell or modell not in modelle:
+                raise ValueError("Kein Modell auf dem Mac (runs/segment/*/weights/best.pt).")
+            self.umgebung()
+            if not self.yolo.exists():
+                raise ValueError(f"yolo fehlt: {self.yolo}")
+            lauf = {"id": datetime.now().strftime("%Y%m%d-%H%M%S-%f"), "modell": modell, "status": "holen",
+                    "fehler": "", "fern": fern, "pruefung": bool(daten.get("pruefung")),
+                    "balken": {b: {"status": "wartet", "fotos": [n for n in namen if n.startswith(b + "_")]}
+                               for b in dict.fromkeys(balken)}}
+            self.vlauf = lauf
+            threading.Thread(target=self._vorlabeln, args=(lauf, abgleich), daemon=True).start()
+            return self.vorlabeln_stand(fern)
+
+    def _vorlabeln(self, lauf: dict, abgleich) -> None:
+        arbeit = self.wurzel / "vorlabeln" / lauf["id"]
+        try:
+            if abgleich:
+                abgleich()                    # Fotos und balken.json vom Server (rsync), wie vor dem Training
+            with self.schloss:
+                if lauf["status"] == "abgebrochen":
+                    return
+                lauf["status"] = "rechnen"
+                teile, ids = self.teile(), set(self.ids())
+            zuordnung = vl.zuordnung(self.modell_namen(lauf["modell"]), self.klassen())
+            if not zuordnung:
+                raise ValueError(f"Keine Klasse von {lauf['modell']} passt zu klassen.json.")
+            pt = self.wurzel / "runs" / "segment" / lauf["modell"] / "weights" / "best.pt"
+            for b, e in lauf["balken"].items():
+                if lauf["status"] == "abgebrochen":
+                    break
+                if b not in ids:
+                    e["status"], e["fehler"] = "fehler", "Diesen Balken gibt es auf dem Mac nicht."
+                    continue
+                if teile[b]["teil"] != "train" and not lauf["pruefung"]:
+                    e["status"] = "gesperrt"           # Prüflabels nicht vom Modell übernehmen
+                    continue
+                fs = [f for f in fotos(self.lesen(b)) if not e["fotos"] or f["name"] in e["fotos"]]
+                if not fs:
+                    e["status"] = "leer"
+                    continue
+                try:
+                    e["status"] = "rechnen"
+                    ergebnis = self._vorhersagen(b, fs, pt, lauf, e, arbeit / b, zuordnung)
+                except (OSError, ValueError, subprocess.SubprocessError) as x:
+                    print(f"Vorlabeln {b}: {x}", file=sys.stderr)
+                    e["status"], e["fehler"] = "fehler", str(x)[-300:]
+                    continue
+                if lauf["fern"]:
+                    e["ergebnis"] = ergebnis           # holt der Server ab (vorlabeln_ab)
+                else:
+                    e["neu"] = self.vorlabel_einfuegen(ergebnis, "vorlabel")["neu"]
+                e["status"] = "fertig"
+            with self.schloss:
+                if lauf["status"] != "abgebrochen":
+                    lauf["status"] = "fertig"
+        except (OSError, ValueError, subprocess.SubprocessError) as x:
+            print(f"Vorlabeln: {x}", file=sys.stderr)
+            with self.schloss:
+                lauf["status"], lauf["fehler"] = "fehler", str(x)[-300:]
+        finally:
+            shutil.rmtree(arbeit, ignore_errors=True)
+
+    def _vorhersagen(self, balken: str, fs: list[dict], pt: Path, lauf: dict, e: dict, arbeit: Path,
+                     zuordnung: dict) -> dict:
+        """Zuschnitte kacheln (bilder.py), yolo segment predict als eigener Prozess, Kacheln zurück aufs Foto."""
+        bilder = [self.zuschnitt(f["name"]) for f in fs]
+        quelle = arbeit / "kacheln"
+        r = subprocess.run([str(self.python), str(HIER / "bilder.py"), "kacheln", str(quelle), *map(str, bilder)],
+                           capture_output=True, text=True, timeout=1800)
+        if r.returncode:
+            raise ValueError(f"Kacheln ging nicht: {(r.stderr.strip().splitlines() or ['ohne Meldung'])[-1]}")
+        groessen = json.loads((quelle / "groessen.json").read_text(encoding="utf-8"))
+        e["log"] = str(arbeit / "predict.log")
+        befehl = [str(self.yolo), "segment", "predict", f"model={pt}", f"source={quelle}", "imgsz=1280",
+                  "retina_masks=True", "save_txt=True", "save_conf=True", "save=False", "device=mps",
+                  f"project={arbeit}", "name=vorhersage", "exist_ok=True"]
+        if shutil.which("caffeinate"):
+            befehl = ["caffeinate", "-i", *befehl]
+        with open(e["log"], "w", encoding="utf-8") as log:
+            with self.schloss:
+                if lauf["status"] == "abgebrochen":
+                    raise ValueError("Abgebrochen.")
+                self.vprozess = subprocess.Popen(befehl, stdout=log, stderr=subprocess.STDOUT, cwd=self.wurzel,
+                                                 start_new_session=True)
+            ende = self.vprozess.wait()
+        if ende:
+            raise ValueError(f"yolo predict: {self._letzte_zeile(Path(e['log']))}")
+        texte = {p.stem: p.read_text(encoding="utf-8") for p in (arbeit / "vorhersage" / "labels").glob("*.txt")}
+        return {f["name"]: vl.foto_objekte(f["name"], *groessen[f["name"]], texte, zuordnung, lauf["modell"])
+                for f in fs}
+
+    def vorlabeln_ab(self, daten: dict) -> dict:
+        """Server hat das Ergebnis eines Balkens abgeholt: hier vergessen."""
+        with self.schloss:
+            if self.vlauf and self.vlauf["id"] == daten.get("lauf"):
+                e = self.vlauf["balken"].get(daten.get("balken"))
+                if e:
+                    e.pop("ergebnis", None)
+                    if isinstance(daten.get("neu"), int):
+                        e["neu"] = daten["neu"]
+            return {"ok": True}
+
+    def vorlabel_einfuegen(self, ergebnis: dict, von: str) -> dict:
+        """Vorhersagen eines Balkens ({Foto: Objekte}) in die Labels, nach vorlabeln.einfuegen. Objekte werden wie
+        jede Eingabe geprüft (sie kommen auf dem Server vom Mac)."""
+        if not isinstance(ergebnis, dict):
+            raise ValueError("Ergebnis nicht lesbar.")
+        zahl = {"neu": 0, "verdeckt": 0, "ersetzt": 0, "fotos": 0}
+        with self.schloss:
+            ids = kl.aktive_ids(self.klassen())
+            for name, neu in ergebnis.items():
+                try:
+                    f = self.foto(name)
+                except ValueError:
+                    continue                    # Foto inzwischen verworfen
+                if not isinstance(neu, list):
+                    raise ValueError("Ergebnis nicht lesbar.")
+                neu = objekte_pruefen([{**o, "ok": False} for o in neu if isinstance(o, dict) and o.get("k") in ids],
+                                      ids)
+                alt = self.label(f)
+                objekte, z = vl.einfuegen((alt or {}).get("objekte", []), neu)
+                for k in z:
+                    zahl[k] += z[k]
+                zahl["fotos"] += 1
+                schreiben(self.label_pfad(f), {"foto": f["datei"], "zuschnitt": f["plan"].get("zuschnitt"),
+                                               "zeit": datetime.now().isoformat(timespec="seconds"),
+                                               "objekte": objekte, "von": von})
+        return zahl
+
+    def vorlabeln_abbrechen(self, daten: dict) -> dict:
+        with self.schloss:
+            if not self.vlauf or self.vlauf["status"] not in VLAUFEND:
+                raise ValueError("Es läuft kein Vorlabeln.")
+            self.vlauf["status"] = "abgebrochen"
+            if self.vprozess and self.vprozess.poll() is None:
+                os.killpg(self.vprozess.pid, 15)
+            return self.vorlabeln_stand()

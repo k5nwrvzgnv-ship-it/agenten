@@ -6,7 +6,7 @@ const $=s=>document.querySelector(s),esc=t=>String(t).replace(/[&<>"]/g,c=>({'&'
 const TEILE=['train','val','test'],NAME={train:'Training',val:'Prüfung',test:'Nur Test'};
 const SCHLOSS='<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const BALKEN='<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 20l12-8h24l-12 8zM6 20v14h24V20M30 34l12-8V12"/></svg>';
-let G=[],zug=null,mehr=null,weg=null;
+let G=[],zug=null,mehr=null,weg=null;const WAHL=new Set;
 const cm=mm=>(mm/10).toLocaleString('de-DE',{maximumFractionDigits:1}),lies=t=>/^\s*\d+([.,]\d+)?\s*$/.test(t)?Math.round(parseFloat(t.replace(',','.'))*100)/10:null;
 
 async function ruf(weg,daten){let a;try{a=await fetch(weg,daten===undefined?{}:{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify(daten)})}
@@ -26,14 +26,25 @@ function karte(b){
   b.abweichung>2?`Maß weicht bis ${b.abweichung.toLocaleString('de-DE')} % ab`:'',b.fest?'Schon trainiert, Teil bleibt':''].filter(Boolean).join('\n');
  // Ohne Fotos gibt es keinen Körper: die Karte führt dann in die Aufnahme
  const ziel=b.fotos?`/koerper?id=${encodeURIComponent(b.id)}`:`/?balken=${encodeURIComponent(b.id)}`,name=b.name||b.id;
- return `<div class="karte${b.fest?' fest':''}${b.id===rechnet?' rechnet':''}" data-b="${esc(b.id)}" draggable="${!b.fest}" title="${esc(titel)}">
-  <a href="${ziel}" draggable="false" aria-label="${esc(b.name?b.id+' '+b.name:b.id)}, ${esc(NAME[b.teil])}${b.fest?', gesperrt':''}" aria-keyshortcuts="ArrowLeft ArrowRight">${bild}
-  <span><b>${esc(name)}</b>${b.abweichung>2?'<i class="ab"></i>':''}${b.fest?SCHLOSS:''}${seiten}</span>
+ return `<div class="karte${b.fest?' fest':''}${b.id===rechnet?' rechnet':''}${WAHL.has(b.id)?' gewaehlt':''}" data-b="${esc(b.id)}" draggable="${!b.fest}" title="${esc(titel)}">
+  <a href="${ziel}" draggable="false" aria-label="${esc(b.name?b.id+' '+b.name:b.id)}, ${esc(NAME[b.teil])}${b.fest?', gesperrt':''}${WAHL.has(b.id)?', gewählt':''}" aria-keyshortcuts="ArrowLeft ArrowRight Space">${bild}
+  <span><b>${esc(name)}</b>${b.abweichung>2?'<i class="ab"></i>':''}${b.fest?SCHLOSS:''}${seiten}${vlz(b.id)}</span>
   <small>${b.name?esc(b.id)+' · ':''}${cm(b.laenge_mm)} × ${cm(b.breite_mm)} × ${cm(b.hoehe_mm)}</small>
   ${b.fotos?`<i class="lbl" style="--a:${Math.round(100*b.fertig/b.fotos)}%"></i>`:''}</a>
   <button class="mehr sy" aria-label="${esc(b.id)}" title="···" aria-haspopup="true" aria-expanded="${b.id===mehr}" aria-controls="kmenue">···</button></div>`}
 
-function mal(fokus){
+// Vorlabeln (vorlabeln.js): Zustand je Balken als Zeichnung auf der Karte, solange er im letzten Lauf steht.
+// Auswahl: Strg/Cmd- oder Umschalt-Klick, Leertaste auf einer Karte; dann unten eine Leiste mit dem Symbol.
+function vlz(id){const l=VL.stand&&VL.stand.lauf;if(!l||!l.balken[id])return'';const[t,z]=VL.zustand(id);return`<span class="vlz" role="img" aria-label="Vorlabeln: ${esc(t)}" title="Vorlabeln: ${esc(t)}">${z}</span>`}
+const vlFrei=ids=>ids.filter(i=>!VL.gesperrt(i)&&G.some(b=>b.id===i&&b.fotos));
+function leiste(){const w=$('#gwahl');w.hidden=!WAHL.size;if(!WAHL.size)return;const frei=vlFrei([...WAHL]);
+ $('#gwahlz').textContent=WAHL.size;$('#gwahlk').innerHTML=VL.knopf(frei[0]||[...WAHL][0],`data-vl="1"${frei.length?'':' aria-disabled="true"'}`,`${frei.length} Balken vorlabeln`);
+ $('#gwahle').innerHTML=VL.etikett()}
+function waehlen(id){WAHL.has(id)?WAHL.delete(id):WAHL.add(id);mal(id)}
+async function vorlabeln(ids){$('#gfehler').textContent='';const frei=vlFrei(ids);if(!frei.length)return;
+ try{await VL.start(frei);WAHL.clear();mal(aktiv())}catch(e){$('#gfehler').textContent=e.message}}
+VL.beiStand=()=>mal(aktiv());VL.beiFertig=()=>laden();
+function mal(fokus){leiste();
  const z=$('#grueck');z.hidden=!weg;if(weg){z.querySelector('span').textContent=weg;z.title=`${weg} zurückholen`;z.setAttribute('aria-label',z.title)}
  for(const sp of document.querySelectorAll('.spalte')){const t=sp.dataset.teil,da=G.filter(b=>b.teil===t);
   sp.querySelector('h2 small').textContent=da.length||'';
@@ -68,20 +79,26 @@ galerie.addEventListener('dragover',e=>{const sp=e.target.closest('.spalte');if(
  document.querySelectorAll('.ziel').forEach(x=>x!==sp&&x.classList.remove('ziel'));sp.classList.add('ziel')});
 galerie.addEventListener('dragleave',e=>{const sp=e.target.closest('.spalte');if(sp&&!sp.contains(e.relatedTarget))sp.classList.remove('ziel')});
 galerie.addEventListener('drop',e=>{const sp=e.target.closest('.spalte');if(!sp||!zug)return;e.preventDefault();sp.classList.remove('ziel');setzen(zug,sp.dataset.teil)});
-galerie.addEventListener('keydown',e=>{const k=e.target.closest?.('.karte > a')?.parentElement;if(!k||!['ArrowLeft','ArrowRight'].includes(e.key))return;
+galerie.addEventListener('keydown',e=>{const k=e.target.closest?.('.karte > a')?.parentElement;if(k&&e.key===' '){e.preventDefault();return waehlen(k.dataset.b)}
+ if(e.key==='Escape'&&WAHL.size&&!mehr){WAHL.clear();return mal(k?.dataset.b)}if(!k||!['ArrowLeft','ArrowRight'].includes(e.key))return;
  const b=G.find(x=>x.id===k.dataset.b),i=TEILE.indexOf(b.teil)+(e.key==='ArrowRight'?1:-1);e.preventDefault();
  if(i>=0&&i<TEILE.length)setzen(b.id,TEILE[i])});
 // ··· einer Karte: eine gemeinsame Symbolreihe unter dem Knopf
 const menue=$('#kmenue');
 function menueZu(still){if(!mehr)return;const id=mehr;mehr=null;menue.hidden=true;const k=document.querySelector(`.karte[data-b="${id}"] .mehr`);if(k){k.setAttribute('aria-expanded','false');if(!still)k.focus()}}
 function menueAuf(knopf){const id=knopf.closest('.karte').dataset.b,b=G.find(x=>x.id===id);if(mehr===id)return menueZu();menueZu(true);mehr=id;knopf.setAttribute('aria-expanded','true');
+ const vk=menue.querySelector('[data-tu=vorlabeln]'),[vt,vz]=VL.zustand(id),gesp=!!VL.aus||VL.laeuft()||VL.gesperrt(id)||!VL.stand;vk.hidden=!b.fotos;
+ vk.innerHTML=VL.knopf(id,'','').replace(/^<button[^>]*>|<\/button>$/g,'');vk.title=VL.aus||(gesp?vt:'Vorlabeln');vk.setAttribute('aria-label',vk.title);vk.setAttribute('aria-disabled',gesp);
  menue.querySelector('[data-tu=aufnahme]').href=`/?balken=${encodeURIComponent(id)}`;const l=menue.querySelector('[data-tu=labeln]');l.href=`/labeln?balken=${encodeURIComponent(id)}`;l.hidden=!b.fotos;
  menue.hidden=false;stellen(knopf);menue.querySelector('a,button:not([hidden])').focus()}
 function stellen(knopf){const g=galerie.getBoundingClientRect(),r=knopf.getBoundingClientRect(),w=menue.offsetWidth;
  menue.style.left=Math.max(8,Math.min(r.right-g.left-w,g.width-w-8))+'px';menue.style.top=(r.bottom-g.top+4)+'px'}
-galerie.addEventListener('click',e=>{const k=e.target.closest('.mehr');if(k){e.preventDefault();menueAuf(k)}});
+galerie.addEventListener('click',e=>{const k=e.target.closest('.mehr');if(k){e.preventDefault();menueAuf(k);return}
+ const a=e.target.closest('.karte > a');if(a&&(e.ctrlKey||e.metaKey||e.shiftKey)){e.preventDefault();waehlen(a.parentElement.dataset.b)}
+ const v=e.target.closest('[data-vl]');if(v&&v.getAttribute('aria-disabled')!=='true')vorlabeln([...WAHL]);if(e.target.closest('#gwahlx')){WAHL.clear();mal()}
+ const m=e.target.closest('.vlmehr');if(m)VL.menue(m)});
 menue.addEventListener('click',e=>{const t=e.target.closest('[data-tu]')?.dataset.tu,id=mehr;if(!t||!id||t==='aufnahme'||t==='labeln')return;menueZu(true);
- if(t==='bearbeiten')bearbeiten(id,'laenge');if(t==='weg')loeschen(id)});
+ if(t==='bearbeiten')bearbeiten(id,'laenge');if(t==='weg')loeschen(id);if(t==='vorlabeln'&&menue.querySelector('[data-tu=vorlabeln]').getAttribute('aria-disabled')!=='true')vorlabeln([id])});
 menue.addEventListener('keydown',e=>{const k=[...menue.querySelectorAll('[data-tu]:not([hidden])')],i=k.indexOf(document.activeElement);
  if(e.key==='Escape'){e.preventDefault();menueZu()}if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();k[(i+1)%k.length].focus()}
  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();k[(i+k.length-1)%k.length].focus()}});
@@ -105,4 +122,4 @@ dlg.querySelector('.zu').onclick=()=>dlg.close();
 dlg.addEventListener('close',()=>{document.querySelector(`.karte[data-b="${bid}"] .mehr`)?.focus()});
 galerie.addEventListener('error',e=>{if(e.target.tagName==='IMG'){const d=document.createElement('div');d.className='ohne';d.innerHTML=BALKEN;e.target.replaceWith(d)}},true);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)laden()});
-laden();
+laden();VL.laden();

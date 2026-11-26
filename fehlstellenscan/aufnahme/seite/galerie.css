@@ -29,3 +29,8 @@
 #bearb .felder{margin-top:16px}#bearb form{display:grid;gap:20px}
 #kmenue{right:auto}.karte .mehr{font-size:17px;line-height:1}
 @media(max-width:800px){.karte .mehr{width:44px;min-height:44px;bottom:4px}}
+/* Auswahl und Vorlabeln (26.11.2026) */
+.karte.gewaehlt{border-color:var(--w);box-shadow:0 0 0 1px var(--w)}
+.karte .vlz{display:inline-grid;place-items:center;color:var(--l);margin-left:auto}.karte .vlz .vli{width:16px;height:16px}
+#gwahl{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 14px;background:var(--m);border:1px solid var(--r);border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:calc(100vw - 32px)}
+#gwahl[hidden]{display:none}#gwahlz{font-variant-numeric:tabular-nums;min-width:2ch;color:var(--w)}#gwahl .vlk{color:var(--t)}#gwahlx{width:40px;min-height:40px;background:none;color:var(--l)}

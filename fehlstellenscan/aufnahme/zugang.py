@@ -26,6 +26,8 @@ POST_WEGE = {
     "/api/training": TRAINIEREN,
     "/api/abbrechen": TRAINIEREN,
     "/api/teil": TRAINIEREN,
+    "/api/vorlabeln": LABELN,
+    "/api/vorlabeln-abbrechen": LABELN,
 }
 
 

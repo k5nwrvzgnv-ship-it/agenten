@@ -1,6 +1,7 @@
 """Bildrechnung der Kette, läuft in der Trainings-.venv (Pillow, numpy, opencv, kein ultralytics):
   python bilder.py schneiden <Foto> <Ziel.jpg> <klein.jpg> <Zuschnitt als JSON>
-  python bilder.py bauen <Auftrag.json>       Auftrag schreibt kette.py"""
+  python bilder.py bauen <Auftrag.json>       Auftrag schreibt kette.py
+  python bilder.py kacheln <Ziel> <Zuschnitt.jpg> ...   Kacheln fürs Vorlabeln, Größen in <Ziel>/groessen.json"""
 
 import json
 import os
@@ -12,6 +13,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image, ImageOps
+
+if __package__:
+    from . import vorlabeln as vl
+else:
+    import vorlabeln as vl
 
 KACHEL = 1280
 UEBERLAPPUNG = 256
@@ -115,8 +121,24 @@ def bauen(auftrag: dict) -> dict:
     return zahl
 
 
+def kacheln_vorlabeln(ziel: Path, bilder: list[Path]) -> dict:
+    """Zuschnitte in Kacheln wie beim Training (vorlabeln.kacheln), dazu groessen.json: Foto -> [Breite, Höhe]."""
+    ziel.mkdir(parents=True, exist_ok=True)
+    groessen = {}
+    for quelle in bilder:
+        with Image.open(quelle) as roh:
+            bild = roh.convert("RGB")
+        groessen[quelle.stem] = list(bild.size)
+        for k in vl.kacheln(quelle.stem, *bild.size):
+            bild.crop((k["x0"], k["y0"], k["x0"] + k["b"], k["y0"] + k["h"])).save(ziel / f"{k['name']}.jpg", quality=95)
+    (ziel / "groessen.json").write_text(json.dumps(groessen))
+    return groessen
+
+
 if __name__ == "__main__":
-    if sys.argv[1] == "schneiden":
+    if sys.argv[1] == "kacheln":
+        kacheln_vorlabeln(Path(sys.argv[2]), [Path(x) for x in sys.argv[3:]])
+    elif sys.argv[1] == "schneiden":
         schneiden(Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4]), json.loads(sys.argv[5]))
     else:
         print(bauen(json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))))

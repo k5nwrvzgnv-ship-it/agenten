@@ -3,7 +3,8 @@
 Der Mac baut einen SSH-Tunnel zum Server auf (mac/neurolign_dienst.sh): Port 8797 auf dem Server führt zu Port 8766
 auf dem Mac. Dort hört Neurolign (Mac-Modus) mit einem zweiten, schmalen Eingang, der nur die Trainingswege kennt und
 nur Anfragen mit dem gemeinsamen Schlüssel annimmt (NEUROLIGN_TUNNEL_SCHLUESSEL in der .env auf beiden Seiten).
-Der Server reicht /api/training, /api/abbrechen und /api/teil dorthin weiter. Ist der Mac nicht da, antwortet er 503
+Der Server reicht /api/training, /api/abbrechen, /api/teil und /api/vorlabeln (Vorlabeln, docs/plan-vorlabeln.md)
+dorthin weiter. Ist der Mac nicht da, antwortet er 503
 mit {"mac": false}."""
 
 import hmac
@@ -16,7 +17,9 @@ SCHLUESSEL_NAME = "NEUROLIGN_TUNNEL_SCHLUESSEL"
 KOPF = "X-Tunnel"
 
 # Wege, die durch den Tunnel dürfen: (Methode, Weg)
-WEGE = {("GET", "/api/training"), ("POST", "/api/training"), ("POST", "/api/abbrechen"), ("POST", "/api/teil")}
+WEGE = {("GET", "/api/training"), ("POST", "/api/training"), ("POST", "/api/abbrechen"), ("POST", "/api/teil"),
+        ("GET", "/api/vorlabeln"), ("POST", "/api/vorlabeln"), ("POST", "/api/vorlabeln-ab"),
+        ("POST", "/api/vorlabeln-abbrechen")}
 
 
 def schluessel_aus(env: Path | None) -> str | None:

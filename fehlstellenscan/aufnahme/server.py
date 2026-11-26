@@ -50,6 +50,7 @@ MAX_FOTO = 150_000_000
 ERSTE_SERVER_NR = 500                            # Servermodus vergibt B501, B502, ...
 MAX_HOCHLADEN = 40_000_000                       # je Foto im Servermodus, Caddy lässt 50 MB durch
 ABGLEICH_S = 300                                 # Labels vom Server holen vor dem Training, höchstens
+ABHOLEN_S = 3                                    # Server fragt so oft nach fertigen Vorlabeln
 
 
 class Konflikt(Exception):
@@ -594,9 +595,8 @@ class Werk:
                 self.schloss.notify_all()
 
 
-def training_starten(werk: Werk, daten: dict) -> dict:
-    """Mac: erst die Labels vom Server holen (wenn eingerichtet), dann das Training starten. Scheitert der Abgleich,
-    startet nichts: sonst trainiert der Mac auf altem Stand."""
+def abgleich_runter(werk: Werk) -> None:
+    """Mac: Balken und Labels vom Server holen (neurolign_abgleich.sh runter), wenn eingerichtet."""
     if werk.abgleich:
         try:
             r = subprocess.run(["bash", str(werk.abgleich), "runter"], capture_output=True, text=True,
@@ -606,7 +606,75 @@ def training_starten(werk: Werk, daten: dict) -> dict:
         if r.returncode:
             letzte = (r.stderr or r.stdout).strip().splitlines()[-1:] or ["ohne Meldung"]
             raise ValueError(f"Labels vom Server holen ging nicht: {letzte[0]}")
+
+
+def training_starten(werk: Werk, daten: dict) -> dict:
+    """Mac: erst die Labels vom Server holen (wenn eingerichtet), dann das Training starten. Scheitert der Abgleich,
+    startet nichts: sonst trainiert der Mac auf altem Stand."""
+    abgleich_runter(werk)
     return werk.kette.starten(daten)
+
+
+def vorlabeln_fern(werk: Werk, daten: dict) -> dict:
+    """Mac, Auftrag vom Server: Fotos holt der Lauf selbst im Hintergrund (Abgleich), dann rechnet er."""
+    return werk.kette.vorlabeln_starten(daten, True, (lambda: abgleich_runter(werk)) if werk.abgleich else None)
+
+
+def vorlabel_abholen(server, inhalt: bytes) -> bytes:
+    """Server: fertige Balken aus dem Stand des Macs in die eigenen Labels einfügen und dem Mac melden. Unter einem
+    Schloss, damit Seite und Abholer nichts doppelt einfügen."""
+    try:
+        stand = json.loads(inhalt)
+    except json.JSONDecodeError:
+        return inhalt
+    lauf = (stand or {}).get("lauf") if isinstance(stand, dict) else None
+    if not lauf:
+        return inhalt
+    with server.abhol_schloss:
+        for b, e in lauf.get("balken", {}).items():
+            if "ergebnis" not in e:
+                continue
+            schon = server.abgeholt.get((lauf["id"], b))
+            if schon is None:
+                try:
+                    schon = server.werk.kette.vorlabel_einfuegen(e["ergebnis"], "vorlabel")["neu"]
+                except (ValueError, OSError) as x:
+                    print(f"Vorlabel {b} nicht eingefügt: {x}", file=sys.stderr)
+                    e["status"], e["fehler"] = "fehler", f"Einfügen ging nicht: {x}"
+                    del e["ergebnis"]
+                    continue
+                server.abgeholt[(lauf["id"], b)] = schon
+            del e["ergebnis"]
+            e["neu"] = schon
+            t.weiterreichen("POST", "/api/vorlabeln-ab", json.dumps({"lauf": lauf["id"], "balken": b, "neu": schon}).encode(),
+                            server.schluessel, "server", server.mac_port)
+    return json.dumps(stand, ensure_ascii=False).encode()
+
+
+def abholer(server) -> None:
+    """Server: solange auf dem Mac ein Vorlabeln läuft, alle 3 s abholen, auch ohne offene Seite. Höchstens einer."""
+    with server.abhol_schloss:
+        if server.abholt:
+            return
+        server.abholt = True
+
+    def schleife():
+        weg = 0
+        try:
+            while weg < 100:
+                time.sleep(ABHOLEN_S)
+                status, inhalt = t.weiterreichen("GET", "/api/vorlabeln", None, server.schluessel, "server",
+                                                 server.mac_port)
+                if status != 200:
+                    weg += 1
+                    continue
+                weg = 0
+                lauf = json.loads(vorlabel_abholen(server, inhalt)).get("lauf")
+                if not lauf or lauf["status"] not in k.VLAUFEND:
+                    break
+        finally:
+            server.abholt = False
+    threading.Thread(target=schleife, daemon=True).start()
 
 
 class Anfrage(BaseHTTPRequestHandler):
@@ -706,6 +774,13 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, {"kodytek": 0})   # Kodytek-Bilder liegen nicht auf dem Server
         if weg == "/api/training":
             return self.zum_mac("GET", weg, None, ich)
+        if weg == "/api/vorlabeln":
+            status, inhalt = t.weiterreichen("GET", weg, None, self.server.schluessel, ich, self.server.mac_port)
+            if status == 200:
+                inhalt = vorlabel_abholen(self.server, inhalt)
+                if (json.loads(inhalt).get("lauf") or {}).get("status") in k.VLAUFEND:
+                    abholer(self.server)
+            return self.antwort(status, inhalt)
         if weg.startswith(("/api/", "/h/")) or weg == "/live.jpg":
             return self.antwort(404, {"fehler": "Gibt es hier nicht."})
         return self.datei_senden(weg, werk)
@@ -719,8 +794,17 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(403, {"fehler": "Fremde Herkunft."})
         if nein := z.post_erlaubt(ich, weg):
             return self.antwort(nein[0], {"fehler": nein[1]})
-        if weg in ("/api/training", "/api/abbrechen", "/api/teil"):
+        if weg in ("/api/training", "/api/abbrechen", "/api/teil", "/api/vorlabeln-abbrechen"):
             return self.zum_mac("POST", weg, self.koerper(1_000_000), ich)
+        if weg == "/api/vorlabeln":
+            koerper = self.koerper(1_000_000)
+            status, inhalt = t.weiterreichen("GET", weg, None, self.server.schluessel, ich, self.server.mac_port)
+            if status == 200:
+                vorlabel_abholen(self.server, inhalt)      # Rest des letzten Laufs zuerst
+            status, inhalt = t.weiterreichen("POST", weg, koerper, self.server.schluessel, ich, self.server.mac_port)
+            if status == 200:
+                abholer(self.server)
+            return self.antwort(status, inhalt)
         if weg == "/api/hochladen":
             q = {k: v[0] for k, v in parse_qs(query).items()}
             return self.antwort(200, werk.hochladen(q.get("balken"), q.get("seite"), self.koerper(MAX_HOCHLADEN), ich))
@@ -752,12 +836,15 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(403, {"fehler": "Nicht erlaubt."})
         try:
             if methode == "GET":
-                return self.antwort(200, werk.kette.stand())
+                return self.antwort(200, werk.kette.vorlabeln_stand(True) if weg == "/api/vorlabeln"
+                                    else werk.kette.stand())
             daten = json.loads(self.koerper(1_000_000))
             if not isinstance(daten, dict):
                 raise ValueError("Eingabe nicht lesbar.")
             tun = {"/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen,
-                   "/api/teil": werk.kette.teil_setzen}[weg]
+                   "/api/teil": werk.kette.teil_setzen, "/api/vorlabeln": lambda d: vorlabeln_fern(werk, d),
+                   "/api/vorlabeln-ab": werk.kette.vorlabeln_ab,
+                   "/api/vorlabeln-abbrechen": werk.kette.vorlabeln_abbrechen}[weg]
             return self.antwort(200, tun(daten))
         except (ValueError, json.JSONDecodeError) as e:
             return self.antwort(400, {"fehler": str(e)})
@@ -789,6 +876,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.kette.klassen_stand())
         if weg == "/api/training":
             return self.antwort(200, werk.kette.stand())
+        if weg == "/api/vorlabeln":
+            return self.antwort(200, werk.kette.vorlabeln_stand())
         if weg == "/api/galerie":
             return self.antwort(200, werk.kette.galerie())
         if weg == "/api/koerper":
@@ -863,7 +952,9 @@ class Anfrage(BaseHTTPRequestHandler):
                     "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
                     "/api/zurueck": werk.zurueckholen, "/api/balken-weg": werk.balken_weg,
                     "/api/balken-zurueck": werk.balken_zurueck, "/api/label": werk.kette.speichern, "/api/klassen": werk.kette.klassen_aendern, "/api/teil": werk.kette.teil_setzen,
-                    "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen}
+                    "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen,
+                    "/api/vorlabeln": werk.kette.vorlabeln_starten,
+                    "/api/vorlabeln-abbrechen": werk.kette.vorlabeln_abbrechen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})
             daten = json.loads(roh)
@@ -890,6 +981,12 @@ class Server(ThreadingHTTPServer):
     modus_server = nur_tunnel = False
     schluessel: str | None = None
     mac_port = t.SERVER_PORT
+    abholt = False
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.abhol_schloss = threading.Lock()
+        self.abgeholt: dict = {}                 # (Lauf, Balken) -> neue Objekte, schon eingefügt
 
 
 def server_bauen(ordner: Path, adresse: str, port: int, modus_server: bool = False, python: Path | None = None,

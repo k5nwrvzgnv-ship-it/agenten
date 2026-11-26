@@ -448,7 +448,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Seite die letzten Fotos (ein Fünftel, Nachbarn überlappen um 25 %, also geschönt). Ein einziges Foto: kein Start.
   Altholz wird so auch zusammen mit Kodytek immer mitgeprüft. Die Seite nennt die Art der Prüfung.
   Geprüft auf dem Server im Browser mit yolo-Attrappe. Nicht geprüft: echtes yolo auf dem Mac, HEIC, Durchlauf eines
-  ganzen Balkens, Prüfer in frischem Kontext. Vorlabeln per Modell fehlt. Nach Neustart des Programms ist die Anzeige
+  ganzen Balkens, Prüfer in frischem Kontext. Nach Neustart des Programms ist die Anzeige
   des Laufs weg, der Lauf selbst geht weiter.
 - Ergebnis nach dem Training (Jan 25.11.2026): Seite Training zeigt unter dem Start „Ergebnis altholz-N“, auch nach
   Neustart (letzter altholz-Lauf mit Abschlusstabelle). Quelle nur, was ultralytics und bilder.py schreiben
@@ -609,6 +609,49 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
     Galerie-Dialog, Löschen und Zurück, Pfeil aus dem Körper; 1440 und 390 px, axe ohne Befund. Frischer Prüfer: übernommen ein Stift statt Stift und Tt,
     Rückgängig in der Ecke mit ID, größeres ··· am Handy. Offen aus der Prüfung: kein schneller Schritt zum nächsten
     Balken (nur Auswahlliste), drei ähnliche Kreispfeile (Rückgängig, Nochmal, Ansicht zurück). Am Mac nicht geprüft.
+
+- Gruppiert annehmen (Jan 26.11.2026 „vorlabels sollte man auch gruppiert akzeptieren können“): in Labeln
+  Mehrfachauswahl in Liste und Bild: Strg/Cmd-Klick einzeln, Umschalt-Klick Bereich (Liste nach Konfidenz sortiert),
+  Klick aufs Klassenmuster einer Zeile = alle offenen dieser Klasse (Taste K), Klick auf die Konfidenz = alle offenen
+  ab diesem Wert (G), Strg+A = alle offenen, Esc hebt auf. Dann Hauptknopf (Haken mit Zahl, Enter) bestätigt,
+  Mülleimer (Entf) verwirft, Klasse im Bereich Bearbeiten (oder Ziffer) klassifiziert alle um. Knopf „Balken mit
+  Haken“ im Kopf der aktuellen Balken-Gruppe (B) dehnt die Regel auf alle Fotos des Balkens aus (Zahl am Knopf); das
+  wird sofort gespeichert, Rückgängig (Knopf in der Meldung, Strg/Cmd+Z) speichert den alten Stand zurück. Auf einem
+  Foto wirkt es wie jede Änderung (Speichern mit Enter). Geprüft mit Playwright auf einer Kopie von B501: 32 Risse
+  zu Fuge, 110 Risse auf dem Balken verworfen und zurück (Platte geprüft), 1440 und 390 px.
+- Vorlabeln per Modell (Jan 26.11.2026, docs/plan-vorlabeln.md): aufnahme/vorlabeln.py (rein, Bordmittel,
+  tests/test_vorlabeln.py), Kette.vorlabeln_* (Mac), bilder.py kacheln, seite/vorlabeln.js und .css (Labeln und
+  Galerie). Gerechnet auf dem Mac: Lauf holt im Hintergrund mit neurolign_abgleich.sh runter die Fotos, schneidet zu,
+  kachelt wie das Training (1280 px, 256 Überlappung, Objekt zählt im Kern seiner Kachel), `yolo segment predict`
+  (imgsz 1280, retina_masks, save_txt, save_conf, device mps) als eigener Prozess in der Trainings-.venv. Server holt
+  fertige Balken über den Tunnel ab (GET /api/vorlabeln, Abholer alle 3 s solange ein Lauf läuft) und fügt sie in seine
+  Labels ein, dann vergisst der Mac sie (/api/vorlabeln-ab). Im Mac-Modus gehen sie direkt in die Labels auf dem Mac.
+  Ein Lauf auf einmal, nicht neben einem Training.
+  Regeln: bestätigte und von Hand gezeichnete offene Objekte bleiben, alte offene Vorlabel (mit q) werden ersetzt, neue,
+  die ein bleibendes Objekt zur Hälfte überdecken, fallen weg; neu je Objekt k, p, c, q (Modellname), ok false; von
+  „vorlabel“. Prüfung und Nur Test (teile.json des Macs) bleiben gesperrt (Schloss), einmal mit einbeziehen nur über ···.
+  Modell: bestes altholz-N nach Altholz-Prüfzahl (Masken-mAP50-95; alte Läufe mit Prüfung auf Trainingsbildern zählen
+  nicht), bei Gleichstand das neuere, sonst kodytek-seg1-n1280; Name klein als Etikett, anderes nur über ···.
+  Klassen über den Schlüssel (Namen aus aufnahmen/altholz-N.json bzw. der data.yaml aus args.yaml) auf die feste ID.
+  Bedienung: Labeln: Zauberstab im Kopf jeder Balken-Gruppe (ganzer Balken) und neben dem aktuellen Foto, Etikett und
+  ··· vorn in der Bilderleiste. Galerie (Mac): Karten mit Strg/Cmd/Umschalt-Klick oder Leertaste wählen, unten Leiste
+  mit Zahl, Zauberstab, Etikett, ···; dazu im ··· jeder Karte. Fortschritt je Balken als Zeichnung (gestrichelter Ring
+  wartet, Tortenring Kacheln, Haken fertig, Dreieck Fehler, Schloss gesperrt), durchgestrichenes Notebook ohne Mac.
+  Fertige Balken lädt Labeln neu, Fotos mit ungespeicherten Änderungen bleiben (ihr Speichern meldet den Konflikt).
+  Geprüft: Tests mit yolo-Attrappe (Kacheln, Überlappung, Regeln, Sperre, Fehler, Server -> Tunnel -> Mac -> Labels
+  des Servers, Mac aus); Galerie und Labeln mit Playwright auf Kopien (B002, B501) und yolo-Attrappe, 1440 und 390 px.
+  Nicht geprüft: echtes yolo und Mac (Dauer, Speicher bei 48-MP-Zuschnitten, ob retina_masks-Umrisse gut aussehen),
+  Abgleich runter vor dem Vorlabeln holt alle Balken (wie beim Training).
+  Offen: Mac-Modus-Vorlabel eines Balkens, den der Server schon labelt, überschreibt das nächste `abgleich runter`.
+  Körper für hochgeladene Balken (B501) bricht in der Galerie ab (KeyError flaeche_mm, freier Plan), schon vorher so.
+- Mac einrichten für Vorlabeln (offen bei Jan, Mac-Terminal, lokal): `scp agents-user:agenten/fehlstellenscan/mac/neurolign_einrichten.sh ~/fehlstellenscan/mac/`
+  und `bash ~/fehlstellenscan/mac/neurolign_einrichten.sh` (holt den neuen Code, startet launchd neu). Auf dem Mac
+  müssen runs/segment/kodytek-seg1-n1280/weights/best.pt und datensaetze/kodytek-seg-1/data.yaml liegen. Achtung:
+  Vorlabeln auf B501 ersetzt Felix' offene Vorlabel aus balken.py (bestätigte bleiben).
+- Frischer Prüfer (26.11.): übernommen Balkenebene nur per Klick (Enter/Entf wirken dort nicht), Balkensymbol mit
+  Fotozahl an Haken und Mülleimer, Rückgängig bleibt stehen, Schloss nur im Kopf, Zauberstab ohne Haken als Auslöser,
+  deutlichere Auswahl. Offen aus der Prüfung: Konfidenz in der Liste nur als Warnzeichen sichtbar (Optik-Einstellung),
+  doppelter Balken-Knopf (Kopf und Bearbeiten), Etikett-Platz in der Leiste.
 
 ## Neurolign-Server (ab 26.11.2026)
 - Jans Wahl 26.11.2026 nachts: Neurolign läuft zusätzlich auf dem Server, immer an, für Henri und Felix; Server ist
