@@ -599,7 +599,7 @@ class Anfrage(BaseHTTPRequestHandler):
             raise ValueError("Eingabe nicht lesbar.")
         if weg == "/api/balken":
             if daten.get("id") and not z.darf(ich, z.VERWALTEN):
-                raise ValueError("Maße ändern darf nur Jan.")
+                raise ValueError("Maße ändern nicht erlaubt.")
             return self.antwort(200, werk.balken_speichern(daten, ich))
         if weg == "/api/label":
             return self.antwort(200, werk.kette.speichern(daten, ich))

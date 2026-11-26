@@ -1,8 +1,8 @@
 """Wer darf was im Servermodus (neurolign.meldro.de). Reine Logik ohne Netz, getestet in tests/test_zugang.py.
 
 Caddy prüft das Passwort (basicauth je Person) und setzt die Kopfzeile X-Nutzer. Dieser Kopfzeile wird nur
-geglaubt, wenn die Anfrage von 127.0.0.1 kommt (Caddy auf demselben Server) und der Host stimmt. Jan darf alles,
-was es im Servermodus gibt; Henri und Felix dürfen ansehen, Balken anlegen, hochladen und labeln (Jan 26.11.2026)."""
+geglaubt, wenn die Anfrage von 127.0.0.1 kommt (Caddy auf demselben Server) und der Host stimmt. Jan, Henri und
+Felix dürfen alles, was es im Servermodus gibt, als vollwertige Kollegen (Jan 26.11.2026)."""
 
 from urllib.parse import urlsplit
 
@@ -11,11 +11,8 @@ HERKUNFT = f"https://{HOST}"
 NUTZER = ("jan", "henri", "felix")
 
 ANSEHEN, HOCHLADEN, LABELN, VERWALTEN = "ansehen", "hochladen", "labeln", "verwalten"
-RECHTE = {
-    "jan": {ANSEHEN, HOCHLADEN, LABELN, VERWALTEN},
-    "henri": {ANSEHEN, HOCHLADEN, LABELN},
-    "felix": {ANSEHEN, HOCHLADEN, LABELN},
-}
+ALLES = frozenset({ANSEHEN, HOCHLADEN, LABELN, VERWALTEN})
+RECHTE = {name: ALLES for name in NUTZER}
 
 # POST-Wege im Servermodus und das Recht, das sie brauchen. Alles andere gibt es dort nicht (Fotobox, Training).
 POST_WEGE = {

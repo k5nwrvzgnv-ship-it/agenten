@@ -34,12 +34,13 @@ class Zugang(unittest.TestCase):
         self.assertIsNone(z.nutzer_aus("127.0.0.1", f"[::1]:{HOST}", "jan"))
 
     def test_rechte(self):
-        self.assertTrue(z.darf("jan", z.VERWALTEN))
-        for wer in ("henri", "felix"):
-            self.assertTrue(z.darf(wer, z.HOCHLADEN) and z.darf(wer, z.LABELN))
-            self.assertFalse(z.darf(wer, z.VERWALTEN))
-            self.assertEqual(z.post_erlaubt(wer, "/api/foto-weg")[0], 403)
+        # Henri und Felix sind vollwertige Kollegen (Jan 26.11.2026)
+        for wer in ("jan", "henri", "felix"):
+            for recht in (z.ANSEHEN, z.HOCHLADEN, z.LABELN, z.VERWALTEN):
+                self.assertTrue(z.darf(wer, recht), (wer, recht))
+            self.assertIsNone(z.post_erlaubt(wer, "/api/foto-weg"))
         self.assertFalse(z.darf(None, z.ANSEHEN))
+        self.assertFalse(z.darf("mallory", z.ANSEHEN))
         for weg in ("/api/training", "/api/loeschen", "/api/ausloesen", "/api/einstellungen", "/api/teil"):
             self.assertEqual(z.post_erlaubt("jan", weg)[0], 404)
         self.assertIsNone(z.post_erlaubt("henri", "/api/hochladen"))
@@ -136,15 +137,14 @@ class Servermodus(unittest.TestCase):
         st, _ = self.ruf("/api/label", {"name": name, "stand": a["zeit"], "objekte": []}, wer="felix")
         self.assertEqual(st, 200)
 
-    def test_henri_darf_nicht_verwalten(self):
-        kennung = self.balken()
+    def test_henri_verwaltet_wie_jan(self):
+        kennung = self.balken("jan")
+        st, b = self.ruf("/api/balken", {"id": kennung, "laenge_mm": 900, "breite_mm": 100, "hoehe_mm": 100})
+        self.assertEqual(st, 200, b)
         self.ruf(f"/api/hochladen?balken={kennung}&seite=2", roh=jpeg())
-        self.assertEqual(self.ruf("/api/foto-weg", {"balken": kennung, "seite": "2", "nr": 0})[0], 403)
-        self.assertEqual(self.ruf("/api/balken", {"id": kennung, "laenge_mm": 900, "breite_mm": 100,
-                                                  "hoehe_mm": 100})[0], 400)
         self.assertEqual(self.ruf("/api/training", {})[0], 404)
         self.assertEqual(self.ruf("/api/loeschen", {})[0], 404)
-        st, stand = self.ruf("/api/foto-weg", {"balken": kennung, "seite": "2", "nr": 0}, wer="jan")
+        st, stand = self.ruf("/api/foto-weg", {"balken": kennung, "seite": "2", "nr": 0}, wer="felix")
         self.assertEqual(st, 200, stand)
         self.assertEqual(stand["balken"][0]["seiten"]["2"]["fotos"], [])
         self.assertTrue(stand["verwalten"])

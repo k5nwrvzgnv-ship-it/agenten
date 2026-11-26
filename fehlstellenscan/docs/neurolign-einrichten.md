@@ -66,7 +66,8 @@ Am besten einzeln per Signal oder persönlich, nicht in die Projektgruppe (dort 
   meist JPEG; sonst Einstellungen > Kamera > Formate > Maximale Kompatibilität). Höchstens 40 MB je Foto.
 - **Labeln:** wie auf dem Mac. Jedes Label trägt den Namen. Speichert jemand ein Foto, das ein anderer inzwischen
   gespeichert hat, kommt ein Hinweis statt stillem Überschreiben.
-- Nicht: Training, Aufteilung, Fotobox, Maße eines Balkens ändern, Fotos verwerfen (nur du).
+- Alles wie du (vollwertige Kollegen, 26.11.): auch Fotos verwerfen und Maße ändern. Training, Aufteilung und
+  Fotobox gibt es auf dem Server für niemanden, die bleiben auf dem Mac.
 
 ## Mac: Abgleich
 

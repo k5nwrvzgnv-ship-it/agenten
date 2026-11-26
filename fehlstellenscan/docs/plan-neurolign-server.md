@@ -3,7 +3,8 @@
 Stand 26.11.2026, 01:20. Entschieden von Jan (26.11.2026 nachts, Auswahl im Chat):
 - Neurolign (aufnahme/server.py) läuft zusätzlich als Dienst auf dem Server, immer an. Der Server ist ab dann die
   Hauptablage für Fotos und Labels. Training bleibt auf Jans Mac, der Mac holt sich die Daten per Skript.
-- Henri und Felix dürfen Fotos hochladen und labeln. Training, Aufteilung, Löschen, Fotobox-Steuerung nur Jan.
+- Henri und Felix dürfen alles wie Jan (Jan 26.11.2026: „vollwertige kollegen“). Training, Aufteilung und Fotobox
+  gibt es auf dem Server für niemanden.
 - Adresse: https://neurolign.meldro.de
 - Anmeldung: Passwort je Person über Caddy basicauth (jan, henri, felix), die App kennt so den Namen.
 

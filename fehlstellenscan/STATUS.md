@@ -527,12 +527,13 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   (Caddy basicauth jan, henri, felix). Plan: docs/plan-neurolign-server.md, Jans Schritte: docs/neurolign-einrichten.md.
 - Stand 26.11.2026 morgens: Dienst fehlstellenscan-neurolign läuft (Vorlage systemd/, 127.0.0.1:8796, MemoryMax 768M,
   OnFailure=ausfall@), Ablage data/neurolign/aufnahmen. Passwörter in .env (NEUROLIGN_PASSWORT_JAN/_HENRI/_FELIX),
-  Caddy-Block data/caddy-neurolign.txt (Hashes). Offen bei Jan: DNS A/AAAA neurolign bei INWX, Block in
-  /etc/caddy/Caddyfile, Passwörter an Henri und Felix.
+  Caddy-Block data/caddy-neurolign.txt (Hashes). DNS A/AAAA neurolign bei INWX gesetzt (26.11., dig
+  zeigt 84.247.188.205). Offen bei Jan: Block in /etc/caddy/Caddyfile, Passwörter an Henri und Felix.
 - Code: server.py --server (gleiches Programm wie auf dem Mac, Mac-Modus unverändert), zugang.py (Rechte, rein,
   tests/test_neurolign_server.py), seite/hochladen.*. Nutzer kommt aus X-Nutzer, die Caddy setzt; geglaubt nur von
   127.0.0.1 mit Host neurolign.meldro.de. POST nur mit Origin https://neurolign.meldro.de und X-Aufnahme. Henri und
-  Felix: Balken anlegen, hochladen, labeln. Nur Jan: Fotos verwerfen, Maße ändern. Training, Fotobox, iPhone-Wege und
+  Felix dürfen alles wie Jan (vollwertige Kollegen, Jan 26.11.2026): anlegen, hochladen, labeln, Fotos verwerfen,
+  Maße ändern. Training, Fotobox, iPhone-Wege und
   Kodytek-Auswahl gibt es im Servermodus nicht (Training und Kodytek-Bilder liegen auf dem Mac).
 - Hochladen: Seite auf dem Balkenbild wählen, Fotos einzeln hoch (je höchstens 40 MB, Caddy 50 MB). Hochgeladene Seiten
   haben einen freien Plan (frei, ohne Abschnitte, ohne Zuschnitt, Maße in Pixeln); Fotobox-Seiten nimmt der Server
