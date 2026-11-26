@@ -358,6 +358,9 @@ class Werk:
         with self.schloss:
             if self.auftrag:
                 raise Konflikt("Es wird gerade ausgelöst.")
+            if self.ist_frei(daten):
+                b = self.frei_weg(daten, "mac")
+                return {"balken": self.mit_plan(b)}
             b, s, p = self.abschnitt(daten.get("balken"), daten.get("seite"), daten.get("nr"))
             foto = s["fotos"].pop(str(daten["nr"]), None)
             if foto is None:
@@ -372,6 +375,8 @@ class Werk:
         with self.schloss:
             if self.auftrag:
                 raise Konflikt("Es wird gerade ausgelöst.")
+            if self.ist_frei(daten):
+                return {"balken": self.mit_plan(self.frei_zurueck(daten))}
             b = self.lesen(daten.get("balken"))
             s = self.seite(b, daten.get("seite"))
             nr = str(daten.get("nr"))
@@ -442,22 +447,58 @@ class Werk:
             self.ablegen(b)
             return self.stand_server(von)
 
+    def ist_frei(self, daten: dict) -> bool:
+        s = self.seite(self.lesen(daten.get("balken")), daten.get("seite"))
+        return bool((s.get("plan") or {}).get("frei"))
+
+    def frei_weg(self, daten: dict, von: str) -> dict:
+        """Hochgeladenes Foto nach verworfen/ legen. Labels bleiben liegen und zählen wieder nach dem Zurückholen."""
+        b = self.lesen(daten.get("balken"))
+        s = self.seite(b, daten.get("seite"))
+        nr = str(daten.get("nr"))
+        if not (s.get("plan") or {}).get("frei"):
+            raise ValueError("Fotobox-Fotos werden auf dem Mac verwaltet.")
+        foto = s["fotos"].pop(nr, None)
+        if foto is None:
+            raise ValueError("Hier gibt es kein Foto.")
+        s.setdefault("geloescht", {})[nr] = {"foto": foto, "von": von,
+                                             "zeit": datetime.now().isoformat(timespec="seconds")}
+        ordner = self.ordner / b["id"]
+        self.verschieben(foto, ordner, ordner / "verworfen")
+        self.ablegen(b)
+        return b
+
+    def frei_zurueck(self, daten: dict) -> dict:
+        """Verworfenes hochgeladenes Foto an seinen Platz zurück (gleiche Nummer, gleiche Labels)."""
+        b = self.lesen(daten.get("balken"))
+        s = self.seite(b, daten.get("seite"))
+        nr = str(daten.get("nr"))
+        alt = s.get("geloescht", {}).get(nr)
+        if alt is None:
+            raise ValueError("Nichts zum Zurückholen.")
+        if nr in s["fotos"]:
+            raise ValueError("Hier gibt es schon ein neues Foto.")
+        if s["fotos"] and not (s.get("plan") or {}).get("frei"):
+            raise ValueError("Die Seite ist inzwischen mit der Fotobox aufgenommen.")
+        ordner = self.ordner / b["id"]
+        if not (ordner / "verworfen" / alt["foto"]["datei"]).exists():
+            raise ValueError("Das Foto liegt nicht mehr im Papierkorb.")
+        del s["geloescht"][nr]
+        s["plan"] = s.get("plan") or freier_plan()
+        s["fotos"][nr] = alt["foto"]
+        self.verschieben(alt["foto"], ordner / "verworfen", ordner)
+        self.ablegen(b)
+        return b
+
     def foto_weg(self, daten: dict, von: str) -> dict:
-        """Hochgeladenes Foto nach verworfen/ legen (nur Jan). Labels bleiben liegen, zählen aber nicht mehr."""
+        """Servermodus: hochgeladenes Foto verwerfen (alle mit Recht verwalten)."""
         with self.schloss:
-            b = self.lesen(daten.get("balken"))
-            s = self.seite(b, daten.get("seite"))
-            nr = str(daten.get("nr"))
-            if not (s.get("plan") or {}).get("frei"):
-                raise ValueError("Fotobox-Fotos werden auf dem Mac verwaltet.")
-            foto = s["fotos"].pop(nr, None)
-            if foto is None:
-                raise ValueError("Hier gibt es kein Foto.")
-            s.setdefault("geloescht", {})[nr] = {"foto": foto, "von": von,
-                                                 "zeit": datetime.now().isoformat(timespec="seconds")}
-            ordner = self.ordner / b["id"]
-            self.verschieben(foto, ordner, ordner / "verworfen")
-            self.ablegen(b)
+            self.frei_weg(daten, von)
+            return self.stand_server(von)
+
+    def foto_zurueck(self, daten: dict, von: str) -> dict:
+        with self.schloss:
+            self.frei_zurueck(daten)
             return self.stand_server(von)
 
     def handy_da(self) -> bool:
@@ -694,6 +735,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.kette.speichern(daten, ich))
         if weg == "/api/klassen":
             return self.antwort(200, werk.kette.klassen_aendern(daten, ich))
+        if weg == "/api/foto-zurueck":
+            return self.antwort(200, werk.foto_zurueck(daten, ich))
         return self.antwort(200, werk.foto_weg(daten, ich))
 
     def zum_mac(self, methode: str, weg: str, koerper: bytes | None, ich: str) -> None:

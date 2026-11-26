@@ -153,6 +153,31 @@ class Servermodus(unittest.TestCase):
         self.assertEqual(stand["balken"][0]["seiten"]["2"]["fotos"], [])
         self.assertTrue(stand["verwalten"])
 
+    def test_foto_weg_und_zurueck_mit_labels(self):
+        kennung = self.balken()
+        for farbe in ((10, 10, 10), (20, 20, 20), (30, 30, 30)):
+            self.ruf(f"/api/hochladen?balken={kennung}&seite=1", roh=jpeg(farbe))
+        bilder = self.ruf("/api/bilder")[1]
+        self.assertTrue(all(b["frei"] for b in bilder))
+        name = bilder[1]["name"]
+        umriss = {"k": 0, "ok": True, "p": [[0.1, 0.1], [0.3, 0.1], [0.2, 0.3]]}
+        self.assertEqual(self.ruf("/api/label", {"name": name, "stand": None, "objekte": [umriss]})[0], 200)
+        st, stand = self.ruf("/api/foto-weg", {"balken": kennung, "seite": "1", "nr": 1}, wer="felix")
+        self.assertEqual(st, 200, stand)
+        self.assertEqual([f["nr"] for f in stand["balken"][0]["seiten"]["1"]["fotos"]], [0, 2])
+        self.assertNotIn(name, [b["name"] for b in self.ruf("/api/bilder")[1]])
+        self.assertTrue(any((self.ablage / kennung / "verworfen").iterdir()))
+        st, stand = self.ruf("/api/foto-zurueck", {"balken": kennung, "seite": "1", "nr": 1}, wer="jan")
+        self.assertEqual(st, 200, stand)
+        self.assertEqual([f["nr"] for f in stand["balken"][0]["seiten"]["1"]["fotos"]], [0, 1, 2])
+        bild = next(b for b in self.ruf("/api/bilder")[1] if b["name"] == name)
+        self.assertEqual(len(bild["objekte"]), 1)
+        self.assertFalse(any((self.ablage / kennung / "verworfen").iterdir()))
+        # zweimal zurück geht nicht, und ohne Recht-Weg auch kein /api/zurueck
+        self.assertEqual(self.ruf("/api/foto-zurueck", {"balken": kennung, "seite": "1", "nr": 1})[0], 400)
+        self.assertEqual(self.ruf("/api/zurueck", {"balken": kennung, "seite": "1", "nr": 1})[0], 404)
+        self.assertEqual(self.ruf("/api/foto-zurueck", {"balken": kennung, "seite": "1", "nr": 1}, wer=None)[0], 403)
+
     def test_hochladen_prueft_eingaben(self):
         kennung = self.balken()
         self.assertEqual(self.ruf(f"/api/hochladen?balken={kennung}&seite=1", roh=b"kein bild")[0], 400)
@@ -273,6 +298,20 @@ class MacModusUnveraendert(unittest.TestCase):
             self.assertIsNotNone(st["balken"][0]["seiten"]["2"]["plan"])
             with self.assertRaises(ValueError):
                 w.foto_ablegen(b["id"], "1", 0, jpeg())
+
+    def test_mac_loescht_hochgeladene_fotos_und_holt_sie_zurueck(self):
+        with tempfile.TemporaryDirectory() as d:
+            w = s.Werk(Path(d))
+            b = w.balken_speichern({"laenge_mm": 1200, "breite_mm": 120, "hoehe_mm": 100})
+            w.hochladen(b["id"], "1", jpeg(), "felix")
+            w.hochladen(b["id"], "1", jpeg((5, 5, 5)), "felix")
+            w.loeschen({"balken": b["id"], "seite": "1", "nr": 0})
+            self.assertEqual(list(w.lesen(b["id"])["seiten"]["1"]["fotos"]), ["1"])
+            self.assertEqual(w.lesen(b["id"])["seiten"]["1"]["geloescht"]["0"]["von"], "mac")
+            w.zurueckholen({"balken": b["id"], "seite": "1", "nr": 0})
+            self.assertEqual(sorted(w.lesen(b["id"])["seiten"]["1"]["fotos"]), ["0", "1"])
+            with self.assertRaises(ValueError):
+                w.zurueckholen({"balken": b["id"], "seite": "1", "nr": 0})
 
 
 if __name__ == "__main__":

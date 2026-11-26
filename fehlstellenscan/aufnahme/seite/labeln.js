@@ -29,7 +29,7 @@ const mitte=p=>[p.reduce((s,a)=>s+a[0],0)/p.length,p.reduce((s,a)=>s+a[1],0)/p.l
 const doppelt=i=>{const p=form(S().o[i]),m=mitte(p),w=mass(p).w;return S().o.findIndex((o,j)=>{if(j==i)return false;const q=form(o),n=mitte(q);return Math.hypot(m[0]-n[0],m[1]-n[1])<Math.min(w,mass(q).w)*.4})};
 const streit=i=>{if(i<0)return-1;const d=doppelt(i);return d>=0&&!S().o[i].ok&&!S().o[d].ok?d:-1};
 const erstes=()=>folge().find(j=>!S().o[j].ok)??-1;
-function merk(){const s=S();s.h.push(JSON.stringify([s.o,sel]));if(s.h.length>80)s.h.shift();s.v=[];s.dreck=true}
+function merk(){fwegZuletzt=false;const s=S();s.h.push(JSON.stringify([s.o,sel]));if(s.h.length>80)s.h.shift();s.v=[];s.dreck=true}
 function sag(t,k,f,bleibt){$('hin').hidden=false;$('hint').textContent=t;$('hink').hidden=!k;$('hink').innerHTML=k?ic({Rückgängig:'arrow-counter-clockwise',Schließen:'check'}[k]||'arrow-left')+`<span class="vs">${k}</span>`:'';$('hink').title=k||'';$('hink').onclick=()=>{stumm();f&&f()};clearTimeout(uhr);if(!bleibt)uhr=setTimeout(stumm,5000)}
 function stumm(){$('hin').hidden=true;clearTimeout(uhr)}
 function fehler(t){$('fehl').hidden=false;$('fehlt').textContent=t}$('fehlz').onclick=()=>$('fehl').hidden=true;
@@ -74,13 +74,49 @@ function dopp(){const d=streit(sel);$('dopp').hidden=d<0;if(d<0){$('dopp').inner
 function fuss(){const s=S(),n=IDS.indexOf(id),o=akt(),g=$('gut'),fertig=!offen(id);$('lo').hidden=!o;g.hidden=!!zeich||fertig&&!s.dreck&&!!s.zeit&&!IDS.some(i=>i!=id&&(!st[i].zeit||st[i].dreck||offen(i)));const t=o?(o.ok?(fertig?'Speichern, nächstes Bild':'Nächstes Objekt'):streit(sel)>=0?'Beide lassen':'Stimmt'):fertig?'Speichern, nächstes Bild':'Erstes offenes Objekt';g.querySelector('span').textContent=t;g.title=t+' (Enter)';{const d=streit(sel);g.querySelector('.bs').textContent=o&&!o.ok&&d>=0?[bu(sel),bu(d)].sort().join(' + '):''}g.querySelector('use').setAttribute('href',fertig?'#i-floppy-disk':o&&!o.ok?'#i-check':'#i-arrow-right');
  $('spstand').textContent=s.dreck?'Nicht gespeicherte Änderungen':s.zeit?`Gespeichert ${s.zeit}`:'Noch nicht gespeichert';
  $('pos').innerHTML=`<b>${esc(name(id))}</b> <span>${n+1} von ${IDS.length}</span>`;$('vor').disabled=!n;$('nach').disabled=n==IDS.length-1;
- $('p-film').innerHTML=(IDS.length>60?IDS.slice(Math.max(0,n-20),n+21):IDS).map(i=>{const t=st[i],of=offen(i),w=t.dreck?'geändert, nicht gespeichert':t.zeit?(of?`gespeichert, ${of} offen`:'gespeichert'):t.o.length?`${of} offen`:'leer';return`<button data-b="${i}" data-f="b${i}" ${i==id?'aria-current="true"':''}><img src="${B[i].klein}" loading="lazy" alt="" width="56" height="48"><span><b>${esc(name(i))}</b><small>${w}</small></span></button>`}).join('');knoepfe()}
+ film();knoepfe()}
+/* Bilderleiste (Jan 26.11.2026): Balken > Seite > Foto. Der aktuelle Balken ist offen, die anderen zu; zugeklappte
+   Balken zeichnen keine Bilder, darum bleibt die Leiste auch bei vielen Balken schnell. Neu gebaut wird nur bei
+   Wechsel, Auf/Zu, Verwerfen; sonst ändert sich nur das aktuelle Foto. */
+let filmAuf=new Set,filmFuer=null,filmId=null;const fweg=[];let fwegZuletzt=false;
+const fertigF=i=>!!st[i].zeit&&!st[i].dreck&&!offen(i),gruppe=b=>IDS.filter(i=>B[i].balken==b);
+const darfWeg=i=>!SATZ_L&&(ICH=='mac'||B[i].frei);
+function zust(i){const t=st[i],n=t.o.length,of=offen(i);
+ if(t.dreck)return['geändert','<circle cx="7" cy="7" r="4" class="zd"/>'];
+ if(t.zeit&&!of)return['geprüft','<circle cx="7" cy="7" r="6" class="zg"/><path d="M4.2 7.2l2 2 3.6-4" class="zh"/>'];
+ if(!n)return['leer','<circle cx="7" cy="7" r="5" class="zr"/>'];
+ const a=(n-of)/n,w=a*2*Math.PI,x=7+5*Math.sin(w),y=7-5*Math.cos(w);
+ return[`${of} von ${n} offen`,`<circle cx="7" cy="7" r="5" class="zo"/>${a>0?`<path d="M7 7V2A5 5 0 ${a>.5?1:0} 1 ${x.toFixed(2)} ${y.toFixed(2)}Z" class="zp"/>`:''}`]}
+const zsvg=i=>`<svg class="zs" viewBox="0 0 14 14" aria-hidden="true">${zust(i)[1]}</svg>`,flab=i=>`${name(i)}: ${zust(i)[0]}`;
+function kopfZahl(b){const l=gruppe(b),f=l.filter(fertigF).length;return[f,l.length]}
+function filmBau(){const e=$('p-film'),cur=B[id].balken;if(filmFuer!=cur){filmFuer=cur;filmAuf=new Set([cur])}filmId=id;
+ const g=new Map;for(const i of IDS){const b=B[i].balken;g.has(b)||g.set(b,[]);g.get(b).push(i)}let h='';
+ for(const[b,l]of g){const auf=filmAuf.has(b),f=l.filter(fertigF).length,nb=B[l[0]].nb;
+  h+=`<section class="fg${auf?' auf':''}${b==cur?' akt':''}" data-g="${esc(b)}"><button class="fk" data-k="${esc(b)}" data-f="g${esc(b)}" aria-expanded="${auf}" aria-label="${esc(b)}${nb?' '+esc(nb):''}, ${f} von ${l.length} fertig">${ic('caret-right')}<b>${esc(b)}</b>${nb?`<span class="fn">${esc(nb)}</span>`:''}<span class="fz"><span>${f}/${l.length}</span><i style="--p:${f/l.length}"></i></span></button>`;
+  if(auf){const s=new Map;for(const i of l){const k=B[i].seite||'';s.has(k)||s.set(k,[]);s.get(k).push(i)}
+   h+='<div class="fi">'+[...s].map(([k,li])=>`<div class="fs" role="group" aria-label="${k?'Seite '+k:esc(b)}">${k?`<span class="sl" aria-hidden="true">S${k}</span>`:''}${li.map(i=>`${i==id&&darfWeg(i)?'<span class="fc">':''}<button class="fb" data-b="${i}" data-f="b${i}" aria-label="${esc(flab(i))}" title="${esc(flab(i))}${darfWeg(i)?' (Entf verwirft)':''}" ${i==id?'aria-current="true"':''}><img src="${B[i].klein}" loading="lazy" alt="" width="56" height="40">${zsvg(i)}</button>${i==id&&darfWeg(i)?`<button class="ib fweg" data-weg="${i}" aria-label="Foto verwerfen" title="Foto verwerfen (Entf)"><svg class="i fx" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg></button></span>`:''}`).join('')}</div>`).join('')+'</div>'}
+  h+='</section>'}
+ e.innerHTML=h;const c=e.querySelector('[aria-current]');c&&c.scrollIntoView({block:'nearest',inline:'nearest'})}
+function film(){if(filmId!=id||!$('p-film').firstChild)return filmBau();const b=$('p-film').querySelector(`[data-b="${CSS.escape(id)}"]`);if(!b)return;
+ const l=flab(id);if(b.getAttribute('aria-label')==l)return;b.setAttribute('aria-label',l);b.title=l+(darfWeg(id)?' (Entf verwirft)':'');b.querySelector('.zs').innerHTML=zust(id)[1];
+ const k=$('p-film').querySelector(`.akt .fk`),[f,n]=kopfZahl(B[id].balken),nb=B[id].nb;if(k){k.querySelector('.fz span').textContent=`${f}/${n}`;k.querySelector('.fz i').style.setProperty('--p',f/n);k.setAttribute('aria-label',`${B[id].balken}${nb?' '+nb:''}, ${f} von ${n} fertig`)}}
+async function ruf(weg,d){const a=await fetch(weg,{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify(d)});let j={};try{j=await a.json()}catch(e){}if(!a.ok)throw new Error(j.fehler||'Fehler '+a.status);return j}
+async function fotoWeg(i){if(!i||!B[i]||speichert||zeich&&i==id)return;if(!darfWeg(i))return sag('Fotobox-Fotos verwirft nur der Mac.');const b=B[i],fl=[...$('p-film').querySelectorAll('.fb')],war=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#p-film')?fl.findIndex(x=>x.dataset.b==i):-2;
+ try{await ruf(ICH=='mac'?'/api/loeschen':'/api/foto-weg',{balken:b.balken,seite:b.seite,nr:b.nr})}catch(e){return fehler('Nicht verworfen: '+(e instanceof TypeError?'Keine Verbindung zu Neurolign.':e.message))}
+ const n=IDS.indexOf(i);IDS.splice(n,1);fweg.push({i,n});fwegZuletzt=true;zurKnopf();
+ if(!IDS.length){id=null;$('p-film').innerHTML='';$('leerseite').hidden=false;$('leerseite').innerHTML='<p>Noch keine Fotos.</p>';$('bild').innerHTML='';return}
+ if(i==id){const g=gruppe(b.balken);await oeffne(g.find(x=>IDS.indexOf(x)>=n)||g.at(-1)||IDS[Math.min(n,IDS.length-1)])}else filmBau();
+ if(war>-2){const n2=[...$('p-film').querySelectorAll('.fb')],f=i==id||war<0?$('p-film').querySelector('[aria-current]'):n2[Math.min(war,n2.length-1)];(f||$('p-film').querySelector('.fb,.fk')).focus()}}
+async function fotoZurueck(){const w=fweg.at(-1);if(!w||speichert)return;const b=B[w.i];
+ try{await ruf(ICH=='mac'?'/api/zurueck':'/api/foto-zurueck',{balken:b.balken,seite:b.seite,nr:b.nr})}catch(e){return fehler('Nicht zurückgeholt: '+(e instanceof TypeError?'Keine Verbindung zu Neurolign.':e.message))}
+ fweg.pop();IDS.splice(Math.min(w.n,IDS.length),0,w.i);zurKnopf();$('leerseite').hidden=true;await oeffne(w.i)}
+function zurKnopf(){const z=$('fzur'),w=fweg.at(-1);z.hidden=!w;document.body.classList.toggle('mitzur',!!w);if(!w)return;const l=`${name(w.i)} zurückholen`;z.title=l+' (Strg Z)';z.setAttribute('aria-label',l);z.querySelector('img').src=B[w.i].klein}
 function mal(){const f=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.f:null,y=$('p-insp').scrollTop;bildZ();liste();fuss();insp();dopp();$('p-insp').scrollTop=y;if(f&&!(document.activeElement&&document.activeElement.dataset.f==f)){const e=document.querySelector(`[data-f="${f}"]`);e&&e.focus({preventScroll:true})}}
 function fokus(){const b=document.querySelector('.zl[aria-pressed=true]');if(b&&b.offsetParent){b.focus({preventScroll:true});b.scrollIntoView({block:'nearest'})}else $('gut').focus({preventScroll:true})}
 function zeig(i){const p=form(S().o[i]),m=mitte(p);if(!voll()&&(m[0]<V[0]||m[1]<V[1]||m[0]>V[0]+V[2]||m[1]>V[1]+V[3])){V[0]=m[0]-V[2]/2;V[1]=m[1]-V[3]/2;rand()}}
 function waehle(i,f){if(i!=sel){pkt=0;auf=false}sel=i;if(i>=0)zeig(i);mal();if(f)fokus()}
 async function oeffne(i,f){const n=++lfd;try{await messen(i)}catch(e){fehler(name(i)+': '+e.message);return}if(n!=lfd)return;id=i;zeich=null;werk();stumm();ganz();pkt=0;auf=false;sel=erstes();mal();if(f)fokus()}
-function reiter(t,f){tab=t;for(const n of['liste','insp','film']){$('p-'+n).classList.toggle('an',n==t);$('t-'+n).setAttribute('aria-selected',n==t);$('t-'+n).tabIndex=n==t?0:-1}if(f)$('t-'+t).focus()}
+function reiter(t,f){tab=t;if(t=='film')requestAnimationFrame(()=>{const c=$('p-film').querySelector('[aria-current]')||$('p-film').querySelector('.akt');c&&c.scrollIntoView({block:'center',inline:'nearest'})});for(const n of['liste','insp','film']){$('p-'+n).classList.toggle('an',n==t);$('t-'+n).setAttribute('aria-selected',n==t);$('t-'+n).tabIndex=n==t?0:-1}if(f)$('t-'+t).focus()}
 document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');b&&reiter(b.id.slice(2))});
 document.querySelector('.tabs').addEventListener('keydown',e=>{const d={ArrowRight:1,ArrowLeft:-1}[e.key];if(d){const r=['liste','insp','film'];reiter(r[(r.indexOf(tab)+d+3)%3],true);e.stopPropagation()}});
 /* Aktionen */
@@ -115,7 +151,7 @@ I.addEventListener('change',e=>{const t=e.target;if(t.name=='kl')setK(t.value);e
 function messen_holz(f,roh){const o=akt();if(!o)return;const w=roh===''?null:+String(roh).replace(',','.');if(w!=null&&!(w>0&&w<=5000))return mal();merk();o.m=(o.m||[]).map(x=>({...x}));let m=o.m.find(x=>x.von==ICH);if(!m){m={von:ICH,min:null,max:null};o.m.push(m)}m[f]=w;o.m=o.m.filter(x=>x.min!=null||x.max!=null);mal()}
 I.addEventListener('click',e=>{if(e.target.closest('#klb'))klDialog()});
 $('neu').onclick=()=>zeichnen(!zeich);$('rueck').onclick=rueck;$('wieder').onclick=wieder;$('minus').onclick=()=>zoom(1/.6);$('plus').onclick=()=>{const o=akt();zoom(.6,...(o?mitte(form(o)):[]))};$('fit').onclick=()=>{ganz();bildZ()};$('aus').onclick=()=>umrisse(!nur);
-const wechsel=d=>{const i=IDS[IDS.indexOf(id)+d];if(i)oeffne(i)};$('vor').onclick=()=>wechsel(-1);$('nach').onclick=()=>wechsel(1);$('p-film').onclick=e=>{const b=e.target.closest('button');if(b&&!speichert)oeffne(b.dataset.b)};$('sp').onclick=speich;$('gut').onclick=gut;$('lo').onclick=loesch;
+const wechsel=d=>{const i=IDS[IDS.indexOf(id)+d];if(i)oeffne(i)};$('vor').onclick=()=>wechsel(-1);$('nach').onclick=()=>wechsel(1);$('p-film').onclick=e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;if(d.k){filmAuf.has(d.k)?filmAuf.delete(d.k):filmAuf.add(d.k);filmBau();const k=$('p-film').querySelector(`[data-k="${CSS.escape(d.k)}"]`);k&&k.focus();return}if(d.weg)return fotoWeg(d.weg);if(d.b&&!speichert)oeffne(d.b)};$('fzur').onclick=fotoZurueck;$('sp').onclick=speich;$('gut').onclick=gut;$('lo').onclick=loesch;
 
 /* Klassen bearbeiten (Jan 26.11.2026): umbenennen, Farbe, Gruppe, neu, löschen. Jede Änderung gilt sofort für alle.
    Löschen mit Objekten heißt zusammenlegen; Rückgängig unten im Fenster. */
@@ -164,8 +200,9 @@ for(const t of['pointerup','pointercancel'])sv.addEventListener(t,e=>{fin.delete
 addEventListener('beforeunload',e=>{if(IDS.some(i=>st[i].dreck)||zeich&&zeich.length){e.preventDefault();e.returnValue=''}});
 addEventListener('keydown',e=>{if(!id)return;const t=e.target;if(t.closest&&t.closest('dialog,input[type=number],input[type=text],select'))return;const tk=e.key.toLowerCase(),strg=e.ctrlKey||e.metaKey,hat=s=>t.closest&&t.closest(s);
  if(e.repeat&&(['Enter','Delete','Backspace'].includes(e.key)||'snu'.includes(tk)))return e.preventDefault();
- if(strg&&(tk=='y'||tk=='z'&&e.shiftKey)){e.preventDefault();return wieder()}if(strg&&tk=='z'){e.preventDefault();return rueck()}if(strg||e.altKey)return;
+ if(strg&&(tk=='y'||tk=='z'&&e.shiftKey)){e.preventDefault();return wieder()}if(strg&&tk=='z'){e.preventDefault();return fwegZuletzt&&fweg.length?fotoZurueck():rueck()}if(strg||e.altKey)return;
  if(e.key=='Escape'&&zeich)return zeichnen(false);
+ if((e.key=='Delete'||e.key=='Backspace')&&hat('#p-film .fb,#p-film .fweg')){e.preventDefault();return fotoWeg(t.dataset.b||t.dataset.weg)}
  if(e.key=='Enter'){if(zeich){if(hat('button'))return;e.preventDefault();return schliess()}if(t==document.body||t==sv||hat('.zl[aria-pressed=true]')||hat('#p-insp input')){e.preventDefault();gut()}return}
  if(zeich){if(e.key=='Backspace'){e.preventDefault();rueck()}else if(tk=='n')zeichnen(false);return}
  const k=KL[+e.key-1];if(k)return setK(k);
@@ -183,7 +220,7 @@ $('satz').onchange=()=>{const w=$('satz').value;$('satz').value=SATZ_L?'kodytek'
 addEventListener('pageshow',()=>$('satz').value=SATZ_L?'kodytek':'');
 gestalte();reiter('liste');
 (async()=>{let a;try{klassenSetzen(await(await fetch('/api/klassen')).json());a=await(await fetch('/api/bilder'+(SATZ_L?'?satz=kodytek':''))).json()}catch(e){return fehler('Keine Verbindung zu Neurolign.')}
- for(const x of a){IDS.push(x.name);B[x.name]={src:`/zuschnitt/${x.name}.jpg`,klein:`/zuschnitt/${x.name}_k.jpg`,name:x.titel,laengs:x.laengs_mm,roh:x.objekte,zv:x.zeit||null};st[x.name]={o:(x.objekte||[]),zeit:x.zeit&&uhrzeit(x.zeit),dreck:false,h:[],v:[]}}
+ for(const x of a){IDS.push(x.name);B[x.name]={src:`/zuschnitt/${x.name}.jpg`,klein:`/zuschnitt/${x.name}_k.jpg`,name:x.titel,balken:x.balken,seite:x.seite,nr:x.nr,nb:x.name_b||'',frei:!!x.frei,laengs:x.laengs_mm,roh:x.objekte,zv:x.zeit||null};st[x.name]={o:(x.objekte||[]),zeit:x.zeit&&uhrzeit(x.zeit),dreck:false,h:[],v:[]}}
  if(!IDS.length){$('leerseite').hidden=false;$('leerseite').innerHTML='<p>Noch keine Fotos.</p><a href="/">Zur Aufnahme</a>';$('aktion').hidden=$('sp').hidden=true;return}
  const w=new URLSearchParams(location.search).get('balken'),l=w?a.filter(x=>x.balken===w).map(x=>x.name):IDS;
  await oeffne((l.length?l:IDS).find(i=>!st[i].zeit||offen(i))||(l[0]||IDS[0]));if(id)new ResizeObserver(()=>bildZ()).observe(sv)})();

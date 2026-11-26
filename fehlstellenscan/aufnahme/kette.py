@@ -410,18 +410,25 @@ class Kette:
 
     def bilder(self) -> list[dict]:
         gesamt = []
-        for f in self.alle():
-            x = self.label(f)
-            # Maße in mm gelten nur mit gemessenem Bildwinkel, sonst zeigt die Oberfläche Pixel
-            p = f["plan"]
-            gemessen = abs(p["faktor"] - 24 / 34.6) > 1e-9
-            mm = p["laengs_mm"] if gemessen else None
-            if p.get("frei") and f.get("px_je_mm") and f.get("breite_px"):
-                mm = round(f["breite_px"] / f["px_je_mm"], 2)   # hochgeladen mit bekanntem Maßstab (Streifenbild)
-            gesamt.append({"name": f["name"], "balken": f["balken"], "seite": f["seite"], "nr": f["nr"],
-                           "titel": f"{f['balken']} Seite {f['seite']}, {f['nr'] + 1}", "laengs_mm": mm,
-                           "objekte": x["objekte"] if x else None, "zeit": x["zeit"] if x else None})
+        for i in self.ids():
+            b = self.lesen(i)
+            for f in fotos(b):
+                gesamt.append(self.bild(f, b.get("name") or ""))
         return gesamt
+
+    def bild(self, f: dict, balken_name: str) -> dict:
+        """Ein Foto für die Seite Labeln. frei = hochgeladen (im Servermodus verwerfbar), name_b = Name des Balkens."""
+        x = self.label(f)
+        # Maße in mm gelten nur mit gemessenem Bildwinkel, sonst zeigt die Oberfläche Pixel
+        p = f["plan"]
+        gemessen = abs(p["faktor"] - 24 / 34.6) > 1e-9
+        mm = p["laengs_mm"] if gemessen else None
+        if p.get("frei") and f.get("px_je_mm") and f.get("breite_px"):
+            mm = round(f["breite_px"] / f["px_je_mm"], 2)   # hochgeladen mit bekanntem Maßstab (Streifenbild)
+        return {"name": f["name"], "balken": f["balken"], "seite": f["seite"], "nr": f["nr"],
+                "titel": f"{f['balken']} Seite {f['seite']}, {f['nr'] + 1}", "laengs_mm": mm,
+                "name_b": balken_name, "frei": bool(p.get("frei")),
+                "objekte": x["objekte"] if x else None, "zeit": x["zeit"] if x else None}
 
     def speichern(self, daten: dict, von: str | None = None) -> dict:
         """Schickt der Browser "stand" (Zeit des Labels, das er geladen hat, oder None), wird nur gespeichert, wenn

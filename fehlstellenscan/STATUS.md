@@ -540,6 +540,21 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
   Enter speichert es leer als fehlerfrei.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
+- Bilderleiste im Labeln (Jan 26.11.2026): gruppiert Balken > Seite S1-S4 > Foto. Der aktuelle Balken ist offen, die
+  anderen zu (Kopf: Pfeil, ID, Name, fertig/alle mit kleinem Balken; fertig = gespeichert, nichts offen, nichts
+  ungespeichert). Zustand je Foto als Zeichen in der Bildecke: gestrichelter grauer Ring = leer, gelber Ring mit
+  blauem Tortenstück = offen (Anteil geprüft), blauer Haken = geprüft, weißer Punkt = geändert. Zugeklappte Balken
+  zeichnen keine Bilder, neu gebaut wird nur bei Wechsel, Auf/Zu und Verwerfen (163 Fotos in 41 Balken: 8 ms).
+  /labeln?balken=<ID> öffnet den Balken aufgeklappt. Am Handy springt der Reiter Bilder zum aktuellen Foto.
+  Verwerfen: Symbol (Bild mit Kreuz) neben dem aktuellen Foto oder Entf, wenn ein Foto der Leiste den Fokus hat.
+  Mac-Modus /api/loeschen und /api/zurueck (jetzt auch für hochgeladene Seiten), Servermodus /api/foto-weg und
+  /api/foto-zurueck (neu, Werk.foto_zurueck, nur hochgeladene Seiten; Fotobox-Fotos zeigen dort kein Symbol).
+  Rückgängig unten rechts (Pfeil mit Miniatur des Fotos) und Strg/Cmd+Z, mehrfach hintereinander; nach einer
+  Objektänderung gehört Strg+Z wieder dem Objekt, der Knopf bleibt. Labels und ungespeicherte Änderungen kommen
+  mit zurück. Geprüft mit Playwright auf Kopien (B002 als B002-B040, B501) im Mac- und im Servermodus, 1440 und
+  390 px, axe ohne Befund, frischer Prüfer (übernommen: Sprung am Handy, deutlichere Zeichen, eigenes Symbol
+  statt zweitem Mülleimer, Rückgängig verdeckt die Leiste nicht). Offen aus der Prüfung: Suche bzw. Sprung zu
+  einem Balken bei 50 und mehr Balken. Am Mac nicht geprüft.
 - Körper (26.11.2026, Ideen in docs/ideen-galerie-3d-und-aufteilung.md): aufnahme/koerper.py (numpy, Pillow,
   tests/test_koerper.py) findet je Zuschnitt die Holzfläche (Rot minus Blau, Otsu), dreht sie gerade, schneidet quer
   auf ihre Kanten, legt mehrere Fotos einer Seite nach mitte_mm überblendet aneinander (Vorschubrichtung aus dem
@@ -633,7 +648,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   und jan, axe ohne Befunde. Nicht geprüft: echtes HTTPS und Zertifikat (erst nach DNS), Hochladen vom iPhone (HEIC?),
   Fotobox-Balken vom Mac auf dem Server (Fotos der iPhone-App als HEIC wären dort nicht zuschneidbar), Prüfer in
   frischem Kontext für die Seite Hochladen.
-- Offen: Rückgängig nach Foto verwerfen fehlt (liegt in verworfen/, von Hand zurückholbar); Datenschutz: Fotos liegen bei
+- Offen: Datenschutz: Fotos liegen bei
   Contabo, Henri und Felix sehen alle Balken.
 
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)

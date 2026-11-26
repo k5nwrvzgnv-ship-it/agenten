@@ -22,6 +22,7 @@ POST_WEGE = {
     "/api/label": LABELN,
     "/api/klassen": LABELN,
     "/api/foto-weg": VERWALTEN,
+    "/api/foto-zurueck": VERWALTEN,
     "/api/training": TRAINIEREN,
     "/api/abbrechen": TRAINIEREN,
     "/api/teil": TRAINIEREN,
