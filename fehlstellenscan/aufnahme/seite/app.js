@@ -19,7 +19,7 @@ async function ruf(weg,daten){let a;try{a=await fetch(weg,daten===undefined?{}:{
 const B=()=>S.balken.find(b=>b.id===bid),SE=()=>B().seiten[seite],fotos=s=>Object.keys(s.fotos).length,fertig=s=>s.plan&&fotos(s)>=s.plan.mitten_mm.length;
 const offen=()=>{const p=SE().plan;return p?p.mitten_mm.findIndex((_,i)=>!SE().fotos[i]):-1};
 const ersetze=b=>{const i=S.balken.findIndex(x=>x.id===b.id);i<0?S.balken.push(b):S.balken[i]=b};
-function oeffne(id,s){bid=id;formular=false;seite=s||['1','2','3','4'].find(s=>!fertig(B().seiten[s]))||'1';seiteAuf()}
+function oeffne(id,s){if($('#werte .medit'))masseSpeichern();bid=id;formular=false;seite=s||['1','2','3','4'].find(s=>!fertig(B().seiten[s]))||'1';seiteAuf()}
 function seiteAuf(){jetzt=offen();const n=Object.keys(SE().fotos).map(Number).sort((a,b)=>a-b);zeigt=n.length?n.at(-1):null;mess=schneide=geprueft=null;$('#afehler').textContent='';mal()}
 /* Anlegen und Ändern im selben Formular. Ändern geht auch mit Fotos: die bleiben, der Server passt Abstand und Maßstab an */
 const bname=b=>b.name?`${b.id} ${b.name}`:b.id;
@@ -38,7 +38,7 @@ function mal(){
  $('#seiten').innerHTML=['1','2','3','4'].map(k=>{const x=b.seiten[k];return `<button data-s="${k}" aria-pressed="${k===seite}" title="${sname(b,k)}" aria-label="${sname(b,k)}">${balken3d(b,k)}<small>${x.plan?fertig(x)?ic('ja'):fotos(x)+'/'+x.plan.mitten_mm.length:'–'}</small></button>`}).join('');
  lageMalen(b,p);
  const hat=fotos(s)>0;$('#vorschub').hidden=!p||p.mitten_mm.length<2;const vi=$('#vorschub input');if(p&&document.activeElement!==vi)vi.value=cm(p.schritt_mm);vi.disabled=hat;
- $('#werte').innerHTML=p?`<dt>L × B × H</dt><dd>${cm(b.laenge_mm)} × ${cm(b.breite_mm)} × ${cm(b.hoehe_mm)} cm</dd><dt>Bildfeld</dt><dd>${cm(p.laengs_mm,0)} × ${cm(p.quer_mm,0)} cm</dd>${b.pruefung?`<dt>Maßprüfung</dt><dd title="${b.pruefung.anzahl} Messungen, ${prozent(b.pruefung.min)} bis ${prozent(b.pruefung.max)}">${prozent(b.pruefung.mittel)} · ${b.pruefung.anzahl}×</dd>`:''}`:'';
+ const me=$('#werte .medit');if(!me||me.dataset.id!==bid)$('#werte').innerHTML=`<dt>L × B × H</dt><dd><button id="masse" title="Maße ändern">${cm(b.laenge_mm)} × ${cm(b.breite_mm)} × ${cm(b.hoehe_mm)} cm</button></dd>`+(p?`<dt>Bildfeld</dt><dd>${cm(p.laengs_mm,0)} × ${cm(p.quer_mm,0)} cm</dd>${b.pruefung?`<dt>Maßprüfung</dt><dd title="${b.pruefung.anzahl} Messungen, ${prozent(b.pruefung.min)} bis ${prozent(b.pruefung.max)}">${prozent(b.pruefung.mittel)} · ${b.pruefung.anzahl}×</dd>`:''}`:'');
  const w=[];if(s.fehler)w.push(s.fehler);if(p){if(p.luecke)w.push('Vorschub größer als das Bildfeld, es bleibt eine Lücke.');if(p.zu_breit)w.push('Fläche breiter als das Bildfeld.');if(!p.abstand_gemessen&&!S.einstellungen.abstand_gemessen)w.push('Abstand Linse bis Rolle noch nicht gemessen (···).')}$('#warnung').textContent=w.join(' ');
  const nr=jetzt,m=p&&nr>=0?p.mitten_mm[nr]:0;let st='',kn='',kl='';
  if(!p){st='Diese Seite geht so nicht.'}
@@ -139,6 +139,18 @@ addEventListener('keydown',e=>{if($('#dlg').open||/^(INPUT|SELECT)$/.test(e.targ
 $('#seiten').onclick=e=>{const k=e.target.closest('button');if(!k||laeuft)return;seite=k.dataset.s;seiteAuf()};
 $('#abschnitte').onclick=e=>{const k=e.target.closest('button');if(!k||laeuft)return;const i=+k.dataset.i;if(SE().fotos[i]){zeigt=i;jetzt=offen()}else{jetzt=i;zeigt=null}mess=schneide=geprueft=null;mal()};
 $('#vorschub input').onchange=async e=>{const i=e.target;try{ersetze(await ruf('/api/vorschub',{balken:bid,seite,mm:i.value.trim()?lies(i.value):0}));i.blur();$('#afehler').textContent='';seiteAuf()}catch(x){$('#afehler').textContent=x.message}};
+/* Maße direkt rechts ändern: Klick auf L × B × H macht drei Felder daraus. Enter oder Wegklicken speichert, Esc bricht ab */
+const MF=['laenge','breite','hoehe'];
+function masseAuf(k){if(laeuft||!B())return;const b=B(),dd=$('#masse').parentElement;dd.className='medit';dd.dataset.id=b.id;
+ dd.innerHTML=MF.map(f=>`<input name="${f}" value="${cm(b[f+'_mm'])}" inputmode="decimal" autocomplete="off" aria-label="${{laenge:'Länge',breite:'Breite',hoehe:'Höhe'}[f]} in cm">`).join('<span>×</span>')+'<span>cm</span>';
+ const e=dd.querySelector(`[name=${k||'laenge'}]`);e.focus();e.select()}
+function masseZu(){const dd=$('#werte .medit');if(dd){dd.className='';dd.innerHTML='';}mal()}
+async function masseSpeichern(){const dd=$('#werte .medit');if(!dd||dd.dataset.l)return;const b=S.balken.find(x=>x.id===dd.dataset.id);if(!b)return;const d={id:b.id,holzart:b.holzart||'',name:b.name||''};
+ for(const f of MF)d[f+'_mm']=lies(dd.querySelector(`[name=${f}]`).value);if(MF.every(f=>d[f+'_mm']===b[f+'_mm'])){masseZu();return}
+ dd.dataset.l='1';try{ersetze(await ruf('/api/balken',d));$('#afehler').textContent='';dd.className='';seiteAuf()}catch(x){$('#afehler').textContent=x.message;delete dd.dataset.l;const f=MF.find(f=>x.message.startsWith({laenge:'Länge',breite:'Breite',hoehe:'Höhe'}[f]))||'laenge',e=dd.querySelector(`[name=${f}]`);e.focus();e.select()}}
+$('#werte').onclick=e=>{const k=e.target.closest('#masse');if(!k)return;const r=k.getBoundingClientRect(),x=(e.clientX-r.left)/r.width;masseAuf(e.detail?MF[Math.min(2,Math.floor(x*3))]:'laenge')};
+$('#werte').onkeydown=e=>{if(!e.target.closest('.medit'))return;if(e.key==='Enter'){e.preventDefault();masseSpeichern()}if(e.key==='Escape'){e.preventDefault();masseZu();$('#masse')?.focus()}};
+$('#werte').addEventListener('focusout',e=>{const dd=$('#werte .medit');if(dd&&!dd.contains(e.relatedTarget))setTimeout(()=>{if(!dd.contains(document.activeElement))masseSpeichern()},0)});
 $('#wahl').onchange=e=>{if(laeuft||!e.target.value)return mal();oeffne(e.target.value);e.target.blur()};$('#neu').onclick=()=>{if(!laeuft)maleForm()};
 /* ··· am Balken: Seltenes (Maße, Name, Löschen). Löschen legt in den Papierkorb, Rückgängig daneben statt Nachfrage */
 function menueZu(){$('#bmenue').hidden=true;$('#bmehr').setAttribute('aria-expanded','false')}

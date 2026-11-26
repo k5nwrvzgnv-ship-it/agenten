@@ -555,6 +555,9 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Formular, auch Umbenennen), Löschen (Mülleimer); in der Galerie dasselbe am ··· jeder Karte, dazu Aufnahme (Kamera) und Labeln. /?balken=<ID> öffnet
   einen Balken in der Aufnahme; eine Karte ohne Fotos führt dorthin statt in den Körper. 3D-Ansicht: Pfeil zur Galerie
   (kommt man von dort, wie Zurück im Browser). Alle Knöpfe nur Symbol, auch Anlegen (+) und Speichern (Haken).
+  Maße direkt rechts (Jan 26.11.2026): Klick auf die Zahlen L × B × H macht drei Felder daraus (Fokus auf der
+  angeklickten Zahl), Enter oder Wegklicken speichert, Esc bricht ab, Fehler lässt die Felder offen. Wechsel des Balkens
+  beim Ändern speichert erst. Die Zeile steht auch, wenn die Seite keinen Plan hat.
   - Name: feste ID bleibt (steckt in Fotonamen, Labelpfaden, teile.json, gebauten Datensätzen), dazu Feld "name" in
     balken.json (bis 40 Zeichen, leer = keiner), angezeigt als „B003 Name“. Vorschlag, Jan noch nicht vorgelegt.
   - Maße ändern geht auch mit Fotos (Werk.masse_aendern, logik.plan_anpassen), nichts wird verworfen: Abschnitte bis
