@@ -683,11 +683,19 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   OnFailure=ausfall@), Ablage data/neurolign/aufnahmen. Passwörter in .env (NEUROLIGN_PASSWORT_JAN/_HENRI/_FELIX),
   Caddy-Block data/caddy-neurolign.txt (Hashes). DNS und Caddy eingerichtet (26.11.), https://neurolign.meldro.de
   antwortet 401 ohne Passwort, Jan ist angemeldet. Passwörter an Henri und Felix gibt Jan selbst weiter.
+- Oberfläche = Klon der Mac-Oberfläche (Jan 26.11.2026 abends „einfach ein clon“): dieselben Seiten Aufnahme,
+  Galerie, Körper, Labeln, Training, dieselben Wege (server.mac_wege), /api/stand im Mac-Format ohne iPhone-Adressen.
+  Auslösen und Kamera melden auf dem Server „iPhone nicht verbunden“ (iPhone-Wege /h/ und /live.jpg gibt es dort
+  nicht); Fotos kommen über „Foto vom Mac“ (···) in einen Abschnitt. Teil in der Galerie: gilt auf dem Mac (Tunnel)
+  und wird bei Erfolg auch auf dem Server gesetzt. Die frühere Seite Hochladen ist entfernt (/api/hochladen bleibt).
+  Offen: Balken löschen auf dem Server löscht nicht auf dem Mac (Abgleich lässt fremde gleicher ID stehen); Körper
+  auf dem Server rechnet in der Grenze von 768 MB, mit großen Fotos ungeprüft; Seiten im Browser auf der Domain nicht
+  angesehen (nur Auslieferung und Tests geprüft).
 - Code: server.py --server (gleiches Programm wie auf dem Mac, Mac-Modus unverändert), zugang.py (Rechte, rein,
-  tests/test_neurolign_server.py), seite/hochladen.*. Nutzer kommt aus X-Nutzer, die Caddy setzt; geglaubt nur von
+  tests/test_neurolign_server.py). Nutzer kommt aus X-Nutzer, die Caddy setzt; geglaubt nur von
   127.0.0.1 mit Host neurolign.meldro.de. POST nur mit Origin https://neurolign.meldro.de und X-Aufnahme. Henri und
   Felix dürfen alles wie Jan (vollwertige Kollegen, Jan 26.11.2026): anlegen, hochladen, labeln, Fotos verwerfen,
-  Maße ändern, Training starten. Fotobox, iPhone-Wege, Galerie, Körper und Kodytek-Auswahl gibt es im Servermodus nicht.
+  Maße ändern, Training starten. iPhone-Wege und Kodytek-Auswahl gibt es im Servermodus nicht.
 - Training vom Server, gerechnet auf Jans Mac (Jan 26.11.2026 „so bauen“): tunnel.py. Der Mac hält per launchd
   (de.meldro.neurolign, mac/neurolign_dienst.sh, eingerichtet mit mac/neurolign_einrichten.sh) Neurolign mit
   --tunnel-port 8766 (zweiter Eingang nur 127.0.0.1, nur GET/POST /api/training, /api/abbrechen, /api/teil, nur mit
@@ -711,8 +719,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Geprüft: Tests; Dienst lokal (403 ohne Nutzer); Probe-Caddy ohne root auf Port 18950 mit dem echten Block (401 ohne und
   mit falschem Passwort, Henri bleibt Henri trotz eigener X-Nutzer-Kopfzeile); Seiten gerendert 1440 und 390 px als henri
   und jan, axe ohne Befunde. Nicht geprüft: echtes HTTPS und Zertifikat (erst nach DNS), Hochladen vom iPhone (HEIC?),
-  Fotobox-Balken vom Mac auf dem Server (Fotos der iPhone-App als HEIC wären dort nicht zuschneidbar), Prüfer in
-  frischem Kontext für die Seite Hochladen.
+  Fotobox-Balken vom Mac auf dem Server (Fotos der iPhone-App als HEIC wären dort nicht zuschneidbar).
 - Offen: Datenschutz: Fotos liegen bei
   Contabo, Henri und Felix sehen alle Balken.
 

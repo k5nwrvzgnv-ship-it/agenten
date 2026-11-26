@@ -9,7 +9,8 @@ iPhone-App (aufnahme/app): gleiche Wege mit Kopfzeile X-App. „warten“ antwor
 (foto, einmessen, ev, modus), dazu schickt die App laufend POST live (kleines JPEG, X-Zustand) und POST fehler.
 
 Servermodus (--server, Jan 26.11.2026): läuft auf dem Server hinter Caddy (neurolign.meldro.de), nur 127.0.0.1.
-Ohne Fotobox und iPhone: Balken anlegen, Fotos hochladen, labeln. Wer was darf, steht in zugang.py. Training rechnet
+Dieselben Seiten wie auf dem Mac (Jan 26.11.2026: „einfach ein Klon“), nur ohne iPhone: Auslösen meldet „nicht
+verbunden“, ein Foto kommt über „Foto vom Mac“ (···) in den Abschnitt. Wer was darf, steht in zugang.py. Training rechnet
 Jans Mac: der Server reicht die Trainingswege durch einen SSH-Tunnel an den Mac weiter (tunnel.py), der Mac öffnet
 dafür einen zweiten, schmalen Eingang (--tunnel-port) und holt vor jedem Start die Labels vom Server (--abgleich)."""
 
@@ -159,9 +160,10 @@ class Werk:
         b["pruefung"] = l.kontrollen_mittel(b.get("kontrollen", []))
         return b
 
-    def stand(self) -> dict:
+    def stand(self, server: bool = False) -> dict:
+        """Stand für die Seiten. Im Servermodus ohne iPhone-Adressen (das iPhone spricht nur mit dem Mac)."""
         with self.schloss:
-            namen = ([f"http://{self.name}.local:{self.port}"] if self.name else []) + [
+            namen = [] if server else ([f"http://{self.name}.local:{self.port}"] if self.name else []) + [
                 f"http://{netzadresse()}:{self.port}"]
             return {"einstellungen": {k: v for k, v in self.einst.items() if k != "code"}, "handy": self.handy_da(), "app": self.zustand if self.app_da() else None,
                     "hinweis": self.hinweis, "ordner": str(self.ordner),
@@ -745,8 +747,8 @@ class Anfrage(BaseHTTPRequestHandler):
                 return self.antwort(404, {"fehler": str(e)})
         datei = None
         if weg == "/":
-            datei = SEITE / ("hochladen.html" if self.server.modus_server else "index.html")
-        elif weg in ("/labeln", "/training") or (weg in ("/koerper", "/galerie") and not self.server.modus_server):
+            datei = SEITE / "index.html"
+        elif weg in ("/labeln", "/training", "/koerper", "/galerie"):
             datei = SEITE / f"{weg[1:]}.html"
         elif re.fullmatch(r"/[a-z-]+\.(css|js|woff2)", weg):
             datei = SEITE / weg[1:]
@@ -756,16 +758,26 @@ class Anfrage(BaseHTTPRequestHandler):
             datei = werk.ordner / kz[1] / "koerper" / kz[2]
         if datei is None or not datei.is_file():
             return self.antwort(404, {"fehler": "Gibt es nicht."})
-        inhalt = datei.read_bytes()
-        if self.server.modus_server and datei.suffix == ".html":
-            inhalt = seite_fuer_server(inhalt)
-        return self.antwort(200, inhalt, TYPEN[datei.suffix])
+        return self.antwort(200, datei.read_bytes(), TYPEN[datei.suffix])
+
+    def koerper_senden(self, werk: Werk) -> None:
+        try:
+            return self.antwort(200, werk.kette.koerper(parse_qs(urlsplit(self.path).query).get("id", [""])[0]))
+        except ValueError as e:
+            return self.antwort(400, {"fehler": str(e)})
+        except Exception as e:                      # Meldung in den Browser statt abgebrochener Verbindung
+            traceback.print_exc()
+            return self.antwort(500, {"fehler": f"Körper ging nicht: {type(e).__name__}: {e}"})
 
     def get_server(self, weg: str, werk: Werk) -> None:
         if (ich := self.nutzer()) is None:
             return self.antwort(403, {"fehler": "Nicht angemeldet."})
         if weg == "/api/stand":
-            return self.antwort(200, werk.stand_server(ich))
+            return self.antwort(200, werk.stand(server=True) | {"ich": ich})
+        if weg == "/api/galerie":
+            return self.antwort(200, werk.kette.galerie())
+        if weg == "/api/koerper":
+            return self.koerper_senden(werk)
         if weg == "/api/bilder":
             return self.antwort(200, werk.kette.bilder())
         if weg == "/api/klassen":
@@ -794,7 +806,16 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(403, {"fehler": "Fremde Herkunft."})
         if nein := z.post_erlaubt(ich, weg):
             return self.antwort(nein[0], {"fehler": nein[1]})
-        if weg in ("/api/training", "/api/abbrechen", "/api/teil", "/api/vorlabeln-abbrechen"):
+        if weg == "/api/teil":                       # gilt auf dem Mac (Training), die Galerie hier zeigt es auch
+            koerper = self.koerper(1_000_000)
+            status, inhalt = t.weiterreichen("POST", weg, koerper, self.server.schluessel, ich, self.server.mac_port)
+            if status == 200:
+                try:
+                    werk.kette.teil_setzen(json.loads(koerper))
+                except ValueError as e:              # Balken nur auf dem Mac: dort gilt es trotzdem
+                    print(f"Teil nur auf dem Mac gesetzt: {e}", file=sys.stderr)
+            return self.antwort(status, inhalt)
+        if weg in ("/api/training", "/api/abbrechen", "/api/vorlabeln-abbrechen"):
             return self.zum_mac("POST", weg, self.koerper(1_000_000), ich)
         if weg == "/api/vorlabeln":
             koerper = self.koerper(1_000_000)
@@ -808,6 +829,10 @@ class Anfrage(BaseHTTPRequestHandler):
         if weg == "/api/hochladen":
             q = {k: v[0] for k, v in parse_qs(query).items()}
             return self.antwort(200, werk.hochladen(q.get("balken"), q.get("seite"), self.koerper(MAX_HOCHLADEN), ich))
+        if weg == "/api/datei":
+            q = {k: v[0] for k, v in parse_qs(query).items()}
+            return self.antwort(200, {"balken": werk.foto_ablegen(q.get("balken"), q.get("seite"),
+                                                                   int(q.get("nr", "-1")), self.koerper())})
         daten = json.loads(self.koerper(1_000_000))
         if not isinstance(daten, dict):
             raise ValueError("Eingabe nicht lesbar.")
@@ -823,7 +848,9 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.kette.foto_massstab(daten, ich))
         if weg == "/api/foto-zurueck":
             return self.antwort(200, werk.foto_zurueck(daten, ich))
-        return self.antwort(200, werk.foto_weg(daten, ich))
+        if weg == "/api/foto-weg":
+            return self.antwort(200, werk.foto_weg(daten, ich))
+        return self.antwort(200, mac_wege(werk)[weg](daten))       # übrige Wege wie am Mac (zugang.POST_WEGE)
 
     def zum_mac(self, methode: str, weg: str, koerper: bytes | None, ich: str) -> None:
         """Servermodus: Trainingsweg durch den Tunnel an den Mac. Start dauert länger (Abgleich der Labels)."""
@@ -883,13 +910,7 @@ class Anfrage(BaseHTTPRequestHandler):
         if weg == "/api/galerie":
             return self.antwort(200, werk.kette.galerie())
         if weg == "/api/koerper":
-            try:
-                return self.antwort(200, werk.kette.koerper(parse_qs(urlsplit(self.path).query).get("id", [""])[0]))
-            except ValueError as e:
-                return self.antwort(400, {"fehler": str(e)})
-            except Exception as e:                      # Meldung in den Browser statt abgebrochener Verbindung
-                traceback.print_exc()
-                return self.antwort(500, {"fehler": f"Körper ging nicht: {type(e).__name__}: {e}"})
+            return self.koerper_senden(werk)
         if weg == "/live.jpg":
             werk.raster = l.raster_fuers_handy({k: v[0] for k, v in parse_qs(urlsplit(self.path).query).items()})
         if weg == "/live.jpg" and werk.app_da():
@@ -950,13 +971,11 @@ class Anfrage(BaseHTTPRequestHandler):
             if weg == "/api/datei":
                 q = {k: v[0] for k, v in parse_qs(teile.query).items()}
                 return self.antwort(200, {"balken": werk.foto_ablegen(q.get("balken"), q.get("seite"), int(q.get("nr", "-1")), roh)})
-            wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
-                    "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
-                    "/api/zurueck": werk.zurueckholen, "/api/balken-weg": werk.balken_weg,
-                    "/api/balken-zurueck": werk.balken_zurueck, "/api/label": werk.kette.speichern, "/api/klassen": werk.kette.klassen_aendern, "/api/foto-massstab": werk.kette.foto_massstab, "/api/teil": werk.kette.teil_setzen,
-                    "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen,
-                    "/api/vorlabeln": werk.kette.vorlabeln_starten,
-                    "/api/vorlabeln-abbrechen": werk.kette.vorlabeln_abbrechen}
+            wege = mac_wege(werk) | {"/api/label": werk.kette.speichern, "/api/klassen": werk.kette.klassen_aendern,
+                                    "/api/foto-massstab": werk.kette.foto_massstab, "/api/teil": werk.kette.teil_setzen,
+                                    "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen,
+                                    "/api/vorlabeln": werk.kette.vorlabeln_starten,
+                                    "/api/vorlabeln-abbrechen": werk.kette.vorlabeln_abbrechen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})
             daten = json.loads(roh)
@@ -972,10 +991,14 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(500, {"fehler": f"Speichern ging nicht: {e}"})
 
 
-def seite_fuer_server(html: bytes) -> bytes:
-    """Navigation im Servermodus: Aufnahme heißt Hochladen, Galerie gibt es nicht. Training rechnet der Mac."""
-    return (html.replace(b'<a href="/galerie">Galerie</a>', b"")
-            .replace(b'<a href="/">Aufnahme</a>', b'<a href="/">Hochladen</a>'))
+def mac_wege(werk: Werk) -> dict:
+    """POST-Wege der Aufnahme und Galerie, gleich auf dem Mac und auf dem Server (Jan 26.11.2026: die Domain ist ein
+    Klon der Mac-Oberfläche). Auslösen und Kamera antworten auf dem Server mit „iPhone nicht verbunden“."""
+    return {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
+            "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle,
+            "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
+            "/api/zurueck": werk.zurueckholen, "/api/balken-weg": werk.balken_weg,
+            "/api/balken-zurueck": werk.balken_zurueck}
 
 
 class Server(ThreadingHTTPServer):

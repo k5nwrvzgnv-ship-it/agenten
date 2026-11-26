@@ -14,11 +14,23 @@ ANSEHEN, HOCHLADEN, LABELN, VERWALTEN, TRAINIEREN = "ansehen", "hochladen", "lab
 ALLES = frozenset({ANSEHEN, HOCHLADEN, LABELN, VERWALTEN, TRAINIEREN})
 RECHTE = {name: ALLES for name in NUTZER}
 
-# POST-Wege im Servermodus und das Recht, das sie brauchen. Alles andere gibt es dort nicht (Fotobox, iPhone).
-# Training, Abbrechen und Teil gehen durch den Tunnel an Jans Mac (tunnel.py).
+# POST-Wege im Servermodus und das Recht, das sie brauchen. Die Oberfläche ist dieselbe wie auf dem Mac; nur die
+# Wege des iPhones (/h/...) gibt es dort nicht. Training, Abbrechen und Teil gehen durch den Tunnel an Jans Mac.
 POST_WEGE = {
     "/api/balken": HOCHLADEN,
     "/api/hochladen": HOCHLADEN,
+    "/api/datei": HOCHLADEN,
+    "/api/vorschub": HOCHLADEN,
+    "/api/ausloesen": HOCHLADEN,
+    "/api/kamera": HOCHLADEN,
+    "/api/einstellungen": VERWALTEN,
+    "/api/zuschnitt": VERWALTEN,
+    "/api/massstab": LABELN,
+    "/api/kontrolle": LABELN,
+    "/api/loeschen": VERWALTEN,
+    "/api/zurueck": VERWALTEN,
+    "/api/balken-weg": VERWALTEN,
+    "/api/balken-zurueck": VERWALTEN,
     "/api/label": LABELN,
     "/api/klassen": LABELN,
     "/api/foto-massstab": LABELN,

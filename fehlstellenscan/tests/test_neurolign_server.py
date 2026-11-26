@@ -42,8 +42,9 @@ class Zugang(unittest.TestCase):
             self.assertIsNone(z.post_erlaubt(wer, "/api/foto-weg"))
         self.assertFalse(z.darf(None, z.ANSEHEN))
         self.assertFalse(z.darf("mallory", z.ANSEHEN))
-        for weg in ("/api/loeschen", "/api/ausloesen", "/api/einstellungen", "/api/zuschnitt"):
-            self.assertEqual(z.post_erlaubt("jan", weg)[0], 404)
+        for weg in ("/api/loeschen", "/api/ausloesen", "/api/einstellungen", "/api/zuschnitt", "/api/balken-weg"):
+            self.assertIsNone(z.post_erlaubt("henri", weg))       # dieselbe Oberfläche wie am Mac
+        self.assertEqual(z.post_erlaubt("jan", "/h/abc/foto")[0], 404)
         self.assertIsNone(z.post_erlaubt("henri", "/api/hochladen"))
 
     def test_herkunft(self):
@@ -95,20 +96,31 @@ class Servermodus(unittest.TestCase):
         self.assertEqual(self.ruf("/api/stand", host="localhost")[0], 403)
         self.assertEqual(self.ruf("/api/balken", {"laenge_mm": 1}, wer=None)[0], 403)
 
-    def test_seiten_ohne_fotobox_und_training(self):
-        st, html = self.ruf("/")
-        self.assertEqual(st, 200)
-        self.assertIn(b"hochladen.js", html)
-        st, html = self.ruf("/labeln")
-        self.assertIn(b'<a href="/training">Training</a>', html)
-        self.assertNotIn(b"/galerie", html)
-        self.assertIn(b'<a href="/">Hochladen</a>', html)
-        st, html = self.ruf("/training")
-        self.assertEqual(st, 200)
-        self.assertIn(b'<a href="/">Hochladen</a>', html)
-        for weg in ("/live.jpg", "/h/abc/warten", "/galerie", "/koerper", "/api/galerie", "/api/koerper"):
+    def test_dieselben_seiten_wie_am_mac(self):
+        # Jan 26.11.2026: die Domain ist ein Klon der Mac-Oberfläche
+        for weg, datei in (("/", "index.html"), ("/galerie", "galerie.html"), ("/koerper", "koerper.html"),
+                           ("/labeln", "labeln.html"), ("/training", "training.html")):
+            st, html = self.ruf(weg)
+            self.assertEqual(st, 200, weg)
+            self.assertEqual(html, (s.SEITE / datei).read_bytes(), weg)
+        for weg in ("/live.jpg", "/h/abc/warten"):
             self.assertEqual(self.ruf(weg)[0], 404, weg)
         self.assertEqual(self.ruf("/api/saetze")[1], {"kodytek": 0})
+        st, stand = self.ruf("/api/stand")
+        self.assertEqual((st, stand["adressen"], stand["app"], stand["ich"]), (200, [], None, "henri"))
+
+    def test_aufnahme_wege_wie_am_mac(self):
+        kennung = self.balken()
+        st, b = self.ruf(f"/api/datei?balken={kennung}&seite=1&nr=0", roh=jpeg())
+        self.assertEqual(st, 200, b)
+        self.assertEqual(list(b["balken"]["seiten"]["1"]["fotos"]), ["0"])
+        self.assertEqual(self.ruf("/api/ausloesen", {"balken": kennung, "seite": "1", "nr": 1})[0], 409)
+        self.assertEqual(self.ruf("/api/loeschen", {"balken": kennung, "seite": "1", "nr": 0})[0], 200)
+        self.assertEqual(self.ruf("/api/zurueck", {"balken": kennung, "seite": "1", "nr": 0})[0], 200)
+        self.assertEqual([x["id"] for x in self.ruf("/api/galerie")[1]], [kennung])
+        self.assertEqual(self.ruf("/api/balken-weg", {"balken": kennung})[0], 200)
+        self.assertEqual(self.ruf("/api/galerie")[1], [])
+        self.assertEqual(self.ruf("/api/balken-zurueck", {"balken": kennung})[0], 200)
 
     def test_fremde_herkunft_abgelehnt(self):
         self.assertEqual(self.ruf("/api/balken", {"laenge_mm": 1200}, herkunft="https://boese.example")[0], 403)
@@ -122,8 +134,8 @@ class Servermodus(unittest.TestCase):
         self.assertEqual(kennung, "B501")
         b = next(x for x in self.ruf("/api/stand")[1]["balken"] if x["id"] == kennung)
         self.assertEqual(b["von"], "felix")
-        self.assertEqual([f["von"] for f in b["seiten"]["1"]["fotos"]], ["felix", "henri"])
-        self.assertTrue((self.ablage / kennung / b["seiten"]["1"]["fotos"][0]["datei"]).exists())
+        self.assertEqual([f["von"] for f in b["seiten"]["1"]["fotos"].values()], ["felix", "henri"])
+        self.assertTrue((self.ablage / kennung / b["seiten"]["1"]["fotos"]["0"]["datei"]).exists())
 
         bilder = self.ruf("/api/bilder")[1]
         self.assertEqual(len(bilder), 2)
@@ -168,7 +180,6 @@ class Servermodus(unittest.TestCase):
         st, b = self.ruf("/api/balken", {"id": kennung, "laenge_mm": 900, "breite_mm": 100, "hoehe_mm": 100})
         self.assertEqual(st, 200, b)
         self.ruf(f"/api/hochladen?balken={kennung}&seite=2", roh=jpeg())
-        self.assertEqual(self.ruf("/api/loeschen", {})[0], 404)
         st, stand = self.ruf("/api/foto-weg", {"balken": kennung, "seite": "2", "nr": 0}, wer="felix")
         self.assertEqual(st, 200, stand)
         self.assertEqual(stand["balken"][0]["seiten"]["2"]["fotos"], [])
@@ -194,9 +205,9 @@ class Servermodus(unittest.TestCase):
         bild = next(b for b in self.ruf("/api/bilder")[1] if b["name"] == name)
         self.assertEqual(len(bild["objekte"]), 1)
         self.assertFalse(any((self.ablage / kennung / "verworfen").iterdir()))
-        # zweimal zurück geht nicht, und ohne Recht-Weg auch kein /api/zurueck
+        # zweimal zurück geht nicht, auch nicht über den Mac-Weg /api/zurueck
         self.assertEqual(self.ruf("/api/foto-zurueck", {"balken": kennung, "seite": "1", "nr": 1})[0], 400)
-        self.assertEqual(self.ruf("/api/zurueck", {"balken": kennung, "seite": "1", "nr": 1})[0], 404)
+        self.assertEqual(self.ruf("/api/zurueck", {"balken": kennung, "seite": "1", "nr": 1})[0], 400)
         self.assertEqual(self.ruf("/api/foto-zurueck", {"balken": kennung, "seite": "1", "nr": 1}, wer=None)[0], 403)
 
     def test_hochladen_prueft_eingaben(self):
