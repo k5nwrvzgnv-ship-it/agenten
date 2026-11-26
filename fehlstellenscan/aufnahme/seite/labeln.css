@@ -136,3 +136,13 @@ legend{display:flex;align-items:center;gap:var(--space-sm);width:100%}.klb{margi
 #kld #kll li select{background:transparent;border-color:transparent;color:var(--color-muted-foreground)}#kld #kll li:hover select,#kld #kll li select:focus{background:var(--color-muted);border-color:var(--color-border);color:inherit}
 #kll .ib.prim{background:var(--color-primary);color:var(--color-on-primary)}
 #app[data-vorsch=aus] .fb{min-width:28px;min-height:28px}
+/* Gruppiert annehmen (26.11.2026) */
+.zl .kw{display:inline-flex;align-items:center;padding:10px 6px;margin:-10px -6px;cursor:copy}.zl .ki[title]{cursor:copy}
+.zl.mw{background:color-mix(in srgb,var(--color-accent) 14%,var(--color-card));border-left-color:var(--color-accent)}
+.fwb{position:relative;width:var(--knopf);height:var(--knopf);color:var(--color-muted-foreground);border:var(--lin) solid transparent}.fwb:hover{color:var(--color-foreground);border-color:var(--color-border)}
+.fwb[aria-pressed=true]{color:var(--color-on-primary);background:var(--color-primary);border-color:var(--color-primary)}.fwb .i{width:20px;height:20px}
+.fwb .bs{position:absolute;top:-6px;right:-8px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font-size:11px;line-height:18px;background:var(--color-accent);color:var(--color-card)}
+.gt{display:flex;align-items:center;gap:var(--space-lg)}.gt .mono{font-size:22px}.gt .gw{display:inline-flex;align-items:center;gap:var(--space-sm);color:var(--color-muted-foreground)}.gt .gw .mono{font-size:inherit}.gt .gw .i{width:22px;height:22px}
+.gk{list-style:none;padding:0;margin:var(--space-md) 0 var(--space-lg);display:grid;gap:2px}.gk li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:var(--space-md);align-items:center;min-height:28px}
+.gb{display:flex;gap:var(--space-md);margin-top:var(--space-lg)}.gb .b{min-width:44px;min-height:44px;justify-content:center}.gb .b[aria-pressed=true]{background:var(--color-primary);color:var(--color-on-primary);border-color:var(--color-primary)}
+#lo .bs{margin-left:4px}
