@@ -64,3 +64,10 @@ dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:88vh;overflow:
 /* Training auf dem Server: Mac nicht erreichbar (Zeichnung statt Satz) */
 #tfehler .macaus{width:40px;height:40px;stroke:var(--rot)}
 .ohnemac #tsatz,.ohnemac #talt,.ohnemac #tsumme,.ohnemac #tprobe{display:none}
+/* Balkenwahl in der Seitenleiste, ··· öffnet Seltenes als Symbolreihe */
+#bwahl{display:flex;gap:4px;position:relative}#bwahl select{flex:1;min-width:0;min-height:40px}#bwahl .sy{min-height:40px}
+.menue{position:absolute;right:0;top:calc(100% + 4px);z-index:5;display:flex;gap:4px;padding:4px;background:var(--m);border:1px solid var(--r);border-radius:3px;box-shadow:0 8px 24px #000c}
+.menue .sy{background:var(--f)}.menue .sy:hover{background:var(--r)}.menue [data-tu=weg]:hover{color:var(--rot)}
+.felder{grid-template-columns:repeat(6,1fr)}.felder label{grid-column:span 2}.felder label:nth-child(n+4){grid-column:span 3}.felder label:nth-child(4):last-child{grid-column:1/-1}
+@media(max-width:800px){.felder{grid-template-columns:1fr}.felder label,.felder label:nth-child(n+4){grid-column:auto}}
+.rueck{position:fixed;right:16px;bottom:16px;z-index:6;display:flex;align-items:center;gap:8px;padding:0 12px 0 10px;min-height:40px;background:var(--m);border:1px solid var(--r);font-variant-numeric:tabular-nums;box-shadow:0 8px 24px #000c}

@@ -168,13 +168,13 @@ class Werk:
                     "balken": [self.mit_plan(self.lesen(i)) for i in self.ids()]}
 
     def balken_speichern(self, daten: dict, von: str | None = None) -> dict:
-        masse = l.masse_pruefen(daten)
+        masse = l.masse_pruefen(daten) | {"name": l.name_pruefen(daten.get("name"))}
         with self.schloss:
             if daten.get("id"):
                 b = self.lesen(daten["id"])
-                if any(s["fotos"] for s in b["seiten"].values()):
-                    raise ValueError("Der Balken hat schon Fotos, die Maße bleiben.")
-                b |= masse
+                if self.auftrag and self.auftrag["balken"] == b["id"]:
+                    raise Konflikt("Es wird gerade ausgelöst.")
+                self.masse_aendern(b, masse)
             else:
                 kennung, nr = l.neue_id(self.einst["letzte_nr"], self.ids())
                 self.einst["letzte_nr"] = nr
@@ -184,6 +184,65 @@ class Werk:
                     b["von"] = von
             self.ablegen(b)
             return self.mit_plan(b)
+
+    def masse_aendern(self, b: dict, masse: dict) -> None:
+        """Neue Maße übernehmen, ohne ein Foto zu verwerfen. Seiten mit Fotobox-Fotos behalten ihre Abschnitte, nur
+        Abstand und Maßstab folgen den neuen Maßen (logik.plan_anpassen), dazu px/mm je Foto und die Prüfmessungen
+        dieser Seite. Labels stehen in Anteilen des Zuschnitts und bleiben gültig, der Körper rechnet neu.
+        Geht eine Seite mit den neuen Maßen nicht in die Box, bleibt alles, wie es war."""
+        neu = {**b, **masse}
+        plaene = {}
+        for n, s in b["seiten"].items():
+            p = s.get("plan")
+            if s["fotos"] and p and not p.get("frei"):
+                plaene[n] = l.plan_anpassen(p, neu, n, [int(i) for i in s["fotos"]])
+        b |= masse
+        for n, p in plaene.items():
+            s, alt = b["seiten"][n], b["seiten"][n]["plan"]
+            voll_alt = alt.get("voll_mm") or alt["laengs_mm"]
+            s["plan"] = p
+            for f in s["fotos"].values():
+                if f.get("breite_px"):
+                    f["px_je_mm"] = round(l.px_je_mm(max(f["breite_px"], f["hoehe_px"]), p["voll_mm"]), 2)
+            for g in s.get("geloescht", {}).values():
+                if g.get("plan") == alt:
+                    g["plan"] = p                # Rückgängig beim Foto-Papierkorb geht weiter
+            for km in b.get("kontrollen", []):
+                if km["seite"] == n:
+                    km["foto_mm"] = round(km["foto_mm"] * p["voll_mm"] / voll_alt, 1)
+                    km["abweichung"] = round((km["foto_mm"] / km["zollstock_mm"] - 1) * 100, 2)
+
+    def papierkorb(self) -> Path:
+        return self.ordner / "papierkorb"
+
+    def balken_weg(self, daten: dict) -> dict:
+        """Balken mit allem (Fotos, Zuschnitte, Labels, Körper) nach papierkorb/<ID>/ legen, nicht löschen. Der Teil
+        in teile.json bleibt stehen, so kommt er beim Zurückholen in dieselbe Gruppe. IDs werden nie neu vergeben."""
+        with self.schloss:
+            b = self.lesen(daten.get("balken"))
+            if self.auftrag and self.auftrag["balken"] == b["id"]:
+                raise Konflikt("Es wird gerade ausgelöst.")
+            if self.kette.lauf and self.kette.lauf["status"] in k.LAUFEND:
+                raise Konflikt("Es läuft ein Training. Danach löschen.")
+            ziel = self.papierkorb() / b["id"]
+            if ziel.exists():                     # alter Rest gleicher ID: beiseite, nichts überschreiben
+                ziel.rename(ziel.with_name(f"{b['id']}-{datetime.now():%Y%m%d-%H%M%S}"))
+            ziel.parent.mkdir(exist_ok=True)
+            (self.ordner / b["id"]).rename(ziel)
+            return {"weg": b["id"]}
+
+    def balken_zurueck(self, daten: dict) -> dict:
+        kennung = daten.get("balken")
+        if not isinstance(kennung, str) or not re.fullmatch(r"B\d{3,6}", kennung):
+            raise ValueError("Unbekannter Balken.")
+        with self.schloss:
+            quelle, ziel = self.papierkorb() / kennung, self.ordner / kennung
+            if not (quelle / "balken.json").exists():
+                raise ValueError("Diesen Balken gibt es im Papierkorb nicht.")
+            if ziel.exists():
+                raise ValueError(f"{kennung} gibt es schon.")
+            quelle.rename(ziel)
+            return self.mit_plan(self.lesen(kennung))
 
     def vorschub(self, daten: dict) -> dict:
         with self.schloss:
@@ -753,7 +812,8 @@ class Anfrage(BaseHTTPRequestHandler):
                 return self.antwort(200, {"balken": werk.foto_ablegen(q.get("balken"), q.get("seite"), int(q.get("nr", "-1")), roh)})
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
                     "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
-                    "/api/zurueck": werk.zurueckholen, "/api/label": werk.kette.speichern, "/api/teil": werk.kette.teil_setzen,
+                    "/api/zurueck": werk.zurueckholen, "/api/balken-weg": werk.balken_weg,
+                    "/api/balken-zurueck": werk.balken_zurueck, "/api/label": werk.kette.speichern, "/api/teil": werk.kette.teil_setzen,
                     "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})

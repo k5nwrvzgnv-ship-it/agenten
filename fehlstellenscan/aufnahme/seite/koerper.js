@@ -46,7 +46,7 @@ async function laden(){
  try{const st=await json('/api/stand'),mit=st.balken.filter(b=>Object.values(b.seiten||{}).some(s=>Object.keys(s.fotos||{}).length));
   id=new URLSearchParams(location.search).get('id')||mit.at(-1)?.id;
   const b=st.balken.find(x=>x.id===id);if(!b)throw Error(id?`${id} gibt es nicht.`:'Noch kein Balken mit Fotos.');
-  M=masse(b);$('#kid').textContent=id;$('#kmass').textContent=`${M.L} × ${b.breite_mm} × ${b.hoehe_mm} mm`;document.title=`Neurolign ${id}`;
+  M=masse(b);$('#kid').textContent=b.name?`${id} ${b.name}`:id;$('#kmass').textContent=`${M.L} × ${b.breite_mm} × ${b.hoehe_mm} mm`;document.title=`Neurolign ${id}`;
   knoepfe(null);bauen();
   const K=await json('/api/koerper?id='+encodeURIComponent(id));
   // unplausible Seiten (schief, falsches Maß) nicht aufkleben, sondern rot markiert schraffieren
@@ -66,6 +66,8 @@ buehne.addEventListener('keydown',e=>{const s={ArrowLeft:['ry',-15],ArrowRight:[
  if(s){A[s[0]]+=s[1]}else if(e.key==='+'||e.key==='='){A.zoom=Math.min(8,A.zoom*1.2)}else if(e.key==='-'){A.zoom=Math.max(.3,A.zoom/1.2)}
  else if(e.key==='0'||e.key==='Home'){A={...START}}else if(/^[1-4]$/.test(e.key)){return seiteNachVorn(+e.key)}else return;
  e.preventDefault();zeigen()});
+// Zurück in die Galerie: kommt man von dort, wie Zurück im Browser (Lage in der Liste bleibt)
+$('#kgalerie').onclick=e=>{try{if(new URL(document.referrer).pathname==='/galerie'&&new URL(document.referrer).host===location.host&&history.length>1){e.preventDefault();history.back()}}catch(x){}};
 $('#kzurueck').onclick=()=>{A={...START};zeigen()};
 addEventListener('resize',bauen);
 laden();

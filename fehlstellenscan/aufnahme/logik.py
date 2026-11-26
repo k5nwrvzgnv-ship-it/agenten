@@ -74,6 +74,37 @@ def neu_skalieren(p: dict, faktor: float) -> dict:
     return neu
 
 
+def plan_anpassen(p: dict, balken: dict, seite: str, mit_foto: list[int]) -> dict:
+    """Eingefrorenen Plan einer Seite an korrigierte Maße anpassen. Die Fotos sind am echten Balken entstanden: ihre
+    Lage (mitten_mm) bleibt, Abstand und Bildfeld folgen der neuen Höhe in dieser Lage (Kamera, Bildwinkel, Zuschnitt
+    und Vorschub wie beim ersten Foto). Abschnitte bis zum letzten Foto bleiben, danach geht es mit dem Vorschub bis
+    zum neuen Ende weiter: länger gibt neue Abschnitte, kürzer streicht nur leere am Ende. mit_foto: Abschnitte mit
+    Foto, nicht leer."""
+    info = seite_info(balken["breite_mm"], balken["hoehe_mm"], seite)
+    abstand = p["kamera_rolle_mm"] - info["hoch_mm"]
+    if abstand < 50:
+        raise ValueError(f"{info['art']}: nur {abstand / 10:.1f} cm bis zur Kamera, das passt nicht in die Box.")
+    voll, hoch = bildfeld(abstand, p["faktor"])
+    _, _, anteil_b, anteil_h = p.get("zuschnitt") or GANZ
+    laengs, quer = voll * anteil_b, hoch * anteil_h
+    schritt = p["schritt_mm"]
+    m = list(p["mitten_mm"][:max(mit_foto) + 1])
+    letzte = balken["laenge_mm"] + RAND - laengs / 2
+    while m[-1] < letzte - 0.5:
+        m.append(min(m[-1] + schritt, letzte))
+    return {**p, **info, "abstand_mm": abstand, "laengs_mm": laengs, "quer_mm": quer, "voll_mm": voll,
+            "luecke": schritt >= laengs, "zu_breit": info["flaeche_mm"] >= quer, "mitten_mm": m}
+
+
+def name_pruefen(wert) -> str:
+    """Anzeigename eines Balkens neben der festen ID, leer = keiner."""
+    if wert is None:
+        return ""
+    if not isinstance(wert, str):
+        raise ValueError("Name nicht lesbar.")
+    return " ".join(wert.split())[:40]
+
+
 def zuschnitt_pruefen(werte) -> list[float] | None:
     """Rechteck in Anteilen, None oder das ganze Bild = kein Zuschnitt."""
     if werte is None:

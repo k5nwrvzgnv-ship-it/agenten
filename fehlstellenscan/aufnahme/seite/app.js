@@ -12,23 +12,28 @@ function balken3d(b,k){const l=Math.max(b.breite_mm,b.hoehe_mm),s=Math.min(b.bre
 /* Längen unter 10 cm in mm, sonst in cm; Eingabe in derselben Einheit */
 const einheit=mm=>mm<100?'mm':'cm',laenge=mm=>mm<100?`${mm.toLocaleString('de-DE',{maximumFractionDigits:1})} mm`:`${cm(mm)} cm`;
 const prozent=x=>(x>0?'+':x<0?'−':'±')+Math.abs(x).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' %';
-let S={balken:[],einstellungen:{},adressen:[]},bid=null,seite='1',jetzt=0,zeigt=null,laeuft=false,geloescht=null,mess=null,formular=false,aendern=null,geprueft=null;
+let S={balken:[],einstellungen:{},adressen:[]},bid=null,bweg=null,seite='1',jetzt=0,zeigt=null,laeuft=false,geloescht=null,mess=null,formular=false,aendern=null,geprueft=null;
 let dreh={};try{dreh=JSON.parse(localStorage.getItem('aufnahme-dreh'))||{}}catch(e){}
 async function ruf(weg,daten){let a;try{a=await fetch(weg,daten===undefined?{}:{method:'POST',headers:{'X-Aufnahme':'1'},body:daten instanceof Blob?daten:JSON.stringify(daten)})}catch(e){throw Error('Das Programm auf dem Mac antwortet nicht. Im Terminal neu starten.')}
  const j=await a.json();if(!a.ok)throw Error(j.fehler);return j}
 const B=()=>S.balken.find(b=>b.id===bid),SE=()=>B().seiten[seite],fotos=s=>Object.keys(s.fotos).length,fertig=s=>s.plan&&fotos(s)>=s.plan.mitten_mm.length;
 const offen=()=>{const p=SE().plan;return p?p.mitten_mm.findIndex((_,i)=>!SE().fotos[i]):-1};
 const ersetze=b=>{const i=S.balken.findIndex(x=>x.id===b.id);i<0?S.balken.push(b):S.balken[i]=b};
-function oeffne(id){bid=id;formular=false;seite=['1','2','3','4'].find(s=>!fertig(B().seiten[s]))||'1';seiteAuf()}
+function oeffne(id,s){bid=id;formular=false;seite=s||['1','2','3','4'].find(s=>!fertig(B().seiten[s]))||'1';seiteAuf()}
 function seiteAuf(){jetzt=offen();const n=Object.keys(SE().fotos).map(Number).sort((a,b)=>a-b);zeigt=n.length?n.at(-1):null;mess=schneide=geprueft=null;$('#afehler').textContent='';mal()}
-function maleForm(b){formular=true;aendern=b||null;$('#ftitel').textContent=b?b.id+' ändern':'Neuer Balken';$('#form .haupt').textContent=b?'Maße speichern':'Balken anlegen';const f=$('#form form');for(const k of['laenge','breite','hoehe'])f[k].value=b?cm(b[k+'_mm']):'';f.holzart.value=b?b.holzart:'';$('#form .fehler').textContent='';mal();f.laenge.focus()}
-$('#form form').onsubmit=async e=>{e.preventDefault();const f=e.target,d={holzart:f.holzart.value};$('#form .fehler').textContent='';
+/* Anlegen und Ändern im selben Formular. Ändern geht auch mit Fotos: die bleiben, der Server passt Abstand und Maßstab an */
+const bname=b=>b.name?`${b.id} ${b.name}`:b.id;
+function maleForm(b,feld='laenge'){menueZu();formular=true;aendern=b||null;$('#ftitel').textContent=b?bname(b):'Neuer Balken';const h=$('#form .haupt'),n=b?'Speichern':'Balken anlegen';h.innerHTML=ic(b?'ja':'plus');h.title=n;h.setAttribute('aria-label',n);
+ const ab=$('#formab'),rueck=!S.balken.length&&bweg,an=rueck?`${bweg} zurückholen`:'Abbrechen';ab.hidden=!S.balken.length&&!bweg;ab.innerHTML=ic(rueck?'zurueck':'nein');ab.title=an;ab.setAttribute('aria-label',an);const f=$('#form form');for(const k of['laenge','breite','hoehe'])f[k].value=b?cm(b[k+'_mm']):'';f.holzart.value=b?b.holzart:'';f.name.value=b?b.name||'':'';$('#form .fehler').textContent='';mal();f[feld].focus();if(feld==='name')f.name.select()}
+$('#formab').onclick=()=>{if(!S.balken.length&&bweg)balkenZurueck();else if(aendern)oeffne(aendern.id,seite);else if(bid&&B())oeffne(bid);else if(S.balken.length)oeffne(S.balken.at(-1).id)};
+$('#form').onkeydown=e=>{if(e.key==='Escape'&&S.balken.length){e.preventDefault();$('#formab').click()}};
+$('#form form').onsubmit=async e=>{e.preventDefault();const f=e.target,d={holzart:f.holzart.value,name:f.name.value};$('#form .fehler').textContent='';
  for(const k of['laenge','breite','hoehe'])d[k+'_mm']=lies(f[k].value);if(aendern)d.id=aendern.id;
- try{const b=await ruf('/api/balken',d);ersetze(b);oeffne(b.id);document.activeElement.blur()}catch(x){$('#form .fehler').textContent=x.message}};
+ try{const b=await ruf('/api/balken',d),s=aendern?seite:null;ersetze(b);oeffne(b.id,s);document.activeElement.blur()}catch(x){$('#form .fehler').textContent=x.message}};
 function bildHtml(f){const src=`/foto/${bid}/${f.vorschau}`;return src}
 function mal(){
- $('#wahl').innerHTML=(formular&&!aendern?'<option value="">Neuer Balken</option>':'')+S.balken.map(b=>{const n=Object.values(b.seiten).filter(fertig).length;return `<option value="${b.id}" ${b.id===bid&&!(formular&&!aendern)?'selected':''}>${b.id}${n?` · ${n}/4 Seiten`:''}</option>`}).join('');
- $('#wahl').hidden=!S.balken.length;$('#form').hidden=!formular;$('#aufnahme').hidden=formular;if(formular)return;
+ $('#wahl').innerHTML=(formular&&!aendern?'<option value="">Neuer Balken</option>':'')+S.balken.map(b=>{const n=Object.values(b.seiten).filter(fertig).length;return `<option value="${b.id}" ${b.id===bid&&!(formular&&!aendern)?'selected':''}>${esc(bname(b))}${n?` · ${n}/4`:''}</option>`}).join('');
+ $('#form').hidden=!formular;const bz=$('#bzurueck');bz.hidden=!bweg;if(bweg){bz.querySelector('span').textContent=bweg;bz.title=`${bweg} zurückholen`;bz.setAttribute('aria-label',bz.title)}$('#aufnahme').hidden=formular;if(formular)return;
  const b=B(),s=SE(),p=s.plan;
  $('#seiten').innerHTML=['1','2','3','4'].map(k=>{const x=b.seiten[k];return `<button data-s="${k}" aria-pressed="${k===seite}" title="${sname(b,k)}" aria-label="${sname(b,k)}">${balken3d(b,k)}<small>${x.plan?fertig(x)?ic('ja'):fotos(x)+'/'+x.plan.mitten_mm.length:'–'}</small></button>`}).join('');
  lageMalen(b,p);
@@ -61,7 +66,7 @@ function bildMalen(s){const f=zeigt!==null&&s.fotos[zeigt],el=$('#bild'),inf=$('
  const sch=kw('zuschnitt','zuschnitt','Zuschnitt');
  if(!f){el.dataset.src='';const u=geloescht&&geloescht.balken===bid&&geloescht.seite===seite&&geloescht.nr===zeigt?kw('zurueck','zurueck','Löschen rückgängig'):'';
   if(S.app){leinwand().setAttribute('aria-label','Live-Bild');live()}else el.innerHTML='<span>Noch kein Foto</span>';
-  if(!schneide)inf.innerHTML=`<span class="re">${u}${!u&&fotos0()?kw('massaend','stift','Maße ändern'):''}${S.app?kw('drehen','drehen','Drehen')+sch:''}</span>`;return}
+  if(!schneide)inf.innerHTML=`<span class="re">${u}${S.app?kw('drehen','drehen','Drehen')+sch:''}</span>`;return}
  const src=bildHtml(f),k=src+JSON.stringify(ausschnitt());if(el.dataset.src!==k||!el.querySelector('canvas')){el.dataset.src=k;hole(src,i=>{if(el.dataset.src!==k)return;if(!i){el.innerHTML='<span>Foto gespeichert, Vorschau nicht möglich</span>';return}const c=leinwand();c.setAttribute('aria-label',`${bid}, Seite ${seite}, Abschnitt ${zeigt+1}`);zeichne(c,i,ausschnitt(),2400);ueber()})}else leinwand();
  if(!schneide)inf.innerHTML=mess?messLeiste():`${geprueft?`<span class="gepr">${ic('ja')}${laenge(geprueft.foto_mm)}${ic('mass')}${laenge(geprueft.zollstock_mm)}<b>${prozent(geprueft.abweichung)}</b></span>${kw('pruefweg','zurueck','Rückgängig')}`:`<b>Abschnitt ${zeigt+1}</b><span>${f.breite_px?`${f.breite_px} × ${f.hoehe_px} px · `:''}${f.px_je_mm?f.px_je_mm.toLocaleString('de-DE')+' px/mm · ':''}${f.mb.toLocaleString('de-DE')} MB${f.kamera&&f.kamera.dauer?' · '+belicht(f.kamera):''}</span>`}<span class="re">${kw('drehen','drehen','Drehen')}${sch}${kw('messen','mass','Messen')}${kw('nochmal','kamera','Nochmal')}${kw('weg','weg','Löschen')}</span>`;
  ueber();const st=$('#strecke');if(st){st.value=mess.wert||'';abweichung();st.focus()}}
@@ -107,7 +112,7 @@ async function messOk(){const z=zollstock();if(!z){$('#afehler').textContent='Ma
 $('#bildinfo').onclick=e=>{const id=e.target.closest('button')?.id;if(!id||laeuft)return;if(id==='drehen'){dreh.w=(winkel+180)%360;try{localStorage.setItem('aufnahme-dreh',JSON.stringify(dreh))}catch(x){}mal()}
  if(id==='messen'){mess={p:[]};geprueft=null;mal()}if(id==='pruefok')pruefOk();if(id==='pruefweg')pruefWeg();if(id==='messab'){mess=null;$('#afehler').textContent='';mal()}if(id==='messok')messOk();
  if(id==='zuschnitt'){schneide={r:null};mess=null;$('#bild').dataset.src='';mal()}if(id==='zuab'){schneide=null;mal()}if(id==='zuok')schnitt(schneide.r);if(id==='zuganz')schnitt(null);
- if(id==='nochmal'){jetzt=zeigt;document.activeElement.blur();mal()}if(id==='weg')loesche();if(id==='zurueck')zurueck();if(id==='massaend')maleForm(B())};
+ if(id==='nochmal'){jetzt=zeigt;document.activeElement.blur();mal()}if(id==='weg')loesche();if(id==='zurueck')zurueck()};
 $('#bildinfo').onkeydown=e=>{if(e.key==='Enter'&&e.target.id==='strecke')S.einstellungen.faktor_gemessen?pruefOk():messOk();if(e.key==='Escape'&&mess){mess=null;mal()}};
 $('#bildinfo').oninput=e=>{if(e.target.id==='strecke')abweichung()};
 const belicht=k=>`${k.dauer<.5?'1/'+Math.round(1/k.dauer):k.dauer.toFixed(1)} s · ISO ${Math.round(k.iso)}`;
@@ -120,7 +125,6 @@ function ausgebrannt(q){const c=document.createElement('canvas');c.width=300;c.h
 function pruefe(){$('#brand')?.remove();const c=$('#bild canvas');if(!c||mess||schneide)return;const a=ausgebrannt(c);if(a>.01)$('#bildinfo').insertAdjacentHTML('afterbegin',`<span id="brand" class="warn">${Math.round(a*100)} % überbelichtet</span>`)}
 function appMalen(){const a=S.app;$('#kam').hidden=!a;if(!a)return;$('#kam output').textContent=a.dauer?belicht(a):'–';$$('#kam [data-m]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===a.modus))}
 $('#kam').onclick=async e=>{const b=e.target.closest('button');if(!b)return;b.blur();try{await ruf('/api/kamera',b.dataset.m?{art:'modus',wert:b.dataset.m}:b.dataset.ev?{art:'ev',wert:+b.dataset.ev}:{art:'einmessen'});$('#afehler').textContent=''}catch(x){$('#afehler').textContent=x.message}};
-const fotos0=()=>!Object.values(B().seiten).some(x=>fotos(x));
 async function los(){if(laeuft||formular||mess||schneide)return;const s=SE();if(!s.plan)return;
  if(jetzt<0){const n=naechste();if(!n&&Object.values(B().seiten).every(fertig)){location.href='/labeln?balken='+bid;return}if(n){seite=n;seiteAuf()}else maleForm();return}
  await nimm(()=>ruf('/api/ausloesen',{balken:bid,seite,nr:jetzt}))}
@@ -131,11 +135,22 @@ async function nimm(tu,loescht){const ziel=[bid,seite,jetzt];laeuft=true;$('#afe
  laeuft=false;mal()}
 $('#los').onclick=()=>{$('#los').blur();los()};
 addEventListener('keydown',e=>{if(e.code!=='Space'||e.repeat||$('#dlg').open||formular||/^(INPUT|SELECT|BUTTON)$/.test(e.target.tagName))return;e.preventDefault();los()});
-addEventListener('keydown',e=>{if($('#dlg').open||/^(INPUT|SELECT)$/.test(e.target.tagName)||formular)return;if((e.key==='Delete'||e.key==='Backspace')&&!e.repeat){e.preventDefault();loesche()}if(e.key==='z'&&(e.metaKey||e.ctrlKey)&&geloescht&&geloescht.balken===bid&&geloescht.seite===seite){e.preventDefault();zurueck()}});
+addEventListener('keydown',e=>{if($('#dlg').open||/^(INPUT|SELECT)$/.test(e.target.tagName)||formular)return;if((e.key==='Delete'||e.key==='Backspace')&&!e.repeat){e.preventDefault();loesche()}if(e.key==='z'&&(e.metaKey||e.ctrlKey)){if(geloescht&&geloescht.balken===bid&&geloescht.seite===seite){e.preventDefault();zurueck()}else if(bweg){e.preventDefault();balkenZurueck()}}});
 $('#seiten').onclick=e=>{const k=e.target.closest('button');if(!k||laeuft)return;seite=k.dataset.s;seiteAuf()};
 $('#abschnitte').onclick=e=>{const k=e.target.closest('button');if(!k||laeuft)return;const i=+k.dataset.i;if(SE().fotos[i]){zeigt=i;jetzt=offen()}else{jetzt=i;zeigt=null}mess=schneide=geprueft=null;mal()};
 $('#vorschub input').onchange=async e=>{const i=e.target;try{ersetze(await ruf('/api/vorschub',{balken:bid,seite,mm:i.value.trim()?lies(i.value):0}));i.blur();$('#afehler').textContent='';seiteAuf()}catch(x){$('#afehler').textContent=x.message}};
 $('#wahl').onchange=e=>{if(laeuft||!e.target.value)return mal();oeffne(e.target.value);e.target.blur()};$('#neu').onclick=()=>{if(!laeuft)maleForm()};
+/* ··· am Balken: Seltenes (Maße, Name, Löschen). Löschen legt in den Papierkorb, Rückgängig daneben statt Nachfrage */
+function menueZu(){$('#bmenue').hidden=true;$('#bmehr').setAttribute('aria-expanded','false')}
+$('#bmehr').onclick=()=>{const m=$('#bmenue'),auf=m.hidden;m.hidden=!auf;$('#bmehr').setAttribute('aria-expanded',String(auf));if(auf)m.querySelector('button').focus()};
+$('#bmenue').onclick=e=>{const t=e.target.closest('button')?.dataset.tu;if(!t||laeuft)return;menueZu();if(t==='bearbeiten')maleForm(B());if(t==='weg')balkenWeg()};
+$('#bmenue').onkeydown=e=>{const k=[...$$('#bmenue button')],i=k.indexOf(document.activeElement);if(e.key==='Escape'){menueZu();$('#bmehr').focus()}
+ if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();k[(i+1)%k.length].focus()}if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();k[(i+k.length-1)%k.length].focus()}};
+addEventListener('pointerdown',e=>{if(!e.target.closest('#bwahl'))menueZu()});
+async function balkenWeg(){if(laeuft||!B())return;const id=bid,i=S.balken.findIndex(b=>b.id===id);$('#afehler').textContent='';
+ try{await ruf('/api/balken-weg',{balken:id});S.balken.splice(i,1);bweg=id;geloescht=null;const n=S.balken[Math.max(0,i-1)];n?oeffne(n.id):maleForm();if(n)$('#bzurueck').focus()}catch(x){$('#afehler').textContent=x.message}}
+async function balkenZurueck(){if(laeuft||!bweg)return;const id=bweg;try{const b=await ruf('/api/balken-zurueck',{balken:id});bweg=null;ersetze(b);S.balken.sort((a,c)=>a.id.localeCompare(c.id));oeffne(id);$('#afehler').textContent=''}catch(x){$('#afehler').textContent=x.message;if(formular)$('#form .fehler').textContent=x.message}}
+$('#bzurueck').onclick=balkenZurueck;
 function handyMalen(){const h=$('#handy');h.className=S.handy?'da':'';const n=S.handy?'iPhone verbunden':'iPhone nicht verbunden';h.title=n;h.setAttribute('aria-label',n)}
 function dlg(){const a=S.adressen,m=S.einstellungen;$('#abstand').kr.value=cm(m.kamera_rolle_mm);$('#abstand .fehler').textContent='';
  $('#winkel').textContent=m.faktor_gemessen?'Gemessen':'Angenommen (24 mm)';
@@ -146,4 +161,4 @@ $('#einst').onclick=$('#handy').onclick=dlg;$('.zu').onclick=()=>$('#dlg').close
 $('#abstand').onsubmit=async e=>{e.preventDefault();try{S=await ruf('/api/einstellungen',{kamera_rolle_mm:lies(e.target.kr.value)});$('#dlg').close();if(bid&&!formular)seiteAuf()}catch(x){$('#abstand .fehler').textContent=x.message}};
 $('#datei').onchange=async e=>{const d=e.target.files[0];e.target.value='';if(!d||!bid||formular)return;$('#dlg').close();if(jetzt<0){$('#afehler').textContent='Erst einen Abschnitt wählen.';return}await nimm(()=>ruf(`/api/datei?balken=${bid}&seite=${seite}&nr=${jetzt}`,d))};
 async function puls(){if(!laeuft)try{const n=await ruf('/api/stand');if(!laeuft){const vor=!!S.app;S.handy=n.handy;S.app=n.app;if(vor!==!!S.app&&!formular&&bid&&!(zeigt!==null&&SE().fotos[zeigt]))mal();appMalen();S.adressen=n.adressen;handyMalen();if(n.hinweis&&n.hinweis!==S.hinweis)$('#afehler').textContent=n.hinweis;S.hinweis=n.hinweis}}catch(e){S.handy=false;handyMalen();$('#handy').title='Programm beendet';$('#afehler').textContent='Das Programm auf dem Mac antwortet nicht.'}setTimeout(puls,1500)}
-ruf('/api/stand').then(n=>{S=n;S.balken.length?oeffne(S.balken.at(-1).id):maleForm();handyMalen();puls()}).catch(e=>{document.body.append(e.message)});
+ruf('/api/stand').then(n=>{S=n;const w=new URLSearchParams(location.search).get('balken'),b=S.balken.find(x=>x.id===w)||S.balken.at(-1);b?oeffne(b.id):maleForm();handyMalen();puls()}).catch(e=>{document.body.append(e.message)});

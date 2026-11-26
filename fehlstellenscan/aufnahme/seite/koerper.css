@@ -20,3 +20,5 @@
 #kseiten .ab{min-width:5ch;text-align:right;white-space:nowrap}#kseiten .warn{color:var(--gelb)}#kseiten .weg{color:var(--rot)}
 @media(prefers-reduced-motion:reduce){#kk{transition:none}#kbuehne[aria-busy=true] .kf{animation:none}}
 @media(max-width:800px){html,body{height:100%}#kfuss{gap:8px}#kname{width:100%}#kseiten{margin-left:0;flex:1}#kseiten button{flex:1;justify-content:center;padding:0 4px;gap:4px}#kseiten .ab{min-width:0}}
+#kgalerie{min-height:36px;color:var(--t);border-radius:3px;background:var(--m)}#kgalerie:hover{background:var(--r)}
+@media(max-width:800px){#kname{width:auto;flex:1 1 0;min-width:0}#kseiten{order:3;flex:1 1 100%}}

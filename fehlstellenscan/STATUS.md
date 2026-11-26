@@ -550,6 +550,27 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   fehlt“): behoben, fehlt der Zuschnitt, gilt das ganze Bild (Zuschnitt und Label speichern). /api/koerper meldet
   jede andere Ausnahme als 500 mit Text statt abgebrochener Verbindung. Am Mac nach dem Fix noch nicht geprüft.
   Neuer Balken bleibt wie bisher: „+“ in der Aufnahme, der alte steht danach in der Galerie.
+- Balken verwalten (Jan 26.11.2026, für die 50 Balken bei Felix am 27.11.): Balkenwahl, „+“ und ··· stehen oben in
+  der Seitenleiste der Aufnahme (nicht mehr in der Kopfzeile). ··· = Bearbeiten (Stift: Maße, Holzart, Name in einem
+  Formular, auch Umbenennen), Löschen (Mülleimer); in der Galerie dasselbe am ··· jeder Karte, dazu Aufnahme (Kamera) und Labeln. /?balken=<ID> öffnet
+  einen Balken in der Aufnahme; eine Karte ohne Fotos führt dorthin statt in den Körper. 3D-Ansicht: Pfeil zur Galerie
+  (kommt man von dort, wie Zurück im Browser). Alle Knöpfe nur Symbol, auch Anlegen (+) und Speichern (Haken).
+  - Name: feste ID bleibt (steckt in Fotonamen, Labelpfaden, teile.json, gebauten Datensätzen), dazu Feld "name" in
+    balken.json (bis 40 Zeichen, leer = keiner), angezeigt als „B003 Name“. Vorschlag, Jan noch nicht vorgelegt.
+  - Maße ändern geht auch mit Fotos (Werk.masse_aendern, logik.plan_anpassen), nichts wird verworfen: Abschnitte bis
+    zum letzten Foto bleiben, wo sie sind; Abstand und Bildfeld folgen der neuen Höhe dieser Lage (Kamera, Bildwinkel,
+    Zuschnitt, Vorschub wie beim ersten Foto); länger gibt neue Abschnitte am Ende, kürzer streicht nur leere am Ende.
+    Mit angepasst: px/mm je Foto, Prüfmessungen der Seite, Plan im Foto-Papierkorb. Labels (Anteile) bleiben gültig,
+    der Körper rechnet neu. Passt eine Seite nicht mehr in die Box, bleibt alles. Hochgeladene Seiten (frei) bleiben.
+    Regel vorgeschlagen, von Jan noch nicht bestätigt.
+  - Löschen: aufnahmen/<ID>/ wandert ganz nach aufnahmen/papierkorb/<ID>/ (Fotos, Zuschnitte, Labels, Körper), Eintrag
+    in teile.json bleibt (Zurückholen kommt in dieselbe Gruppe). Rückgängig-Knopf „↶ ID“ unten rechts (Aufnahme und
+    Galerie), auch Strg/Cmd+Z, solange die Seite offen ist; später nur von Hand zurückschieben. Nicht während Auslösen
+    oder Training. Papierkorb wird nie geleert. Nur Mac-Modus (/api/balken-weg, /api/balken-zurueck).
+  - Geprüft auf dem Server mit Playwright (Probedaten B002 und drei leeren Balken): Menü, Umbenennen, Löschen mit Strg+Z,
+    Galerie-Dialog, Löschen und Zurück, Pfeil aus dem Körper; 1440 und 390 px, axe ohne Befund. Frischer Prüfer: übernommen ein Stift statt Stift und Tt,
+    Rückgängig in der Ecke mit ID, größeres ··· am Handy. Offen aus der Prüfung: kein schneller Schritt zum nächsten
+    Balken (nur Auswahlliste), drei ähnliche Kreispfeile (Rückgängig, Nochmal, Ansicht zurück). Am Mac nicht geprüft.
 
 ## Neurolign-Server (ab 26.11.2026)
 - Jans Wahl 26.11.2026 nachts: Neurolign läuft zusätzlich auf dem Server, immer an, für Henri und Felix; Server ist

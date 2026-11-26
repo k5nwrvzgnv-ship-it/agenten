@@ -8,5 +8,19 @@
  <section class="spalte" data-teil="val" aria-labelledby="h-val"><h2 id="h-val">Prüfung <small></small></h2><div class="karten"></div></section>
  <section class="spalte" data-teil="test" aria-labelledby="h-test"><h2 id="h-test">Nur Test <small></small></h2><div class="karten"></div></section>
  <p id="gfehler" class="fehler" role="alert"></p><p id="gmeldung" class="nurvor" role="status"></p>
+ <button id="grueck" class="sy" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5L4 10l5 5M4 10h10a5 5 0 0 1 0 10h-3"/></svg><span></span></button>
+ <div id="kmenue" class="menue" role="menu" hidden>
+  <a role="menuitem" class="sy" data-tu="aufnahme" title="Aufnahme" aria-label="Aufnahme"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4zM12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7z"/></svg></a>
+  <a role="menuitem" class="sy" data-tu="labeln" title="Labeln" aria-label="Labeln"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8l10 10-8 8L3 11zM7.5 7.5h.01"/></svg></a>
+  <button role="menuitem" class="sy" data-tu="bearbeiten" title="Bearbeiten" aria-label="Bearbeiten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19zM13.5 6.5l4 4"/></svg></button>
+  <button role="menuitem" class="sy" data-tu="weg" title="Balken löschen" aria-label="Balken löschen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg></button>
+ </div>
 </main>
+<dialog id="bearb" aria-labelledby="btitel"><button class="zu" type="button" aria-label="Schließen" title="Schließen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><h2 id="btitel"></h2>
+<form novalidate><div class="felder"><label>Länge<span><input name="laenge" inputmode="decimal" autocomplete="off">cm</span></label>
+<label>Breite<span><input name="breite" inputmode="decimal" autocomplete="off">cm</span></label>
+<label>Höhe<span><input name="hoehe" inputmode="decimal" autocomplete="off">cm</span></label>
+<label>Holzart<span><input name="holzart" autocomplete="off" maxlength="60"></span></label>
+<label>Name<span><input name="name" autocomplete="off" maxlength="40"></span></label></div>
+<p class="fehler" role="alert"></p><button class="haupt" title="Speichern" aria-label="Speichern"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l5 5L20 6"/></svg></button></form></dialog>
 <script src="galerie.js"></script></body></html>

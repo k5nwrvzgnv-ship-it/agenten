@@ -4,7 +4,6 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><pattern id="schraffur" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V3" stroke="#fff" stroke-width="1.3"/></pattern><pattern id="schraffur-d" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V3" stroke="#000" stroke-width="1.3"/></pattern></defs></svg>
 <header><h1><svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><path d="M30 71V29L70 71V29"/><g><circle cx="30" cy="29" r="7.6"/><circle cx="70" cy="29" r="7.6"/><circle cx="30" cy="71" r="7.6"/><circle cx="70" cy="71" r="7.6"/></g></svg>Neurolign</h1>
 <div class="weg-nav" role="navigation" aria-label="Ansicht"><a href="/" aria-current="page">Aufnahme</a><a href="/galerie">Galerie</a><a href="/labeln">Labeln</a><a href="/training">Training</a></div>
-<nav aria-label="Balken"><label class="nurvor" for="wahl">Balken</label><select id="wahl"></select><button id="neu" title="Neuer Balken" aria-label="Neuer Balken"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></nav>
 <button id="handy"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2.5h10v19H7zM10.5 18.5h3"/></svg><i></i></button>
 <button id="einst" title="Einrichtung" aria-label="Einrichtung">···</button></header>
 
@@ -12,12 +11,15 @@
 <div class="felder"><label>Länge<span><input name="laenge" inputmode="decimal" autocomplete="off" required>cm</span></label>
 <label>Breite<span><input name="breite" inputmode="decimal" autocomplete="off" required>cm</span></label>
 <label>Höhe<span><input name="hoehe" inputmode="decimal" autocomplete="off" required>cm</span></label>
-<label>Holzart<span><input name="holzart" autocomplete="off" maxlength="60"></span></label></div>
-<p class="fehler" role="alert"></p><button class="haupt" type="submit">Balken anlegen</button></form></main>
+<label>Holzart<span><input name="holzart" autocomplete="off" maxlength="60"></span></label>
+<label>Name<span><input name="name" autocomplete="off" maxlength="40"></span></label></div>
+<p class="fehler" role="alert"></p><div class="formknoepfe"><button class="haupt" type="submit"></button><button class="sy" type="button" id="formab" title="Abbrechen" aria-label="Abbrechen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></form></main>
 
 <main id="aufnahme" hidden>
 <section class="buehne" aria-label="Foto"><div id="bild"></div><div id="bildinfo"></div></section>
-<aside><div id="seiten" role="group" aria-label="Seite"></div>
+<aside><div id="bwahl"><select id="wahl" aria-label="Balken"></select><button id="neu" class="sy" title="Neuer Balken" aria-label="Neuer Balken"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button id="bmehr" class="sy" title="Balken" aria-label="Balken" aria-haspopup="true" aria-expanded="false" aria-controls="bmenue">···</button>
+<div id="bmenue" class="menue" role="menu" aria-label="Balken" hidden><button role="menuitem" class="sy" data-tu="bearbeiten" title="Bearbeiten" aria-label="Bearbeiten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19zM13.5 6.5l4 4"/></svg></button><button role="menuitem" class="sy" data-tu="weg" title="Balken löschen" aria-label="Balken löschen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg></button></div></div>
+<div id="seiten" role="group" aria-label="Seite"></div>
 <div id="lage"></div>
 <dl id="werte"></dl>
 <div id="kam" hidden><output></output><button class="sy" data-ev="-0.333" title="Dunkler" aria-label="Dunkler"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button><button class="sy" data-ev="0.333" title="Heller" aria-label="Heller"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button class="sy" title="Auf die Bildmitte einmessen und sperren" aria-label="Auf die Bildmitte einmessen und sperren"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"/></svg></button><button data-m="fest" title="Belichtung fest, 12 MP">12</button><button data-m="fein" title="48 MP, Belichtung kann schwanken">48</button></div>
@@ -31,4 +33,5 @@
 <h3>Bildwinkel</h3><p id="winkel"></p>
 <h3>iPhone-App</h3><div id="appadr"></div>
 <h3>Foto vom Mac</h3><label class="datei">Für den aktuellen Abschnitt<input type="file" id="datei" accept="image/*,.heic"></label></dialog>
+<button id="bzurueck" class="rueck" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5L4 10l5 5M4 10h10a5 5 0 0 1 0 10h-3"/></svg><span></span></button>
 <script src="app.js"></script></body></html>

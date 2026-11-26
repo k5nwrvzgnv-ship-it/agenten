@@ -172,8 +172,68 @@ class TestServer(unittest.TestCase):
         stand = self.ruf("/api/stand")[1]["balken"][0]
         self.assertEqual(stand["seiten"]["1"]["plan"]["abstand_mm"], 480)
         self.assertEqual(stand["seiten"]["2"]["plan"]["abstand_mm"], 500)
-        self.assertEqual(self.ruf("/api/balken", {**BALKEN, "id": b})[0], 400)
         self.assertEqual(self.ruf("/api/vorschub", {"balken": b, "seite": "1", "mm": 300})[0], 400)
+
+    def test_masse_aendern_behaelt_fotos(self):
+        b = self.balken()
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=2", JPG)
+        self.ruf("/api/kontrolle", {"balken": b, "seite": "1", "nr": 0, "anteil": 0.1, "zollstock_mm": 50})
+        self.ruf("/api/loeschen", {"balken": b, "seite": "1", "nr": 2})
+        vorher = self.ruf("/api/stand")[1]["balken"][0]
+        p0 = vorher["seiten"]["1"]["plan"]
+        # Höhe der Seite 1 (kurze Seite) 12 -> 10 cm, länger 200 -> 300 cm, mit Name
+        status, b2 = self.ruf("/api/balken", {**BALKEN, "breite_mm": 100.0, "laenge_mm": 3000.0, "id": b,
+                                              "name": "  Eiche   vom Dach "})
+        self.assertEqual(status, 200, b2)
+        self.assertEqual((b2["laenge_mm"], b2["name"]), (3000.0, "Eiche vom Dach"))
+        p1 = b2["seiten"]["1"]["plan"]
+        self.assertEqual(p1["abstand_mm"], p0["abstand_mm"] + 20)
+        self.assertAlmostEqual(p1["voll_mm"] / p0["voll_mm"], p1["abstand_mm"] / p0["abstand_mm"])
+        self.assertEqual(p1["mitten_mm"][:3], p0["mitten_mm"][:3])
+        self.assertGreater(len(p1["mitten_mm"]), len(p0["mitten_mm"]))
+        self.assertGreaterEqual(p1["mitten_mm"][-1] + p1["laengs_mm"] / 2, 3000)
+        self.assertEqual(list(b2["seiten"]["1"]["fotos"]), ["0"])
+        k = b2["kontrollen"][0]
+        self.assertEqual(k["foto_mm"], round(0.1 * p0["voll_mm"] * p1["voll_mm"] / p0["voll_mm"], 1))
+        self.assertEqual(self.ruf("/api/zurueck", {"balken": b, "seite": "1", "nr": 2})[0], 200)
+        # kürzer: nur leere Abschnitte am Ende fallen weg, das Foto bei 2 bleibt
+        b3 = self.ruf("/api/balken", {**BALKEN, "laenge_mm": 600.0, "id": b})[1]
+        self.assertEqual(sorted(b3["seiten"]["1"]["fotos"]), ["0", "2"])
+        self.assertEqual(len(b3["seiten"]["1"]["plan"]["mitten_mm"]), 3)
+        self.assertEqual(b3["name"], "")
+
+    def test_masse_die_nicht_passen_aendern_nichts(self):
+        self.ruf("/api/einstellungen", {"kamera_rolle_mm": 300})
+        b = self.balken()
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        self.assertEqual(self.ruf("/api/balken", {**BALKEN, "breite_mm": 290.0, "hoehe_mm": 290.0, "id": b})[0], 400)
+        self.assertEqual(self.ruf("/api/stand")[1]["balken"][0]["breite_mm"], 120.0)
+
+    def test_balken_in_den_papierkorb_und_zurueck(self):
+        a, b = self.balken(), self.balken()
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        self.server.werk.kette.teil_setzen({"balken": b, "teil": "test"})
+        ordner = Path(self.ordner.name)
+        (ordner / b / "labels").mkdir()
+        (ordner / b / "labels" / "x.json").write_text("{}")
+        self.assertEqual(self.ruf("/api/balken-weg", {"balken": b}), (200, {"weg": b}))
+        self.assertEqual([x["id"] for x in self.ruf("/api/stand")[1]["balken"]], [a])
+        self.assertEqual([x["id"] for x in self.ruf("/api/galerie")[1]], [a])
+        self.assertTrue((ordner / "papierkorb" / b / "labels" / "x.json").exists())
+        self.assertEqual(self.ruf("/api/balken-weg", {"balken": b})[0], 400)
+        self.assertNotEqual(self.ruf("/api/balken", BALKEN)[1]["id"], b)     # ID kommt nie wieder
+        status, zurueck = self.ruf("/api/balken-zurueck", {"balken": b})
+        self.assertEqual(status, 200, zurueck)
+        self.assertEqual(list(zurueck["seiten"]["1"]["fotos"]), ["0"])
+        self.assertEqual({x["id"]: x["teil"] for x in self.ruf("/api/galerie")[1]}[b], "test")
+        self.assertEqual(self.ruf("/api/balken-zurueck", {"balken": b})[0], 400)
+        self.assertEqual(self.ruf("/api/balken-zurueck", {"balken": "../x"})[0], 400)
+        # alter Rest gleicher ID im Papierkorb: bleibt daneben liegen
+        (ordner / "papierkorb" / b).mkdir()
+        self.ruf("/api/balken-weg", {"balken": b})
+        self.assertEqual(len(list((ordner / "papierkorb").iterdir())), 2)
+        self.assertTrue((ordner / "papierkorb" / b / "balken.json").exists())
 
     def test_kontrolle_speichern_und_zuruecknehmen(self):
         b = self.balken()
