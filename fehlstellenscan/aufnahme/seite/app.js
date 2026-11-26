@@ -83,25 +83,26 @@ async function pruefOk(){const z=zollstock();if(!z){$('#afehler').textContent='M
  try{const b=await ruf('/api/kontrolle',{balken:bid,seite,nr:zeigt,anteil:messAnteil(...mess.p),zollstock_mm:z});ersetze(b);geprueft=b.kontrollen.at(-1);mess=null;$('#afehler').textContent='';mal()}catch(x){$('#afehler').textContent=x.message}}
 async function pruefWeg(){try{ersetze(await ruf('/api/kontrolle',{balken:bid,weg:true}));geprueft=null;$('#afehler').textContent='';mal()}catch(x){$('#afehler').textContent=x.message}}
 function ueber(){messMalen();pruefe();rasterText()}
-function rasterText(){$('#rw')?.remove();const R=$('#bild canvas')&&(mess||schneide||liveZeigt())?rasterWeite():null;if(R)$('#bildinfo').insertAdjacentHTML('afterbegin',`<span id="rw">Raster ${S.einstellungen.faktor_gemessen?"":"etwa "}${cm(R.w)} cm</span>`)}
+function rasterText(){$('#rw')?.remove();const R=$('#bild canvas')&&rasterAn&&(mess||schneide||liveZeigt())?rasterWeite():null;if(R)$('#bildinfo').insertAdjacentHTML('afterbegin',`<span id="rw">Raster ${S.einstellungen.faktor_gemessen?"":"etwa "}${cm(R.w)} cm</span>`)}
 addEventListener('resize',()=>{if(bid&&!formular)ueber()});
 function rahmen(){const c=$('#bild canvas'),el=$('#bild'),a=c.width/c.height,w=el.clientWidth,h=el.clientHeight,b=Math.min(w,h*a);return{b,h:b/a,x:(w-b)/2,y:(h-b/a)/2}}
 /* Raster zum Ausrichten: im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte verankert. Weite in cm, wenn der Plan sie hergibt */
 const liveZeigt=()=>!!S.app&&!(zeigt!==null&&SE().fotos[zeigt]);
-function rasterWeite(){const p=SE().plan;if(!p)return null;const mm=schneide?p.voll_mm:p.laengs_mm;return{mm,w:[10,20,50,100].find(w=>mm/w<=16)||200}}
-function raster(r){const R=rasterWeite(),s=R?R.w/R.mm*r.b:r.b/12,mx=r.x+r.b/2,my=r.y+r.h/2,e=16,x2=r.x+r.b,y2=r.y+r.h;let d='';
- for(let i=-Math.floor(r.b/2/s);i*s<r.b/2;i++)for(let j=-Math.floor(r.h/2/s);j*s<r.h/2;j++)if(i||j)d+=`M${mx+i*s-3} ${my+j*s}h6M${mx+i*s} ${my+j*s-3}v6`;
+function rasterWeite(){const p=SE().plan;if(!p)return null;const mm=schneide?p.voll_mm:p.laengs_mm;return{mm,w:rWeite||[10,20,50,100].find(w=>mm/w<=16)||200}}
+function raster(r,nurGitter){const R=rasterWeite(),s=R?R.w/R.mm*r.b:r.b/12,mx=r.x+r.b/2,my=r.y+r.h/2,e=16,x2=r.x+r.b,y2=r.y+r.h;let d='';
+ if(rasterAn&&(R||!nurGitter))for(let i=-Math.floor(r.b/2/s);i*s<r.b/2;i++)for(let j=-Math.floor(r.h/2/s);j*s<r.h/2;j++)if(i||j)d+=`M${mx+i*s-3} ${my+j*s}h6M${mx+i*s} ${my+j*s-3}v6`;
  const achse=`M${mx} ${r.y}v${r.h}M${r.x} ${my}h${r.b}`,ecken=`M${r.x+6} ${r.y+6+e}v${-e}h${e}M${x2-6-e} ${r.y+6}h${e}v${e}M${x2-6} ${y2-6-e}v${e}h${-e}M${r.x+6+e} ${y2-6}h${-e}v${-e}`,ziel=`M${mx-14} ${my}h9M${mx+5} ${my}h9M${mx} ${my-14}v9M${mx} ${my+5}v9`;
+ if(nurGitter)return `<g fill="none"><path d="${d}" stroke="#000" stroke-opacity=".35" stroke-width="3"/><path d="${d}" stroke="#00e0ea" stroke-opacity=".6"/></g>`;
  return `<g fill="none"><path d="${d}" stroke="#000" stroke-opacity=".35" stroke-width="3"/><path d="${d}" stroke="#00e0ea" stroke-opacity=".6"/><path d="${achse}" stroke="#00e0ea" stroke-opacity=".55" stroke-dasharray="2 6"/><g style="filter:drop-shadow(0 0 3px #ff2bd6)"><path d="${ecken}" stroke="#ff2bd6" stroke-opacity=".8" stroke-width="1.5"/><path d="${ziel}" stroke="#ff2bd6" stroke-width="1.5"/></g></g>`}
 /* Die Messlinie rastet bis 6 Grad an der Waagerechten oder Senkrechten ein, schräg messen bleibt möglich */
 const einrasten=(a,q)=>{const x=Math.abs(q[0]-a[0]),y=Math.abs(q[1]-a[1]),t=Math.tan(6*Math.PI/180);return y<=x*t?[q[0],a[1]]:x<=y*t?[a[0],q[1]]:q};
 const messPunkt=e=>{const k=$('#bild').getBoundingClientRect(),r=rahmen(),q=[Math.min(1,Math.max(0,(e.clientX-k.left-r.x)/r.b)),Math.min(r.h/r.b,Math.max(0,(e.clientY-k.top-r.y)/r.b))];return mess.p.length?einrasten(mess.p[0],q):q};
-function messMalen(){$('#bild svg')?.remove();const c=$('#bild canvas');if(!c||!(mess||schneide||liveZeigt()))return;const r=rahmen();let in_='';
+function messMalen(){$('#bild svg')?.remove();zollLeiste();const c=$('#bild canvas'),aus=mess||schneide||liveZeigt();if(!c||!(aus||rasterAn||zoll.an))return;const r=rahmen();let in_='';
  if(mess){const alle=mess.p.length===1&&mess.m?[mess.p[0],mess.m]:mess.p,p=alle.map(q=>[r.x+q[0]*r.b,r.y+q[1]*r.b]);in_=(p.length>1?`<path d="M${p[0]}L${p[1]}" stroke="#000" stroke-width="4"/><path d="M${p[0]}L${p[1]}" stroke="#00e0ea" stroke-width="2"/>`:'')+p.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="6" fill="none" stroke="#00e0ea" stroke-width="2"/>`).join('');
   if(p.length>1&&Math.hypot(p[1][0]-p[0][0],p[1][1]-p[0][1])>12){const rechts=Math.max(p[0][0],p[1][0]),eng=rechts+90>r.x+r.b,y=Math.min(p[0][1],p[1][1])-10;in_+=`<text x="${eng?rechts-12:rechts+12}" y="${y}" text-anchor="${eng?'end':'start'}" class="mlang">${S.einstellungen.faktor_gemessen?'':'≈ '}${laenge(messMm(...alle))}</text>`}
   if(mess.m&&mess.p.length<2){const x=r.x+mess.m[0]*r.b,y=r.y+mess.m[1]*r.b;in_+=`<path d="M${x} ${r.y}v${r.h}M${r.x} ${y}h${r.b}" stroke="#00e0ea" stroke-opacity=".7" stroke-dasharray="4 4"/>`}}
  else if(schneide&&schneide.r){const[x,y,b,h]=schneide.r;in_=`<path fill="#000b" fill-rule="evenodd" d="M0 0h9999v9999H0zM${r.x+x*r.b} ${r.y+y*r.h}h${b*r.b}v${h*r.h}h${-b*r.b}z"/><rect x="${r.x+x*r.b}" y="${r.y+y*r.h}" width="${b*r.b}" height="${h*r.h}" fill="none" stroke="#00e0ea" stroke-width="2"/>`}
- $('#bild').insertAdjacentHTML('beforeend',`<svg>${raster(r)}${in_}</svg>`)}
+ $('#bild').insertAdjacentHTML('beforeend',`<svg>${raster(r,!aus)}${in_}${mess||schneide?'':zollSvg(r)}</svg>`)}
 const punkt=e=>{const k=$('#bild').getBoundingClientRect(),r=rahmen();return[Math.min(1,Math.max(0,(e.clientX-k.left-r.x)/r.b)),Math.min(1,Math.max(0,(e.clientY-k.top-r.y)/r.h))]};
 $('#bild').onclick=e=>{if(!mess||mess.p.length>1||!$('#bild canvas'))return;mess.p.push(messPunkt(e));mess.m=null;mal()};
 $('#bild').onpointerdown=e=>{if(!schneide||!$('#bild canvas'))return;e.preventDefault();$('#bild').setPointerCapture(e.pointerId);schneide.a=punkt(e)};
@@ -118,7 +119,7 @@ $('#bildinfo').oninput=e=>{if(e.target.id==='strecke')abweichung()};
 const belicht=k=>`${k.dauer<.5?'1/'+Math.round(1/k.dauer):k.dauer.toFixed(1)} s · ISO ${Math.round(k.iso)}`;
 let lz=0;function live(){const n=++lz,i=new Image();i.onload=()=>{if(n!==lz||formular||!S.app)return;const k=$('#abschnitte .jetzt .lk');if(k)zeichne(k,i,SE().plan&&SE().plan.zuschnitt,300);const c=$('#bild canvas');if(c&&!(zeigt!==null&&SE().fotos[zeigt])){zeichne(c,i,ausschnitt(),2400);ueber()}};i.src='/live.jpg?'+Date.now()+rasterFuersHandy()}
 /* Das Raster der iPhone-App folgt dem am Mac: gleiche Weite, bezogen aufs ganze Bild (die App zeigt keinen Zuschnitt) */
-function rasterFuersHandy(){const R=bid&&B()&&SE()&&rasterWeite(),p=R&&SE().plan;return R?`&r=${(R.w/(p.voll_mm||p.laengs_mm)).toFixed(5)}&w=${R.w}&g=${S.einstellungen.faktor_gemessen?1:0}`:''}
+function rasterFuersHandy(){const R=rasterAn&&bid&&B()&&SE()&&rasterWeite(),p=R&&SE().plan;return R?`&r=${(R.w/(p.voll_mm||p.laengs_mm)).toFixed(5)}&w=${R.w}&g=${S.einstellungen.faktor_gemessen?1:0}`:''}
 setInterval(()=>{if(S.app&&!formular&&!document.hidden)live()},500);
 /* Anteil ausgebrannter Pixel unter den nicht dunklen (das Holz) */
 function ausgebrannt(q){const c=document.createElement('canvas');c.width=300;c.height=225;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(q,0,0,300,225);const d=x.getImageData(0,0,300,225).data;let n=0,w=0;for(let i=0;i<d.length;i+=4){const m=Math.max(d[i],d[i+1],d[i+2]);if(m<110)continue;n++;if(m>=253)w++}return n?w/n:0}
@@ -174,3 +175,44 @@ $('#abstand').onsubmit=async e=>{e.preventDefault();try{S=await ruf('/api/einste
 $('#datei').onchange=async e=>{const d=e.target.files[0];e.target.value='';if(!d||!bid||formular)return;$('#dlg').close();if(jetzt<0){$('#afehler').textContent='Erst einen Abschnitt wählen.';return}await nimm(()=>ruf(`/api/datei?balken=${bid}&seite=${seite}&nr=${jetzt}`,d))};
 async function puls(){if(!laeuft)try{const n=await ruf('/api/stand');if(!laeuft){const vor=!!S.app;S.handy=n.handy;S.app=n.app;if(vor!==!!S.app&&!formular&&bid&&!(zeigt!==null&&SE().fotos[zeigt]))mal();appMalen();S.adressen=n.adressen;handyMalen();if(n.hinweis&&n.hinweis!==S.hinweis)$('#afehler').textContent=n.hinweis;S.hinweis=n.hinweis}}catch(e){S.handy=false;handyMalen();$('#handy').title='Programm beendet';$('#afehler').textContent='Das Programm auf dem Mac antwortet nicht.'}setTimeout(puls,1500)}
 ruf('/api/stand').then(n=>{S=n;const w=new URLSearchParams(location.search).get('balken'),b=S.balken.find(x=>x.id===w)||S.balken.at(-1);b?oeffne(b.id):maleForm();handyMalen();puls()}).catch(e=>{document.body.append(e.message)});
+
+/* Raster und Zollstock (Jan 26.11.2026: „überall die Möglichkeit, ein Raster einzuschalten, mit verschiedener Größe,
+   das betrifft auch den Zollstock“). Raster an/aus und Weite merkt sich der Browser; ohne gewählte Weite gilt die
+   automatische. Zollstock: zwei Klicks setzen, Enden ziehen dreht und verlängert, Band ziehen verschiebt. Teilung
+   aus dem Plan der Seite (≈ solange der Bildwinkel nur angenommen ist). Auf einem Foto: echte Länge eintippen, Haken
+   übernimmt sie als Maßstab (wie Messen). Punkte in Anteilen der Bildbreite wie beim Messen. */
+let rasterAn=true,rWeite=null;const zoll={an:false,a:null,b:null,setzen:null,maus:null,zug:null};
+try{const x=localStorage.getItem('aufnahme-raster');if(x)rasterAn=x==='1';const w=+localStorage.getItem('aufnahme-weite');if([10,20,50,100].includes(w))rWeite=w}catch(e){}
+const rasterMerken=()=>{try{localStorage.setItem('aufnahme-raster',rasterAn?'1':'0');if(rWeite)localStorage.setItem('aufnahme-weite',String(rWeite))}catch(e){}};
+const fotoZeigt=()=>!!(bid&&B()&&SE()&&zeigt!==null&&SE().fotos[zeigt]);
+function zollSvg(r){if(!zoll.an)return'';const P=q=>[r.x+q[0]*r.b,r.y+q[1]*r.b],G='#f2c230',D='#111';
+ if(zoll.setzen){if(!zoll.setzen.length)return'';const a=P(zoll.setzen[0]),m=zoll.maus?P(zoll.maus):a;return`<path d="M${a}L${m}" stroke="${D}" stroke-width="4"/><path d="M${a}L${m}" stroke="${G}" stroke-width="2"/><circle cx="${a[0]}" cy="${a[1]}" r="5" fill="${G}" stroke="${D}" stroke-width="1.5"/>`}
+ if(!zoll.a)return'';const A=P(zoll.a),E=P(zoll.b),n=Math.hypot(E[0]-A[0],E[1]-A[1])||1e-9,u=[(E[0]-A[0])/n,(E[1]-A[1])/n],v=[u[1],-u[0]],Q=(t,h)=>[A[0]+u[0]*t+v[0]*h,A[1]+u[1]*t+v[1]*h];
+ const R=rasterWeite(),mmPx=R?R.mm/r.b:null,ang=Math.atan2(u[1],u[0])*180/Math.PI,dreh=ang>90||ang<-90?ang+180:ang,ung=S.einstellungen.faktor_gemessen?'':'≈ ';let g='';
+ if(mmPx){const pm=1/mmPx,mmL=n*mmPx;g+=`<path d="M${[Q(0,0),Q(n,0),Q(n,26),Q(0,26)].join('L')}Z" fill="${G}" fill-opacity=".5" stroke="${D}"/>`;
+  const st=pm>=4?1:pm*5>=5?5:10,zi=[1,2,5,10,20,50].find(k=>k*10*pm>=26)||100;let t='',z='';
+  for(let mm=0;mm<=mmL+1e-6;mm+=st){const k=Math.round(mm),l=k%10==0?13:k%5==0?9:5;t+=`M${Q(mm*pm,0)}L${Q(mm*pm,l)}`;if(k%10==0&&k>0&&(k/10)%zi==0&&(mmL-mm)*pm>20){const q=Q(mm*pm,20);z+=`<text x="${q[0]}" y="${q[1]}" transform="rotate(${ang} ${q[0]} ${q[1]})" class="zz">${k/10}</text>`}}
+  g+=`<path d="${t}" stroke="#1b1b1b" fill="none"/>${z}`;{const f=$('#zl');if(f&&document.activeElement!==f)f.placeholder=cm(mmL)}const q=Q(n/2,-14);g+=`<text x="${q[0]}" y="${q[1]}" transform="rotate(${dreh} ${q[0]} ${q[1]})" class="zl">${ung}${laenge(mmL)}</text>`}
+ else g+=`<path d="M${A}L${E}" stroke="${D}" stroke-width="4"/><path d="M${A}L${E}" stroke="${G}" stroke-width="2"/>`;
+ for(const q of[A,E])g+=`<circle cx="${q[0]}" cy="${q[1]}" r="5" fill="${G}" stroke="${D}" stroke-width="1.5"/>`;return g}
+function zollLeiste(){const k=$('#rasterk');if(!k)return;k.setAttribute('aria-pressed',rasterAn);const R=bid&&B()&&SE()&&rasterWeite();$('#weiten').hidden=!rasterAn||!R;
+ for(const b of $$('#weiten button'))b.setAttribute('aria-pressed',!!R&&+b.dataset.w===R.w);$('#zollk').setAttribute('aria-pressed',zoll.an);
+ $('#einm').hidden=!zoll.an||!zoll.a||!!zoll.setzen||!fotoZeigt()||!SE().plan;$('#bild').classList.toggle('zollsetzen',!!(zoll.an&&zoll.setzen));$('#bild').classList.toggle('zollan',zoll.an)}
+function zollAn(an){zoll.an=an;zoll.setzen=an&&!zoll.a?[]:null;zoll.maus=zoll.zug=null;ueber()}
+$('#rasterk').onclick=()=>{rasterAn=!rasterAn;rasterMerken();ueber()};
+$('#weiten').onclick=e=>{const b=e.target.closest('button');if(!b)return;const l=$$('#weiten button'),eng=matchMedia('(max-width:700px)').matches&&b.getAttribute('aria-pressed')==='true';rWeite=+(eng?l[(l.indexOf(b)+1)%l.length]:b).dataset.w;rasterMerken();ueber();if(eng)$('#weiten [aria-pressed=true]').focus()};
+$('#zollk').onclick=()=>zollAn(!zoll.an);
+const zpunkt=e=>{const k=$('#bild').getBoundingClientRect(),r=rahmen();return[Math.min(1,Math.max(0,(e.clientX-k.left-r.x)/r.b)),Math.min(r.h/r.b,Math.max(0,(e.clientY-k.top-r.y)/r.b))]};
+$('#bild').addEventListener('pointerdown',e=>{if(!zoll.an||mess||schneide||!$('#bild canvas')||e.button)return;const q=zpunkt(e),r=rahmen();
+ if(zoll.setzen){zoll.setzen.push(q);if(zoll.setzen.length===2){[zoll.a,zoll.b]=zoll.setzen;zoll.setzen=null;zoll.maus=null;ueber();if(!$('#einm').hidden)$('#zl').focus()}else messMalen();return}
+ if(!zoll.a)return;const ab=(p,o)=>Math.hypot((p[0]-o[0])*r.b,(p[1]-o[1])*r.b),fang=matchMedia('(pointer:coarse)').matches?24:14;
+ const ende=ab(q,zoll.a)<=fang?'a':ab(q,zoll.b)<=fang?'b':null,L=ab(zoll.a,zoll.b)||1,u=[(zoll.b[0]-zoll.a[0])*r.b/L,(zoll.b[1]-zoll.a[1])*r.b/L],w=[(q[0]-zoll.a[0])*r.b,(q[1]-zoll.a[1])*r.b],t=w[0]*u[0]+w[1]*u[1],h=w[0]*u[1]-w[1]*u[0];
+ if(!ende&&!(t>=0&&t<=L&&h>=-8&&h<=30))return;e.preventDefault();$('#bild').setPointerCapture(e.pointerId);zoll.zug={e:ende||'ab',a:q,s:[[...zoll.a],[...zoll.b]]}});
+$('#bild').addEventListener('pointermove',e=>{if(!zoll.an||mess||schneide)return;if(zoll.setzen){zoll.maus=zpunkt(e);if(zoll.setzen.length)messMalen();return}if(!zoll.zug)return;
+ const q=zpunkt(e),z=zoll.zug,dx=q[0]-z.a[0],dy=q[1]-z.a[1];if(z.e==='ab'){zoll.a=[z.s[0][0]+dx,z.s[0][1]+dy];zoll.b=[z.s[1][0]+dx,z.s[1][1]+dy]}else if(z.e==='a')zoll.a=[z.s[0][0]+dx,z.s[0][1]+dy];else zoll.b=[z.s[1][0]+dx,z.s[1][1]+dy];messMalen()});
+for(const t of['pointerup','pointercancel'])$('#bild').addEventListener(t,()=>{zoll.zug=null});
+async function zollOk(){const mm=lies($("#zl").value);if(!mm||!zoll.a){$("#zl").focus();return}
+ try{S=await ruf('/api/massstab',{balken:bid,seite,anteil:messAnteil(zoll.a,zoll.b),strecke_mm:mm});$('#zl').blur();$('#afehler').textContent='';mal()}catch(x){$('#afehler').textContent=x.message}}
+$('#zlok').onclick=zollOk;$('#zl').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();zollOk()}if(e.key==='Escape'){e.target.value='';e.target.blur()}};
+addEventListener('keydown',e=>{if($('#dlg').open||formular||e.metaKey||e.ctrlKey||e.altKey||/^(INPUT|SELECT)$/.test(e.target.tagName))return;const k=e.key.toLowerCase();
+ if(k==='r'){rasterAn=!rasterAn;rasterMerken();ueber()}else if(k==='l')zollAn(!zoll.an);else if(e.key==='Escape'&&zoll.setzen)zollAn(false)});

@@ -664,6 +664,16 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Geprüft: Tests, Playwright auf Kopien von B501 im Mac- und Servermodus, 1440 und 390 px, axe ohne Befund.
   Offen aus der Prüfung: Maßstab gilt nur je Foto (nicht für die ganze Seite übernehmbar), Einmessen auf einem Foto
   mit Maßstab ersetzt ihn ohne eigenes Zeichen (nur Rückgängig), Zollstock nicht per Tastatur setzbar.
+- Raster und Zollstock in der Aufnahme (Jan 26.11.2026 „vor allem fürs Aufnehmen“, „überall die Möglichkeit, ein
+  Raster einzuschalten, mit verschiedener Größe, auch den Zollstock“), app.js, Leiste unter dem Bild rechts (#massw):
+  Raster-Knopf (R) schaltet die Kreuze im Livebild, beim Messen und Zuschnitt und jetzt auch auf Fotos; Mitte und
+  Ecken bleiben im Livebild immer. Weite 1/2/5/10 cm statt nur automatisch (am Handy schaltet die gewählte weiter),
+  das iPhone folgt der Weite, Raster aus schickt dem iPhone kein Maß. Zollstock (L, Gliedermaßstab-Symbol, Messen
+  behält das Lineal): zwei Klicks, Enden ziehen, Band ziehen; Teilung aus dem Plan der Seite, „≈“ solange der
+  Bildwinkel nur angenommen ist. Auf einem Foto: echte Länge in cm, Enter oder Haken übernimmt sie als Maßstab
+  (/api/massstab wie Messen, gilt für den Balken). Im Livebild nur Anzeige. Geprüft mit Playwright auf einer Kopie
+  (Testbalken mit Foto vom Mac), 1440 und 390 px, axe ohne Befund; Livebild mit iPhone nicht geprüft. Servermodus hat
+  keine große Bildansicht (Hochladen nur Vorschaubilder), dort gibt es Raster und Zollstock nur in Labeln.
 
 ## Neurolign-Server (ab 26.11.2026)
 - Jans Wahl 26.11.2026 nachts: Neurolign läuft zusätzlich auf dem Server, immer an, für Henri und Felix; Server ist

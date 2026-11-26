@@ -74,3 +74,19 @@ dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:88vh;overflow:
 /* Maße rechts: Zahlen sind ein Knopf, beim Ändern drei Felder an derselben Stelle */
 #masse{background:none;min-height:28px;padding:0 4px;margin-right:-4px;font-variant-numeric:tabular-nums;border-bottom:1px dashed #77777d;border-radius:0}#masse:hover{background:var(--m);border-bottom-color:var(--w)}
 #werte .medit{display:flex;align-items:center;gap:6px;color:var(--l);grid-column:1/-1}#werte .medit input{flex:1;min-height:36px;padding:0 8px;text-align:right}#werte dt:has(+.medit){display:none}
+
+/* Raster und Zollstock (app.js) */
+.bfuss{display:flex;flex-wrap:wrap;align-items:center;min-width:0}.bfuss #bildinfo{flex:1 1 auto;min-width:0}
+#massw{display:flex;align-items:center;gap:6px;padding:8px 16px 8px 0;margin-left:auto}
+#massw [aria-pressed=true]{background:#3a3a3e;color:#fff;box-shadow:inset 0 0 0 2px #fff}
+#massw .weiten,#massw .einm{display:flex;align-items:center;gap:2px}#massw [hidden]{display:none}
+#massw .weiten button{min-width:36px;min-height:40px;padding:0 6px;background:var(--f);color:var(--t);font-variant-numeric:tabular-nums}
+#massw .weiten button:hover{background:var(--r)}
+#massw small{color:var(--l);padding:0 4px}
+#massw .einm input{width:72px}
+#bild.zollsetzen{cursor:crosshair;touch-action:none}
+#bild svg .zz{font-size:11px;font-weight:600;fill:#1b1b1b;text-anchor:middle;dominant-baseline:middle}
+#bild svg .zl{font-size:13px;font-weight:600;fill:#fff;stroke:#000;stroke-width:4px;paint-order:stroke;stroke-linejoin:round;text-anchor:middle;dominant-baseline:middle}
+@media(max-width:700px){#massw{padding-left:16px}#massw .weiten button:not([aria-pressed=true]){display:none}#massw .einm{flex-basis:100%;justify-content:flex-end}#massw{flex-wrap:wrap}}
+#bild.zollan{touch-action:none}
+@media(min-width:701px){#massw .einm[hidden]{display:flex!important;visibility:hidden}}
