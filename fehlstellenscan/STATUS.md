@@ -688,6 +688,10 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Auslösen und Kamera melden auf dem Server „iPhone nicht verbunden“ (iPhone-Wege /h/ und /live.jpg gibt es dort
   nicht); Fotos kommen über „Foto vom Mac“ (···) in einen Abschnitt. Teil in der Galerie: gilt auf dem Mac (Tunnel)
   und wird bei Erfolg auch auf dem Server gesetzt. Die frühere Seite Hochladen ist entfernt (/api/hochladen bleibt).
+  Jan 26.11.2026 nachts: Aufnahme mit dem iPhone nur am Mac, die Domain dient zum Labeln. iPhone über die Domain
+  ginge nur mit drei Änderungen (App nimmt nur http, Caddy-basicauth auch auf /h/, Server sperrt /h/), verworfen.
+  Galerie auf dem Server versucht für rein hochgeladene Balken (B501) einen Körper; koerper.py scheitert dort an
+  fehlendem flaeche_mm (nur Logeintrag, Vorschlag: vorher abfangen, nicht umgesetzt).
   Offen: Balken löschen auf dem Server löscht nicht auf dem Mac (Abgleich lässt fremde gleicher ID stehen); Körper
   auf dem Server rechnet in der Grenze von 768 MB, mit großen Fotos ungeprüft; Seiten im Browser auf der Domain nicht
   angesehen (nur Auslieferung und Tests geprüft).
