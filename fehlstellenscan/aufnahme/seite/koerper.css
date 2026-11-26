@@ -1,0 +1,21 @@
+#koerper{display:grid;grid-template-rows:minmax(0,1fr) auto;min-height:0}
+#kbuehne{position:relative;min-height:0;overflow:hidden;perspective:1800px;cursor:grab;touch-action:none;
+ background:radial-gradient(ellipse at 50% 60%,#16161a 0,var(--g) 70%)}
+#kbuehne:active{cursor:grabbing}#kbuehne:focus-visible{outline-offset:-2px}
+#kwelt{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
+#kk{position:absolute;transform-style:preserve-3d;transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+#kk.ziehen{transition:none}
+.kf{position:absolute;background:#2a2016 center/100% 100% no-repeat;backface-visibility:hidden;outline:1px solid #0006}
+.kf.ende{background:repeating-linear-gradient(45deg,var(--m) 0 6px,#26262a 6px 12px);outline-color:var(--r)}
+.kf.hell{outline:3px solid var(--w);outline-offset:-3px}
+#kbuehne[aria-busy=true] .kf{background-image:none!important;background-color:var(--m);animation:katmen 1.2s ease-in-out infinite alternate}
+@keyframes katmen{to{background-color:var(--r)}}
+#kfehler{position:absolute;left:16px;bottom:12px}
+#kfuss{display:flex;align-items:center;gap:16px;padding:10px 16px;border-top:1px solid var(--m);flex-wrap:wrap}
+#kname{display:flex;align-items:baseline;gap:12px;font-variant-numeric:tabular-nums}#kid{color:var(--w);font-weight:500;font-size:17px}
+#kseiten{display:flex;gap:4px;margin-left:auto}
+#kseiten button{display:flex;align-items:center;gap:8px;padding:0 10px;font-variant-numeric:tabular-nums;color:var(--l)}
+#kseiten button b{color:var(--w);font-weight:500}#kseiten button[aria-pressed=true]{background:#3a3a3e;box-shadow:inset 0 0 0 2px #fff;color:var(--t)}
+#kseiten .ab{min-width:5ch;text-align:right;white-space:nowrap}#kseiten .warn{color:var(--gelb)}
+@media(prefers-reduced-motion:reduce){#kk{transition:none}#kbuehne[aria-busy=true] .kf{animation:none}}
+@media(max-width:800px){html,body{height:100%}#kfuss{gap:8px}#kname{width:100%}#kseiten{margin-left:0;flex:1}#kseiten button{flex:1;justify-content:center;padding:0 4px;gap:4px}#kseiten .ab{min-width:0}}

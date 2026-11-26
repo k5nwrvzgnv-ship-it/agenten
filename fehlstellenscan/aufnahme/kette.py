@@ -205,6 +205,7 @@ class Kette:
         self.yolo = self.wurzel / ".venv" / "bin" / "yolo"
         self.schneiden_schloss = threading.Lock()
         self.saetze_schloss = threading.Lock()
+        self.koerper_schloss = threading.Lock()
         self._fremde: list[Path] | None = None
         self._zahlen: dict = {}
         self._auswahl: list[dict] | None = None
@@ -345,6 +346,33 @@ class Kette:
                 finally:
                     kopie.unlink(missing_ok=True)
         return kl if klein else ziel
+
+    # ------------------------------------------------------ Körper
+    def koerper(self, kennung) -> dict:
+        """3D-Körper eines Balkens (koerper.py in der Trainings-.venv). Neu gerechnet, wenn Maße oder Fotos neuer sind
+        als der letzte Körper. Antwort: koerper.json und "stand" (ändert sich mit jeder neuen Rechnung)."""
+        if kennung not in self.ids():
+            raise ValueError("Diesen Balken gibt es nicht.")
+        namen = [f["name"] for f in fotos(self.lesen(kennung))]
+        if not namen:
+            raise ValueError("Noch keine Fotos.")
+        for n in namen:
+            self.zuschnitt(n)
+        ordner = self.ordner / kennung
+        ziel = ordner / "koerper" / "koerper.json"
+        quellen = [ordner / "balken.json"] + [ordner / "zuschnitt" / f"{n}.jpg" for n in namen]
+        with self.koerper_schloss:
+            if not ziel.exists() or ziel.stat().st_mtime_ns < max(q.stat().st_mtime_ns for q in quellen):
+                try:
+                    subprocess.run([str(self.umgebung()), str(HIER / "koerper.py"), str(ordner)], check=True,
+                                   capture_output=True, timeout=600)
+                except (OSError, subprocess.SubprocessError) as e:
+                    text = (getattr(e, "stderr", b"") or b"").decode("utf-8", "replace").strip().splitlines()
+                    print(f"Körper {kennung}: {text or e}", file=sys.stderr)
+                    raise ValueError(f"Körper ging nicht: {text[-1] if text else e}") from e
+            daten = json.loads(ziel.read_text(encoding="utf-8"))
+            daten["stand"] = ziel.stat().st_mtime_ns
+        return daten
 
     # ------------------------------------------------------ Training
     def teile(self) -> dict:

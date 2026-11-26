@@ -520,6 +520,21 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
   Enter speichert es leer als fehlerfrei. Vorschaubild von B001 Seite 3 fehlt im Labeln.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
+- Körper (26.11.2026, Ideen in docs/ideen-galerie-3d-und-aufteilung.md): aufnahme/koerper.py (numpy, Pillow,
+  tests/test_koerper.py) findet je Zuschnitt die Holzfläche (Rot minus Blau, Otsu), dreht sie gerade, schneidet quer
+  auf ihre Kanten, legt mehrere Fotos einer Seite nach mitte_mm überblendet aneinander (Vorschubrichtung aus dem
+  Balkenende im ersten Foto, nie gespiegelt) und streckt auf die eingetragenen Maße. Ausgabe <ID>/koerper/S1-S4.jpg
+  (4 px/mm, längs höchstens 8000 px) und koerper.json mit gemessenen Maßen und Abweichung in %. Fehlt px_je_mm (nur
+  sips misst ihn), gilt Bildbreite / voll_mm. Kette.koerper rechnet in der Trainings-.venv neu, wenn balken.json oder
+  ein Zuschnitt neuer ist. Seite /koerper?id=<ID> (nur Mac-Modus, ohne ID der letzte Balken mit Fotos): Quader mit
+  CSS 3D, Seite i liegt bei rotateX(90°·i), Stirnseiten grau, ziehen/Pfeiltasten drehen, Rad/+/- zoomen, Tasten 1-4
+  und Knöpfe drehen die Seite nach vorn, Knopf zeigt die größere Abweichung (gelb ab 2 %).
+  Lage der Seiten: Beim Weiterrollen stößt die nächste Seite an die obere Bildkante (an B002 an den Zapfen des Bodens
+  gesehen). Rollt jemand andersherum, liegen 2 und 4 vertauscht: nicht automatisch erkannt.
+  B002 (Kopie in data/proben/B002): S1 +1,6 %, S2 ±0,0, S3 +3,3 längs / +3,7 quer (gleichmäßig, Fläche lag etwa
+  15 mm näher an der Linse als eingetragen), S4 −0,7 %. Geprüft auf dem Server (Playwright, axe), nicht auf dem Mac.
+  Nicht geprüft: echter Balken mit mehreren Fotos je Seite (nur künstlich), Feinabgleich am Bildinhalt fehlt (Lage
+  längs nur aus mitte_mm). Galerie und Ablauf „neuer Balken, alter in die Galerie“ fehlen noch.
 
 ## Neurolign-Server (ab 26.11.2026)
 - Jans Wahl 26.11.2026 nachts: Neurolign läuft zusätzlich auf dem Server, immer an, für Henri und Felix; Server ist

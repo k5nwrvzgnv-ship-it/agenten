@@ -181,11 +181,28 @@ class TestWeg(unittest.TestCase):
         self.fail("Lauf endet nicht")
 
     def test_seiten_und_fremde(self):
-        for weg in ("/", "/labeln", "/training", "/labeln.js", "/training.js", "/labeln-optik.js"):
+        for weg in ("/", "/labeln", "/training", "/koerper", "/labeln.js", "/training.js", "/labeln-optik.js",
+                    "/koerper.js", "/koerper.css"):
             self.assertEqual(self.ruf(weg)[0], 200, weg)
         self.assertEqual(self.ruf("/api/label", {"name": "x", "objekte": []}, kopf=False)[0], 403)
         self.assertEqual(self.ruf("/zuschnitt/gibtsnicht.jpg")[0], 404)
         self.assertEqual(self.ruf("/api/training", {})[0], 400)
+
+    def test_koerper(self):
+        b = self.werk.balken_speichern({"laenge_mm": 295.0, "breite_mm": 200.0, "hoehe_mm": 135.0, "holzart": ""})
+        bild = Image.new("RGB", (1600, 1200), (18, 20, 30))
+        bild.paste((190, 140, 80), (300, 400, 1300, 800))
+        pfad = self.wurzel / "k.jpg"
+        bild.save(pfad)
+        self.werk.foto_ablegen(b["id"], "1", 0, pfad.read_bytes())
+        status, k1 = self.ruf(f"/api/koerper?id={b['id']}")
+        self.assertEqual(status, 200, k1)
+        self.assertEqual(list(k1["seiten"]), ["1"])
+        status, roh = self.ruf(f"/koerper/{b['id']}/S1.jpg")
+        self.assertEqual((status, roh[:3]), (200, b"\xff\xd8\xff"))
+        self.assertEqual(self.ruf(f"/api/koerper?id={b['id']}")[1]["stand"], k1["stand"])   # nicht neu gerechnet
+        self.assertEqual(self.ruf("/api/koerper?id=B999")[0], 400)
+        self.assertEqual(self.ruf(f"/koerper/{b['id']}/S2.jpg")[0], 404)
 
     def test_durchlauf_vier_seiten_bis_training(self):
         self.werk.einst["zuschnitt"] = [0.0, 0.0, 0.5, 1.0]

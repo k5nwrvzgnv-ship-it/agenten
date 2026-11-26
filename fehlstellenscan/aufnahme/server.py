@@ -556,12 +556,14 @@ class Anfrage(BaseHTTPRequestHandler):
         datei = None
         if weg == "/":
             datei = SEITE / ("hochladen.html" if self.server.modus_server else "index.html")
-        elif weg == "/labeln" or (weg == "/training" and not self.server.modus_server):
+        elif weg == "/labeln" or (weg in ("/training", "/koerper") and not self.server.modus_server):
             datei = SEITE / f"{weg[1:]}.html"
         elif re.fullmatch(r"/[a-z-]+\.(css|js|woff2)", weg):
             datei = SEITE / weg[1:]
         elif re.fullmatch(r"/foto/B\d{3,6}/[A-Za-z0-9_-]+\.(jpg|png|heic)", weg):
             datei = werk.ordner / weg[6:]
+        elif kz := re.fullmatch(r"/koerper/(B\d{3,6})/(S[1-4]\.jpg)", weg):
+            datei = werk.ordner / kz[1] / "koerper" / kz[2]
         if datei is None or not datei.is_file():
             return self.antwort(404, {"fehler": "Gibt es nicht."})
         inhalt = datei.read_bytes()
@@ -625,6 +627,11 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, {"kodytek": len(werk.kette.kodytek())})
         if weg == "/api/training":
             return self.antwort(200, werk.kette.stand())
+        if weg == "/api/koerper":
+            try:
+                return self.antwort(200, werk.kette.koerper(parse_qs(urlsplit(self.path).query).get("id", [""])[0]))
+            except ValueError as e:
+                return self.antwort(400, {"fehler": str(e)})
         if weg == "/live.jpg":
             werk.raster = l.raster_fuers_handy({k: v[0] for k, v in parse_qs(urlsplit(self.path).query).items()})
         if weg == "/live.jpg" and werk.app_da():
