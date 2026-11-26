@@ -26,6 +26,7 @@ KLASSEN = ["live_knot", "dead_knot", "knot_missing", "knot_with_crack", "crack",
            "verbindung", "fuge"]            # docs/labelrichtlinie.md, 0-9 wie Kodytek
 TEILE = ("train", "val", "test")
 EPOCHEN = 60
+LAUFEND = ("bauen", "training", "pruefen")
 HIER = Path(__file__).resolve().parent
 
 
@@ -156,10 +157,21 @@ def spalten(z: dict, art: str) -> dict:
     return {k: float(z[f"metrics/{n}({art})"]) for k, n in s.items() if f"metrics/{n}({art})" in z}
 
 
-def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path) -> dict | None:
-    """Ergebnis eines fertigen Laufs aus dem, was ultralytics und bilder.py schreiben. None ohne Abschlusstabelle."""
+def tabelle_aus(log: Path) -> list[dict] | None:
+    """Abschlusstabelle aus einer Logdatei, None ohne gültige Tabelle (erste Zeile all, mindestens eine Klasse)."""
     tabelle = tabelle_gelesen(log.read_text(encoding="utf-8", errors="replace")) if log.exists() else []
-    if not tabelle or tabelle[0]["klasse"] != "all" or len(tabelle) < 2:
+    return tabelle if len(tabelle) >= 2 and tabelle[0]["klasse"] == "all" else None
+
+
+def mit_nummer(klassen: list[dict]) -> list[dict]:
+    return [{**t, "k": KLASSEN.index(t["klasse"]) if t["klasse"] in KLASSEN else None} for t in klassen]
+
+
+def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path, pruef_log: Path | None = None) -> dict | None:
+    """Ergebnis eines fertigen Laufs aus dem, was ultralytics und bilder.py schreiben. None ohne Abschlusstabelle.
+    pruef_log: Log der zweiten Prüfung von best.pt nur auf Altholz (wenn Altholz mit anderen Sätzen trainiert wurde)."""
+    tabelle = tabelle_aus(log)
+    if not tabelle:
         return None
     z = epochen_gelesen(lauf / "results.csv")
     # best.pt ist die Epoche mit der höchsten Fitness von ultralytics: je 0,1 mAP50 + 0,9 mAP50-95 für Box und
@@ -174,8 +186,10 @@ def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path) -> dict | None:
     zahl = json.loads(bericht.read_text(encoding="utf-8")) if bericht.exists() else {}
     kacheln = zahl.get("kacheln", {})
     probe = zahl.get("probe")                  # alte Läufe: Ablaufprobe, geprüft auf den Trainingsbildern
-    klassen = [{**t, "k": KLASSEN.index(t["klasse"]) if t["klasse"] in KLASSEN else None} for t in tabelle[1:]]
+    klassen = mit_nummer(tabelle[1:])
+    altholz = tabelle_aus(pruef_log) if pruef_log else None
     return {"gesamt": tabelle[0], "klassen": klassen, "probe": probe, "pruefung": zahl.get("pruefung"),
+            "altholz": {"gesamt": altholz[0], "klassen": mit_nummer(altholz[1:])} if altholz else None,
             "beste": int(float(beste["epoch"])) if beste else None, "gelaufen": len(z),
             "epochen": int(args["epochs"]) if args.get("epochs", "").isdigit() else None,
             "sekunden": float(z[-1]["time"]) if z and "time" in z[-1] else None,
@@ -385,7 +399,8 @@ class Kette:
         log, lauf = self.ordner / f"{name}.log", self.wurzel / "runs" / "segment" / name
         stempel = (name, log.stat().st_mtime_ns if log.exists() else 0)
         if self._ergebnis[0] != stempel:
-            e = ergebnis_gelesen(lauf, log, self.wurzel / "datensaetze" / name / "bericht.json")
+            e = ergebnis_gelesen(lauf, log, self.wurzel / "datensaetze" / name / "bericht.json",
+                                 self.ordner / f"{name}-altholz.log")
             plan = self.ordner / f"{name}.json"
             if e:
                 e["name"] = name
@@ -396,7 +411,7 @@ class Kette:
 
     def starten(self, daten: dict) -> dict:
         with self.schloss:
-            if self.lauf and self.lauf["status"] in ("bauen", "training"):
+            if self.lauf and self.lauf["status"] in LAUFEND:
                 raise ValueError("Es läuft schon ein Training.")
             wahl = daten.get("saetze", ["altholz"])
             bekannt = {"altholz", *(x["id"] for x in self.saetze())}
@@ -462,24 +477,43 @@ class Kette:
                 befehl = [str(self.yolo), "segment", "train", f"data={auftrag['ziel']}/data.yaml",
                           f"model={self.startmodell()}", f"epochs={EPOCHEN}", "imgsz=1280", "batch=2", "workers=2",
                           "device=mps", f"project={self.wurzel / 'runs' / 'segment'}", f"name={lauf['name']}"]
-                if shutil.which("caffeinate"):
-                    befehl = ["caffeinate", "-i", *befehl]     # Mac bleibt wach
-                with self.schloss:
-                    if lauf["status"] == "abgebrochen":
-                        return
-                    lauf["status"] = "training"
-                    self.prozess = subprocess.Popen(befehl, stdout=log, stderr=subprocess.STDOUT, cwd=self.wurzel,
-                                                    start_new_session=True)
-                ende = self.prozess.wait()
+                ende = self._prozess(lauf, "training", befehl, log)
             with self.schloss:
-                if lauf["status"] == "training":
-                    lauf["status"] = "fertig" if ende == 0 else "fehler"
-                    if ende:
-                        lauf["fehler"] = self._letzte_zeile(logdatei)
+                if lauf["status"] == "training" and ende:
+                    lauf["status"], lauf["fehler"] = "fehler", self._letzte_zeile(logdatei)
+            mischung = Path(auftrag["ziel"]) / "altholz.yaml"
+            if ende == 0 and mischung.exists():
+                # Die Prüfzahl von ultralytics mischt Altholz mit Kodytek: best.pt noch einmal nur auf Altholz prüfen
+                pruef_log = self.ordner / f"{lauf['name']}-altholz.log"
+                lauf_ordner = Path(lauf["ordner"])
+                befehl = [str(self.yolo), "segment", "val", f"data={mischung}",
+                          f"model={lauf_ordner / 'weights' / 'best.pt'}", "imgsz=1280", "batch=2", "workers=2",
+                          "device=mps", f"project={lauf_ordner}", "name=pruefung-altholz", "exist_ok=True"]
+                with pruef_log.open("w", encoding="utf-8") as log:
+                    ende_pruef = self._prozess(lauf, "pruefen", befehl, log)
+                if ende_pruef:
+                    print(f"Lauf {lauf['name']}: Altholz-Prüfung Code {ende_pruef}", file=sys.stderr)
+                    with self.schloss:
+                        lauf["fehler"] = f"Altholz-Prüfung ging nicht: {self._letzte_zeile(pruef_log)}"
+            with self.schloss:
+                if lauf["status"] in ("training", "pruefen"):
+                    lauf["status"] = "fertig"
         except (OSError, ValueError, subprocess.SubprocessError) as e:
             print(f"Lauf {lauf['name']}: {e}", file=sys.stderr)
             with self.schloss:
                 lauf["status"], lauf["fehler"] = "fehler", self._letzte_zeile(logdatei) or str(e)
+
+    def _prozess(self, lauf: dict, status: str, befehl: list[str], log) -> int | None:
+        """yolo als eigener Prozess (abbrechbar, Mac bleibt wach). None, wenn vorher abgebrochen."""
+        if shutil.which("caffeinate"):
+            befehl = ["caffeinate", "-i", *befehl]
+        with self.schloss:
+            if lauf["status"] == "abgebrochen":
+                return None
+            lauf["status"] = status
+            self.prozess = subprocess.Popen(befehl, stdout=log, stderr=subprocess.STDOUT, cwd=self.wurzel,
+                                            start_new_session=True)
+        return self.prozess.wait()
 
     @staticmethod
     def _letzte_zeile(pfad: Path) -> str:
@@ -488,7 +522,7 @@ class Kette:
 
     def abbrechen(self, daten: dict) -> dict:
         with self.schloss:
-            if not self.lauf or self.lauf["status"] not in ("bauen", "training"):
+            if not self.lauf or self.lauf["status"] not in LAUFEND:
                 raise ValueError("Es läuft kein Training.")
             self.lauf["status"] = "abgebrochen"
             if self.prozess and self.prozess.poll() is None:

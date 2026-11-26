@@ -21,6 +21,7 @@ from aufnahme import server as s
 
 DREIECK = [[0.1, 0.1], [0.3, 0.1], [0.2, 0.4]]
 YOLO = """#!/bin/sh
+echo "$*" >> "AUFRUFE"
 for a in "$@"; do case $a in project=*) p=${a#project=};; name=*) n=${a#name=};; esac; done
 mkdir -p "$p/$n"
 printf 'epoch, time, train/seg_loss, metrics/mAP50(B), metrics/mAP50-95(B), metrics/mAP50(M), metrics/mAP50-95(M)\\n\
@@ -150,7 +151,8 @@ class TestWeg(unittest.TestCase):
     def yolo(self, ende):
         y = self.wurzel / ".venv" / "bin" / "yolo"
         (self.wurzel / "tabelle.txt").write_text(TABELLE + "\n")
-        y.write_text(YOLO.replace("TABELLE", str(self.wurzel / "tabelle.txt")).replace("ENDE", ende))
+        y.write_text(YOLO.replace("TABELLE", str(self.wurzel / "tabelle.txt")).replace("ENDE", ende)
+                     .replace("AUFRUFE", str(self.wurzel / "aufrufe.txt")))
         os.chmod(y, 0o755)
 
     def ruf(self, weg, daten=None, kopf=True):
@@ -173,7 +175,7 @@ class TestWeg(unittest.TestCase):
     def warte(self):
         for _ in range(200):
             st = self.ruf("/api/training")[1]["lauf"]
-            if st["status"] not in ("bauen", "training"):
+            if st["status"] not in k.LAUFEND:
                 return st
             time.sleep(0.05)
         self.fail("Lauf endet nicht")
@@ -218,6 +220,9 @@ class TestWeg(unittest.TestCase):
         self.assertEqual((e["train"], e["val"]), (bericht["kacheln"]["train"], bericht["kacheln"]["val"]))
         self.assertEqual((e["train"], e["val"]), (3, 1))
         self.assertEqual((e["modell"], e["imgsz"], e["batch"], e["saetze"]), ("yolo11n-seg", "1280", "2", ["altholz"]))
+        self.assertIsNone(e["altholz"])          # nur Altholz: die Prüfung von ultralytics ist schon reines Altholz
+        self.assertFalse((d / "altholz.yaml").exists())
+        self.assertNotIn("segment val", (self.wurzel / "aufrufe.txt").read_text())
         self.assertEqual((e["gesamt"]["maske"]["map50"], [x["k"] for x in e["klassen"]]), (0.746, [0, 8]))
         self.ruf("/api/training", {})
         self.assertEqual(self.warte()["name"], "altholz-2")
@@ -325,6 +330,18 @@ class TestWeg(unittest.TestCase):
         self.assertEqual(self.warte()["status"], "fertig")
         z = self.wurzel / "datensaetze" / "altholz-1"
         self.assertIn("train: train.txt\nval: val.txt", (z / "data.yaml").read_text())
+        # zweite Prüfung von best.pt nur auf den Altholz-Kacheln (Seite 2), nicht auf Kodytek
+        self.assertIn("val: val_altholz.txt", (z / "altholz.yaml").read_text())
+        nur = [Path(x) for x in (z / "val_altholz.txt").read_text().splitlines()]
+        self.assertEqual(sorted(p.name.split("_x")[0] for p in nur), [na[1]] * 2)
+        self.assertTrue(all(p.exists() for p in nur))
+        val = [x for x in (self.wurzel / "aufrufe.txt").read_text().splitlines() if x.startswith("segment val")]
+        self.assertEqual(len(val), 1)
+        self.assertIn(f"data={z / 'altholz.yaml'}", val[0])
+        self.assertIn("altholz-1/weights/best.pt", val[0])
+        e = self.ruf("/api/training")[1]["ergebnis"]
+        self.assertEqual((e["altholz"]["gesamt"]["maske"]["map50"], [x["k"] for x in e["altholz"]["klassen"]]), (0.746, [0, 8]))
+        self.assertEqual(json.loads((z / "bericht.json").read_text())["altholz_val"], 2)
         train = [Path(x) for x in (z / "train.txt").read_text().splitlines()]
         # Kodytek-Auswahl 6 + Altholz 2 Kacheln + extra 2, kodytek-seg-1 steckt schon ganz in der Auswahl
         self.assertEqual(len(train), 6 + 2 + 2)
@@ -342,6 +359,11 @@ class TestWeg(unittest.TestCase):
         self.assertEqual(self.warte()["status"], "fertig")
         val = self.wurzel / "datensaetze" / "altholz-1" / "images" / "val"
         self.assertEqual(sum(p.name.startswith(na[1]) for p in val.iterdir()), 2)     # Altholz wird mitgeprüft
+        self.yolo('[ "$2" = val ] && { echo kaputt; exit 1; }; exit 0')     # Training gut, Altholz-Prüfung nicht
+        self.ruf("/api/training", {"saetze": ["altholz", "kodytek"]})
+        lauf = self.warte()
+        self.assertEqual((lauf["status"], lauf["fehler"]), ("fertig", "Altholz-Prüfung ging nicht: kaputt"))
+        self.assertEqual(self.ruf("/api/training")[1]["ergebnis"]["name"], "altholz-2")
 
 
 class TestAuswahl(unittest.TestCase):

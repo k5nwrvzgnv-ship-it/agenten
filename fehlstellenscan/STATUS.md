@@ -465,7 +465,11 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   als Vorlage; erst wenn alle Objekte geprüft und gespeichert sind, gilt die Korrektur, sonst das Original. Originale
   bleiben unverändert (Hardlinks, Korrekturen in aufnahmen/kodytek/labels/). Maße dort in Pixeln, weil längs und quer
   verschieden aufgelöst. Ganze Sätze gehen per train.txt ein, Auswahlbilder nicht doppelt. Ganzer Kodytek-Satz: um
-  21 min je Epoche auf dem Mac (gemessen am Box-Modell). Offen: ultralytics meldet eine Zahl über die ganze Prüfung; mit Kodytek dabei mischt sie Altholz und Kodytek.
+  21 min je Epoche auf dem Mac (gemessen am Box-Modell). Mit Kodytek oder anderen Sätzen dabei mischt die Prüfzahl von ultralytics Altholz und Kodytek. Darum (Jan 26.11.2026)
+  schreibt bilder.py dann val_altholz.txt und altholz.yaml (nur Altholz-Prüfkacheln), kette.py prüft nach dem Training
+  best.pt damit (`yolo segment val`, Zustand „pruefen“, Log aufnahmen/altholz-N-altholz.log, Ausgabe
+  runs/segment/altholz-N/pruefung-altholz). Die Seite zeigt groß die Altholz-Zahlen, darunter klein alle Sätze zusammen.
+  Scheitert diese Prüfung, bleibt das Training gültig, die Seite meldet den Fehler. Nur mit yolo-Attrappe geprüft.
   Geprüft auf dem Server mit drei echten Kodytek-Bildern und yolo-Attrappe, nicht auf dem Mac.
 - Klassen im Labeln (Jan 25.11.2026 „vereinfachen, für die Übersichtlichkeit der Farben“): sechs Farbgruppen (Ast, Riss, Loch,
   Fuge, Metall, Weitere eingeklappt), innerhalb der Gruppe Strichmuster. Nur Anzeige, Zifferntasten 1-9 folgen der

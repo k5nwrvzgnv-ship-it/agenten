@@ -69,6 +69,7 @@ def bauen(auftrag: dict) -> dict:
     for t in ("train", "val"):
         (ziel / "images" / t).mkdir(parents=True)
         (ziel / "labels" / t).mkdir(parents=True)
+    altholz_val = []
     for e in auftrag["bilder"]:
         zahl["balken"][e["balken"]] = e["teil"]
         with Image.open(e["bild"]) as roh:
@@ -82,6 +83,8 @@ def bauen(auftrag: dict) -> dict:
                 (ziel / "labels" / e["teil"] / f"{name}.txt").write_text("".join(s + "\n" for s in z))
                 zahl["kacheln"][e["teil"]] += 1
                 zahl["objekte"].update(auftrag["klassen"][int(s.split()[0])] for s in z)
+                if e["teil"] == "val":
+                    altholz_val.append(str(ziel / "images" / "val" / f"{name}.jpg"))
     for e in auftrag.get("ganze", []):      # ganze Bilder mit fertigem Label (Kodytek), nicht gekachelt
         quelle = Path(e["bild"])
         bild = ziel / "images" / e["teil"] / f"{e['name']}{quelle.suffix}"
@@ -102,6 +105,12 @@ def bauen(auftrag: dict) -> dict:
             zahl["dazu_" + t] = len(dazu)
     (ziel / "data.yaml").write_text(f"path: {json.dumps(str(ziel))}\ntrain: {wege['train']}\nval: {wege['val']}\nnames:\n" + "".join(
         f"  {i}: {n}\n" for i, n in enumerate(auftrag["klassen"])))
+    if altholz_val and zahl["kacheln"]["val"] > len(altholz_val):
+        # Prüfung mischt Altholz mit anderen Sätzen: eigene Prüfliste nur für Altholz, kette.py prüft best.pt damit
+        (ziel / "val_altholz.txt").write_text("".join(x + "\n" for x in altholz_val))
+        (ziel / "altholz.yaml").write_text(f"path: {json.dumps(str(ziel))}\ntrain: {wege['train']}\nval: val_altholz.txt\n"
+                                           "names:\n" + "".join(f"  {i}: {n}\n" for i, n in enumerate(auftrag["klassen"])))
+        zahl["altholz_val"] = len(altholz_val)
     (ziel / "bericht.json").write_text(json.dumps(zahl, ensure_ascii=False, indent=1))
     return zahl
 
