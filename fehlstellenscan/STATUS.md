@@ -521,6 +521,36 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Enter speichert es leer als fehlerfrei. Vorschaubild von B001 Seite 3 fehlt im Labeln.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 
+## Neurolign-Server (ab 26.11.2026)
+- Jans Wahl 26.11.2026 nachts: Neurolign läuft zusätzlich auf dem Server, immer an, für Henri und Felix; Server ist
+  Hauptablage für Fotos und Labels, Training bleibt auf dem Mac. Adresse https://neurolign.meldro.de, Passwort je Person
+  (Caddy basicauth jan, henri, felix). Plan: docs/plan-neurolign-server.md, Jans Schritte: docs/neurolign-einrichten.md.
+- Stand 26.11.2026 morgens: Dienst fehlstellenscan-neurolign läuft (Vorlage systemd/, 127.0.0.1:8796, MemoryMax 768M,
+  OnFailure=ausfall@), Ablage data/neurolign/aufnahmen. Passwörter in .env (NEUROLIGN_PASSWORT_JAN/_HENRI/_FELIX),
+  Caddy-Block data/caddy-neurolign.txt (Hashes). Offen bei Jan: DNS A/AAAA neurolign bei INWX, Block in
+  /etc/caddy/Caddyfile, Passwörter an Henri und Felix.
+- Code: server.py --server (gleiches Programm wie auf dem Mac, Mac-Modus unverändert), zugang.py (Rechte, rein,
+  tests/test_neurolign_server.py), seite/hochladen.*. Nutzer kommt aus X-Nutzer, die Caddy setzt; geglaubt nur von
+  127.0.0.1 mit Host neurolign.meldro.de. POST nur mit Origin https://neurolign.meldro.de und X-Aufnahme. Henri und
+  Felix: Balken anlegen, hochladen, labeln. Nur Jan: Fotos verwerfen, Maße ändern. Training, Fotobox, iPhone-Wege und
+  Kodytek-Auswahl gibt es im Servermodus nicht (Training und Kodytek-Bilder liegen auf dem Mac).
+- Hochladen: Seite auf dem Balkenbild wählen, Fotos einzeln hoch (je höchstens 40 MB, Caddy 50 MB). Hochgeladene Seiten
+  haben einen freien Plan (frei, ohne Abschnitte, ohne Zuschnitt, Maße in Pixeln); Fotobox-Seiten nimmt der Server
+  nicht an, der Mac zeigt freie Seiten ohne Plan und fotografiert dort nicht. JPEG und PNG; HEIC abgelehnt (kein Paket
+  dafür auf dem Server). Server vergibt Balken ab B501 (Mac ab B001).
+- Labels tragen von (Name). Speichern schickt den geladenen Stand mit; hat inzwischen jemand anderes gespeichert, kommt
+  ein Fehler mit Namen statt stillem Überschreiben (auch im Mac-Modus).
+- Abgleich: mac/neurolign_abgleich.sh hoch (neue Fotobox-Balken auf den Server; lässt Balken mit Labels auf dem Server
+  und fremde gleicher ID aus) und runter (alle Balken vom Server auf den Mac, ohne zuschnitt/, einstellungen.json und
+  teile.json; fremde gleicher ID bleiben auf dem Mac). Lokal mit nachgestelltem ssh durchgespielt, nicht mit dem echten Mac.
+- Geprüft: Tests; Dienst lokal (403 ohne Nutzer); Probe-Caddy ohne root auf Port 18950 mit dem echten Block (401 ohne und
+  mit falschem Passwort, Henri bleibt Henri trotz eigener X-Nutzer-Kopfzeile); Seiten gerendert 1440 und 390 px als henri
+  und jan, axe ohne Befunde. Nicht geprüft: echtes HTTPS und Zertifikat (erst nach DNS), Hochladen vom iPhone (HEIC?),
+  Fotobox-Balken vom Mac auf dem Server (Fotos der iPhone-App als HEIC wären dort nicht zuschneidbar), Prüfer in
+  frischem Kontext für die Seite Hochladen.
+- Offen: Rückgängig nach Foto verwerfen fehlt (liegt in verworfen/, von Hand zurückholbar); Datenschutz: Fotos liegen bei
+  Contabo, Henri und Felix sehen alle Balken.
+
 ## Werkbank (Mac, FiftyOne, ab 23.11.2026)
 FiftyOne zeigt Bilder mit Markierung und Vorhersage im Browser, wertet je Objekt aus und speichert Ansichten.
 Freigabe Jan 23.11.2026: Python 3.13 von python.org und fiftyone (mac/requirements-werkbank.txt) in eigener

@@ -113,6 +113,7 @@ class Servermodus(unittest.TestCase):
         st, stand = self.ruf(f"/api/hochladen?balken={kennung}&seite=1", roh=jpeg(), wer="felix")
         self.assertEqual(st, 200, stand)
         self.ruf(f"/api/hochladen?balken={kennung}&seite=1", roh=jpeg((10, 10, 10)), wer="henri")
+        self.assertEqual(kennung, "B501")
         b = next(x for x in self.ruf("/api/stand")[1]["balken"] if x["id"] == kennung)
         self.assertEqual(b["von"], "felix")
         self.assertEqual([f["von"] for f in b["seiten"]["1"]["fotos"]], ["felix", "henri"])

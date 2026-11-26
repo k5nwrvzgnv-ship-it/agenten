@@ -42,6 +42,7 @@ TYPEN = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=u
          ".heic": "image/heic"}
 FOTO_WARTEN_S = 25
 MAX_FOTO = 150_000_000
+ERSTE_SERVER_NR = 500                            # Servermodus vergibt B501, B502, ...
 MAX_HOCHLADEN = 40_000_000                       # je Foto im Servermodus, Caddy lässt 50 MB durch
 
 
@@ -718,6 +719,10 @@ def server_bauen(ordner: Path, adresse: str, port: int, modus_server: bool = Fal
     server.modus_server, server.host = modus_server, host
     server.werk = Werk(ordner, python)
     server.werk.port = server.server_address[1]
+    if modus_server and server.werk.einst["letzte_nr"] < ERSTE_SERVER_NR:
+        # Balken vom Server ab B501, die Fotobox auf dem Mac zählt ab B001: gleiche ID heißt nie zwei Balken
+        server.werk.einst["letzte_nr"] = ERSTE_SERVER_NR
+        server.werk.sichern()
     return server
 
 

@@ -1,0 +1,23 @@
+# Vorlage: nach ~/.config/systemd/user/fehlstellenscan-neurolign.service kopieren, dann systemctl --user daemon-reload
+# und systemctl --user enable --now fehlstellenscan-neurolign.service.
+# Neurolign für Henri und Felix (Jan 26.11.2026, docs/plan-neurolign-server.md): Hochladen und Labeln. Hört nur auf
+# 127.0.0.1:8796, von außen nur über Caddy (neurolign.meldro.de, Passwort je Person, Caddy setzt X-Nutzer).
+# Ablage data/neurolign/aufnahmen (nicht im Repo). Zuschnitte rechnet bilder.py mit Pillow und opencv aus der .venv.
+[Unit]
+Description=Fehlstellen-Scan: Neurolign (127.0.0.1:8796, hinter Caddy)
+# Bei Ausfall Meldung an Jan (shared/agentkit/ausfall.py)
+OnFailure=ausfall@%n.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/agent/agenten/fehlstellenscan
+ExecStart=/home/agent/agenten/fehlstellenscan/.venv/bin/python aufnahme/server.py --server --port 8796 --python /home/agent/agenten/fehlstellenscan/.venv/bin/python /home/agent/agenten/fehlstellenscan/data/neurolign/aufnahmen
+Restart=on-failure
+RestartSec=10
+# Ein 48-MP-Foto belegt beim Zuschneiden um 150 MB, Zuschnitte laufen nacheinander
+MemoryMax=768M
+
+[Install]
+WantedBy=default.target
