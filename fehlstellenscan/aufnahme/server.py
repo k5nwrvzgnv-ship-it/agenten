@@ -819,6 +819,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.kette.speichern(daten, ich))
         if weg == "/api/klassen":
             return self.antwort(200, werk.kette.klassen_aendern(daten, ich))
+        if weg == "/api/foto-massstab":
+            return self.antwort(200, werk.kette.foto_massstab(daten, ich))
         if weg == "/api/foto-zurueck":
             return self.antwort(200, werk.foto_zurueck(daten, ich))
         return self.antwort(200, werk.foto_weg(daten, ich))
@@ -951,7 +953,7 @@ class Anfrage(BaseHTTPRequestHandler):
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
                     "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
                     "/api/zurueck": werk.zurueckholen, "/api/balken-weg": werk.balken_weg,
-                    "/api/balken-zurueck": werk.balken_zurueck, "/api/label": werk.kette.speichern, "/api/klassen": werk.kette.klassen_aendern, "/api/teil": werk.kette.teil_setzen,
+                    "/api/balken-zurueck": werk.balken_zurueck, "/api/label": werk.kette.speichern, "/api/klassen": werk.kette.klassen_aendern, "/api/foto-massstab": werk.kette.foto_massstab, "/api/teil": werk.kette.teil_setzen,
                     "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen,
                     "/api/vorlabeln": werk.kette.vorlabeln_starten,
                     "/api/vorlabeln-abbrechen": werk.kette.vorlabeln_abbrechen}

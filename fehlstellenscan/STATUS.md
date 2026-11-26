@@ -652,6 +652,18 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Fotozahl an Haken und Mülleimer, Rückgängig bleibt stehen, Schloss nur im Kopf, Zauberstab ohne Haken als Auslöser,
   deutlichere Auswahl. Offen aus der Prüfung: Konfidenz in der Liste nur als Warnzeichen sichtbar (Optik-Einstellung),
   doppelter Balken-Knopf (Kopf und Bearbeiten), Etikett-Platz in der Leiste.
+- Raster und Zollstock in Labeln (Jan 26.11.2026 „Cm raster einstellbar, Digitalen Zollstock einblendbar
+  (einmessbar)“), seite/massstab.js: Werkzeugleiste rechts neben Zoom. Raster (R) ab der linken oberen Bildecke,
+  Weite 1/2/5/10 cm (am Handy nur die gewählte, Tipp schaltet weiter), jede fünfte Linie kräftiger; Raster und Weite
+  merkt sich der Browser. Ohne Maßstab ist der Raster-Knopf gestrichelt und startet den Zollstock. Zollstock (L): zwei
+  Klicks setzen ihn, Enden ziehen dreht und verlängert (Umschalt rastet 15°), Band ziehen verschiebt, Esc beim Setzen
+  bricht ab. Mit Maßstab gelbes Band mit mm/cm-Teilung und Länge, ohne nur Linie mit px. Einmessen: echte Länge ins
+  Feld neben dem Zollstock, Enter oder Haken; gespeichert je Foto als mm je Pixel des Zuschnitts in
+  aufnahmen/<Balken>/einmessung.json (POST /api/foto-massstab, Mac und Server, Recht labeln; Abgleich runter holt sie
+  mit). Gilt vor Plan- und Streifenbild-Maßstab; Labels bleiben unverändert (Anteile). Rückgängig in der Meldung.
+  Geprüft: Tests, Playwright auf Kopien von B501 im Mac- und Servermodus, 1440 und 390 px, axe ohne Befund.
+  Offen aus der Prüfung: Maßstab gilt nur je Foto (nicht für die ganze Seite übernehmbar), Einmessen auf einem Foto
+  mit Maßstab ersetzt ihn ohne eigenes Zeichen (nur Rückgängig), Zollstock nicht per Tastatur setzbar.
 
 ## Neurolign-Server (ab 26.11.2026)
 - Jans Wahl 26.11.2026 nachts: Neurolign läuft zusätzlich auf dem Server, immer an, für Henri und Felix; Server ist

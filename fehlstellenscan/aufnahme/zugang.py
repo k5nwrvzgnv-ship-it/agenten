@@ -21,6 +21,7 @@ POST_WEGE = {
     "/api/hochladen": HOCHLADEN,
     "/api/label": LABELN,
     "/api/klassen": LABELN,
+    "/api/foto-massstab": LABELN,
     "/api/foto-weg": VERWALTEN,
     "/api/foto-zurueck": VERWALTEN,
     "/api/training": TRAINIEREN,

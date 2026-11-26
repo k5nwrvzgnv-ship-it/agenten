@@ -406,10 +406,11 @@ class Kette:
         return ergebnis
 
     def kodytek_bilder(self) -> list[dict]:
-        gesamt = []
+        gesamt, e = [], self.einmessungen("kodytek")
         for f in self.kodytek():
             x = self.label(f)
             gesamt.append({"name": f["name"], "balken": "kodytek", "titel": f["name"][8:], "laengs_mm": None,
+                           "mm_je_px": (e.get(f["name"]) or {}).get("mm_je_px"),
                            "objekte": x["objekte"] if x else sa.objekte_aus(self.original(f)),
                            "zeit": x["zeit"] if x else None})
         return gesamt
@@ -418,11 +419,39 @@ class Kette:
         gesamt = []
         for i in self.ids():
             b = self.lesen(i)
+            e = None
             for f in fotos(b):
-                gesamt.append(self.bild(f, b.get("name") or ""))
+                if e is None:
+                    e = self.einmessungen(f["balken"])
+                gesamt.append(self.bild(f, b.get("name") or "", e))
         return gesamt
 
-    def bild(self, f: dict, balken_name: str) -> dict:
+    # ------------------------------------------------------ Einmessen (digitaler Zollstock in Labeln)
+    def einmessungen(self, balken: str) -> dict:
+        """Eingemessene Maßstäbe eines Balkens: Foto -> {mm_je_px, von, zeit}. mm_je_px bezieht sich auf die Pixel
+        des Zuschnitts. Gilt vor dem Maßstab aus Plan oder Streifenbild."""
+        p = self.ordner / balken / "einmessung.json"
+        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+    def foto_massstab(self, daten: dict, von: str | None = None) -> dict:
+        """Maßstab eines Fotos speichern (mm_je_px) oder mit None entfernen. Antwort: der vorige Wert."""
+        mm = daten.get("mm_je_px")
+        if mm is not None and (isinstance(mm, bool) or not isinstance(mm, (int, float)) or not 1e-4 <= mm <= 100):
+            raise ValueError("Maßstab außerhalb des Bereichs.")
+        with self.schloss:
+            f = self.foto(daten.get("name"))
+            p = self.ordner / f["balken"] / "einmessung.json"
+            alle = self.einmessungen(f["balken"])
+            vorher = (alle.get(f["name"]) or {}).get("mm_je_px")
+            if mm is None:
+                alle.pop(f["name"], None)
+            else:
+                alle[f["name"]] = {"mm_je_px": round(float(mm), 7), "von": von or "mac",
+                                   "zeit": datetime.now().isoformat(timespec="seconds")}
+            schreiben(p, alle)
+        return {"mm_je_px": mm, "vorher": vorher}
+
+    def bild(self, f: dict, balken_name: str, einmessung: dict | None = None) -> dict:
         """Ein Foto für die Seite Labeln. frei = hochgeladen (im Servermodus verwerfbar), name_b = Name des Balkens."""
         x = self.label(f)
         # Maße in mm gelten nur mit gemessenem Bildwinkel, sonst zeigt die Oberfläche Pixel
@@ -434,6 +463,7 @@ class Kette:
         return {"name": f["name"], "balken": f["balken"], "seite": f["seite"], "nr": f["nr"],
                 "titel": f"{f['balken']} Seite {f['seite']}, {f['nr'] + 1}", "laengs_mm": mm,
                 "name_b": balken_name, "frei": bool(p.get("frei")),
+                "mm_je_px": ((einmessung or {}).get(f["name"]) or {}).get("mm_je_px"),
                 "objekte": x["objekte"] if x else None, "zeit": x["zeit"] if x else None}
 
     def speichern(self, daten: dict, von: str | None = None) -> dict:

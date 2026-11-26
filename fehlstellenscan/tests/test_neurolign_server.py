@@ -142,6 +142,27 @@ class Servermodus(unittest.TestCase):
         st, _ = self.ruf("/api/label", {"name": name, "stand": a["zeit"], "objekte": []}, wer="felix")
         self.assertEqual(st, 200)
 
+    def test_foto_massstab_einmessen(self):
+        kennung = self.balken()
+        self.ruf(f"/api/hochladen?balken={kennung}&seite=1", roh=jpeg(), wer="henri")
+        name = self.ruf("/api/bilder")[1][0]["name"]
+        self.assertIsNone(self.ruf("/api/bilder")[1][0]["mm_je_px"])
+        st, a = self.ruf("/api/foto-massstab", {"name": name, "mm_je_px": 0.25}, wer="felix")
+        self.assertEqual(st, 200, a)
+        self.assertEqual(a, {"mm_je_px": 0.25, "vorher": None})
+        self.assertEqual(self.ruf("/api/bilder")[1][0]["mm_je_px"], 0.25)
+        e = json.loads((self.ablage / kennung / "einmessung.json").read_text())
+        self.assertEqual(e[name]["von"], "felix")
+        # Rückgängig: vorigen Wert (hier keinen) zurückschreiben
+        st, a = self.ruf("/api/foto-massstab", {"name": name, "mm_je_px": None})
+        self.assertEqual(a["vorher"], 0.25)
+        self.assertIsNone(self.ruf("/api/bilder")[1][0]["mm_je_px"])
+        for falsch in (0, -1, "0.3", True, 1000):
+            self.assertEqual(self.ruf("/api/foto-massstab", {"name": name, "mm_je_px": falsch})[0], 400, falsch)
+        self.assertEqual(self.ruf("/api/foto-massstab", {"name": "gibtsnicht", "mm_je_px": 0.2})[0], 400)
+        self.assertEqual(self.ruf("/api/foto-massstab", {"name": name, "mm_je_px": 0.2}, herkunft=None)[0], 403)
+        self.assertEqual(self.ruf("/api/foto-massstab", {"name": name, "mm_je_px": 0.2}, wer=None)[0], 403)
+
     def test_henri_verwaltet_wie_jan(self):
         kennung = self.balken("jan")
         st, b = self.ruf("/api/balken", {"id": kennung, "laenge_mm": 900, "breite_mm": 100, "hoehe_mm": 100})
@@ -298,6 +319,17 @@ class MacModusUnveraendert(unittest.TestCase):
             self.assertIsNotNone(st["balken"][0]["seiten"]["2"]["plan"])
             with self.assertRaises(ValueError):
                 w.foto_ablegen(b["id"], "1", 0, jpeg())
+
+    def test_mac_misst_foto_ein(self):
+        with tempfile.TemporaryDirectory() as d:
+            w = s.Werk(Path(d))
+            b = w.balken_speichern({"laenge_mm": 1200, "breite_mm": 120, "hoehe_mm": 100})
+            w.hochladen(b["id"], "1", jpeg(), "felix")
+            name = w.kette.bilder()[0]["name"]
+            self.assertEqual(w.kette.foto_massstab({"name": name, "mm_je_px": 0.5})["vorher"], None)
+            self.assertEqual(w.kette.foto_massstab({"name": name, "mm_je_px": 0.4})["vorher"], 0.5)
+            self.assertEqual(w.kette.bilder()[0]["mm_je_px"], 0.4)
+            self.assertEqual(w.kette.einmessungen(b["id"])[name]["von"], "mac")
 
     def test_mac_loescht_hochgeladene_fotos_und_holt_sie_zurueck(self):
         with tempfile.TemporaryDirectory() as d:

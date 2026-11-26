@@ -149,3 +149,14 @@ legend{display:flex;align-items:center;gap:var(--space-sm);width:100%}.klb{margi
 /* Vorlabeln (26.11.2026) */
 .fkr{display:flex;align-items:center;gap:var(--space-sm);flex:none}.vlkopf{display:flex;align-items:center;flex:none;min-height:var(--knopf)}.fg .vlk{flex:none}.fc .vlk{width:36px;height:36px}
 @media(max-width:1023px){.vlkopf{justify-content:flex-end}.fc .vlk{width:44px;height:44px}}
+/* Raster und Zollstock (massstab.js) */
+#bild.setzen{cursor:crosshair}#bild .ze{cursor:move}#bild .zk{cursor:grab}
+.weiten,.einm{display:flex;align-items:center;gap:2px;flex:none}.weiten[hidden],.einm[hidden]{display:none}
+.weiten button{min-width:32px;height:32px;padding:0 6px;border:1px solid var(--color-border);background:var(--color-muted);font-family:var(--font-heading);font-variant-numeric:tabular-nums;border-radius:min(var(--radius),6px)}
+.weiten span,.einm span{padding:0 4px 0 2px;color:var(--color-muted-foreground);font-size:calc(var(--schrift) - 1px)}
+.einm input{width:9ch;height:32px;padding:0 6px;border:1px solid var(--color-border);background:var(--color-background);color:inherit;font-family:var(--font-heading);font-variant-numeric:tabular-nums;border-radius:min(var(--radius),6px)}
+#app .weiten button[aria-pressed=true]{background:var(--color-accent);color:var(--color-on-accent);border-color:var(--color-accent)}
+@media(max-width:1023px){.weiten button,.einm input{height:40px}.weiten button{min-width:40px}.weiten button:not([aria-pressed=true]){display:none}.einm input{width:7ch}}
+.einm input{appearance:textfield;-moz-appearance:textfield}.einm input::-webkit-inner-spin-button,.einm input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+#app #raster.wartet{background:none;color:inherit;border:1.5px dashed var(--color-accent)}
+@media(max-width:1023px){.leiste{flex-wrap:wrap}.einm{order:9;flex-basis:100%;justify-content:flex-end;padding:var(--space-xs) 0}}
