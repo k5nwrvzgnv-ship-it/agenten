@@ -17,13 +17,15 @@ from datetime import datetime
 from pathlib import Path
 
 if __package__:
+    from . import klassen as kl
     from . import saetze as sa
 else:
+    import klassen as kl
     import saetze as sa
 
 KLASSEN = ["live_knot", "dead_knot", "knot_missing", "knot_with_crack", "crack", "quartzity", "resin", "marrow",
            "blue_stain", "overgrown", "bohrloch", "metall", "nagelloch", "farbe", "faeule", "insektenfrass",
-           "verbindung", "fuge"]            # docs/labelrichtlinie.md, 0-9 wie Kodytek
+           "verbindung", "fuge"]            # Startfassung (docs/labelrichtlinie.md, 0-9 wie Kodytek), gilt: klassen.json
 TEILE = ("train", "val", "test")
 EPOCHEN = 60
 LAUFEND = ("bauen", "training", "pruefen")
@@ -37,14 +39,45 @@ def schreiben(pfad: Path, daten) -> None:
     neu.replace(pfad)
 
 
-def objekte_pruefen(werte) -> list[dict]:
-    """Objekte aus dem Browser: Klasse und Umriss in Anteilen des Zuschnitts, dazu der Zustand des Editors."""
+def zahl_oder_nichts(wert, lo: float, hi: float):
+    if wert is None:
+        return None
+    if isinstance(wert, bool) or not isinstance(wert, (int, float)) or not lo <= wert <= hi:
+        raise ValueError("Zahl außerhalb des Bereichs.")
+    return round(float(wert), 4)
+
+
+def messungen_pruefen(werte, von: str | None) -> list[dict]:
+    """Am Holz gemessene Durchmesser eines Objekts (Messschieber, mm), je Person eine Zeile. Ohne Namen gilt, wer
+    speichert (auf dem Mac: mac)."""
+    if werte is None:
+        return []
+    if not isinstance(werte, list) or len(werte) > 6:
+        raise ValueError("Messung nicht lesbar.")
+    ergebnis = []
+    for m in werte:
+        if not isinstance(m, dict):
+            raise ValueError("Messung nicht lesbar.")
+        z = {"min": zahl_oder_nichts(m.get("min"), 0.1, 5000), "max": zahl_oder_nichts(m.get("max"), 0.1, 5000)}
+        if z["min"] is None and z["max"] is None:
+            continue
+        wer = m.get("von") or von or "mac"
+        if not isinstance(wer, str) or not re.fullmatch(r"[a-z]{1,20}", wer):
+            raise ValueError("Messung: Name nicht lesbar.")
+        ergebnis.append({"von": wer, **z})
+    return ergebnis
+
+
+def objekte_pruefen(werte, ids=None, von: str | None = None) -> list[dict]:
+    """Objekte aus dem Browser: Klasse und Umriss in Anteilen des Zuschnitts, dazu der Zustand des Editors.
+    Dazu, wenn vorhanden: Konfidenz c und Quelle q (Vorlabel), alte Klasse kv (zusammengelegt), Messungen m."""
+    ids = set(range(len(KLASSEN))) if ids is None else ids
     if not isinstance(werte, list) or len(werte) > 2000:
         raise ValueError("Labels nicht lesbar.")
     ergebnis = []
     for o in werte:
-        if not isinstance(o, dict) or isinstance(o.get("k"), bool) or o.get("k") not in range(len(KLASSEN)):
-            raise ValueError("Unbekannte Klasse.")
+        if not isinstance(o, dict) or isinstance(o.get("k"), bool) or o.get("k") not in ids:
+            raise ValueError("Unbekannte Klasse. Seite neu laden (Klassen wurden geändert).")
         p = o.get("p")
         if not isinstance(p, list) or not 3 <= len(p) <= 2000:
             raise ValueError("Umriss nicht lesbar.")
@@ -52,7 +85,18 @@ def objekte_pruefen(werte) -> list[dict]:
             if not isinstance(q, list) or len(q) != 2 or any(
                     isinstance(w, bool) or not isinstance(w, (int, float)) or not 0 <= w <= 1 for w in q):
                 raise ValueError("Umriss außerhalb des Bildes.")
-        ergebnis.append({"k": o["k"], "ok": bool(o.get("ok")), "p": [[round(w, 6) for w in q] for q in p]})
+        neu = {"k": o["k"], "ok": bool(o.get("ok")), "p": [[round(w, 6) for w in q] for q in p]}
+        if (c := zahl_oder_nichts(o.get("c"), 0, 1)) is not None:
+            neu["c"] = c
+        if o.get("q") is not None:
+            if not isinstance(o["q"], str) or len(o["q"]) > 60:
+                raise ValueError("Quelle nicht lesbar.")
+            neu["q"] = o["q"]
+        if isinstance(o.get("kv"), int) and not isinstance(o["kv"], bool):
+            neu["kv"] = o["kv"]
+        if m := messungen_pruefen(o.get("m"), von):
+            neu["m"] = m
+        ergebnis.append(neu)
     return ergebnis
 
 
@@ -62,7 +106,8 @@ def fotos(balken: dict) -> list[dict]:
     for seite, s in sorted(balken["seiten"].items()):
         for nr, f in sorted(s["fotos"].items(), key=lambda x: int(x[0])):
             ergebnis.append({"balken": balken["id"], "seite": seite, "nr": int(nr), "name": Path(f["datei"]).stem,
-                             "datei": f["datei"], "plan": s["plan"]})
+                             "datei": f["datei"], "plan": s["plan"], "px_je_mm": f.get("px_je_mm"),
+                             "breite_px": f.get("breite_px")})
     return ergebnis
 
 
@@ -178,11 +223,13 @@ def tabelle_aus(log: Path) -> list[dict] | None:
     return tabelle if len(tabelle) >= 2 and tabelle[0]["klasse"] == "all" else None
 
 
-def mit_nummer(klassen: list[dict]) -> list[dict]:
-    return [{**t, "k": KLASSEN.index(t["klasse"]) if t["klasse"] in KLASSEN else None} for t in klassen]
+def mit_nummer(klassen: list[dict], namen: list[str] | None = None) -> list[dict]:
+    namen = namen or KLASSEN
+    return [{**t, "k": namen.index(t["klasse"]) if t["klasse"] in namen else None} for t in klassen]
 
 
-def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path, pruef_log: Path | None = None) -> dict | None:
+def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path, pruef_log: Path | None = None,
+                     namen: list[str] | None = None) -> dict | None:
     """Ergebnis eines fertigen Laufs aus dem, was ultralytics und bilder.py schreiben. None ohne Abschlusstabelle.
     pruef_log: Log der zweiten Prüfung von best.pt nur auf Altholz (wenn Altholz mit anderen Sätzen trainiert wurde)."""
     tabelle = tabelle_aus(log)
@@ -201,10 +248,10 @@ def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path, pruef_log: Path | Non
     zahl = json.loads(bericht.read_text(encoding="utf-8")) if bericht.exists() else {}
     kacheln = zahl.get("kacheln", {})
     probe = zahl.get("probe")                  # alte Läufe: Ablaufprobe, geprüft auf den Trainingsbildern
-    klassen = mit_nummer(tabelle[1:])
+    klassen = mit_nummer(tabelle[1:], namen)
     altholz = tabelle_aus(pruef_log) if pruef_log else None
     return {"gesamt": tabelle[0], "klassen": klassen, "probe": probe, "pruefung": zahl.get("pruefung"),
-            "altholz": {"gesamt": altholz[0], "klassen": mit_nummer(altholz[1:])} if altholz else None,
+            "altholz": {"gesamt": altholz[0], "klassen": mit_nummer(altholz[1:], namen)} if altholz else None,
             "beste": int(float(beste["epoch"])) if beste else None, "gelaufen": len(z),
             "epochen": int(args["epochs"]) if args.get("epochs", "").isdigit() else None,
             "sekunden": float(z[-1]["time"]) if z and "time" in z[-1] else None,
@@ -227,6 +274,67 @@ class Kette:
         self.lauf: dict | None = None
         self.prozess: subprocess.Popen | None = None
         self._ergebnis: tuple = (None, None)
+
+    # ------------------------------------------------------ Klassen (klassen.json)
+    def klassen(self) -> dict:
+        """Gültige Klassenliste. Fehlt die Datei, gilt die Startfassung; ist sie kaputt, bricht es laut ab."""
+        p = self.ordner / "klassen.json"
+        return kl.gelesen(json.loads(p.read_text(encoding="utf-8"))) if p.exists() else kl.standard()
+
+    def namen(self) -> list[str]:
+        return kl.schluessel_liste(self.klassen())
+
+    def label_dateien(self) -> list[Path]:
+        return sorted(self.ordner.glob("*/labels/*.json"))
+
+    def klassen_zahl(self) -> dict[int, int]:
+        zahl: dict[int, int] = {}
+        for p in self.label_dateien():
+            for o in json.loads(p.read_text(encoding="utf-8")).get("objekte", []):
+                zahl[o["k"]] = zahl.get(o["k"], 0) + 1
+        return zahl
+
+    def klassen_stand(self, ich: str | None = None) -> dict:
+        d = self.klassen()
+        return {"klassen": d["klassen"], "gruppen": kl.gruppen(d), "zahl": self.klassen_zahl(),
+                "zurueck": d.get("letzte"), "ich": ich or "mac"}
+
+    def labels_umschreiben(self, wie) -> int:
+        """wie(objekte) -> Zahl geänderter; schreibt nur Dateien, in denen sich etwas ändert."""
+        n = 0
+        for p in self.label_dateien():
+            x = json.loads(p.read_text(encoding="utf-8"))
+            if m := wie(x.get("objekte", [])):
+                schreiben(p, x)
+                n += m
+        return n
+
+    def klassen_aendern(self, daten: dict, von: str | None = None) -> dict:
+        """Eine Änderung aus der Oberfläche: aendern, gruppe, neu, weg, zurueck."""
+        art = daten.get("art")
+        with self.schloss:
+            d = self.klassen()
+            if art == "aendern":
+                kl.aendern(d, daten.get("id"), daten.get("name"), daten.get("gruppe"),
+                           daten["farbe"] if "farbe" in daten else ...)
+            elif art == "gruppe":
+                kl.gruppe_umbenennen(d, daten.get("alt"), daten.get("neu"))
+            elif art == "neu":
+                kl.neu(d, daten.get("name"), daten.get("gruppe"))
+            elif art == "weg":
+                kid, ziel = daten.get("id"), daten.get("in")
+                kl.weg(d, kid, ziel, self.klassen_zahl().get(kid, 0))
+                if ziel is not None:
+                    d["letzte"]["anzahl"] = self.labels_umschreiben(lambda o: kl.objekte_umhaengen(o, kid, ziel))
+            elif art == "zurueck":
+                z = kl.zurueck(d)
+                if z["in"] is not None:
+                    self.labels_umschreiben(lambda o: kl.objekte_zurueck(o, z["id"], z["in"]))
+            else:
+                raise ValueError("Unbekannte Änderung.")
+            schreiben(self.ordner / "klassen.json", d)
+            self._fremde = None
+            return self.klassen_stand(von)
 
     # ------------------------------------------------------ Bilder und Labels
     def alle(self) -> list[dict]:
@@ -269,7 +377,7 @@ class Kette:
 
     def fremde(self) -> list[Path]:
         if self._fremde is None:
-            self._fremde = sa.gefunden(self.wurzel, KLASSEN)
+            self._fremde = sa.gefunden(self.wurzel, self.namen())
         return self._fremde
 
     def zahl(self, ordner: Path, teil: str) -> int:
@@ -307,15 +415,18 @@ class Kette:
             # Maße in mm gelten nur mit gemessenem Bildwinkel, sonst zeigt die Oberfläche Pixel
             p = f["plan"]
             gemessen = abs(p["faktor"] - 24 / 34.6) > 1e-9
+            mm = p["laengs_mm"] if gemessen else None
+            if p.get("frei") and f.get("px_je_mm") and f.get("breite_px"):
+                mm = round(f["breite_px"] / f["px_je_mm"], 2)   # hochgeladen mit bekanntem Maßstab (Streifenbild)
             gesamt.append({"name": f["name"], "balken": f["balken"], "seite": f["seite"], "nr": f["nr"],
-                           "titel": f"{f['balken']} Seite {f['seite']}, {f['nr'] + 1}", "laengs_mm": p["laengs_mm"] if gemessen else None,
+                           "titel": f"{f['balken']} Seite {f['seite']}, {f['nr'] + 1}", "laengs_mm": mm,
                            "objekte": x["objekte"] if x else None, "zeit": x["zeit"] if x else None})
         return gesamt
 
     def speichern(self, daten: dict, von: str | None = None) -> dict:
         """Schickt der Browser "stand" (Zeit des Labels, das er geladen hat, oder None), wird nur gespeichert, wenn
         inzwischen niemand anderes gespeichert hat. Zwei Personen am selben Foto überschreiben sich so nicht still."""
-        objekte = objekte_pruefen(daten.get("objekte"))
+        objekte = objekte_pruefen(daten.get("objekte"), kl.aktive_ids(self.klassen()), von)
         with self.schloss:
             f = self.foto(daten.get("name"))
             if "stand" in daten:
@@ -479,7 +590,7 @@ class Kette:
         stempel = (name, log.stat().st_mtime_ns if log.exists() else 0)
         if self._ergebnis[0] != stempel:
             e = ergebnis_gelesen(lauf, log, self.wurzel / "datensaetze" / name / "bericht.json",
-                                 self.ordner / f"{name}-altholz.log")
+                                 self.ordner / f"{name}-altholz.log", self.namen())
             plan = self.ordner / f"{name}.json"
             if e:
                 e["name"] = name
@@ -522,7 +633,7 @@ class Kette:
             namen = [p.name for o in ("datensaetze", "runs/segment") for p in (self.wurzel / o).glob("altholz-*")]
             nummern = [int(n[8:]) for n in namen if re.fullmatch(r"altholz-\d+", n)]
             name = f"altholz-{max([0, *nummern]) + 1}"
-            auftrag = {"ziel": str(self.wurzel / "datensaetze" / name), "pruefung": art, "klassen": KLASSEN, "bilder": [
+            auftrag = {"ziel": str(self.wurzel / "datensaetze" / name), "pruefung": art, "klassen": self.namen(), "bilder": [
                 {"name": f["name"], "balken": f["balken"], "teil": teil[(f["balken"], f["name"])],
                  "bild": str(self.ordner / f["balken"] / "zuschnitt" / f"{f['name']}.jpg"),
                  "objekte": self.label(f)["objekte"]} for f in fertige]}

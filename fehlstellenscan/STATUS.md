@@ -474,6 +474,26 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Klassen im Labeln (Jan 25.11.2026 „vereinfachen, für die Übersichtlichkeit der Farben“): sechs Farbgruppen (Ast, Riss, Loch,
   Fuge, Metall, Weitere eingeklappt), innerhalb der Gruppe Strichmuster. Nur Anzeige, Zifferntasten 1-9 folgen der
   neuen Reihenfolge. Klassennummern und Training unverändert 18 Klassen; ob fürs Training zusammengelegt wird, ist offen.
+- Klassen als Datei (Jan 26.11.2026 „flexibel: umbenennen, löschen, neu, Farbe“): aufnahme/klassen.py (rein,
+  tests/test_klassen.py), Ablage aufnahmen/klassen.json (fehlt sie, gilt die Startfassung = die 18 von oben). Jede
+  Klasse: feste ID (nie neu vergeben, Labels tragen sie), fester Schlüssel fürs Training (0-9 Kodytek), Name, Gruppe,
+  Muster, Farbe (leer = Farbe der Gruppe). Labeln > Bearbeiten > Stift neben „Klasse“ öffnet das Fenster Klassen:
+  Name, Farbe, Gruppe je Zeile, Gruppenname änderbar, + je Gruppe und + für eine neue Gruppe, Mülleimer. Löschen mit
+  Objekten = zusammenlegen in eine gewählte Klasse (Objekte merken die alte in kv), Rückgängig unten im Fenster.
+  Gilt sofort für alle (/api/klassen, Recht labeln). Training: YOLO-Nummer = ID, gelöschte IDs bleiben leer in
+  data.yaml. neurolign_abgleich.sh runter holt klassen.json mit. Offene Browser anderer merken eine Änderung erst nach
+  Neuladen (Speichern mit gelöschter Klasse wird mit Hinweis abgelehnt).
+- Gespeichert werden jetzt je Objekt auch Konfidenz c und Quelle q (Vorlabel, vorher beim Speichern verloren), kv und m.
+- Am Holz gemessen (Jan 26.11.2026, für Prüfbalken): Bearbeiten > „Am Holz gemessen“, kleinster und größter
+  Durchmesser in mm je Person (m: von, min, max; auf dem Mac „mac“), daneben Bild minus Holz (hervorgehoben ab 1 mm
+  und 10 %). Ersetzt die Zuordnung per Lage aus docs/messprotokoll-27-11.md, wenn die Äste im Foto gelabelt sind;
+  Astnummern auf dem Holz helfen beim Finden. Auswertung über alle Messungen fehlt noch (auswertung.py liest nur CSV).
+- Streifenbild als Balken (aufnahme/streifen.py, tests/test_streifen.py): schneidet ein holzbalkenscan-Streifenbild
+  in gleiche Stücke um 1 m (Seite 1, hochgeladen, px/mm aus kacheln.json, Maße in mm) und speichert die Funde aus
+  balken.py karte als offene Vorlabel mit Konfidenz und Modellname. Felix' Testbalken 261019 A (ISO 800,
+  kodytek-seg1-n1280, 7 Stücke, 287 Vorlabel) liegt seit 26.11.2026 auf dem Server als B501 „Felix 261019 A“. Zweites
+  Querschnittsmaß unbekannt, eingetragen 230 mm als Platzhalter. Training nimmt nur fertig geprüfte Fotos; welcher
+  Teil (Training/Prüfung/Nur Test) B501 bekommt, legt Jan in der Galerie auf dem Mac fest.
 - Durchlauf (Jan 25.11.2026): Handy nicht drehen, den Balken im Kasten drehen (Länge an der langen Bildseite).
 - Raster (Jan 25.11.2026 „dezenter und mehr neopunk“, Kreuzpunkte cyan, Ziel und Ecken magenta; von Jan 25.11. „passt erstmal“): am Mac im Live-Bild, beim Messen und beim Zuschnitt, an der Bildmitte, Weite aus dem Plan (cm
   steht unter dem Bild); auf fertigen Fotos keins. Messlinie rastet bis 6 Grad waagerecht/senkrecht ein, Fadenkreuz am

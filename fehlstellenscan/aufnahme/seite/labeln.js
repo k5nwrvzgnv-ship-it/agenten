@@ -1,11 +1,14 @@
 /* Geometrie, Maße, Doppelerkennung und Speichern nach werkbank-looks/bedienung.js, Oberfläche neu. */
 'use strict';
 const $=i=>document.getElementById(i),B={};let IDS=[];
-/* Klasse: Name, Farbe, Strichmuster (zweites Merkmal neben der Farbe) */
-const K={0:['Ast lebend','',''],1:['Ast tot','','9 4'],2:['Astloch','','3 3'],3:['Ast mit Riss','','12 3 3 3'],4:['Riss','',''],5:['Quartzity','','16 4'],6:['Harz','',''],7:['Mark','','9 4'],8:['Bläue','','3 3'],9:['Überwallung','','5 4'],10:['Bohrloch','',''],11:['Metall','',''],12:['Nagelloch','','9 4'],13:['Farbe','','12 3 3 3'],14:['Fäule','','5 4'],15:['Insektenfraß','','3 3'],16:['Verbindung','','9 4'],17:['Fuge','','']};
-/* Eine Farbe je Gruppe (Jan 25.11.2026): Ast, Riss, Loch, Fuge, Metall, Weitere. Nummern bleiben wie in der Richtlinie. */
-const GRUPPEN=[[0,1,2,3,9],[4],[10,12,15],[17,16],[11],[14,13,6,7,8,5]],KL=GRUPPEN.flat().map(String),HAUPT=KL.length-GRUPPEN.at(-1).length;
-GRUPPEN.forEach((g,n)=>g.forEach(k=>Object.defineProperty(K[k],1,{get:()=>KF([0,3,1,4,5,2][n])})));
+/* Klasse: Name, Farbe, Strichmuster (zweites Merkmal neben der Farbe). Liste kommt aus klassen.json (/api/klassen),
+   änderbar unter Klassen bearbeiten. Eine Farbe je Gruppe (Jan 25.11.2026), je Klasse überschreibbar; die letzte Gruppe
+   ist eingeklappt. Gelöschte Klassen bleiben in K, damit alte Objekte bis zum Neuladen zeichnen. */
+let K={},GRUPPEN=[],KL=[],HAUPT=0,KD=null,ICH='mac';
+const GF=n=>KF(n<6?[0,3,1,4,5,2][n]:n);
+function klassenSetzen(d){KD=d;ICH=d.ich||ICH;K={};const g=d.gruppen;GRUPPEN=g.map(n=>d.klassen.filter(k=>k.aktiv&&k.gruppe==n).map(k=>k.id));
+ for(const k of d.klassen){const n=g.indexOf(k.gruppe);K[k.id]=[k.name,'',k.muster||''];Object.defineProperty(K[k.id],1,{get:()=>k.farbe||GF(n<0?0:n)})}
+ KL=GRUPPEN.flat().map(String);HAUPT=GRUPPEN.length>1?KL.length-GRUPPEN.at(-1).length:KL.length}
 const DUNKEL='#111318';
 const kl=(x,a,b)=>Math.max(a,Math.min(b,x)),fix=x=>x.toFixed(1).replace('.',',').replace('-','−'),esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 const ic=n=>`<svg class="i" aria-hidden="true"><use href="#i-${n}"/></svg>`,muster=k=>`<svg class="mu" viewBox="0 0 24 8" aria-hidden="true"><path d="M0 4H24" stroke="${K[k][1]}" stroke-width="${Math.max(2,Math.min(4,W().strich*1.6))}" ${K[k][2]&&W().muster=='an'?`stroke-dasharray="${K[k][2]}"`:''}/></svg>`;
@@ -13,7 +16,7 @@ const flae=p=>p.reduce((s,a,i)=>{const b=p[(i+1)%p.length];return s+a[0]*b[1]-b[
 function ber(p,n){const L=[0];p.forEach((a,i)=>{const b=p[(i+1)%p.length];L.push(L[i]+Math.hypot(b[0]-a[0],b[1]-a[1]))});const o=[];let j=0;for(let k=0;k<n;k++){const t=L[p.length]*k/n;while(j<p.length-1&&L[j+1]<t)j++;const a=p[j],b=p[(j+1)%p.length],f=(t-L[j])/((L[j+1]-L[j])||1);o.push([a[0]+f*(b[0]-a[0]),a[1]+f*(b[1]-a[1])])}return o}
 const obj=(k,c,p)=>({k,c,b:ber(flae(p)<0?[...p].reverse():p,kl(Math.round(p.reduce((s,a,i)=>{const q=p[(i+1)%p.length];return s+Math.hypot(q[0]-a[0],q[1]-a[1])},0)/B[id].lmm*80),28,120)),r:0,g:0,ok:false});
 const st={};
-let letzte=1,id=null,sel=-1,pkt=0,zeich=null,maus=null,zieh=null,pan=null,nur=false,mehr=false,auf=false,V=null,uhr,tab='liste';
+let letzte=1,id=null,sel=-1,pkt=0,zeich=null,maus=null,zieh=null,pan=null,nur=false,mehr=false,auf=false,messAuf=false,V=null,uhr,tab='liste';
 const S=()=>st[id],akt=()=>S().o[sel],px=()=>!!B[id].px,name=i=>B[i].name||i,offen=i=>st[i].o.filter(o=>!o.ok).length;
 function form(o){let p=o.b;for(let t=0;t<o.g;t++)p=p.map((a,j)=>{const n=p.length,v=p[(j+n-1)%n],w=p[(j+1)%n];return[a[0]*.5+(v[0]+w[0])*.25,a[1]*.5+(v[1]+w[1])*.25]});
  return p.map((a,j)=>{const n=p.length,v=p[(j+n-1)%n],w=p[(j+1)%n],x=w[0]-v[0],y=w[1]-v[1],l=Math.hypot(x,y)||1;return[kl(a[0]+o.r*y/l,0,B[id].lmm),kl(a[1]-o.r*x/l,0,B[id].qmm)]})}
@@ -56,10 +59,15 @@ function knoepfe(){const s=S();$('rueck').hidden=zeich?!zeich.length:!s.h.length
 function liste(){const s=S(),n=s.o.length,g=n-offen(id);$('stand').textContent=n?`${g} von ${n} geprüft`:'';$('fort').max=n||1;$('fort').value=n?g:0;
  $('liste').innerHTML=n?folge().map(i=>{const o=s.o[i],p=form(o),c=o.c===null?'neu':Math.round(o.c*100)+' %',un=o.c!==null&&o.c<.7;return`<li><button class="zl" data-i="${i}" data-f="z${i}" aria-pressed="${i==sel}"><span class="n"><span class="bu">${bu(i)}</span>${muster(o.k)}<span>${K[o.k][0]}</span></span><span class="mx">${gr(p)}</span><span class="ki ${o.ok?'ok':''}">${o.ok?ic('check')+'<span class="vs">geprüft, </span>':un?ic('warning')+'<span class="vs">unsicher, </span>':''}<span class="kz">${c}</span>${o.c===null?'':`<i class="bk" style="--p:${o.c}"></i>`}</span></button></li>`}).join(''):`<li class="leer">Keine Objekte. Mit Zeichnen anlegen oder so speichern.</li>`}
 const kacheln=(o,p)=>`<div><span>kleinster ⌀</span><b>${gr(p)}</b></div><div><span>größter ⌀</span><b>${angs(p)?'–':wert(mass(p).x)}</b></div>`;
+/* Am Holz gemessen (Messschieber): je Person eine Zeile, Abweichung Bild minus Holz in mm, nur mit Maßstab */
+const meine=o=>(o.m||[]).find(m=>m.von==ICH)||{},dz=x=>x==null?'':String(x).replace('.',',');
+function abw(bild,holz){if(holz==null||px())return'';const d=bild-holz,pz=d/holz*100,gross=Math.abs(d)>1&&Math.abs(pz)>10;return`<output class="dv${gross?' gross':''}" title="Bild minus Holz">${d>0?'+':''}${fix(d)} mm</output>`}
+function messung(o,p){const m=meine(o),ms=mass(p),an=angs(p),bild=[an?null:ms.w,an?null:ms.x],an2=(o.m||[]).filter(x=>x.von!=ICH);
+ return`<details class="mess" ${messAuf||(o.m||[]).length?'open':''}><summary data-f="mess">${ic('caret-right')}Am Holz gemessen</summary><div class="mz">${[['min','kleinster ⌀',0],['max','größter ⌀',1]].map(([f,n,j])=>`<label for="m-${f}">${n}</label><span class="me"><input id="m-${f}" data-f="m-${f}" data-m="${f}" type="number" inputmode="decimal" min="0.1" max="5000" step="0.1" value="${m[f]??''}"><span>mm</span></span>${bild[j]==null?'<output></output>':abw(bild[j],m[f])}`).join('')}</div>${an2.map(x=>`<p class="an">${esc(x.von)}: ${dz(x.min)||'–'} / ${dz(x.max)||'–'} mm</p>`).join('')}</details>`}
 const rg=(i,n,a,lo,hi,s,t,k,g)=>`<div class="rg"><div><label for="${i}">${n}</label><output id="${i}v" for="${i}">${t}</output></div><div><button class="ib" data-s="${i}" data-v="-1" data-f="${i}-" aria-label="${n}: ${k}">${ic('minus')}</button><input id="${i}" data-f="${i}" type="range" min="${lo}" max="${hi}" step="${s}" value="${a}" aria-valuetext="${t}"><button class="ib" data-s="${i}" data-v="1" data-f="${i}+" aria-label="${n}: ${g}">${ic('plus')}</button></div></div>`;
 function insp(){const o=akt(),e=$('p-insp');if(!o){e.innerHTML=`<p class="leer">${!S().o.length?'Kein Objekt im Bild.':offen(id)?'Objekt im Bild oder in der Liste wählen.':$('gut').hidden?'Alle Bilder geprüft und gespeichert.':'Alle Objekte geprüft.'}</p>`;return}
- const p=form(o);e.innerHTML=`<h2 class="titel">${bu(sel)} ${muster(o.k)} ${K[o.k][0]}${o.ok?' '+ic('check-circle'):''}</h2><div class="kpi">${kacheln(o,p)}</div>
-<fieldset><legend>Klasse</legend>${(R=>`<div class="kl">${R(KL.slice(0,HAUPT),0)}</div><details class="mehr" ${mehr||KL.indexOf(String(o.k))>=HAUPT?'open':''}><summary data-f="mehr">${ic('caret-right')}Weitere</summary><div class="kl">${R(KL.slice(HAUPT),HAUPT)}</div></details>`)((l,v)=>l.map((k,j)=>{const n=v+j;return`<label><input type="radio" name="kl" value="${k}" data-f="k${k}" ${k==o.k?'checked':''}>${muster(k)}<span>${K[k][0]}</span>${n<9?`<kbd aria-hidden="true">${n+1}</kbd>`:''}</label>`}).join(''))}</fieldset>
+ const p=form(o);e.innerHTML=`<h2 class="titel">${bu(sel)} ${muster(o.k)} ${K[o.k][0]}${o.ok?' '+ic('check-circle'):''}</h2><div class="kpi">${kacheln(o,p)}</div>${messung(o,p)}
+<fieldset><legend>Klasse<button type="button" class="ib klb" id="klb" data-f="klb" aria-label="Klassen bearbeiten" title="Klassen bearbeiten">${ic('pencil-simple')}</button></legend>${(R=>`<div class="kl">${R(KL.slice(0,HAUPT),0)}</div><details class="mehr" ${mehr||KL.indexOf(String(o.k))>=HAUPT?'open':''}><summary data-f="mehr">${ic('caret-right')}Weitere</summary><div class="kl">${R(KL.slice(HAUPT),HAUPT)}</div></details>`)((l,v)=>l.map((k,j)=>{const n=v+j;return`<label><input type="radio" name="kl" value="${k}" data-f="k${k}" ${k==o.k?'checked':''}>${muster(k)}<span>${K[k][0]}</span>${n<9?`<kbd aria-hidden="true">${n+1}</kbd>`:''}</label>`}).join(''))}</fieldset>
 <fieldset><legend>Umriss</legend>${rg('r','Größe',o.r,-4,4,.1,wr(o),'kleiner','größer')}${rg('g','Glätten',o.g,0,8,1,o.g,'weniger','mehr')}</fieldset>
 <details ${auf?'open':''}><summary data-f="det">${ic('caret-right')}Einzelnen Punkt verschieben</summary><p>Punkte im Bild ziehen oder hier schrittweise, 0,5 mm je Klick.</p><div class="pkt"><button class="ib" data-n="-1" data-f="n-" aria-label="Voriger Punkt">${ic('arrow-left')}</button><span class="mono">Punkt ${pkt+1}</span><button class="ib" data-n="1" data-f="n+" aria-label="Nächster Punkt">${ic('arrow-right')}</button></div><div class="pkt" style="margin-top:8px">${[['Links',-1,0],['Rechts',1,0],['Hoch',0,-1],['Runter',0,1]].map(([t,x,y])=>`<button class="b" data-x="${x}" data-y="${y}" data-f="m${t}" aria-label="Punkt nach ${t.toLowerCase()}">${ic({Links:'arrow-left',Rechts:'arrow-right',Hoch:'arrow-left',Runter:'arrow-left'}[t]).replace('class="i"',`class="i" style="transform:rotate(${{Hoch:90,Runter:-90}[t]||0}deg)"`)}</button>`).join('')}</div></details>`}
 function dopp(){const d=streit(sel);$('dopp').hidden=d<0;if(d<0){$('dopp').innerHTML='';return}$('dopp').innerHTML=`<p>${ic('warning')}<span>${bu(sel)} und ${bu(d)} liegen auf derselben Stelle.</span></p><div>${[sel,d].sort((a,b)=>bu(a)<bu(b)?-1:1).map(i=>`<button class="b" data-weg="${i==sel?d:sel}" data-f="w${i}" title="${bu(i)} behalten">${ic('check')}<b class="bs" aria-hidden="true">${bu(i)}</b><span>${bu(i)} behalten</span></button>`).join('')}</div>`}
@@ -93,7 +101,7 @@ function backe(o){o.b=form(o);o.r=0;o.g=0}
 function schieb(basis,j,dx,dy){const n=basis.length;return basis.map((q,i)=>{let t=Math.abs(i-j);t=Math.min(t,n-t);const f=Math.exp(-t*t/3);return[kl(q[0]+f*dx,0,B[id].lmm),kl(q[1]+f*dy,0,B[id].qmm)]})}
 let speichert=false;
 async function speich(){if(zeich)return sag('Erst den Umriss schließen oder abbrechen.');if(speichert)return;speichert=true;const alt=id,s=S(),vor=JSON.stringify(s.o);
- try{const a=await fetch('/api/label',{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify({name:alt,stand:B[alt].zv,objekte:s.o.map(o=>({k:o.k,ok:o.ok,p:form(o).map(q=>[q[0]/B[alt].lmm,q[1]/B[alt].qmm])}))})}),j=await a.json();if(!a.ok)throw Error(j.fehler);s.zeit=uhrzeit(j.zeit);B[alt].zv=j.zeit}
+ try{const a=await fetch('/api/label',{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify({name:alt,stand:B[alt].zv,objekte:s.o.map(o=>({...o.x,k:o.k,ok:o.ok,c:o.c??undefined,m:o.m&&o.m.length?o.m:undefined,p:form(o).map(q=>[q[0]/B[alt].lmm,q[1]/B[alt].qmm])}))})}),j=await a.json();if(!a.ok)throw Error(j.fehler);s.zeit=uhrzeit(j.zeit);B[alt].zv=j.zeit}
  catch(e){speichert=false;return fehler('Nicht gespeichert: '+(e instanceof TypeError?'Keine Verbindung zu Neurolign.':e.message))}
  speichert=false;s.dreck=JSON.stringify(s.o)!=vor;$('fehl').hidden=true;if(id!=alt||s.dreck)return mal();
  const n=IDS.indexOf(alt),of=offen(alt),t=`${name(alt)} gespeichert${of?`, ${of} noch offen`:''}.`,naechst=[...IDS.slice(n+1),...IDS.slice(0,n)].find(i=>!st[i].zeit||st[i].dreck||offen(i));
@@ -101,11 +109,42 @@ async function speich(){if(zeich)return sag('Erst den Umriss schließen oder abb
 $('liste').onclick=e=>{const b=e.target.closest('.zl');if(b&&!zeich)waehle(+b.dataset.i,true)};
 $('dopp').onclick=e=>{const b=e.target.closest('button');if(!b)return;weg(+b.dataset.weg)};
 const I=$('p-insp');I.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;if(d.s)return schritt(d.s,+d.v);const o=akt(),n=o.b.length;if(d.n){pkt=(pkt+ +d.n+n)%n;return mal()}if(d.x){merk();backe(o);o.b=schieb(o.b,pkt,d.x*.5,d.y*.5);mal()}});
-I.addEventListener('toggle',e=>{if(e.target.classList.contains('mehr')){mehr=e.target.open;return}if(e.target.open!=auf){auf=e.target.open;bildZ()}},true);
+I.addEventListener('toggle',e=>{if(e.target.classList.contains('mehr')){mehr=e.target.open;return}if(e.target.classList.contains('mess')){messAuf=e.target.open;return}if(e.target.open!=auf){auf=e.target.open;bildZ()}},true);
 let gem=null;I.addEventListener('input',e=>{const t=e.target;if(t.type!='range')return;if(gem!==t){merk();gem=t}const o=akt();o[t.id]=+t.value;const w=t.id=='r'?wr(o):o.g;$(t.id+'v').textContent=w;t.setAttribute('aria-valuetext',w);I.querySelector('.kpi').innerHTML=kacheln(o,form(o));bildZ();liste();fuss()});
-I.addEventListener('change',e=>{if(e.target.name=='kl')setK(e.target.value);else{gem=null;mal()}});
+I.addEventListener('change',e=>{const t=e.target;if(t.name=='kl')setK(t.value);else if(t.dataset.m)messen_holz(t.dataset.m,t.value);else{gem=null;mal()}});
+function messen_holz(f,roh){const o=akt();if(!o)return;const w=roh===''?null:+String(roh).replace(',','.');if(w!=null&&!(w>0&&w<=5000))return mal();merk();o.m=(o.m||[]).map(x=>({...x}));let m=o.m.find(x=>x.von==ICH);if(!m){m={von:ICH,min:null,max:null};o.m.push(m)}m[f]=w;o.m=o.m.filter(x=>x.min!=null||x.max!=null);mal()}
+I.addEventListener('click',e=>{if(e.target.closest('#klb'))klDialog()});
 $('neu').onclick=()=>zeichnen(!zeich);$('rueck').onclick=rueck;$('wieder').onclick=wieder;$('minus').onclick=()=>zoom(1/.6);$('plus').onclick=()=>{const o=akt();zoom(.6,...(o?mitte(form(o)):[]))};$('fit').onclick=()=>{ganz();bildZ()};$('aus').onclick=()=>umrisse(!nur);
 const wechsel=d=>{const i=IDS[IDS.indexOf(id)+d];if(i)oeffne(i)};$('vor').onclick=()=>wechsel(-1);$('nach').onclick=()=>wechsel(1);$('p-film').onclick=e=>{const b=e.target.closest('button');if(b&&!speichert)oeffne(b.dataset.b)};$('sp').onclick=speich;$('gut').onclick=gut;$('lo').onclick=loesch;
+
+/* Klassen bearbeiten (Jan 26.11.2026): umbenennen, Farbe, Gruppe, neu, löschen. Jede Änderung gilt sofort für alle.
+   Löschen mit Objekten heißt zusammenlegen; Rückgängig unten im Fenster. */
+const D=$('kld'),hexvon=f=>{const c=document.createElement.ctx2||=document.createElement('canvas').getContext('2d');c.fillStyle='#000';c.fillStyle=f;return c.fillStyle};
+let kWeg=null;
+function klDialog(){kWeg=null;klMal();$('klh').hidden=true;D.showModal()}
+function klMal(){const d=KD,z=d.zahl||{},g=d.gruppen,akt_=d.klassen.filter(k=>k.aktiv),f=document.activeElement&&D.contains(document.activeElement)?document.activeElement.dataset.f:null;
+ $('kll').innerHTML=g.map((gn,n)=>`<section><input class="gn" type="text" value="${esc(gn)}" data-g="${esc(gn)}" data-f="g${n}" aria-label="Gruppe ${esc(gn)}" maxlength="20"><ul>${akt_.filter(k=>k.gruppe==gn).map(k=>{const zahl=z[k.id]||0;
+  if(kWeg==k.id)return`<li class="weg-zeile">${muster(k.id)}<span class="nm">${esc(k.name)}</span><span class="zz">${zahl}</span>${ic('arrow-right')}<select data-f="ziel" id="klziel" aria-label="Objekte von ${esc(k.name)} zu">${akt_.filter(x=>x.id!=k.id).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><button type="button" class="ib prim" data-ok="${k.id}" data-f="ok${k.id}" aria-label="Zusammenlegen" title="Zusammenlegen">${ic('check')}</button><button type="button" class="ib" data-nein="1" data-f="nein" aria-label="Abbrechen" title="Abbrechen">${ic('x')}</button></li>`;
+  return`<li><input type="color" value="${hexvon(K[k.id][1])}" data-c="${k.id}" data-f="c${k.id}" aria-label="Farbe ${esc(k.name)}" title="Farbe">${muster(k.id)}<input type="text" value="${esc(k.name)}" data-n="${k.id}" data-f="n${k.id}" aria-label="Name" maxlength="30"><select data-gr="${k.id}" data-f="gr${k.id}" aria-label="Gruppe von ${esc(k.name)}">${g.map(x=>`<option ${x==gn?'selected':''}>${esc(x)}</option>`).join('')}</select><span class="zz" title="Objekte">${zahl||''}</span><button type="button" class="ib weg" data-w="${k.id}" data-f="w${k.id}" aria-label="${esc(k.name)} löschen" title="Löschen" ${akt_.length<2?'disabled':''}>${ic('trash')}</button></li>`}).join('')}</ul><button type="button" class="ib" data-neu="${esc(gn)}" data-f="neu${n}" aria-label="Neue Klasse in ${esc(gn)}" title="Neue Klasse">${ic('plus')}</button></section>`).join('')+`<section><button type="button" class="b" data-neu="" data-f="neug" aria-label="Neue Gruppe" title="Neue Gruppe">${ic('plus')}${ic('list-bullets')}</button></section>`;
+ if(f){const e=D.querySelector(`[data-f="${f}"]`);e&&e.focus()}else if(kWeg!=null)$('klziel').focus()}
+function frei(basis,liste){let n=basis,i=2;while(liste.some(x=>x.toLowerCase()==n.toLowerCase()))n=`${basis} ${i++}`;return n}
+async function klPost(daten,hin){try{const a=await fetch('/api/klassen',{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify(daten)}),j=await a.json();if(!a.ok)throw Error(j.fehler);klassenSetzen(j);klMal();mal();if(hin)klHin(...hin);else $('klh').hidden=true;return j}
+ catch(e){klHin(e instanceof TypeError?'Keine Verbindung zu Neurolign.':e.message);klMal()}}
+function klHin(t,undo){$('klh').hidden=false;$('klht').textContent=t;$('klhz').hidden=!undo}
+function umhaengen(alt,neu,zurueck){for(const i of IDS){for(const o of st[i].o){if(!zurueck&&o.k==alt){o.k=neu;o.x={...o.x,kv:alt}}else if(zurueck&&o.k==neu&&o.x&&o.x.kv==alt){o.k=alt;o.x={...o.x,kv:undefined}}}for(const o of B[i].roh||[]){if(!zurueck&&o.k==alt){o.k=neu;o.kv=alt}else if(zurueck&&o.k==neu&&o.kv==alt){o.k=alt;delete o.kv}}}}
+D.addEventListener('change',e=>{const t=e.target,d=t.dataset;
+ if(d.n!==undefined){const v=t.value.trim();if(!v||v==K[d.n][0]){t.value=K[d.n][0];return}klPost({art:'aendern',id:+d.n,name:v})}
+ else if(d.c!==undefined)klPost({art:'aendern',id:+d.c,farbe:t.value});
+ else if(d.gr!==undefined)klPost({art:'aendern',id:+d.gr,gruppe:t.value});
+ else if(d.g!==undefined){const v=t.value.trim();if(!v||v==d.g){t.value=d.g;return}klPost({art:'gruppe',alt:d.g,neu:v})}});
+D.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.matches('input[type=text]')){e.preventDefault();e.target.blur()}});
+D.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+ if(d.w){const id_=+d.w,lokal=IDS.reduce((s,i)=>s+st[i].o.filter(o=>o.k==id_).length,0);if((KD.zahl||{})[id_]||lokal){kWeg=id_;return klMal()}const n=K[id_][0];await klPost({art:'weg',id:id_},[`${n} gelöscht`,true])}
+ else if(d.ok){const alt=+d.ok,neu=+$('klziel').value,n=K[alt][0],z=Math.max(KD.zahl[alt]||0,IDS.reduce((s,i)=>s+st[i].o.filter(o=>o.k==alt).length,0));kWeg=null;const j=await klPost({art:'weg',id:alt,in:neu},[`${n} → ${K[neu][0]}: ${z}`,true]);if(j){umhaengen(alt,neu);mal()}}
+ else if(d.nein){kWeg=null;klMal()}
+ else if(d.neu!==undefined){const gr=d.neu||frei('Neue Gruppe',KD.gruppen),n=frei('Neue Klasse',KD.klassen.filter(k=>k.aktiv).map(k=>k.name));const j=await klPost({art:'neu',name:n,gruppe:gr});if(j){const k=j.klassen.find(x=>x.aktiv&&x.name==n);const f=k&&D.querySelector(`[data-n="${k.id}"]`);if(f){f.focus();f.select()}}}});
+$('klhz').onclick=async()=>{const l=KD.zurueck;const j=await klPost({art:'zurueck'});if(j&&l&&l.in!=null){umhaengen(l.id,l.in,true);mal()}};
+$('klx').onclick=()=>D.close();D.addEventListener('close',()=>{const b=$('klb');b&&b.focus()});
 
 /* Zeiger */
 const sv=$('bild'),ort=e=>{const q=new DOMPoint(e.clientX,e.clientY).matrixTransform(sv.getScreenCTM().inverse());return[q.x,q.y]},drin=a=>[kl(a[0],0,B[id].lmm),kl(a[1],0,B[id].qmm)];
@@ -123,7 +162,7 @@ sv.addEventListener('pointerdown',e=>{if(e.pointerType!='touch')return;fin.set(e
 sv.addEventListener('pointermove',e=>{if(!fin.has(e.pointerId))return;fin.set(e.pointerId,[e.clientX,e.clientY]);if(!zwei)return;e.stopPropagation();if(fin.size<2)return;const n=lage(),z=sv.getScreenCTM().a;V[0]-=(n.x-zwei.x)/z;V[1]-=(n.y-zwei.y)/z;rand();const m=ort({clientX:n.x,clientY:n.y});zoom(zwei.d/n.d,m[0],m[1]);zwei=n},true);
 for(const t of['pointerup','pointercancel'])sv.addEventListener(t,e=>{fin.delete(e.pointerId);if(zwei){e.stopPropagation();if(!fin.size)zwei=null}},true);
 addEventListener('beforeunload',e=>{if(IDS.some(i=>st[i].dreck)||zeich&&zeich.length){e.preventDefault();e.returnValue=''}});
-addEventListener('keydown',e=>{if(!id)return;const t=e.target;const tk=e.key.toLowerCase(),strg=e.ctrlKey||e.metaKey,hat=s=>t.closest&&t.closest(s);
+addEventListener('keydown',e=>{if(!id)return;const t=e.target;if(t.closest&&t.closest('dialog,input[type=number],input[type=text],select'))return;const tk=e.key.toLowerCase(),strg=e.ctrlKey||e.metaKey,hat=s=>t.closest&&t.closest(s);
  if(e.repeat&&(['Enter','Delete','Backspace'].includes(e.key)||'snu'.includes(tk)))return e.preventDefault();
  if(strg&&(tk=='y'||tk=='z'&&e.shiftKey)){e.preventDefault();return wieder()}if(strg&&tk=='z'){e.preventDefault();return rueck()}if(strg||e.altKey)return;
  if(e.key=='Escape'&&zeich)return zeichnen(false);
@@ -137,13 +176,13 @@ addEventListener('keydown',e=>{if(!id)return;const t=e.target;const tk=e.key.toL
 let lfd=0;const uhrzeit=t=>t.slice(11,16);
 const dicht=p=>{const q=flae(p)<0?[...p].reverse():p;return q.length>120?ber(q,120):q},messen=i=>new Promise((ja,nein)=>{const b=B[i];if(b.qmm)return ja();const im=new Image;im.onerror=async()=>{let t='Bild nicht ladbar.';try{const a=await fetch(b.src);if(!a.ok)t=(await a.json()).fehler}catch(e){t='Keine Verbindung zu Neurolign.'}nein(Error(t))};
  im.onload=()=>{const l=b.laengs||168;b.lmm=l;b.qmm=l*im.naturalHeight/im.naturalWidth;if(!b.laengs)b.px=im.naturalWidth/l;
-  st[i]={o:(b.roh||[]).map(o=>({k:o.k,c:null,ok:o.ok,r:0,g:0,b:dicht(o.p.map(q=>[q[0]*b.lmm,q[1]*b.qmm]))})),zeit:st[i].zeit,dreck:false,h:[],v:[]};ja()};im.src=b.src});
+  st[i]={o:(b.roh||[]).map(o=>({k:o.k,c:o.c??null,ok:o.ok,r:0,g:0,b:dicht(o.p.map(q=>[q[0]*b.lmm,q[1]*b.qmm])),x:{q:o.q,kv:o.kv},m:o.m||[]})),zeit:st[i].zeit,dreck:false,h:[],v:[]};ja()};im.src=b.src});
 const SATZ_L=new URLSearchParams(location.search).get('satz')=='kodytek';
 (async()=>{try{const n=(await(await fetch('/api/saetze')).json()).kodytek;$('satz').hidden=!n;$('satz').value=SATZ_L?'kodytek':''}catch(e){}})();
 $('satz').onchange=()=>{const w=$('satz').value;$('satz').value=SATZ_L?'kodytek':'';location.href='/labeln'+(w?'?satz='+w:'')};
 addEventListener('pageshow',()=>$('satz').value=SATZ_L?'kodytek':'');
 gestalte();reiter('liste');
-(async()=>{let a;try{a=await(await fetch('/api/bilder'+(SATZ_L?'?satz=kodytek':''))).json()}catch(e){return fehler('Keine Verbindung zu Neurolign.')}
+(async()=>{let a;try{klassenSetzen(await(await fetch('/api/klassen')).json());a=await(await fetch('/api/bilder'+(SATZ_L?'?satz=kodytek':''))).json()}catch(e){return fehler('Keine Verbindung zu Neurolign.')}
  for(const x of a){IDS.push(x.name);B[x.name]={src:`/zuschnitt/${x.name}.jpg`,klein:`/zuschnitt/${x.name}_k.jpg`,name:x.titel,laengs:x.laengs_mm,roh:x.objekte,zv:x.zeit||null};st[x.name]={o:(x.objekte||[]),zeit:x.zeit&&uhrzeit(x.zeit),dreck:false,h:[],v:[]}}
  if(!IDS.length){$('leerseite').hidden=false;$('leerseite').innerHTML='<p>Noch keine Fotos.</p><a href="/">Zur Aufnahme</a>';$('aktion').hidden=$('sp').hidden=true;return}
  const w=new URLSearchParams(location.search).get('balken'),l=w?a.filter(x=>x.balken===w).map(x=>x.name):IDS;

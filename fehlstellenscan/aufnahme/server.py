@@ -659,6 +659,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.stand_server(ich))
         if weg == "/api/bilder":
             return self.antwort(200, werk.kette.bilder())
+        if weg == "/api/klassen":
+            return self.antwort(200, werk.kette.klassen_stand(ich))
         if weg == "/api/saetze":
             return self.antwort(200, {"kodytek": 0})   # Kodytek-Bilder liegen nicht auf dem Server
         if weg == "/api/training":
@@ -690,6 +692,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.balken_speichern(daten, ich))
         if weg == "/api/label":
             return self.antwort(200, werk.kette.speichern(daten, ich))
+        if weg == "/api/klassen":
+            return self.antwort(200, werk.kette.klassen_aendern(daten, ich))
         return self.antwort(200, werk.foto_weg(daten, ich))
 
     def zum_mac(self, methode: str, weg: str, koerper: bytes | None, ich: str) -> None:
@@ -738,6 +742,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.kette.kodytek_bilder() if kodytek else werk.kette.bilder())
         if weg == "/api/saetze":
             return self.antwort(200, {"kodytek": len(werk.kette.kodytek())})
+        if weg == "/api/klassen":
+            return self.antwort(200, werk.kette.klassen_stand())
         if weg == "/api/training":
             return self.antwort(200, werk.kette.stand())
         if weg == "/api/galerie":
@@ -813,7 +819,7 @@ class Anfrage(BaseHTTPRequestHandler):
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
                     "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
                     "/api/zurueck": werk.zurueckholen, "/api/balken-weg": werk.balken_weg,
-                    "/api/balken-zurueck": werk.balken_zurueck, "/api/label": werk.kette.speichern, "/api/teil": werk.kette.teil_setzen,
+                    "/api/balken-zurueck": werk.balken_zurueck, "/api/label": werk.kette.speichern, "/api/klassen": werk.kette.klassen_aendern, "/api/teil": werk.kette.teil_setzen,
                     "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})

@@ -12,7 +12,7 @@ set -euo pipefail
 SERVER=agents-user
 FERN=agenten/fehlstellenscan/data/neurolign/aufnahmen
 HIER=~/fehlstellenscan/aufnahmen
-FILTER=(--exclude 'zuschnitt/' --include 'B*/' --include 'B*/**' --exclude '*')
+FILTER=(--exclude 'zuschnitt/' --include 'B*/' --include 'B*/**' --include 'klassen.json' --exclude '*')
 
 # Was es auf dem Server gibt: je Zeile ID, Anlegedatum und "labels", wenn dort schon gelabelt wird
 server_stand() {

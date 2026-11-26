@@ -20,6 +20,7 @@ POST_WEGE = {
     "/api/balken": HOCHLADEN,
     "/api/hochladen": HOCHLADEN,
     "/api/label": LABELN,
+    "/api/klassen": LABELN,
     "/api/foto-weg": VERWALTEN,
     "/api/training": TRAINIEREN,
     "/api/abbrechen": TRAINIEREN,
