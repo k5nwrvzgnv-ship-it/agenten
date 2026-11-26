@@ -6,8 +6,12 @@ Verbindung mit Leerzeichen offen (gegen die Zeitgrenze von iOS) und endet erst b
 endet die Antwort unvollständig, der Kurzbefehl bricht ab und macht kein Foto.
 
 iPhone-App (aufnahme/app): gleiche Wege mit Kopfzeile X-App. „warten“ antwortet dann mit einem Befehl als JSON
-(foto, einmessen, ev, modus), dazu schickt die App laufend POST live (kleines JPEG, X-Zustand) und POST fehler."""
+(foto, einmessen, ev, modus), dazu schickt die App laufend POST live (kleines JPEG, X-Zustand) und POST fehler.
 
+Servermodus (--server, Jan 26.11.2026): läuft auf dem Server hinter Caddy (neurolign.meldro.de), nur 127.0.0.1.
+Ohne Fotobox, iPhone und Training: Balken anlegen, Fotos hochladen, labeln. Wer was darf, steht in zugang.py."""
+
+import argparse
 import hmac
 import json
 import re
@@ -26,9 +30,11 @@ from urllib.parse import parse_qs, urlsplit
 if __package__:
     from . import kette as k
     from . import logik as l
+    from . import zugang as z
 else:
     import kette as k
     import logik as l
+    import zugang as z
 
 SEITE = Path(__file__).resolve().parent / "seite"
 TYPEN = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -36,6 +42,7 @@ TYPEN = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=u
          ".heic": "image/heic"}
 FOTO_WARTEN_S = 25
 MAX_FOTO = 150_000_000
+MAX_HOCHLADEN = 40_000_000                       # je Foto im Servermodus, Caddy lässt 50 MB durch
 
 
 class Konflikt(Exception):
@@ -65,13 +72,20 @@ def netzadresse() -> str:
             return "127.0.0.1"
 
 
+def freier_plan() -> dict:
+    """Plan einer Seite mit hochgeladenen Fotos: keine Abschnitte, kein Zuschnitt, Maße nur in Pixeln."""
+    return {"frei": True, "zuschnitt": None, "faktor": l.FAKTOR_START, "laengs_mm": None, "mitten_mm": []}
+
+
 class Werk:
-    def __init__(self, ordner: Path):
+    def __init__(self, ordner: Path, python: Path | None = None):
         self.ordner = ordner
         ordner.mkdir(parents=True, exist_ok=True)
         self.port = 8765
         self.schloss = threading.Condition(threading.RLock())
         self.kette = k.Kette(ordner, self.lesen, self.ids)
+        if python:
+            self.kette.python = python            # Servermodus: Pillow und opencv aus der .venv von fehlstellenscan
         self.warter: object | None = None         # der eine wartende Kurzbefehl
         self.auftrag: dict | None = None
         self.hinweis = ""
@@ -126,6 +140,9 @@ class Werk:
     def mit_plan(self, b: dict) -> dict:
         for seite in l.SEITEN:
             s = self.seite(b, seite)
+            if s["fotos"] and (s.get("plan") or {}).get("frei"):
+                s["plan"], s["fehler"] = None, "Hochgeladen, ohne Abschnitte."   # Fotobox lässt diese Seite in Ruhe
+                continue
             try:
                 s["plan"], s["fehler"] = self.plan(b, seite), ""
             except ValueError as e:
@@ -142,7 +159,7 @@ class Werk:
                     "adressen": [f"{n}/h/{self.einst['code']}" for n in namen],
                     "balken": [self.mit_plan(self.lesen(i)) for i in self.ids()]}
 
-    def balken_speichern(self, daten: dict) -> dict:
+    def balken_speichern(self, daten: dict, von: str | None = None) -> dict:
         masse = l.masse_pruefen(daten)
         with self.schloss:
             if daten.get("id"):
@@ -155,6 +172,8 @@ class Werk:
                 self.einst["letzte_nr"] = nr
                 self.sichern()
                 b = {"id": kennung, "angelegt": datetime.now().isoformat(timespec="seconds"), **masse, "seiten": {}}
+                if von:
+                    b["von"] = von
             self.ablegen(b)
             return self.mit_plan(b)
 
@@ -316,6 +335,64 @@ class Werk:
         if vorschau.exists():
             foto["vorschau"] = vorschau.name
 
+    # ---------------------------------------------------------- Servermodus
+    def stand_server(self, nutzer: str) -> dict:
+        """Für die Seite Hochladen: Balken mit Maßen und Fotos je Seite, dazu wer man ist und was man darf."""
+        with self.schloss:
+            balken = []
+            for i in self.ids():
+                b = self.lesen(i)
+                seiten = {}
+                for n in l.SEITEN:
+                    s = b["seiten"].get(n) or {"fotos": {}, "plan": None}
+                    seiten[n] = {"frei": not s["fotos"] or bool((s.get("plan") or {}).get("frei")),
+                                 "fotos": [{"nr": int(nr), "datei": f["datei"], "von": f.get("von"), "zeit": f.get("zeit")}
+                                           for nr, f in sorted(s["fotos"].items(), key=lambda x: int(x[0]))]}
+                balken.append({"id": i, "laenge_mm": b["laenge_mm"], "breite_mm": b["breite_mm"],
+                               "hoehe_mm": b["hoehe_mm"], "holzart": b.get("holzart", ""), "von": b.get("von"),
+                               "seiten": seiten})
+            return {"ich": nutzer, "verwalten": z.darf(nutzer, z.VERWALTEN), "balken": balken}
+
+    def hochladen(self, kennung, seite, daten: bytes, von: str) -> dict:
+        """Foto als nächstes Bild einer Seite ablegen. Seiten mit Fotobox-Fotos bleiben, wie sie sind."""
+        endung = l.endung_von(daten)
+        if endung == ".heic":
+            raise ValueError("HEIC geht hier nicht. Am iPhone: Einstellungen > Kamera > Formate > Maximale Kompatibilität.")
+        with self.schloss:
+            b = self.lesen(kennung)
+            s = self.seite(b, seite)
+            if s["fotos"] and not (s.get("plan") or {}).get("frei"):
+                raise ValueError("Diese Seite ist mit der Fotobox aufgenommen. Eine andere Seite wählen.")
+            s["plan"] = freier_plan()
+            nr = max((int(n) for n in s["fotos"]), default=-1) + 1
+            jetzt = datetime.now()
+            name = f"{kennung}_S{seite}_{nr + 1:02d}_hoch_{jetzt.strftime('%Y%m%d-%H%M%S-%f')[:-3]}{endung}"
+            (self.ordner / kennung).mkdir(exist_ok=True)
+            (self.ordner / kennung / name).write_bytes(daten)
+            s["fotos"][str(nr)] = {"datei": name, "vorschau": name, "zeit": jetzt.isoformat(timespec="seconds"),
+                                   "mitte_mm": None, "mb": round(len(daten) / 1e6, 1), "breite_px": None,
+                                   "hoehe_px": None, "px_je_mm": None, "kamera": {}, "von": von, "quelle": "hochgeladen"}
+            self.ablegen(b)
+            return self.stand_server(von)
+
+    def foto_weg(self, daten: dict, von: str) -> dict:
+        """Hochgeladenes Foto nach verworfen/ legen (nur Jan). Labels bleiben liegen, zählen aber nicht mehr."""
+        with self.schloss:
+            b = self.lesen(daten.get("balken"))
+            s = self.seite(b, daten.get("seite"))
+            nr = str(daten.get("nr"))
+            if not (s.get("plan") or {}).get("frei"):
+                raise ValueError("Fotobox-Fotos werden auf dem Mac verwaltet.")
+            foto = s["fotos"].pop(nr, None)
+            if foto is None:
+                raise ValueError("Hier gibt es kein Foto.")
+            s.setdefault("geloescht", {})[nr] = {"foto": foto, "von": von,
+                                                 "zeit": datetime.now().isoformat(timespec="seconds")}
+            ordner = self.ordner / b["id"]
+            self.verschieben(foto, ordner, ordner / "verworfen")
+            self.ablegen(b)
+            return self.stand_server(von)
+
     def handy_da(self) -> bool:
         return self.warter is not None or self.app_da()
 
@@ -422,6 +499,9 @@ class Anfrage(BaseHTTPRequestHandler):
         self.send_header("Content-Type", typ)
         self.send_header("Content-Length", str(len(daten)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "same-origin")
         if status >= 400:
             self.send_header("Connection", "close")  # ein ungelesener Körper darf nicht als Anfrage gelten
             self.close_connection = True
@@ -439,12 +519,16 @@ class Anfrage(BaseHTTPRequestHandler):
             return teile[3]
         return None
 
-    def koerper(self) -> bytes:
+    def nutzer(self) -> str | None:
+        return z.nutzer_aus(self.client_address[0], self.headers.get("Host"), self.headers.get("X-Nutzer"),
+                            self.server.host)
+
+    def koerper(self, grenze: int = MAX_FOTO) -> bytes:
         if "chunked" in (self.headers.get("Transfer-Encoding") or "").lower():
             teile, gesamt = [], 0
             while True:
                 n = int(self.rfile.readline(100).split(b";")[0], 16)
-                if n < 0 or (gesamt := gesamt + n) > MAX_FOTO:
+                if n < 0 or (gesamt := gesamt + n) > grenze:
                     raise ValueError("Datei zu groß.")
                 teil = self.rfile.read(n)
                 self.rfile.readline(100)
@@ -454,16 +538,77 @@ class Anfrage(BaseHTTPRequestHandler):
                     raise ValueError("Übertragung abgebrochen.")
                 teile.append(teil)
         n = int(self.headers.get("Content-Length") or 0)
-        if not 0 <= n <= MAX_FOTO:
+        if not 0 <= n <= grenze:
             raise ValueError("Datei zu groß.")
         daten = self.rfile.read(n)
         if len(daten) != n:
             raise ValueError("Übertragung abgebrochen.")
         return daten
 
+    def datei_senden(self, weg: str, werk: Werk) -> None:
+        """Seiten, Schrift, Skripte, Fotos und Zuschnitte, gleich in beiden Modi."""
+        if z_ := re.fullmatch(r"/zuschnitt/([A-Za-z0-9_-]+?)(_k)?\.jpg", weg):
+            try:
+                return self.antwort(200, werk.kette.zuschnitt(z_[1], bool(z_[2])).read_bytes(), "image/jpeg")
+            except ValueError as e:
+                return self.antwort(404, {"fehler": str(e)})
+        datei = None
+        if weg == "/":
+            datei = SEITE / ("hochladen.html" if self.server.modus_server else "index.html")
+        elif weg == "/labeln" or (weg == "/training" and not self.server.modus_server):
+            datei = SEITE / f"{weg[1:]}.html"
+        elif re.fullmatch(r"/[a-z-]+\.(css|js|woff2)", weg):
+            datei = SEITE / weg[1:]
+        elif re.fullmatch(r"/foto/B\d{3,6}/[A-Za-z0-9_-]+\.(jpg|png|heic)", weg):
+            datei = werk.ordner / weg[6:]
+        if datei is None or not datei.is_file():
+            return self.antwort(404, {"fehler": "Gibt es nicht."})
+        inhalt = datei.read_bytes()
+        if self.server.modus_server and datei.suffix == ".html":
+            inhalt = seite_fuer_server(inhalt)
+        return self.antwort(200, inhalt, TYPEN[datei.suffix])
+
+    def get_server(self, weg: str, werk: Werk) -> None:
+        if (ich := self.nutzer()) is None:
+            return self.antwort(403, {"fehler": "Nicht angemeldet."})
+        if weg == "/api/stand":
+            return self.antwort(200, werk.stand_server(ich))
+        if weg == "/api/bilder":
+            return self.antwort(200, werk.kette.bilder())
+        if weg == "/api/saetze":
+            return self.antwort(200, {"kodytek": 0})   # Kodytek-Bilder liegen nicht auf dem Server
+        if weg.startswith(("/api/", "/h/")) or weg == "/live.jpg":
+            return self.antwort(404, {"fehler": "Gibt es hier nicht."})
+        return self.datei_senden(weg, werk)
+
+    def post_server(self, weg: str, query: str, werk: Werk) -> None:
+        ich = self.nutzer()
+        if ich is None:
+            return self.antwort(403, {"fehler": "Nicht angemeldet."})
+        if not z.herkunft_ok(self.headers.get("Origin"), self.headers.get("Referer"), f"https://{self.server.host}") \
+                or self.headers.get("X-Aufnahme") != "1":
+            return self.antwort(403, {"fehler": "Fremde Herkunft."})
+        if nein := z.post_erlaubt(ich, weg):
+            return self.antwort(nein[0], {"fehler": nein[1]})
+        if weg == "/api/hochladen":
+            q = {k: v[0] for k, v in parse_qs(query).items()}
+            return self.antwort(200, werk.hochladen(q.get("balken"), q.get("seite"), self.koerper(MAX_HOCHLADEN), ich))
+        daten = json.loads(self.koerper(1_000_000))
+        if not isinstance(daten, dict):
+            raise ValueError("Eingabe nicht lesbar.")
+        if weg == "/api/balken":
+            if daten.get("id") and not z.darf(ich, z.VERWALTEN):
+                raise ValueError("Maße ändern darf nur Jan.")
+            return self.antwort(200, werk.balken_speichern(daten, ich))
+        if weg == "/api/label":
+            return self.antwort(200, werk.kette.speichern(daten, ich))
+        return self.antwort(200, werk.foto_weg(daten, ich))
+
     def do_GET(self):
         weg = urlsplit(self.path).path
         werk = self.server.werk
+        if self.server.modus_server:
+            return self.get_server(weg, werk)
         if weg.startswith("/h/"):
             if self.handy_weg(weg) == "warten":
                 return self.warten(werk)
@@ -479,27 +624,11 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, {"kodytek": len(werk.kette.kodytek())})
         if weg == "/api/training":
             return self.antwort(200, werk.kette.stand())
-        if z := re.fullmatch(r"/zuschnitt/([A-Za-z0-9_-]+?)(_k)?\.jpg", weg):
-            try:
-                return self.antwort(200, werk.kette.zuschnitt(z[1], bool(z[2])).read_bytes(), "image/jpeg")
-            except ValueError as e:
-                return self.antwort(404, {"fehler": str(e)})
         if weg == "/live.jpg":
             werk.raster = l.raster_fuers_handy({k: v[0] for k, v in parse_qs(urlsplit(self.path).query).items()})
         if weg == "/live.jpg" and werk.app_da():
             return self.antwort(200, werk.live, "image/jpeg")
-        datei = None
-        if weg == "/":
-            datei = SEITE / "index.html"
-        elif weg in ("/labeln", "/training"):
-            datei = SEITE / f"{weg[1:]}.html"
-        elif re.fullmatch(r"/[a-z-]+\.(css|js|woff2)", weg):
-            datei = SEITE / weg[1:]
-        elif re.fullmatch(r"/foto/B\d{3,6}/[A-Za-z0-9_-]+\.(jpg|png|heic)", weg):
-            datei = werk.ordner / weg[6:]
-        if datei is None or not datei.is_file():
-            return self.antwort(404, {"fehler": "Gibt es nicht."})
-        return self.antwort(200, datei.read_bytes(), TYPEN[datei.suffix])
+        return self.datei_senden(weg, werk)
 
     def warten(self, werk: Werk) -> None:
         ich, app = object(), self.headers.get("X-App") == "1"
@@ -533,6 +662,8 @@ class Anfrage(BaseHTTPRequestHandler):
         teile = urlsplit(self.path)
         weg, werk = teile.path, self.server.werk
         try:
+            if self.server.modus_server:
+                return self.post_server(weg, teile.query, werk)
             if weg.startswith("/h/"):
                 was, kennung = self.handy_weg(weg), self.headers.get("X-Auftrag")
                 if was == "foto":
@@ -563,30 +694,49 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, wege[weg](daten))
         except Konflikt as e:
             return self.antwort(409, {"fehler": str(e)})
-        except ValueError as e:
+        except (ValueError, json.JSONDecodeError) as e:
             return self.antwort(400, {"fehler": str(e)})
         except OSError as e:
             print(f"Fehler: {e}", file=sys.stderr)
             return self.antwort(500, {"fehler": f"Speichern ging nicht: {e}"})
 
 
+def seite_fuer_server(html: bytes) -> bytes:
+    """Navigation im Servermodus: Aufnahme heißt Hochladen, Training gibt es nicht."""
+    return (html.replace(b'<a href="/training">Training</a>', b"")
+            .replace(b'<a href="/training" aria-current="page">Training</a>', b"")
+            .replace(b'<a href="/">Aufnahme</a>', b'<a href="/">Hochladen</a>'))
+
+
 class Server(ThreadingHTTPServer):
     daemon_threads = True
 
 
-def server_bauen(ordner: Path, adresse: str, port: int) -> Server:
+def server_bauen(ordner: Path, adresse: str, port: int, modus_server: bool = False, python: Path | None = None,
+                 host: str = z.HOST) -> Server:
     server = Server((adresse, port), Anfrage)
-    server.werk = Werk(ordner)
+    server.modus_server, server.host = modus_server, host
+    server.werk = Werk(ordner, python)
     server.werk.port = server.server_address[1]
     return server
 
 
 def main() -> None:
-    ordner = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / "fehlstellenscan" / "aufnahmen"
-    server = server_bauen(ordner, "0.0.0.0", 8765)
-    print(f"Aufnahme läuft: http://localhost:8765\nFotos: {ordner}\nBeenden mit Strg+C")
-    if sys.platform == "darwin":
-        subprocess.Popen(["open", "http://localhost:8765"])
+    a = argparse.ArgumentParser(description="Neurolign: Aufnahme, Labeln, Training")
+    a.add_argument("ordner", nargs="?", help="Ablage (Mac-Modus), Vorgabe ~/fehlstellenscan/aufnahmen")
+    a.add_argument("--server", action="store_true", help="Servermodus hinter Caddy, nur 127.0.0.1")
+    a.add_argument("--port", type=int)
+    a.add_argument("--python", help="Python mit Pillow und opencv für den Zuschnitt")
+    w = a.parse_args()
+    ordner = Path(w.ordner).expanduser() if w.ordner else Path.home() / "fehlstellenscan" / "aufnahmen"
+    if w.server:
+        server = server_bauen(ordner, "127.0.0.1", w.port or 8796, True, Path(w.python) if w.python else None)
+        print(f"Neurolign (Server) auf 127.0.0.1:{server.werk.port}, Ablage {ordner}", flush=True)
+    else:
+        server = server_bauen(ordner, "0.0.0.0", w.port or 8765, python=Path(w.python) if w.python else None)
+        print(f"Aufnahme läuft: http://localhost:{server.werk.port}\nFotos: {ordner}\nBeenden mit Strg+C")
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", f"http://localhost:{server.werk.port}"])
     try:
         server.serve_forever()
     except KeyboardInterrupt:

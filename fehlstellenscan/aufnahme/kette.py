@@ -296,13 +296,23 @@ class Kette:
                            "objekte": x["objekte"] if x else None, "zeit": x["zeit"] if x else None})
         return gesamt
 
-    def speichern(self, daten: dict) -> dict:
+    def speichern(self, daten: dict, von: str | None = None) -> dict:
+        """Schickt der Browser "stand" (Zeit des Labels, das er geladen hat, oder None), wird nur gespeichert, wenn
+        inzwischen niemand anderes gespeichert hat. Zwei Personen am selben Foto überschreiben sich so nicht still."""
         objekte = objekte_pruefen(daten.get("objekte"))
         with self.schloss:
             f = self.foto(daten.get("name"))
+            if "stand" in daten:
+                alt = self.label(f)
+                if (alt or {}).get("zeit") != daten["stand"]:
+                    wer = f" von {alt['von']}" if alt and alt.get("von") else ""
+                    raise ValueError(f"Inzwischen{wer} gespeichert ({(alt or {}).get('zeit', '')[11:16]}). "
+                                     "Seite neu laden, dann weiter.")
             zeit = datetime.now().isoformat(timespec="seconds")
-            schreiben(self.label_pfad(f), {"foto": f["datei"], "zuschnitt": f["plan"]["zuschnitt"], "zeit": zeit,
-                                           "objekte": objekte})
+            neu = {"foto": f["datei"], "zuschnitt": f["plan"]["zuschnitt"], "zeit": zeit, "objekte": objekte}
+            if von:
+                neu["von"] = von
+            schreiben(self.label_pfad(f), neu)
         return {"zeit": zeit}
 
     def umgebung(self) -> Path:

@@ -49,3 +49,15 @@ dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:88vh;overflow:
 .b3{width:64px;height:45px;display:block;flex:none;overflow:visible}.b3 .kanten{fill:none;stroke:currentColor;stroke-width:1;stroke-linejoin:round;opacity:.5}.b3 .verdeckt{fill:none;stroke:currentColor;stroke-width:.8;stroke-dasharray:2 2;opacity:.35}
 .b3 .flaeche{fill:url(#schraffur);stroke:var(--w);stroke-width:1.8;stroke-linejoin:round}.b3 .flaeche.hinten{stroke-dasharray:3 2}.haupt .b3 .flaeche{fill:url(#schraffur-d);stroke:#000}.haupt .b3 .kanten{opacity:.7}
 #seiten small .ic{width:16px;height:16px}#schritt small{display:flex;align-items:center;gap:6px}#schritt small .ic{width:18px;height:18px}.haupt .ic{width:26px;height:26px}
+
+/* Hochladen (Servermodus) */
+.ich{margin-left:auto;color:var(--l)}
+#hoch{display:grid;grid-template:minmax(0,1fr)/minmax(0,1fr) 320px;min-height:0}
+.galerie{overflow:auto;padding:16px;min-height:0}#fotos{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+#fotos li{background:var(--f);border:1px solid var(--m);border-radius:3px;overflow:hidden;display:grid}#fotos img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--m)}
+#fotos span{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 10px;min-height:44px}#fotos b{font-weight:500;color:var(--w);font-variant-numeric:tabular-nums}#fotos small{color:var(--l);font-size:13px;flex:1}
+.leer{height:100%;display:grid;place-items:center;color:var(--r)}.leer .ic{width:96px;height:96px;stroke-width:1}
+.dateiknopf{cursor:pointer;color:#000}.dateiknopf:focus-within{outline:2px solid var(--w);outline-offset:2px}.dateiknopf.aus{opacity:.45;cursor:default;pointer-events:none}
+#seiten button:disabled{opacity:.35}
+.formknoepfe{display:flex;gap:12px}.formknoepfe .haupt{flex:1}.formknoepfe .sy{min-height:52px;width:52px}
+@media(max-width:800px){#hoch{grid-template:auto auto/minmax(0,1fr)}#hoch aside{grid-row:1}.galerie{padding:12px 16px}#fotos{grid-template-columns:repeat(2,minmax(0,1fr))}.leer{height:30vh}}

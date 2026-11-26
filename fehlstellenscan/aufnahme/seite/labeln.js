@@ -93,8 +93,8 @@ function backe(o){o.b=form(o);o.r=0;o.g=0}
 function schieb(basis,j,dx,dy){const n=basis.length;return basis.map((q,i)=>{let t=Math.abs(i-j);t=Math.min(t,n-t);const f=Math.exp(-t*t/3);return[kl(q[0]+f*dx,0,B[id].lmm),kl(q[1]+f*dy,0,B[id].qmm)]})}
 let speichert=false;
 async function speich(){if(zeich)return sag('Erst den Umriss schließen oder abbrechen.');if(speichert)return;speichert=true;const alt=id,s=S(),vor=JSON.stringify(s.o);
- try{const a=await fetch('/api/label',{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify({name:alt,objekte:s.o.map(o=>({k:o.k,ok:o.ok,p:form(o).map(q=>[q[0]/B[alt].lmm,q[1]/B[alt].qmm])}))})}),j=await a.json();if(!a.ok)throw Error(j.fehler);s.zeit=uhrzeit(j.zeit)}
- catch(e){speichert=false;return fehler('Nicht gespeichert: '+(e instanceof TypeError?'Das Programm auf dem Mac antwortet nicht.':e.message))}
+ try{const a=await fetch('/api/label',{method:'POST',headers:{'X-Aufnahme':'1'},body:JSON.stringify({name:alt,stand:B[alt].zv,objekte:s.o.map(o=>({k:o.k,ok:o.ok,p:form(o).map(q=>[q[0]/B[alt].lmm,q[1]/B[alt].qmm])}))})}),j=await a.json();if(!a.ok)throw Error(j.fehler);s.zeit=uhrzeit(j.zeit);B[alt].zv=j.zeit}
+ catch(e){speichert=false;return fehler('Nicht gespeichert: '+(e instanceof TypeError?'Keine Verbindung zu Neurolign.':e.message))}
  speichert=false;s.dreck=JSON.stringify(s.o)!=vor;$('fehl').hidden=true;if(id!=alt||s.dreck)return mal();
  const n=IDS.indexOf(alt),of=offen(alt),t=`${name(alt)} gespeichert${of?`, ${of} noch offen`:''}.`,naechst=[...IDS.slice(n+1),...IDS.slice(0,n)].find(i=>!st[i].zeit||st[i].dreck||offen(i));
  if(naechst){await oeffne(naechst,true);sag(t,'Dorthin zurück',()=>oeffne(alt,true))}else{mal();sag(of?t:t+' Alle Fotos fertig.')}}
@@ -135,7 +135,7 @@ addEventListener('keydown',e=>{if(!id)return;const t=e.target;const tk=e.key.toL
  if(e.key=='Delete'||e.key=='Backspace')loesch();else if(e.key=='+')zoom(.6);else if(e.key=='-')zoom(1/.6);else if(e.key=='0'){ganz();bildZ()}else if(tk=='n')zeichnen(true);else if(tk=='u')umrisse(!nur);else if(tk=='s')speich()});
 /* Fotos vom Server */
 let lfd=0;const uhrzeit=t=>t.slice(11,16);
-const dicht=p=>{const q=flae(p)<0?[...p].reverse():p;return q.length>120?ber(q,120):q},messen=i=>new Promise((ja,nein)=>{const b=B[i];if(b.qmm)return ja();const im=new Image;im.onerror=async()=>{let t='Bild nicht ladbar.';try{const a=await fetch(b.src);if(!a.ok)t=(await a.json()).fehler}catch(e){t='Das Programm auf dem Mac antwortet nicht.'}nein(Error(t))};
+const dicht=p=>{const q=flae(p)<0?[...p].reverse():p;return q.length>120?ber(q,120):q},messen=i=>new Promise((ja,nein)=>{const b=B[i];if(b.qmm)return ja();const im=new Image;im.onerror=async()=>{let t='Bild nicht ladbar.';try{const a=await fetch(b.src);if(!a.ok)t=(await a.json()).fehler}catch(e){t='Keine Verbindung zu Neurolign.'}nein(Error(t))};
  im.onload=()=>{const l=b.laengs||168;b.lmm=l;b.qmm=l*im.naturalHeight/im.naturalWidth;if(!b.laengs)b.px=im.naturalWidth/l;
   st[i]={o:(b.roh||[]).map(o=>({k:o.k,c:null,ok:o.ok,r:0,g:0,b:dicht(o.p.map(q=>[q[0]*b.lmm,q[1]*b.qmm]))})),zeit:st[i].zeit,dreck:false,h:[],v:[]};ja()};im.src=b.src});
 const SATZ_L=new URLSearchParams(location.search).get('satz')=='kodytek';
@@ -143,8 +143,8 @@ const SATZ_L=new URLSearchParams(location.search).get('satz')=='kodytek';
 $('satz').onchange=()=>{const w=$('satz').value;$('satz').value=SATZ_L?'kodytek':'';location.href='/labeln'+(w?'?satz='+w:'')};
 addEventListener('pageshow',()=>$('satz').value=SATZ_L?'kodytek':'');
 gestalte();reiter('liste');
-(async()=>{let a;try{a=await(await fetch('/api/bilder'+(SATZ_L?'?satz=kodytek':''))).json()}catch(e){return fehler('Das Programm auf dem Mac antwortet nicht.')}
- for(const x of a){IDS.push(x.name);B[x.name]={src:`/zuschnitt/${x.name}.jpg`,klein:`/zuschnitt/${x.name}_k.jpg`,name:x.titel,laengs:x.laengs_mm,roh:x.objekte};st[x.name]={o:(x.objekte||[]),zeit:x.zeit&&uhrzeit(x.zeit),dreck:false,h:[],v:[]}}
+(async()=>{let a;try{a=await(await fetch('/api/bilder'+(SATZ_L?'?satz=kodytek':''))).json()}catch(e){return fehler('Keine Verbindung zu Neurolign.')}
+ for(const x of a){IDS.push(x.name);B[x.name]={src:`/zuschnitt/${x.name}.jpg`,klein:`/zuschnitt/${x.name}_k.jpg`,name:x.titel,laengs:x.laengs_mm,roh:x.objekte,zv:x.zeit||null};st[x.name]={o:(x.objekte||[]),zeit:x.zeit&&uhrzeit(x.zeit),dreck:false,h:[],v:[]}}
  if(!IDS.length){$('leerseite').hidden=false;$('leerseite').innerHTML='<p>Noch keine Fotos.</p><a href="/">Zur Aufnahme</a>';$('aktion').hidden=$('sp').hidden=true;return}
  const w=new URLSearchParams(location.search).get('balken'),l=w?a.filter(x=>x.balken===w).map(x=>x.name):IDS;
  await oeffne((l.length?l:IDS).find(i=>!st[i].zeit||offen(i))||(l[0]||IDS[0]));if(id)new ResizeObserver(()=>bildZ()).observe(sv)})();
