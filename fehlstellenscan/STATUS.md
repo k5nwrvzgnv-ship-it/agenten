@@ -543,7 +543,11 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Maße in cm, vier Striche = Seiten mit Fotos, gelber Punkt = Maßabweichung über 2 %, grüne Linie = Labelstand.
   Klick öffnet /koerper. Die Seite rechnet fehlende oder veraltete Körper selbst nach (kette.koerper_veraltet: fehlt,
   keine kleinen Bilder, balken.json oder ein Zuschnitt neuer oder fehlend), einer nach dem anderen, neueste zuerst.
-  Geprüft auf dem Server mit 13 Kopien von B002 (Playwright: Ziehen, Sperre, Tasten, Neuladen; axe), nicht auf dem Mac.
+  Geprüft auf dem Server mit 13 Kopien von B002 (Playwright: Ziehen, Sperre, Tasten, Neuladen; axe). Am Mac
+  (26.11.2026, per Chrome): Galerie, Ziehen mit der Maus (gespeichert, zurückgezogen), Körper B002 in der
+  Trainings-.venv gerechnet, gleiche Abweichungen wie auf dem Server, Drehen klappt. Offen: B001 Seite 3 (Original
+  ist JPG, „Foto vom Mac“): Zuschnitt bricht die Verbindung ab (Ausnahme im Server, Meldung nur im Mac-Terminal),
+  darum kein Körper für B001. Derselbe alte Fehler wie „Vorschaubild B001 Seite 3 fehlt“ unten.
   Neuer Balken bleibt wie bisher: „+“ in der Aufnahme, der alte steht danach in der Galerie.
 
 ## Neurolign-Server (ab 26.11.2026)
