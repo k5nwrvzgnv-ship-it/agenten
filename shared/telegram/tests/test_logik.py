@@ -378,3 +378,32 @@ class TestWeitergabe(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AntwortZuordnungTest(unittest.TestCase):
+    """Antwort auf eine Bot-Nachricht geht an deren Agenten, ohne „An wen geht das?“ (Jan 26.11.2026)."""
+
+    AGENTEN = ("uni", "posteingang", "dokumente")
+
+    def test_kopfzeile(self):
+        self.assertEqual(logik.absender_aus_text("Uni\nZusammenfassung fertig", self.AGENTEN), "uni")
+
+    def test_kopf_mit_zusatz(self):
+        self.assertEqual(logik.absender_aus_text("Posteingang · Mail-Entwurf\nAn: x", self.AGENTEN), "posteingang")
+
+    def test_bestaetigung(self):
+        self.assertEqual(logik.absender_aus_text("Dokumente ist dran.", self.AGENTEN), "dokumente")
+
+    def test_fremd_oder_leer(self):
+        self.assertIsNone(logik.absender_aus_text("Zentrale\nStufe sparen", self.AGENTEN))
+        self.assertIsNone(logik.absender_aus_text("Unibibliothek hat neue Bücher", self.AGENTEN))
+        self.assertIsNone(logik.absender_aus_text(None, self.AGENTEN))
+
+    def test_entwurf_merken(self):
+        with tempfile.TemporaryDirectory() as d:
+            g = logik.Gemeldet(Path(d) / "g.json")
+            g.entwurf_merken(7, "20261126-x")
+            g.meldung_merken(8, "m1")
+            self.assertEqual(g.entwurf_zu(7), "20261126-x")
+            self.assertIsNone(g.entwurf_zu(8))
+            self.assertIsNone(g.meldung_zu(7))

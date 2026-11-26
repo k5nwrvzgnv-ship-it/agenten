@@ -259,6 +259,19 @@ def verbrauch_text(stand: dict | None, stufe: str, heute: dict[str, dict], zeit_
 
 
 MELDUNG = "m:"  # Vorsatz für Meldungen in Gemeldet.nachrichten und in Knopf-Daten
+ENTWURF = "e:"  # Vorsatz für Entwürfe in Gemeldet.nachrichten (Antwort auf einen Entwurf = Ändern)
+
+
+def absender_aus_text(text: str | None, agenten) -> str | None:
+    """Agent, von dem eine Bot-Nachricht stammt, aus ihrer ersten Zeile („Uni“, „Uni · Mail-Entwurf“,
+    „Uni ist dran.“). So geht eine Antwort auf jede Nachricht eines Agenten an ihn, ohne Rückfrage (Jan 26.11.2026)."""
+    erste = (text or "").strip().split("\n", 1)[0].strip()
+    kopf = erste.split(" · ", 1)[0].strip()
+    for a in agenten:
+        name = anzeigename(a)
+        if kopf == name or erste.startswith(f"{name} ist dran"):
+            return a
+    return None
 
 
 def meldung_knoepfe(meldung: dict) -> list[list[tuple[str, str]]]:
@@ -513,6 +526,14 @@ class Gemeldet:
 
     def meldung_merken(self, nachricht_id: int, meldung_id: str) -> None:
         self.nachricht_merken(nachricht_id, MELDUNG + meldung_id)
+
+    def entwurf_merken(self, nachricht_id: int, entwurf_id: str) -> None:
+        self.nachricht_merken(nachricht_id, ENTWURF + entwurf_id)
+
+    def entwurf_zu(self, nachricht_id: int) -> str | None:
+        """ID des Entwurfs, zu dem die Telegram-Nachricht gehört, sonst None."""
+        wert = self.nachrichten.get(str(nachricht_id), "")
+        return wert[len(ENTWURF):] if wert.startswith(ENTWURF) else None
 
     def meldung_zu(self, nachricht_id: int) -> str | None:
         """ID der Meldung, zu der die Telegram-Nachricht gehört, sonst None (auch bei Aufträgen)."""

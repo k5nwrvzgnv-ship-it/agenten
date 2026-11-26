@@ -61,6 +61,7 @@ from logik import (
     AN_WEN,
     ERINNERUNG_KNOEPFE,
     ZENTRALE,
+    absender_aus_text,
     agenten_finden,
     agenten_setzen,
     ist_netzfehler,
@@ -308,8 +309,9 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def aktuelle_stufe() -> tuple[dict | None, str]:
-    stand = verbrauch.letzter_stand()
-    return stand, verbrauch.stufe(stand, einstellungen.lade())
+    cfg = einstellungen.lade()
+    stand = verbrauch.letzter_stand(konto=verbrauch.konto_aus(cfg))
+    return stand, verbrauch.stufe(stand, cfg)
 
 
 async def verbrauch_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -410,14 +412,29 @@ def beantwortete_meldung(update: Update) -> dict | None:
     return m if meldungen.nimmt_antwort(m) else None
 
 
+def beantworteter_entwurf(update: Update) -> str | None:
+    """ID des Entwurfs, auf den Jan geantwortet hat, sonst None."""
+    bezug = update.message.reply_to_message
+    return gemeldet.entwurf_zu(bezug.message_id) if bezug else None
+
+
+def beantworteter_agent(update: Update) -> str | None:
+    """Agent, von dem die beantwortete Nachricht stammt (Kopfzeile), sonst None."""
+    bezug = update.message.reply_to_message
+    if bezug is None:
+        return None
+    text = bezug.text if isinstance(bezug.text, str) else bezug.caption
+    return absender_aus_text(text if isinstance(text, str) else None, agenten_mit_dienst())
+
+
 async def meldung_beantworten(bot, m: dict, text: str, quelle: str, bestaetigen: bool = True) -> bool:
     return await auftrag_anlegen(bot, m["agent"], "erledigen", text, quelle=quelle, meldung=m["id"],
                                  dienst=m.get("dienst"), bestaetigen=bestaetigen)
 
 
 async def antwort_weitergeben(bot, alt: dict, text: str) -> None:
-    if not alt.get("sitzung"):
-        await bot.send_message(JAN, "Hier geht es nicht im selben Gespräch weiter. Schick es als neuen Auftrag.")
+    if not alt.get("sitzung"):  # kein Gespräch zum Fortsetzen: neuer Auftrag an denselben Agenten
+        await auftrag_anlegen(bot, alt["agent"], "erledigen", text, bezug=alt["id"])
         return
     if alt["sitzung"] in gemeldet.listen["am_pc"]:
         await bot.send_message(JAN, "Das Gespräch liegt am PC. Schick nach dem Beenden /weiter.")
@@ -463,6 +480,13 @@ async def text_ohne_befehl(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     m = beantwortete_meldung(update)
     if m is not None:
         await meldung_beantworten(context.bot, m, text, "antwort")
+        return
+    if (eid := beantworteter_entwurf(update)) is not None:  # Antwort auf einen Entwurf = Ändern
+        context.chat_data.pop("aendern", None)
+        await aenderung_eintragen(update, eid, text)
+        return
+    if (agent := beantworteter_agent(update)) is not None:  # Antwort auf irgendeine Nachricht eines Agenten
+        await auftrag_anlegen(context.bot, agent, "erledigen", text)
         return
     # Wartet ein Feedback ("Falscher Fokus", "Feedback schreiben") auf Jans Text?
     fb = context.chat_data.pop("feedback", None)
@@ -594,14 +618,16 @@ async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         wartezeit_starten(context)
         return
     if m.media_group_id is None:
-        await dateien_zuordnen(context.bot, context.chat_data, m.caption, beantworteter_auftrag(update))
+        await dateien_zuordnen(context.bot, context.chat_data, m.caption, beantworteter_auftrag(update),
+                               beantworteter_agent(update))
         return
     # Album: Telegram schickt jede Datei als eigene Nachricht, die Bildunterschrift nur bei einer.
     # Erst ALBUM_WARTEN Sekunden nach der letzten Datei zuordnen, damit alle am Auftrag hängen.
     alben = context.chat_data.setdefault("alben", {})
-    album = alben.setdefault(m.media_group_id, {"caption": None, "alt": None, "job": None})
+    album = alben.setdefault(m.media_group_id, {"caption": None, "alt": None, "agent": None, "job": None})
     album["caption"] = album["caption"] or m.caption
     album["alt"] = album["alt"] or beantworteter_auftrag(update)
+    album["agent"] = album["agent"] or beantworteter_agent(update)
     if album["job"]:
         album["job"].schedule_removal()
     album["job"] = context.job_queue.run_once(album_fertig, ALBUM_WARTEN, data=m.media_group_id, chat_id=JAN)
@@ -610,15 +636,19 @@ async def datei_empfangen(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def album_fertig(context: ContextTypes.DEFAULT_TYPE) -> None:
     album = context.chat_data.get("alben", {}).pop(context.job.data, None)
     if album:
-        await dateien_zuordnen(context.bot, context.chat_data, album["caption"], album["alt"])
+        await dateien_zuordnen(context.bot, context.chat_data, album["caption"], album["alt"], album.get("agent"))
 
 
-async def dateien_zuordnen(bot, chat_data: dict, caption: str | None, alt: dict | None) -> None:
+async def dateien_zuordnen(bot, chat_data: dict, caption: str | None, alt: dict | None,
+                           agent: str | None = None) -> None:
     """Wartende Dateien weitergeben: Antwort auf eine Meldung, /agent ... als Bildunterschrift,
     Text ohne Befehl (Agent per Knopf wählen), sonst bis zum nächsten Auftrag warten."""
     text = (caption or "").strip()
     if alt is not None:
         await antwort_weitergeben(bot, alt, text or "Siehe angehängte Dateien.")
+        return
+    if agent is not None and not text.startswith("/"):  # Antwort auf eine Nachricht dieses Agenten
+        await auftrag_anlegen(bot, agent, "erledigen", text or "Siehe angehängte Dateien.")
         return
     if text and not text.startswith("/"):
         await agent_fragen(bot, chat_data, text)
@@ -747,9 +777,10 @@ async def entwurf_zeigen(bot, e: dict) -> None:
     ]])
     with sprachpruefung.ausnahmen("laenge"):  # freigegeben wird genau der angezeigte Text
         for i, stueck in enumerate(stuecke := entwurf_als_text(e)):
-            await bot.send_message(JAN, stueck, parse_mode=ParseMode.HTML,
-                                   link_preview_options=LinkPreviewOptions(is_disabled=True),
-                                   reply_markup=knoepfe if i == len(stuecke) - 1 else None)
+            n = await bot.send_message(JAN, stueck, parse_mode=ParseMode.HTML,
+                                       link_preview_options=LinkPreviewOptions(is_disabled=True),
+                                       reply_markup=knoepfe if i == len(stuecke) - 1 else None)
+            gemeldet.entwurf_merken(n.message_id, e["id"])
     gemeldet.angezeigt[e["id"]] = e["fingerabdruck"]
 
 

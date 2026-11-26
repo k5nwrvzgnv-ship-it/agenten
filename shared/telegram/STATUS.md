@@ -16,6 +16,12 @@ Ausführlicher Stand der Zentrale (Bedienung, Freigabe, Meldungen, Feedback): Ha
 - Entwürfe zur Freigabe bleiben ungekürzt (Fingerabdruck). Rüdiger und die Freigabe-Logik sind unverändert.
 - Live seit dem Neustart am 22.11. um 21:46. Rauchtest: Dienst aktiv, kein neuer Traceback, getMe antwortet.
 
+## Stand (26.11.2026): Antworten ohne Rückfrage
+- Antwort auf jede Nachricht eines Agenten geht an diesen Agenten (Kopfzeile, `logik.absender_aus_text`),
+  auch mit Dateien. „An wen geht das?“ kommt nur noch bei Text ohne Bezug.
+- Antwort auf einen Entwurf zählt als Ändern (`Gemeldet.entwurf_merken`, gilt für ab jetzt gezeigte Entwürfe).
+- Antwort auf ein Ergebnis ohne Gespräch wird ein neuer Auftrag an denselben Agenten (bisher Absage).
+
 ## Nicht geprüft
 - Klicks und das Aussehen in Telegram selbst: In der Nacht ging keine Testnachricht an Jan, geprüft sind nur
   Snapshots und Unit-Tests.
