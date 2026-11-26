@@ -374,9 +374,18 @@ class Kette:
                         schreiben(p, roh)
                 else:
                     return []
-                self._auswahl = [{"balken": "kodytek", "name": e["name"], "datei": e["bild"], "teil": e["teil"],
-                                  "plan": {"zuschnitt": None}} for e in roh]
+                self._auswahl = [{"balken": "kodytek", "name": e["name"], "datei": d, "teil": e["teil"],
+                                  "plan": {"zuschnitt": None}} for e in roh if (d := self.kodytek_bild(e))]
             return self._auswahl
+
+    def kodytek_bild(self, e: dict) -> str | None:
+        """Bild der Auswahl: am Mac im Datensatz, auf dem Server die Kopie aus dem Abgleich unter
+        aufnahmen/kodytek/quelle/ (gleicher Aufbau images/<teil>, labels/<teil>). Fehlt beides, bleibt es weg."""
+        bild = Path(e["bild"])
+        for p in (bild, self.ordner / "kodytek" / "quelle" / "images" / bild.parent.name / bild.name):
+            if p.exists() and sa.label_zu(p).exists():
+                return str(p)
+        return None
 
     def original(self, f: dict) -> str:
         return sa.label_zu(Path(f["datei"])).read_text(encoding="utf-8")

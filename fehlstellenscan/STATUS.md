@@ -717,6 +717,11 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   dafür auf dem Server). Server vergibt Balken ab B501 (Mac ab B001).
 - Labels tragen von (Name). Speichern schickt den geladenen Stand mit; hat inzwischen jemand anderes gespeichert, kommt
   ein Fehler mit Namen statt stillem Überschreiben (auch im Mac-Modus).
+- Kodytek-Auswahl auf dem Server (Jan 26.11.2026 „immer die Randfälle Kodytek auf der Domain“): abgleich hoch schickt
+  die ausgewählten Bilder mit Originalumrissen nach aufnahmen/kodytek/quelle/{images,labels}/<teil>/, Korrekturen
+  und einmessung.json mit --ignore-existing, auswahl.json zuletzt; runter holt kodytek/labels und einmessung.json.
+  kette.kodytek_bild nimmt den Mac-Pfad aus auswahl.json oder die Kopie in quelle/. Lokal mit nachgestelltem ssh
+  durchgespielt, mit dem echten Mac noch nicht. Offen bei Jan: neues Skript auf den Mac holen und hoch laufen lassen.
 - Abgleich: mac/neurolign_abgleich.sh hoch (neue Fotobox-Balken auf den Server; lässt Balken mit Labels auf dem Server
   und fremde gleicher ID aus) und runter (alle Balken vom Server auf den Mac, ohne zuschnitt/, einstellungen.json und
   teile.json; fremde gleicher ID bleiben auf dem Mac). Lokal mit nachgestelltem ssh durchgespielt, nicht mit dem echten Mac.

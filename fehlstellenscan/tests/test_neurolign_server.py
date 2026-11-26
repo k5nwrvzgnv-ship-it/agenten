@@ -109,6 +109,28 @@ class Servermodus(unittest.TestCase):
         st, stand = self.ruf("/api/stand")
         self.assertEqual((st, stand["adressen"], stand["app"], stand["ich"]), (200, [], None, "henri"))
 
+    def test_kodytek_auswahl_aus_dem_abgleich(self):
+        # neurolign_abgleich.sh hoch legt die Bilder unter kodytek/quelle/ ab, auswahl.json nennt noch die Mac-Pfade
+        quelle = self.ablage / "kodytek" / "quelle"
+        for teil, n in (("train", "a"), ("val", "v")):
+            (quelle / "images" / teil).mkdir(parents=True)
+            (quelle / "labels" / teil).mkdir(parents=True)
+            Image.new("RGB", (64, 48), (90, 70, 50)).save(quelle / "images" / teil / f"{n}.bmp")
+            (quelle / "labels" / teil / f"{n}.txt").write_text("0 0.1 0.1 0.3 0.1 0.2 0.3\n")
+        mac = "/Users/jan/fehlstellenscan/datensaetze/kodytek-seg-1/images"
+        auswahl = [{"name": "kodytek_a", "teil": "train", "bild": f"{mac}/train/a.bmp"},
+                   {"name": "kodytek_v", "teil": "val", "bild": f"{mac}/val/v.bmp"},
+                   {"name": "kodytek_x", "teil": "train", "bild": f"{mac}/train/x.bmp"}]   # nicht angekommen
+        (self.ablage / "kodytek" / "auswahl.json").write_text(json.dumps(auswahl))
+        self.assertEqual(self.ruf("/api/saetze")[1], {"kodytek": 2})
+        bilder = self.ruf("/api/bilder?satz=kodytek")[1]
+        self.assertEqual([b["name"] for b in bilder], ["kodytek_a", "kodytek_v"])
+        self.assertEqual(len(bilder[0]["objekte"]), 1)
+        self.assertEqual(self.ruf("/zuschnitt/kodytek_a_k.jpg")[0], 200)
+        umriss = {"k": 0, "ok": True, "p": [[0.1, 0.1], [0.3, 0.1], [0.2, 0.3]]}
+        self.assertEqual(self.ruf("/api/label", {"name": "kodytek_a", "stand": None, "objekte": [umriss]})[0], 200)
+        self.assertTrue((self.ablage / "kodytek" / "labels" / "kodytek_a.json").exists())
+
     def test_aufnahme_wege_wie_am_mac(self):
         kennung = self.balken()
         st, b = self.ruf(f"/api/datei?balken={kennung}&seite=1&nr=0", roh=jpeg())

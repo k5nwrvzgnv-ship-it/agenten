@@ -2,8 +2,12 @@
 # Abgleich der Neurolign-Ablage zwischen Jans Mac und dem Server (Jan 26.11.2026, docs/plan-neurolign-server.md).
 # Der Server (neurolign.meldro.de) ist die Hauptablage: dort laden Henri und Felix hoch und dort wird gelabelt.
 #
-#   bash ~/fehlstellenscan/mac/neurolign_abgleich.sh hoch    neue Fotobox-Balken vom Mac auf den Server
-#   bash ~/fehlstellenscan/mac/neurolign_abgleich.sh runter  alle Balken mit Labels vom Server auf den Mac (vor dem Training)
+#   bash ~/fehlstellenscan/mac/neurolign_abgleich.sh hoch    neue Fotobox-Balken und die Kodytek-Auswahl auf den Server
+#   bash ~/fehlstellenscan/mac/neurolign_abgleich.sh runter  alle Balken und Kodytek-Korrekturen vom Server auf den Mac
+#
+# Kodytek-Auswahl (Randfälle, Jan 26.11.2026 „immer auf der Domain“): hoch schickt die ausgewählten Bilder mit ihren
+# Originalumrissen nach kodytek/quelle/ (gleicher Aufbau wie der Datensatz), dazu Korrekturen und Einmessung vom Mac,
+# ohne etwas auf dem Server zu überschreiben, und auswahl.json zuletzt. runter holt Korrekturen und Einmessung zurück.
 #
 # hoch schickt nur Balken, die es auf dem Server noch nicht gibt oder die dort noch keine Labels haben, und nie mit
 # --delete. Gibt es dieselbe ID auf dem Server mit anderem Anlegedatum, bricht es für diesen Balken ab.
@@ -12,7 +16,8 @@ set -euo pipefail
 SERVER=agents-user
 FERN=agenten/fehlstellenscan/data/neurolign/aufnahmen
 HIER=~/fehlstellenscan/aufnahmen
-FILTER=(--exclude 'zuschnitt/' --include 'B*/' --include 'B*/**' --include 'klassen.json' --exclude '*')
+FILTER=(--exclude 'zuschnitt/' --include 'B*/' --include 'B*/**' --include 'klassen.json'
+        --include 'kodytek/' --include 'kodytek/labels/***' --include 'kodytek/einmessung.json' --exclude '*')
 
 # Was es auf dem Server gibt: je Zeile ID, Anlegedatum und "labels", wenn dort schon gelabelt wird
 server_stand() {
@@ -56,6 +61,31 @@ case "${1:-}" in
       fi
       rsync -av --exclude 'zuschnitt/' "$HIER/$id/" "$SERVER:$FERN/$id/"
     done
+    auswahl="$HIER/kodytek/auswahl.json"
+    if [ -e "$auswahl" ]; then
+      liste=$(mktemp)
+      # erste Zeile: Ordner des Datensatzes, danach je Bild der Pfad des Bildes und seiner Umrisse darin
+      python3 - "$auswahl" > "$liste" <<'PY'
+import json, sys
+from pathlib import Path
+auswahl = [Path(e["bild"]) for e in json.load(open(sys.argv[1], encoding="utf-8"))]
+print(auswahl[0].parents[2] if auswahl else "")
+for b in auswahl:
+    print(f"images/{b.parent.name}/{b.name}")
+    print(f"labels/{b.parent.name}/{b.stem}.txt")
+PY
+      quelle=$(head -1 "$liste")
+      if [ -n "$quelle" ]; then
+        ssh "$SERVER" "mkdir -p $FERN/kodytek/quelle"
+        tail -n +2 "$liste" | rsync -a --files-from=- "$quelle/" "$SERVER:$FERN/kodytek/quelle/"
+        for x in labels einmessung.json; do
+          if [ -e "$HIER/kodytek/$x" ]; then rsync -a --ignore-existing "$HIER/kodytek/$x" "$SERVER:$FERN/kodytek/"; fi
+        done
+        rsync -a "$auswahl" "$SERVER:$FERN/kodytek/auswahl.json"
+        echo "Kodytek-Auswahl: $(( $(wc -l < "$liste") / 2 )) Bilder auf dem Server."
+      fi
+      rm -f "$liste"
+    fi
     echo "Fertig. Die Balken sind auf neurolign.meldro.de."
     ;;
   *)

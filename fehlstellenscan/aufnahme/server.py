@@ -779,11 +779,12 @@ class Anfrage(BaseHTTPRequestHandler):
         if weg == "/api/koerper":
             return self.koerper_senden(werk)
         if weg == "/api/bilder":
-            return self.antwort(200, werk.kette.bilder())
+            kodytek = parse_qs(urlsplit(self.path).query).get("satz") == ["kodytek"]
+            return self.antwort(200, werk.kette.kodytek_bilder() if kodytek else werk.kette.bilder())
         if weg == "/api/klassen":
             return self.antwort(200, werk.kette.klassen_stand(ich))
-        if weg == "/api/saetze":
-            return self.antwort(200, {"kodytek": 0})   # Kodytek-Bilder liegen nicht auf dem Server
+        if weg == "/api/saetze":                         # Kodytek-Auswahl kommt per neurolign_abgleich.sh hoch
+            return self.antwort(200, {"kodytek": len(werk.kette.kodytek())})
         if weg == "/api/training":
             return self.zum_mac("GET", weg, None, ich)
         if weg == "/api/vorlabeln":
