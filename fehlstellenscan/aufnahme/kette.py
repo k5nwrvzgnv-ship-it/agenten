@@ -75,11 +75,37 @@ def vorschlag(teile: dict, ids: list[str]) -> dict:
     return ergebnis
 
 
-def zuordnung(teile: dict, ids: list[str]) -> tuple[dict, bool]:
-    """(Balken -> train/val ohne test, probe). Ohne Balken in beiden Teilen ist es nur eine Ablaufprobe, in der das
-    Modell auf denselben Bildern geprüft wird, auf denen es trainiert."""
-    benutzt = {i: teile[i]["teil"] for i in ids if teile[i]["teil"] != "test"}
-    return benutzt, not {"train", "val"} <= set(benutzt.values())
+def pruefung(teile: dict, fotos: list[dict]) -> tuple[dict, str | None]:
+    """Fertige Altholz-Fotos (je mit Zahl "objekte") -> ({(Balken, Foto): train/val}, Art der Prüfung). Geprüft wird
+    nie auf Trainingsbildern. Art "balken": eigene Prüfbalken (teile.json). Fehlen Prüf- oder Trainingsbalken, wird
+    eine ganze Seite zurückgehalten ("seite"): eine mit Objekten, bei der auch das Training Objekte behält, Fotozahl
+    nahe einem Fünftel. Gibt es nur eine Seite, die letzten Fotos, ein Fünftel, mindestens eins ("fotos"; Nachbarn
+    überlappen). Unter zwei Fotos ({}, None): keine Prüfung möglich. Balken "Nur Test" fehlen immer."""
+    benutzt = [f for f in fotos if teile[f["balken"]]["teil"] != "test"]
+    if {teile[f["balken"]]["teil"] for f in benutzt} == {"train", "val"}:
+        return {(f["balken"], f["name"]): teile[f["balken"]]["teil"] for f in benutzt}, "balken"
+    if len(benutzt) < 2:
+        return {}, None
+    gruppen: dict = {}
+    for f in sorted(benutzt, key=lambda f: (f["balken"], f["seite"], f["nr"])):
+        gruppen.setdefault((f["balken"], f["seite"]), []).append(f)
+    if len(gruppen) > 1:
+        ziel, alle = len(benutzt) / 5, sum(f["objekte"] for f in benutzt)
+
+        def guete(x):
+            i, g = x
+            n = sum(f["objekte"] for f in gruppen[g])
+            return (not 0 < n < alle, abs(len(gruppen[g]) - ziel), -i)
+        _, wahl = min(enumerate(gruppen), key=guete)
+        val = gruppen[wahl]
+        art = "seite"
+    else:
+        reihe = next(iter(gruppen.values()))
+        val = reihe[-max(1, round(len(reihe) / 5)):]
+        art = "fotos"
+    zurueck = {(f["balken"], f["name"]) for f in val}
+    return {(f["balken"], f["name"]): "val" if (f["balken"], f["name"]) in zurueck else "train"
+            for f in benutzt}, art
 
 
 def epochen_gelesen(pfad: Path) -> list[dict]:
@@ -147,9 +173,9 @@ def ergebnis_gelesen(lauf: Path, log: Path, bericht: Path) -> dict | None:
         modell = Path(modell).parents[1].name
     zahl = json.loads(bericht.read_text(encoding="utf-8")) if bericht.exists() else {}
     kacheln = zahl.get("kacheln", {})
-    probe = zahl.get("probe")
+    probe = zahl.get("probe")                  # alte Läufe: Ablaufprobe, geprüft auf den Trainingsbildern
     klassen = [{**t, "k": KLASSEN.index(t["klasse"]) if t["klasse"] in KLASSEN else None} for t in tabelle[1:]]
-    return {"gesamt": tabelle[0], "klassen": klassen, "probe": probe,
+    return {"gesamt": tabelle[0], "klassen": klassen, "probe": probe, "pruefung": zahl.get("pruefung"),
             "beste": int(float(beste["epoch"])) if beste else None, "gelaufen": len(z),
             "epochen": int(args["epochs"]) if args.get("epochs", "").isdigit() else None,
             "sekunden": float(z[-1]["time"]) if z and "time" in z[-1] else None,
@@ -326,20 +352,23 @@ class Kette:
 
     def stand(self) -> dict:
         with self.schloss:
-            teile, balken = self.teile(), []
+            teile, balken, fertige = self.teile(), [], []
             for i in self.ids():
                 fs = fotos(self.lesen(i))
                 ok = [f for f in fs if self.fertig(f)]
+                fertige += [{**f, "objekte": len(self.label(f)["objekte"])} for f in ok]
                 balken.append({"id": i, "fotos": len(fs), "fertig": len(ok), **teile[i],
                                "objekte": sum(len(self.label(f)["objekte"]) for f in ok)})
-            _, probe = zuordnung(teile, [b["id"] for b in balken if b["fertig"]])
+            teil, art = pruefung(teile, fertige)
             lauf = None
             if self.lauf:
                 z = epochen_gelesen(Path(self.lauf["ordner"]) / "results.csv")
                 lauf = {**self.lauf, "epoche": len(z), "werte": [
                     {k: float(x[s]) for k, s in (("map", "metrics/mAP50(M)"), ("verlust", "train/seg_loss")) if s in x}
                     for x in z]}
-            return {"balken": balken, "saetze": self.saetze(), "probe": probe, "lauf": lauf, "epochen": EPOCHEN,
+            altholz = {"art": art, "fertig": sum(teile[f["balken"]]["teil"] != "test" for f in fertige),
+                       **{t: sum(x == t for x in teil.values()) for t in ("train", "val")}}
+            return {"balken": balken, "saetze": self.saetze(), "altholz": altholz, "lauf": lauf, "epochen": EPOCHEN,
                     "ergebnis": self.ergebnis(),
                     "modell": "Kodytek" if "kodytek" in self.startmodell() else "yolo11n-seg"}
 
@@ -375,19 +404,21 @@ class Kette:
                 raise ValueError("Keinen oder einen unbekannten Datensatz gewählt.")
             teile = self.teile()
             fertige = [f for f in self.alle() if self.fertig(f)] if "altholz" in wahl else []
-            benutzt, _ = zuordnung(teile, sorted({f["balken"] for f in fertige}))
-            fertige = [f for f in fertige if f["balken"] in benutzt]
+            fertige = [{**f, "objekte": len(self.label(f)["objekte"])} for f in fertige
+                       if teile[f["balken"]]["teil"] != "test"]
             if "altholz" in wahl and not fertige:
                 raise ValueError("Noch kein Foto fertig gelabelt." if len(wahl) == 1 else
                                  "Altholz hat noch kein fertig gelabeltes Foto für Training oder Prüfung.")
-            if wahl == ["altholz"] and not any(self.label(f)["objekte"] for f in fertige):
+            if wahl == ["altholz"] and not any(f["objekte"] for f in fertige):
                 raise ValueError("Auf den fertigen Fotos ist kein Objekt gezeichnet.")
+            teil, art = pruefung(teile, fertige)
+            if "altholz" in wahl and art is None:
+                raise ValueError("Für die Prüfung fehlt ein zweites fertig gelabeltes Foto.")
             kod = self.kodytek() if "kodytek" in wahl else []
             fremd = [o for o in self.fremde() if o.name in wahl]
-            vorhanden = ({benutzt[f["balken"]] for f in fertige} | {f["teil"] for f in kod}
+            vorhanden = (set(teil.values()) | {f["teil"] for f in kod}
                          | {t for o in fremd for t in ("train", "val") if self.zahl(o, t)})
-            probe = not {"train", "val"} <= vorhanden
-            if probe and (kod or fremd):
+            if not {"train", "val"} <= vorhanden:
                 raise ValueError("Die gewählten Datensätze haben keine Bilder für Training und Prüfung.")
             if any(not Path(f["datei"]).exists() for f in kod):
                 raise ValueError("Bilder der Kodytek-Auswahl fehlen.")
@@ -397,8 +428,8 @@ class Kette:
             namen = [p.name for o in ("datensaetze", "runs/segment") for p in (self.wurzel / o).glob("altholz-*")]
             nummern = [int(n[8:]) for n in namen if re.fullmatch(r"altholz-\d+", n)]
             name = f"altholz-{max([0, *nummern]) + 1}"
-            auftrag = {"ziel": str(self.wurzel / "datensaetze" / name), "probe": probe, "klassen": KLASSEN, "bilder": [
-                {"name": f["name"], "balken": f["balken"], "teil": "train" if probe else benutzt[f["balken"]],
+            auftrag = {"ziel": str(self.wurzel / "datensaetze" / name), "pruefung": art, "klassen": KLASSEN, "bilder": [
+                {"name": f["name"], "balken": f["balken"], "teil": teil[(f["balken"], f["name"])],
                  "bild": str(self.ordner / f["balken"] / "zuschnitt" / f"{f['name']}.jpg"),
                  "objekte": self.label(f)["objekte"]} for f in fertige]}
             auftrag["ganze"] = [
@@ -409,10 +440,10 @@ class Kette:
             auftrag["dazu"] = {t: [str(b) for o in fremd for b in sa.bilder_in(o, t) if b.stem not in doppelt]
                                for t in ("train", "val")}
             auftrag["saetze"] = wahl
-            self.lauf = {"name": name, "status": "bauen", "probe": probe, "fehler": "", "epochen": EPOCHEN,
+            self.lauf = {"name": name, "status": "bauen", "pruefung": art, "fehler": "", "epochen": EPOCHEN,
                          "ordner": str(self.wurzel / "runs" / "segment" / name)}
-            if not probe:
-                for i in benutzt:
+            if art == "balken":                 # Aufteilung nach Balken bleibt ab jetzt, damit Läufe vergleichbar sind
+                for i in {f["balken"] for f in fertige}:
                     teile[i]["fest"] = True
                 schreiben(self.ordner / "teile.json", teile)
             threading.Thread(target=self._laufen, args=(auftrag, self.lauf), daemon=True).start()

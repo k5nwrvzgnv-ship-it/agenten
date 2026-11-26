@@ -442,8 +442,11 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   datensaetze/altholz-N; Lauf in runs/segment/altholz-N, Log aufnahmen/altholz-N.log, 60 Epochen, imgsz 1280, batch 2,
   Start vom Kodytek-Modell, wenn vorhanden. mm im Labeln nur bei gemessenem Bildwinkel, sonst Pixel.
   Aufteilung nach Balken (aufnahmen/teile.json), Vorschlag jeder fünfte Prüfung, änderbar bis zum ersten echten Training;
-  Messbalken vom 27.11. vorher auf „Nur Test“ stellen. Ohne Trainings- und Prüfbalken ist es eine Ablaufprobe
-  (train = val), keine Aussage zur Güte.
+  Messbalken vom 27.11. vorher auf „Nur Test“ stellen. Geprüft wird nie auf Trainingsbildern (Jan 26.11.2026,
+  kette.pruefung): mit Trainings- und Prüfbalken nach Balken (nur dann wird die Aufteilung fest); sonst wird eine
+  ganze Seite zurückgehalten (mit Objekten, Training behält Objekte, Fotozahl nahe einem Fünftel); bei nur einer
+  Seite die letzten Fotos (ein Fünftel, Nachbarn überlappen um 25 %, also geschönt). Ein einziges Foto: kein Start.
+  Altholz wird so auch zusammen mit Kodytek immer mitgeprüft. Die Seite nennt die Art der Prüfung.
   Geprüft auf dem Server im Browser mit yolo-Attrappe. Nicht geprüft: echtes yolo auf dem Mac, HEIC, Durchlauf eines
   ganzen Balkens, Prüfer in frischem Kontext. Vorlabeln per Modell fehlt. Nach Neustart des Programms ist die Anzeige
   des Laufs weg, der Lauf selbst geht weiter.
@@ -452,7 +455,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   (kette.ergebnis_gelesen): Abschlusstabelle im Log (best.pt, je Klasse Box und Maske P, R, mAP50, mAP50-95),
   results.csv (beste Epoche nach Fitness 0,1 mAP50 + 0,9 mAP50-95 für Box und Maske, an kodytek-seg1-n1280 geprüft;
   Dauer = Spalte time), args.yaml (Startmodell, imgsz, batch, Epochen), datensaetze/altholz-N/bericht.json (Kacheln
-  train/val; bei Ablaufprobe val = train, dazu der Hinweis), aufnahmen/altholz-N.json (Datensätze). Groß die
+  train/val, Art der Prüfung; alte Läufe mit probe = train als Prüfung bekommen einen Warnhinweis), aufnahmen/altholz-N.json (Datensätze). Groß die
   Masken-Werte, Boxen in einer Zeile, Klassen mit deutschen Namen. Geprüft mit yolo-Attrappe und gerendert mit den
   echten Dateien von kodytek-seg1-n1280; nicht geprüft mit einem echten altholz-Lauf auf dem Mac.
 - Datensätze im Training (Jan 25.11.2026): Häkchen Altholz, Kodytek-Auswahl und jeder Satz in datensaetze/, der Umrisse und
@@ -462,7 +465,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   als Vorlage; erst wenn alle Objekte geprüft und gespeichert sind, gilt die Korrektur, sonst das Original. Originale
   bleiben unverändert (Hardlinks, Korrekturen in aufnahmen/kodytek/labels/). Maße dort in Pixeln, weil längs und quer
   verschieden aufgelöst. Ganze Sätze gehen per train.txt ein, Auswahlbilder nicht doppelt. Ganzer Kodytek-Satz: um
-  21 min je Epoche auf dem Mac (gemessen am Box-Modell). Prüfung ohne Altholz-Prüfbalken sagt nichts über Altholz (Hinweis auf der Seite).
+  21 min je Epoche auf dem Mac (gemessen am Box-Modell). Offen: ultralytics meldet eine Zahl über die ganze Prüfung; mit Kodytek dabei mischt sie Altholz und Kodytek.
   Geprüft auf dem Server mit drei echten Kodytek-Bildern und yolo-Attrappe, nicht auf dem Mac.
 - Klassen im Labeln (Jan 25.11.2026 „vereinfachen, für die Übersichtlichkeit der Farben“): sechs Farbgruppen (Ast, Riss, Loch,
   Fuge, Metall, Weitere eingeklappt), innerhalb der Gruppe Strichmuster. Nur Anzeige, Zifferntasten 1-9 folgen der
@@ -487,7 +490,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Der erste Maßstab war falsch (an der breiten Fläche gemessen, mit dem Abstand der schmalen gerechnet).
   Labels: Seite 2 und 4 als Entwurf von Claude, von Jan bestätigt (8 Objekte); Seite 1 und 3 ungelabelt (Öffnung,
   Etikett). B001 Seite 2 ist leer gespeichert (ein Enter zu viel, siehe Fehler unten), B001 steht auf „Nur Test“.
-  Ablaufprobe altholz-1 (nur Altholz, B002 allein, train = val, nichts festgelegt): fehlerfrei, 60 Epochen in knapp
+  Ablaufprobe altholz-1 (nur Altholz, B002 allein, noch mit train = val, alte Fassung, nichts festgelegt): fehlerfrei, 60 Epochen in knapp
   7 min, 4-7 s je Epoche. Für Freitag reicht so ein Kurzlauf als Kettenprobe.
   Belichtung (Helligkeit 0-255, gedimmte Lampe): Holz Median 175-204, oberstes 1 % 216-227, nichts ausgebrannt. Grund
   an den Seiten 30-50 % heller als in der Mitte (Folienwand). Lampenstufe nebensächlich, wichtiger: feste markierte

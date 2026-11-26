@@ -41,15 +41,34 @@ Results saved to /x/runs/segment/altholz-1"""
 
 
 class TestLogik(unittest.TestCase):
-    def test_vorschlag_und_probe(self):
+    def test_vorschlag(self):
         t = k.vorschlag({}, [f"B{i:03d}" for i in range(1, 8)])
         self.assertEqual([x["teil"] for x in t.values()], ["train", "val", "train", "train", "train", "train", "val"])
         self.assertEqual(k.vorschlag(t, ["B001"]), t)
-        self.assertTrue(k.zuordnung(t, ["B001"])[1])
-        self.assertFalse(k.zuordnung(t, ["B001", "B002"])[1])
-        t["B002"]["teil"] = "test"
-        benutzt, probe = k.zuordnung(t, ["B001", "B002"])
-        self.assertEqual((benutzt, probe), ({"B001": "train"}, True))
+
+    def test_pruefung_nie_auf_trainingsbildern(self):
+        def f(b, seite, nr, objekte=1):
+            return {"balken": b, "seite": seite, "nr": nr, "name": f"{b}_S{seite}_{nr}", "objekte": objekte}
+        t = k.vorschlag({}, ["B001", "B002", "B003"])
+        t["B003"]["teil"] = "test"
+        teil, art = k.pruefung(t, [f("B001", "1", 0), f("B002", "1", 0), f("B003", "1", 0)])
+        self.assertEqual((teil, art), ({("B001", "B001_S1_0"): "train", ("B002", "B002_S1_0"): "val"}, "balken"))
+        # nur Trainingsbalken: eine Seite mit Objekten zurück, Fotozahl nahe einem Fünftel
+        fotos = [f("B001", s, n) for s in "1234" for n in range(3)] + [f("B001", "2", 3)]
+        fotos[0]["objekte"] = 0
+        teil, art = k.pruefung(t, fotos)
+        val = sorted(n for (_, n), x in teil.items() if x == "val")
+        self.assertEqual((art, val), ("seite", ["B001_S4_0", "B001_S4_1", "B001_S4_2"]))
+        self.assertEqual(len(teil), 13)
+        # Seite ohne Objekte prüft nichts, die mit allen Objekten ließe das Training leer
+        teil, _ = k.pruefung(t, [f("B001", "1", 0, 0), f("B001", "2", 0, 3), f("B001", "3", 0, 0), f("B001", "4", 0, 2)])
+        self.assertEqual({n for (_, n), x in teil.items() if x == "val"}, {"B001_S4_0"})
+        # nur eine Seite: die letzten Fotos
+        teil, art = k.pruefung(t, [f("B001", "1", n) for n in (3, 0, 9, 1, 2, 4, 5, 6, 7, 8)])
+        self.assertEqual((art, sorted(n for (_, n), x in teil.items() if x == "val")), ("fotos", ["B001_S1_8", "B001_S1_9"]))
+        self.assertEqual(k.pruefung(t, [f("B001", "1", 0), f("B001", "1", 1)])[0][("B001", "B001_S1_1")], "val")
+        self.assertEqual(k.pruefung(t, [f("B001", "1", 0)]), ({}, None))
+        self.assertEqual(k.pruefung(t, [f("B001", "1", 0), f("B003", "1", 0)]), ({}, None))
 
     def test_ergebnis_aus_log_csv_und_args(self):
         tabelle = k.tabelle_gelesen("Epoche 1\n" + TABELLE)
@@ -180,20 +199,24 @@ class TestWeg(unittest.TestCase):
             self.assertEqual(self.ruf("/api/label", {"name": n, "objekte": [{"k": 10, "ok": True, "p": DREIECK}]})[0], 200)
         self.assertEqual(self.ruf("/api/bilder")[1][0]["objekte"][0]["k"], 10)
         st = self.ruf("/api/training")[1]
-        self.assertEqual((st["probe"], st["balken"][0]["fertig"]), (True, 4))
+        self.assertEqual((st["altholz"], st["balken"][0]["fertig"]), ({"art": "seite", "fertig": 4, "train": 3, "val": 1}, 4))
         self.assertEqual(self.ruf("/api/training", {})[0], 200)
         lauf = self.warte()
         self.assertEqual((lauf["status"], lauf["epoche"], lauf["name"]), ("fertig", 2, "altholz-1"))
         d = self.wurzel / "datensaetze" / "altholz-1"
-        self.assertIn("val: images/train", (d / "data.yaml").read_text())
-        labels = [z for p in (d / "labels" / "train").glob("*.txt") for z in p.read_text().splitlines()]
-        self.assertEqual([z.split()[0] for z in labels], ["10"] * 4)
+        self.assertIn("val: images/val", (d / "data.yaml").read_text())
+        labels = {t: [z for p in (d / "labels" / t).glob("*.txt") for z in p.read_text().splitlines()] for t in ("train", "val")}
+        self.assertEqual(([z.split()[0] for z in labels["train"]], [z.split()[0] for z in labels["val"]]), (["10"] * 3, ["10"]))
+        val = {p.name.split("_x")[0] for p in (d / "images" / "val").iterdir()}
+        self.assertFalse(val & {p.name.split("_x")[0] for p in (d / "images" / "train").iterdir()})
+        self.assertEqual([n for n in namen if "_S4_" in n], sorted(val))
         self.assertFalse(self.werk.kette.teile()[kennung]["fest"])
         e = self.ruf("/api/training")[1]["ergebnis"]
         bericht = json.loads((d / "bericht.json").read_text())
-        self.assertEqual((e["name"], e["probe"], e["beste"], e["gelaufen"], e["epochen"], e["sekunden"]),
-                         ("altholz-1", True, 2, 2, 60, 121.0))
-        self.assertEqual((e["train"], e["val"]), (bericht["kacheln"]["train"],) * 2)    # Probe: Prüfung = Training
+        self.assertEqual((e["name"], e["probe"], e["pruefung"], e["beste"], e["gelaufen"], e["epochen"], e["sekunden"]),
+                         ("altholz-1", None, "seite", 2, 2, 60, 121.0))
+        self.assertEqual((e["train"], e["val"]), (bericht["kacheln"]["train"], bericht["kacheln"]["val"]))
+        self.assertEqual((e["train"], e["val"]), (3, 1))
         self.assertEqual((e["modell"], e["imgsz"], e["batch"], e["saetze"]), ("yolo11n-seg", "1280", "2", ["altholz"]))
         self.assertEqual((e["gesamt"]["maske"]["map50"], [x["k"] for x in e["klassen"]]), (0.746, [0, 8]))
         self.ruf("/api/training", {})
@@ -216,7 +239,7 @@ class TestWeg(unittest.TestCase):
         self.ruf("/api/teil", {"balken": c, "teil": "test"})
         for n in na + nb + nc:
             self.ruf("/api/label", {"name": n, "objekte": [{"k": 0, "ok": True, "p": DREIECK}]})
-        self.assertFalse(self.ruf("/api/training", {})[1]["probe"])
+        self.assertEqual(self.ruf("/api/training", {})[1]["lauf"]["pruefung"], "balken")
         self.warte()
         d = self.wurzel / "datensaetze" / "altholz-1" / "images"
         self.assertEqual({p.name[:4] for p in (d / "train").iterdir()}, {a})
@@ -224,18 +247,23 @@ class TestWeg(unittest.TestCase):
         self.assertEqual(self.ruf("/api/teil", {"balken": a, "teil": "val"})[0], 400)
 
     def test_unfertige_und_fehler(self):
-        _, namen = self.balken()
+        _, namen = self.balken(("1", "2"))
         self.ruf("/api/label", {"name": namen[0], "objekte": [{"k": 1, "ok": False, "p": DREIECK}]})
         self.assertEqual(self.ruf("/api/training", {})[0], 400)
         self.ruf("/api/label", {"name": namen[0], "objekte": [{"k": 1, "ok": True, "p": DREIECK}]})
+        status, antwort = self.ruf("/api/training", {})      # ein Foto: keine Prüfung möglich, kein Lauf
+        self.assertEqual((status, antwort["fehler"]), (400, "Für die Prüfung fehlt ein zweites fertig gelabeltes Foto."))
+        self.assertEqual(self.ruf("/api/training")[1]["altholz"], {"art": None, "fertig": 1, "train": 0, "val": 0})
+        self.ruf("/api/label", {"name": namen[1], "objekte": [{"k": 1, "ok": True, "p": DREIECK}]})
         self.yolo("echo kaputt; exit 1")
         self.ruf("/api/training", {})
         lauf = self.warte()
         self.assertEqual((lauf["status"], lauf["fehler"]), ("fehler", "kaputt"))
 
     def test_abbrechen(self):
-        _, namen = self.balken()
-        self.ruf("/api/label", {"name": namen[0], "objekte": [{"k": 1, "ok": True, "p": DREIECK}]})
+        _, namen = self.balken(("1", "2"))
+        for n in namen:
+            self.ruf("/api/label", {"name": n, "objekte": [{"k": 1, "ok": True, "p": DREIECK}]})
         self.yolo("sleep 30")
         self.ruf("/api/training", {})
         for _ in range(200):
@@ -287,12 +315,13 @@ class TestWeg(unittest.TestCase):
             p.write_text("1 0.5 0.5 0.1 0.1\n")
         for p in (zweiter / "images").rglob("*.bmp"):
             p.rename(p.with_name("e_" + p.name))
-        a, na = self.balken()
-        self.ruf("/api/label", {"name": na[0], "objekte": [{"k": 10, "ok": True, "p": DREIECK}]})
+        a, na = self.balken(("1", "2"))
+        for n in na:
+            self.ruf("/api/label", {"name": n, "objekte": [{"k": 10, "ok": True, "p": DREIECK}]})
         self.assertEqual([x["id"] for x in self.ruf("/api/training")[1]["saetze"]], ["kodytek", "extra", "kodytek-seg-1"])
         self.assertEqual(self.ruf("/api/training", {"saetze": ["boxen"]})[0], 400)
         self.assertEqual(self.ruf("/api/training", {"saetze": []})[0], 400)
-        self.assertFalse(self.ruf("/api/training", {"saetze": ["altholz", "kodytek", "extra", "kodytek-seg-1"]})[1]["lauf"]["probe"])
+        self.assertEqual(self.ruf("/api/training", {"saetze": ["altholz", "kodytek", "extra", "kodytek-seg-1"]})[1]["lauf"]["pruefung"], "seite")
         self.assertEqual(self.warte()["status"], "fertig")
         z = self.wurzel / "datensaetze" / "altholz-1"
         self.assertIn("train: train.txt\nval: val.txt", (z / "data.yaml").read_text())
@@ -304,11 +333,15 @@ class TestWeg(unittest.TestCase):
 
     def test_fehlerfreies_altholz_mit_kodytek(self):
         self.kodytek()
-        _, na = self.balken()
+        _, na = self.balken(("1", "2"))
         self.assertEqual(self.ruf("/api/training", {"saetze": ["altholz", "kodytek"]})[0], 400)
         self.ruf("/api/label", {"name": na[0], "objekte": []})
+        self.assertEqual(self.ruf("/api/training", {"saetze": ["altholz", "kodytek"]})[0], 400)     # Altholz ohne Prüfung
+        self.ruf("/api/label", {"name": na[1], "objekte": []})
         self.assertEqual(self.ruf("/api/training", {"saetze": ["altholz", "kodytek"]})[0], 200)
         self.assertEqual(self.warte()["status"], "fertig")
+        val = self.wurzel / "datensaetze" / "altholz-1" / "images" / "val"
+        self.assertEqual(sum(p.name.startswith(na[1]) for p in val.iterdir()), 2)     # Altholz wird mitgeprüft
 
 
 class TestAuswahl(unittest.TestCase):

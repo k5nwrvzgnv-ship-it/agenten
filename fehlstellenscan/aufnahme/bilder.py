@@ -64,7 +64,7 @@ def bauen(auftrag: dict) -> dict:
     ziel = Path(auftrag["ziel"])
     if ziel.exists():
         raise FileExistsError(f"{ziel} gibt es schon, nichts überschrieben")
-    zahl: dict = {"probe": auftrag["probe"], "kacheln": Counter(), "objekte": Counter(), "balken": {},
+    zahl: dict = {"pruefung": auftrag["pruefung"], "kacheln": Counter(), "objekte": Counter(), "balken": {},
                   "saetze": auftrag.get("saetze", ["altholz"])}
     for t in ("train", "val"):
         (ziel / "images" / t).mkdir(parents=True)
@@ -100,8 +100,7 @@ def bauen(auftrag: dict) -> dict:
             wege[t] = f"{t}.txt"
             zahl["kacheln"][t] += len(dazu)
             zahl["dazu_" + t] = len(dazu)
-    val = wege["train"] if auftrag["probe"] else wege["val"]
-    (ziel / "data.yaml").write_text(f"path: {json.dumps(str(ziel))}\ntrain: {wege['train']}\nval: {val}\nnames:\n" + "".join(
+    (ziel / "data.yaml").write_text(f"path: {json.dumps(str(ziel))}\ntrain: {wege['train']}\nval: {wege['val']}\nnames:\n" + "".join(
         f"  {i}: {n}\n" for i, n in enumerate(auftrag["klassen"])))
     (ziel / "bericht.json").write_text(json.dumps(zahl, ensure_ascii=False, indent=1))
     return zahl
