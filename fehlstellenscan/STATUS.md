@@ -518,7 +518,7 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Seitenbild mit Kamera bleibt. Einrichtung ohne Kurzbefehl. Geprüft auf dem Server mit Playwright und
   künstlichem Foto, nicht auf dem Mac.
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
-  Enter speichert es leer als fehlerfrei. Vorschaubild von B001 Seite 3 fehlt im Labeln.
+  Enter speichert es leer als fehlerfrei.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
 - Körper (26.11.2026, Ideen in docs/ideen-galerie-3d-und-aufteilung.md): aufnahme/koerper.py (numpy, Pillow,
   tests/test_koerper.py) findet je Zuschnitt die Holzfläche (Rot minus Blau, Otsu), dreht sie gerade, schneidet quer
@@ -545,9 +545,10 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   keine kleinen Bilder, balken.json oder ein Zuschnitt neuer oder fehlend), einer nach dem anderen, neueste zuerst.
   Geprüft auf dem Server mit 13 Kopien von B002 (Playwright: Ziehen, Sperre, Tasten, Neuladen; axe). Am Mac
   (26.11.2026, per Chrome): Galerie, Ziehen mit der Maus (gespeichert, zurückgezogen), Körper B002 in der
-  Trainings-.venv gerechnet, gleiche Abweichungen wie auf dem Server, Drehen klappt. Offen: B001 Seite 3 (Original
-  ist JPG, „Foto vom Mac“): Zuschnitt bricht die Verbindung ab (Ausnahme im Server, Meldung nur im Mac-Terminal),
-  darum kein Körper für B001. Derselbe alte Fehler wie „Vorschaubild B001 Seite 3 fehlt“ unten.
+  Trainings-.venv gerechnet, gleiche Abweichungen wie auf dem Server, Drehen klappt. B001 Seite 3 brach mit
+  KeyError 'zuschnitt' ab (Plan aus älterer Fassung ohne Zuschnitt, auch Ursache von „Vorschaubild B001 Seite 3
+  fehlt“): behoben, fehlt der Zuschnitt, gilt das ganze Bild (Zuschnitt und Label speichern). /api/koerper meldet
+  jede andere Ausnahme als 500 mit Text statt abgebrochener Verbindung. Am Mac nach dem Fix noch nicht geprüft.
   Neuer Balken bleibt wie bisher: „+“ in der Aufnahme, der alte steht danach in der Galerie.
 
 ## Neurolign-Server (ab 26.11.2026)

@@ -205,6 +205,24 @@ class TestWeg(unittest.TestCase):
         self.assertEqual(self.ruf("/api/koerper?id=B999")[0], 400)
         self.assertEqual(self.ruf(f"/koerper/{b['id']}/S2.jpg")[0], 404)
 
+    def test_alter_plan_ohne_zuschnitt(self):
+        """Wie B001 Seite 3: Plan aus einer älteren Fassung ohne "zuschnitt" -> ganzes Bild, kein Absturz."""
+        b = self.werk.balken_speichern({"laenge_mm": 295.0, "breite_mm": 200.0, "hoehe_mm": 135.0, "holzart": ""})
+        bild = Image.new("RGB", (1600, 1200), (18, 20, 30))
+        bild.paste((190, 140, 80), (300, 400, 1300, 800))
+        pfad = self.wurzel / "alt.jpg"
+        bild.save(pfad)
+        self.werk.foto_ablegen(b["id"], "3", 0, pfad.read_bytes())
+        datei = self.ordner / b["id"] / "balken.json"
+        roh = json.loads(datei.read_text())
+        del roh["seiten"]["3"]["plan"]["zuschnitt"]
+        datei.write_text(json.dumps(roh))
+        name = next(f["name"] for f in self.werk.kette.alle() if f["balken"] == b["id"])
+        status, z = self.ruf(f"/zuschnitt/{name}.jpg")
+        self.assertEqual((status, z[:3]), (200, b"\xff\xd8\xff"))
+        self.assertEqual(self.ruf(f"/api/koerper?id={b['id']}")[0], 200)
+        self.assertEqual(self.ruf("/api/label", {"name": name, "objekte": []})[0], 200)
+
     def test_galerie_und_zuordnen(self):
         alt, _ = self.balken(("1", "2"))
         neu = self.werk.balken_speichern({"laenge_mm": 4000.0, "breite_mm": 100.0, "hoehe_mm": 120.0, "holzart": "Eiche"})["id"]

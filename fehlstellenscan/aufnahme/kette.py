@@ -322,7 +322,7 @@ class Kette:
                     raise ValueError(f"Inzwischen{wer} gespeichert ({(alt or {}).get('zeit', '')[11:16]}). "
                                      "Seite neu laden, dann weiter.")
             zeit = datetime.now().isoformat(timespec="seconds")
-            neu = {"foto": f["datei"], "zuschnitt": f["plan"]["zuschnitt"], "zeit": zeit, "objekte": objekte}
+            neu = {"foto": f["datei"], "zuschnitt": f["plan"].get("zuschnitt"), "zeit": zeit, "objekte": objekte}
             if von:
                 neu["von"] = von
             schreiben(self.label_pfad(f), neu)
@@ -349,7 +349,7 @@ class Kette:
                                         "--out", str(kopie)], check=True, capture_output=True, timeout=120)
                         quelle = kopie
                     subprocess.run([str(self.umgebung()), str(HIER / "bilder.py"), "schneiden", str(quelle), str(ziel),
-                                    str(kl), json.dumps(f["plan"]["zuschnitt"])], check=True, capture_output=True,
+                                    str(kl), json.dumps(f["plan"].get("zuschnitt"))], check=True, capture_output=True,
                                    timeout=120)
                 except (OSError, subprocess.SubprocessError) as e:
                     text = (getattr(e, "stderr", b"") or b"").decode("utf-8", "replace").strip().splitlines()

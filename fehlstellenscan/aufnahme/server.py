@@ -24,6 +24,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -687,6 +688,9 @@ class Anfrage(BaseHTTPRequestHandler):
                 return self.antwort(200, werk.kette.koerper(parse_qs(urlsplit(self.path).query).get("id", [""])[0]))
             except ValueError as e:
                 return self.antwort(400, {"fehler": str(e)})
+            except Exception as e:                      # Meldung in den Browser statt abgebrochener Verbindung
+                traceback.print_exc()
+                return self.antwort(500, {"fehler": f"Körper ging nicht: {type(e).__name__}: {e}"})
         if weg == "/live.jpg":
             werk.raster = l.raster_fuers_handy({k: v[0] for k, v in parse_qs(urlsplit(self.path).query).items()})
         if weg == "/live.jpg" and werk.app_da():
