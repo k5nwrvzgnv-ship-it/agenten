@@ -9,7 +9,9 @@ iPhone-App (aufnahme/app): gleiche Wege mit Kopfzeile X-App. „warten“ antwor
 (foto, einmessen, ev, modus), dazu schickt die App laufend POST live (kleines JPEG, X-Zustand) und POST fehler.
 
 Servermodus (--server, Jan 26.11.2026): läuft auf dem Server hinter Caddy (neurolign.meldro.de), nur 127.0.0.1.
-Ohne Fotobox, iPhone und Training: Balken anlegen, Fotos hochladen, labeln. Wer was darf, steht in zugang.py."""
+Ohne Fotobox und iPhone: Balken anlegen, Fotos hochladen, labeln. Wer was darf, steht in zugang.py. Training rechnet
+Jans Mac: der Server reicht die Trainingswege durch einen SSH-Tunnel an den Mac weiter (tunnel.py), der Mac öffnet
+dafür einen zweiten, schmalen Eingang (--tunnel-port) und holt vor jedem Start die Labels vom Server (--abgleich)."""
 
 import argparse
 import hmac
@@ -30,10 +32,12 @@ from urllib.parse import parse_qs, urlsplit
 if __package__:
     from . import kette as k
     from . import logik as l
+    from . import tunnel as t
     from . import zugang as z
 else:
     import kette as k
     import logik as l
+    import tunnel as t
     import zugang as z
 
 SEITE = Path(__file__).resolve().parent / "seite"
@@ -44,6 +48,7 @@ FOTO_WARTEN_S = 25
 MAX_FOTO = 150_000_000
 ERSTE_SERVER_NR = 500                            # Servermodus vergibt B501, B502, ...
 MAX_HOCHLADEN = 40_000_000                       # je Foto im Servermodus, Caddy lässt 50 MB durch
+ABGLEICH_S = 300                                 # Labels vom Server holen vor dem Training, höchstens
 
 
 class Konflikt(Exception):
@@ -87,6 +92,7 @@ class Werk:
         self.kette = k.Kette(ordner, self.lesen, self.ids)
         if python:
             self.kette.python = python            # Servermodus: Pillow und opencv aus der .venv von fehlstellenscan
+        self.abgleich: Path | None = None         # Mac: Skript, das vor dem Training die Labels vom Server holt
         self.warter: object | None = None         # der eine wartende Kurzbefehl
         self.auftrag: dict | None = None
         self.hinweis = ""
@@ -487,6 +493,21 @@ class Werk:
                 self.schloss.notify_all()
 
 
+def training_starten(werk: Werk, daten: dict) -> dict:
+    """Mac: erst die Labels vom Server holen (wenn eingerichtet), dann das Training starten. Scheitert der Abgleich,
+    startet nichts: sonst trainiert der Mac auf altem Stand."""
+    if werk.abgleich:
+        try:
+            r = subprocess.run(["bash", str(werk.abgleich), "runter"], capture_output=True, text=True,
+                               timeout=ABGLEICH_S)
+        except (OSError, subprocess.SubprocessError) as e:
+            raise ValueError(f"Labels vom Server holen ging nicht: {e}") from e
+        if r.returncode:
+            letzte = (r.stderr or r.stdout).strip().splitlines()[-1:] or ["ohne Meldung"]
+            raise ValueError(f"Labels vom Server holen ging nicht: {letzte[0]}")
+    return werk.kette.starten(daten)
+
+
 class Anfrage(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     timeout = 60
@@ -556,7 +577,7 @@ class Anfrage(BaseHTTPRequestHandler):
         datei = None
         if weg == "/":
             datei = SEITE / ("hochladen.html" if self.server.modus_server else "index.html")
-        elif weg == "/labeln" or (weg in ("/training", "/koerper", "/galerie") and not self.server.modus_server):
+        elif weg in ("/labeln", "/training") or (weg in ("/koerper", "/galerie") and not self.server.modus_server):
             datei = SEITE / f"{weg[1:]}.html"
         elif re.fullmatch(r"/[a-z-]+\.(css|js|woff2)", weg):
             datei = SEITE / weg[1:]
@@ -580,6 +601,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.kette.bilder())
         if weg == "/api/saetze":
             return self.antwort(200, {"kodytek": 0})   # Kodytek-Bilder liegen nicht auf dem Server
+        if weg == "/api/training":
+            return self.zum_mac("GET", weg, None, ich)
         if weg.startswith(("/api/", "/h/")) or weg == "/live.jpg":
             return self.antwort(404, {"fehler": "Gibt es hier nicht."})
         return self.datei_senden(weg, werk)
@@ -593,6 +616,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(403, {"fehler": "Fremde Herkunft."})
         if nein := z.post_erlaubt(ich, weg):
             return self.antwort(nein[0], {"fehler": nein[1]})
+        if weg in ("/api/training", "/api/abbrechen", "/api/teil"):
+            return self.zum_mac("POST", weg, self.koerper(1_000_000), ich)
         if weg == "/api/hochladen":
             q = {k: v[0] for k, v in parse_qs(query).items()}
             return self.antwort(200, werk.hochladen(q.get("balken"), q.get("seite"), self.koerper(MAX_HOCHLADEN), ich))
@@ -607,9 +632,37 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, werk.kette.speichern(daten, ich))
         return self.antwort(200, werk.foto_weg(daten, ich))
 
+    def zum_mac(self, methode: str, weg: str, koerper: bytes | None, ich: str) -> None:
+        """Servermodus: Trainingsweg durch den Tunnel an den Mac. Start dauert länger (Abgleich der Labels)."""
+        zeit = ABGLEICH_S + 60 if (methode, weg) == ("POST", "/api/training") else 15
+        status, inhalt = t.weiterreichen(methode, weg, koerper, self.server.schluessel, ich, self.server.mac_port, zeit)
+        return self.antwort(status, inhalt)
+
+    def tunnel_anfrage(self, methode: str) -> None:
+        """Mac: schmaler Eingang für den Tunnel. Nur Trainingswege, nur mit Schlüssel."""
+        weg, werk = urlsplit(self.path).path, self.server.werk
+        if not t.erlaubt(methode, weg, self.headers.get(t.KOPF), self.server.schluessel):
+            return self.antwort(403, {"fehler": "Nicht erlaubt."})
+        try:
+            if methode == "GET":
+                return self.antwort(200, werk.kette.stand())
+            daten = json.loads(self.koerper(1_000_000))
+            if not isinstance(daten, dict):
+                raise ValueError("Eingabe nicht lesbar.")
+            tun = {"/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen,
+                   "/api/teil": werk.kette.teil_setzen}[weg]
+            return self.antwort(200, tun(daten))
+        except (ValueError, json.JSONDecodeError) as e:
+            return self.antwort(400, {"fehler": str(e)})
+        except OSError as e:
+            print(f"Fehler: {e}", file=sys.stderr)
+            return self.antwort(500, {"fehler": f"Speichern ging nicht: {e}"})
+
     def do_GET(self):
         weg = urlsplit(self.path).path
         werk = self.server.werk
+        if self.server.nur_tunnel:
+            return self.tunnel_anfrage("GET")
         if self.server.modus_server:
             return self.get_server(weg, werk)
         if weg.startswith("/h/"):
@@ -671,6 +724,8 @@ class Anfrage(BaseHTTPRequestHandler):
     def do_POST(self):
         teile = urlsplit(self.path)
         weg, werk = teile.path, self.server.werk
+        if self.server.nur_tunnel:
+            return self.tunnel_anfrage("POST")
         try:
             if self.server.modus_server:
                 return self.post_server(weg, teile.query, werk)
@@ -695,7 +750,7 @@ class Anfrage(BaseHTTPRequestHandler):
             wege = {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
                     "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle, "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
                     "/api/zurueck": werk.zurueckholen, "/api/label": werk.kette.speichern, "/api/teil": werk.kette.teil_setzen,
-                    "/api/training": werk.kette.starten, "/api/abbrechen": werk.kette.abbrechen}
+                    "/api/training": lambda d: training_starten(werk, d), "/api/abbrechen": werk.kette.abbrechen}
             if weg not in wege:
                 return self.antwort(404, {"fehler": "Gibt es nicht."})
             daten = json.loads(roh)
@@ -712,20 +767,22 @@ class Anfrage(BaseHTTPRequestHandler):
 
 
 def seite_fuer_server(html: bytes) -> bytes:
-    """Navigation im Servermodus: Aufnahme heißt Hochladen, Training und Galerie gibt es nicht."""
-    return (html.replace(b'<a href="/training">Training</a>', b"").replace(b'<a href="/galerie">Galerie</a>', b"")
-            .replace(b'<a href="/training" aria-current="page">Training</a>', b"")
+    """Navigation im Servermodus: Aufnahme heißt Hochladen, Galerie gibt es nicht. Training rechnet der Mac."""
+    return (html.replace(b'<a href="/galerie">Galerie</a>', b"")
             .replace(b'<a href="/">Aufnahme</a>', b'<a href="/">Hochladen</a>'))
 
 
 class Server(ThreadingHTTPServer):
     daemon_threads = True
+    modus_server = nur_tunnel = False
+    schluessel: str | None = None
+    mac_port = t.SERVER_PORT
 
 
 def server_bauen(ordner: Path, adresse: str, port: int, modus_server: bool = False, python: Path | None = None,
-                 host: str = z.HOST) -> Server:
+                 host: str = z.HOST, schluessel: str | None = None, mac_port: int = t.SERVER_PORT) -> Server:
     server = Server((adresse, port), Anfrage)
-    server.modus_server, server.host = modus_server, host
+    server.modus_server, server.host, server.schluessel, server.mac_port = modus_server, host, schluessel, mac_port
     server.werk = Werk(ordner, python)
     server.werk.port = server.server_address[1]
     if modus_server and server.werk.einst["letzte_nr"] < ERSTE_SERVER_NR:
@@ -735,21 +792,45 @@ def server_bauen(ordner: Path, adresse: str, port: int, modus_server: bool = Fal
     return server
 
 
+def tunnel_eingang_bauen(werk: Werk, port: int, schluessel: str) -> Server:
+    """Mac: zweiter Eingang nur auf 127.0.0.1 für den Tunnel vom Server, gleiche Ablage und gleiches Training."""
+    eingang = Server(("127.0.0.1", port), Anfrage)
+    eingang.nur_tunnel, eingang.schluessel, eingang.werk = True, schluessel, werk
+    return eingang
+
+
 def main() -> None:
     a = argparse.ArgumentParser(description="Neurolign: Aufnahme, Labeln, Training")
     a.add_argument("ordner", nargs="?", help="Ablage (Mac-Modus), Vorgabe ~/fehlstellenscan/aufnahmen")
     a.add_argument("--server", action="store_true", help="Servermodus hinter Caddy, nur 127.0.0.1")
     a.add_argument("--port", type=int)
     a.add_argument("--python", help="Python mit Pillow und opencv für den Zuschnitt")
+    a.add_argument("--env", help=f".env mit {t.SCHLUESSEL_NAME} (Server und Mac)")
+    a.add_argument("--mac-port", type=int, default=t.SERVER_PORT, help="Server: Ende des Tunnels zum Mac")
+    a.add_argument("--tunnel-port", type=int, help="Mac: Eingang für den Tunnel öffnen (Vorgabe aus, sonst 8766)")
+    a.add_argument("--abgleich", help="Mac: Abgleichskript, holt vor jedem Training die Labels vom Server")
+    a.add_argument("--still", action="store_true", help="Mac: keinen Browser öffnen (Start als Dienst)")
     w = a.parse_args()
     ordner = Path(w.ordner).expanduser() if w.ordner else Path.home() / "fehlstellenscan" / "aufnahmen"
+    schluessel = t.schluessel_aus(Path(w.env).expanduser()) if w.env else None
+    python = Path(w.python) if w.python else None
     if w.server:
-        server = server_bauen(ordner, "127.0.0.1", w.port or 8796, True, Path(w.python) if w.python else None)
-        print(f"Neurolign (Server) auf 127.0.0.1:{server.werk.port}, Ablage {ordner}", flush=True)
+        server = server_bauen(ordner, "127.0.0.1", w.port or 8796, True, python, schluessel=schluessel,
+                              mac_port=w.mac_port)
+        print(f"Neurolign (Server) auf 127.0.0.1:{server.werk.port}, Ablage {ordner}, Mac über "
+              f"127.0.0.1:{w.mac_port}{'' if schluessel else ' (ohne Schlüssel: Training aus)'}", flush=True)
     else:
-        server = server_bauen(ordner, "0.0.0.0", w.port or 8765, python=Path(w.python) if w.python else None)
-        print(f"Aufnahme läuft: http://localhost:{server.werk.port}\nFotos: {ordner}\nBeenden mit Strg+C")
-        if sys.platform == "darwin":
+        server = server_bauen(ordner, "0.0.0.0", w.port or 8765, python=python)
+        if w.abgleich:
+            server.werk.abgleich = Path(w.abgleich).expanduser()
+        print(f"Aufnahme läuft: http://localhost:{server.werk.port}\nFotos: {ordner}\nBeenden mit Strg+C", flush=True)
+        if w.tunnel_port:
+            if not schluessel:
+                sys.exit(f"--tunnel-port braucht {t.SCHLUESSEL_NAME} in --env")
+            eingang = tunnel_eingang_bauen(server.werk, w.tunnel_port, schluessel)
+            threading.Thread(target=eingang.serve_forever, daemon=True).start()
+            print(f"Eingang für den Server: 127.0.0.1:{w.tunnel_port}", flush=True)
+        if sys.platform == "darwin" and not w.still:
             subprocess.Popen(["open", f"http://localhost:{server.werk.port}"])
     try:
         server.serve_forever()

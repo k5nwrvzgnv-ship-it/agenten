@@ -10,16 +10,20 @@ HOST = "neurolign.meldro.de"
 HERKUNFT = f"https://{HOST}"
 NUTZER = ("jan", "henri", "felix")
 
-ANSEHEN, HOCHLADEN, LABELN, VERWALTEN = "ansehen", "hochladen", "labeln", "verwalten"
-ALLES = frozenset({ANSEHEN, HOCHLADEN, LABELN, VERWALTEN})
+ANSEHEN, HOCHLADEN, LABELN, VERWALTEN, TRAINIEREN = "ansehen", "hochladen", "labeln", "verwalten", "trainieren"
+ALLES = frozenset({ANSEHEN, HOCHLADEN, LABELN, VERWALTEN, TRAINIEREN})
 RECHTE = {name: ALLES for name in NUTZER}
 
-# POST-Wege im Servermodus und das Recht, das sie brauchen. Alles andere gibt es dort nicht (Fotobox, Training).
+# POST-Wege im Servermodus und das Recht, das sie brauchen. Alles andere gibt es dort nicht (Fotobox, iPhone).
+# Training, Abbrechen und Teil gehen durch den Tunnel an Jans Mac (tunnel.py).
 POST_WEGE = {
     "/api/balken": HOCHLADEN,
     "/api/hochladen": HOCHLADEN,
     "/api/label": LABELN,
     "/api/foto-weg": VERWALTEN,
+    "/api/training": TRAINIEREN,
+    "/api/abbrechen": TRAINIEREN,
+    "/api/teil": TRAINIEREN,
 }
 
 

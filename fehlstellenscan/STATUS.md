@@ -552,14 +552,24 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   (Caddy basicauth jan, henri, felix). Plan: docs/plan-neurolign-server.md, Jans Schritte: docs/neurolign-einrichten.md.
 - Stand 26.11.2026 morgens: Dienst fehlstellenscan-neurolign läuft (Vorlage systemd/, 127.0.0.1:8796, MemoryMax 768M,
   OnFailure=ausfall@), Ablage data/neurolign/aufnahmen. Passwörter in .env (NEUROLIGN_PASSWORT_JAN/_HENRI/_FELIX),
-  Caddy-Block data/caddy-neurolign.txt (Hashes). DNS A/AAAA neurolign bei INWX gesetzt (26.11., dig
-  zeigt 84.247.188.205). Offen bei Jan: Block in /etc/caddy/Caddyfile, Passwörter an Henri und Felix.
+  Caddy-Block data/caddy-neurolign.txt (Hashes). DNS und Caddy eingerichtet (26.11.), https://neurolign.meldro.de
+  antwortet 401 ohne Passwort, Jan ist angemeldet. Passwörter an Henri und Felix gibt Jan selbst weiter.
 - Code: server.py --server (gleiches Programm wie auf dem Mac, Mac-Modus unverändert), zugang.py (Rechte, rein,
   tests/test_neurolign_server.py), seite/hochladen.*. Nutzer kommt aus X-Nutzer, die Caddy setzt; geglaubt nur von
   127.0.0.1 mit Host neurolign.meldro.de. POST nur mit Origin https://neurolign.meldro.de und X-Aufnahme. Henri und
   Felix dürfen alles wie Jan (vollwertige Kollegen, Jan 26.11.2026): anlegen, hochladen, labeln, Fotos verwerfen,
-  Maße ändern. Training, Fotobox, iPhone-Wege und
-  Kodytek-Auswahl gibt es im Servermodus nicht (Training und Kodytek-Bilder liegen auf dem Mac).
+  Maße ändern, Training starten. Fotobox, iPhone-Wege, Galerie, Körper und Kodytek-Auswahl gibt es im Servermodus nicht.
+- Training vom Server, gerechnet auf Jans Mac (Jan 26.11.2026 „so bauen“): tunnel.py. Der Mac hält per launchd
+  (de.meldro.neurolign, mac/neurolign_dienst.sh, eingerichtet mit mac/neurolign_einrichten.sh) Neurolign mit
+  --tunnel-port 8766 (zweiter Eingang nur 127.0.0.1, nur GET/POST /api/training, /api/abbrechen, /api/teil, nur mit
+  Kopfzeile X-Tunnel = NEUROLIGN_TUNNEL_SCHLUESSEL aus .env beider Seiten) und ssh -R 127.0.0.1:8797 zum Server offen,
+  dazu caffeinate -s (wach nur am Netzteil). Der Server reicht diese Wege an 127.0.0.1:8797 weiter (--mac-port,
+  --env); Mac nicht da: 503 mit mac:false, die Seite zeigt ein durchgestrichenes Notebook und sperrt den Start.
+  Vor jedem Start (auch lokal am Mac) holt Neurolign mit --abgleich die Labels vom Server (neurolign_abgleich.sh
+  runter); scheitert das, startet kein Training. Ergebnis und Läufe bleiben auf dem Mac.
+  Geprüft: Tests mit Mac, Eingang und Server in einem Prozess; Seite gerendert mit und ohne Mac, axe ohne Befunde.
+  Nicht geprüft: echter Mac, launchd, ob sshd auf dem Server -R erlaubt (zeigt neurolign_einrichten.sh am Ende),
+  ssh unter launchd ohne Passwortabfrage. Offen bei Jan: neurolign_einrichten.sh auf dem Mac einmal ausführen.
 - Hochladen: Seite auf dem Balkenbild wählen, Fotos einzeln hoch (je höchstens 40 MB, Caddy 50 MB). Hochgeladene Seiten
   haben einen freien Plan (frei, ohne Abschnitte, ohne Zuschnitt, Maße in Pixeln); Fotobox-Seiten nimmt der Server
   nicht an, der Mac zeigt freie Seiten ohne Plan und fotografiert dort nicht. JPEG und PNG; HEIC abgelehnt (kein Paket

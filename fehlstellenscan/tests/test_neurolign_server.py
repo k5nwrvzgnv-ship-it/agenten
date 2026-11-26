@@ -12,6 +12,7 @@ from pathlib import Path
 from PIL import Image
 
 from aufnahme import server as s
+from aufnahme import tunnel as t
 from aufnahme import zugang as z
 
 HOST = "neurolign.meldro.de"
@@ -41,7 +42,7 @@ class Zugang(unittest.TestCase):
             self.assertIsNone(z.post_erlaubt(wer, "/api/foto-weg"))
         self.assertFalse(z.darf(None, z.ANSEHEN))
         self.assertFalse(z.darf("mallory", z.ANSEHEN))
-        for weg in ("/api/training", "/api/loeschen", "/api/ausloesen", "/api/einstellungen", "/api/teil"):
+        for weg in ("/api/loeschen", "/api/ausloesen", "/api/einstellungen", "/api/zuschnitt"):
             self.assertEqual(z.post_erlaubt("jan", weg)[0], 404)
         self.assertIsNone(z.post_erlaubt("henri", "/api/hochladen"))
 
@@ -99,11 +100,13 @@ class Servermodus(unittest.TestCase):
         self.assertEqual(st, 200)
         self.assertIn(b"hochladen.js", html)
         st, html = self.ruf("/labeln")
-        self.assertNotIn(b"/training", html)
+        self.assertIn(b'<a href="/training">Training</a>', html)
         self.assertNotIn(b"/galerie", html)
         self.assertIn(b'<a href="/">Hochladen</a>', html)
-        for weg in ("/training", "/api/training", "/live.jpg", "/h/abc/warten", "/galerie", "/koerper", "/api/galerie",
-                    "/api/koerper"):
+        st, html = self.ruf("/training")
+        self.assertEqual(st, 200)
+        self.assertIn(b'<a href="/">Hochladen</a>', html)
+        for weg in ("/live.jpg", "/h/abc/warten", "/galerie", "/koerper", "/api/galerie", "/api/koerper"):
             self.assertEqual(self.ruf(weg)[0], 404, weg)
         self.assertEqual(self.ruf("/api/saetze")[1], {"kodytek": 0})
 
@@ -144,7 +147,6 @@ class Servermodus(unittest.TestCase):
         st, b = self.ruf("/api/balken", {"id": kennung, "laenge_mm": 900, "breite_mm": 100, "hoehe_mm": 100})
         self.assertEqual(st, 200, b)
         self.ruf(f"/api/hochladen?balken={kennung}&seite=2", roh=jpeg())
-        self.assertEqual(self.ruf("/api/training", {})[0], 404)
         self.assertEqual(self.ruf("/api/loeschen", {})[0], 404)
         st, stand = self.ruf("/api/foto-weg", {"balken": kennung, "seite": "2", "nr": 0}, wer="felix")
         self.assertEqual(st, 200, stand)
@@ -171,6 +173,91 @@ class Servermodus(unittest.TestCase):
         st, f = self.ruf(f"/api/hochladen?balken={kennung}&seite=3", roh=jpeg())
         self.assertEqual(st, 400)
         self.assertIn("Fotobox", f["fehler"])
+
+
+SCHLUESSEL = "k" * 32
+
+
+class Tunnel(unittest.TestCase):
+    """Training über neurolign.meldro.de, gerechnet auf dem Mac: Server reicht durch, Mac-Eingang prüft den Schlüssel."""
+
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory()
+        d = Path(self.ordner.name)
+        self.mac = s.server_bauen(d / "mac", "127.0.0.1", 0)
+        self.eingang = s.tunnel_eingang_bauen(self.mac.werk, 0, SCHLUESSEL)
+        self.server = s.server_bauen(d / "server", "127.0.0.1", 0, True, Path(sys.executable), schluessel=SCHLUESSEL,
+                                     mac_port=self.eingang.server_address[1])
+        for x in (self.mac, self.eingang, self.server):
+            threading.Thread(target=x.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        for x in (self.mac, self.eingang, self.server):
+            x.shutdown()
+            x.server_close()
+        self.ordner.cleanup()
+
+    def ruf(self, port, methode, weg, daten=None, kopf=None):
+        v = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        v.request(methode, weg, body=None if daten is None else json.dumps(daten), headers=kopf or {})
+        a = v.getresponse()
+        inhalt = json.loads(a.read())
+        v.close()
+        return a.status, inhalt
+
+    def vom_server(self, methode, weg, daten=None, wer="felix"):
+        kopf = {"Host": HOST, "X-Nutzer": wer}
+        if methode == "POST":
+            kopf |= {"X-Aufnahme": "1", "Origin": f"https://{HOST}"}
+        return self.ruf(self.server.server_address[1], methode, weg, daten, kopf)
+
+    def test_stand_kommt_vom_mac(self):
+        b = self.mac.werk.balken_speichern({"laenge_mm": 1200, "breite_mm": 120, "hoehe_mm": 100})
+        st, stand = self.vom_server("GET", "/api/training")
+        self.assertEqual(st, 200, stand)
+        self.assertEqual([x["id"] for x in stand["balken"]], [b["id"]])
+        st, f = self.vom_server("POST", "/api/training", {"saetze": ["altholz"]})
+        self.assertEqual(st, 400)
+        self.assertIn("gelabelt", f["fehler"])         # Fehler des Macs kommt durch
+
+    def test_ohne_anmeldung_kein_weiterreichen(self):
+        self.assertEqual(self.ruf(self.server.server_address[1], "GET", "/api/training", None, {"Host": HOST})[0], 403)
+
+    def test_eingang_nur_mit_schluessel_und_nur_training(self):
+        port = self.eingang.server_address[1]
+        self.assertEqual(self.ruf(port, "GET", "/api/training")[0], 403)
+        self.assertEqual(self.ruf(port, "GET", "/api/training", kopf={t.KOPF: "falsch" * 8})[0], 403)
+        self.assertEqual(self.ruf(port, "GET", "/api/training", kopf={t.KOPF: SCHLUESSEL})[0], 200)
+        for methode, weg in (("GET", "/api/stand"), ("POST", "/api/loeschen"), ("POST", "/api/ausloesen")):
+            self.assertEqual(self.ruf(port, methode, weg, {}, {t.KOPF: SCHLUESSEL})[0], 403, weg)
+
+    def test_mac_aus(self):
+        self.eingang.shutdown()
+        self.eingang.server_close()
+        st, f = self.vom_server("GET", "/api/training")
+        self.assertEqual(st, 503)
+        self.assertIs(f["mac"], False)
+        self.eingang = s.tunnel_eingang_bauen(self.mac.werk, 0, SCHLUESSEL)   # für tearDown
+        threading.Thread(target=self.eingang.serve_forever, daemon=True).start()
+
+    def test_abgleich_scheitert_dann_kein_start(self):
+        skript = Path(self.ordner.name) / "abgleich.sh"
+        skript.write_text("echo 'ssh: keine Verbindung' >&2; exit 255\n")
+        self.mac.werk.abgleich = skript
+        st, f = self.vom_server("POST", "/api/training", {"saetze": ["altholz"]})
+        self.assertEqual(st, 400)
+        self.assertIn("keine Verbindung", f["fehler"])
+        self.assertIsNone(self.mac.werk.kette.lauf)
+
+    def test_schluessel_aus_env(self):
+        with tempfile.TemporaryDirectory() as d:
+            env = Path(d) / ".env"
+            self.assertIsNone(t.schluessel_aus(env))
+            env.write_text(f"ANDERES=1\n{t.SCHLUESSEL_NAME}={SCHLUESSEL}\n")
+            self.assertEqual(t.schluessel_aus(env), SCHLUESSEL)
+            env.write_text(f"{t.SCHLUESSEL_NAME}=kurz\n")
+            self.assertIsNone(t.schluessel_aus(env))
+        self.assertEqual(t.weiterreichen("GET", "/api/training", None, None, "jan")[0], 503)
 
 
 class MacModusUnveraendert(unittest.TestCase):

@@ -13,7 +13,7 @@ StartLimitBurst=5
 [Service]
 Type=simple
 WorkingDirectory=/home/agent/agenten/fehlstellenscan
-ExecStart=/home/agent/agenten/fehlstellenscan/.venv/bin/python aufnahme/server.py --server --port 8796 --python /home/agent/agenten/fehlstellenscan/.venv/bin/python /home/agent/agenten/fehlstellenscan/data/neurolign/aufnahmen
+ExecStart=/home/agent/agenten/fehlstellenscan/.venv/bin/python aufnahme/server.py --server --port 8796 --mac-port 8797 --env /home/agent/agenten/fehlstellenscan/.env --python /home/agent/agenten/fehlstellenscan/.venv/bin/python /home/agent/agenten/fehlstellenscan/data/neurolign/aufnahmen
 Restart=on-failure
 RestartSec=10
 # Ein 48-MP-Foto belegt beim Zuschneiden um 150 MB, Zuschnitte laufen nacheinander

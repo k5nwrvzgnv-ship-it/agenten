@@ -66,15 +66,34 @@ Am besten einzeln per Signal oder persönlich, nicht in die Projektgruppe (dort 
   meist JPEG; sonst Einstellungen > Kamera > Formate > Maximale Kompatibilität). Höchstens 40 MB je Foto.
 - **Labeln:** wie auf dem Mac. Jedes Label trägt den Namen. Speichert jemand ein Foto, das ein anderer inzwischen
   gespeichert hat, kommt ein Hinweis statt stillem Überschreiben.
-- Alles wie du (vollwertige Kollegen, 26.11.): auch Fotos verwerfen und Maße ändern. Training, Aufteilung und
-  Fotobox gibt es auf dem Server für niemanden, die bleiben auf dem Mac.
+- Alles wie du (vollwertige Kollegen, 26.11.): auch Fotos verwerfen, Maße ändern, Aufteilung und Training starten
+  (gerechnet auf deinem Mac, siehe unten). Die Fotobox gibt es nur auf dem Mac.
 
 ## Mac: Abgleich
 
 - Nach einer Fotobox-Sitzung: `bash ~/fehlstellenscan/mac/neurolign_abgleich.sh hoch` schickt neue Balken auf den
   Server. Balken, an denen auf dem Server schon gelabelt wird, und fremde Balken mit gleicher ID lässt es aus.
-- Vor dem Training: `bash ~/fehlstellenscan/mac/neurolign_abgleich.sh runter` holt alle Balken mit Labels auf den Mac.
-  Labels vom Server ersetzen die auf dem Mac. Ab jetzt nur noch auf neurolign.meldro.de labeln.
+- `bash ~/fehlstellenscan/mac/neurolign_abgleich.sh runter` holt alle Balken mit Labels auf den Mac. Labels vom
+  Server ersetzen die auf dem Mac. Mit dem Dienst unten passiert das vor jedem Training von selbst. Ab jetzt nur noch auf neurolign.meldro.de labeln.
 - Skript holen (einmal): `scp agents-user:agenten/fehlstellenscan/mac/neurolign_abgleich.sh ~/fehlstellenscan/mac/`
 - Balken vom Server heißen ab B501, die Fotobox auf dem Mac zählt ab B001. So gibt es keine zwei Balken mit
   derselben ID.
+
+## Training vom Server aus (Mac als Dienst)
+
+Training rechnet immer der Mac. Damit es auch auf neurolign.meldro.de startet, läuft Neurolign auf dem Mac als Dienst
+und hält einen Tunnel zum Server offen. Einmal einrichten (Mac-Terminal):
+
+    scp agents-user:agenten/fehlstellenscan/mac/neurolign_einrichten.sh ~/fehlstellenscan/mac/
+    bash ~/fehlstellenscan/mac/neurolign_einrichten.sh
+
+Das Skript holt das Programm vom Server, legt den Tunnel-Schlüssel in `~/fehlstellenscan/.env`, richtet den Dienst
+ein (startet bei der Anmeldung, nach einem Absturz neu) und prüft am Ende, ob der Server den Mac erreicht. Läuft
+Neurolign noch in einem Terminal, vorher dort mit ctrl-c beenden.
+
+- Neurolign auf dem Mac danach nicht mehr von Hand starten, sondern einfach http://localhost:8765 öffnen.
+- Erreichbar nur, wenn der Mac an ist und am Netzteil hängt (dann bleibt er wach). Sonst zeigt die Seite Training
+  ein durchgestrichenes Notebook.
+- Vor jedem Training holt der Mac alle Labels vom Server. Ergebnisse und Modelle bleiben auf dem Mac.
+- Neue Fassung vom Server holen: dasselbe Skript noch einmal. Ausschalten: `bash ~/fehlstellenscan/mac/neurolign_einrichten.sh aus`.
+- Protokoll: `~/Library/Logs/neurolign.log`.
