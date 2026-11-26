@@ -100,8 +100,10 @@ class Servermodus(unittest.TestCase):
         self.assertIn(b"hochladen.js", html)
         st, html = self.ruf("/labeln")
         self.assertNotIn(b"/training", html)
+        self.assertNotIn(b"/galerie", html)
         self.assertIn(b'<a href="/">Hochladen</a>', html)
-        for weg in ("/training", "/api/training", "/live.jpg", "/h/abc/warten"):
+        for weg in ("/training", "/api/training", "/live.jpg", "/h/abc/warten", "/galerie", "/koerper", "/api/galerie",
+                    "/api/koerper"):
             self.assertEqual(self.ruf(weg)[0], 404, weg)
         self.assertEqual(self.ruf("/api/saetze")[1], {"kodytek": 0})
 

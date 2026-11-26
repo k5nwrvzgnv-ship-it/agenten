@@ -66,6 +66,18 @@ def fotos(balken: dict) -> list[dict]:
     return ergebnis
 
 
+def koerper_veraltet(ordner: Path, namen: list[str]) -> bool:
+    """Körper fehlt, ist älter als Maße oder ein Zuschnitt (auch ein noch fehlender) oder hat keine kleinen Bilder."""
+    ziel = ordner / "koerper" / "koerper.json"
+    if not ziel.exists() or not any(ziel.parent.glob("S?_k.jpg")):
+        return True
+    stand = ziel.stat().st_mtime_ns
+    for q in [ordner / "balken.json"] + [ordner / "zuschnitt" / f"{n}.jpg" for n in namen]:
+        if not q.exists() or q.stat().st_mtime_ns > stand:
+            return True
+    return False
+
+
 def vorschlag(teile: dict, ids: list[str]) -> dict:
     """Jeder neue Balken bekommt einen Teil: jeder fünfte (ab dem zweiten) prüft, der Rest trainiert."""
     ergebnis = {i: dict(t) for i, t in teile.items()}
@@ -360,9 +372,8 @@ class Kette:
             self.zuschnitt(n)
         ordner = self.ordner / kennung
         ziel = ordner / "koerper" / "koerper.json"
-        quellen = [ordner / "balken.json"] + [ordner / "zuschnitt" / f"{n}.jpg" for n in namen]
         with self.koerper_schloss:
-            if not ziel.exists() or ziel.stat().st_mtime_ns < max(q.stat().st_mtime_ns for q in quellen):
+            if koerper_veraltet(ordner, namen):
                 try:
                     subprocess.run([str(self.umgebung()), str(HIER / "koerper.py"), str(ordner)], check=True,
                                    capture_output=True, timeout=600)
@@ -393,6 +404,30 @@ class Kette:
             teile[i]["teil"] = t
             schreiben(self.ordner / "teile.json", teile)
             return self.stand()
+
+    def galerie(self) -> list[dict]:
+        """Alle Balken für die Galerie, neueste zuerst: Maße, Teil, Fotos je Seite, Vorschaufoto, Labelstand und,
+        wenn schon gerechnet, die größte Maßabweichung des Körpers (ohne ihn dafür zu rechnen)."""
+        with self.schloss:
+            teile, ergebnis = self.teile(), []
+            for i in reversed(self.ids()):
+                b = self.lesen(i)
+                fs = fotos(b)
+                je_seite = {n: sum(f["seite"] == n for f in fs) for n in ("1", "2", "3", "4")}
+                abw, stand, alt = None, None, False
+                k = self.ordner / i / "koerper" / "koerper.json"
+                if k.exists():
+                    stand = k.stat().st_mtime_ns
+                    alt = koerper_veraltet(self.ordner / i, [f["name"] for f in fs])
+                    werte = [abs(x) for s in json.loads(k.read_text(encoding="utf-8"))["seiten"].values()
+                             for x in s["abweichung_prozent"].values() if x is not None]
+                    abw = max(werte, default=None)
+                ergebnis.append({"id": i, "laenge_mm": b["laenge_mm"], "breite_mm": b["breite_mm"],
+                                 "hoehe_mm": b["hoehe_mm"], "holzart": b.get("holzart", ""), **teile[i],
+                                 "seiten": je_seite, "bild": fs[0]["name"] if fs else None, "fotos": len(fs),
+                                 "fertig": sum(self.fertig(f) for f in fs), "abweichung": abw, "koerper": stand,
+                                 "koerper_alt": alt})
+            return ergebnis
 
     def fertig(self, f: dict) -> bool:
         x = self.label(f)

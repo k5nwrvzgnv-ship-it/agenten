@@ -9,7 +9,7 @@ die obere Bildkante (an B002 an den Zapfen des Bodens geprüft). Die vier Bilder
 abgewickelten Mantel, ohne Spiegeln.
 
 Nur numpy und Pillow, läuft in der Trainings-.venv am Mac und in der .venv auf dem Server:
-  python koerper.py <Balkenordner>      schreibt <Balkenordner>/koerper/ (S1.jpg bis S4.jpg, koerper.json)
+  python koerper.py <Balkenordner>      schreibt <Balkenordner>/koerper/ (S1.jpg bis S4.jpg, klein S1_k.jpg, koerper.json)
 """
 
 import json
@@ -23,6 +23,7 @@ from PIL import Image
 SUCHE_PX = 1200          # lange Bildseite für die Kantensuche
 ZIEL_PX_JE_MM = 4.0      # Auflösung der fertigen Seitenbilder
 MAX_BREITE_PX = 8000     # längs höchstens so viele Pixel (lange Balken bekommen weniger px/mm)
+KLEIN_PX = 480           # Breite der kleinen Seitenbilder für die Galerie
 RAND = 0.01              # Fläche gilt als am Bildrand abgeschnitten, wenn sie näher als 1 % am Rand liegt
 
 
@@ -205,6 +206,9 @@ def koerper_bauen(ordner: Path) -> dict:
         vorlaeufig = ziel / f"S{nr}.tmp"
         bild.save(vorlaeufig, "JPEG", quality=90)
         vorlaeufig.replace(ziel / f"S{nr}.jpg")
+        klein = bild.resize((KLEIN_PX, max(24, round(bild.height * KLEIN_PX / bild.width))), Image.Resampling.LANCZOS)
+        klein.save(vorlaeufig, "JPEG", quality=85)
+        vorlaeufig.replace(ziel / f"S{nr}_k.jpg")
         bericht["soll_mm"] = {"laenge": balken["laenge_mm"], "flaeche": flaeche}
         bericht["abweichung_prozent"] = {"laenge": abweichung(bericht["laenge_mm"], balken["laenge_mm"]),
                                          "flaeche": abweichung(bericht["flaeche_mm"], flaeche)}

@@ -198,11 +198,45 @@ class TestWeg(unittest.TestCase):
         status, k1 = self.ruf(f"/api/koerper?id={b['id']}")
         self.assertEqual(status, 200, k1)
         self.assertEqual(list(k1["seiten"]), ["1"])
+        self.assertEqual(self.ruf(f"/koerper/{b['id']}/S1_k.jpg")[0], 200)
         status, roh = self.ruf(f"/koerper/{b['id']}/S1.jpg")
         self.assertEqual((status, roh[:3]), (200, b"\xff\xd8\xff"))
         self.assertEqual(self.ruf(f"/api/koerper?id={b['id']}")[1]["stand"], k1["stand"])   # nicht neu gerechnet
         self.assertEqual(self.ruf("/api/koerper?id=B999")[0], 400)
         self.assertEqual(self.ruf(f"/koerper/{b['id']}/S2.jpg")[0], 404)
+
+    def test_galerie_und_zuordnen(self):
+        alt, _ = self.balken(("1", "2"))
+        neu = self.werk.balken_speichern({"laenge_mm": 4000.0, "breite_mm": 100.0, "hoehe_mm": 120.0, "holzart": "Eiche"})["id"]
+        for weg in ("/galerie", "/galerie.js", "/galerie.css"):
+            self.assertEqual(self.ruf(weg)[0], 200, weg)
+        g = self.ruf("/api/galerie")[1]
+        self.assertEqual([b["id"] for b in g], [neu, alt])                     # neueste zuerst
+        self.assertEqual((g[1]["seiten"], g[1]["fotos"], g[1]["koerper"]), ({"1": 1, "2": 1, "3": 0, "4": 0}, 2, None))
+        self.assertEqual((g[0]["bild"], g[0]["holzart"], g[0]["teil"]), (None, "Eiche", "val"))      # zweiter Balken: Prüfung (vorschlag)
+        self.assertEqual(self.ruf("/api/teil", {"balken": alt, "teil": "test"})[0], 200)
+        self.assertEqual(self.ruf("/api/galerie")[1][1]["teil"], "test")
+        self.assertEqual(self.ruf("/api/teil", {"balken": alt, "teil": "irgendwo"})[0], 400)
+
+    def test_koerper_veraltet(self):
+        with tempfile.TemporaryDirectory() as t:
+            o = Path(t)
+            (o / "zuschnitt").mkdir()
+            (o / "balken.json").write_text("{}")
+            (o / "zuschnitt" / "a.jpg").write_text("")
+            self.assertTrue(k.koerper_veraltet(o, ["a"]))                     # noch kein Körper
+            (o / "koerper").mkdir()
+            (o / "koerper" / "koerper.json").write_text("{}")
+            self.assertTrue(k.koerper_veraltet(o, ["a"]))                     # keine kleinen Bilder
+            (o / "koerper" / "S1_k.jpg").write_text("")
+            jetzt = time.time()
+            os.utime(o / "koerper" / "koerper.json", (jetzt, jetzt))
+            for q in (o / "balken.json", o / "zuschnitt" / "a.jpg"):
+                os.utime(q, (jetzt - 10, jetzt - 10))
+            self.assertFalse(k.koerper_veraltet(o, ["a"]))
+            self.assertTrue(k.koerper_veraltet(o, ["a", "b"]))                # neues Foto, Zuschnitt fehlt noch
+            os.utime(o / "balken.json", (jetzt + 10, jetzt + 10))
+            self.assertTrue(k.koerper_veraltet(o, ["a"]))                     # Maße geändert
 
     def test_durchlauf_vier_seiten_bis_training(self):
         self.werk.einst["zuschnitt"] = [0.0, 0.0, 0.5, 1.0]

@@ -534,7 +534,17 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   B002 (Kopie in data/proben/B002): S1 +1,6 %, S2 ±0,0, S3 +3,3 längs / +3,7 quer (gleichmäßig, Fläche lag etwa
   15 mm näher an der Linse als eingetragen), S4 −0,7 %. Geprüft auf dem Server (Playwright, axe), nicht auf dem Mac.
   Nicht geprüft: echter Balken mit mehreren Fotos je Seite (nur künstlich), Feinabgleich am Bildinhalt fehlt (Lage
-  längs nur aus mitte_mm). Galerie und Ablauf „neuer Balken, alter in die Galerie“ fehlen noch.
+  längs nur aus mitte_mm). Kleine Seitenbilder S1_k.jpg bis S4_k.jpg (480 px breit) für die Galerie.
+- Galerie (Jan 26.11.2026, „gleichzeitig Gruppen fürs Training zuordnen, per Drag and Drop“): /galerie (nur Mac-Modus,
+  in der Navigation nach Aufnahme), Kette.galerie, /api/galerie. Drei Spalten Training / Prüfung / Nur Test (teile.json,
+  wie die Trainingsseite), neueste Balken zuerst. Ziehen oder Pfeil links/rechts auf der Karte setzt den Teil
+  (/api/teil), gesperrte Balken (schon trainiert) tragen ein Schloss und lassen sich nicht ziehen. Karte: abgewickelter
+  Mantel (unten Seite 1, darüber 2 bis 4, je Streifen auf gleiche Höhe gestreckt), ohne Körper ein Zuschnitt, ID,
+  Maße in cm, vier Striche = Seiten mit Fotos, gelber Punkt = Maßabweichung über 2 %, grüne Linie = Labelstand.
+  Klick öffnet /koerper. Die Seite rechnet fehlende oder veraltete Körper selbst nach (kette.koerper_veraltet: fehlt,
+  keine kleinen Bilder, balken.json oder ein Zuschnitt neuer oder fehlend), einer nach dem anderen, neueste zuerst.
+  Geprüft auf dem Server mit 13 Kopien von B002 (Playwright: Ziehen, Sperre, Tasten, Neuladen; axe), nicht auf dem Mac.
+  Neuer Balken bleibt wie bisher: „+“ in der Aufnahme, der alte steht danach in der Galerie.
 
 ## Neurolign-Server (ab 26.11.2026)
 - Jans Wahl 26.11.2026 nachts: Neurolign läuft zusätzlich auf dem Server, immer an, für Henri und Felix; Server ist

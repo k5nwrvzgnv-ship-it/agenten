@@ -556,13 +556,13 @@ class Anfrage(BaseHTTPRequestHandler):
         datei = None
         if weg == "/":
             datei = SEITE / ("hochladen.html" if self.server.modus_server else "index.html")
-        elif weg == "/labeln" or (weg in ("/training", "/koerper") and not self.server.modus_server):
+        elif weg == "/labeln" or (weg in ("/training", "/koerper", "/galerie") and not self.server.modus_server):
             datei = SEITE / f"{weg[1:]}.html"
         elif re.fullmatch(r"/[a-z-]+\.(css|js|woff2)", weg):
             datei = SEITE / weg[1:]
         elif re.fullmatch(r"/foto/B\d{3,6}/[A-Za-z0-9_-]+\.(jpg|png|heic)", weg):
             datei = werk.ordner / weg[6:]
-        elif kz := re.fullmatch(r"/koerper/(B\d{3,6})/(S[1-4]\.jpg)", weg):
+        elif kz := re.fullmatch(r"/koerper/(B\d{3,6})/(S[1-4](?:_k)?\.jpg)", weg):
             datei = werk.ordner / kz[1] / "koerper" / kz[2]
         if datei is None or not datei.is_file():
             return self.antwort(404, {"fehler": "Gibt es nicht."})
@@ -627,6 +627,8 @@ class Anfrage(BaseHTTPRequestHandler):
             return self.antwort(200, {"kodytek": len(werk.kette.kodytek())})
         if weg == "/api/training":
             return self.antwort(200, werk.kette.stand())
+        if weg == "/api/galerie":
+            return self.antwort(200, werk.kette.galerie())
         if weg == "/api/koerper":
             try:
                 return self.antwort(200, werk.kette.koerper(parse_qs(urlsplit(self.path).query).get("id", [""])[0]))
@@ -710,8 +712,8 @@ class Anfrage(BaseHTTPRequestHandler):
 
 
 def seite_fuer_server(html: bytes) -> bytes:
-    """Navigation im Servermodus: Aufnahme heißt Hochladen, Training gibt es nicht."""
-    return (html.replace(b'<a href="/training">Training</a>', b"")
+    """Navigation im Servermodus: Aufnahme heißt Hochladen, Training und Galerie gibt es nicht."""
+    return (html.replace(b'<a href="/training">Training</a>', b"").replace(b'<a href="/galerie">Galerie</a>', b"")
             .replace(b'<a href="/training" aria-current="page">Training</a>', b"")
             .replace(b'<a href="/">Aufnahme</a>', b'<a href="/">Hochladen</a>'))
 
