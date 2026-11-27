@@ -71,6 +71,18 @@ class TestLogik(unittest.TestCase):
             with self.assertRaises(ValueError):
                 l.zuschnitt_pruefen(schlecht)
 
+    def test_richtung_kurz(self):
+        lang = l.plan(BALKEN, "1", 600, 0.7)
+        kurz = l.plan(BALKEN, "1", 600, 0.7, None, None, "kurz")
+        self.assertEqual((kurz["laengs_mm"], kurz["quer_mm"]), (lang["laengs_mm"], lang["quer_mm"]))
+        self.assertAlmostEqual(kurz["feld_mm"], lang["quer_mm"])
+        self.assertAlmostEqual(lang["feld_mm"], lang["laengs_mm"])
+        self.assertGreater(len(kurz["mitten_mm"]), len(lang["mitten_mm"]))
+        self.assertLess(kurz["schritt_mm"], kurz["feld_mm"])
+        self.assertAlmostEqual(l.neu_skalieren(kurz, 0.75)["feld_mm"], l.plan(BALKEN, "1", 600, 0.75, None, None, "kurz")["feld_mm"])
+        with self.assertRaises(ValueError):
+            l.richtung_pruefen("quer")
+
     def test_zuschnitt_aus_mass(self):
         # Mitte bleibt, Größe folgt den cm; voll 800 mm längs, also 600 mm quer
         z = l.zuschnitt_aus_mass([0.1, 0.0, 0.8, 1.0], 800, 400, 300)
@@ -280,6 +292,16 @@ class TestServer(unittest.TestCase):
         self.assertEqual(status, 200, antwort)
         self.assertTrue(antwort["einstellungen"]["faktor_gemessen"])
         self.assertAlmostEqual(antwort["balken"][0]["seiten"]["2"]["plan"]["voll_mm"] * 0.5, 300)
+
+    def test_richtung_einstellen(self):
+        b = self.balken()
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        status, antwort = self.ruf("/api/einstellungen", {"richtung": "kurz"})
+        self.assertEqual(status, 200, antwort)
+        seiten = antwort["balken"][0]["seiten"]
+        self.assertEqual(seiten["2"]["plan"]["richtung"], "kurz")
+        self.assertNotEqual(seiten["1"]["plan"].get("richtung", "lang"), "kurz")   # Seite mit Foto bleibt
+        self.assertEqual(self.ruf("/api/einstellungen", {"richtung": "x"})[0], 400)
 
     def test_bildfeld_von_hand(self):
         b = self.balken()

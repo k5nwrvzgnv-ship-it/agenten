@@ -416,7 +416,16 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Bildwinkel Start 24 mm, „Messen“ (Als Maßstab) setzt ihn neu und rechnet die schon gemachten Fotos dieses
   Balkens mit um (Lage der Abschnitte bleibt, nur mm ändern sich; andere Balken nicht). Vorschub automatisch (25 % Überlappung, höchstens 50 cm).
   Mit dem ersten Foto einer Seite ist deren Plan eingefroren, neue Messwerte gelten nur für Seiten ohne Fotos.
-- Annahme: lange Bildseite längs zum Balken. px/mm stehen je Foto nur auf dem Mac (sips).
+- Richtung (Jan 27.11.2026 „selber einstellen“): Einrichtung (···) Balken waagerecht (Vorgabe) oder senkrecht im Bild,
+  gilt für Seiten ohne Fotos. Plan: laengs_mm/quer_mm bleiben lange/kurze Bildseite, feld_mm ist das Bildfeld in
+  Schieberichtung (Vorschub, Abschnitte, Lücke). Offen: Körper und Streifenbild nehmen weiter die lange Seite als
+  Längsrichtung an, für senkrecht noch nicht angepasst. px/mm stehen je Foto nur auf dem Mac (sips).
+- In der Halle 27.11.2026 (Jan, nur auf dem Server im Browser geprüft, am Mac nicht): Zuschnitt von Hand (Rahmen bleibt
+  beim Öffnen, Kanten/Ecken ziehen, innen verschieben, Maß in cm), Bildfeld anklickbar wie L × B × H (Seiten ohne
+  Fotos, Mitte bleibt). Zollstock rastet bis 6 Grad ein (Alt frei), feiner, neu setzbar, echtes Maß auch im Livebild
+  (Server nimmt den Maßstab jetzt auch ohne Foto; Annahme: Livebild zeigt denselben Ausschnitt wie das Foto).
+  Vorschub (V): zwei Linien quer zur Schieberichtung im Abstand des Vorschubs zum gemeinten Abschnitt.
+  Offen: Maßstab rückgängig gibt es nicht (Jan fragte nach „zurücksetzbar“, gebaut ist Zollstock neu setzen).
 - Geprüft auf dem Server mit simuliertem iPhone im Browser. Offen, nur am Gerät klärbar: Kurzbefehl, Auflösung und
   Linse von „Foto aufnehmen“ (Makro?), Schärfe, sips mit HEIC, Dauer bis zum Bild. Keine feste Belichtung, kein
   Live-Bild. Rückfall: Foto per AirDrop, dann ··· „Foto vom Mac“.
@@ -710,7 +719,8 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   runter); scheitert das, startet kein Training. Ergebnis und Läufe bleiben auf dem Mac.
   Geprüft: Tests mit Mac, Eingang und Server in einem Prozess; Seite gerendert mit und ohne Mac, axe ohne Befunde.
   Nicht geprüft: echter Mac, launchd, ob sshd auf dem Server -R erlaubt (zeigt neurolign_einrichten.sh am Ende),
-  ssh unter launchd ohne Passwortabfrage. Offen bei Jan: neurolign_einrichten.sh auf dem Mac einmal ausführen.
+  ssh unter launchd ohne Passwortabfrage. neurolign_einrichten.sh lief am 27.11.2026 auf dem Mac durch (Tunnel steht);
+  Neurolign läuft dort jetzt als Dienst, neuer Code: rsync aufnahme/ (ohne app/), dann launchctl kickstart -k gui/$(id -u)/de.meldro.neurolign.
 - Hochladen: Seite auf dem Balkenbild wählen, Fotos einzeln hoch (je höchstens 40 MB, Caddy 50 MB). Hochgeladene Seiten
   haben einen freien Plan (frei, ohne Abschnitte, ohne Zuschnitt, Maße in Pixeln); Fotobox-Seiten nimmt der Server
   nicht an, der Mac zeigt freie Seiten ohne Plan und fotografiert dort nicht. JPEG und PNG; HEIC abgelehnt (kein Paket

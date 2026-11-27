@@ -53,7 +53,7 @@ function mal(){
  bildMalen(s);handyMalen();appMalen();$$('#abschnitte canvas[data-src]').forEach(c=>hole(c.dataset.src,i=>{if(i)zeichne(c,i,p.zuschnitt,300)}))}
 function naechste(){for(let i=1;i<4;i++){const k=String((+seite-1+i)%4+1);if(!fertig(B().seiten[k])&&B().seiten[k].plan)return k}return null}
 function lageMalen(b,p){if(!p){$('#lage').innerHTML='';return}
- const H=Math.max(p.kamera_rolle_mm,100),k=125/H,h=p.hoch_mm*k,w=p.flaeche_mm*k,y0=150,q=p.quer_mm*k/2;
+ const H=Math.max(p.kamera_rolle_mm,100),k=125/H,h=p.hoch_mm*k,w=p.flaeche_mm*k,y0=150,q=(p.richtung==='kurz'?p.laengs_mm:p.quer_mm)*k/2;
  $('#lage').innerHTML=`<svg viewBox="0 0 288 170" role="img" aria-label="Seite ${seite} oben, Abstand zur Kamera ${cm(p.abstand_mm)} cm"><path d="M144 25L${144-q} ${y0-h}H${144+q}Z" fill="#fff" opacity=".09"/><rect x="132" y="13" width="24" height="10" rx="2" fill="#a3a3a9"/><circle cx="144" cy="24" r="3" fill="#fff"/><rect x="${144-w/2}" y="${y0-h}" width="${w}" height="${h}" fill="#8a6543"/><path d="M${144-w/2} ${y0-h}h${w}" stroke="#fff" stroke-width="3"/><path d="M40 ${y0+4}H248" stroke="#77777d" stroke-width="3"/><path d="M262 25V${y0-h}M257 25h10M257 ${y0-h}h10" stroke="#a3a3a9"/><text x="256" y="${(25+y0-h)/2+4}" text-anchor="end">${cm(p.abstand_mm)} cm</text></svg>`}
 let winkel=0,schneide=null;const BILDER=new Map();
 function hole(src,dann){let i=BILDER.get(src);if(!i){if(BILDER.size>60)BILDER.delete(BILDER.keys().next().value);i=new Image();i.src=src;BILDER.set(src,i)}if(i.complete){dann(i.naturalWidth?i:null);return}i.addEventListener('load',()=>dann(i),{once:true});i.addEventListener('error',()=>dann(null),{once:true})}
@@ -103,8 +103,15 @@ function messMalen(){$('#bild svg')?.remove();zollLeiste();const c=$('#bild canv
   if(mess.m&&mess.p.length<2){const x=r.x+mess.m[0]*r.b,y=r.y+mess.m[1]*r.b;in_+=`<path d="M${x} ${r.y}v${r.h}M${r.x} ${y}h${r.b}" stroke="#00e0ea" stroke-opacity=".7" stroke-dasharray="4 4"/>`}}
  else if(schneide&&schneide.r){const[x,y,b,h]=schneide.r;in_=`<path fill="#000b" fill-rule="evenodd" d="M0 0h9999v9999H0zM${r.x+x*r.b} ${r.y+y*r.h}h${b*r.b}v${h*r.h}h${-b*r.b}z"/><rect x="${r.x+x*r.b}" y="${r.y+y*r.h}" width="${b*r.b}" height="${h*r.h}" fill="none" stroke="#00e0ea" stroke-width="2"/>`}
  $('#bild').insertAdjacentHTML('beforeend',`<svg>${raster(r,!aus)}${in_}${mess||schneide?'':vorSvg(r)+zollSvg(r)}</svg>`)}
-function vorSvg(r){const p=SE()&&SE().plan,R=rasterWeite();if(!vorAn||!p||!p.schritt_mm||!R||p.mitten_mm.length<2)return'';const s=p.schritt_mm/R.mm*r.b,mx=r.x+r.b/2,y=r.y,h=r.h;if(s>=r.b)return'';
- return `<g fill="none"><path d="M${mx-s/2} ${y}v${h}M${mx+s/2} ${y}v${h}" stroke="#000" stroke-opacity=".5" stroke-width="3"/><path d="M${mx-s/2} ${y}v${h}M${mx+s/2} ${y}v${h}" stroke="#ff2bd6" stroke-width="1.25" stroke-dasharray="10 5"/><path d="M${mx-s/2+4} ${y+22}H${mx+s/2-4}M${mx-s/2+10} ${y+16}l-6 6l6 6M${mx+s/2-10} ${y+16}l6 6l-6 6" stroke="#ff2bd6" stroke-width="1.25"/></g><text x="${mx}" y="${y+12}" class="zl">${cm(p.schritt_mm)} cm</text>`}
+/* Vorschub (Jan 27.11.2026): zwei Linien quer zur Schieberichtung im Abstand des Vorschubs zum gemeinten Abschnitt
+   (im Livebild vom letzten zum nächsten, auf einem Foto von diesem zum nächsten; der letzte ist meist kürzer).
+   Schieberichtung aus dem Plan (Balken waagerecht oder senkrecht im Bild, Einrichtung). */
+function vorweg(p){const m=p.mitten_mm,i=zeigt!==null&&SE().fotos[zeigt]?zeigt+1:jetzt;if(m.length<2)return 0;const k=Math.min(Math.max(i,1),m.length-1);return m[k]-m[k-1]}
+function vorSvg(r){const p=SE()&&SE().plan,R=rasterWeite();if(!vorAn||!p||!R||!p.mitten_mm)return'';const d=vorweg(p),s=d/R.mm*r.b,senk=p.richtung==='kurz',mx=r.x+r.b/2,my=r.y+r.h/2;if(!d||s>=(senk?r.h:r.b))return'';
+ const l=senk?`M${r.x} ${my-s/2}h${r.b}M${r.x} ${my+s/2}h${r.b}`:`M${mx-s/2} ${r.y}v${r.h}M${mx+s/2} ${r.y}v${r.h}`,
+  pf=senk?`M${r.x+30} ${my-s/2+4}V${my+s/2-4}M${r.x+24} ${my-s/2+10}l6 -6l6 6M${r.x+24} ${my+s/2-10}l6 6l6 -6`:`M${mx-s/2+4} ${r.y+30}H${mx+s/2-4}M${mx-s/2+10} ${r.y+24}l-6 6l6 6M${mx+s/2-10} ${r.y+24}l6 6l-6 6`,
+  tx=senk?`x="${r.x+40}" y="${my}" style="text-anchor:start"`:`x="${mx}" y="${r.y+16}"`;
+ return `<g fill="none"><path d="${l}" stroke="#000" stroke-opacity=".5" stroke-width="3"/><path d="${l}" stroke="#ff2bd6" stroke-width="1.25" stroke-dasharray="10 5"/><path d="${pf}" stroke="#ff2bd6" stroke-width="1.25"/></g><text ${tx} class="zl">${cm(d)} cm</text>`}
 const punkt=e=>{const k=$('#bild').getBoundingClientRect(),r=rahmen();return[Math.min(1,Math.max(0,(e.clientX-k.left-r.x)/r.b)),Math.min(1,Math.max(0,(e.clientY-k.top-r.y)/r.h))]};
 $('#bild').onclick=e=>{if(!mess||mess.p.length>1||!$('#bild canvas'))return;mess.p.push(messPunkt(e));mess.m=null;mal()};
 function griff(e){const z=schneide&&schneide.r;if(!z)return null;const r=rahmen(),k=$('#bild').getBoundingClientRect(),px=e.clientX-k.left,py=e.clientY-k.top,X1=r.x+z[0]*r.b,X2=X1+z[2]*r.b,Y1=r.y+z[1]*r.h,Y2=Y1+z[3]*r.h,f=matchMedia('(pointer:coarse)').matches?24:12;
@@ -183,11 +190,12 @@ async function balkenZurueck(){if(laeuft||!bweg)return;const id=bweg;try{const b
 $('#bzurueck').onclick=balkenZurueck;
 function handyMalen(){const h=$('#handy');h.className=S.handy?'da':'';const n=S.handy?'iPhone verbunden':'iPhone nicht verbunden';h.title=n;h.setAttribute('aria-label',n)}
 function dlg(){const a=S.adressen,m=S.einstellungen;$('#abstand').kr.value=cm(m.kamera_rolle_mm);$('#abstand .fehler').textContent='';
- $('#winkel').textContent=m.faktor_gemessen?'Gemessen':'Angenommen (24 mm)';
+ $$('#richtung button').forEach(k=>k.setAttribute('aria-pressed',(m.richtung||'lang')===k.dataset.r));$('#winkel').textContent=m.faktor_gemessen?'Gemessen':'Angenommen (24 mm)';
  $('#appadr').innerHTML=a.map(x=>`<code>${esc(x)}</code>`).join(a.length>1?'<span class="leise">geht die erste nicht:</span>':'');const u=t=>a.map(x=>`<code>${esc(x+t)}</code>`).join(a.length>1?'<span class="leise">geht die erste nicht:</span>':'');
 
  if(!$('#dlg').open)$('#dlg').showModal()}
 $('#einst').onclick=$('#handy').onclick=dlg;$('.zu').onclick=()=>$('#dlg').close();$('#dlg').onclose=()=>document.activeElement.blur();
+$('#richtung').onclick=async e=>{const k=e.target.closest('button');if(!k)return;try{S=await ruf('/api/einstellungen',{richtung:k.dataset.r});dlg();$('#abstand .fehler').textContent=bid&&fotos(SE())?'Gilt für Seiten ohne Fotos. Diese Seite hat schon welche.':'';if(bid&&!formular)seiteAuf()}catch(x){$('#abstand .fehler').textContent=x.message}};
 $('#abstand').onsubmit=async e=>{e.preventDefault();try{S=await ruf('/api/einstellungen',{kamera_rolle_mm:lies(e.target.kr.value)});$('#dlg').close();if(bid&&!formular)seiteAuf()}catch(x){$('#abstand .fehler').textContent=x.message}};
 $('#datei').onchange=async e=>{const d=e.target.files[0];e.target.value='';if(!d||!bid||formular)return;$('#dlg').close();if(jetzt<0){$('#afehler').textContent='Erst einen Abschnitt wählen.';return}await nimm(()=>ruf(`/api/datei?balken=${bid}&seite=${seite}&nr=${jetzt}`,d))};
 async function puls(){if(!laeuft)try{const n=await ruf('/api/stand');if(!laeuft){const vor=!!S.app;S.handy=n.handy;S.app=n.app;if(vor!==!!S.app&&!formular&&bid&&!(zeigt!==null&&SE().fotos[zeigt]))mal();appMalen();S.adressen=n.adressen;handyMalen();if(n.hinweis&&n.hinweis!==S.hinweis)$('#afehler').textContent=n.hinweis;S.hinweis=n.hinweis}}catch(e){S.handy=false;handyMalen();$('#handy').title='Programm beendet';$('#afehler').textContent='Das Programm auf dem Mac antwortet nicht.'}setTimeout(puls,1500)}

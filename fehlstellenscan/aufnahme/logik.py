@@ -47,9 +47,20 @@ def mitten(laenge: float, laengs: float, schritt: float) -> list[float]:
     return ergebnis
 
 
+RICHTUNGEN = ("lang", "kurz")   # Balken läuft im Bild längs zur langen (Vorgabe) oder zur kurzen Bildseite
+
+
+def richtung_pruefen(wert) -> str:
+    if wert not in RICHTUNGEN:
+        raise ValueError("Richtung nicht lesbar.")
+    return wert
+
+
 def plan(balken: dict, seite: str, kamera_rolle: float, faktor: float, schritt: float | None = None,
-         zuschnitt: list[float] | None = None) -> dict:
-    """Alles, was für eine Seite vor dem ersten Foto feststeht. Wirft ValueError, wenn es nicht geht."""
+         zuschnitt: list[float] | None = None, richtung: str = "lang") -> dict:
+    """Alles, was für eine Seite vor dem ersten Foto feststeht. Wirft ValueError, wenn es nicht geht.
+    laengs_mm und quer_mm sind lange und kurze Bildseite (im Zuschnitt); feld_mm ist das Bildfeld in Schieberichtung
+    (je nach richtung eine davon), danach richten sich Vorschub und Abschnitte."""
     info = seite_info(balken["breite_mm"], balken["hoehe_mm"], seite)
     abstand = kamera_rolle - info["hoch_mm"]
     if abstand < 50:
@@ -57,10 +68,16 @@ def plan(balken: dict, seite: str, kamera_rolle: float, faktor: float, schritt: 
     voll, hoch = bildfeld(abstand, faktor)
     _, _, anteil_b, anteil_h = zuschnitt or GANZ
     laengs, quer = voll * anteil_b, hoch * anteil_h
-    schritt = schritt or schritt_vorschlag(laengs)
+    feld, breit = (laengs, quer) if richtung == "lang" else (quer, laengs)
+    schritt = schritt or schritt_vorschlag(feld)
     return {**info, "abstand_mm": abstand, "laengs_mm": laengs, "quer_mm": quer, "voll_mm": voll, "zuschnitt": zuschnitt, "schritt_mm": schritt,
-            "kamera_rolle_mm": kamera_rolle, "faktor": faktor, "luecke": schritt >= laengs,
-            "zu_breit": info["flaeche_mm"] >= quer, "mitten_mm": mitten(balken["laenge_mm"], laengs, schritt)}
+            "kamera_rolle_mm": kamera_rolle, "faktor": faktor, "richtung": richtung, "feld_mm": feld, "luecke": schritt >= feld,
+            "zu_breit": info["flaeche_mm"] >= breit, "mitten_mm": mitten(balken["laenge_mm"], feld, schritt)}
+
+
+def _felder(p: dict, laengs: float, quer: float) -> tuple[float, float]:
+    """(in Schieberichtung, quer dazu) für einen Plan; alte Pläne ohne richtung liefen längs."""
+    return (laengs, quer) if p.get("richtung", "lang") == "lang" else (quer, laengs)
 
 
 def neu_skalieren(p: dict, faktor: float) -> dict:
@@ -70,7 +87,8 @@ def neu_skalieren(p: dict, faktor: float) -> dict:
     neu = {**p, "faktor": faktor, "laengs_mm": p["laengs_mm"] * k, "quer_mm": p["quer_mm"] * k}
     if p.get("voll_mm"):
         neu["voll_mm"] = p["voll_mm"] * k
-    neu["luecke"], neu["zu_breit"] = p["schritt_mm"] >= neu["laengs_mm"], p["flaeche_mm"] >= neu["quer_mm"]
+    feld, breit = _felder(p, neu["laengs_mm"], neu["quer_mm"])
+    neu["feld_mm"], neu["luecke"], neu["zu_breit"] = feld, p["schritt_mm"] >= feld, p["flaeche_mm"] >= breit
     return neu
 
 
@@ -87,13 +105,14 @@ def plan_anpassen(p: dict, balken: dict, seite: str, mit_foto: list[int]) -> dic
     voll, hoch = bildfeld(abstand, p["faktor"])
     _, _, anteil_b, anteil_h = p.get("zuschnitt") or GANZ
     laengs, quer = voll * anteil_b, hoch * anteil_h
+    feld, breit = _felder(p, laengs, quer)
     schritt = p["schritt_mm"]
     m = list(p["mitten_mm"][:max(mit_foto) + 1])
-    letzte = balken["laenge_mm"] + RAND - laengs / 2
+    letzte = balken["laenge_mm"] + RAND - feld / 2
     while m[-1] < letzte - 0.5:
         m.append(min(m[-1] + schritt, letzte))
-    return {**p, **info, "abstand_mm": abstand, "laengs_mm": laengs, "quer_mm": quer, "voll_mm": voll,
-            "luecke": schritt >= laengs, "zu_breit": info["flaeche_mm"] >= quer, "mitten_mm": m}
+    return {**p, **info, "abstand_mm": abstand, "laengs_mm": laengs, "quer_mm": quer, "voll_mm": voll, "feld_mm": feld,
+            "luecke": schritt >= feld, "zu_breit": info["flaeche_mm"] >= breit, "mitten_mm": m}
 
 
 def name_pruefen(wert) -> str:

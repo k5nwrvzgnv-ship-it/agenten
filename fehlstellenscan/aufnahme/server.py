@@ -145,7 +145,7 @@ class Werk:
         if s["fotos"]:
             return s["plan"]
         return l.plan(b, seite, self.einst["kamera_rolle_mm"], self.einst["faktor"], s["schritt_mm"],
-                      self.einst["zuschnitt"])
+                      self.einst["zuschnitt"], self.einst.get("richtung", "lang"))
 
     def mit_plan(self, b: dict) -> dict:
         for seite in l.SEITEN:
@@ -258,9 +258,13 @@ class Werk:
             return self.mit_plan(b)
 
     def einstellen(self, daten: dict) -> dict:
+        """Abstand Linse bis Rolle oder (nur mit richtung) die Schieberichtung im Bild, gilt für Seiten ohne Fotos."""
         with self.schloss:
-            self.einst["kamera_rolle_mm"] = l.zahl(daten, "kamera_rolle_mm", 150, 2000, "Abstand")
-            self.einst["abstand_gemessen"] = True
+            if "richtung" in daten:
+                self.einst["richtung"] = l.richtung_pruefen(daten["richtung"])
+            else:
+                self.einst["kamera_rolle_mm"] = l.zahl(daten, "kamera_rolle_mm", 150, 2000, "Abstand")
+                self.einst["abstand_gemessen"] = True
             self.sichern()
         return self.stand()
 
