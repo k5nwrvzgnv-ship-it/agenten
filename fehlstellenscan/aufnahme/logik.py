@@ -118,6 +118,22 @@ def zuschnitt_pruefen(werte) -> list[float] | None:
     return [round(w, 4) for w in (x, y, b, h)]
 
 
+def zuschnitt_aus_mass(zuschnitt: list[float] | None, voll_mm: float, laengs_mm, quer_mm) -> list[float] | None:
+    """Zuschnitt zu einem von Hand eingetippten Bildfeld (längs × quer in mm auf der Balkenfläche einer Seite mit
+    vollem Bildfeld voll_mm). Die Mitte des bisherigen Ausschnitts bleibt, soweit das Bild reicht; am Rand rückt er
+    nach innen. Größer als das Bild wird das ganze Bild in dieser Richtung."""
+    for w, name in ((laengs_mm, "Längs"), (quer_mm, "Quer")):
+        if isinstance(w, bool) or not isinstance(w, (int, float)) or not 10 <= w <= 5000:
+            raise ValueError(f"{name}: bitte eine Länge in cm eingeben.")
+    x, y, b, h = zuschnitt or GANZ
+    neu_b, neu_h = min(1.0, laengs_mm / voll_mm), min(1.0, quer_mm / (voll_mm * 0.75))
+    mx = min(max(x + b / 2, neu_b / 2), 1 - neu_b / 2)
+    my = min(max(y + h / 2, neu_h / 2), 1 - neu_h / 2)
+    if neu_b == 1 and neu_h == 1:
+        return None
+    return zuschnitt_pruefen([max(0.0, mx - neu_b / 2), max(0.0, my - neu_h / 2), neu_b, neu_h])
+
+
 def px_je_mm(lange_seite_px: int, laengs_mm: float) -> float:
     return lange_seite_px / laengs_mm
 

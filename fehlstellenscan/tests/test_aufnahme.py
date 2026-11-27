@@ -71,6 +71,17 @@ class TestLogik(unittest.TestCase):
             with self.assertRaises(ValueError):
                 l.zuschnitt_pruefen(schlecht)
 
+    def test_zuschnitt_aus_mass(self):
+        # Mitte bleibt, Größe folgt den cm; voll 800 mm längs, also 600 mm quer
+        z = l.zuschnitt_aus_mass([0.1, 0.0, 0.8, 1.0], 800, 400, 300)
+        self.assertEqual(z, [0.25, 0.25, 0.5, 0.5])
+        # am Rand rückt er nach innen, zu groß wird ganz
+        self.assertEqual(l.zuschnitt_aus_mass([0.0, 0.0, 0.2, 0.2], 800, 400, 900), [0.0, 0.0, 0.5, 1.0])
+        self.assertIsNone(l.zuschnitt_aus_mass(None, 800, 900, 900))
+        for schlecht in ((None, 300), ("40", 300), (True, 300), (5, 300), (400, 50)):
+            with self.assertRaises(ValueError):
+                l.zuschnitt_aus_mass(None, 800, *schlecht)
+
     def test_id_kommt_nie_wieder(self):
         self.assertEqual(l.neue_id(7, ["B002"]), ("B008", 8))
         self.assertEqual(l.neue_id(0, ["B011"]), ("B012", 12))
@@ -262,6 +273,24 @@ class TestServer(unittest.TestCase):
         self.assertAlmostEqual(nachher["faktor"], antwort["einstellungen"]["faktor"])
         self.assertAlmostEqual(nachher["voll_mm"] * 0.5, 300)
         self.assertEqual(nachher["mitten_mm"], vorher["mitten_mm"])
+
+    def test_bildfeld_von_hand(self):
+        b = self.balken()
+        voll = self.ruf("/api/stand")[1]["balken"][0]["seiten"]["2"]["plan"]["voll_mm"]
+        status, antwort = self.ruf("/api/zuschnitt", {"balken": b, "seite": "2", "bildfeld_mm": [voll / 2, 200]})
+        self.assertEqual(status, 200, antwort)
+        plan = antwort["balken"][0]["seiten"]["2"]["plan"]
+        self.assertAlmostEqual(plan["laengs_mm"], voll / 2, delta=0.5)
+        self.assertAlmostEqual(plan["quer_mm"], 200, delta=0.5)
+        self.assertAlmostEqual(antwort["einstellungen"]["zuschnitt"][0], 0.25, places=3)
+        # Seite mit Foto: eingefroren, nichts ändert sich
+        self.ruf(f"/api/datei?balken={b}&seite=1&nr=0", JPG)
+        vorher = self.server.werk.einst["zuschnitt"]
+        status, antwort = self.ruf("/api/zuschnitt", {"balken": b, "seite": "1", "bildfeld_mm": [300, 200]})
+        self.assertEqual(status, 400)
+        self.assertIn("ohne Fotos", antwort["fehler"])
+        self.assertEqual(self.server.werk.einst["zuschnitt"], vorher)
+        self.assertEqual(self.ruf("/api/zuschnitt", {"balken": b, "seite": "2", "bildfeld_mm": 300})[0], 400)
 
     def test_loeschen_und_zurueck(self):
         b = self.balken()

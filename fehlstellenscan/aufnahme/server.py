@@ -265,9 +265,20 @@ class Werk:
         return self.stand()
 
     def zuschneiden(self, daten: dict) -> dict:
-        """Gilt für alle Seiten ohne Fotos. Die Originale bleiben ganz, der Ausschnitt steht im Plan der Seite."""
+        """Gilt für alle Seiten ohne Fotos. Die Originale bleiben ganz, der Ausschnitt steht im Plan der Seite.
+        Mit bildfeld_mm [längs, quer] statt eines Rechtecks: Größe von Hand, gerechnet auf der Seite balken/seite."""
         with self.schloss:
-            self.einst["zuschnitt"] = l.zuschnitt_pruefen(daten.get("zuschnitt"))
+            if "bildfeld_mm" in daten:
+                b = self.mit_plan(self.lesen(daten.get("balken")))
+                s = self.seite(b, daten.get("seite"))
+                if s["fotos"] or not s["plan"] or not s["plan"].get("voll_mm"):
+                    raise ValueError("Das Bildfeld lässt sich nur auf einer Seite ohne Fotos ändern.")
+                werte = daten["bildfeld_mm"]
+                if not isinstance(werte, list) or len(werte) != 2:
+                    raise ValueError("Bildfeld nicht lesbar.")
+                self.einst["zuschnitt"] = l.zuschnitt_aus_mass(self.einst["zuschnitt"], s["plan"]["voll_mm"], *werte)
+            else:
+                self.einst["zuschnitt"] = l.zuschnitt_pruefen(daten.get("zuschnitt"))
             self.sichern()
         return self.stand()
 
