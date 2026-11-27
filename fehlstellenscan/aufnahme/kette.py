@@ -103,15 +103,61 @@ def objekte_pruefen(werte, ids=None, von: str | None = None) -> list[dict]:
     return ergebnis
 
 
+def _schneiden(p: list, innen) -> list:
+    """Sutherland-Hodgman an einer Kante: innen(q) -> Abstand (>= 0 drinnen)."""
+    raus = []
+    for i, q in enumerate(p):
+        v = p[i - 1]
+        dq, dv = innen(q), innen(v)
+        if (dq >= 0) != (dv >= 0):
+            t = dv / (dv - dq)
+            raus.append([v[0] + t * (q[0] - v[0]), v[1] + t * (q[1] - v[1])])
+        if dq >= 0:
+            raus.append(q)
+    return raus
+
+
+def umriss_umrechnen(p: list, alt: list[float] | None, neu: list[float] | None) -> list | None:
+    """Umriss in Anteilen des Zuschnitts alt -> Anteile des Zuschnitts neu, am neuen Rand abgeschnitten. None, wenn
+    nichts mehr (oder nur ein Strich) im Bild bleibt."""
+    ax, ay, ab, ah = alt or (0, 0, 1, 1)
+    nx, ny, nb, nh = neu or (0, 0, 1, 1)
+    q = [[(ax + u * ab - nx) / nb, (ay + v * ah - ny) / nh] for u, v in p]
+    for innen in (lambda a: a[0], lambda a: 1 - a[0], lambda a: a[1], lambda a: 1 - a[1]):
+        q = _schneiden(q, innen) if q else q
+    q = [[round(min(1.0, max(0.0, u)), 6), round(min(1.0, max(0.0, v)), 6)] for u, v in q]
+    flaeche = abs(sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(q, q[1:] + q[:1], strict=True))) / 2 if len(q) >= 3 else 0
+    return q if flaeche * nb * nh > 1e-7 else None
+
+
+def label_umrechnen(x: dict, neu: list[float] | None) -> dict:
+    """Label (mit dem Zuschnitt, in dem es entstand) auf den Zuschnitt neu. Objekte ganz außerhalb fallen weg."""
+    alt = x.get("zuschnitt")
+    if alt == neu:
+        return x
+    objekte = []
+    for o in x.get("objekte", []):
+        if p := umriss_umrechnen(o["p"], alt, neu):
+            objekte.append({**o, "p": p})
+    return {**x, "zuschnitt": neu, "objekte": objekte}
+
+
 def fotos(balken: dict) -> list[dict]:
     """Alle gültigen Fotos eines Balkens, Seite für Seite."""
     ergebnis = []
     for seite, s in sorted(balken["seiten"].items()):
         for nr, f in sorted(s["fotos"].items(), key=lambda x: int(x[0])):
             ergebnis.append({"balken": balken["id"], "seite": seite, "nr": int(nr), "name": Path(f["datei"]).stem,
-                             "datei": f["datei"], "plan": s["plan"], "px_je_mm": f.get("px_je_mm"),
+                             "datei": f["datei"], "plan": f.get("plan") or s["plan"], "px_je_mm": f.get("px_je_mm"),
                              "breite_px": f.get("breite_px")})
     return ergebnis
+
+
+def ausgeblendet(koerper: dict) -> dict[str, str]:
+    """Fotos, die Labeln und Vorlabeln nicht zeigen (auswahl.py über koerper.py): Name -> "leer" oder "doppelt".
+    Fotos, die der Körper nicht kennt (neuer als er), fehlen hier und bleiben sichtbar."""
+    return {x["name"]: x["wahl"] for s in koerper.get("seiten", {}).values() for x in s.get("auswahl", [])
+            if x.get("name") and x.get("wahl") in ("leer", "doppelt")}
 
 
 def koerper_veraltet(ordner: Path, namen: list[str]) -> bool:
@@ -123,17 +169,25 @@ def koerper_veraltet(ordner: Path, namen: list[str]) -> bool:
     stand = ziel.stat().st_mtime_ns
     if any("grund" not in s for s in json.loads(ziel.read_text(encoding="utf-8")).get("seiten", {}).values()):
         return True                                     # Körper von vor der Plausibilitätsprüfung
-    for q in [ordner / "balken.json"] + [ordner / "zuschnitt" / f"{n}.jpg" for n in namen]:
+    if any("kacheln_mm" not in s for s in json.loads(ziel.read_text(encoding="utf-8")).get("seiten", {}).values()):
+        return True                                     # Körper von vor den feinen Kacheln (27.11.2026)
+    if any("auswahl" not in s for s in json.loads(ziel.read_text(encoding="utf-8")).get("seiten", {}).values()):
+        return True                                     # Körper von vor der Auswahl fürs Labeln (27.11.2026)
+    # koerper.py dabei: neue Rechnung (Serie, senkrecht, Jan 27.11.2026) rechnet alte Körper von selbst neu
+    for q in [ordner / "balken.json", Path(__file__).with_name("koerper.py"), Path(__file__).with_name("auswahl.py")] + [ordner / "zuschnitt" / f"{n}.jpg" for n in namen]:
         if not q.exists() or q.stat().st_mtime_ns > stand:
             return True
     return False
 
 
-def vorschlag(teile: dict, ids: list[str]) -> dict:
-    """Jeder neue Balken bekommt einen Teil: jeder fünfte (ab dem zweiten) prüft, der Rest trainiert."""
+def vorschlag(teile: dict, ids: list[str], training: set | frozenset = frozenset()) -> dict:
+    """Jeder neue Balken bekommt einen Teil: jeder fünfte (ab dem zweiten) prüft, der Rest trainiert. IDs in
+    training (Einzelaufnahmen) gehen immer ins Training und zählen nicht mit."""
     ergebnis = {i: dict(t) for i, t in teile.items()}
     for i in ids:
-        if i not in ergebnis:
+        if i not in ergebnis and i in training:
+            ergebnis[i] = {"teil": "train", "fest": False}
+        elif i not in ergebnis:
             n = sum(t["teil"] != "test" for t in ergebnis.values())
             ergebnis[i] = {"teil": "val" if n % 5 == 1 else "train", "fest": False}
     return ergebnis
@@ -346,6 +400,40 @@ class Kette:
     def alle(self) -> list[dict]:
         return [f for i in self.ids() for f in fotos(self.lesen(i))]
 
+    def ausgeblendet(self, kennung: str) -> dict[str, str]:
+        """Leere und doppelte Fotos eines Balkens aus koerper.json oder, wenn neuer, aus auswahl.json (die schreibt der
+        Server, wenn das Vorlabeln am Mac sie mitschickt; koerper.json kommt erst mit dem Abgleich hoch)."""
+        k, a = self.ordner / kennung / "koerper" / "koerper.json", self.ordner / kennung / "auswahl.json"
+        try:
+            if a.exists() and (not k.exists() or a.stat().st_mtime_ns > k.stat().st_mtime_ns):
+                roh = json.loads(a.read_text(encoding="utf-8"))
+                return {n: w for n, w in roh.items() if w in ("leer", "doppelt")} if isinstance(roh, dict) else {}
+            return ausgeblendet(json.loads(k.read_text(encoding="utf-8"))) if k.exists() else {}
+        except (OSError, ValueError) as e:
+            print(f"Auswahl {kennung}: {e}", file=sys.stderr)
+            return {}
+
+    def auswahl_setzen(self, kennung: str, aus) -> None:
+        """Server: Auswahl vom Mac (Vorlabeln) ablegen."""
+        if kennung not in self.ids() or not isinstance(aus, dict):
+            return
+        schreiben(self.ordner / kennung / "auswahl.json",
+                  {str(n): w for n, w in aus.items() if w in ("leer", "doppelt")})
+
+    def gezeigt(self, b: dict) -> list[dict]:
+        """Fotos eines Balkens fürs Labeln: ohne leere und doppelte. Ein Foto, an dem ein Mensch gelabelt hat, bleibt."""
+        aus = self.ausgeblendet(b["id"])
+        if not aus:
+            return fotos(b)
+        ergebnis = []
+        for f in fotos(b):
+            if f["name"] in aus:
+                x = self.label(f)
+                if not x or (x.get("von") == "vorlabel" and not any(o.get("ok") for o in x["objekte"])):
+                    continue
+            ergebnis.append(f)
+        return ergebnis
+
     def foto(self, name) -> dict:
         liste = self.kodytek() if str(name).startswith("kodytek_") else self.alle()
         treffer = [f for f in liste if f["name"] == name]
@@ -357,8 +445,12 @@ class Kette:
         return self.ordner / f["balken"] / "labels" / f"{f['name']}.json"
 
     def label(self, f: dict) -> dict | None:
+        """Mit Plan im Foto auf dessen aktuellen Zuschnitt umgerechnet (Labels vom Server oder von vor dem Rand)."""
         p = self.label_pfad(f)
-        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+        if not p.exists():
+            return None
+        x = json.loads(p.read_text(encoding="utf-8"))
+        return label_umrechnen(x, f["plan"].get("zuschnitt")) if f.get("plan") and "zuschnitt" in x else x
 
     # ------------------------------------------------------ Kodytek-Auswahl und fertige Datensätze
     def kodytek(self) -> list[dict]:
@@ -429,7 +521,7 @@ class Kette:
         for i in self.ids():
             b = self.lesen(i)
             e = None
-            for f in fotos(b):
+            for f in self.gezeigt(b):
                 if e is None:
                     e = self.einmessungen(f["balken"])
                 gesamt.append(self.bild(f, b.get("name") or "", e))
@@ -467,7 +559,7 @@ class Kette:
         p = f["plan"]
         gemessen = abs(p["faktor"] - 24 / 34.6) > 1e-9
         mm = p["laengs_mm"] if gemessen else None
-        if p.get("frei") and f.get("px_je_mm") and f.get("breite_px"):
+        if p.get("frei") and not p.get("einzeln") and f.get("px_je_mm") and f.get("breite_px"):
             mm = round(f["breite_px"] / f["px_je_mm"], 2)   # hochgeladen mit bekanntem Maßstab (Streifenbild)
         return {"name": f["name"], "balken": f["balken"], "seite": f["seite"], "nr": f["nr"],
                 "titel": f"{f['balken']} Seite {f['seite']}, {f['nr'] + 1}", "laengs_mm": mm,
@@ -504,9 +596,12 @@ class Kette:
         f = self.foto(name)
         ziel = self.ordner / f["balken"] / "zuschnitt" / f"{name}.jpg"
         kl = ziel.with_name(f"{name}_k.jpg")
+        merk = ziel.with_name(f"{name}.zuschnitt")       # mit welchem Zuschnitt die Dateien entstanden
+        soll = json.dumps(f["plan"].get("zuschnitt"))
         with self.schneiden_schloss:
-            if not (ziel.exists() and kl.exists()):
-                quelle = self.ordner / f["balken"] / f["datei"]
+            quelle = self.ordner / f["balken"] / f["datei"]
+            da = ziel.exists() and kl.exists()
+            if not da or quelle.exists() and not (merk.exists() and merk.read_text(encoding="utf-8") == soll):
                 ziel.parent.mkdir(exist_ok=True)
                 kopie = ziel.with_name(f"{name}_h.jpg")
                 try:
@@ -515,8 +610,8 @@ class Kette:
                                         "--out", str(kopie)], check=True, capture_output=True, timeout=120)
                         quelle = kopie
                     subprocess.run([str(self.umgebung()), str(HIER / "bilder.py"), "schneiden", str(quelle), str(ziel),
-                                    str(kl), json.dumps(f["plan"].get("zuschnitt"))], check=True, capture_output=True,
-                                   timeout=120)
+                                    str(kl), soll], check=True, capture_output=True, timeout=120)
+                    merk.write_text(soll, encoding="utf-8")
                 except (OSError, subprocess.SubprocessError) as e:
                     text = (getattr(e, "stderr", b"") or b"").decode("utf-8", "replace").strip().splitlines()
                     print(f"Zuschnitt {name}: {text or e}", file=sys.stderr)
@@ -531,7 +626,10 @@ class Kette:
         als der letzte Körper. Antwort: koerper.json und "stand" (ändert sich mit jeder neuen Rechnung)."""
         if kennung not in self.ids():
             raise ValueError("Diesen Balken gibt es nicht.")
-        namen = [f["name"] for f in fotos(self.lesen(kennung))]
+        b = self.lesen(kennung)
+        if b.get("einzeln"):
+            raise ValueError("Einzelaufnahmen haben keinen Körper.")
+        namen = [f["name"] for f in fotos(b)]
         if not namen:
             raise ValueError("Noch keine Fotos.")
         for n in namen:
@@ -555,7 +653,8 @@ class Kette:
     def teile(self) -> dict:
         p = self.ordner / "teile.json"
         alt = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
-        neu = vorschlag(alt, self.ids())
+        ids = self.ids()
+        neu = vorschlag(alt, ids, {i for i in ids if i not in alt and self.lesen(i).get("einzeln")})
         if neu != alt:
             schreiben(p, neu)
         return neu
@@ -578,21 +677,22 @@ class Kette:
             teile, ergebnis = self.teile(), []
             for i in reversed(self.ids()):
                 b = self.lesen(i)
-                fs = fotos(b)
-                je_seite = {n: sum(f["seite"] == n for f in fs) for n in ("1", "2", "3", "4")}
+                alle_fs, fs = fotos(b), self.gezeigt(b)
+                je_seite = {n: sum(f["seite"] == n for f in alle_fs) for n in ("1", "2", "3", "4")}
                 abw, stand, alt, gruende = None, None, False, {}
                 k = self.ordner / i / "koerper" / "koerper.json"
                 if k.exists():
                     stand = k.stat().st_mtime_ns
-                    alt = koerper_veraltet(self.ordner / i, [f["name"] for f in fs])
+                    alt = koerper_veraltet(self.ordner / i, [f["name"] for f in alle_fs])
                     seiten = json.loads(k.read_text(encoding="utf-8"))["seiten"]
                     gruende = {n: s["grund"] for n, s in seiten.items() if s.get("grund")}
                     werte = [abs(x) for n, s in seiten.items() if n not in gruende
                              for x in s["abweichung_prozent"].values() if x is not None]
                     abw = max(werte, default=None)
                 ergebnis.append({"id": i, "laenge_mm": b["laenge_mm"], "breite_mm": b["breite_mm"],
-                                 "hoehe_mm": b["hoehe_mm"], "holzart": b.get("holzart", ""), "name": b.get("name", ""), **teile[i],
+                                 "hoehe_mm": b["hoehe_mm"], "holzart": b.get("holzart", ""), "name": b.get("name", ""), "einzeln": bool(b.get("einzeln")), **teile[i],
                                  "seiten": je_seite, "bild": fs[0]["name"] if fs else None, "fotos": len(fs),
+                                 "ausgeblendet": len(alle_fs) - len(fs),
                                  "fertig": sum(self.fertig(f) for f in fs), "abweichung": abw, "koerper": stand,
                                  "weg": sorted(gruende), "gruende": gruende,
                                  "koerper_alt": alt})
@@ -610,7 +710,7 @@ class Kette:
         with self.schloss:
             teile, balken, fertige = self.teile(), [], []
             for i in self.ids():
-                fs = fotos(self.lesen(i))
+                fs = self.gezeigt(self.lesen(i))
                 ok = [f for f in fs if self.fertig(f)]
                 fertige += [{**f, "objekte": len(self.label(f)["objekte"])} for f in ok]
                 balken.append({"id": i, "fotos": len(fs), "fertig": len(ok), **teile[i],
@@ -886,7 +986,11 @@ class Kette:
                 if teile[b]["teil"] != "train" and not lauf["pruefung"]:
                     e["status"] = "gesperrt"           # Prüflabels nicht vom Modell übernehmen
                     continue
-                fs = [f for f in fotos(self.lesen(b)) if not e["fotos"] or f["name"] in e["fotos"]]
+                try:
+                    self.koerper(b)            # Auswahl fürs Labeln aktuell (leere und doppelte Fotos weg)
+                except ValueError as x:
+                    print(f"Vorlabeln {b}: Körper fehlt, alle Fotos: {x}", file=sys.stderr)
+                fs = [f for f in self.gezeigt(self.lesen(b)) if not e["fotos"] or f["name"] in e["fotos"]]
                 if not fs:
                     e["status"] = "leer"
                     continue
@@ -899,6 +1003,7 @@ class Kette:
                     continue
                 if lauf["fern"]:
                     e["ergebnis"] = ergebnis           # holt der Server ab (vorlabeln_ab)
+                    e["ausgeblendet"] = self.ausgeblendet(b)
                 else:
                     e["neu"] = self.vorlabel_einfuegen(ergebnis, "vorlabel")["neu"]
                 e["status"] = "fertig"

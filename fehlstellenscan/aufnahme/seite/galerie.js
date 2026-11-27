@@ -15,21 +15,22 @@ async function ruf(weg,daten){let a;try{a=await fetch(weg,daten===undefined?{}:{
 
 function karte(b){
  // Seitenstriche nur, wenn etwas fehlt: ein vollständiger Balken bleibt ruhig
- const gut=n=>b.seiten[n]&&!b.weg?.includes(n),voll=['1','2','3','4'].every(gut);
+ const gut=n=>b.seiten[n]&&!b.weg?.includes(n),voll=b.einzeln||['1','2','3','4'].every(gut);
  const seiten=voll?'':`<span class="vier">${['1','2','3','4'].map(n=>`<i class="${gut(n)?'ja':b.weg?.includes(n)?'weg':''}"></i>`).join('')}</span>`;
  // Vorschau: abgewickelter Mantel (unten Seite 1, darüber die nächste, wie beim Rollen), sonst ein Zuschnitt
  const bild=b.koerper?`<div class="mantel">${['4','3','2','1'].map(n=>`<i${b.seiten[n]&&!b.weg?.includes(n)?` style="background-image:url('/koerper/${encodeURIComponent(b.id)}/S${n}_k.jpg?v=${b.koerper}')"`:` class="fehlt${b.weg?.includes(n)?' weg':''}"`}></i>`).join('')}</div>`
   :b.bild?`<img src="/zuschnitt/${encodeURIComponent(b.bild)}_k.jpg" alt="" loading="lazy" draggable="false">`:`<div class="ohne">${BALKEN}</div>`;
- const titel=[`${b.id}: ${cm(b.laenge_mm)} × ${cm(b.breite_mm)} × ${cm(b.hoehe_mm)} cm`,b.holzart,
-  `${Object.values(b.seiten).filter(Boolean).length} von 4 Seiten, ${b.fertig} von ${b.fotos} Fotos gelabelt`,
+ const mass=b.einzeln?`${b.fotos} Fotos`:`${cm(b.laenge_mm)} × ${cm(b.breite_mm)} × ${cm(b.hoehe_mm)}`;
+ const titel=[b.einzeln?`${b.id}: ${b.fotos} Einzelaufnahmen`:`${b.id}: ${mass} cm`,b.holzart,
+  b.einzeln?`${b.fertig} von ${b.fotos} Fotos gelabelt`:`${Object.values(b.seiten).filter(Boolean).length} von 4 Seiten, ${b.fertig} von ${b.fotos} Fotos gelabelt`+(b.ausgeblendet?`, ${b.ausgeblendet} leer oder doppelt ausgeblendet`:''),
   ...(b.weg||[]).map(n=>`Seite ${n}: ${b.gruende?.[n]||'unbrauchbar'}`),
   b.abweichung>2?`Maß weicht bis ${b.abweichung.toLocaleString('de-DE')} % ab`:'',b.fest?'Schon trainiert, Teil bleibt':''].filter(Boolean).join('\n');
  // Ohne Fotos gibt es keinen Körper: die Karte führt dann in die Aufnahme
- const ziel=b.fotos?`/koerper?id=${encodeURIComponent(b.id)}`:`/?balken=${encodeURIComponent(b.id)}`,name=b.name||b.id;
+ const ziel=b.fotos&&b.einzeln?`/labeln?balken=${encodeURIComponent(b.id)}`:b.fotos?`/koerper?id=${encodeURIComponent(b.id)}`:`/?balken=${encodeURIComponent(b.id)}`,name=b.name||b.id;
  return `<div class="karte${b.fest?' fest':''}${b.id===rechnet?' rechnet':''}${WAHL.has(b.id)?' gewaehlt':''}" data-b="${esc(b.id)}" draggable="${!b.fest}" title="${esc(titel)}">
   <a href="${ziel}" draggable="false" aria-label="${esc(b.name?b.id+' '+b.name:b.id)}, ${esc(NAME[b.teil])}${b.fest?', gesperrt':''}${WAHL.has(b.id)?', gewählt':''}" aria-keyshortcuts="ArrowLeft ArrowRight Space">${bild}
   <span><b>${esc(name)}</b>${b.abweichung>2?'<i class="ab"></i>':''}${b.fest?SCHLOSS:''}${seiten}${vlz(b.id)}</span>
-  <small>${b.name?esc(b.id)+' · ':''}${cm(b.laenge_mm)} × ${cm(b.breite_mm)} × ${cm(b.hoehe_mm)}</small>
+  <small>${b.name?esc(b.id)+' · ':''}${mass}</small>
   ${b.fotos?`<i class="lbl" style="--a:${Math.round(100*b.fertig/b.fotos)}%"></i>`:''}</a>
   <button class="mehr sy" aria-label="${esc(b.id)}" title="···" aria-haspopup="true" aria-expanded="${b.id===mehr}" aria-controls="kmenue">···</button></div>`}
 
@@ -64,7 +65,7 @@ async function laden(){try{G=await ruf('/api/galerie');mal(aktiv());$('#gfehler'
 // Fehlende oder veraltete Körper nacheinander rechnen, neueste zuerst; was nicht geht, behält den Zuschnitt
 const versucht=new Set();let rechnet=null;
 async function nachrechnen(){if(rechnet)return;
- for(;;){const b=G.find(x=>x.fotos&&(!x.koerper||x.koerper_alt)&&!versucht.has(x.id));if(!b)break;
+ for(;;){const b=G.find(x=>x.fotos&&!x.einzeln&&(!x.koerper||x.koerper_alt)&&!versucht.has(x.id));if(!b)break;
   versucht.add(b.id);rechnet=b.id;mal(aktiv());
   try{const k=await ruf('/api/koerper?id='+encodeURIComponent(b.id));const x=G.find(y=>y.id===b.id);
    if(x){x.koerper=k.stand;x.koerper_alt=false;x.weg=Object.keys(k.seiten).filter(n=>k.seiten[n].grund);x.gruende=Object.fromEntries(x.weg.map(n=>[n,k.seiten[n].grund]));const w=Object.values(k.seiten).filter(s=>!s.grund).flatMap(s=>Object.values(s.abweichung_prozent)).filter(v=>v!=null).map(Math.abs);x.abweichung=w.length?Math.max(...w):null}}
@@ -114,8 +115,8 @@ addEventListener('keydown',e=>{if(e.key==='z'&&(e.metaKey||e.ctrlKey)&&weg&&!$('
 // Maße und Name im Dialog. Fotos bleiben, der Server passt Abstand und Maßstab der fotografierten Seiten an
 const dlg=$('#bearb'),form=dlg.querySelector('form');let bid=null;
 function bearbeiten(id,feld){const b=G.find(x=>x.id===id);if(!b)return;bid=id;$('#btitel').textContent=b.name?`${b.id} ${b.name}`:b.id;
- for(const k of['laenge','breite','hoehe'])form[k].value=cm(b[k+'_mm']).replace(/\./g,'');form.holzart.value=b.holzart||'';form.name.value=b.name||'';
- form.querySelector('.fehler').textContent='';dlg.showModal();form[feld].focus();form[feld].select()}
+ for(const k of['laenge','breite','hoehe']){form[k].value=b.einzeln?'':cm(b[k+'_mm']).replace(/\./g,'');form[k].disabled=!!b.einzeln}form.holzart.value=b.holzart||'';form.name.value=b.name||'';
+ form.querySelector('.fehler').textContent='';dlg.showModal();if(b.einzeln)feld='name';form[feld].focus();form[feld].select()}
 form.onsubmit=async e=>{e.preventDefault();const d={id:bid,holzart:form.holzart.value,name:form.name.value};for(const k of['laenge','breite','hoehe'])d[k+'_mm']=lies(form[k].value);
  try{await ruf('/api/balken',d);dlg.close();await laden();mal(bid)}catch(x){form.querySelector('.fehler').textContent=x.message}};
 dlg.querySelector('.zu').onclick=()=>dlg.close();

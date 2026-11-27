@@ -142,14 +142,78 @@ class Werk:
     def plan(self, b: dict, seite: str) -> dict:
         """Steht ein Foto, gilt der eingefrorene Plan, sonst der aus den aktuellen Einstellungen."""
         s = self.seite(b, seite)
-        if s["fotos"]:
-            return s["plan"]
-        return l.plan(b, seite, self.einst["kamera_rolle_mm"], self.einst["faktor"], s["schritt_mm"],
-                      self.einst["zuschnitt"], self.einst.get("richtung", "lang"))
+        if b.get("einzeln"):
+            if seite != "1":
+                raise ValueError("Einzelaufnahmen haben nur eine Seite.")
+            return l.einzeln_plan(max((int(k) for k in s["fotos"]), default=-1) + 2,
+                                  self.einst.get("zuschnitt_einzeln"), b.get("mm_lang"))
+        p = s["plan"] if s["fotos"] else l.plan(b, seite, self.einst["kamera_rolle_mm"], self.einst["faktor"],
+                                                 s["schritt_mm"], self.einst["zuschnitt"], self.einst.get("richtung", "lang"))
+        if s.get("serie"):
+            p = l.serie_plan(p, max((int(k) for k in s["fotos"]), default=-1) + 2)
+        return p
+
+    def serie(self, daten: dict) -> dict:
+        """Seite auf Serie stellen oder zurück, nur solange sie keine Fotos hat."""
+        with self.schloss:
+            b = self.lesen(daten.get("balken"))
+            s = self.seite(b, daten.get("seite"))
+            an = daten.get("an") is True
+            if an and b.get("einzeln"):
+                raise ValueError("Einzelaufnahmen haben keine Serie.")
+            if bool(s.get("serie")) != an:
+                if s["fotos"]:
+                    raise ValueError("Diese Seite hat schon Fotos, die Art bleibt.")
+                s["serie"] = an
+                self.ablegen(b)
+            return self.mit_plan(b)
+
+    def serie_neu(self, daten: dict) -> dict:
+        """Ganze Serie einer Seite verwerfen, damit sie neu aufgenommen werden kann (Jan 27.11.2026). Alle Fotos
+        gehen nach verworfen/, die Seite bleibt Serie. serie_weg merkt sich die Fotos für Rückgängig."""
+        with self.schloss:
+            if self.auftrag:
+                raise Konflikt("Es wird gerade ausgelöst.")
+            b = self.lesen(daten.get("balken"))
+            s = self.seite(b, daten.get("seite"))
+            if not s.get("serie"):
+                raise ValueError("Diese Seite ist keine Serie.")
+            if not s["fotos"]:
+                raise ValueError("Diese Serie hat keine Fotos.")
+            ordner = self.ordner / b["id"]
+            for f in s["fotos"].values():
+                self.verschieben(f, ordner, ordner / "verworfen")
+            s["serie_weg"] = {"fotos": s["fotos"], "plan": s["plan"]}
+            s["fotos"], s["plan"] = {}, None
+            self.ablegen(b)
+            return {"balken": self.mit_plan(b)}
+
+    def serie_zurueck(self, daten: dict) -> dict:
+        """Verworfene Serie zurückholen, solange die Seite noch keine neuen Fotos hat."""
+        with self.schloss:
+            if self.auftrag:
+                raise Konflikt("Es wird gerade ausgelöst.")
+            b = self.lesen(daten.get("balken"))
+            s = self.seite(b, daten.get("seite"))
+            alt = s.get("serie_weg")
+            if not alt:
+                raise ValueError("Nichts zum Zurückholen.")
+            if s["fotos"]:
+                raise ValueError("Die Seite hat schon neue Fotos.")
+            ordner = self.ordner / b["id"]
+            for f in alt["fotos"].values():
+                self.verschieben(f, ordner / "verworfen", ordner)
+            s["fotos"], s["plan"], s["serie"] = alt["fotos"], alt["plan"], True
+            del s["serie_weg"]
+            self.ablegen(b)
+            return {"balken": self.mit_plan(b)}
 
     def mit_plan(self, b: dict) -> dict:
         for seite in l.SEITEN:
             s = self.seite(b, seite)
+            if b.get("einzeln"):
+                s["plan"], s["fehler"] = (self.plan(b, seite), "") if seite == "1" else (None, "")
+                continue
             if s["fotos"] and (s.get("plan") or {}).get("frei"):
                 s["plan"], s["fehler"] = None, "Hochgeladen, ohne Abschnitte."   # Fotobox lässt diese Seite in Ruhe
                 continue
@@ -171,18 +235,32 @@ class Werk:
                     "balken": [self.mit_plan(self.lesen(i)) for i in self.ids()]}
 
     def balken_speichern(self, daten: dict, von: str | None = None) -> dict:
-        masse = l.masse_pruefen(daten) | {"name": l.name_pruefen(daten.get("name"))}
+        """Ohne alle drei Maße entstehen Einzelaufnahmen (logik.einzeln_gewuenscht), die keine Maße bekommen."""
+        einzeln = l.einzeln_gewuenscht(daten)
+        if daten.get("id"):
+            einzeln = bool(self.lesen(daten["id"]).get("einzeln"))
+        if einzeln:
+            masse = {"laenge_mm": None, "breite_mm": None, "hoehe_mm": None,
+                     "holzart": str(daten.get("holzart") or "").strip()[:60],
+                     "name": l.name_pruefen(daten.get("name")) or l.EINZELN_NAME}
+        else:
+            masse = l.masse_pruefen(daten) | {"name": l.name_pruefen(daten.get("name"))}
         with self.schloss:
             if daten.get("id"):
                 b = self.lesen(daten["id"])
                 if self.auftrag and self.auftrag["balken"] == b["id"]:
                     raise Konflikt("Es wird gerade ausgelöst.")
-                self.masse_aendern(b, masse)
+                if einzeln:
+                    b |= masse
+                else:
+                    self.masse_aendern(b, masse)
             else:
                 kennung, nr = l.neue_id(self.einst["letzte_nr"], self.ids())
                 self.einst["letzte_nr"] = nr
                 self.sichern()
                 b = {"id": kennung, "angelegt": datetime.now().isoformat(timespec="seconds"), **masse, "seiten": {}}
+                if einzeln:
+                    b["einzeln"] = True
                 if von:
                     b["von"] = von
             self.ablegen(b)
@@ -264,6 +342,7 @@ class Werk:
                 self.einst["richtung"] = l.richtung_pruefen(daten["richtung"])
             else:
                 self.einst["kamera_rolle_mm"] = l.zahl(daten, "kamera_rolle_mm", 150, 2000, "Abstand")
+                self.einst["messungen"] = []      # von Hand gemessen: alte Zollstock-Messungen rechnen nicht mehr mit
                 self.einst["abstand_gemessen"] = True
             self.sichern()
         return self.stand()
@@ -272,6 +351,8 @@ class Werk:
         """Gilt für alle Seiten ohne Fotos. Die Originale bleiben ganz, der Ausschnitt steht im Plan der Seite.
         Mit bildfeld_mm [längs, quer] statt eines Rechtecks: Größe von Hand, gerechnet auf der Seite balken/seite."""
         with self.schloss:
+            if daten.get("balken") and self.lesen(daten["balken"]).get("einzeln"):
+                return self.einzeln_zuschneiden(daten)
             if "bildfeld_mm" in daten:
                 b = self.mit_plan(self.lesen(daten.get("balken")))
                 s = self.seite(b, daten.get("seite"))
@@ -286,9 +367,71 @@ class Werk:
             self.sichern()
         return self.stand()
 
+    def einzeln_zuschneiden(self, daten: dict) -> dict:
+        """Einzelaufnahmen: mit nr den Zuschnitt dieses Fotos (nur ohne Labels, die stehen in Anteilen des
+        Zuschnitts), sonst den für die nächsten Fotos. Ein neuer Zuschnitt gilt auch als nächster."""
+        b = self.lesen(daten.get("balken"))
+        z = l.zuschnitt_pruefen(daten.get("zuschnitt"))
+        if daten.get("nr") is not None:
+            foto = self.einzeln_foto(b, daten.get("nr"))
+            name = Path(foto["datei"]).stem
+            x = self.kette.label({"balken": b["id"], "name": name})
+            if x and x.get("objekte"):
+                raise ValueError("Dieses Foto ist schon gelabelt, der Zuschnitt bleibt.")
+            p = foto.get("plan") or {}
+            foto["plan"] = {k: v for k, v in l.einzeln_plan(1, z, p.get("voll_mm")).items() if k != "mitten_mm"}
+            for n in (f"{name}.jpg", f"{name}_k.jpg"):
+                (self.ordner / b["id"] / "zuschnitt" / n).unlink(missing_ok=True)
+            self.ablegen(b)
+        self.einst["zuschnitt_einzeln"] = z
+        self.sichern()
+        return self.stand()
+
+    def rand(self, daten: dict) -> dict:
+        """Oben und unten Anteile des ganzen Bildes weglassen, für alle Fotos und die nächsten (Jan 27.11.2026:
+        Alustangen der Fotobox im Bild). Pläne, Labels (umgerechnet, am Rand abgeschnitten) und die nächsten
+        Zuschnitte; die zugeschnittenen Bilder entstehen beim nächsten Abruf neu. Originale bleiben."""
+        oben, unten = daten.get("oben"), daten.get("unten")
+        if any(isinstance(w, bool) or not isinstance(w, (int, float)) for w in (oben, unten)):
+            raise ValueError("Rand nicht lesbar.")
+        zahl = {"seiten": 0, "fotos": 0, "labels": 0, "objekte_weg": 0}
+        with self.schloss:
+            for i in self.ids():
+                b = self.lesen(i)
+                vorher = json.dumps(b, sort_keys=True)
+                for s in b["seiten"].values():
+                    if s.get("plan"):
+                        neu = l.plan_rand(s["plan"], oben, unten)
+                        zahl["seiten"] += neu is not s["plan"]
+                        s["plan"] = neu
+                    for f in s["fotos"].values():
+                        if f.get("plan"):
+                            f["plan"] = l.plan_rand(f["plan"], oben, unten)
+                if json.dumps(b, sort_keys=True) == vorher:
+                    continue
+                self.ablegen(b)
+                for f in k.fotos(b):
+                    zahl["fotos"] += 1
+                    pfad = self.kette.label_pfad(f)
+                    if pfad.exists():
+                        alt = json.loads(pfad.read_text(encoding="utf-8"))
+                        x = self.kette.label(f)
+                        if x is not alt and x != alt:
+                            k.schreiben(pfad, x)
+                            zahl["labels"] += 1
+                            zahl["objekte_weg"] += len(alt.get("objekte", [])) - len(x.get("objekte", []))
+            self.einst["zuschnitt"] = l.rand_klemmen(self.einst.get("zuschnitt"), oben, unten)
+            if self.einst.get("zuschnitt_einzeln"):
+                self.einst["zuschnitt_einzeln"] = l.rand_klemmen(self.einst["zuschnitt_einzeln"], oben, unten)
+            self.sichern()
+        print(f"Rand oben {oben}, unten {unten}: {zahl}", file=sys.stderr)
+        return {**self.stand(), "rand": zahl}
+
     def massstab(self, daten: dict) -> dict:
         with self.schloss:
             b = self.lesen(daten.get("balken"))
+            if b.get("einzeln"):
+                return self.einzeln_massstab(b, daten)
             self.seite(b, daten.get("seite"))
             try:
                 plan = self.plan(b, daten["seite"])
@@ -301,17 +444,57 @@ class Werk:
                 raise ValueError("Zwei Punkte im Foto anklicken.")
             strecke = l.zahl(daten, "strecke_mm", 10, 2000, "Strecke")
             faktor = l.faktor_aus_messung(anteil, strecke, plan["abstand_mm"])
+            # Zwei Höhen (Jan 27.11.2026): liegt eine Messung auf anderer Höhe vor, ergeben beide zusammen auch den
+            # Abstand Linse bis Rolle. Je Höhe zählt die letzte Messung.
+            rolle, h, q = plan["kamera_rolle_mm"], plan["hoch_mm"], strecke / anteil
+            alte = [m for m in self.einst.get("messungen", []) if abs(m["h"] - h) >= 5]
+            self.einst["messungen"] = (alte + [{"h": h, "q": q}])[-4:]
+            andere_hoehe = [m for m in alte if abs(m["h"] - h) >= 30]
+            self.hinweis = ""
+            if andere_hoehe:
+                try:
+                    rolle, faktor = l.abstand_aus_zwei_hoehen(andere_hoehe[-1]["h"], andere_hoehe[-1]["q"], h, q)
+                    rolle = round(rolle, 1)
+                    self.einst["kamera_rolle_mm"], self.einst["abstand_gemessen"] = rolle, True
+                    self.hinweis = f"Aus zwei Höhen: Linse bis Rolle {rolle / 10:.1f} cm."
+                except ValueError as e:
+                    self.hinweis = f"{e} Maßstab nur aus dieser Messung."
             self.einst["faktor"], self.einst["faktor_gemessen"] = faktor, True
             self.sichern()
             # Fotos dieses Balkens gelten ab jetzt mit dem gemessenen Maßstab (Labeln rechnet mit dem Plan der Seite)
-            for andere in b["seiten"].values():
-                if andere["fotos"] and andere["plan"] and andere["plan"]["faktor"] != faktor:
-                    andere["plan"] = l.neu_skalieren(andere["plan"], faktor)
+            for nr_seite, andere in b["seiten"].items():
+                p_alt = andere.get("plan")
+                if andere["fotos"] and p_alt and not p_alt.get("frei") and (
+                        p_alt["faktor"] != faktor or p_alt["kamera_rolle_mm"] != rolle):
+                    andere["plan"] = l.plan_anpassen({**p_alt, "faktor": faktor, "kamera_rolle_mm": rolle}, b, nr_seite,
+                                                     [int(k) for k in andere["fotos"]])
+                    andere["plan"]["mitten_mm"] = p_alt["mitten_mm"]     # die Lage der Abschnitte bleibt, wie fotografiert
                     for f in andere["fotos"].values():
                         if f.get("breite_px"):
                             f["px_je_mm"] = round(l.px_je_mm(max(f["breite_px"], f["hoehe_px"]),
                                                              andere["plan"].get("voll_mm") or andere["plan"]["laengs_mm"]), 2)
             self.ablegen(b)
+        return self.stand()
+
+    def einzeln_massstab(self, b: dict, daten: dict) -> dict:
+        """Einzelaufnahmen: Zollstock mit echter Länge. Mit nr gilt er für dieses Foto, und immer für die nächsten
+        (gleicher Aufbau, Höhe des Holzes unbekannt, darum je Foto nachmessbar). anteil = Strecke / lange Bildseite."""
+        anteil = daten.get("anteil")
+        if isinstance(anteil, bool) or not isinstance(anteil, (int, float)) or not 0.02 <= anteil <= 1.3:
+            raise ValueError("Zollstock länger ziehen.")
+        mm_lang = l.zahl(daten, "strecke_mm", 1, 2000, "Strecke") / anteil
+        if not 20 <= mm_lang <= 5000:
+            raise ValueError("Das Maß passt nicht zum Bild.")
+        b["mm_lang"] = round(mm_lang, 2)
+        if daten.get("nr") is not None:
+            foto = self.einzeln_foto(b, daten.get("nr"))
+            foto["plan"] = {k: v for k, v in l.einzeln_plan(1, (foto.get("plan") or {}).get("zuschnitt"),
+                                                            b["mm_lang"]).items() if k != "mitten_mm"}
+            self.ablegen(b)
+            self.einzeln_einmessen(b, foto)
+        else:
+            self.ablegen(b)
+        self.hinweis = ""
         return self.stand()
 
     def kontrolle(self, daten: dict) -> dict:
@@ -331,6 +514,8 @@ class Werk:
                 if nr not in s["fotos"]:
                     raise ValueError("Zu diesem Abschnitt gibt es kein Foto.")
                 p = s["plan"]
+                if not p or p.get("frei"):
+                    raise ValueError("Diese Seite hat keinen Maßstab.")
                 k = l.kontrolle(daten.get("anteil"), p.get("voll_mm") or p["laengs_mm"],
                                 l.zahl(daten, "zollstock_mm", 1, 2000, "Zollstock"))
                 liste.append({"seite": seite, "foto": s["fotos"][nr]["datei"], **k,
@@ -354,20 +539,43 @@ class Werk:
             jetzt = datetime.now()
             ordner = self.ordner / kennung
             ordner.mkdir(exist_ok=True)
-            mitte = p["mitten_mm"][nr]
-            name = l.foto_name(kennung, seite, nr, mitte, jetzt.strftime("%Y%m%d-%H%M%S-%f")[:-3], endung)
+            zeit = jetzt.strftime("%Y%m%d-%H%M%S-%f")[:-3]
+            if b.get("einzeln"):
+                mitte, name = None, l.einzeln_name(kennung, nr, zeit, endung)
+            else:
+                mitte = p["mitten_mm"][nr]
+                name = l.foto_name(kennung, seite, nr, mitte, zeit, endung)
             ziel = ordner / name
             ziel.write_bytes(daten)
             foto = {"datei": name, "vorschau": name, "zeit": jetzt.isoformat(timespec="seconds"), "mitte_mm": mitte,
                     "mb": round(len(daten) / 1e6, 1), "breite_px": None, "hoehe_px": None, "px_je_mm": None, "kamera": kamera or {}}
-            self.vermessen(ziel, foto, p)
+            if b.get("einzeln"):
+                foto["plan"] = {k: v for k, v in p.items() if k != "mitten_mm"}
+                self.vermessen(ziel, foto, {})
+            else:
+                self.vermessen(ziel, foto, p)
             alt = s["fotos"].get(str(nr))
             s["plan"] = p
             s["fotos"][str(nr)] = foto
             self.ablegen(b)
             if alt:
                 self.verschieben(alt, ordner, ordner / "verworfen")
+            if b.get("einzeln"):
+                self.einzeln_einmessen(b, foto)
             return self.mit_plan(b)
+
+    def einzeln_einmessen(self, b: dict, foto: dict) -> None:
+        """Maßstab eines Einzelfotos fürs Labeln (einmessung.json, mm je Pixel des Zuschnitts = des Originals).
+        Ohne Maßstab oder ohne Pixelmaß (nur der Mac kennt es, sips) wird eine alte Einmessung entfernt."""
+        mm = (foto.get("plan") or {}).get("voll_mm")
+        lang = max(foto.get("breite_px") or 0, foto.get("hoehe_px") or 0)
+        self.kette.foto_massstab({"name": Path(foto["datei"]).stem, "mm_je_px": mm / lang if mm and lang else None})
+
+    def einzeln_foto(self, b: dict, nr) -> dict:
+        s = self.seite(b, "1")
+        if isinstance(nr, bool) or not isinstance(nr, int) or str(nr) not in s["fotos"]:
+            raise ValueError("Zu dieser Nummer gibt es kein Foto.")
+        return s["fotos"][str(nr)]
 
     def verschieben(self, foto: dict, von: Path, nach: Path) -> None:
         nach.mkdir(exist_ok=True)
@@ -423,6 +631,7 @@ class Werk:
         g = re.findall(r"pixel(?:Width|Height): (\d+)", befehl("sips", "-g", "pixelWidth", "-g", "pixelHeight", str(ziel)))
         if len(g) == 2:
             foto["breite_px"], foto["hoehe_px"] = int(g[0]), int(g[1])
+        if len(g) == 2 and (p.get("voll_mm") or p.get("laengs_mm")):
             foto["px_je_mm"] = round(l.px_je_mm(max(int(g[0]), int(g[1])), p.get("voll_mm", p["laengs_mm"])), 2)
         vorschau = ziel.with_name(ziel.stem + "_vorschau.jpg")
         befehl("sips", "-s", "format", "jpeg", "-s", "formatOptions", "85", "-Z", "2400", str(ziel), "--out", str(vorschau))
@@ -455,6 +664,8 @@ class Werk:
         with self.schloss:
             b = self.lesen(kennung)
             s = self.seite(b, seite)
+            if b.get("einzeln") and seite != "1":
+                raise ValueError("Einzelaufnahmen haben nur eine Seite.")
             if s["fotos"] and not (s.get("plan") or {}).get("frei"):
                 raise ValueError("Diese Seite ist mit der Fotobox aufgenommen. Eine andere Seite wählen.")
             s["plan"] = freier_plan()
@@ -565,7 +776,7 @@ class Werk:
         a = self.auftrag
         if a and not a["abgeholt"]:
             a["abgeholt"] = True
-            return json.dumps({"art": "foto", "id": a["id"], "fokus": f"{a['balken']}-{a['seite']}"}).encode() if app else b"foto"
+            return json.dumps({"art": "foto", "id": a["id"], "fokus": f"{a['balken']}-{a['seite']}-{a['nr']}-{a['id']}"}).encode() if app else b"foto"
         return None
 
     def ausloesen(self, daten: dict) -> dict:
@@ -665,6 +876,10 @@ def vorlabel_abholen(server, inhalt: bytes) -> bytes:
                     del e["ergebnis"]
                     continue
                 server.abgeholt[(lauf["id"], b)] = schon
+                try:
+                    server.werk.kette.auswahl_setzen(b, e.get("ausgeblendet"))
+                except OSError as x:
+                    print(f"Auswahl {b} nicht abgelegt: {x}", file=sys.stderr)
             del e["ergebnis"]
             e["neu"] = schon
             t.weiterreichen("POST", "/api/vorlabeln-ab", json.dumps({"lauf": lauf["id"], "balken": b, "neu": schon}).encode(),
@@ -773,7 +988,7 @@ class Anfrage(BaseHTTPRequestHandler):
             datei = SEITE / weg[1:]
         elif re.fullmatch(r"/foto/B\d{3,6}/[A-Za-z0-9_-]+\.(jpg|png|heic)", weg):
             datei = werk.ordner / weg[6:]
-        elif kz := re.fullmatch(r"/koerper/(B\d{3,6})/(S[1-4](?:_k)?\.jpg)", weg):
+        elif kz := re.fullmatch(r"/koerper/(B\d{3,6})/(S[1-4](?:_k|_\d{1,2})?\.jpg)", weg):
             datei = werk.ordner / kz[1] / "koerper" / kz[2]
         if datei is None or not datei.is_file():
             return self.antwort(404, {"fehler": "Gibt es nicht."})
@@ -1016,7 +1231,8 @@ def mac_wege(werk: Werk) -> dict:
     Klon der Mac-Oberfläche). Auslösen und Kamera antworten auf dem Server mit „iPhone nicht verbunden“."""
     return {"/api/balken": werk.balken_speichern, "/api/vorschub": werk.vorschub, "/api/ausloesen": werk.ausloesen,
             "/api/einstellungen": werk.einstellen, "/api/massstab": werk.massstab, "/api/kontrolle": werk.kontrolle,
-            "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/loeschen": werk.loeschen,
+            "/api/kamera": werk.kamera, "/api/zuschnitt": werk.zuschneiden, "/api/rand": werk.rand, "/api/serie": werk.serie,
+            "/api/serie-neu": werk.serie_neu, "/api/serie-zurueck": werk.serie_zurueck, "/api/loeschen": werk.loeschen,
             "/api/zurueck": werk.zurueckholen, "/api/balken-weg": werk.balken_weg,
             "/api/balken-zurueck": werk.balken_zurueck}
 

@@ -441,7 +441,16 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   ungemessen, Balkenlage im Test vermutlich nicht die gewählte Seite, Balken lag quer zur langen Bildseite.
 - Zuschnitt: Rahmen am Bild, Anteile in den Einstellungen, eingefroren im Plan der Seite (zuschnitt). Originale
   bleiben ganz, bilder.py wendet plan.zuschnitt an. mitte_mm ist
-  die Mitte des Zuschnitts, px_je_mm gilt fürs ganze Bild.
+  die Mitte des Zuschnitts, px_je_mm gilt fürs ganze Bild. Neben jedem Zuschnitt-JPG liegt <Foto>.zuschnitt (mit
+  welchem Zuschnitt es entstand); weicht der Plan ab, entsteht es neu (nur wenn das Original da ist).
+- Rand gegen die Alustangen der Fotobox (Jan 27.11.2026, Fotos von B004-B007 oben und unten zu wenig beschnitten):
+  POST /api/rand {"oben": 0.03, "unten": 0.07} (Anteile des ganzen Bildes, gemessen: Stange oben bis 1 %, unten bis
+  5,5 %) klemmt die Zuschnitte aller Seiten, Einzelfotos und der Einstellungen (logik.rand_klemmen/plan_rand,
+  zweimal = einmal), rechnet Labels um (kette.label_umrechnen, Objekte am Rand abgeschnitten, ganz draußen weg).
+  kette.label rechnet jedes Label mit anderem Zuschnitt beim Lesen um (auch vom Server geholte). quer_mm und
+  feld_mm werden 10 % kleiner: B004 S1 hat jetzt eine Lücke zwischen den Fotos (Vorschub 300 mm, Feld 283 mm).
+  Geprüft: Tests, Kopie der echten Balken (16 Seiten, 282 Fotos, ohne Originale). Offen bei Jan (Mac, lokal):
+  neurolign_einrichten.sh, dann /api/rand per curl, dann neurolign_abgleich.sh hoch.
 - Kette Aufnahme > Labeln > Training in einer Anwendung (Jan 25.11.2026 „alles nur in eine anwdnung“), Navigation oben:
   aufnahme/kette.py (Ablage, Aufteilung, Lauf; Bordmittel), bilder.py (Zuschnitt, Kacheln 1280 px; läuft in der
   Trainings-.venv), seite/labeln.* (Werkbank nach unterlagen/werkbank-regler, Jans Wahl, 18 Klassen der
@@ -549,12 +558,28 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
 - Fehler, offen: Im Labeln springt Enter nach dem letzten bestätigten Objekt zum nächsten offenen Foto, ein weiteres
   Enter speichert es leer als fehlerfrei.
 - Papierkorb (oder Entf) legt ein Foto nach <Balken-ID>/verworfen/, direkt danach zurückholbar (Knopf, Cmd+Z).
+- Auswahl fürs Labeln (Jan 27.11.2026: Serien zeigen Fehlstellen doppelt, manche Fotos nur Grund): koerper.py legt je
+  Seite in koerper.json `auswahl` ab (je Foto Name, Lage a_mm..b_mm, Schärfe, Wahl drin/doppelt/leer), Logik in
+  aufnahme/auswahl.py (tests/test_auswahl.py). So wenige Fotos, dass sie die Seite abdecken und Nachbarn sich um
+  mindestens 80 mm überlappen (Jan: 8 cm, etwa die größte Fehlstelle längs); bei fast gleicher Reichweite (30 mm)
+  das schärfere (Laplace). Unsichere Lage (Serienschritt ohne Stütze) und unplausible Seiten (grund): alle bleiben.
+  Leer: weniger als 15 % Holz oder Fläche dunkel und nicht rot (ist_holz: Helligkeit unter 100, Rot minus Blau unter
+  40; vorher galt ein Foto nur mit Grund als Holz übers ganze Bild). Keine Hintergrundbilder als Negativbeispiele (Jan).
+  Nichts wird gelöscht: kette.gezeigt blendet leere und doppelte in Labeln, Vorlabeln, Training (Zählung) und Galerie
+  (fotos, ausgeblendet im Tooltip) aus; ein Foto mit menschlichem Label (nicht nur Vorlabel) bleibt sichtbar.
+  Berechnet wird die Auswahl mit dem Körper (Galerie rechnet veraltete Körper selbst, Vorlabeln am Mac rechnet ihn
+  vorher). Server: Vorlabeln schickt die Auswahl mit, der Server legt sie in <Balken>/auswahl.json ab (gilt, wenn
+  neuer als koerper.json). Offen: Tauschen einzelner Fotos von Hand (Oberfläche fehlt), Labels der Auswahl per Lage
+  auf die ausgeblendeten Fotos übertragen (nach dem ersten Training). Am Mac noch nicht gelaufen.
 - Bilderleiste im Labeln (Jan 26.11.2026): gruppiert Balken > Seite S1-S4 > Foto. Der aktuelle Balken ist offen, die
   anderen zu (Kopf: Pfeil, ID, Name, fertig/alle mit kleinem Balken; fertig = gespeichert, nichts offen, nichts
   ungespeichert). Zustand je Foto als Zeichen in der Bildecke: gestrichelter grauer Ring = leer, gelber Ring mit
   blauem Tortenstück = offen (Anteil geprüft), blauer Haken = geprüft, weißer Punkt = geändert. Zugeklappte Balken
   zeichnen keine Bilder, neu gebaut wird nur bei Wechsel, Auf/Zu und Verwerfen (163 Fotos in 41 Balken: 8 ms).
   /labeln?balken=<ID> öffnet den Balken aufgeklappt. Am Handy springt der Reiter Bilder zum aktuellen Foto.
+  Balken wählen im Kopf (Jan 27.11.2026): Knopf mit ID, Name, fertig/alle öffnet die Liste aller Balken (Popover,
+  Pfeile, Esc, Taste W); Wahl springt zum ersten offenen Foto. Kopf zeigt das Foto ohne Balken-ID und „n von N“ im Balken.
+  Geprüft mit Playwright auf einer Kopie (4 Balken), 1440 und 390 px, axe ohne Befunde; nicht auf der Domain.
   Verwerfen: Symbol (Bild mit Kreuz) neben dem aktuellen Foto oder Entf, wenn ein Foto der Leiste den Fokus hat.
   Mac-Modus /api/loeschen und /api/zurueck (jetzt auch für hochgeladene Seiten), Servermodus /api/foto-weg und
   /api/foto-zurueck (neu, Werk.foto_zurueck, nur hochgeladene Seiten; Fotobox-Fotos zeigen dort kein Symbol).

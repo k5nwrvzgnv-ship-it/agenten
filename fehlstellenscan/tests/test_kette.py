@@ -205,6 +205,44 @@ class TestWeg(unittest.TestCase):
         self.assertEqual(self.ruf("/api/koerper?id=B999")[0], 400)
         self.assertEqual(self.ruf(f"/koerper/{b['id']}/S2.jpg")[0], 404)
 
+    def test_umriss_umrechnen(self):
+        alt, neu = [0.0, 0.0, 1.0, 1.0], [0.0, 0.1, 1.0, 0.8]
+        p = k.umriss_umrechnen([[0.2, 0.2], [0.4, 0.2], [0.4, 0.5]], alt, neu)
+        self.assertEqual(p, [[0.2, 0.125], [0.4, 0.125], [0.4, 0.5]])
+        # halb im weggeschnittenen Rand: am neuen Rand abgeschnitten
+        p = k.umriss_umrechnen([[0.2, 0.0], [0.4, 0.0], [0.4, 0.3], [0.2, 0.3]], alt, neu)
+        self.assertEqual(sorted(p), sorted([[0.2, 0.0], [0.4, 0.0], [0.4, 0.25], [0.2, 0.25]]))
+        self.assertIsNone(k.umriss_umrechnen([[0.2, 0.0], [0.4, 0.0], [0.3, 0.05]], alt, neu))   # ganz weg
+        x = {"zuschnitt": None, "objekte": [{"k": 1, "ok": True, "p": [[0.2, 0.2], [0.4, 0.2], [0.4, 0.5]]},
+                                            {"k": 2, "ok": True, "p": [[0.2, 0.95], [0.4, 0.95], [0.3, 1.0]]}]}
+        y = k.label_umrechnen(x, neu)
+        self.assertEqual((y["zuschnitt"], len(y["objekte"]), y["objekte"][0]["k"]), (neu, 1, 1))
+        self.assertIs(k.label_umrechnen(y, neu), y)
+
+    def test_rand(self):
+        """Jan 27.11.2026: Alustangen oben und unten. Plan, Label, Zuschnitt und nächste Seiten folgen dem Rand."""
+        i, namen = self.balken(("1",))
+        n = namen[0]
+        self.assertEqual(self.ruf("/api/label", {"name": n, "objekte": [
+            {"k": 1, "ok": True, "p": [[0.2, 0.5], [0.4, 0.5], [0.3, 0.7]]},
+            {"k": 1, "ok": True, "p": [[0.2, 0.0], [0.4, 0.0], [0.3, 0.02]]}]})[0], 200)
+        self.assertEqual(self.ruf(f"/zuschnitt/{n}.jpg")[0], 200)
+        z0 = self.werk.lesen(i)["seiten"]["1"]["plan"]["zuschnitt"]
+        status, st = self.ruf("/api/rand", {"oben": 0.03, "unten": 0.07})
+        self.assertEqual(status, 200, st)
+        self.assertEqual(st["rand"], {"seiten": 1, "fotos": 1, "labels": 1, "objekte_weg": 1})
+        z = self.werk.lesen(i)["seiten"]["1"]["plan"]["zuschnitt"]
+        x0, y0, b0, h0 = z0 or (0, 0, 1, 1)
+        self.assertEqual(z, [x0, max(y0, 0.03), b0, min(y0 + h0, 0.93) - max(y0, 0.03)])
+        x = json.loads((self.ordner / i / "labels" / f"{n}.json").read_text())
+        self.assertEqual((x["zuschnitt"], len(x["objekte"])), (z, 1))
+        _, roh = self.ruf(f"/zuschnitt/{n}.jpg")
+        from io import BytesIO
+        self.assertEqual(Image.open(BytesIO(roh)).height, round(1200 * min(y0 + h0, 0.93)) - round(1200 * max(y0, 0.03)))
+        self.assertEqual(self.werk.einst["zuschnitt"][1], max((self.werk.einst["zuschnitt"] or [0, 0])[1], 0.03))
+        self.assertEqual(self.ruf("/api/rand", {"oben": 0.03, "unten": 0.07})[1]["rand"]["seiten"], 0)
+        self.assertEqual(self.ruf("/api/rand", {"oben": "3", "unten": 0.07})[0], 400)
+
     def test_alter_plan_ohne_zuschnitt(self):
         """Wie B001 Seite 3: Plan aus einer älteren Fassung ohne "zuschnitt" -> ganzes Bild, kein Absturz."""
         b = self.werk.balken_speichern({"laenge_mm": 295.0, "breite_mm": 200.0, "hoehe_mm": 135.0, "holzart": ""})
@@ -235,6 +273,33 @@ class TestWeg(unittest.TestCase):
         self.assertEqual(self.ruf("/api/teil", {"balken": alt, "teil": "test"})[0], 200)
         self.assertEqual(self.ruf("/api/galerie")[1][1]["teil"], "test")
         self.assertEqual(self.ruf("/api/teil", {"balken": alt, "teil": "irgendwo"})[0], 400)
+
+    def test_auswahl_blendet_leere_und_doppelte_aus(self):
+        kennung, namen = self.balken(("1", "2", "3"))
+        kette = self.werk.kette
+        (self.ordner / kennung / "koerper").mkdir()
+        (self.ordner / kennung / "koerper" / "koerper.json").write_text(json.dumps({"seiten": {
+            "1": {"auswahl": [{"name": namen[0], "wahl": "doppelt"}], "abweichung_prozent": {}},
+            "2": {"auswahl": [{"name": namen[1], "wahl": "leer"}], "abweichung_prozent": {}},
+            "3": {"auswahl": [{"name": namen[2], "wahl": "drin"}], "abweichung_prozent": {}}}}))
+        self.assertEqual([b["name"] for b in self.ruf("/api/bilder")[1]], [namen[2]])
+        g = self.ruf("/api/galerie")[1][0]
+        self.assertEqual((g["fotos"], g["ausgeblendet"], g["seiten"]["1"]), (1, 2, 1))
+        # Vorlabel allein holt ein Foto nicht zurück, ein bestätigtes Objekt schon
+        f = kette.foto(namen[0])
+        objekt = {"k": 0, "p": [[0.1, 0.1], [0.2, 0.1], [0.2, 0.2]], "ok": False}
+        k.schreiben(kette.label_pfad(f), {"foto": f["datei"], "zeit": "2026-11-27T12:00:00", "von": "vorlabel",
+                                          "objekte": [objekt]})
+        self.assertEqual(len(kette.gezeigt(kette.lesen(kennung))), 1)
+        k.schreiben(kette.label_pfad(f), {"foto": f["datei"], "zeit": "2026-11-27T12:01:00", "von": "jan",
+                                          "objekte": [{**objekt, "ok": True}]})
+        self.assertEqual(len(kette.gezeigt(kette.lesen(kennung))), 2)
+        # Server: Auswahl vom Mac gilt, wenn neuer als koerper.json
+        time.sleep(0.01)
+        kette.auswahl_setzen(kennung, {namen[2]: "doppelt", "x": "quatsch"})
+        self.assertEqual(kette.ausgeblendet(kennung), {namen[2]: "doppelt"})
+        kette.auswahl_setzen("B999", {})                                    # unbekannter Balken: nichts
+        self.assertFalse((self.ordner / "B999").exists())
 
     def test_koerper_veraltet(self):
         with tempfile.TemporaryDirectory() as t:
