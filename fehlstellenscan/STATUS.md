@@ -777,6 +777,13 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   dafür auf dem Server). Server vergibt Balken ab B501 (Mac ab B001).
 - Labels tragen von (Name). Speichern schickt den geladenen Stand mit; hat inzwischen jemand anderes gespeichert, kommt
   ein Fehler mit Namen statt stillem Überschreiben (auch im Mac-Modus).
+- Herkunft der Labels (Jan 28.11.2026 „zurückverfolgbar zur labelnden bzw. korrigierenden Person“): jedes Objekt trägt
+  a (angelegt von: Name, "vorlabel" oder auf dem Mac "mac") und g (zuletzt geändert von), kette.herkunft_setzen
+  vergleicht mit dem alten Stand (Umriss auf 1e-4 gerundet). Jedes Speichern und Vorlabeln hängt den ganzen Stand mit
+  Zeit und Name an labels/<Foto>.verlauf.jsonl (nur anhängen). Labels von vor dem 28.11. haben kein a. a kommt vom
+  Browser zurück und ist nicht fälschungssicher, g und der Verlauf schon (Name aus der Anmeldung). Oberfläche zeigt
+  a und g noch nicht. labeln.js reicht a und g im Mac-Pfad durch (eine Zeile, liegt mit der offenen Live-Arbeit
+  uncommittet in labeln.js).
 - Kodytek-Auswahl auf dem Server (Jan 26.11.2026 „immer die Randfälle Kodytek auf der Domain“): abgleich hoch schickt
   die ausgewählten Bilder mit Originalumrissen nach aufnahmen/kodytek/quelle/{images,labels}/<teil>/, Korrekturen
   und einmessung.json mit --ignore-existing, auswahl.json zuletzt; runter holt kodytek/labels und einmessung.json.

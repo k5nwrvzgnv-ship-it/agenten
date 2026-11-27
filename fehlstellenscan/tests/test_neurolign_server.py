@@ -176,6 +176,28 @@ class Servermodus(unittest.TestCase):
         st, _ = self.ruf("/api/label", {"name": name, "stand": a["zeit"], "objekte": []}, wer="felix")
         self.assertEqual(st, 200)
 
+    def test_labels_zeigen_wer_angelegt_und_geaendert_hat(self):
+        kennung = self.balken()
+        self.ruf(f"/api/hochladen?balken={kennung}&seite=1", roh=jpeg(), wer="henri")
+        name = self.ruf("/api/bilder")[1][0]["name"]
+        ast = {"k": 0, "ok": False, "p": [[0.1, 0.1], [0.3, 0.1], [0.2, 0.3]]}
+        riss = {"k": 0, "ok": True, "p": [[0.5, 0.5], [0.7, 0.5], [0.6, 0.7]]}
+        st, a = self.ruf("/api/label", {"name": name, "stand": None, "objekte": [ast, riss]}, wer="henri")
+        self.assertEqual(st, 200, a)
+        geladen = self.ruf("/api/bilder")[1][0]["objekte"]
+        self.assertEqual([(o["a"], o.get("g")) for o in geladen], [("henri", None), ("henri", None)])
+        # Felix bestätigt den Ast (wie der Browser: Objekt mit a zurück), lässt den Riss, legt einen neuen an
+        neu = {"k": 0, "ok": True, "p": [[0.8, 0.1], [0.9, 0.1], [0.85, 0.2]]}
+        st, b = self.ruf("/api/label", {"name": name, "stand": a["zeit"],
+                                        "objekte": [{**geladen[0], "ok": True}, geladen[1], neu]}, wer="felix")
+        self.assertEqual(st, 200, b)
+        objekte = json.loads((self.ablage / kennung / "labels" / f"{name}.json").read_text())["objekte"]
+        self.assertEqual([(o["a"], o.get("g")) for o in objekte],
+                         [("henri", "felix"), ("henri", None), ("felix", None)])
+        verlauf = (self.ablage / kennung / "labels" / f"{name}.verlauf.jsonl").read_text().splitlines()
+        self.assertEqual([json.loads(z)["von"] for z in verlauf], ["henri", "felix"])
+        self.assertEqual(len(json.loads(verlauf[0])["objekte"]), 2)
+
     def test_foto_massstab_einmessen(self):
         kennung = self.balken()
         self.ruf(f"/api/hochladen?balken={kennung}&seite=1", roh=jpeg(), wer="henri")

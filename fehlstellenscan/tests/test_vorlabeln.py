@@ -225,7 +225,7 @@ class Mac(unittest.TestCase):
         self.assertIn("save_conf=True", aufruf)
         l0 = self.werk.kette.label(self.werk.kette.foto(namen[0]))
         l1 = self.werk.kette.label(self.werk.kette.foto(namen[1]))
-        self.assertEqual(l0["objekte"][0], bestaetigt | {"p": l0["objekte"][0]["p"]})
+        self.assertEqual(l0["objekte"][0], bestaetigt | {"p": l0["objekte"][0]["p"], "a": "mac"})
         # zwei Kacheln (0 und 720 px) je zwei bekannte Objekte (99 kennt das Modell nicht); das kleine bei 5-10 %
         # der zweiten Kachel liegt in der Überlappung außerhalb ihres Kerns (gehört der ersten), also drei je Foto.
         # Das Riss-Objekt der ersten Kachel auf Foto 1 liegt unter dem bestätigten.
@@ -322,7 +322,8 @@ class UeberTunnel(unittest.TestCase):
         self.assertEqual(len(l1["objekte"]), 3)
         self.assertEqual(l1["objekte"][0]["q"], vl.STANDARD_MODELL)
         l0 = self.server.werk.kette.label(self.server.werk.kette.foto(self.namen[0]))
-        self.assertEqual(l0["objekte"][0], self.hand)               # bestätigt bleibt
+        self.assertEqual(l0["objekte"][0], self.hand | {"a": "felix"})   # bestätigt bleibt, mit Herkunft
+        self.assertEqual({o["a"] for o in l1["objekte"]}, {"vorlabel"})
         for _ in range(100):
             st, stand = self.vom_server("GET", "/api/vorlabeln")
             if stand["lauf"]["status"] == "fertig" and "ergebnis" not in json.dumps(stand):

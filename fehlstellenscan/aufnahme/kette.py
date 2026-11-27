@@ -99,8 +99,46 @@ def objekte_pruefen(werte, ids=None, von: str | None = None) -> list[dict]:
             neu["kv"] = o["kv"]
         if m := messungen_pruefen(o.get("m"), von):
             neu["m"] = m
+        for f in ("a", "g"):                # angelegt von, zuletzt geändert von (herkunft_setzen)
+            if isinstance(o.get(f), str) and re.fullmatch(r"[a-z]{1,20}", o[f]):
+                neu[f] = o[f]
         ergebnis.append(neu)
     return ergebnis
+
+
+def _gleich(o: dict) -> str:
+    """Schlüssel für "unverändert": Klasse, bestätigt, Umriss (auf 1e-4 gerundet, Rundung im Browser) und Messungen."""
+    return json.dumps([o["k"], bool(o.get("ok")), [[round(w, 4) for w in q] for q in o["p"]], o.get("m")])
+
+
+def herkunft_setzen(alt: list[dict], neu: list[dict], von: str) -> list[dict]:
+    """Wer hat jedes Objekt angelegt (a) und zuletzt geändert (g)? Unveränderte Objekte behalten a und g aus dem alten
+    Stand. Geänderte kommen mit ihrem a aus dem Browser zurück und bekommen g = von. Objekte ohne a sind neu: a = von."""
+    vorrat: dict[str, list[dict]] = {}
+    for o in alt or []:
+        vorrat.setdefault(_gleich(o), []).append(o)
+    for o in neu:
+        if treffer := vorrat.get(_gleich(o)):
+            vorher = treffer.pop(0)
+            for f in ("a", "g"):
+                if vorher.get(f):
+                    o[f] = vorher[f]
+                else:
+                    o.pop(f, None)
+        elif o.get("a"):
+            o["g"] = von
+        else:
+            o["a"] = von
+            o.pop("g", None)
+    return neu
+
+
+def verlauf_anhaengen(label_pfad: Path, eintrag: dict) -> None:
+    """Jeder gespeicherte Stand eines Fotos, mit Name und Zeit, nur angehängt: <Foto>.verlauf.jsonl neben dem Label."""
+    pfad = label_pfad.with_suffix(".verlauf.jsonl")
+    pfad.parent.mkdir(parents=True, exist_ok=True)
+    with pfad.open("a", encoding="utf-8") as d:
+        d.write(json.dumps(eintrag, ensure_ascii=False) + "\n")
 
 
 def _schneiden(p: list, innen) -> list:
@@ -573,17 +611,20 @@ class Kette:
         objekte = objekte_pruefen(daten.get("objekte"), kl.aktive_ids(self.klassen()), von)
         with self.schloss:
             f = self.foto(daten.get("name"))
+            alt = self.label(f)
             if "stand" in daten:
-                alt = self.label(f)
                 if (alt or {}).get("zeit") != daten["stand"]:
                     wer = f" von {alt['von']}" if alt and alt.get("von") else ""
                     raise ValueError(f"Inzwischen{wer} gespeichert ({(alt or {}).get('zeit', '')[11:16]}). "
                                      "Seite neu laden, dann weiter.")
             zeit = datetime.now().isoformat(timespec="seconds")
+            herkunft_setzen((alt or {}).get("objekte", []), objekte, von or "mac")
             neu = {"foto": f["datei"], "zuschnitt": f["plan"].get("zuschnitt"), "zeit": zeit, "objekte": objekte}
             if von:
                 neu["von"] = von
             schreiben(self.label_pfad(f), neu)
+            verlauf_anhaengen(self.label_pfad(f), {"zeit": zeit, "von": von or "mac", **{k: neu[k] for k in
+                                                   ("zuschnitt", "objekte")}})
         return {"zeit": zeit}
 
     def umgebung(self) -> Path:
@@ -1075,13 +1116,17 @@ class Kette:
                 neu = objekte_pruefen([{**o, "ok": False} for o in neu if isinstance(o, dict) and o.get("k") in ids],
                                       ids)
                 alt = self.label(f)
+                for o in neu:
+                    o["a"] = "vorlabel"         # Modell, welches steht in q
                 objekte, z = vl.einfuegen((alt or {}).get("objekte", []), neu)
                 for k in z:
                     zahl[k] += z[k]
                 zahl["fotos"] += 1
+                zeit = datetime.now().isoformat(timespec="seconds")
                 schreiben(self.label_pfad(f), {"foto": f["datei"], "zuschnitt": f["plan"].get("zuschnitt"),
-                                               "zeit": datetime.now().isoformat(timespec="seconds"),
-                                               "objekte": objekte, "von": von})
+                                               "zeit": zeit, "objekte": objekte, "von": von})
+                verlauf_anhaengen(self.label_pfad(f), {"zeit": zeit, "von": von, "zuschnitt":
+                                                       f["plan"].get("zuschnitt"), "objekte": objekte})
         return zahl
 
     def vorlabeln_abbrechen(self, daten: dict) -> dict:

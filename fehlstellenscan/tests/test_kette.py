@@ -129,6 +129,28 @@ class TestLogik(unittest.TestCase):
                 self.assertGreater(z.getpixel((100, 100))[0], 200)
 
 
+class TestHerkunft(unittest.TestCase):
+    def test_unveraendert_behaelt_geaendert_traegt_neu_legt_an(self):
+        alt = [{"k": 1, "ok": True, "p": DREIECK, "a": "henri"},
+               {"k": 2, "ok": False, "p": DREIECK, "a": "vorlabel", "q": "m"}]
+        neu = [{"k": 1, "ok": True, "p": [[x + 1e-7 for x in q] for q in DREIECK]},   # Rundung im Browser
+               {"k": 2, "ok": True, "p": DREIECK, "a": "vorlabel", "q": "m"},       # Vorlabel bestätigt
+               {"k": 3, "ok": True, "p": DREIECK}]
+        k.herkunft_setzen(alt, neu, "felix")
+        self.assertEqual([(o.get("a"), o.get("g")) for o in neu],
+                         [("henri", None), ("vorlabel", "felix"), ("felix", None)])
+
+    def test_alte_labels_ohne_herkunft_bleiben_ohne(self):
+        neu = [{"k": 1, "ok": True, "p": DREIECK}]
+        k.herkunft_setzen([{"k": 1, "ok": True, "p": DREIECK}], neu, "jan")
+        self.assertNotIn("a", neu[0])
+
+    def test_namen_werden_geprueft(self):
+        o = k.objekte_pruefen([{"k": 1, "p": DREIECK, "a": "Henri; x", "g": "felix"}])[0]
+        self.assertNotIn("a", o)
+        self.assertEqual(o["g"], "felix")
+
+
 class TestWeg(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
