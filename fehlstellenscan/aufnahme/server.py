@@ -285,14 +285,18 @@ class Werk:
     def massstab(self, daten: dict) -> dict:
         with self.schloss:
             b = self.lesen(daten.get("balken"))
-            s = self.seite(b, daten.get("seite"))
-            if not s["fotos"]:
-                raise ValueError("Auf dieser Seite gibt es noch kein Foto.")
+            self.seite(b, daten.get("seite"))
+            try:
+                plan = self.plan(b, daten["seite"])
+            except ValueError:
+                plan = None
+            if not plan or plan.get("frei"):
+                raise ValueError("Diese Seite hat keinen Plan, Maßstab geht hier nicht.")   # auch im Livebild
             anteil = daten.get("anteil")
             if isinstance(anteil, bool) or not isinstance(anteil, (int, float)):
                 raise ValueError("Zwei Punkte im Foto anklicken.")
             strecke = l.zahl(daten, "strecke_mm", 10, 2000, "Strecke")
-            faktor = l.faktor_aus_messung(anteil, strecke, s["plan"]["abstand_mm"])
+            faktor = l.faktor_aus_messung(anteil, strecke, plan["abstand_mm"])
             self.einst["faktor"], self.einst["faktor_gemessen"] = faktor, True
             self.sichern()
             # Fotos dieses Balkens gelten ab jetzt mit dem gemessenen Maßstab (Labeln rechnet mit dem Plan der Seite)

@@ -274,6 +274,13 @@ class TestServer(unittest.TestCase):
         self.assertAlmostEqual(nachher["voll_mm"] * 0.5, 300)
         self.assertEqual(nachher["mitten_mm"], vorher["mitten_mm"])
 
+    def test_massstab_im_livebild(self):
+        b = self.balken()
+        status, antwort = self.ruf("/api/massstab", {"balken": b, "seite": "2", "anteil": 0.5, "strecke_mm": 300})
+        self.assertEqual(status, 200, antwort)
+        self.assertTrue(antwort["einstellungen"]["faktor_gemessen"])
+        self.assertAlmostEqual(antwort["balken"][0]["seiten"]["2"]["plan"]["voll_mm"] * 0.5, 300)
+
     def test_bildfeld_von_hand(self):
         b = self.balken()
         voll = self.ruf("/api/stand")[1]["balken"][0]["seiten"]["2"]["plan"]["voll_mm"]
