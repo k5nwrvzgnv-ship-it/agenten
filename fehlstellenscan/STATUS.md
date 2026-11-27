@@ -513,8 +513,19 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Boxen, Platten, CC BY-NC-ND), MVTec AD wood (wenige Bilder, CC BY-NC-SA), Oulu nur Äste, Roboflow-Sätze ungeprüft.
   Nichts geladen. Weg: Vorlabeln mit kodytek-seg1-n1280 (Fugen-„Risse“ per Balken mit Haken umklassifizieren), neue
   Klassen von Hand, dann altholz-1 vom Kodytek-Modell mit Kodytek-Auswahl; danach wählt Vorlabeln altholz-N selbst.
-  Offen (Jans Entscheidung): Test mit Text-Prompt-Modellen auf dem Mac (SAM 3 in ultralytics ab 8.3.237, Gewichte nur
-  nach Freigabe auf Hugging Face; YOLOE, Gewichte laden automatisch) als Vorlabel ohne eigene Labels, ungeprüft auf Holz.
+- Test Text-Prompt-Modelle (Jan 28.11.2026 „Test vorbereiten“): aufnahme/textprompt.py (tests/test_textprompt.py,
+  ohne torch). Vorlabel nur aus Begriffen (wood knot, crack, resin pocket, nail hole, screw hole, chipped wood, insect
+  exit hole, glue line, metal nail; per --begriff ersetzbar), YOLOE (yoloe-26l-seg.pt) und SAM 3 (SAM3SemanticPredictor,
+  ~/fehlstellenscan/modelle/sam3.pt). Fotos wie im Labeln gezeigt, je Balken gleichmäßig verteilt, Kacheln und
+  Umrechnung wie Vorlabeln. Ausgabe ~/fehlstellenscan/textprompt-test/ (ergebnis.json, bilder/ je Foto oben YOLOE,
+  unten SAM 3), nichts geht in die Labels. Nicht gelaufen: echtes ultralytics nie aufgerufen; ob SAM 3 auf mps läuft und
+  welche names es liefert, ist ungeprüft (ohne names gilt die Nummer = Stelle des Begriffs).
+  Achtung Mac-.venv: Der erste YOLOE-Lauf installiert laut ultralytics-Doku per pip das Paket CLIP (github
+  ultralytics/CLIP) und lädt mobileclip2_b.ts (rund 254 MB) ins aktuelle Verzeichnis; SAM 3 ist 3,45 GB.
+  Mac (Umgebung an): sam3.pt nach Freigabe auf https://huggingface.co/facebook/sam3 nach ~/fehlstellenscan/modelle/;
+  `bash ~/fehlstellenscan/mac/neurolign_einrichten.sh` (holt den Code); `cd ~/fehlstellenscan && python
+  aufnahme/textprompt.py --balken B004 B005 --anzahl 10` (ohne sam3.pt: `--modelle yoloe`); danach
+  `scp -r textprompt-test agents-user:agenten/fehlstellenscan/data/laeufe/`. Nicht neben Training oder Vorlabeln.
 - Gespeichert werden jetzt je Objekt auch Konfidenz c und Quelle q (Vorlabel, vorher beim Speichern verloren), kv und m.
 - Am Holz gemessen (Jan 26.11.2026, für Prüfbalken): Bearbeiten > „Am Holz gemessen“, kleinster und größter
   Durchmesser in mm je Person (m: von, min, max; auf dem Mac „mac“), daneben Bild minus Holz (hervorgehoben ab 1 mm
