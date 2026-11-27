@@ -501,6 +501,20 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   Gilt sofort für alle (/api/klassen, Recht labeln). Training: YOLO-Nummer = ID, gelöschte IDs bleiben leer in
   data.yaml. neurolign_abgleich.sh runter holt klassen.json mit. Offene Browser anderer merken eine Änderung erst nach
   Neuladen (Speichern mit gelöschter Klasse wird mit Hinweis abgelehnt).
+- Klassen der Gruppe (Telegram 27.11.2026, Felix, Henri, Jan; Jans Okay 28.11.): klassen.gruppenklassen (getestet,
+  zweimal ändert nichts) hat am 28.11. auf dem Server aufnahmen/klassen.json angelegt (vorher Startfassung): neu
+  18 abplatzung „Abplatzung“ (Gruppe Loch, eine neue Gruppe fiele ans Ende unter „Weitere“), 19 riss_klebefuge „Riss
+  Klebefuge“ (hinter Riss); umbenannt 4 crack „Riss Lamelle“, 6 resin „Harzgalle“, 12 nagelloch „Nagel-/Schraubloch“.
+  Bohrloch, Metall, Fuge (heile Klebefuge, nötig gegen Fugen als Riss) und der Rest bleiben. Abgrenzungen als Entwurf
+  in docs/labelrichtlinie.md. Seite Training zeigt bei IDs ab 18 den Schlüssel (feste Namensliste dort, alte Namen).
+  Mac bekommt die Datei mit `neurolign_abgleich.sh runter`.
+  Daten (Suche 27.11.): Kodytek deckt Äste, Riss Lamelle, Harzgalle. Für Abplatzung, Nagel-/Schraubloch, Riss
+  Klebefuge, Insektenloch kein brauchbarer offener Satz: beschichtetes Holz (Zenodo 15679291, 335 Rohbilder, nur
+  Boxen, Platten, CC BY-NC-ND), MVTec AD wood (wenige Bilder, CC BY-NC-SA), Oulu nur Äste, Roboflow-Sätze ungeprüft.
+  Nichts geladen. Weg: Vorlabeln mit kodytek-seg1-n1280 (Fugen-„Risse“ per Balken mit Haken umklassifizieren), neue
+  Klassen von Hand, dann altholz-1 vom Kodytek-Modell mit Kodytek-Auswahl; danach wählt Vorlabeln altholz-N selbst.
+  Offen (Jans Entscheidung): Test mit Text-Prompt-Modellen auf dem Mac (SAM 3 in ultralytics ab 8.3.237, Gewichte nur
+  nach Freigabe auf Hugging Face; YOLOE, Gewichte laden automatisch) als Vorlabel ohne eigene Labels, ungeprüft auf Holz.
 - Gespeichert werden jetzt je Objekt auch Konfidenz c und Quelle q (Vorlabel, vorher beim Speichern verloren), kv und m.
 - Am Holz gemessen (Jan 26.11.2026, für Prüfbalken): Bearbeiten > „Am Holz gemessen“, kleinster und größter
   Durchmesser in mm je Person (m: von, min, max; auf dem Mac „mac“), daneben Bild minus Holz (hervorgehoben ab 1 mm

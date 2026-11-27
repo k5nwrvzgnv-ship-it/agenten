@@ -1,6 +1,6 @@
 # Labelrichtlinie Altholz (Entwurf)
 
-Stand 23.11.2026, Entwurf von Claude, nicht entschieden. Henri und Felix lesen gegen, dann legen wir sie zu dritt
+Stand 23.11.2026, Klassen der Gruppe 27.11.2026 ergänzt. Entwurf von Claude, Abgrenzungen nicht entschieden. Henri und Felix lesen gegen, dann legen wir sie zu dritt
 fest. Gehört zu docs/plan-trainingswerkzeug.md (Phase 0) und docs/plan-erster-test-altholz.md.
 Warum so genau: Das Modell lernt den Stil der Masken mit. Zeichnen wir weit, misst es später zu groß. Zeichnet
 jede Person anders, lernt es Rauschen. Die Kodytek-Masken sind mit dem Pinsel großzügig gemalt, deshalb messen
@@ -30,6 +30,28 @@ neue Zuordnung). Neue Klassen ab 10. Vorschlag, gemeinsam festlegen:
 | 15 | insektenfrass | Fraßgänge, Ausfluglöcher |
 | 16 | verbindung | alte Verbindung: Zapfenloch, Kerve, Blatt, Versatz |
 | 17 | fuge | Klebefuge (nur BSH, KVH), sonst hält das Modell Fugen für Risse |
+| 18 | abplatzung | Abplatzung, mechanische Beschädigung (neu 27.11.) |
+| 19 | riss_klebefuge | Riss in der Klebefuge (neu 27.11.) |
+
+### Gruppe vom 27.11.2026 (Felix, Henri, Jan)
+Zuerst erkennen wir die häufigsten Merkmale bei Gebrauchtholz (Felix): Äste, Abplatzungen / mechanische
+Beschädigungen, Nagel- bzw. Schraubloch, Harzgallen, Risse (nur erkennen, ohne Tiefe), eventuell Einfluglöcher von
+Insekten. Risse in der Klebefuge und in der Lamelle trennen wir. Ein Fremdüberwacher vom WKI zählt beides als Riss.
+Wir trennen trotzdem, zusammenlegen geht später ohne neues Labeln.
+In Neurolign heißen die Klassen jetzt: Riss Lamelle (4, crack), Riss Klebefuge (19), Abplatzung (18),
+Nagel-/Schraubloch (12), Harzgalle (6), Insektenfraß (15). Die übrigen Klassen bleiben. Wir zeichnen sie, wenn sie
+auffallen, gezielt gesucht werden sie vorerst nicht.
+
+Abgrenzungen (Entwurf, gemeinsam prüfen):
+- Riss Lamelle: Spalt im Holz einer Lamelle, auch wenn er nahe an der Fuge läuft.
+- Riss Klebefuge: Spalt genau in der Klebefuge, also offene Fuge oder abgelöste Verklebung. Eine heile Fuge (dünne
+  Linie, kein Spalt) ist Fuge (17). Beide braucht das Modell, sonst hält es jede Fuge für einen Riss.
+- Abplatzung: frische oder alte Stelle, an der Holz fehlt, durch Stoß, Werkzeug oder Ausriss. Fehlt ein Ast, ist es
+  ein Astloch (2), auch wenn der Rand ausgerissen ist.
+- Nagel-/Schraubloch: kleines Loch von Nagel, Schraube oder Klammer, ohne Metall. Mit sichtbarem Metall: Metall (11).
+  Gebohrtes Loch (rund, scharfer Rand, meist größer, z. B. für Dübel oder Bolzen): Bohrloch (10).
+- Insektenfraß: Ausflug- oder Einfluglöcher (rund oder oval, oft mehrere) und offene Fraßgänge. Ein Nagelloch steht
+  oft mit dunklem Rand (Rost) und folgt mit anderen einer Linie (Nagelreihe); Insektenlöcher liegen verstreut.
 
 Live gegen tot ist schon bei Kodytek die häufigste Verwechslung. Wenn wir uns beim Labeln oft nicht einig sind,
 fassen wir 0 und 1 zu „Ast“ zusammen (entscheiden nach den 20 doppelt gelabelten Bildern).

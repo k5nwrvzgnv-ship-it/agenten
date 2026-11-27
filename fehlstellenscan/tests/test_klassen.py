@@ -56,6 +56,33 @@ class TestKlassen(unittest.TestCase):
         y = kl.neu(d, "Fäule weiß", "Pilz")             # neue Gruppe ans Ende
         self.assertEqual((y["schluessel"], kl.gruppen(d)[-1]), ("faeule_weiss", "Pilz"))
 
+    def test_gruppenklassen_27_11(self):
+        d = kl.standard()
+        gemacht = kl.gruppenklassen(d)
+        self.assertEqual(len(gemacht), 5)
+        self.assertEqual((kl.klasse(d, 18)["schluessel"], kl.klasse(d, 18)["gruppe"]), ("abplatzung", "Loch"))
+        self.assertEqual((kl.klasse(d, 19)["schluessel"], kl.klasse(d, 19)["gruppe"]), ("riss_klebefuge", "Riss"))
+        self.assertEqual([kl.klasse(d, i)["name"] for i in (4, 6, 12, 19)],
+                         ["Riss Lamelle", "Harzgalle", "Nagel-/Schraubloch", "Riss Klebefuge"])
+        namen = kl.schluessel_liste(d)
+        self.assertEqual(namen[:18], k.KLASSEN)                  # alte Nummern bleiben, Kodytek 0-9 auch
+        self.assertEqual(namen[18:], ["abplatzung", "riss_klebefuge"])
+        reihe = [y["id"] for y in d["klassen"]]
+        self.assertEqual(reihe[reihe.index(4) + 1], 19)          # Riss Klebefuge gleich hinter Riss Lamelle
+        self.assertEqual(kl.gruppen(d), ["Ast", "Riss", "Loch", "Fuge", "Metall", "Weitere"])
+        vorher = json.dumps(d, sort_keys=True)
+        self.assertEqual(kl.gruppenklassen(d), [])               # zweimal ändert nichts
+        self.assertEqual(json.dumps(d, sort_keys=True), vorher)
+
+    def test_gruppenklassen_laesst_eigene_aenderungen(self):
+        d = kl.standard()
+        kl.weg(d, 4, 3, 0)                                       # Riss gelöscht: wird nicht umbenannt
+        kl.neu(d, "Abplatzung", "Weitere")                       # schon von Hand angelegt: bleibt, wo sie ist
+        kl.gruppenklassen(d)
+        self.assertEqual(kl.klasse(d, 4)["name"], "Riss")
+        self.assertEqual([y["gruppe"] for y in d["klassen"] if y["schluessel"] == "abplatzung"], ["Weitere"])
+        self.assertEqual(kl.klasse(d, 19)["schluessel"], "riss_klebefuge")
+
     def test_geloeschte_id_kommt_nie_wieder(self):
         d = kl.standard()
         x = kl.neu(d, "Test", "Weitere")

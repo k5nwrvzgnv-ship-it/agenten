@@ -14,7 +14,7 @@ function ergebnis(e){if(!e)return'';const a=e.altholz||e,g=a.gesamt,m=g.maske,b=
  <p class="leise boxen">Boxen: mAP50 ${dez(b.map50)}, mAP50-95 ${dez(b.map)}, Precision ${dez(b.p)}, Recall ${dez(b.r)}</p>${e.altholz?`
  <p class="leise boxen">Alle Sätze zusammen (${zahl(e.gesamt.bilder)} Bilder): mAP50 ${dez(ge.map50)}, mAP50-95 ${dez(ge.map)}, Precision ${dez(ge.p)}, Recall ${dez(ge.r)}</p>`:''}
  <div class="breit" tabindex="0" role="region" aria-label="Masken je Klasse"><table class="zahlen"><caption class="nurvor">Masken je Klasse</caption><thead><tr><th>Klasse</th><th>Objekte</th><th>mAP50</th><th>mAP50-95</th><th>Precision</th><th>Recall</th></tr></thead>
- <tbody>${a.klassen.map(k=>`<tr><td>${esc(k.k==null?k.klasse:KL[k.k])}</td><td>${zahl(k.objekte)}</td><td>${dez(k.maske.map50)}</td><td>${dez(k.maske.map)}</td><td>${dez(k.maske.p)}</td><td>${dez(k.maske.r)}</td></tr>`).join('')}</tbody></table></div>
+ <tbody>${a.klassen.map(k=>`<tr><td>${esc(k.k==null?k.klasse:KL[k.k]??k.klasse)}</td><td>${zahl(k.objekte)}</td><td>${dez(k.maske.map50)}</td><td>${dez(k.maske.map)}</td><td>${dez(k.maske.p)}</td><td>${dez(k.maske.r)}</td></tr>`).join('')}</tbody></table></div>
  <dl class="lauf">${neben.map(([n,w])=>`<div><dt>${n}</dt><dd>${esc(w)}</dd></div>`).join('')}</dl>
  <p class="leise pfad">${esc(e.gewichte)}</p>`}
 const TEIL={train:'Training',val:'Prüfung',test:'Nur Test'};

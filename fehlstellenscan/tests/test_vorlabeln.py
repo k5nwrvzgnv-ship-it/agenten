@@ -110,6 +110,19 @@ class Logik(unittest.TestCase):
         kls.aendern(d, 17, "Klebefuge", None, ...)
         self.assertEqual(vl.zuordnung(dict(enumerate(kls.schluessel_liste(d))), d)[17], 17)
 
+    def test_zuordnung_gruppenklassen(self):
+        d = kls.standard()
+        kls.gruppenklassen(d)
+        # Kodytek-Modell: crack landet in „Riss Lamelle“, resin in „Harzgalle“ (Schlüssel bleiben)
+        kodytek = dict(enumerate(["live_knot", "dead_knot", "knot_missing", "knot_with_crack", "crack", "quartzity",
+                                  "resin", "marrow", "blue_stain", "overgrown"]))
+        z = vl.zuordnung(kodytek, d)
+        self.assertEqual(z, {i: i for i in range(10)})
+        self.assertEqual(kls.klasse(d, z[4])["name"], "Riss Lamelle")
+        # altholz-Modell mit den neuen Klassen: Nummer = ID, auch 18 und 19
+        z = vl.zuordnung(dict(enumerate(kls.schluessel_liste(d))), d)
+        self.assertEqual((z[18], z[19], len(z)), (18, 19, 20))
+
     def test_modell_wahl(self):
         k = {"name": vl.STANDARD_MODELL, "zahl": None, "zeit": 1}
         self.assertEqual(vl.modell_wahl([k]), vl.STANDARD_MODELL)

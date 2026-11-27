@@ -28,6 +28,12 @@ STANDARD = [
 MUSTER = ["", "9 4", "3 3", "12 3 3 3", "5 4", "16 4", "2 6", "14 4 2 4"]
 MAX_KLASSEN = 64
 
+# Klassen der Projektgruppe (Telegram 27.11.2026, Felix, Henri, Jan): Äste, Abplatzung, Nagel-/Schraubloch,
+# Harzgalle, Riss Lamelle und Riss Klebefuge getrennt, Insektenloch. Neue Klassen (Schlüssel, Name, Gruppe) und neue
+# Namen je Schlüssel. Abplatzung steht bei Loch, weil eine neue Gruppe ans Ende unter „Weitere“ fiele.
+GRUPPE_NEU = [("abplatzung", "Abplatzung", "Loch"), ("riss_klebefuge", "Riss Klebefuge", "Riss")]
+GRUPPE_NAMEN = {"crack": "Riss Lamelle", "nagelloch": "Nagel-/Schraubloch", "resin": "Harzgalle"}
+
 
 def standard() -> dict:
     return {"klassen": [{"id": i, "schluessel": s, "name": n, "gruppe": g, "muster": m, "farbe": None, "aktiv": True}
@@ -135,6 +141,26 @@ def neu(d: dict, name, gruppe) -> dict:
     d["klassen"].insert(stelle + 1, k)
     d["letzte"] = None
     return k
+
+
+def gruppenklassen(d: dict) -> list[str]:
+    """Klassen der Gruppe vom 27.11.2026 eintragen. Gibt es einen Schlüssel schon (auch gelöscht), bleibt er, wie er
+    ist; gelöschte Klassen werden nicht umbenannt. Zweimal anwenden ändert nichts. Gibt die Änderungen als Text zurück."""
+    gemacht = []
+    for s, name, gruppe in GRUPPE_NEU:
+        if any(k["schluessel"] == s for k in d["klassen"]):
+            continue
+        k = neu(d, name, gruppe)
+        if k["schluessel"] != s:
+            raise ValueError(f"Schlüssel {k['schluessel']} statt {s}.")
+        gemacht.append(f"neu {k['id']} {s} „{name}“ ({gruppe})")
+    for s, name in GRUPPE_NAMEN.items():
+        k = next((k for k in d["klassen"] if k["schluessel"] == s), None)
+        if k and k["aktiv"] and k["name"] != name:
+            alt = k["name"]
+            aendern(d, k["id"], name=name)
+            gemacht.append(f"{k['id']} {s}: „{alt}“ -> „{name}“")
+    return gemacht
 
 
 def weg(d: dict, kid, ziel=None, anzahl: int = 0) -> None:
