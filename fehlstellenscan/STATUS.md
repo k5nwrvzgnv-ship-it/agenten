@@ -526,6 +526,23 @@ Gegenprobe ohne ultralytics: was das Modell je Objekt richtig und falsch macht, 
   `bash ~/fehlstellenscan/mac/neurolign_einrichten.sh` (holt den Code); `cd ~/fehlstellenscan && python
   aufnahme/textprompt.py --balken B004 B005 --anzahl 10` (ohne sam3.pt: `--modelle yoloe`); danach
   `scp -r textprompt-test agents-user:agenten/fehlstellenscan/data/laeufe/`. Nicht neben Training oder Vorlabeln.
+  Lauf 28.11. (nur YOLOE, B004/B005, 20 Fotos, conf 0,2): 24 s, 37 Funde, 0 Risse, 0 Harz, 1 Abplatzung; Bilder in
+  data/laeufe/textprompt-test/. Sichtprüfung: übersieht Risse und Abplatzungen fast ganz. Taugt so nicht zum Vorlabeln.
+- Vorlabel mit Claude (Jan 28.11.2026 „Baller jetzt die Vorlabels“): claudelabel.py (rein, tests/test_claudelabel.py)
+  und vorlabel_claude.py (Server). Claude sieht Zuschnitte mit Lineal 0-100 % und nennt je Fehlstelle Klasse, Kästchen,
+  Sicherheit; opencv macht den Umriss (Loch: dunkler Fleck/Otsu, Riss: dunkle Linie zeilenweise verfolgt, Rest: GrabCut,
+  sonst Ellipse). Einfügen über Kette.vorlabel_einfuegen (bestätigte bleiben, offene Vorlabel ersetzt), q = Quelle.
+  Zuschnitt aus der Vorschau (2400 px), gleiche Anteile wie am Mac.
+  - 28.11.: alle 112 gezeigten Fotos von B004/B005 im Chat durchgesehen (q „claude-chat“), 666 offene Vorlabel in den
+    Server-Labels: Riss Lamelle 290, Nagel-/Schraubloch 199, Abplatzung 79, Ast tot 33, Ast lebend 29, Insektenfraß 25,
+    Ast mit Riss 11. Ersetzt: 16 offene Kodytek-Vorlabel auf B004 S1. Lauf, Funde, Kontrollbilder und Sicherung der alten
+    Labels: data/vorlabel-claude/20261128-012117/ (funde_chat.json, ergebnis.json, kontrolle/, sicherung/).
+    Zurück: sicherung/B004-labels nach aufnahmen/B004/labels kopieren, B005-Labels löschen (vorher keine).
+  - Stärken/Schwächen (Sichtprüfung Kontrollbilder): Löcher und Abplatzungen sitzen gut, gerade Risse gut, schräge Risse
+    verfolgt, aber Umriss nur so genau wie Kästchen und Kontrast; lebend/tot und Insektenloch/Nagelloch unsicher;
+    Sicherheit ist Claudes Schätzung, keine Wahrscheinlichkeit. Keine Klebefugen (Vollholz).
+  - Automatisch (vorlabel_claude.py --balken ...) scheitert bisher: claude -p mit dem Agenten-Konto meldet „Your
+    organization has disabled Claude subscription access for Claude Code“. Offen bei Jan: Konto/Zugang klären.
 - Gespeichert werden jetzt je Objekt auch Konfidenz c und Quelle q (Vorlabel, vorher beim Speichern verloren), kv und m.
 - Am Holz gemessen (Jan 26.11.2026, für Prüfbalken): Bearbeiten > „Am Holz gemessen“, kleinster und größter
   Durchmesser in mm je Person (m: von, min, max; auf dem Mac „mac“), daneben Bild minus Holz (hervorgehoben ab 1 mm
